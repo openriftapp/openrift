@@ -304,4 +304,32 @@ describe("useSelectionStore", () => {
       expect(useSelectionStore.getState().selectedZone).toBeNull();
     });
   });
+
+  describe("reanchorSelection", () => {
+    it("keeps a card that the list lacks and drops its index", () => {
+      const neeko = stubPrinting({ printingId: "p1", cardId: "c1", card: { name: "Neeko" } });
+      const volibear = stubPrinting({ printingId: "p2", cardId: "c2", card: { name: "Volibear" } });
+      useSelectionStore.getState().selectCard(neeko, [{ id: "p1", printing: neeko }], "card");
+
+      useSelectionStore.getState().reanchorSelection([{ id: "p2", printing: volibear }]);
+      useSelectionStore.getState().reconcileSelection([{ id: "p2", printing: volibear }]);
+
+      const state = useSelectionStore.getState();
+      expect(state.selectedCard?.cardId).toBe("c1");
+      expect(state.selectedIndex).toBe(-1);
+    });
+
+    it("moves the index onto the card's position in the new list", () => {
+      const neeko = stubPrinting({ printingId: "p1", cardId: "c1", card: { name: "Neeko" } });
+      const volibear = stubPrinting({ printingId: "p2", cardId: "c2", card: { name: "Volibear" } });
+      useSelectionStore.getState().selectCard(neeko, [{ id: "p1", printing: neeko }], "card");
+
+      useSelectionStore.getState().reanchorSelection([
+        { id: "p2", printing: volibear },
+        { id: "p1", printing: neeko },
+      ]);
+
+      expect(useSelectionStore.getState().selectedIndex).toBe(1);
+    });
+  });
 });

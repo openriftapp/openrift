@@ -17,6 +17,7 @@ interface DeckAddStripProps {
   deckQuantity: number;
   maxReached?: boolean;
   addLabel?: string;
+  addIcon?: boolean;
   addAriaLabel?: string;
   addTooltip?: string;
   removeLabel?: string;
@@ -24,7 +25,7 @@ interface DeckAddStripProps {
   remainingCount?: number;
   onQuickAdd: (printing: Printing, event: React.MouseEvent) => void;
   onRemove?: (printing: Printing, event: React.MouseEvent) => void;
-  labelDeckCount?: boolean;
+  hideDeckCount?: boolean;
   warnLimit?: string;
 }
 
@@ -34,6 +35,7 @@ export function DeckAddStrip({
   deckQuantity,
   maxReached,
   addLabel,
+  addIcon,
   addAriaLabel,
   addTooltip,
   removeLabel,
@@ -41,7 +43,7 @@ export function DeckAddStrip({
   remainingCount,
   onQuickAdd,
   onRemove,
-  labelDeckCount,
+  hideDeckCount,
   warnLimit,
 }: DeckAddStripProps) {
   if (removeLabel && deckQuantity > 0 && onRemove) {
@@ -56,7 +58,8 @@ export function DeckAddStrip({
     );
   }
 
-  const showBulkAdd = shiftHeld && !addLabel && remainingCount !== undefined && remainingCount > 1;
+  const showBulkAdd =
+    shiftHeld && (!addLabel || addIcon) && remainingCount !== undefined && remainingCount > 1;
   const showBulkRemove = shiftHeld && deckQuantity > 1;
 
   const ownedPill = (
@@ -71,7 +74,7 @@ export function DeckAddStrip({
     </CountPill>
   );
 
-  const deckPill = deckQuantity > 0 && (
+  const deckPill = !hideDeckCount && deckQuantity > 0 && (
     <CountPill
       variant="primary"
       title={warnLimit ?? m.decks_editor_in_deck_count({ count: deckQuantity })}
@@ -82,14 +85,8 @@ export function DeckAddStrip({
       ) : (
         <LayersIcon className="size-3" aria-hidden />
       )}
-      {labelDeckCount ? (
-        <span>{m.decks_editor_in_deck_count({ count: deckQuantity })}</span>
-      ) : (
-        <>
-          <span>{deckQuantity}</span>
-          <span className="sr-only">{m.decks_editor_in_deck()}</span>
-        </>
-      )}
+      <span>{deckQuantity}</span>
+      <span className="sr-only">{m.decks_editor_in_deck()}</span>
     </CountPill>
   );
 
@@ -137,10 +134,13 @@ export function DeckAddStrip({
           )
         }
       >
-        {!maxReached && addLabel ? (
-          addLabel
-        ) : showBulkAdd && !maxReached ? (
+        {showBulkAdd && !maxReached ? (
           `+${remainingCount}`
+        ) : !maxReached && addLabel ? (
+          <>
+            {addIcon && <PlusIcon aria-hidden />}
+            {addLabel}
+          </>
         ) : (
           <PlusIcon />
         )}
@@ -153,12 +153,16 @@ export function DeckAddStrip({
 
   return (
     <CardStrip
-      left={removeButton}
+      left={removeButton || ownedPill}
       center={
-        <>
-          {ownedPill}
-          {deckPill}
-        </>
+        removeButton ? (
+          <>
+            {ownedPill}
+            {deckPill}
+          </>
+        ) : (
+          deckPill
+        )
       }
       right={addButton}
     />

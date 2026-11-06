@@ -1,52 +1,17 @@
 import { totalQuantity } from "@openrift/shared/deck-rules";
 import { isZoneShown, ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
-import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { CheckIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FilterChip } from "@/components/ui/filter-chip";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
-import type { ZoneChip } from "@/features/decks/lib/workbench-zone-layer";
 import { zoneLayerChips } from "@/features/decks/lib/workbench-zone-layer";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
-import { useCustomTagList, useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
-
-function useChipLabel(): (chip: ZoneChip) => string {
-  const { labels } = useEnumOrders();
-  const { all: customTags } = useCustomTagList();
-  const customTagLabel = new Map(customTags.map((tag) => [tag.slug, tag.label]));
-  return (chip) => {
-    switch (chip.kind) {
-      case "types": {
-        return enumLabel(labels.cardTypes, chip.value);
-      }
-      case "superTypes": {
-        return enumLabel(labels.superTypes, chip.value);
-      }
-      case "superTypesEx": {
-        return enumLabel(labels.superTypes, chip.value);
-      }
-      case "domains": {
-        return enumLabel(labels.domains, chip.value);
-      }
-      case "search": {
-        return chip.value;
-      }
-      case "customTags": {
-        return customTagLabel.get(chip.value) ?? chip.value;
-      }
-      case "stats": {
-        return m.decks_workbench_chip_stats_paused();
-      }
-    }
-  };
-}
 
 export function WorkbenchZoneBar({
   deckId,
@@ -61,12 +26,10 @@ export function WorkbenchZoneBar({
   const { data } = useDeckDetail(deckId);
   const { format, formatConfig } = data.deck;
   const { zoneOrder } = useZoneOrder();
-  const removed = useWorkbenchStore((state) => state.removedZoneChips);
-  const removeZoneChip = useWorkbenchStore((state) => state.removeZoneChip);
-  const restoreZoneChips = useWorkbenchStore((state) => state.restoreZoneChips);
+  const showAllCards = useWorkbenchStore((state) => state.showAllCardsZones.has(zone));
+  const setShowAllCards = useWorkbenchStore((state) => state.setShowAllCards);
   const dismissedAdvance = useWorkbenchStore((state) => state.dismissedAdvance);
   const setDismissedAdvance = useWorkbenchStore((state) => state.setDismissedAdvance);
-  const chipLabel = useChipLabel();
 
   const isFreeform = format === WellKnown.deckFormat.FREEFORM;
   const countIn = (target: DeckZone) => totalQuantity(cards.filter((card) => card.zone === target));
@@ -76,8 +39,7 @@ export function WorkbenchZoneBar({
   const expected = expectedIn(zone);
 
   const chips = zoneLayerChips(deckZoneFilterPreset(zone, cards, format, formatConfig));
-  const shownChips = chips.filter((chip) => !removed.has(`${zone}:${chip.key}`));
-  const hiddenCount = chips.length - shownChips.length;
+  const pausesStats = chips.some((chip) => chip.kind === "stats");
 
   const complete = expected !== undefined && count >= expected;
   const nextZone = complete
@@ -93,32 +55,31 @@ export function WorkbenchZoneBar({
 
   return (
     <div className="flex flex-col gap-2 pb-3">
-      <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 max-md:[scrollbar-width:none] md:flex-wrap [&>*]:shrink-0">
-        <Badge variant="subtle" className="gap-1.5">
-          <span className="text-muted-foreground">{m.decks_workbench_adding_to()}</span>
-          <span className="font-semibold">{ZONE_LABELS[zone]}</span>
-          {expected !== undefined && (
-            <span className="tabular-nums">
-              {count}/{expected}
-            </span>
-          )}
-        </Badge>
-        {shownChips.length > 0 && (
-          <span className="text-muted-foreground">{m.decks_workbench_zone_filters()}</span>
+      <div className="-mx-1 flex h-8 items-center gap-2 overflow-x-auto px-1 text-sm whitespace-nowrap max-md:[scrollbar-width:none] [&>*]:shrink-0">
+        <span className="text-muted-foreground">{m.decks_workbench_adding_to()}</span>
+        <span className="text-primary font-semibold">{ZONE_LABELS[zone]}</span>
+        {expected !== undefined && (
+          <span className="text-muted-foreground tabular-nums">
+            {count}/{expected}
+          </span>
         )}
-        {shownChips.map((chip) => (
-          <FilterChip
-            key={chip.key}
-            label={chipLabel(chip)}
-            excluded={chip.kind === "superTypesEx"}
-            removeLabel={m.decks_workbench_remove_zone_filter({ label: chipLabel(chip) })}
-            onRemove={() => removeZoneChip(zone, chip.key)}
-          />
-        ))}
-        {hiddenCount > 0 && (
-          <Button variant="ghost" size="xs" onClick={() => restoreZoneChips(zone)}>
-            {m.decks_workbench_restore_zone_filters({ count: hiddenCount })}
-          </Button>
+        {chips.length > 0 && (
+          <>
+            <span aria-hidden className="text-muted-foreground">
+              ·
+            </span>
+            <span className="text-muted-foreground">
+              {showAllCards
+                ? m.decks_workbench_showing_all_cards()
+                : m.decks_workbench_showing_allowed_cards()}
+              {!showAllCards && pausesStats && ` ${m.decks_workbench_stats_paused_note()}`}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setShowAllCards(zone, !showAllCards)}>
+              {showAllCards
+                ? m.decks_workbench_only_allowed_cards()
+                : m.decks_workbench_show_all_cards()}
+            </Button>
+          </>
         )}
       </div>
       {showAdvance && nextZone && (

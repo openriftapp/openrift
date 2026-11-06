@@ -34,8 +34,11 @@ import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom
 import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
+import { CardQuantityChip } from "@/features/decks/components/card-quantity-chip";
 import { DeckAddStrip } from "@/features/decks/components/deck-add-strip";
 import { DeckCardDetailMenu } from "@/features/decks/components/deck-card-detail-menu";
+import { DeckCardZoneSteppers } from "@/features/decks/components/deck-card-zone-steppers";
+import { DeckCountMark } from "@/features/decks/components/deck-count-mark";
 import { DeckOverview } from "@/features/decks/components/deck-overview";
 import { DeckPlanEditor } from "@/features/decks/components/deck-plan-editor";
 import { DeckTableActions } from "@/features/decks/components/deck-table-actions";
@@ -66,7 +69,7 @@ import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-type
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
 import { getFormatTagConfig } from "@/features/decks/lib/format-tag-config";
-import { flyCardToDock } from "@/features/decks/lib/workbench-fly-to-dock";
+import { flyCardToDeck } from "@/features/decks/lib/workbench-fly-to-dock";
 import { applyZoneLayer } from "@/features/decks/lib/workbench-zone-layer";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
@@ -76,6 +79,7 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/hooks/use-session";
 import { useShiftHeld } from "@/hooks/use-shift-held";
+import { useStableByValue } from "@/hooks/use-stable-by-value";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -425,25 +429,23 @@ function DeckCardBrowserInner({
       focusCatalogCard(pending.printingId);
     });
   }, [openedPrintingId]);
-  const removedZoneChips = useWorkbenchStore((state) => state.removedZoneChips);
+  const showAllCardsZones = useWorkbenchStore((state) => state.showAllCardsZones);
   const setReplaceTarget = useWorkbenchStore((state) => state.setReplaceTarget);
-  const removedForZone = new Set(
-    [...removedZoneChips]
-      .filter((key) => key.startsWith(`${activeZone}:`))
-      .map((key) => key.slice(activeZone.length + 1)),
+  // Every deck edit rebuilds the zone preset; holding equal filters stops an add
+  // from re-sorting the grid and dimming it as stale.
+  const filters = useStableByValue(
+    workbench && !showAllCardsZones.has(activeZone)
+      ? applyZoneLayer(
+          urlFilters,
+          deckZoneFilterPreset(
+            activeZone,
+            deckCards,
+            deckDetail.deck.format,
+            deckDetail.deck.formatConfig,
+          ),
+        )
+      : urlFilters,
   );
-  const filters = workbench
-    ? applyZoneLayer(
-        urlFilters,
-        deckZoneFilterPreset(
-          activeZone,
-          deckCards,
-          deckDetail.deck.format,
-          deckDetail.deck.formatConfig,
-        ),
-        removedForZone,
-      )
-    : urlFilters;
 
   // "copies" is a collection-only view; clamp to "printings" in the deck builder.
   const view = rawView === "copies" ? "printings" : rawView;
@@ -508,6 +510,14 @@ function DeckCardBrowserInner({
     printing,
   }));
 
+  // A deck-list click indexes into the deck's items; the catalog's reconcile
+  // would otherwise swap the detail to whatever catalog card sits at that index.
+  useLayoutEffect(() => {
+    if (showCatalogDetail && selectedCard !== null) {
+      useSelectionStore.getState().reanchorSelection(items);
+    }
+  }, [showCatalogDetail, selectedCard, items]);
+
   // Must match useCardData's tile-splitting: when it renders one cell per
   // printing, click selection has to navigate by printing too.
   const cellRepresentsCard = view === "cards" && !splitsCardIntoTiles(groupBy);
@@ -542,8 +552,8 @@ function DeckCardBrowserInner({
       });
       return;
     }
-    if (workbench && isMobile) {
-      flyCardToDock(printing.printingId);
+    if (workbench) {
+      flyCardToDeck(printing.printingId, printing.cardId, activeZone);
     }
     if (activeZone === WellKnown.deckZone.LEGEND && !isFreeform) {
       setLegend(builderCard, buildRunesByDomain(allPrintings));
@@ -656,12 +666,22 @@ function DeckCardBrowserInner({
     const deckQty = deckQtyForCell(printing);
     const owned = ownedCounts?.get(sideKey(printing)) ?? 0;
     const missing = Math.max(0, deckQty - owned);
+    const deckEntries = deckCards.filter((card) => card.cardId === printing.cardId);
     return (
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => handleQuickAdd(printing)}>
+          <Button
+            size="sm"
+            disabled={
+              isSingleCardZone &&
+              deckCards.some((card) => card.cardId === printing.cardId && card.zone === activeZone)
+            }
+            onClick={() => handleQuickAdd(printing)}
+          >
             <PlusIcon className="size-4" />
-            {m.decks_workbench_detail_add_to({ zone: ZONE_LABELS[activeZone] })}
+            {isSingleCardZone
+              ? m.decks_workbench_detail_set_as({ zone: ZONE_LABELS[activeZone] })
+              : m.decks_workbench_detail_add_to({ zone: ZONE_LABELS[activeZone] })}
           </Button>
           {showSideboardAdd && (
             <Button
@@ -688,17 +708,22 @@ function DeckCardBrowserInner({
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground tabular-nums">
-          {[
-            m.decks_editor_in_deck_count({ count: deckQty }),
-            ownedCounts ? m.decks_editor_owned_count({ count: owned }) : null,
-            ownedCounts && missing > 0
-              ? m.decks_workbench_detail_missing({ count: missing })
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        <DeckCardZoneSteppers
+          entries={deckEntries}
+          isFreeform={isFreeform}
+          onAdd={(entry) => addCard(entry, entry.zone)}
+          onRemove={(entry) => removeCard(entry.cardId, entry.zone, entry.preferredPrintingId)}
+        />
+        {ownedCounts && (
+          <p className="text-muted-foreground tabular-nums">
+            {[
+              m.decks_editor_owned_count({ count: owned }),
+              missing > 0 ? m.decks_workbench_detail_missing({ count: missing }) : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
       </div>
     );
   };
@@ -726,10 +751,12 @@ function DeckCardBrowserInner({
         deckQuantity={deckQty}
         maxReached={workbench ? isInActiveSingleZone : overLimit}
         warnLimit={workbenchWarn}
-        labelDeckCount={workbench}
+        hideDeckCount={workbench}
         {...(isSingleCardZone
           ? singleZoneAddAction(singleCardZoneOccupied && !isInActiveSingleZone)
-          : {})}
+          : workbench
+            ? { addLabel: m.decks_overview_add(), addIcon: true }
+            : {})}
         removeLabel={!workbench && isInActiveSingleZone ? m.decks_editor_remove() : undefined}
         shiftHeld={shiftHeld}
         remainingCount={
@@ -760,7 +787,16 @@ function DeckCardBrowserInner({
         onClick={isMobile ? handleQuickAdd : handleCardClick}
         priceRange={priceRangeByCardId?.get(cardId)}
         dimmed={highlightOwned && ownedCount === 0 && deckQty === 0}
-        highlighted={deckQty > 0}
+        highlighted={!workbench && deckQty > 0}
+        imageOverlay={workbench && deckQty > 0 ? <DeckCountMark /> : undefined}
+        imageBadge={
+          workbench && deckQty > 0 ? (
+            <CardQuantityChip
+              quantity={deckQty}
+              title={m.decks_editor_in_deck_count({ count: deckQty })}
+            />
+          ) : undefined
+        }
         banDisplay={isCustomRegion ? "none" : "overlay"}
         dragData={{
           type: "browser-card",

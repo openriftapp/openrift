@@ -13,6 +13,7 @@ interface SelectionDetailOverlaysProps {
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
   collectionId?: string;
+  docking?: boolean;
 }
 
 export function SelectionDetailOverlays(props: SelectionDetailOverlaysProps) {

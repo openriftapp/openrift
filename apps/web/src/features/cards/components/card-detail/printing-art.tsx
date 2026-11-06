@@ -30,13 +30,7 @@ export function PrintingArt({
 
   const art = (shown: Printing) => (
     <div className={cn(shown.images.length === 0 && "opacity-60")}>
-      <CardDetailArt
-        printing={shown}
-        showImages={showImages}
-        disableTilt
-        sizes={sizes}
-        loading="lazy"
-      />
+      <CardDetailArt printing={shown} showImages={showImages} sizes={sizes} loading="lazy" />
     </div>
   );
   const front = art(printing);

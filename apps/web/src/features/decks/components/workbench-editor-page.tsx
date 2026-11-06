@@ -13,16 +13,17 @@ import { createPortal } from "react-dom";
 import { Footer } from "@/components/layout/footer";
 import {
   PAGE_TOP_BAR_STICKY,
+  PageTopBarButton,
   PageTopBarHeightContext,
   usePageTopBarHeight,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import type { HoverOrigin } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
-import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import {
   closeOverlayHistoryEntry,
@@ -441,7 +442,27 @@ function WorkbenchContent({
             openDialog={dialogs.openDialog}
             workbench={{
               modeControl: (
-                <WorkbenchModeControl mode={mode} isMobile={isMobile} onModeChange={setMode} />
+                <>
+                  {!isMobile && (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <PageTopBarButton
+                            disabled={setOwnFlag.isPending}
+                            onClick={() =>
+                              setOwnFlag.mutate({ key: "deck-builder-beta", enabled: false })
+                            }
+                          />
+                        }
+                      >
+                        <FlaskConicalIcon className="size-4" />
+                        {m.decks_workbench_classic_editor()}
+                      </TooltipTrigger>
+                      <TooltipContent>{m.decks_workbench_back_to_classic()}</TooltipContent>
+                    </Tooltip>
+                  )}
+                  <WorkbenchModeControl mode={mode} isMobile={isMobile} onModeChange={setMode} />
+                </>
               ),
               menuPrefix,
             }}
@@ -499,31 +520,24 @@ function WorkbenchContent({
               >
                 {catalog}
                 {mode === "deck" && (
-                  <div className="flex justify-center pt-6">
+                  <div className="mb-8 flex justify-center pt-6">
                     <Button variant="outline" onClick={() => setMode("build")}>
                       <PencilIcon className="size-4" />
-                      {isMobile ? m.decks_workbench_edit_deck() : m.decks_workbench_edit_in_build()}
+                      {m.decks_workbench_edit_deck()}
                     </Button>
                   </div>
                 )}
               </div>
-              {!isMobile && mode === "deck" && (
-                <SelectionDetailPane
-                  items={deckItems}
-                  printingsByCardId={printingsByCardId}
-                  showImages={showImages}
-                  onSearchAndClose={noop}
-                />
-              )}
             </div>
             <Footer />
           </div>
           {!isMobile && mode === "build" && (
             <aside
+              data-deck-preview-anchor
               aria-label={m.decks_workbench_deck_column()}
               className="motion-safe:animate-in motion-safe:fade-in-0 sticky top-(--sticky-top) z-30 flex h-[calc(100dvh-var(--sticky-top))] w-[260px] shrink-0 flex-col gap-3 pb-3 motion-safe:duration-150 min-[1200px]:w-[340px] lg:w-[300px]"
             >
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-1">
+              <div className="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-gutter:stable] overflow-y-auto overscroll-contain py-1 pr-4 pl-2">
                 {zonePanel(false)}
               </div>
               <WorkbenchStatsStrip deckId={deckId} />
@@ -536,6 +550,7 @@ function WorkbenchContent({
             printingsByCardId={printingsByCardId}
             showImages={showImages}
             onSearchAndClose={noop}
+            docking={false}
           />
         )}
         {isMobile && mode === "build" && <DeckMobileDock deckId={deckId} zone={zone} />}

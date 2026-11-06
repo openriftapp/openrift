@@ -1,4 +1,4 @@
-import { PencilIcon } from "lucide-react";
+import { EyeIcon, PencilIcon } from "lucide-react";
 
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -38,10 +38,12 @@ export function WorkbenchModeControl({
       }}
       aria-label={m.decks_workbench_mode_label()}
     >
-      <ToggleGroupItem value="build" className="px-3">
+      <ToggleGroupItem value="build" className="gap-1.5 px-3">
+        <PencilIcon className="size-4" />
         {m.decks_workbench_mode_build()}
       </ToggleGroupItem>
-      <ToggleGroupItem value="deck" className="px-3">
+      <ToggleGroupItem value="deck" className="gap-1.5 px-3">
+        <EyeIcon className="size-4" />
         {m.decks_workbench_mode_deck()}
       </ToggleGroupItem>
     </ToggleGroup>

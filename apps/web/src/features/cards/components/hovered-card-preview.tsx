@@ -17,6 +17,7 @@ const SIDEBAR_PREVIEW_LEFT_PX = 312;
 const CURSOR_OFFSET_PX = 24;
 const VIEWPORT_MARGIN_PX = 8;
 const SIDEBAR_VIEWPORT_SELECTOR = '[data-slot="sidebar-content"]';
+const PREVIEW_ANCHOR_SELECTOR = "[data-deck-preview-anchor]";
 
 interface HoveredCardPreviewProps {
   hoveredCard: { thumbnailUrl: string; fullUrl: string; landscape: boolean } | null;
@@ -91,7 +92,15 @@ export function HoveredCardPreview({ hoveredCard, origin, containerRef }: Hovere
 
       let desiredLeft: number;
       if (isSidebar) {
-        desiredLeft = SIDEBAR_PREVIEW_LEFT_PX;
+        const anchor = container.querySelector<HTMLElement>(PREVIEW_ANCHOR_SELECTOR);
+        const anchorRect = anchor?.getBoundingClientRect();
+        if (!anchorRect || anchorRect.width === 0) {
+          desiredLeft = SIDEBAR_PREVIEW_LEFT_PX;
+        } else if (anchorRect.left + anchorRect.width / 2 > rect.left + rect.width / 2) {
+          desiredLeft = anchorRect.left - rect.left - previewWidth - CURSOR_OFFSET_PX;
+        } else {
+          desiredLeft = anchorRect.right - rect.left + CURSOR_OFFSET_PX;
+        }
       } else {
         const side = pickDockSide(clientX, dockSideRef.current, globalThis.innerWidth);
         dockSideRef.current = side;

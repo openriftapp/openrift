@@ -27,6 +27,7 @@ import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
+import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-link";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
@@ -671,7 +672,9 @@ export function DeckListRow({
       <span className="w-6 shrink-0 text-right tabular-nums">{card.quantity}×</span>
 
       <span className="min-w-0 flex-1 truncate">
-        {displayName}
+        <DeckCardPageLink cardId={card.cardId} printingId={hoverPrintingId}>
+          {displayName}
+        </DeckCardPageLink>
         {violationMessage && (
           <Tooltip>
             <TooltipTrigger className="ml-1.5 inline-flex align-middle">

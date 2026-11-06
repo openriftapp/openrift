@@ -133,7 +133,7 @@ export const legendOptionsCount: DeckRule = (state) => {
       {
         zone,
         code: "LEGEND_OPTIONS_NOT_ALLOWED",
-        message: "Legend Options need a card in the deck that lets you choose extra legends",
+        message: "Extra Legends need a card in the deck that lets you choose them",
       },
     ];
   }
@@ -142,7 +142,7 @@ export const legendOptionsCount: DeckRule = (state) => {
       {
         zone,
         code: "LEGEND_OPTIONS_TOO_FEW",
-        message: `${count}/${required} Legend Options — need ${required - count} more`,
+        message: `${count}/${required} Extra Legends — need ${required - count} more`,
       },
     ];
   }
@@ -151,7 +151,7 @@ export const legendOptionsCount: DeckRule = (state) => {
       {
         zone,
         code: "LEGEND_OPTIONS_TOO_MANY",
-        message: `${count}/${required} Legend Options — remove ${count - required}`,
+        message: `${count}/${required} Extra Legends — remove ${count - required}`,
       },
     ];
   }

@@ -30,6 +30,7 @@ interface DeckCardPrintingMenuProps {
   card: DeckBuilderCard;
   children: ReactNode;
   onViewCard?: () => void;
+  onSwitch?: () => void;
 }
 
 function SplitHint({ children }: { children: ReactNode }) {
@@ -44,6 +45,7 @@ export function DeckCardPrintingMenu({
   card,
   children,
   onViewCard,
+  onSwitch,
 }: DeckCardPrintingMenuProps) {
   const { changePreferredPrinting, moveCard, moveOneCard, setQuantity } =
     useDeckBuilderActions(deckId);
@@ -103,11 +105,18 @@ export function DeckCardPrintingMenu({
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
-        {onViewCard && (
+        {(onViewCard || onSwitch) && (
           <>
-            <ContextMenuItem onClick={onViewCard}>
-              {m.decks_card_menu_view_details()}
-            </ContextMenuItem>
+            {onViewCard && (
+              <ContextMenuItem onClick={onViewCard}>
+                {m.decks_card_menu_view_details()}
+              </ContextMenuItem>
+            )}
+            {onSwitch && (
+              <ContextMenuItem onClick={onSwitch}>
+                {m.decks_card_menu_switch({ zone: ZONE_LABELS[card.zone] })}
+              </ContextMenuItem>
+            )}
             <ContextMenuSeparator />
           </>
         )}

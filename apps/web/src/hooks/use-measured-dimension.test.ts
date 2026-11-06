@@ -7,9 +7,15 @@ import { useMeasuredHeight } from "./use-measured-height";
 type ObserverCallback = (entries: ResizeObserverEntry[]) => void;
 
 function stubResizeObserver() {
-  const state: { callback: ObserverCallback | null; observed: Element[]; disconnected: number } = {
+  const state: {
+    callback: ObserverCallback | null;
+    observed: Element[];
+    options: (ResizeObserverOptions | undefined)[];
+    disconnected: number;
+  } = {
     callback: null,
     observed: [],
+    options: [],
     disconnected: 0,
   };
   vi.stubGlobal(
@@ -18,8 +24,9 @@ function stubResizeObserver() {
       constructor(callback: ObserverCallback) {
         state.callback = callback;
       }
-      observe(el: Element) {
+      observe(el: Element, options?: ResizeObserverOptions) {
         state.observed.push(el);
+        state.options.push(options);
       }
       unobserve() {}
       disconnect() {
@@ -42,6 +49,12 @@ afterEach(() => {
 });
 
 describe("useMeasuredDimension", () => {
+  it("watches the border box, so a padding-only change still re-measures", () => {
+    const observer = stubResizeObserver();
+    renderHook(() => useMeasuredDimension(document.createElement("div"), "height"));
+    expect(observer.options).toEqual([{ box: "border-box" }]);
+  });
+
   it("publishes the block size for height, rounded", () => {
     const observer = stubResizeObserver();
     const el = document.createElement("div");

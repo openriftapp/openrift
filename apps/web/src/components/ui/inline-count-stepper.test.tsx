@@ -132,4 +132,20 @@ describe("InlineCountStepper", () => {
     );
     expect(screen.getByRole("button", { name: "Add a copy" })).not.toHaveTextContent("+3");
   });
+
+  it("lets the caller replace the buttons' hover tint", () => {
+    render(
+      <InlineCountStepper
+        count={2}
+        decrementLabel="Remove a copy"
+        incrementLabel="Add a copy"
+        onIncrement={vi.fn()}
+        buttonClassName="hover:bg-foreground/20 dark:hover:bg-foreground/20"
+      />,
+    );
+    const increment = screen.getByRole("button", { name: "Add a copy" });
+    expect(increment).toHaveClass("hover:bg-foreground/20", "dark:hover:bg-foreground/20");
+    expect(increment).not.toHaveClass("hover:bg-muted");
+    expect(increment).not.toHaveClass("dark:hover:bg-muted/50");
+  });
 });

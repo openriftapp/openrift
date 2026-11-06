@@ -71,6 +71,20 @@ describe("useWindowScrollMargin", () => {
     expect(result.current).toBe(148);
   });
 
+  it("watches the content above the element", () => {
+    const parent = document.createElement("div");
+    const above = document.createElement("div");
+    const { el } = elementAt(100);
+    parent.append(above, el);
+    document.body.append(parent);
+
+    renderHook(() => useWindowScrollMargin(el));
+
+    expect(observer.observed).toContain(above);
+    expect(observer.observed).toContain(parent);
+    parent.remove();
+  });
+
   it("seeds a new instance with the last measured top", () => {
     const { el } = elementAt(90);
     renderHook(() => useWindowScrollMargin(el));

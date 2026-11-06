@@ -48,7 +48,6 @@ function makeWrapper() {
 const baseDisplay: CardThumbnailDisplay = {
   fancyFan: true,
   gridFoil: false,
-  cardTilt: false,
   coarsePointer: false,
   domainColors: {},
   finishLabels: {},
@@ -154,6 +153,23 @@ describe("CardThumbnail siblings", () => {
     fireEvent.click(layer);
 
     expect(onSiblingClick).toHaveBeenCalledWith(sibling);
+  });
+
+  it("renders the image overlay and badge on the card image", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const { getByText } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        imageOverlay={<span>frame</span>}
+        imageBadge={<span>×3</span>}
+        display={{ ...baseDisplay, coarsePointer: false }}
+      />,
+    );
+
+    expect(getByText("frame")).toBeDefined();
+    expect(getByText("×3")).toBeDefined();
   });
 
   it("counts the printings in the meta row on coarse-pointer devices", () => {
@@ -746,37 +762,21 @@ describe("CardThumbnail price", () => {
   });
 });
 
-describe("CardThumbnail tilt shell", () => {
-  it("renders without the 3D tilt transform when coarsePointer is true", () => {
-    const printing = makePrintingWithImage("RB1-002");
-    const { container } = render(
-      <CardThumbnail
-        printing={printing}
-        onClick={() => {}}
-        showImages
-        display={{ ...baseDisplay, cardTilt: true, coarsePointer: true }}
-      />,
-    );
-    const inlineTransforms = [...container.querySelectorAll<HTMLElement>("[style]")]
-      .map((el) => el.style.transform)
-      .filter(Boolean);
-    expect(inlineTransforms.some((value) => value.includes("perspective"))).toBe(false);
-  });
-
-  it("renders the 3D tilt transform when cardTilt is on and pointer is fine", () => {
+describe("CardThumbnail image shell", () => {
+  it("never applies a 3D transform, so the card's text stays crisp", () => {
     const printing = makePrintingWithImage("RB1-003");
     const { container } = render(
       <CardThumbnail
         printing={printing}
         onClick={() => {}}
         showImages
-        display={{ ...baseDisplay, cardTilt: true, coarsePointer: false }}
+        display={{ ...baseDisplay, coarsePointer: false }}
       />,
     );
-    const inlineTransforms = [...container.querySelectorAll<HTMLElement>("[style]")]
-      .map((el) => el.style.transform)
-      .filter(Boolean);
-    expect(inlineTransforms.some((value) => value.includes("perspective"))).toBe(true);
+    const transforms = [...container.querySelectorAll<HTMLElement>("*")].map(
+      (el) => `${el.style.transform} ${el.style.transformStyle} ${el.className}`,
+    );
+    expect(transforms.some((value) => /perspective|preserve-3d/u.test(value))).toBe(false);
   });
 });
 

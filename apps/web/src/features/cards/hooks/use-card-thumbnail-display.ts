@@ -14,7 +14,6 @@ import { useDisplayStore } from "@/stores/display-store";
 export interface CardThumbnailDisplay {
   fancyFan: boolean;
   gridFoil: boolean;
-  cardTilt: boolean;
   coarsePointer: boolean;
   domainColors: Record<string, string>;
   finishLabels: Record<string, string>;
@@ -30,7 +29,6 @@ export function useCardThumbnailDisplay(): CardThumbnailDisplay {
   "use memo";
   const fancyFan = useDisplayStore((s) => s.fancyFan);
   const foilEffect = useDisplayStore((s) => s.foilEffect);
-  const cardTilt = useDisplayStore((s) => s.cardTilt);
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
   const hydrated = useHydrated();
   const coarsePointer = useCoarsePointer();
@@ -42,7 +40,6 @@ export function useCardThumbnailDisplay(): CardThumbnailDisplay {
   return {
     fancyFan,
     gridFoil: foilEffect && hydrated,
-    cardTilt,
     coarsePointer,
     domainColors,
     finishLabels: labels.finishes,

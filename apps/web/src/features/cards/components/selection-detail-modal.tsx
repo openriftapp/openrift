@@ -28,6 +28,7 @@ interface SelectionDetailModalProps {
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
   collectionId?: string;
+  docking?: boolean;
 }
 
 /**
@@ -42,6 +43,7 @@ export function SelectionDetailModal({
   onSearchAndClose,
   actions,
   collectionId,
+  docking = true,
 }: SelectionDetailModalProps) {
   const closeDetail = useSelectionStore((s) => s.closeDetail);
   const paneDocked = useDisplayStore((s) => s.paneDocked);
@@ -66,7 +68,7 @@ export function SelectionDetailModal({
     onDismiss: closeDetail,
   });
 
-  const open = detailOpen && !paneDocked && selectedCard !== null;
+  const open = detailOpen && (!docking || !paneDocked) && selectedCard !== null;
 
   // Docking hands the card to the pane, so the history entry has to be popped
   // without the pop being read as a dismissal.
@@ -117,7 +119,7 @@ export function SelectionDetailModal({
         actions={actions?.(selectedCard)}
         collectionId={collectionId}
         navLabel={navLabel}
-        onDock={handleDock}
+        onDock={docking ? handleDock : undefined}
       />
     </CardDetailDialogShell>
   );

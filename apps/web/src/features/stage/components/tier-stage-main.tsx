@@ -83,7 +83,7 @@ export function TierStageMain({
                 key={current.id}
                 className={cn("absolute inset-0", !chroma && "animate-in fade-in duration-300")}
               >
-                <CardDetailArt printing={current.printing} showImages disableTilt />
+                <CardDetailArt printing={current.printing} showImages />
               </div>
             </div>
           ) : null}

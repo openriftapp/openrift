@@ -2,6 +2,7 @@ import {
   GalleryVerticalEndIcon,
   LayoutGridIcon,
   ListIcon,
+  RotateCcwIcon,
   SlidersHorizontalIcon,
 } from "lucide-react";
 
@@ -115,6 +116,7 @@ interface DeckOverviewViewControlsProps {
   preferOwned: boolean;
   canPreferOwned: boolean;
   hasOwnershipData: boolean;
+  paneToggle?: boolean;
 }
 
 export function DeckOverviewViewControls({
@@ -132,6 +134,7 @@ export function DeckOverviewViewControls({
   preferOwned,
   canPreferOwned,
   hasOwnershipData,
+  paneToggle = true,
 }: DeckOverviewViewControlsProps) {
   const setDisplayMode = useDeckOverviewViewStore((state) => state.setDisplayMode);
   const setColumns = useDeckOverviewViewStore((state) => state.setColumns);
@@ -343,6 +346,23 @@ export function DeckOverviewViewControls({
           </div>
         )}
         {optionSwitchRows}
+        {optionsModified && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-start"
+            onClick={() => {
+              for (const option of optionSwitches) {
+                if (option.modified) {
+                  option.onCheckedChange(!option.checked);
+                }
+              }
+            }}
+          >
+            <RotateCcwIcon className="size-4" />
+            {m.decks_overview_options_reset()}
+          </Button>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -363,7 +383,7 @@ export function DeckOverviewViewControls({
       <DeckOrderingControl ordering={ordering} />
       {displayModeToggle}
       {optionsPopover}
-      <DetailPaneToggle />
+      {paneToggle && <DetailPaneToggle />}
     </div>
   );
 }

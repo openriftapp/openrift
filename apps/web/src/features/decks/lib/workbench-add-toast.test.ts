@@ -29,8 +29,10 @@ import { stubDeckBuilderCard } from "@/test/factories";
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import {
   dismissRelaxedAddToasts,
+  dismissRemovalToast,
   relaxedAddMessage,
   showRelaxedAddToast,
+  showRemovalToast,
 } from "./workbench-add-toast";
 
 const scorcher = stubDeckBuilderCard({ cardName: "Blazing Scorcher" });
@@ -150,6 +152,28 @@ describe("dismissRelaxedAddToasts", () => {
     expect(mocks.toast.dismiss).toHaveBeenCalledWith("warning-toast");
     mocks.toast.dismiss.mockClear();
     dismissRelaxedAddToasts();
+    expect(mocks.toast.dismiss).not.toHaveBeenCalled();
+  });
+});
+
+describe("showRemovalToast", () => {
+  it("offers an undo that runs the given handler", () => {
+    const undo = vi.fn();
+    showRemovalToast("Removed Blazing Scorcher from Main Deck.", undo);
+    const options = mocks.toast.mock.calls[0]?.[1];
+    expect(options?.action?.label).toBe("Undo");
+    options?.action?.onClick();
+    expect(undo).toHaveBeenCalledOnce();
+    dismissRemovalToast();
+  });
+
+  it("is dismissed by the next edit, and only while it is open", () => {
+    showRemovalToast("Removed Blazing Scorcher from Main Deck.", vi.fn());
+    dismissRemovalToast();
+    expect(mocks.toast.dismiss).toHaveBeenCalledWith("deck-removal");
+
+    mocks.toast.dismiss.mockClear();
+    dismissRemovalToast();
     expect(mocks.toast.dismiss).not.toHaveBeenCalled();
   });
 });

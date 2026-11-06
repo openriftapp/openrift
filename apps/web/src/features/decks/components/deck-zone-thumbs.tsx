@@ -12,8 +12,10 @@ import { CardStrip, StripIconButton } from "@/features/cards/components/card-str
 import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
+import { CardQuantityChip } from "@/features/decks/components/card-quantity-chip";
+import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-link";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
-import { OwnershipBand } from "@/features/decks/components/ownership-band";
+import { LabeledOwnershipBand } from "@/features/decks/components/ownership-band";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { cardInteractiveProps, deckCardDragData } from "@/features/decks/lib/deck-card-interaction";
@@ -194,6 +196,10 @@ function ThumbStepStrip({
   );
 }
 
+function portraitCqw(value: number, isLandscape: boolean): string {
+  return isLandscape ? `${(value * 63) / 88}cqw` : `${value}cqw`;
+}
+
 export function ZoneThumb({
   deckId,
   card,
@@ -282,20 +288,26 @@ export function ZoneThumb({
       {...(enableDrag ? listeners : {})}
       {...(enableDrag ? attributes : {})}
     >
-      {showFallback ? (
-        <div className="border-muted-foreground/25 bg-muted/30 flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-[inherit] border border-dashed p-2 text-center">
-          <ImageOffIcon aria-hidden="true" className="text-muted-foreground/70 size-5 shrink-0" />
-          <span className="text-muted-foreground line-clamp-3 text-xs">{displayName}</span>
-        </div>
-      ) : (
-        <img
-          src={thumbnail}
-          alt={displayName}
-          className="h-full w-full rounded-[inherit] object-cover shadow-sm"
-          draggable={false}
-          onError={() => setFailedUrl(thumbnail)}
-        />
-      )}
+      <DeckCardPageLink
+        cardId={card.cardId}
+        printingId={hoverPrintingId ?? card.preferredPrintingId}
+        className="block h-full w-full rounded-[inherit]"
+      >
+        {showFallback ? (
+          <div className="border-muted-foreground/25 bg-muted/30 flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-[inherit] border border-dashed p-2 text-center">
+            <ImageOffIcon aria-hidden="true" className="text-muted-foreground/70 size-5 shrink-0" />
+            <span className="text-muted-foreground line-clamp-3 text-xs">{displayName}</span>
+          </div>
+        ) : (
+          <img
+            src={thumbnail}
+            alt={displayName}
+            className="h-full w-full rounded-[inherit] object-cover shadow-sm"
+            draggable={false}
+            onError={() => setFailedUrl(thumbnail)}
+          />
+        )}
+      </DeckCardPageLink>
       {card.banned && <CornerRibbon tone="banned">{m.cards_thumb_banned()}</CornerRibbon>}
       {hasCustomPrinting && (
         <span
@@ -306,32 +318,22 @@ export function ZoneThumb({
         </span>
       )}
       {card.quantity > 1 && (copyIndex === null || copyIndex === undefined) && (
-        <span
+        <CardQuantityChip
+          quantity={card.quantity}
           className={cn(
-            "bg-background/90 text-foreground absolute leading-tight font-medium tabular-nums",
             editable && (controlsAlwaysVisible ? "hidden" : "group-hover/thumb:hidden"),
           )}
-          // 11px floor: 10% of a narrow thumb would shrink below readability.
-          style={{
-            fontSize: "max(11px, 10cqw)",
-            padding: "0.5cqw 3cqw",
-            borderRadius: "3.5cqw",
-            right: "2cqw",
-            bottom: "2cqw",
-          }}
-        >
-          ×{card.quantity}
-        </span>
+        />
       )}
       {priceText && (
         <span
           className="bg-background/85 text-muted-foreground absolute leading-tight font-medium tabular-nums"
           style={{
-            fontSize: "max(10px, 7.5cqw)",
-            padding: "0.5cqw 2.5cqw",
-            borderRadius: "3cqw",
-            left: "2cqw",
-            bottom: "2cqw",
+            fontSize: `max(10px, ${portraitCqw(7.5, isLandscape)})`,
+            padding: `${portraitCqw(0.5, isLandscape)} ${portraitCqw(2.5, isLandscape)}`,
+            borderRadius: portraitCqw(3, isLandscape),
+            left: portraitCqw(2, isLandscape),
+            bottom: portraitCqw(2, isLandscape),
           }}
         >
           {priceText}
@@ -347,12 +349,27 @@ export function ZoneThumb({
           alwaysVisible={controlsAlwaysVisible}
         />
       )}
-      {band && <OwnershipBand quantity={card.quantity} band={band} />}
     </div>
   );
 
+  const bandBar = band ? (
+    <LabeledOwnershipBand quantity={card.quantity} band={band} className="mt-1" />
+  ) : null;
+  const withBand = (node: React.ReactNode) =>
+    bandBar ? (
+      <div
+        style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
+        className="flex max-w-full shrink-0 flex-col"
+      >
+        {node}
+        {bandBar}
+      </div>
+    ) : (
+      node
+    );
+
   if (readOnly) {
-    return thumbBody;
+    return withBand(thumbBody);
   }
 
   const menuThumb = (
@@ -361,7 +378,7 @@ export function ZoneThumb({
     </DeckCardPrintingMenu>
   );
   if (!stepAbove) {
-    return menuThumb;
+    return withBand(menuThumb);
   }
   return (
     <div
@@ -376,6 +393,7 @@ export function ZoneThumb({
         perCopy={copyIndex !== null && copyIndex !== undefined}
       />
       {menuThumb}
+      {bandBar}
     </div>
   );
 }

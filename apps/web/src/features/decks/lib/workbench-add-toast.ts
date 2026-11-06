@@ -78,6 +78,25 @@ export function showRelaxedAddToast(
   openToasts.add(id);
 }
 
+const REMOVAL_TOAST_ID = "deck-removal";
+
+export function showRemovalToast(message: string, undo: () => void): void {
+  const onDismiss = () => openToasts.delete(REMOVAL_TOAST_ID);
+  toast(message, {
+    id: REMOVAL_TOAST_ID,
+    action: { label: m.decks_editor_undo(), onClick: undo },
+    onDismiss,
+    onAutoClose: onDismiss,
+  });
+  openToasts.add(REMOVAL_TOAST_ID);
+}
+
+export function dismissRemovalToast(): void {
+  if (openToasts.delete(REMOVAL_TOAST_ID)) {
+    toast.dismiss(REMOVAL_TOAST_ID);
+  }
+}
+
 // Their undo closures write to the deck they came from, so they must not outlive its editor.
 export function dismissRelaxedAddToasts(): void {
   for (const id of openToasts) {

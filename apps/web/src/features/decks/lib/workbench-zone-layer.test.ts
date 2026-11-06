@@ -101,12 +101,12 @@ describe("zoneLayerChips", () => {
 describe("applyZoneLayer", () => {
   it("returns equal filters for an empty preset", () => {
     const input = filters({ types: ["unit"], search: "abc" });
-    expect(applyZoneLayer(input, preset({}), new Set())).toEqual(input);
+    expect(applyZoneLayer(input, preset({}))).toEqual(input);
   });
 
   it("does not mutate the input filters", () => {
     const input = filters({ types: ["unit"] });
-    const result = applyZoneLayer(input, preset({ arrayFilters: { types: ["rune"] } }), new Set());
+    const result = applyZoneLayer(input, preset({ arrayFilters: { types: ["rune"] } }));
     expect(result).not.toBe(input);
     expect(input.types).toEqual(["unit"]);
   });
@@ -115,7 +115,6 @@ describe("applyZoneLayer", () => {
     const result = applyZoneLayer(
       filters(),
       preset({ arrayFilters: { types: ["unit"], domains: ["fury", "neutral"] } }),
-      new Set(),
     );
     expect(result.types).toEqual(["unit"]);
     expect(result.domains).toEqual(["fury", "neutral"]);
@@ -125,68 +124,31 @@ describe("applyZoneLayer", () => {
     const result = applyZoneLayer(
       filters({ domains: ["fury", "mind"] }),
       preset({ arrayFilters: { domains: ["fury", "calm"] } }),
-      new Set(),
     );
     expect(result.domains).toEqual(["fury"]);
   });
 
   it("maps customTags onto customTagSlugs", () => {
-    const result = applyZoneLayer(
-      filters(),
-      preset({ arrayFilters: { customTags: ["tag-a"] } }),
-      new Set(),
-    );
+    const result = applyZoneLayer(filters(), preset({ arrayFilters: { customTags: ["tag-a"] } }));
     expect(result.customTagSlugs).toEqual(["tag-a"]);
-  });
-
-  it("keeps the user's values when the zone chips of that kind are removed", () => {
-    const result = applyZoneLayer(
-      filters({ domains: ["mind"] }),
-      preset({ arrayFilters: { domains: ["fury"] } }),
-      new Set(["domains:fury"]),
-    );
-    expect(result.domains).toEqual(["mind"]);
-  });
-
-  it("applies only the chips that were not removed", () => {
-    const result = applyZoneLayer(
-      filters(),
-      preset({ arrayFilters: { domains: ["fury", "calm"] } }),
-      new Set(["domains:fury"]),
-    );
-    expect(result.domains).toEqual(["calm"]);
   });
 
   it("adds zone exclusions to the user's exclusions without duplicates", () => {
     const result = applyZoneLayer(
       filters({ superTypesExclude: ["basic", "token"] }),
       preset({ arrayFilters: { superTypesEx: ["token", "signature"] } }),
-      new Set(),
     );
     expect(result.superTypesExclude).toEqual(["basic", "token", "signature"]);
   });
 
   it("joins the zone search after the user's search", () => {
-    const result = applyZoneLayer(
-      filters({ search: "jinx" }),
-      preset({ search: "tag:a" }),
-      new Set(),
-    );
+    const result = applyZoneLayer(filters({ search: "jinx" }), preset({ search: "tag:a" }));
     expect(result.search).toBe("jinx tag:a");
   });
 
   it("uses the zone search alone when the user search is empty", () => {
-    const result = applyZoneLayer(filters(), preset({ search: "tag:a" }), new Set());
+    const result = applyZoneLayer(filters(), preset({ search: "tag:a" }));
     expect(result.search).toBe("tag:a");
-  });
-
-  it("keeps the user search when the zone search chip is removed", () => {
-    const result = applyZoneLayer(
-      filters({ search: "jinx" }),
-      preset({ search: "tag:a" }),
-      new Set(["search:tag:a"]),
-    );
-    expect(result.search).toBe("jinx");
   });
 
   it("clears stat ranges when the preset asks for it", () => {
@@ -194,28 +156,16 @@ describe("applyZoneLayer", () => {
     const result = applyZoneLayer(
       filters({ energy: range, might: range, power: range }),
       preset({ clearStatRanges: true }),
-      new Set(),
     );
     expect(result.energy).toEqual({ min: null, max: null });
     expect(result.might).toEqual({ min: null, max: null });
     expect(result.power).toEqual({ min: null, max: null });
   });
 
-  it("keeps stat ranges when the stats chip is removed", () => {
-    const range = { min: 1, max: 5 };
-    const result = applyZoneLayer(
-      filters({ energy: range }),
-      preset({ clearStatRanges: true }),
-      new Set(["stats"]),
-    );
-    expect(result.energy).toEqual(range);
-  });
-
   it("matches nothing when the user's values do not overlap the zone's", () => {
     const result = applyZoneLayer(
       filters({ domains: ["mind"] }),
       preset({ arrayFilters: { domains: ["fury"] } }),
-      new Set(),
     );
     expect(result.domains).toEqual([NO_MATCH]);
   });

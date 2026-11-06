@@ -40,8 +40,6 @@ function makeWrapper() {
   return Wrapper;
 }
 
-const noopRef = () => {};
-
 const stubFrontImage = {
   face: "front" as const,
   imageId: "019d6c25-b081-74b3-a901-64da4ae0abcd",
@@ -52,7 +50,6 @@ describe("CardImage preview overlay", () => {
     const printing = stubPrinting({ setReleased: false });
     const { getByText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages={false}
@@ -68,7 +65,6 @@ describe("CardImage preview overlay", () => {
     const printing = stubPrinting({ setReleased: true });
     const { queryByText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages={false}
@@ -89,7 +85,6 @@ describe("CardImage hero (responsive image)", () => {
     });
     const { getByAltText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages
@@ -113,7 +108,6 @@ describe("CardImage hero (responsive image)", () => {
     });
     const { getByAltText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages
@@ -134,7 +128,6 @@ describe("CardImage hero (responsive image)", () => {
     });
     const { getByAltText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="landscape"
         showImages
@@ -155,7 +148,6 @@ describe("CardImage hero (responsive image)", () => {
     });
     const { container, getByAltText, queryByAltText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages
@@ -178,7 +170,6 @@ describe("CardImage hero (responsive image)", () => {
     });
     const { getByAltText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages
@@ -199,7 +190,6 @@ describe("CardImage hero (responsive image)", () => {
     });
     const { getByAltText } = render(
       <CardImage
-        innerRef={noopRef}
         printing={printing}
         orientation="portrait"
         showImages

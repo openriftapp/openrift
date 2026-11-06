@@ -81,7 +81,6 @@ function getPrefsSnapshot(): UserPreferencesResponse & {
     showImages: overrides.showImages,
     fancyFan: overrides.fancyFan,
     foilEffect: overrides.foilEffect,
-    cardTilt: overrides.cardTilt,
     marketplaceOrder: overrides.marketplaceOrder,
     languages: overrides.languages,
     completionScope: overrides.completionScope,

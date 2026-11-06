@@ -5,7 +5,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
 interface WorkbenchState {
   relaxed: boolean;
-  removedZoneChips: ReadonlySet<string>;
+  showAllCardsZones: ReadonlySet<DeckZone>;
   dismissedAdvance: DeckZone | null;
   replaceTarget: { cardId: string; preferredPrintingId: string | null } | null;
   pendingLegend: DeckBuilderCard | null;
@@ -15,8 +15,7 @@ interface WorkbenchState {
   announceAdd: (cardName: string, zone: DeckZone) => void;
   setPendingLegend: (card: DeckBuilderCard | null) => void;
   setRelaxed: (relaxed: boolean) => void;
-  removeZoneChip: (zone: DeckZone, chipKey: string) => void;
-  restoreZoneChips: (zone: DeckZone) => void;
+  setShowAllCards: (zone: DeckZone, showAll: boolean) => void;
   setDismissedAdvance: (zone: DeckZone | null) => void;
   setReplaceTarget: (target: { cardId: string; preferredPrintingId: string | null } | null) => void;
   reset: () => void;
@@ -24,7 +23,7 @@ interface WorkbenchState {
 
 export const useWorkbenchStore = create<WorkbenchState>()((set) => ({
   relaxed: false,
-  removedZoneChips: new Set<string>(),
+  showAllCardsZones: new Set<DeckZone>(),
   dismissedAdvance: null,
   replaceTarget: null,
   pendingLegend: null,
@@ -43,22 +42,22 @@ export const useWorkbenchStore = create<WorkbenchState>()((set) => ({
   announceAdd: (cardName, zone) => set({ lastAdd: { cardName, zone } }),
   setPendingLegend: (card) => set({ pendingLegend: card }),
   setRelaxed: (relaxed) => set({ relaxed }),
-  removeZoneChip: (zone, chipKey) =>
-    set((state) => ({
-      removedZoneChips: new Set([...state.removedZoneChips, `${zone}:${chipKey}`]),
-    })),
-  restoreZoneChips: (zone) =>
-    set((state) => ({
-      removedZoneChips: new Set(
-        [...state.removedZoneChips].filter((key) => !key.startsWith(`${zone}:`)),
-      ),
-    })),
+  setShowAllCards: (zone, showAll) =>
+    set((state) => {
+      const next = new Set(state.showAllCardsZones);
+      if (showAll) {
+        next.add(zone);
+      } else {
+        next.delete(zone);
+      }
+      return { showAllCardsZones: next };
+    }),
   setDismissedAdvance: (zone) => set({ dismissedAdvance: zone }),
   setReplaceTarget: (target) => set({ replaceTarget: target }),
   reset: () =>
     set({
       relaxed: false,
-      removedZoneChips: new Set<string>(),
+      showAllCardsZones: new Set<DeckZone>(),
       dismissedAdvance: null,
       replaceTarget: null,
       pendingLegend: null,

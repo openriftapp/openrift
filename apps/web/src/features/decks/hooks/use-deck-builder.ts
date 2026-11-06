@@ -6,15 +6,16 @@ import {
   totalQuantity,
   validateDeck,
 } from "@openrift/shared/deck-rules";
-import { isSingleSlotZone } from "@openrift/shared/deck-zones";
+import { isSingleSlotZone, ZONE_LABELS } from "@openrift/shared/deck-zones";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone, Domain } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useLiveQuery } from "@tanstack/react-db";
 import type { Collection } from "@tanstack/react-db";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
-import { useDeckDraftCollection } from "@/features/decks/hooks/use-deck-draft";
+import { useDeckDraftCollection, useDeckDraftScope } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
@@ -28,11 +29,17 @@ import {
 } from "@/features/decks/lib/deck-builder-card";
 import { runeRefillPlan } from "@/features/decks/lib/legend-switch-preview";
 import type { RelaxedAddOutcome } from "@/features/decks/lib/workbench-add-toast";
-import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
+import {
+  dismissRemovalToast,
+  showRelaxedAddToast,
+  showRemovalToast,
+} from "@/features/decks/lib/workbench-add-toast";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
+import { applyDeckSnapshot } from "@/features/decks/stores/deck-draft-store";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChampionIdentifierTags } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 const EMPTY_CARDS: DeckBuilderCard[] = [];
 
@@ -730,6 +737,8 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
   const relaxed = useWorkbenchStore((state) => state.relaxed);
   const { data: deckDetail } = useDeckDetail(deckId);
   const format = deckDetail.deck.format;
+  const queryClient = useQueryClient();
+  const scope = useDeckDraftScope(deckId);
 
   // Mid-sign-out the collection briefly goes null while React commits the
   // unmount of this route; make all actions no-ops in that window.
@@ -752,7 +761,26 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
   // Snapshot the deck before each edit so undo restores the state the user is
   // about to leave; every card mutation in the app routes through here.
   const record = () => {
+    dismissRemovalToast();
     useDeckUndoStore.getState().record(deckId, allCards(collection));
+  };
+
+  // Only for a row about to disappear; the toast closes on any later edit, so
+  // its undo always reverts this removal.
+  const offerRemovalUndo = (cardId: string, zone: DeckZone, allCopies: boolean) => {
+    const removed = findRowForCardInZone(allCards(collection), cardId, zone);
+    if (!relaxed || !removed || (!allCopies && removed.quantity > 1)) {
+      return;
+    }
+    showRemovalToast(
+      m.decks_workbench_removed({ card: displayName(removed), zone: ZONE_LABELS[zone] }),
+      () => {
+        const snapshot = useDeckUndoStore.getState().undo(deckId, allCards(collection));
+        if (snapshot && scope) {
+          applyDeckSnapshot(queryClient, scope, deckId, snapshot);
+        }
+      },
+    );
   };
 
   return {
@@ -800,6 +828,7 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
     },
     removeCard: (cardId, zone, preferredPrintingId) => {
       record();
+      offerRemovalUndo(cardId, zone, false);
       removeCardAction(collection, cardId, zone, runesByDomain, format, preferredPrintingId);
     },
     moveCard: (cardId, from, to, preferredPrintingId) => {
@@ -812,6 +841,9 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
     },
     setQuantity: (cardId, zone, quantity, preferredPrintingId) => {
       record();
+      if (quantity <= 0) {
+        offerRemovalUndo(cardId, zone, true);
+      }
       setQuantityAction(collection, cardId, zone, quantity, preferredPrintingId);
     },
     changePreferredPrinting: (cardId, zone, fromPrintingId, toPrintingId, countToConvert) => {

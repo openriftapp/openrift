@@ -25,7 +25,7 @@ export function useMeasuredDimension(el: HTMLElement | null, axis: "width" | "he
           : (box?.blockSize ?? entry.contentRect.height);
       setSize(Math.round(measured));
     });
-    observer.observe(el);
+    observer.observe(el, { box: "border-box" });
     return () => observer.disconnect();
   }, [el, axis]);
   return size;

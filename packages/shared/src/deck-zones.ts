@@ -8,7 +8,7 @@ import { WellKnown } from "./well-known.js";
  */
 export const ZONE_LABELS: Record<DeckZone, string> = {
   legend: "Legend",
-  "legend-options": "Legend Options",
+  "legend-options": "Extra Legends",
   champion: "Chosen Champion",
   runes: "Runes",
   battlefield: "Battlefields",

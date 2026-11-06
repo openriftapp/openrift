@@ -131,11 +131,11 @@ describe("CardControls", () => {
     return container;
   }
 
-  it("reveals the stepper on hover for a mouse", () => {
+  it("always shows the compact stepper for a mouse", () => {
     const stepper = renderControls("quantity", false).querySelector(
       '[data-slot="inline-count-stepper"]',
     );
-    expect(stepper?.className).toContain("[&>button]:hidden");
+    expect(stepper?.className).not.toMatch(/(?:^|\s)(?:\S+:)?\[&>button\]:hidden/u);
     expect(stepper?.className).not.toContain("[&>button]:size-8");
   });
 
@@ -147,17 +147,19 @@ describe("CardControls", () => {
     expect(stepper?.className).not.toMatch(/(?:^|\s)(?:\w+:)?\[&>button\]:hidden/u);
   });
 
-  it("hides the remove button until hover for a mouse", () => {
+  it("keeps the remove button's space but shows it only on hover for a mouse", () => {
     renderControls("remove-only", false);
     const remove = screen.getByRole("button", { name: "Remove from deck" });
-    expect(remove.parentElement?.className).toContain("hidden");
+    expect(remove.className).toContain("invisible");
+    expect(remove.className).toContain("group-hover/card:visible");
+    expect(remove).toHaveClass("hover:bg-foreground/20", "dark:hover:bg-foreground/20");
     expect(remove.className).toContain("size-5");
   });
 
   it("keeps an enlarged remove button visible on touch", () => {
     renderControls("remove-only", true);
     const remove = screen.getByRole("button", { name: "Remove from deck" });
-    expect(remove.parentElement?.className).toBe("contents");
+    expect(remove.className).not.toContain("invisible");
     expect(remove.className).toContain("size-8");
   });
 });
@@ -195,7 +197,7 @@ describe("DeckCardRow", () => {
     );
   });
 
-  it("orders energy, name, power, shortfall, then the quantity controls", () => {
+  it("orders the quantity controls, name, power, energy, then shortfall", () => {
     renderRow();
     const energy = screen.getByRole("img", { name: "Energy 3" });
     const name = screen.getByText("Iron Ballista");
@@ -203,7 +205,7 @@ describe("DeckCardRow", () => {
     const shortfall = screen.getByText("1/2");
     const decrement = screen.getByRole("button", { name: "Remove one copy of Iron Ballista" });
     const increment = screen.getByRole("button", { name: "Add one copy of Iron Ballista" });
-    const sequence = [energy, name, power, shortfall, decrement, increment];
+    const sequence = [decrement, increment, name, power, energy, shortfall];
     for (const [earlier, later] of sequence
       .slice(0, -1)
       .map((node, index): [HTMLElement, HTMLElement] => [node, sequence[index + 1] ?? node])) {

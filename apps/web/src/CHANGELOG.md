@@ -11,6 +11,9 @@
 
 - feat(App): **Pickers as phone drawers** — choosing a deck to compare, a card source or a queue list opens a bottom sheet on phones instead of a small popup.
 - fix(Cards): **Errata match the printing's language** — non-English printings show their printed text instead of the English errata, unless they have errata of their own.
+- feat(Decks): **Deck builder beta refinements** — an Edit and View switch with a Classic editor button, a gold frame and copy count on cards already in the deck, quantity steppers in the card detail, Undo after removing a card, and a short animation when a card joins the deck.
+- fix(Cards): **Back returns where you came from** — the back arrow on a card page goes back to the page you opened it from, such as your deck, instead of the card list.
+- feat(Cards): **Card tilt removed** — cards no longer tilt under the cursor, so card text stays sharp, and the setting is gone from your profile.
 
 ## 2026-11-05
 

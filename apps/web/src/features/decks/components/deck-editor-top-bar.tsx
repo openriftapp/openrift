@@ -146,20 +146,26 @@ export function DeckEditorTopBar({
         </PageTopBarTitle>
         {/* In editing mode the hero scrolls out of reach, so the bar
             carries the shared completion figure as a compact chip. */}
-        {inZoneView && deck.format !== WellKnown.deckFormat.FREEFORM && (
-          <span
-            className={cn(
-              "hidden shrink-0 text-xs tabular-nums md:inline",
-              hasViolations
-                ? "text-destructive"
-                : requiredProgress.progress === requiredProgress.total
-                  ? "text-success"
-                  : "text-muted-foreground",
-            )}
-          >
-            {requiredProgress.progress}/{requiredProgress.total}
-          </span>
-        )}
+        {inZoneView &&
+          deck.format !== WellKnown.deckFormat.FREEFORM &&
+          !(
+            workbench &&
+            !hasViolations &&
+            requiredProgress.progress === requiredProgress.total
+          ) && (
+            <span
+              className={cn(
+                "hidden shrink-0 text-xs tabular-nums md:inline",
+                hasViolations
+                  ? "text-destructive"
+                  : requiredProgress.progress === requiredProgress.total
+                    ? "text-success"
+                    : "text-muted-foreground",
+              )}
+            >
+              {requiredProgress.progress}/{requiredProgress.total}
+            </span>
+          )}
         {isLocal && <LocalDeckBadge className="hidden shrink-0 sm:inline-flex" />}
       </div>
       <PageTopBarActions>

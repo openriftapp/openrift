@@ -112,9 +112,6 @@ export function sanitizeServerResponse(data: unknown): Partial<DisplayOverrides>
           ? record.foilEffect !== "none"
           : null;
   }
-  if ("cardTilt" in record) {
-    result.cardTilt = typeof record.cardTilt === "boolean" ? record.cardTilt : null;
-  }
   if ("marketplaceOrder" in record) {
     result.marketplaceOrder = sanitizeMarketplaceOrder(record.marketplaceOrder);
   }
@@ -259,7 +256,6 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
         : legacyRich === false
           ? false
           : null;
-  const cardTilt = typeof record.cardTilt === "boolean" ? record.cardTilt : (legacyRich ?? null);
 
   const safeOrder = sanitizeMarketplaceOrder(record.marketplaceOrder);
 
@@ -277,7 +273,6 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
     showImages,
     fancyFan,
     foilEffect,
-    cardTilt,
     marketplaceOrder: safeOrder,
     languages: safeLanguages,
     completionScope: safeCompletionScope,

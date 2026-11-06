@@ -6,6 +6,10 @@ export interface CardOpenTarget {
   zone?: DeckZone;
 }
 
+export function isPlainPrimaryClick(event: React.MouseEvent): boolean {
+  return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
+}
+
 export type HoverHandler = (cardId: string | null, preferredPrintingId?: string | null) => void;
 
 export function cardHoverProps(

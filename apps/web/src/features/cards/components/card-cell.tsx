@@ -24,6 +24,7 @@ export interface CardCellProps {
 
   belowLabel?: ReactNode;
   imageOverlay?: ReactNode;
+  imageBadge?: ReactNode;
 
   dimmed?: boolean;
   highlighted?: boolean;
@@ -50,6 +51,7 @@ export function CardCell({
   priceRange,
   belowLabel,
   imageOverlay,
+  imageBadge,
   dimmed,
   highlighted,
   banDisplay,
@@ -76,6 +78,7 @@ export function CardCell({
       banDisplay={banDisplay}
       belowLabel={belowLabel}
       imageOverlay={imageOverlay}
+      imageBadge={imageBadge}
       dragData={dragData}
       dragId={dragId}
       aboveCard={strip}

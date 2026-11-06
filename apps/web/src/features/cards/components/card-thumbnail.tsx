@@ -21,8 +21,8 @@ import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badg
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import { isPlainPrimaryClick } from "@/features/cards/lib/card-row-interactions";
 import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainGradientStyle } from "@/lib/domain";
@@ -43,12 +43,6 @@ function promoMarkerLabel(printing: Printing): string | undefined {
 function cardSrcSet(imageId: string): string {
   return `${imageUrl(imageId, "120w")} 120w, ${imageUrl(imageId, "240w")} 240w, ${imageUrl(imageId, "400w")} 400w, ${imageUrl(imageId, "full")} 800w`;
 }
-
-const TILT_STYLE = {
-  transform:
-    "perspective(800px) rotateX(var(--foil-rotate-x, 0deg)) rotateY(var(--foil-rotate-y, 0deg))",
-  transformStyle: "preserve-3d",
-} as const;
 
 export const AFTER_BORDER =
   "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border-card-edge after:border";
@@ -98,25 +92,11 @@ export function CornerRibbon({
   );
 }
 
-function TiltImageShell({ children }: { children: ReactNode }) {
-  const { containerRef, innerRef } = useCardTilt({ mode: "pointer", enabled: true });
-  return (
-    <div ref={containerRef} className="relative">
-      <div
-        ref={innerRef}
-        className={SHELL_INNER_CLASS}
-        style={{ borderRadius: CARD_BORDER_RADIUS, ...TILT_STYLE }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function PlainImageShell({ children }: { children: ReactNode }) {
+function ImageShell({ children, badge }: { children: ReactNode; badge?: ReactNode }) {
   return (
     <div className={SHELL_INNER_CLASS} style={{ borderRadius: CARD_BORDER_RADIUS }}>
       {children}
+      {badge}
     </div>
   );
 }
@@ -369,11 +349,8 @@ interface CardThumbnailProps {
   banDisplay?: "label" | "overlay" | "none";
   belowLabel?: ReactNode;
   imageOverlay?: ReactNode;
+  imageBadge?: ReactNode;
   href?: string;
-}
-
-function isPlainPrimaryClick(event: ReactMouseEvent): boolean {
-  return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
 }
 
 interface ImageTargetProps {
@@ -540,6 +517,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   banDisplay = "label",
   belowLabel,
   imageOverlay,
+  imageBadge,
   href,
 }: CardThumbnailProps) {
   const card = displayCard(printing);
@@ -562,7 +540,6 @@ export const CardThumbnail = memo(function CardThumbnail({
   const {
     fancyFan,
     gridFoil,
-    cardTilt,
     coarsePointer,
     domainColors,
     finishLabels,
@@ -577,8 +554,6 @@ export const CardThumbnail = memo(function CardThumbnail({
   const rarityTitle = enumLabel(rarityLabels, printing.rarity);
   const isOversized = printing.size !== WellKnown.cardSize.STANDARD;
   const sizeLabel = enumLabel(sizeLabels, printing.size);
-  const tiltEnabled = cardTilt && !coarsePointer;
-  const ImageShell = tiltEnabled ? TiltImageShell : PlainImageShell;
   const otherPrintings = siblings
     ? siblings.filter((s) => sideKey(s) !== sideKey(printing)).toReversed()
     : [];
@@ -726,7 +701,7 @@ export const CardThumbnail = memo(function CardThumbnail({
           </div>
         );
       })}
-      <ImageShell>
+      <ImageShell badge={imageBadge}>
         <ImageTarget
           className={cn(
             "bg-muted aspect-card relative block w-full overflow-hidden",

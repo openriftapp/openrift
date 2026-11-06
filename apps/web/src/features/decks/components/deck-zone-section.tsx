@@ -155,9 +155,16 @@ export function DeckZoneSection({
   }
   const isEmpty = cards.length === 0;
   const hasZoneViolations = !isEmpty && zoneViolations.length > 0;
+  const headerViolations = workbench
+    ? violations.filter((violation) => violation.zone === zone)
+    : zoneViolations;
+  const showHeaderIssues = workbench ? headerViolations.length > 0 : hasZoneViolations;
   // In freeform, legend/champion are multi-card and battlefields aren't unique.
   const isSingleCard = SINGLE_CARD_ZONES.has(zone) && !isFreeform;
   const isUniqueOnly = UNIQUE_ONLY_ZONES.has(zone) && !isFreeform;
+  const targetRequired = zone === WellKnown.deckZone.LEGEND_OPTIONS && !isFreeform;
+  const hasRoom = expected === undefined ? !targetRequired : zoneQuantity < expected;
+  const showAddStrip = (isEmpty && !targetRequired) || (!isSingleCard && hasRoom);
   const isGrouped = GROUPED_ZONES.has(zone);
   const addLabel = zoneAddLabel(zone);
 
@@ -169,11 +176,12 @@ export function DeckZoneSection({
         deckId={deckId}
         card={card}
         onViewCard={workbench ? () => handleCardClick(card) : undefined}
+        onSwitch={workbench && isSingleCard ? onActivate : undefined}
       >
         <DeckCardRow
           card={card}
-          hasViolation={cardViolations.has(card.cardId)}
-          violationMessage={cardViolations.get(card.cardId)}
+          hasViolation={!workbench && cardViolations.has(card.cardId)}
+          violationMessage={workbench ? undefined : cardViolations.get(card.cardId)}
           shortfall={entry?.shortfall}
           locked={entry?.locked}
           lockedReason={entry && entry.locked > 0 ? lockedReasonText(entry) : undefined}
@@ -183,22 +191,23 @@ export function DeckZoneSection({
               ? borrowedReasonText(entry.borrowed, borrowedLenders?.[card.cardId] ?? [])
               : undefined
           }
-          controlMode={isSingleCard || isUniqueOnly ? "remove-only" : "quantity"}
+          controlMode={
+            (isSingleCard || isUniqueOnly) && card.quantity <= 1 ? "remove-only" : "quantity"
+          }
           maxQuantity={maxCardQuantity}
           draggable={DRAG_ZONES.has(zone)}
           shiftHeld={zone === WellKnown.deckZone.RUNES ? undefined : shiftHeld}
           onIncrement={
-            !workbench &&
-            !isFreeform &&
-            ((copyLimitZones.has(zone) && crossZoneTotal(card.cardId) >= copyLimitFor(card)) ||
-              (zone === WellKnown.deckZone.RUNES && !canAddRune(card, allCards)))
+            isSingleCard ||
+            isUniqueOnly ||
+            (!workbench &&
+              !isFreeform &&
+              ((copyLimitZones.has(zone) && crossZoneTotal(card.cardId) >= copyLimitFor(card)) ||
+                (zone === WellKnown.deckZone.RUNES && !canAddRune(card, allCards))))
               ? undefined
               : (event) => addCard(card, zone, event.shiftKey ? 3 : undefined)
           }
-          trashAtOne={workbench}
           menuButton={workbench}
-          domainStripe={workbench}
-          onSwitch={workbench && isSingleCard ? onActivate : undefined}
           onDecrement={(event) => {
             if (event.shiftKey) {
               onHoverCard?.(null);
@@ -262,7 +271,7 @@ export function DeckZoneSection({
         "flex flex-col gap-1.5 rounded-md transition-all select-none",
         isOver && !dropDisabled && "ring-primary/60 ring-2 ring-offset-2",
         dropDisabled && "opacity-40",
-        workbench && isActive && "outline-primary -mx-2 px-2 py-2 outline-2",
+        workbench && isActive && "outline-primary -mx-2 px-2 py-2 outline-2 -outline-offset-2",
       )}
     >
       {/* Two separate controls, never nested: the chevron collapses the
@@ -302,7 +311,7 @@ export function DeckZoneSection({
         )}
         {dropDisabled ? (
           <BanIcon className="text-muted-foreground size-3.5 shrink-0" />
-        ) : hasZoneViolations ? (
+        ) : showHeaderIssues ? (
           <Popover>
             <PopoverTrigger
               render={
@@ -318,8 +327,8 @@ export function DeckZoneSection({
             </PopoverTrigger>
             <PopoverContent side="bottom" align="start" className="w-auto max-w-80 p-2">
               <ul className="space-y-0.5">
-                {zoneViolations.map((violation) => (
-                  <li key={violation.code} className="text-xs">
+                {headerViolations.map((violation) => (
+                  <li key={`${violation.code}-${violation.cardId ?? ""}`} className="text-xs">
                     {violation.message}
                   </li>
                 ))}
@@ -327,13 +336,12 @@ export function DeckZoneSection({
             </PopoverContent>
           </Popover>
         ) : null}
-        {(workbench ||
-          !(
-            !hasZoneViolations &&
-            expected !== undefined &&
-            zoneQuantity === expected &&
-            SINGLE_CARD_ZONES.has(zone)
-          )) && (
+        {!(
+          !hasZoneViolations &&
+          expected !== undefined &&
+          zoneQuantity === expected &&
+          (workbench || SINGLE_CARD_ZONES.has(zone))
+        ) && (
           <span
             data-slot="deck-zone-count"
             className={cn(
@@ -361,16 +369,18 @@ export function DeckZoneSection({
           ) : (
             <div className="flex flex-col gap-0.5">{cards.map((card) => renderCardRow(card))}</div>
           )}
-          <Button
-            type="button"
-            variant="dashed"
-            data-slot="deck-zone-add-strip"
-            className={ZONE_ADD_STRIP_CLASS}
-            onClick={onAdd ?? activateZone}
-          >
-            <PlusIcon className="size-4" />
-            <span>{isEmpty ? zoneEmptyHint(zone, format) : addLabel}</span>
-          </Button>
+          {showAddStrip && (
+            <Button
+              type="button"
+              variant="dashed"
+              data-slot="deck-zone-add-strip"
+              className={ZONE_ADD_STRIP_CLASS}
+              onClick={onAdd ?? activateZone}
+            >
+              <PlusIcon className="size-4" />
+              <span>{isEmpty ? zoneEmptyHint(zone, format) : addLabel}</span>
+            </Button>
+          )}
         </>
       )}
     </div>

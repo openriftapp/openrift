@@ -9,7 +9,6 @@ import {
   HandHeartIcon,
   LockIcon,
   PlusIcon,
-  Trash2Icon,
   XIcon,
 } from "lucide-react";
 
@@ -24,7 +23,7 @@ import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { getDomainColor, getDomainGradientStyle, getDomainStripeStyle } from "@/lib/domain";
+import { getDomainColor, getDomainGradientStyle } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -67,10 +66,7 @@ interface DeckCardRowProps {
   onIncrement?: (event: React.MouseEvent) => void;
   onDecrement?: (event: React.MouseEvent) => void;
   onRemove?: () => void;
-  onSwitch?: () => void;
-  trashAtOne?: boolean;
   menuButton?: boolean;
-  domainStripe?: boolean;
   onClick?: () => void;
   onHover?: HoverHandler;
   onContextMenu?: (event: React.MouseEvent) => void;
@@ -151,6 +147,8 @@ export function EnergyGlyph({ value }: { value: number }) {
   );
 }
 
+const ROW_BUTTON_HOVER = "hover:bg-foreground/20 dark:hover:bg-foreground/20";
+
 export function CardControls({
   controlMode,
   cardName,
@@ -160,8 +158,6 @@ export function CardControls({
   onIncrement,
   onDecrement,
   onRemove,
-  onSwitch,
-  trashAtOne,
 }: {
   controlMode: ControlMode;
   cardName: string;
@@ -171,8 +167,6 @@ export function CardControls({
   onIncrement?: (event: React.MouseEvent) => void;
   onDecrement?: (event: React.MouseEvent) => void;
   onRemove?: () => void;
-  onSwitch?: () => void;
-  trashAtOne?: boolean;
 }) {
   const coarsePointer = useCoarsePointer();
 
@@ -181,46 +175,26 @@ export function CardControls({
   }
 
   if (controlMode === "remove-only") {
-    const removeButton = (
-      <span
-        className={
-          coarsePointer
-            ? "contents"
-            : "hidden group-focus-within/card:contents group-hover/card:contents"
-        }
-      >
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className={cn("shrink-0", coarsePointer ? "border-border size-8 border" : "size-5")}
-          onClick={(event) => {
-            event.stopPropagation();
-            onRemove?.();
-          }}
-        >
-          <XIcon className="size-3" />
-          <span className="sr-only">{m.decks_editor_remove_from_deck()}</span>
-        </Button>
-      </span>
-    );
-    if (!onSwitch) {
-      return removeButton;
-    }
+    // Invisible, not hidden, so the name does not shift when the button appears.
     return (
-      <>
-        <Button
-          variant="outline"
-          size="xs"
-          className="shrink-0"
-          onClick={(event) => {
-            event.stopPropagation();
-            onSwitch();
-          }}
-        >
-          {m.decks_workbench_switch()}
-        </Button>
-        {removeButton}
-      </>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className={cn(
+          "shrink-0",
+          ROW_BUTTON_HOVER,
+          coarsePointer
+            ? "border-border size-8 border"
+            : "invisible size-5 group-focus-within/card:visible group-hover/card:visible",
+        )}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRemove?.();
+        }}
+      >
+        <XIcon className="size-3" />
+        <span className="sr-only">{m.decks_editor_remove_from_deck()}</span>
+      </Button>
     );
   }
 
@@ -230,8 +204,9 @@ export function CardControls({
       className={
         coarsePointer
           ? "[&>button]:border-border gap-1.5 [&>button]:size-8 [&>button]:border"
-          : "[&>button]:hidden group-focus-within/card:[&>button]:inline-flex group-hover/card:[&>button]:inline-flex"
+          : undefined
       }
+      buttonClassName={ROW_BUTTON_HOVER}
       count={<span className={cn("block text-right", countWidthClass)}>{quantity}×</span>}
       decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
       incrementLabel={m.decks_editor_add_one_copy({ card: cardName })}
@@ -242,7 +217,6 @@ export function CardControls({
       bulkIncrementLabel={<PlusIcon className="size-3" />}
       decrementTooltip={m.decks_editor_shift_remove_all()}
       incrementTooltip={m.decks_editor_shift_add_max()}
-      decrementIcon={trashAtOne && quantity === 1 ? <Trash2Icon className="size-3" /> : undefined}
     />
   );
 }
@@ -264,10 +238,7 @@ export function DeckCardRow({
   onIncrement,
   onDecrement,
   onRemove,
-  onSwitch,
-  trashAtOne,
   menuButton,
-  domainStripe,
   onClick,
   onHover,
   onContextMenu,
@@ -304,15 +275,26 @@ export function DeckCardRow({
   const countDigits = String(maxQuantity ?? card.quantity).length;
   const countWidthClass = countDigits >= 3 ? "w-9" : countDigits === 2 ? "w-7" : "w-4";
 
-  const domainTint = domainStripe
-    ? getDomainStripeStyle(card.domains, domainColors)
-    : getDomainGradientStyle(card.domains, "40", domainColors);
+  const domainTint = getDomainGradientStyle(card.domains, "40", domainColors);
 
   const baseClass = cn(
     "group/card flex min-h-10 items-center gap-1.5 rounded-md px-1 py-0.5 text-sm sm:min-h-0 sm:py-1",
     hasViolation && "bg-destructive/10",
     dimmed && "opacity-50",
     isDragging && card.quantity === 1 && "opacity-40",
+  );
+
+  const cardControls = (
+    <CardControls
+      controlMode={controlMode}
+      cardName={cardName}
+      quantity={displayQuantity}
+      countWidthClass={countWidthClass}
+      shiftHeld={shiftHeld}
+      onIncrement={onIncrement}
+      onDecrement={onDecrement}
+      onRemove={onRemove}
+    />
   );
 
   const content = (
@@ -326,7 +308,7 @@ export function DeckCardRow({
         </Tooltip>
       )}
 
-      {card.energy !== null && <EnergyGlyph value={card.energy} />}
+      {cardControls}
 
       <span className="min-w-0 flex-1 truncate text-left">{cardName}</span>
 
@@ -336,6 +318,8 @@ export function DeckCardRow({
         colors={domainColors}
         domainLabels={labels.domains}
       />
+
+      {card.energy !== null && <EnergyGlyph value={card.energy} />}
 
       {shortfall !== undefined && shortfall > 0 && (
         <Tooltip>
@@ -373,19 +357,6 @@ export function DeckCardRow({
         </Tooltip>
       )}
 
-      <CardControls
-        controlMode={controlMode}
-        cardName={cardName}
-        quantity={displayQuantity}
-        countWidthClass={countWidthClass}
-        shiftHeld={shiftHeld}
-        onIncrement={onIncrement}
-        onDecrement={onDecrement}
-        onRemove={onRemove}
-        onSwitch={onSwitch}
-        trashAtOne={trashAtOne}
-      />
-
       {menuButton && (
         <Button
           variant="ghost"
@@ -421,6 +392,7 @@ export function DeckCardRow({
         onKeyDownCapture={menuButton ? handleMenuKey : undefined}
       >
         <div
+          data-deck-card-id={card.cardId}
           className={cn(baseClass, "hover:bg-muted/50 w-full cursor-pointer")}
           style={domainTint}
           onContextMenu={onContextMenu}
@@ -435,6 +407,7 @@ export function DeckCardRow({
   return (
     <div
       ref={enableDrag ? setNodeRef : undefined}
+      data-deck-card-id={card.cardId}
       className={cn(baseClass, enableDrag && "cursor-grab active:cursor-grabbing")}
       style={domainTint}
       onContextMenu={onContextMenu}

@@ -28,6 +28,7 @@ interface SelectionState {
   navigateToIndex: (index: number, printing: Printing, zone?: DeckZone) => void;
   setSelectedCard: (printing: Printing) => void;
   reconcileSelection: (items: CardViewerItem[]) => void;
+  reanchorSelection: (items: CardViewerItem[]) => void;
   closeDetail: () => void;
 }
 
@@ -108,6 +109,22 @@ export const useSelectionStore = create<SelectionState>()((set, get) => ({
       return;
     }
     set({ selectedCard: item.printing, selectedIndex: index, selectedZone: item.zone ?? null });
+  },
+
+  reanchorSelection: (items) => {
+    const { selectedCard, selectedIndex } = get();
+    if (selectedCard === null) {
+      return;
+    }
+    if (items[selectedIndex]?.printing.cardId === selectedCard.cardId) {
+      return;
+    }
+    const byPrinting = items.findIndex((item) => sideKey(item.printing) === sideKey(selectedCard));
+    const index =
+      byPrinting === -1
+        ? items.findIndex((item) => item.printing.cardId === selectedCard.cardId)
+        : byPrinting;
+    set({ selectedIndex: index, selectedZone: null });
   },
 
   closeDetail: () =>

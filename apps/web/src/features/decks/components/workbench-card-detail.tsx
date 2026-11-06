@@ -1,5 +1,5 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, XIcon } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
@@ -108,6 +108,15 @@ export function WorkbenchCardDetail({
       style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
       onKeyDown={handleKeyDown}
     >
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={m.card_detail_close()}
+        className="absolute top-3 right-3 z-10"
+        onClick={handleClose}
+      >
+        <XIcon className="size-4" />
+      </Button>
       <div ref={headingRef} tabIndex={-1} className="outline-none">
         <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={handleClose}>
           <ArrowLeftIcon className="size-4" />

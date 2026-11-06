@@ -38,8 +38,6 @@ export function DisplaySection() {
   const setFancyFan = useDisplayStore((s) => s.setFancyFan);
   const foilEffect = useDisplayStore((s) => s.foilEffect);
   const setFoilEffect = useDisplayStore((s) => s.setFoilEffect);
-  const cardTilt = useDisplayStore((s) => s.cardTilt);
-  const setCardTilt = useDisplayStore((s) => s.setCardTilt);
   const frostedBars = useDisplayStore((s) => s.frostedBars);
   const setFrostedBars = useDisplayStore((s) => s.setFrostedBars);
   const defaultCardView = useDisplayStore((s) => s.defaultCardView);
@@ -159,20 +157,6 @@ export function DisplaySection() {
           <ResetButton
             onClick={() => resetPreference("foilEffect")}
             label={m.profile_display_foil_effect_reset()}
-          />
-        )}
-      </SettingsRow>
-
-      <SettingsRow label={m.profile_display_card_tilt()} htmlFor="pref-tilt">
-        <Switch
-          id="pref-tilt"
-          checked={cardTilt}
-          onCheckedChange={(checked: boolean) => setCardTilt(checked)}
-        />
-        {overrides.cardTilt !== null && (
-          <ResetButton
-            onClick={() => resetPreference("cardTilt")}
-            label={m.profile_display_card_tilt_reset()}
           />
         )}
       </SettingsRow>

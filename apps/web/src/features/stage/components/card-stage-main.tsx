@@ -82,7 +82,7 @@ export function CardStageMain({
             forwards ? "slide-in-from-right-16" : "slide-in-from-left-16",
           )}
         >
-          <CardDetailArt printing={current.printing} showImages disableTilt />
+          <CardDetailArt printing={current.printing} showImages />
         </div>
       </div>
 

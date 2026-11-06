@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
+import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-link";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -122,14 +123,20 @@ function StackStrip({
         {...(enableDrag ? listeners : {})}
         {...(enableDrag ? attributes : {})}
       >
-        <img
-          src={thumbnail}
-          alt={displayName}
-          draggable={false}
-          onError={() => setFailedUrl(thumbnail)}
-          style={{ height: cardHeight, bottom: expanded ? "0px" : imageBottomOffset }}
-          className="absolute left-0 w-full object-cover transition-[bottom] duration-200 ease-out motion-reduce:transition-none"
-        />
+        <DeckCardPageLink
+          cardId={card.cardId}
+          printingId={card.preferredPrintingId}
+          className="absolute inset-0"
+        >
+          <img
+            src={thumbnail}
+            alt={displayName}
+            draggable={false}
+            onError={() => setFailedUrl(thumbnail)}
+            style={{ height: cardHeight, bottom: expanded ? "0px" : imageBottomOffset }}
+            className="absolute left-0 w-full object-cover transition-[bottom] duration-200 ease-out motion-reduce:transition-none"
+          />
+        </DeckCardPageLink>
         {card.banned && (expanded || variant === "top") && (
           <CornerRibbon tone="banned">{m.cards_thumb_banned()}</CornerRibbon>
         )}

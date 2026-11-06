@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export function CardImage({
-  innerRef,
   printing,
   orientation,
   showImages,
@@ -23,7 +22,6 @@ export function CardImage({
   sizes = "(min-width: 768px) 376px, 100vw",
   loading,
 }: {
-  innerRef: React.RefCallback<HTMLElement>;
   printing: Printing;
   orientation: "portrait" | "landscape";
   showImages?: boolean;
@@ -74,18 +72,12 @@ export function CardImage({
     }
   };
   return (
-    // overflow-hidden must be below the tilt element, not combined with it:
-    // Firefox mis-sizes absolute descendants when overflow-hidden and preserve-3d share a node.
     <div className="relative">
       <div
-        ref={innerRef}
         style={{
           // "5% / 3.6%" keeps corners circular on the non-square card (63/88 aspect);
           // a plain percentage radius would render elliptical.
           borderRadius: "5% / 3.6%",
-          transform:
-            "perspective(1000px) rotateX(var(--foil-rotate-x, 0deg)) rotateY(var(--foil-rotate-y, 0deg))",
-          transformStyle: "preserve-3d",
         }}
       >
         <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>

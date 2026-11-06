@@ -42,21 +42,6 @@ export function getDomainColor(
   return resolve(colors, domain);
 }
 
-export function getDomainStripeStyle(
-  domains: string[],
-  colors: Record<string, string> = DEFAULT_DOMAIN_COLORS,
-): React.CSSProperties {
-  const c1 = resolve(colors, domains[0]);
-  if (domains.length < 2) {
-    return { borderLeft: `4px solid ${c1}` };
-  }
-  const c2 = resolve(colors, domains[1]);
-  return {
-    borderLeft: "4px solid",
-    borderImage: `linear-gradient(to bottom, ${c1} 50%, ${c2} 50%) 1`,
-  };
-}
-
 /** Hard 50/50 split, not the soft blend used elsewhere, so the dual identity reads at pip size. */
 export function getPipBackgroundStyle(
   domains: string[],

@@ -122,7 +122,6 @@ vi.mock("@/features/cards/hooks/use-card-thumbnail-display", () => ({
   useCardThumbnailDisplay: () => ({
     fancyFan: false,
     gridFoil: false,
-    cardTilt: false,
     coarsePointer: false,
     domainColors: {},
     finishLabels: {},

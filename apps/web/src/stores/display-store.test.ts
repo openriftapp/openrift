@@ -24,7 +24,6 @@ describe("useDisplayStore", () => {
       expect(state.showImages).toBe(PREFERENCE_DEFAULTS.showImages);
       expect(state.fancyFan).toBe(PREFERENCE_DEFAULTS.fancyFan);
       expect(state.foilEffect).toBe(PREFERENCE_DEFAULTS.foilEffect);
-      expect(state.cardTilt).toBe(PREFERENCE_DEFAULTS.cardTilt);
       expect(state.marketplaceOrder).toEqual(PREFERENCE_DEFAULTS.marketplaceOrder);
       expect(state.languages).toEqual(PREFERENCE_DEFAULTS.languages);
       expect(state.defaultCardView).toBe(PREFERENCE_DEFAULTS.defaultCardView);
@@ -36,7 +35,6 @@ describe("useDisplayStore", () => {
       expect(overrides.showImages).toBeNull();
       expect(overrides.fancyFan).toBeNull();
       expect(overrides.foilEffect).toBeNull();
-      expect(overrides.cardTilt).toBeNull();
       expect(overrides.marketplaceOrder).toBeNull();
       expect(overrides.languages).toBeNull();
       expect(overrides.defaultCardView).toBeNull();
@@ -81,13 +79,6 @@ describe("useDisplayStore", () => {
 
       expect(useDisplayStore.getState().foilEffect).toBe(false);
       expect(useDisplayStore.getState().overrides.foilEffect).toBe(false);
-    });
-
-    it("setCardTilt updates both resolved value and override", () => {
-      useDisplayStore.getState().setCardTilt(false);
-
-      expect(useDisplayStore.getState().cardTilt).toBe(false);
-      expect(useDisplayStore.getState().overrides.cardTilt).toBe(false);
     });
 
     it("setMarketplaceOrder updates the order", () => {
@@ -167,7 +158,6 @@ describe("useDisplayStore", () => {
       store.setShowImages(false);
       store.setFancyFan(true);
       store.setFoilEffect(false);
-      store.setCardTilt(false);
       store.setMarketplaceOrder(["cardmarket"]);
       store.setLanguages(["DE", "FR"]);
       store.setDefaultCardView("cards");
@@ -179,7 +169,6 @@ describe("useDisplayStore", () => {
         showImages: null,
         fancyFan: null,
         foilEffect: null,
-        cardTilt: null,
         marketplaceOrder: null,
         languages: null,
         completionScope: null,
@@ -191,7 +180,6 @@ describe("useDisplayStore", () => {
       expect(state.showImages).toBe(PREFERENCE_DEFAULTS.showImages);
       expect(state.fancyFan).toBe(PREFERENCE_DEFAULTS.fancyFan);
       expect(state.foilEffect).toBe(PREFERENCE_DEFAULTS.foilEffect);
-      expect(state.cardTilt).toBe(PREFERENCE_DEFAULTS.cardTilt);
       expect(state.marketplaceOrder).toEqual(PREFERENCE_DEFAULTS.marketplaceOrder);
       expect(state.languages).toEqual(PREFERENCE_DEFAULTS.languages);
       expect(state.defaultCardView).toBe(PREFERENCE_DEFAULTS.defaultCardView);
@@ -223,7 +211,6 @@ describe("useDisplayStore", () => {
         showImages: false,
         fancyFan: true,
         foilEffect: null,
-        cardTilt: null,
         marketplaceOrder: ["cardmarket"],
         languages: null,
         completionScope: null,

@@ -13,6 +13,7 @@ import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { PencilIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
@@ -25,11 +26,14 @@ import type { SortGroupOption } from "@/features/cards/components/sort-group-con
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
+import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { useHomeCollection } from "@/features/collections/hooks/use-home-collection";
 import { DeckBoxTab } from "@/features/decks/components/deck-box-tab";
 import { DeckBuilderIntroBanner } from "@/features/decks/components/deck-builder-intro-banner";
+import type { CardPageHrefResolver } from "@/features/decks/components/deck-card-page-link";
+import { CardPageHrefContext } from "@/features/decks/components/deck-card-page-link";
 import { DeckDescription, DeckLinkChips } from "@/features/decks/components/deck-description";
 import { DeckHero } from "@/features/decks/components/deck-hero";
 import { DeckOverviewList } from "@/features/decks/components/deck-overview-list";
@@ -85,6 +89,7 @@ import {
 import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -161,8 +166,15 @@ export function DeckOverview({
   onSaveOddsConfig,
 }: DeckOverviewProps) {
   const championIdentifierTags = useChampionIdentifierTags();
+  const workbench = useWorkbenchStore((state) => state.relaxed);
   const { labels: enumLabels, orders: enumOrders } = useEnumOrders();
-  const { sets } = useCards();
+  const { sets, printingsById, printingsByCardId } = useCards();
+  const router = useRouter();
+  const resolveCardPageHref: CardPageHrefResolver = (cardId, printingId) => {
+    const printing =
+      (printingId ? printingsById[printingId] : undefined) ?? printingsByCardId.get(cardId)?.[0];
+    return printing ? cardPageHref(router, printing) : undefined;
+  };
   const { getFaceImage } = usePreferredPrinting();
   const violations = validateDeck({
     format: deck.format,
@@ -407,6 +419,7 @@ export function DeckOverview({
     totalCards > 0 && (
       <DeckOverviewViewControls
         compact={compact}
+        paneToggle={!workbench}
         displayMode={displayMode}
         ordering={ordering}
         columnOverride={columnOverride}
@@ -475,278 +488,280 @@ export function DeckOverview({
   ) : null;
 
   return (
-    <div className="@container flex flex-col gap-6 px-1 pt-3 pb-4">
-      {hydrated && canPreferOwned && (
-        <Suspense fallback={null}>
-          <OwnershipBandSourcesBridge
-            cards={cards}
-            homeCollectionId={deck.collectionId}
-            onResult={setBandSources}
-          />
-        </Suspense>
-      )}
-      <DeckHero
-        name={deck.name}
-        format={deck.format}
-        violations={violations}
-        totalCards={totalCards}
-        requiredProgress={requiredProgress}
-        requiredTotal={requiredTotal}
-        legend={legendCard}
-        champion={championCard}
-        getThumbnail={resolveThumbnail}
-        cover={
-          coverThumb ? { thumbnail: coverThumb, position: deck.coverPosition ?? null } : undefined
-        }
-        domainDistribution={stats.domainDistribution}
-        domainTotal={stats.totalCards}
-        ownershipData={ownershipData}
-        hideValue={hideDeckValue}
-        marketplace={marketplace}
-        showSignIn={showSignIn}
-        onViewMissing={onViewMissing}
-        onCardClick={onCardClick}
-        box={
-          showBoxTab && homeCollection
-            ? { name: homeCollection.name, onOpen: () => setTab("box") }
-            : undefined
-        }
-        byline={heroByline}
-        heading={heroHeading}
-        lead={heroLead}
-        actions={heroActions}
-        footer={variantRailSlot}
-      />
-      {notice}
-      <TabStrip
-        tab={activeTab}
-        onTabChange={setTab}
-        showPlanTab={showPlanTab}
-        showBoxTab={showBoxTab}
-        showStatsTab={statsInTab}
-        deckTabLabel={cardListReadOnly ? m.decks_workbench_tab_cards() : undefined}
-        trailingMobile={
-          activeTab === "overview" ? (
-            renderViewControls(true)
-          ) : activeTab === "box" ? (
-            <MobileOptionsDrawer>
-              <DeckOrderingControl compact ordering={ordering} />
-            </MobileOptionsDrawer>
-          ) : undefined
-        }
-        trailing={
-          activeTab === "overview" ? (
-            renderViewControls(false)
-          ) : activeTab === "box" ? (
-            <DeckOrderingControl ordering={ordering} />
-          ) : activeTab === "plan" ? (
-            // Plan editor's actions portal in here once the ref lands (PlanTabActionsContext).
-            <div ref={setPlanActionsSlot} className="flex items-center gap-2" />
-          ) : undefined
-        }
-      />
-      {showOverviewContent && phone && !readOnly && (
-        <DeckStatsSummary
-          cards={cards}
-          stats={stats}
-          cardTypeLabels={enumLabels.cardTypes}
-          onShowAll={() => setTab("stats")}
-        />
-      )}
-      {showOverviewContent && (
-        <FormatConfigCard
-          deckId={deck.id}
+    <CardPageHrefContext value={resolveCardPageHref}>
+      <div className="@container flex flex-col gap-6 px-1 pt-3 pb-4">
+        {hydrated && canPreferOwned && (
+          <Suspense fallback={null}>
+            <OwnershipBandSourcesBridge
+              cards={cards}
+              homeCollectionId={deck.collectionId}
+              onResult={setBandSources}
+            />
+          </Suspense>
+        )}
+        <DeckHero
+          name={deck.name}
           format={deck.format}
-          formatConfig={deck.formatConfig}
-          readOnly={readOnly}
+          violations={violations}
+          totalCards={totalCards}
+          requiredProgress={requiredProgress}
+          requiredTotal={requiredTotal}
+          legend={legendCard}
+          champion={championCard}
+          getThumbnail={resolveThumbnail}
+          cover={
+            coverThumb ? { thumbnail: coverThumb, position: deck.coverPosition ?? null } : undefined
+          }
+          domainDistribution={stats.domainDistribution}
+          domainTotal={stats.totalCards}
+          ownershipData={ownershipData}
+          hideValue={hideDeckValue}
+          marketplace={marketplace}
+          showSignIn={showSignIn}
+          onViewMissing={onViewMissing}
+          onCardClick={onCardClick}
+          box={
+            showBoxTab && homeCollection
+              ? { name: homeCollection.name, onOpen: () => setTab("box") }
+              : undefined
+          }
+          byline={heroByline}
+          heading={heroHeading}
+          lead={heroLead}
+          actions={heroActions}
+          footer={variantRailSlot}
         />
-      )}
-      {showOverviewContent && (description || hasLinks) && (
-        <Callout variant="inset" className="flex items-start gap-4">
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            {description && (
-              <DeckDescription
-                text={description}
-                className="text-muted-foreground max-w-prose min-w-0 text-sm"
+        {notice}
+        <TabStrip
+          tab={activeTab}
+          onTabChange={setTab}
+          showPlanTab={showPlanTab}
+          showBoxTab={showBoxTab}
+          showStatsTab={statsInTab}
+          deckTabLabel={cardListReadOnly ? m.decks_workbench_tab_cards() : undefined}
+          trailingMobile={
+            activeTab === "overview" ? (
+              renderViewControls(true)
+            ) : activeTab === "box" ? (
+              <MobileOptionsDrawer>
+                <DeckOrderingControl compact ordering={ordering} />
+              </MobileOptionsDrawer>
+            ) : undefined
+          }
+          trailing={
+            activeTab === "overview" ? (
+              renderViewControls(false)
+            ) : activeTab === "box" ? (
+              <DeckOrderingControl ordering={ordering} />
+            ) : activeTab === "plan" ? (
+              // Plan editor's actions portal in here once the ref lands (PlanTabActionsContext).
+              <div ref={setPlanActionsSlot} className="flex items-center gap-2" />
+            ) : undefined
+          }
+        />
+        {showOverviewContent && phone && !readOnly && (
+          <DeckStatsSummary
+            cards={cards}
+            stats={stats}
+            cardTypeLabels={enumLabels.cardTypes}
+            onShowAll={() => setTab("stats")}
+          />
+        )}
+        {showOverviewContent && (
+          <FormatConfigCard
+            deckId={deck.id}
+            format={deck.format}
+            formatConfig={deck.formatConfig}
+            readOnly={readOnly}
+          />
+        )}
+        {showOverviewContent && (description || hasLinks) && (
+          <Callout variant="inset" className="flex items-start gap-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              {description && (
+                <DeckDescription
+                  text={description}
+                  className="text-muted-foreground max-w-prose min-w-0 text-sm"
+                  onHoverCard={onHoverCard}
+                  onCardClick={onCardClick}
+                />
+              )}
+              {hasLinks && <DeckLinkChips links={deck.links ?? []} />}
+            </div>
+            {!readOnly && onEditDescription && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="-my-1 -mr-1 shrink-0"
+                      aria-label={m.decks_overview_edit_description()}
+                      onClick={onEditDescription}
+                    />
+                  }
+                >
+                  <PencilIcon className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent>{m.decks_overview_edit_description()}</TooltipContent>
+              </Tooltip>
+            )}
+          </Callout>
+        )}
+        {showOverviewContent && showIntroBanner && (
+          <DeckBuilderIntroBanner
+            format={deck.format}
+            onDismiss={() => dismissIntro("deck-builder")}
+          />
+        )}
+        {showOverviewContent && fallbackHint && <p className="text-sm">{fallbackHint}</p>}
+
+        {activeTab === "plan" && (
+          <PlanTabActionsContext value={planActionsSlot}>{planSlot}</PlanTabActionsContext>
+        )}
+
+        {/* No server snapshot for the live copies feed, so it waits for hydration too. */}
+        {activeTab === "box" && hydrated && homeCollection && (
+          <DeckBoxTab
+            deckId={deck.id}
+            cards={cards}
+            homeCollectionId={homeCollection.id}
+            homeCollectionName={homeCollection.name}
+            onViewMissing={onViewMissing}
+            sortCards={sortZoneCards}
+            groupCards={groupZoneCards}
+            groupBy={groupBy}
+            onCardClick={onCardClick}
+            onHoverCard={onHoverCard}
+          />
+        )}
+
+        {activeTab === "test" && (
+          <DeckTestBench
+            cards={cards}
+            deckId={deck.id}
+            oddsConfig={oddsConfig}
+            onSaveOddsConfig={onSaveOddsConfig}
+            getThumbnail={resolveThumbnail}
+            onHoverCard={hoverBenchCard}
+            onCardClick={onCardClick}
+          />
+        )}
+
+        {showOverviewContent && !statsInTab && (
+          <DeckStatsBand
+            cards={cards}
+            stats={stats}
+            ownershipData={ownershipData}
+            ownershipSegmentsByCardKey={ownershipSegmentsByCardKey}
+            ownedPrintingFor={ownedPrintingFor}
+            enumLabels={enumLabels}
+            enumOrders={enumOrders}
+            statsFocus={statsFocus}
+            applyStatsFocus={applyStatsFocus}
+            statsOpen={statsOpen}
+            onStatsOpenChange={setStatsOpen}
+          />
+        )}
+
+        {showOverviewContent && cardListSlot}
+        {showOverviewContent && !cardListSlot && (
+          <div id="deck-cards" style={{ scrollMarginTop: SECTION_SCROLL_MARGIN }}>
+            {statsFocus && (
+              <div className="mb-3 flex">
+                <span className="border-primary/40 bg-primary/10 flex max-w-full items-center gap-1.5 rounded-2xl border py-1 pr-2 pl-3 text-sm sm:rounded-full">
+                  <span className="flex min-w-0 flex-col gap-x-1.5 sm:flex-row sm:items-center">
+                    <span>
+                      {statsFocusLabel(statsFocus, enumLabels.cardTypes, enumLabels.rarities)}
+                    </span>
+                    <span className="text-muted-foreground tabular-nums">
+                      <span className="hidden sm:inline">· </span>
+                      {m.decks_overview_focus_in_deck({
+                        count: statsFocusCount(cards, statsFocus),
+                      })}
+                      {focusOpeningChance !== null && (
+                        <>
+                          {" · "}
+                          {m.decks_overview_focus_opening_hand({
+                            chance: formatChancePct(focusOpeningChance),
+                          })}
+                        </>
+                      )}
+                    </span>
+                  </span>
+                  <ChipRemoveButton
+                    aria-label={m.decks_overview_focus_clear()}
+                    className="shrink-0"
+                    onClick={() => setStatsFocus(null)}
+                  />
+                </span>
+              </div>
+            )}
+            {showList ? (
+              <DeckOverviewList
+                cards={cards}
+                format={deck.format}
+                violations={violations}
+                ownership={ownershipData}
+                showOwnership={ownershipData !== undefined && !showSignIn}
+                marketplace={marketplace}
+                sortBy={listSortBy}
+                sortDir={listSortDir}
+                groupBy={groupBy}
+                groupDir={groupDir}
+                statsFocus={statsFocus}
+                ownedPrintingFor={ownedPrintingFor}
+                resolveHoverPrintingId={resolveHoverPrintingId}
+                onZoneClick={onZoneClick}
                 onHoverCard={onHoverCard}
                 onCardClick={onCardClick}
+                draggable={!listReadOnly}
+                countsOnlyUnfinished={cardListReadOnly === true}
+                tokensSlot={tokensSection}
               />
-            )}
-            {hasLinks && <DeckLinkChips links={deck.links ?? []} />}
-          </div>
-          {!readOnly && onEditDescription && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="-my-1 -mr-1 shrink-0"
-                    aria-label={m.decks_overview_edit_description()}
-                    onClick={onEditDescription}
-                  />
-                }
-              >
-                <PencilIcon className="size-4" />
-              </TooltipTrigger>
-              <TooltipContent>{m.decks_overview_edit_description()}</TooltipContent>
-            </Tooltip>
-          )}
-        </Callout>
-      )}
-      {showOverviewContent && showIntroBanner && (
-        <DeckBuilderIntroBanner
-          format={deck.format}
-          onDismiss={() => dismissIntro("deck-builder")}
-        />
-      )}
-      {showOverviewContent && fallbackHint && <p className="text-sm">{fallbackHint}</p>}
-
-      {activeTab === "plan" && (
-        <PlanTabActionsContext value={planActionsSlot}>{planSlot}</PlanTabActionsContext>
-      )}
-
-      {/* No server snapshot for the live copies feed, so it waits for hydration too. */}
-      {activeTab === "box" && hydrated && homeCollection && (
-        <DeckBoxTab
-          deckId={deck.id}
-          cards={cards}
-          homeCollectionId={homeCollection.id}
-          homeCollectionName={homeCollection.name}
-          onViewMissing={onViewMissing}
-          sortCards={sortZoneCards}
-          groupCards={groupZoneCards}
-          groupBy={groupBy}
-          onCardClick={onCardClick}
-          onHoverCard={onHoverCard}
-        />
-      )}
-
-      {activeTab === "test" && (
-        <DeckTestBench
-          cards={cards}
-          deckId={deck.id}
-          oddsConfig={oddsConfig}
-          onSaveOddsConfig={onSaveOddsConfig}
-          getThumbnail={resolveThumbnail}
-          onHoverCard={hoverBenchCard}
-          onCardClick={onCardClick}
-        />
-      )}
-
-      {showOverviewContent && !statsInTab && (
-        <DeckStatsBand
-          cards={cards}
-          stats={stats}
-          ownershipData={ownershipData}
-          ownershipSegmentsByCardKey={ownershipSegmentsByCardKey}
-          ownedPrintingFor={ownedPrintingFor}
-          enumLabels={enumLabels}
-          enumOrders={enumOrders}
-          statsFocus={statsFocus}
-          applyStatsFocus={applyStatsFocus}
-          statsOpen={statsOpen}
-          onStatsOpenChange={setStatsOpen}
-        />
-      )}
-
-      {showOverviewContent && cardListSlot}
-      {showOverviewContent && !cardListSlot && (
-        <div id="deck-cards" style={{ scrollMarginTop: SECTION_SCROLL_MARGIN }}>
-          {statsFocus && (
-            <div className="mb-3 flex">
-              <span className="border-primary/40 bg-primary/10 flex max-w-full items-center gap-1.5 rounded-2xl border py-1 pr-2 pl-3 text-sm sm:rounded-full">
-                <span className="flex min-w-0 flex-col gap-x-1.5 sm:flex-row sm:items-center">
-                  <span>
-                    {statsFocusLabel(statsFocus, enumLabels.cardTypes, enumLabels.rarities)}
-                  </span>
-                  <span className="text-muted-foreground tabular-nums">
-                    <span className="hidden sm:inline">· </span>
-                    {m.decks_overview_focus_in_deck({
-                      count: statsFocusCount(cards, statsFocus),
-                    })}
-                    {focusOpeningChance !== null && (
-                      <>
-                        {" · "}
-                        {m.decks_overview_focus_opening_hand({
-                          chance: formatChancePct(focusOpeningChance),
-                        })}
-                      </>
-                    )}
-                  </span>
-                </span>
-                <ChipRemoveButton
-                  aria-label={m.decks_overview_focus_clear()}
-                  className="shrink-0"
-                  onClick={() => setStatsFocus(null)}
-                />
-              </span>
-            </div>
-          )}
-          {showList ? (
-            <DeckOverviewList
-              cards={cards}
-              format={deck.format}
-              violations={violations}
-              ownership={ownershipData}
-              showOwnership={ownershipData !== undefined && !showSignIn}
-              marketplace={marketplace}
-              sortBy={listSortBy}
-              sortDir={listSortDir}
-              groupBy={groupBy}
-              groupDir={groupDir}
-              statsFocus={statsFocus}
-              ownedPrintingFor={ownedPrintingFor}
-              resolveHoverPrintingId={resolveHoverPrintingId}
-              onZoneClick={onZoneClick}
-              onHoverCard={onHoverCard}
-              onCardClick={onCardClick}
-              draggable={!listReadOnly}
-              countsOnlyUnfinished={cardListReadOnly === true}
-              tokensSlot={tokensSection}
-            />
-          ) : (
-            <div ref={containerRef} style={cardWidthStyle} className="flex flex-col gap-8">
-              {/* Column gap must match the thumb gap (card width derives from it),
+            ) : (
+              <div ref={containerRef} style={cardWidthStyle} className="flex flex-col gap-8">
+                {/* Column gap must match the thumb gap (card width derives from it),
                   or a two-card tile comes out short and wraps. */}
-              <div className="grid gap-x-1.5 gap-y-8" style={smallZoneTemplateStyle}>
-                {SMALL_ZONES.map((zone) => renderZone(zone, smallZoneStyles[zone]))}
+                <div className="grid gap-x-1.5 gap-y-8" style={smallZoneTemplateStyle}>
+                  {SMALL_ZONES.map((zone) => renderZone(zone, smallZoneStyles[zone]))}
+                </div>
+                <div
+                  className={
+                    displayMode === "stacks"
+                      ? "flex flex-wrap items-start gap-x-8 gap-y-8"
+                      : "contents"
+                  }
+                >
+                  {isZoneShown(WellKnown.deckZone.LEGEND_OPTIONS, deck.format, cards) &&
+                    renderZone(WellKnown.deckZone.LEGEND_OPTIONS)}
+                  {renderZone(WellKnown.deckZone.MAIN)}
+                  {isZoneShown(WellKnown.deckZone.SIDEBOARD, deck.format, cards) &&
+                    renderZone(WellKnown.deckZone.SIDEBOARD)}
+                  {cards.some((card) => card.zone === WellKnown.deckZone.OVERFLOW) &&
+                    renderZone(WellKnown.deckZone.OVERFLOW)}
+                </div>
+                {tokensSection}
               </div>
-              <div
-                className={
-                  displayMode === "stacks"
-                    ? "flex flex-wrap items-start gap-x-8 gap-y-8"
-                    : "contents"
-                }
-              >
-                {isZoneShown(WellKnown.deckZone.LEGEND_OPTIONS, deck.format, cards) &&
-                  renderZone(WellKnown.deckZone.LEGEND_OPTIONS)}
-                {renderZone(WellKnown.deckZone.MAIN)}
-                {isZoneShown(WellKnown.deckZone.SIDEBOARD, deck.format, cards) &&
-                  renderZone(WellKnown.deckZone.SIDEBOARD)}
-                {cards.some((card) => card.zone === WellKnown.deckZone.OVERFLOW) &&
-                  renderZone(WellKnown.deckZone.OVERFLOW)}
-              </div>
-              {tokensSection}
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {activeTab === "stats" && (
-        <DeckStatsBand
-          cards={cards}
-          stats={stats}
-          ownershipData={ownershipData}
-          ownershipSegmentsByCardKey={ownershipSegmentsByCardKey}
-          ownedPrintingFor={ownedPrintingFor}
-          enumLabels={enumLabels}
-          enumOrders={enumOrders}
-          statsFocus={statsFocus}
-          applyStatsFocus={applyStatsFocus}
-          statsOpen
-        />
-      )}
-    </div>
+        {activeTab === "stats" && (
+          <DeckStatsBand
+            cards={cards}
+            stats={stats}
+            ownershipData={ownershipData}
+            ownershipSegmentsByCardKey={ownershipSegmentsByCardKey}
+            ownedPrintingFor={ownedPrintingFor}
+            enumLabels={enumLabels}
+            enumOrders={enumOrders}
+            statsFocus={statsFocus}
+            applyStatsFocus={applyStatsFocus}
+            statsOpen
+          />
+        )}
+      </div>
+    </CardPageHrefContext>
   );
 }

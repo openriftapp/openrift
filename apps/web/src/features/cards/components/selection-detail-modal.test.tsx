@@ -139,6 +139,23 @@ describe("SelectionDetailModal", () => {
     expect(screen.queryByText("Card detail stub")).not.toBeInTheDocument();
   });
 
+  it("opens despite a docked pane on a surface without one", async () => {
+    const items = [stubCardViewerItem()];
+    selectFirst(items);
+    useDisplayStore.setState({ paneDocked: true });
+    render(
+      <SelectionDetailModal
+        items={items}
+        printingsByCardId={new Map()}
+        showImages={false}
+        onSearchAndClose={() => {}}
+        docking={false}
+      />,
+    );
+
+    expect(await screen.findByText("Card detail stub")).toBeInTheDocument();
+  });
+
   it("renders nothing when no card is selected", () => {
     renderModal([stubCardViewerItem()]);
 

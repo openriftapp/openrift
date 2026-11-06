@@ -193,7 +193,6 @@ export interface ResolvedPreferences {
   showImages: boolean;
   fancyFan: boolean;
   foilEffect: boolean;
-  cardTilt: boolean;
   theme: Theme;
   palette: Palette;
   displayLocale: DisplayLocale;
@@ -214,7 +213,6 @@ export const DISPLAY_PREFERENCE_KEYS = [
   "showImages",
   "fancyFan",
   "foilEffect",
-  "cardTilt",
   "marketplaceOrder",
   "languages",
   "completionScope",
@@ -237,7 +235,6 @@ export const PREFERENCE_DEFAULTS: ResolvedPreferences = {
   showImages: true,
   fancyFan: true,
   foilEffect: false,
-  cardTilt: true,
   theme: "dark",
   palette: "default",
   displayLocale: "en",

@@ -60,9 +60,8 @@ export const NO_MATCH = "__no-match__";
 export function applyZoneLayer<F extends LayerableFilters>(
   filters: F,
   preset: DeckZoneFilterPreset,
-  removed: ReadonlySet<string>,
 ): F {
-  const active = zoneLayerChips(preset).filter((chip) => !removed.has(chip.key));
+  const active = zoneLayerChips(preset);
   const next: Partial<LayerableFilters> = {};
   const byKind = Map.groupBy(active, (chip) => chip.kind);
 

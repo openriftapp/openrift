@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { flyCardToDock } from "./workbench-fly-to-dock";
+import { flyCardToDeck } from "./workbench-fly-to-dock";
 
 function rect(left: number, top: number, width: number, height: number): DOMRect {
   return {
@@ -48,10 +48,10 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("flyCardToDock", () => {
+describe("flyCardToDeck", () => {
   it("flies a copy of the card image toward the dock and removes it on finish", () => {
     mount();
-    flyCardToDock("p-1");
+    flyCardToDeck("p-1", "c-1", "main");
     const ghosts = document.querySelectorAll('img[aria-hidden="true"]');
     expect(ghosts).toHaveLength(1);
     expect(HTMLElement.prototype.animate).toHaveBeenCalledOnce();
@@ -59,15 +59,47 @@ describe("flyCardToDock", () => {
     expect(document.querySelectorAll('img[aria-hidden="true"]')).toHaveLength(0);
   });
 
+  it("pulses only the card's row when it lands in the sidebar", () => {
+    mount();
+    document.querySelector("[data-deck-dock-target]")?.remove();
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<section data-slot="deck-zone" data-zone="main"><div data-deck-card-id="c-1"></div></section>',
+    );
+    const section = document.querySelector("section") as HTMLElement;
+    const row = document.querySelector("[data-deck-card-id]") as HTMLElement;
+    section.getBoundingClientRect = () => rect(900, 300, 300, 400);
+    row.getBoundingClientRect = () => rect(900, 340, 300, 32);
+    flyCardToDeck("p-1", "c-1", "main");
+    finish?.();
+    const animate = vi.mocked(HTMLElement.prototype.animate);
+    expect(animate).toHaveBeenCalledTimes(2);
+    expect(animate.mock.contexts[1]).toBe(row);
+  });
+
+  it("leaves the zone alone when a first copy's row is not there on landing", () => {
+    mount();
+    document.querySelector("[data-deck-dock-target]")?.remove();
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<section data-slot="deck-zone" data-zone="main"></section>',
+    );
+    const section = document.querySelector("section") as HTMLElement;
+    section.getBoundingClientRect = () => rect(900, 300, 300, 400);
+    flyCardToDeck("p-1", "c-1", "main");
+    finish?.();
+    expect(HTMLElement.prototype.animate).toHaveBeenCalledOnce();
+  });
+
   it("does nothing with reduced motion", () => {
     mount(true);
-    flyCardToDock("p-1");
+    flyCardToDeck("p-1", "c-1", "main");
     expect(document.querySelectorAll("img")).toHaveLength(1);
   });
 
   it("does nothing when the card is not on screen", () => {
     mount();
-    flyCardToDock("missing");
+    flyCardToDeck("missing", "c-1", "main");
     expect(document.querySelectorAll("img")).toHaveLength(1);
   });
 });

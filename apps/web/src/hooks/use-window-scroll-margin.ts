@@ -17,6 +17,20 @@ export function useWindowScrollMargin(el: HTMLElement | null, extra = 0): number
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(document.body);
+    // A min-height page keeps the body's size when content above `el` grows,
+    // so watch everything that sits above it as well.
+    for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
+      for (
+        let sibling = node.previousElementSibling;
+        sibling;
+        sibling = sibling.previousElementSibling
+      ) {
+        observer.observe(sibling);
+      }
+      if (node.parentElement && node.parentElement !== document.body) {
+        observer.observe(node.parentElement);
+      }
+    }
     return () => observer.disconnect();
   }, [el]);
   return top + extra;

@@ -212,7 +212,7 @@ function EdgeCounts({
     <Popover>
       <PopoverTrigger
         aria-label={m.decks_dialog_rail_edge_label({ from: fromLabel, to: toLabel })}
-        className="group bg-background focus-visible:ring-ring flex items-center gap-1 rounded-full px-1 transition-transform outline-none hover:scale-110 focus-visible:scale-110 focus-visible:ring-2 data-popup-open:scale-110"
+        className="group bg-card focus-visible:ring-ring flex flex-col items-stretch gap-0.5 rounded-md text-center transition-transform outline-none hover:scale-110 focus-visible:scale-110 focus-visible:ring-2 data-popup-open:scale-110"
       >
         <span className={cn(CHIP_BASE, ADD_CHIP, ADD_CHIP_HOVER)}>+{addCount}</span>
         <span className={cn(CHIP_BASE, CUT_CHIP, CUT_CHIP_HOVER)}>−{cutCount}</span>

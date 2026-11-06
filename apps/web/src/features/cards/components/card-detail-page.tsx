@@ -2,7 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
 import { ChevronDownIcon, PencilLineIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
@@ -42,6 +42,8 @@ export function CardDetailPage() {
   const { cardSlug, printingSlug } = routeApi.useParams();
   const { printingId: linkedPrintingId, side } = routeApi.useSearch();
   const navigate = useNavigate();
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
   const { data } = useSuspenseQuery(cardDetailQueryOptions(cardSlug));
   const { card, sets } = data;
   const effectiveLanguageOrder = useEffectiveLanguageOrder();
@@ -87,7 +89,16 @@ export function CardDetailPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarBack to="/cards" aria-label={m.card_detail_all_cards()} />
+          <PageTopBarBack
+            to="/cards"
+            aria-label={canGoBack ? m.common_back() : m.card_detail_all_cards()}
+            onClick={(event) => {
+              if (canGoBack) {
+                event.preventDefault();
+                router.history.back();
+              }
+            }}
+          />
           <PageTopBarTitle>{legendDisplayName(card)}</PageTopBarTitle>
           <PageTopBarActions>
             <SuggestCorrectionMenu

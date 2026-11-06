@@ -52,7 +52,6 @@ interface DisplayState extends DisplayPreferences {
   setShowImages: (value: DisplayPreferences["showImages"]) => void;
   setFancyFan: (value: DisplayPreferences["fancyFan"]) => void;
   setFoilEffect: (value: DisplayPreferences["foilEffect"]) => void;
-  setCardTilt: (value: DisplayPreferences["cardTilt"]) => void;
   setMarketplaceOrder: (value: DisplayPreferences["marketplaceOrder"]) => void;
   setLanguages: (value: DisplayPreferences["languages"]) => void;
   setCompletionScope: (value: DisplayPreferences["completionScope"]) => void;
@@ -113,11 +112,6 @@ export const useDisplayStore = create<DisplayState>()(
         set((state) => ({
           foilEffect: value,
           overrides: { ...state.overrides, foilEffect: value },
-        })),
-      setCardTilt: (value) =>
-        set((state) => ({
-          cardTilt: value,
-          overrides: { ...state.overrides, cardTilt: value },
         })),
       setMarketplaceOrder: (value) =>
         set((state) => ({

@@ -73,7 +73,8 @@ export function CardBrowserLayout({
             // painted over and clipped a focused control's outset ring. See
             // the sticky z-ladder note in CLAUDE.md.
             STICKY_SURFACE,
-            "mx-safe-neg px-safe sticky z-30",
+            // flow-root keeps the last filter row's margin inside the sticky surface.
+            "mx-safe-neg px-safe sticky z-30 flow-root",
             // Only the first tier under the header gets top padding; a page
             // top bar above already provides the gap via its own pb-3.
             pageTopBarHeight === 0 && "-mt-px pt-3",

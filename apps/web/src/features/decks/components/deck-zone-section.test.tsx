@@ -1,3 +1,4 @@
+import type { DeckViolation } from "@openrift/shared/deck-rules";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -30,7 +31,25 @@ vi.mock("@/features/decks/components/deck-card-printing-menu", () => ({
   DeckCardPrintingMenu: ({ children }: { children: React.ReactNode }) => children,
 }));
 vi.mock("@/features/decks/components/deck-card-row", () => ({
-  DeckCardRow: ({ card }: { card: { cardName: string } }) => <div>{card.cardName}</div>,
+  DeckCardRow: ({
+    card,
+    controlMode,
+    onIncrement,
+    hasViolation,
+  }: {
+    card: { cardName: string };
+    controlMode: string;
+    onIncrement?: () => void;
+    hasViolation?: boolean;
+  }) => (
+    <div
+      data-control-mode={controlMode}
+      data-can-increment={String(onIncrement !== undefined)}
+      data-has-violation={String(hasViolation === true)}
+    >
+      {card.cardName}
+    </div>
+  ),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -41,27 +60,132 @@ function renderSection({
   cards = [] as ReturnType<typeof stubDeckBuilderCard>[],
   onActivate = vi.fn(),
   onAdd,
+  violations = [],
+  workbench = false,
 }: {
   zone?: DeckZone;
   cards?: ReturnType<typeof stubDeckBuilderCard>[];
   onActivate?: () => void;
   onAdd?: () => void;
+  violations?: DeckViolation[];
+  workbench?: boolean;
 } = {}) {
   render(
     <DeckZoneSection
       deckId="deck-1"
       zone={zone}
       cards={cards}
-      violations={[]}
+      violations={violations}
       isActive={false}
       onActivate={onActivate}
       onAdd={onAdd}
       deckItems={[]}
+      workbench={workbench}
     />,
   );
 }
 
 describe("DeckZoneSection", () => {
+  it("offers no extra legends without a card that grants them", () => {
+    renderSection({
+      zone: "legend-options",
+      cards: [stubDeckBuilderCard({ cardName: "Darius, Hand of Noxus", cardType: "legend" })],
+    });
+    expect(screen.queryByRole("button", { name: "Add extra legends" })).toBeNull();
+  });
+
+  it("hides the workbench count once a zone is exactly full", () => {
+    renderSection({
+      zone: "runes",
+      cards: [stubDeckBuilderCard({ cardName: "Fury Rune", cardType: "rune", quantity: 12 })],
+      workbench: true,
+    });
+    expect(screen.queryByText("12/12")).toBeNull();
+  });
+
+  it("keeps the workbench count while a zone is short", () => {
+    renderSection({
+      zone: "runes",
+      cards: [stubDeckBuilderCard({ cardName: "Fury Rune", cardType: "rune", quantity: 6 })],
+      workbench: true,
+    });
+    expect(screen.getByText("6/12")).toBeDefined();
+  });
+
+  const jinx = stubDeckBuilderCard({
+    cardId: "jinx",
+    cardName: "Jinx, Loose Cannon",
+    cardType: "legend",
+    quantity: 2,
+  });
+  const duplicate: DeckViolation = {
+    zone: "legend-options",
+    code: "legend_options_unique",
+    message: "Jinx, Loose Cannon is listed twice",
+    cardId: "jinx",
+  };
+
+  it("leaves workbench rows unmarked and lists card issues in the header", () => {
+    renderSection({
+      zone: "legend-options",
+      cards: [jinx],
+      violations: [duplicate],
+      workbench: true,
+    });
+    expect(screen.getByText("Jinx, Loose Cannon").dataset.hasViolation).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "Show zone issues" }));
+    expect(screen.getByText("Jinx, Loose Cannon is listed twice")).toBeDefined();
+  });
+
+  it("keeps the per-row marking in the classic editor", () => {
+    renderSection({ zone: "legend-options", cards: [jinx], violations: [duplicate] });
+    expect(screen.getByText("Jinx, Loose Cannon").dataset.hasViolation).toBe("true");
+  });
+
+  it("drops the add strip once the legend slot is filled", () => {
+    renderSection({
+      zone: "legend",
+      cards: [stubDeckBuilderCard({ cardName: "Volibear, Relentless Storm", cardType: "legend" })],
+    });
+    expect(screen.queryByRole("button", { name: "Add a legend" })).toBeNull();
+  });
+
+  it("drops the add strip once a zone reaches its target", () => {
+    renderSection({
+      zone: "runes",
+      cards: [stubDeckBuilderCard({ cardName: "Fury Rune", cardType: "rune", quantity: 12 })],
+    });
+    expect(screen.queryByRole("button", { name: "Add runes" })).toBeNull();
+  });
+
+  it("drops the add strip once the chosen champion slot is filled", () => {
+    renderSection({
+      zone: "champion",
+      cards: [stubDeckBuilderCard({ cardName: "Volibear, Furious", cardType: "unit" })],
+    });
+    expect(screen.queryByRole("button", { name: "Add a champion" })).toBeNull();
+  });
+
+  it("shows the count of a duplicated legend option without offering another copy", () => {
+    renderSection({
+      zone: "legend-options",
+      cards: [
+        stubDeckBuilderCard({ cardName: "Jinx, Loose Cannon", cardType: "legend", quantity: 2 }),
+      ],
+    });
+    const row = screen.getByText("Jinx, Loose Cannon");
+    expect(row.dataset.controlMode).toBe("quantity");
+    expect(row.dataset.canIncrement).toBe("false");
+  });
+
+  it("keeps a single legend option on the remove-only control", () => {
+    renderSection({
+      zone: "legend-options",
+      cards: [stubDeckBuilderCard({ cardName: "Darius, Hand of Noxus", cardType: "legend" })],
+    });
+    expect(screen.getByText("Darius, Hand of Noxus").dataset.controlMode).toBe("remove-only");
+  });
+
   it("ends an empty zone with an add strip carrying the empty hint", () => {
     const onActivate = vi.fn();
     renderSection({ zone: "legend", onActivate });

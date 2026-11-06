@@ -181,19 +181,24 @@ describe("sanitize-preferences — legacy flat persisted shape", () => {
     expect(overrides.defaultCurrency).toBe("EUR");
   });
 
-  it("expands the retired richEffects flag onto the three granular settings", () => {
+  it("expands the retired richEffects flag onto the granular settings", () => {
     const { overrides } = sanitizeOverrides({ richEffects: false });
 
     expect(overrides.fancyFan).toBe(false);
     expect(overrides.foilEffect).toBe(false);
-    expect(overrides.cardTilt).toBe(false);
   });
 
   it("lets an explicit granular value win over richEffects", () => {
-    const { overrides } = sanitizeOverrides({ richEffects: false, cardTilt: true });
+    const { overrides } = sanitizeOverrides({ richEffects: false, fancyFan: true });
 
-    expect(overrides.cardTilt).toBe(true);
-    expect(overrides.fancyFan).toBe(false);
+    expect(overrides.fancyFan).toBe(true);
+    expect(overrides.foilEffect).toBe(false);
+  });
+
+  it("drops a stored card tilt preference", () => {
+    const { overrides } = sanitizeOverrides({ cardTilt: true });
+
+    expect("cardTilt" in overrides).toBe(false);
   });
 
   it("leaves foilEffect unset when richEffects was on, since it has no tri-state answer", () => {
