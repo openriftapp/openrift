@@ -35,7 +35,7 @@ export interface ComboboxPickerOption {
 }
 
 /** A row below the options that runs a command with the current query, e.g. "Create “x”". */
-export interface ComboboxPickerAction {
+interface ComboboxPickerAction {
   key: string;
   label: (query: string) => ReactNode;
   onSelect: (query: string) => void;

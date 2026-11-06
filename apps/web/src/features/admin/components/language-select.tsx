@@ -1,7 +1,7 @@
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { useLanguageList } from "@/hooks/use-enums";
 
-export interface LanguageSelectOption {
+interface LanguageSelectOption {
   code: string;
   name: string;
 }
