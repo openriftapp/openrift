@@ -1,5 +1,5 @@
-import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
-import { isSingleSlotZone } from "@openrift/shared/deck-zones";
+import { copyLimitFor, formatHasSideboard, totalQuantity } from "@openrift/shared/deck-rules";
+import { isSingleSlotZone, ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { DeckResponse } from "@openrift/shared/types/api/deck";
@@ -7,9 +7,10 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
-import { PackageCheckIcon } from "lucide-react";
-import { Suspense, useDeferredValue } from "react";
+import { PackageCheckIcon, PlusIcon } from "lucide-react";
+import { Suspense, useDeferredValue, useLayoutEffect, useRef } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
@@ -42,6 +43,11 @@ import {
   FormatTagPickBanner,
   needsFormatTagPick,
 } from "@/features/decks/components/format-tag-pick-banner";
+import {
+  focusCatalogCard,
+  WorkbenchCardDetail,
+} from "@/features/decks/components/workbench-card-detail";
+import { WorkbenchZoneBar } from "@/features/decks/components/workbench-zone-bar";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckDetail, useUpdateDeck } from "@/features/decks/hooks/use-decks";
@@ -58,8 +64,12 @@ import {
 } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
+import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
 import { getFormatTagConfig } from "@/features/decks/lib/format-tag-config";
+import { flyCardToDock } from "@/features/decks/lib/workbench-fly-to-dock";
+import { applyZoneLayer } from "@/features/decks/lib/workbench-zone-layer";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
@@ -67,9 +77,25 @@ import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs
 import { useSession } from "@/hooks/use-session";
 import { useShiftHeld } from "@/hooks/use-shift-held";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
+
+function workbenchLimitText(zone: DeckZone, battlefieldsFull: boolean): string {
+  if (zone === WellKnown.deckZone.BATTLEFIELD) {
+    return battlefieldsFull
+      ? m.decks_workbench_limit_battlefields()
+      : m.decks_workbench_limit_battlefield_duplicate();
+  }
+  if (zone === WellKnown.deckZone.RUNES) {
+    return m.decks_workbench_limit_runes();
+  }
+  if (zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+    return m.decks_workbench_limit_legend_options();
+  }
+  return m.decks_workbench_limit_copies();
+}
 
 function copyRemainderFor(
   card: { maxCopiesOverride: number | null },
@@ -172,6 +198,8 @@ interface DeckCardBrowserProps {
   onOverviewCardClick: (card: CardOpenTarget) => void;
   onEditDescription?: () => void;
   variantRailSlot?: React.ReactNode;
+  onTargetZone?: (zone: DeckZone) => void;
+  cardListReadOnly?: boolean;
 }
 
 export function DeckCardBrowser({
@@ -184,6 +212,8 @@ export function DeckCardBrowser({
   onOverviewCardClick,
   onEditDescription,
   variantRailSlot,
+  onTargetZone,
+  cardListReadOnly,
 }: DeckCardBrowserProps) {
   const { data: deckDetail } = useDeckDetail(deckId);
   const activeZone = useDeckBuilderUiStore((state) => state.activeZone);
@@ -192,7 +222,8 @@ export function DeckCardBrowser({
   // and undo a user who cleared the language filter.
   useSeedLanguagesFromPrefs(filters.languages);
 
-  if (needsFormatTagPick(deckDetail.deck)) {
+  const pickTag = needsFormatTagPick(deckDetail.deck);
+  if (pickTag && !(cardListReadOnly && !activeZone)) {
     // pt-3 matches deck-overview's root so the banner isn't flush against the sticky bar.
     return (
       <div className="pt-3">
@@ -213,11 +244,13 @@ export function DeckCardBrowser({
         onCardClick={onOverviewCardClick}
         onEditDescription={onEditDescription}
         variantRailSlot={variantRailSlot}
+        cardListReadOnly={cardListReadOnly}
+        cardListSlot={pickTag ? <FormatTagPickBanner deck={deckDetail.deck} /> : undefined}
       />
     );
   }
 
-  return <DeckCardBrowserInner deckId={deckId} />;
+  return <DeckCardBrowserInner deckId={deckId} onTargetZone={onTargetZone} />;
 }
 
 const EMPTY_SIBLINGS: Printing[] = [];
@@ -232,8 +265,11 @@ function DeckOverviewForEditor({
   onCardClick,
   onEditDescription,
   variantRailSlot,
-}: Omit<DeckCardBrowserProps, "deckId" | "onOverviewCardClick"> & {
+  cardListReadOnly,
+  cardListSlot,
+}: Omit<DeckCardBrowserProps, "deckId" | "onOverviewCardClick" | "onTargetZone"> & {
   deck: DeckResponse;
+  cardListSlot?: React.ReactNode;
   onCardClick: (card: CardOpenTarget) => void;
 }) {
   const cards = useDeckCards(deck.id);
@@ -273,7 +309,9 @@ function DeckOverviewForEditor({
           const id = getPreferredFrontImage(cardId, preferredPrintingId)?.imageId;
           return id ? imageUrl(id, "400w") : undefined;
         }}
-        onZoneClick={onZoneClick}
+        onZoneClick={cardListReadOnly ? undefined : onZoneClick}
+        cardListReadOnly={cardListReadOnly}
+        cardListSlot={cardListSlot}
         onViewMissing={onViewMissing}
         onHoverCard={onHoverCard}
         onCardClick={onCardClick}
@@ -307,7 +345,13 @@ function DeckOverviewForEditor({
   );
 }
 
-function DeckCardBrowserInner({ deckId }: { deckId: string }) {
+function DeckCardBrowserInner({
+  deckId,
+  onTargetZone,
+}: {
+  deckId: string;
+  onTargetZone?: (zone: DeckZone) => void;
+}) {
   const { data: deckDetail } = useDeckDetail(deckId);
   const showImages = useDisplayStore((state) => state.showImages);
   const highlightOwned = useDisplayStore((state) => state.deckHighlightOwned);
@@ -355,7 +399,51 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
   const singleCardZoneOccupied =
     isSingleCardZone && deckCards.some((card) => card.zone === activeZone);
 
-  const filters = urlFilters;
+  const workbench = useWorkbenchStore((state) => state.relaxed);
+  const detailOpen = useSelectionStore((state) => state.detailOpen);
+  const selectedCard = useSelectionStore((state) => state.selectedCard);
+  const detailReplacesCatalog = workbench && !isMobile;
+  const showCatalogDetail = detailReplacesCatalog && detailOpen && selectedCard !== null;
+  const catalogReturn = useRef<{ scrollY: number; printingId: string } | null>(null);
+  const openedPrintingId = showCatalogDetail ? selectedCard.printingId : null;
+  // Layout effect: it must read the scroll position before the detail scrolls to the top.
+  useLayoutEffect(() => {
+    if (openedPrintingId !== null) {
+      catalogReturn.current = {
+        scrollY: catalogReturn.current?.scrollY ?? globalThis.scrollY,
+        printingId: openedPrintingId,
+      };
+      return;
+    }
+    const pending = catalogReturn.current;
+    if (!pending) {
+      return;
+    }
+    catalogReturn.current = null;
+    requestAnimationFrame(() => {
+      globalThis.scrollTo({ top: pending.scrollY });
+      focusCatalogCard(pending.printingId);
+    });
+  }, [openedPrintingId]);
+  const removedZoneChips = useWorkbenchStore((state) => state.removedZoneChips);
+  const setReplaceTarget = useWorkbenchStore((state) => state.setReplaceTarget);
+  const removedForZone = new Set(
+    [...removedZoneChips]
+      .filter((key) => key.startsWith(`${activeZone}:`))
+      .map((key) => key.slice(activeZone.length + 1)),
+  );
+  const filters = workbench
+    ? applyZoneLayer(
+        urlFilters,
+        deckZoneFilterPreset(
+          activeZone,
+          deckCards,
+          deckDetail.deck.format,
+          deckDetail.deck.formatConfig,
+        ),
+        removedForZone,
+      )
+    : urlFilters;
 
   // "copies" is a collection-only view; clamp to "printings" in the deck builder.
   const view = rawView === "copies" ? "printings" : rawView;
@@ -429,6 +517,12 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     useSelectionStore.getState().selectCard(printing, items, findBy);
   };
 
+  const battlefieldsFull =
+    activeZone === WellKnown.deckZone.BATTLEFIELD &&
+    !isFreeform &&
+    deckCards.filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD).length >=
+      (isCustomRegion ? 1 : 3);
+
   // `event` is a structural `{ shiftKey?: boolean }` so the table path can
   // synthesize the bit it cares about without faking a full React.MouseEvent.
   const handleQuickAdd = (printing: Printing, event?: { shiftKey?: boolean }) => {
@@ -441,6 +535,16 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       ),
     };
 
+    if (workbench && battlefieldsFull) {
+      setReplaceTarget({
+        cardId: builderCard.cardId,
+        preferredPrintingId: builderCard.preferredPrintingId,
+      });
+      return;
+    }
+    if (workbench && isMobile) {
+      flyCardToDock(printing.printingId);
+    }
     if (activeZone === WellKnown.deckZone.LEGEND && !isFreeform) {
       setLegend(builderCard, buildRunesByDomain(allPrintings));
     } else {
@@ -546,6 +650,59 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     return (copyLimitTotalByCard.get(cardId) ?? 0) >= copyLimitFor(item.printing.card);
   };
 
+  const showSideboardAdd =
+    activeZone !== WellKnown.deckZone.SIDEBOARD && formatHasSideboard(deckDetail.deck.format);
+  const workbenchDetailActions = (printing: Printing) => {
+    const deckQty = deckQtyForCell(printing);
+    const owned = ownedCounts?.get(sideKey(printing)) ?? 0;
+    const missing = Math.max(0, deckQty - owned);
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => handleQuickAdd(printing)}>
+            <PlusIcon className="size-4" />
+            {m.decks_workbench_detail_add_to({ zone: ZONE_LABELS[activeZone] })}
+          </Button>
+          {showSideboardAdd && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                addCard(
+                  {
+                    ...catalogCardToDeckBuilderCard(printing.cardId, printing.card),
+                    preferredPrintingId: cellPreferredPrintingId(
+                      view,
+                      printing.printingId,
+                      getPreferredPrinting(printing.cardId)?.printingId,
+                    ),
+                  },
+                  WellKnown.deckZone.SIDEBOARD,
+                )
+              }
+            >
+              <PlusIcon className="size-4" />
+              {m.decks_workbench_detail_add_to({
+                zone: ZONE_LABELS[WellKnown.deckZone.SIDEBOARD],
+              })}
+            </Button>
+          )}
+        </div>
+        <p className="text-muted-foreground tabular-nums">
+          {[
+            m.decks_editor_in_deck_count({ count: deckQty }),
+            ownedCounts ? m.decks_editor_owned_count({ count: owned }) : null,
+            ownedCounts && missing > 0
+              ? m.decks_workbench_detail_missing({ count: missing })
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+    );
+  };
+
   // Extracted so the detail overlay can show the same add controls for the
   // card it covers.
   const deckStripFor = (printing: Printing) => {
@@ -557,16 +714,23 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       isSingleCardZone &&
       deckCards.some((card) => card.cardId === cardId && card.zone === activeZone);
 
+    const overLimit = isMaxReached({ id: sideKey(printing), printing });
+    const workbenchWarn =
+      workbench && overLimit && !isInActiveSingleZone
+        ? workbenchLimitText(activeZone, battlefieldsFull)
+        : undefined;
     return (
       <DeckAddStrip
         printing={printing}
         ownedCount={ownedCounts?.get(sideKey(printing)) ?? 0}
         deckQuantity={deckQty}
-        maxReached={isMaxReached({ id: sideKey(printing), printing })}
+        maxReached={workbench ? isInActiveSingleZone : overLimit}
+        warnLimit={workbenchWarn}
+        labelDeckCount={workbench}
         {...(isSingleCardZone
           ? singleZoneAddAction(singleCardZoneOccupied && !isInActiveSingleZone)
           : {})}
-        removeLabel={isInActiveSingleZone ? m.decks_editor_remove() : undefined}
+        removeLabel={!workbench && isInActiveSingleZone ? m.decks_editor_remove() : undefined}
         shiftHeld={shiftHeld}
         remainingCount={
           isFreeform
@@ -576,7 +740,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
               : copyRemainderFor(printing.card, copyLimitTotalByCard.get(cardId) ?? 0)
         }
         onQuickAdd={handleQuickAdd}
-        onRemove={handleRemove}
+        onRemove={workbench ? undefined : handleRemove}
       />
     );
   };
@@ -648,7 +812,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     />
   );
 
-  const rightPane = (
+  const rightPane = detailReplacesCatalog ? undefined : (
     <SelectionDetailPane
       items={items}
       printingsByCardId={printingsByCardId}
@@ -667,50 +831,68 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       visibleCustomTagCategories={visibleCustomTagCategories}
       ownedCountMax={ownedCountBound}
     >
-      <BrowserCardViewer
-        items={items}
-        totalItems={allPrintings.length}
-        renderCard={renderCard}
-        setOrder={sets}
-        renderedCards={deferredCards}
-        printingsByCardId={printingsByCardId}
-        view={view}
-        groupBy={groupBy}
-        groupDir={groupDir}
-        stale={isGridStale}
-        toolbar={toolbar}
-        rightPane={rightPane}
-        addStripHeight={ADD_STRIP_HEIGHT}
-        table={{
-          actionsColumn: "wide",
-          actionsLabel: m.decks_editor_table_actions_label(),
-          actionsCell: (
-            <DeckActionsCell
-              view={view}
-              deckQuantityByCard={deckQuantityByCard}
-              deckQuantityByCell={deckQuantityByCell}
-              isSingleCardZone={isSingleCardZone}
-              singleCardZoneOccupied={singleCardZoneOccupied}
-              deckCards={deckCards}
-              activeZone={activeZone}
-              isMaxReached={isMaxReached}
-              shiftHeld={shiftHeld}
-              runeTotal={runeTotal}
-              copyLimitTotalByCard={copyLimitTotalByCard}
-              handleQuickAdd={handleQuickAdd}
-              handleRemove={handleRemove}
-            />
-          ),
-        }}
-      >
-        <SelectionDetailOverlays
+      {showCatalogDetail && (
+        <WorkbenchCardDetail
           items={items}
           printingsByCardId={printingsByCardId}
           showImages={showImages}
           onSearchAndClose={setSearch}
-          actions={deckStripFor}
+          actions={workbenchDetailActions}
         />
-      </BrowserCardViewer>
+      )}
+      <div className={cn(showCatalogDetail && "hidden")}>
+        <BrowserCardViewer
+          items={items}
+          totalItems={allPrintings.length}
+          renderCard={renderCard}
+          setOrder={sets}
+          renderedCards={deferredCards}
+          printingsByCardId={printingsByCardId}
+          view={view}
+          groupBy={groupBy}
+          groupDir={groupDir}
+          stale={isGridStale}
+          toolbar={toolbar}
+          aboveGrid={
+            workbench && onTargetZone ? (
+              <WorkbenchZoneBar deckId={deckId} zone={activeZone} onTargetZone={onTargetZone} />
+            ) : undefined
+          }
+          rightPane={rightPane}
+          addStripHeight={ADD_STRIP_HEIGHT}
+          table={{
+            actionsColumn: "wide",
+            actionsLabel: m.decks_editor_table_actions_label(),
+            actionsCell: (
+              <DeckActionsCell
+                view={view}
+                deckQuantityByCard={deckQuantityByCard}
+                deckQuantityByCell={deckQuantityByCell}
+                isSingleCardZone={isSingleCardZone}
+                singleCardZoneOccupied={singleCardZoneOccupied}
+                deckCards={deckCards}
+                activeZone={activeZone}
+                isMaxReached={isMaxReached}
+                shiftHeld={shiftHeld}
+                runeTotal={runeTotal}
+                copyLimitTotalByCard={copyLimitTotalByCard}
+                handleQuickAdd={handleQuickAdd}
+                handleRemove={handleRemove}
+              />
+            ),
+          }}
+        >
+          {!detailReplacesCatalog && (
+            <SelectionDetailOverlays
+              items={items}
+              printingsByCardId={printingsByCardId}
+              showImages={showImages}
+              onSearchAndClose={setSearch}
+              actions={deckStripFor}
+            />
+          )}
+        </BrowserCardViewer>
+      </div>
     </CardBrowserFilterProvider>
   );
 }

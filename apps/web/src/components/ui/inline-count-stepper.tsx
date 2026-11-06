@@ -38,6 +38,7 @@ interface InlineCountStepperProps {
   decrementTooltip?: ReactNode;
   incrementTooltip?: ReactNode;
   className?: string;
+  decrementIcon?: ReactNode;
 }
 
 function WithTooltip({ tooltip, children }: { tooltip?: ReactNode; children: ReactElement }) {
@@ -66,6 +67,7 @@ function InlineCountStepper({
   decrementTooltip,
   incrementTooltip,
   className,
+  decrementIcon,
 }: InlineCountStepperProps) {
   const bulkDecrement = bulk && bulkDecrementLabel !== undefined && onDecrement !== undefined;
   const bulkIncrement = bulk && bulkIncrementLabel !== undefined && onIncrement !== undefined;
@@ -90,7 +92,9 @@ function InlineCountStepper({
             onDecrement?.(event);
           }}
         >
-          {bulkDecrement ? bulkDecrementLabel : <MinusIcon className={iconClass} />}
+          {bulkDecrement
+            ? bulkDecrementLabel
+            : (decrementIcon ?? <MinusIcon className={iconClass} />)}
         </Button>
       </WithTooltip>
       <span className={cn("text-center font-medium tabular-nums", COUNT_CLASS[size])}>{count}</span>

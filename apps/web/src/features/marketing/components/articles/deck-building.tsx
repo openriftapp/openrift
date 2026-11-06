@@ -212,6 +212,13 @@ export default function DeckBuildingArticle() {
       </section>
 
       <section>
+        <Heading className="mb-2">{m.help_deck_building_beta_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_deck_building_beta_intro()}</p>
+        <p className="text-muted-foreground mt-2">{m.help_deck_building_beta_modes()}</p>
+        <p className="text-muted-foreground mt-2">{m.help_deck_building_beta_rules()}</p>
+      </section>
+
+      <section>
         <Heading className="mb-2">{m.help_deck_building_stats_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_deck_building_stats_intro()}</p>
         <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1">

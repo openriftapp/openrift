@@ -84,6 +84,7 @@ export interface ZoneTileProps {
   onHoverCard?: HoverHandler;
   getThumbnail: (cardId: string, preferredPrintingId: string | null) => string | undefined;
   readOnly?: boolean;
+  countsOnlyUnfinished?: boolean;
   onCardClick?: (card: CardOpenTarget) => void;
 }
 
@@ -116,6 +117,7 @@ export function ZoneTile({
   onHoverCard,
   getThumbnail,
   readOnly,
+  countsOnlyUnfinished = false,
   onCardClick,
 }: ZoneTileProps) {
   const hasViolation = zoneViolations.length > 0;
@@ -123,7 +125,7 @@ export function ZoneTile({
   const quantity = totalQuantity(cards);
   const isEmpty = cards.length === 0;
   const isComplete = !hasViolation && expected !== undefined && quantity === expected;
-  const hideCount = isComplete && isSingleSlotZone(zone);
+  const hideCount = isComplete && (countsOnlyUnfinished || isSingleSlotZone(zone));
   const isLandscape = LANDSCAPE_ZONES.has(zone);
   const hoverCard = overviewHoverHandler(stacked, onHoverCard);
 

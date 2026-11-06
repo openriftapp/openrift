@@ -10,6 +10,7 @@ import {
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
+import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -18,12 +19,17 @@ import { DndScrollWatcher } from "@/components/dnd-scroll-watcher";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
+import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { AnyDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
 import {
   DECK_DRAG_TYPES,
   DECK_DROP_TYPES,
   isDropRejected,
+  resolveDraggedCard,
 } from "@/features/decks/lib/deck-dnd-data";
+import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
+import { relaxedMoveOutcome, workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { asDragData } from "@/lib/dnd-data";
 
 const DRAG_ACTIVATION = { distance: 8 };
@@ -72,6 +78,9 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: DRAG_ACTIVATION }));
   const actions = useDeckBuilderActions(deckId);
   const deckCards = useDeckCards(deckId);
+  const { data: deckDetail } = useDeckDetail(deckId);
+  const format = deckDetail.deck.format;
+  const relaxed = useWorkbenchStore((state) => state.relaxed);
   const [dragInfo, setDragInfo] = useState<{
     cardId: string;
     cardName: string;
@@ -243,6 +252,20 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       if (isDropRejected(activeData, overData)) {
         return;
       }
+      const route = relaxed
+        ? workbenchAddRoute(activeData.card, overData.zone, deckCards, format)
+        : "add";
+      if (route === "replace") {
+        useWorkbenchStore.getState().setReplaceTarget({
+          cardId: activeData.card.cardId,
+          preferredPrintingId: activeData.card.preferredPrintingId,
+        });
+        return;
+      }
+      if (route === "legend") {
+        actions.setLegend(activeData.card);
+        return;
+      }
       if (moveAll) {
         if (overData.zone === WellKnown.deckZone.RUNES) {
           const runeTotal = totalQuantity(
@@ -264,6 +287,16 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       if (isDropRejected(activeData, overData)) {
         return;
       }
+      const { cardId, fromZone, preferredPrintingId } = activeData;
+      const toZone = overData.zone;
+      const moved =
+        (moveAll || activeData.quantity === 1) && !isSingleSlotZone(toZone)
+          ? activeData.quantity
+          : 1;
+      const source = relaxed ? resolveDraggedCard(activeData, deckCards) : undefined;
+      const outcome = source
+        ? relaxedMoveOutcome({ card: source, fromZone, toZone, moved, allCards: deckCards, format })
+        : undefined;
       if (moveAll || activeData.quantity === 1) {
         actions.moveCard(
           activeData.cardId,
@@ -278,6 +311,15 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
           overData.zone,
           activeData.preferredPrintingId,
         );
+      }
+      if (outcome) {
+        showRelaxedAddToast(outcome, {
+          undo: () => {
+            for (let step = 0; step < moved; step++) {
+              actions.moveOneCard(cardId, toZone, fromZone, preferredPrintingId);
+            }
+          },
+        });
       }
     }
   };

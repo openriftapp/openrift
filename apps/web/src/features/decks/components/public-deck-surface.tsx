@@ -25,6 +25,7 @@ import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
+import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -127,6 +128,10 @@ function PublicDeckContent({
     const hash = globalThis.location?.hash;
     setOverviewTab(hash === "#deck-test" ? "test" : hash === "#deck-plan" ? "plan" : "overview");
   }, [setOverviewTab]);
+
+  const clearBenchSession = useDeckBenchSessionStore((state) => state.clear);
+  const sharedDeckId = data.deck.id;
+  useEffect(() => () => clearBenchSession(sharedDeckId), [clearBenchSession, sharedDeckId]);
 
   const [hovered, setHovered] = useState<{
     id: string;

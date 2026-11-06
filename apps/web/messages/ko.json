@@ -9955,5 +9955,146 @@
   "cards_filter_range_at_least": "≥{value}",
   "cards_filter_range_at_most": "≤{value}",
   "cards_filter_range_between": "{min}~{max}",
-  "meta_event_run_every_finish": "{player}의 모든 성적"
+  "meta_event_run_every_finish": "{player}의 모든 성적",
+  "profile_nav_beta": "베타",
+  "profile_beta_title": "베타",
+  "profile_beta_description": "현재 기능을 대체하기 전에 새 기능을 먼저 사용해 보세요. 언제든지 다시 전환할 수 있습니다.",
+  "profile_beta_deck_builder_label": "새 덱 빌더",
+  "profile_beta_deck_builder_description": "구성 모드와 덱 모드가 분리됩니다. 카드 목록에서는 추가만 하고, 편집은 덱 열에서 합니다.",
+  "decks_workbench_banner_text": "새 덱 빌더가 베타로 공개되었습니다. 카드 목록에서 카드를 추가하고 하나의 덱 열에서 편집합니다.",
+  "decks_workbench_banner_try": "사용해 보기",
+  "decks_workbench_banner_dismiss": "닫기",
+  "decks_workbench_back_to_classic": "기존 편집기로 돌아가기",
+  "decks_workbench_mode_label": "편집기 모드",
+  "decks_workbench_mode_build": "구성",
+  "decks_workbench_mode_deck": "덱",
+  "decks_workbench_edit": "편집",
+  "decks_workbench_done": "완료",
+  "decks_workbench_edit_in_build": "구성에서 편집",
+  "decks_workbench_edit_deck": "덱 편집",
+  "decks_workbench_tab_cards": "카드",
+  "decks_workbench_deck_column": "내 덱",
+  "decks_workbench_switch": "교체",
+  "decks_workbench_adding_here": "여기에 추가 중",
+  "decks_workbench_adding_to": "추가 대상",
+  "decks_workbench_chip_stats_paused": "통계 필터 일시 중지됨",
+  "decks_workbench_remove_zone_filter": "{label} 구역 필터 제거",
+  "decks_workbench_restore_zone_filters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "숨겨진 구역 필터 {count}개 표시"
+      }
+    }
+  ],
+  "decks_workbench_zone_complete": "{zone} 완료. 다음 미완성 구역: {next} ({count}/{expected}).",
+  "decks_workbench_go_to_zone": "{zone}(으)로 이동",
+  "decks_workbench_stay": "머무르기",
+  "decks_workbench_limit_copies": "복사본 한도를 넘겨 추가합니다. 규칙 경고와 함께 덱에 들어갑니다.",
+  "decks_workbench_limit_battlefields": "전장이 가득 찼습니다. 추가하면 어느 전장을 교체할지 묻습니다.",
+  "decks_workbench_limit_runes": "룬이 가득 찼고 다른 영역의 룬으로 자리를 만들 수 없습니다. 이 룬은 규칙 경고와 함께 12장을 넘겨 들어갑니다.",
+  "decks_workbench_warn_copies": "{card} 추가됨: {count}장, 한도 {limit}장 초과.",
+  "decks_workbench_warn_battlefields": "전장 {count}장, 한도 {limit}장.",
+  "decks_workbench_warn_battlefield_duplicate": "{card}은(는) 이미 전장에 있습니다.",
+  "decks_workbench_warn_legend_options": "추가 전설 {count}장, 한도 {limit}장.",
+  "decks_workbench_warn_runes": "룬 {count}장, 한도 {limit}장.",
+  "decks_workbench_rune_swap": "+1 {added}, −1 {removed}",
+  "decks_workbench_keep_both": "둘 다 유지 ({count})",
+  "decks_workbench_energy": "에너지",
+  "decks_workbench_energy_curve": "에너지 커브",
+  "decks_workbench_rule_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "규칙 경고 {count}개"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_title": "전설을 교체할까요?",
+  "decks_workbench_switch_legend_from_to": "{from} → {to}",
+  "decks_workbench_switch_rune_out": "{rune} {count}장 제거됨",
+  "decks_workbench_switch_rune_in": "{rune} {count}장 추가됨",
+  "decks_workbench_switch_rune_total": "교체 후 룬: {count}장",
+  "decks_workbench_switch_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "메인 덱과 보조 덱의 카드 {count}장이 새 영역에 맞지 않습니다. 규칙 경고와 함께 덱에 남습니다."
+      }
+    }
+  ],
+  "decks_workbench_switch_champion_mismatch": "챔피언이 새 전설과 맞지 않습니다. 규칙 경고와 함께 남습니다.",
+  "decks_workbench_switch_move_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "다른 영역의 카드 {count}장을 오버플로로 이동"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_confirm": "전설 교체",
+  "decks_workbench_battlefields_full_title": "전장이 가득 찼습니다 ({count})",
+  "decks_workbench_battlefields_full_description": "하나를 {card}(으)로 교체하거나, 규칙 경고와 함께 그대로 추가하세요.",
+  "decks_workbench_replace_card": "{card} 교체",
+  "decks_workbench_add_anyway": "그래도 추가 (전장 {count}장, 규칙 경고)",
+  "decks_workbench_added_announcement": [
+    {
+      "declarations": [
+        "input card",
+        "input zone",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{zone}에 {card} 추가됨, {count}장"
+      }
+    }
+  ],
+  "help_deck_building_beta_heading": "새 덱 빌더 (베타)",
+  "help_deck_building_beta_intro": "새로 설계한 덱 편집기를 선택형 베타로 사용할 수 있습니다. 프로필 → 베타에서 켜거나, 덱 편집기 배너의 사용해 보기를 누르세요. 편집기 메뉴의 기존 편집기로 돌아가기를 누르면 다시 꺼집니다.",
+  "help_deck_building_beta_modes": "모드는 두 가지입니다. 구성에서는 카드 목록이 채우는 중인 구역에 카드를 추가하기만 하고, 옆의 덱 열에서 수량을 바꾸거나 전설 또는 챔피언을 교체하고 카드를 제거합니다. 덱은 완성된 덱을 통계와 테스트 핸드와 함께 보여 주며 편집 컨트롤은 없습니다.",
+  "help_deck_building_beta_rules": "베타는 추가를 막지 않습니다. 네 번째 복사본이나 13번째 룬처럼 덱 규칙을 어기는 카드는 되돌릴 수 있는 경고와 함께 들어갑니다. 전설을 교체하면 먼저 어떤 룬이 바뀌고 어떤 카드가 새 영역에서 벗어나는지 보여 줍니다.",
+  "decks_workbench_limit_battlefield_duplicate": "이미 전장에 있는 카드입니다. 다시 추가하면 중복 규칙을 어깁니다.",
+  "decks_workbench_limit_legend_options": "추가 전설이 가득 찼습니다. 추가하면 규칙 경고와 함께 한도를 넘깁니다.",
+  "decks_workbench_row_menu": "{card} 추가 작업",
+  "decks_workbench_remove_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "모두 제거 ({count}장)"
+      }
+    }
+  ],
+  "decks_workbench_switch_domains": "영역",
+  "decks_workbench_switch_domains_change": "{from} → {to}",
+  "decks_workbench_switch_champion_legal": "{champion}은(는) 선발 챔피언으로 계속 유효합니다.",
+  "decks_workbench_switch_new_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "새 규칙 경고 {count}개:"
+      }
+    }
+  ],
+  "decks_workbench_switch_resolved_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "규칙 경고 {count}개가 사라집니다:"
+      }
+    }
+  ],
+  "decks_workbench_detail_back": "카드로 돌아가기",
+  "decks_workbench_detail_add_to": "{zone}에 추가",
+  "decks_workbench_detail_missing": "{count}장 부족",
+  "decks_workbench_sheet_hint": "{zone}에 추가 중. 다른 구역을 누르면 바뀝니다.",
+  "decks_workbench_zone_filters": "구역 필터:"
 }

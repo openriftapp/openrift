@@ -123,6 +123,7 @@ import { adminFeatureFlagsRouter } from "../modules/users/routes/admin-feature-f
 import { adminGrantsRouter } from "../modules/users/routes/admin-grants.js";
 import { adminUsersRouter } from "../modules/users/routes/admin-users.js";
 import { contactMethodsRouter } from "../modules/users/routes/authenticated-contact-methods.js";
+import { ownFeatureFlagsRouter } from "../modules/users/routes/authenticated-own-feature-flags.js";
 import { preferencesRouter } from "../modules/users/routes/authenticated-preferences.js";
 import { featureFlagsRouter } from "../modules/users/routes/public-feature-flags.js";
 import { unsubscribeRouter } from "../modules/users/routes/public-unsubscribe.js";
@@ -230,6 +231,7 @@ const apiRouter = {
   publicDecksRouter,
   discordBotRouter,
   featureFlagsRouter,
+  ownFeatureFlagsRouter,
   initRouter,
   landingSummaryRouter,
   metaRouter,

@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Decks): **New deck builder beta** — switch it on in settings or from the editor to add cards from the card list and edit them in one deck column.
 - feat(App): **Phone menu shows every page** — the slide-out menu lists the Play, Organize and Explore pages open in two columns, so nothing hides behind a collapsed heading.
 - feat(Decks): **Decks fit on phones** — shared, meta and your own decks stack their zones on a phone, with stats on their own tab and view settings behind one button.
 - feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and touch screens always show the count buttons.

@@ -9959,5 +9959,154 @@
   "cards_filter_range_at_least": "≥{value}",
   "cards_filter_range_at_most": "≤{value}",
   "cards_filter_range_between": "{min}–{max}",
-  "meta_event_run_every_finish": "Every finish by {player}"
+  "meta_event_run_every_finish": "Every finish by {player}",
+  "profile_nav_beta": "Beta",
+  "profile_beta_title": "Beta",
+  "profile_beta_description": "Try new features before they replace the current ones. You can switch back at any time.",
+  "profile_beta_deck_builder_label": "New deck builder",
+  "profile_beta_deck_builder_description": "Separate Build and Deck modes: the card list only adds, the deck column is where you edit.",
+  "decks_workbench_banner_text": "A new deck builder is in beta: you add cards from the card list and edit them in one deck column.",
+  "decks_workbench_banner_try": "Try it",
+  "decks_workbench_banner_dismiss": "Dismiss",
+  "decks_workbench_back_to_classic": "Back to the classic editor",
+  "decks_workbench_mode_label": "Editor mode",
+  "decks_workbench_mode_build": "Build",
+  "decks_workbench_mode_deck": "Deck",
+  "decks_workbench_edit": "Edit",
+  "decks_workbench_done": "Done",
+  "decks_workbench_edit_in_build": "Edit in Build",
+  "decks_workbench_edit_deck": "Edit deck",
+  "decks_workbench_tab_cards": "Cards",
+  "decks_workbench_deck_column": "Your deck",
+  "decks_workbench_switch": "Switch",
+  "decks_workbench_adding_here": "Adding here",
+  "decks_workbench_adding_to": "Adding to",
+  "decks_workbench_chip_stats_paused": "Stat filters paused",
+  "decks_workbench_remove_zone_filter": "Remove zone filter {label}",
+  "decks_workbench_restore_zone_filters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show 1 hidden zone filter",
+        "countPlural=*": "Show {count} hidden zone filters"
+      }
+    }
+  ],
+  "decks_workbench_zone_complete": "{zone} is complete. Next unfinished zone: {next} ({count}/{expected}).",
+  "decks_workbench_go_to_zone": "Go to {zone}",
+  "decks_workbench_stay": "Stay",
+  "decks_workbench_limit_copies": "Adds a copy over the copy limit. It goes in with a rule warning.",
+  "decks_workbench_limit_battlefields": "Battlefields are full. Adding asks which one to replace.",
+  "decks_workbench_limit_runes": "Runes are full and no rune of the other domain can make room. This one goes over 12 with a rule warning.",
+  "decks_workbench_limit_battlefield_duplicate": "Already one of your battlefields. Adding it again breaks the duplicate rule.",
+  "decks_workbench_limit_legend_options": "Legend options are full. Adding goes over the limit with a rule warning.",
+  "decks_workbench_warn_copies": "Added {card}: {count} copies, over the {limit}-copy limit.",
+  "decks_workbench_warn_battlefields": "{count} battlefields, limit {limit}.",
+  "decks_workbench_warn_battlefield_duplicate": "{card} is already one of your battlefields.",
+  "decks_workbench_warn_legend_options": "{count} Legend options, limit {limit}.",
+  "decks_workbench_warn_runes": "{count} runes, limit {limit}.",
+  "decks_workbench_rune_swap": "+1 {added}, −1 {removed}",
+  "decks_workbench_keep_both": "Keep both ({count})",
+  "decks_workbench_energy": "Energy",
+  "decks_workbench_energy_curve": "Energy curve",
+  "decks_workbench_rule_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 rule warning",
+        "countPlural=*": "{count} rule warnings"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_title": "Switch Legend?",
+  "decks_workbench_switch_legend_from_to": "{from} to {to}",
+  "decks_workbench_switch_rune_out": "{count}× {rune} removed",
+  "decks_workbench_switch_rune_in": "{count}× {rune} added",
+  "decks_workbench_switch_rune_total": "Runes after the switch: {count}",
+  "decks_workbench_switch_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 Main deck or Sideboard card is outside the new domains. It stays in the deck with a rule warning.",
+        "countPlural=*": "{count} Main deck and Sideboard cards are outside the new domains. They stay in the deck with rule warnings."
+      }
+    }
+  ],
+  "decks_workbench_switch_champion_mismatch": "Your Champion doesn't match the new Legend. It stays with a rule warning.",
+  "decks_workbench_switch_move_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move the card from another domain to Overflow",
+        "countPlural=*": "Move the {count} cards from other domains to Overflow"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_confirm": "Switch Legend",
+  "decks_workbench_battlefields_full_title": "Battlefields are full ({count})",
+  "decks_workbench_battlefields_full_description": "Replace one with {card}, or add it anyway with a rule warning.",
+  "decks_workbench_replace_card": "Replace {card}",
+  "decks_workbench_add_anyway": "Add anyway ({count} battlefields, rule warning)",
+  "decks_workbench_added_announcement": [
+    {
+      "declarations": [
+        "input card",
+        "input zone",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added {card} to {zone}, 1 card",
+        "countPlural=*": "Added {card} to {zone}, {count} cards"
+      }
+    }
+  ],
+  "help_deck_building_beta_heading": "New deck builder (beta)",
+  "help_deck_building_beta_intro": "A redesigned deck editor is available as an opt-in beta. Switch it on under Profile → Beta, or with Try it on the banner in the deck editor. Back to the classic editor in the editor menu switches it off again.",
+  "help_deck_building_beta_modes": "It has two modes. In Build, the card list only adds cards to the zone you are filling, and the deck column next to it is where you change quantities, switch your Legend or Champion and remove cards. Deck shows the finished deck with its stats and test hand, without edit controls.",
+  "help_deck_building_beta_rules": "The beta never blocks an add. A card that breaks a deck rule, such as a fourth copy or a 13th rune, goes in with a warning you can undo. Switching your Legend first shows which runes change and which cards fall outside the new domains.",
+  "decks_workbench_row_menu": "More actions for {card}",
+  "decks_workbench_remove_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove from deck",
+        "countPlural=*": "Remove all {count}"
+      }
+    }
+  ],
+  "decks_workbench_switch_domains": "Domains",
+  "decks_workbench_switch_domains_change": "{from} → {to}",
+  "decks_workbench_switch_champion_legal": "{champion} stays legal as your Chosen Champion.",
+  "decks_workbench_switch_new_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 new rule warning:",
+        "countPlural=*": "{count} new rule warnings:"
+      }
+    }
+  ],
+  "decks_workbench_switch_resolved_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 rule warning goes away:",
+        "countPlural=*": "{count} rule warnings go away:"
+      }
+    }
+  ],
+  "decks_workbench_detail_back": "Back to cards",
+  "decks_workbench_detail_add_to": "Add to {zone}",
+  "decks_workbench_detail_missing": "{count} missing",
+  "decks_workbench_sheet_hint": "Adding to {zone}. Tap another zone to switch.",
+  "decks_workbench_zone_filters": "Zone filters:"
 }

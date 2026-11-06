@@ -9953,5 +9953,154 @@
   "cards_filter_range_at_least": "≥{value}",
   "cards_filter_range_at_most": "≤{value}",
   "cards_filter_range_between": "{min}–{max}",
-  "meta_event_run_every_finish": "Alle Platzierungen von {player}"
+  "meta_event_run_every_finish": "Alle Platzierungen von {player}",
+  "profile_nav_beta": "Beta",
+  "profile_beta_title": "Beta",
+  "profile_beta_description": "Probiere neue Funktionen aus, bevor sie die aktuellen ersetzen. Du kannst jederzeit zurückwechseln.",
+  "profile_beta_deck_builder_label": "Neuer Deckbuilder",
+  "profile_beta_deck_builder_description": "Getrennte Modi Bauen und Deck: Die Kartenliste fügt nur hinzu, in der Deck-Spalte bearbeitest du.",
+  "decks_workbench_banner_text": "Ein neuer Deckbuilder ist in der Beta: Du fügst Karten aus der Kartenliste hinzu und bearbeitest sie in einer Deck-Spalte.",
+  "decks_workbench_banner_try": "Ausprobieren",
+  "decks_workbench_banner_dismiss": "Ausblenden",
+  "decks_workbench_back_to_classic": "Zurück zum klassischen Editor",
+  "decks_workbench_mode_label": "Editor-Modus",
+  "decks_workbench_mode_build": "Bauen",
+  "decks_workbench_mode_deck": "Deck",
+  "decks_workbench_edit": "Bearbeiten",
+  "decks_workbench_done": "Fertig",
+  "decks_workbench_edit_in_build": "Im Bauen-Modus bearbeiten",
+  "decks_workbench_edit_deck": "Deck bearbeiten",
+  "decks_workbench_tab_cards": "Karten",
+  "decks_workbench_deck_column": "Dein Deck",
+  "decks_workbench_switch": "Wechseln",
+  "decks_workbench_adding_here": "Hier hinzufügen",
+  "decks_workbench_adding_to": "Hinzufügen zu",
+  "decks_workbench_chip_stats_paused": "Statistikfilter pausiert",
+  "decks_workbench_remove_zone_filter": "Zonenfilter {label} entfernen",
+  "decks_workbench_restore_zone_filters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 ausgeblendeten Zonenfilter anzeigen",
+        "countPlural=*": "{count} ausgeblendete Zonenfilter anzeigen"
+      }
+    }
+  ],
+  "decks_workbench_zone_complete": "{zone} ist vollständig. Nächste unfertige Zone: {next} ({count}/{expected}).",
+  "decks_workbench_go_to_zone": "Zu {zone}",
+  "decks_workbench_stay": "Bleiben",
+  "decks_workbench_limit_copies": "Fügt eine Kopie über dem Limit hinzu. Sie kommt mit einer Regelwarnung ins Deck.",
+  "decks_workbench_limit_battlefields": "Die Schlachtfelder sind voll. Beim Hinzufügen wählst du, welches ersetzt wird.",
+  "decks_workbench_limit_runes": "Die Runen sind voll und keine Rune der anderen Domäne schafft Platz. Diese hier geht mit einer Regelwarnung über 12.",
+  "decks_workbench_warn_copies": "{card} hinzugefügt: {count} Kopien, über dem Limit von {limit}.",
+  "decks_workbench_warn_battlefields": "{count} Schlachtfelder, Limit {limit}.",
+  "decks_workbench_warn_battlefield_duplicate": "{card} ist bereits eines deiner Schlachtfelder.",
+  "decks_workbench_warn_legend_options": "{count} zusätzliche Legenden, Limit {limit}.",
+  "decks_workbench_warn_runes": "{count} Runen, Limit {limit}.",
+  "decks_workbench_rune_swap": "+1 {added}, −1 {removed}",
+  "decks_workbench_keep_both": "Beide behalten ({count})",
+  "decks_workbench_energy": "Energie",
+  "decks_workbench_energy_curve": "Energiekurve",
+  "decks_workbench_rule_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 Regelwarnung",
+        "countPlural=*": "{count} Regelwarnungen"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_title": "Legende wechseln?",
+  "decks_workbench_switch_legend_from_to": "{from} zu {to}",
+  "decks_workbench_switch_rune_out": "{count}× {rune} entfernt",
+  "decks_workbench_switch_rune_in": "{count}× {rune} hinzugefügt",
+  "decks_workbench_switch_rune_total": "Runen nach dem Wechsel: {count}",
+  "decks_workbench_switch_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 Hauptdeck- oder Sideboard-Karte liegt außerhalb der neuen Domänen. Sie bleibt mit einer Regelwarnung im Deck.",
+        "countPlural=*": "{count} Hauptdeck- und Sideboard-Karten liegen außerhalb der neuen Domänen. Sie bleiben mit Regelwarnungen im Deck."
+      }
+    }
+  ],
+  "decks_workbench_switch_champion_mismatch": "Dein Champion passt nicht zur neuen Legende. Er bleibt mit einer Regelwarnung.",
+  "decks_workbench_switch_move_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Die Karte aus einer anderen Domäne nach Overflow verschieben",
+        "countPlural=*": "Die {count} Karten aus anderen Domänen nach Overflow verschieben"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_confirm": "Legende wechseln",
+  "decks_workbench_battlefields_full_title": "Schlachtfelder sind voll ({count})",
+  "decks_workbench_battlefields_full_description": "Ersetze eines durch {card} oder füge es trotzdem mit einer Regelwarnung hinzu.",
+  "decks_workbench_replace_card": "{card} ersetzen",
+  "decks_workbench_add_anyway": "Trotzdem hinzufügen ({count} Schlachtfelder, Regelwarnung)",
+  "decks_workbench_added_announcement": [
+    {
+      "declarations": [
+        "input card",
+        "input zone",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{card} zu {zone} hinzugefügt, 1 Karte",
+        "countPlural=*": "{card} zu {zone} hinzugefügt, {count} Karten"
+      }
+    }
+  ],
+  "help_deck_building_beta_heading": "Neuer Deckbuilder (Beta)",
+  "help_deck_building_beta_intro": "Ein überarbeiteter Deck-Editor ist als optionale Beta verfügbar. Schalte ihn unter Profil → Beta ein oder mit Ausprobieren im Banner im Deck-Editor. Mit Zurück zum klassischen Editor im Editor-Menü schaltest du ihn wieder aus.",
+  "help_deck_building_beta_modes": "Es hat zwei Modi. In Bauen fügt die Kartenliste nur Karten zur Zone hinzu, die du gerade füllst. In der Deck-Spalte daneben änderst du Mengen, wechselst Legende oder Champion und entfernst Karten. Deck zeigt das fertige Deck mit Statistiken und Testhand, ohne Bearbeitungssteuerung.",
+  "help_deck_building_beta_rules": "Die Beta blockiert nie ein Hinzufügen. Eine Karte, die eine Deckregel verletzt, etwa eine vierte Kopie oder eine 13. Rune, kommt mit einer Warnung ins Deck, die du rückgängig machen kannst. Beim Wechsel der Legende siehst du zuerst, welche Runen sich ändern und welche Karten außerhalb der neuen Domänen liegen.",
+  "decks_workbench_limit_battlefield_duplicate": "Bereits eines deiner Schlachtfelder. Erneutes Hinzufügen verstößt gegen die Duplikatregel.",
+  "decks_workbench_limit_legend_options": "Die zusätzlichen Legenden sind voll. Beim Hinzufügen wird das Limit mit einer Regelwarnung überschritten.",
+  "decks_workbench_row_menu": "Weitere Aktionen für {card}",
+  "decks_workbench_remove_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Aus dem Deck entfernen",
+        "countPlural=*": "Alle {count} entfernen"
+      }
+    }
+  ],
+  "decks_workbench_switch_domains": "Domänen",
+  "decks_workbench_switch_domains_change": "{from} → {to}",
+  "decks_workbench_switch_champion_legal": "{champion} bleibt als dein Auserwählter Champion zulässig.",
+  "decks_workbench_switch_new_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 neue Regelwarnung:",
+        "countPlural=*": "{count} neue Regelwarnungen:"
+      }
+    }
+  ],
+  "decks_workbench_switch_resolved_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 Regelwarnung entfällt:",
+        "countPlural=*": "{count} Regelwarnungen entfallen:"
+      }
+    }
+  ],
+  "decks_workbench_detail_back": "Zurück zu den Karten",
+  "decks_workbench_detail_add_to": "Zu {zone} hinzufügen",
+  "decks_workbench_detail_missing": "{count} fehlen",
+  "decks_workbench_sheet_hint": "Hinzufügen zu {zone}. Tippe auf eine andere Zone, um zu wechseln.",
+  "decks_workbench_zone_filters": "Zonenfilter:"
 }

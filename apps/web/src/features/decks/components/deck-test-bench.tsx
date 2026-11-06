@@ -38,6 +38,10 @@ import {
 } from "@/features/decks/lib/deck-odds-groups";
 import type { PlanSwapDraft, SwapDirection } from "@/features/decks/lib/deck-plan";
 import { applySwaps, hasActiveSwaps } from "@/features/decks/lib/deck-swap-test";
+import {
+  EMPTY_BENCH_SESSION,
+  useDeckBenchSessionStore,
+} from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckOddsGroupsStore } from "@/features/decks/stores/deck-odds-groups-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -62,9 +66,12 @@ export function DeckTestBench({
   onHoverCard?: HoverHandler;
   onCardClick?: (card: CardOpenTarget) => void;
 }) {
-  const [bench, setBench] = useState<BenchState | null>(null);
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [swaps, setSwaps] = useState<PlanSwapDraft[]>([]);
+  const session = useDeckBenchSessionStore((state) => state.byDeck[deckId]) ?? EMPTY_BENCH_SESSION;
+  const patchSession = useDeckBenchSessionStore((state) => state.patch);
+  const { bench, selected, swaps } = session;
+  const setBench = (next: BenchState | null) => patchSession(deckId, { bench: next });
+  const setSelected = (next: ReadonlySet<string>) => patchSession(deckId, { selected: next });
+  const setSwaps = (next: PlanSwapDraft[]) => patchSession(deckId, { swaps: next });
   const [sideboardOpen, setSideboardOpen] = useState(false);
   const { labels } = useEnumOrders();
   const hydrated = useHydrated();

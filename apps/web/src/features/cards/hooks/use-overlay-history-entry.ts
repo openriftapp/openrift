@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 
 export type OverlayHistoryKey =
   | "cardDetail"
+  | "deckSheet"
   | "missingCardDetail"
   | "paletteCardDetail"
   | "printingLightbox";

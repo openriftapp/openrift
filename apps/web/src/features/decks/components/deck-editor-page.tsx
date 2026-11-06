@@ -39,6 +39,7 @@ import { useDeckUndoShortcuts } from "@/features/decks/components/deck-undo-cont
 import { DeckVariantRail } from "@/features/decks/components/deck-variant-rail";
 import { DeckZoneDrawer } from "@/features/decks/components/deck-zone-drawer";
 import { DeckZonePanel } from "@/features/decks/components/deck-zone-panel";
+import { WorkbenchOptInBanner } from "@/features/decks/components/workbench-opt-in-banner";
 import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dialogs";
@@ -50,6 +51,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
+import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { flushDeckDraft, hydrateDeckDraft } from "@/features/decks/stores/deck-draft-store";
 import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
@@ -185,6 +187,9 @@ function DeckEditorContent({
     },
     [queryClient, scope, deckId],
   );
+
+  const clearBenchSession = useDeckBenchSessionStore((state) => state.clear);
+  useEffect(() => () => clearBenchSession(deckId), [clearBenchSession, deckId]);
 
   // The handler re-registers only on the two transitions it reads, not on
   // every card edit.
@@ -421,6 +426,7 @@ function DeckEditorContent({
               <div
                 className={cn("flex min-w-0 flex-1 flex-col", isMobile && activeZone && "pb-20")}
               >
+                <WorkbenchOptInBanner />
                 <DeckCardBrowser
                   deckId={deckId}
                   ownershipData={ownershipData}

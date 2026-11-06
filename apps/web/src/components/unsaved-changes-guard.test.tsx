@@ -2,8 +2,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+interface GuardLocation {
+  pathname: string;
+  search: object;
+}
+
 interface BlockerOptions {
-  shouldBlockFn: () => boolean;
+  shouldBlockFn: (args: { current: GuardLocation; next: GuardLocation }) => boolean;
   enableBeforeUnload: () => boolean;
   withResolver: boolean;
 }
@@ -27,6 +32,11 @@ vi.mock("@tanstack/react-router", () => ({
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { UnsavedChangesGuard } from "./unsaved-changes-guard";
 
+const MOVE = {
+  current: { pathname: "/decks/1", search: {} },
+  next: { pathname: "/decks", search: {} },
+};
+
 beforeEach(() => {
   blocker.options = null;
   blocker.status = "idle";
@@ -37,13 +47,26 @@ beforeEach(() => {
 describe("UnsavedChangesGuard", () => {
   it("blocks navigation and the unload prompt only while dirty", () => {
     const { rerender } = render(<UnsavedChangesGuard dirty={false} />);
-    expect(blocker.options?.shouldBlockFn()).toBe(false);
+    expect(blocker.options?.shouldBlockFn(MOVE)).toBe(false);
     expect(blocker.options?.enableBeforeUnload()).toBe(false);
     expect(blocker.options?.withResolver).toBe(true);
 
     rerender(<UnsavedChangesGuard dirty />);
-    expect(blocker.options?.shouldBlockFn()).toBe(true);
+    expect(blocker.options?.shouldBlockFn(MOVE)).toBe(true);
     expect(blocker.options?.enableBeforeUnload()).toBe(true);
+  });
+
+  it("lets through a navigation the caller allows, even while dirty", () => {
+    render(
+      <UnsavedChangesGuard
+        dirty
+        allowNavigation={(current, next) => current.pathname === next.pathname}
+      />,
+    );
+    expect(blocker.options?.shouldBlockFn(MOVE)).toBe(true);
+    expect(blocker.options?.shouldBlockFn({ current: MOVE.current, next: MOVE.current })).toBe(
+      false,
+    );
   });
 
   it("stays hidden while nothing is blocked", () => {

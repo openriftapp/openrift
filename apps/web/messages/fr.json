@@ -9955,5 +9955,154 @@
   "cards_filter_range_at_least": "≥{value}",
   "cards_filter_range_at_most": "≤{value}",
   "cards_filter_range_between": "{min}–{max}",
-  "meta_event_run_every_finish": "Tous les classements de {player}"
+  "meta_event_run_every_finish": "Tous les classements de {player}",
+  "profile_nav_beta": "Bêta",
+  "profile_beta_title": "Bêta",
+  "profile_beta_description": "Essayez les nouvelles fonctionnalités avant qu’elles ne remplacent les actuelles. Vous pouvez revenir en arrière à tout moment.",
+  "profile_beta_deck_builder_label": "Nouveau créateur de deck",
+  "profile_beta_deck_builder_description": "Modes Construire et Deck séparés : la liste de cartes ne fait qu’ajouter, la colonne du deck sert à modifier.",
+  "decks_workbench_banner_text": "Un nouveau créateur de deck est en bêta : vous ajoutez des cartes depuis la liste de cartes et les modifiez dans une seule colonne de deck.",
+  "decks_workbench_banner_try": "Essayer",
+  "decks_workbench_banner_dismiss": "Masquer",
+  "decks_workbench_back_to_classic": "Retour à l’éditeur classique",
+  "decks_workbench_mode_label": "Mode de l’éditeur",
+  "decks_workbench_mode_build": "Construire",
+  "decks_workbench_mode_deck": "Deck",
+  "decks_workbench_edit": "Modifier",
+  "decks_workbench_done": "Terminé",
+  "decks_workbench_edit_in_build": "Modifier dans Construire",
+  "decks_workbench_edit_deck": "Modifier le deck",
+  "decks_workbench_tab_cards": "Cartes",
+  "decks_workbench_deck_column": "Votre deck",
+  "decks_workbench_switch": "Changer",
+  "decks_workbench_adding_here": "Ajout ici",
+  "decks_workbench_adding_to": "Ajout à",
+  "decks_workbench_chip_stats_paused": "Filtres de stats en pause",
+  "decks_workbench_remove_zone_filter": "Retirer le filtre de zone {label}",
+  "decks_workbench_restore_zone_filters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher 1 filtre de zone masqué",
+        "countPlural=*": "Afficher {count} filtres de zone masqués"
+      }
+    }
+  ],
+  "decks_workbench_zone_complete": "{zone} est complète. Prochaine zone à compléter : {next} ({count}/{expected}).",
+  "decks_workbench_go_to_zone": "Aller à {zone}",
+  "decks_workbench_stay": "Rester",
+  "decks_workbench_limit_copies": "Ajoute un exemplaire au-delà de la limite. Il entre dans le deck avec un avertissement de règle.",
+  "decks_workbench_limit_battlefields": "Les Champs de bataille sont complets. L’ajout demande lequel remplacer.",
+  "decks_workbench_limit_runes": "Les Runes sont complètes et aucune Rune de l’autre domaine ne peut faire de la place. Celle-ci dépasse 12 avec un avertissement de règle.",
+  "decks_workbench_warn_copies": "{card} ajoutée : {count} exemplaires, au-delà de la limite de {limit}.",
+  "decks_workbench_warn_battlefields": "{count} Champs de bataille, limite {limit}.",
+  "decks_workbench_warn_battlefield_duplicate": "{card} fait déjà partie de vos Champs de bataille.",
+  "decks_workbench_warn_legend_options": "{count} Légendes supplémentaires, limite {limit}.",
+  "decks_workbench_warn_runes": "{count} Runes, limite {limit}.",
+  "decks_workbench_rune_swap": "+1 {added}, −1 {removed}",
+  "decks_workbench_keep_both": "Garder les deux ({count})",
+  "decks_workbench_energy": "Énergie",
+  "decks_workbench_energy_curve": "Courbe d’énergie",
+  "decks_workbench_rule_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 avertissement de règle",
+        "countPlural=*": "{count} avertissements de règle"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_title": "Changer de Légende ?",
+  "decks_workbench_switch_legend_from_to": "{from} vers {to}",
+  "decks_workbench_switch_rune_out": "Retrait : {count}× {rune}",
+  "decks_workbench_switch_rune_in": "Ajout : {count}× {rune}",
+  "decks_workbench_switch_rune_total": "Runes après le changement : {count}",
+  "decks_workbench_switch_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 carte du deck principal ou de la réserve est hors des nouveaux domaines. Elle reste dans le deck avec un avertissement de règle.",
+        "countPlural=*": "{count} cartes du deck principal et de la réserve sont hors des nouveaux domaines. Elles restent dans le deck avec des avertissements de règle."
+      }
+    }
+  ],
+  "decks_workbench_switch_champion_mismatch": "Votre Champion ne correspond pas à la nouvelle Légende. Il reste avec un avertissement de règle.",
+  "decks_workbench_switch_move_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Déplacer la carte d’un autre domaine vers l’Overflow",
+        "countPlural=*": "Déplacer les {count} cartes d’autres domaines vers l’Overflow"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_confirm": "Changer de Légende",
+  "decks_workbench_battlefields_full_title": "Les Champs de bataille sont complets ({count})",
+  "decks_workbench_battlefields_full_description": "Remplacez-en un par {card}, ou ajoutez-la quand même avec un avertissement de règle.",
+  "decks_workbench_replace_card": "Remplacer {card}",
+  "decks_workbench_add_anyway": "Ajouter quand même ({count} Champs de bataille, avertissement de règle)",
+  "decks_workbench_added_announcement": [
+    {
+      "declarations": [
+        "input card",
+        "input zone",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Ajout de {card} à {zone}, 1 carte",
+        "countPlural=*": "Ajout de {card} à {zone}, {count} cartes"
+      }
+    }
+  ],
+  "help_deck_building_beta_heading": "Nouveau créateur de deck (bêta)",
+  "help_deck_building_beta_intro": "Un éditeur de deck repensé est disponible en bêta facultative. Activez-le dans Profil → Bêta, ou avec Essayer sur la bannière de l’éditeur de deck. Retour à l’éditeur classique, dans le menu de l’éditeur, le désactive.",
+  "help_deck_building_beta_modes": "Il a deux modes. Dans Construire, la liste de cartes ne fait qu’ajouter des cartes à la zone que vous remplissez, et la colonne du deck à côté sert à changer les quantités, changer de Légende ou de Champion et retirer des cartes. Deck affiche le deck terminé avec ses statistiques et sa main de test, sans commandes de modification.",
+  "help_deck_building_beta_rules": "La bêta ne bloque jamais un ajout. Une carte qui enfreint une règle du deck, comme un quatrième exemplaire ou une 13e Rune, entre avec un avertissement que vous pouvez annuler. Changer de Légende montre d’abord quelles Runes changent et quelles cartes sortent des nouveaux domaines.",
+  "decks_workbench_limit_battlefield_duplicate": "Déjà l’un de vos Champs de bataille. L’ajouter à nouveau enfreint la règle des doublons.",
+  "decks_workbench_limit_legend_options": "Les Légendes supplémentaires sont complètes. L’ajout dépasse la limite avec un avertissement de règle.",
+  "decks_workbench_row_menu": "Plus d’actions pour {card}",
+  "decks_workbench_remove_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Retirer du deck",
+        "countPlural=*": "Tout retirer ({count})"
+      }
+    }
+  ],
+  "decks_workbench_switch_domains": "Domaines",
+  "decks_workbench_switch_domains_change": "{from} → {to}",
+  "decks_workbench_switch_champion_legal": "{champion} reste valide comme Champion élu.",
+  "decks_workbench_switch_new_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 nouvel avertissement de règle :",
+        "countPlural=*": "{count} nouveaux avertissements de règle :"
+      }
+    }
+  ],
+  "decks_workbench_switch_resolved_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 avertissement de règle disparaît :",
+        "countPlural=*": "{count} avertissements de règle disparaissent :"
+      }
+    }
+  ],
+  "decks_workbench_detail_back": "Retour aux cartes",
+  "decks_workbench_detail_add_to": "Ajouter à {zone}",
+  "decks_workbench_detail_missing": "{count} manquantes",
+  "decks_workbench_sheet_hint": "Ajout à {zone}. Touchez une autre zone pour changer.",
+  "decks_workbench_zone_filters": "Filtres de zone :"
 }

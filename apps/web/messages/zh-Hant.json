@@ -9955,5 +9955,146 @@
   "cards_filter_range_at_least": "≥{value}",
   "cards_filter_range_at_most": "≤{value}",
   "cards_filter_range_between": "{min}～{max}",
-  "meta_event_run_every_finish": "{player} 的全部名次"
+  "meta_event_run_every_finish": "{player} 的全部名次",
+  "profile_nav_beta": "測試版",
+  "profile_beta_title": "測試版",
+  "profile_beta_description": "在新功能取代現有功能之前搶先體驗。你可以隨時切換回來。",
+  "profile_beta_deck_builder_label": "新牌組構築器",
+  "profile_beta_deck_builder_description": "構築與牌組模式分開：卡牌列表只負責加入，在牌組欄中編輯。",
+  "decks_workbench_banner_text": "新的牌組構築器正在測試中：從卡牌列表加入卡牌，在同一個牌組欄中編輯。",
+  "decks_workbench_banner_try": "試試看",
+  "decks_workbench_banner_dismiss": "關閉",
+  "decks_workbench_back_to_classic": "返回經典編輯器",
+  "decks_workbench_mode_label": "編輯器模式",
+  "decks_workbench_mode_build": "構築",
+  "decks_workbench_mode_deck": "牌組",
+  "decks_workbench_edit": "編輯",
+  "decks_workbench_done": "完成",
+  "decks_workbench_edit_in_build": "在構築中編輯",
+  "decks_workbench_edit_deck": "編輯牌組",
+  "decks_workbench_tab_cards": "卡牌",
+  "decks_workbench_deck_column": "你的牌組",
+  "decks_workbench_switch": "更換",
+  "decks_workbench_adding_here": "正在加入此處",
+  "decks_workbench_adding_to": "加入到",
+  "decks_workbench_chip_stats_paused": "統計篩選已暫停",
+  "decks_workbench_remove_zone_filter": "移除區域篩選 {label}",
+  "decks_workbench_restore_zone_filters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "顯示 {count} 個隱藏的區域篩選"
+      }
+    }
+  ],
+  "decks_workbench_zone_complete": "{zone} 已完成。下一個未完成的區域：{next}（{count}/{expected}）。",
+  "decks_workbench_go_to_zone": "前往 {zone}",
+  "decks_workbench_stay": "留在此處",
+  "decks_workbench_limit_copies": "將超出張數上限加入一張，並附帶規則警告。",
+  "decks_workbench_limit_battlefields": "戰場已滿。加入時會詢問要替換哪一張。",
+  "decks_workbench_limit_runes": "符文已滿，也無法透過替換另一種流派的符文騰出位置。這張會帶著規則警告超過 12 張。",
+  "decks_workbench_warn_copies": "已加入 {card}：{count} 張，超過 {limit} 張上限。",
+  "decks_workbench_warn_battlefields": "{count} 張戰場，上限 {limit} 張。",
+  "decks_workbench_warn_battlefield_duplicate": "{card} 已是你的戰場之一。",
+  "decks_workbench_warn_legend_options": "{count} 張額外傳奇牌，上限 {limit} 張。",
+  "decks_workbench_warn_runes": "{count} 張符文，上限 {limit} 張。",
+  "decks_workbench_rune_swap": "+1 {added}, −1 {removed}",
+  "decks_workbench_keep_both": "兩者都保留（{count}）",
+  "decks_workbench_energy": "能量",
+  "decks_workbench_energy_curve": "能量曲線",
+  "decks_workbench_rule_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 則規則警告"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_title": "更換傳奇？",
+  "decks_workbench_switch_legend_from_to": "{from} → {to}",
+  "decks_workbench_switch_rune_out": "已移除 {count}× {rune}",
+  "decks_workbench_switch_rune_in": "已加入 {count}× {rune}",
+  "decks_workbench_switch_rune_total": "更換後的符文：{count} 張",
+  "decks_workbench_switch_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "主牌組和備牌中有 {count} 張牌不在新流派範圍內。它們會帶著規則警告留在牌組中。"
+      }
+    }
+  ],
+  "decks_workbench_switch_champion_mismatch": "你的英雄與新傳奇牌不匹配。它會帶著規則警告保留。",
+  "decks_workbench_switch_move_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "將 {count} 張其他流派的牌移至溢位區"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_confirm": "更換傳奇",
+  "decks_workbench_battlefields_full_title": "戰場已滿（{count}）",
+  "decks_workbench_battlefields_full_description": "用 {card} 替換其中一張，或帶著規則警告照樣加入。",
+  "decks_workbench_replace_card": "替換 {card}",
+  "decks_workbench_add_anyway": "仍然加入（{count} 張戰場，規則警告）",
+  "decks_workbench_added_announcement": [
+    {
+      "declarations": [
+        "input card",
+        "input zone",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "已將 {card} 加入 {zone}，{count} 張"
+      }
+    }
+  ],
+  "help_deck_building_beta_heading": "新牌組構築器（測試版）",
+  "help_deck_building_beta_intro": "重新設計的牌組編輯器以可選測試版提供。在個人檔案 → 測試版中開啟，或點選牌組編輯器橫幅上的試試看。使用編輯器選單中的返回經典編輯器即可再次關閉。",
+  "help_deck_building_beta_modes": "共有兩種模式。在構築中，卡牌列表只會把卡牌加入你正在填充的區域，旁邊的牌組欄用來修改數量、更換傳奇牌或英雄以及移除卡牌。牌組顯示完成的牌組及其統計和測試手牌，沒有編輯控制項。",
+  "help_deck_building_beta_rules": "測試版從不阻止加入。違反牌組規則的牌，例如第四張或第 13 張符文，會帶著可復原的警告加入。更換傳奇牌時會先顯示哪些符文會變動，以及哪些牌不在新流派範圍內。",
+  "decks_workbench_limit_battlefield_duplicate": "已是你的戰場之一。再次加入會違反重複規則。",
+  "decks_workbench_limit_legend_options": "額外傳奇牌已滿。加入會帶著規則警告超出上限。",
+  "decks_workbench_row_menu": "{card}的更多操作",
+  "decks_workbench_remove_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "全部移除（{count} 張）"
+      }
+    }
+  ],
+  "decks_workbench_switch_domains": "流派",
+  "decks_workbench_switch_domains_change": "{from} → {to}",
+  "decks_workbench_switch_champion_legal": "{champion} 仍可作為你的指定英雄。",
+  "decks_workbench_switch_new_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "新增 {count} 則規則警告："
+      }
+    }
+  ],
+  "decks_workbench_switch_resolved_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} 則規則警告將消失："
+      }
+    }
+  ],
+  "decks_workbench_detail_back": "返回卡牌",
+  "decks_workbench_detail_add_to": "加入到 {zone}",
+  "decks_workbench_detail_missing": "缺少 {count} 張",
+  "decks_workbench_sheet_hint": "正在加入 {zone}。點選其他區域即可切換。",
+  "decks_workbench_zone_filters": "區域篩選："
 }

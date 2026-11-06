@@ -65,6 +65,11 @@ const KNOWN_FLAGS: KnownFlag[] = [
     description: "Show board states (/board-states), their header link, and the editor",
   },
   {
+    key: "deck-builder-beta",
+    description:
+      "Use the beta deck builder (Build and Deck modes). Users switch this on for themselves in settings or from the editor banner",
+  },
+  {
     key: "catalog-workspace",
     description:
       "Show the new catalog admin (Cards, Printings, Faces queues and split views) in place of Review, Cards and Printing Desk",

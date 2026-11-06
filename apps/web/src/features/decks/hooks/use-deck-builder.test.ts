@@ -1,3 +1,4 @@
+import type { Domain } from "@openrift/shared/types/enums";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -12,8 +13,10 @@ import {
   moveCardAction,
   moveOneCardAction,
   removeCardAction,
+  replaceCardAction,
   setLegendAction,
   setQuantityAction,
+  undoRelaxedAddAction,
 } from "./use-deck-builder";
 
 type DeckCollection = Collection<DeckBuilderCard, string | number>;
@@ -1154,5 +1157,539 @@ describe("preferred printings", () => {
       changePreferredPrintingAction(collection, "c1", "main", "printing-alt", "printing-alt", 2);
       expect(cardsOf(collection)[0]!.quantity).toBe(2);
     });
+  });
+});
+
+describe("relaxed addCardAction", () => {
+  const relaxed = { relaxed: true };
+  const totalOf = (zone: string) =>
+    cardsOf(collection)
+      .filter((entry) => entry.zone === zone)
+      .reduce((sum, entry) => sum + entry.quantity, 0);
+
+  describe("copy limit", () => {
+    const unit = () =>
+      stubDeckBuilderCard({ cardId: "card-1", cardType: "unit", zone: "main", quantity: 3 });
+
+    it("lets the 4th copy in and reports the broken limit", () => {
+      const card = unit();
+      collection = createDraftCollection([card]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(totalOf("main")).toBe(4);
+      expect(outcome).toMatchObject({
+        rule: "copyLimit",
+        zone: "main",
+        quantity: 1,
+        total: 4,
+        limit: 3,
+      });
+      expect(outcome?.card.cardId).toBe("card-1");
+    });
+
+    it("blocks the 4th copy without the relaxed option", () => {
+      const card = unit();
+      collection = createDraftCollection([card]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+      );
+      expect(outcome).toBeUndefined();
+      expect(totalOf("main")).toBe(3);
+    });
+
+    it("blocks the 4th copy when relaxed is false", () => {
+      const card = unit();
+      collection = createDraftCollection([card]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        { relaxed: false },
+      );
+      expect(outcome).toBeUndefined();
+      expect(totalOf("main")).toBe(3);
+    });
+
+    it("counts copies across main and sideboard", () => {
+      const card = unit();
+      collection = createDraftCollection([
+        { ...card, quantity: 2 },
+        { ...card, zone: "sideboard", quantity: 1 },
+      ]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toMatchObject({ rule: "copyLimit", total: 4, limit: 3 });
+    });
+
+    it("reports nothing when the add stays under the limit", () => {
+      const card = stubDeckBuilderCard({ cardId: "card-1", cardType: "unit" });
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toBeUndefined();
+      expect(totalOf("main")).toBe(1);
+    });
+
+    it("still clamps an explicit count below the limit when relaxed", () => {
+      const card = stubDeckBuilderCard({ ...unit(), quantity: 1 });
+      collection = createDraftCollection([card]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        3,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toBeUndefined();
+      expect(totalOf("main")).toBe(3);
+    });
+
+    it("adds one copy with a warning for an explicit count at the limit", () => {
+      const card = unit();
+      collection = createDraftCollection([card]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "main",
+        3,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toMatchObject({ rule: "copyLimit", quantity: 1, total: 4, limit: 3 });
+      expect(totalOf("main")).toBe(4);
+    });
+  });
+
+  describe("battlefield", () => {
+    const battlefield = (cardId: string) =>
+      stubDeckBuilderCard({ cardId, cardType: "battlefield", zone: "battlefield" });
+    const three = () => ["bf-0", "bf-1", "bf-2"].map((id) => battlefield(id));
+
+    it("adds a 4th battlefield and reports the cap", () => {
+      collection = createDraftCollection(three());
+      const outcome = addCardAction(
+        collection,
+        battlefield("bf-new"),
+        "battlefield",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(cardsOf(collection).filter((c) => c.zone === "battlefield")).toHaveLength(4);
+      expect(outcome).toMatchObject({ rule: "battlefieldCap", total: 4, limit: 3, quantity: 1 });
+    });
+
+    it("blocks a 4th battlefield without relaxed", () => {
+      collection = createDraftCollection(three());
+      const outcome = addCardAction(
+        collection,
+        battlefield("bf-new"),
+        "battlefield",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+      );
+      expect(outcome).toBeUndefined();
+      expect(cardsOf(collection)).toHaveLength(3);
+    });
+
+    it("adds a duplicate battlefield and reports it", () => {
+      collection = createDraftCollection([battlefield("bf-0")]);
+      const outcome = addCardAction(
+        collection,
+        battlefield("bf-0"),
+        "battlefield",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(cardsOf(collection)).toHaveLength(1);
+      expect(cardsOf(collection)[0]!.quantity).toBe(2);
+      expect(outcome).toMatchObject({ rule: "battlefieldDuplicate", total: 1, limit: 3 });
+    });
+
+    it("reports a duplicate before the cap when both apply", () => {
+      collection = createDraftCollection(three());
+      const outcome = addCardAction(
+        collection,
+        battlefield("bf-1"),
+        "battlefield",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome?.rule).toBe("battlefieldDuplicate");
+    });
+
+    it("uses a limit of 1 in custom-region", () => {
+      collection = createDraftCollection([battlefield("bf-0")]);
+      const outcome = addCardAction(
+        collection,
+        battlefield("bf-new"),
+        "battlefield",
+        undefined,
+        EMPTY_RUNES,
+        "custom-region",
+        relaxed,
+      );
+      expect(outcome).toMatchObject({ rule: "battlefieldCap", total: 2, limit: 1 });
+    });
+
+    it("reports nothing for a legal battlefield add", () => {
+      const outcome = addCardAction(
+        collection,
+        battlefield("bf-0"),
+        "battlefield",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toBeUndefined();
+      expect(cardsOf(collection)).toHaveLength(1);
+    });
+  });
+
+  describe("runes", () => {
+    const legend = (domains: string[]) =>
+      stubDeckBuilderCard({
+        cardId: "legend-1",
+        cardType: "legend",
+        zone: "legend",
+        domains: domains as Domain[],
+      });
+    const rune = (cardId: string, domain: string, quantity: number) =>
+      stubDeckBuilderCard({
+        cardId,
+        cardType: "rune",
+        zone: "runes",
+        domains: [domain as Domain],
+        quantity,
+      });
+
+    it("swaps out an opposite-domain rune past 12 and reports it", () => {
+      collection = createDraftCollection([
+        legend(["fury", "calm"]),
+        rune("fury-rune", "fury", 6),
+        rune("calm-rune", "calm", 6),
+      ]);
+      const outcome = addCardAction(
+        collection,
+        rune("fury-rune", "fury", 1),
+        "runes",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toMatchObject({ rule: "runeSwap", total: 12, limit: 12, quantity: 1 });
+      expect(outcome?.swappedOut?.cardId).toBe("calm-rune");
+      expect(totalOf("runes")).toBe(12);
+      const calm = cardsOf(collection).find((c) => c.cardId === "calm-rune");
+      expect(calm?.quantity).toBe(5);
+    });
+
+    it("reports no outcome for a swap without the relaxed option", () => {
+      collection = createDraftCollection([
+        legend(["fury", "calm"]),
+        rune("fury-rune", "fury", 6),
+        rune("calm-rune", "calm", 6),
+      ]);
+      const outcome = addCardAction(
+        collection,
+        rune("fury-rune", "fury", 1),
+        "runes",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+      );
+      expect(outcome).toBeUndefined();
+      expect(totalOf("runes")).toBe(12);
+    });
+
+    it("reports nothing when the rune fits under 12", () => {
+      collection = createDraftCollection([legend(["fury", "calm"])]);
+      const outcome = addCardAction(
+        collection,
+        rune("fury-rune", "fury", 1),
+        "runes",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toBeUndefined();
+      expect(totalOf("runes")).toBe(1);
+    });
+
+    it("goes over 12 with a runeCap outcome when no swap is possible", () => {
+      collection = createDraftCollection([legend(["fury"]), rune("fury-rune", "fury", 12)]);
+      const outcome = addCardAction(
+        collection,
+        rune("fury-rune", "fury", 1),
+        "runes",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toMatchObject({ rule: "runeCap", total: 13, limit: 12 });
+      expect(totalOf("runes")).toBe(13);
+    });
+  });
+
+  describe("legend options", () => {
+    it("adds past the granted count and reports the cap", () => {
+      const neeko = stubDeckBuilderCard({
+        cardId: "neeko",
+        zone: "main",
+        additionalLegendCount: 1,
+      });
+      const legend = (cardId: string) => stubDeckBuilderCard({ cardId, cardType: "legend" });
+      collection = createDraftCollection([neeko]);
+      addCardAction(
+        collection,
+        legend("a"),
+        "legend-options",
+        1,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      const outcome = addCardAction(
+        collection,
+        legend("b"),
+        "legend-options",
+        1,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(outcome).toMatchObject({ rule: "legendOptionsCap", total: 2, limit: 1 });
+      expect(cardsOf(collection).filter((c) => c.zone === "legend-options")).toHaveLength(2);
+    });
+  });
+});
+
+describe("setLegendAction options", () => {
+  const legendOf = (cardId: string, domains: string[]) =>
+    stubDeckBuilderCard({
+      cardId,
+      cardType: "legend",
+      zone: "legend",
+      domains: domains as Domain[],
+    });
+  const rune = (cardId: string, domain: string, quantity: number) =>
+    stubDeckBuilderCard({
+      cardId,
+      cardType: "rune",
+      zone: "runes",
+      domains: [domain as Domain],
+      quantity,
+    });
+  const mainCard = (cardId: string, zone: "main" | "sideboard", domain: string, quantity = 1) =>
+    stubDeckBuilderCard({ cardId, zone, domains: [domain as Domain], quantity });
+  const runesOf = () => cardsOf(collection).filter((c) => c.zone === "runes");
+  const runeCatalog = new Map([
+    ["fury", [rune("cat-fury", "fury", 1)]],
+    ["calm", [rune("cat-calm", "calm", 1)]],
+    ["mind", [rune("cat-mind", "mind", 1)]],
+  ]);
+
+  it("tops kept runes back up to 6 per domain with refill", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      rune("fury-rune", "fury", 6),
+      rune("calm-rune", "calm", 6),
+    ]);
+    setLegendAction(collection, legendOf("new", ["fury", "mind"]), runeCatalog, "constructed", {
+      refill: true,
+    });
+    expect(new Map(runesOf().map((c) => [c.cardId, c.quantity]))).toEqual(
+      new Map([
+        ["fury-rune", 6],
+        ["cat-mind", 6],
+      ]),
+    );
+  });
+
+  it("adds the missing copies when a kept domain is below 6", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      rune("fury-rune", "fury", 4),
+      rune("calm-rune", "calm", 6),
+    ]);
+    setLegendAction(collection, legendOf("new", ["fury", "mind"]), runeCatalog, "constructed", {
+      refill: true,
+    });
+    const byId = new Map(runesOf().map((c) => [c.cardId, c.quantity]));
+    expect(byId.get("fury-rune")).toBe(4);
+    expect(byId.get("cat-fury")).toBe(2);
+    expect(byId.get("cat-mind")).toBe(6);
+  });
+
+  it("leaves kept runes short without refill", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      rune("fury-rune", "fury", 6),
+      rune("calm-rune", "calm", 6),
+    ]);
+    setLegendAction(collection, legendOf("new", ["fury", "mind"]), runeCatalog, "constructed");
+    expect(runesOf().map((c) => [c.cardId, c.quantity])).toEqual([["fury-rune", 6]]);
+  });
+
+  it("moves off-color Main and Sideboard cards to overflow", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      mainCard("off-main", "main", "mind", 2),
+      mainCard("off-side", "sideboard", "mind"),
+      mainCard("on", "main", "fury"),
+      mainCard("neutral", "main", "neutral"),
+    ]);
+    setLegendAction(collection, legendOf("new", ["fury", "body"]), EMPTY_RUNES, "constructed", {
+      moveOffColorToOverflow: true,
+    });
+    const zones = new Map(cardsOf(collection).map((c) => [c.cardId, c.zone]));
+    expect(zones.get("off-main")).toBe("overflow");
+    expect(zones.get("off-side")).toBe("overflow");
+    expect(zones.get("on")).toBe("main");
+    expect(zones.get("neutral")).toBe("main");
+    expect(cardsOf(collection).find((c) => c.cardId === "off-main")?.quantity).toBe(2);
+  });
+
+  it("keeps off-color cards in place without the option", () => {
+    collection = createDraftCollection([
+      legendOf("old", ["fury", "calm"]),
+      mainCard("off-main", "main", "mind"),
+    ]);
+    setLegendAction(collection, legendOf("new", ["fury", "body"]), EMPTY_RUNES, "constructed");
+    expect(cardsOf(collection).find((c) => c.cardId === "off-main")?.zone).toBe("main");
+  });
+});
+
+describe("undoRelaxedAddAction", () => {
+  const rune = (cardId: string, domain: string, quantity: number, printing: string | null = null) =>
+    stubDeckBuilderCard({
+      cardId,
+      cardType: "rune",
+      zone: "runes",
+      domains: [domain as Domain],
+      quantity,
+      preferredPrintingId: printing,
+    });
+  const runeCount = (cardId: string) =>
+    cardsOf(collection)
+      .filter((card) => card.cardId === cardId)
+      .reduce((sum, card) => sum + card.quantity, 0);
+
+  it("gives a rune swap its swapped-out rune back with its printing", () => {
+    collection = createDraftCollection([
+      stubDeckBuilderCard({
+        cardId: "legend-1",
+        cardType: "legend",
+        zone: "legend",
+        domains: ["fury", "calm"] as Domain[],
+      }),
+      rune("fury-rune", "fury", 6),
+      rune("calm-rune", "calm", 1, "calm-foil"),
+      rune("calm-rune", "calm", 5),
+    ]);
+    const outcome = addCardAction(
+      collection,
+      rune("fury-rune", "fury", 1),
+      "runes",
+      undefined,
+      EMPTY_RUNES,
+      "constructed",
+      { relaxed: true },
+    );
+    expect(outcome?.rule).toBe("runeSwap");
+    if (!outcome) {
+      return;
+    }
+    const swappedPrinting = outcome.swappedOut?.preferredPrintingId;
+    undoRelaxedAddAction(collection, outcome, EMPTY_RUNES, "constructed");
+    expect(runeCount("fury-rune")).toBe(6);
+    expect(runeCount("calm-rune")).toBe(6);
+    const restored = cardsOf(collection).find(
+      (card) => card.cardId === "calm-rune" && card.preferredPrintingId === swappedPrinting,
+    );
+    expect(restored).toBeDefined();
+  });
+
+  it("removes one copy for an over-limit add", () => {
+    const card = stubDeckBuilderCard({ cardId: "scorcher", zone: "main", quantity: 3 });
+    collection = createDraftCollection([card]);
+    const outcome = addCardAction(
+      collection,
+      { ...card, quantity: 1 },
+      "main",
+      undefined,
+      EMPTY_RUNES,
+      "constructed",
+      { relaxed: true },
+    );
+    expect(outcome?.rule).toBe("copyLimit");
+    if (!outcome) {
+      return;
+    }
+    undoRelaxedAddAction(collection, outcome, EMPTY_RUNES, "constructed");
+    expect(cardsOf(collection).find((c) => c.cardId === "scorcher")?.quantity).toBe(3);
+  });
+});
+
+describe("replaceCardAction", () => {
+  const battlefield = (cardId: string) =>
+    stubDeckBuilderCard({ cardId, cardType: "battlefield", zone: "battlefield" });
+
+  it("swaps one battlefield for another and keeps three", () => {
+    collection = createDraftCollection(["bf-0", "bf-1", "bf-2"].map((id) => battlefield(id)));
+    replaceCardAction(
+      collection,
+      battlefield("bf-1"),
+      battlefield("bf-new"),
+      "battlefield",
+      EMPTY_RUNES,
+      "constructed",
+    );
+    expect(
+      cardsOf(collection)
+        .map((card) => card.cardId)
+        .toSorted(),
+    ).toEqual(["bf-0", "bf-2", "bf-new"]);
   });
 });

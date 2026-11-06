@@ -19,6 +19,7 @@ export function TabStrip({
   showStatsTab,
   trailing,
   trailingMobile,
+  deckTabLabel,
 }: {
   tab: DeckOverviewTab;
   onTabChange: (tab: DeckOverviewTab) => void;
@@ -27,6 +28,7 @@ export function TabStrip({
   showStatsTab?: boolean;
   trailing?: React.ReactNode;
   trailingMobile?: React.ReactNode;
+  deckTabLabel?: string;
 }) {
   const isMobile = useIsMobile();
   // Exactly one of trailing/trailingMobile renders: the Plan tab's trailing is
@@ -44,7 +46,7 @@ export function TabStrip({
           aria-label={m.decks_overview_tabs_label()}
           className="md:max-lg:-mb-px"
         >
-          <TabsTrigger value="overview">{m.decks_overview_tab_deck()}</TabsTrigger>
+          <TabsTrigger value="overview">{deckTabLabel ?? m.decks_overview_tab_deck()}</TabsTrigger>
           <TabsTrigger value="test">{m.decks_overview_tab_test()}</TabsTrigger>
           {showPlanTab && <TabsTrigger value="plan">{m.decks_overview_tab_plan()}</TabsTrigger>}
           {showBoxTab && <TabsTrigger value="box">{m.decks_overview_tab_box()}</TabsTrigger>}

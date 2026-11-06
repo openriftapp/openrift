@@ -2,6 +2,7 @@ import { totalQuantity } from "@openrift/shared/deck-rules";
 import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { Redo2Icon, Undo2Icon } from "lucide-react";
+import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
@@ -11,8 +12,11 @@ import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { lastChange } from "@/features/decks/lib/deck-last-change";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+const SWIPE_OPEN_PX = 30;
 
 function ZoneRing({ count, expected }: { count: number; expected?: number }) {
   if (expected === undefined) {
@@ -41,6 +45,23 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
   const cards = useDeckCards(deckId);
   const { data } = useDeckDetail(deckId);
   const { setOpenMobile } = useSidebar();
+  const workbench = useWorkbenchStore((state) => state.relaxed);
+  const swipeStartY = useRef<number | null>(null);
+  const swipeProps = workbench
+    ? {
+        onTouchStart: (event: React.TouchEvent) => {
+          swipeStartY.current = event.touches[0]?.clientY ?? null;
+        },
+        onTouchEnd: (event: React.TouchEvent) => {
+          const start = swipeStartY.current;
+          const end = event.changedTouches[0]?.clientY;
+          swipeStartY.current = null;
+          if (start !== null && end !== undefined && start - end > SWIPE_OPEN_PX) {
+            setOpenMobile(true);
+          }
+        },
+      }
+    : {};
   const { canUndo, undo, canRedo, redo } = useDeckUndo(deckId);
   const previous = useDeckUndoStore((state) =>
     state.deckId === deckId ? state.past.at(-1) : undefined,
@@ -51,7 +72,10 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
   const change = previous ? lastChange(previous, cards) : null;
 
   return (
-    <div className="bg-background/80 fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur-lg">
+    <div
+      className="bg-background/80 fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur-lg"
+      {...swipeProps}
+    >
       {/* pb-safe owns the bottom padding (it already floors at 0.75rem), so
           the top side pads on its own to avoid a padding-shorthand clash. */}
       <div className="px-safe pb-safe mx-auto flex w-full max-w-3xl items-center gap-3 pt-2">
@@ -60,11 +84,22 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
           aria-label={m.decks_editor_open_zones()}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-md"
         >
-          <ZoneRing count={count} expected={expected} />
+          <span data-deck-dock-target className="contents">
+            <ZoneRing count={count} expected={expected} />
+          </span>
           <span className="flex min-w-0 flex-col text-xs leading-tight">
             <span className="font-medium">{ZONE_LABELS[zone]}</span>
             <span className="text-muted-foreground tabular-nums">
-              {count}
+              <span
+                key={count}
+                className={cn(
+                  "inline-block",
+                  workbench &&
+                    "motion-safe:animate-in motion-safe:zoom-in-150 motion-safe:fade-in-0 motion-safe:duration-150",
+                )}
+              >
+                {count}
+              </span>
               {expected !== undefined && `/${expected}`}
             </span>
           </span>

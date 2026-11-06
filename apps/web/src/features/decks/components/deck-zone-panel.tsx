@@ -190,6 +190,7 @@ interface DeckZonePanelProps {
   hideIdentityHeader?: boolean;
   overviewShowing?: boolean;
   deckItems: CardViewerItem[];
+  workbench?: boolean;
 }
 
 export function DeckZonePanel({
@@ -203,6 +204,7 @@ export function DeckZonePanel({
   hideIdentityHeader,
   overviewShowing,
   deckItems,
+  workbench,
 }: DeckZonePanelProps) {
   const { zoneOrder } = useZoneOrder();
   const cards = useDeckCards(deckId);
@@ -255,6 +257,7 @@ export function DeckZonePanel({
           onAdd={onZoneAdd ? () => onZoneAdd(zone) : undefined}
           onHoverCard={onHoverCard}
           deckItems={deckItems}
+          workbench={workbench}
         />
       ))}
       {/* No ownership breakdown here: the overview's hero carries the

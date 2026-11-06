@@ -1,5 +1,5 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { LayersIcon, MinusIcon, PackageIcon, PlusIcon } from "lucide-react";
+import { AlertTriangleIcon, LayersIcon, MinusIcon, PackageIcon, PlusIcon } from "lucide-react";
 
 import { CountPill } from "@/components/ui/count-pill";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,6 +24,8 @@ interface DeckAddStripProps {
   remainingCount?: number;
   onQuickAdd: (printing: Printing, event: React.MouseEvent) => void;
   onRemove?: (printing: Printing, event: React.MouseEvent) => void;
+  labelDeckCount?: boolean;
+  warnLimit?: string;
 }
 
 export function DeckAddStrip({
@@ -39,6 +41,8 @@ export function DeckAddStrip({
   remainingCount,
   onQuickAdd,
   onRemove,
+  labelDeckCount,
+  warnLimit,
 }: DeckAddStripProps) {
   if (removeLabel && deckQuantity > 0 && onRemove) {
     return (
@@ -68,10 +72,24 @@ export function DeckAddStrip({
   );
 
   const deckPill = deckQuantity > 0 && (
-    <CountPill variant="primary" title={m.decks_editor_in_deck_count({ count: deckQuantity })}>
-      <LayersIcon className="size-3" aria-hidden />
-      <span>{deckQuantity}</span>
-      <span className="sr-only">{m.decks_editor_in_deck()}</span>
+    <CountPill
+      variant="primary"
+      title={warnLimit ?? m.decks_editor_in_deck_count({ count: deckQuantity })}
+      className={cn(warnLimit && "bg-warning-soft text-warning")}
+    >
+      {warnLimit ? (
+        <AlertTriangleIcon className="size-3" aria-hidden />
+      ) : (
+        <LayersIcon className="size-3" aria-hidden />
+      )}
+      {labelDeckCount ? (
+        <span>{m.decks_editor_in_deck_count({ count: deckQuantity })}</span>
+      ) : (
+        <>
+          <span>{deckQuantity}</span>
+          <span className="sr-only">{m.decks_editor_in_deck()}</span>
+        </>
+      )}
     </CountPill>
   );
 
@@ -128,7 +146,7 @@ export function DeckAddStrip({
         )}
       </TooltipTrigger>
       {!maxReached && (
-        <TooltipContent>{addTooltip ?? m.decks_editor_shift_add_max()}</TooltipContent>
+        <TooltipContent>{warnLimit ?? addTooltip ?? m.decks_editor_shift_add_max()}</TooltipContent>
       )}
     </Tooltip>
   );

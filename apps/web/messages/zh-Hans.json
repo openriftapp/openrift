@@ -9955,5 +9955,146 @@
   "cards_filter_range_at_least": "≥{value}",
   "cards_filter_range_at_most": "≤{value}",
   "cards_filter_range_between": "{min}～{max}",
-  "meta_event_run_every_finish": "{player} 的全部名次"
+  "meta_event_run_every_finish": "{player} 的全部名次",
+  "profile_nav_beta": "测试版",
+  "profile_beta_title": "测试版",
+  "profile_beta_description": "在新功能取代现有功能之前抢先体验。你可以随时切换回来。",
+  "profile_beta_deck_builder_label": "新卡组构筑器",
+  "profile_beta_deck_builder_description": "构筑和卡组模式分开：卡牌列表只负责添加，在卡组栏中编辑。",
+  "decks_workbench_banner_text": "新的卡组构筑器正在测试中：从卡牌列表添加卡牌，在同一个卡组栏中编辑。",
+  "decks_workbench_banner_try": "试试看",
+  "decks_workbench_banner_dismiss": "关闭",
+  "decks_workbench_back_to_classic": "返回经典编辑器",
+  "decks_workbench_mode_label": "编辑器模式",
+  "decks_workbench_mode_build": "构筑",
+  "decks_workbench_mode_deck": "卡组",
+  "decks_workbench_edit": "编辑",
+  "decks_workbench_done": "完成",
+  "decks_workbench_edit_in_build": "在构筑中编辑",
+  "decks_workbench_edit_deck": "编辑卡组",
+  "decks_workbench_tab_cards": "卡牌",
+  "decks_workbench_deck_column": "你的卡组",
+  "decks_workbench_switch": "切换",
+  "decks_workbench_adding_here": "正在添加到此处",
+  "decks_workbench_adding_to": "添加到",
+  "decks_workbench_chip_stats_paused": "统计筛选已暂停",
+  "decks_workbench_remove_zone_filter": "移除区域筛选 {label}",
+  "decks_workbench_restore_zone_filters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "显示{count}个隐藏的区域筛选"
+      }
+    }
+  ],
+  "decks_workbench_zone_complete": "{zone}已完成。下一个未完成的区域：{next}（{count}/{expected}）。",
+  "decks_workbench_go_to_zone": "前往{zone}",
+  "decks_workbench_stay": "留在此处",
+  "decks_workbench_limit_copies": "将超出张数上限添加一张，并附带规则警告。",
+  "decks_workbench_limit_battlefields": "战场已满。添加时会询问替换哪一张。",
+  "decks_workbench_limit_runes": "符文已满，也无法通过替换另一种特性的符文腾出位置。这张会带着规则警告超过12张。",
+  "decks_workbench_warn_copies": "已添加{card}：{count}张，超过{limit}张上限。",
+  "decks_workbench_warn_battlefields": "{count}张战场，上限{limit}张。",
+  "decks_workbench_warn_battlefield_duplicate": "{card}已是你的战场之一。",
+  "decks_workbench_warn_legend_options": "{count}张额外传奇，上限{limit}张。",
+  "decks_workbench_warn_runes": "{count}张符文，上限{limit}张。",
+  "decks_workbench_rune_swap": "+1 {added}, −1 {removed}",
+  "decks_workbench_keep_both": "两者都保留（{count}）",
+  "decks_workbench_energy": "法力",
+  "decks_workbench_energy_curve": "法力曲线",
+  "decks_workbench_rule_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count}条规则警告"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_title": "切换传奇？",
+  "decks_workbench_switch_legend_from_to": "{from} → {to}",
+  "decks_workbench_switch_rune_out": "已移除{count}×{rune}",
+  "decks_workbench_switch_rune_in": "已添加{count}×{rune}",
+  "decks_workbench_switch_rune_total": "切换后的符文：{count}张",
+  "decks_workbench_switch_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "主卡组和备牌中有{count}张牌不在新特性范围内。它们会带着规则警告留在卡组中。"
+      }
+    }
+  ],
+  "decks_workbench_switch_champion_mismatch": "你的英雄与新传奇不匹配。它会带着规则警告保留。",
+  "decks_workbench_switch_move_off_color": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "将{count}张其他特性的牌移至暂存区"
+      }
+    }
+  ],
+  "decks_workbench_switch_legend_confirm": "切换传奇",
+  "decks_workbench_battlefields_full_title": "战场已满（{count}）",
+  "decks_workbench_battlefields_full_description": "用{card}替换其中一张，或带着规则警告照样添加。",
+  "decks_workbench_replace_card": "替换{card}",
+  "decks_workbench_add_anyway": "仍然添加（{count}张战场，规则警告）",
+  "decks_workbench_added_announcement": [
+    {
+      "declarations": [
+        "input card",
+        "input zone",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "已将{card}添加到{zone}，{count}张"
+      }
+    }
+  ],
+  "help_deck_building_beta_heading": "新卡组构筑器（测试版）",
+  "help_deck_building_beta_intro": "重新设计的卡组编辑器以可选测试版提供。在个人资料 → 测试版中开启，或点击卡组编辑器横幅上的试试看。使用编辑器菜单中的返回经典编辑器即可再次关闭。",
+  "help_deck_building_beta_modes": "共有两种模式。在构筑中，卡牌列表只会把卡牌添加到你正在填充的区域，旁边的卡组栏用来修改数量、切换传奇或英雄以及移除卡牌。卡组显示完成的卡组及其统计和测试手牌，没有编辑控件。",
+  "help_deck_building_beta_rules": "测试版从不阻止添加。违反卡组规则的牌，例如第四张或第13张符文，会带着可撤销的警告加入。切换传奇时会先显示哪些符文会变化，以及哪些牌不在新特性范围内。",
+  "decks_workbench_limit_battlefield_duplicate": "已是你的战场之一。再次添加会违反重复规则。",
+  "decks_workbench_limit_legend_options": "额外传奇已满。添加会带着规则警告超出上限。",
+  "decks_workbench_row_menu": "{card}的更多操作",
+  "decks_workbench_remove_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "全部移除（{count}张）"
+      }
+    }
+  ],
+  "decks_workbench_switch_domains": "特性",
+  "decks_workbench_switch_domains_change": "{from} → {to}",
+  "decks_workbench_switch_champion_legal": "{champion}仍可作为你的选定英雄。",
+  "decks_workbench_switch_new_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "新增{count}条规则警告："
+      }
+    }
+  ],
+  "decks_workbench_switch_resolved_warnings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count}条规则警告将消失："
+      }
+    }
+  ],
+  "decks_workbench_detail_back": "返回卡牌",
+  "decks_workbench_detail_add_to": "添加到{zone}",
+  "decks_workbench_detail_missing": "缺少{count}张",
+  "decks_workbench_sheet_hint": "正在添加到{zone}。点按其他区域即可切换。",
+  "decks_workbench_zone_filters": "区域筛选："
 }

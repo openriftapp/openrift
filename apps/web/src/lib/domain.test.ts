@@ -4,6 +4,7 @@ import {
   computeDomainDisabled,
   formatDomainFilterLabel,
   getDomainGradientStyle,
+  getDomainStripeStyle,
   getDomainTintStyle,
   getPipBackgroundStyle,
   getPipGlyphTint,
@@ -131,6 +132,19 @@ describe("computeDomainDisabled", () => {
     expect(disabled.has("fury")).toBe(true);
     expect(disabled.has("colorless")).toBe(true);
     expect(disabled.has("neutral")).toBe(false);
+  });
+});
+
+describe("getDomainStripeStyle", () => {
+  it("draws a solid left stripe for a single domain", () => {
+    expect(getDomainStripeStyle(["fury"])).toEqual({ borderLeft: "4px solid #CB212D" });
+  });
+
+  it("splits the stripe top and bottom for a dual domain", () => {
+    expect(getDomainStripeStyle(["mind", "chaos"])).toEqual({
+      borderLeft: "4px solid",
+      borderImage: "linear-gradient(to bottom, #227799 50%, #6B4891 50%) 1",
+    });
   });
 });
 

@@ -66,8 +66,9 @@ interface DeckEditorTopBarProps {
   zoneCount: number;
   requiredProgress: { progress: number; total: number };
   hasViolations: boolean;
-  onToggleSidebar: () => void;
+  onToggleSidebar?: () => void;
   openDialog: (dialog: DeckEditorDialog) => void;
+  workbench?: { modeControl: React.ReactNode; menuPrefix: React.ReactNode };
 }
 
 export function DeckEditorTopBar({
@@ -81,6 +82,7 @@ export function DeckEditorTopBar({
   hasViolations,
   onToggleSidebar,
   openDialog,
+  workbench,
 }: DeckEditorTopBarProps) {
   const navigate = useNavigate();
   const openQuickAdd = useCommandPaletteStore((state) => state.openQuickAdd);
@@ -121,16 +123,16 @@ export function DeckEditorTopBar({
 
   // While a zone browser fills the main area (the hero out of sight), the top
   // bar carries the completion figure shared with the hero and sidebar header.
-  const inZoneView = activeZone !== null;
+  const inZoneView = activeZone !== null || workbench !== undefined;
 
   return (
     <PageTopBar>
-      <div className="hidden md:block">
+      <div className={workbench ? undefined : "hidden md:block"}>
         <PageTopBarBack to="/decks" aria-label={m.decks_compare_back_to_decks()} />
       </div>
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>
-          <span className="md:hidden">
+          <span className={workbench ? "hidden" : "md:hidden"}>
             {activeZone ? (
               <>
                 {ZONE_LABELS[activeZone]}
@@ -140,7 +142,7 @@ export function DeckEditorTopBar({
               m.decks_editor_zones_short()
             )}
           </span>
-          <span className="hidden md:inline">{deck.name}</span>
+          <span className={workbench ? "truncate" : "hidden md:inline"}>{deck.name}</span>
         </PageTopBarTitle>
         {/* In editing mode the hero scrolls out of reach, so the bar
             carries the shared completion figure as a compact chip. */}
@@ -161,10 +163,11 @@ export function DeckEditorTopBar({
         {isLocal && <LocalDeckBadge className="hidden shrink-0 sm:inline-flex" />}
       </div>
       <PageTopBarActions>
+        {workbench?.modeControl}
         {/* No tooltip on the phone icon: no hover to open one and no
               Ctrl+K to advertise. */}
         <PageTopBarIconButton
-          className="md:hidden"
+          className={workbench ? "hidden" : "md:hidden"}
           aria-label={m.decks_editor_add_card_aria()}
           onClick={() => openQuickAdd("add")}
         >
@@ -198,6 +201,7 @@ export function DeckEditorTopBar({
             <span className="sr-only">{m.decks_editor_deck_actions()}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {workbench?.menuPrefix}
             {/* Share has its own button in the bar from md up, so the
                   entry here is the phone's only way to it. */}
             <div className="md:hidden">

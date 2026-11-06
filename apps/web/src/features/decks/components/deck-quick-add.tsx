@@ -29,6 +29,8 @@ import {
   isCardAllowedInZone,
   isDeckZoneFullForDrag,
 } from "@/features/decks/lib/deck-builder-card";
+import { workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
@@ -119,7 +121,13 @@ export function DeckQuickAdd({ open, onOpenChange, deckId, format, cards }: Deck
 
   return (
     <PaletteFrame open={open} onOpenChange={onOpenChange} title={m.decks_editor_quick_add_title()}>
-      <QuickAddInner deckId={deckId} format={format} cards={cards} isMobile={isMobile} />
+      <QuickAddInner
+        deckId={deckId}
+        format={format}
+        cards={cards}
+        isMobile={isMobile}
+        onClose={() => onOpenChange(false)}
+      />
     </PaletteFrame>
   );
 }
@@ -173,11 +181,13 @@ function QuickAddInner({
   format,
   cards,
   isMobile,
+  onClose,
 }: {
   deckId: string;
   format: DeckFormat;
   cards: DeckBuilderCard[];
   isMobile: boolean;
+  onClose: () => void;
 }) {
   const { printingsByCardId } = useCards();
   const { addCard, removeCard, setLegend } = useDeckBuilderActions(deckId);
@@ -204,6 +214,7 @@ function QuickAddInner({
   for (const card of cards) {
     inDeckByCardId.set(card.cardId, (inDeckByCardId.get(card.cardId) ?? 0) + card.quantity);
   }
+  const relaxed = useWorkbenchStore((state) => state.relaxed);
 
   const toBuilderCard = (cardId: string): DeckBuilderCard | undefined => {
     const printing = printingsByCardId.get(cardId)?.[0];
@@ -215,7 +226,8 @@ function QuickAddInner({
 
   const targetsFor = (cardId: string): AddTarget[] => {
     const builderCard = toBuilderCard(cardId);
-    return builderCard ? buildTargets(builderCard, cards, format) : [];
+    const targets = builderCard ? buildTargets(builderCard, cards, format) : [];
+    return relaxed ? targets.map((target) => ({ ...target, disabled: false })) : targets;
   };
 
   // Falls back to the first row so a fully-capped card still reports something.
@@ -227,7 +239,16 @@ function QuickAddInner({
     if (!builderCard || target.disabled) {
       return;
     }
-    if (target.kind === "legend") {
+    const route = relaxed ? workbenchAddRoute(builderCard, target.zone, cards, format) : "add";
+    if (route === "replace") {
+      useWorkbenchStore.getState().setReplaceTarget({
+        cardId: builderCard.cardId,
+        preferredPrintingId: builderCard.preferredPrintingId,
+      });
+      onClose();
+      return;
+    }
+    if (target.kind === "legend" || route === "legend") {
       // Prunes off-domain runes and auto-fills the rune deck, like the zone browser's Choose button.
       setLegend(builderCard);
     } else {

@@ -145,4 +145,83 @@ describe("isZoneDropRejected", () => {
       }),
     ).toBe(true);
   });
+
+  describe("relaxed", () => {
+    it("accepts a drop that would break the copy cap", () => {
+      const parked = stubDeckBuilderCard({ zone: WellKnown.deckZone.OVERFLOW, cardType: "unit" });
+      const held = stubDeckBuilderCard({
+        cardId: parked.cardId,
+        zone: WellKnown.deckZone.MAIN,
+        quantity: 3,
+      });
+      expect(
+        isZoneDropRejected({
+          dragData: dragOf(parked),
+          zone: WellKnown.deckZone.MAIN,
+          allCards: [parked, held],
+          format: WellKnown.deckFormat.CONSTRUCTED,
+          relaxed: true,
+        }),
+      ).toBe(false);
+    });
+
+    it("accepts a browser battlefield onto a full field", () => {
+      const field = [1, 2, 3].map(() =>
+        stubDeckBuilderCard({ zone: WellKnown.deckZone.BATTLEFIELD, cardType: "battlefield" }),
+      );
+      const incoming = stubDeckBuilderCard({ cardType: "battlefield" });
+      expect(
+        isZoneDropRejected({
+          dragData: { type: "browser-card", card: incoming },
+          zone: WellKnown.deckZone.BATTLEFIELD,
+          allCards: field,
+          format: WellKnown.deckFormat.CONSTRUCTED,
+          relaxed: true,
+        }),
+      ).toBe(false);
+    });
+
+    it("accepts a rune past the twelve-rune cap", () => {
+      const rune = stubDeckBuilderCard({
+        zone: WellKnown.deckZone.RUNES,
+        cardType: "rune",
+        quantity: 12,
+      });
+      expect(
+        isZoneDropRejected({
+          dragData: { type: "browser-card", card: rune },
+          zone: WellKnown.deckZone.RUNES,
+          allCards: [rune],
+          format: WellKnown.deckFormat.CONSTRUCTED,
+          relaxed: true,
+        }),
+      ).toBe(false);
+    });
+
+    it("still rejects a card the zone's type gate turns away", () => {
+      const unit = stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, cardType: "unit" });
+      expect(
+        isZoneDropRejected({
+          dragData: dragOf(unit),
+          zone: WellKnown.deckZone.RUNES,
+          allCards: [unit],
+          format: WellKnown.deckFormat.CONSTRUCTED,
+          relaxed: true,
+        }),
+      ).toBe(true);
+    });
+
+    it("still rejects a sideboard drop in a format without one", () => {
+      const unit = stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, cardType: "unit" });
+      expect(
+        isZoneDropRejected({
+          dragData: dragOf(unit),
+          zone: WellKnown.deckZone.SIDEBOARD,
+          allCards: [unit],
+          format: WellKnown.deckFormat.CUSTOM_REGION,
+          relaxed: true,
+        }),
+      ).toBe(true);
+    });
+  });
 });

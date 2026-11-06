@@ -9,7 +9,14 @@ export function groupNudgeKey(slug: string, kind: GroupNudgeKind): string {
   return `${slug}:${kind}`;
 }
 
-const INTRO_KEYS = ["tier-list", "stage", "list", "deck-builder", "collection"] as const;
+const INTRO_KEYS = [
+  "tier-list",
+  "stage",
+  "list",
+  "deck-builder",
+  "collection",
+  "deck-builder-beta",
+] as const;
 
 type IntroKey = (typeof INTRO_KEYS)[number];
 

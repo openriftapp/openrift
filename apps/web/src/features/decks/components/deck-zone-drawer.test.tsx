@@ -15,6 +15,15 @@ const deck = vi.hoisted(() => ({
 const sidebar = vi.hoisted(() => ({ openMobile: true, setOpenMobile: vi.fn() }));
 
 vi.mock("@/components/ui/sidebar", () => ({ useSidebar: () => sidebar }));
+const undo = vi.hoisted(() => ({ canUndo: true, undo: vi.fn() }));
+vi.mock("@/features/decks/components/deck-undo-controls", () => ({ useDeckUndo: () => undo }));
+const overlay = vi.hoisted(() => ({ active: false }));
+vi.mock("@/features/cards/hooks/use-overlay-history-entry", () => ({
+  useOverlayHistoryEntry: (options: { active: boolean }) => {
+    overlay.active = options.active;
+  },
+  closeOverlayHistoryEntry: (_key: string, close: () => void) => close(),
+}));
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckCards: () => deck.cards,
   useDeckViolations: () => deck.violations,
@@ -141,5 +150,39 @@ describe("DeckZoneDrawer", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Deck overview" }));
     expect(onOverviewClick).toHaveBeenCalledOnce();
+  });
+
+  it("adds no history entry outside the beta editor", () => {
+    render(
+      <DeckZoneDrawer deckId="deck-1">
+        <p>zone list</p>
+      </DeckZoneDrawer>,
+    );
+    expect(overlay.active).toBe(false);
+    expect(screen.queryByText(/Tap another zone/u)).toBeNull();
+  });
+
+  it("names the target zone, offers Undo and keeps a history entry in the beta editor", () => {
+    render(
+      <DeckZoneDrawer deckId="deck-1" target="main">
+        <p>zone list</p>
+      </DeckZoneDrawer>,
+    );
+    expect(overlay.active).toBe(true);
+    expect(
+      screen.getByText("Adding to Main Deck. Tap another zone to switch."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(undo.undo).toHaveBeenCalledOnce();
+  });
+
+  it("closes the beta sheet through its history entry", () => {
+    render(
+      <DeckZoneDrawer deckId="deck-1" target="main">
+        <p>zone list</p>
+      </DeckZoneDrawer>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(sidebar.setOpenMobile).toHaveBeenCalledWith(false);
   });
 });

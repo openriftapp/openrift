@@ -36,6 +36,7 @@ import { SwapColumns } from "@/features/decks/components/swap-column-editor";
 import { useDeckPlan, useSaveDeckPlan } from "@/features/decks/hooks/use-deck-plan";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { sortOverviewCards } from "@/features/decks/lib/deck-card-sort";
+import { isWorkbenchModeNavigation } from "@/features/decks/lib/deck-editor-search";
 import {
   computePlanWarnings,
   createEmptyMatchup,
@@ -498,6 +499,7 @@ export function DeckPlanEditor({
       <UnsavedChangesGuard
         dirty={isDirty}
         onLeave={() => setDeckPlanDraft(queryClient, userId, deckId, null)}
+        allowNavigation={isWorkbenchModeNavigation}
       />
       {actionsSlot === undefined && <div className="flex items-center gap-2">{actions}</div>}
       {actionsSlot ? createPortal(actions, actionsSlot) : null}

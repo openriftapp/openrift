@@ -3,7 +3,15 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { AlertTriangleIcon, HandHeartIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  EllipsisVerticalIcon,
+  HandHeartIcon,
+  LockIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
@@ -16,12 +24,31 @@ import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { getDomainColor, getDomainGradientStyle } from "@/lib/domain";
+import { getDomainColor, getDomainGradientStyle, getDomainStripeStyle } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 type ControlMode = "quantity" | "remove-only" | "none";
+
+function openRowMenu(element: Element): void {
+  const rect = element.getBoundingClientRect();
+  element.dispatchEvent(
+    new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.bottom,
+    }),
+  );
+}
+
+function handleMenuKey(event: React.KeyboardEvent<HTMLElement>): void {
+  if ((event.shiftKey && event.key === "F10") || event.key === "ContextMenu") {
+    event.preventDefault();
+    openRowMenu(event.target instanceof Element ? event.target : event.currentTarget);
+  }
+}
 
 interface DeckCardRowProps {
   card: DeckBuilderCard;
@@ -40,6 +67,10 @@ interface DeckCardRowProps {
   onIncrement?: (event: React.MouseEvent) => void;
   onDecrement?: (event: React.MouseEvent) => void;
   onRemove?: () => void;
+  onSwitch?: () => void;
+  trashAtOne?: boolean;
+  menuButton?: boolean;
+  domainStripe?: boolean;
   onClick?: () => void;
   onHover?: HoverHandler;
   onContextMenu?: (event: React.MouseEvent) => void;
@@ -129,6 +160,8 @@ export function CardControls({
   onIncrement,
   onDecrement,
   onRemove,
+  onSwitch,
+  trashAtOne,
 }: {
   controlMode: ControlMode;
   cardName: string;
@@ -138,6 +171,8 @@ export function CardControls({
   onIncrement?: (event: React.MouseEvent) => void;
   onDecrement?: (event: React.MouseEvent) => void;
   onRemove?: () => void;
+  onSwitch?: () => void;
+  trashAtOne?: boolean;
 }) {
   const coarsePointer = useCoarsePointer();
 
@@ -146,8 +181,14 @@ export function CardControls({
   }
 
   if (controlMode === "remove-only") {
-    return (
-      <span className={coarsePointer ? "contents" : "hidden group-hover/card:contents"}>
+    const removeButton = (
+      <span
+        className={
+          coarsePointer
+            ? "contents"
+            : "hidden group-focus-within/card:contents group-hover/card:contents"
+        }
+      >
         <Button
           variant="ghost"
           size="icon-sm"
@@ -162,6 +203,25 @@ export function CardControls({
         </Button>
       </span>
     );
+    if (!onSwitch) {
+      return removeButton;
+    }
+    return (
+      <>
+        <Button
+          variant="outline"
+          size="xs"
+          className="shrink-0"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSwitch();
+          }}
+        >
+          {m.decks_workbench_switch()}
+        </Button>
+        {removeButton}
+      </>
+    );
   }
 
   return (
@@ -170,7 +230,7 @@ export function CardControls({
       className={
         coarsePointer
           ? "[&>button]:border-border gap-1.5 [&>button]:size-8 [&>button]:border"
-          : "[&>button]:hidden group-hover/card:[&>button]:inline-flex"
+          : "[&>button]:hidden group-focus-within/card:[&>button]:inline-flex group-hover/card:[&>button]:inline-flex"
       }
       count={<span className={cn("block text-right", countWidthClass)}>{quantity}×</span>}
       decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
@@ -182,6 +242,7 @@ export function CardControls({
       bulkIncrementLabel={<PlusIcon className="size-3" />}
       decrementTooltip={m.decks_editor_shift_remove_all()}
       incrementTooltip={m.decks_editor_shift_add_max()}
+      decrementIcon={trashAtOne && quantity === 1 ? <Trash2Icon className="size-3" /> : undefined}
     />
   );
 }
@@ -203,10 +264,15 @@ export function DeckCardRow({
   onIncrement,
   onDecrement,
   onRemove,
+  onSwitch,
+  trashAtOne,
+  menuButton,
+  domainStripe,
   onClick,
   onHover,
   onContextMenu,
 }: DeckCardRowProps) {
+  const coarsePointer = useCoarsePointer();
   const isMobile = useIsMobile();
   const domainColors = useDomainColors();
   const { labels } = useEnumOrders();
@@ -238,7 +304,9 @@ export function DeckCardRow({
   const countDigits = String(maxQuantity ?? card.quantity).length;
   const countWidthClass = countDigits >= 3 ? "w-9" : countDigits === 2 ? "w-7" : "w-4";
 
-  const domainTint = getDomainGradientStyle(card.domains, "40", domainColors);
+  const domainTint = domainStripe
+    ? getDomainStripeStyle(card.domains, domainColors)
+    : getDomainGradientStyle(card.domains, "40", domainColors);
 
   const baseClass = cn(
     "group/card flex min-h-10 items-center gap-1.5 rounded-md px-1 py-0.5 text-sm sm:min-h-0 sm:py-1",
@@ -314,7 +382,29 @@ export function DeckCardRow({
         onIncrement={onIncrement}
         onDecrement={onDecrement}
         onRemove={onRemove}
+        onSwitch={onSwitch}
+        trashAtOne={trashAtOne}
       />
+
+      {menuButton && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className={cn(
+            "shrink-0",
+            coarsePointer
+              ? "border-border size-8 border"
+              : "hidden size-5 group-focus-within/card:inline-flex group-hover/card:inline-flex",
+          )}
+          aria-label={m.decks_workbench_row_menu({ card: cardName })}
+          onClick={(event) => {
+            event.stopPropagation();
+            openRowMenu(event.currentTarget);
+          }}
+        >
+          <EllipsisVerticalIcon className="size-3.5" />
+        </Button>
+      )}
     </>
   );
 
@@ -328,6 +418,7 @@ export function DeckCardRow({
         className={cn(enableDrag && "cursor-grab active:cursor-grabbing")}
         {...dragProps}
         {...hoverProps}
+        onKeyDownCapture={menuButton ? handleMenuKey : undefined}
       >
         <div
           className={cn(baseClass, "hover:bg-muted/50 w-full cursor-pointer")}
@@ -349,6 +440,7 @@ export function DeckCardRow({
       onContextMenu={onContextMenu}
       {...dragProps}
       {...hoverProps}
+      onKeyDownCapture={menuButton ? handleMenuKey : undefined}
     >
       {content}
     </div>

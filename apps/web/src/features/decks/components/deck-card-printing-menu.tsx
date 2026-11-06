@@ -21,6 +21,7 @@ import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildMoveRows, getAllowedMoveTargets } from "@/features/decks/lib/deck-builder-card";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
 
@@ -28,6 +29,7 @@ interface DeckCardPrintingMenuProps {
   deckId: string;
   card: DeckBuilderCard;
   children: ReactNode;
+  onViewCard?: () => void;
 }
 
 function SplitHint({ children }: { children: ReactNode }) {
@@ -37,8 +39,15 @@ function SplitHint({ children }: { children: ReactNode }) {
 }
 
 // On mobile (no drag, no shift key) a multi-copy row gets an extra "move 1" entry per zone.
-export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintingMenuProps) {
-  const { changePreferredPrinting, moveCard, moveOneCard } = useDeckBuilderActions(deckId);
+export function DeckCardPrintingMenu({
+  deckId,
+  card,
+  children,
+  onViewCard,
+}: DeckCardPrintingMenuProps) {
+  const { changePreferredPrinting, moveCard, moveOneCard, setQuantity } =
+    useDeckBuilderActions(deckId);
+  const workbench = useWorkbenchStore((state) => state.relaxed);
   const isMobile = useIsMobile();
   const printings = usePrintingChoices(card.cardId, card.preferredPrintingId);
   const { hoveredId, popupRef, hoverProps, reset } = usePrintingChoiceHover();
@@ -46,10 +55,11 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
   const { data: deckDetail } = useDeckDetail(deckId);
   const deckCards = useDeckCards(deckId);
   const moveTargets = getAllowedMoveTargets(card, deckDetail.deck.format, deckCards);
-  const splitRowsShown = isMobile && card.quantity > 1;
-  const moveRows = buildMoveRows(moveTargets, card.quantity, isMobile);
+  const explicitSplit = isMobile || workbench;
+  const splitRowsShown = explicitSplit && card.quantity > 1;
+  const moveRows = buildMoveRows(moveTargets, card.quantity, explicitSplit);
 
-  if (printings.length === 0 && moveTargets.length === 0) {
+  if (printings.length === 0 && moveTargets.length === 0 && !workbench) {
     return children;
   }
 
@@ -93,12 +103,22 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
+        {onViewCard && (
+          <>
+            <ContextMenuItem onClick={onViewCard}>
+              {m.decks_card_menu_view_details()}
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+          </>
+        )}
         {moveTargets.length > 0 && (
           <>
             <ContextMenuGroup className="flex flex-col gap-0.5">
               <ContextMenuLabel>
                 {m.decks_card_menu_move_to()}
-                {card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>}
+                {card.quantity > 1 && !explicitSplit && (
+                  <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>
+                )}
               </ContextMenuLabel>
               {moveRows.map((row) => (
                 <ContextMenuItem
@@ -130,6 +150,20 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
           onSelect={handleSelect}
           onSelectDefault={handleSelectDefault}
         />
+        {workbench && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              variant="destructive"
+              onClick={(event) => {
+                event.stopPropagation();
+                setQuantity(card.cardId, card.zone, 0, card.preferredPrintingId);
+              }}
+            >
+              {m.decks_workbench_remove_all({ count: card.quantity })}
+            </ContextMenuItem>
+          </>
+        )}
       </ContextMenuContent>
       <PrintingChoicePreview hoveredId={hoveredId} printings={printings} anchorRef={popupRef} />
     </ContextMenu>

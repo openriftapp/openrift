@@ -9,6 +9,7 @@ import { SettingsLayout } from "@/components/layout/settings-layout";
 import { PersonPageHeader } from "@/components/person-page-header";
 import { AccountInfoSection } from "@/features/account/components/account-info-section";
 import { AdminNotificationsSection } from "@/features/account/components/admin-notifications-section";
+import { BetaFeaturesSection } from "@/features/account/components/beta-features-section";
 import { ConnectedAccountsSection } from "@/features/account/components/connected-accounts-section";
 import { ContactMethodsSection } from "@/features/account/components/contact-methods-section";
 import { ContributionNotificationsSection } from "@/features/account/components/contribution-notifications-section";
@@ -42,6 +43,7 @@ function navSections(isAdmin: boolean): PageTocItem[] {
     { id: "contacts", label: m.profile_nav_contacts(), level: 1 },
     { id: "groups", label: m.profile_nav_groups(), level: 1 },
     { id: "contributions", label: m.profile_nav_contributions(), level: 1 },
+    { id: "beta", label: m.profile_nav_beta(), level: 1 },
     { id: "integrations", label: m.profile_nav_integrations() },
     ...(isAdmin ? [{ id: "admin", label: m.profile_nav_admin() }] : []),
     { id: "account", label: m.profile_nav_account() },
@@ -119,6 +121,7 @@ export function ProfilePage() {
             <ContactMethodsSection />
             <GroupNotificationsSection />
             <ContributionNotificationsSection />
+            <BetaFeaturesSection />
           </SettingsGroup>
 
           <SettingsGroup id="integrations" title={m.profile_nav_integrations()}>

@@ -111,6 +111,7 @@ const ZONE_ORDER: readonly DeckZone[] = [
 ];
 
 interface DeckOverviewListProps {
+  countsOnlyUnfinished?: boolean;
   cards: DeckBuilderCard[];
   format: DeckFormat;
   violations: DeckViolation[];
@@ -150,6 +151,7 @@ export function DeckOverviewList({
   draggable = false,
   onZoneClick,
   tokensSlot,
+  countsOnlyUnfinished = false,
 }: DeckOverviewListProps) {
   const isRowDimmed = (card: DeckBuilderCard) =>
     statsFocus !== null && statsFocus !== undefined && !cardMatchesStatsFocus(card, statsFocus);
@@ -236,7 +238,7 @@ export function DeckOverviewList({
       zoneViolations.length === 0 &&
       showExpected &&
       quantity === expected &&
-      isSingleSlotZone(zone);
+      (countsOnlyUnfinished || isSingleSlotZone(zone));
     const cardViolations = new Map<string, string>();
     for (const violation of violations) {
       if (violation.zone === zone && violation.cardId && !cardViolations.has(violation.cardId)) {

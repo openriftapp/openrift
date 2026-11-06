@@ -7,6 +7,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, BanIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,6 +31,7 @@ import {
 } from "@/features/decks/lib/deck-card-order";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { zoneAddLabel, zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
+import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -65,6 +67,7 @@ interface DeckZoneSectionProps {
   onAdd?: () => void;
   onHoverCard?: HoverHandler;
   deckItems: CardViewerItem[];
+  workbench?: boolean;
 }
 
 export function DeckZoneSection({
@@ -79,10 +82,21 @@ export function DeckZoneSection({
   onAdd,
   onHoverCard,
   deckItems,
+  workbench = false,
 }: DeckZoneSectionProps) {
-  const [open, setOpen] = useState(
+  const [localOpen, setLocalOpen] = useState(
     zone !== WellKnown.deckZone.SIDEBOARD && zone !== WellKnown.deckZone.OVERFLOW,
   );
+  const collapsedInWorkbench = useWorkbenchStore((state) => state.collapsedZones.has(zone));
+  const setZoneCollapsed = useWorkbenchStore((state) => state.setZoneCollapsed);
+  const open = workbench ? !collapsedInWorkbench : localOpen;
+  const setOpen = (next: boolean) => {
+    if (workbench) {
+      setZoneCollapsed(zone, !next);
+    } else {
+      setLocalOpen(next);
+    }
+  };
   const { addCard, removeCard, setQuantity } = useDeckBuilderActions(deckId);
   const allCards = useDeckCards(deckId);
   const { data: deckDetail } = useDeckDetail(deckId);
@@ -150,7 +164,12 @@ export function DeckZoneSection({
   const renderCardRow = (card: DeckBuilderCard) => {
     const entry = ownership?.byCardZone.get(`${card.cardId}:${zone}`);
     return (
-      <DeckCardPrintingMenu key={getDeckCardKey(card)} deckId={deckId} card={card}>
+      <DeckCardPrintingMenu
+        key={getDeckCardKey(card)}
+        deckId={deckId}
+        card={card}
+        onViewCard={workbench ? () => handleCardClick(card) : undefined}
+      >
         <DeckCardRow
           card={card}
           hasViolation={cardViolations.has(card.cardId)}
@@ -169,12 +188,17 @@ export function DeckZoneSection({
           draggable={DRAG_ZONES.has(zone)}
           shiftHeld={zone === WellKnown.deckZone.RUNES ? undefined : shiftHeld}
           onIncrement={
+            !workbench &&
             !isFreeform &&
             ((copyLimitZones.has(zone) && crossZoneTotal(card.cardId) >= copyLimitFor(card)) ||
               (zone === WellKnown.deckZone.RUNES && !canAddRune(card, allCards)))
               ? undefined
               : (event) => addCard(card, zone, event.shiftKey ? 3 : undefined)
           }
+          trashAtOne={workbench}
+          menuButton={workbench}
+          domainStripe={workbench}
+          onSwitch={workbench && isSingleCard ? onActivate : undefined}
           onDecrement={(event) => {
             if (event.shiftKey) {
               onHoverCard?.(null);
@@ -238,6 +262,7 @@ export function DeckZoneSection({
         "flex flex-col gap-1.5 rounded-md transition-all select-none",
         isOver && !dropDisabled && "ring-primary/60 ring-2 ring-offset-2",
         dropDisabled && "opacity-40",
+        workbench && isActive && "outline-primary -mx-2 px-2 py-2 outline-2",
       )}
     >
       {/* Two separate controls, never nested: the chevron collapses the
@@ -254,7 +279,7 @@ export function DeckZoneSection({
                 ? m.decks_editor_collapse_zone({ zone: zoneLabel })
                 : m.decks_editor_expand_zone({ zone: zoneLabel })
             }
-            onClick={() => setOpen((prev) => !prev)}
+            onClick={() => setOpen(!open)}
             className="shrink-0"
           />
         }
@@ -270,6 +295,11 @@ export function DeckZoneSection({
           />
         }
       >
+        {workbench && isActive && (
+          <Badge variant="subtle" className="shrink-0">
+            {m.decks_workbench_adding_here()}
+          </Badge>
+        )}
         {dropDisabled ? (
           <BanIcon className="text-muted-foreground size-3.5 shrink-0" />
         ) : hasZoneViolations ? (
@@ -297,12 +327,13 @@ export function DeckZoneSection({
             </PopoverContent>
           </Popover>
         ) : null}
-        {!(
-          !hasZoneViolations &&
-          expected !== undefined &&
-          zoneQuantity === expected &&
-          SINGLE_CARD_ZONES.has(zone)
-        ) && (
+        {(workbench ||
+          !(
+            !hasZoneViolations &&
+            expected !== undefined &&
+            zoneQuantity === expected &&
+            SINGLE_CARD_ZONES.has(zone)
+          )) && (
           <span
             data-slot="deck-zone-count"
             className={cn(
@@ -317,7 +348,7 @@ export function DeckZoneSection({
             {zoneQuantity}
             {expected !== null &&
               expected !== undefined &&
-              zoneQuantity !== expected &&
+              (workbench || zoneQuantity !== expected) &&
               `/${expected}`}
           </span>
         )}

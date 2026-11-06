@@ -112,6 +112,8 @@ interface DeckOverviewProps {
   onViewMissing?: () => void;
   onHoverCard?: HoverHandler;
   readOnly?: boolean;
+  cardListReadOnly?: boolean;
+  cardListSlot?: React.ReactNode;
   showSignIn?: boolean;
   description?: string;
   onEditDescription?: () => void;
@@ -140,6 +142,8 @@ export function DeckOverview({
   onViewMissing,
   onHoverCard,
   readOnly,
+  cardListReadOnly,
+  cardListSlot,
   showSignIn,
   description,
   onEditDescription,
@@ -266,7 +270,8 @@ export function DeckOverview({
   };
   const smallZoneStyles = smallZoneGridStyles(tileColumns, displayMode === "stacks");
 
-  const addRoomByCardKey = readOnly ? NO_ADD_ROOM : buildAddRoom(cards, deck.format);
+  const listReadOnly = readOnly === true || cardListReadOnly === true;
+  const addRoomByCardKey = listReadOnly ? NO_ADD_ROOM : buildAddRoom(cards, deck.format);
 
   const [bandSources, setBandSources] = useState<OwnershipBandSources>();
   const bandsActive = showBands && canPreferOwned && displayMode !== "list";
@@ -363,12 +368,12 @@ export function DeckOverview({
   const toggleZoneCollapsed = useDeckBuilderUiStore((state) => state.toggleZoneCollapsed);
 
   const [statsFocus, setStatsFocus] = useState<StatsFocus | null>(null);
+  const statsInTab = phone || cardListReadOnly === true;
   const applyStatsFocus = (focus: StatsFocus) => {
     const isSame =
       statsFocus !== null && statsFocus.kind === focus.kind && statsFocus.value === focus.value;
     setStatsFocus(isSame ? null : focus);
-    // On a phone the cards live on another tab; show the focused deck.
-    if (phone && !isSame) {
+    if (statsInTab && !isSame) {
       setTab("overview");
     }
   };
@@ -381,7 +386,7 @@ export function DeckOverview({
     tab === "test" ||
     (tab === "plan" && showPlanTab) ||
     (tab === "box" && showBoxTab) ||
-    (tab === "stats" && phone);
+    (tab === "stats" && statsInTab);
   const activeTab = tabAvailable ? tab : "overview";
   const [planActionsSlot, setPlanActionsSlot] = useState<HTMLDivElement | null>(null);
   const showOverviewContent = activeTab === "overview";
@@ -451,7 +456,8 @@ export function DeckOverview({
       onClick={onZoneClick ? () => onZoneClick(zone) : undefined}
       onHoverCard={onHoverCard}
       getThumbnail={resolveThumbnail}
-      readOnly={readOnly}
+      readOnly={listReadOnly}
+      countsOnlyUnfinished={cardListReadOnly === true}
       onCardClick={onCardClick}
     />
   );
@@ -517,7 +523,8 @@ export function DeckOverview({
         onTabChange={setTab}
         showPlanTab={showPlanTab}
         showBoxTab={showBoxTab}
-        showStatsTab={phone}
+        showStatsTab={statsInTab}
+        deckTabLabel={cardListReadOnly ? m.decks_workbench_tab_cards() : undefined}
         trailingMobile={
           activeTab === "overview" ? (
             renderViewControls(true)
@@ -627,7 +634,7 @@ export function DeckOverview({
         />
       )}
 
-      {showOverviewContent && !phone && (
+      {showOverviewContent && !statsInTab && (
         <DeckStatsBand
           cards={cards}
           stats={stats}
@@ -643,7 +650,8 @@ export function DeckOverview({
         />
       )}
 
-      {showOverviewContent && (
+      {showOverviewContent && cardListSlot}
+      {showOverviewContent && !cardListSlot && (
         <div id="deck-cards" style={{ scrollMarginTop: SECTION_SCROLL_MARGIN }}>
           {statsFocus && (
             <div className="mb-3 flex">
@@ -693,7 +701,8 @@ export function DeckOverview({
               onZoneClick={onZoneClick}
               onHoverCard={onHoverCard}
               onCardClick={onCardClick}
-              draggable={!readOnly}
+              draggable={!listReadOnly}
+              countsOnlyUnfinished={cardListReadOnly === true}
               tokensSlot={tokensSection}
             />
           ) : (

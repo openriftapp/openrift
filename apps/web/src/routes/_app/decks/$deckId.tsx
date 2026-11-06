@@ -2,8 +2,9 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
-import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { DeckPending } from "@/features/decks/components/deck-pending";
+import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
@@ -11,9 +12,9 @@ import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/decks/$deckId")({
   ssr: false,
-  validateSearch: filterSearchSchema,
+  validateSearch: deckEditorSearchSchema,
   beforeLoad: ({ search, location, params }) => {
-    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    const cleaned = cleanedSearchForRedirect(deckEditorSearchSchema, search, location.searchStr);
     if (cleaned) {
       throw redirect({
         to: "/decks/$deckId",
