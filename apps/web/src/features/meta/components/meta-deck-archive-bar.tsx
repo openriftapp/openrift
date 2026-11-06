@@ -43,18 +43,20 @@ export function MetaDeckArchiveBar({
             ]}
           />
           <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-          <PageTopBarTitle>
-            {identity ? (
-              <MetaIdentity
-                legend={identity}
-                slug={identity.slug}
-                domains={identity.domains}
-                className="flex-nowrap"
-              />
-            ) : (
-              deckName
-            )}
-          </PageTopBarTitle>
+          <div className="hidden sm:contents">
+            <PageTopBarTitle>
+              {identity ? (
+                <MetaIdentity
+                  legend={identity}
+                  slug={identity.slug}
+                  domains={identity.domains}
+                  className="flex-nowrap"
+                />
+              ) : (
+                deckName
+              )}
+            </PageTopBarTitle>
+          </div>
           <MetaListStatusBadge listStatus={listStatus} />
         </div>
         <PageTopBarActions>{actions}</PageTopBarActions>

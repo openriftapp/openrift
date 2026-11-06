@@ -286,7 +286,9 @@ export function DeckHero({
           {heading ?? (
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <p className="font-heading truncate text-2xl font-bold">{name}</p>
+                <p className="font-heading min-w-0 text-2xl font-bold break-words max-sm:line-clamp-2 sm:truncate">
+                  {name}
+                </p>
                 {/* self-center: row aligns on text baseline, which an image meets at its bottom edge. */}
                 {legendDomains.length > 0 && (
                   <span className="flex shrink-0 items-center gap-1 self-center">

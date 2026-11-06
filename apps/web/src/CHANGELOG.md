@@ -33,6 +33,7 @@
 - feat(Meta): **Empty eras explain themselves** — when the era has no results on file, the archive, events, legends and archived decks pages say so and offer "Show all eras".
 - feat(Packs): **Pack opener options** — Foil shimmer and Auto-reveal are switch rows above the Open button, and the reveal hint says "Tap a card" on touch screens.
 - feat(Trades): **Trade counts as pills** — trade tabs hint that they scroll sideways, and the counts on tabs, buy filters and people filters show as pills.
+- fix(Decks): **Full deck and event names on phones** — deck names and meta event names wrap to two lines on phones, and the meta deck top bar drops the title the header repeats.
 - fix(Decks): **Version track on phones** — versions sit closer together, the changes between them show on the line, and the track opens centered on the deck you are viewing.
 - fix(App): **Landing page fits phones** — the feature sections no longer cut off their text, and the scanner preview keeps each card's status and price inside the frame.
 - fix(App): **Page titles no longer cut short** — page titles in the top bar, such as Statistics or Zones, show in full on phones and only shorten when the buttons beside them need the room.

@@ -66,17 +66,27 @@ export function MetaDeckHeading({
         />
       )}
       <p className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <CountryFlag code={meta.event.country} showCode={false} size="sm" />
-        <TextLink
-          variant="inherit"
-          className="truncate"
-          render={<Link to="/meta/$slug" params={{ slug: meta.event.slug }} />}
-        >
-          {meta.event.name}
-        </TextLink>
-        <span aria-hidden>·</span>
-        <span>{formatDay(meta.event.eventDate)}</span>
-        <MetaTierBadge tier={meta.event.tier} />
+        <span className="line-clamp-2 min-w-0">
+          <CountryFlag
+            code={meta.event.country}
+            showCode={false}
+            size="sm"
+            className="mr-2 align-middle"
+          />
+          <TextLink
+            variant="inherit"
+            render={<Link to="/meta/$slug" params={{ slug: meta.event.slug }} />}
+          >
+            {meta.event.name}
+          </TextLink>
+        </span>
+        <span className="flex shrink-0 items-center gap-x-2">
+          <span aria-hidden className="max-sm:hidden">
+            ·
+          </span>
+          <span>{formatDay(meta.event.eventDate)}</span>
+          <MetaTierBadge tier={meta.event.tier} />
+        </span>
       </p>
     </div>
   );
