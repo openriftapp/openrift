@@ -146,6 +146,7 @@ describe.skipIf(!ctx)("cardTokensRepo derivation", () => {
       .insertInto("cardErrata")
       .values({
         cardId: plainId,
+        language: "EN",
         correctedRulesText: "Draw a card. Play a Sprite unit token.",
         correctedEffectText: null,
         source: "test",

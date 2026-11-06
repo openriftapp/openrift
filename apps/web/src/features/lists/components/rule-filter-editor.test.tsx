@@ -69,7 +69,7 @@ const printing = (id: string, language: string) => ({
     tags: [],
     mightBonus: 0,
     maxCopiesOverride: null,
-    errata: null,
+    errata: [],
     bans: [],
   },
 });

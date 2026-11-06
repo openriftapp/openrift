@@ -9,6 +9,7 @@ import {
 } from "@openrift/shared/db-field-rules";
 import { diffValueSchema, printingSideSchema } from "@openrift/shared/response-schemas";
 import { parseReleaseInput } from "@openrift/shared/set-release";
+import { WellKnown } from "@openrift/shared/well-known";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
@@ -47,6 +48,7 @@ function hasOneErrataOrigin(entry: {
 export const uploadErrataEntrySchema = z
   .object({
     cardSlug: cardFieldRules.slug,
+    language: cardErrataFieldRules.language.optional().default(WellKnown.language.EN),
     correctedRulesText: cardErrataFieldRules.correctedRulesText.optional().default(null),
     correctedEffectText: cardErrataFieldRules.correctedEffectText.optional().default(null),
     announcement: errataAnnouncementInputSchema.nullable().optional().default(null),
@@ -63,12 +65,17 @@ export const uploadErrataEntrySchema = z
 
 export type UploadErrataEntry = z.infer<typeof uploadErrataEntrySchema>;
 
-const entryRefSchema = z.object({ cardSlug: z.string(), cardName: z.string() });
+const entryRefSchema = z.object({
+  cardSlug: z.string(),
+  cardName: z.string(),
+  language: z.string(),
+});
 export type ErrataEntryRef = z.infer<typeof entryRefSchema>;
 
 const entryDiffSchema = z.object({
   cardSlug: z.string(),
   cardName: z.string(),
+  language: z.string(),
   fields: z.array(
     z.object({ field: z.string(), from: z.string().nullable(), to: z.string().nullable() }),
   ),
@@ -564,6 +571,7 @@ export const adminCardMutationsContract = {
     .input(
       cardIdParam
         .extend({
+          language: cardErrataFieldRules.language,
           announcementId: cardErrataFieldRules.announcementId.optional().default(null),
           correctedRulesText: cardErrataFieldRules.correctedRulesText,
           correctedEffectText: cardErrataFieldRules.correctedEffectText,
@@ -578,7 +586,7 @@ export const adminCardMutationsContract = {
     ),
   deleteErrata: authedRoute
     .route({ method: "DELETE", path: `${CARDS}/{cardId}/errata`, tags: [TAG], successStatus: 204 })
-    .input(cardIdParam),
+    .input(cardIdParam.extend({ language: cardErrataFieldRules.language })),
   acceptField: authedRoute
     .route({
       method: "POST",

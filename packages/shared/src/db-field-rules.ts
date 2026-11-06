@@ -62,6 +62,7 @@ export const printingFieldRules = {
 } satisfies Record<string, z.ZodType>;
 
 export const cardErrataFieldRules = {
+  language: printingFieldRules.language,
   announcementId: z.uuid().nullable(),
   correctedRulesText: z.string().min(1).nullable(),
   correctedEffectText: z.string().min(1).nullable(),

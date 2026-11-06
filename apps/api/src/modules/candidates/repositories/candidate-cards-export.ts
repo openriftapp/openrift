@@ -1,3 +1,4 @@
+import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -34,6 +35,7 @@ export function candidateExportRepo(db: Kysely<Database>) {
       return db
         .selectFrom("cardErrata")
         .select(["cardId", "correctedRulesText", "correctedEffectText"])
+        .where("language", "=", WellKnown.language.EN)
         .execute();
     },
 

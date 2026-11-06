@@ -83,7 +83,7 @@ Stats are nullable with type-specific semantics: `might` is only set for Units, 
 
 **Domains and super-types** are no longer array columns on `cards` — they were normalized into the `card_domains` and `card_super_types` junction tables (see [Reference Tables](#reference-tables) below). The API still surfaces them as arrays on the `Card` type.
 
-**Rules and effect text** do not live on `cards`. Printed text is stored on `faces` (`printed_rules_text` / `printed_effect_text`), and admin-authored corrections live in the `card_errata` table (surfaced as `correctedRulesText` / `correctedEffectText`).
+**Rules and effect text** do not live on `cards`. Printed text is stored on `faces` (`printed_rules_text` / `printed_effect_text`), and admin-authored corrections live in the `card_errata` table (surfaced as `correctedRulesText` / `correctedEffectText`), one row per card and language. A printing shows only the errata in its own language; without one it shows its printed text, never another language's errata (`errataForLanguage` in `packages/shared/src/errata.ts`). Keywords and token references derive from the English errata only.
 
 ### `faces`
 

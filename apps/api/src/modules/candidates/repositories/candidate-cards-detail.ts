@@ -1,5 +1,6 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import type { CardFace } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -76,24 +77,25 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async cardErrataForDetail(cardId: string) {
-      return (
-        (await db
-          .selectFrom("cardErrata")
-          .leftJoin("errataAnnouncements as ea", "ea.id", "cardErrata.announcementId")
-          .select([
-            "cardErrata.announcementId",
-            "cardErrata.correctedRulesText",
-            "cardErrata.correctedEffectText",
-            sql<string>`coalesce(ea.name, card_errata.source)`.as("source"),
-            sql<string | null>`coalesce(ea.url, card_errata.source_url)`.as("sourceUrl"),
-            sql<string | null>`coalesce(ea.published_on, card_errata.effective_date)`.as(
-              "effectiveDate",
-            ),
-          ])
-          .where("cardErrata.cardId", "=", cardId)
-          .executeTakeFirst()) ?? null
-      );
+    cardErrataForDetail(cardId: string) {
+      return db
+        .selectFrom("cardErrata")
+        .leftJoin("errataAnnouncements as ea", "ea.id", "cardErrata.announcementId")
+        .select([
+          "cardErrata.language",
+          "cardErrata.announcementId",
+          "cardErrata.correctedRulesText",
+          "cardErrata.correctedEffectText",
+          sql<string>`coalesce(ea.name, card_errata.source)`.as("source"),
+          sql<string | null>`coalesce(ea.url, card_errata.source_url)`.as("sourceUrl"),
+          sql<string | null>`coalesce(ea.published_on, card_errata.effective_date)`.as(
+            "effectiveDate",
+          ),
+        ])
+        .where("cardErrata.cardId", "=", cardId)
+        .orderBy(sql`card_errata.language <> ${WellKnown.language.EN}`)
+        .orderBy("cardErrata.language")
+        .execute();
     },
 
     printingsForDetail(cardId: string) {

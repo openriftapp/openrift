@@ -1,4 +1,5 @@
-import type { Printing } from "@openrift/shared/types/catalog";
+import { errataForLanguage } from "@openrift/shared/errata";
+import type { CardErrata, Printing } from "@openrift/shared/types/catalog";
 
 import { OrnamentBase } from "@/components/ui/ornament";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
@@ -31,8 +32,7 @@ export function CardDetailFlavorText({ printing }: { printing: Printing }) {
   );
 }
 
-function errataChanges(printing: Printing): ErrataChange[] {
-  const { errata } = printing.card;
+function errataChanges(printing: Printing, errata: CardErrata | null): ErrataChange[] {
   const changes: ErrataChange[] = [];
   if (errata?.correctedRulesText && printing.printedRulesText !== errata.correctedRulesText) {
     changes.push({
@@ -79,17 +79,18 @@ export function CardDetailText({
     return null;
   }
   const textLang = htmlLangTag(printing.language);
-  const changes = interactive ? errataChanges(printing) : [];
+  const errata = errataForLanguage(card.errata, printing.language);
+  const changes = interactive ? errataChanges(printing, errata) : [];
 
   return (
-    <ErrataScope cardSlug={card.slug} errata={card.errata} changes={changes} lang={textLang}>
+    <ErrataScope cardSlug={card.slug} errata={errata} changes={changes} lang={textLang}>
       <div className="flex flex-col pt-2">
         <div className="bg-muted/30 border-border-accent space-y-3 rounded-t-lg border border-b-0 px-3 pt-2.5 pb-2">
           {printing.printedRulesText && (
             <p lang={textLang} className="text-muted-foreground text-sm">
               <ErrataCardText
                 printed={printing.printedRulesText}
-                corrected={card.errata?.correctedRulesText ?? printing.printedRulesText}
+                corrected={errata?.correctedRulesText ?? printing.printedRulesText}
                 onKeywordClick={onKeywordClick}
                 interactive={interactive}
               />
@@ -105,7 +106,7 @@ export function CardDetailText({
                 <p lang={textLang} className="text-muted-foreground text-sm">
                   <ErrataCardText
                     printed={printing.printedEffectText}
-                    corrected={card.errata?.correctedEffectText ?? printing.printedEffectText}
+                    corrected={errata?.correctedEffectText ?? printing.printedEffectText}
                     onKeywordClick={onKeywordClick}
                     interactive={interactive}
                   />

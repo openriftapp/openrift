@@ -5,6 +5,7 @@ import type {
   CatalogResponsePrintingValue,
 } from "@openrift/shared/types/api/catalog";
 import type {
+  CardErrata,
   DistributionChannel,
   DistributionChannelKind,
   Marker,
@@ -12,6 +13,7 @@ import type {
   PrintingDistributionChannel,
   PrintingImage,
 } from "@openrift/shared/types/catalog";
+import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
 import { toDistributionChannel } from "./reference-presenters.js";
@@ -148,31 +150,42 @@ export function resolveMarkers(
     .filter((m): m is Marker => m !== undefined);
 }
 
+export function groupErrataByCard(errataRows: readonly CardErrataRow[]): Map<string, CardErrata[]> {
+  const sorted = errataRows.toSorted(
+    (a, b) =>
+      Number(a.language !== WellKnown.language.EN) - Number(b.language !== WellKnown.language.EN) ||
+      a.language.localeCompare(b.language),
+  );
+  const byCard = new Map<string, CardErrata[]>();
+  for (const r of sorted) {
+    const list = byCard.get(r.cardId) ?? [];
+    list.push({
+      language: r.language,
+      correctedRulesText: r.correctedRulesText,
+      correctedEffectText: r.correctedEffectText,
+      source: r.source,
+      sourceUrl: r.sourceUrl,
+      effectiveDate: r.effectiveDate,
+    });
+    byCard.set(r.cardId, list);
+  }
+  return byCard;
+}
+
 export function buildCardsResponse(
   cardRows: readonly CardRow[],
   banRows: readonly CardBanRow[],
   errataRows: readonly CardErrataRow[],
 ): Record<string, CatalogCardResponse> {
   const bansByCard = Map.groupBy(banRows, (r) => r.cardId);
-  const errataByCard = new Map(
-    errataRows.map((r) => [
-      r.cardId,
-      {
-        correctedRulesText: r.correctedRulesText,
-        correctedEffectText: r.correctedEffectText,
-        source: r.source,
-        sourceUrl: r.sourceUrl,
-        effectiveDate: r.effectiveDate,
-      },
-    ]),
-  );
+  const errataByCard = groupErrataByCard(errataRows);
 
   return Object.fromEntries(
     cardRows.map((r) => [
       r.id,
       {
         ...r,
-        errata: errataByCard.get(r.id) ?? null,
+        errata: errataByCard.get(r.id) ?? [],
         bans: (bansByCard.get(r.id) ?? []).map((b) => ({
           formatId: b.formatId,
           formatName: b.formatName,

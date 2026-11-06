@@ -6,6 +6,7 @@ import type {
   ErrataListResponse,
 } from "@openrift/shared/contracts/errata";
 import { slugifyName } from "@openrift/shared/strings";
+import { WellKnown } from "@openrift/shared/well-known";
 
 export const UNANNOUNCED_GROUP_ID = "unannounced-changes";
 
@@ -19,6 +20,15 @@ export interface ErrataGroup {
 export interface ErrataFilters {
   query: string;
   setSlug: string | null;
+}
+
+/** English entries keep the bare card slug, so existing `#slug` links still land. */
+export function errataEntryAnchor(cardSlug: string, language: string): string {
+  return language === WellKnown.language.EN ? cardSlug : `${cardSlug}-${language.toLowerCase()}`;
+}
+
+export function countErrataCards(entries: readonly ErrataEntry[]): number {
+  return new Set(entries.map((entry) => entry.card.slug)).size;
 }
 
 export function errataGroupId(announcement: ErrataAnnouncement): string {
@@ -84,8 +94,10 @@ export function groupErrata(data: ErrataListResponse, filters: ErrataFilters): E
   return groups;
 }
 
-export function errataGroupIdForCard(data: ErrataListResponse, cardSlug: string): string | null {
-  const entry = data.entries.find((candidate) => candidate.card.slug === cardSlug);
+export function errataGroupIdForCard(data: ErrataListResponse, anchor: string): string | null {
+  const entry = data.entries.find(
+    (candidate) => errataEntryAnchor(candidate.card.slug, candidate.language) === anchor,
+  );
   if (entry === undefined) {
     return null;
   }

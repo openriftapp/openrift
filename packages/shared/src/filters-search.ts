@@ -1,4 +1,5 @@
 import { cardSearchAltNames } from "./card-name.js";
+import { errataForLanguage } from "./errata.js";
 import { foldCached, foldForSearch, squashCached, squashForSearch } from "./search-fold.js";
 import type { Printing } from "./types/catalog.js";
 import type { SearchField } from "./types/search.js";
@@ -47,9 +48,10 @@ export function printingMatchesField(
     );
   }
   if (field === "cardText") {
+    const errata = errataForLanguage(card.errata, printing.language);
     return (
-      foldedContains(card.errata?.correctedRulesText, term) ||
-      foldedContains(card.errata?.correctedEffectText, term) ||
+      foldedContains(errata?.correctedRulesText, term) ||
+      foldedContains(errata?.correctedEffectText, term) ||
       foldedContains(printing.printedRulesText, term) ||
       foldedContains(printing.printedEffectText, term)
     );
@@ -92,9 +94,10 @@ function printingFieldValues(printing: Printing, field: SearchField): (string | 
       return [card.name, printing.printedName, ...cardSearchAltNames(card)];
     }
     case "cardText": {
+      const errata = errataForLanguage(card.errata, printing.language);
       return [
-        card.errata?.correctedRulesText ?? null,
-        card.errata?.correctedEffectText ?? null,
+        errata?.correctedRulesText ?? null,
+        errata?.correctedEffectText ?? null,
         printing.printedRulesText,
         printing.printedEffectText,
       ];

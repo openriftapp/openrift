@@ -68,6 +68,7 @@ describe("fallbackArtDifferences", () => {
 
 describe("cardTextFields", () => {
   const ERRATA = {
+    language: "EN",
     correctedRulesText: "Draw 2.",
     correctedEffectText: null,
     source: "Origins Card Errata",
@@ -108,7 +109,7 @@ describe("cardTextFields", () => {
 
   it("shows the errata text with a linked credit instead of the printed text", () => {
     const fields = cardTextFields(
-      makeCard({ errata: ERRATA }),
+      makeCard({ errata: [ERRATA] }),
       makePrinting({ printedRulesText: "Draw 1." }),
       new Map(),
     );
@@ -117,9 +118,16 @@ describe("cardTextFields", () => {
     );
   });
 
+  it("shows the printed text of a printing in a language without its own errata", () => {
+    const card = makeCard({ errata: [ERRATA] });
+    const printing = makePrinting({ printedRulesText: "Piochez 1 carte.", language: "FR" });
+    expect(cardTextFields(card, printing, new Map())[0]?.value).toBe("Piochez 1 carte.");
+    expect(cardWarnings(card, printing)).toEqual([]);
+  });
+
   it("omits the credit when the errata matches what was printed", () => {
     const fields = cardTextFields(
-      makeCard({ errata: ERRATA }),
+      makeCard({ errata: [ERRATA] }),
       makePrinting({ printedRulesText: "Draw 2." }),
       new Map(),
     );
@@ -193,13 +201,16 @@ describe("buildCardEmbed", () => {
                 reason: "Too fast",
               },
             ],
-            errata: {
-              correctedRulesText: "Draw 2.",
-              correctedEffectText: null,
-              source: "Origins Card Errata",
-              sourceUrl: "https://riftbound.example/errata",
-              effectiveDate: "2025-10-21",
-            },
+            errata: [
+              {
+                language: "EN",
+                correctedRulesText: "Draw 2.",
+                correctedEffectText: null,
+                source: "Origins Card Errata",
+                sourceUrl: "https://riftbound.example/errata",
+                effectiveDate: "2025-10-21",
+              },
+            ],
           }),
         ],
         [makePrinting({ printedRulesText: "Draw 1." })],
@@ -246,13 +257,16 @@ describe("buildCardEmbed", () => {
 
   it("keeps the errata warning unlinked when the errata has no source URL", () => {
     const card = makeCard({
-      errata: {
-        correctedRulesText: "Draw 2.",
-        correctedEffectText: null,
-        source: "Origins Card Errata",
-        sourceUrl: null,
-        effectiveDate: null,
-      },
+      errata: [
+        {
+          language: "EN",
+          correctedRulesText: "Draw 2.",
+          correctedEffectText: null,
+          source: "Origins Card Errata",
+          sourceUrl: null,
+          effectiveDate: null,
+        },
+      ],
     });
     expect(cardWarnings(card)).toEqual(["⚠️ **Errata** (Origins Card Errata)"]);
   });

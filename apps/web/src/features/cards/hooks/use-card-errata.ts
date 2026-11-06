@@ -16,6 +16,7 @@ const upsertCardErrataFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       cardId: string;
+      language: string;
       announcementId: string | null;
       correctedRulesText: string | null;
       correctedEffectText: string | null;
@@ -28,6 +29,7 @@ const upsertCardErrataFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).upsertErrata({
       cardId: data.cardId,
+      language: data.language,
       announcementId: data.announcementId,
       correctedRulesText: data.correctedRulesText,
       correctedEffectText: data.correctedEffectText,
@@ -47,18 +49,19 @@ export function useUpsertCardErrata() {
 }
 
 const deleteCardErrataFn = createServerFn({ method: "POST" })
-  .validator((input: { cardId: string }) => input)
+  .validator((input: { cardId: string; language: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).deleteErrata({
       cardId: data.cardId,
+      language: data.language,
     });
   });
 
 export function useDeleteCardErrata() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ cardId }: { cardId: string }) => {
-      await deleteCardErrataFn({ data: { cardId } });
+    mutationFn: async (input: { cardId: string; language: string }) => {
+      await deleteCardErrataFn({ data: input });
     },
     invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });
@@ -66,6 +69,7 @@ export function useDeleteCardErrata() {
 
 export interface BulkErrataEntry {
   cardSlug: string;
+  language?: string;
   correctedRulesText?: string | null;
   correctedEffectText?: string | null;
   announcement?: { name: string; publishedOn: string; url: string } | null;

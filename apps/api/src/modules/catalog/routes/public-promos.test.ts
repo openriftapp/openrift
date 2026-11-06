@@ -153,7 +153,7 @@ describe("GET /api/v1/promos", () => {
 
     expect(Object.keys(json.cards)).toEqual([CARD_ID]);
     expect(json.cards[CARD_ID].slug).toBe("jinx-rebel");
-    expect(json.cards[CARD_ID].errata).toBeNull();
+    expect(json.cards[CARD_ID].errata).toEqual([]);
     expect(json.cards[CARD_ID].bans).toEqual([]);
 
     expect(json.printings).toHaveLength(1);
@@ -239,6 +239,7 @@ describe("GET /api/v1/promos", () => {
     mockCatalogRepo.cardErrataByCardIds.mockResolvedValue([
       {
         cardId: CARD_ID,
+        language: "EN",
         correctedRulesText: "Corrected",
         correctedEffectText: null,
         source: "Riot",
@@ -252,10 +253,9 @@ describe("GET /api/v1/promos", () => {
     const json = await readJson(res);
     expect(json.cards[CARD_ID].bans).toHaveLength(1);
     expect(json.cards[CARD_ID].bans[0].formatName).toBe("Constructed");
-    expect(json.cards[CARD_ID].errata).toMatchObject({
-      correctedRulesText: "Corrected",
-      source: "Riot",
-    });
+    expect(json.cards[CARD_ID].errata).toMatchObject([
+      { language: "EN", correctedRulesText: "Corrected", source: "Riot" },
+    ]);
   });
 });
 

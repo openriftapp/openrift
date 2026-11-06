@@ -1,3 +1,4 @@
+import { errataForLanguage } from "./errata.js";
 import {
   includes,
   matchesCustomTags,
@@ -77,7 +78,10 @@ export function filterCards(
         matchesRange(card.power, filters.power) &&
         matchesRange(getPrice?.(printing) ?? null, filters.price) &&
         matchesFlag(filters.isBanned, card.bans.length > 0) &&
-        matchesFlag(filters.hasErrata, card.errata !== null) &&
+        matchesFlag(
+          filters.hasErrata,
+          errataForLanguage(card.errata, printing.language) !== null,
+        ) &&
         matchesFlag(filters.hasNoImage, printing.images.length === 0)
       )
     ) {

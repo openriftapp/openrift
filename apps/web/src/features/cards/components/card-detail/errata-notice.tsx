@@ -18,6 +18,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { CardText, CardTextTokens } from "@/features/cards/components/card-text";
 import { ErrataGapGlyph, ErrataPane } from "@/features/cards/components/errata-diff-pane";
 import { diffCardText, isBlankSegment, markCorrected } from "@/features/cards/lib/errata-diff";
+import { errataEntryAnchor } from "@/features/cards/lib/errata-list";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -164,7 +165,10 @@ function ErrataComparison({
           )}
         </span>
         <span aria-hidden>&middot;</span>
-        <TextLink variant="muted" render={<Link to="/errata" hash={cardSlug} />}>
+        <TextLink
+          variant="muted"
+          render={<Link to="/errata" hash={errataEntryAnchor(cardSlug, errata.language)} />}
+        >
           {m.card_detail_errata_all()}
         </TextLink>
       </p>

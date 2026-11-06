@@ -3,7 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-const CATALOG_SHAPE_VERSION = "7";
+const CATALOG_SHAPE_VERSION = "8";
 
 /**
  * Migrations 343 and 345 list which tables bump which scope. A table a catalog read

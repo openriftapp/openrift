@@ -1,4 +1,5 @@
 import { joinCatalog } from "@openrift/shared/catalog-join";
+import { errataForLanguage } from "@openrift/shared/errata";
 import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
@@ -78,8 +79,9 @@ export function resolveProxyCards(
     const firstImageId = printing?.images[0]?.imageId ?? null;
     const imageFullUrl = firstImageId ? imageUrl(firstImageId, "full") : null;
     const flavorText = printing?.flavorText ?? null;
-    const rulesText = printing?.printedRulesText ?? card.errata?.correctedRulesText ?? null;
-    const effectText = printing?.printedEffectText ?? card.errata?.correctedEffectText ?? null;
+    const errata = errataForLanguage(card.errata, printing?.language ?? WellKnown.language.EN);
+    const rulesText = printing?.printedRulesText ?? errata?.correctedRulesText ?? null;
+    const effectText = printing?.printedEffectText ?? errata?.correctedEffectText ?? null;
 
     for (let copy = 0; copy < deckCard.quantity; copy++) {
       result.push({

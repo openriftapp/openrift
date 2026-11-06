@@ -893,7 +893,7 @@ describe("matchesScope", () => {
   });
 
   it("filters by signed, banned, and errata flags", () => {
-    const plain = stubPrinting({ isSigned: false, card: { bans: [], errata: null } });
+    const plain = stubPrinting({ isSigned: false, card: { bans: [], errata: [] } });
     expect(matchesScope(plain, { signed: true })).toBe(false);
     expect(matchesScope(plain, { signed: false })).toBe(true);
     expect(matchesScope(plain, { banned: true })).toBe(false);

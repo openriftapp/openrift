@@ -31,6 +31,7 @@ export function buildErrataListResponse(
       .toSorted((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
       .map(({ slug, name }) => ({ slug, name })),
     entries: rows.map((row) => ({
+      language: row.language,
       announcementId: row.announcementId,
       source: row.source,
       sourceUrl: row.sourceUrl,

@@ -4,6 +4,7 @@ import type {
   UploadErrataEntry,
   UploadErrataResponse,
 } from "@openrift/shared/contracts/admin/card-mutations";
+import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos, Transact } from "../../../deps.js";
 import type { CardErrataWrite } from "../../catalog/repositories/card-errata.js";
@@ -128,29 +129,34 @@ export async function importErrata(
     const cardBySlug = new Map(cards.map((card) => [card.slug, card]));
     const cardIds = cards.map((card) => card.id);
 
+    const languages = [...new Set(entries.map((entry) => entry.language))];
     const [existingErrata, printingTexts] = await Promise.all([
       errata.getByCardIds(cardIds),
-      mut.getPrintingTextsByCardIds(cardIds),
+      mut.getPrintingTextsByCardIds(cardIds, languages),
     ]);
 
-    const errataByCardId = new Map(existingErrata.map((row) => [row.cardId, row]));
+    const errataKey = (cardId: string, language: string) => `${cardId}|${language}`;
+    const errataByKey = new Map(
+      existingErrata.map((row) => [errataKey(row.cardId, row.language), row]),
+    );
     const { ids: announcementIds, names: announcementNames } = await resolveAnnouncements(
       errata,
       entries.flatMap((entry) => (entry.announcement ? [entry.announcement] : [])),
       dryRun,
       result,
     );
-    const printingsByCardId = new Map<
+    const printingsByKey = new Map<
       string,
       { printedRulesText: string | null; printedEffectText: string | null }[]
     >();
     for (const row of printingTexts) {
-      const list = printingsByCardId.get(row.cardId) ?? [];
+      const key = errataKey(row.cardId, row.language);
+      const list = printingsByKey.get(key) ?? [];
       list.push({
         printedRulesText: row.printedRulesText,
         printedEffectText: row.printedEffectText,
       });
-      printingsByCardId.set(row.cardId, list);
+      printingsByKey.set(key, list);
     }
 
     const announcementNameSet = new Set([...announcementNames.values(), ...announcementIds.keys()]);
@@ -168,8 +174,12 @@ export async function importErrata(
         continue;
       }
 
-      const ref: ErrataEntryRef = { cardSlug: card.slug, cardName: card.name };
-      const printings = printingsByCardId.get(card.id) ?? [];
+      const ref: ErrataEntryRef = {
+        cardSlug: card.slug,
+        cardName: card.name,
+        language: entry.language,
+      };
+      const printings = printingsByKey.get(errataKey(card.id, entry.language)) ?? [];
 
       if (matchesAllPrinted(entry, printings)) {
         result.matchesPrintedCount++;
@@ -186,7 +196,7 @@ export async function importErrata(
         effectiveDate: entry.effectiveDate,
       };
 
-      const existing = errataByCardId.get(card.id);
+      const existing = errataByKey.get(errataKey(card.id, entry.language));
       if (existing) {
         const diffs = diffErrata(
           {
@@ -214,11 +224,15 @@ export async function importErrata(
       }
 
       const { announcement, ...fields } = incoming;
-      await errata.upsert(card.id, {
+      await errata.upsert(card.id, entry.language, {
         ...fields,
         announcementId: announcement === null ? null : (announcementIds.get(announcement) ?? null),
       });
-      await mut.updateCardById(card.id, { keywords: deriveKeywords({ errata: entry, printings }) });
+      if (entry.language === WellKnown.language.EN) {
+        await mut.updateCardById(card.id, {
+          keywords: deriveKeywords({ errata: entry, printings }),
+        });
+      }
     }
   });
 

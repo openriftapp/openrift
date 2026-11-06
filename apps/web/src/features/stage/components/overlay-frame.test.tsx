@@ -169,13 +169,16 @@ describe("OverlayFrame plate contents", () => {
       printedRulesText: "Deal 2 damage.",
       card: {
         name: "Garen",
-        errata: {
-          correctedRulesText: "Deal 3 damage.",
-          correctedEffectText: null,
-          source: "Riot",
-          sourceUrl: null,
-          effectiveDate: "2026-01-01",
-        },
+        errata: [
+          {
+            language: "EN",
+            correctedRulesText: "Deal 3 damage.",
+            correctedEffectText: null,
+            source: "Riot",
+            sourceUrl: null,
+            effectiveDate: "2026-01-01",
+          },
+        ],
       },
     });
 

@@ -310,7 +310,10 @@ function buildCatalog(count: number): { printings: Printing[]; prices: WeakMap<P
       tags: [...pickOne(TAGS, r)],
       mightBonus: 0,
       maxCopiesOverride: null,
-      errata: r() > 0.9 ? { correctedRulesText: "Fixed.", correctedEffectText: null } : null,
+      errata:
+        r() > 0.9
+          ? [{ language: "EN", correctedRulesText: "Fixed.", correctedEffectText: null }]
+          : [],
       bans:
         r() > 0.92
           ? [{ formatId: "fmt-1", formatName: "Standard", bannedAt: "2026-01-01", reason: null }]

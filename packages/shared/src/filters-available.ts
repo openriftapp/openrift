@@ -1,3 +1,4 @@
+import { errataForLanguage } from "./errata.js";
 import type { BoundsAcc } from "./filters-shared.js";
 import { bumpBounds, orderIndex, readBounds } from "./filters-shared.js";
 import { orderSetsMainFirst } from "./set-order.js";
@@ -127,7 +128,7 @@ export function getAvailableFilters(
     if (card.bans.length > 0) {
       hasBanned = true;
     }
-    if (card.errata !== null) {
+    if (errataForLanguage(card.errata, printing.language) !== null) {
       hasErrata = true;
     }
     if (printing.images.length === 0) {

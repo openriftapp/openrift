@@ -24,6 +24,8 @@ import { ErrataEntry } from "@/features/cards/components/errata-entry";
 import type { ErrataGroup } from "@/features/cards/lib/errata-list";
 import {
   countErrataBySet,
+  countErrataCards,
+  errataEntryAnchor,
   errataGroupIdForCard,
   groupErrata,
   latestErrataUpdate,
@@ -147,7 +149,11 @@ function GroupSection({
       </div>
       <div id={listId} hidden={!open}>
         {group.entries.map((entry) => (
-          <ErrataEntry key={entry.card.slug} entry={entry} view={view} />
+          <ErrataEntry
+            key={errataEntryAnchor(entry.card.slug, entry.language)}
+            entry={entry}
+            view={view}
+          />
         ))}
       </div>
     </section>
@@ -193,8 +199,8 @@ export function ErrataPage() {
 
   useEffect(() => {
     const openLinkedCard = () => {
-      const slug = decodeURIComponent(globalThis.location.hash.slice(1));
-      const groupId = errataGroupIdForCard(data, slug);
+      const anchor = decodeURIComponent(globalThis.location.hash.slice(1));
+      const groupId = errataGroupIdForCard(data, anchor);
       if (groupId === null) {
         return;
       }
@@ -203,7 +209,9 @@ export function ErrataPage() {
         next.delete(groupId);
         return next;
       });
-      requestAnimationFrame(() => document.querySelector(`#${CSS.escape(slug)}`)?.scrollIntoView());
+      requestAnimationFrame(() =>
+        document.querySelector(`#${CSS.escape(anchor)}`)?.scrollIntoView(),
+      );
     };
     openLinkedCard();
     globalThis.addEventListener("hashchange", openLinkedCard);
@@ -219,7 +227,7 @@ export function ErrataPage() {
   };
   const latest = latestErrataUpdate(data.announcements);
   const stats = [
-    { key: "cards", value: data.entries.length, label: m.errata_stat_cards() },
+    { key: "cards", value: countErrataCards(data.entries), label: m.errata_stat_cards() },
     { key: "updates", value: data.announcements.length, label: m.errata_stat_updates() },
     ...(latest === null
       ? []

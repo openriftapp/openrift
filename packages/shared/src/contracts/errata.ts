@@ -13,6 +13,7 @@ export const errataAnnouncementSchema = z.object({
 });
 
 export const errataEntrySchema = z.object({
+  language: z.string().meta({ examples: ["EN"] }),
   announcementId: z
     .string()
     .nullable()

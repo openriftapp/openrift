@@ -337,17 +337,21 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
 
     getPrintingTextsByCardIds(
       cardIds: string[],
+      languages: string[],
     ): Promise<
-      Pick<Selectable<FacesTable>, "cardId" | "printedRulesText" | "printedEffectText">[]
+      Pick<
+        Selectable<FacesTable>,
+        "cardId" | "language" | "printedRulesText" | "printedEffectText"
+      >[]
     > {
-      if (cardIds.length === 0) {
+      if (cardIds.length === 0 || languages.length === 0) {
         return Promise.resolve([]);
       }
       return db
         .selectFrom("faces")
-        .select(["cardId", "printedRulesText", "printedEffectText"])
+        .select(["cardId", "language", "printedRulesText", "printedEffectText"])
         .where("cardId", "in", cardIds)
-        .where("language", "=", WellKnown.language.EN)
+        .where("language", "in", languages)
         .execute();
     },
 

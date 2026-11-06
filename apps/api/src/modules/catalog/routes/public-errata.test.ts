@@ -14,6 +14,7 @@ const ANNOUNCEMENT = {
 };
 
 const ENTRY_ROW = {
+  language: "EN",
   announcementId: ANNOUNCEMENT.id,
   correctedRulesText: "Draw 2.",
   correctedEffectText: null,

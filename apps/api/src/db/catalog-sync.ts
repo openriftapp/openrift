@@ -4,6 +4,7 @@ import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { MarketplaceLinksResponse, PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { RulesListResponse, RuleVersionResponse } from "@openrift/shared/types/api/rules";
 import type { ArtVariant, CardSize, Finish, Rarity } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 import type { Insertable } from "kysely";
 
 import type { Database } from "./tables.js";
@@ -61,6 +62,18 @@ export interface CatalogSync {
     distributionNote: string | null;
   }[];
   printingCitations: Row<"printingCitations">[];
+}
+
+type CatalogErrata = CatalogResponse["cards"][string]["errata"][number];
+
+// A source still on catalog shape 7 sends one English errata object; drop once prod serves shape 8.
+function errataList(
+  errata: CatalogErrata[] | Omit<CatalogErrata, "language"> | null,
+): CatalogErrata[] {
+  if (errata === null) {
+    return [];
+  }
+  return Array.isArray(errata) ? errata : [{ ...errata, language: WellKnown.language.EN }];
 }
 
 /** The stored form is the on-disk layout, which `imageRehostedUrl` in the images service also emits. */
@@ -250,18 +263,15 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
     ),
     // The payload drops the announcement link, so announced errata land as sourced rows.
     cardErrata: cards.flatMap(([cardId, card]) =>
-      card.errata
-        ? [
-            {
-              cardId,
-              correctedRulesText: card.errata.correctedRulesText,
-              correctedEffectText: card.errata.correctedEffectText,
-              source: card.errata.source,
-              sourceUrl: card.errata.sourceUrl,
-              effectiveDate: card.errata.effectiveDate,
-            },
-          ]
-        : [],
+      errataList(card.errata).map((errata) => ({
+        cardId,
+        language: errata.language,
+        correctedRulesText: errata.correctedRulesText,
+        correctedEffectText: errata.correctedEffectText,
+        source: errata.source,
+        sourceUrl: errata.sourceUrl,
+        effectiveDate: errata.effectiveDate,
+      })),
     ),
     cardBans: cards.flatMap(([cardId, card]) =>
       card.bans.map((ban) => ({

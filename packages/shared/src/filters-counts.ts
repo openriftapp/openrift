@@ -1,3 +1,4 @@
+import { errataForLanguage } from "./errata.js";
 import {
   includes,
   matchesCustomTags,
@@ -423,7 +424,7 @@ export function computeFilterCounts(
     const hasSuperTypes = card.superTypes.some((st) => st !== WellKnown.superType.BASIC);
     const isStandard = isStandardPrinting(printing);
     const isBanned = card.bans.length > 0;
-    const hasErrata = card.errata !== null;
+    const hasErrata = errataForLanguage(card.errata, printing.language) !== null;
     const hasNoImage = printing.images.length === 0;
 
     let fail = 0;

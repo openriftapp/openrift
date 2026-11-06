@@ -71,6 +71,7 @@ export interface CardBan {
 }
 
 export interface CardErrata {
+  language: string;
   correctedRulesText: string | null;
   correctedEffectText: string | null;
   source: string;
@@ -96,7 +97,7 @@ export interface Card {
   /** `null` = normal rules, `0` = unlimited (see `UNLIMITED_COPIES`), positive = cap at that value. */
   maxCopiesOverride: number | null;
   additionalLegendCount: number | null;
-  errata: CardErrata | null;
+  errata: CardErrata[];
   bans: CardBan[];
   upcomingBans: CardBan[];
 }

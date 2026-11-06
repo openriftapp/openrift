@@ -2,6 +2,7 @@ import type { TypographyTarget } from "@openrift/shared/contracts/admin/typograp
 import { adminTypographyReviewContract } from "@openrift/shared/contracts/admin/typography-review";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { fixTypography } from "@openrift/shared/fix-typography";
+import { WellKnown } from "@openrift/shared/well-known";
 import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
@@ -115,7 +116,7 @@ export const adminTypographyReviewRouter = {
         const proposed = fixTypography(current, { ...options, costKeywords });
         if (proposed !== current) {
           diffs.push({
-            target: { entity: "card", id: errata.cardId, field },
+            target: { entity: "card", id: errata.cardId, field, language: errata.language },
             name: cardName,
             current,
             proposed,
@@ -172,11 +173,12 @@ export const adminTypographyReviewRouter = {
         return;
       }
 
-      const errata = await cardErrata.getByCardId(id);
+      const language = target.language ?? WellKnown.language.EN;
+      const errata = await cardErrata.get(id, language);
       if (!errata) {
         throw errors.NOT_FOUND({ message: "Card errata not found" });
       }
-      await cardErrata.upsert(id, {
+      await cardErrata.upsert(id, language, {
         ...errata,
         ...(field === "correctedRulesText"
           ? { correctedRulesText: proposed }

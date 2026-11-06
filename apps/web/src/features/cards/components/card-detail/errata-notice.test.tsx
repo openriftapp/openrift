@@ -36,6 +36,7 @@ const { ErrataCardText, ErrataScope } = await import("./errata-notice");
 const { CardDetailDrawerShell } = await import("./card-detail-shells");
 
 const errata: CardErrata = {
+  language: "EN",
   correctedRulesText: "discard 1 as an additional cost.",
   correctedEffectText: null,
   source: "Official card gallery",

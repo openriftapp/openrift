@@ -12,6 +12,7 @@ export const fallbackArtModeSchema = z.enum(["auto", "pinned", "none"]);
 const releasePrecisionSchema = z.enum(["day", "month", "quarter", "year"]);
 
 export const cardErrataSchema = z.object({
+  language: z.string(),
   announcementId: z.string().nullable(),
   correctedRulesText: z.string().nullable(),
   correctedEffectText: z.string().nullable(),
@@ -32,7 +33,7 @@ export const adminCardResponseSchema = z.object({
   power: z.number().nullable(),
   mightBonus: z.number().nullable(),
   keywords: z.array(z.string()),
-  errata: cardErrataSchema.nullable(),
+  errata: z.array(cardErrataSchema),
   tags: z.array(z.string()),
   maxCopiesOverride: z.number().nullable(),
   additionalLegendCount: z.number().nullable(),

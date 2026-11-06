@@ -163,10 +163,12 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
         );
       }
       if (scope.errata === true) {
-        scopeClauses.push(sql`AND EXISTS (SELECT 1 FROM card_errata ce2 WHERE ce2.card_id = c.id)`);
+        scopeClauses.push(
+          sql`AND EXISTS (SELECT 1 FROM card_errata ce2 WHERE ce2.card_id = c.id AND ce2.language = p.language)`,
+        );
       } else if (scope.errata === false) {
         scopeClauses.push(
-          sql`AND NOT EXISTS (SELECT 1 FROM card_errata ce2 WHERE ce2.card_id = c.id)`,
+          sql`AND NOT EXISTS (SELECT 1 FROM card_errata ce2 WHERE ce2.card_id = c.id AND ce2.language = p.language)`,
         );
       }
 

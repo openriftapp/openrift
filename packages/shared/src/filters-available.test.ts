@@ -30,7 +30,7 @@ describe("getAvailableFilters", () => {
         keywords: [],
         tags: [],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     }),
     makePrinting({
@@ -50,7 +50,7 @@ describe("getAvailableFilters", () => {
         keywords: [],
         tags: [],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     }),
     makePrinting({
@@ -70,7 +70,7 @@ describe("getAvailableFilters", () => {
         keywords: [],
         tags: [],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     }),
   ];
@@ -243,7 +243,7 @@ describe("getAvailableFilters", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ]);
@@ -284,7 +284,7 @@ describe("getAvailableFilters", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
       makePrinting({
@@ -300,7 +300,7 @@ describe("getAvailableFilters", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ]);

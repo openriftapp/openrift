@@ -382,7 +382,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       kind: "errata",
       input: {
         cards,
-        cardCount: rows.length,
+        cardCount: new Set(rows.map((row) => row.slug)).size,
         updateCount: announcements.length,
         siteHost: siteHostFromOrigin(config.siteOrigin),
       },

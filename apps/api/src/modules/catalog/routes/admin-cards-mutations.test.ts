@@ -71,7 +71,8 @@ const mockMut = {
 
 const mockCardErrata = {
   upsert: vi.fn(),
-  deleteByCardId: vi.fn(),
+  delete: vi.fn(),
+  get: vi.fn(async () => null),
   getByCardIds: vi.fn(async () => []),
 };
 
@@ -727,6 +728,34 @@ describe("POST /cards/:cardId/errata", () => {
     vi.resetAllMocks();
   });
 
+  it("keeps keywords on the English errata when a French one is saved", async () => {
+    mockCardErrata.upsert.mockResolvedValue(undefined);
+    mockCardErrata.get.mockResolvedValue({
+      announcementId: null,
+      correctedRulesText: "[Tank]",
+      correctedEffectText: null,
+      source: "official",
+      sourceUrl: null,
+      effectiveDate: null,
+    } as never);
+    mockMut.getPrintingTextsForCardId.mockResolvedValue([]);
+    mockMut.updateCardById.mockResolvedValue(undefined);
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        language: "FR",
+        correctedRulesText: "[Caché]",
+        correctedEffectText: null,
+        source: "official",
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockCardErrata.upsert).toHaveBeenCalledWith(CARD_ID2, "FR", expect.any(Object));
+    expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { keywords: ["Tank"] });
+  });
+
   it("upserts errata and recomputes keywords (204)", async () => {
     mockCardErrata.upsert.mockResolvedValue(undefined);
     mockMut.getPrintingTextsForCardId.mockResolvedValue([]);
@@ -736,6 +765,7 @@ describe("POST /cards/:cardId/errata", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        language: "EN",
         correctedRulesText: "Deal 4 damage.",
         correctedEffectText: null,
         source: "official",
@@ -744,6 +774,7 @@ describe("POST /cards/:cardId/errata", () => {
     expect(res.status).toBe(204);
     expect(mockCardErrata.upsert).toHaveBeenCalledWith(
       CARD_ID2,
+      "EN",
       expect.objectContaining({ correctedRulesText: "Deal 4 damage.", source: "official" }),
     );
     expect(mockMut.updateCardById).toHaveBeenCalledWith(
@@ -769,6 +800,7 @@ describe("POST /cards/:cardId/errata with an announcement", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        language: "EN",
         announcementId: ANNOUNCEMENT_ID,
         correctedRulesText: "Deal 4 damage.",
         correctedEffectText: null,
@@ -777,6 +809,7 @@ describe("POST /cards/:cardId/errata with an announcement", () => {
     expect(res.status).toBe(204);
     expect(mockCardErrata.upsert).toHaveBeenCalledWith(
       CARD_ID2,
+      "EN",
       expect.objectContaining({ announcementId: ANNOUNCEMENT_ID, source: null }),
     );
   });
@@ -786,6 +819,7 @@ describe("POST /cards/:cardId/errata with an announcement", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        language: "EN",
         announcementId: ANNOUNCEMENT_ID,
         correctedRulesText: "Deal 4 damage.",
         correctedEffectText: null,
@@ -800,7 +834,11 @@ describe("POST /cards/:cardId/errata with an announcement", () => {
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ correctedRulesText: "Deal 4 damage.", correctedEffectText: null }),
+      body: JSON.stringify({
+        language: "EN",
+        correctedRulesText: "Deal 4 damage.",
+        correctedEffectText: null,
+      }),
     });
     expect(res.status).toBe(400);
     expect(mockCardErrata.upsert).not.toHaveBeenCalled();
@@ -813,13 +851,17 @@ describe("DELETE /cards/:cardId/errata", () => {
   });
 
   it("deletes errata and recomputes keywords (204)", async () => {
-    mockCardErrata.deleteByCardId.mockResolvedValue(undefined);
+    mockCardErrata.delete.mockResolvedValue(undefined);
     mockMut.getPrintingTextsForCardId.mockResolvedValue([]);
     mockMut.updateCardById.mockResolvedValue(undefined);
 
-    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, { method: "DELETE" });
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: "FR" }),
+    });
     expect(res.status).toBe(204);
-    expect(mockCardErrata.deleteByCardId).toHaveBeenCalledWith(CARD_ID2);
+    expect(mockCardErrata.delete).toHaveBeenCalledWith(CARD_ID2, "FR");
     expect(mockMut.updateCardById).toHaveBeenCalledWith(
       CARD_ID2,
       expect.objectContaining({ keywords: expect.any(Array) }),
@@ -840,7 +882,7 @@ describe("POST /cards/errata/upload", () => {
       unchangedCount: 0,
       matchesPrintedCount: 0,
       errors: [],
-      newEntries: [{ cardSlug: "jinx-rebel", cardName: "Jinx, Rebel" }],
+      newEntries: [{ cardSlug: "jinx-rebel", cardName: "Jinx, Rebel", language: "EN" }],
       updatedEntries: [],
       skippedMatchesPrinted: [],
       newAnnouncements: [],

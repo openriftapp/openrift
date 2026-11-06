@@ -74,7 +74,7 @@ if (ctx) {
     publishedOn: "2026-07-23",
     url: "https://example.invalid/era",
   });
-  await cardErrataRepo(db).upsert(announcedId, {
+  await cardErrataRepo(db).upsert(announcedId, "EN", {
     announcementId,
     correctedRulesText: "Draw a card.",
     correctedEffectText: null,
@@ -82,7 +82,7 @@ if (ctx) {
     sourceUrl: null,
     effectiveDate: null,
   });
-  await cardErrataRepo(db).upsert(unannouncedId, {
+  await cardErrataRepo(db).upsert(unannouncedId, "EN", {
     announcementId: null,
     correctedRulesText: "Gain 2 points.",
     correctedEffectText: null,
@@ -127,9 +127,30 @@ describe.skipIf(!ctx)("errata announcements", () => {
     expect(rows.find((row) => row.id === id)?.publishedOn).toBe("2026-07-24");
   });
 
+  it("keeps one erratum per language for the same card", async () => {
+    const repo = cardErrataRepo(ctx!.db);
+    await repo.upsert(announcedId, "FR", {
+      announcementId,
+      correctedRulesText: "Piochez une carte.",
+      correctedEffectText: null,
+      source: null,
+      sourceUrl: null,
+      effectiveDate: null,
+    });
+    const rows = await repo.getByCardIds([announcedId]);
+    expect(rows.map((row) => [row.language, row.correctedRulesText]).toSorted()).toEqual([
+      ["EN", "Draw a card."],
+      ["FR", "Piochez une carte."],
+    ]);
+    await repo.delete(announcedId, "FR");
+    expect(await repo.get(announcedId, "FR")).toBeNull();
+    const english = await repo.get(announcedId, "EN");
+    expect(english?.correctedRulesText).toBe("Draw a card.");
+  });
+
   it("rejects an erratum with both an announcement and a source", async () => {
     await expect(
-      cardErrataRepo(ctx!.db).upsert(unannouncedId, {
+      cardErrataRepo(ctx!.db).upsert(unannouncedId, "EN", {
         announcementId,
         correctedRulesText: "Gain 2 points.",
         correctedEffectText: null,

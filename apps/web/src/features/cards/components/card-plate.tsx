@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { OverlayPlateFields } from "@openrift/shared/contracts/overlay";
+import { errataForLanguage } from "@openrift/shared/errata";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -16,8 +17,9 @@ export function hasCardPlateContent(printing: Printing, fields: OverlayPlateFiel
   // Only null means "this card has no such stat" — 0 is a real value (0-cost
   // cards exist) and still counts as content.
   const hasStats = card.energy !== null || card.power !== null || card.might !== null;
-  const rulesText = card.errata?.correctedRulesText ?? printing.printedRulesText;
-  const effectText = card.errata?.correctedEffectText ?? printing.printedEffectText;
+  const errata = errataForLanguage(card.errata, printing.language);
+  const rulesText = errata?.correctedRulesText ?? printing.printedRulesText;
+  const effectText = errata?.correctedEffectText ?? printing.printedEffectText;
 
   return Boolean(
     fields.name ||

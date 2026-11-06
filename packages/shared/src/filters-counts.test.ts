@@ -216,7 +216,7 @@ describe("computeFilterCounts", () => {
         printingId: "p-signed",
         cardId: "c-signed",
         isSigned: true,
-        card: { slug: "c-signed", bans: [], errata: null },
+        card: { slug: "c-signed", bans: [], errata: [] },
       }),
       makePrinting({
         printingId: "p-plain",
@@ -232,13 +232,16 @@ describe("computeFilterCounts", () => {
               reason: "test",
             },
           ],
-          errata: {
-            correctedRulesText: "x",
-            correctedEffectText: null,
-            source: "test",
-            sourceUrl: null,
-            effectiveDate: null,
-          },
+          errata: [
+            {
+              language: "EN",
+              correctedRulesText: "x",
+              correctedEffectText: null,
+              source: "test",
+              sourceUrl: null,
+              effectiveDate: null,
+            },
+          ],
         },
       }),
       makePrinting({
@@ -247,7 +250,7 @@ describe("computeFilterCounts", () => {
         isSigned: false,
         images: [],
         markers: [{ id: "m1", slug: "promo-stamp", label: "Promo", description: null }],
-        card: { slug: "c-promo", bans: [], errata: null },
+        card: { slug: "c-promo", bans: [], errata: [] },
       }),
     ];
 

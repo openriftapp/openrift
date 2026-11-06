@@ -213,15 +213,17 @@ export const catalogCardResponseSchema = z.object({
     .nullable()
     .meta({ examples: [null] }),
   errata: z
-    .object({
-      correctedRulesText: z.string().nullable(),
-      correctedEffectText: z.string().nullable(),
-      source: z.string(),
-      sourceUrl: z.string().nullable(),
-      effectiveDate: z.string().nullable(),
-    })
-    .nullable()
-    .meta({ examples: [null] }),
+    .array(
+      z.object({
+        language: z.string().meta({ examples: ["EN"] }),
+        correctedRulesText: z.string().nullable(),
+        correctedEffectText: z.string().nullable(),
+        source: z.string(),
+        sourceUrl: z.string().nullable(),
+        effectiveDate: z.string().nullable(),
+      }),
+    )
+    .meta({ examples: [[]] }),
   bans: z.array(cardBanSchema).meta({ examples: [[]] }),
 });
 

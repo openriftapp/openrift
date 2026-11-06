@@ -1,0 +1,340 @@
+{
+  "language": "FR",
+  "announcement": {
+    "name": "French Translation Errata",
+    "publishedOn": "2026-09-01",
+    "url": "https://playriftbound.com/fr-fr/news/announcements/errata-de-traduction-franaise/"
+  },
+  "cards": [
+    {
+      "cardSlug": "ava-achiever",
+      "faces": ["OGN-107"],
+      "printedRulesText": "Lorsque j’attaque, vous pouvez payer :rb_rune_mind: pour jouer une carte possédant [Caché] ici de votre main en ignorant son coût.",
+      "correctedRulesText": "Lorsque j’attaque, vous pouvez payer :rb_rune_mind: pour jouer une carte avec [Caché] de votre main, en ignorant son coût. Si c’est une unité, jouez-la ici."
+    },
+    {
+      "cardSlug": "baited-hook",
+      "faces": ["OGN-242"],
+      "printedRulesText": ":rb_energy_1: :rb_rune_order:, :rb_exhaust: : éliminez une unité alliée. Regardez les 5 premières cartes de votre deck principal. Parmi ces 5 cartes, vous pouvez jouer une unité en ignorant son coût. Sa puissance ne peut dépasser de plus de 1 celle de l’unité éliminée. Recyclez ensuite le reste.",
+      "correctedRulesText": ":rb_energy_1: :rb_rune_order:, :rb_exhaust: : éliminez une unité alliée. Regardez les 5 premières cartes de votre deck principal. Vous pouvez bannir une unité parmi elles qui possède une puissance jusqu’à 1 de plus que l’unité éliminée et la jouer, en ignorant son coût. Recyclez ensuite le reste."
+    },
+    {
+      "cardSlug": "blind-fury",
+      "faces": ["OGN-025"],
+      "printedRulesText": "[Action] _(Jouez ceci pendant votre tour ou pendant les confrontations.)_\nChaque adversaire révèle la première carte de son deck principal. Choisissez-en une et jouez-la, en ignorant son coût. Recyclez ensuite le reste.",
+      "correctedRulesText": "[Action] _(Jouez ceci pendant votre tour ou pendant les confrontations.)_\nChaque adversaire révèle la première carte de son deck principal. Choisissez-en une et bannissez-la, puis jouez-la en ignorant son coût. Recyclez ensuite le reste."
+    },
+    {
+      "cardSlug": "clockwork-keeper",
+      "faces": ["OGN-044"],
+      "printedRulesText": "Quand vous me jouez, vous pouvez payer un coût supplémentaire de :rb_rune_calm: pour piocher 1 carte.",
+      "correctedRulesText": "Vous pouvez payer un coût supplémentaire de :rb_rune_calm: pour me jouer.\nLorsque vous me jouez, si vous avez payé le coût supplémentaire, piochez 1 carte."
+    },
+    {
+      "cardSlug": "convergent-mutation",
+      "faces": ["OGN-108"],
+      "printedRulesText": "[Réaction] _(Jouez ceci n’importe quand, même avant que des sorts ou compétences ne soient résolus.)_\nChoisissez une unité alliée. Augmentez sa puissance jusqu’à ce qu’elle soit égale à celle d’une autre unité alliée.",
+      "correctedRulesText": "[Réaction] _(Jouez ceci n’importe quand, même avant que des sorts ou compétences ne soient résolus.)_\nChoisissez une unité alliée. Ce tour-ci, augmentez sa puissance pour qu’elle soit égale à celle d’une autre unité alliée."
+    },
+    {
+      "cardSlug": "dazzling-aurora",
+      "faces": ["OGN-160"],
+      "printedRulesText": "À la fin de votre tour, révélez les cartes du dessus de votre deck principal jusqu’à révéler une unité. Jouez-la en ignorant son coût et recyclez les autres cartes révélées.",
+      "correctedRulesText": "À la fin de votre tour, révélez les cartes du dessus de votre deck principal jusqu’à révéler une unité et bannissez-la. Jouez-la en ignorant son coût et recyclez le reste."
+    },
+    {
+      "cardSlug": "disintegrate",
+      "faces": ["OGN-005"],
+      "printedRulesText": "[Action] _(Jouez ceci pendant votre tour ou pendant les confrontations.)_\nInfligez 3 dégâts à une unité sur un champ de bataille. Si l’unité est éliminée, piochez 1 carte.",
+      "correctedRulesText": "[Action] _(Jouez ceci pendant votre tour ou lors des confrontations.)_\nInfligez 3 dégâts à une unité sur un champ de bataille. Si l’unité est éliminée, faites ceci : piochez 1 carte."
+    },
+    {
+      "cardSlug": "dragon-s-rage",
+      "faces": ["OGN-258"],
+      "printedRulesText": "Déplacez une unité ennemie. Choisissez ensuite une autre unité ennemie à sa destination. Elles s’infligent mutuellement des dégâts équivalents à leur puissance.",
+      "correctedRulesText": "Déplacez une unité ennemie. Puis faites ceci : choisissez une autre unité ennemie à sa destination. Elles s’infligent mutuellement des dégâts équivalents à leur puissance."
+    },
+    {
+      "cardSlug": "dune-drake",
+      "faces": ["OGN-131"],
+      "printedRulesText": "Lorsque j’attaque, octroyez-moi +2 :rb_might: s’il y a une unité ennemie préparée ici.",
+      "correctedRulesText": "Lorsque j’attaque, octroyez-moi +2 :rb_might: ce tour-ci s’il y a une unité ennemie préparée ici."
+    },
+    {
+      "cardSlug": "falling-star",
+      "faces": ["OGN-029"],
+      "printedRulesText": "Faites ceci 2 fois :\n infligez 3 dégâts à une unité. _(Vous pouvez choisir différentes unités.)_",
+      "correctedRulesText": "Infligez 3 dégâts à une unité.\nInfligez 3 dégâts à une unité."
+    },
+    {
+      "cardSlug": "fox-fire",
+      "faces": ["OGN-256"],
+      "printedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher cette carte et réagir avec plus tard en payant :rb_energy_0:.)_\n[Action] _(Jouez cette carte pendant votre tour ou lors des confrontations.)_\nÉliminez des unités sur un champ de bataille dont la puissance combinée atteint un maximum de 4.",
+      "correctedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher cette carte et réagir avec plus tard en payant :rb_energy_0:.)_\n[Action] _(Jouez cette carte pendant votre tour ou lors des confrontations.)_\nÉliminez n’importe quel nombre d’unités sur un champ de bataille dont la puissance combinée atteint un maximum de 4."
+    },
+    {
+      "cardSlug": "highlander",
+      "faces": ["OGS-020"],
+      "printedRulesText": "[Réaction] _(Jouez ceci n’importe quand, même avant que des sorts ou compétences ne soient résolus.)_\nChoisissez une unité alliée. La prochaine fois qu’elle est éliminée pendant ce tour, rappelez-la épuisée à la place. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_",
+      "correctedRulesText": "[Réaction] _(Jouez ceci n’importe quand, même avant que des sorts ou compétences ne soient résolus.)_\nChoisissez une unité alliée. La prochaine fois qu’elle doit être éliminée ce tour-ci, soignez-la, épuisez-la et rappelez-la à la place. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_"
+    },
+    {
+      "cardSlug": "icathian-rain",
+      "faces": ["OGN-248"],
+      "printedRulesText": "Répétez ceci 6 fois :\n infligez 2 dégâts à une unité. _(Vous pouvez choisir différentes unités.)_",
+      "correctedRulesText": "Infligez 2 dégâts à une unité.\nInfligez 2 dégâts à une unité.\nInfligez 2 dégâts à une unité.\nInfligez 2 dégâts à une unité.\nInfligez 2 dégâts à une unité.\nInfligez 2 dégâts à une unité."
+    },
+    {
+      "cardSlug": "karma-channeler",
+      "faces": ["OGN-235", "SFD-237", "SFD-237*"],
+      "printedRulesText": "[Vision] _(Lorsque vous me jouez, regardez la première carte de votre deck principal. Vous pouvez la recycler.)_\nLorsque vous recyclez une carte ou plus, buffez une unité alliée. _(Si elle n’a pas encore de buff, octroyez-lui un buff de +1 :rb_might:. Les runes ne sont pas des cartes.)_",
+      "correctedRulesText": "[Vision] _(Lorsque vous me jouez, regardez la première carte de votre deck principal. Vous pouvez la recycler.)_\nLorsque vous recyclez une carte ou plus dans votre deck principal, buffez une unité alliée. _(Si elle n’a pas encore de buff, octroyez-lui un buff de +1 :rb_might:. Les runes ne sont pas des cartes.)_"
+    },
+    {
+      "cardSlug": "kinkou-monk",
+      "faces": ["OGN-141"],
+      "printedRulesText": "Lorsque vous me jouez, octroyez un buff à 2 autres unités alliées. _(Si elles n’ont pas encore de buff, octroyez-leur un buff de +1 :rb_might:.)_",
+      "correctedRulesText": "Lorsque vous me jouez, buffez jusqu’à 2 autres unités alliées. _(Si elles n’ont pas encore de buff, octroyez-leur un buff de +1 :rb_might:.)_"
+    },
+    {
+      "cardSlug": "mindsplitter",
+      "faces": ["OGN-192"],
+      "printedRulesText": "Lorsque vous me jouez, choisissez un adversaire. Il doit révéler sa main. Choisissez une carte de sa main et défaussez-la.",
+      "correctedRulesText": "Lorsque vous me jouez, choisissez un adversaire. Il révèle sa main. Choisissez une carte de sa main, et il la défausse."
+    },
+    {
+      "cardSlug": "nocturne-horrifying",
+      "faces": ["OGN-194"],
+      "printedRulesText": "[Gank] _(Je peux me déplacer entre les champs de bataille.)_\nLorsque vous regardez les cartes du dessus de votre deck _(sans les piocher)_ et que vous me voyez, vous pouvez me jouer en payant :rb_rune_rainbow:.",
+      "correctedRulesText": "[Gank] _(Je peux me déplacer entre les champs de bataille.)_\nQuand vous me regardez ou me révélez du dessus de votre deck, vous pouvez me bannir. Si vous le faites, vous pouvez me jouer pour :rb_rune_rainbow:."
+    },
+    {
+      "cardSlug": "pack-of-wonders",
+      "faces": ["OGN-181"],
+      "printedRulesText": ":rb_exhaust: : renvoyez un autre équipement allié, une unité alliée ou une carte [Caché] alliée dans la main de son propriétaire.",
+      "correctedRulesText": ":rb_exhaust: : renvoyez un autre équipement allié, une unité alliée ou une carte face cachée alliée dans la main de son propriétaire."
+    },
+    {
+      "cardSlug": "promising-future",
+      "faces": ["OGN-115"],
+      "printedRulesText": "Chaque joueur regarde les 5 premières cartes de son deck principal, en choisit une et recycle les autres. En commençant par le joueur suivant, chaque joueur joue la carte qu’il a bannie, en ignorant son coût en énergie. _(Les joueurs doivent toujours payer le coût en essence runique.)_",
+      "correctedRulesText": "Chaque joueur regarde les 5 premières cartes de son deck principal, en bannit une, puis recycle le reste. En commençant par le joueur suivant, chaque joueur joue la carte qu’il a bannie, en ignorant son coût en énergie. _(Les joueurs doivent toujours payer le coût en essence runique.)_"
+    },
+    {
+      "cardSlug": "ravenborn-tome",
+      "faces": ["OGN-032"],
+      "printedRulesText": ":rb_exhaust: : le prochain sort que vous jouez inflige 1 dégât bonus. _(À chaque fois qu’un sort inflige des dégâts, ces dégâts sont augmentés de 1.)_",
+      "correctedRulesText": ":rb_exhaust: : le prochain sort que vous jouez ce tour-ci inflige 1 dégât bonus. _(À chaque fois qu’un sort inflige des dégâts, ces dégâts sont augmentés de 1.)_"
+    },
+    {
+      "cardSlug": "reinforce",
+      "faces": ["OGN-062"],
+      "printedRulesText": "Regardez les 5 premières cartes de votre deck principal. Vous pouvez jouer une unité parmi elles. Son coût en énergie est réduit de :rb_energy_5:. Recyclez les autres cartes.",
+      "correctedRulesText": "Regardez les 5 premières cartes de votre deck principal. Vous pouvez bannir une unité parmi elles, puis la jouer, en réduisant son coût de :rb_energy_5:. Recyclez les autres cartes."
+    },
+    {
+      "cardSlug": "salvage",
+      "faces": ["OGN-224"],
+      "printedRulesText": "[Action] _(Jouez ceci pendant votre tour ou pendant les confrontations.)_\nVous pouvez éliminer un équipement. Piochez 1 carte.",
+      "correctedRulesText": "[Action] _(Jouez ceci pendant votre tour ou pendant les confrontations.)_\nVous pouvez éliminer jusqu’à un équipement. Piochez 1 carte."
+    },
+    {
+      "cardSlug": "sigil-of-the-storm",
+      "faces": ["OGN-287"],
+      "printedRulesText": "Lorsque vous conquérez ici, recyclez une de vos runes.",
+      "correctedRulesText": "Lorsque vous conquérez ici, vous devez recycler une de vos runes. _(Ceci ne choisit rien.)_"
+    },
+    {
+      "cardSlug": "sona-harmonious",
+      "faces": ["OGN-073"],
+      "printedRulesText": "Tant que je suis sur un champ de bataille, préparez 4 runes alliées à la fin de votre tour.",
+      "correctedRulesText": "À la fin de votre tour, si je suis sur un champ de bataille, préparez jusqu’à 4 runes alliées."
+    },
+    {
+      "cardSlug": "startipped-peak",
+      "faces": ["OGN-288"],
+      "printedRulesText": "Lorsque vous contrôlez ici, vous pouvez canaliser 1 rune épuisée.",
+      "correctedRulesText": "Lorsque vous occupez ici, vous pouvez canaliser 1 rune épuisée."
+    },
+    {
+      "cardSlug": "stealthy-pursuer",
+      "faces": ["OGN-177"],
+      "printedRulesText": "Lorsqu’une unité alliée quitte l’endroit où je me trouve, je peux me déplacer avec elle.",
+      "correctedRulesText": "Lorsqu’une unité alliée se déplace de mon emplacement, je peux me déplacer avec elle."
+    },
+    {
+      "cardSlug": "targon-s-peak",
+      "faces": ["OGN-289"],
+      "printedRulesText": "Lorsque vous conquérez ici, préparez 2 runes à la fin de ce tour.",
+      "correctedRulesText": "Lorsque vous conquérez ici, préparez jusqu’à 2 runes à la fin de ce tour."
+    },
+    {
+      "cardSlug": "teemo-strategist",
+      "faces": ["OGN-121", "OGN-121a", "SFD-230", "SFD-230*"],
+      "printedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nLorsque je défends ou que je suis joué via [Caché], révélez les 5 premières cartes de votre deck principal. Infligez 1 dégât à une unité ennemie ici pour chaque carte possédant [Caché] parmi les cartes révélées, ensuite recyclez-les.",
+      "correctedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nLorsque je défends, choisissez une unité ennemie ici et révélez les 5 premières cartes de votre deck principal. Infligez 1 dégât à cette unité pour chaque carte avec [Caché] révélée de cette manière, puis recyclez les cartes révélées."
+    },
+    {
+      "cardSlug": "the-boss",
+      "faces": ["OGN-269", "OGN-310", "OGN-310*"],
+      "printedRulesText": "Lorsqu’une unité que vous contrôlez et bénéficiant d’un buff doit être éliminée, vous pouvez payer :rb_rune_rainbow: et m’épuiser pour dépenser son buff et la rappeler épuisée à la place. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_\nLorsque vous conquérez, préparez-moi.",
+      "correctedRulesText": "Si une unité buffée que vous contrôlez doit être éliminée, vous pouvez payer :rb_rune_rainbow:, m’épuiser et dépenser son buff pour la soigner, l’épuiser et la rappeler à la place. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_\nLorsque vous conquérez, préparez-moi."
+    },
+    {
+      "cardSlug": "the-dreaming-tree",
+      "faces": ["OGN-292"],
+      "printedRulesText": "À chaque tour, la première fois que vous choisissez une unité alliée avec un sort ici, piochez 1 carte.",
+      "correctedRulesText": "Lorsqu’un joueur choisit une unité alliée ici avec un sort pour la première fois à chaque tour, il pioche 1 carte."
+    },
+    {
+      "cardSlug": "tideturner",
+      "faces": ["OGN-199"],
+      "printedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nLorsque vous me jouez, vous pouvez choisir une unité que vous contrôlez. Déplacez-moi à son emplacement, et déplacez-la à mon emplacement original.",
+      "correctedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nLorsque vous me jouez, vous pouvez choisir une unité que vous contrôlez à un autre emplacement. Déplacez-moi à son emplacement, et déplacez-la à mon emplacement original."
+    },
+    {
+      "cardSlug": "zhonya-s-hourglass",
+      "faces": ["OGN-077"],
+      "printedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nLa prochaine fois qu’une unité alliée doit être éliminée, éliminez cette carte à la place. Rappelez cette unité épuisée. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_",
+      "correctedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nSi une unité alliée doit être éliminée, éliminez ceci à la place. Soignez cette unité, épuisez-la, puis rappelez-la. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_"
+    },
+    {
+      "cardSlug": "unlicensed-armory",
+      "faces": ["OGN-023"],
+      "printedRulesText": "Défaussez 1 carte, :rb_exhaust: : choisissez une unité alliée. La prochaine fois qu’elle est éliminée pendant ce tour, vous pouvez payer :rb_rune_fury: pour la rappeler épuisée à la place. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_",
+      "correctedRulesText": "Défaussez 1 carte, :rb_exhaust: : choisissez une unité alliée. La prochaine fois qu’elle doit être éliminée ce tour-ci, vous pouvez payer :rb_rune_fury: pour la soigner, l’épuiser et la rappeler à la place. _(Envoyez-la à la base. Ceci n’est pas un déplacement.)_"
+    },
+    {
+      "cardSlug": "volibear-furious",
+      "faces": ["OGN-041", "OGN-041a"],
+      "printedRulesText": "[Protection 2] _(Les adversaires doivent payer :rb_rune_rainbow: :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nLorsque j’attaque, infligez un total de 5 dégâts répartis entre les unités ennemies ici.",
+      "correctedRulesText": "[Protection 2] _(Les adversaires doivent payer :rb_rune_rainbow: :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nLorsque j’attaque, infligez un total de 5 dégâts répartis entre n’importe quel nombre d’unités ennemies ici."
+    },
+    {
+      "cardSlug": "arise",
+      "faces": ["SFD-198"],
+      "printedRulesText": "Jouez une unité créée de type Soldat de sable de 2 :rb_might: pour chaque objet que vous contrôlez. Puis préparez deux d’entre eux.",
+      "correctedRulesText": "Jouez une unité créée de type Soldat de sable de 2 :rb_might: pour chaque objet que vous contrôlez. Puis faites ceci : préparez-en jusqu’à 2."
+    },
+    {
+      "cardSlug": "blood-rush",
+      "faces": ["SFD-003"],
+      "printedRulesText": "[Action] _(Jouez ceci pendant votre tour ou lors des confrontations.)_\n[Répétition :rb_energy_1:] _(Vous pouvez payer le coût supplémentaire pour répéter l’effet de ce sort.)_\nOctroyez [Assaut 2] à une unité. _(+2 :rb_might: lorsqu’elle attaque.)_",
+      "correctedRulesText": "[Action] _(Jouez ceci pendant votre tour ou lors des confrontations.)_\n[Répétition :rb_energy_1:] _(Vous pouvez payer le coût supplémentaire pour répéter l’effet de ce sort.)_\nOctroyez [Assaut 2] à une unité ce tour-ci. _(+2 :rb_might: tant qu’elle attaque.)_"
+    },
+    {
+      "cardSlug": "janna-savior",
+      "faces": ["SFD-053"],
+      "printedRulesText": "[Réaction] _(Jouez ceci n’importe quand, même avant que des sorts ou compétences ne soient résolus, y compris sur un champ de bataille que vous contrôlez.)_\nLorsque vous me jouez, soignez vos unités ici, puis déplacez une unité ennemie d’ici vers sa base.",
+      "correctedRulesText": "[Réaction] _(Jouez ceci n’importe quand, même avant que des sorts ou compétences ne soient résolus, y compris sur un champ de bataille que vous contrôlez.)_\nLorsque vous me jouez, soignez vos unités ici, puis déplacez jusqu’à une unité ennemie d’ici vers sa base."
+    },
+    {
+      "cardSlug": "jax-unmatched",
+      "faces": ["SFD-054", "SFD-054a"],
+      "printedRulesText": "[Protection] _(Les adversaires doivent payer :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nChaque objet dans votre main a [Dégainer]. _(Chaque objet reçoit [Réaction]. Lorsque vous jouez cette carte, équipez-la à une unité que vous contrôlez.)_",
+      "correctedRulesText": "[Protection] _(Les adversaires doivent payer :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nVos objets ont [Dégainer] partout. _(Chaque objet reçoit [Réaction]. Lorsque vous le jouez, équipez-le à une unité que vous contrôlez.)_"
+    },
+    {
+      "cardSlug": "kato-the-arm",
+      "faces": ["SFD-112"],
+      "printedRulesText": "[Protection] _(Les adversaires doivent payer :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nLorsque je me déplace vers un champ de bataille, octroyez à une unité alliée mes mots-clés et +:rb_might: d’un montant égal à ma puissance pendant ce tour.",
+      "correctedRulesText": "[Protection] _(Les adversaires doivent payer :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nLorsque je me déplace vers un champ de bataille, octroyez ce tour-ci à une autre unité alliée mes mots-clés et +:rb_might: d’un montant égal à ma puissance."
+    },
+    {
+      "cardSlug": "rek-sai-swarm-queen",
+      "faces": ["SFD-170", "SFD-170a"],
+      "printedRulesText": "Lorsque j’attaque, vous pouvez révéler les 2 premières cartes de votre deck principal. Vous pouvez en jouer une. Recyclez ensuite le reste. Si la carte jouée est une unité, vous pouvez la jouer ici.",
+      "correctedRulesText": "Lorsque j’attaque, vous pouvez révéler les 2 premières cartes de votre deck principal. Vous pouvez en bannir une, puis la jouer. Si c’est une unité, vous pouvez la jouer ici. Recyclez le reste."
+    },
+    {
+      "cardSlug": "rell-magnetic",
+      "faces": ["SFD-024"],
+      "printedRulesText": "[Tank] _(Je dois recevoir les dégâts en combat en premier.)_\nLorsque j’attaque, vous pouvez jouer un objet avec un coût en énergie maximal de :rb_energy_2:, ignorer son coût et me l’équiper.",
+      "correctedRulesText": "[Tank] _(Je dois recevoir les dégâts en combat en premier.)_\nLorsque j’attaque, vous pouvez jouer un objet avec un coût en énergie de :rb_energy_2: ou moins, en ignorant son coût. Si vous le faites, faites ensuite ceci : équipez-le-moi."
+    },
+    {
+      "cardSlug": "tianna-crownguard",
+      "faces": ["SFD-060"],
+      "printedRulesText": "[Protection] _(Les adversaires doivent payer :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nLorsque je suis sur un champ de bataille, les adversaires ne peuvent pas marquer de points.",
+      "correctedRulesText": "[Protection] _(Les adversaires doivent payer :rb_rune_rainbow: pour me choisir avec un sort ou une compétence.)_\nLorsque je suis sur un champ de bataille, les adversaires ne peuvent pas gagner de points."
+    },
+    {
+      "cardSlug": "void-burrower",
+      "faces": ["SFD-187", "SFD-243"],
+      "printedRulesText": "Lorsque vous conquérez, vous pouvez m’épuiser pour révéler les 2 premières cartes de votre deck principal. Vous pouvez en jouer une. Recyclez ensuite le reste.",
+      "correctedRulesText": "Lorsque vous conquérez, vous pouvez m’épuiser pour révéler les 2 premières cartes de votre deck principal. Vous pouvez en bannir une, puis la jouer. Recyclez le reste."
+    },
+    {
+      "cardSlug": "void-rush",
+      "faces": ["SFD-188"],
+      "printedRulesText": "Révélez les 2 premières cartes de votre deck principal. Vous pouvez en jouer une, en réduisant son coût de :rb_energy_2:. Piochez les cartes que vous n’avez pas jouées de cette façon.",
+      "correctedRulesText": "Révélez les 2 premières cartes de votre deck principal. Vous pouvez en bannir une, puis la jouer, en réduisant son coût de :rb_energy_2:. Piochez toute carte que vous n’avez pas bannie."
+    },
+    {
+      "cardSlug": "yone-blademaster",
+      "faces": ["SFD-116", "SFD-233", "SFD-233*"],
+      "printedRulesText": "[Expert en armes] _(Lorsque vous me jouez, vous pouvez m’[Équiper] d’un de vos objets pour :rb_rune_rainbow: de moins, même s’il est déjà équipé.)_\nLorsque je conquiers un champ de bataille libre, infligez des dégâts équivalents à ma puissance à une unité ennemie dans une base.",
+      "correctedRulesText": "[Expert en armes] _(Lorsque vous me jouez, vous pouvez m’[Équiper] d’un de vos objets pour :rb_rune_rainbow: de moins, même s’il est déjà équipé.)_\nLorsque je conquiers un champ de bataille qui n’était pas contrôlé, infligez des dégâts équivalents à ma puissance à une unité ennemie dans une base."
+    },
+    {
+      "cardSlug": "draven-vanquisher",
+      "faces": ["SFD-020", "SFD-020a"],
+      "printedRulesText": "Lorsque je gagne un combat, jouez un équipement créé de type PO épuisé.\nLorsque j’attaque ou que je défends, vous pouvez payer :rb_rune_fury:. Si vous le faites, octroyez-moi +2 :rb_might: pendant ce tour.",
+      "correctedRulesText": "Lorsque je gagne un combat, jouez un équipement créé de type PO épuisé.\nLorsque j’attaque ou que je défends, vous pouvez payer :rb_rune_fury: pour m’octroyer +2 :rb_might: ce tour-ci."
+    },
+    {
+      "cardSlug": "strike-down",
+      "faces": ["SFD-107"],
+      "printedRulesText": "Choisissez une unité alliée équipée. Elle inflige des dégâts équivalents à sa puissance à une unité ennemie. Ensuite, déséquipez son objet.",
+      "correctedRulesText": "Choisissez une unité alliée équipée. Elle inflige des dégâts équivalents à sa puissance à une unité ennemie. Ensuite, déséquipez-lui un objet."
+    },
+    {
+      "cardSlug": "death-from-below",
+      "faces": ["UNL-186"],
+      "printedRulesText": "Éliminez une unité sur un champ de bataille. Ensuite, si elle avait 3 :rb_might: ou moins, vous pouvez jouer ceci de votre défausse pour :rb_rune_rainbow:.",
+      "correctedRulesText": "Éliminez une unité sur un champ de bataille. Puis, si elle avait 3 :rb_might: ou moins, faites ceci : vous pouvez jouer ceci de votre défausse pour :rb_rune_rainbow:."
+    },
+    {
+      "cardSlug": "bone-skewer",
+      "faces": ["UNL-139"],
+      "printedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nChoisissez un champ de bataille. Un adversaire doit révéler sa main. Vous pouvez choisir une unité de sa main. Il joue cette unité sur ce champ de bataille, en ignorant tous ses coûts. Lorsque l’unité est jouée, [Étourdissez]-la. _(Elle n’inflige pas de dégâts en combat pendant ce tour.)_",
+      "correctedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\nChoisissez un champ de bataille. Un adversaire révèle sa main. Vous pouvez choisir une unité de sa main. Il joue cette unité sur ce champ de bataille, en ignorant tous ses coûts. S’il le fait, faites ceci ensuite : [Étourdissez]-la. _(Elle n’inflige pas de dégâts en combat pendant ce tour.)_"
+    },
+    {
+      "cardSlug": "deceiver",
+      "faces": ["UNL-199", "UNL-235", "UNL-235*"],
+      "printedRulesText": "Lorsque vous conquérez ou occupez, vous pouvez défausser 1 carte et m’épuiser pour jouer une unité créée de type Reflet préparée sur ce champ de bataille. Elle devient une copie d’une autre unité qui s’y trouve. Octroyez-lui [Temporaire].",
+      "correctedRulesText": "Lorsque vous conquérez ou occupez, vous pouvez défausser 1 carte et m’épuiser pour jouer une unité créée de type Reflet préparée sur ce champ de bataille. Puis faites ceci : elle devient une copie d’une autre unité qui s’y trouve. Octroyez-lui [Temporaire]."
+    },
+    {
+      "cardSlug": "mirror-image",
+      "faces": ["UNL-200"],
+      "printedRulesText": "Choisissez une unité. Jouez une unité créée de type Reflet préparée dans votre base. Elle devient une copie de l’unité choisie. Octroyez-lui [Temporaire]. _(Éliminez-la au début de la phase de départ du joueur qui la contrôle, avant d’octroyer les points.)_",
+      "correctedRulesText": "Choisissez une unité. Jouez une unité créée de type Reflet préparée dans votre base. Puis faites ceci : elle devient une copie de l’unité choisie. Octroyez-lui [Temporaire]. _(Éliminez-la au début de la phase de départ du joueur qui la contrôle, avant d’octroyer les points.)_"
+    },
+    {
+      "cardSlug": "keeper-of-masks",
+      "faces": ["UNL-081"],
+      "printedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\n[Temporaire] _(Éliminez-moi au début de la phase de départ du joueur qui me contrôle, avant d’octroyer les points.)_\nLorsque vous me jouez, jouez 2 unités créées de type Reflet ici. Elles deviennent des copies de moi.",
+      "correctedRulesText": "[Caché] _(Payez :rb_rune_rainbow: pour cacher ceci et réagir avec plus tard en payant :rb_energy_0:.)_\n[Temporaire] _(Éliminez-moi au début de la phase de départ du joueur qui me contrôle, avant d’octroyer les points.)_\nLorsque vous me jouez, jouez 2 unités créées de type Reflet ici. Puis faites ceci : elles deviennent des copies de moi."
+    },
+    {
+      "cardSlug": "rengar-trophy-hunter",
+      "faces": ["UNL-120"],
+      "printedRulesText": "[Embuscade] _(Vous pouvez utiliser une [Réaction] pour me jouer sur un champ de bataille où vous avez des unités.)_\nJe peux être joué sur un champ de bataille où se trouvent des unités ennemies _(même si vous n’y avez pas d’unité)_.",
+      "correctedRulesText": "[Embuscade] _(Vous pouvez utiliser une [Réaction] pour me jouer sur un champ de bataille où vous avez des unités.)_\nJe peux tendre une [Embuscade] sur un champ de bataille où se trouvent des unités ennemies, même si vous n’y avez pas d’unités."
+    },
+    {
+      "cardSlug": "diana-lunari",
+      "faces": ["UNL-079"],
+      "printedRulesText": "Lorsqu’une confrontation commence ici, vous pouvez payer :rb_energy_1:. Si vous le faites, faites une [Prédiction], puis révélez la première carte de votre deck principal. Si c’est un sort, piochez-le. _(Pour faire une prédiction, regardez la première carte de votre deck principal. Vous pouvez la recycler.)_",
+      "correctedRulesText": "Lorsqu’une confrontation commence ici, vous pouvez payer :rb_energy_1: pour faire une [Prédiction], puis révélez la première carte de votre deck principal. Si c’est un sort, piochez-le. _(Pour faire une prédiction, regardez la première carte de votre deck principal. Vous pouvez la recycler.)_"
+    },
+    {
+      "cardSlug": "stalking-wolf",
+      "faces": ["UNL-166"],
+      "printedRulesText": "[Embuscade] _(Vous pouvez utiliser une [Réaction] pour me jouer sur un champ de bataille où vous avez des unités.)_\nComme coût supplémentaire pour me jouer, éliminez un Oiseau, un Chat, un Chien ou un Poro que vous contrôlez. Vous pouvez me jouer sur son champ de bataille _(même si vous n’y avez pas d’autres unités)_.",
+      "correctedRulesText": "[Embuscade] _(Vous pouvez utiliser une [Réaction] pour me jouer sur un champ de bataille où vous avez des unités.)_\nComme coût supplémentaire pour me jouer, éliminez un Oiseau, un Chat, un Chien ou un Poro que vous contrôlez. Vous pouvez me faire tendre une [Embuscade] sur son champ de bataille, même si vous n’y avez pas d’autres unités."
+    }
+  ]
+}

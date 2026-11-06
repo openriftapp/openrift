@@ -315,7 +315,7 @@ describe("filterCards predicates", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -338,7 +338,7 @@ describe("filterCards predicates", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];

@@ -25,7 +25,7 @@ function createMockRepo(overrides: Record<string, unknown> = {}) {
     exportPrintings: vi.fn().mockResolvedValue([]),
     exportCardErrata: vi.fn().mockResolvedValue([]),
     cardForDetailBySlug: vi.fn().mockResolvedValue(undefined),
-    cardErrataForDetail: vi.fn().mockResolvedValue(null),
+    cardErrataForDetail: vi.fn().mockResolvedValue([]),
     cardNameAliases: vi.fn().mockResolvedValue([]),
     candidateCardsForDetail: vi.fn().mockResolvedValue([]),
     candidatePrintingsForDetail: vi.fn().mockResolvedValue([]),

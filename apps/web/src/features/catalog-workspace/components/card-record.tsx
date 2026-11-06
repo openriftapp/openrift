@@ -637,7 +637,7 @@ function CardRecordBody({
           title="Bans & errata"
           collapsible
           defaultOpen={false}
-          summary={bansErrataSummary(bans?.length, card.errata !== null)}
+          summary={bansErrataSummary(bans?.length, card.errata.length > 0)}
         >
           <div className="space-y-8">
             <CardBansSection cardId={card.id} />

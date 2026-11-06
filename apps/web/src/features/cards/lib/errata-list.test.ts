@@ -9,6 +9,7 @@ import {
   UNANNOUNCED_GROUP_ID,
   countErrataBySet,
   errataGroupId,
+  countErrataCards,
   errataGroupIdForCard,
   groupErrata,
   latestErrataUpdate,
@@ -30,6 +31,7 @@ const ORIGINS: ErrataAnnouncement = {
 function entry(overrides: Partial<ErrataEntry> & { name: string }): ErrataEntry {
   const { name, ...rest } = overrides;
   return {
+    language: "EN",
     announcementId: VENDETTA.id,
     source: null,
     sourceUrl: null,
@@ -170,6 +172,23 @@ describe("errataGroupIdForCard", () => {
 
   it("returns null for a card without errata", () => {
     expect(errataGroupIdForCard(response, "missing")).toBeNull();
+  });
+
+  it("finds a French entry by its language-suffixed anchor", () => {
+    const french = data([entry({ name: "Fox-Fire", language: "FR", announcementId: ORIGINS.id })]);
+    expect(errataGroupIdForCard(french, "fox-fire-fr")).toBe("origins-card-errata");
+    expect(errataGroupIdForCard(french, "fox-fire")).toBeNull();
+  });
+});
+
+describe("countErrataCards", () => {
+  it("counts a card with errata in two languages once", () => {
+    const entries = [
+      entry({ name: "Arise" }),
+      entry({ name: "Arise", language: "FR" }),
+      entry({ name: "Gold" }),
+    ];
+    expect(countErrataCards(entries)).toBe(2);
   });
 });
 

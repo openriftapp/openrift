@@ -68,6 +68,7 @@ export interface ErrataAnnouncementsTable {
 export interface CardErrataTable {
   id: Generated<string>;
   cardId: string;
+  language: string;
   announcementId: string | null;
   correctedRulesText: string | null;
   correctedEffectText: string | null;

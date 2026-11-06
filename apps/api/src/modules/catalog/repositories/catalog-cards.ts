@@ -44,7 +44,12 @@ type CatalogCardBanRow = Pick<
 
 type CatalogCardErrataRow = Pick<
   Selectable<CardErrataTable>,
-  "cardId" | "correctedRulesText" | "correctedEffectText" | "sourceUrl" | "effectiveDate"
+  | "cardId"
+  | "language"
+  | "correctedRulesText"
+  | "correctedEffectText"
+  | "sourceUrl"
+  | "effectiveDate"
 > & { source: string };
 
 /**
@@ -90,6 +95,7 @@ function selectCardErrata(db: Kysely<Database>) {
     .leftJoin("errataAnnouncements as ea", "ea.id", "cardErrata.announcementId")
     .select([
       "cardErrata.cardId",
+      "cardErrata.language",
       "cardErrata.correctedRulesText",
       "cardErrata.correctedEffectText",
       sql<string>`coalesce(ea.name, card_errata.source)`.as("source"),

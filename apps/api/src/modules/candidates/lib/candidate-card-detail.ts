@@ -288,16 +288,15 @@ async function buildDetailResponse(
           power: card.power,
           mightBonus: card.mightBonus,
           keywords: card.keywords,
-          errata: errata
-            ? {
-                announcementId: errata.announcementId,
-                correctedRulesText: errata.correctedRulesText,
-                correctedEffectText: errata.correctedEffectText,
-                source: errata.source,
-                sourceUrl: errata.sourceUrl,
-                effectiveDate: errata.effectiveDate,
-              }
-            : null,
+          errata: errata.map((entry) => ({
+            language: entry.language,
+            announcementId: entry.announcementId,
+            correctedRulesText: entry.correctedRulesText,
+            correctedEffectText: entry.correctedEffectText,
+            source: entry.source,
+            sourceUrl: entry.sourceUrl,
+            effectiveDate: entry.effectiveDate,
+          })),
           tags: card.tags,
           maxCopiesOverride: card.maxCopiesOverride,
           additionalLegendCount: card.additionalLegendCount,
@@ -340,7 +339,7 @@ export async function buildCardDetail(
 ) {
   const card = await repo.cardForDetailBySlug(cardSlug);
   if (!card) {
-    return buildDetailResponse(repo, marketplaceRepo, null, null, [], cardSlug, allowedProviders);
+    return buildDetailResponse(repo, marketplaceRepo, null, [], [], cardSlug, allowedProviders);
   }
 
   const aliases = await repo.cardNameAliases(card.id);
@@ -380,7 +379,7 @@ export async function buildUnmatchedDetail(
     repo,
     null,
     null,
-    null,
+    [],
     [normName],
     normName,
     allowedProviders,

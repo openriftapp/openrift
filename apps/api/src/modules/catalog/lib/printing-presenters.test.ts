@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildPrintingsResponse,
+  groupErrataByCard,
   presentPrintingValues,
   referencedChannels,
   referencedMarkers,
@@ -14,6 +15,39 @@ import {
   resolveMarkers,
   toCatalogPrintingImage,
 } from "./printing-presenters.js";
+
+describe("groupErrataByCard", () => {
+  function errataRow(cardId: string, language: string) {
+    return {
+      cardId,
+      language,
+      correctedRulesText: `${language} text`,
+      correctedEffectText: null,
+      source: "Errata",
+      sourceUrl: null,
+      effectiveDate: null,
+    };
+  }
+
+  it("keeps every language of a card, English first", () => {
+    const grouped = groupErrataByCard([
+      errataRow("c-1", "FR"),
+      errataRow("c-2", "EN"),
+      errataRow("c-1", "EN"),
+    ]);
+    expect(grouped.get("c-1")?.map((entry) => entry.language)).toEqual(["EN", "FR"]);
+    expect(grouped.get("c-2")).toEqual([
+      {
+        language: "EN",
+        correctedRulesText: "EN text",
+        correctedEffectText: null,
+        source: "Errata",
+        sourceUrl: null,
+        effectiveDate: null,
+      },
+    ]);
+  });
+});
 
 describe("resolveFallbackArt", () => {
   it("omits both fields for the auto default", () => {

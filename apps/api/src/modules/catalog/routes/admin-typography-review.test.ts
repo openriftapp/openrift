@@ -20,7 +20,7 @@ const mockMutations = {
 };
 
 const mockCardErrata = {
-  getByCardId: vi.fn(),
+  get: vi.fn(),
   upsert: vi.fn(),
 };
 
@@ -195,8 +195,7 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
   });
 
   it("still routes errata fields through cardErrata.upsert", async () => {
-    mockCardErrata.getByCardId.mockResolvedValue({
-      cardId: CARD_ID,
+    mockCardErrata.get.mockResolvedValue({
       correctedRulesText: "old",
       correctedEffectText: null,
       source: null,
@@ -220,8 +219,7 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
   });
 
   it("carries a set effective date through the errata upsert unchanged", async () => {
-    mockCardErrata.getByCardId.mockResolvedValue({
-      cardId: CARD_ID,
+    mockCardErrata.get.mockResolvedValue({
       correctedRulesText: "old",
       correctedEffectText: null,
       source: "riot-patch-notes",
@@ -240,8 +238,10 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
     });
 
     expect(res.status).toBe(204);
+    expect(mockCardErrata.get).toHaveBeenCalledWith(CARD_ID, "EN");
     expect(mockCardErrata.upsert).toHaveBeenCalledWith(
       CARD_ID,
+      "EN",
       expect.objectContaining({ effectiveDate: "2026-01-01", correctedRulesText: "new’" }),
     );
   });

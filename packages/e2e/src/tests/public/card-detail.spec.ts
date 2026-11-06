@@ -59,12 +59,13 @@ interface CardFixture {
   domains: string[];
   superTypes: string[];
   errata: {
+    language: string;
     correctedRulesText: string | null;
     correctedEffectText: string | null;
     source: string;
     sourceUrl: string | null;
     effectiveDate: string | null;
-  } | null;
+  }[];
   bans: { formatId: string; formatName: string; bannedAt: string; reason: string | null }[];
   tags: string[];
 }
@@ -559,7 +560,8 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
     page,
   }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    if (!detail.card.errata) {
+    const errata = detail.card.errata.find((entry) => entry.language === "EN");
+    if (!errata) {
       test.skip(true, "Annie, Fiery should carry seeded errata");
       return;
     }
@@ -567,7 +569,7 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
     await expect(page.getByText("Errata", { exact: true })).toBeVisible();
-    await expect(page.getByText(detail.card.errata.source, { exact: false }).first()).toBeVisible();
+    await expect(page.getByText(errata.source, { exact: false }).first()).toBeVisible();
     await expect(page.getByText(/Original rules:/iu)).toBeVisible();
   });
 
@@ -576,7 +578,7 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
   }) => {
     const slug = "annie-stubborn";
     const detail = await fetchCardDetailOrNull(slug);
-    const errata = detail?.card.errata;
+    const errata = detail?.card.errata.find((entry) => entry.language === "EN");
     const sourceUrl = errata?.sourceUrl;
     if (!errata || !sourceUrl) {
       test.skip(true, `expected ${slug} to have errata with a sourceUrl`);

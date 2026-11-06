@@ -1,3 +1,4 @@
+import { errataForLanguage } from "../errata.js";
 import { printingFieldEquals, printingMatchesField, toSearchTerm } from "../filters-search.js";
 import type { SearchTerm } from "../filters-search.js";
 import { isStandardPrinting } from "../standard.js";
@@ -256,7 +257,7 @@ function isPredicate(value: IsValue): SearchPredicate {
 function hasPredicate(value: string): SearchPredicate {
   switch (value) {
     case "errata": {
-      return (printing) => printing.card.errata !== null;
+      return (printing) => errataForLanguage(printing.card.errata, printing.language) !== null;
     }
     case "image": {
       return (printing) => printing.images.length > 0;

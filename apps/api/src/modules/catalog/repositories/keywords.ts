@@ -223,6 +223,7 @@ export function keywordsRepo(db: Kysely<Database>) {
           .selectFrom("cardErrata")
           .select(["correctedRulesText", "correctedEffectText"])
           .where("cardId", "=", cardId)
+          .where("language", "=", WellKnown.language.EN)
           .executeTakeFirst();
 
         const siblings = await db
@@ -244,6 +245,7 @@ export function keywordsRepo(db: Kysely<Database>) {
       const errata = await db
         .selectFrom("cardErrata")
         .select(["cardId", "correctedRulesText", "correctedEffectText"])
+        .where("language", "=", WellKnown.language.EN)
         .execute();
 
       const errataByCard = new Map(errata.map((e) => [e.cardId, e]));

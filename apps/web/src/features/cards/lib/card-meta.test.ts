@@ -34,7 +34,7 @@ const baseCard: CardDetailResponse["card"] = {
   additionalLegendCount: null,
   keywords: [],
   tags: [],
-  errata: null,
+  errata: [],
   bans: [],
 };
 

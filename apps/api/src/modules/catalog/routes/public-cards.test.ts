@@ -191,7 +191,7 @@ describe("GET /api/v1/cards/:cardSlug", () => {
     const json = await readJson(res);
     expect(json.card.id).toBe(CARD_ID);
     expect(json.card.slug).toBe("jinx-rebel");
-    expect(json.card.errata).toBeNull();
+    expect(json.card.errata).toEqual([]);
     expect(json.card.bans).toEqual([]);
     expect(json.cards).toEqual({});
     expect(Object.keys(json.printings)).toEqual([PRINTING_ID]);
@@ -387,6 +387,7 @@ describe("GET /api/v1/cards/:cardSlug", () => {
     mockCatalogRepo.cardErrataByCardIds.mockResolvedValue([
       {
         cardId: CARD_ID,
+        language: "EN",
         correctedRulesText: "Corrected",
         correctedEffectText: null,
         source: "Riot",
@@ -405,7 +406,9 @@ describe("GET /api/v1/cards/:cardSlug", () => {
         reason: dbBan.reason,
       },
     ]);
-    expect(json.card.errata).toMatchObject({ correctedRulesText: "Corrected", source: "Riot" });
+    expect(json.card.errata).toMatchObject([
+      { language: "EN", correctedRulesText: "Corrected", source: "Riot" },
+    ]);
   });
 
   it("maps product back-references flat onto the response, not nested under the printing", async () => {

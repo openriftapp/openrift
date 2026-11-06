@@ -2,6 +2,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { errataForLanguage } from "@openrift/shared/errata";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
@@ -818,7 +819,7 @@ export const CardThumbnail = memo(function CardThumbnail({
       oversized={isOversized}
       sizeLabel={sizeLabel}
       bans={banDisplay === "label" ? printing.card.bans : undefined}
-      hasRulesDeviation={printing.card.errata !== null}
+      hasRulesDeviation={errataForLanguage(printing.card.errata, printing.language) !== null}
       printingComment={printing.comment}
       printingCount={
         otherPrintings.length > 0 ? groupPrintingDesigns(siblings ?? []).designs.length : undefined

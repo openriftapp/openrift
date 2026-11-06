@@ -35,7 +35,7 @@ const validCard = {
   mightBonus: null,
   maxCopiesOverride: null,
   additionalLegendCount: null,
-  errata: null,
+  errata: [],
   bans: [],
 };
 
@@ -96,13 +96,16 @@ describe("catalogCardResponseSchema", () => {
   it("accepts an errata block with its nullable fields filled in", () => {
     const withErrata = {
       ...validCard,
-      errata: {
-        correctedRulesText: "Deals 3 damage.",
-        correctedEffectText: null,
-        source: "Riot",
-        sourceUrl: null,
-        effectiveDate: "2026-01-15",
-      },
+      errata: [
+        {
+          language: "EN",
+          correctedRulesText: "Deals 3 damage.",
+          correctedEffectText: null,
+          source: "Riot",
+          sourceUrl: null,
+          effectiveDate: "2026-01-15",
+        },
+      ],
     };
     expect(catalogCardResponseSchema.parse(withErrata)).toEqual(withErrata);
   });

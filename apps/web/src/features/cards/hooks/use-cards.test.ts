@@ -51,7 +51,7 @@ const stubCardValue: CatalogResponseCardValue = {
   mightBonus: 0,
   maxCopiesOverride: null,
   additionalLegendCount: null,
-  errata: null,
+  errata: [],
   bans: [],
 };
 

@@ -5,6 +5,7 @@ import { errataContentVersion } from "./errata-share-image";
 
 function entry(slug: string): ErrataEntry {
   return {
+    language: "EN",
     announcementId: "a-1",
     source: null,
     sourceUrl: null,

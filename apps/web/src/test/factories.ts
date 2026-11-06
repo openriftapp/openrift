@@ -304,7 +304,7 @@ export function makeAdminCard(overrides: Partial<AdminCardResponse> = {}): Admin
     power: 1,
     mightBonus: null,
     keywords: [],
-    errata: null,
+    errata: [],
     tags: [],
     maxCopiesOverride: null,
     additionalLegendCount: null,
@@ -487,6 +487,7 @@ export function makeCardBan(overrides: Partial<CardBanResponse> = {}): CardBanRe
 
 export function makeCardErrata(overrides: Partial<CardErrata> = {}): CardErrata {
   return {
+    language: "EN",
     correctedRulesText: "Deal 2 damage to a unit you do not control.",
     correctedEffectText: null,
     source: "Rules update, August 2026",

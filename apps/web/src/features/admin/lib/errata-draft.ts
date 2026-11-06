@@ -1,8 +1,10 @@
 import type { CardErrata } from "@openrift/shared/types/catalog";
+import { WellKnown } from "@openrift/shared/well-known";
 
 export type AdminCardErrata = CardErrata & { announcementId: string | null };
 
 export interface ErrataDraft {
+  language: string;
   announcementId: string;
   correctedRulesText: string;
   correctedEffectText: string;
@@ -13,6 +15,7 @@ export interface ErrataDraft {
 
 export interface ErrataInput {
   cardId: string;
+  language: string;
   announcementId: string | null;
   correctedRulesText: string | null;
   correctedEffectText: string | null;
@@ -22,6 +25,7 @@ export interface ErrataInput {
 }
 
 export const EMPTY_ERRATA_DRAFT: ErrataDraft = {
+  language: WellKnown.language.EN,
   announcementId: "",
   correctedRulesText: "",
   correctedEffectText: "",
@@ -33,6 +37,7 @@ export const EMPTY_ERRATA_DRAFT: ErrataDraft = {
 export function errataDraftFrom(errata: AdminCardErrata): ErrataDraft {
   const announced = errata.announcementId !== null;
   return {
+    language: errata.language,
     announcementId: errata.announcementId ?? "",
     correctedRulesText: errata.correctedRulesText ?? "",
     correctedEffectText: errata.correctedEffectText ?? "",
@@ -50,6 +55,7 @@ export function errataDraftInput(cardId: string, draft: ErrataDraft): ErrataInpu
   if (draft.announcementId !== "") {
     return {
       cardId,
+      language: draft.language,
       announcementId: draft.announcementId,
       ...texts,
       source: null,
@@ -59,6 +65,7 @@ export function errataDraftInput(cardId: string, draft: ErrataDraft): ErrataInpu
   }
   return {
     cardId,
+    language: draft.language,
     announcementId: null,
     ...texts,
     source: draft.source.trim(),
@@ -70,4 +77,12 @@ export function errataDraftInput(cardId: string, draft: ErrataDraft): ErrataInpu
 export function isErrataDraftComplete(draft: ErrataDraft): boolean {
   const hasText = draft.correctedRulesText.trim() !== "" || draft.correctedEffectText.trim() !== "";
   return hasText && (draft.announcementId !== "" || draft.source.trim() !== "");
+}
+
+export function nextErrataLanguage(
+  errata: readonly Pick<CardErrata, "language">[],
+  order: readonly string[],
+): string | null {
+  const taken = new Set(errata.map((entry) => entry.language));
+  return order.find((language) => !taken.has(language)) ?? null;
 }

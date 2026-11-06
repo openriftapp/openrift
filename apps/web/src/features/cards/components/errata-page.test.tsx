@@ -46,6 +46,7 @@ function entry(
 ): ErrataEntry {
   const { setSlug = "VEN", ...rest } = overrides;
   return {
+    language: "EN",
     announcementId: "a-ven",
     source: null,
     sourceUrl: null,

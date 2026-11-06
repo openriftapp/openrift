@@ -451,7 +451,7 @@ export function ExistingCardDetailPage({
       waiting: sources.filter((source) => !source.checkedAt).length + ambiguousGroups.length,
     },
     marketplace: { waiting: unassignedProducts },
-    bans: { total: (bansData?.length ?? 0) + (card.errata === null ? 0 : 1) },
+    bans: { total: (bansData?.length ?? 0) + card.errata.length },
   };
 
   const allPrintingKeys = [...faceIds, ...ambiguousGroups.map((g) => g.groupKey)];

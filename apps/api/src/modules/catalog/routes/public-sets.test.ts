@@ -167,7 +167,7 @@ describe("GET /api/v1/sets/:setSlug", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.set.id).toBe(SET_ID);
-    expect(json.cards[CARD_ID]).toMatchObject({ slug: "jinx-rebel", errata: null, bans: [] });
+    expect(json.cards[CARD_ID]).toMatchObject({ slug: "jinx-rebel", errata: [], bans: [] });
     expect(json.printings).toHaveLength(1);
     expect(json.printings[0]).toMatchObject({
       printingId: PRINTING_ID,

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict RW36fTchDyOnxxLslnVm4ZPfekeCADBQ3TzVd8xR5hTDk2wAJrrnyZo7iGTOAqA
+\restrict M40shZX9tzDMN5vz72wdI8ldAurMg7ZDuMq2QRoZGV3tArT5TrFxzbtcegWgHhW
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1360,6 +1360,7 @@ CREATE TABLE public.card_errata (
     effective_date date,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     announcement_id uuid,
+    language text DEFAULT 'EN'::text NOT NULL,
     CONSTRAINT chk_card_errata_announced_has_no_note CHECK (((announcement_id IS NULL) OR ((source_url IS NULL) AND (effective_date IS NULL)))),
     CONSTRAINT chk_card_errata_has_text CHECK (((corrected_rules_text IS NOT NULL) OR (corrected_effect_text IS NOT NULL))),
     CONSTRAINT chk_card_errata_no_empty_corrected_effect_text CHECK ((corrected_effect_text <> ''::text)),
@@ -4826,11 +4827,11 @@ ALTER TABLE ONLY public.card_domains
 
 
 --
--- Name: card_errata card_errata_card_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: card_errata card_errata_card_id_language_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.card_errata
-    ADD CONSTRAINT card_errata_card_id_unique UNIQUE (card_id);
+    ADD CONSTRAINT card_errata_card_id_language_unique UNIQUE (card_id, language);
 
 
 --
@@ -9229,6 +9230,14 @@ ALTER TABLE ONLY public.card_errata
 
 
 --
+-- Name: card_errata card_errata_language_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT card_errata_language_fk FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+
+
+--
 -- Name: card_name_aliases card_name_aliases_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11112,5 +11121,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict RW36fTchDyOnxxLslnVm4ZPfekeCADBQ3TzVd8xR5hTDk2wAJrrnyZo7iGTOAqA
+\unrestrict M40shZX9tzDMN5vz72wdI8ldAurMg7ZDuMq2QRoZGV3tArT5TrFxzbtcegWgHhW
 

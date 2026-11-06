@@ -53,7 +53,7 @@ function card(name: string, energy: number) {
     mightBonus: null,
     maxCopiesOverride: null,
     additionalLegendCount: null,
-    errata: null,
+    errata: [],
     bans: [],
   } as CatalogResponse["cards"][string];
 }

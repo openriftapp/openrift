@@ -22,6 +22,7 @@ const UNANNOUNCED = "unannounced";
 export function ErrataEditor({
   draft,
   announcements,
+  languages,
   isPending,
   submitLabel,
   onChange,
@@ -30,6 +31,7 @@ export function ErrataEditor({
 }: {
   draft: ErrataDraft;
   announcements: ErrataAnnouncement[];
+  languages: { code: string; name: string }[];
   isPending: boolean;
   submitLabel: string;
   onChange: (next: Partial<ErrataDraft>) => void;
@@ -46,8 +48,37 @@ export function ErrataEditor({
     ),
   };
 
+  const languageItems: Record<string, string> = Object.fromEntries(
+    languages.map((language) => [language.code, language.name]),
+  );
+
   return (
     <div className="space-y-3 rounded-md border p-3">
+      <div className="space-y-1">
+        <Label htmlFor="errata-language">Language</Label>
+        <Select
+          value={draft.language}
+          onValueChange={(next) => {
+            if (next !== null) {
+              onChange({ language: next });
+            }
+          }}
+          items={languageItems}
+          disabled={languages.length < 2}
+        >
+          <SelectTrigger id="errata-language" className="w-full sm:w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {languages.map((language) => (
+              <SelectItem key={language.code} value={language.code}>
+                {language.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="errata-rules">Corrected rules text</Label>

@@ -69,7 +69,7 @@ export function makeCard(partial: Partial<Card> = {}): Card {
     mightBonus: null,
     maxCopiesOverride: null,
     additionalLegendCount: null,
-    errata: null,
+    errata: [],
     bans: [],
     upcomingBans: [],
     ...overrides,

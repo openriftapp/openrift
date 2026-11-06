@@ -1,6 +1,7 @@
 import { splitCardBans } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { errataForLanguage } from "@openrift/shared/errata";
 import { imageUrl } from "@openrift/shared/image-url";
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { formatCents } from "@openrift/shared/money";
@@ -11,8 +12,10 @@ import {
 } from "@openrift/shared/standard";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { PrintingMarketplaceLinks } from "@openrift/shared/types/api/pricing";
+import type { CardErrata } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
+import { WellKnown } from "@openrift/shared/well-known";
 import type { APIEmbed, APIEmbedField } from "discord.js";
 
 import { formatCardText } from "./card-text.js";
@@ -190,7 +193,7 @@ export function printingFooter(printing: CatalogPrinting, snapshot: CatalogSnaps
 }
 
 /** Mirrors the site's `ErrataNotice` header. */
-function errataCredit(errata: NonNullable<CatalogCard["errata"]>): string {
+function errataCredit(errata: CardErrata): string {
   const label = errata.effectiveDate
     ? `${errata.source}, ${errata.effectiveDate.slice(0, 7)}`
     : errata.source;
@@ -198,12 +201,19 @@ function errataCredit(errata: NonNullable<CatalogCard["errata"]>): string {
 }
 
 /** Original printed text stays off the embed; it lives behind a disclosure on the site, and the embed has no disclosures. */
-function errataNote(errata: NonNullable<CatalogCard["errata"]>): string {
+function errataNote(errata: CardErrata): string {
   return `*Errata (${errataCredit(errata)})*`;
 }
 
+function printingErrata(
+  card: CatalogCard,
+  printing: CatalogPrinting | undefined,
+): CardErrata | null {
+  return errataForLanguage(card.errata, printing?.language ?? WellKnown.language.EN);
+}
+
 /** What the artwork can't tell you: the card is banned or about to be, or its printed text is erratated. */
-export function cardWarnings(card: CatalogCard): string[] {
+export function cardWarnings(card: CatalogCard, printing?: CatalogPrinting): string[] {
   const lines: string[] = [];
   const { bans, upcomingBans } = splitCardBans(card);
   if (bans.length > 0) {
@@ -213,8 +223,9 @@ export function cardWarnings(card: CatalogCard): string[] {
     const starts = upcomingBans.map((ban) => `${ban.formatName} from ${ban.bannedAt}`);
     lines.push(`⏳ **Ban incoming** in ${starts.join(", ")}`);
   }
-  if (card.errata) {
-    lines.push(`⚠️ **Errata** (${errataCredit(card.errata)})`);
+  const errata = printingErrata(card, printing);
+  if (errata) {
+    lines.push(`⚠️ **Errata** (${errataCredit(errata)})`);
   }
   return lines;
 }
@@ -229,7 +240,7 @@ export function cardTextFields(
   emojis: GlyphEmojis,
 ): APIEmbedField[] {
   const fields: APIEmbedField[] = [];
-  const { errata } = card;
+  const errata = printingErrata(card, printing);
 
   const rulesText = errata?.correctedRulesText ?? printing?.printedRulesText;
   if (rulesText) {
@@ -285,7 +296,7 @@ export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
   const holdersField = tradelistField(input.tradelists, snapshot, card);
   const fields = [...(holdersField ? [holdersField] : []), ...priceFields];
 
-  const lines = [...cardWarnings(card), ...(fallbackNote ? [fallbackNote] : [])];
+  const lines = [...cardWarnings(card, printing), ...(fallbackNote ? [fallbackNote] : [])];
   return {
     title: legendDisplayName(card),
     url: `${siteUrl}${cardPath(card.slug)}`,

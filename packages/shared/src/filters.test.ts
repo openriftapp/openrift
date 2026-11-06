@@ -27,13 +27,16 @@ describe("filterCards", () => {
         keywords: ["Shield", "Burn"],
         tags: ["Dragon", "Warrior"],
         mightBonus: 0,
-        errata: {
-          correctedRulesText: "A fiery beast",
-          correctedEffectText: "Deal 3 damage",
-          source: "Test",
-          sourceUrl: null,
-          effectiveDate: null,
-        },
+        errata: [
+          {
+            language: "EN",
+            correctedRulesText: "A fiery beast",
+            correctedEffectText: "Deal 3 damage",
+            source: "Test",
+            sourceUrl: null,
+            effectiveDate: null,
+          },
+        ],
       },
     }),
     makePrinting({
@@ -57,13 +60,16 @@ describe("filterCards", () => {
         keywords: ["Freeze"],
         tags: ["Golem"],
         mightBonus: 0,
-        errata: {
-          correctedRulesText: "A frozen construct",
-          correctedEffectText: "Freeze target",
-          source: "Test",
-          sourceUrl: null,
-          effectiveDate: null,
-        },
+        errata: [
+          {
+            language: "EN",
+            correctedRulesText: "A frozen construct",
+            correctedEffectText: "Freeze target",
+            source: "Test",
+            sourceUrl: null,
+            effectiveDate: null,
+          },
+        ],
       },
     }),
     makePrinting({
@@ -87,13 +93,16 @@ describe("filterCards", () => {
         keywords: [],
         tags: ["Psychic"],
         mightBonus: 0,
-        errata: {
-          correctedRulesText: "Manipulate thoughts",
-          correctedEffectText: "Draw 2 cards",
-          source: "Test",
-          sourceUrl: null,
-          effectiveDate: null,
-        },
+        errata: [
+          {
+            language: "EN",
+            correctedRulesText: "Manipulate thoughts",
+            correctedEffectText: "Draw 2 cards",
+            source: "Test",
+            sourceUrl: null,
+            effectiveDate: null,
+          },
+        ],
       },
     }),
   ];
@@ -381,7 +390,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
       makePrinting({
@@ -398,7 +407,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -467,7 +476,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
       makePrinting({
@@ -484,7 +493,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -514,7 +523,7 @@ describe("filterCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         1,
@@ -533,7 +542,7 @@ describe("filterCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         25,
@@ -551,7 +560,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -615,7 +624,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -680,7 +689,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -703,7 +712,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -726,7 +735,7 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -827,18 +836,60 @@ describe("filterCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: {
-            correctedRulesText: null,
-            correctedEffectText: "Unique effect text here",
-            source: "Test",
-            sourceUrl: null,
-            effectiveDate: null,
-          },
+          errata: [
+            {
+              language: "EN",
+              correctedRulesText: null,
+              correctedEffectText: "Unique effect text here",
+              source: "Test",
+              sourceUrl: null,
+              effectiveDate: null,
+            },
+          ],
         },
       }),
     ];
     const result = filterCards(cards, emptyFilters({ search: "o:unique" }));
     expect(result).toHaveLength(1);
+  });
+
+  describe("errata in another language", () => {
+    const card = {
+      name: "Fox-Fire",
+      types: ["spell" as const],
+      superTypes: [],
+      domains: [],
+      energy: null,
+      might: null,
+      power: null,
+      keywords: [],
+      tags: [],
+      mightBonus: null,
+      errata: [
+        {
+          language: "EN",
+          correctedRulesText: "Kill any number of units.",
+          correctedEffectText: null,
+          source: "Test",
+          sourceUrl: null,
+          effectiveDate: null,
+        },
+      ],
+    };
+    const printingsByLanguage = [
+      makePrinting({ printingId: "en", cardId: "ff", language: "EN", card }),
+      makePrinting({ printingId: "fr", cardId: "ff", language: "FR", card }),
+    ];
+
+    it("counts as errata only on printings in the errata's language", () => {
+      const result = filterCards(printingsByLanguage, emptyFilters({ hasErrata: true }));
+      expect(result.map((printing) => printing.printingId)).toEqual(["en"]);
+    });
+
+    it("searches the errata text only on printings in the errata's language", () => {
+      const result = filterCards(printingsByLanguage, emptyFilters({ search: "o:any" }));
+      expect(result.map((printing) => printing.printingId)).toEqual(["en"]);
+    });
   });
 
   it("bare search skips the artist field", () => {

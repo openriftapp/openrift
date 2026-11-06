@@ -31,7 +31,7 @@ describe("sortCards", () => {
         keywords: [],
         tags: [],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     }),
     makePrinting({
@@ -50,7 +50,7 @@ describe("sortCards", () => {
         keywords: [],
         tags: [],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     }),
     makePrinting({
@@ -69,7 +69,7 @@ describe("sortCards", () => {
         keywords: [],
         tags: [],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     }),
   ];
@@ -102,7 +102,7 @@ describe("sortCards", () => {
         keywords: [],
         tags: ["Azir"],
         mightBonus: null,
-        errata: null,
+        errata: [],
       },
     });
     const result = sortCards([...printings, azir], "name");
@@ -204,7 +204,7 @@ describe("sortCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
       makePrinting({
@@ -222,7 +222,7 @@ describe("sortCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
       makePrinting({
@@ -240,7 +240,7 @@ describe("sortCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
     ];
@@ -267,7 +267,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         20,
@@ -285,7 +285,7 @@ describe("sortCards", () => {
           keywords: [],
           tags: [],
           mightBonus: null,
-          errata: null,
+          errata: [],
         },
       }),
       withPrice(
@@ -302,7 +302,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         1,
@@ -331,7 +331,7 @@ describe("sortCards", () => {
               keywords: [],
               tags: [],
               mightBonus: null,
-              errata: null,
+              errata: [],
             },
           }),
           5,
@@ -351,7 +351,7 @@ describe("sortCards", () => {
               keywords: [],
               tags: [],
               mightBonus: null,
-              errata: null,
+              errata: [],
             },
           }),
           5,
@@ -377,7 +377,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -394,7 +394,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
       ];
@@ -418,7 +418,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         withPrice(
@@ -436,7 +436,7 @@ describe("sortCards", () => {
               keywords: [],
               tags: [],
               mightBonus: null,
-              errata: null,
+              errata: [],
             },
           }),
           10,
@@ -456,7 +456,7 @@ describe("sortCards", () => {
               keywords: [],
               tags: [],
               mightBonus: null,
-              errata: null,
+              errata: [],
             },
           }),
           50,
@@ -482,7 +482,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -499,7 +499,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -516,7 +516,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
       ];
@@ -540,7 +540,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -557,7 +557,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
       ];
@@ -585,7 +585,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -601,7 +601,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
       ];
@@ -625,7 +625,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -642,7 +642,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
         makePrinting({
@@ -658,7 +658,7 @@ describe("sortCards", () => {
             keywords: [],
             tags: [],
             mightBonus: null,
-            errata: null,
+            errata: [],
           },
         }),
       ];

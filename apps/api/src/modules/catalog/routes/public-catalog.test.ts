@@ -316,7 +316,7 @@ describe("GET /api/v1/catalog", () => {
     expect(card.energy).toBeNull();
     expect(card.power).toBeNull();
     expect(card.mightBonus).toBeNull();
-    expect(card.errata).toBeNull();
+    expect(card.errata).toEqual([]);
     expect(card.superTypes).toEqual([]);
     expect(card.keywords).toEqual([]);
     expect(card.tags).toEqual([]);
@@ -373,11 +373,11 @@ describe("GET /api/v1/catalog", () => {
     expect(json.printings["OGS-001:rare:normal:"].setId).toBe("OGS");
   });
 
-  it("returns errata as null when no errata exists", async () => {
+  it("returns an empty errata list when no errata exists", async () => {
     const res = await app.request("/api/v1/catalog");
     const json = await readJson(res);
     const card = json.cards["OGS-001"];
-    expect(card.errata).toBeNull();
+    expect(card.errata).toEqual([]);
   });
 
   it("does not include market price on printing (prices live on /api/v1/prices)", async () => {

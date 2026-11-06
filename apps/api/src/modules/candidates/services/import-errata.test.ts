@@ -19,6 +19,7 @@ interface CardRow {
 
 interface ErrataRow {
   cardId: string;
+  language?: string;
   announcementId?: string | null;
   correctedRulesText: string | null;
   correctedEffectText: string | null;
@@ -29,6 +30,7 @@ interface ErrataRow {
 
 interface PrintingTextRow {
   cardId: string;
+  language?: string;
   printedRulesText: string | null;
   printedEffectText: string | null;
 }
@@ -50,10 +52,16 @@ function createMockMut(overrides: {
     getCardsBySlugs: vi.fn().mockResolvedValue(overrides.cards ?? []),
     getByCardIds: vi
       .fn()
-      .mockResolvedValue((overrides.errata ?? []).map((row) => ({ announcementId: null, ...row }))),
+      .mockResolvedValue(
+        (overrides.errata ?? []).map((row) => ({ announcementId: null, language: "EN", ...row })),
+      ),
     announcements: vi.fn().mockResolvedValue(overrides.announcements ?? []),
     upsertAnnouncement: vi.fn().mockResolvedValue("new-announcement-id"),
-    getPrintingTextsByCardIds: vi.fn().mockResolvedValue(overrides.printingTexts ?? []),
+    getPrintingTextsByCardIds: vi
+      .fn()
+      .mockResolvedValue(
+        (overrides.printingTexts ?? []).map((row) => ({ language: "EN", ...row })),
+      ),
     upsert: vi.fn().mockResolvedValue(undefined),
     updateCardById: vi.fn().mockResolvedValue(undefined),
   };
@@ -66,6 +74,7 @@ function createMockRepos(mut: ReturnType<typeof createMockMut>): Repos {
 function makeEntry(overrides: Partial<UploadErrataEntry> = {}): UploadErrataEntry {
   return {
     cardSlug: "jinx-rebel",
+    language: "EN",
     correctedRulesText: "Deal 4 damage.",
     correctedEffectText: null,
     source: "Riftbound Origins Errata",
@@ -124,9 +133,11 @@ describe("importErrata", () => {
 
     expect(result.newCount).toBe(1);
     expect(result.updatedCount).toBe(0);
-    expect(result.newEntries).toEqual([{ cardSlug: "jinx-rebel", cardName: "Jinx, Rebel" }]);
+    expect(result.newEntries).toEqual([
+      { cardSlug: "jinx-rebel", cardName: "Jinx, Rebel", language: "EN" },
+    ]);
     expect(mut.upsert).toHaveBeenCalledTimes(1);
-    expect(mut.upsert).toHaveBeenCalledWith("card-1", {
+    expect(mut.upsert).toHaveBeenCalledWith("card-1", "EN", {
       announcementId: null,
       correctedRulesText: "Deal 4 damage.",
       correctedEffectText: null,
@@ -210,7 +221,7 @@ describe("importErrata", () => {
 
     expect(result.matchesPrintedCount).toBe(1);
     expect(result.skippedMatchesPrinted).toEqual([
-      { cardSlug: "jinx-rebel", cardName: "Jinx, Rebel" },
+      { cardSlug: "jinx-rebel", cardName: "Jinx, Rebel", language: "EN" },
     ]);
     expect(result.newCount).toBe(0);
     expect(mut.upsert).not.toHaveBeenCalled();
@@ -306,6 +317,70 @@ describe("importErrata", () => {
     });
   });
 
+  describe("errata in another language", () => {
+    const card = { id: "card-1", slug: "jinx-rebel", name: "Jinx, Rebel" };
+    const frEntry = makeEntry({ language: "FR", correctedRulesText: "Infligez 4 dégâts." });
+
+    it("adds a French erratum next to the English one", async () => {
+      const mut = createMockMut({
+        cards: [card],
+        errata: [
+          {
+            cardId: "card-1",
+            correctedRulesText: "Infligez 4 dégâts.",
+            correctedEffectText: null,
+            source: "Riftbound Origins Errata",
+            sourceUrl: "https://example.com/errata",
+            effectiveDate: "2025-10-21",
+          },
+        ],
+      });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [frEntry], dryRun: false });
+
+      expect(result.newEntries).toEqual([
+        { cardSlug: "jinx-rebel", cardName: "Jinx, Rebel", language: "FR" },
+      ]);
+      expect(mut.upsert).toHaveBeenCalledWith(
+        "card-1",
+        "FR",
+        expect.objectContaining({ correctedRulesText: "Infligez 4 dégâts." }),
+      );
+      expect(mut.getPrintingTextsByCardIds).toHaveBeenCalledWith(["card-1"], ["FR"]);
+    });
+
+    it("compares against printings in the entry's language only", async () => {
+      const mut = createMockMut({
+        cards: [card],
+        printingTexts: [
+          { cardId: "card-1", printedRulesText: "Infligez 4 dégâts.", printedEffectText: null },
+          {
+            cardId: "card-1",
+            language: "FR",
+            printedRulesText: "Infligez 3 dégâts.",
+            printedEffectText: null,
+          },
+        ],
+      });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [frEntry], dryRun: true });
+
+      expect(result.newCount).toBe(1);
+      expect(result.matchesPrintedCount).toBe(0);
+    });
+
+    it("leaves keywords alone, they come from English text", async () => {
+      const mut = createMockMut({ cards: [card] });
+      const transact = mockTransact(createMockRepos(mut));
+
+      await importErrata(transact, { entries: [frEntry], dryRun: false });
+
+      expect(mut.updateCardById).not.toHaveBeenCalled();
+    });
+  });
+
   describe("announcements", () => {
     const ANNOUNCEMENT = {
       name: "Vendetta Errata Updates",
@@ -329,6 +404,7 @@ describe("importErrata", () => {
       expect(mut.upsertAnnouncement).toHaveBeenCalledWith(ANNOUNCEMENT);
       expect(mut.upsert).toHaveBeenCalledWith(
         "card-1",
+        "EN",
         expect.objectContaining({ announcementId: "new-announcement-id", source: null }),
       );
     });
@@ -378,6 +454,7 @@ describe("importErrata", () => {
       expect(mut.upsertAnnouncement).not.toHaveBeenCalled();
       expect(mut.upsert).toHaveBeenCalledWith(
         "card-1",
+        "EN",
         expect.objectContaining({ announcementId: "a-1" }),
       );
     });

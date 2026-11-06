@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-06
+
+### Other
+
+- fix(Cards): **Errata match the printing's language** — non-English printings show their printed text instead of the English errata, unless they have errata of their own.
+
 ## 2026-11-05
 
 ### Highlights

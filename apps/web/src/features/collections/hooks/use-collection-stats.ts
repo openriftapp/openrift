@@ -1,3 +1,4 @@
+import { errataForLanguage } from "@openrift/shared/errata";
 import {
   includes,
   matchesCustomTags,
@@ -657,7 +658,7 @@ export function matchesScope(
     matchesFlag(scope.standard ?? null, isStandardPrinting(printing)) &&
     matchesFlag(scope.signed ?? null, printing.isSigned) &&
     matchesFlag(scope.banned ?? null, card.bans.length > 0) &&
-    matchesFlag(scope.errata ?? null, card.errata !== null) &&
+    matchesFlag(scope.errata ?? null, errataForLanguage(card.errata, printing.language) !== null) &&
     matchesPresence(markerPresence, printing.markers.length > 0) &&
     matchesPresence(scope.keywordsPresence, card.keywords.length > 0) &&
     matchesPresence(scope.tagsPresence, card.tags.length > 0) &&

@@ -13,6 +13,7 @@ const ANNOUNCEMENT = {
 
 function row(overrides: Partial<EntryRow> = {}): EntryRow {
   return {
+    language: "EN",
     announcementId: "a-1",
     correctedRulesText: "Draw 2.",
     correctedEffectText: null,
@@ -41,6 +42,7 @@ describe("buildErrataListResponse", () => {
     expect(response.announcements).toEqual([ANNOUNCEMENT]);
     expect(response.entries).toEqual([
       {
+        language: "EN",
         announcementId: "a-1",
         source: null,
         sourceUrl: null,

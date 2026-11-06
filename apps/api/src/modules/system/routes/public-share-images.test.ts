@@ -797,6 +797,21 @@ describe("GET /api/v1/errata/image.png", () => {
       siteHost: "openrift.app",
     });
   });
+
+  it("counts a card with errata in two languages once", async () => {
+    mockCardErrataRepo.announcements.mockResolvedValue([
+      { id: "a-fr", name: "French Translation Errata", publishedOn: "2026-09-01", url: "x" },
+    ]);
+    mockCardErrataRepo.listEntries.mockResolvedValue([
+      row("arise", "Arise", null, "img-arise"),
+      row("arise", "Arise", "a-fr", "img-arise-fr"),
+    ]);
+
+    await app.request("/api/v1/errata/image.png", { headers: { "x-real-ip": "10.0.9.2" } });
+
+    const [job] = jobsOfKind("errata");
+    expect(job?.input).toMatchObject({ cardCount: 1 });
+  });
 });
 
 describe("GET /api/v1/developers/image.png", () => {

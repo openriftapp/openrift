@@ -10,7 +10,11 @@ import type {
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { Repos } from "../../../deps.js";
-import { loadPrintingDecorations, presentPrintingValues } from "../lib/printing-presenters.js";
+import {
+  groupErrataByCard,
+  loadPrintingDecorations,
+  presentPrintingValues,
+} from "../lib/printing-presenters.js";
 import { toEnumRows, toKeywordEntries, toTagCategoryMap } from "../lib/reference-presenters.js";
 
 /**
@@ -54,24 +58,13 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
 
   const bansByCard = Map.groupBy(banRows, (r) => r.cardId);
 
-  const errataByCard = new Map(
-    errataRows.map((r) => [
-      r.cardId,
-      {
-        correctedRulesText: r.correctedRulesText,
-        correctedEffectText: r.correctedEffectText,
-        source: r.source,
-        sourceUrl: r.sourceUrl,
-        effectiveDate: r.effectiveDate,
-      },
-    ]),
-  );
+  const errataByCard = groupErrataByCard(errataRows);
 
   const cards: Record<string, CatalogResponseCardValue> = {};
   for (const { id, ...rest } of cardRows) {
     cards[id] = {
       ...rest,
-      errata: errataByCard.get(id) ?? null,
+      errata: errataByCard.get(id) ?? [],
       bans: (bansByCard.get(id) ?? []).map((b) => ({
         formatId: b.formatId,
         formatName: b.formatName,

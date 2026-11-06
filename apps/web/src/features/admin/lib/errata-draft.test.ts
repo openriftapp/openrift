@@ -8,6 +8,7 @@ import {
   errataDraftFrom,
   errataDraftInput,
   isErrataDraftComplete,
+  nextErrataLanguage,
 } from "./errata-draft";
 
 function adminErrata(overrides: Partial<AdminCardErrata> = {}): AdminCardErrata {
@@ -37,6 +38,7 @@ describe("errataDraftInput", () => {
     };
     expect(errataDraftInput("card-1", draft)).toEqual({
       cardId: "card-1",
+      language: "EN",
       announcementId: null,
       correctedRulesText: "Deal 2 damage to a unit you do not control.",
       correctedEffectText: null,
@@ -91,5 +93,22 @@ describe("announced errata", () => {
         correctedRulesText: "Draw a card.",
       }),
     ).toBe(true);
+  });
+});
+
+describe("errata languages", () => {
+  it("keeps the language of the errata it edits", () => {
+    const draft = errataDraftFrom(adminErrata({ language: "FR" }));
+    expect(draft.language).toBe("FR");
+    expect(errataDraftInput("card-1", draft).language).toBe("FR");
+  });
+
+  it("offers the first language without errata", () => {
+    const order = ["EN", "FR", "SC"];
+    expect(nextErrataLanguage([], order)).toBe("EN");
+    expect(nextErrataLanguage([{ language: "EN" }], order)).toBe("FR");
+    expect(
+      nextErrataLanguage([{ language: "EN" }, { language: "FR" }, { language: "SC" }], order),
+    ).toBeNull();
   });
 });

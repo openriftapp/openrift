@@ -3,6 +3,7 @@ import type { ErrataEntry as ErrataEntryData } from "@openrift/shared/contracts/
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
+import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
 
@@ -12,8 +13,10 @@ import type { ErrataTextChange } from "@/features/cards/components/errata-diff-p
 import { ErrataPane } from "@/features/cards/components/errata-diff-pane";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { diffCardText } from "@/features/cards/lib/errata-diff";
+import { errataEntryAnchor } from "@/features/cards/lib/errata-list";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { htmlLangTag } from "@/lib/language-tag";
 import { m } from "@/paraglide/messages.js";
 
 export type ErrataView = "side" | "inline";
@@ -48,17 +51,20 @@ function sourceNote(entry: ErrataEntryData): string | null {
 
 export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: ErrataView }) {
   const { labels, domainColors } = useEnumOrders();
+  const languageLabels = useLanguageLabels();
+  const isEnglish = entry.language === WellKnown.language.EN;
   const name = legendDisplayName(entry.card);
   const changes = textChanges(entry);
   const note = sourceNote(entry);
   const meta = [
     entry.card.types.map((type) => enumLabel(labels.cardTypes, type)).join(" "),
     entry.printing && distinctPrintingCode(entry.printing),
+    isEnglish ? undefined : enumLabel(languageLabels, entry.language),
   ].filter((part) => part !== undefined && part !== "");
 
   return (
     <article
-      id={entry.card.slug}
+      id={errataEntryAnchor(entry.card.slug, entry.language)}
       className="grid scroll-mt-40 grid-cols-[4rem_minmax(0,1fr)] gap-3.5 border-b py-5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-5"
     >
       <Link
@@ -122,29 +128,31 @@ export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: Err
             )}
           </p>
         )}
-        {view === "side" ? (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-            <ErrataPane
-              title={m.errata_pane_printed()}
-              tone="printed"
-              changes={changes}
-              side="printed"
-            />
+        <div lang={htmlLangTag(entry.language)}>
+          {view === "side" ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+              <ErrataPane
+                title={m.errata_pane_printed()}
+                tone="printed"
+                changes={changes}
+                side="printed"
+              />
+              <ErrataPane
+                title={m.errata_pane_updated()}
+                tone="updated"
+                changes={changes}
+                side="corrected"
+              />
+            </div>
+          ) : (
             <ErrataPane
               title={m.errata_pane_updated()}
               tone="updated"
               changes={changes}
-              side="corrected"
+              side={null}
             />
-          </div>
-        ) : (
-          <ErrataPane
-            title={m.errata_pane_updated()}
-            tone="updated"
-            changes={changes}
-            side={null}
-          />
-        )}
+          )}
+        </div>
       </div>
     </article>
   );

@@ -136,13 +136,16 @@ function makeCatalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse 
         mightBonus: null,
         maxCopiesOverride: null,
         additionalLegendCount: null,
-        errata: {
-          correctedRulesText: "Draw 1.",
-          correctedEffectText: null,
-          source: "Test Errata",
-          sourceUrl: null,
-          effectiveDate: "2026-02-01",
-        },
+        errata: [
+          {
+            language: "EN",
+            correctedRulesText: "Draw 1.",
+            correctedEffectText: null,
+            source: "Test Errata",
+            sourceUrl: null,
+            effectiveDate: "2026-02-01",
+          },
+        ],
         bans: [
           { formatId: "standard", formatName: "Constructed", bannedAt: "2026-03-01", reason: null },
         ],
@@ -189,7 +192,27 @@ describe("buildCatalogSync", () => {
     const rows = buildCatalogSync(makeInit(), makeCatalog());
 
     expect(rows.cardErrata).toEqual([
-      expect.objectContaining({ cardId: CARD_ID, source: "Test Errata", sourceUrl: null }),
+      expect.objectContaining({
+        cardId: CARD_ID,
+        language: "EN",
+        source: "Test Errata",
+        sourceUrl: null,
+      }),
+    ]);
+  });
+
+  it("reads a single errata object from an older source as English", () => {
+    const catalog = makeCatalog();
+    const card = catalog.cards[CARD_ID]!;
+    const { language: _language, ...legacyErrata } = card.errata[0]!;
+    const legacy = { ...card, errata: legacyErrata };
+    const rows = buildCatalogSync(
+      makeInit(),
+      makeCatalog({ cards: { [CARD_ID]: legacy as unknown as typeof card } }),
+    );
+
+    expect(rows.cardErrata).toEqual([
+      expect.objectContaining({ cardId: CARD_ID, language: "EN", correctedRulesText: "Draw 1." }),
     ]);
   });
 

@@ -42,7 +42,7 @@ export interface ErrataAnnouncementWrite {
  */
 export function cardErrataRepo(db: Kysely<Database>) {
   return {
-    async upsert(cardId: string, data: CardErrataWrite): Promise<void> {
+    async upsert(cardId: string, language: string, data: CardErrataWrite): Promise<void> {
       const values = {
         announcementId: data.announcementId,
         correctedRulesText: data.correctedRulesText,
@@ -53,21 +53,26 @@ export function cardErrataRepo(db: Kysely<Database>) {
       };
       await db
         .insertInto("cardErrata")
-        .values({ cardId, ...values })
-        .onConflict((oc) => oc.column("cardId").doUpdateSet(values))
+        .values({ cardId, language, ...values })
+        .onConflict((oc) => oc.columns(["cardId", "language"]).doUpdateSet(values))
         .execute();
     },
 
-    async deleteByCardId(cardId: string): Promise<void> {
-      await db.deleteFrom("cardErrata").where("cardId", "=", cardId).execute();
+    async delete(cardId: string, language: string): Promise<void> {
+      await db
+        .deleteFrom("cardErrata")
+        .where("cardId", "=", cardId)
+        .where("language", "=", language)
+        .execute();
     },
 
-    async getByCardId(cardId: string) {
+    async get(cardId: string, language: string) {
       return (
         (await db
           .selectFrom("cardErrata")
           .select(ERRATA_COLUMNS)
           .where("cardId", "=", cardId)
+          .where("language", "=", language)
           .executeTakeFirst()) ?? null
       );
     },
@@ -78,7 +83,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
       }
       return db
         .selectFrom("cardErrata")
-        .select(["cardId", ...ERRATA_COLUMNS])
+        .select(["cardId", "language", ...ERRATA_COLUMNS])
         .where("cardId", "in", cardIds)
         .execute();
     },
@@ -104,7 +109,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
       return row.id;
     },
 
-    /** Prefers an English printing whose text still differs from the corrected text. */
+    /** Prefers a printing in the errata's language whose text still differs from the corrected text. */
     listEntries() {
       return db
         .selectFrom("cardErrata")
@@ -126,7 +131,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
                 imageId("imgf").as("imageId"),
               ])
               .whereRef("po.cardId", "=", "cards.id")
-              .where("po.language", "=", WellKnown.language.EN)
+              .whereRef("po.language", "=", "cardErrata.language")
               .orderBy(PRINTED_MATCHES_CORRECTED)
               .orderBy("po.canonicalRank")
               .orderBy("po.shortCode")
@@ -136,6 +141,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
           (join) => join.onTrue(),
         )
         .select([
+          "cardErrata.language",
           "cardErrata.announcementId",
           "cardErrata.correctedRulesText",
           "cardErrata.correctedEffectText",
@@ -156,6 +162,8 @@ export function cardErrataRepo(db: Kysely<Database>) {
           "p.imageId",
         ])
         .orderBy("cards.name")
+        .orderBy(sql`card_errata.language <> ${WellKnown.language.EN}`)
+        .orderBy("cardErrata.language")
         .execute();
     },
   };

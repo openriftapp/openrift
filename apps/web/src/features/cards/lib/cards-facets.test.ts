@@ -42,7 +42,7 @@ function makeCard(overrides: Partial<CatalogResponseCardValue> = {}): CatalogRes
     mightBonus: null,
     maxCopiesOverride: null,
     additionalLegendCount: null,
-    errata: null,
+    errata: [],
     bans: [],
     ...overrides,
   };

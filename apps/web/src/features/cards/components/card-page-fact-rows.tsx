@@ -1,3 +1,4 @@
+import { errataForLanguage } from "@openrift/shared/errata";
 import { formatMonth } from "@openrift/shared/format-date";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { CardErrata, Printing } from "@openrift/shared/types/catalog";
@@ -13,6 +14,7 @@ import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/u
 import { TextLink } from "@/components/ui/text-link";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
 import { CardText } from "@/features/cards/components/card-text";
+import { errataEntryAnchor } from "@/features/cards/lib/errata-list";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { m } from "@/paraglide/messages.js";
@@ -29,12 +31,13 @@ export function CardPageFactRows({
   products: DetailProduct[];
 }) {
   const domainColors = useDomainColors();
+  const errata = errataForLanguage(card.errata, printing.language);
   return (
     <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] gap-y-4">
       {printing.printedRulesText && (
         <FactRow label={m.card_detail_row_rules()}>
           <p className="text-muted-foreground">
-            <CardText text={card.errata?.correctedRulesText ?? printing.printedRulesText} />
+            <CardText text={errata?.correctedRulesText ?? printing.printedRulesText} />
           </p>
         </FactRow>
       )}
@@ -45,7 +48,7 @@ export function CardPageFactRows({
             style={getDomainGradientStyle(card.domains, "18", domainColors)}
           >
             <p className="text-muted-foreground">
-              <CardText text={card.errata?.correctedEffectText ?? printing.printedEffectText} />
+              <CardText text={errata?.correctedEffectText ?? printing.printedEffectText} />
             </p>
           </div>
         </FactRow>
@@ -73,7 +76,7 @@ export function CardPageFactRows({
           <p className="text-muted-foreground italic">{printing.comment}</p>
         </FactRow>
       )}
-      {card.errata && <ErrataRow errata={card.errata} printing={printing} />}
+      {errata && <ErrataRow errata={errata} printing={printing} />}
       {card.bans.length > 0 && (
         <FactRow label={m.card_detail_row_bans()}>
           <Alert variant="destructive" className="space-y-1.5">
@@ -142,7 +145,12 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
             <span>{sourceLabel}</span>
           )}
           {" · "}
-          <TextLink variant="muted" render={<Link to="/errata" hash={printing.card.slug} />}>
+          <TextLink
+            variant="muted"
+            render={
+              <Link to="/errata" hash={errataEntryAnchor(printing.card.slug, errata.language)} />
+            }
+          >
             {m.card_detail_errata_all()}
           </TextLink>
         </AlertTitle>

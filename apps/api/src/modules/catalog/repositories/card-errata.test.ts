@@ -17,7 +17,7 @@ describe("cardErrataRepo", () => {
   it("upsert writes the errata row", async () => {
     const db = createMockDb([]);
     await expect(
-      cardErrataRepo(db).upsert("c-1", {
+      cardErrataRepo(db).upsert("c-1", "EN", {
         announcementId: null,
         correctedRulesText: "Deal 3 damage.",
         correctedEffectText: null,
@@ -31,7 +31,7 @@ describe("cardErrataRepo", () => {
   it("upsert accepts a null effective date", async () => {
     const db = createMockDb([]);
     await expect(
-      cardErrataRepo(db).upsert("c-1", {
+      cardErrataRepo(db).upsert("c-1", "EN", {
         announcementId: null,
         correctedRulesText: null,
         correctedEffectText: "Draw a card.",
@@ -42,19 +42,19 @@ describe("cardErrataRepo", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("deleteByCardId removes the errata row", async () => {
+  it("delete removes the errata row", async () => {
     const db = createMockDb([]);
-    await expect(cardErrataRepo(db).deleteByCardId("c-1")).resolves.toBeUndefined();
+    await expect(cardErrataRepo(db).delete("c-1", "EN")).resolves.toBeUndefined();
   });
 
-  it("getByCardId returns the errata row", async () => {
+  it("get returns the errata row", async () => {
     const db = createMockDb([ERRATA]);
-    expect(await cardErrataRepo(db).getByCardId("c-1")).toEqual(ERRATA);
+    expect(await cardErrataRepo(db).get("c-1", "EN")).toEqual(ERRATA);
   });
 
-  it("getByCardId returns null when the card has no errata", async () => {
+  it("get returns null when the card has no errata", async () => {
     const db = createMockDb([]);
-    expect(await cardErrataRepo(db).getByCardId("c-1")).toBeNull();
+    expect(await cardErrataRepo(db).get("c-1", "EN")).toBeNull();
   });
 
   it("getByCardIds returns the matching rows", async () => {

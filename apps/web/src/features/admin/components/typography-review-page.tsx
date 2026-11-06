@@ -98,7 +98,7 @@ export function TypographyReviewPage() {
 
       <RowList variant="divided">
         {data.diffs.map((diff) => {
-          const key = `${diff.target.entity}-${diff.target.id}-${diff.target.field}`;
+          const key = `${diff.target.entity}-${diff.target.id}-${diff.target.field}-${diff.target.entity === "card" ? (diff.target.language ?? "") : ""}`;
           return (
             <RowListItem key={key} className="flex-col items-stretch gap-2">
               <div className="flex items-center justify-between gap-2">
