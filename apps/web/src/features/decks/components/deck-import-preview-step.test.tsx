@@ -39,7 +39,6 @@ function renderStep(props: { importableCount: number; totalCards: number; entrie
       deckName=""
       deckFormat={WellKnown.deckFormat.CONSTRUCTED}
       deckFormats={[]}
-      deckFormatLabels={{}}
       zoneOrder={[]}
       zoneLabels={{} as Record<DeckMatchedEntry["zone"], string>}
       readyCount={0}

@@ -1,10 +1,4 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useFriendGroups } from "@/features/groups/hooks/use-friend-groups";
 import { m } from "@/paraglide/messages.js";
 
@@ -32,29 +26,18 @@ export function GroupField({
   }
 
   return (
-    <Select
+    <SimpleSelect
       items={groupItems}
       value={value}
       disabled={disabled}
-      onValueChange={(next) => {
-        if (next && next !== value) {
+      onChange={(next) => {
+        if (next !== value) {
           onChange(next);
         }
       }}
-    >
-      <SelectTrigger
-        className={className ?? "w-full"}
-        aria-label={m.tournaments_settings_group_title()}
-      >
-        <SelectValue placeholder={m.tournaments_settings_group_none()} />
-      </SelectTrigger>
-      <SelectContent>
-        {groupItems.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      label={m.tournaments_settings_group_title()}
+      placeholder={m.tournaments_settings_group_none()}
+      className={className ?? "w-full"}
+    />
   );
 }

@@ -37,6 +37,7 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
+import { ListingPrintingDialog } from "@/features/catalog-workspace/components/listing-printing-dialog";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import type {
   CardListingRow,
@@ -65,52 +66,6 @@ function useListingDone(cardSlug: string) {
       ]);
     },
   };
-}
-
-function PrintingPickerDialog({
-  row,
-  open,
-  pending,
-  onOpenChange,
-  onPick,
-}: {
-  row: CardListingRow;
-  open: boolean;
-  pending: boolean;
-  onOpenChange: (open: boolean) => void;
-  onPick: (printingId: string) => void;
-}) {
-  const assignedIds = new Set(row.assignedPrintings.map((printing) => printing.printingId));
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Assign #{row.product.externalId} to a printing</DialogTitle>
-        </DialogHeader>
-        {row.assignablePrintings.length === 0 ? (
-          <p className="text-muted-foreground">No printing of this card carries its language.</p>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {row.assignablePrintings.map((printing) => (
-              <Button
-                key={printing.printingId}
-                variant="outline"
-                className="justify-start font-mono"
-                disabled={pending || assignedIds.has(printing.printingId)}
-                onClick={() => onPick(printing.printingId)}
-              >
-                <PrintingLabel
-                  printing={printing}
-                  highlightFinish={row.product.finish}
-                  highlightLanguage={row.product.language ?? undefined}
-                />
-              </Button>
-            ))}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
 }
 
 function ReassignCardDialog({
@@ -321,7 +276,7 @@ function ListingRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </span>
-      <PrintingPickerDialog
+      <ListingPrintingDialog
         row={row}
         open={dialog === "printing"}
         pending={pending}

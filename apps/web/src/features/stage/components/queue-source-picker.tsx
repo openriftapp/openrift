@@ -11,7 +11,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CommandEmpty } from "@/components/ui/command";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  ResponsivePopover,
+  ResponsivePopoverContent,
+  ResponsivePopoverTrigger,
+} from "@/components/ui/responsive-popover";
 import { Spinner } from "@/components/ui/spinner";
 import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -60,8 +64,8 @@ function SourcePopover({
   const [highlightedId, setHighlightedId] = useState("");
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger
+    <ResponsivePopover open={open} onOpenChange={onOpenChange}>
+      <ResponsivePopoverTrigger
         render={
           <Button variant="outline" size="sm">
             {icon}
@@ -69,7 +73,7 @@ function SourcePopover({
           </Button>
         }
       />
-      <PopoverContent align="start" className="w-80 p-0">
+      <ResponsivePopoverContent title={searchPlaceholder} hideTitle>
         <PickerList
           searchPlaceholder={searchPlaceholder}
           highlightedId={highlightedId}
@@ -77,8 +81,8 @@ function SourcePopover({
         >
           {children}
         </PickerList>
-      </PopoverContent>
-    </Popover>
+      </ResponsivePopoverContent>
+    </ResponsivePopover>
   );
 }
 

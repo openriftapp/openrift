@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -267,26 +268,13 @@ export function FieldsSection() {
             className="block"
           >
             <div className="flex w-full max-w-2xl items-center gap-2">
-              <Select
+              <SimpleSelect
                 items={ENERGY_ITEMS}
                 value={energy}
-                onValueChange={(v) => {
-                  if (v !== null) {
-                    setEnergy(v);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-36 shrink-0" aria-label="Energy cost">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ENERGY_ITEMS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={setEnergy}
+                label="Energy cost"
+                className="w-36 shrink-0"
+              />
               <Input placeholder="Value…" className="flex-1" aria-label="Value" />
               <Button variant="outline">
                 <PlusIcon /> Add

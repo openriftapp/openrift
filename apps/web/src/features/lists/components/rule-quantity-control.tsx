@@ -1,14 +1,7 @@
 import type { RuleQuantity } from "@openrift/shared/types/list-rule";
 
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { m } from "@/paraglide/messages.js";
 
@@ -44,27 +37,16 @@ export function QuantityControl({
   });
   return (
     <div className="flex items-center gap-2">
-      <Select
+      <SimpleSelect
         items={quantityModes()}
         value={value.mode}
-        onValueChange={(mode) => {
+        onChange={(mode) => {
           resetDraft();
           onChange(mode === "fixed" ? { mode: "fixed", n: 1 } : { mode: "playset", multiplier: 1 });
         }}
-      >
-        <SelectTrigger className="w-36" aria-label={m.lists_rule_quantity_mode_aria()}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {quantityModes().map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        label={m.lists_rule_quantity_mode_aria()}
+        className="w-36"
+      />
       <Input
         type="number"
         className="w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"

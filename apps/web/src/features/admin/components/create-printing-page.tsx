@@ -7,28 +7,14 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-} from "@/components/ui/combobox";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreatePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { CreatePrintingBody } from "@/features/admin/hooks/use-admin-card-mutations";
@@ -43,7 +29,6 @@ import { CardTextInput } from "@/features/contribute/components/card-text-input"
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
-import { cn } from "@/lib/utils";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/cards_/$cardSlug_/printings/create");
 
@@ -213,21 +198,14 @@ export function CreatePrintingPage() {
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
           <Field>
-            <FieldLabel>Language</FieldLabel>
-            <Select value={language} onValueChange={(value) => value && setLanguage(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) => languages.find((l) => l.code === value)?.name ?? value}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {languages.map((l) => (
-                  <SelectItem key={l.code} value={l.code}>
-                    {l.name} ({l.code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="create-printing-language">Language</FieldLabel>
+            <SimpleSelect
+              id="create-printing-language"
+              items={languages.map((l) => ({ value: l.code, label: l.name, detail: l.code }))}
+              value={language}
+              onChange={setLanguage}
+              className="w-full"
+            />
           </Field>
           <Field>
             <FieldLabel htmlFor="create-printing-public-code">Public code *</FieldLabel>
@@ -248,67 +226,59 @@ export function CreatePrintingPage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Field>
-            <FieldLabel>Rarity</FieldLabel>
-            <Select value={rarity} onValueChange={(value) => value && setRarity(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{(value: string) => enumLabel(labels.rarities, value)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {orders.rarities.map((slug) => (
-                  <SelectItem key={slug} value={slug}>
-                    {enumLabel(labels.rarities, slug)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="create-printing-rarity">Rarity</FieldLabel>
+            <SimpleSelect
+              id="create-printing-rarity"
+              items={orders.rarities.map((slug) => ({
+                value: slug,
+                label: enumLabel(labels.rarities, slug),
+              }))}
+              value={rarity}
+              onChange={setRarity}
+              className="w-full"
+            />
           </Field>
           <Field>
-            <FieldLabel>Art variant</FieldLabel>
-            <Select value={artVariant} onValueChange={(value) => value && setArtVariant(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{(value: string) => enumLabel(labels.artVariants, value)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {orders.artVariants.map((slug) => (
-                  <SelectItem key={slug} value={slug}>
-                    {enumLabel(labels.artVariants, slug)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="create-printing-art-variant">Art variant</FieldLabel>
+            <SimpleSelect
+              id="create-printing-art-variant"
+              items={orders.artVariants.map((slug) => ({
+                value: slug,
+                label: enumLabel(labels.artVariants, slug),
+              }))}
+              value={artVariant}
+              onChange={setArtVariant}
+              className="w-full"
+            />
           </Field>
           <Field>
-            <FieldLabel>Finish</FieldLabel>
-            <Select value={finish} onValueChange={(value) => value && setFinish(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{(value: string) => enumLabel(labels.finishes, value)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {orders.finishes.map((slug) => (
-                  <SelectItem key={slug} value={slug}>
-                    {enumLabel(labels.finishes, slug)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="create-printing-finish">Finish</FieldLabel>
+            <SimpleSelect
+              id="create-printing-finish"
+              items={orders.finishes.map((slug) => ({
+                value: slug,
+                label: enumLabel(labels.finishes, slug),
+              }))}
+              value={finish}
+              onChange={setFinish}
+              className="w-full"
+            />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Field>
-            <FieldLabel>Size</FieldLabel>
-            <Select value={size} onValueChange={(value) => value && setSize(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{(value: string) => enumLabel(labels.cardSizes, value)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {orders.cardSizes.map((slug) => (
-                  <SelectItem key={slug} value={slug}>
-                    {enumLabel(labels.cardSizes, slug)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="create-printing-size">Size</FieldLabel>
+            <SimpleSelect
+              id="create-printing-size"
+              items={orders.cardSizes.map((slug) => ({
+                value: slug,
+                label: enumLabel(labels.cardSizes, slug),
+              }))}
+              value={size}
+              onChange={setSize}
+              className="w-full"
+            />
           </Field>
           <Field orientation="horizontal" className="sm:self-end">
             <Checkbox
@@ -330,8 +300,9 @@ export function CreatePrintingPage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
-            <FieldLabel>Markers</FieldLabel>
-            <MultiSelectDropdown
+            <FieldLabel htmlFor="create-printing-markers">Markers</FieldLabel>
+            <OrderedMultiSelect
+              id="create-printing-markers"
               options={markers
                 .map((m) => ({ value: m.slug, label: m.label }))
                 .toSorted((a, b) => a.label.localeCompare(b.label))}
@@ -343,8 +314,9 @@ export function CreatePrintingPage() {
             />
           </Field>
           <Field>
-            <FieldLabel>Distribution channels</FieldLabel>
-            <MultiSelectDropdown
+            <FieldLabel htmlFor="create-printing-channels">Distribution channels</FieldLabel>
+            <OrderedMultiSelect
+              id="create-printing-channels"
               options={channelOptions}
               selected={selectedChannelSlugs}
               onChange={setSelectedChannelSlugs}
@@ -459,7 +431,8 @@ export function CreatePrintingPage() {
   );
 }
 
-function MultiSelectDropdown({
+export function OrderedMultiSelect({
+  id,
   options,
   selected,
   onChange,
@@ -467,6 +440,7 @@ function MultiSelectDropdown({
   searchPlaceholder,
   emptyOptionsText,
 }: {
+  id: string;
   options: { value: string; label: string }[];
   selected: string[];
   onChange: (next: string[]) => void;
@@ -477,42 +451,21 @@ function MultiSelectDropdown({
   if (options.length === 0) {
     return <span className="text-muted-foreground text-sm">{emptyOptionsText}</span>;
   }
-  const items = options.map((opt) => opt.value);
-  const labelFor = (value: string) => options.find((opt) => opt.value === value)?.label ?? value;
-  const orderSelected = (next: string[]) => {
-    const nextSet = new Set(next);
-    return options.filter((opt) => nextSet.has(opt.value)).map((opt) => opt.value);
+  const inOptionOrder = (values: readonly string[]) => {
+    const chosen = new Set(values);
+    return options.filter((option) => chosen.has(option.value)).map((option) => option.value);
   };
-  const ordered = orderSelected(selected);
-  const summary = ordered.length === 0 ? placeholder : ordered.map((v) => labelFor(v)).join(", ");
   return (
-    <Combobox<string, true>
+    <ComboboxPicker
       multiple
-      items={items}
-      value={ordered}
-      onValueChange={(next) => onChange(orderSelected(next))}
-      itemToStringLabel={labelFor}
-    >
-      <ComboboxTrigger
-        render={<Button variant="outline" />}
-        className={cn(
-          "w-full justify-between font-normal",
-          ordered.length === 0 && "text-muted-foreground",
-        )}
-      >
-        <span className="truncate">{summary}</span>
-      </ComboboxTrigger>
-      <ComboboxContent className="w-72">
-        <ComboboxInput placeholder={searchPlaceholder} showTrigger={false} />
-        <ComboboxEmpty>No matches.</ComboboxEmpty>
-        <ComboboxList>
-          {(value: string) => (
-            <ComboboxItem key={value} value={value}>
-              {labelFor(value)}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      id={id}
+      options={options}
+      value={inOptionOrder(selected)}
+      onChange={(next) => onChange(inOptionOrder(next))}
+      placeholder={placeholder}
+      searchPlaceholder={searchPlaceholder}
+      emptyText="No matches."
+      contentClassName="w-72"
+    />
   );
 }

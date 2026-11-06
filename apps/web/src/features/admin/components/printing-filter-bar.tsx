@@ -2,14 +2,8 @@ import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { useState } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 
 export type PrintingMarkerFilter = "all" | "with" | "without";
 
@@ -151,24 +145,13 @@ export function PrintingFilterBar({
       )}
 
       {availableSets.length > 1 && (
-        <Select
-          items={setItems}
+        <AdminFilterSelect
+          options={setItems}
           value={setFilter ?? ALL}
-          onValueChange={(value: string | null) => {
-            onSetFilterChange(value === null || value === ALL ? null : value);
-          }}
-        >
-          <SelectTrigger className="w-44" aria-label="Set">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {setItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(value) => onSetFilterChange(value === ALL ? null : value)}
+          label="Set"
+          className="w-44"
+        />
       )}
 
       {showMarkerFilter && (

@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDownIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductLink } from "@/features/admin/components/price-mappings-utils";
 import {
@@ -61,6 +61,7 @@ const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
 };
 
 const MAX_MATCHES = 8;
+const MIN_QUERY_LENGTH = 3;
 
 interface Candidate {
   printing: UnifiedMappingPrintingResponse;
@@ -258,14 +259,14 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
 
       <RecordSection title="Assign to printing…">
         <Suspense fallback={<Skeleton className="h-9" />}>
-          <PrintingPicker disabled={pending} onPick={assign} />
+          <ListingPrintingCombobox disabled={pending} onPick={assign} />
         </Suspense>
       </RecordSection>
     </RecordPane>
   );
 }
 
-export function PrintingPicker({
+export function ListingPrintingCombobox({
   disabled,
   onPick,
 }: {
@@ -278,7 +279,7 @@ export function PrintingPicker({
   const needle = query.trim().toLowerCase();
   const seen = new Set<string>();
   const matches: Printing[] = [];
-  if (needle.length >= 3) {
+  if (needle.length >= MIN_QUERY_LENGTH) {
     for (const printing of allPrintings) {
       if (matches.length >= MAX_MATCHES) {
         break;
@@ -296,26 +297,36 @@ export function PrintingPicker({
   }
 
   return (
-    <div className="space-y-2">
-      <Input
-        aria-label="Printing name or code"
-        value={query}
-        placeholder="Name or code, e.g. OGN-030"
-        disabled={disabled}
-        onChange={(event) => setQuery(event.target.value)}
-      />
-      {matches.map((printing) => (
-        <Button
-          key={printing.printingId}
-          variant="outline"
-          className="w-full justify-start"
-          disabled={disabled}
-          onClick={() => onPick(printing.printingId)}
-        >
-          {printing.card.name} · {formatPrintingCode(printing.publicCode)} · {printing.finish} ·{" "}
-          {printing.language}
-        </Button>
-      ))}
-    </div>
+    <ComboboxPicker
+      trigger="input"
+      aria-label="Printing name or code"
+      placeholder="Name or code, e.g. OGN-030"
+      disabled={disabled}
+      options={matches.map((printing) => ({
+        value: printing.printingId,
+        label: [
+          printing.card.name,
+          formatPrintingCode(printing.publicCode),
+          printing.finish,
+          printing.language,
+        ].join(" · "),
+      }))}
+      filter="none"
+      query={query}
+      onQueryChange={setQuery}
+      hint={
+        needle.length < MIN_QUERY_LENGTH
+          ? `Type ${MIN_QUERY_LENGTH} characters to search.`
+          : undefined
+      }
+      emptyText="No printing matches."
+      value={null}
+      onChange={(printingId) => {
+        if (printingId !== null) {
+          onPick(printingId);
+        }
+      }}
+      clearOnSelect
+    />
   );
 }

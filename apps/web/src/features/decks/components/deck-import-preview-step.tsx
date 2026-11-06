@@ -1,4 +1,3 @@
-import { enumLabel } from "@openrift/shared/enum-label";
 import { linkHostLabel } from "@openrift/shared/link-hosts";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -20,13 +19,7 @@ import { Callout } from "@/components/ui/callout";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import {
   ImportPreviewStack,
   ImportRowsSection,
@@ -55,7 +48,6 @@ export function DeckImportPreviewStep({
   deckName,
   deckFormat,
   deckFormats,
-  deckFormatLabels,
   zoneOrder,
   zoneLabels,
   readyCount,
@@ -91,7 +83,6 @@ export function DeckImportPreviewStep({
   deckName: string;
   deckFormat: DeckFormat;
   deckFormats: { slug: string; label: string }[];
-  deckFormatLabels: Record<string, string>;
   zoneOrder: DeckZone[];
   zoneLabels: Record<DeckZone, string>;
   readyCount: number;
@@ -275,27 +266,13 @@ export function DeckImportPreviewStep({
                   <Label htmlFor="preview-deck-format">
                     {m.collections_import_deck_format_label()}
                   </Label>
-                  <Select
+                  <SimpleSelect
+                    id="preview-deck-format"
+                    items={deckFormats.map((entry) => ({ value: entry.slug, label: entry.label }))}
                     value={deckFormat}
-                    onValueChange={(value) => {
-                      if (value !== null) {
-                        onDeckFormatChange(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="preview-deck-format" className="mb-0 w-full sm:w-[140px]">
-                      <SelectValue>
-                        {(value: string) => enumLabel(deckFormatLabels, value)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {deckFormats.map((entry) => (
-                        <SelectItem key={entry.slug} value={entry.slug}>
-                          {entry.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={onDeckFormatChange}
+                    className="w-full sm:w-[140px]"
+                  />
                 </div>
               </>
             )}

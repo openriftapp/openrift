@@ -7,13 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { useDecks } from "@/features/decks/hooks/use-decks";
@@ -94,27 +88,18 @@ export function PlayerDeckSourceForm({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="player-deck-select">{m.tournaments_player_deck_from_your_decks()}</Label>
-        <Select
+        <SimpleSelect
+          id="player-deck-select"
           items={deckItems}
           value={deckId}
-          onValueChange={(value) => {
-            setDeckId(value ?? NO_DECK);
-            if (value && value !== NO_DECK) {
+          onChange={(value) => {
+            setDeckId(value);
+            if (value !== NO_DECK) {
               setDeckCode("");
             }
           }}
-        >
-          <SelectTrigger id="player-deck-select" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {deckItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          className="w-full"
+        />
       </div>
 
       <div className="flex flex-col gap-2">

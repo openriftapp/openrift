@@ -1,18 +1,11 @@
 import { pluralize } from "@openrift/shared/strings";
-import { CheckIcon, ChevronsUpDownIcon, XIcon } from "lucide-react";
+import { CheckIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { Disclosure } from "@/components/disclosure";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -119,7 +111,7 @@ function UploadFormatHelp() {
   );
 }
 
-function SourceNameField({
+export function SourceNameField({
   names,
   value,
   onChange,
@@ -128,75 +120,23 @@ function SourceNameField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const trimmed = value.trim();
-  const isNew = trimmed !== "" && !names.some((n) => n.toLowerCase() === trimmed.toLowerCase());
-
   return (
     <div className="space-y-2">
-      <Label>
+      <Label htmlFor="source-upload-name">
         Source name <span className="text-destructive">*</span>
       </Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger className="border-input focus-visible:border-ring focus-visible:ring-ring/50 flex h-9 w-full items-center justify-between rounded-lg border bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50">
-          <span className={value ? "text-foreground" : "text-muted-foreground"}>
-            {value || "Select or type a source name…"}
-          </span>
-          <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
-        </PopoverTrigger>
-        <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
-          <Command
-            filter={(itemValue, search) => {
-              if (itemValue.startsWith("__create__")) {
-                return 1;
-              }
-              return itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-            }}
-          >
-            <CommandInput
-              placeholder="Type or select a source…"
-              value={value}
-              onValueChange={onChange}
-              onFocus={(event) => event.target.select()}
-            />
-            <CommandList>
-              <CommandEmpty className="text-muted-foreground py-3 text-center text-sm">
-                No sources yet.
-              </CommandEmpty>
-              {names.length > 0 && (
-                <CommandGroup heading="Existing sources">
-                  {names.map((name) => (
-                    <CommandItem
-                      key={name}
-                      value={name}
-                      data-checked={value === name || undefined}
-                      onSelect={(selected) => {
-                        onChange(selected);
-                        setOpen(false);
-                      }}
-                    >
-                      {name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-              {isNew && (
-                <CommandGroup>
-                  <CommandItem
-                    value={`__create__${trimmed}`}
-                    onSelect={() => {
-                      onChange(trimmed);
-                      setOpen(false);
-                    }}
-                  >
-                    Create &ldquo;{trimmed}&rdquo;
-                  </CommandItem>
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <ComboboxPicker
+        trigger="input"
+        freeText
+        id="source-upload-name"
+        options={names.map((name) => ({ value: name, label: name }))}
+        value={value === "" ? null : value}
+        onChange={(next) => onChange(next ?? "")}
+        createLabel={(typed) => <>Create &ldquo;{typed}&rdquo;</>}
+        onFocus={(event) => event.target.select()}
+        placeholder="Select or type a source name…"
+        emptyText="No sources yet."
+      />
       <p className="text-muted-foreground text-sm">
         A unique label naming where this data came from.
       </p>

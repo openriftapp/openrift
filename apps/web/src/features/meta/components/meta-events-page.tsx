@@ -16,13 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { FilterDropdownChip } from "@/features/cards/components/compact-filter-bar";
 import { MetaDecklistsToggle } from "@/features/meta/components/meta-decklists-toggle";
 import {
@@ -441,24 +435,18 @@ function EventPageSizePicker({
   if (total <= META_PAGE_SIZES[0] && value === DEFAULT_EVENT_PAGE_SIZE) {
     return null;
   }
-  const items = Object.fromEntries(META_PAGE_SIZES.map((size) => [String(size), String(size)]));
   return (
-    <Select
+    <SimpleSelect
+      items={META_PAGE_SIZES.map((size) => ({
+        value: String(size),
+        label: m.meta_events_per_page({ size: String(size) }),
+      }))}
       value={String(value)}
-      items={items}
-      onValueChange={(next) => onChange(Number((next as string | null) ?? DEFAULT_EVENT_PAGE_SIZE))}
-    >
-      <SelectTrigger className="w-36" aria-label={m.meta_events_per_page_aria()}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(items).map(([key, label]) => (
-          <SelectItem key={key} value={key}>
-            {m.meta_events_per_page({ size: label })}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={(next) => onChange(Number(next))}
+      label={m.meta_events_per_page_aria()}
+      renderValue={(item) => item.value}
+      className="w-36"
+    />
   );
 }
 

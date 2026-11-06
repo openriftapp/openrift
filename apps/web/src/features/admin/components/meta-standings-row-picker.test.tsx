@@ -2,7 +2,7 @@ import type { AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MetaStandingsRowPicker } from "@/features/admin/components/meta-standings-row-picker";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -31,6 +31,12 @@ function player(overrides: Partial<AdminMetaPlayer> = {}): AdminMetaPlayer {
   };
 }
 
+const mdUp = vi.hoisted(() => ({ value: true }));
+
+vi.mock("@/hooks/use-is-mobile", () => ({
+  useIsMobile: () => !mdUp.value,
+}));
+
 const STANDINGS = [
   player(),
   player({ id: "player-2", rank: 4, rankIsTier: true, playerName: "Braum Main", deckId: null }),
@@ -57,6 +63,10 @@ async function openPicker(
 }
 
 describe("MetaStandingsRowPicker", () => {
+  afterEach(() => {
+    mdUp.value = true;
+  });
+
   it("offers every standings row, whatever the overlay's name matched", async () => {
     await openPicker(vi.fn());
 
@@ -97,5 +107,15 @@ describe("MetaStandingsRowPicker", () => {
 
     expect(screen.getByText("linked")).toBeInTheDocument();
     expect(onPick).not.toHaveBeenCalled();
+  });
+
+  it("opens as a bottom drawer on phones and still links the picked row", async () => {
+    mdUp.value = false;
+    const onPick = vi.fn();
+    await openPicker(onPick);
+
+    expect(document.querySelector("[data-slot=drawer-popup]")).not.toBeNull();
+    await userEvent.click(screen.getByText("kim dongha"));
+    expect(onPick).toHaveBeenCalledWith("player-3", "kim dongha");
   });
 });

@@ -2,13 +2,7 @@ import type { PromosListResponse } from "@openrift/shared/types/api/catalog";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -78,8 +72,8 @@ export function PromosLanguageSelect({
     label: languageLabelMap.get(code) ?? code,
   }));
 
-  function handleLanguageChange(next: string | null) {
-    if (!next || next === activeLanguage) {
+  function handleLanguageChange(next: string) {
+    if (next === activeLanguage) {
       return;
     }
     void navigate({
@@ -91,17 +85,12 @@ export function PromosLanguageSelect({
   }
 
   return (
-    <Select items={languageItems} value={activeLanguage} onValueChange={handleLanguageChange}>
-      <SelectTrigger aria-label={m.promos_language_aria()} className={className}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {languageItems.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={languageItems}
+      value={activeLanguage}
+      onChange={handleLanguageChange}
+      label={m.promos_language_aria()}
+      className={className}
+    />
   );
 }

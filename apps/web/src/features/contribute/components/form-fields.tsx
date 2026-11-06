@@ -1,29 +1,18 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useId, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ComboboxPicker } from "@/components/combobox-picker";
 import {
   Combobox,
   ComboboxChip,
   ComboboxChips,
   ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
 } from "@/components/ui/combobox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { InfoHint } from "@/components/ui/info-hint";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { useFieldLink } from "@/features/contribute/components/contribute-field-focus";
 import { cn } from "@/lib/utils";
@@ -127,24 +116,15 @@ export function SingleSelect({
   placeholder: string;
 }) {
   return (
-    <Select
-      value={value ?? ""}
-      onValueChange={(next: string | null) => onChange(next || null)}
-      items={options.map((slug) => ({ value: slug, label: labels[slug] ?? slug }))}
-    >
-      <SelectTrigger id={id} aria-labelledby={ariaLabelledBy} className="w-full">
-        <SelectValue placeholder={placeholder}>
-          {(current: string) => labels[current] ?? current}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((slug) => (
-          <SelectItem key={slug} value={slug}>
-            {labels[slug] ?? slug}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={options.map((slug) => ({ value: slug, label: enumLabel(labels, slug) }))}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      id={id}
+      aria-labelledby={ariaLabelledBy}
+      className="w-full"
+    />
   );
 }
 
@@ -202,6 +182,7 @@ export function MultiSelectDropdown({
   onChange,
   options,
   placeholder,
+  searchPlaceholder,
   id,
   "aria-labelledby": ariaLabelledBy,
 }: LabelledControlProps & {
@@ -209,43 +190,20 @@ export function MultiSelectDropdown({
   onChange: (next: string[]) => void;
   options: { slug: string; label: string }[];
   placeholder: string;
+  searchPlaceholder: string;
 }) {
-  const items = options.map((opt) => opt.slug);
-  const labelFor = (slug: string) => options.find((opt) => opt.slug === slug)?.label ?? slug;
-  const summary = value.length === 0 ? placeholder : value.map((slug) => labelFor(slug)).join(", ");
   return (
-    <Combobox<string, true>
+    <ComboboxPicker
       multiple
-      items={items}
+      options={options.map((option) => ({ value: option.slug, label: option.label }))}
       value={value}
-      onValueChange={onChange}
-      itemToStringLabel={labelFor}
-    >
-      <ComboboxTrigger
-        id={id}
-        aria-labelledby={ariaLabelledBy}
-        render={<Button variant="outline" />}
-        className={cn(
-          "w-full justify-between font-normal",
-          value.length === 0 && "text-muted-foreground",
-        )}
-      >
-        <span className="truncate">{summary}</span>
-      </ComboboxTrigger>
-      <ComboboxContent className="w-72">
-        <ComboboxInput
-          placeholder={m.contribute_placeholder_markers_search()}
-          showTrigger={false}
-        />
-        <ComboboxEmpty>{m.contribute_no_matches()}</ComboboxEmpty>
-        <ComboboxList>
-          {(slug: string) => (
-            <ComboboxItem key={slug} value={slug}>
-              {labelFor(slug)}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      onChange={onChange}
+      placeholder={placeholder}
+      searchPlaceholder={searchPlaceholder}
+      emptyText={m.contribute_no_matches()}
+      contentClassName="w-72"
+      id={id}
+      aria-labelledby={ariaLabelledBy}
+    />
   );
 }

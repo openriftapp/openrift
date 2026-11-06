@@ -20,13 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
 import {
@@ -172,27 +166,14 @@ function ParticipantRow({
         ) : null}
       </div>
       {blocked ? null : (
-        <Select
+        <SimpleSelect
           items={items}
           value={value}
-          onValueChange={(next) =>
-            setPick(participantId, next === null || next === NO_STANDING ? null : next)
-          }
-        >
-          <SelectTrigger
-            className="w-full sm:w-80"
-            aria-label={m.tournaments_archive_pick_label({ player: participant.displayName })}
-          >
-            <SelectValue placeholder={m.tournaments_archive_pick_placeholder()} />
-          </SelectTrigger>
-          <SelectContent>
-            {items.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(next) => setPick(participantId, next === NO_STANDING ? null : next)}
+          label={m.tournaments_archive_pick_label({ player: participant.displayName })}
+          placeholder={m.tournaments_archive_pick_placeholder()}
+          className="w-full sm:w-80"
+        />
       )}
     </RowListItem>
   );

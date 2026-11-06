@@ -5040,6 +5040,7 @@
   "contribute_placeholder_finish": "Pick a finish",
   "contribute_placeholder_art_variant": "Pick a variant",
   "contribute_placeholder_size": "Standard",
+  "contribute_placeholder_channels_search": "Search distribution channels…",
   "contribute_placeholder_markers_search": "Search markers…",
   "contribute_submit_errors_title": "Fix the following before submitting:",
   "contribute_submit_success_title": "Thanks! Your submission is in the review queue.",

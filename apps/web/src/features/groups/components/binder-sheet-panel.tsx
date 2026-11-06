@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type {
   BinderSheetPaper,
   BinderSheetSize,
@@ -143,64 +137,37 @@ export function BinderSheetPanel({
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="binder-sheet-size">{m.binder_size_label()}</Label>
-          <Select
+          <SimpleSelect
+            id="binder-sheet-size"
             items={sizes}
             value={size}
-            onValueChange={(value) => setSize(value as BinderSheetSize)}
-          >
-            <SelectTrigger id="binder-sheet-size" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sizes.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={setSize}
+            className="w-full"
+          />
           <p className="text-muted-foreground text-sm">{binderSheetSizeHint(size)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="binder-sheet-paper">{m.binder_paper_label()}</Label>
-            <Select
+            <SimpleSelect
+              id="binder-sheet-paper"
               items={papers}
               value={paper}
-              onValueChange={(value) => setPaper(value as BinderSheetPaper)}
-            >
-              <SelectTrigger id="binder-sheet-paper" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {papers.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={setPaper}
+              className="w-full"
+            />
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="binder-sheet-style">{m.binder_style_label()}</Label>
-            <Select
+            <SimpleSelect
+              id="binder-sheet-style"
               items={styles}
               value={style}
-              onValueChange={(value) => setStyle(value as BinderSheetStyle)}
-            >
-              <SelectTrigger id="binder-sheet-style" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {styles.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={setStyle}
+              className="w-full"
+            />
           </div>
         </div>
 

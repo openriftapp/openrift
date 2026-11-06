@@ -5035,6 +5035,7 @@
   "contribute_placeholder_finish": "Choisir une finition",
   "contribute_placeholder_art_variant": "Choisir une variante",
   "contribute_placeholder_size": "Standard",
+  "contribute_placeholder_channels_search": "Rechercher des canaux de distribution…",
   "contribute_placeholder_markers_search": "Rechercher des marqueurs…",
   "contribute_submit_errors_title": "Corrigez les points suivants avant d'envoyer :",
   "contribute_submit_success_title": "Merci ! Votre contribution est dans la file d'attente de vérification.",

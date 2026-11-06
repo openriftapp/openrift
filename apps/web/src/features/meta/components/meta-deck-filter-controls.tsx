@@ -2,13 +2,7 @@ import type { MetaDeckFacetsResponse } from "@openrift/shared/types/api/meta";
 import type { ReactNode } from "react";
 
 import { MultiSelectCombobox } from "@/components/multi-select-combobox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { MetaDeckCostFilterData } from "@/features/meta/components/meta-deck-cost-filter";
 import { MetaDeckCostFilter } from "@/features/meta/components/meta-deck-cost-filter";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
@@ -126,25 +120,14 @@ export function MetaDeckFilterControls({
             />
           )}
 
-          <Select
+          <SimpleSelect
+            items={Object.entries(finishItems).map(([value, label]) => ({ value, label }))}
             value={filters.maxRank === null ? ANY_FINISH : String(filters.maxRank)}
-            onValueChange={(value) => {
-              const next = (value as string | null) ?? ANY_FINISH;
-              filters.setMaxRank(next === ANY_FINISH ? null : Number(next));
-            }}
-            items={finishItems}
-          >
-            <SelectTrigger size="sm" className="font-medium" aria-label={m.meta_filter_finish()}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(finishItems).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(next) => filters.setMaxRank(next === ANY_FINISH ? null : Number(next))}
+            label={m.meta_filter_finish()}
+            size="sm"
+            className="font-medium"
+          />
 
           <MetaDeckCostFilter
             {...cost}

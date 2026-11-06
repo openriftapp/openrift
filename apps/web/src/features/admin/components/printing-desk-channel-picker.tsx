@@ -2,20 +2,13 @@ import type { DistributionChannelResponse } from "@openrift/shared/types/api/adm
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { SearchInput } from "@/components/search-input";
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Pressable } from "@/components/ui/pressable";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { PrintingDeskChannelBrowser } from "@/features/admin/components/printing-desk-channel-browser";
 import {
   useCreateDistributionChannel,
@@ -39,6 +32,8 @@ function channelSearchOptions(channels: readonly Channel[]): ChannelSearchOption
   }));
 }
 
+type Draft = { kind: "leaf"; label: string; parentId: string } | { kind: "root"; label: string };
+
 export function PrintingDeskChannelPicker({
   value,
   onChange,
@@ -49,7 +44,7 @@ export function PrintingDeskChannelPicker({
   const { data } = useDistributionChannels();
   const channels = data.distributionChannels;
   const [query, setQuery] = useState("");
-  const [creating, setCreating] = useState<"leaf" | "root" | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
 
   const options = channelSearchOptions(channels);
   const bySlug = new Map(options.map((option) => [option.slug, option]));
@@ -58,10 +53,12 @@ export function PrintingDeskChannelPicker({
   );
   const parents = channels.filter((channel) => channel.childrenLabel !== null);
   const suggestedParentId = results.at(0)?.parentId ?? parents.at(0)?.id ?? null;
+  const suggestedParentLabel =
+    channels.find((channel) => channel.id === suggestedParentId)?.label ?? "a series";
 
   function add(slug: string) {
     setQuery("");
-    setCreating(null);
+    setDraft(null);
     if (!value.includes(slug)) {
       onChange([...value, slug]);
     }
@@ -86,69 +83,73 @@ export function PrintingDeskChannelPicker({
       )}
 
       <div className="flex items-center gap-2">
-        <SearchInput
-          value={query}
-          onValueChange={setQuery}
-          placeholder="Search events and products…"
+        <ComboboxPicker
+          trigger="input"
           id="desk-channel-search"
           className="min-w-0 flex-1"
+          placeholder="Search events and products…"
+          options={results.map((option) => ({
+            value: option.slug,
+            label: option.breadcrumb,
+            detail: <span className="font-mono">{option.slug}</span>,
+          }))}
+          filter="none"
+          query={query}
+          onQueryChange={setQuery}
+          value={null}
+          onChange={(slug) => {
+            if (slug !== null) {
+              add(slug);
+            }
+          }}
+          clearOnSelect
+          emptyText="No matching events or products."
+          actions={[
+            {
+              key: "leaf",
+              label: (typed) => (
+                <span className="text-primary flex items-center gap-1.5">
+                  <PlusIcon className="size-3.5" />
+                  Add “{typed.trim()}” under {suggestedParentLabel}
+                </span>
+              ),
+              visible: (typed) => typed.trim().length > 0 && suggestedParentId !== null,
+              onSelect: (typed) => {
+                if (suggestedParentId !== null) {
+                  setDraft({ kind: "leaf", label: typed.trim(), parentId: suggestedParentId });
+                }
+              },
+            },
+            {
+              key: "root",
+              label: () => (
+                <span className="text-primary flex items-center gap-1.5">
+                  <PlusIcon className="size-3.5" />
+                  Add a new series or product
+                </span>
+              ),
+              onSelect: (typed) => setDraft({ kind: "root", label: typed.trim() }),
+            },
+          ]}
         />
         <PrintingDeskChannelBrowser channels={channels} selected={value} onSelect={add} />
       </div>
 
-      {(query.length > 0 || creating !== null) && (
+      {draft !== null && (
         <div className="rounded-lg border">
-          {results.map((option) => (
-            <Pressable
-              key={option.id}
-              onClick={() => add(option.slug)}
-              className="hover:bg-muted/50 flex w-full items-baseline justify-between gap-2 px-3 py-2"
-            >
-              <span className="truncate text-sm">{option.breadcrumb}</span>
-              <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                {option.slug}
-              </span>
-            </Pressable>
-          ))}
-
-          {creating === null && (
-            <div className="border-t">
-              {query.trim().length > 0 && suggestedParentId !== null && (
-                <Pressable
-                  onClick={() => setCreating("leaf")}
-                  className="text-primary hover:bg-muted/50 flex w-full items-center gap-1.5 px-3 py-2 text-sm"
-                >
-                  <PlusIcon className="size-3.5" />
-                  Add “{query.trim()}” under{" "}
-                  {channels.find((channel) => channel.id === suggestedParentId)?.label ??
-                    "a series"}
-                </Pressable>
-              )}
-              <Pressable
-                onClick={() => setCreating("root")}
-                className="text-primary hover:bg-muted/50 flex w-full items-center gap-1.5 px-3 py-2 text-sm"
-              >
-                <PlusIcon className="size-3.5" />
-                Add a new series or product
-              </Pressable>
-            </div>
-          )}
-
-          {creating === "leaf" && suggestedParentId !== null && (
+          {draft.kind === "leaf" ? (
             <NewLeafForm
               channels={channels}
               parents={parents}
-              initialParentId={suggestedParentId}
-              initialLabel={query.trim()}
-              onCancel={() => setCreating(null)}
+              initialParentId={draft.parentId}
+              initialLabel={draft.label}
+              onCancel={() => setDraft(null)}
               onCreated={add}
             />
-          )}
-
-          {creating === "root" && (
+          ) : (
             <NewRootForm
-              initialLabel={query.trim()}
-              onCancel={() => setCreating(null)}
+              initialLabel={draft.label}
+              onCancel={() => setDraft(null)}
               onCreated={add}
             />
           )}
@@ -205,29 +206,16 @@ function NewLeafForm({
   }
 
   return (
-    <div className="space-y-3 border-t p-3">
+    <div className="space-y-3 p-3">
       <Field>
         <FieldLabel htmlFor="desk-channel-parent">Part of</FieldLabel>
-        <Select
+        <SimpleSelect
+          id="desk-channel-parent"
           items={parents.map((channel) => ({ value: channel.id, label: channel.label }))}
           value={parentId}
-          onValueChange={(next) => {
-            if (next !== null) {
-              setParentId(next);
-            }
-          }}
-        >
-          <SelectTrigger id="desk-channel-parent" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {parents.map((channel) => (
-              <SelectItem key={channel.id} value={channel.id}>
-                {channel.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setParentId}
+          className="w-full"
+        />
         {parent?.childrenLabel && <FieldDescription>{parent.childrenLabel}</FieldDescription>}
       </Field>
 
@@ -307,7 +295,7 @@ function NewRootForm({
   }
 
   return (
-    <div className="space-y-3 border-t p-3">
+    <div className="space-y-3 p-3">
       <Field>
         <FieldLabel htmlFor="desk-root-label">Name</FieldLabel>
         <Input
@@ -332,26 +320,13 @@ function NewRootForm({
 
       <Field>
         <FieldLabel htmlFor="desk-root-kind">Event or product</FieldLabel>
-        <Select
+        <SimpleSelect
+          id="desk-root-kind"
           items={KIND_OPTIONS}
           value={kind}
-          onValueChange={(next) => {
-            if (next !== null) {
-              setKind(next);
-            }
-          }}
-        >
-          <SelectTrigger id="desk-root-kind" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {KIND_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setKind}
+          className="w-full"
+        />
       </Field>
 
       <Field>

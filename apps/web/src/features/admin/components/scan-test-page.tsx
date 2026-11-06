@@ -18,13 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useClipRecorder } from "@/features/admin/hooks/use-clip-recorder";
 import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
@@ -257,64 +251,35 @@ function EngineCard({ settings, onChange }: EngineCardProps) {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="scan-mode">Mode</Label>
-          <Select
+          <SimpleSelect
+            id="scan-mode"
             items={MODES}
             value={settings.mode}
-            onValueChange={(value) =>
-              onChange({ ...settings, mode: value as ScannerSettings["mode"] })
-            }
-          >
-            <SelectTrigger id="scan-mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MODES.map((mode) => (
-                <SelectItem key={mode.value} value={mode.value}>
-                  {mode.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => onChange({ ...settings, mode: value as ScannerSettings["mode"] })}
+            className="w-full"
+          />
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="scan-resolution">Processing size</Label>
-          <Select
+          <SimpleSelect
+            id="scan-resolution"
             items={PROCESSING_SIZES}
             value={String(settings.processingSize)}
-            onValueChange={(value) => onChange({ ...settings, processingSize: Number(value) })}
-          >
-            <SelectTrigger id="scan-resolution">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PROCESSING_SIZES.map((size) => (
-                <SelectItem key={size.value} value={size.value}>
-                  {size.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => onChange({ ...settings, processingSize: Number(value) })}
+            className="w-full"
+          />
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="scan-tries">Candidates per frame</Label>
-          <Select
+          <SimpleSelect
+            id="scan-tries"
             items={CANDIDATE_TRIES}
             value={String(settings.candidatesToTry)}
-            onValueChange={(value) => onChange({ ...settings, candidatesToTry: Number(value) })}
-          >
-            <SelectTrigger id="scan-tries">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CANDIDATE_TRIES.map((tries) => (
-                <SelectItem key={tries.value} value={tries.value}>
-                  {tries.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => onChange({ ...settings, candidatesToTry: Number(value) })}
+            className="w-full"
+          />
         </div>
       </CardContent>
     </Card>

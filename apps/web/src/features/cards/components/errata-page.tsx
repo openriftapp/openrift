@@ -11,13 +11,7 @@ import { SearchInput } from "@/components/search-input";
 import { buttonVariants } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ErrataView } from "@/features/cards/components/errata-entry";
 import { ErrataEntry } from "@/features/cards/components/errata-entry";
@@ -219,12 +213,13 @@ export function ErrataPage() {
   }, [data]);
 
   const setCounts = countErrataBySet(data.entries);
-  const setItems: Record<string, string> = {
-    [ALL_SETS]: `${m.errata_set_all()} (${data.entries.length})`,
-    ...Object.fromEntries(
-      data.sets.map((set) => [set.slug, `${set.name} (${setCounts.get(set.slug) ?? 0})`]),
-    ),
-  };
+  const setItems = [
+    { value: ALL_SETS, label: `${m.errata_set_all()} (${data.entries.length})` },
+    ...data.sets.map((set) => ({
+      value: set.slug,
+      label: `${set.name} (${setCounts.get(set.slug) ?? 0})`,
+    })),
+  ];
   const latest = latestErrataUpdate(data.announcements);
   const stats = [
     { key: "cards", value: countErrataCards(data.entries), label: m.errata_stat_cards() },
@@ -264,25 +259,13 @@ export function ErrataPage() {
             aria-label={m.errata_search_label()}
             className="w-full sm:w-72"
           />
-          <Select
-            value={setSlug}
-            onValueChange={(next) => setSetSlug(next ?? ALL_SETS)}
+          <SimpleSelect
             items={setItems}
-          >
-            <SelectTrigger
-              aria-label={m.errata_set_label()}
-              className="min-w-0 flex-1 sm:flex-none"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(setItems).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            value={setSlug}
+            onChange={setSetSlug}
+            label={m.errata_set_label()}
+            className="min-w-0 flex-1 sm:flex-none"
+          />
           <ToggleGroup
             variant="outline"
             spacing={0}

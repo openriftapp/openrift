@@ -19,13 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useMetaEventDrift,
@@ -128,26 +122,17 @@ function ClaimForm({
   return (
     <span className="flex items-center gap-1">
       {field === "tier" && (
-        <Select
+        <SimpleSelect
+          items={META_EVENT_TIERS.map((tier) => ({
+            value: tier,
+            label: metaEventTierLabels()[tier],
+          }))}
           value={draft}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setDraft(value as string);
-            }
-          }}
-          items={metaEventTierLabels()}
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {META_EVENT_TIERS.map((tier) => (
-              <SelectItem key={tier} value={tier}>
-                {metaEventTierLabels()[tier]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setDraft}
+          label="Tier"
+          size="sm"
+          className="w-36"
+        />
       )}
       {field === "eventDate" && (
         <DatePicker

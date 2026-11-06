@@ -2,15 +2,10 @@ import { useDebouncedCallback } from "@tanstack/react-pacer";
 import type { ReactNode, RefObject } from "react";
 import { useState } from "react";
 
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
+import type { ComboboxPickerOption } from "@/components/combobox-picker";
+import { ComboboxPicker } from "@/components/combobox-picker";
 import type { CardSearchResult } from "@/features/cards/lib/card-search-result";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const SEARCH_DEBOUNCE_MS = 150;
@@ -29,15 +24,13 @@ interface CatalogSearchComboboxProps<T> {
   ariaLabel?: string;
   placeholder?: string;
   emptyMessage?: string;
+  loading?: boolean;
+  loadingText?: string;
   disabled?: boolean;
   className?: string;
   autoFocus?: boolean;
 }
 
-/**
- * `filter={null}` disables BaseUI's own label filter (`autoComplete="none"`
- * does not, despite its docs); items are already filtered externally.
- */
 export function CatalogSearchCombobox<T>({
   results,
   getKey,
@@ -52,59 +45,69 @@ export function CatalogSearchCombobox<T>({
   ariaLabel,
   placeholder = m.cards_search_placeholder(),
   emptyMessage = m.cards_search_empty(),
+  loading,
+  loadingText,
   disabled,
   className,
   autoFocus,
 }: CatalogSearchComboboxProps<T>) {
-  const [highlighted, setHighlighted] = useState<T | null>(null);
+  const [picked, setPicked] = useState<ComboboxPickerOption | null>(null);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
   // State, not a ref: React Compiler flags refs passed to functions during
   // render, and the preview only reads `.current` in its own effect.
   const [popupEl, setPopupEl] = useState<HTMLDivElement | null>(null);
   const notifyQueryChange = useDebouncedCallback(onQueryChange, { wait: SEARCH_DEBOUNCE_MS });
 
-  const handleInputValueChange = (value: string) => {
-    onRawInputChange?.(value);
-    notifyQueryChange(value);
-  };
+  const byKey = new Map(results.map((item) => [getKey(item), item]));
+  const options = results.map((item) => ({
+    value: getKey(item),
+    label: itemToInputValue?.(item) ?? "",
+  }));
+  const highlightedItem = highlighted === null ? undefined : byKey.get(highlighted);
 
   return (
-    <Combobox<T>
-      items={results}
-      filter={null}
-      autoComplete="none"
-      defaultInputValue={initialQuery}
-      itemToStringLabel={itemToInputValue}
-      onInputValueChange={handleInputValueChange}
-      onItemHighlighted={(item) => setHighlighted(item ?? null)}
-      onValueChange={(item) => {
-        if (item) {
-          onSelect(item);
-        }
-      }}
-    >
-      <ComboboxInput
+    <>
+      <ComboboxPicker
+        trigger="input"
+        filter="none"
+        options={options}
+        value={picked?.value ?? null}
+        selectedOptions={picked ? [picked] : []}
+        onChange={(key) => {
+          const item = key === null ? undefined : byKey.get(key);
+          setPicked(options.find((option) => option.value === key) ?? null);
+          if (item !== undefined) {
+            onSelect(item);
+          }
+        }}
+        defaultQuery={initialQuery}
+        onQueryChange={(value) => {
+          onRawInputChange?.(value);
+          notifyQueryChange(value);
+        }}
+        onHighlightChange={setHighlighted}
+        renderOption={(option) => {
+          const item = byKey.get(option.value);
+          return item === undefined ? null : renderItem(item);
+        }}
         id={id}
         aria-label={ariaLabel}
-        className={className}
         placeholder={placeholder}
+        emptyText={emptyMessage}
+        loading={loading}
+        loadingText={loadingText}
         disabled={disabled}
-        showTrigger={false}
-        showClear
+        showChevron={false}
+        clearable
+        className={cn("w-auto", className)}
+        contentClassName="w-max"
+        contentRef={setPopupEl}
         // oxlint-disable-next-line jsx-a11y/no-autofocus -- opt-in via the autoFocus prop; callers pass it intentionally
         autoFocus={autoFocus}
       />
-      <ComboboxContent ref={setPopupEl} className="w-max">
-        <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
-        <ComboboxList>
-          {(item: T) => (
-            <ComboboxItem key={getKey(item)} value={item}>
-              {renderItem(item)}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-      {highlighted !== null && renderActivePreview?.(highlighted, { current: popupEl })}
-    </Combobox>
+      {highlightedItem !== undefined &&
+        renderActivePreview?.(highlightedItem, { current: popupEl })}
+    </>
   );
 }
 

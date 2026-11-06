@@ -2,13 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { SCAN_ZOOMS } from "@/features/scan/lib/scan-zoom";
 import { formatCount } from "@/lib/format";
@@ -63,26 +57,13 @@ export function ScanSettingsMenu({
           label={m.scan_settings_language_label()}
           description={m.scan_settings_language_description()}
         >
-          <Select
+          <SimpleSelect
             items={languageItems}
             value={language}
-            onValueChange={(value) => {
-              if (value) {
-                onLanguageChange(value);
-              }
-            }}
-          >
-            <SelectTrigger aria-label={m.scan_settings_language_label()} className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {languageItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={onLanguageChange}
+            label={m.scan_settings_language_label()}
+            className="w-36"
+          />
         </SettingsRow>
 
         <SettingsRow
@@ -112,26 +93,13 @@ export function ScanSettingsMenu({
           label={m.scan_settings_zoom_label()}
           description={m.scan_settings_zoom_description()}
         >
-          <Select
+          <SimpleSelect
             items={zoomItems}
             value={String(zoom)}
-            onValueChange={(value) => {
-              if (value) {
-                onZoomChange(Number(value));
-              }
-            }}
-          >
-            <SelectTrigger aria-label={m.scan_settings_zoom_label()} className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {zoomItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => onZoomChange(Number(value))}
+            label={m.scan_settings_zoom_label()}
+            className="w-36"
+          />
         </SettingsRow>
       </PopoverContent>
     </Popover>

@@ -2,23 +2,11 @@ import type { ListIntent, ListKind, ListResponse } from "@openrift/shared/types/
 import { ListIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { CommandEmpty, CommandGroup } from "@/components/ui/command";
-import {
-  Dialog,
-  DialogCancel,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
-import { PickerList, PickerRow } from "@/components/ui/picker-list";
+import { PickerDialogBody } from "@/components/picker-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ConnectedMoveEntryDialogBody } from "@/features/lists/components/move-entry-dialog";
 import type { MoveEntrySubject, MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
 import { hasTwoCards, moveNeedsDialog, movePickFor } from "@/features/lists/lib/list-move";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const INTENT_ORDER: ListIntent[] = ["wish", "trade", "organize"];
@@ -80,15 +68,11 @@ export function MoveToListDialog({
   onConfirm,
   isPending,
 }: MoveToListDialogProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [highlightedId, setHighlightedId] = useState("");
   const [target, setTarget] = useState<ListResponse | null>(null);
-  const [seedOpen, setSeedOpen] = useState(open);
-  if (seedOpen !== open) {
-    setSeedOpen(open);
+  const [session, setSession] = useState({ open, count: 0 });
+  if (session.open !== open) {
+    setSession({ open, count: open ? session.count + 1 : session.count });
     if (open) {
-      setSelectedId(null);
-      setHighlightedId("");
       setTarget(null);
     }
   }
@@ -96,10 +80,9 @@ export function MoveToListDialog({
   const isCopy = mode === "copy";
   const needsSingle = (list: ListResponse) =>
     subject === null && movePickFor(source.kind, list.kind, selectionHasTwoCards) !== "none";
-  const byIntent = Map.groupBy(lists, (list) => list.intent);
 
-  const proceed = () => {
-    const list = lists.find((candidate) => candidate.id === selectedId);
+  const proceed = (listId: string) => {
+    const list = lists.find((candidate) => candidate.id === listId);
     if (!list || needsSingle(list)) {
       return;
     }
@@ -130,80 +113,38 @@ export function MoveToListDialog({
             />
           </Suspense>
         ) : (
-          <DialogForm onSubmit={proceed}>
-            <DialogHeader>
-              <DialogTitle>
-                {isCopy ? m.lists_entry_copy_title() : m.lists_entry_move_title()}
-              </DialogTitle>
-              <DialogDescription>
-                {isCopy ? m.lists_entry_copy_description() : m.lists_entry_move_description()}
-              </DialogDescription>
-            </DialogHeader>
-            {/* Do not add overflow here: CommandList scrolls internally. */}
-            <div>
-              {lists.length === 0 ? (
-                <Empty>
-                  <EmptyDescription>{m.lists_entry_move_none()}</EmptyDescription>
-                </Empty>
-              ) : (
-                <PickerList
-                  searchPlaceholder={m.lists_entry_move_filter_placeholder()}
-                  highlightedId={highlightedId}
-                  onHighlightChange={setHighlightedId}
-                >
-                  <CommandEmpty>{m.lists_entry_move_no_match()}</CommandEmpty>
-                  {INTENT_ORDER.map((intent) => {
-                    const group = byIntent.get(intent);
-                    if (!group || group.length === 0) {
-                      return null;
-                    }
-                    return (
-                      <CommandGroup key={intent} heading={intentHeading(intent)}>
-                        {group.map((list) => {
-                          const gated = needsSingle(list);
-                          return (
-                            <PickerRow
-                              key={list.id}
-                              value={list.id}
-                              keywords={[list.name]}
-                              onSelect={gated ? undefined : () => setSelectedId(list.id)}
-                              className={cn(
-                                "px-3 py-2",
-                                gated && "opacity-50",
-                                selectedId === list.id &&
-                                  "bg-primary/10 text-primary data-selected:bg-primary/10 data-selected:text-primary data-selected:**:text-primary",
-                              )}
-                            >
-                              <ListIcon className="size-4 shrink-0" />
-                              <span className="flex-1 truncate">{list.name}</span>
-                              <span className="text-muted-foreground text-2xs shrink-0">
-                                {listKindLabel(list.kind)}
-                              </span>
-                            </PickerRow>
-                          );
-                        })}
-                      </CommandGroup>
-                    );
-                  })}
-                </PickerList>
-              )}
-            </div>
-            {subject === null && lists.some((list) => needsSingle(list)) && (
-              <p className="text-muted-foreground text-sm">{m.lists_entry_move_needs_single()}</p>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <DialogCancel disabled={isPending} />
-              <Button type="submit" disabled={!selectedId || isPending}>
-                {isPending
-                  ? isCopy
-                    ? m.lists_copy_pending()
-                    : m.lists_entry_move_pending()
-                  : isCopy
-                    ? m.common_copy()
-                    : m.lists_entry_move_confirm()}
-              </Button>
-            </div>
-          </DialogForm>
+          <PickerDialogBody
+            key={session.count}
+            title={isCopy ? m.lists_entry_copy_title() : m.lists_entry_move_title()}
+            description={
+              isCopy ? m.lists_entry_copy_description() : m.lists_entry_move_description()
+            }
+            options={lists.map((list) => ({
+              value: list.id,
+              label: list.name,
+              keywords: [list.name],
+              icon: <ListIcon className="size-4 shrink-0" />,
+              meta: listKindLabel(list.kind),
+              group: list.intent,
+              disabled: needsSingle(list),
+            }))}
+            groups={INTENT_ORDER.map((intent) => ({ key: intent, label: intentHeading(intent) }))}
+            searchPlaceholder={m.lists_entry_move_filter_placeholder()}
+            noMatchesText={m.lists_entry_move_no_match()}
+            emptyText={m.lists_entry_move_none()}
+            after={
+              subject === null &&
+              lists.some((list) => needsSingle(list)) && (
+                <p className="text-muted-foreground text-sm">{m.lists_entry_move_needs_single()}</p>
+              )
+            }
+            pending={isPending}
+            confirm={{
+              label: isCopy ? m.common_copy() : m.lists_entry_move_confirm(),
+              pendingLabel: isCopy ? m.lists_copy_pending() : m.lists_entry_move_pending(),
+              onConfirm: proceed,
+            }}
+          />
         )}
       </DialogContent>
     </Dialog>

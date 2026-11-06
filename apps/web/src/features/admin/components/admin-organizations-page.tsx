@@ -21,13 +21,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin-users";
 import {
@@ -263,22 +257,14 @@ export function AdminOrganizationsPage() {
           </div>
           <div className="flex flex-col gap-2 sm:col-span-2">
             <Label>Owner</Label>
-            <Select
+            <SimpleSelect
               items={userItems}
-              value={ownerUserId}
-              onValueChange={(value) => value && setOwnerUserId(value)}
-            >
-              <SelectTrigger aria-label="Owner">
-                <SelectValue placeholder="Select owner..." />
-              </SelectTrigger>
-              <SelectContent>
-                {userItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              value={ownerUserId === "" ? null : ownerUserId}
+              onChange={setOwnerUserId}
+              label="Owner"
+              placeholder="Select owner..."
+              className="w-full"
+            />
           </div>
         </div>
         <Button

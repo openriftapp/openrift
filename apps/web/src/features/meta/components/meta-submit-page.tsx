@@ -23,13 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CatalogSearchCombobox } from "@/features/cards/components/card-search-dropdown";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -543,24 +537,17 @@ export function MetaSubmitPage({
                             <FieldLabel htmlFor="meta-submit-event-format">
                               {m.meta_submit_event_format()}
                             </FieldLabel>
-                            <Select
-                              items={formatItems}
-                              value={draft.eventFormat}
-                              onValueChange={(value) => set("eventFormat", (value as string) ?? "")}
-                            >
-                              <SelectTrigger id="meta-submit-event-format" className="w-full">
-                                <SelectValue
-                                  placeholder={m.meta_submit_event_format_placeholder()}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(formatItems).map(([value, label]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <SimpleSelect
+                              id="meta-submit-event-format"
+                              items={Object.entries(formatItems).map(([value, label]) => ({
+                                value,
+                                label,
+                              }))}
+                              value={draft.eventFormat === "" ? null : draft.eventFormat}
+                              onChange={(value) => set("eventFormat", value)}
+                              placeholder={m.meta_submit_event_format_placeholder()}
+                              className="w-full"
+                            />
                           </Field>
                           <Field>
                             <FieldLabel htmlFor="meta-submit-event-players">

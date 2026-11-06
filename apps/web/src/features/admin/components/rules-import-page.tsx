@@ -14,13 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import {
@@ -60,10 +54,6 @@ const LANGUAGE_ITEMS = RULE_LANGUAGES.map((value) => ({
   value,
   label: DISPLAY_LOCALE_LABELS[value],
 }));
-
-function isRuleLanguageItem(value: unknown): value is RuleLanguage {
-  return LANGUAGE_ITEMS.some((item) => item.value === value);
-}
 
 export function RulesImportPage() {
   const { data: versionsData } = useAdminRuleVersions();
@@ -148,50 +138,23 @@ export function RulesImportPage() {
       <div className="grid max-w-xl gap-4">
         <div className="grid gap-1.5">
           <Label htmlFor="kind">Kind</Label>
-          <Select
+          <SimpleSelect
+            id="kind"
             items={KIND_ITEMS}
             value={kind}
-            onValueChange={(value) => {
-              if (value === "core" || value === "tournament") {
-                setKind(value);
-              }
-            }}
-          >
-            <SelectTrigger id="kind">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {KIND_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={setKind}
+            className="w-full"
+          />
         </div>
 
         <div className="grid gap-1.5">
           <Label htmlFor="language">Language</Label>
-          <Select
+          <SimpleSelect
+            id="language"
             items={LANGUAGE_ITEMS}
             value={language}
-            onValueChange={(value) => {
-              if (isRuleLanguageItem(value)) {
-                setLanguage(value);
-              }
-            }}
-          >
-            <SelectTrigger id="language">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LANGUAGE_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={setLanguage}
+          />
           {language !== "en" && (
             <p className="text-muted-foreground text-sm">
               Translations need the English version of the same date. Leave number, name and

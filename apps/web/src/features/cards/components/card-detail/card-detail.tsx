@@ -15,12 +15,12 @@ import { CardDetailArt } from "./card-detail-art";
 import { CardDetailHeading } from "./card-detail-heading";
 import { CardDetailLinks, CardPageButton } from "./card-detail-links";
 import { CardDetailOtherSide } from "./card-detail-other-side";
+import { CardDetailPrintingList } from "./card-detail-printing-list";
 import { CardDetailStats } from "./card-detail-stats";
 import { CardDetailText } from "./card-detail-text";
 import { CardFooter } from "./card-footer";
 import { CardHoldingsSection } from "./card-holdings-section";
 import { PrintingNotesSection } from "./printing-notes-section";
-import { PrintingPicker } from "./printing-picker";
 
 /**
  * Which arrangement the detail renders in. `pane` is the single-column stack
@@ -100,7 +100,7 @@ export function CardDetail({
   const holdings = <CardHoldingsSection printing={printing} printings={printings} />;
   const footer = <CardFooter printing={printing} showPrices={showPrices} />;
   const picker = hasPicker ? (
-    <PrintingPicker
+    <CardDetailPrintingList
       current={printing}
       printings={printings}
       onSelect={onSelectPrinting}

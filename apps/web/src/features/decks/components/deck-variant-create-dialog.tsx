@@ -13,13 +13,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useCreateDeckVariant } from "@/features/decks/hooks/use-decks";
 import { m } from "@/paraglide/messages.js";
 
@@ -102,18 +96,13 @@ export function DeckVariantCreateForm({
           <Label htmlFor={`deck-variant-source-${layout}`}>
             {m.decks_dialog_variant_source_label()}
           </Label>
-          <Select items={sources} value={sourceId} onValueChange={handleSourceChange}>
-            <SelectTrigger id={`deck-variant-source-${layout}`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sources.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SimpleSelect
+            id={`deck-variant-source-${layout}`}
+            items={sources}
+            value={sourceId}
+            onChange={handleSourceChange}
+            className="w-full"
+          />
         </div>
       )}
       <div className="flex min-w-0 flex-col gap-2">

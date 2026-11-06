@@ -30,13 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BoardCaptionEditor } from "@/features/board-states/components/board-caption-editor";
 import type {
@@ -866,26 +860,11 @@ function ChainEntryFields({
       {draft.type !== "spell" && (
         <Label className="flex flex-col items-stretch gap-1">
           {m.board_states_editor_chain_source()}
-          <Select
+          <SimpleSelect
             items={sourceItems}
             value={draft.source ?? NO_SOURCE}
-            onValueChange={(next) =>
-              onChange({
-                source: typeof next === "string" && next !== NO_SOURCE ? next : undefined,
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sourceItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(next) => onChange({ source: next === NO_SOURCE ? undefined : next })}
+          />
         </Label>
       )}
     </>

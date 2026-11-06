@@ -15,7 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PickerGroup, PickerList, PickerRow } from "@/components/ui/picker-list";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  ResponsivePopover,
+  ResponsivePopoverContent,
+  ResponsivePopoverTrigger,
+} from "@/components/ui/responsive-popover";
 import { TextLink } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
@@ -589,8 +593,8 @@ function SourcePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
+    <ResponsivePopover open={open} onOpenChange={setOpen}>
+      <ResponsivePopoverTrigger
         render={
           <Button
             variant="ghost"
@@ -604,8 +608,12 @@ function SourcePicker({
           </Button>
         }
       />
-      {/* p-0: PickerList's own CommandList supplies the list inset. */}
-      <PopoverContent align="end" className="w-80 p-0" onClick={rowControlClick()}>
+      <ResponsivePopoverContent
+        title={wording.action}
+        hideTitle
+        align="end"
+        onClick={rowControlClick()}
+      >
         <PickerList
           highlightedId={highlightedId}
           onHighlightChange={setHighlightedId}
@@ -631,8 +639,8 @@ function SourcePicker({
             </PickerGroup>
           ))}
         </PickerList>
-      </PopoverContent>
-    </Popover>
+      </ResponsivePopoverContent>
+    </ResponsivePopover>
   );
 }
 

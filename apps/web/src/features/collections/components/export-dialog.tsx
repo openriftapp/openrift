@@ -12,15 +12,7 @@ import { CopyTextPanel } from "@/components/copy-text-panel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import type { CsvExportFormat } from "@/features/collections/lib/csv-export";
 import {
@@ -168,7 +160,6 @@ export function ExportDialog({
     ? ["text", "cardmarket", "cardtrader"]
     : [...TEXT_FORMATS];
   const csvFormats: CsvExportFormat[] = cardsOnly ? [] : CSV_FORMAT_KEYS;
-  const availableFormats: ExportFormat[] = [...textFormats, ...csvFormats];
 
   const lines = payloadLines(payload);
   const count =
@@ -201,35 +192,30 @@ export function ExportDialog({
           </DialogHeader>
 
           <div className="flex min-w-0 flex-col gap-3">
-            <Select
+            <SimpleSelect
+              id="export-format"
+              items={[
+                ...textFormats.map((key) => ({
+                  value: key as ExportFormat,
+                  label: formatLabel(key),
+                  group: "text",
+                })),
+                ...csvFormats.map((key) => ({
+                  value: key as ExportFormat,
+                  label: formatLabel(key),
+                  group: "csv",
+                })),
+              ]}
+              groups={[
+                { key: "text", label: m.collections_export_format_group_text() },
+                ...(csvFormats.length > 0
+                  ? [{ key: "csv", label: m.collections_export_format_group_csv() }]
+                  : []),
+              ]}
               value={format}
-              onValueChange={(value) => setFormat((value as ExportFormat) ?? "text")}
-              items={Object.fromEntries(availableFormats.map((key) => [key, formatLabel(key)]))}
-            >
-              <SelectTrigger className="w-[220px]" id="export-format">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>{m.collections_export_format_group_text()}</SelectLabel>
-                  {textFormats.map((key) => (
-                    <SelectItem key={key} value={key}>
-                      {formatLabel(key)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                {csvFormats.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>{m.collections_export_format_group_csv()}</SelectLabel>
-                    {csvFormats.map((key) => (
-                      <SelectItem key={key} value={key}>
-                        {formatLabel(key)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-              </SelectContent>
-            </Select>
+              onChange={setFormat}
+              className="w-[220px]"
+            />
 
             {format === "cardmarket" && (
               <MarketplaceHint

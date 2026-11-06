@@ -1,13 +1,7 @@
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { TournamentRoundsChoice } from "@/features/tournaments/lib/tournament-display";
 import {
   isGroupCutChoice,
@@ -32,28 +26,19 @@ export function PlayModeField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{m.tournaments_settings_play_mode_label()}</Label>
-      <Select
+      <SimpleSelect
         items={items}
         value={value}
         disabled={disabled}
-        onValueChange={(next) => {
-          const match = items.find((item) => item.value === next);
-          if (match && match.value !== value) {
-            onChange(match.value);
+        onChange={(next) => {
+          if (next !== value) {
+            onChange(next);
           }
         }}
-      >
-        <SelectTrigger className="w-full" aria-label={m.tournaments_settings_play_mode_label()}>
-          <SelectValue placeholder={m.tournaments_settings_play_mode_label()} />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        label={m.tournaments_settings_play_mode_label()}
+        placeholder={m.tournaments_settings_play_mode_label()}
+        className="w-full"
+      />
     </div>
   );
 }
@@ -76,28 +61,19 @@ export function RoundsField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{m.tournaments_settings_rounds_label()}</Label>
-      <Select
+      <SimpleSelect
         items={items}
         value={value}
         disabled={disabled}
-        onValueChange={(next) => {
-          const match = items.find((item) => item.value === next);
-          if (match && match.value !== value) {
-            onChange(match.value);
+        onChange={(next) => {
+          if (next !== value) {
+            onChange(next);
           }
         }}
-      >
-        <SelectTrigger className="w-full" aria-label={m.tournaments_settings_rounds_label()}>
-          <SelectValue placeholder={m.tournaments_settings_rounds_label()} />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        label={m.tournaments_settings_rounds_label()}
+        placeholder={m.tournaments_settings_rounds_label()}
+        className="w-full"
+      />
     </div>
   );
 }

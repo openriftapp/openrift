@@ -21,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -174,7 +175,9 @@ export function PickerCardBrowser({
               filteredCount={filteredCount}
               hideViewToggle={hideViewToggle}
               hideDisplayModeToggle
-              mobileDoneLabel={hasActiveFilters ? `Show ${filteredCount} cards` : undefined}
+              mobileDoneLabel={
+                hasActiveFilters ? m.cards_grid_show_n_cards({ count: filteredCount }) : undefined
+              }
             />
           }
           rightPane={

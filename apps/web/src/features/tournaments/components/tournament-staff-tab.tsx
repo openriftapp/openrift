@@ -43,13 +43,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import {
   useAddTournamentStaff,
@@ -429,22 +423,14 @@ function AddStaffDialog({
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label>{m.tournaments_staff_role_label()}</Label>
-              <Select
+              <SimpleSelect
                 items={roleItems()}
                 value={role}
-                onValueChange={(value) => value && setRole(value as TournamentStaffRole)}
-              >
-                <SelectTrigger aria-label={m.tournaments_staff_role_label()}>
-                  <SelectValue placeholder={m.tournaments_staff_role_placeholder()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleItems().map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => setRole(value as TournamentStaffRole)}
+                label={m.tournaments_staff_role_label()}
+                placeholder={m.tournaments_staff_role_placeholder()}
+                className="w-full"
+              />
               <p className="text-muted-foreground text-sm">{m.tournaments_staff_role_hint()}</p>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -456,22 +442,14 @@ function AddStaffDialog({
                   {m.tournaments_staff_no_candidates()}
                 </p>
               ) : (
-                <Select
+                <SimpleSelect
                   items={items}
                   value={userId}
-                  onValueChange={(value) => value && setUserId(value)}
-                >
-                  <SelectTrigger aria-label={m.tournaments_staff_person_label()}>
-                    <SelectValue placeholder={m.tournaments_staff_person_placeholder()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {items.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setUserId}
+                  label={m.tournaments_staff_person_label()}
+                  placeholder={m.tournaments_staff_person_placeholder()}
+                  className="w-full"
+                />
               )}
             </div>
           </div>

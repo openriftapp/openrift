@@ -25,13 +25,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateMetaPlayer, useRenamePlayerDeck } from "@/features/admin/hooks/use-admin-meta";
 import { useWritePlayerOverlayFields } from "@/features/admin/hooks/use-admin-meta-overlays";
@@ -155,7 +149,7 @@ interface MetaPlayerDialogProps {
 /** A decklist's cards come from the same paste-and-match pipeline as /decks/import. */
 export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: MetaPlayerDialogProps) {
   const { allPrintings, cardsById } = useCards();
-  const { formats, labels: formatLabels } = useDeckFormatList();
+  const { formats } = useDeckFormatList();
   const { zoneOrder, zoneLabels } = useZoneOrder();
   const createPlayer = useCreateMetaPlayer();
   const writeOverlay = useWritePlayerOverlayFields();
@@ -406,26 +400,16 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
 
             <div className="space-y-1.5">
               <Label htmlFor="meta-player-status">Decklist status</Label>
-              <Select
+              <SimpleSelect
+                id="meta-player-status"
+                items={META_LIST_STATUSES.map((status) => ({
+                  value: status,
+                  label: LIST_STATUS_LABELS[status],
+                }))}
                 value={draft.listStatus}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    set("listStatus", value as MetaListStatus);
-                  }
-                }}
-                items={LIST_STATUS_LABELS}
-              >
-                <SelectTrigger id="meta-player-status" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {META_LIST_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {LIST_STATUS_LABELS[status]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => set("listStatus", value)}
+                className="w-full"
+              />
               {hasStoredList && !wantsList && (
                 <p className="text-muted-foreground text-sm">
                   Saving removes the archived deck and its permalink, and keeps it removed even if a
@@ -449,26 +433,13 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
             {wantsList && player === undefined && (
               <div className="space-y-1.5">
                 <Label htmlFor="meta-player-deck-format">Format</Label>
-                <Select
+                <SimpleSelect
+                  id="meta-player-deck-format"
+                  items={formats.map((format) => ({ value: format.slug, label: format.label }))}
                   value={draft.deckFormat}
-                  onValueChange={(value) => {
-                    if (value !== null) {
-                      set("deckFormat", value as string);
-                    }
-                  }}
-                  items={formatLabels}
-                >
-                  <SelectTrigger id="meta-player-deck-format" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formats.map((format) => (
-                      <SelectItem key={format.slug} value={format.slug}>
-                        {format.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => set("deckFormat", value)}
+                  className="w-full"
+                />
               </div>
             )}
           </div>

@@ -89,9 +89,9 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { PrintingPicker } from "./printing-picker";
+import { CardDetailPrintingList } from "./card-detail-printing-list";
 
-describe("PrintingPicker", () => {
+describe("CardDetailPrintingList", () => {
   beforeEach(() => {
     priceGetMock.mockReset();
     priceGetMock.mockReturnValue(undefined);
@@ -104,7 +104,7 @@ describe("PrintingPicker", () => {
   it("does not nest a <button> inside another <button>", () => {
     const printing = stubPrinting();
     const { container } = render(
-      <PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
     );
     const nested = container.querySelectorAll("button button");
     expect(nested).toHaveLength(0);
@@ -113,7 +113,7 @@ describe("PrintingPicker", () => {
   it("renders the row as a non-button element with role=button", () => {
     const printing = stubPrinting();
     const { container } = render(
-      <PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
     );
     const row = container.querySelector('[role="button"]');
     expect(row).not.toBeNull();
@@ -135,7 +135,7 @@ describe("PrintingPicker", () => {
     });
     const back = { ...front, side: 2 as const };
     const { container } = render(
-      <PrintingPicker current={back} printings={[front, back]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={back} printings={[front, back]} onSelect={() => {}} />,
     );
     const rows = container.querySelectorAll('[role="button"]');
     expect(rows).toHaveLength(1);
@@ -148,7 +148,9 @@ describe("PrintingPicker", () => {
     );
     const printing = stubPrinting();
 
-    render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
+    render(
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
+    );
 
     expect(screen.getByText(/4[.,]20/u)).toBeInTheDocument();
     expect(screen.queryByText("CardTrader")).not.toBeInTheDocument();
@@ -160,7 +162,9 @@ describe("PrintingPicker", () => {
     );
     const printing = stubPrinting();
 
-    render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
+    render(
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
+    );
 
     expect(screen.getByText("TCGplayer")).toBeInTheDocument();
     expect(screen.getByText(/4[.,]20/u)).toBeInTheDocument();
@@ -170,7 +174,7 @@ describe("PrintingPicker", () => {
     const printing = stubPrinting();
 
     const { container } = render(
-      <PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
     );
 
     expect(container.textContent).not.toMatch(/\d[.,]\d\d/u);
@@ -181,7 +185,7 @@ describe("PrintingPicker", () => {
     const printing = stubPrinting({ printingId: "p-x" });
 
     const { container } = render(
-      <PrintingPicker
+      <CardDetailPrintingList
         current={printing}
         printings={[printing]}
         onSelect={() => {}}
@@ -198,7 +202,7 @@ describe("PrintingPicker", () => {
     const printing = stubPrinting({ printingId: "p-x" });
 
     render(
-      <PrintingPicker
+      <CardDetailPrintingList
         current={printing}
         printings={[printing]}
         onSelect={() => {}}
@@ -212,14 +216,18 @@ describe("PrintingPicker", () => {
   it("counts across every collection when none is given", () => {
     const printing = stubPrinting({ printingId: "p-x" });
 
-    render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
+    render(
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
+    );
 
     expect(ownedMock).toHaveBeenCalledWith(["p-x"], true, undefined);
   });
 
   it("puts the All printings button in the Printings header", () => {
     const printing = stubPrinting();
-    render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
+    render(
+      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
+    );
 
     const header = screen.getByRole("heading", { name: "Printings" }).parentElement;
     expect(header?.querySelector('[data-testid="printings-lightbox"]')).not.toBeNull();
@@ -230,7 +238,7 @@ describe("PrintingPicker", () => {
     const korean = stubPrinting({ printingId: "p-kr", cardId: "card-1", language: "KR" });
     catalogMock.printingsByCardId = new Map([["card-1", [english, korean]]]);
 
-    render(<PrintingPicker current={english} printings={[english]} onSelect={() => {}} />);
+    render(<CardDetailPrintingList current={english} printings={[english]} onSelect={() => {}} />);
 
     expect(lightboxPrintingsMock).toHaveBeenLastCalledWith([english, korean]);
     expect(screen.queryByText("KR")).toBeNull();
@@ -241,7 +249,7 @@ describe("PrintingPicker", () => {
     const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
     catalogMock.printingsByCardId = new Map([["card-1", [english, japanese]]]);
 
-    render(<PrintingPicker current={japanese} printings={[english]} onSelect={() => {}} />);
+    render(<CardDetailPrintingList current={japanese} printings={[english]} onSelect={() => {}} />);
 
     expect(ownedMock).toHaveBeenLastCalledWith(["p-en", "p-ja"], true, undefined);
     expect(screen.queryByRole("button", { name: /outside your filters/u })).toBeNull();
@@ -252,7 +260,7 @@ describe("PrintingPicker", () => {
     const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
     catalogMock.printingsByCardId = new Map([["card-1", [english, japanese]]]);
 
-    render(<PrintingPicker current={english} printings={[english]} onSelect={() => {}} />);
+    render(<CardDetailPrintingList current={english} printings={[english]} onSelect={() => {}} />);
     expect(ownedMock).toHaveBeenLastCalledWith(["p-en"], true, undefined);
 
     await userEvent.click(screen.getByRole("button", { name: "Show 1 outside your filters" }));
@@ -275,11 +283,15 @@ describe("PrintingPicker", () => {
     ]);
 
     const { rerender } = render(
-      <PrintingPicker current={english} printings={[english]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={english} printings={[english]} onSelect={() => {}} />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Show 1 outside your filters" }));
     rerender(
-      <PrintingPicker current={nextEnglish} printings={[nextEnglish]} onSelect={() => {}} />,
+      <CardDetailPrintingList
+        current={nextEnglish}
+        printings={[nextEnglish]}
+        onSelect={() => {}}
+      />,
     );
 
     expect(ownedMock).toHaveBeenLastCalledWith(["p2-en"], true, undefined);
@@ -290,7 +302,7 @@ describe("PrintingPicker", () => {
     const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
     catalogMock.printingsByCardId = new Map([["card-1", [english]]]);
 
-    render(<PrintingPicker current={english} printings={[english]} onSelect={() => {}} />);
+    render(<CardDetailPrintingList current={english} printings={[english]} onSelect={() => {}} />);
 
     expect(screen.queryByRole("button", { name: /outside your filters/u })).toBeNull();
   });
@@ -300,7 +312,7 @@ describe("PrintingPicker", () => {
     const other = stubPrinting({ printingId: "p-other", shortCode: "OGN-002" });
     usePrintingLightboxStore.setState({ pickedSideKey: sideKey(picked) });
     const { container } = render(
-      <PrintingPicker current={picked} printings={[picked, other]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={picked} printings={[picked, other]} onSelect={() => {}} />,
     );
 
     const highlighted = container.querySelectorAll("[data-highlighted]");
@@ -318,7 +330,7 @@ describe("PrintingPicker", () => {
     const other = stubPrinting({ printingId: "p-other", shortCode: "OGN-002" });
     usePrintingLightboxStore.setState({ pickedSideKey: sideKey(other) });
     const { container } = render(
-      <PrintingPicker current={shown} printings={[shown, other]} onSelect={() => {}} />,
+      <CardDetailPrintingList current={shown} printings={[shown, other]} onSelect={() => {}} />,
     );
 
     expect(container.querySelector("[data-highlighted]")).toBeNull();
@@ -336,7 +348,13 @@ describe("PrintingPicker", () => {
         design("JA", { canonicalRank: 2 }),
       ];
 
-      render(<PrintingPicker current={printings[1]!} printings={printings} onSelect={() => {}} />);
+      render(
+        <CardDetailPrintingList
+          current={printings[1]!}
+          printings={printings}
+          onSelect={() => {}}
+        />,
+      );
 
       expect(screen.getAllByRole("button", { pressed: true })).toHaveLength(2);
       expect(
@@ -349,7 +367,13 @@ describe("PrintingPicker", () => {
     it("marks the shown card's language", () => {
       const printings = [design("EN"), design("DE")];
 
-      render(<PrintingPicker current={printings[1]!} printings={printings} onSelect={() => {}} />);
+      render(
+        <CardDetailPrintingList
+          current={printings[1]!}
+          printings={printings}
+          onSelect={() => {}}
+        />,
+      );
 
       expect(screen.getByRole("button", { name: "German" })).toHaveAttribute(
         "aria-pressed",
@@ -368,7 +392,11 @@ describe("PrintingPicker", () => {
       const german = design("DE");
 
       render(
-        <PrintingPicker current={english} printings={[english, german]} onSelect={onSelect} />,
+        <CardDetailPrintingList
+          current={english}
+          printings={[english, german]}
+          onSelect={onSelect}
+        />,
       );
       await user.click(screen.getByRole("button", { name: "German" }));
 
@@ -383,7 +411,13 @@ describe("PrintingPicker", () => {
         design("EN", { shortCode: "OGN-003" }),
       ];
 
-      render(<PrintingPicker current={printings[0]!} printings={printings} onSelect={() => {}} />);
+      render(
+        <CardDetailPrintingList
+          current={printings[0]!}
+          printings={printings}
+          onSelect={() => {}}
+        />,
+      );
 
       expect(screen.queryByRole("button", { name: "English" })).not.toBeInTheDocument();
     });
@@ -391,7 +425,13 @@ describe("PrintingPicker", () => {
     it("keeps a language not present in the taxonomy reachable", () => {
       const printings = [design("EN"), design("XX")];
 
-      render(<PrintingPicker current={printings[0]!} printings={printings} onSelect={() => {}} />);
+      render(
+        <CardDetailPrintingList
+          current={printings[0]!}
+          printings={printings}
+          onSelect={() => {}}
+        />,
+      );
 
       expect(screen.getByRole("button", { name: "XX" })).toBeInTheDocument();
     });
@@ -407,7 +447,7 @@ describe("PrintingPicker", () => {
       });
 
       const { container } = render(
-        <PrintingPicker current={later} printings={[later, earlier]} onSelect={() => {}} />,
+        <CardDetailPrintingList current={later} printings={[later, earlier]} onSelect={() => {}} />,
       );
 
       expect(

@@ -11,13 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { CreateCollectionDialog } from "@/features/collections/components/create-collection-dialog";
 import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useUpdateDeck } from "@/features/decks/hooks/use-decks";
@@ -108,35 +102,25 @@ export function DeckHomeCollectionDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="deck-home-collection">{m.decks_dialog_home_label()}</Label>
-            <Select
-              items={items}
+            <SimpleSelect
+              id="deck-home-collection"
+              items={items.map((item) => ({
+                ...item,
+                disabled: currentIsGroup && item.value === currentCollectionId,
+              }))}
               value={value}
-              onValueChange={(next) => {
+              onChange={(next) => {
                 // "New deck box…" is an action, not a value: leave the current
                 // pick alone and let the create dialog decide the new one.
                 if (next === NEW) {
                   setCreateOpen(true);
                   return;
                 }
-                setValue(next ?? NONE);
+                setValue(next);
               }}
               disabled={!collections}
-            >
-              <SelectTrigger id="deck-home-collection" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {items.map((item) => (
-                  <SelectItem
-                    key={item.value}
-                    value={item.value}
-                    disabled={currentIsGroup && item.value === currentCollectionId}
-                  >
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              className="w-full"
+            />
             {warning && <p className="text-muted-foreground text-xs">{warning}</p>}
           </div>
 

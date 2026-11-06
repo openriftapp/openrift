@@ -104,14 +104,27 @@ describe("PrintingDeskChannelPicker", () => {
     expect(onChange).toHaveBeenCalledWith(["nexus-night-2026-10"]);
   });
 
+  it("picks with the arrow keys and clears the search", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<PrintingDeskChannelPicker value={[]} onChange={onChange} />);
+
+    await user.type(screen.getByLabelText("Distribution Channels"), "October");
+    await user.keyboard("{ArrowDown}{Enter}");
+
+    expect(onChange).toHaveBeenCalledWith(["nexus-night-2026-10"]);
+    expect(screen.getByLabelText("Distribution Channels")).toHaveValue("");
+  });
+
   it("hides an already-picked channel from the results", async () => {
     const user = userEvent.setup();
     render(<PrintingDeskChannelPicker value={["nexus-night-2026-10"]} onChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Remove October 2026" })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Distribution Channels"), "October");
 
     expect(screen.getAllByText("Nexus Night › October 2026")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "Remove October 2026" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /October 2026/u })).not.toBeInTheDocument();
   });
 
   it("removes a picked channel from the chips", async () => {

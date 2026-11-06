@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { SelectContent, SelectGroup, SelectItem } from "@/components/ui/select";
 import type {
   AdminCellSlotProps,
   AdminDraftSlotProps,
@@ -191,20 +190,6 @@ export function ColorInput<TDraft extends { color: string }>({
       placeholder={placeholder}
       className="w-28 font-mono"
     />
-  );
-}
-
-export function CategorySelectOptions({ items }: { items: { value: string; label: string }[] }) {
-  return (
-    <SelectContent>
-      <SelectGroup>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectGroup>
-    </SelectContent>
   );
 }
 

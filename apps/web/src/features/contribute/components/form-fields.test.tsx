@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -71,6 +71,7 @@ describe("FieldRow", () => {
           onChange={() => undefined}
           options={[{ slug: "promo", label: "Promo" }]}
           placeholder="None"
+          searchPlaceholder="Search markers…"
         />
       </FieldRow>,
     );
@@ -146,5 +147,124 @@ describe("FieldRow", () => {
 
     expect(screen.getByLabelText("Code")).toHaveAttribute("id", "own-id");
     expect(screen.getByText("Code")).toHaveAttribute("for", "own-id");
+  });
+});
+
+describe("SingleSelect", () => {
+  it("shows the label of the current value", () => {
+    render(
+      <FieldRow label="Rarity">
+        <SingleSelect
+          value="rare"
+          onChange={() => undefined}
+          options={["common", "rare"]}
+          labels={{ common: "Common", rare: "Rare" }}
+          placeholder="Pick a rarity"
+        />
+      </FieldRow>,
+    );
+
+    expect(screen.getByLabelText("Rarity")).toHaveTextContent("Rare");
+  });
+
+  it("shows the placeholder without a value and reports a pick", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <FieldRow label="Rarity">
+        <SingleSelect
+          value={null}
+          onChange={onChange}
+          options={["common", "rare"]}
+          labels={{ common: "Common", rare: "Rare" }}
+          placeholder="Pick a rarity"
+        />
+      </FieldRow>,
+    );
+
+    expect(screen.getByLabelText("Rarity")).toHaveTextContent("Pick a rarity");
+    await user.click(screen.getByLabelText("Rarity"));
+    await user.click(await screen.findByRole("option", { name: "Common" }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("common");
+  });
+});
+
+describe("MultiSelectDropdown", () => {
+  const CHANNELS = [
+    { slug: "store", label: "Store" },
+    { slug: "event", label: "Event" },
+  ];
+
+  it("joins the picked labels with a comma", () => {
+    render(
+      <FieldRow label="Channels">
+        <MultiSelectDropdown
+          value={["event", "store"]}
+          onChange={() => undefined}
+          options={CHANNELS}
+          placeholder="None"
+          searchPlaceholder="Search channels…"
+        />
+      </FieldRow>,
+    );
+
+    expect(screen.getByLabelText("Channels")).toHaveTextContent("Store, Event");
+  });
+
+  it("searches with the given placeholder and adds a pick", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <FieldRow label="Channels">
+        <MultiSelectDropdown
+          value={["store"]}
+          onChange={onChange}
+          options={CHANNELS}
+          placeholder="None"
+          searchPlaceholder="Search channels…"
+        />
+      </FieldRow>,
+    );
+
+    await user.click(screen.getByLabelText("Channels"));
+    await user.type(await screen.findByPlaceholderText("Search channels…"), "eve");
+    await user.click(screen.getByRole("option", { name: "Event" }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(["store", "event"]);
+  });
+});
+
+describe("ChipInput", () => {
+  it("adds the draft on Enter and on comma, skipping duplicates", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <FieldRow label="Tags">
+        <ChipInput value={["Poro"]} onChange={onChange} placeholder="Poro" />
+      </FieldRow>,
+    );
+
+    await user.type(screen.getByLabelText("Tags"), "Yordle{Enter}");
+    expect(onChange).toHaveBeenLastCalledWith(["Poro", "Yordle"]);
+
+    onChange.mockClear();
+    await user.type(screen.getByLabelText("Tags"), "Poro,");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("adds the draft on blur", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <FieldRow label="Tags">
+        <ChipInput value={[]} onChange={onChange} placeholder="Poro" />
+      </FieldRow>,
+    );
+
+    await user.type(screen.getByLabelText("Tags"), "  Yordle  ");
+    await user.tab();
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(["Yordle"]);
   });
 });

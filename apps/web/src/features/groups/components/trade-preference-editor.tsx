@@ -12,13 +12,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import {
   CURRENCY_SYMBOL,
   pricePrefLabel,
@@ -163,26 +157,13 @@ export function TradePreferenceEditor({
         <Label htmlFor={`${idPrefix}-price`} className="w-20 shrink-0 font-normal">
           {m.trade_pref_price_label()}
         </Label>
-        <Select
+        <SimpleSelect
+          id={`${idPrefix}-price`}
           items={pricePrefItems}
           value={pricePrefValue}
-          onValueChange={(next) => {
-            if (next !== null) {
-              handlePricePrefChange(next);
-            }
-          }}
-        >
-          <SelectTrigger id={`${idPrefix}-price`} className="min-w-0 flex-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {pricePrefItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={handlePricePrefChange}
+          className="min-w-0 flex-1"
+        />
       </div>
 
       {showCurrency && (
@@ -190,26 +171,17 @@ export function TradePreferenceEditor({
           <Label htmlFor={`${idPrefix}-currency`} className="w-20 shrink-0 font-normal">
             {m.trade_pref_currency_label()}
           </Label>
-          <Select
+          <SimpleSelect
+            id={`${idPrefix}-currency`}
             items={currencyOptions}
             value={currency ?? "EUR"}
-            onValueChange={(next) => {
-              if (next && CURRENCIES.includes(next as Currency)) {
+            onChange={(next) => {
+              if (CURRENCIES.includes(next as Currency)) {
                 onCurrencyChange?.(next as Currency);
               }
             }}
-          >
-            <SelectTrigger id={`${idPrefix}-currency`} className="min-w-0 flex-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencyOptions.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            className="min-w-0 flex-1"
+          />
         </div>
       )}
 
@@ -236,26 +208,13 @@ export function TradePreferenceEditor({
         <Label htmlFor={`${idPrefix}-type`} className="w-20 shrink-0 font-normal">
           {m.trade_pref_accepts_label()}
         </Label>
-        <Select
+        <SimpleSelect
+          id={`${idPrefix}-type`}
           items={tradeTypeItems}
           value={tradeTypeValue}
-          onValueChange={(next) => {
-            if (next !== null) {
-              handleTradeTypeChange(next);
-            }
-          }}
-        >
-          <SelectTrigger id={`${idPrefix}-type`} className="min-w-0 flex-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {tradeTypeItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={handleTradeTypeChange}
+          className="min-w-0 flex-1"
+        />
       </div>
     </div>
   );

@@ -25,13 +25,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Label } from "@/components/ui/label";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -61,7 +55,6 @@ const URL_PATTERN = /^https?:\/\//u;
 // 10 down to 1 in half steps; string values match `String(copy.grade)` so the
 // select round-trips stored grades exactly.
 const GRADE_OPTIONS = Array.from({ length: 19 }, (_, index) => String(10 - index * 0.5));
-const GRADE_ITEMS = Object.fromEntries(GRADE_OPTIONS.map((grade) => [grade, grade]));
 
 function soleCopyId(target: CopyDetailsTarget | null): string | null {
   const [first, ...rest] = target?.copyIds ?? [];
@@ -387,71 +380,42 @@ function CopyEditor({
       <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto px-0.5">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="copy-condition">{m.collections_copies_condition_label()}</Label>
-          <Select
+          <SimpleSelect
+            id="copy-condition"
+            items={[
+              { value: UNRECORDED, label: m.collections_copies_condition_unrecorded() },
+              { value: GRADED, label: m.collections_copies_condition_graded() },
+              ...conditions.map((row) => ({ value: row.slug, label: row.label })),
+            ]}
             value={conditionValue}
-            onValueChange={(value) => setConditionValue(value ?? UNRECORDED)}
-            items={{
-              [UNRECORDED]: m.collections_copies_condition_unrecorded(),
-              [GRADED]: m.collections_copies_condition_graded(),
-              ...Object.fromEntries(conditions.map((row) => [row.slug, row.label])),
-            }}
-          >
-            <SelectTrigger id="copy-condition" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={UNRECORDED}>
-                {m.collections_copies_condition_unrecorded()}
-              </SelectItem>
-              <SelectItem value={GRADED}>{m.collections_copies_condition_graded()}</SelectItem>
-              {conditions.map((row) => (
-                <SelectItem key={row.slug} value={row.slug}>
-                  {row.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={setConditionValue}
+            className="w-full"
+          />
         </div>
 
         {isGraded && (
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="copy-grader">{m.collections_copies_grader_label()}</Label>
-              <Select
-                value={grader === "" ? undefined : grader}
-                onValueChange={(value) => setGrader(value ?? "")}
-                items={Object.fromEntries(graders.map((row) => [row.slug, row.label]))}
-              >
-                <SelectTrigger id="copy-grader" className="w-full">
-                  <SelectValue placeholder={m.collections_copies_grader_placeholder()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {graders.map((row) => (
-                    <SelectItem key={row.slug} value={row.slug}>
-                      {row.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SimpleSelect
+                id="copy-grader"
+                items={graders.map((row) => ({ value: row.slug, label: row.label }))}
+                value={grader === "" ? null : grader}
+                onChange={setGrader}
+                placeholder={m.collections_copies_grader_placeholder()}
+                className="w-full"
+              />
             </div>
             <div className="flex w-24 flex-col gap-1.5">
               <Label htmlFor="copy-grade">{m.collections_copies_grade_label()}</Label>
-              <Select
-                value={gradeText === "" ? undefined : gradeText}
-                onValueChange={(value) => setGradeText(value ?? "")}
-                items={GRADE_ITEMS}
-              >
-                <SelectTrigger id="copy-grade" className="w-full">
-                  <SelectValue placeholder={m.collections_copies_grade_label()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {GRADE_OPTIONS.map((grade) => (
-                    <SelectItem key={grade} value={grade}>
-                      {grade}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SimpleSelect
+                id="copy-grade"
+                items={GRADE_OPTIONS.map((grade) => ({ value: grade, label: grade }))}
+                value={gradeText === "" ? null : gradeText}
+                onChange={setGradeText}
+                placeholder={m.collections_copies_grade_label()}
+                className="w-full"
+              />
             </div>
           </div>
         )}

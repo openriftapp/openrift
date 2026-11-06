@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PickerList, PickerRow } from "./picker-list";
 
@@ -31,6 +31,19 @@ describe("PickerList", () => {
     const input = container.querySelector('[data-slot="command-input"]');
     expect(input).not.toBeNull();
     expect(document.activeElement).toBe(input);
+  });
+
+  it("keeps focus on the root inside a drawer so the phone keyboard stays closed", () => {
+    const { container } = render(
+      <div data-slot="drawer-content">
+        <PickerList searchPlaceholder="Filter…" highlightedId="a" onHighlightChange={() => {}}>
+          <PickerRow value="a" keywords={["Alpha"]}>
+            Alpha
+          </PickerRow>
+        </PickerList>
+      </div>,
+    );
+    expect(document.activeElement).toBe(container.querySelector('[data-slot="command"]'));
   });
 
   it("filters rows by keywords, case-insensitively", () => {
@@ -82,5 +95,56 @@ describe("PickerList", () => {
     fireEvent.change(input, { target: { value: "" } });
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
+  });
+
+  it("caps the list height by default and lets the caller override it", () => {
+    const { container, rerender } = render(
+      <PickerList highlightedId="" onHighlightChange={() => {}}>
+        <PickerRow value="a">Alpha</PickerRow>
+      </PickerList>,
+    );
+    const list = () => container.querySelector('[data-slot="command-list"]');
+    expect(list()).toHaveClass("max-h-72");
+    rerender(
+      <PickerList highlightedId="" onHighlightChange={() => {}} listClassName="max-h-40">
+        <PickerRow value="a">Alpha</PickerRow>
+      </PickerList>,
+    );
+    expect(list()).toHaveClass("max-h-40");
+    expect(list()).not.toHaveClass("max-h-72");
+  });
+});
+
+describe("PickerRow", () => {
+  it("marks a selected row with the shared selected style", () => {
+    render(
+      <PickerList highlightedId="" onHighlightChange={() => {}}>
+        <PickerRow value="a" selected>
+          Alpha
+        </PickerRow>
+        <PickerRow value="b">Beta</PickerRow>
+      </PickerList>,
+    );
+    const alpha = screen.getByRole("option", { name: "Alpha" });
+    const beta = screen.getByRole("option", { name: "Beta" });
+    expect(alpha).toHaveAttribute("data-checked", "true");
+    expect(alpha).toHaveClass("bg-primary/10");
+    expect(beta).not.toHaveAttribute("data-checked");
+    expect(beta).not.toHaveClass("bg-primary/10");
+  });
+
+  it("ignores clicks on a disabled row", () => {
+    const onSelect = vi.fn();
+    render(
+      <PickerList highlightedId="" onHighlightChange={() => {}}>
+        <PickerRow value="a" disabled onSelect={onSelect}>
+          Alpha
+        </PickerRow>
+      </PickerList>,
+    );
+    const row = screen.getByRole("option", { name: "Alpha" });
+    fireEvent.click(row);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(row).toHaveAttribute("aria-disabled", "true");
   });
 });

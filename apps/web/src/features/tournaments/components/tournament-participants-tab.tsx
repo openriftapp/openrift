@@ -24,17 +24,11 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
-import type { LegendTarget } from "@/features/tournaments/components/legend-picker-dialog";
-import { LegendPickerDialog } from "@/features/tournaments/components/legend-picker-dialog";
+import type { LegendTarget } from "@/features/tournaments/components/legend-search-dialog";
+import { LegendSearchDialog } from "@/features/tournaments/components/legend-search-dialog";
 import { MissingRegionsBand } from "@/features/tournaments/components/missing-regions-band";
 import type {
   ParticipantAction,
@@ -415,7 +409,7 @@ export function TournamentParticipantsTab({
         </DialogContent>
       </Dialog>
 
-      <LegendPickerDialog
+      <LegendSearchDialog
         target={legendTarget}
         pending={updateParticipant.isPending}
         onOpenChange={(open) => !open && setLegendTarget(null)}
@@ -459,18 +453,13 @@ function RegionSelect({ value, onChange }: { value: string; onChange: (value: st
     ...(byCategory.get("region") ?? []).map((tag) => ({ value: tag.slug, label: tag.label })),
   ];
   return (
-    <Select items={items} value={value} onValueChange={(next) => next && onChange(next)}>
-      <SelectTrigger aria-label={m.tournaments_roster_region_label()}>
-        <SelectValue placeholder={m.tournaments_roster_region_label()} />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={items}
+      value={value}
+      onChange={onChange}
+      label={m.tournaments_roster_region_label()}
+      placeholder={m.tournaments_roster_region_label()}
+    />
   );
 }
 

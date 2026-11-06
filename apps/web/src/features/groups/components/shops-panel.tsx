@@ -4,17 +4,9 @@ import type { FriendGroupShopSearchResult } from "@openrift/shared/types/api/fri
 import { PlusIcon, StoreIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-} from "@/components/ui/combobox";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   SHOP_SEARCH_MIN_LENGTH,
@@ -92,67 +84,69 @@ export function ShopsPanel({ slug }: { slug: string }) {
 
 function AddShopPicker({ slug, disabled }: { slug: string; disabled: boolean }) {
   const [term, setTerm] = useState("");
-  const [resetKey, setResetKey] = useState(0);
   const link = useLinkFriendGroupShop();
   const search = useFriendGroupShopSearch(slug, term);
   const results = search.data?.items ?? [];
+  const byKey = new Map(results.map((shop) => [shop.shopKey, shop]));
+  const tooShort = term.trim().length < SHOP_SEARCH_MIN_LENGTH;
 
   return (
-    <Combobox<FriendGroupShopSearchResult>
-      key={resetKey}
-      items={results}
-      value={null}
-      // The server already narrowed the list, and it matches on the address
-      // too, which the label doesn't carry.
-      filter={null}
-      onValueChange={(shop) => {
-        if (shop === null || shop.linked) {
-          return;
-        }
-        link.mutate({ slug, shopKey: shop.shopKey });
-        setTerm("");
-        setResetKey((key) => key + 1);
+    <ComboboxPicker
+      size="sm"
+      className="w-auto"
+      triggerRender={<Button variant="outline" size="sm" />}
+      triggerIcon={<PlusIcon className="size-4" />}
+      triggerLabel={m.groups_shops_add()}
+      contentClassName="w-96 max-w-[90vw]"
+      aria-label={m.groups_shops_add()}
+      searchPlaceholder={m.groups_shops_search_placeholder()}
+      disabled={disabled || link.isPending}
+      options={results.map((shop) => ({
+        value: shop.shopKey,
+        label: shop.name,
+        disabled: shop.linked,
+      }))}
+      renderOption={(option) => {
+        const shop = byKey.get(option.value);
+        return shop ? <ShopOption shop={shop} /> : option.label;
       }}
-      onInputValueChange={setTerm}
-      itemToStringLabel={(shop) => shop.name}
-    >
-      <ComboboxTrigger
-        render={<Button variant="outline" size="sm" disabled={disabled || link.isPending} />}
-      >
-        <PlusIcon className="size-4" />
-        {m.groups_shops_add()}
-      </ComboboxTrigger>
-      <ComboboxContent className="w-96 max-w-[90vw]">
-        <ComboboxInput placeholder={m.groups_shops_search_placeholder()} showTrigger={false} />
-        <ComboboxEmpty>
-          {term.trim().length < SHOP_SEARCH_MIN_LENGTH
-            ? m.groups_shops_search_prompt()
-            : search.isPending
-              ? m.groups_shops_searching()
-              : m.groups_shops_search_empty()}
-        </ComboboxEmpty>
-        <ComboboxList>
-          {(shop: FriendGroupShopSearchResult) => (
-            <ComboboxItem key={shop.shopKey} value={shop} disabled={shop.linked}>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate font-medium">{shop.name}</span>
-                <span className="text-muted-foreground truncate text-xs">
-                  {[
-                    GROUP_SHOP_SOURCE_LABELS[shop.source],
-                    shop.location,
-                    m.groups_shops_upcoming_count({ count: shop.upcomingCount }),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              </span>
-              {shop.linked ? (
-                <span className="text-muted-foreground text-xs">{m.groups_shops_linked()}</span>
-              ) : null}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      filter="none"
+      query={term}
+      onQueryChange={setTerm}
+      hint={tooShort ? m.groups_shops_search_prompt() : undefined}
+      loading={!tooShort && search.isPending}
+      loadingText={m.groups_shops_searching()}
+      emptyText={m.groups_shops_search_empty()}
+      value={null}
+      onChange={(shopKey) => {
+        const shop = shopKey === null ? undefined : byKey.get(shopKey);
+        if (shop && !shop.linked) {
+          link.mutate({ slug, shopKey: shop.shopKey });
+        }
+      }}
+      clearOnSelect
+    />
+  );
+}
+
+function ShopOption({ shop }: { shop: FriendGroupShopSearchResult }) {
+  return (
+    <>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate font-medium">{shop.name}</span>
+        <span className="text-muted-foreground truncate text-xs">
+          {[
+            GROUP_SHOP_SOURCE_LABELS[shop.source],
+            shop.location,
+            m.groups_shops_upcoming_count({ count: shop.upcomingCount }),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      </span>
+      {shop.linked ? (
+        <span className="text-muted-foreground text-xs">{m.groups_shops_linked()}</span>
+      ) : null}
+    </>
   );
 }

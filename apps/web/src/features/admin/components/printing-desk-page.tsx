@@ -24,14 +24,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { PrintingDeskCardSearchDialog } from "@/features/admin/components/printing-desk-card-search";
 import {
@@ -165,47 +159,21 @@ export function PrintingDeskPage() {
           options={MODE_OPTIONS}
         />
 
-        <Select
-          items={STATUS_OPTIONS}
+        <AdminFilterSelect
+          options={STATUS_OPTIONS}
           value={status}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setStatus(value);
-            }
-          }}
-        >
-          <SelectTrigger className="w-36" aria-label="Status">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setStatus}
+          label="Status"
+          className="w-36"
+        />
 
-        <Select
-          items={SORT_OPTIONS}
+        <AdminFilterSelect
+          options={SORT_OPTIONS}
           value={sort}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setSort(value);
-            }
-          }}
-        >
-          <SelectTrigger className="w-44" aria-label="Sort">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setSort}
+          label="Sort"
+          className="w-44"
+        />
 
         {selectedRows.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">

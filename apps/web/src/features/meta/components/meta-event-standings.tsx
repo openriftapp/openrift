@@ -15,13 +15,7 @@ import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import type { MetaCostFilterValue } from "@/features/meta/components/meta-deck-cost-filter";
@@ -242,25 +236,15 @@ export function MetaEventStandings({
               />
             )}
             {showLegendFilter && (
-              <Select
+              <SimpleSelect
+                items={Object.entries(legends).map(([value, label]) => ({ value, label }))}
                 value={search.legend ?? ANY_LEGEND}
-                onValueChange={(value) => {
-                  const picked = (value as string | null) ?? ANY_LEGEND;
-                  setView({ legend: picked === ANY_LEGEND ? undefined : picked });
-                }}
-                items={legends}
-              >
-                <SelectTrigger className="w-56" aria-label={m.meta_standings_filter_legend()}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(legends).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(picked) =>
+                  setView({ legend: picked === ANY_LEGEND ? undefined : picked })
+                }
+                label={m.meta_standings_filter_legend()}
+                className="w-56"
+              />
             )}
             {columns.value && (
               <MetaDeckCostFilter
@@ -384,25 +368,19 @@ function PageSizePicker({
     return null;
   }
   return (
-    <Select
+    <SimpleSelect
+      items={Object.entries(items).map(([key, label]) => ({
+        value: key,
+        label: m.meta_standings_per_page({ size: label }),
+      }))}
       value={String(value ?? STANDINGS_PAGE_SIZE)}
-      items={items}
-      onValueChange={(next) => {
-        const picked = (next as string | null) ?? String(STANDINGS_PAGE_SIZE);
-        onChange(picked === META_PAGE_ALL ? META_PAGE_ALL : (Number(picked) as MetaPageSize));
-      }}
-    >
-      <SelectTrigger className="w-36" aria-label={m.meta_standings_per_page_aria()}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(items).map(([key, label]) => (
-          <SelectItem key={key} value={key}>
-            {m.meta_standings_per_page({ size: label })}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={(picked) =>
+        onChange(picked === META_PAGE_ALL ? META_PAGE_ALL : (Number(picked) as MetaPageSize))
+      }
+      label={m.meta_standings_per_page_aria()}
+      renderValue={(item) => items[item.value]}
+      className="w-36"
+    />
   );
 }
 

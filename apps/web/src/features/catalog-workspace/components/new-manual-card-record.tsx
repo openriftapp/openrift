@@ -8,12 +8,6 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-} from "@/components/ui/combobox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +33,7 @@ import {
   toDeskCreateInput,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
+import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
@@ -96,7 +91,6 @@ export function NewManualCardRecord() {
     mightBonus: "",
   });
   const [tags, setTags] = useState<string[]>([]);
-  const [tagDraft, setTagDraft] = useState("");
   const [withPrinting, setWithPrinting] = useState(true);
   const [draftEdit, setDraftEdit] = useState<CreationDraft | null>(null);
   const [pending, setPending] = useState(false);
@@ -123,14 +117,6 @@ export function NewManualCardRecord() {
     !pending &&
     !createCard.isPending;
   const credit = session?.user.name;
-
-  function commitTagDraft() {
-    const trimmed = tagDraft.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
-    }
-    setTagDraft("");
-  }
 
   async function createFirstPrinting(cardSlug: string): Promise<string | null> {
     let fresh: AdminCardDetailResponse | null = null;
@@ -181,8 +167,6 @@ export function NewManualCardRecord() {
     }
     setPending(true);
     setNotice(null);
-    const trimmedTag = tagDraft.trim();
-    const finalTags = trimmedTag && !tags.includes(trimmedTag) ? [...tags, trimmedTag] : tags;
     const input = {
       id: slug,
       name: name.trim(),
@@ -193,7 +177,7 @@ export function NewManualCardRecord() {
       ...(numeric.energy !== "" && { energy: parseNum(numeric.energy) }),
       ...(numeric.power !== "" && { power: parseNum(numeric.power) }),
       ...(numeric.mightBonus !== "" && { mightBonus: parseNum(numeric.mightBonus) }),
-      ...(finalTags.length > 0 && { tags: finalTags }),
+      ...(tags.length > 0 && { tags }),
     };
     let cardSlug: string;
     try {
@@ -328,31 +312,13 @@ export function NewManualCardRecord() {
             ))}
           </div>
           <Field>
-            <FieldLabel>Tags</FieldLabel>
-            <Combobox<string, true>
-              multiple
-              items={tags}
+            <FieldLabel htmlFor="new-card-tags">Tags</FieldLabel>
+            <ChipInput
+              id="new-card-tags"
               value={tags}
-              onValueChange={setTags}
-              inputValue={tagDraft}
-              onInputValueChange={setTagDraft}
-            >
-              <ComboboxChips>
-                {tags.map((tag) => (
-                  <ComboboxChip key={tag}>{tag}</ComboboxChip>
-                ))}
-                <ComboboxChipsInput
-                  placeholder={tags.length === 0 ? "Press Enter or comma to add" : ""}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === ",") {
-                      event.preventDefault();
-                      commitTagDraft();
-                    }
-                  }}
-                  onBlur={commitTagDraft}
-                />
-              </ComboboxChips>
-            </Combobox>
+              onChange={setTags}
+              placeholder="Press Enter or comma to add"
+            />
           </Field>
         </FieldGroup>
       </RecordSection>

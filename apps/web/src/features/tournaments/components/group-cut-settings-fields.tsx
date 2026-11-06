@@ -1,13 +1,7 @@
 import type { CutSize } from "@openrift/shared/pairing/group-cut-types";
 
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { cutSizeItems, parseCutSize } from "@/features/tournaments/lib/group-cut-display";
 import { m } from "@/paraglide/messages.js";
@@ -36,28 +30,20 @@ export function GroupCutSettingsFields({
     <div className="flex flex-col gap-4">
       <div className="flex w-40 flex-col gap-1.5">
         <Label>{m.tournaments_group_cut_label()}</Label>
-        <Select
+        <SimpleSelect
           items={cutItems}
           value={String(value.cutSize)}
           disabled={disabled}
-          onValueChange={(next) => {
-            const parsed = next === null ? null : parseCutSize(next);
+          onChange={(next) => {
+            const parsed = parseCutSize(next);
             if (parsed !== null) {
               onChange({ cutSize: parsed });
             }
           }}
-        >
-          <SelectTrigger className="w-full" aria-label={m.tournaments_group_cut_label()}>
-            <SelectValue placeholder={m.tournaments_group_cut_label()} />
-          </SelectTrigger>
-          <SelectContent>
-            {cutItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          label={m.tournaments_group_cut_label()}
+          placeholder={m.tournaments_group_cut_label()}
+          className="w-full"
+        />
       </div>
       <SwitchField
         id={`${idPrefix}-self-paced`}

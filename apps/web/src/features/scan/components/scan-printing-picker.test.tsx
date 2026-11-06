@@ -1,11 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
 
 import { ScanPrintingPicker } from "./scan-printing-picker";
+
+const isMobile = vi.hoisted(() => ({ value: false }));
+
+vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => isMobile.value }));
 
 function makeWrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -45,6 +50,10 @@ const foil = stubPrinting({
 });
 
 describe("ScanPrintingPicker", () => {
+  afterEach(() => {
+    isMobile.value = false;
+  });
+
   it("marks the printing the row already sits on", () => {
     render(
       <ScanPrintingPicker
@@ -77,5 +86,25 @@ describe("ScanPrintingPicker", () => {
     );
 
     expect(screen.queryByText("Current")).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])("picks a printing (mobile: %s)", async (mobile) => {
+    isMobile.value = mobile;
+    const onPick = vi.fn();
+    render(
+      <ScanPrintingPicker
+        request={{ artKey: "", label: "Yasuo", candidates: [normal, foil] }}
+        onPick={onPick}
+        onDismiss={vi.fn()}
+      />,
+      { wrapper: makeWrapper() },
+    );
+
+    expect(document.querySelector("[data-slot=drawer-popup]") !== null).toBe(mobile);
+    const rows = screen
+      .getAllByRole("button")
+      .filter((row) => row.textContent?.includes(foil.shortCode));
+    await userEvent.click(rows.at(-1)!);
+    expect(onPick).toHaveBeenCalledWith(foil);
   });
 });

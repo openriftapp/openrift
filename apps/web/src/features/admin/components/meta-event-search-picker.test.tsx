@@ -1,7 +1,7 @@
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = { events: [] as AdminMetaEvent[], isPending: false };
 
@@ -34,6 +34,10 @@ function event(overrides: Partial<AdminMetaEvent> = {}): AdminMetaEvent {
 }
 
 describe("MetaEventSearchPicker", () => {
+  beforeEach(() => {
+    captured.isPending = false;
+  });
+
   it("offers whatever the search returns, ranked or not", async () => {
     captured.events = [event(), event({ id: "e2", name: "Piltover Open" })];
 
@@ -62,5 +66,53 @@ describe("MetaEventSearchPicker", () => {
     await userEvent.type(screen.getByRole("combobox"), "zzz");
 
     expect(await screen.findByText("No matching events")).toBeVisible();
+  });
+
+  it("picks an event with the arrow keys", async () => {
+    captured.events = [event(), event({ id: "e2", name: "Piltover Open" })];
+    const onPick = vi.fn();
+
+    render(<MetaEventSearchPicker onPick={onPick} />);
+    await userEvent.type(screen.getByRole("combobox"), "pil");
+    await screen.findByRole("option", { name: /Piltover Open/u });
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+
+    expect(onPick).toHaveBeenCalledWith("e2", "Piltover Open");
+  });
+
+  it("shows no result list while the search runs", async () => {
+    captured.events = [];
+    captured.isPending = true;
+
+    render(<MetaEventSearchPicker onPick={vi.fn()} />);
+    await userEvent.type(screen.getByRole("combobox"), "zzz");
+
+    expect(screen.queryByText("No matching events")).not.toBeInTheDocument();
+  });
+
+  it("keeps the picked name in the input with a clear button", async () => {
+    captured.events = [event()];
+    const user = userEvent.setup();
+
+    const { container } = render(<MetaEventSearchPicker onPick={vi.fn()} />);
+    const input = screen.getByRole("combobox");
+    await user.type(input, "sum");
+    await user.click(await screen.findByRole("option", { name: /Summoner Skirmish/u }));
+
+    expect(input).toHaveValue("Summoner Skirmish");
+    const clear = container.querySelector<HTMLElement>("[data-slot=combobox-clear]");
+    expect(clear).not.toBeNull();
+    await user.click(clear as HTMLElement);
+    expect(input).toHaveValue("");
+  });
+
+  it("announces the running search", async () => {
+    captured.events = [];
+    captured.isPending = true;
+
+    render(<MetaEventSearchPicker onPick={vi.fn()} />);
+    await userEvent.type(screen.getByRole("combobox"), "sum");
+
+    expect(await screen.findByText("Searching…")).toHaveClass("sr-only");
   });
 });

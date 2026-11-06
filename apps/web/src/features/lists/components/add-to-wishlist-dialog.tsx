@@ -1,21 +1,10 @@
 import type { ListKind } from "@openrift/shared/types/api/list";
-import { HeartIcon, PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { HeartIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogCancel,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
-import { PickerList, PickerRow } from "@/components/ui/picker-list";
+import { PickerDialog } from "@/components/picker-dialog";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function kindLabel(kind: ListKind): string {
@@ -50,7 +39,6 @@ export function AddToWishlistDialog({
 }: AddToWishlistDialogProps) {
   const { data: wishlists } = useLists("wish");
   const bulkAdd = useBulkAddListEntries();
-  const [highlightedId, setHighlightedId] = useState("");
 
   const addToList = (listId: string, listName: string, kind: ListKind) => {
     const entries = entriesFor(kind);
@@ -77,51 +65,28 @@ export function AddToWishlistDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.lists_add_wishlist_title()}</DialogTitle>
-        </DialogHeader>
-        <div className="max-h-60 overflow-y-auto">
-          {wishlists.length > 0 ? (
-            <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
-              {wishlists.map((list) => (
-                <PickerRow
-                  key={list.id}
-                  value={list.id}
-                  onSelect={
-                    bulkAdd.isPending ? undefined : () => addToList(list.id, list.name, list.kind)
-                  }
-                  className={cn("px-3 py-2", bulkAdd.isPending && "pointer-events-none opacity-50")}
-                >
-                  <HeartIcon className="size-4 shrink-0" />
-                  <span className="flex-1 truncate">{list.name}</span>
-                  <span className="text-muted-foreground text-2xs shrink-0">
-                    {kindLabel(list.kind)}
-                  </span>
-                </PickerRow>
-              ))}
-            </PickerList>
-          ) : (
-            <Empty>
-              <EmptyDescription>{m.lists_add_no_wishlists()}</EmptyDescription>
-            </Empty>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground justify-start"
-            onClick={handleCreateNew}
-            disabled={bulkAdd.isPending}
-          >
-            <PlusIcon className="size-3.5" />
-            {m.lists_add_new_wishlist()}
-          </Button>
-          <DialogCancel disabled={bulkAdd.isPending} />
-        </div>
-      </DialogContent>
-    </Dialog>
+    <PickerDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={m.lists_add_wishlist_title()}
+      options={wishlists.map((list) => ({
+        value: list.id,
+        label: list.name,
+        icon: <HeartIcon className="size-4 shrink-0" />,
+        meta: kindLabel(list.kind),
+      }))}
+      emptyText={m.lists_add_no_wishlists()}
+      pending={bulkAdd.isPending}
+      onPick={(listId) => {
+        const list = wishlists.find((candidate) => candidate.id === listId);
+        if (list) {
+          addToList(list.id, list.name, list.kind);
+        }
+      }}
+      create={{
+        actions: [{ key: "wish", label: m.lists_add_new_wishlist(), onClick: handleCreateNew }],
+        disabled: bulkAdd.isPending,
+      }}
+    />
   );
 }

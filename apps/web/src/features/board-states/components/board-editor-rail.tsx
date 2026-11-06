@@ -22,13 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Toggle } from "@/components/ui/toggle";
 import { pieceMarks } from "@/features/board-states/components/board-editor-piece-actions";
 import type { BoardPieceActions } from "@/features/board-states/hooks/use-board-editor-piece-actions";
@@ -283,26 +277,12 @@ function PrintingSelect({ piece, actions }: { piece: BoardPiece; actions: BoardP
   return (
     <Label className="flex flex-col items-stretch gap-1">
       {m.board_states_editor_printing()}
-      <Select
+      <SimpleSelect
         items={items}
         value={card.printingId ?? printings[0]?.printingId ?? ""}
-        onValueChange={(next) => {
-          if (typeof next === "string") {
-            actions.setPrinting(next);
-          }
-        }}
-      >
-        <SelectTrigger className="font-mono">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        onChange={(next) => actions.setPrinting(next)}
+        className="font-mono"
+      />
     </Label>
   );
 }

@@ -1,56 +1,37 @@
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 
-export interface AdminFilterOption {
-  value: string;
+export interface AdminFilterOption<T extends string = string> {
+  value: T;
   label: string;
 }
 
 /**
- * `label` is required: `SelectValue` renders the selection alone, so without
- * it the trigger reaches a screen reader as an unnamed combobox.
+ * `label` is required: the trigger shows the selection alone, so without it
+ * the trigger reaches a screen reader as an unnamed combobox.
  */
-export function AdminFilterSelect({
+export function AdminFilterSelect<T extends string = string>({
   value,
   onChange,
   options,
   label,
   className,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  options: AdminFilterOption[];
+  value: T;
+  onChange: (value: T) => void;
+  options: readonly AdminFilterOption<T>[];
   label: string;
   className?: string;
 }) {
-  // BaseUI types a single select's value as nullable for the case where an item
-  // carries null; every option here has a string value, so null never arrives.
-  function pick(next: string | null) {
-    if (next !== null) {
-      onChange(next);
-    }
-  }
-
   return (
-    <Select items={options} value={value} onValueChange={pick}>
-      <SelectTrigger className={className} aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={options}
+      value={value}
+      onChange={onChange}
+      label={label}
+      className={className}
+    />
   );
 }
 

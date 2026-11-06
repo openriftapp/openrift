@@ -1,14 +1,5 @@
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-} from "@/components/ui/combobox";
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { useCustomTagList } from "@/hooks/use-enums";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface TagMultiSelectProps {
@@ -31,46 +22,20 @@ export function TagMultiSelect({
 }: TagMultiSelectProps) {
   const { byCategory } = useCustomTagList();
   const tags = byCategory.get(category) ?? [];
-  const slugs = tags.map((tag) => tag.slug);
-  const labelMap = new Map(tags.map((tag) => [tag.slug, tag.label] as const));
-  const labelFor = (slug: string) => labelMap.get(slug) ?? slug;
-  const triggerText =
-    selected.length === 0
-      ? m.decks_format_tag_multi_placeholder({ nounPlural })
-      : selected.map((slug) => labelFor(slug)).join(" + ");
 
   return (
-    <Combobox<string, true>
+    <ComboboxPicker
       multiple
-      items={slugs}
+      id={triggerId}
+      options={tags.map((tag) => ({ value: tag.slug, label: tag.label }))}
       value={selected}
-      onValueChange={onChange}
-      itemToStringLabel={labelFor}
-    >
-      <ComboboxTrigger
-        id={triggerId}
-        className={cn(
-          "border-input bg-background hover:bg-muted/50 flex h-9 items-center justify-between rounded-md border px-3 text-sm",
-          triggerClassName ?? "w-72",
-        )}
-      >
-        <span className={selected.length === 0 ? "text-muted-foreground" : ""}>{triggerText}</span>
-      </ComboboxTrigger>
-      <ComboboxContent className="w-(--anchor-width) min-w-72">
-        <ComboboxInput
-          placeholder={m.decks_format_tag_multi_search({ nounPlural })}
-          showTrigger={false}
-        />
-        <ComboboxEmpty>{m.decks_format_tag_multi_empty({ nounPlural })}</ComboboxEmpty>
-        <ComboboxList>
-          {(slug: string) => (
-            <ComboboxItem key={slug} value={slug}>
-              {labelFor(slug)}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      onChange={onChange}
+      placeholder={m.decks_format_tag_multi_placeholder({ nounPlural })}
+      searchPlaceholder={m.decks_format_tag_multi_search({ nounPlural })}
+      emptyText={m.decks_format_tag_multi_empty({ nounPlural })}
+      className={triggerClassName ?? "w-72"}
+      contentClassName="w-(--anchor-width) min-w-72"
+    />
   );
 }
 

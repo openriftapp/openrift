@@ -27,8 +27,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { CommandEmpty, CommandGroup } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
+import {
+  ResponsivePopover,
+  ResponsivePopoverContent,
+  ResponsivePopoverTrigger,
+} from "@/components/ui/responsive-popover";
 import { Switch } from "@/components/ui/switch";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
@@ -231,8 +235,8 @@ function DeckPicker({
           `<label for>` can't point at. */}
       <span className="text-sm leading-none font-medium">{label}</span>
       <div className="flex min-w-0 items-stretch gap-2">
-        <Popover open={open} onOpenChange={handleOpenChange}>
-          <PopoverTrigger
+        <ResponsivePopover open={open} onOpenChange={handleOpenChange}>
+          <ResponsivePopoverTrigger
             render={
               <Pressable
                 aria-label={`${label}: ${name}`}
@@ -248,10 +252,11 @@ function DeckPicker({
               </span>
             )}
             <ChevronDownIcon className="text-muted-foreground size-4 shrink-0" />
-          </PopoverTrigger>
-          <PopoverContent
-            align="start"
-            className="w-80 max-w-(--available-width) gap-0 p-0 sm:w-96"
+          </ResponsivePopoverTrigger>
+          <ResponsivePopoverContent
+            title={label}
+            hideTitle
+            popoverClassName="max-w-(--available-width) gap-0 sm:w-96"
           >
             <PickerList
               searchPlaceholder={m.decks_compare_search_decks()}
@@ -300,7 +305,7 @@ function DeckPicker({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start font-normal"
+                className="w-full justify-start font-normal max-md:h-(--control-h)"
                 onClick={() => {
                   setOpen(false);
                   onPaste();
@@ -310,8 +315,8 @@ function DeckPicker({
                 {m.decks_compare_paste_action()}
               </Button>
             </div>
-          </PopoverContent>
-        </Popover>
+          </ResponsivePopoverContent>
+        </ResponsivePopover>
         {side !== null && (
           <Button variant="outline" className="self-center" render={openSideLink(side, name)}>
             {m.decks_compare_open()}

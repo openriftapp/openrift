@@ -10,13 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RowList, RowListItem } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ColorInput, DraftTextInput } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -25,6 +19,7 @@ import type {
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
+import { LanguageSelect } from "@/features/admin/components/language-select";
 import {
   useCreateKeywordStyle,
   useDeleteKeywordStyle,
@@ -35,7 +30,6 @@ import {
   useUpdateKeywordStyle,
   useUpsertTranslation,
 } from "@/features/admin/hooks/use-keywords";
-import { useLanguageLabels } from "@/hooks/use-enums";
 
 // Fallback badge color, matching getKeywordStyle's FALLBACK_COLOR. Used when a
 // keyword with no style row is flagged as a cost keyword (which needs a row).
@@ -467,7 +461,6 @@ export function KeywordsPage() {
       <TranslationsTable
         translations={data.translations}
         keywordNames={data.styles.map((s) => s.name)}
-        languageLabels={useLanguageLabels()}
       />
     </div>
   );
@@ -497,52 +490,31 @@ function TranslationKeywordSelect({
     return null;
   }
   return (
-    <Select
-      value={draft.keywordName}
-      onValueChange={(value) => setDraft((prev) => ({ ...prev, keywordName: value ?? "" }))}
-    >
-      <SelectTrigger className="h-8 w-40" aria-label="Keyword">
-        <SelectValue placeholder="Keyword" />
-      </SelectTrigger>
-      <SelectContent>
-        {keywordNames.toSorted().map((name) => (
-          <SelectItem key={name} value={name}>
-            {name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={keywordNames.toSorted().map((name) => ({ value: name, label: name }))}
+      value={draft.keywordName === "" ? null : draft.keywordName}
+      onChange={(keywordName) => setDraft((prev) => ({ ...prev, keywordName }))}
+      label="Keyword"
+      placeholder="Keyword"
+      size="sm"
+      className="w-40"
+    />
   );
 }
 
-function TranslationLanguageSelect({
-  draft,
-  setDraft,
-  languageLabels,
-}: AdminDraftSlotProps<TranslationRow> & { languageLabels: Record<string, string> }) {
+function TranslationLanguageSelect({ draft, setDraft }: AdminDraftSlotProps<TranslationRow>) {
   if (!draft || !setDraft) {
     return null;
   }
   return (
-    <Select
+    <LanguageSelect
+      label="Language"
+      placeholder="Language"
+      className="w-40"
+      exclude={[WellKnown.language.EN]}
       value={draft.language}
-      onValueChange={(value) => setDraft((prev) => ({ ...prev, language: value ?? "" }))}
-    >
-      <SelectTrigger className="h-8 w-28" aria-label="Language">
-        <SelectValue placeholder="Language">
-          {(value: string) => `${value} — ${languageLabels[value] ?? value}`}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(languageLabels)
-          .filter(([code]) => code !== WellKnown.language.EN)
-          .map(([code, name]) => (
-            <SelectItem key={code} value={code}>
-              {code} — {name}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
+      onChange={(language) => setDraft((prev) => ({ ...prev, language }))}
+    />
   );
 }
 
@@ -556,11 +528,9 @@ function validateTranslation(draft: TranslationRow): string | null {
 function TranslationsTable({
   translations,
   keywordNames,
-  languageLabels,
 }: {
   translations: TranslationRow[];
   keywordNames: string[];
-  languageLabels: Record<string, string>;
 }) {
   const upsertTranslation = useUpsertTranslation();
   const deleteTranslation = useDeleteTranslation();
@@ -574,7 +544,7 @@ function TranslationsTable({
     {
       header: "Language",
       cell: <TranslationLanguageCell />,
-      addCell: <TranslationLanguageSelect languageLabels={languageLabels} />,
+      addCell: <TranslationLanguageSelect />,
     },
     {
       header: "Translation",

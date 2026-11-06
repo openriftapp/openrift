@@ -18,18 +18,15 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
+import { LanguageSelect } from "@/features/admin/components/language-select";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { PrintingDeskMarkerPicker } from "@/features/admin/components/printing-desk-marker-picker";
 import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
+import { SetPicker } from "@/features/admin/components/set-picker";
 import { SideSearch } from "@/features/admin/components/side-search";
 import {
   useCreateDeskPrinting,
@@ -44,17 +41,9 @@ import {
   defaultCardLanguage,
 } from "@/features/admin/lib/printing-desk-base";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
-import { useSets } from "@/features/cards/hooks/use-sets";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
-import { useEnumOrders, useLanguageLabels, useLanguageList } from "@/hooks/use-enums";
+import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
-
-/** Quarter is a valid stored precision but not one the desk offers. */
-const PRECISION_OPTIONS = [
-  { value: "day", label: "Day" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-] as const satisfies readonly { value: DeskReleasePrecision; label: string }[];
 
 export function PrintingDeskCreatePage({ cardSlug }: { cardSlug: string }) {
   const { data } = useDeskCardPrintings(cardSlug);
@@ -307,8 +296,6 @@ function PrintingDeskFields({
   onCancel: () => void;
 }) {
   const { orders, labels } = useEnumOrders();
-  const languages = useLanguageList();
-  const { data: setData } = useSets();
   const { data: artistData } = useDistinctArtists();
   const showPrinting = form.scope !== "face";
   const showFace = form.scope !== "printing";
@@ -358,26 +345,11 @@ function PrintingDeskFields({
           {showFace && (
             <Field>
               <FieldLabel htmlFor="desk-set">Set</FieldLabel>
-              <Select
-                items={setData.sets.map((set) => ({ value: set.id, label: set.name }))}
+              <SetPicker
+                id="desk-set"
                 value={form.setId}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    form.setSetId(value);
-                  }
-                }}
-              >
-                <SelectTrigger id="desk-set" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {setData.sets.map((set) => (
-                    <SelectItem key={set.id} value={set.id}>
-                      {set.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(next) => form.setSetId(next)}
+              />
             </Field>
           )}
 
@@ -385,55 +357,28 @@ function PrintingDeskFields({
             {showFace && (
               <Field>
                 <FieldLabel htmlFor="desk-language">Language</FieldLabel>
-                <Select
-                  items={languages.map((entry) => ({ value: entry.code, label: entry.name }))}
+                <LanguageSelect
+                  id="desk-language"
+                  className="w-full"
                   value={form.language}
-                  onValueChange={(value) => {
-                    if (value !== null) {
-                      form.setLanguage(value);
-                    }
-                  }}
-                >
-                  <SelectTrigger id="desk-language" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((entry) => (
-                      <SelectItem key={entry.code} value={entry.code}>
-                        {entry.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(next) => form.setLanguage(next)}
+                />
               </Field>
             )}
 
             {showPrinting && (
               <Field>
                 <FieldLabel htmlFor="desk-size">Size</FieldLabel>
-                <Select
+                <SimpleSelect
+                  id="desk-size"
                   items={orders.cardSizes.map((slug) => ({
                     value: slug,
-                    label: labels.cardSizes[slug],
+                    label: enumLabel(labels.cardSizes, slug),
                   }))}
                   value={form.size}
-                  onValueChange={(value) => {
-                    if (value !== null) {
-                      form.setSize(value);
-                    }
-                  }}
-                >
-                  <SelectTrigger id="desk-size" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orders.cardSizes.map((slug) => (
-                      <SelectItem key={slug} value={slug}>
-                        {labels.cardSizes[slug]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(next) => form.setSize(next)}
+                  className="w-full"
+                />
               </Field>
             )}
           </div>
@@ -513,11 +458,9 @@ function PrintingDeskFields({
                   onValueChange={(next) => form.setReleasedAt(next)}
                   onClear={() => form.setReleasedAt(null)}
                 />
-                <DeskSegmented
-                  ariaLabel="How exact the date is"
+                <DatePrecisionControl
                   value={form.precision}
                   onChange={(next) => form.setPrecision(next)}
-                  options={PRECISION_OPTIONS}
                 />
               </div>
               {form.release.releasedAt !== null && form.release.precision !== "day" && (

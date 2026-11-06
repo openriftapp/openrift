@@ -26,7 +26,7 @@ export interface LegendTarget {
 
 const isLegend = (card: Card): boolean => card.types.includes(WellKnown.cardType.LEGEND);
 
-export function LegendPickerDialog({
+export function LegendSearchDialog({
   target,
   pending,
   onOpenChange,

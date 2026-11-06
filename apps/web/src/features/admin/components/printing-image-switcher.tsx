@@ -31,13 +31,7 @@ import {
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sortByProviderOrder } from "@/features/admin/components/card-detail-shared";
 import { ImagePreview } from "@/features/admin/components/image-preview";
@@ -433,7 +427,7 @@ export function PrintingImageSwitcher({
               })),
             ];
             return (
-              <Select
+              <SimpleSelect
                 items={items}
                 value={
                   fallbackArtMode === "pinned"
@@ -441,12 +435,12 @@ export function PrintingImageSwitcher({
                     : fallbackArtMode
                 }
                 disabled={setFallbackArt.isPending}
-                onValueChange={(next) => {
+                onChange={(next) => {
                   if (next === "auto" || next === "none") {
                     setFallbackArt.mutate({ printingId, mode: next, face });
                     return;
                   }
-                  if (typeof next === "string" && next.startsWith("pin:")) {
+                  if (next.startsWith("pin:")) {
                     setFallbackArt.mutate({
                       printingId,
                       mode: "pinned",
@@ -455,18 +449,10 @@ export function PrintingImageSwitcher({
                     });
                   }
                 }}
-              >
-                <SelectTrigger className="h-7 w-full" aria-label="Which substitute art">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {items.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                label="Which substitute art"
+                size="sm"
+                className="w-full"
+              />
             );
           })()}
           {showFallbackUrlInput && (

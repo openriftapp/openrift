@@ -5,9 +5,11 @@
 ### Highlights
 
 - feat(Decks): **Variants open as one panel** — showing a deck's variants lists them together in a compact panel under its row, with the primary marked.
+- feat(App): **One look for every picker** — dropdowns, searchable lists and pick dialogs now share one style, arrow-key navigation and the same loading and empty states.
 
 ### Other
 
+- feat(App): **Pickers as phone drawers** — choosing a deck to compare, a card source or a queue list opens a bottom sheet on phones instead of a small popup.
 - fix(Cards): **Errata match the printing's language** — non-English printings show their printed text instead of the English errata, unless they have errata of their own.
 
 ## 2026-11-05

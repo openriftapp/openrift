@@ -17,13 +17,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { FilterChip } from "@/components/ui/filter-chip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { FilterSection } from "@/features/cards/components/filter-badge-row";
 import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
@@ -543,36 +537,25 @@ export function ScopeSelect({
 }) {
   const shown = value in items ? value : fallback;
   return (
-    // BaseUI passes null on clear; map it to fallback.
-    <Select
+    <SimpleSelect
+      items={Object.entries(items).map(([itemValue, itemLabel]) => ({
+        value: itemValue,
+        label: itemLabel,
+        detail:
+          counts === undefined ? undefined : (
+            <span className={cn("ml-1.5", (counts.get(itemValue) ?? 0) === 0 && "opacity-50")}>
+              {counts.get(itemValue) ?? 0}
+            </span>
+          ),
+      }))}
       value={shown}
-      onValueChange={(next) => onValueChange(next ?? fallback)}
-      items={items}
+      onChange={onValueChange}
+      label={label}
+      size="sm"
+      className={cn("font-medium", className)}
+      renderValue={renderValue === undefined ? undefined : (item) => renderValue(item.value)}
       open={open}
-      onOpenChange={onOpenChange === undefined ? undefined : (next) => onOpenChange(next)}
-    >
-      <SelectTrigger size="sm" className={cn("font-medium", className)} aria-label={label}>
-        <SelectValue>
-          {renderValue === undefined ? undefined : (selected: string) => renderValue(selected)}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(items).map(([itemValue, itemLabel]) => (
-          <SelectItem key={itemValue} value={itemValue}>
-            {itemLabel}
-            {counts !== undefined && (
-              <span
-                className={cn(
-                  "text-muted-foreground text-2xs ml-1.5 tabular-nums",
-                  (counts.get(itemValue) ?? 0) === 0 && "opacity-50",
-                )}
-              >
-                {counts.get(itemValue) ?? 0}
-              </span>
-            )}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onOpenChange={onOpenChange}
+    />
   );
 }

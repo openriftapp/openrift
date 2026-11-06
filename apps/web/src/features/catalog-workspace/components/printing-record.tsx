@@ -44,19 +44,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
 import { collectEntries } from "@/features/admin/components/marketplace-product-entries";
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
-import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
+import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { SideSearch } from "@/features/admin/components/side-search";
@@ -116,12 +111,6 @@ import { errorText } from "@/lib/error-text";
 
 type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
 type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
-
-const PRECISION_OPTIONS = [
-  { value: "day", label: "Day" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-] as const satisfies readonly { value: DeskReleasePrecision; label: string }[];
 
 export function PrintingRecord({ printingId }: { printingId: string }) {
   const { data: access, isPending } = useAdminAccess();
@@ -854,29 +843,16 @@ function PrintingFieldEditor({
         </Suspense>
       )}
       {field === "size" && (
-        <Select
+        <SimpleSelect
           items={orders.cardSizes.map((slug) => ({
             value: slug,
             label: enumLabel(labels.cardSizes, slug),
           }))}
           value={size}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setSize(value);
-            }
-          }}
-        >
-          <SelectTrigger aria-label="Size" className="w-full sm:w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {orders.cardSizes.map((slug) => (
-              <SelectItem key={slug} value={slug}>
-                {enumLabel(labels.cardSizes, slug)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setSize}
+          label="Size"
+          className="w-full sm:w-56"
+        />
       )}
       {field === "announced" && (
         <DatePicker
@@ -894,12 +870,7 @@ function PrintingFieldEditor({
             onValueChange={setReleasedAt}
             onClear={() => setReleasedAt(null)}
           />
-          <DeskSegmented
-            ariaLabel="How exact the date is"
-            value={precision}
-            onChange={setPrecision}
-            options={PRECISION_OPTIONS}
-          />
+          <DatePrecisionControl value={precision} onChange={setPrecision} />
         </div>
       )}
       {field === "comment" && (

@@ -1,19 +1,8 @@
-import { CheckIcon, ChevronRightIcon, MinusIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { CheckIcon, MinusIcon } from "lucide-react";
 
 import { CardIcon } from "@/components/card-icon";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxSeparator,
-  ComboboxTrigger,
-} from "@/components/ui/combobox";
+import type { ComboboxPickerOption } from "@/components/combobox-picker";
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -67,9 +56,8 @@ interface MultiSelectFlag {
 }
 
 const FLAG_PREFIX = "__flag__:";
+const FLAG_GROUP = "flags";
 const flagId = (index: number) => `${FLAG_PREFIX}${index}`;
-const isFlagId = (id: string) => id.startsWith(FLAG_PREFIX);
-const flagIndex = (id: string) => Number(id.slice(FLAG_PREFIX.length));
 
 /**
  * A space never appears in a slug, so a group option's id (` <groupIndex> <value>`)
@@ -91,10 +79,6 @@ interface Section {
   mutedOptions?: ReadonlySet<string>;
 }
 
-function isCycleSection(section: Section): boolean {
-  return section.onCycle !== undefined;
-}
-
 function encodeId(sectionIndex: number, value: string): string {
   return sectionIndex === 0 ? value : `${GROUP_SEP}${sectionIndex}${GROUP_SEP}${value}`;
 }
@@ -113,6 +97,51 @@ function decodeId(id: string): { sectionIndex: number; value: string } {
 
 function sameMembers(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value) => right.includes(value));
+}
+
+function stateMark(state: boolean | null) {
+  if (state === null) {
+    return;
+  }
+  return state ? <CheckIcon className="size-4" /> : <MinusIcon className="size-4" />;
+}
+
+function sectionRows(section: Section): ComboboxPickerOption[] {
+  const known = new Set(section.options.map((option) => option.value));
+  // A selection can outlive its option (e.g. a set filter after the last card
+  // in it leaves the collection); keep it as an orphan row so it stays clearable.
+  const orphans = [...section.selected, ...(section.excluded ?? [])]
+    .filter((value) => !known.has(value))
+    .map((value): MultiSelectOption => ({ value, label: value }));
+  const cycling = section.onCycle !== undefined;
+  return [...section.options, ...orphans].map((option) => {
+    const iconPath = section.icon?.(option.value);
+    const included = cycling && section.selected.includes(option.value);
+    const excluded = cycling && (section.excluded?.includes(option.value) ?? false);
+    return {
+      value: encodeId(section.index, option.value),
+      label: option.label,
+      prefix: option.prefix || undefined,
+      keywords: option.prefix,
+      icon: iconPath && (
+        <CardIcon
+          src={iconPath}
+          className={
+            section.iconAfterLabel ? "ml-1.5 inline-block size-4 align-text-bottom" : "size-4"
+          }
+        />
+      ),
+      iconAfterLabel: section.iconAfterLabel,
+      count: section.counts?.get(option.value),
+      muted:
+        (section.mutedOptions?.has(option.value) ?? false) &&
+        !section.selected.includes(option.value),
+      belowDivider: section.mutedOptions?.has(option.value),
+      group: String(section.index),
+      indicator: cycling ? stateMark(included ? true : excluded ? false : null) : undefined,
+      onSelect: cycling ? () => section.onCycle?.(option.value) : undefined,
+    };
+  });
 }
 
 export function MultiSelectCombobox({
@@ -168,35 +197,28 @@ export function MultiSelectCombobox({
   const optionTotal = sections.reduce((total, section) => total + section.options.length, 0);
   const searchable = triggerStyle !== "menu" || optionTotal > MENU_SEARCH_THRESHOLD;
 
-  const items: string[] = [];
-  const idMeta = new Map<string, { section: Section; option: MultiSelectOption }>();
   const flagList = flags ?? [];
-  if (flagPosition === "top") {
-    items.push(...flagList.map((_, i) => flagId(i)));
-  }
-  for (const section of sections) {
-    for (const option of section.options) {
-      const id = encodeId(section.index, option.value);
-      items.push(id);
-      idMeta.set(id, { section, option });
-    }
-    // A selection can outlive its option (e.g. a set filter after the last card
-    // in it leaves the collection); keep it as an orphan row so it stays clearable.
-    for (const value of [...section.selected, ...(section.excluded ?? [])]) {
-      if (!section.options.some((option) => option.value === value)) {
-        items.push(encodeId(section.index, value));
-      }
-    }
-  }
-  if (flagPosition === "bottom") {
-    items.push(...flagList.map((_, i) => flagId(i)));
-  }
+  const flagRows = flagList.map((entry, index): ComboboxPickerOption => ({
+    value: flagId(index),
+    label: entry.label,
+    count: entry.count,
+    group: FLAG_GROUP,
+    indicator: stateMark(entry.state),
+    onSelect: entry.onToggle,
+  }));
+  const sectionOptions = sections.flatMap((section) => sectionRows(section));
+  const pickerOptions =
+    flagPosition === "top" ? [...flagRows, ...sectionOptions] : [...sectionOptions, ...flagRows];
+  const groupLabels = new Map(
+    sections.flatMap((section) =>
+      section.label === undefined ? [] : [[String(section.index), section.label] as const],
+    ),
+  );
 
-  // Cycling sections must stay out of the primitive's controlled value, or their
-  // own check/minus indicator fights the primitive's checkmark.
-  const cycleSections = sections.filter((section) => isCycleSection(section));
+  // Cycling sections stay out of the picker's value; their rows carry their own mark.
+  const cycleSections = sections.filter((section) => section.onCycle !== undefined);
   const selectedIds = sections
-    .filter((section) => !isCycleSection(section))
+    .filter((section) => section.onCycle === undefined)
     .flatMap((section) => section.selected.map((value) => encodeId(section.index, value)));
 
   const includedCount = cycleSections.reduce(
@@ -211,15 +233,16 @@ export function MultiSelectCombobox({
   const firstActiveFlag = flagList.findIndex((entry) => entry.state !== null);
   const totalCount = selectedIds.length + includedCount + excludedCount + flagCount;
   const isActive = totalCount > 0;
+  const optionById = new Map(sectionOptions.map((option) => [option.value, option]));
   const labelFor = (id: string) => {
-    if (isFlagId(id)) {
-      return flagList[flagIndex(id)]?.label ?? "";
+    if (id.startsWith(FLAG_PREFIX)) {
+      return flagList[Number(id.slice(FLAG_PREFIX.length))]?.label ?? "";
     }
-    const option = idMeta.get(id)?.option;
+    const option = optionById.get(id);
     if (!option) {
       return decodeId(id).value;
     }
-    return option.prefix ? `${option.prefix} · ${option.label}` : option.label;
+    return option.keywords ? `${option.keywords} · ${option.label}` : option.label;
   };
   const summarise = (section: Section, values: readonly string[]) =>
     values.length === 1
@@ -229,7 +252,7 @@ export function MultiSelectCombobox({
   const signedSummary = (): string => {
     const parts: string[] = [];
     for (const section of sections) {
-      if (isCycleSection(section)) {
+      if (section.onCycle !== undefined) {
         if (section.selected.length > 0) {
           parts.push(`+${summarise(section, section.selected)}`);
         }
@@ -270,278 +293,66 @@ export function MultiSelectCombobox({
       ? labelFor(singleId)
       : m.cards_filter_n_selected({ count: totalCount });
 
-  const [query, setQuery] = useState("");
-  const needle = query.trim().toLowerCase();
-  const isVisible = (id: string) => needle === "" || labelFor(id).toLowerCase().includes(needle);
-
-  const dividerBeforeValue = ((): string | undefined => {
-    if (!mutedOptions) {
-      return;
-    }
-    let seenVisibleMain = false;
-    for (const value of items) {
-      if (isFlagId(value) || !isVisible(value)) {
+  const handleChange = (next: string[]) => {
+    for (const section of sections) {
+      if (section.onCycle !== undefined) {
         continue;
       }
-      if (mutedOptions.has(value)) {
-        return seenVisibleMain ? value : undefined;
-      }
-      seenVisibleMain = true;
-    }
-  })();
-
-  const headerBeforeId = new Map<string, { label: string; withDivider: boolean }>();
-  {
-    let seenVisibleSection = false;
-    for (const section of sections) {
-      const firstVisible = section.options
-        .map((option) => encodeId(section.index, option.value))
-        .find((id) => isVisible(id));
-      if (section.label && firstVisible !== undefined) {
-        headerBeforeId.set(firstVisible, { label: section.label, withDivider: seenVisibleSection });
-      }
-      if (firstVisible !== undefined) {
-        seenVisibleSection = true;
+      const subset = next
+        .filter((id) => !id.startsWith(FLAG_PREFIX) && decodeId(id).sectionIndex === section.index)
+        .map((id) => decodeId(id).value);
+      if (!sameMembers(subset, section.selected)) {
+        section.onChange?.(subset);
       }
     }
-  }
-
-  const showFlagDivider = flagList.length > 0 && items.some((id) => !isFlagId(id) && isVisible(id));
-  const visibleFlagIds = items.filter((id) => isFlagId(id) && isVisible(id));
+  };
 
   return (
-    <Combobox<string, true>
+    <ComboboxPicker
       multiple
-      items={items}
+      options={pickerOptions}
       value={selectedIds}
-      onValueChange={(next) => {
-        let working = next;
-        for (const id of working) {
-          if (isFlagId(id)) {
-            flagList[flagIndex(id)]?.onToggle();
-          }
-        }
-        working = working.filter((id) => !isFlagId(id));
-        // A cycling section's values are never in the controlled value, so the
-        // primitive can only ever add the one the user just clicked to `next`.
-        for (const id of working) {
-          if (selectedIds.includes(id)) {
-            continue;
-          }
-          const { sectionIndex, value } = decodeId(id);
-          const section = sections.find((entry) => entry.index === sectionIndex);
-          if (section && isCycleSection(section)) {
-            section.onCycle?.(value);
-          }
-        }
-        for (const section of sections) {
-          if (isCycleSection(section)) {
-            continue;
-          }
-          const subset = working
-            .filter((id) => decodeId(id).sectionIndex === section.index)
-            .map((id) => decodeId(id).value);
-          if (!sameMembers(subset, section.selected)) {
-            section.onChange?.(subset);
-          }
-        }
-      }}
-      onInputValueChange={(value) => setQuery(value)}
-      itemToStringLabel={labelFor}
-    >
-      {triggerStyle === "menu" ? (
-        <ComboboxTrigger
-          aria-label={isActive ? `${label}: ${menuSummary}` : label}
-          render={
-            // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bespoke menu-item-row trigger; matches DropdownMenu item styling, no primitive covers it yet; label injected as ComboboxTrigger children below
-            <button
-              type="button"
-              className="hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground flex w-full cursor-default items-center gap-1.5 rounded-md px-2 py-1.5 text-sm outline-hidden select-none [&>svg:last-of-type]:hidden"
-            />
-          }
-        >
-          <span className="shrink-0 text-left">
-            {label}
-            {!isActive && anyCount !== undefined && (
-              <span className="text-muted-foreground text-2xs ml-1.5 tabular-nums">{anyCount}</span>
-            )}
-          </span>
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">
-            {isActive && menuSummary}
-          </span>
-          <ChevronRightIcon className="ml-auto size-4 shrink-0" />
-        </ComboboxTrigger>
-      ) : triggerStyle === "button" ? (
-        <ComboboxTrigger
-          render={
-            <Button
-              variant="control"
-              size={triggerSize}
-              data-active={isActive || undefined}
-              className={cn("font-medium [&>svg]:text-current", triggerClassName)}
-            />
-          }
-        >
-          <span className="min-w-0 truncate">{triggerLabel}</span>
-        </ComboboxTrigger>
-      ) : (
-        <ComboboxTrigger
-          render={
-            <Badge
-              variant={isActive ? "default" : "outline"}
-              className="cursor-pointer [&>svg]:text-current"
-              // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; Badge owns all styling; label injected as ComboboxTrigger children below
-              render={<button type="button" />}
-            />
-          }
-        >
-          {triggerLabel}
-        </ComboboxTrigger>
-      )}
-      <ComboboxContent
-        className={cn("w-max max-w-[90vw] min-w-72")}
-        // The popup's typeahead in the "More" menu's ComboboxTrigger otherwise
-        // claims every keystroke and preventDefaults it before it reaches the input.
-        onKeyDown={(event) => event.stopPropagation()}
-      >
-        {/* Hidden, not removed: list keyboard navigation runs through the focused input. */}
-        <ComboboxInput
-          className={searchable ? undefined : "sr-only"}
-          placeholder={searchPlaceholder}
-          showTrigger={false}
-          onKeyDownCapture={(event) => {
-            // Home/End (incl. Shift+) belong to the search field's native
-            // caret/selection; the list-navigation layer otherwise claims them.
-            if (event.key === "Home" || event.key === "End") {
-              event.stopPropagation();
-            }
-          }}
-        />
-        {searchable && <ComboboxEmpty>{emptyText}</ComboboxEmpty>}
-        <ComboboxList
-          className={cn(fitContent && "max-h-[calc(var(--available-height)---spacing(9))]")}
-        >
-          {(value: string) => {
-            if (isFlagId(value)) {
-              const entry = flagList[flagIndex(value)];
-              if (!entry) {
-                return null;
-              }
-              const flagItem = (
-                <ComboboxItem key={value} value={value}>
-                  <span className="min-w-0 flex-1 break-words whitespace-normal">
-                    {entry.label}
-                    {entry.count !== undefined && (
-                      <span
-                        className={cn(
-                          "text-muted-foreground text-2xs ml-1.5 tabular-nums",
-                          entry.count === 0 && "opacity-50",
-                        )}
-                      >
-                        {entry.count}
-                      </span>
-                    )}
-                  </span>
-                  {entry.state !== null && (
-                    <span className="absolute right-2 flex size-4 items-center justify-center">
-                      {entry.state ? (
-                        <CheckIcon className="size-4" />
-                      ) : (
-                        <MinusIcon className="size-4" />
-                      )}
-                    </span>
-                  )}
-                </ComboboxItem>
-              );
-              const leads = flagPosition === "bottom" && value === visibleFlagIds[0];
-              const trails = flagPosition === "top" && value === visibleFlagIds.at(-1);
-              if (showFlagDivider && (leads || trails)) {
-                return (
-                  <Fragment key={value}>
-                    {leads && <ComboboxSeparator />}
-                    {flagItem}
-                    {trails && <ComboboxSeparator />}
-                  </Fragment>
-                );
-              }
-              return flagItem;
-            }
-            const meta = idMeta.get(value);
-            const section = meta?.section;
-            const option = meta?.option;
-            const rawValue = option?.value ?? decodeId(value).value;
-            const prefix = option?.prefix;
-            const name = option?.label ?? rawValue;
-            const iconPath = section?.icon?.(rawValue);
-            const count = section?.counts?.get(rawValue);
-            const isMuted =
-              section?.mutedOptions?.has(rawValue) && !section.selected.includes(rawValue);
-            const ownerSection = sections.find(
-              (entry) => entry.index === decodeId(value).sectionIndex,
-            );
-            const cycling = ownerSection !== undefined && isCycleSection(ownerSection);
-            const isIncluded = cycling && (ownerSection?.selected.includes(rawValue) ?? false);
-            const isExcluded = cycling && (ownerSection?.excluded?.includes(rawValue) ?? false);
-            const item = (
-              <ComboboxItem key={value} value={value} className={cn(isMuted && "opacity-65")}>
-                {iconPath && !section?.iconAfterLabel && (
-                  <CardIcon src={iconPath} className="size-4" />
-                )}
-                {prefix && (
-                  <span className="text-muted-foreground w-9 shrink-0 tabular-nums">{prefix}</span>
-                )}
-                <span className="min-w-0 flex-1 break-words whitespace-normal">
-                  {name}
-                  {iconPath && section?.iconAfterLabel && (
-                    <CardIcon
-                      src={iconPath}
-                      className="ml-1.5 inline-block size-4 align-text-bottom"
-                    />
-                  )}
-                  {count !== undefined && (
-                    <span
-                      className={cn(
-                        "text-muted-foreground text-2xs ml-1.5 tabular-nums",
-                        count === 0 && "opacity-50",
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
+      onChange={handleChange}
+      groupLabels={groupLabels}
+      wrapLabels
+      containKeys
+      searchable={searchable ? true : "hidden"}
+      searchPlaceholder={searchPlaceholder}
+      emptyText={emptyText}
+      contentClassName="w-max max-w-[90vw] min-w-72"
+      listClassName={cn(fitContent && "max-h-[calc(var(--available-height)---spacing(9))]")}
+      trigger={triggerStyle}
+      active={isActive}
+      size={triggerSize}
+      aria-label={
+        triggerStyle === "menu" ? (isActive ? `${label}: ${menuSummary}` : label) : undefined
+      }
+      className={
+        triggerStyle === "button"
+          ? cn("w-auto font-medium [&>svg]:text-current", triggerClassName)
+          : undefined
+      }
+      triggerLabel={
+        triggerStyle === "menu" ? (
+          <>
+            <span className="shrink-0 text-left">
+              {label}
+              {!isActive && anyCount !== undefined && (
+                <span className="text-muted-foreground text-2xs ml-1.5 tabular-nums">
+                  {anyCount}
                 </span>
-                {cycling && (isIncluded || isExcluded) && (
-                  <span className="absolute right-2 flex size-4 items-center justify-center">
-                    {isIncluded ? (
-                      <CheckIcon className="size-4" />
-                    ) : (
-                      <MinusIcon className="size-4" />
-                    )}
-                  </span>
-                )}
-              </ComboboxItem>
-            );
-            const header = headerBeforeId.get(value);
-            if (header) {
-              return (
-                <Fragment key={value}>
-                  {header.withDivider && <ComboboxSeparator />}
-                  <div className="text-muted-foreground px-2 py-1.5 text-xs">{header.label}</div>
-                  {item}
-                </Fragment>
-              );
-            }
-            if (value === dividerBeforeValue) {
-              return (
-                <Fragment key={value}>
-                  <ComboboxSeparator />
-                  {item}
-                </Fragment>
-              );
-            }
-            return item;
-          }}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+              )}
+            </span>
+            <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">
+              {isActive && menuSummary}
+            </span>
+          </>
+        ) : triggerStyle === "button" ? (
+          <span className="min-w-0 truncate">{triggerLabel}</span>
+        ) : (
+          triggerLabel
+        )
+      }
+    />
   );
 }

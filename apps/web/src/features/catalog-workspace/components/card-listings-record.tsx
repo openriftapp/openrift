@@ -30,7 +30,7 @@ import {
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
-import { PrintingPicker } from "@/features/catalog-workspace/components/listing-record";
+import { ListingPrintingCombobox } from "@/features/catalog-workspace/components/listing-record";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
@@ -271,7 +271,7 @@ function ListingLine({
       </div>
       {assigning && (
         <Suspense fallback={<Skeleton className="h-9" />}>
-          <PrintingPicker
+          <ListingPrintingCombobox
             disabled={pending}
             onPick={(printingId) =>
               save.mutate({ mappings: [listingAssignment(row, printingId)] }, done)

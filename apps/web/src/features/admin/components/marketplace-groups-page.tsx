@@ -4,14 +4,7 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -56,20 +49,14 @@ function SetSelect({ group, items }: { group: MarketplaceGroup; items: SetItem[]
   }
 
   return (
-    <Select items={items} value={current} onValueChange={commit}>
-      <SelectTrigger className="h-8 w-40" aria-label="Assigned set">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={items}
+      value={current}
+      onChange={commit}
+      label="Assigned set"
+      size="sm"
+      className="w-40"
+    />
   );
 }
 
@@ -88,20 +75,14 @@ function KindSelect({ group }: { group: MarketplaceGroup }) {
   }
 
   return (
-    <Select items={groupKindItems} value={group.groupKind} onValueChange={commit}>
-      <SelectTrigger className="h-8 w-28" aria-label="Group kind">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {groupKindItems.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={groupKindItems}
+      value={group.groupKind}
+      onChange={commit}
+      label="Group kind"
+      size="sm"
+      className="w-28"
+    />
   );
 }
 

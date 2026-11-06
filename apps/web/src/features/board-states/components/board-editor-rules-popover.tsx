@@ -6,13 +6,7 @@ import { useState } from "react";
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
@@ -32,9 +26,10 @@ function RulesPinField({
   const versions = useQuery(ruleVersionsQueryOptions(kind)).data?.versions ?? [];
   const latest = versions.at(-1)?.version ?? null;
   const versionLabels = ruleVersionLabels(versions);
-  const versionItems = versions
-    .toReversed()
-    .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
+  const versionItems = versions.toReversed().map((entry) => ({
+    value: entry.version,
+    label: versionLabels.get(entry.version) ?? entry.version,
+  }));
   return (
     <div className="flex flex-col gap-1.5">
       <Label className="flex items-center justify-between gap-2">
@@ -46,26 +41,7 @@ function RulesPinField({
         />
       </Label>
       {value === null ? null : (
-        <Select
-          items={versionItems}
-          value={value}
-          onValueChange={(next) => {
-            if (typeof next === "string") {
-              onChange(next);
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {versionItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SimpleSelect items={versionItems} value={value} onChange={onChange} />
       )}
     </div>
   );

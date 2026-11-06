@@ -8,14 +8,7 @@ import type { ReactNode } from "react";
 
 import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { RuleExclusions } from "@/features/lists/components/rule-exclusions";
@@ -132,24 +125,13 @@ function RuleCombineRow({ kind, wording }: { kind: ListKind; wording: RuleWordin
   return (
     <>
       <FilterRow label={m.lists_rule_overlap_label()}>
-        <Select
+        <SimpleSelect
           items={options}
           value={value}
-          onValueChange={(next) => setRuleCombine(next as ListRuleCombine)}
-        >
-          <SelectTrigger className={CONTROL_WIDTH} aria-label={m.lists_rule_overlap_label()}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {options.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+          onChange={(next) => setRuleCombine(next as ListRuleCombine)}
+          label={m.lists_rule_overlap_label()}
+          className={CONTROL_WIDTH}
+        />
       </FilterRow>
       <p className="text-muted-foreground -mt-3 text-sm">{wording.combineHint(value)}</p>
     </>
@@ -256,24 +238,13 @@ function RuleFields({
 
       {isCopy && (
         <FilterRow label={wording.groupLabel}>
-          <Select
+          <SimpleSelect
             items={keepPerOptions()}
             value={rule.keepPer}
-            onValueChange={(next) => setKeepPer(index, next as TradeKeepPer)}
-          >
-            <SelectTrigger className={CONTROL_WIDTH} aria-label={wording.groupLabel}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {keepPerOptions().map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            onChange={(next) => setKeepPer(index, next as TradeKeepPer)}
+            label={wording.groupLabel}
+            className={CONTROL_WIDTH}
+          />
         </FilterRow>
       )}
 

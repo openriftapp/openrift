@@ -7,13 +7,7 @@ import type { ReactNode } from "react";
 import { DateTimeField } from "@/components/ui/date-time-field";
 import { FieldError } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { deckSubmissionItems } from "@/features/tournaments/lib/tournament-display";
 import { combineLocalDateTimeToUtc, localTimeZoneLabel } from "@/lib/date-time-input";
@@ -55,30 +49,19 @@ export function DeckSubmissionField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{m.tournaments_settings_deck_submission_label()}</Label>
-      <Select
+      <SimpleSelect
         items={items}
         value={value}
         disabled={disabled}
-        onValueChange={(next) => {
+        onChange={(next) => {
           if (next === "none" || next === "optional" || next === "required") {
             onChange(next);
           }
         }}
-      >
-        <SelectTrigger
-          className={className ?? "w-full"}
-          aria-label={m.tournaments_settings_deck_submission_label()}
-        >
-          <SelectValue placeholder={m.tournaments_settings_deck_submission_label()} />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        label={m.tournaments_settings_deck_submission_label()}
+        placeholder={m.tournaments_settings_deck_submission_label()}
+        className={className ?? "w-full"}
+      />
     </div>
   );
 }

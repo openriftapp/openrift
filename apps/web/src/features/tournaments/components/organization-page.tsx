@@ -24,13 +24,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { OrgDeckCheckKeysSection } from "@/features/tournaments/components/deck-check-keys-section";
 import {
   useAddOrganizationMember,
@@ -134,11 +128,11 @@ export function OrganizationPage({ id }: { id: string }) {
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate font-medium">{member.name ?? member.userId}</span>
                   {isOwner ? (
-                    <Select
+                    <SimpleSelect
                       items={allRoleItems}
                       value={member.role}
                       disabled={updateMemberRole.isPending}
-                      onValueChange={(value) => {
+                      onChange={(value) => {
                         if (
                           (value === "owner" || value === "manager" || value === "judge") &&
                           value !== member.role
@@ -152,23 +146,11 @@ export function OrganizationPage({ id }: { id: string }) {
                           );
                         }
                       }}
-                    >
-                      <SelectTrigger
-                        size="sm"
-                        aria-label={m.tournaments_org_role_for({
-                          name: member.name ?? member.userId,
-                        })}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allRoleItems.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      label={m.tournaments_org_role_for({
+                        name: member.name ?? member.userId,
+                      })}
+                      size="sm"
+                    />
                   ) : (
                     <Badge variant="outline">{roleLabel(member.role)}</Badge>
                   )}
@@ -222,22 +204,14 @@ export function OrganizationPage({ id }: { id: string }) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>{m.tournaments_org_role_label()}</Label>
-                <Select
+                <SimpleSelect
                   items={roleItems}
                   value={role}
-                  onValueChange={(value) => value && setRole(value as OrganizationRole)}
-                >
-                  <SelectTrigger aria-label={m.tournaments_org_role_label()}>
-                    <SelectValue placeholder={m.tournaments_org_choose_role()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roleItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setRole(value as OrganizationRole)}
+                  label={m.tournaments_org_role_label()}
+                  placeholder={m.tournaments_org_choose_role()}
+                  className="w-full"
+                />
               </div>
             </div>
             <DialogFooter>

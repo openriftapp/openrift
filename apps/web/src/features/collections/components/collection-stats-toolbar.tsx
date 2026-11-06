@@ -15,13 +15,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { FilterChip } from "@/components/ui/filter-chip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCollections } from "@/features/collections/hooks/use-collections";
@@ -68,26 +62,16 @@ function CollectionSelector({
   collections: { id: string; name: string }[];
 }) {
   return (
-    <Select
+    <SimpleSelect
+      items={[
+        { value: "all", label: m.collections_stats_scope_all() },
+        ...collections.map((col) => ({ value: col.id, label: col.name })),
+      ]}
       value={value}
-      onValueChange={(newValue) => onChange(newValue ?? "all")}
-      items={{
-        all: m.collections_stats_scope_all(),
-        ...Object.fromEntries(collections.map((col) => [col.id, col.name])),
-      }}
-    >
-      <SelectTrigger className="w-auto" aria-label={m.collections_stats_scope_label()}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">{m.collections_stats_scope_all()}</SelectItem>
-        {collections.map((col) => (
-          <SelectItem key={col.id} value={col.id}>
-            {col.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={onChange}
+      label={m.collections_stats_scope_label()}
+      className="w-auto"
+    />
   );
 }
 

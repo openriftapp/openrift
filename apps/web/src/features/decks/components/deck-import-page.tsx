@@ -37,7 +37,6 @@ export function DeckImportPage() {
         deckName={flow.deckName}
         deckFormat={flow.deckFormat}
         deckFormats={flow.deckFormats}
-        deckFormatLabels={flow.deckFormatLabels}
         zoneOrder={flow.zoneOrder}
         zoneLabels={flow.zoneLabels}
         readyCount={flow.readyCount}

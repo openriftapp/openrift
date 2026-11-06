@@ -359,6 +359,7 @@ export function PrintingCard({
                       onChange={(v) => onChange("markerSlugs", v)}
                       options={markers}
                       placeholder={m.contribute_none()}
+                      searchPlaceholder={m.contribute_placeholder_markers_search()}
                     />
                   </FieldRow>
                   <FieldRow
@@ -370,6 +371,7 @@ export function PrintingCard({
                       onChange={(v) => onChange("distributionChannelSlugs", v)}
                       options={channels}
                       placeholder={m.contribute_none()}
+                      searchPlaceholder={m.contribute_placeholder_channels_search()}
                     />
                   </FieldRow>
                 </CollapsibleContent>

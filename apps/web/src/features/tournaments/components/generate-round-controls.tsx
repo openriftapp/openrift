@@ -2,7 +2,13 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { PodPlayerResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
-import { RotateCcwIcon, TriangleAlertIcon, UserMinusIcon, UserXIcon } from "lucide-react";
+import {
+  CheckIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+  UserMinusIcon,
+  UserXIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,19 +18,14 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { CommandEmpty, CommandGroup } from "@/components/ui/command";
+import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function PlayerAvatarChip({
@@ -76,6 +77,8 @@ export function GenerateRoundControls({
   const generateRound = useGenerateTournamentRound();
   const participantAction = useParticipantAction();
   const [byeIds, setByeIds] = useState<string[]>([]);
+  const [byeHighlight, setByeHighlight] = useState("");
+  const [dropHighlight, setDropHighlight] = useState("");
 
   const teamMode = playMode === "2v2";
   const activePlayers = players.filter((player) => player.status === "active");
@@ -217,52 +220,54 @@ export function GenerateRoundControls({
                   : m.tournaments_pairings_sitting_out_count({ count: selectedUnits.length })}
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0" align="start">
-                <Command>
-                  <CommandInput
-                    placeholder={
-                      teamMode
-                        ? m.tournaments_pairings_search_teams()
-                        : m.tournaments_pairings_search_players()
-                    }
-                  />
-                  <CommandList>
-                    <CommandEmpty>
-                      {teamMode
-                        ? m.tournaments_pairings_no_teams_found()
-                        : m.tournaments_pairings_no_players_found()}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {byeUnits.map((unit) => {
-                        const priorByes = byeCountById.get(unit.memberIds[0]) ?? 0;
-                        return (
-                          <CommandItem
-                            key={unit.key}
-                            // The key keeps the search value unique when two units
-                            // share a display name; cmdk still matches on the name.
-                            value={`${unit.label} ${unit.key}`}
-                            data-checked={unitChecked(unit)}
-                            onSelect={() => toggleByeUnit(unit)}
-                          >
-                            <PlayerAvatarChip
-                              name={unit.label}
-                              standing={
-                                unit.memberIds.length === 1
-                                  ? standingById.get(unit.memberIds[0])
-                                  : undefined
-                              }
-                            >
-                              {priorByes > 0 ? (
-                                <Badge variant="warning">
-                                  {m.tournaments_pairings_byes_count({ count: priorByes })}
-                                </Badge>
-                              ) : null}
-                            </PlayerAvatarChip>
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                <PickerList
+                  searchPlaceholder={
+                    teamMode
+                      ? m.tournaments_pairings_search_teams()
+                      : m.tournaments_pairings_search_players()
+                  }
+                  highlightedId={byeHighlight}
+                  onHighlightChange={setByeHighlight}
+                >
+                  <CommandEmpty>
+                    {teamMode
+                      ? m.tournaments_pairings_no_teams_found()
+                      : m.tournaments_pairings_no_players_found()}
+                  </CommandEmpty>
+                  {byeUnits.map((unit) => {
+                    const priorByes = byeCountById.get(unit.memberIds[0]) ?? 0;
+                    return (
+                      <PickerRow
+                        key={unit.key}
+                        value={unit.key}
+                        keywords={[unit.label]}
+                        onSelect={() => toggleByeUnit(unit)}
+                        className="px-2 py-1.5"
+                      >
+                        <PlayerAvatarChip
+                          name={unit.label}
+                          standing={
+                            unit.memberIds.length === 1
+                              ? standingById.get(unit.memberIds[0])
+                              : undefined
+                          }
+                        >
+                          {priorByes > 0 ? (
+                            <Badge variant="warning">
+                              {m.tournaments_pairings_byes_count({ count: priorByes })}
+                            </Badge>
+                          ) : null}
+                        </PlayerAvatarChip>
+                        <CheckIcon
+                          className={cn(
+                            "ml-auto size-4 shrink-0",
+                            !unitChecked(unit) && "opacity-0",
+                          )}
+                        />
+                      </PickerRow>
+                    );
+                  })}
+                </PickerList>
               </PopoverContent>
             </Popover>
           ) : null}
@@ -272,50 +277,53 @@ export function GenerateRoundControls({
               {m.tournaments_pairings_drop_players()}
             </PopoverTrigger>
             <PopoverContent className="w-64 p-0" align="start">
-              <Command>
-                <CommandInput placeholder={m.tournaments_pairings_search_players()} />
-                <CommandList>
-                  <CommandEmpty>{m.tournaments_pairings_no_players_found()}</CommandEmpty>
-                  <CommandGroup heading={m.tournaments_pairings_group_active()}>
-                    {activePlayers.map((player) => (
-                      <CommandItem
+              <PickerList
+                searchPlaceholder={m.tournaments_pairings_search_players()}
+                highlightedId={dropHighlight}
+                onHighlightChange={setDropHighlight}
+              >
+                <CommandEmpty>{m.tournaments_pairings_no_players_found()}</CommandEmpty>
+                <CommandGroup heading={m.tournaments_pairings_group_active()} className="p-0">
+                  {activePlayers.map((player) => (
+                    <PickerRow
+                      key={player.id}
+                      value={player.id}
+                      keywords={[player.displayName]}
+                      disabled={participantAction.isPending}
+                      onSelect={() => void setDropped(player, true)}
+                      className="px-2 py-1.5"
+                    >
+                      <PlayerAvatarChip
+                        name={player.displayName}
+                        standing={standingById.get(player.id)}
+                        className="flex-1"
+                      />
+                      <UserXIcon className="text-muted-foreground size-4 shrink-0" />
+                    </PickerRow>
+                  ))}
+                </CommandGroup>
+                {droppedPlayers.length > 0 ? (
+                  <CommandGroup heading={m.tournaments_pairings_group_dropped()} className="p-0">
+                    {droppedPlayers.map((player) => (
+                      <PickerRow
                         key={player.id}
-                        value={`${player.displayName} ${player.id}`}
+                        value={player.id}
+                        keywords={[player.displayName]}
                         disabled={participantAction.isPending}
-                        onSelect={() => void setDropped(player, true)}
+                        onSelect={() => void setDropped(player, false)}
+                        className="px-2 py-1.5"
                       >
-                        {/* CommandItem appends its own ml-auto CheckIcon; a second ml-auto here
-                            would split the slack between the two icons. */}
                         <PlayerAvatarChip
                           name={player.displayName}
                           standing={standingById.get(player.id)}
-                          className="flex-1"
+                          className="flex-1 opacity-60"
                         />
-                        <UserXIcon className="text-muted-foreground size-4" />
-                      </CommandItem>
+                        <RotateCcwIcon className="text-muted-foreground size-4 shrink-0" />
+                      </PickerRow>
                     ))}
                   </CommandGroup>
-                  {droppedPlayers.length > 0 ? (
-                    <CommandGroup heading={m.tournaments_pairings_group_dropped()}>
-                      {droppedPlayers.map((player) => (
-                        <CommandItem
-                          key={player.id}
-                          value={`${player.displayName} ${player.id}`}
-                          disabled={participantAction.isPending}
-                          onSelect={() => void setDropped(player, false)}
-                        >
-                          <PlayerAvatarChip
-                            name={player.displayName}
-                            standing={standingById.get(player.id)}
-                            className="flex-1 opacity-60"
-                          />
-                          <RotateCcwIcon className="text-muted-foreground size-4" />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  ) : null}
-                </CommandList>
-              </Command>
+                ) : null}
+              </PickerList>
             </PopoverContent>
           </Popover>
           {selectedUnits.map((unit) => (

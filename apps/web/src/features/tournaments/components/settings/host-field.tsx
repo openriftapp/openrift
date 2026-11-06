@@ -1,10 +1,4 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useMyOrganizations } from "@/features/tournaments/hooks/use-organizations";
 import { m } from "@/paraglide/messages.js";
 
@@ -27,29 +21,18 @@ export function HostField({
   ];
 
   return (
-    <Select
+    <SimpleSelect
       items={hostItems}
       value={value}
       disabled={disabled}
-      onValueChange={(next) => {
-        if (next && next !== value) {
+      onChange={(next) => {
+        if (next !== value) {
           onChange(next);
         }
       }}
-    >
-      <SelectTrigger
-        className={className ?? "w-full"}
-        aria-label={m.tournaments_settings_host_title()}
-      >
-        <SelectValue placeholder={m.tournaments_settings_host_title()} />
-      </SelectTrigger>
-      <SelectContent>
-        {hostItems.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      label={m.tournaments_settings_host_title()}
+      placeholder={m.tournaments_settings_host_title()}
+      className={className ?? "w-full"}
+    />
   );
 }

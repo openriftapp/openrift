@@ -54,12 +54,14 @@ export function DeskSegmented<T extends string>({
   options,
   ariaLabel,
   className,
+  disabled,
 }: {
   value: T;
   onChange: (value: T) => void;
   options: readonly DeskSegmentedOption<T>[];
   ariaLabel: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <ToggleGroup
@@ -67,6 +69,7 @@ export function DeskSegmented<T extends string>({
       variant="outline"
       spacing={0}
       className={className}
+      disabled={disabled}
       value={[value]}
       onValueChange={(next) => {
         const picked = next.at(0);

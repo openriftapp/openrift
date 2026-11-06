@@ -20,16 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ImportEntryRow } from "@/features/collections/components/import-entry-row";
 import {
   ImportExactMatchesDisclosure,
@@ -185,47 +176,35 @@ export function CollectionImportPreviewStep({
         <ImportTroubleNote needsAttentionCount={needsAttentionCount} />
 
         <div className="flex flex-wrap items-end gap-3">
-          <Select
-            value={collectionId}
-            onValueChange={(value) => onCollectionChange(value ?? "")}
-            items={{
-              ...Object.fromEntries(collections.map((col) => [col.id, col.name])),
-              __new__: m.collections_import_create_new_collection(),
-              ...Object.fromEntries(
-                importableLists.map((list) => [`${LIST_TARGET_PREFIX}${list.id}`, list.name]),
-              ),
-            }}
-          >
-            <SelectTrigger className="mb-0 w-[240px]">
-              <SelectValue placeholder={m.collections_import_destination_placeholder()} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>{m.collections_import_group_collections()}</SelectLabel>
-                {collections.map((col) => (
-                  <SelectItem key={col.id} value={col.id}>
-                    {col.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="__new__">
-                  {m.collections_import_create_new_collection()}
-                </SelectItem>
-              </SelectGroup>
-              {importableLists.length > 0 && (
-                <>
-                  <SelectSeparator />
-                  <SelectGroup>
-                    <SelectLabel>{m.collections_import_group_lists()}</SelectLabel>
-                    {importableLists.map((list) => (
-                      <SelectItem key={list.id} value={`${LIST_TARGET_PREFIX}${list.id}`}>
-                        {list.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </>
-              )}
-            </SelectContent>
-          </Select>
+          <SimpleSelect
+            items={[
+              ...collections.map((col) => ({
+                value: col.id,
+                label: col.name,
+                group: "collections",
+              })),
+              {
+                value: "__new__",
+                label: m.collections_import_create_new_collection(),
+                group: "collections",
+              },
+              ...importableLists.map((list) => ({
+                value: `${LIST_TARGET_PREFIX}${list.id}`,
+                label: list.name,
+                group: "lists",
+              })),
+            ]}
+            groups={[
+              { key: "collections", label: m.collections_import_group_collections() },
+              ...(importableLists.length > 0
+                ? [{ key: "lists", label: m.collections_import_group_lists() }]
+                : []),
+            ]}
+            value={collectionId === "" ? null : collectionId}
+            onChange={onCollectionChange}
+            placeholder={m.collections_import_destination_placeholder()}
+            className="mb-0 w-[240px]"
+          />
 
           {collectionId === "__new__" && (
             <div className="flex items-center gap-2">

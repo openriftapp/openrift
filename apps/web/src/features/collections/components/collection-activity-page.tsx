@@ -25,14 +25,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useSidebar } from "@/components/ui/sidebar";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
@@ -103,22 +97,13 @@ function Toolbar({
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
-      <Select
+      <SimpleSelect
+        items={Object.entries(collectionItems).map(([value, label]) => ({ value, label }))}
         value={collectionFilter}
-        onValueChange={(v) => onCollectionChange(v ?? "all")}
-        items={collectionItems}
-      >
-        <SelectTrigger className="w-auto" aria-label={m.collections_activity_collection()}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {Object.entries(collectionItems).map(([value, label]) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        onChange={onCollectionChange}
+        label={m.collections_activity_collection()}
+        className="w-auto"
+      />
 
       <ToggleGroup
         variant="outline"

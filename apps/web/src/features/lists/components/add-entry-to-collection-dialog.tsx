@@ -1,12 +1,13 @@
 import { MAX_COPIES_PER_ADD } from "@openrift/shared/contracts/copies";
-import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useQueryClient } from "@tanstack/react-query";
-import { BookOpenIcon, CheckIcon, InboxIcon } from "lucide-react";
+import { BookOpenIcon, InboxIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
+import { PickerSection } from "@/components/picker-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,16 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
-import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ImportPrintingLabel } from "@/features/cards/components/printing-label";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCollections } from "@/features/collections/hooks/use-collections";
@@ -38,11 +31,7 @@ import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useUserId } from "@/hooks/use-session";
 import { formatImportPrintingLabel } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-const SELECTED_ROW =
-  "bg-primary/10 text-primary data-selected:bg-primary/10 data-selected:text-primary data-selected:**:text-primary";
 
 function CollectionPicker({
   collections,
@@ -53,37 +42,22 @@ function CollectionPicker({
   collectionId: string | null;
   onSelect: (collectionId: string) => void;
 }) {
-  const [highlighted, setHighlighted] = useState("");
-  if (collections.length === 0) {
-    return (
-      <Empty>
-        <EmptyDescription>{m.collections_dialog_move_empty()}</EmptyDescription>
-      </Empty>
-    );
-  }
   return (
-    <div className="space-y-2">
-      <p className="text-sm">{m.lists_add_to_collection_pick_collection()}</p>
-      <PickerList highlightedId={highlighted} onHighlightChange={setHighlighted}>
-        {collections.map((collection) => (
-          <PickerRow
-            key={collection.id}
-            value={collection.id}
-            keywords={[collection.name]}
-            onSelect={() => onSelect(collection.id)}
-            className={cn("px-3 py-2", collectionId === collection.id && SELECTED_ROW)}
-          >
-            {collection.isInbox ? (
-              <InboxIcon className="size-4 shrink-0" />
-            ) : (
-              <BookOpenIcon className="size-4 shrink-0" />
-            )}
-            <span className="min-w-0 flex-1 truncate">{collection.name}</span>
-            {collectionId === collection.id && <CheckIcon className="size-4 shrink-0" />}
-          </PickerRow>
-        ))}
-      </PickerList>
-    </div>
+    <PickerSection
+      hint={m.lists_add_to_collection_pick_collection()}
+      options={collections.map((collection) => ({
+        value: collection.id,
+        label: collection.name,
+        icon: collection.isInbox ? (
+          <InboxIcon className="size-4 shrink-0" />
+        ) : (
+          <BookOpenIcon className="size-4 shrink-0" />
+        ),
+      }))}
+      selected={collectionId}
+      onPick={onSelect}
+      emptyText={m.collections_dialog_move_empty()}
+    />
   );
 }
 
@@ -106,7 +80,6 @@ export function AddEntryToCollectionDialogBody({
   onCancel,
   isPending,
 }: AddEntryToCollectionDialogBodyProps) {
-  const [printingHighlight, setPrintingHighlight] = useState("");
   const [printingId, setPrintingId] = useState(subject.printing.printingId);
   const [collectionId, setCollectionId] = useState(
     () =>
@@ -139,22 +112,16 @@ export function AddEntryToCollectionDialogBody({
         </DialogDescription>
       </DialogHeader>
       {subject.sourceKind === "card" && printings.length > 1 && (
-        <div className="space-y-2">
-          <p className="text-sm">{m.lists_add_to_collection_pick_printing()}</p>
-          <PickerList highlightedId={printingHighlight} onHighlightChange={setPrintingHighlight}>
-            {printings.map((printing) => (
-              <PickerRow
-                key={sideKey(printing)}
-                value={printing.printingId}
-                onSelect={() => setPrintingId(printing.printingId)}
-                className={cn("px-3 py-2", printingId === printing.printingId && SELECTED_ROW)}
-              >
-                <ImportPrintingLabel printing={printing} className="min-w-0 flex-1 truncate" />
-                {printingId === printing.printingId && <CheckIcon className="size-4 shrink-0" />}
-              </PickerRow>
-            ))}
-          </PickerList>
-        </div>
+        <PickerSection
+          hint={m.lists_add_to_collection_pick_printing()}
+          options={printings.map((printing) => ({
+            value: printing.printingId,
+            label: <ImportPrintingLabel printing={printing} />,
+          }))}
+          selected={printingId}
+          onPick={setPrintingId}
+          emptyText={null}
+        />
       )}
       {!fixedCollection && (
         <CollectionPicker
@@ -269,31 +236,18 @@ export function AddEntriesToCollectionDialogBody({
               </span>
               <span className="min-w-0 flex-1 truncate">{subject.cardName}</span>
               {canPickPrinting && printings.length > 1 ? (
-                <Select
+                <SimpleSelect
                   items={items}
                   value={printingIds[index] ?? subject.printing.printingId}
-                  onValueChange={(next) =>
-                    setPrintingIds((current) =>
-                      current.map((id, at) => (at === index ? String(next) : id)),
-                    )
+                  onChange={(next) =>
+                    setPrintingIds((current) => current.map((id, at) => (at === index ? next : id)))
                   }
-                >
-                  <SelectTrigger
-                    className="h-7 w-44"
-                    aria-label={m.lists_add_to_collection_printing_aria({
-                      card: subject.cardName,
-                    })}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {items.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  label={m.lists_add_to_collection_printing_aria({
+                    card: subject.cardName,
+                  })}
+                  size="sm"
+                  className="w-44"
+                />
               ) : (
                 <ImportPrintingLabel
                   printing={

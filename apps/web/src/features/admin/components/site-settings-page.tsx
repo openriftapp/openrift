@@ -9,13 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RowList, RowListItem } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -162,27 +156,24 @@ function ValueInput({ draft, setDraft }: AdminDraftSlotProps<SettingDraft>) {
   );
 }
 
+const SCOPE_ITEMS = [
+  { value: "web", label: "web" },
+  { value: "api", label: "api" },
+] as const;
+
 function ScopeSelect({ draft, setDraft }: AdminDraftSlotProps<SettingDraft>) {
   if (!draft || !setDraft) {
     return null;
   }
   return (
-    <Select
+    <SimpleSelect
+      items={SCOPE_ITEMS}
       value={draft.scope}
-      onValueChange={(scope) => {
-        if (scope) {
-          setDraft((prev) => ({ ...prev, scope }));
-        }
-      }}
-    >
-      <SelectTrigger className="h-8 w-24">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="web">web</SelectItem>
-        <SelectItem value="api">api</SelectItem>
-      </SelectContent>
-    </Select>
+      onChange={(scope) => setDraft((prev) => ({ ...prev, scope }))}
+      label="Scope"
+      size="sm"
+      className="w-24"
+    />
   );
 }
 

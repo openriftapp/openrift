@@ -1,4 +1,3 @@
-import { isRuleLanguage } from "@openrift/shared/rules";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ChevronDownIcon, FileClockIcon } from "lucide-react";
@@ -14,13 +13,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -100,13 +93,17 @@ export function RulesLanguageSelect({
   if (languages.length < 2) {
     return null;
   }
-  const items = languages.map((value) => ({ value, label: DISPLAY_LOCALE_LABELS[value] }));
+  const items = languages.map((value) => ({
+    value,
+    label: DISPLAY_LOCALE_LABELS[value],
+    lang: value,
+  }));
   return (
-    <Select
+    <SimpleSelect
       items={items}
       value={language}
-      onValueChange={(next) => {
-        if (!isRuleLanguage(next) || next === language) {
+      onChange={(next) => {
+        if (next === language) {
           return;
         }
         if (versionLanguages.includes(next)) {
@@ -115,21 +112,9 @@ export function RulesLanguageSelect({
           void navigate({ to: "/rules/$kind", params: { kind }, search: { lang: next } });
         }
       }}
-    >
-      <SelectTrigger
-        className={cn("text-muted-foreground", className)}
-        aria-label={m.rules_language_label()}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value} lang={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      label={m.rules_language_label()}
+      className={cn("text-muted-foreground", className)}
+    />
   );
 }
 
@@ -186,11 +171,11 @@ export function RulesVersionSelect({
     return <span className="text-muted-foreground text-sm">{fallbackLabel}</span>;
   }
   return (
-    <Select
-      items={items}
+    <SimpleSelect
+      items={items.map((item) => ({ value: item.value, label: item.label ?? item.value }))}
       value={version}
-      onValueChange={(nextVersion) => {
-        if (typeof nextVersion !== "string" || nextVersion === version) {
+      onChange={(nextVersion) => {
+        if (nextVersion === version) {
           return;
         }
         void navigate({
@@ -199,21 +184,9 @@ export function RulesVersionSelect({
           search: { lang: language },
         });
       }}
-    >
-      <SelectTrigger
-        className={cn("text-muted-foreground", className)}
-        aria-label={m.rules_version_label()}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      label={m.rules_version_label()}
+      className={cn("text-muted-foreground", className)}
+    />
   );
 }
 

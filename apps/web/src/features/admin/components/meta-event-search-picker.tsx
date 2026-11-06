@@ -25,8 +25,8 @@ export function MetaEventSearchPicker({
   disabled?: boolean;
   onPick: (metaEventId: string, name: string) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const { data, isPending } = useMetaEventSearch(query);
+  const [search, setSearch] = useState("");
+  const { data, isPending } = useMetaEventSearch(search);
 
   return (
     <CatalogSearchCombobox<AdminMetaEvent>
@@ -34,12 +34,13 @@ export function MetaEventSearchPicker({
       getKey={(event) => event.id}
       renderItem={(event) => <EventRow event={event} />}
       itemToInputValue={(event) => event.name}
-      onQueryChange={setQuery}
-      onSelect={(event) => {
-        onPick(event.id, event.name);
-      }}
+      onQueryChange={setSearch}
+      onSelect={(event) => onPick(event.id, event.name)}
+      ariaLabel="Search all events"
       placeholder="Search all events…"
-      emptyMessage={isPending ? "Searching…" : "No matching events"}
+      emptyMessage="No matching events"
+      loading={isPending}
+      loadingText="Searching…"
       disabled={disabled}
       className="w-72"
     />

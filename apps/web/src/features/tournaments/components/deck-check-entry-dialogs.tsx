@@ -22,13 +22,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
@@ -315,20 +309,12 @@ export function FixCardDialog({
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label>{m.tournaments_deck_check_zone_label()}</Label>
-                <Select value={section} onValueChange={(value) => setSection(value ?? card.zone)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => zoneLabels[value as never] ?? value}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {zoneOrder.map((zone) => (
-                      <SelectItem key={zone} value={zone}>
-                        {zoneLabels[zone]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SimpleSelect
+                  items={zoneOrder.map((zone) => ({ value: zone, label: zoneLabels[zone] }))}
+                  value={section}
+                  onChange={setSection}
+                  className="w-full"
+                />
               </div>
               {splittable ? (
                 <div className="flex w-28 flex-col gap-1.5">
@@ -437,23 +423,12 @@ export function AddCardDialog({
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label>{m.tournaments_deck_check_zone_label()}</Label>
-                <Select
+                <SimpleSelect
+                  items={zoneOrder.map((zone) => ({ value: zone, label: zoneLabels[zone] }))}
                   value={section}
-                  onValueChange={(value) => setSection(value ?? WellKnown.deckZone.MAIN)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => zoneLabels[value as never] ?? value}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {zoneOrder.map((zone) => (
-                      <SelectItem key={zone} value={zone}>
-                        {zoneLabels[zone]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setSection}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>

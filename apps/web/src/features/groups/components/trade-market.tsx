@@ -10,13 +10,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CountPill } from "@/components/ui/count-pill";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
@@ -268,24 +262,13 @@ export function TradeMarket() {
             className="w-full sm:w-64"
           />
           {tab === "buy" || groups.length < 2 ? null : (
-            <Select
+            <SimpleSelect
               items={groupItems}
               value={groupSlug ?? ALL_GROUPS}
-              onValueChange={(value) =>
-                setGroupSlug(value === ALL_GROUPS || value === null ? null : value)
-              }
-            >
-              <SelectTrigger className="w-full sm:w-56" aria-label={m.trades_market_group_filter()}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {groupItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(value) => setGroupSlug(value === ALL_GROUPS ? null : value)}
+              label={m.trades_market_group_filter()}
+              className="w-full sm:w-56"
+            />
           )}
           {tab === "buy" ? null : (
             <PeopleFilter

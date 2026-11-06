@@ -1,4 +1,4 @@
-import type { ReleasePrecision, SetRelease, SetReleases } from "@openrift/shared/set-release";
+import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
 import {
   formatReleasePeriod,
   isReleased,
@@ -14,13 +14,7 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import {
   Table,
   TableBody,
@@ -39,6 +33,9 @@ import type {
 } from "@/features/admin/components/admin-table";
 import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import { CountBadge } from "@/features/admin/components/count-badge";
+import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
+import { LanguageSelect } from "@/features/admin/components/language-select";
+import { SetPicker } from "@/features/admin/components/set-picker";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import {
@@ -56,8 +53,6 @@ interface SetDraft {
   printedTotal: string;
   setType: "main" | "supplemental";
 }
-
-const PRECISIONS: ReleasePrecision[] = ["day", "month", "quarter", "year"];
 
 function IdCell({ row }: AdminCellSlotProps<AdminSetResponse>) {
   if (!row) {
@@ -142,27 +137,24 @@ function PrintingsCell({ row }: AdminCellSlotProps<AdminSetResponse>) {
   );
 }
 
+const SET_TYPE_ITEMS = [
+  { value: "main", label: "main" },
+  { value: "supplemental", label: "supplemental" },
+] as const;
+
 function SetTypeSelect({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
   if (!draft || !setDraft) {
     return null;
   }
   return (
-    <Select
+    <SimpleSelect
+      items={SET_TYPE_ITEMS}
       value={draft.setType}
-      onValueChange={(value) => {
-        if (value) {
-          setDraft((prev) => ({ ...prev, setType: value as "main" | "supplemental" }));
-        }
-      }}
-    >
-      <SelectTrigger className="h-8 w-32">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="main">main</SelectItem>
-        <SelectItem value="supplemental">supplemental</SelectItem>
-      </SelectContent>
-    </Select>
+      onChange={(setType) => setDraft((prev) => ({ ...prev, setType }))}
+      label="Set type"
+      size="sm"
+      className="w-32"
+    />
   );
 }
 
@@ -271,39 +263,6 @@ function toReleaseGroups(sets: AdminSetResponse[]): ReleaseLanguageGroup[] {
     .map(([language, rows]) => ({ language, rows }));
 }
 
-function ReleasePrecisionSelect({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: ReleasePrecision;
-  disabled?: boolean;
-  onChange: (precision: ReleasePrecision) => void;
-}) {
-  return (
-    <Select
-      value={value}
-      disabled={disabled}
-      onValueChange={(next) => {
-        if (next) {
-          onChange(next as ReleasePrecision);
-        }
-      }}
-    >
-      <SelectTrigger className="h-8 w-32">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {PRECISIONS.map((precision) => (
-          <SelectItem key={precision} value={precision}>
-            {precision}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 /**
  * No released toggle: a set counts as released once its period passes. Clearing
  * the date leaves the language announced-undated; removing the row means not announced.
@@ -375,7 +334,7 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
             <TableRow>
               <TableHead className="w-24">Set</TableHead>
               <TableHead className="w-44">Date</TableHead>
-              <TableHead className="w-32">Precision</TableHead>
+              <TableHead>Precision</TableHead>
               <TableHead className="w-32">Shown as</TableHead>
               <TableHead className="w-24 text-right">Actions</TableHead>
             </TableRow>
@@ -407,7 +366,8 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
                     />
                   </TableCell>
                   <TableCell>
-                    <ReleasePrecisionSelect
+                    <DatePrecisionControl
+                      includeQuarter
                       value={row.release.precision ?? "day"}
                       disabled={row.release.releasedAt === null}
                       onChange={(precision) =>
@@ -439,32 +399,22 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
             ])}
             <TableRow>
               <TableCell>
-                <Select value={addSetId} onValueChange={(value) => setAddSetId(value ?? "")}>
-                  <SelectTrigger className="h-8 w-24">
-                    <SelectValue placeholder="Set" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sets.map((set) => (
-                      <SelectItem key={set.id} value={set.id}>
-                        {set.slug}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SetPicker
+                  value={addSetId}
+                  onChange={setAddSetId}
+                  placeholder="Set"
+                  className="w-44"
+                />
               </TableCell>
               <TableCell>
-                <Select value={addLanguage} onValueChange={(value) => setAddLanguage(value ?? "")}>
-                  <SelectTrigger className="h-8 w-24">
-                    <SelectValue placeholder="Lang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {addableLanguages.map((language) => (
-                      <SelectItem key={language.code} value={language.code}>
-                        {language.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <LanguageSelect
+                  label="Language"
+                  placeholder="Language"
+                  className="w-32"
+                  languages={addableLanguages}
+                  value={addLanguage}
+                  onChange={setAddLanguage}
+                />
               </TableCell>
               <TableCell colSpan={2} className="text-muted-foreground text-sm">
                 Added as undated. Set the date on the new row.

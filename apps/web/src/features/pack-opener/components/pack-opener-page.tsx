@@ -18,13 +18,7 @@ import { PageHero } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import {
@@ -208,20 +202,13 @@ function SetPickerField({
   return (
     <div className={cn("space-y-1", className)}>
       <Label>{m.packs_field_set()}</Label>
-      <Select value={value} onValueChange={(val) => val && onChange(val as string)}>
-        <SelectTrigger className="w-full">
-          <SelectValue>
-            {(current: string) => sets.find((s) => s.slug === current)?.name ?? current}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {sets.map((s) => (
-            <SelectItem key={s.slug} value={s.slug}>
-              {s.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SimpleSelect
+        items={sets.map((s) => ({ value: s.slug, label: s.name }))}
+        value={value}
+        onChange={onChange}
+        label={m.packs_field_set()}
+        className="w-full"
+      />
     </div>
   );
 }
@@ -243,18 +230,13 @@ function LanguageField({
   return (
     <div className="space-y-1">
       <Label>{m.packs_field_language()}</Label>
-      <Select value={effectiveValue} onValueChange={(val) => val && onChange(val as string)}>
-        <SelectTrigger className="w-full">
-          <SelectValue>{(current: string) => current}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {languages.map((code) => (
-            <SelectItem key={code} value={code}>
-              {code}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SimpleSelect
+        items={languages.map((code) => ({ value: code, label: code }))}
+        value={effectiveValue}
+        onChange={onChange}
+        label={m.packs_field_language()}
+        className="w-full"
+      />
     </div>
   );
 }
@@ -293,20 +275,13 @@ function CountField({
     <div className="space-y-1">
       <Label>{m.packs_field_packs()}</Label>
       <div className="flex gap-2">
-        <Select value={choice} onValueChange={(val) => val && onChoiceChange(val as string)}>
-          <SelectTrigger className="flex-1">
-            <SelectValue>
-              {(current: string) => options.find((o) => o.value === current)?.label ?? current}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SimpleSelect
+          items={options}
+          value={choice}
+          onChange={onChoiceChange}
+          label={m.packs_field_packs()}
+          className="flex-1"
+        />
         {choice === "custom" && (
           <Input
             type="number"

@@ -4,13 +4,7 @@ import type { ReactNode } from "react";
 import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SELECT_NONE, SimpleSelect } from "@/components/ui/simple-select";
 import {
   ImageUrlCell,
   renderLabeledValue,
@@ -171,48 +165,31 @@ export function CandidateActiveCell<TKey extends string>({
             onClose={() => setEditingField(null)}
           />
         ) : editingField === field.key && hasDropdown(field) ? (
-          <Select
-            value={hasValue(activeValue) ? String(activeValue) : ""}
-            onValueChange={(v) => {
-              setEditingField(null);
-              onActiveChange?.(field.key, v || null);
-            }}
-            defaultOpen
-            onOpenChange={(open) => {
-              if (!open) {
+          // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps trigger clicks from reaching the row's cell selection, renders no box
+          <span className="contents" onClick={(e) => e.stopPropagation()}>
+            <SimpleSelect
+              items={[
+                { value: SELECT_NONE, label: "— clear —" },
+                ...(field.labeledOptions ??
+                  field.options?.map((opt) => ({ value: opt, label: opt })) ??
+                  []),
+              ]}
+              value={hasValue(activeValue) ? String(activeValue) : null}
+              onChange={(v) => {
                 setEditingField(null);
-              }
-            }}
-            items={{
-              "": "— clear —",
-              ...Object.fromEntries(
-                field.labeledOptions
-                  ? field.labeledOptions.map((opt) => [opt.value, opt.label])
-                  : (field.options?.map((opt) => [opt, opt]) ?? []),
-              ),
-            }}
-          >
-            <SelectTrigger
+                onActiveChange?.(field.key, v === SELECT_NONE ? null : v);
+              }}
+              defaultOpen
+              onOpenChange={(open) => {
+                if (!open) {
+                  setEditingField(null);
+                }
+              }}
+              label={field.label}
+              placeholder="— select —"
               className="w-full gap-1 rounded-md border-none px-1 text-sm shadow-none"
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-            >
-              <SelectValue placeholder="— select —" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">— clear —</SelectItem>
-              {field.labeledOptions
-                ? field.labeledOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))
-                : field.options?.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-            </SelectContent>
-          </Select>
+            />
+          </span>
         ) : editingField === field.key && field.suggestions ? (
           <SuggestionCombobox
             suggestions={field.suggestions}

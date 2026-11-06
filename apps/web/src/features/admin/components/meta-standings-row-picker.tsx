@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CommandEmpty } from "@/components/ui/command";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  ResponsivePopover,
+  ResponsivePopoverContent,
+  ResponsivePopoverTrigger,
+} from "@/components/ui/responsive-popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { rankLabel } from "@/features/admin/components/meta-review-shared";
 import { adminMetaEventPlayersQueryOptions } from "@/features/admin/lib/admin-meta-queries";
@@ -78,8 +82,8 @@ export function MetaStandingsRowPicker({
   const [open, setOpen] = useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
+    <ResponsivePopover open={open} onOpenChange={setOpen}>
+      <ResponsivePopoverTrigger
         render={
           <Button variant="outline" size="sm" disabled={disabled}>
             <LinkIcon />
@@ -87,7 +91,7 @@ export function MetaStandingsRowPicker({
           </Button>
         }
       />
-      <PopoverContent align="start" className="w-80 p-0">
+      <ResponsivePopoverContent title="Pick a standings row" hideTitle>
         <StandingsRows
           metaEventId={metaEventId}
           currentPlayerId={currentPlayerId}
@@ -96,7 +100,7 @@ export function MetaStandingsRowPicker({
             onPick(metaEventPlayerId, playerName);
           }}
         />
-      </PopoverContent>
-    </Popover>
+      </ResponsivePopoverContent>
+    </ResponsivePopover>
   );
 }

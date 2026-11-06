@@ -1,28 +1,30 @@
-import { FolderIcon, HandshakeIcon, HeartIcon, PlusIcon } from "lucide-react";
+import type { ListIntent } from "@openrift/shared/types/api/list";
+import { FolderIcon, HandshakeIcon, HeartIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PickerDialog } from "@/components/picker-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogCancel,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
-import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
 import { listKindLabel } from "@/features/lists/components/move-to-list-dialog";
 import { useBulkAddCopiesToList, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const MAX_BULK_ADD = 500;
+
+function IntentIcon({ intent }: { intent: ListIntent }) {
+  const Icon = intent === "trade" ? HandshakeIcon : intent === "wish" ? HeartIcon : FolderIcon;
+  return <Icon className="size-4 shrink-0" />;
+}
+
+function intentLabel(intent: ListIntent): string {
+  return intent === "trade"
+    ? m.lists_add_intent_trade()
+    : intent === "wish"
+      ? m.lists_add_intent_wish()
+      : m.lists_add_intent_organize();
+}
 
 interface AddToListDialogProps {
   open: boolean;
@@ -49,10 +51,6 @@ export function AddToListDialog({
   // Group-owned copies aren't the user's to trade away or wish for, so only
   // organize lists remain for them (mirrors the server's personalOnly rule).
   const eligibleLists = allLists.filter((list) => !groupOwnedOnly || list.intent === "organize");
-
-  const [createIntent, setCreateIntent] = useState<"trade" | "organize" | null>(null);
-  const [newName, setNewName] = useState("");
-  const [highlightedId, setHighlightedId] = useState("");
 
   const count = copyIds.length;
 
@@ -83,21 +81,16 @@ export function AddToListDialog({
     );
   };
 
-  const handleCreateAndAdd = () => {
-    if (createIntent === null) {
-      return;
-    }
-    const trimmed = newName.trim();
-    if (!trimmed) {
+  const createAndAdd = (intent: string, name: string, done: () => void) => {
+    if (intent !== "trade" && intent !== "organize") {
       return;
     }
     createList.mutate(
-      { name: trimmed, intent: createIntent, kind: "copy" },
+      { name, intent, kind: "copy" },
       {
         onSuccess: (newList) => {
           addToList(newList.id, newList.name);
-          setNewName("");
-          setCreateIntent(null);
+          done();
         },
       },
     );
@@ -107,125 +100,70 @@ export function AddToListDialog({
   const disableAdd = isPending || exceedsLimit;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.lists_add_title()}</DialogTitle>
-        </DialogHeader>
-        {canChooseQuantity && (
-          <QuantityStepperField
-            label={m.lists_add_copies_label()}
-            value={quantity}
-            onValueChange={setQuantity}
-            max={count}
-            disabled={isPending}
-          />
-        )}
-        {exceedsLimit && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              {m.lists_add_limit({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })}
-            </AlertDescription>
-          </Alert>
-        )}
-        <div className="max-h-60 overflow-y-auto">
-          {eligibleLists.length > 0 ? (
-            <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
-              {eligibleLists.map((list) => {
-                const Icon =
-                  list.intent === "trade"
-                    ? HandshakeIcon
-                    : list.intent === "wish"
-                      ? HeartIcon
-                      : FolderIcon;
-                const intentLabel =
-                  list.intent === "trade"
-                    ? m.lists_add_intent_trade()
-                    : list.intent === "wish"
-                      ? m.lists_add_intent_wish()
-                      : m.lists_add_intent_organize();
-                return (
-                  <PickerRow
-                    key={list.id}
-                    value={list.id}
-                    onSelect={disableAdd ? undefined : () => addToList(list.id, list.name)}
-                    className={cn("px-3 py-2", disableAdd && "pointer-events-none opacity-50")}
-                  >
-                    <Icon className="size-4 shrink-0" />
-                    <span className="flex-1 truncate">{list.name}</span>
-                    <span className="text-muted-foreground text-2xs shrink-0">
-                      {intentLabel} · {listKindLabel(list.kind)}
-                    </span>
-                  </PickerRow>
-                );
-              })}
-            </PickerList>
-          ) : createIntent === null ? (
-            <Empty>
-              <EmptyDescription>{m.lists_add_no_lists()}</EmptyDescription>
-            </Empty>
-          ) : null}
-        </div>
-        {groupOwnedOnly && (
-          <p className="text-muted-foreground text-sm">{m.lists_add_group_owned_note()}</p>
-        )}
-        {createIntent === null ? (
-          <div className="flex flex-wrap gap-2">
-            {!groupOwnedOnly && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground justify-start"
-                onClick={() => setCreateIntent("trade")}
-                disabled={disableAdd}
-              >
-                <PlusIcon className="size-3.5" />
-                {m.lists_add_new_tradelist()}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground justify-start"
-              onClick={() => setCreateIntent("organize")}
-              disabled={disableAdd}
-            >
-              <PlusIcon className="size-3.5" />
-              {m.lists_add_new_organize()}
-            </Button>
-          </div>
-        ) : (
-          <DialogForm className="flex items-center gap-2 pt-1" onSubmit={handleCreateAndAdd}>
-            <Input
-              autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              placeholder={
-                createIntent === "trade"
-                  ? m.lists_add_tradelist_name_placeholder()
-                  : m.lists_add_organize_name_placeholder()
-              }
+    <PickerDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={m.lists_add_title()}
+      before={
+        <>
+          {canChooseQuantity && (
+            <QuantityStepperField
+              label={m.lists_add_copies_label()}
+              value={quantity}
+              onValueChange={setQuantity}
+              max={count}
+              disabled={isPending}
             />
-            <Button type="submit" size="sm" disabled={!newName.trim() || disableAdd}>
-              {m.common_create()}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCreateIntent(null);
-                setNewName("");
-              }}
-            >
-              {m.common_cancel()}
-            </Button>
-          </DialogForm>
-        )}
-        <div className="flex justify-end gap-2 pt-2">
-          <DialogCancel disabled={isPending} />
-        </div>
-      </DialogContent>
-    </Dialog>
+          )}
+          {exceedsLimit && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {m.lists_add_limit({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })}
+              </AlertDescription>
+            </Alert>
+          )}
+        </>
+      }
+      options={eligibleLists.map((list) => ({
+        value: list.id,
+        label: list.name,
+        icon: <IntentIcon intent={list.intent} />,
+        meta: `${intentLabel(list.intent)} · ${listKindLabel(list.kind)}`,
+      }))}
+      emptyText={m.lists_add_no_lists()}
+      pending={isPending}
+      disabled={exceedsLimit}
+      after={
+        groupOwnedOnly && (
+          <p className="text-muted-foreground text-sm">{m.lists_add_group_owned_note()}</p>
+        )
+      }
+      onPick={(listId) => {
+        const list = eligibleLists.find((candidate) => candidate.id === listId);
+        if (list) {
+          addToList(list.id, list.name);
+        }
+      }}
+      create={{
+        actions: [
+          ...(groupOwnedOnly
+            ? []
+            : [
+                {
+                  key: "trade",
+                  label: m.lists_add_new_tradelist(),
+                  placeholder: m.lists_add_tradelist_name_placeholder(),
+                },
+              ]),
+          {
+            key: "organize",
+            label: m.lists_add_new_organize(),
+            placeholder: m.lists_add_organize_name_placeholder(),
+          },
+        ],
+        onCreate: createAndAdd,
+        disabled: disableAdd,
+      }}
+    />
   );
 }

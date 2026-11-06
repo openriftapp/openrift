@@ -1,4 +1,3 @@
-import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckListItemResponse, DeckResponse } from "@openrift/shared/types/api/deck";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, CircleHelpIcon, PlusIcon, SwordsIcon, UploadIcon } from "lucide-react";
@@ -28,13 +27,7 @@ import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pressable } from "@/components/ui/pressable";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckFolders } from "@/features/decks/hooks/use-deck-folders";
@@ -92,7 +85,7 @@ function CreateDeckDialog({
   const navigate = useNavigate();
   const userId = useUserId();
   const createDeck = useCreateDeck();
-  const { formats, labels: formatLabels } = useDeckFormatList();
+  const { formats } = useDeckFormatList();
   const [name, setName] = useState<string>(m.decks_list_new_deck_default_name());
   const [format, setFormat] = useState<string>(formats[0]?.slug ?? "");
 
@@ -135,25 +128,13 @@ function CreateDeckDialog({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="deck-format">{m.decks_list_format_label()}</Label>
-              <Select
+              <SimpleSelect
+                id="deck-format"
+                items={formats.map((entry) => ({ value: entry.slug, label: entry.label }))}
                 value={format}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    setFormat(value);
-                  }
-                }}
-              >
-                <SelectTrigger id="deck-format">
-                  <SelectValue>{(value: string) => enumLabel(formatLabels, value)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {formats.map((entry) => (
-                    <SelectItem key={entry.slug} value={entry.slug}>
-                      {entry.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={setFormat}
+                className="w-full"
+              />
             </div>
             <Link
               to="/help/$slug"

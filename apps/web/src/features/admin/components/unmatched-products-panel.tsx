@@ -22,14 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -37,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import { displayedProductLanguage } from "@/features/admin/components/marketplace-product-entries";
 import {
@@ -453,7 +446,7 @@ function FilterBar({
   totalCount: number;
   filteredCount: number;
 }) {
-  const marketplaceItems = [
+  const marketplaceItems: { value: "all" | Marketplace; label: string }[] = [
     { value: "all", label: "All marketplaces" },
     { value: "tcgplayer", label: "TCGplayer" },
     { value: "cardmarket", label: "Cardmarket" },
@@ -471,62 +464,29 @@ function FilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
-        items={marketplaceItems}
+      <AdminFilterSelect
+        options={marketplaceItems}
         value={marketplaceFilter}
-        onValueChange={(v) => onMarketplaceChange((v ?? "all") as "all" | Marketplace)}
-      >
-        <SelectTrigger className="w-44" aria-label="Filter by marketplace">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {marketplaceItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        onChange={onMarketplaceChange}
+        label="Filter by marketplace"
+        className="w-44"
+      />
 
-      <Select
-        items={finishItems}
+      <AdminFilterSelect
+        options={finishItems}
         value={finishFilter}
-        onValueChange={(v) => onFinishChange(v ?? "all")}
-      >
-        <SelectTrigger className="w-36" aria-label="Filter by finish">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {finishItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        onChange={onFinishChange}
+        label="Filter by finish"
+        className="w-36"
+      />
 
-      <Select
-        items={languageItems}
+      <AdminFilterSelect
+        options={languageItems}
         value={languageFilter}
-        onValueChange={(v) => onLanguageChange(v ?? "all")}
-      >
-        <SelectTrigger className="w-36" aria-label="Filter by language">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {languageItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        onChange={onLanguageChange}
+        label="Filter by language"
+        className="w-36"
+      />
 
       <SearchInput
         placeholder="Search product name…"

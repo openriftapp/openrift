@@ -1,4 +1,3 @@
-import type { DeskReleasePrecision } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatReleasePeriod, normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { Link } from "@tanstack/react-router";
@@ -13,17 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
+import { LanguageSelect } from "@/features/admin/components/language-select";
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { PrintingDeskMarkerPicker } from "@/features/admin/components/printing-desk-marker-picker";
 import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
+import { SetPicker } from "@/features/admin/components/set-picker";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { useSets } from "@/features/cards/hooks/use-sets";
@@ -48,53 +44,9 @@ import {
   removeFace,
   updateFace,
 } from "@/features/catalog-workspace/lib/creation-draft";
-import { useEnumOrders, useLanguageList } from "@/hooks/use-enums";
-
-const PRECISION_OPTIONS = [
-  { value: "day", label: "Day" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-] as const satisfies readonly { value: DeskReleasePrecision; label: string }[];
+import { useEnumOrders } from "@/hooks/use-enums";
 
 type EditingRow = `face-${number}` | "images" | "printing";
-
-function SlugSelect({
-  id,
-  value,
-  items,
-  disabled,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  items: readonly { value: string; label: string }[];
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <Select
-      items={items}
-      value={value}
-      disabled={disabled}
-      onValueChange={(next) => {
-        if (next !== null) {
-          onChange(next);
-        }
-      }}
-    >
-      <SelectTrigger id={id} className="w-full">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 function useFaceSummary() {
   const { labels } = useEnumOrders();
@@ -121,10 +73,8 @@ function FaceEditor({
   onChange: (fields: DraftFaceFields) => void;
 }) {
   const { orders, labels } = useEnumOrders();
-  const languages = useLanguageList();
   const { data: setData } = useSets();
   const { data: artistData } = useDistinctArtists();
-  const setItems = setData.sets.map((set) => ({ value: set.id, label: set.name }));
   const setValue =
     fields.setId.length > 0
       ? fields.setId
@@ -166,10 +116,9 @@ function FaceEditor({
 
         <Field>
           <FieldLabel htmlFor={`${idPrefix}-set`}>Set</FieldLabel>
-          <SlugSelect
+          <SetPicker
             id={`${idPrefix}-set`}
             value={setValue}
-            items={setItems}
             onChange={(id) => {
               const set = setData.sets.find((entry) => entry.id === id);
               onChange({
@@ -184,10 +133,10 @@ function FaceEditor({
 
         <Field>
           <FieldLabel htmlFor={`${idPrefix}-language`}>Language</FieldLabel>
-          <SlugSelect
+          <LanguageSelect
             id={`${idPrefix}-language`}
+            className="w-full"
             value={fields.language}
-            items={languages.map((entry) => ({ value: entry.code, label: entry.name }))}
             onChange={(language) => onChange({ ...fields, language })}
           />
         </Field>
@@ -208,9 +157,10 @@ function FaceEditor({
         {target === "accept" ? (
           <Field>
             <FieldLabel htmlFor={`${idPrefix}-rarity`}>Rarity</FieldLabel>
-            <SlugSelect
+            <SimpleSelect
               id={`${idPrefix}-rarity`}
-              value={fields.rarity}
+              className="w-full"
+              value={fields.rarity === "" ? null : fields.rarity}
               items={orders.rarities.map((slug) => ({
                 value: slug,
                 label: enumLabel(labels.rarities, slug),
@@ -285,9 +235,10 @@ function PrintingEditor({
 
         <Field>
           <FieldLabel htmlFor="creation-size">Size</FieldLabel>
-          <SlugSelect
+          <SimpleSelect
             id="creation-size"
-            value={printing.size}
+            className="w-full"
+            value={printing.size === "" ? null : printing.size}
             items={orders.cardSizes.map((slug) => ({
               value: slug,
               label: enumLabel(labels.cardSizes, slug),
@@ -315,11 +266,9 @@ function PrintingEditor({
               onValueChange={(releasedAt) => onChange({ ...printing, releasedAt })}
               onClear={() => onChange({ ...printing, releasedAt: null })}
             />
-            <DeskSegmented
-              ariaLabel="How exact the date is"
-              value={printing.releasePrecision === "quarter" ? "month" : printing.releasePrecision}
+            <DatePrecisionControl
+              value={printing.releasePrecision}
               onChange={(releasePrecision) => onChange({ ...printing, releasePrecision })}
-              options={PRECISION_OPTIONS}
             />
           </div>
           {release !== null && release.precision !== "day" && (

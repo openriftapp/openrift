@@ -1,6 +1,7 @@
 import type { DesignSection } from "@/features/admin/components/design/design-sections";
 import { DesignTierPage } from "@/features/admin/components/design/design-tier-page";
 
+import { ADMIN_PICKERS_GROUPS, AdminPickersSection } from "./patterns/admin-pickers-section";
 import { CARD_MEDIA_GROUPS, CardMediaSection } from "./patterns/card-media-section";
 import { CARD_STRIPS_GROUPS, CardStripsSection } from "./patterns/card-strips-section";
 import { META_ARCHIVE_GROUPS, MetaArchiveSection } from "./patterns/meta-archive-section";
@@ -12,6 +13,12 @@ import { TOP_BAR_GROUPS, TopBarSection } from "./patterns/top-bar-section";
 const SECTIONS: readonly DesignSection[] = [
   { id: "top-bar", title: "Page top bar", Component: TopBarSection, groups: TOP_BAR_GROUPS },
   { id: "search", title: "Search & filters", Component: SearchSection, groups: SEARCH_GROUPS },
+  {
+    id: "admin-pickers",
+    title: "Admin pickers",
+    Component: AdminPickersSection,
+    groups: ADMIN_PICKERS_GROUPS,
+  },
   {
     id: "card-media",
     title: "Card media",

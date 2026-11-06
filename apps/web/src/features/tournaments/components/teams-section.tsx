@@ -9,13 +9,7 @@ import { CardRow } from "@/components/ui/card-list";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import {
   useCreateTeam,
@@ -174,18 +168,14 @@ function TeamMemberPicker({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-muted-foreground text-sm">{label}</span>
-      <Select items={items} value={value} onValueChange={(next) => next && onChange(next)}>
-        <SelectTrigger className="w-48" aria-label={label}>
-          <SelectValue placeholder={m.tournaments_teams_pick_player()} />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SimpleSelect
+        items={items}
+        value={value}
+        onChange={onChange}
+        label={label}
+        placeholder={m.tournaments_teams_pick_player()}
+        className="w-48"
+      />
     </div>
   );
 }

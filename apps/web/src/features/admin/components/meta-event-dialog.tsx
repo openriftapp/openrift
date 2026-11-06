@@ -1,5 +1,4 @@
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
-import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,13 +17,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateMetaEvent, useUpdateMetaEvent } from "@/features/admin/hooks/use-admin-meta";
 import { useWriteMetaEventOverlayFields } from "@/features/admin/hooks/use-admin-meta-overlays";
@@ -49,7 +42,7 @@ interface MetaEventDialogProps {
 
 // Editing writes the slug first: a failed rename should not leave an overlay claim behind.
 export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
-  const { formats, labels: formatLabels } = useDeckFormatList();
+  const { formats } = useDeckFormatList();
   const createEvent = useCreateMetaEvent();
   const updateEvent = useUpdateMetaEvent();
   const writeOverlay = useWriteMetaEventOverlayFields();
@@ -140,50 +133,27 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
 
             <div className="space-y-1.5">
               <Label htmlFor="meta-event-format">Format</Label>
-              <Select
+              <SimpleSelect
+                id="meta-event-format"
+                items={formats.map((format) => ({ value: format.slug, label: format.label }))}
                 value={draft.format}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    set("format", value as string);
-                  }
-                }}
-                items={formatLabels}
-              >
-                <SelectTrigger id="meta-event-format" className="mb-0 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {formats.map((format) => (
-                    <SelectItem key={format.slug} value={format.slug}>
-                      {format.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => set("format", value)}
+                className="w-full"
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="meta-event-tier">Tier</Label>
-              <Select
+              <SimpleSelect
+                id="meta-event-tier"
+                items={META_EVENT_TIERS.map((tier) => ({
+                  value: tier,
+                  label: metaEventTierLabels()[tier],
+                }))}
                 value={draft.tier}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    set("tier", value as MetaEventTier);
-                  }
-                }}
-                items={metaEventTierLabels()}
-              >
-                <SelectTrigger id="meta-event-tier" className="mb-0 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {META_EVENT_TIERS.map((tier) => (
-                    <SelectItem key={tier} value={tier}>
-                      {metaEventTierLabels()[tier]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => set("tier", value)}
+                className="w-full"
+              />
             </div>
 
             <div className="space-y-1.5">

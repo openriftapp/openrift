@@ -19,13 +19,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
@@ -348,35 +342,30 @@ function ProxyPrintPanel({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="proxy-render-mode">{m.decks_dialog_print_render_mode()}</Label>
-          <Select
+          <SimpleSelect
+            id="proxy-render-mode"
+            items={Object.entries(renderModeLabels()).map(([value, label]) => ({
+              value: value as ProxyRenderMode,
+              label,
+            }))}
             value={renderMode}
-            onValueChange={(value) => setRenderMode(value as ProxyRenderMode)}
-          >
-            <SelectTrigger id="proxy-render-mode">
-              <SelectValue>
-                {(value: string) => renderModeLabels()[value as ProxyRenderMode] ?? value}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="image">{m.decks_dialog_print_render_image()}</SelectItem>
-              <SelectItem value="text">{m.decks_dialog_print_render_text()}</SelectItem>
-            </SelectContent>
-          </Select>
+            onChange={setRenderMode}
+            className="w-full"
+          />
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="proxy-page-size">{m.decks_dialog_print_page_size()}</Label>
-          <Select value={pageSize} onValueChange={(value) => setPageSize(value as ProxyPageSize)}>
-            <SelectTrigger id="proxy-page-size">
-              <SelectValue>
-                {(value: string) => pageSizeLabels()[value as ProxyPageSize] ?? value}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="a4">A4</SelectItem>
-              <SelectItem value="letter">US Letter</SelectItem>
-            </SelectContent>
-          </Select>
+          <SimpleSelect
+            id="proxy-page-size"
+            items={Object.entries(pageSizeLabels()).map(([value, label]) => ({
+              value: value as ProxyPageSize,
+              label,
+            }))}
+            value={pageSize}
+            onChange={setPageSize}
+            className="w-full"
+          />
         </div>
 
         <div className="flex items-center justify-between">
@@ -569,20 +558,16 @@ function RegistrationPrintPanel({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="registration-page-size">{m.decks_dialog_print_page_size()}</Label>
-          <Select
+          <SimpleSelect
+            id="registration-page-size"
+            items={Object.entries(pageSizeLabels()).map(([value, label]) => ({
+              value: value as RegistrationPageSize,
+              label,
+            }))}
             value={pageSize}
-            onValueChange={(value) => setPageSize(value as RegistrationPageSize)}
-          >
-            <SelectTrigger id="registration-page-size">
-              <SelectValue>
-                {(value: string) => pageSizeLabels()[value as RegistrationPageSize] ?? value}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="a4">A4</SelectItem>
-              <SelectItem value="letter">US Letter</SelectItem>
-            </SelectContent>
-          </Select>
+            onChange={setPageSize}
+            className="w-full"
+          />
         </div>
       </div>
 

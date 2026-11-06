@@ -42,13 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { DeckCheckListSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
@@ -469,22 +463,14 @@ function AddDeckDialog({
                   {m.tournaments_deck_check_no_participants_without_deck()}
                 </p>
               ) : (
-                <Select
+                <SimpleSelect
                   items={rosterItems}
                   value={participantId}
-                  onValueChange={(value) => value && setParticipantId(value)}
-                >
-                  <SelectTrigger aria-label={m.tournaments_deck_check_participant_label()}>
-                    <SelectValue placeholder={m.tournaments_deck_check_choose_participant()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rosterItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setParticipantId}
+                  label={m.tournaments_deck_check_participant_label()}
+                  placeholder={m.tournaments_deck_check_choose_participant()}
+                  className="w-full"
+                />
               )}
             </div>
             <div className="flex flex-col gap-1.5">

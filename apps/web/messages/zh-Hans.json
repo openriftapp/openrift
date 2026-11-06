@@ -5033,6 +5033,7 @@
   "contribute_placeholder_finish": "选择工艺",
   "contribute_placeholder_art_variant": "选择异画",
   "contribute_placeholder_size": "标准",
+  "contribute_placeholder_channels_search": "搜索发行渠道…",
   "contribute_placeholder_markers_search": "搜索标记…",
   "contribute_submit_errors_title": "提交前请先修正以下问题：",
   "contribute_submit_success_title": "谢谢！你的提交已进入审核队列。",

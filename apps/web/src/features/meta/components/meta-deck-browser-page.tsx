@@ -17,13 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList, RowListLink } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
@@ -341,26 +335,18 @@ function DeckPageSizePicker({
   if (total <= META_PAGE_SIZES[0] && value === DEFAULT_DECK_PAGE_SIZE) {
     return null;
   }
-  const items = Object.fromEntries(META_PAGE_SIZES.map((size) => [String(size), String(size)]));
   return (
-    <Select
+    <SimpleSelect
+      items={META_PAGE_SIZES.map((size) => ({
+        value: String(size),
+        label: m.meta_browser_per_page({ size: String(size) }),
+      }))}
       value={String(value)}
-      items={items}
-      onValueChange={(next) =>
-        onChange(Number((next as string | null) ?? DEFAULT_DECK_PAGE_SIZE) as MetaPageSizeValue)
-      }
-    >
-      <SelectTrigger className="w-36" aria-label={m.meta_browser_per_page_aria()}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(items).map(([key, label]) => (
-          <SelectItem key={key} value={key}>
-            {m.meta_browser_per_page({ size: label })}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={(next) => onChange(Number(next) as MetaPageSizeValue)}
+      label={m.meta_browser_per_page_aria()}
+      renderValue={(item) => item.value}
+      className="w-36"
+    />
   );
 }
 
@@ -421,9 +407,10 @@ function SortSelect({
   const current = presetKey(sort, direction);
   const value = current in items ? current : presetKey("date", "desc");
   return (
-    <Select
+    <SimpleSelect
+      items={Object.entries(items).map(([itemValue, label]) => ({ value: itemValue, label }))}
       value={value}
-      onValueChange={(next) => {
+      onChange={(next) => {
         const preset = metaDeckSortPresets().find(
           (entry) => presetKey(entry.sort, entry.direction) === next,
         );
@@ -431,23 +418,10 @@ function SortSelect({
           onChange(preset.sort, preset.direction);
         }
       }}
-      items={items}
-    >
-      <SelectTrigger
-        size={size}
-        className={cn("w-48", className)}
-        aria-label={m.meta_browser_sort()}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(items).map(([itemValue, label]) => (
-          <SelectItem key={itemValue} value={itemValue}>
-            {label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      label={m.meta_browser_sort()}
+      size={size}
+      className={cn("w-48", className)}
+    />
   );
 }
 

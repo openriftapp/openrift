@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pressable } from "@/components/ui/pressable";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { LegendPickerDialog } from "@/features/match-tracker/components/legend-picker";
+import { LegendGridDialog } from "@/features/match-tracker/components/legend-grid-dialog";
 import type { TrackedLegend } from "@/features/match-tracker/lib/match-legends";
 import { teamLabels } from "@/features/match-tracker/lib/match-teams";
 import type { TeamId } from "@/features/match-tracker/stores/match-tracker-store";
@@ -127,7 +127,7 @@ function SeatRow({
         onChange={(event) => onRename(event.target.value)}
       />
       {teamsActive && <TeamToggle playerName={name} team={team} onChange={onTeamChange} />}
-      <LegendPickerDialog
+      <LegendGridDialog
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         playerName={name}

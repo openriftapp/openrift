@@ -6,10 +6,9 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Toggle } from "@/components/ui/toggle";
 import {
-  CategorySelectOptions,
   DescriptionInput,
   validateSlugAndLabel,
 } from "@/features/admin/components/admin-crud-shared";
@@ -226,20 +225,14 @@ function ClassificationCategorySelect({ row, items, onSetCategory }: Classificat
     return null;
   }
   return (
-    <Select
+    <SimpleSelect
       items={items}
       value={row.categoryId ?? UNCLASSIFIED}
-      onValueChange={(next) => {
-        if (next !== null) {
-          onSetCategory?.(row.tag, next === UNCLASSIFIED ? null : next);
-        }
-      }}
-    >
-      <SelectTrigger className="h-8 w-44" aria-label={`Category for ${row.tag}`}>
-        <SelectValue />
-      </SelectTrigger>
-      <CategorySelectOptions items={items} />
-    </Select>
+      onChange={(next) => onSetCategory?.(row.tag, next === UNCLASSIFIED ? null : next)}
+      label={`Category for ${row.tag}`}
+      size="sm"
+      className="w-44"
+    />
   );
 }
 

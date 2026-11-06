@@ -7,17 +7,12 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-} from "@/components/ui/combobox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
 
@@ -49,16 +44,7 @@ export function CreateCardPage() {
     mightBonus: "",
   });
   const [tags, setTags] = useState<string[]>([]);
-  const [tagDraft, setTagDraft] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const commitTagDraft = () => {
-    const trimmed = tagDraft.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
-    }
-    setTagDraft("");
-  };
 
   const effectiveSlug = slugDirty ? slug : slugifyName(name);
   const canSubmit =
@@ -81,9 +67,6 @@ export function CreateCardPage() {
       return;
     }
     setErrorMsg(null);
-    const trimmedDraft = tagDraft.trim();
-    const finalTags = trimmedDraft && !tags.includes(trimmedDraft) ? [...tags, trimmedDraft] : tags;
-
     createCard.mutate(
       {
         id: effectiveSlug.trim(),
@@ -95,7 +78,7 @@ export function CreateCardPage() {
         ...(numeric.energy !== "" && { energy: parseNum(numeric.energy) }),
         ...(numeric.power !== "" && { power: parseNum(numeric.power) }),
         ...(numeric.mightBonus !== "" && { mightBonus: parseNum(numeric.mightBonus) }),
-        ...(finalTags.length > 0 && { tags: finalTags }),
+        ...(tags.length > 0 && { tags }),
       },
       {
         onSuccess: (result) => {
@@ -218,31 +201,13 @@ export function CreateCardPage() {
             </div>
 
             <Field>
-              <FieldLabel>Tags</FieldLabel>
-              <Combobox<string, true>
-                multiple
-                items={tags}
+              <FieldLabel htmlFor="create-card-tags">Tags</FieldLabel>
+              <ChipInput
+                id="create-card-tags"
                 value={tags}
-                onValueChange={setTags}
-                inputValue={tagDraft}
-                onInputValueChange={setTagDraft}
-              >
-                <ComboboxChips>
-                  {tags.map((tag) => (
-                    <ComboboxChip key={tag}>{tag}</ComboboxChip>
-                  ))}
-                  <ComboboxChipsInput
-                    placeholder={tags.length === 0 ? "Press Enter or comma to add" : ""}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === ",") {
-                        event.preventDefault();
-                        commitTagDraft();
-                      }
-                    }}
-                    onBlur={commitTagDraft}
-                  />
-                </ComboboxChips>
-              </Combobox>
+                onChange={setTags}
+                placeholder="Press Enter or comma to add"
+              />
             </Field>
 
             {errorMsg && (

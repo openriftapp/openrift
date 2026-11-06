@@ -2,11 +2,10 @@ import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { SearchInput } from "@/components/search-input";
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { Badge } from "@/components/ui/badge";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { Pressable } from "@/components/ui/pressable";
 import { PrintingDeskMarkerBrowser } from "@/features/admin/components/printing-desk-marker-browser";
 import { useCreateMarker, useMarkers } from "@/features/admin/hooks/use-markers";
 import { slugifyLabel } from "@/features/admin/lib/channel-slug-suggest";
@@ -23,14 +22,20 @@ export function PrintingDeskMarkerPicker({
   const [query, setQuery] = useState("");
 
   const labelBySlug = new Map(data.markers.map((marker) => [marker.slug, marker.label]));
-  const needle = query.trim().toLowerCase();
+  const descriptionBySlug = new Map(
+    data.markers.map((marker) => [marker.slug, marker.description]),
+  );
   const results = data.markers.filter(
     (marker) =>
       !value.includes(marker.slug) && matchesTextQuery(query, [marker.label, marker.slug]),
   );
-  const exists = data.markers.some(
-    (marker) => marker.label.toLowerCase() === needle || marker.slug === slugifyLabel(query),
-  );
+
+  function existsFor(typed: string) {
+    const needle = typed.trim().toLowerCase();
+    return data.markers.some(
+      (marker) => marker.label.toLowerCase() === needle || marker.slug === slugifyLabel(typed),
+    );
+  }
 
   function add(slug: string) {
     setQuery("");
@@ -47,12 +52,12 @@ export function PrintingDeskMarkerPicker({
     onChange([...value, slug]);
   }
 
-  async function createAndAdd() {
-    const slug = slugifyLabel(query);
+  async function createAndAdd(typed: string) {
+    const slug = slugifyLabel(typed);
     if (slug.length === 0) {
       return;
     }
-    await createMarker.mutateAsync({ slug, label: query.trim() });
+    await createMarker.mutateAsync({ slug, label: typed.trim() });
     add(slug);
   }
 
@@ -75,47 +80,56 @@ export function PrintingDeskMarkerPicker({
       )}
 
       <div className="flex items-center gap-2">
-        <SearchInput
-          value={query}
-          onValueChange={setQuery}
-          placeholder="Stamp, signature, promo mark…"
+        <ComboboxPicker
+          trigger="input"
           id="desk-marker-search"
           className="min-w-0 flex-1"
+          placeholder="Stamp, signature, promo mark…"
+          options={results.map((marker) => ({ value: marker.slug, label: marker.label }))}
+          renderOption={(option) => {
+            const description = descriptionBySlug.get(option.value);
+            return (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{option.label}</span>
+                  {description && (
+                    <span className="text-muted-foreground block text-xs">{description}</span>
+                  )}
+                </span>
+                <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                  {option.value}
+                </span>
+              </>
+            );
+          }}
+          filter="none"
+          query={query}
+          onQueryChange={setQuery}
+          value={null}
+          onChange={(slug) => {
+            if (slug !== null) {
+              add(slug);
+            }
+          }}
+          clearOnSelect
+          emptyText="No matching markers."
+          actions={[
+            {
+              key: "create",
+              label: (typed) => (
+                <span className="text-primary flex items-center gap-1.5">
+                  <PlusIcon className="size-3.5" />
+                  Add “{typed.trim()}”
+                </span>
+              ),
+              visible: (typed) => typed.trim().length > 0 && !existsFor(typed),
+              disabled: createMarker.isPending,
+              onSelect: (typed) => void createAndAdd(typed),
+            },
+          ]}
         />
         <PrintingDeskMarkerBrowser markers={data.markers} selected={value} onToggle={toggle} />
       </div>
-
-      {query.length > 0 && (
-        <div className="rounded-lg border">
-          {results.map((marker) => (
-            <Pressable
-              key={marker.id}
-              onClick={() => add(marker.slug)}
-              className="hover:bg-muted/50 flex w-full items-baseline justify-between gap-2 px-3 py-2"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{marker.label}</span>
-                {marker.description !== null && (
-                  <span className="text-muted-foreground block text-xs">{marker.description}</span>
-                )}
-              </span>
-              <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                {marker.slug}
-              </span>
-            </Pressable>
-          ))}
-          {!exists && needle.length > 0 && (
-            <Pressable
-              onClick={() => void createAndAdd()}
-              disabled={createMarker.isPending}
-              className="text-primary hover:bg-muted/50 flex w-full items-center gap-1.5 border-t px-3 py-2 text-sm"
-            >
-              <PlusIcon className="size-3.5" />
-              Add “{query.trim()}”
-            </Pressable>
-          )}
-        </div>
-      )}
     </Field>
   );
 }

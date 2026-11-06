@@ -3,13 +3,7 @@ import { CURRENCIES } from "@openrift/shared/types/api/trade-preferences";
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -47,26 +41,17 @@ export function TradingSection() {
         }
       >
         <SettingsRow label={m.profile_trading_currency_label()} htmlFor="pref-default-currency">
-          <Select
+          <SimpleSelect
+            id="pref-default-currency"
             items={currencyOptions}
             value={defaultCurrency}
-            onValueChange={(value) => {
+            onChange={(value) => {
               if (CURRENCIES.includes(value as Currency)) {
                 setDefaultCurrency(value as Currency);
               }
             }}
-          >
-            <SelectTrigger id="pref-default-currency" className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencyOptions.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            className="w-44"
+          />
         </SettingsRow>
       </SettingsSection>
       <EmailNotificationsControls />

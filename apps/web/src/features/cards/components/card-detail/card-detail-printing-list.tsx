@@ -26,7 +26,7 @@ import { useDisplayStore } from "@/stores/display-store";
 import { OwnedCollectionsPopover } from "./owned-collections-popover";
 import { PrintingsLightbox } from "./printings-lightbox";
 
-export function PrintingPicker({
+export function CardDetailPrintingList({
   current,
   printings,
   onSelect,

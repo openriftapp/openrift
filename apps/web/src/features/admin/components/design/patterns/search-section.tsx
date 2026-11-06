@@ -86,19 +86,9 @@ export function SearchSection() {
       </DemoGroup>
       <DemoGroup
         {...GROUPS.multiSelect}
-        hint="The chip trigger cycles include, exclude and off, while the button trigger only includes."
+        hint="Card browser filters. A pick cycles include, exclude and off. Plain include-only multi-selects use ComboboxPicker (Components › Pickers)."
       >
-        <SwatchRow label="Triggers">
-          <Swatch label="button">
-            <MultiSelectCombobox
-              label="Region"
-              options={REGION_OPTIONS}
-              selected={regions}
-              onChange={setRegions}
-              searchPlaceholder="Search regions…"
-              triggerStyle="button"
-            />
-          </Swatch>
+        <SwatchRow label="Include / exclude">
           <Swatch label="chip">
             <MultiSelectCombobox
               label="Region"

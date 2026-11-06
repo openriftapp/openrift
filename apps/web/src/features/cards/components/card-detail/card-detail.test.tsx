@@ -13,7 +13,7 @@ vi.mock("./card-detail-heading", () => ({
 }));
 vi.mock("./card-footer", () => ({ CardFooter: () => null }));
 vi.mock("./card-holdings-section", () => ({ CardHoldingsSection: () => null }));
-vi.mock("./printing-picker", () => ({ PrintingPicker: () => null }));
+vi.mock("./card-detail-printing-list", () => ({ CardDetailPrintingList: () => null }));
 vi.mock("./printing-notes-section", () => ({ PrintingNotesSection: () => null }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock

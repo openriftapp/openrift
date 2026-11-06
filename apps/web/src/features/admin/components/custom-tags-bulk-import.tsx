@@ -11,15 +11,7 @@ import {
 } from "@/components/section-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
 import { useAddCardsToCustomTag } from "@/features/collections/hooks/use-custom-tags";
@@ -43,7 +35,6 @@ export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
   const canImport = selectedTag !== undefined && plan.cardIds.length > 0;
 
   const tagsByCategory = Map.groupBy(tags, (t) => t.categoryLabel);
-  const tagItems = tags.map((tag) => ({ value: tag.id, label: tag.label }));
 
   async function handleImport() {
     if (!selectedTag) {
@@ -79,32 +70,26 @@ export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <Label htmlFor="bulk-import-tag">Tag</Label>
-          <Select
-            items={tagItems}
+          <SimpleSelect
+            id="bulk-import-tag"
+            items={tags.map((tag) => ({
+              value: tag.id,
+              label: tag.label,
+              group: tag.categoryLabel,
+            }))}
+            groups={[...tagsByCategory.keys()].map((categoryLabel) => ({
+              key: categoryLabel,
+              label: categoryLabel,
+            }))}
             value={tagId}
-            onValueChange={(next) => {
-              if (next !== null) {
-                setTagId(next);
-                setResult(null);
-              }
+            onChange={(next) => {
+              setTagId(next);
+              setResult(null);
             }}
-          >
-            <SelectTrigger id="bulk-import-tag" className="h-8 w-40" aria-label="Tag">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[...tagsByCategory.entries()].map(([categoryLabel, group]) => (
-                <SelectGroup key={categoryLabel}>
-                  <SelectLabel>{categoryLabel}</SelectLabel>
-                  {group.map((tag) => (
-                    <SelectItem key={tag.id} value={tag.id}>
-                      {tag.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
+            label="Tag"
+            size="sm"
+            className="w-40"
+          />
         </div>
       </div>
 

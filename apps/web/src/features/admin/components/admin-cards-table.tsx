@@ -11,15 +11,9 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { CardNameCell } from "@/features/admin/components/card-name-cell";
@@ -439,21 +433,21 @@ export function AdminCardsTable({
     void navigate({ search: (prev) => ({ ...prev, tab: next ?? undefined }), replace: true });
   }
 
-  function changeSet(value: string | null) {
+  function changeSet(value: string) {
     void navigate({
       search: (prev) => ({
         ...prev,
-        set: value === null || value === ALL_SETS ? undefined : value,
+        set: value === ALL_SETS ? undefined : value,
       }),
       replace: true,
     });
   }
 
-  function changePriceScope(value: string | null) {
+  function changePriceScope(value: string) {
     void navigate({
       search: (prev) => ({
         ...prev,
-        priceScope: value && value !== ALL_ASSIGNABLE_SCOPE ? value : undefined,
+        priceScope: value === ALL_ASSIGNABLE_SCOPE ? undefined : value,
       }),
       replace: true,
     });
@@ -547,51 +541,32 @@ export function AdminCardsTable({
             <ToggleGroupItem value="drafts">Drafts ({draftCount})</ToggleGroupItem>
           </ToggleGroup>
 
-          <Select items={setOptions} value={setSlug ?? ALL_SETS} onValueChange={changeSet}>
-            <SelectTrigger aria-label="Filter by set" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {setOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AdminFilterSelect
+            options={setOptions}
+            value={setSlug ?? ALL_SETS}
+            onChange={changeSet}
+            label="Filter by set"
+            className="w-48"
+          />
 
-          <Select
-            items={issueItems}
+          <AdminFilterSelect
+            options={issueItems}
             value={issue ?? ANY_ISSUE}
-            onValueChange={(value: string | null) => {
+            onChange={(value) => {
               changeIssue(CARD_ISSUES.find((option) => option === value) ?? null);
             }}
-          >
-            <SelectTrigger aria-label="Issue" className="w-64">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {issueItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            label="Issue"
+            className="w-64"
+          />
 
           {priceFilterActive && (
-            <Select items={scopeItems} value={priceScope} onValueChange={changePriceScope}>
-              <SelectTrigger aria-label="Marketplace scope" className="w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {scopeItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AdminFilterSelect
+              options={scopeItems}
+              value={priceScope}
+              onChange={changePriceScope}
+              label="Marketplace scope"
+              className="w-56"
+            />
           )}
 
           {isAdmin && acceptableCards > 0 && (

@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
+import { LanguageSelect } from "@/features/admin/components/language-select";
 import type { ErrataDraft } from "@/features/admin/lib/errata-draft";
 import { isErrataDraftComplete } from "@/features/admin/lib/errata-draft";
 
@@ -38,45 +33,26 @@ export function ErrataEditor({
   onSubmit: () => void;
   onCancel: () => void;
 }) {
-  const announcementItems: Record<string, string> = {
-    [UNANNOUNCED]: "None (unannounced change)",
-    ...Object.fromEntries(
-      announcements.map((announcement) => [
-        announcement.id,
-        `${announcement.name} (${formatDay(announcement.publishedOn)})`,
-      ]),
-    ),
-  };
-
-  const languageItems: Record<string, string> = Object.fromEntries(
-    languages.map((language) => [language.code, language.name]),
-  );
+  const announcementItems = [
+    { value: UNANNOUNCED, label: "None (unannounced change)" },
+    ...announcements.map((announcement) => ({
+      value: announcement.id,
+      label: `${announcement.name} (${formatDay(announcement.publishedOn)})`,
+    })),
+  ];
 
   return (
     <div className="space-y-3 rounded-md border p-3">
       <div className="space-y-1">
         <Label htmlFor="errata-language">Language</Label>
-        <Select
+        <LanguageSelect
+          id="errata-language"
+          className="w-full sm:w-48"
+          languages={languages}
           value={draft.language}
-          onValueChange={(next) => {
-            if (next !== null) {
-              onChange({ language: next });
-            }
-          }}
-          items={languageItems}
+          onChange={(language) => onChange({ language })}
           disabled={languages.length < 2}
-        >
-          <SelectTrigger id="errata-language" className="w-full sm:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {languages.map((language) => (
-              <SelectItem key={language.code} value={language.code}>
-                {language.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -104,24 +80,13 @@ export function ErrataEditor({
 
       <div className="space-y-1">
         <Label htmlFor="errata-announcement">Announcement</Label>
-        <Select
-          value={draft.announcementId === "" ? UNANNOUNCED : draft.announcementId}
-          onValueChange={(next) =>
-            onChange({ announcementId: next === null || next === UNANNOUNCED ? "" : next })
-          }
+        <SimpleSelect
+          id="errata-announcement"
           items={announcementItems}
-        >
-          <SelectTrigger id="errata-announcement" className="w-full sm:w-96">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(announcementItems).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          value={draft.announcementId === "" ? UNANNOUNCED : draft.announcementId}
+          onChange={(next) => onChange({ announcementId: next === UNANNOUNCED ? "" : next })}
+          className="w-full sm:w-96"
+        />
       </div>
 
       {draft.announcementId === "" && (

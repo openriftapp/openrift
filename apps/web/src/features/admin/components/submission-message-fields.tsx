@@ -1,7 +1,6 @@
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
-import { CategorySelectOptions } from "@/features/admin/components/admin-crud-shared";
 
 /**
  * Shared by the card pipeline and meta archive resolution dialogs. Renders
@@ -46,20 +45,15 @@ export function SubmissionMessageFields<TReason extends string>({
     <>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${idPrefix}-reason`}>Reason</Label>
-        <Select
+        <SimpleSelect
+          id={`${idPrefix}-reason`}
           items={items}
           value={reason ?? (allowNoReason ? NO_REASON : null)}
           disabled={disabled}
-          onValueChange={(next) => {
-            const picked = next === null ? null : String(next);
-            onReasonChange(picked === null || picked === NO_REASON ? null : (picked as TReason));
-          }}
-        >
-          <SelectTrigger id={`${idPrefix}-reason`} aria-label="Reason">
-            <SelectValue />
-          </SelectTrigger>
-          <CategorySelectOptions items={items} />
-        </Select>
+          onChange={(next) => onReasonChange(next === NO_REASON ? null : (next as TReason))}
+          label="Reason"
+          className="w-full"
+        />
         {preview !== null && (
           <p className="text-muted-foreground text-sm">They will read: {preview}</p>
         )}

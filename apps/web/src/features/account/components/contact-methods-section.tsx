@@ -8,13 +8,7 @@ import { toast } from "sonner";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import {
   useContactMethods,
   useCreateContactMethod,
@@ -51,22 +45,13 @@ function TypeSelect({
   id?: string;
 }) {
   return (
-    <Select
+    <SimpleSelect
+      id={id}
       items={TYPE_ITEMS}
       value={value}
-      onValueChange={(next) => onValueChange(next as ContactMethodType)}
-    >
-      <SelectTrigger id={id} className="w-40 shrink-0">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {TYPE_ITEMS.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={onValueChange}
+      className="w-40 shrink-0"
+    />
   );
 }
 

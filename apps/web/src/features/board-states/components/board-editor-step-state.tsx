@@ -11,13 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PHASE_LABEL, TURN_STATE_LABEL } from "@/features/board-states/components/board-status";
@@ -43,25 +37,15 @@ function OptionSelect<T extends string>({
   return (
     <Label className="flex items-center justify-between gap-3">
       {label}
-      <Select
+      <SimpleSelect
         items={items}
         value={value ?? UNSET}
-        onValueChange={(next) => {
+        onChange={(next) => {
           const option = options.find((candidate) => candidate.value === next);
           onChange(option?.value);
         }}
-      >
-        <SelectTrigger className="w-44">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        className="w-44"
+      />
     </Label>
   );
 }

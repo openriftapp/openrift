@@ -7,14 +7,8 @@ import { Disclosure } from "@/components/disclosure";
 import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
 import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { TextLink } from "@/components/ui/text-link";
+import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -26,7 +20,6 @@ import {
 } from "@/features/admin/hooks/use-admin-audit";
 import { formatAuditChanges } from "@/features/admin/lib/audit-changes";
 import type { AdminAuditEventResponse } from "@/lib/server-fns/api-types";
-import { cn } from "@/lib/utils";
 
 const ALL_ACTORS = "__all__";
 const ALL_ACTIONS = "__all_actions__";
@@ -168,42 +161,20 @@ export function AuditLogPage() {
       </PageDescription>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select
-          items={actorOptions}
+        <AdminFilterSelect
+          options={actorOptions}
           value={actorUserId || ALL_ACTORS}
-          onValueChange={(value) => setActorUserId(value && value !== ALL_ACTORS ? value : "")}
-        >
-          <SelectTrigger aria-label="Filter by actor" className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {actorOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          items={actionOptions}
+          onChange={(value) => setActorUserId(value === ALL_ACTORS ? "" : value)}
+          label="Filter by actor"
+          className="w-56"
+        />
+        <AdminFilterSelect
+          options={actionOptions}
           value={action || ALL_ACTIONS}
-          onValueChange={(value) => setAction(value && value !== ALL_ACTIONS ? value : "")}
-        >
-          <SelectTrigger aria-label="Filter by action" className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {actionOptions.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className={cn(option.value !== ALL_ACTIONS && "font-mono")}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(value) => setAction(value === ALL_ACTIONS ? "" : value)}
+          label="Filter by action"
+          className="w-56"
+        />
         <DebouncedSearchInput
           urlValue={search}
           onCommit={setSearch}

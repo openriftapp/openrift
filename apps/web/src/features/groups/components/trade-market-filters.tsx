@@ -6,13 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CountPill } from "@/components/ui/count-pill";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { UserAvatar } from "@/components/user-avatar";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -54,24 +48,13 @@ export function PeopleFilter({
       })),
     ];
     return (
-      <Select
+      <SimpleSelect
         items={items}
         value={personId ?? ALL_PEOPLE}
-        onValueChange={(value) =>
-          onPersonChange(value === null || value === ALL_PEOPLE ? null : value)
-        }
-      >
-        <SelectTrigger className="w-full" aria-label={m.trades_market_people_filter()}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        onChange={(value) => onPersonChange(value === ALL_PEOPLE ? null : value)}
+        label={m.trades_market_people_filter()}
+        className="w-full"
+      />
     );
   }
   return (

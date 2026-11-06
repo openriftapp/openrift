@@ -14,8 +14,12 @@ interface PickerListProps {
   onHighlightChange: (value: string) => void;
   /** Custom keyboard shortcuts (e.g. `-`, `+`). cmdk already handles arrows / Home / End / Enter. */
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>, highlightedId: string) => void;
+  listClassName?: string;
   children: ReactNode;
 }
+
+const PICKER_ROW_SELECTED =
+  "bg-primary/10 text-primary data-selected:bg-primary/10 data-selected:text-primary data-selected:**:text-primary";
 
 /**
  * cmdk filter that matches the query against row `keywords` only. Row `value`s
@@ -48,6 +52,7 @@ export function PickerList({
   highlightedId,
   onHighlightChange,
   onKeyDown,
+  listClassName,
   children,
 }: PickerListProps) {
   // cmdk's keydown handler only fires when focus lives inside the Command, so we
@@ -59,8 +64,11 @@ export function PickerList({
   // popover from its anchor. Focus explicitly with `preventScroll` instead.
   const rootRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const input = rootRef.current?.querySelector<HTMLElement>("[cmdk-input]");
-    (input ?? rootRef.current)?.focus({ preventScroll: true });
+    const root = rootRef.current;
+    // In a bottom drawer, focusing the input opens the phone keyboard over the list.
+    const inDrawer = root?.closest("[data-slot=drawer-content]") !== null;
+    const input = inDrawer ? null : root?.querySelector<HTMLElement>("[cmdk-input]");
+    (input ?? root)?.focus({ preventScroll: true });
   }, []);
 
   const searchable = searchPlaceholder !== undefined;
@@ -83,7 +91,7 @@ export function PickerList({
           rows go straight into the list here. Without it the input pill (inset by Command's p-1 plus
           the input wrapper's own) sits 4px narrower per side than the rows, and its bottom border
           touches the first row. */}
-      <CommandList className="p-1">{children}</CommandList>
+      <CommandList className={cn("max-h-72 p-1", listClassName)}>{children}</CommandList>
     </Command>
   );
 }
@@ -94,6 +102,8 @@ interface PickerRowProps {
   keywords?: string[];
   /** Called on click and on Enter when this row is highlighted. Omit for rows whose interaction lives in inline controls (e.g. inline +/- buttons). */
   onSelect?: () => void;
+  selected?: boolean;
+  disabled?: boolean;
   className?: string;
   ref?: Ref<HTMLDivElement>;
   children: ReactNode;
@@ -130,7 +140,16 @@ function scrollRowWithinList(el: HTMLElement): void {
  *
  * @returns A cmdk-tracked row that participates in keyboard nav and hover-sync.
  */
-export function PickerRow({ value, keywords, onSelect, className, ref, children }: PickerRowProps) {
+export function PickerRow({
+  value,
+  keywords,
+  onSelect,
+  selected = false,
+  disabled = false,
+  className,
+  ref,
+  children,
+}: PickerRowProps) {
   const setRef = (node: HTMLDivElement | null) => {
     if (node) {
       // Contain cmdk's scroll-into-view to the list (see scrollRowWithinList).
@@ -150,9 +169,12 @@ export function PickerRow({ value, keywords, onSelect, className, ref, children 
       value={value}
       keywords={keywords}
       onSelect={onSelect}
+      disabled={disabled}
+      data-checked={selected || undefined}
       className={cn(
         // scroll-my-2 gives cmdk's scrollIntoView({block:"nearest"}) explicit breathing room around the row, so keyboard nav doesn't park the active row flush against (or partly under) the list edge.
-        "data-selected:bg-muted data-selected:text-foreground flex scroll-my-8 items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden",
+        "data-selected:bg-muted data-selected:text-foreground flex scroll-my-8 items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
+        selected && PICKER_ROW_SELECTED,
         className,
       )}
     >

@@ -7,13 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { RowList, RowListItem } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -322,26 +316,14 @@ function OverrideUserAddSelect({ draft, setDraft }: AdminDraftSlotProps<Override
     return null;
   }
   return (
-    <Select
+    <SimpleSelect
       items={userItems}
-      value={draft.userId}
-      onValueChange={(userId) => {
-        if (userId !== null) {
-          setDraft((prev) => ({ ...prev, userId }));
-        }
-      }}
-    >
-      <SelectTrigger className="h-8" aria-label="User">
-        <SelectValue placeholder="Select user..." />
-      </SelectTrigger>
-      <SelectContent>
-        {userItems.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      value={draft.userId === "" ? null : draft.userId}
+      onChange={(userId) => setDraft((prev) => ({ ...prev, userId }))}
+      label="User"
+      placeholder="Select user..."
+      size="sm"
+    />
   );
 }
 
@@ -352,25 +334,15 @@ function OverrideFlagAddSelect({ draft, setDraft }: AdminDraftSlotProps<Override
     return null;
   }
   return (
-    <Select
-      value={draft.flagKey}
-      onValueChange={(flagKey) => {
-        if (flagKey !== null) {
-          setDraft((prev) => ({ ...prev, flagKey }));
-        }
-      }}
-    >
-      <SelectTrigger className="h-8 font-mono" aria-label="Flag">
-        <SelectValue placeholder="Select flag..." />
-      </SelectTrigger>
-      <SelectContent>
-        {flagKeys.map((key) => (
-          <SelectItem key={key} value={key} className="font-mono">
-            {key}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SimpleSelect
+      items={flagKeys.map((key) => ({ value: key, label: key, className: "font-mono" }))}
+      value={draft.flagKey === "" ? null : draft.flagKey}
+      onChange={(flagKey) => setDraft((prev) => ({ ...prev, flagKey }))}
+      label="Flag"
+      placeholder="Select flag..."
+      size="sm"
+      className="font-mono"
+    />
   );
 }
 

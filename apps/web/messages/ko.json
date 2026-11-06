@@ -5033,6 +5033,7 @@
   "contribute_placeholder_finish": "마감 선택",
   "contribute_placeholder_art_variant": "변형 선택",
   "contribute_placeholder_size": "표준",
+  "contribute_placeholder_channels_search": "유통 채널 검색…",
   "contribute_placeholder_markers_search": "마커 검색…",
   "contribute_submit_errors_title": "제출하기 전에 다음을 수정하세요:",
   "contribute_submit_success_title": "감사합니다! 제출하신 내용이 검토 대기열에 들어갔습니다.",

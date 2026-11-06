@@ -61,7 +61,7 @@ export function useDeckImportFlow() {
   } = routeApi.useSearch();
   const { allPrintings } = useCards();
   const { zoneOrder, zoneLabels } = useZoneOrder();
-  const { formats: deckFormats, labels: deckFormatLabels } = useDeckFormatList();
+  const { formats: deckFormats } = useDeckFormatList();
   const createDeck = useCreateDeck();
   const saveDeckCards = useSaveDeckCards();
   const navigate = useNavigate();
@@ -375,7 +375,6 @@ export function useDeckImportFlow() {
     deckFormat,
     handleDeckFormatChange: setDeckFormat,
     deckFormats,
-    deckFormatLabels,
     zoneOrder,
     zoneLabels,
     readyCount,

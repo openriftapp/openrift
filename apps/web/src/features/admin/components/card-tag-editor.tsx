@@ -10,9 +10,8 @@ import {
 } from "@/components/section-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Toggle } from "@/components/ui/toggle";
-import { CategorySelectOptions } from "@/features/admin/components/admin-crud-shared";
 import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
@@ -31,20 +30,13 @@ export function CategorySelect({
   onChange: (id: string) => void;
 }) {
   return (
-    <Select
+    <SimpleSelect
       items={items}
       value={value}
-      onValueChange={(next) => {
-        if (next !== null) {
-          onChange(next);
-        }
-      }}
-    >
-      <SelectTrigger className="h-8 w-40" aria-label="Category">
-        <SelectValue />
-      </SelectTrigger>
-      <CategorySelectOptions items={items} />
-    </Select>
+      onChange={onChange}
+      label="Category"
+      className="w-40"
+    />
   );
 }
 

@@ -2,13 +2,7 @@ import type { TradeRequestEmailCadence } from "@openrift/shared/types/api/prefer
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { useEmailNotifications } from "@/features/account/hooks/use-email-notifications";
 import { m } from "@/paraglide/messages.js";
@@ -50,30 +44,14 @@ export function EmailNotificationsControls() {
         label={m.profile_notifications_cadence_label()}
         htmlFor="pref-email-trade-request-cadence"
       >
-        <Select
-          value={gates.tradeRequestCadence}
-          onValueChange={(value) => {
-            if (value) {
-              setCadence(value as TradeRequestEmailCadence);
-            }
-          }}
+        <SimpleSelect
+          id="pref-email-trade-request-cadence"
           items={cadences}
-        >
-          <SelectTrigger
-            id="pref-email-trade-request-cadence"
-            className="w-44"
-            disabled={disabled || !gates.tradeRequests}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {cadences.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          value={gates.tradeRequestCadence}
+          onChange={(value) => setCadence(value as TradeRequestEmailCadence)}
+          disabled={disabled || !gates.tradeRequests}
+          className="w-44"
+        />
       </SettingsRow>
 
       <SettingsRow

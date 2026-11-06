@@ -1,21 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-} from "@/components/ui/combobox";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { ComboboxPicker, summarizePickerSelection } from "@/components/combobox-picker";
+import { Pressable } from "@/components/ui/pressable";
 import { ChipInput } from "@/features/contribute/components/form-fields";
 import { cn } from "@/lib/utils";
 
@@ -31,37 +17,41 @@ export function SuggestionCombobox({
   onCancel: () => void;
 }) {
   const [inputValue, setInputValue] = useState(defaultValue);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
 
   return (
-    <Command
-      shouldFilter
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps clicks inside the editor from reaching the row's edit handler
+    <div
       className="border-primary rounded-md border"
       onClick={(event: React.MouseEvent) => event.stopPropagation()}
     >
-      <CommandInput
-        value={inputValue}
-        onValueChange={setInputValue}
+      <ComboboxPicker
+        trigger="input"
+        inline
+        aria-label="Value"
         placeholder="Type or select…"
         // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: inline editor should grab focus immediately
         autoFocus
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            onCommit(inputValue);
-          } else if (event.key === "Escape") {
-            onCancel();
+        options={suggestions.map((suggestion) => ({ value: suggestion, label: suggestion }))}
+        value={null}
+        onChange={(next) => {
+          if (next !== null) {
+            onCommit(next);
           }
         }}
+        query={inputValue}
+        onQueryChange={setInputValue}
+        onHighlightChange={setHighlighted}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && highlighted === null) {
+            event.preventDefault();
+            onCommit(inputValue);
+          }
+        }}
+        onCancel={onCancel}
+        emptyText="No matches"
       />
-      <CommandList>
-        <CommandEmpty className="px-2 py-1.5">No matches</CommandEmpty>
-        {suggestions.map((suggestion) => (
-          <CommandItem key={suggestion} value={suggestion} onSelect={(value) => onCommit(value)}>
-            {suggestion}
-          </CommandItem>
-        ))}
-      </CommandList>
-    </Command>
+    </div>
   );
 }
 
@@ -108,17 +98,11 @@ export function MultiSelectCell({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<string[]>(value);
-  const items = options.map((opt) => opt.value);
-  const labelFor = (item: string) => options.find((opt) => opt.value === item)?.label ?? item;
-  const summary = draft.length > 0 ? draft.map((item) => labelFor(item)).join(", ") : "— select —";
+  const summary = draft.length > 0 ? summarizePickerSelection(options, draft) : "— select —";
   return (
-    <Combobox<string, true>
+    <ComboboxPicker
       multiple
       open
-      items={items}
-      value={draft}
-      onValueChange={(next: string[]) => setDraft(next)}
-      itemToStringLabel={labelFor}
       onOpenChange={(open) => {
         if (open) {
           return;
@@ -130,36 +114,27 @@ export function MultiSelectCell({
         }
         onClose();
       }}
-    >
-      <ComboboxTrigger
-        render={
-          // oxlint-disable-next-line react/forbid-elements -- cell inline-edit trigger; needs full-width chrome-free layout Button can't provide
-          <button
-            type="button"
-            aria-label={`Edit ${label}`}
-            className="flex w-full items-center gap-1 rounded-md text-left text-sm"
-            onClick={(event: React.MouseEvent) => event.stopPropagation()}
-          />
-        }
-      >
+      options={options}
+      value={draft}
+      onChange={setDraft}
+      aria-label={`Edit ${label}`}
+      triggerRender={
+        <Pressable
+          className="flex w-full items-center gap-1 rounded-md text-sm"
+          onClick={(event: React.MouseEvent) => event.stopPropagation()}
+        />
+      }
+      triggerLabel={
         <span
           className={cn("min-w-0 flex-1 truncate", draft.length === 0 && "text-muted-foreground")}
           title={draft.length > 0 ? summary : undefined}
         >
           {summary}
         </span>
-      </ComboboxTrigger>
-      <ComboboxContent className="w-max max-w-[90vw] min-w-56">
-        <ComboboxInput placeholder={`Search ${label.toLowerCase()}…`} showTrigger={false} />
-        <ComboboxEmpty>No matches.</ComboboxEmpty>
-        <ComboboxList>
-          {(item: string) => (
-            <ComboboxItem key={item} value={item}>
-              {labelFor(item)}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      }
+      searchPlaceholder={`Search ${label.toLowerCase()}…`}
+      emptyText="No matches."
+      contentClassName="w-max max-w-[90vw]"
+    />
   );
 }

@@ -17,13 +17,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -68,7 +62,7 @@ function marketplaceHow(marketplace: Marketplace): string {
   }[marketplace];
 }
 
-function PrintingPicker({
+function BuyCartPrintingSelect({
   item,
   name,
   priceOf,
@@ -93,26 +87,14 @@ function PrintingPicker({
     };
   });
   return (
-    <Select
+    <SimpleSelect
       items={items}
       value={item.printingId}
-      onValueChange={(value) => {
-        if (value !== null) {
-          onPrintingChange(value);
-        }
-      }}
-    >
-      <SelectTrigger size="sm" className="w-full" aria-label={m.trades_buy_printing({ name })}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((entry) => (
-          <SelectItem key={entry.value} value={entry.value}>
-            {entry.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={onPrintingChange}
+      label={m.trades_buy_printing({ name })}
+      size="sm"
+      className="w-full"
+    />
   );
 }
 
@@ -145,7 +127,7 @@ function CartRow({
           {item.quantity > 1 ? `${item.quantity}× ` : ""}
           {name}
         </span>
-        <PrintingPicker
+        <BuyCartPrintingSelect
           item={item}
           name={name}
           priceOf={priceOf}

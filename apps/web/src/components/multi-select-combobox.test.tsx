@@ -354,3 +354,343 @@ describe("MultiSelectCombobox inside a dropdown menu", () => {
     expect(onCycle).toHaveBeenCalledExactlyOnceWith("promo");
   });
 });
+
+const RARITY_OPTIONS = [
+  { value: "common", label: "Common" },
+  { value: "rare", label: "Rare" },
+  { value: "epic", label: "Epic" },
+] as const;
+
+function renderPlain(
+  props: Partial<Parameters<typeof MultiSelectCombobox>[0]> & {
+    triggerStyle: "chip" | "button";
+    selected: string[];
+  },
+) {
+  const onChange = vi.fn();
+  render(
+    <MultiSelectCombobox
+      label="Rarities"
+      options={RARITY_OPTIONS}
+      onChange={onChange}
+      {...props}
+    />,
+  );
+  return { onChange };
+}
+
+describe("MultiSelectCombobox trigger summaries", () => {
+  it("shows the label on an empty chip", () => {
+    renderPlain({ triggerStyle: "chip", selected: [] });
+    expect(screen.getByRole("combobox")).toHaveTextContent("Rarities");
+  });
+
+  it("names a single picked value on a chip", () => {
+    renderPlain({ triggerStyle: "chip", selected: ["rare"] });
+    expect(screen.getByRole("combobox")).toHaveTextContent("Rare");
+  });
+
+  it("counts several picked values next to the label without a placeholder", () => {
+    renderPlain({ triggerStyle: "chip", selected: ["rare", "epic"] });
+    expect(screen.getByRole("combobox")).toHaveTextContent("Rarities (2)");
+  });
+
+  it("counts several picked values as 'N selected' with a placeholder", () => {
+    renderPlain({ triggerStyle: "button", selected: ["rare", "epic"], placeholder: "Any" });
+    expect(screen.getByRole("combobox")).toHaveTextContent("2 selected");
+  });
+
+  it("marks an active button trigger", () => {
+    renderPlain({ triggerStyle: "button", selected: ["rare"] });
+    expect(screen.getByRole("combobox")).toHaveAttribute("data-active");
+  });
+
+  it("leaves an idle button trigger unmarked", () => {
+    renderPlain({ triggerStyle: "button", selected: [] });
+    expect(screen.getByRole("combobox")).not.toHaveAttribute("data-active");
+  });
+
+  it("prefixes the summary label with the option prefix", () => {
+    render(
+      <MultiSelectCombobox
+        triggerStyle="button"
+        label="Sets"
+        options={[UNL_OPTION]}
+        selected={["unl"]}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("combobox")).toHaveTextContent("UNL · Unlimited");
+  });
+});
+
+describe("MultiSelectCombobox plain selection", () => {
+  it("adds a clicked value through onChange", async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderPlain({ triggerStyle: "chip", selected: ["rare"] });
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Epic" }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(["rare", "epic"]);
+  });
+
+  it("removes a clicked value that was selected", async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderPlain({ triggerStyle: "chip", selected: ["rare", "epic"] });
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Rare" }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(["epic"]);
+  });
+
+  it("filters by the option prefix as well as the label", async () => {
+    const user = userEvent.setup();
+    render(
+      <MultiSelectCombobox
+        triggerStyle="button"
+        label="Sets"
+        searchPlaceholder="Search sets…"
+        options={[UNL_OPTION, { value: "ogn", label: "Origins", prefix: "OGN" }]}
+        selected={[]}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("combobox"));
+    await user.type(await screen.findByPlaceholderText("Search sets…"), "unl");
+
+    expect(screen.getByRole("option", { name: /Unlimited/u })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Origins/u })).not.toBeInTheDocument();
+  });
+
+  it("shows the empty text when the search matches nothing", async () => {
+    const user = userEvent.setup();
+    renderPlain({
+      triggerStyle: "chip",
+      selected: [],
+      searchPlaceholder: "Search rarities…",
+      emptyText: "No rarities",
+    });
+
+    await user.click(screen.getByRole("combobox"));
+    await user.type(await screen.findByPlaceholderText("Search rarities…"), "zzz");
+
+    expect(screen.getByText("No rarities")).toBeInTheDocument();
+  });
+
+  it("leaves Home to the search field's caret", async () => {
+    const user = userEvent.setup();
+    renderPlain({ triggerStyle: "chip", selected: [], searchPlaceholder: "Search rarities…" });
+
+    await user.click(screen.getByRole("combobox"));
+    const input = await screen.findByPlaceholderText<HTMLInputElement>("Search rarities…");
+    await user.type(input, "ra");
+    await user.keyboard("{Home}");
+
+    expect(input.selectionStart).toBe(0);
+  });
+});
+
+describe("MultiSelectCombobox row decorations", () => {
+  it("shows counts and icons on the rows", async () => {
+    const user = userEvent.setup();
+    renderPlain({
+      triggerStyle: "chip",
+      selected: [],
+      counts: new Map([
+        ["common", 120],
+        ["rare", 0],
+      ]),
+      icon: (value) => `/icons/${value}.webp`,
+    });
+
+    await user.click(screen.getByRole("combobox"));
+
+    const common = await screen.findByRole("option", { name: /Common/u });
+    expect(common).toHaveTextContent("Common120");
+    expect(common.querySelector("img")).toHaveAttribute("src", "/icons/common.webp");
+    expect(screen.getByRole("option", { name: /Rare/u })).toHaveTextContent("Rare0");
+    expect(screen.getByRole("option", { name: /Epic/u })).toHaveTextContent(/^Epic$/u);
+  });
+
+  it("places the icon after the label when asked", async () => {
+    const user = userEvent.setup();
+    renderPlain({
+      triggerStyle: "chip",
+      selected: [],
+      icon: (value) => `/icons/${value}.webp`,
+      iconAfterLabel: true,
+    });
+
+    await user.click(screen.getByRole("combobox"));
+
+    const common = await screen.findByRole("option", { name: /Common/u });
+    const label = within(common).getByText("Common");
+    expect(label.querySelector("img")).toHaveAttribute("src", "/icons/common.webp");
+  });
+
+  it("dims muted rows that are not selected and divides them from the rest", async () => {
+    const user = userEvent.setup();
+    renderPlain({
+      triggerStyle: "chip",
+      selected: ["epic"],
+      mutedOptions: new Set(["rare", "epic"]),
+    });
+
+    await user.click(screen.getByRole("combobox"));
+
+    const list = await screen.findByRole("listbox");
+    expect(screen.getByRole("option", { name: "Common" })).not.toHaveClass("opacity-65");
+    expect(screen.getByRole("option", { name: "Rare" })).toHaveClass("opacity-65");
+    expect(screen.getByRole("option", { name: "Epic" })).not.toHaveClass("opacity-65");
+    const separators = list.querySelectorAll('[data-slot="combobox-separator"]');
+    expect(separators).toHaveLength(1);
+    expect(separators[0]?.nextElementSibling).toHaveTextContent("Rare");
+  });
+
+  it("drops the muted divider when only muted rows match the search", async () => {
+    const user = userEvent.setup();
+    renderPlain({
+      triggerStyle: "chip",
+      selected: [],
+      searchPlaceholder: "Search rarities…",
+      mutedOptions: new Set(["rare", "epic"]),
+    });
+
+    await user.click(screen.getByRole("combobox"));
+    await user.type(await screen.findByPlaceholderText("Search rarities…"), "epic");
+
+    const list = screen.getByRole("listbox");
+    expect(list.querySelectorAll('[data-slot="combobox-separator"]')).toHaveLength(0);
+  });
+});
+
+function renderGrouped(onChange = vi.fn(), onCycleGroup = vi.fn()) {
+  render(
+    <MultiSelectCombobox
+      triggerStyle="button"
+      label="Variant"
+      searchPlaceholder="Search variants…"
+      primaryLabel="Art"
+      options={[
+        { value: "normal", label: "Normal" },
+        { value: "alt", label: "Alt Art" },
+      ]}
+      selected={["alt"]}
+      onChange={onChange}
+      groups={[
+        {
+          label: "Finish",
+          options: [
+            { value: "normal", label: "Nonfoil" },
+            { value: "foil", label: "Foil" },
+          ],
+          included: ["foil"],
+          excluded: [],
+          onCycle: onCycleGroup,
+        },
+      ]}
+    />,
+  );
+  return { onChange, onCycleGroup };
+}
+
+describe("MultiSelectCombobox sections", () => {
+  it("heads each section and divides them", async () => {
+    const user = userEvent.setup();
+    renderGrouped();
+
+    await user.click(screen.getByRole("combobox"));
+
+    const list = await screen.findByRole("listbox");
+    expect(within(list).getByText("Art")).toBeInTheDocument();
+    expect(within(list).getByText("Finish")).toBeInTheDocument();
+    expect(list.querySelectorAll('[data-slot="combobox-separator"]')).toHaveLength(1);
+  });
+
+  it("keeps a header only for sections with a matching row", async () => {
+    const user = userEvent.setup();
+    renderGrouped();
+
+    await user.click(screen.getByRole("combobox"));
+    await user.type(await screen.findByPlaceholderText("Search variants…"), "foil");
+
+    const list = screen.getByRole("listbox");
+    expect(within(list).queryByText("Art")).not.toBeInTheDocument();
+    expect(within(list).getByText("Finish")).toBeInTheDocument();
+    expect(list.querySelectorAll('[data-slot="combobox-separator"]')).toHaveLength(0);
+  });
+
+  it("keeps equal values in different sections apart", async () => {
+    const user = userEvent.setup();
+    const { onChange, onCycleGroup } = renderGrouped();
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Nonfoil" }));
+    expect(onCycleGroup).toHaveBeenCalledExactlyOnceWith("normal");
+    expect(onChange).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("option", { name: "Normal" }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(["alt", "normal"]);
+  });
+
+  it("marks included and excluded cycle rows", async () => {
+    const user = userEvent.setup();
+    renderIncludeExclude(["ogn"], ["unl"]);
+
+    await user.click(screen.getByRole("combobox"));
+
+    const origins = await screen.findByRole("option", { name: "Origins" });
+    expect(origins.querySelector("svg.lucide-check")).not.toBeNull();
+    expect(
+      screen.getByRole("option", { name: "Unlimited" }).querySelector("svg.lucide-minus"),
+    ).not.toBeNull();
+    const plain = screen.getByRole("option", { name: "Beyond the Rift" });
+    expect(plain.querySelector("svg.lucide-check, svg.lucide-minus")).toBeNull();
+  });
+
+  it("summarises a section's selection next to the cycle buckets", () => {
+    render(
+      <MultiSelectCombobox
+        triggerStyle="button"
+        label="Variant"
+        placeholder="Any"
+        options={[{ value: "alt", label: "Alt Art" }]}
+        selected={["alt"]}
+        onChange={vi.fn()}
+        groups={[
+          {
+            label: "Finish",
+            options: [{ value: "foil", label: "Foil" }],
+            included: [],
+            excluded: ["foil"],
+            onCycle: vi.fn(),
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("combobox")).toHaveTextContent("Alt Art, −Foil");
+  });
+});
+
+describe("MultiSelectCombobox menu search threshold", () => {
+  it("shows the search field above eight options", async () => {
+    const user = userEvent.setup();
+    renderInMenu();
+
+    await user.click(screen.getByRole("button", { name: "More" }));
+    await user.click(await screen.findByText("Markers"));
+
+    const input = await screen.findByPlaceholderText("Search markers…");
+    expect(input.closest("[data-slot=input-group]")).not.toHaveClass("sr-only");
+  });
+
+  it("names the menu row with its summary", async () => {
+    const user = userEvent.setup();
+    renderInMenu({ selected: ["judge"] });
+    await user.click(screen.getByRole("button", { name: "More" }));
+    expect(await screen.findByRole("combobox", { name: "Markers: Judge" })).toBeInTheDocument();
+  });
+});

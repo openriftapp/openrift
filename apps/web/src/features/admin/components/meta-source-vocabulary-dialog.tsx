@@ -18,13 +18,7 @@ import {
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -57,11 +51,11 @@ import { useDeckFormatList } from "@/hooks/use-enums";
 
 const UNMAPPED = "__unmapped";
 
-function tierItems(): Record<string, string> {
-  return {
-    [UNMAPPED]: "Unmapped",
-    ...metaEventTierLabels(),
-  };
+function tierItems() {
+  return [
+    { value: UNMAPPED, label: "Unmapped" },
+    ...Object.entries(metaEventTierLabels()).map(([value, label]) => ({ value, label })),
+  ];
 }
 
 function TemplateRow({
@@ -125,18 +119,15 @@ function TemplateRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <Select value={template.tier ?? UNMAPPED} onValueChange={setTier} items={tierItems()}>
-            <SelectTrigger className="w-36" aria-label={`Tier for ${name}`} disabled={busy}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(tierItems()).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SimpleSelect
+            items={tierItems()}
+            value={template.tier ?? UNMAPPED}
+            onChange={setTier}
+            label={`Tier for ${name}`}
+            size="sm"
+            disabled={busy}
+            className="w-36"
+          />
           {template.tier === null && template.suggestedTier !== null && (
             <Button
               type="button"
@@ -326,23 +317,15 @@ function FormatRow({
         {format.eventCount.toLocaleString()}
       </TableCell>
       <TableCell>
-        <Select
+        <SimpleSelect
           items={options}
           value={format.mappedFormat ?? UNMAPPED}
-          onValueChange={pick}
+          onChange={pick}
+          label={`Format for ${format.sourceFormat}`}
+          size="sm"
           disabled={busy}
-        >
-          <SelectTrigger className="w-48" aria-label={`Format for ${format.sourceFormat}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          className="w-48"
+        />
       </TableCell>
     </TableRow>
   );

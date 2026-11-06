@@ -3,13 +3,7 @@ import type { DistributionChannelResponse } from "@openrift/shared/types/api/adm
 import type { DistributionChannelKind } from "@openrift/shared/types/catalog";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import {
   DescriptionCell,
   DescriptionInput,
@@ -51,6 +45,11 @@ const KIND_LABEL: Record<DistributionChannelKind, string> = {
   product: "Product",
 };
 const ROOT_VALUE = "__root__";
+
+const KIND_ITEMS: { value: DistributionChannelKind; label: string }[] = [
+  { value: "event", label: "Event" },
+  { value: "product", label: "Product" },
+];
 
 interface LabelCellProps extends AdminCellSlotProps<DistributionChannelResponse> {
   nodeById: Map<string, ChannelTreeNode>;
@@ -165,24 +164,16 @@ function ParentSelect({ draft, setDraft, tree, channels }: ParentSelectProps) {
     })),
   ];
   return (
-    <Select
+    <SimpleSelect
       items={items}
       value={value}
-      onValueChange={(next) =>
-        setDraft((prev) => ({ ...prev, parentId: next === ROOT_VALUE ? null : (next ?? null) }))
+      onChange={(next) =>
+        setDraft((prev) => ({ ...prev, parentId: next === ROOT_VALUE ? null : next }))
       }
-    >
-      <SelectTrigger className="h-8 w-56">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      label="Part of"
+      size="sm"
+      className="w-56"
+    />
   );
 }
 
@@ -191,20 +182,14 @@ function KindSelect({ draft, setDraft }: AdminDraftSlotProps<ChannelDraft>) {
     return null;
   }
   return (
-    <Select
+    <SimpleSelect
+      items={KIND_ITEMS}
       value={draft.kind}
-      onValueChange={(value) =>
-        value && setDraft((prev) => ({ ...prev, kind: value as DistributionChannelKind }))
-      }
-    >
-      <SelectTrigger className="h-8 w-32">
-        <SelectValue>{(value: string) => KIND_LABEL[value as DistributionChannelKind]}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="event">Event</SelectItem>
-        <SelectItem value="product">Product</SelectItem>
-      </SelectContent>
-    </Select>
+      onChange={(kind) => setDraft((prev) => ({ ...prev, kind }))}
+      label="Kind"
+      size="sm"
+      className="w-32"
+    />
   );
 }
 

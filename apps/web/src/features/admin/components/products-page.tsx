@@ -6,17 +6,10 @@ import { Link } from "@tanstack/react-router";
 import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ComboboxPicker } from "@/components/combobox-picker";
 import { PageDescription, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +20,6 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -42,6 +28,7 @@ import {
   SlugCell,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { SetPicker } from "@/features/admin/components/set-picker";
 import { suggestListIdForProduct } from "@/features/admin/lib/suggest-product-list";
 import {
   useCreateProduct,
@@ -50,7 +37,6 @@ import {
   useResyncProduct,
   useUpdateProduct,
 } from "@/features/cards/hooks/use-products";
-import { useSets } from "@/features/cards/hooks/use-sets";
 import { useLists } from "@/features/lists/hooks/use-lists";
 
 import type { AdminCellSlotProps, AdminColumnDef, AdminDraftSlotProps } from "./admin-table";
@@ -116,44 +102,6 @@ function UpdatedCell({ row }: AdminCellSlotProps<ProductSummary>) {
   return <span className="text-muted-foreground text-xs">{formatDayTime(row.updatedAt)}</span>;
 }
 
-/** Sentinel select value for "no set" (BaseUI selects don't take ""). */
-const NO_SET = "none";
-
-function SetPicker({
-  value,
-  onChange,
-  className,
-}: {
-  /** Set UUID, or "" for no set. */
-  value: string;
-  onChange: (setId: string) => void;
-  className?: string;
-}) {
-  const { data } = useSets();
-  const items = [
-    { value: NO_SET, label: "No set" },
-    ...data.sets.map((set) => ({ value: set.id, label: set.name })),
-  ];
-  return (
-    <Select
-      items={items}
-      value={value || NO_SET}
-      onValueChange={(next) => onChange(next === NO_SET || next === null ? "" : next)}
-    >
-      <SelectTrigger aria-label="Set" className={className}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 function SetInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
   if (!draft || !setDraft) {
     return null;
@@ -162,7 +110,7 @@ function SetInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
     <SetPicker
       value={draft.setId}
       onChange={(setId) => setDraft((prev) => ({ ...prev, setId }))}
-      className="h-8"
+      noneLabel="No set"
     />
   );
 }
@@ -198,12 +146,6 @@ const productColumns: AdminColumnDef<ProductSummary, ProductDraft>[] = [
   { header: "Updated", sortValue: (p) => p.updatedAt, cell: <UpdatedCell /> },
 ];
 
-interface ListPickerItem {
-  value: string;
-  label: string;
-  name: string;
-}
-
 function ListPicker({
   value,
   onChange,
@@ -212,16 +154,11 @@ function ListPicker({
   onChange: (listId: string, listName: string) => void;
 }) {
   const { data: lists } = useLists();
-  const items: ListPickerItem[] = lists
+  const printingLists = lists
     .filter((list) => list.kind === "printing")
-    .toSorted((a, b) => a.name.localeCompare(b.name))
-    .map((list) => ({
-      value: list.id,
-      label: `${list.name} (${list.entryCount} entries)`,
-      name: list.name,
-    }));
+    .toSorted((a, b) => a.name.localeCompare(b.name));
 
-  if (items.length === 0) {
+  if (printingLists.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
         You have no printing lists yet. Build the product in an organize list with printing
@@ -229,30 +166,22 @@ function ListPicker({
       </p>
     );
   }
-  const selected = items.find((item) => item.value === value) ?? null;
   return (
-    <Combobox<ListPickerItem>
-      items={items}
-      value={selected}
-      onValueChange={(item) => onChange(item?.value ?? "", item?.name ?? "")}
-      itemToStringLabel={(item) => item.label}
-    >
-      <ComboboxInput
-        aria-label="Source list"
-        placeholder="Pick one of your printing lists"
-        className="w-full"
-      />
-      <ComboboxContent>
-        <ComboboxEmpty>No matching lists</ComboboxEmpty>
-        <ComboboxList>
-          {(item: ListPickerItem) => (
-            <ComboboxItem key={item.value} value={item}>
-              {item.label}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+    <ComboboxPicker
+      trigger="input"
+      options={printingLists.map((list) => ({
+        value: list.id,
+        label: `${list.name} (${list.entryCount} entries)`,
+      }))}
+      value={value === "" ? null : value}
+      onChange={(listId) => {
+        const list = printingLists.find((entry) => entry.id === listId);
+        onChange(list?.id ?? "", list?.name ?? "");
+      }}
+      aria-label="Source list"
+      placeholder="Pick one of your printing lists"
+      emptyText="No matching lists"
+    />
   );
 }
 
@@ -359,6 +288,7 @@ function CreateProductDialog({
               <SetPicker
                 value={draft.setId}
                 onChange={(setId) => setDraft((prev) => ({ ...prev, setId }))}
+                noneLabel="No set"
               />
               <p className="text-muted-foreground text-xs">
                 The wave the product released with. The public products page groups by it.

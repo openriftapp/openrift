@@ -5,13 +5,7 @@ import { useState } from "react";
 import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useTransferFriendGroupOwnership } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
@@ -51,18 +45,14 @@ export function TransferOwnershipControl({
       </Label>
       <p className="text-muted-foreground text-sm">{m.groups_transfer_description()}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <Select items={items} value={targetId} onValueChange={(value) => setTargetId(value)}>
-          <SelectTrigger className="w-56" aria-label={m.groups_transfer_select_aria()}>
-            <SelectValue placeholder={m.groups_transfer_placeholder()} />
-          </SelectTrigger>
-          <SelectContent>
-            {items.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SimpleSelect
+          items={items}
+          value={targetId}
+          onChange={setTargetId}
+          label={m.groups_transfer_select_aria()}
+          placeholder={m.groups_transfer_placeholder()}
+          className="w-56"
+        />
         <ConfirmActionButton
           trigger={<Button variant="outline" />}
           disabled={target === undefined}

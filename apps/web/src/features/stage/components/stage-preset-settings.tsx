@@ -5,13 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { MAX_PRESET_NAME_LENGTH } from "@/features/stage/components/stage-preset-name-dialog";
 import { useCreateStagePreset, useStagePresets } from "@/features/stage/hooks/use-stage-presets";
 import { captureStagePreset } from "@/features/stage/lib/stage-preset-apply";
@@ -70,32 +64,17 @@ export function StagePresetSettings() {
     <div className="flex flex-col gap-2">
       <Label htmlFor="stage-preset">{m.stage_presets_title()}</Label>
       <div className="flex items-center gap-2">
-        <Select
+        <SimpleSelect
+          id="stage-preset"
           items={items}
           value={appliedId}
-          onValueChange={(next) => {
-            if (typeof next === "string") {
-              apply(next);
-            }
-          }}
-        >
-          <SelectTrigger id="stage-preset" className="flex-1" disabled={items.length === 0}>
-            <SelectValue
-              placeholder={
-                items.length === 0
-                  ? m.stage_preset_select_empty()
-                  : m.stage_preset_select_placeholder()
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {items.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={apply}
+          placeholder={
+            items.length === 0 ? m.stage_preset_select_empty() : m.stage_preset_select_placeholder()
+          }
+          disabled={items.length === 0}
+          className="flex-1"
+        />
         <Button
           variant="outline"
           size="icon"

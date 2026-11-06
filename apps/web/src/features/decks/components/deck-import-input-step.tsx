@@ -8,13 +8,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
 import { ImportTextInput } from "@/features/collections/components/import-preview-chrome";
 import type { DeckImportMode } from "@/features/decks/lib/deck-import-modes";
@@ -132,26 +126,16 @@ export function DeckImportInputStep({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Label htmlFor="import-mode">{m.collections_import_deck_format_label()}</Label>
-            <Select
+            <SimpleSelect
+              id="import-mode"
+              items={IMPORT_MODE_ORDER.map((mode) => ({
+                value: mode,
+                label: importModeLabels()[mode],
+              }))}
               value={importMode}
-              onValueChange={(value) => {
-                if (value !== null) {
-                  onImportModeChange(value as DeckImportMode);
-                }
-              }}
-              items={importModeLabels()}
-            >
-              <SelectTrigger id="import-mode" className="mb-0 w-full sm:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {IMPORT_MODE_ORDER.map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {importModeLabels()[mode]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={onImportModeChange}
+              className="w-full sm:w-[200px]"
+            />
           </div>
 
           <p className="text-muted-foreground">{importDescriptions()[importMode]}</p>

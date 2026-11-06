@@ -23,13 +23,7 @@ import {
 } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
 import { Pressable } from "@/components/ui/pressable";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { printingDisplayName } from "@/features/cards/lib/card-meta";
@@ -403,29 +397,13 @@ function PaletteInner({
       {inMoveMode && (
         <div className={cn("flex items-center gap-1.5 pt-1 pb-2", !isMobile && "px-3")}>
           <span className="text-muted-foreground text-xs">{m.collections_copies_quick_from()}</span>
-          <Select
+          <SimpleSelect
             items={move.fromItems}
             value={moveFrom}
-            onValueChange={(value) => {
-              if (value) {
-                move.chooseMoveFrom(value);
-              }
-            }}
-          >
-            <SelectTrigger
-              aria-label={m.collections_copies_quick_select_from_label()}
-              className="min-w-0 flex-1"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {move.fromItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(next) => move.chooseMoveFrom(next)}
+            label={m.collections_copies_quick_select_from_label()}
+            className="min-w-0 flex-1"
+          />
           <Button
             type="button"
             size="icon"
@@ -436,29 +414,13 @@ function PaletteInner({
             <ArrowRightLeftIcon />
           </Button>
           <span className="text-muted-foreground text-xs">{m.collections_copies_quick_to()}</span>
-          <Select
+          <SimpleSelect
             items={move.toItems}
             value={moveTo}
-            onValueChange={(value) => {
-              if (value) {
-                move.chooseMoveTo(value);
-              }
-            }}
-          >
-            <SelectTrigger
-              aria-label={m.collections_copies_quick_select_to_label()}
-              className="min-w-0 flex-1"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {move.toItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(next) => move.chooseMoveTo(next)}
+            label={m.collections_copies_quick_select_to_label()}
+            className="min-w-0 flex-1"
+          />
         </div>
       )}
 

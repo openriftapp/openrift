@@ -16,13 +16,7 @@ import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
@@ -230,25 +224,18 @@ function ZonePicker({
   const assignableZones = zoneOrder.filter((zoneSlug) => zoneSlug !== WellKnown.deckZone.OVERFLOW);
 
   return (
-    <Select
+    <SimpleSelect
+      items={assignableZones.map((zoneKey) => ({
+        value: zoneKey,
+        label: zoneLabels[zoneKey],
+        className: isMobile ? "py-2.5" : "py-1.5",
+      }))}
       value={zone}
-      onValueChange={(value) => onZoneChange(value as DeckZone)}
-      items={Object.fromEntries(assignableZones.map((zoneKey) => [zoneKey, zoneLabels[zoneKey]]))}
-    >
-      <SelectTrigger
-        size={isMobile ? "default" : "sm"}
-        className={cn("w-auto", !isMobile && "h-7 text-xs")}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="w-auto">
-        {assignableZones.map((zoneKey) => (
-          <SelectItem key={zoneKey} value={zoneKey} className={isMobile ? "py-2.5" : "py-1.5"}>
-            {zoneLabels[zoneKey]}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={onZoneChange}
+      size={isMobile ? "default" : "sm"}
+      className={cn("w-auto", !isMobile && "h-7 text-xs")}
+      contentClassName="w-auto"
+    />
   );
 }
 

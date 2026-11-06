@@ -36,13 +36,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Pressable } from "@/components/ui/pressable";
 import { RowList } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { textLinkVariants } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
 import {
@@ -174,22 +168,13 @@ export function MembersPageContent({
           aria-label={m.groups_members_search_aria()}
           className="w-full max-w-xs"
         />
-        <Select
+        <SimpleSelect
           items={sortOptions}
           value={sort}
-          onValueChange={(next: MemberSortKey | null) => setSort(next ?? "traded")}
-        >
-          <SelectTrigger className="w-52" aria-label={m.groups_members_sort_aria()}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sortOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={setSort}
+          label={m.groups_members_sort_aria()}
+          className="w-52"
+        />
       </div>
 
       {rows.length === 0 ? (

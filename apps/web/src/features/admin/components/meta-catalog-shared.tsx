@@ -13,13 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { MetaMirrorRow } from "@/features/admin/lib/meta-mirror-rows";
 import { syncTriggerAnnouncement } from "@/features/meta/lib/meta-catalog-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
@@ -66,22 +60,15 @@ export function MetaMirrorFormatDialog({
         </DialogHeader>
         <div className="space-y-2">
           <Label htmlFor="meta-mirror-publish-format">Format</Label>
-          <Select
+          <SimpleSelect
+            id="meta-mirror-publish-format"
             items={formats.map((entry) => ({ value: entry.slug, label: entry.label }))}
-            value={format}
-            onValueChange={(next) => setFormat(next ?? "")}
-          >
-            <SelectTrigger id="meta-mirror-publish-format" className="w-full">
-              <SelectValue placeholder="Pick a format" />
-            </SelectTrigger>
-            <SelectContent>
-              {formats.map((entry) => (
-                <SelectItem key={entry.slug} value={entry.slug}>
-                  {entry.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            value={format === "" ? null : format}
+            onChange={setFormat}
+            label="Format"
+            placeholder="Pick a format"
+            className="w-full"
+          />
         </div>
         <DialogFooter>
           <DialogCancel />

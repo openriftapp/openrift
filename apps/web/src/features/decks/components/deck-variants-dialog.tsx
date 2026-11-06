@@ -22,13 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
 import {
   useDecks,
@@ -289,26 +283,14 @@ function LineageRow({
             <span className="text-muted-foreground text-2xs shrink-0">
               {m.decks_dialog_variant_source_label()}
             </span>
-            <Select
+            <SimpleSelect
               items={parentItems}
               value={deck.predecessorDeckId ?? NO_PARENT}
-              onValueChange={(value) => onSetParent(value === NO_PARENT ? null : (value ?? null))}
-            >
-              <SelectTrigger
-                size="sm"
-                aria-label={m.decks_dialog_variants_parent_select_label({ name: deck.name })}
-                className="min-w-0 flex-1"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {parentItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(value) => onSetParent(value === NO_PARENT ? null : value)}
+              label={m.decks_dialog_variants_parent_select_label({ name: deck.name })}
+              size="sm"
+              className="min-w-0 flex-1"
+            />
           </div>
         )}
       </div>
@@ -471,22 +453,14 @@ function VariantsDialogBody({
             ) : (
               <div className="flex min-w-0 flex-col gap-2">
                 <Label htmlFor="deck-variants-link">{m.decks_dialog_variants_link_label()}</Label>
-                <Select
+                <SimpleSelect
+                  id="deck-variants-link"
                   items={linkOptions}
                   value={linkTargetId}
-                  onValueChange={(value) => setLinkTargetId(value)}
-                >
-                  <SelectTrigger id="deck-variants-link" className="w-full">
-                    <SelectValue placeholder={m.decks_dialog_variants_link_placeholder()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {linkOptions.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setLinkTargetId}
+                  placeholder={m.decks_dialog_variants_link_placeholder()}
+                  className="w-full"
+                />
               </div>
             )}
             <div className="flex justify-end gap-2">

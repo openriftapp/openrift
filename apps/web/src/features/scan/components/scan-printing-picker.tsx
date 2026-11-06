@@ -1,15 +1,18 @@
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { Pressable } from "@/components/ui/pressable";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { PrintingLanguageTabs } from "@/features/cards/components/printing-language-tabs";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import type { PickerRequest } from "@/features/scan/lib/scan-resolve";
 import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -29,7 +32,6 @@ export function ScanPrintingPicker({
   description,
 }: ScanPrintingPickerProps) {
   const resolvedTitle = title ?? m.scan_picker_title();
-  const isMobile = useIsMobile();
   const cardLanguage = useScanPrefsStore((state) => state.cardLanguage);
   const open = request !== null;
 
@@ -98,27 +100,13 @@ export function ScanPrintingPicker({
     description ??
     (request ? m.scan_picker_description({ name: request.label.split(" (")[0] ?? "" }) : "");
 
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={handleOpenChange} showSwipeHandle>
-        <DrawerContent>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-            <DrawerTitle>{resolvedTitle}</DrawerTitle>
-            <DrawerDescription>{resolvedDescription}</DrawerDescription>
-            <div className="flex min-h-0 flex-col">{body}</div>
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogTitle>{resolvedTitle}</DialogTitle>
-        <DialogDescription>{resolvedDescription}</DialogDescription>
-        <div className="flex max-h-96 flex-col">{body}</div>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
+      <ResponsiveDialogContent dialogClassName="max-w-md" drawerClassName="gap-3">
+        <ResponsiveDialogTitle>{resolvedTitle}</ResponsiveDialogTitle>
+        <ResponsiveDialogDescription>{resolvedDescription}</ResponsiveDialogDescription>
+        <div className="flex min-h-0 flex-col md:max-h-96">{body}</div>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

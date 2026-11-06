@@ -6,13 +6,7 @@ import { workspaceReasonSchema } from "@openrift/shared/contracts/admin/catalog-
 import { Link } from "@tanstack/react-router";
 
 import { Kbd } from "@/components/ui/kbd";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { BatchButton } from "@/features/catalog-workspace/components/batch-dialogs";
@@ -191,22 +185,14 @@ function FilterSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <Select
+    <SimpleSelect
       items={items}
       value={value}
-      onValueChange={(next: string | null) => onChange(next ?? ANY)}
-    >
-      <SelectTrigger aria-label={label} size="sm" className="min-w-0">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={onChange}
+      label={label}
+      size="sm"
+      className="min-w-0"
+    />
   );
 }
 

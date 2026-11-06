@@ -15,13 +15,8 @@ import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
+import type { SimpleSelectItem } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { TextLink } from "@/components/ui/text-link";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
@@ -197,13 +192,13 @@ export function DisplaySection() {
   );
 }
 
-function displayLocaleOptions(): { value: DisplayLocale; label: ReactNode }[] {
+function displayLocaleOptions(): SimpleSelectItem<DisplayLocale>[] {
   return DISPLAY_LOCALES.map((locale) => ({
     value: locale,
-    label:
-      locale === "en" ? (
-        DISPLAY_LOCALE_LABELS[locale]
-      ) : (
+    label: DISPLAY_LOCALE_LABELS[locale],
+    lang: locale,
+    content:
+      locale === "en" ? undefined : (
         <span className="inline-flex items-center gap-1.5">
           {DISPLAY_LOCALE_LABELS[locale]}
           <Badge variant="subtle">{m.profile_display_locale_beta()}</Badge>
@@ -230,26 +225,17 @@ function DisplayLocalePicker() {
   const options = displayLocaleOptions();
 
   return (
-    <Select
+    <SimpleSelect
+      id="pref-display-locale"
       items={options}
       value={active}
-      onValueChange={(next) => {
+      onChange={(next) => {
         if (DISPLAY_LOCALES.includes(next as DisplayLocale)) {
           void change(next as DisplayLocale);
         }
       }}
-    >
-      <SelectTrigger id="pref-display-locale" className="w-44">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((item) => (
-          <SelectItem key={item.value} value={item.value} lang={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      className="w-44"
+    />
   );
 }
 

@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { BanDraft } from "@/features/admin/lib/ban-draft";
 import { isBanDraftComplete } from "@/features/admin/lib/ban-draft";
 
@@ -40,22 +34,13 @@ export function BanEditor({
       {lockedFormatName === null ? (
         <div className="space-y-1">
           <Label>Format</Label>
-          <Select
+          <SimpleSelect
             items={options}
-            value={draft.formatId}
-            onValueChange={(value) => onChange({ formatId: value ?? "" })}
-          >
-            <SelectTrigger aria-label="Format" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            value={draft.formatId === "" ? null : draft.formatId}
+            onChange={(formatId) => onChange({ formatId })}
+            label="Format"
+            className="w-40"
+          />
         </div>
       ) : (
         <Badge variant="destructive" className="self-center">

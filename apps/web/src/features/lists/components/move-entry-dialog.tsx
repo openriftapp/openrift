@@ -1,11 +1,11 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { CheckIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
+import { PickerSection } from "@/components/picker-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,8 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
-import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { ImportPrintingLabel } from "@/features/cards/components/printing-label";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCollectionsMap } from "@/features/collections/hooks/use-collections";
@@ -29,7 +27,6 @@ import type {
   MoveResolution,
 } from "@/features/lists/lib/list-move";
 import { hasTwoCards, movePickFor } from "@/features/lists/lib/list-move";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function intentNoun(intent: ListIntent): string {
@@ -90,9 +87,6 @@ interface MoveEntryDialogBodyProps {
   isPending: boolean;
 }
 
-const SELECTED_ROW =
-  "bg-primary/10 text-primary data-selected:bg-primary/10 data-selected:text-primary data-selected:**:text-primary";
-
 export function MoveEntryDialogBody({
   mode,
   cardName,
@@ -110,7 +104,6 @@ export function MoveEntryDialogBody({
   isPending,
 }: MoveEntryDialogBodyProps) {
   const text = modeCopy(mode);
-  const [highlightedId, setHighlightedId] = useState("");
   const [printingId, setPrintingId] = useState(
     () =>
       printings.find((p) => p.printingId === currentPrintingId)?.printingId ??
@@ -181,76 +174,39 @@ export function MoveEntryDialogBody({
         </DialogDescription>
       </DialogHeader>
       {pick === "printing" && (
-        <div className="space-y-2">
-          <p className="text-sm">{m.lists_move_pick_printing_hint({ list: target.name })}</p>
-          <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
-            {printings.map((printing) => (
-              <PickerRow
-                key={sideKey(printing)}
-                value={printing.printingId}
-                onSelect={() => setPrintingId(printing.printingId)}
-                className={cn("px-3 py-2", printingId === printing.printingId && SELECTED_ROW)}
-              >
-                <ImportPrintingLabel printing={printing} className="min-w-0 flex-1 truncate" />
-                {printingId === printing.printingId && <CheckIcon className="size-4 shrink-0" />}
-              </PickerRow>
-            ))}
-          </PickerList>
-        </div>
+        <PickerSection
+          hint={m.lists_move_pick_printing_hint({ list: target.name })}
+          options={printings.map((printing) => ({
+            value: printing.printingId,
+            label: <ImportPrintingLabel printing={printing} />,
+          }))}
+          selected={printingId}
+          onPick={setPrintingId}
+          emptyText={null}
+        />
       )}
       {pick === "card" && (
-        <div className="space-y-2">
-          <p className="text-sm">{m.lists_move_pick_card_hint({ list: target.name })}</p>
-          <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
-            {cardOptions.map((option) => (
-              <PickerRow
-                key={option.cardId}
-                value={option.cardId}
-                onSelect={() => setCardId(option.cardId)}
-                className={cn("px-3 py-2", cardId === option.cardId && SELECTED_ROW)}
-              >
-                <span className="min-w-0 flex-1 truncate">{option.name}</span>
-                {cardId === option.cardId && <CheckIcon className="size-4 shrink-0" />}
-              </PickerRow>
-            ))}
-          </PickerList>
-        </div>
+        <PickerSection
+          hint={m.lists_move_pick_card_hint({ list: target.name })}
+          options={cardOptions.map((option) => ({ value: option.cardId, label: option.name }))}
+          selected={cardId}
+          onPick={setCardId}
+          emptyText={null}
+        />
       )}
-      {pick === "copies" &&
-        (copies.length === 0 ? (
-          <Empty>
-            <EmptyDescription>{m.lists_move_no_copies({ card: cardName })}</EmptyDescription>
-          </Empty>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm">{m.lists_move_pick_copies_hint({ list: target.name })}</p>
-            <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
-              {copies.map(({ copy, printing, collectionName }) => {
-                const checked = copyIds.has(copy.id);
-                return (
-                  <PickerRow
-                    key={copy.id}
-                    value={copy.id}
-                    onSelect={() => toggleCopy(copy.id)}
-                    className={cn("px-3 py-2", checked && SELECTED_ROW)}
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "border-input flex size-4 shrink-0 items-center justify-center rounded-md border",
-                        checked && "border-primary bg-primary text-primary-foreground",
-                      )}
-                    >
-                      {checked && <CheckIcon className="size-3" />}
-                    </span>
-                    <ImportPrintingLabel printing={printing} className="min-w-0 flex-1 truncate" />
-                    <span className="text-muted-foreground truncate text-sm">{collectionName}</span>
-                  </PickerRow>
-                );
-              })}
-            </PickerList>
-          </div>
-        ))}
+      {pick === "copies" && (
+        <PickerSection
+          hint={m.lists_move_pick_copies_hint({ list: target.name })}
+          options={copies.map(({ copy, printing, collectionName }) => ({
+            value: copy.id,
+            label: <ImportPrintingLabel printing={printing} />,
+            meta: collectionName,
+          }))}
+          checked={copyIds}
+          onPick={toggleCopy}
+          emptyText={m.lists_move_no_copies({ card: cardName })}
+        />
+      )}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="outline" onClick={onCancel} disabled={isPending}>
           {m.common_cancel()}
