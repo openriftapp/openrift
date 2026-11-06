@@ -418,6 +418,7 @@ if (errataCard1) {
   syntheticCardErrata.push({
     id: "019713f0-0000-7000-8000-000000000001",
     card_id: errataCard1.id,
+    language: "EN",
     corrected_rules_text: "Deal 3 damage to target unit. (Corrected from 2)",
     corrected_effect_text: null,
     source: "official-errata",
@@ -429,6 +430,7 @@ if (errataCard2) {
   syntheticCardErrata.push({
     id: "019713f0-0000-7000-8000-000000000002",
     card_id: errataCard2.id,
+    language: "EN",
     corrected_rules_text:
       "When you play me, return a spell from your trash to your hand. (Must target a spell with cost 3 or less.)",
     corrected_effect_text: null,

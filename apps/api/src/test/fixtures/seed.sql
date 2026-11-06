@@ -367,9 +367,9 @@ INSERT INTO card_name_aliases (card_id, norm_name) VALUES
   ('019cfc3b-038b-7140-a819-397e9b1eb94e', 'decisivestrike'),
   ('019cfc3b-038b-7140-a819-397e9b1eb94e', 'decisivestrikespiritforgednexusnightpromo');
 
-INSERT INTO card_errata (id, card_id, corrected_rules_text, corrected_effect_text, source, source_url, effective_date) VALUES
-  ('019713f0-0000-7000-8000-000000000001', '019cfc3b-038a-7c0c-a76c-e0a5e2f46b18', 'Deal 3 damage to target unit. (Corrected from 2)', NULL, 'official-errata', NULL, '2025-01-15'),
-  ('019713f0-0000-7000-8000-000000000002', '019cfc3b-038a-7c41-b170-c9f989adc4a8', 'When you play me, return a spell from your trash to your hand. (Must target a spell with cost 3 or less.)', NULL, 'official-errata', 'https://example.com/errata', '2025-03-01');
+INSERT INTO card_errata (id, card_id, language, corrected_rules_text, corrected_effect_text, source, source_url, effective_date) VALUES
+  ('019713f0-0000-7000-8000-000000000001', '019cfc3b-038a-7c0c-a76c-e0a5e2f46b18', 'EN', 'Deal 3 damage to target unit. (Corrected from 2)', NULL, 'official-errata', NULL, '2025-01-15'),
+  ('019713f0-0000-7000-8000-000000000002', '019cfc3b-038a-7c41-b170-c9f989adc4a8', 'EN', 'When you play me, return a spell from your trash to your hand. (Must target a spell with cost 3 or less.)', NULL, 'official-errata', 'https://example.com/errata', '2025-03-01');
 
 
 -- Printings and images

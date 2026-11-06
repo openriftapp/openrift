@@ -10,6 +10,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       DROP CONSTRAINT card_errata_card_id_unique,
       ADD CONSTRAINT card_errata_card_id_language_unique UNIQUE (card_id, language)
   `.execute(db);
+  await sql`ALTER TABLE card_errata ALTER COLUMN language DROP DEFAULT`.execute(db);
 }
 
 // Fails while a card has errata in more than one language.

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict M40shZX9tzDMN5vz72wdI8ldAurMg7ZDuMq2QRoZGV3tArT5TrFxzbtcegWgHhW
+\restrict LBEQU8lsepkYPsbhJvgQdD55LOfeoqS117OpQXahPdaQYmm4UeDeaygbalDIBk5
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1360,7 +1360,7 @@ CREATE TABLE public.card_errata (
     effective_date date,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     announcement_id uuid,
-    language text DEFAULT 'EN'::text NOT NULL,
+    language text NOT NULL,
     CONSTRAINT chk_card_errata_announced_has_no_note CHECK (((announcement_id IS NULL) OR ((source_url IS NULL) AND (effective_date IS NULL)))),
     CONSTRAINT chk_card_errata_has_text CHECK (((corrected_rules_text IS NOT NULL) OR (corrected_effect_text IS NOT NULL))),
     CONSTRAINT chk_card_errata_no_empty_corrected_effect_text CHECK ((corrected_effect_text <> ''::text)),
@@ -11121,5 +11121,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict M40shZX9tzDMN5vz72wdI8ldAurMg7ZDuMq2QRoZGV3tArT5TrFxzbtcegWgHhW
+\unrestrict LBEQU8lsepkYPsbhJvgQdD55LOfeoqS117OpQXahPdaQYmm4UeDeaygbalDIBk5
 
