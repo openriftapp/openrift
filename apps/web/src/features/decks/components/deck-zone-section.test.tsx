@@ -130,6 +130,19 @@ describe("DeckZoneSection", () => {
     expect(screen.getByText(/^Spells/u)).toHaveTextContent("Spells · 1");
   });
 
+  it("shows battlefields in the overflow zone after the known type groups", () => {
+    renderSection({
+      zone: "overflow",
+      cards: [
+        stubDeckBuilderCard({ cardId: "a", cardName: "Captain Farron", cardType: "unit" }),
+        stubDeckBuilderCard({ cardId: "b", cardName: "Sunken Temple", cardType: "battlefield" }),
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Expand Overflow" }));
+    expect(screen.getByText("Captain Farron")).toBeInTheDocument();
+    expect(screen.getByText("Sunken Temple")).toBeInTheDocument();
+  });
+
   it("hides the rows and the add strip once collapsed", () => {
     renderSection({ cards: [stubDeckBuilderCard({ cardName: "Iron Ballista" })] });
     fireEvent.click(screen.getByRole("button", { name: /^Collapse/u }));

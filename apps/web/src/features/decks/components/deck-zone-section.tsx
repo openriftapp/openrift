@@ -200,7 +200,12 @@ export function DeckZoneSection({
   const renderGroupedCards = () => {
     const grouped = Map.groupBy(cards, (card) => card.cardType);
 
-    return TYPE_GROUP_ORDER.filter((type) => grouped.has(type)).map((type) => {
+    const typeKeys = [
+      ...TYPE_GROUP_ORDER.filter((type) => grouped.has(type)),
+      ...[...grouped.keys()].filter((type) => !TYPE_GROUP_ORDER.includes(type)),
+    ];
+
+    return typeKeys.map((type) => {
       const group = (grouped.get(type) ?? []).toSorted(compareGroupedCards);
       return (
         <div key={type} className="flex flex-col gap-0.5">
