@@ -164,9 +164,12 @@ export function useListEntryBrowserSelection({
   // Targeted by copy id, which a rule-produced entry has even without a `list_entries` row.
   const [moveToCollectionOpen, setMoveToCollectionOpen] = useState(false);
   const [moveCopyIds, setMoveCopyIds] = useState<string[]>([]);
-  const handleMoveCopyToCollection = (copyId: string) => {
-    setMoveCopyIds(resolveCopyMoveTarget(entryByItemId, selected, copyId));
+  const openMoveToCollection = (copyIds: string[]) => {
+    setMoveCopyIds(copyIds);
     setMoveToCollectionOpen(true);
+  };
+  const handleMoveCopyToCollection = (copyId: string) => {
+    openMoveToCollection(resolveCopyMoveTarget(entryByItemId, selected, copyId));
   };
 
   const [addToCollectionIds, setAddToCollectionIds] = useState<string[]>([]);
@@ -534,6 +537,7 @@ export function useListEntryBrowserSelection({
     moveToCollectionOpen,
     setMoveToCollectionOpen,
     moveCopyIds,
+    openMoveToCollection,
     addToCollectionRequest,
     openAddToCollection: setAddToCollectionIds,
     closeAddToCollection,

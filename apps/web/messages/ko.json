@@ -1980,7 +1980,7 @@
   "lists_entry_move_no_match": "일치하는 목록이 없습니다.",
   "lists_entry_move_pending": "이동 중…",
   "lists_entry_move_confirm": "이동",
-  "lists_entry_move_action": "이동",
+  "lists_entry_move_action": "목록으로 이동",
   "lists_entry_remove_action": "제거",
   "lists_entry_take_off": "목록에서 빼기",
   "lists_entry_hide_library": "라이브러리 숨기기",
@@ -4946,6 +4946,52 @@
   "lists_entry_move_needs_single": "인쇄판이나 보유 카드를 추적하는 목록은 한 번에 한 장만 받습니다.",
   "lists_toast_moved_to_list": "{count}장을 \"{list}\"(으)로 이동했습니다",
   "lists_toast_copied_to_list": "{count}장을 \"{list}\"(으)로 복사했습니다",
+  "lists_entry_move_to_collection_action": "컬렉션으로 이동",
+  "lists_entry_rule_locked_copies": "규칙이 이 카드들을 이 목록에 넣고 있어서 뺄 수 없습니다. 규칙을 바꾸거나 다른 목록으로 복사하세요.",
+  "lists_entry_rule_locked_cards": "규칙이 이 카드들을 이 목록에 넣고 있어서 뺄 수 없습니다. 규칙을 바꾸거나 다른 목록으로 복사하세요.",
+  "lists_page_move_copies_to_collection": "카드를 컬렉션으로 이동…",
+  "lists_move_to_collection_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 1장을 컬렉션으로 이동",
+        "countPlural=*": "카드 {count}장을 컬렉션으로 이동"
+      }
+    }
+  ],
+  "lists_move_to_collection_already_here": "{count}장 이미 있음",
+  "lists_move_to_collection_confirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1장 이동",
+        "countPlural=*": "{count}장 이동"
+      }
+    }
+  ],
+  "lists_move_to_collection_none": "모두 이미 있음",
+  "lists_toast_moved_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1장을 \"{collection}\"(으)로 이동했습니다",
+        "countPlural=*": "{count}장을 \"{collection}\"(으)로 이동했습니다"
+      }
+    }
+  ],
+  "lists_toast_already_in_collection": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1장은 이미 있었습니다.",
+        "countPlural=*": "{count}장은 이미 있었습니다."
+      }
+    }
+  ],
   "lists_add_intent_wish": "위시리스트",
   "lists_add_no_lists": "아직 목록이 없습니다. 아래에서 만드세요.",
   "collections_drag_copy_label": "{name} (복사)",

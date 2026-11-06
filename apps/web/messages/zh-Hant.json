@@ -1980,7 +1980,7 @@
   "lists_entry_move_no_match": "沒有符合的清單。",
   "lists_entry_move_pending": "移動中…",
   "lists_entry_move_confirm": "移動",
-  "lists_entry_move_action": "移動",
+  "lists_entry_move_action": "移動到清單",
   "lists_entry_remove_action": "移除",
   "lists_entry_take_off": "從清單移除",
   "lists_entry_hide_library": "隱藏卡牌庫",
@@ -4946,6 +4946,52 @@
   "lists_entry_move_needs_single": "記錄印刷版本或卡牌的清單一次只能接收一張卡。",
   "lists_toast_moved_to_list": "已將 {count} 張移動到「{list}」",
   "lists_toast_copied_to_list": "已將 {count} 張複製到「{list}」",
+  "lists_entry_move_to_collection_action": "移動到收藏",
+  "lists_entry_rule_locked_copies": "這些卡牌由規則加入此清單，因此無法移出。請修改規則，或將它們複製到其他清單。",
+  "lists_entry_rule_locked_cards": "這些卡牌由規則加入此清單，因此無法移出。請修改規則，或將它們複製到其他清單。",
+  "lists_page_move_copies_to_collection": "將卡牌移動到收藏…",
+  "lists_move_to_collection_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "將 1 張移動到收藏",
+        "countPlural=*": "將 {count} 張移動到收藏"
+      }
+    }
+  ],
+  "lists_move_to_collection_already_here": "已有 {count} 張",
+  "lists_move_to_collection_confirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "移動 1 張",
+        "countPlural=*": "移動 {count} 張"
+      }
+    }
+  ],
+  "lists_move_to_collection_none": "全部已在此處",
+  "lists_toast_moved_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已將 1 張移動到「{collection}」",
+        "countPlural=*": "已將 {count} 張移動到「{collection}」"
+      }
+    }
+  ],
+  "lists_toast_already_in_collection": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "其中 1 張已在那裡。",
+        "countPlural=*": "其中 {count} 張已在那裡。"
+      }
+    }
+  ],
   "lists_add_intent_wish": "願望清單",
   "lists_add_no_lists": "還沒有清單。在下方建立一個。",
   "collections_drag_copy_label": "{name}（複製）",

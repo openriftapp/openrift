@@ -10,6 +10,8 @@ import {
   resolveCopyMoveTarget,
   resolveEntryPrinting,
   selectableEntryIds,
+  selectedCopyIds,
+  visibleCopyIds,
 } from "./list-entries";
 
 const entryBase = {
@@ -268,5 +270,61 @@ describe("resolveCopyMoveTarget", () => {
     expect(resolveCopyMoveTarget(entryByItemId, new Set(["e1"]), "copy-unknown")).toEqual([
       "copy-unknown",
     ]);
+  });
+});
+
+describe("selectedCopyIds", () => {
+  const entryByItemId = new Map([
+    ["i1", copyEntry("e1", "copy-1", "pa")],
+    ["i2", copyEntry("e2", "copy-2", "pb")],
+    ["i3", copyEntry(null, "copy-3", "pa")],
+    ["i9", cardEntry("e9", "ca")],
+  ]);
+
+  it("maps selected entries to their copy ids in grid order", () => {
+    expect(selectedCopyIds(entryByItemId, new Set(["e2", "e1"]))).toEqual(["copy-1", "copy-2"]);
+  });
+
+  it("includes rule-produced copies in the selection", () => {
+    expect(selectedCopyIds(entryByItemId, new Set(["e1", "rule:i3"]))).toEqual([
+      "copy-1",
+      "copy-3",
+    ]);
+  });
+
+  it("skips selected entries without a copy and returns nothing for an empty selection", () => {
+    expect(selectedCopyIds(entryByItemId, new Set(["e9"]))).toEqual([]);
+    expect(selectedCopyIds(entryByItemId, new Set())).toEqual([]);
+  });
+});
+
+describe("visibleCopyIds", () => {
+  const pa = stubPrinting({ printingId: "pa" });
+  const entryByItemId = new Map([
+    ["i1", copyEntry("e1", "copy-1", "pa")],
+    ["i2", copyEntry(null, "copy-2", "pa")],
+    ["i3", copyEntry("e3", "copy-3", "pa")],
+  ]);
+
+  it("returns the copies of the shown items only, so filters narrow it", () => {
+    const items = [
+      { id: "i1", printing: pa },
+      { id: "i2", printing: pa },
+    ];
+    expect(visibleCopyIds(items, entryByItemId)).toEqual(["copy-1", "copy-2"]);
+  });
+
+  it("dedupes a copy shown on two tiles", () => {
+    const items = [
+      { id: "i1", printing: pa },
+      { id: "i1", printing: pa },
+    ];
+    expect(visibleCopyIds(items, entryByItemId)).toEqual(["copy-1"]);
+  });
+
+  it("ignores items with no copy entry behind them", () => {
+    const items = [{ id: "unknown", printing: pa }];
+    expect(visibleCopyIds(items, entryByItemId)).toEqual([]);
+    expect(visibleCopyIds([], entryByItemId)).toEqual([]);
   });
 });

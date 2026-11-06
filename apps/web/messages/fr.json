@@ -1980,7 +1980,7 @@
   "lists_entry_move_no_match": "Aucune liste correspondante.",
   "lists_entry_move_pending": "Déplacement…",
   "lists_entry_move_confirm": "Déplacer",
-  "lists_entry_move_action": "Déplacer",
+  "lists_entry_move_action": "Déplacer vers une liste",
   "lists_entry_remove_action": "Retirer",
   "lists_entry_take_off": "Retirer de la liste",
   "lists_entry_hide_library": "Masquer la bibliothèque",
@@ -4948,6 +4948,52 @@
   "lists_entry_move_needs_single": "Les listes d'impressions ou d'exemplaires acceptent une carte à la fois.",
   "lists_toast_moved_to_list": "{count} déplacé(s) vers « {list} »",
   "lists_toast_copied_to_list": "{count} copié(s) vers « {list} »",
+  "lists_entry_move_to_collection_action": "Déplacer vers une collection",
+  "lists_entry_rule_locked_copies": "La règle place ces exemplaires sur cette liste, ils ne peuvent donc pas la quitter. Modifiez la règle ou copiez-les vers une autre liste.",
+  "lists_entry_rule_locked_cards": "La règle place ces cartes sur cette liste, elles ne peuvent donc pas la quitter. Modifiez la règle ou copiez-les vers une autre liste.",
+  "lists_page_move_copies_to_collection": "Déplacer les exemplaires vers une collection…",
+  "lists_move_to_collection_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Déplacer 1 exemplaire vers une collection",
+        "countPlural=*": "Déplacer {count} exemplaires vers une collection"
+      }
+    }
+  ],
+  "lists_move_to_collection_already_here": "{count} déjà ici",
+  "lists_move_to_collection_confirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Déplacer 1 exemplaire",
+        "countPlural=*": "Déplacer {count} exemplaires"
+      }
+    }
+  ],
+  "lists_move_to_collection_none": "Tous déjà ici",
+  "lists_toast_moved_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 exemplaire déplacé vers « {collection} »",
+        "countPlural=*": "{count} exemplaires déplacés vers « {collection} »"
+      }
+    }
+  ],
+  "lists_toast_already_in_collection": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 y était déjà.",
+        "countPlural=*": "{count} y étaient déjà."
+      }
+    }
+  ],
   "lists_add_intent_wish": "Liste de souhaits",
   "lists_add_no_lists": "Aucune liste pour l'instant. Créez-en une ci-dessous.",
   "collections_drag_copy_label": "{name} (copie)",

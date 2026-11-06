@@ -38,6 +38,7 @@ import { MoveToListDialog } from "@/features/lists/components/move-to-list-dialo
 import { TakeOffTradelistDialog } from "@/features/lists/components/take-off-tradelist-dialog";
 import { useListEntryBrowserData } from "@/features/lists/hooks/use-list-entry-browser-data";
 import { useListEntryBrowserSelection } from "@/features/lists/hooks/use-list-entry-browser-selection";
+import { selectedCopyIds, visibleCopyIds } from "@/features/lists/lib/list-entries";
 import { entryAddsCopies } from "@/features/lists/lib/list-move";
 import { buildListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -52,6 +53,11 @@ const LIST_HIDDEN_FILTER_SECTIONS: ReadonlySet<string> = new Set(["owned", "cust
 const NO_TRADE_ANNOTATIONS: readonly CardTradeLiveAnnotation[] = [];
 const NO_TRADES: readonly CardTradeResponse[] = [];
 
+export interface ListMoveCopiesAction {
+  count: number;
+  onOpen: () => void;
+}
+
 export interface ListEntryBrowserProps {
   listId: string;
   kind: ListKind;
@@ -60,7 +66,7 @@ export interface ListEntryBrowserProps {
   listCurrency: Currency | null;
   rules: ListRule[];
   entries: ListEntryDetailResponse[];
-  renderTopBar: (selectActions: ReactNode) => ReactNode;
+  renderTopBar: (selectActions: ReactNode, moveCopies?: ListMoveCopiesAction) => ReactNode;
   showLibrary: boolean;
   onToggleShowLibrary: () => void;
   onRemoveEntry: (entryId: string, cardName: string) => void;
@@ -177,6 +183,7 @@ export function ListEntryBrowser({
     moveToCollectionOpen,
     setMoveToCollectionOpen,
     moveCopyIds,
+    openMoveToCollection,
     addToCollectionRequest,
     openAddToCollection,
     closeAddToCollection,
@@ -303,6 +310,18 @@ export function ListEntryBrowser({
     />
   );
 
+  const shownCopyIds = kind === "copy" && !showLibrary ? visibleCopyIds(items, entryByItemId) : [];
+  const headerMoveCopies: ListMoveCopiesAction | undefined =
+    kind === "copy"
+      ? { count: shownCopyIds.length, onOpen: () => openMoveToCollection(shownCopyIds) }
+      : undefined;
+  const selectionCopyIds = kind === "copy" ? selectedCopyIds(entryByItemId, selected) : [];
+  const ruleLockedReason = selectionHasRuleEntry
+    ? kind === "copy"
+      ? m.lists_entry_rule_locked_copies()
+      : m.lists_entry_rule_locked_cards()
+    : undefined;
+
   const introDismissed = useOnboardingStore((state) => state.dismissedIntros.includes("list"));
   const dismissIntro = useOnboardingStore((state) => state.dismissIntro);
 
@@ -312,7 +331,7 @@ export function ListEntryBrowser({
 
   return (
     <FilterSearchProvider value={{ ...filterSearch, view }}>
-      {renderTopBar(selectActions)}
+      {renderTopBar(selectActions, headerMoveCopies)}
       <CardBrowserFilterProvider
         searchAlternatives={searchAlternatives}
         availableFilters={availableFilters}
@@ -382,11 +401,23 @@ export function ListEntryBrowser({
             <FloatingActionBar
               selectedCount={selected.size}
               actions={[
+                ...(kind === "copy"
+                  ? [
+                      {
+                        label: m.lists_entry_move_to_collection_action(),
+                        icon: <BookOpenIcon />,
+                        variant: "default" as const,
+                        onClick: () => openMoveToCollection(selectionCopyIds),
+                        disabled: selectionCopyIds.length === 0,
+                      },
+                    ]
+                  : []),
                 {
                   label: m.lists_entry_move_action(),
                   icon: <ListIcon />,
                   onClick: () => openListAction("move", [...selected]),
                   disabled: moveEntries.isPending || selectionHasRuleEntry,
+                  disabledReason: ruleLockedReason,
                 },
                 {
                   label: m.common_copy(),
@@ -411,6 +442,7 @@ export function ListEntryBrowser({
                       onClick: () => openListAction("takeOff", [...selected]),
                       disabled:
                         bulkRemove.isPending || disposeCopies.isPending || selectionHasRuleEntry,
+                      disabledReason: ruleLockedReason,
                     }
                   : {
                       label: m.lists_entry_remove_action(),
@@ -418,6 +450,7 @@ export function ListEntryBrowser({
                       variant: "destructive" as const,
                       onClick: () => openListAction("remove", [...selected]),
                       disabled: bulkRemove.isPending || selectionHasRuleEntry,
+                      disabledReason: ruleLockedReason,
                     },
               ]}
               onClear={clearSelection}

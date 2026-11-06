@@ -1980,7 +1980,7 @@
   "lists_entry_move_no_match": "没有符合条件的清单。",
   "lists_entry_move_pending": "正在移动…",
   "lists_entry_move_confirm": "移动",
-  "lists_entry_move_action": "移动",
+  "lists_entry_move_action": "移动到清单",
   "lists_entry_remove_action": "移除",
   "lists_entry_take_off": "移出清单",
   "lists_entry_hide_library": "隐藏卡牌库",
@@ -4946,6 +4946,52 @@
   "lists_entry_move_needs_single": "记录印刷版本或卡牌的清单一次只能接收一张卡。",
   "lists_toast_moved_to_list": "已将 {count} 张移动到“{list}”",
   "lists_toast_copied_to_list": "已将 {count} 张复制到“{list}”",
+  "lists_entry_move_to_collection_action": "移动到收藏",
+  "lists_entry_rule_locked_copies": "这些卡牌由规则加入此清单，因此无法移出。请修改规则，或将它们复制到其他清单。",
+  "lists_entry_rule_locked_cards": "这些卡牌由规则加入此清单，因此无法移出。请修改规则，或将它们复制到其他清单。",
+  "lists_page_move_copies_to_collection": "将卡牌移动到收藏…",
+  "lists_move_to_collection_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "将 1 张移动到收藏",
+        "countPlural=*": "将 {count} 张移动到收藏"
+      }
+    }
+  ],
+  "lists_move_to_collection_already_here": "已有 {count} 张",
+  "lists_move_to_collection_confirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "移动 1 张",
+        "countPlural=*": "移动 {count} 张"
+      }
+    }
+  ],
+  "lists_move_to_collection_none": "全部已在此处",
+  "lists_toast_moved_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已将 1 张移动到“{collection}”",
+        "countPlural=*": "已将 {count} 张移动到“{collection}”"
+      }
+    }
+  ],
+  "lists_toast_already_in_collection": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "其中 1 张已在那里。",
+        "countPlural=*": "其中 {count} 张已在那里。"
+      }
+    }
+  ],
   "lists_add_intent_wish": "心愿单",
   "lists_add_no_lists": "还没有清单。在下方创建一个。",
   "collections_drag_copy_label": "{name}（复制）",

@@ -10,8 +10,9 @@ interface FloatingAction {
   label: string;
   icon: ReactNode;
   onClick: () => void;
-  variant?: "secondary" | "destructive";
+  variant?: "default" | "secondary" | "destructive";
   disabled?: boolean;
+  disabledReason?: string;
 }
 
 interface FloatingActionBarProps {
@@ -24,6 +25,13 @@ export function FloatingActionBar({ selectedCount, actions, onClear }: FloatingA
   const isMobile = useIsMobile();
   const buttonSize = isMobile ? "sm" : undefined;
   const count = m.collections_selection_count({ count: selectedCount });
+  const disabledReasons = [
+    ...new Set(
+      actions.flatMap((action) =>
+        action.disabled && action.disabledReason ? [action.disabledReason] : [],
+      ),
+    ),
+  ];
   return (
     <div
       aria-label={count}
@@ -40,6 +48,7 @@ export function FloatingActionBar({ selectedCount, actions, onClear }: FloatingA
             size={buttonSize}
             onClick={() => action.onClick()}
             disabled={action.disabled}
+            title={action.disabled ? action.disabledReason : undefined}
           >
             {action.icon}
             {action.label}
@@ -54,6 +63,14 @@ export function FloatingActionBar({ selectedCount, actions, onClear }: FloatingA
           <XIcon />
         </Button>
       </div>
+      {disabledReasons.map((reason) => (
+        <p
+          key={reason}
+          className="text-muted-foreground max-w-prose self-center text-center text-xs"
+        >
+          {reason}
+        </p>
+      ))}
     </div>
   );
 }

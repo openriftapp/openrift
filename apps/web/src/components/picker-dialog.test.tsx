@@ -63,6 +63,36 @@ describe("PickerDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith("a");
   });
 
+  it("labels and disables the confirm button per selected row", () => {
+    const onConfirm = vi.fn();
+    render(
+      <PickerDialog
+        open
+        onOpenChange={() => {}}
+        title="Pick a list"
+        options={OPTIONS}
+        emptyText="No lists yet."
+        confirm={{
+          label: (selected) => (selected === null ? "Pick one" : `Move to ${selected}`),
+          pendingLabel: "Moving…",
+          disabledFor: (selected) => selected === "b",
+          onConfirm,
+        }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Pick one" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("option", { name: /Bandle box/u }));
+    const blocked = screen.getByRole("button", { name: "Move to b" });
+    expect(blocked).toBeDisabled();
+    fireEvent.submit(blocked.closest("form")!);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("option", { name: /Arcane binder/u }));
+    fireEvent.click(screen.getByRole("button", { name: "Move to a" }));
+    expect(onConfirm).toHaveBeenCalledWith("a");
+  });
+
   it("shows the pending label and blocks rows while pending", () => {
     const onConfirm = vi.fn();
     render(

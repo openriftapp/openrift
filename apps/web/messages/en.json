@@ -1980,7 +1980,7 @@
   "lists_entry_move_no_match": "No matching lists.",
   "lists_entry_move_pending": "Moving…",
   "lists_entry_move_confirm": "Move",
-  "lists_entry_move_action": "Move",
+  "lists_entry_move_action": "Move to list",
   "lists_entry_remove_action": "Remove",
   "lists_entry_take_off": "Take off list",
   "lists_entry_hide_library": "Hide library",
@@ -4953,6 +4953,52 @@
   "lists_entry_move_needs_single": "Lists that track printings or copies take one card at a time.",
   "lists_toast_moved_to_list": "Moved {count} to \"{list}\"",
   "lists_toast_copied_to_list": "Copied {count} to \"{list}\"",
+  "lists_entry_move_to_collection_action": "Move to collection",
+  "lists_entry_rule_locked_copies": "The rule puts these copies on this list, so they can't leave it. Change the rule or copy them to another list.",
+  "lists_entry_rule_locked_cards": "The rule puts these cards on this list, so they can't leave it. Change the rule or copy them to another list.",
+  "lists_page_move_copies_to_collection": "Move copies to collection…",
+  "lists_move_to_collection_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move 1 copy to collection",
+        "countPlural=*": "Move {count} copies to collection"
+      }
+    }
+  ],
+  "lists_move_to_collection_already_here": "{count} already here",
+  "lists_move_to_collection_confirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move 1 copy",
+        "countPlural=*": "Move {count} copies"
+      }
+    }
+  ],
+  "lists_move_to_collection_none": "All already here",
+  "lists_toast_moved_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved 1 copy to \"{collection}\"",
+        "countPlural=*": "Moved {count} copies to \"{collection}\""
+      }
+    }
+  ],
+  "lists_toast_already_in_collection": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 was already there.",
+        "countPlural=*": "{count} were already there."
+      }
+    }
+  ],
   "lists_add_intent_wish": "Wishlist",
   "lists_add_no_lists": "No lists yet. Create one below.",
   "collections_drag_copy_label": "{name} (copy)",

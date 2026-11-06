@@ -7,6 +7,7 @@
 - feat(Decks): **Select several decks at once** — archive, unarchive, or add and remove a folder for many decks in one step from the deck list.
 - feat(Decks): **Variants open as one panel** — showing a deck's variants lists them together in a compact panel under its row, with the primary marked.
 - feat(App): **One look for every picker** — dropdowns, searchable lists and pick dialogs now share one style, arrow-key navigation and the same loading and empty states.
+- feat(Collection): **Move whole lists into collections** — move every copy a list shows, such as a bulk list, into a collection in one step.
 
 ### Other
 

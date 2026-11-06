@@ -163,24 +163,49 @@ export function selectableEntryIds(
   return [...new Set(ids)];
 }
 
+function copyIdsBySelectionId(
+  entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
+): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const [itemId, entry] of entryByItemId) {
+    if (entry.kind === "copy") {
+      result.set(entrySelectionId(itemId, entry), entry.copyId);
+    }
+  }
+  return result;
+}
+
+/** Copy ids behind the selected entries, rule-produced ones included. */
+export function selectedCopyIds(
+  entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
+  selected: ReadonlySet<string>,
+): string[] {
+  return [...copyIdsBySelectionId(entryByItemId)].flatMap(([id, copyId]) =>
+    selected.has(id) ? [copyId] : [],
+  );
+}
+
+export function visibleCopyIds(
+  items: readonly CardViewerItem[],
+  entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
+): string[] {
+  const ids = items.flatMap((item) => {
+    const entry = entryByItemId.get(item.id);
+    return entry?.kind === "copy" ? [entry.copyId] : [];
+  });
+  return [...new Set(ids)];
+}
+
 export function resolveCopyMoveTarget(
   entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
   selected: ReadonlySet<string>,
   copyId: string,
 ): string[] {
-  const copyIdBySelectionId = new Map<string, string>();
-  for (const [itemId, entry] of entryByItemId) {
-    if (entry.kind === "copy") {
-      copyIdBySelectionId.set(entrySelectionId(itemId, entry), entry.copyId);
-    }
-  }
-  const selectionId = [...copyIdBySelectionId].find(([, id]) => id === copyId)?.[0];
+  const selectionId = [...copyIdsBySelectionId(entryByItemId)].find(([, id]) => id === copyId)?.[0];
   if (selectionId === undefined || !selected.has(selectionId)) {
     return [copyId];
   }
-  return [...copyIdBySelectionId].flatMap(([id, selectedCopyId]) =>
-    selected.has(id) ? [selectedCopyId] : [],
-  );
+  return selectedCopyIds(entryByItemId, selected);
 }
 
 /** The printing each selectable entry shows, keyed by selection id. */

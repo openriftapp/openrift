@@ -1,6 +1,7 @@
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  BookOpenIcon,
   DownloadIcon,
   EllipsisVerticalIcon,
   LibraryBigIcon,
@@ -32,6 +33,7 @@ import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { DeleteListDialog } from "@/features/lists/components/delete-list-dialog";
 import { ListEditDialog } from "@/features/lists/components/list-edit-dialog";
 import { ListEntryBrowser } from "@/features/lists/components/list-entry-browser";
+import type { ListMoveCopiesAction } from "@/features/lists/components/list-entry-browser";
 import { ListExportDialog } from "@/features/lists/components/list-export-dialog";
 import { ListHeader } from "@/features/lists/components/list-header";
 import { ListImportDialog } from "@/features/lists/components/list-import-dialog";
@@ -117,7 +119,7 @@ export function ListPage({ listId }: ListPageProps) {
 
   // Assembled here since it belongs to the page, but rendered by the browser,
   // which owns select mode - hence the callback.
-  const renderTopBar = (selectActions: ReactNode = null) => {
+  const renderTopBar = (selectActions: ReactNode = null, moveCopies?: ListMoveCopiesAction) => {
     const topBar = (
       <ListHeader
         list={data.list}
@@ -155,6 +157,15 @@ export function ListPage({ listId }: ListPageProps) {
                     <span className="text-primary ml-auto pl-3 text-xs">{activeRuleCount}</span>
                   ) : null}
                 </DropdownMenuItem>
+                {data.list.kind === "copy" && (
+                  <DropdownMenuItem
+                    onClick={() => moveCopies?.onOpen()}
+                    disabled={!moveCopies || moveCopies.count === 0}
+                  >
+                    <BookOpenIcon className="size-4" />
+                    {m.lists_page_move_copies_to_collection()}
+                  </DropdownMenuItem>
+                )}
                 {(data.list.kind === "card" || data.list.kind === "printing") && (
                   <DropdownMenuItem onClick={() => setImportOpen(true)}>
                     <UploadIcon className="size-4" />

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -177,6 +177,7 @@ vi.mock("@/features/cards/hooks/use-card-filters", () => ({
   useFilterActions: () => ({ setSearch: vi.fn() }),
 }));
 
+let selectedIds = new Set<string>();
 const clearSelection = vi.fn();
 const resetSelection = vi.fn();
 const toggleSelectAll = vi.fn();
@@ -185,7 +186,7 @@ vi.mock("@/features/cards/hooks/use-card-selection", async () => {
     await import("@/features/cards/stores/grid-selection-store");
   return {
     useCardSelection: () => ({
-      selected: new Set<string>(),
+      selected: selectedIds,
       selectMode: store((s) => s.selectMode),
       setSelectMode: store((s) => s.setSelectMode),
       toggleSelect: vi.fn(),
@@ -200,6 +201,7 @@ vi.mock("@/features/cards/hooks/use-card-selection", async () => {
 });
 
 vi.mock("@/features/collections/hooks/use-copies", () => ({
+  useCopies: () => ({ data: [], isReady: true }),
   useCopyListMemberships: () => ({ data: undefined, isLoading: false }),
   useDisposeCopies: () => mutationStub(),
   useMoveCopies: () => mutationStub(),
@@ -234,7 +236,16 @@ vi.mock("@/components/ui/sidebar", () => ({
 }));
 
 vi.mock("@/features/cards/components/card-viewer", () => ({
-  CardViewer: ({ rightPane }: { rightPane?: unknown }) => <div>{rightPane as never}</div>,
+  CardViewer: ({ rightPane, children }: { rightPane?: unknown; children?: unknown }) => (
+    <div>
+      {rightPane as never}
+      {children as never}
+    </div>
+  ),
+}));
+
+vi.mock("@/features/cards/components/selection-detail-overlays", () => ({
+  SelectionDetailOverlays: () => null,
 }));
 
 vi.mock("@/features/cards/components/selection-detail-pane", () => ({
@@ -310,6 +321,7 @@ describe("ListPage", () => {
     }
     listDetail = cardKindListDetail;
     sortedCards = [];
+    selectedIds = new Set();
     document.body.innerHTML = "";
   });
 
@@ -349,7 +361,7 @@ describe("ListPage", () => {
     await closeOpenMenu(user);
   });
 
-  it("omits Import… from the actions menu for a copy list", async () => {
+  it("omits Import… and offers moving copies to a collection for a copy list", async () => {
     listDetail = copyKindListDetail;
     const user = userEvent.setup();
     renderListPage();
@@ -359,10 +371,64 @@ describe("ListPage", () => {
     expect(items.map((item) => item.textContent)).toEqual([
       "Edit",
       "Dynamic rules",
+      "Move copies to collection…",
       "Export…",
       "Delete list",
     ]);
     await closeOpenMenu(user);
+  });
+
+  it("disables moving copies to a collection when the list shows no copies", async () => {
+    listDetail = copyKindListDetail;
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(screen.getByRole("button", { name: "List actions" }));
+    expect(
+      await screen.findByRole("menuitem", { name: "Move copies to collection…" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    await closeOpenMenu(user);
+  });
+
+  it("moves every shown copy, rule-produced ones included, from the actions menu", async () => {
+    listDetail = copyKindListDetail;
+    sortedCards = [printingOnList];
+    const user = userEvent.setup();
+    const { view } = renderListPage();
+
+    await user.click(screen.getByRole("button", { name: "List actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Move copies to collection…" }));
+
+    expect(await screen.findByText("Move 1 copy to collection")).toBeInTheDocument();
+    view.unmount();
+  });
+
+  it("leads the copy selection bar with Move to collection and explains the rule lock", () => {
+    listDetail = copyKindListDetail;
+    sortedCards = [printingOnList];
+    selectedIds = new Set(["rule:copy-1"]);
+    useGridSelectionStore.setState({ selectMode: true });
+    renderListPage();
+
+    const bar = screen.getByLabelText("1 selected");
+    const buttons = within(bar).getAllByRole("button");
+    expect(buttons[0]).toHaveTextContent("Move to collection");
+    expect(buttons[0]).toBeEnabled();
+    expect(within(bar).getByRole("button", { name: "Move to list" })).toBeDisabled();
+    expect(within(bar).getByRole("button", { name: "Take off list" })).toBeDisabled();
+    expect(within(bar).getByText(/The rule puts these copies on this list/u)).toBeInTheDocument();
+  });
+
+  it("keeps Move to collection off card lists and shows no lock note for manual entries", () => {
+    sortedCards = [printingOnList];
+    selectedIds = new Set(["entry-1"]);
+    useGridSelectionStore.setState({ selectMode: true });
+    renderListPage();
+
+    const bar = screen.getByLabelText("1 selected");
+    expect(within(bar).queryByRole("button", { name: "Move to collection" })).toBeNull();
+    expect(within(bar).getByRole("button", { name: "Move to list" })).toBeEnabled();
+    expect(within(bar).queryByText(/The rule puts these/u)).toBeNull();
   });
 
   it("keeps the rule editor out of the top bar and offers it in the menu", async () => {
