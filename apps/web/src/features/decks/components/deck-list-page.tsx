@@ -41,8 +41,8 @@ import { useDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
 import { useCreateDeck, useDeckList, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
-import type { CollapsedDeckEntry } from "@/features/decks/lib/deck-family";
-import { collapseFamilies } from "@/features/decks/lib/deck-family";
+import type { CollapsedDeckEntry, DeckGridEntry } from "@/features/decks/lib/deck-family";
+import { collapseFamilies, withVariantPanels } from "@/features/decks/lib/deck-family";
 import type { DeckListItemWithNames } from "@/features/decks/lib/deck-list-utils";
 import {
   availableDomainsFrom,
@@ -79,6 +79,7 @@ import { ClaimLocalDecksPrompt } from "./claim-local-decks-prompt";
 import { DeckListRow } from "./deck-list-row";
 import { DeckListToolbar } from "./deck-list-toolbar";
 import { DeckTile, FannedPreview } from "./deck-tile";
+import { DeckVariantsPanel } from "./deck-variants-panel";
 import { LocalDeckSaveBanner, LocalDeckSaveNote } from "./local-save-hint";
 
 function CreateDeckDialog({
@@ -341,7 +342,9 @@ export function DeckListPage() {
 
   const containerClass =
     density === "grid"
-      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      ? // Dense flow backfills the cells beside an expanded front, so its
+        // full-width variants panel lands under the front's whole row.
+        "grid grid-flow-row-dense grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       : "flex flex-col gap-1.5";
 
   const [expandedFamilies, setExpandedFamilies] = useState<ReadonlySet<string>>(new Set());
@@ -355,24 +358,32 @@ export function DeckListPage() {
     });
   };
 
-  const renderEntry = (entry: CollapsedDeckEntry<DeckListItemWithNames>) =>
-    density === "grid" ? (
-      <DeckTile
-        key={entry.item.deck.id}
-        item={entry.item}
+  const renderGridEntry = (entry: DeckGridEntry<DeckListItemWithNames>) =>
+    entry.kind === "variants" ? (
+      <DeckVariantsPanel
+        key={`variants-${entry.familyId}`}
+        items={entry.items}
         folderLabels={folderLabels}
-        family={entry.family}
-        onToggleFamily={toggleFamily}
       />
     ) : (
-      <DeckListRow
-        key={entry.item.deck.id}
-        item={entry.item}
+      <DeckTile
+        key={entry.entry.item.deck.id}
+        item={entry.entry.item}
         folderLabels={folderLabels}
-        family={entry.family}
+        family={entry.entry.family}
         onToggleFamily={toggleFamily}
       />
     );
+
+  const renderRow = (entry: CollapsedDeckEntry<DeckListItemWithNames>) => (
+    <DeckListRow
+      key={entry.item.deck.id}
+      item={entry.item}
+      folderLabels={folderLabels}
+      family={entry.family}
+      onToggleFamily={toggleFamily}
+    />
+  );
 
   return (
     <div className={`${PAGE_WIDTH.full} ${PAGE_PADDING_NO_TOP}`}>
@@ -486,7 +497,9 @@ export function DeckListPage() {
                   <div key={group.key}>
                     <GroupHeader label={group.label} count={group.items.length} />
                     <div className={containerClass}>
-                      {entries.map((entry) => renderEntry(entry))}
+                      {density === "grid"
+                        ? withVariantPanels(entries).map((entry) => renderGridEntry(entry))
+                        : entries.map((entry) => renderRow(entry))}
                     </div>
                   </div>
                 );

@@ -2,6 +2,7 @@ import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import { Link } from "@tanstack/react-router";
 import { ArchiveIcon, PinIcon } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { cardLinkVariants } from "@/components/ui/card-link";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
@@ -30,12 +31,14 @@ export function DeckListRow({
   folderLabels = {},
   family,
   onToggleFamily,
+  showPrimary = false,
 }: {
   item: DeckListItemResponse;
   folderLabels?: Record<string, string>;
   /** Absent for a standalone deck. */
   family?: DeckFamilyEntry;
   onToggleFamily?: (familyId: string) => void;
+  showPrimary?: boolean;
 }) {
   const {
     deck,
@@ -132,6 +135,11 @@ export function DeckListRow({
             >
               {deck.name}
             </Link>
+            {showPrimary && deck.isPrimary && (
+              <Badge variant="secondary" className="shrink-0">
+                {m.decks_dialog_variants_badge_primary()}
+              </Badge>
+            )}
             {deck.isDraft && <DraftBadge />}
             {variantToggle}
           </div>

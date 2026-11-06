@@ -262,6 +262,7 @@ export function DeckTile({
       className={cn(
         cardLinkVariants(),
         "ring-border group relative flex flex-row overflow-hidden rounded-lg ring-1 hover:bg-transparent data-[archived=true]:opacity-60 sm:flex-col",
+        family?.role === "front" && family.expanded && "ring-primary/60",
         // An anchor can't contain the menu and badges here, so the name's
         // ::after link stretches over the tile, and the ring follows it.
         "has-[a:focus-visible]:ring-ring/50 has-[a:focus-visible]:ring-2",
@@ -275,12 +276,6 @@ export function DeckTile({
       <div className="bg-background/60 absolute top-2 right-2 z-10 rounded-md backdrop-blur-sm">
         {isLocal ? <LocalDeckActionsMenu item={item} /> : <DeckActionsMenu item={item} />}
       </div>
-
-      {variantToggle && (
-        <div className="bg-background/60 absolute top-2 left-2 z-10 rounded-md backdrop-blur-sm max-sm:hidden">
-          {variantToggle}
-        </div>
-      )}
 
       <div className="max-sm:hidden">
         <FannedPreview
@@ -385,7 +380,6 @@ export function DeckTile({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
-          {variantToggle}
           {isLocal && <LocalDeckBadge className="text-2xs" />}
           <DeckFormatBadge
             format={deck.format}
@@ -395,6 +389,7 @@ export function DeckTile({
             isValid={isValid}
           />
           <DeckMetaLine item={item} />
+          {variantToggle && <span className="ml-auto">{variantToggle}</span>}
         </div>
 
         <div className="max-sm:hidden">
@@ -407,7 +402,10 @@ export function DeckTile({
           </div>
         )}
 
-        <DeckMetaLine item={item} className="mt-auto pt-1 max-sm:hidden" />
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1 max-sm:hidden">
+          <DeckMetaLine item={item} className="min-w-0" />
+          {variantToggle}
+        </div>
       </div>
     </div>
   );

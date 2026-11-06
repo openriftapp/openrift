@@ -137,3 +137,18 @@ describe.each([
     expect(screen.getByRole("button", { name: "Deck actions" })).toBeInTheDocument();
   });
 });
+
+describe("DeckVariantsPanel", () => {
+  it("lists every variant and marks only the primary", async () => {
+    const { DeckVariantsPanel } = await import("./deck-variants-panel");
+    const alt = {
+      ...ITEM,
+      deck: { ...ITEM.deck, id: "deck-2", name: "Jinx Budget", isPrimary: false },
+    };
+    render(<DeckVariantsPanel items={[ITEM, alt]} />);
+
+    const panel = screen.getByRole("region", { name: "Variants" });
+    expect(panel.querySelectorAll("a")).toHaveLength(2);
+    expect(screen.getAllByText("Primary")).toHaveLength(1);
+  });
+});

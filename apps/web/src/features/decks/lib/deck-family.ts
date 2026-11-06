@@ -72,3 +72,27 @@ export function collapseFamilies<T extends DeckFamilyItem>(
   }
   return entries;
 }
+
+export type DeckGridEntry<T> =
+  | { kind: "deck"; entry: CollapsedDeckEntry<T> }
+  | { kind: "variants"; familyId: string; items: T[] };
+
+/** Moves an expanded family's members into one panel entry right after its front; the panel lists the front too. */
+export function withVariantPanels<T>(entries: CollapsedDeckEntry<T>[]): DeckGridEntry<T>[] {
+  const result: DeckGridEntry<T>[] = [];
+  let panel: { kind: "variants"; familyId: string; items: T[] } | undefined;
+  for (const entry of entries) {
+    const family = entry.family;
+    if (family?.role === "member" && panel?.familyId === family.id) {
+      panel.items.push(entry.item);
+      continue;
+    }
+    result.push({ kind: "deck", entry });
+    panel = undefined;
+    if (family?.role === "front" && family.expanded && family.memberCount > 1) {
+      panel = { kind: "variants", familyId: family.id, items: [entry.item] };
+      result.push(panel);
+    }
+  }
+  return result;
+}

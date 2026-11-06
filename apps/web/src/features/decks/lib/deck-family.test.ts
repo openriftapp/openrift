@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { collapseFamilies } from "./deck-family";
+import { collapseFamilies, withVariantPanels } from "./deck-family";
 
 interface TestItem {
   deck: { id: string; familyId: string | null; isPrimary: boolean };
@@ -91,5 +91,49 @@ describe("collapseFamilies", () => {
   it("ignores an expanded id that no longer matches a family", () => {
     const items = [makeItem("solo"), makeItem("main", "fam", true)];
     expect(render(collapseFamilies(items, new Set(["gone"])))).toEqual(["solo", "main+"]);
+  });
+});
+
+describe("withVariantPanels", () => {
+  function grid(items: TestItem[], expanded: string[]): string[] {
+    return withVariantPanels(collapseFamilies(items, new Set(expanded))).map((entry) =>
+      entry.kind === "deck"
+        ? entry.entry.item.deck.id
+        : `[${entry.items.map((item) => item.deck.id).join(",")}]`,
+    );
+  }
+
+  it("returns nothing for an empty list", () => {
+    expect(withVariantPanels<TestItem>([])).toEqual([]);
+  });
+
+  it("passes standalone decks and collapsed families through", () => {
+    const items = [makeItem("solo"), makeItem("main", "fam", true), makeItem("alt", "fam")];
+    expect(grid(items, [])).toEqual(["solo", "main"]);
+  });
+
+  it("puts an expanded family's front and members into a panel after the front", () => {
+    const items = [
+      makeItem("solo"),
+      makeItem("alt", "fam"),
+      makeItem("main", "fam", true),
+      makeItem("other"),
+      makeItem("budget", "fam"),
+    ];
+    expect(grid(items, ["fam"])).toEqual(["solo", "main", "[main,alt,budget]", "other"]);
+  });
+
+  it("keeps two expanded families in separate panels", () => {
+    const items = [
+      makeItem("a1", "a", true),
+      makeItem("a2", "a"),
+      makeItem("b1", "b", true),
+      makeItem("b2", "b"),
+    ];
+    expect(grid(items, ["a", "b"])).toEqual(["a1", "[a1,a2]", "b1", "[b1,b2]"]);
+  });
+
+  it("opens no panel for an expanded family with a single deck left in the list", () => {
+    expect(grid([makeItem("main", "fam", true)], ["fam"])).toEqual(["main"]);
   });
 });
