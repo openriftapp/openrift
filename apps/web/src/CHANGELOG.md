@@ -11,6 +11,7 @@
 - feat(App): **Touch-sized controls** — buttons, fields, tabs and menus grow to 44px on touch screens, and small icons such as chip remove buttons get larger tap areas.
 - fix(App): **Header fits on tablets** — the top bar no longer runs off the screen on tablets, and Help and Contribute move into the account menu when space runs short.
 - fix(Decks): **Replace-import shows the new cards** — importing a list over a deck now shows its cards right away instead of an empty deck until you reload.
+- fix(Meta): **No prices on partial lists** — partial decklists no longer show a value or a cost to complete, and sorting by price puts them last.
 
 ### Other
 

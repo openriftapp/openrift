@@ -7,6 +7,7 @@ import {
   metaCardOwnershipBand,
   metaDeckCosts,
   ownedCountsByCardId,
+  partialListDeckIds,
 } from "./meta-deck-collection";
 
 describe("decodeMetaDeckCardIndex", () => {
@@ -239,6 +240,49 @@ describe("metaDeckCosts", () => {
       ownedByCardId: new Map(),
     });
     expect(costs.get("deck-1")).toEqual({ needed: 0, owned: 0, value: 0, toComplete: 0 });
+  });
+
+  it("gives a partial list no value, ownership or cost to complete", () => {
+    const costs = metaDeckCosts(decks, {
+      includeSideboard: false,
+      prices,
+      ownedByCardId: new Map([
+        ["card-a", 3],
+        ["card-b", 1],
+      ]),
+      partialDeckIds: new Set(["deck-1"]),
+    });
+    expect(costs.get("deck-1")).toEqual({
+      needed: 4,
+      owned: undefined,
+      value: undefined,
+      toComplete: undefined,
+    });
+  });
+
+  it("still prices a full list when another deck is partial", () => {
+    const costs = metaDeckCosts(decks, {
+      includeSideboard: false,
+      prices,
+      partialDeckIds: new Set(["deck-2"]),
+    });
+    expect(costs.get("deck-1")?.value).toBe(16);
+  });
+});
+
+describe("partialListDeckIds", () => {
+  it("collects the decks of partial lists only", () => {
+    expect(
+      partialListDeckIds([
+        { deckId: "deck-1", listStatus: "partial" },
+        { deckId: "deck-2", listStatus: "full" },
+        { deckId: null, listStatus: "none" },
+      ]),
+    ).toEqual(new Set(["deck-1"]));
+  });
+
+  it("is empty for no rows", () => {
+    expect(partialListDeckIds([])).toEqual(new Set());
   });
 });
 

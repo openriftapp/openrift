@@ -36,6 +36,7 @@ import {
 } from "@/features/meta/components/meta-event-standings-body";
 import { useMetaStandings } from "@/features/meta/hooks/use-meta";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
+import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
 import {
   ANY_LEGEND,
   legendOptions,
@@ -195,6 +196,7 @@ export function MetaEventStandings({
               includeSideboard={costFilter.includeSideboard}
               withCollection={canSubmit}
               decks={{ event: slug }}
+              partialDeckIds={partialListDeckIds(players)}
               onChange={setCosts}
             />
           </Suspense>

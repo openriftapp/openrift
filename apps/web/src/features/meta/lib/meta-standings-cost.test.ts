@@ -2,6 +2,7 @@ import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
 import type { MetaDeckCost } from "./meta-deck-collection";
+import { metaDeckCosts, partialListDeckIds } from "./meta-deck-collection";
 import type { StandingsCostBounds } from "./meta-standings-cost";
 import {
   costMatchesBounds,
@@ -132,6 +133,36 @@ describe("costMatchesBounds", () => {
     const both: StandingsCostBounds = { maxCost: 25, valueRange: { min: null, max: 50 } };
     expect(costMatchesBounds(PARTLY_OWNED, both)).toBe(false);
     expect(costMatchesBounds({ ...PARTLY_OWNED, value: 40 }, both)).toBe(true);
+  });
+});
+
+describe("a partial list in the standings", () => {
+  const field = [
+    player({ id: "p-1", deckId: "full", shareToken: "tok1", listStatus: "full" }),
+    player({ id: "p-2", rank: 2, deckId: "partial", shareToken: "tok2", listStatus: "partial" }),
+  ];
+  const lists = new Map([
+    ["full", { main: new Map([["card-dear", 1]]), side: new Map() }],
+    ["partial", { main: new Map([["card-cheap", 1]]), side: new Map() }],
+  ]);
+  const costs = metaDeckCosts(lists, {
+    includeSideboard: false,
+    prices: new Map([
+      ["card-cheap", 1],
+      ["card-dear", 90],
+    ]),
+    ownedByCardId: new Map(),
+    partialDeckIds: partialListDeckIds(field),
+  });
+
+  it("falls outside every cost bound", () => {
+    expect(countStandingsUnderCost(field, costs, ANY, 1000)).toBe(1);
+    const bounds = { ...ANY, valueRange: { min: null, max: 1000 } };
+    expect(countStandingsUnderCost(field, costs, bounds, null)).toBe(1);
+  });
+
+  it("does not set the slider ceiling", () => {
+    expect(highestStandingsCost(field.slice(1), costs, (cost) => cost.value)).toBeUndefined();
   });
 });
 

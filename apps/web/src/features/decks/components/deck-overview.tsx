@@ -124,6 +124,7 @@ interface DeckOverviewProps {
   heroActions?: React.ReactNode;
   notice?: React.ReactNode;
   unknownZoneCounts?: ReadonlyMap<DeckZone, number>;
+  hideDeckValue?: boolean;
   oddsConfig?: DeckOddsConfig | null;
   onSaveOddsConfig?: (config: DeckOddsConfig) => void;
 }
@@ -151,6 +152,7 @@ export function DeckOverview({
   heroActions,
   notice,
   unknownZoneCounts,
+  hideDeckValue,
   oddsConfig,
   onSaveOddsConfig,
 }: DeckOverviewProps) {
@@ -493,6 +495,7 @@ export function DeckOverview({
         domainDistribution={stats.domainDistribution}
         domainTotal={stats.totalCards}
         ownershipData={ownershipData}
+        hideValue={hideDeckValue}
         marketplace={marketplace}
         showSignIn={showSignIn}
         onViewMissing={onViewMissing}

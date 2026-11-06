@@ -139,6 +139,7 @@ export function MetaDeckPage({ token }: { token: string }) {
       // Empty side zones on a partial list are holes in the record, not zones
       // the player left empty, so they keep their slots and say so.
       unknownZoneCounts={unknown}
+      hideDeckValue={data.meta.listStatus === "partial"}
       notice={
         <MetaDeckNotice
           eventSlug={data.meta.event.slug}

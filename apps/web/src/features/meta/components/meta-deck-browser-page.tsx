@@ -41,6 +41,7 @@ import { useMetaDeckFacets, useMetaDecks } from "@/features/meta/hooks/use-meta"
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
+import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
 import {
   filterDecksByCost,
   groupDecksByEvent,
@@ -237,6 +238,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
           includeSideboard={filters.includeSideboard}
           withCollection={signedIn}
           decks={page}
+          partialDeckIds={partialListDeckIds(data.decks)}
           onChange={setCosts}
         />
       </Suspense>

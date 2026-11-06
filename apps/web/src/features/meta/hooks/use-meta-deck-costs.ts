@@ -17,7 +17,11 @@ import { useDisplayStore } from "@/stores/display-store";
 /** Reads a live query, so it must sit under `useHydrated`. */
 export function useMetaDeckCosts(
   includeSideboard: boolean,
-  options: { withCollection: boolean; decks?: MetaDeckCardsQuery },
+  options: {
+    withCollection: boolean;
+    decks?: MetaDeckCardsQuery;
+    partialDeckIds?: ReadonlySet<string>;
+  },
 ): ReadonlyMap<string, MetaDeckCost> | undefined {
   const { data: index } = useMetaDeckCards(options.decks);
   const { printingsByCardId } = useCards();
@@ -36,5 +40,6 @@ export function useMetaDeckCosts(
       ownedByPrinting === undefined
         ? undefined
         : ownedCountsByCardId(ownedByPrinting, printingsByCardId),
+    partialDeckIds: options.partialDeckIds,
   });
 }

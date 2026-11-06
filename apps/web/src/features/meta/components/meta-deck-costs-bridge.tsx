@@ -13,14 +13,16 @@ export function MetaDeckCostsBridge({
   includeSideboard,
   withCollection,
   decks,
+  partialDeckIds,
   onChange,
 }: {
   includeSideboard: boolean;
   withCollection: boolean;
   decks?: MetaDeckCardsQuery;
+  partialDeckIds?: ReadonlySet<string>;
   onChange: (value: ReadonlyMap<string, MetaDeckCost> | undefined) => void;
 }) {
-  const costs = useMetaDeckCosts(includeSideboard, { withCollection, decks });
+  const costs = useMetaDeckCosts(includeSideboard, { withCollection, decks, partialDeckIds });
   useEffect(() => {
     onChange(costs);
   }, [costs, onChange]);

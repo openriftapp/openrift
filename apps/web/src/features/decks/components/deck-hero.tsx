@@ -46,6 +46,7 @@ interface DeckHeroProps {
   domainDistribution: { domain: string; count: number }[];
   domainTotal: number;
   ownershipData?: DeckOwnershipData;
+  hideValue?: boolean;
   marketplace: Marketplace;
   showSignIn?: boolean;
   onViewMissing?: () => void;
@@ -159,6 +160,7 @@ export function DeckHero({
   domainDistribution,
   domainTotal,
   ownershipData,
+  hideValue,
   marketplace,
   showSignIn,
   onViewMissing,
@@ -395,7 +397,8 @@ export function DeckHero({
                       </Link>
                     )}
 
-                    {ownershipData?.deckValueCents !== undefined &&
+                    {!hideValue &&
+                      ownershipData?.deckValueCents !== undefined &&
                       (showSignIn && onViewMissing ? (
                         <Button
                           type="button"

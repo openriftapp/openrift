@@ -1,4 +1,5 @@
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
+import type { MetaListStatus } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
@@ -107,12 +108,25 @@ function scopedQuantities(cards: MetaDeckCards, includeSideboard: boolean): Map<
   return quantities;
 }
 
+export function partialListDeckIds(
+  rows: readonly { deckId: string | null; listStatus: MetaListStatus }[],
+): Set<string> {
+  const ids = new Set<string>();
+  for (const row of rows) {
+    if (row.deckId !== null && row.listStatus === "partial") {
+      ids.add(row.deckId);
+    }
+  }
+  return ids;
+}
+
 export function metaDeckCosts(
   decks: MetaDeckCardsByDeck,
   options: {
     includeSideboard: boolean;
     prices: ReadonlyMap<string, number>;
     ownedByCardId?: ReadonlyMap<string, number>;
+    partialDeckIds?: ReadonlySet<string>;
   },
 ): Map<string, MetaDeckCost> {
   const byDeck = new Map<string, MetaDeckCost>();
@@ -137,6 +151,10 @@ export function metaDeckCosts(
       } else if (toComplete !== undefined && price !== undefined) {
         toComplete += price * missing;
       }
+    }
+    if (options.partialDeckIds?.has(deckId)) {
+      byDeck.set(deckId, { needed, owned: undefined, value: undefined, toComplete: undefined });
+      continue;
     }
     const withCollection = options.ownedByCardId !== undefined;
     byDeck.set(deckId, {

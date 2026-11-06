@@ -15,6 +15,7 @@ const captured = vi.hoisted(() => ({
   userId: null as string | null,
   cards: [] as Record<string, unknown>[],
   unknownZoneCounts: null as ReadonlyMap<string, number> | null,
+  hideDeckValue: undefined as boolean | undefined,
 }));
 
 // Stubs the public share renderer's slots; these tests are about what the archive hands it.
@@ -26,6 +27,7 @@ vi.mock("@/features/decks/components/public-deck-surface", () => ({
     heroHeading,
     heroLead,
     unknownZoneCounts,
+    hideDeckValue,
   }: {
     topBar?: React.ReactNode;
     notice?: React.ReactNode;
@@ -33,8 +35,10 @@ vi.mock("@/features/decks/components/public-deck-surface", () => ({
     heroHeading?: React.ReactNode;
     heroLead?: React.ReactNode;
     unknownZoneCounts?: ReadonlyMap<string, number>;
+    hideDeckValue?: boolean;
   }) => {
     captured.unknownZoneCounts = unknownZoneCounts ?? null;
+    captured.hideDeckValue = hideDeckValue;
     return (
       <div>
         {topBar}
@@ -264,6 +268,16 @@ describe("MetaDeckPage archive frame", () => {
   it("marks the zones a partial list never published as unknown", () => {
     renderDeck({ listStatus: "partial" });
     expect(captured.unknownZoneCounts?.get("battlefield")).toBe(3);
+  });
+
+  it("prices no deck value on a partial list", () => {
+    renderDeck({ listStatus: "partial" });
+    expect(captured.hideDeckValue).toBe(true);
+  });
+
+  it("keeps the deck value on a full list", () => {
+    renderDeck();
+    expect(captured.hideDeckValue).toBe(false);
   });
 
   it("marks nothing unknown on a full list", () => {

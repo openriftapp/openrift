@@ -1,6 +1,7 @@
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
+import { metaDeckCosts } from "./meta-deck-collection";
 import type { MetaDeckFilterValues } from "./meta-deck-filters";
 import {
   filterDecksByCost,
@@ -107,6 +108,26 @@ const decks: MetaDeckSummary[] = [
 
 const ids = (result: MetaDeckSummary[]) => result.map((deck) => deck.deckId);
 
+const listOf = (cardId: string) => ({ main: new Map([[cardId, 1]]), side: new Map() });
+
+const PARTIAL_COSTS = metaDeckCosts(
+  new Map([
+    ["a", listOf("card-mid")],
+    ["b", listOf("card-cheap")],
+    ["c", listOf("card-dear")],
+  ]),
+  {
+    includeSideboard: false,
+    prices: new Map([
+      ["card-cheap", 1],
+      ["card-mid", 50],
+      ["card-dear", 90],
+    ]),
+    ownedByCardId: new Map(),
+    partialDeckIds: new Set(["b"]),
+  },
+);
+
 describe("groupDecksByEvent", () => {
   const riftOpen = { ...decks[0]!.event, slug: "rift-open", name: "Rift Open" };
 
@@ -187,6 +208,12 @@ describe("sortMetaDecks", () => {
     expect(ids(sortMetaDecks(decks, "value", "desc", COSTS))).toEqual(["a", "b", "c"]);
   });
 
+  it("sorts a partial list last by cost and by value, however cheap its known cards", () => {
+    expect(ids(sortMetaDecks(decks, "cost", "asc", PARTIAL_COSTS))).toEqual(["a", "c", "b"]);
+    expect(ids(sortMetaDecks(decks, "cost", "desc", PARTIAL_COSTS))).toEqual(["c", "a", "b"]);
+    expect(ids(sortMetaDecks(decks, "value", "asc", PARTIAL_COSTS))).toEqual(["a", "c", "b"]);
+  });
+
   it("falls back to the date order before any cost is known", () => {
     expect(ids(sortMetaDecks(decks, "cost", "asc"))).toEqual(["a", "b", "c"]);
   });
@@ -251,6 +278,16 @@ describe("filterDecksByCost", () => {
     expect(
       ids(filterDecksByCost(decks, { ...COST_EMPTY, valueMin: 61, valueMax: 200 }, COSTS)),
     ).toEqual(["a"]);
+  });
+
+  it("drops a partial list from every cost bound", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, maxCost: 1000 }, PARTIAL_COSTS))).toEqual([
+      "a",
+      "c",
+    ]);
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, valueMax: 1000 }, PARTIAL_COSTS))).toEqual(
+      ["a", "c"],
+    );
   });
 
   it("drops a list whose value is unknown once a bound is set", () => {

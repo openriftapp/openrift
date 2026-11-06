@@ -51,6 +51,7 @@ interface PublicDeckSurfaceProps {
   notice?: React.ReactNode;
   footer?: React.ReactNode;
   unknownZoneCounts?: ReadonlyMap<DeckZone, number>;
+  hideDeckValue?: boolean;
 }
 
 /**
@@ -82,6 +83,7 @@ function PublicDeckContent({
   notice,
   footer,
   unknownZoneCounts,
+  hideDeckValue,
   topBarHeight,
 }: PublicDeckSurfaceProps & { topBarHeight: number }) {
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
@@ -207,6 +209,7 @@ function PublicDeckContent({
             }
             notice={notice}
             unknownZoneCounts={unknownZoneCounts}
+            hideDeckValue={hideDeckValue}
             heroByline={heroByline}
             heroHeading={heroHeading}
             heroLead={heroLead}
