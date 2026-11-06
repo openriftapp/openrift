@@ -60,12 +60,14 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-044](044-overnumbered-as-a-flag.md)**: Overnumbered as a Printing Flag (moves `overnumbered` off ADR-008's `art_variant` enum)
 - **[ADR-046](046-layered-module-layout.md)**: Layered Module Layout with Lint-Enforced Import Direction
 - **[ADR-047](047-printing-desk.md)**: Printing Desk for Trusted Contributors
+- **[ADR-049](049-group-stage-with-fixed-top-cut.md)**: Group Stage with Fixed Top Cut
 - **[ADR-052](052-tournament-lists-to-meta-archive.md)**: Tournament Decklists into the Meta Archive via UVS Games
 - **[ADR-054](054-scryfall-style-search-syntax.md)**: Scryfall-Style Card Search Syntax
 
 ### Rejected
 
 - **[ADR-012](012-switch-to-bun-image-processing.md)**: Switch to Bun image processing
+- **[ADR-051](051-client-stores-for-private-pages.md)**: Client Stores for Private Deck and Collection Pages (sync engine dropped 2026-11-06)
 
 ### Proposed
 
@@ -74,5 +76,4 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-043](043-zod-mini-on-the-boot-path.md)**: zod/mini on the Boot Path, Classic zod Everywhere Else
 - **[ADR-045](045-borrowed-cards-in-deck-boxes.md)**: Borrowed Cards in Deck Boxes (undecided; placement rows vs. flagged copies)
 - **[ADR-048](048-cardmarket-stock-sync.md)**: Cardmarket Stock Sync through the Browser Extension
-- **[ADR-049](049-group-stage-with-fixed-top-cut.md)**: Group Stage with Fixed Top Cut
 - **[ADR-053](053-catalog-workspace.md)**: Catalog Workspace for Cards, Printings and Faces

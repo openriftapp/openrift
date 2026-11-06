@@ -1,9 +1,11 @@
 ---
-status: accepted
-date: 2026-09-16
+status: rejected
+date: 2026-11-06
 ---
 
 # ADR-051: Client Stores for Private Deck and Collection Pages
+
+> **Rejected 2026-11-06.** The sync engine was dropped. The stores described below are still in the code until it is removed.
 
 ## Context and Problem Statement
 
