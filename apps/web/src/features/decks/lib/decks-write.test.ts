@@ -9,7 +9,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getDeckCardsCollection, getDecksCollection } from "./decks-collection";
-import { deckCardKey, saveDeckCards, updateDeck } from "./decks-write";
+import { bulkUpdateDecks, deckCardKey, saveDeckCards, updateDeck } from "./decks-write";
 
 const userId = "user-1";
 
@@ -85,6 +85,14 @@ function succeed({ method, path, body }: SentRequest): Response {
   }
   if (method === "POST" && path === "/api/v1/decks") {
     return Response.json(deckFields(body as Partial<DeckResponse>), { status: 201 });
+  }
+  if (method === "POST" && path === "/api/v1/decks/archive") {
+    const { ids, archived } = body as { ids: string[]; archived: boolean };
+    const archivedAt = archived ? "2026-11-06T00:00:00.000Z" : null;
+    return Response.json({ items: ids.map((id) => deckFields({ id, archivedAt })) });
+  }
+  if (method === "POST" && path.startsWith("/api/v1/deck-folders/")) {
+    return Response.json({ items: [] });
   }
   if (method === "POST" && path.endsWith("/share")) {
     return Response.json({ shareToken: "token-1", isPublic: true });
@@ -234,6 +242,126 @@ describe("persisting deck writes", () => {
       { method: "PUT", path: "/api/v1/decks/deck-1/folders", body: { folderIds: ["folder-1"] } },
     ]);
     expect(collection.get("deck-1")?.folderIds).toEqual(["folder-1"]);
+  });
+});
+
+describe("bulk deck changes", () => {
+  it("archives several decks with one request and stores the server's timestamp", async () => {
+    const collection = await decksOnServer([
+      stubDeckRow({ id: "deck-1" }),
+      stubDeckRow({ id: "deck-2" }),
+    ]);
+
+    await bulkUpdateDecks(collection, ["deck-1", "deck-2"], {
+      kind: "archive",
+      archived: true,
+    })?.when("settled");
+
+    expect(writes()).toEqual([
+      {
+        method: "POST",
+        path: "/api/v1/decks/archive",
+        body: { ids: ["deck-1", "deck-2"], archived: true },
+      },
+    ]);
+    expect(collection.get("deck-2")?.deck.archivedAt).toBe("2026-11-06T00:00:00.000Z");
+  });
+
+  it("sends only the decks whose archive state differs", async () => {
+    const collection = await decksOnServer([
+      stubDeckRow({ id: "deck-1", archivedAt: "2026-10-01T00:00:00.000Z" }),
+      stubDeckRow({ id: "deck-2" }),
+    ]);
+
+    await bulkUpdateDecks(collection, ["deck-1", "deck-2"], {
+      kind: "archive",
+      archived: false,
+    })?.when("settled");
+
+    expect(writes()).toEqual([
+      {
+        method: "POST",
+        path: "/api/v1/decks/archive",
+        body: { ids: ["deck-1"], archived: false },
+      },
+    ]);
+    expect(collection.get("deck-1")?.deck.archivedAt).toBeNull();
+  });
+
+  it("returns no transaction and sends nothing when no deck needs the change", async () => {
+    const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
+
+    const transaction = bulkUpdateDecks(collection, ["deck-1", "deck-missing"], {
+      kind: "archive",
+      archived: false,
+    });
+
+    expect(transaction).toBeUndefined();
+    expect(writes()).toEqual([]);
+  });
+
+  it("files several decks into a folder with one request and keeps their other folders", async () => {
+    const collection = await decksOnServer([
+      { ...stubDeckRow({ id: "deck-1" }), folderIds: ["folder-old"] },
+      { ...stubDeckRow({ id: "deck-2" }), folderIds: ["folder-new"] },
+      stubDeckRow({ id: "deck-3" }),
+    ]);
+
+    await bulkUpdateDecks(collection, ["deck-1", "deck-2", "deck-3"], {
+      kind: "addToFolder",
+      folderId: "folder-new",
+    })?.when("settled");
+
+    expect(writes()).toEqual([
+      {
+        method: "POST",
+        path: "/api/v1/deck-folders/folder-new/decks",
+        body: { deckIds: ["deck-1", "deck-3"] },
+      },
+    ]);
+    expect(collection.get("deck-1")?.folderIds).toEqual(["folder-old", "folder-new"]);
+    expect(collection.get("deck-3")?.folderIds).toEqual(["folder-new"]);
+  });
+
+  it("takes several decks out of a folder with one request", async () => {
+    const collection = await decksOnServer([
+      { ...stubDeckRow({ id: "deck-1" }), folderIds: ["folder-a", "folder-b"] },
+      { ...stubDeckRow({ id: "deck-2" }), folderIds: ["folder-a"] },
+    ]);
+
+    await bulkUpdateDecks(collection, ["deck-1", "deck-2"], {
+      kind: "removeFromFolder",
+      folderId: "folder-a",
+    })?.when("settled");
+
+    expect(writes()).toEqual([
+      {
+        method: "POST",
+        path: "/api/v1/deck-folders/folder-a/decks/remove",
+        body: { deckIds: ["deck-1", "deck-2"] },
+      },
+    ]);
+    expect(collection.get("deck-1")?.folderIds).toEqual(["folder-b"]);
+    expect(collection.get("deck-2")?.folderIds).toEqual([]);
+  });
+
+  it("rolls the change back when the request fails", async () => {
+    const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
+    respond = (request) =>
+      request.method === "POST"
+        ? Response.json(
+            { defined: true, code: "NOT_FOUND", status: 404, message: "Folder not found" },
+            { status: 404 },
+          )
+        : succeed(request);
+
+    const transaction = bulkUpdateDecks(collection, ["deck-1"], {
+      kind: "addToFolder",
+      folderId: "folder-gone",
+    });
+
+    await expect(transaction?.when("settled")).rejects.toThrow();
+    expect(collection.get("deck-1")?.folderIds).toEqual([]);
   });
 });
 

@@ -7,6 +7,7 @@ import { cardLinkVariants } from "@/components/ui/card-link";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useHomeCollection } from "@/features/collections/hooks/use-home-collection";
+import { useDeckSelectState } from "@/features/decks/hooks/use-deck-select-state";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import { deckBoxPart } from "@/features/decks/lib/deck-meta";
@@ -22,6 +23,7 @@ import { DeckFolderChips } from "./deck-folder-chips";
 import { DeckFormatText } from "./deck-format-badge";
 import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
+import { DeckSelectMark } from "./deck-select-mark";
 import { DraftBadge, VariantCountToggle } from "./deck-variant-controls";
 import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
@@ -50,6 +52,7 @@ export function DeckListRow({
     requiredTotal,
   } = item;
   const isLocal = useIsLocalDeck(deck.id);
+  const { selectMode, selected } = useDeckSelectState(deck.id, isLocal);
   const { getPreferredPrinting } = usePreferredPrinting();
   const { all: customTags } = useCustomTagList();
 
@@ -102,11 +105,14 @@ export function DeckListRow({
         "[&_[title]]:relative [&_[title]]:z-10",
         // Indent is the only thing marking a revealed sibling as one.
         family?.role === "member" && "ml-4 sm:ml-8",
+        "data-[selected=true]:ring-border-accent data-[selected=true]:ring-2",
       )}
       data-archived={deck.archivedAt !== null}
+      data-selected={selected}
       style={gradientStyle}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
+        {selectMode && <DeckSelectMark deckId={deck.id} deckName={deck.name} />}
         <div className="flex shrink-0 items-center gap-0.5">
           {legendDomains?.map((domain) => (
             <DomainIcon key={domain} domain={domain} className="size-4" />
@@ -128,13 +134,17 @@ export function DeckListRow({
             )}
             {/* The ::after is what makes the whole row clickable. It resolves
                 against the row root, the only positioned ancestor. */}
-            <Link
-              to="/decks/$deckId"
-              params={{ deckId: deck.id }}
-              className="truncate rounded-lg font-medium outline-none after:absolute after:inset-0"
-            >
-              {deck.name}
-            </Link>
+            {selectMode ? (
+              <span className="truncate font-medium">{deck.name}</span>
+            ) : (
+              <Link
+                to="/decks/$deckId"
+                params={{ deckId: deck.id }}
+                className="truncate rounded-lg font-medium outline-none after:absolute after:inset-0"
+              >
+                {deck.name}
+              </Link>
+            )}
             {showPrimary && deck.isPrimary && (
               <Badge variant="secondary" className="shrink-0">
                 {m.decks_dialog_variants_badge_primary()}

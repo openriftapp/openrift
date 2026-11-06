@@ -7,6 +7,7 @@ import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toDeckFolder } from "../lib/deck-folder-presenters.js";
+import type { DeckFolderWithCount } from "../repositories/deck-folders.js";
 
 const NAME_TAKEN = "You already have a folder with that name";
 
@@ -16,6 +17,18 @@ function rethrowFolderError(error: unknown, conflict: (message: string) => Error
     throw conflict(NAME_TAKEN);
   }
   throw error;
+}
+
+/** The write matched nothing when the folder isn't the caller's, so its absence here is the 404. */
+function listContainingFolder(
+  rows: DeckFolderWithCount[],
+  folderId: string,
+  notFound: () => Error,
+): DeckFolderListResponse {
+  if (!rows.some((row) => row.id === folderId)) {
+    throw notFound();
+  }
+  return { items: rows.map((row) => toDeckFolder(row)) };
 }
 
 const os = implement(deckFoldersContract).$context<ApiContext>().use(requireAuthedUser);
@@ -81,5 +94,25 @@ export const deckFoldersRouter = {
     // without a second round trip — every count can shift on one membership edit.
     const rows = await deckFolders.listForUser(userId);
     return { items: rows.map((row) => toDeckFolder(row)) };
+  }),
+
+  addDecks: os.addDecks.handler(async ({ input, context, errors }) => {
+    const { deckFolders } = context.repos;
+    await deckFolders.addDecks(input.folderId, context.userId, input.deckIds);
+    return listContainingFolder(
+      await deckFolders.listForUser(context.userId),
+      input.folderId,
+      errors.NOT_FOUND,
+    );
+  }),
+
+  removeDecks: os.removeDecks.handler(async ({ input, context, errors }) => {
+    const { deckFolders } = context.repos;
+    await deckFolders.removeDecks(input.folderId, context.userId, input.deckIds);
+    return listContainingFolder(
+      await deckFolders.listForUser(context.userId),
+      input.folderId,
+      errors.NOT_FOUND,
+    );
   }),
 };

@@ -2861,6 +2861,70 @@
       }
     }
   ],
+  "decks_list_select": "선택",
+  "decks_selection_select_deck": "{name} 선택",
+  "decks_selection_remove_from_folder": "폴더에서 제거",
+  "decks_selection_no_folders": "아직 폴더가 없습니다. 폴더를 만들어 덱을 정리하세요.",
+  "decks_selection_add_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 {count}개를 폴더에 추가",
+        "countPlural=*": "덱 {count}개를 폴더에 추가"
+      }
+    }
+  ],
+  "decks_selection_remove_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 {count}개를 폴더에서 제거",
+        "countPlural=*": "덱 {count}개를 폴더에서 제거"
+      }
+    }
+  ],
+  "decks_selection_archived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 {count}개를 보관했습니다.",
+        "countPlural=*": "덱 {count}개를 보관했습니다."
+      }
+    }
+  ],
+  "decks_selection_unarchived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 {count}개를 보관 해제했습니다.",
+        "countPlural=*": "덱 {count}개를 보관 해제했습니다."
+      }
+    }
+  ],
+  "decks_selection_added": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 {count}개를 {folder}에 추가했습니다.",
+        "countPlural=*": "덱 {count}개를 {folder}에 추가했습니다."
+      }
+    }
+  ],
+  "decks_selection_removed": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 {count}개를 {folder}에서 제거했습니다.",
+        "countPlural=*": "덱 {count}개를 {folder}에서 제거했습니다."
+      }
+    }
+  ],
   "decks_share_byline": "{name}님 제작",
   "decks_share_copying": "복사 중…",
   "decks_share_copy_to_my_decks": "내 덱으로 복사",

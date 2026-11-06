@@ -351,6 +351,27 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     }
   });
 
+  it("archives and unarchives several decks in one call", async () => {
+    const ids = createdDeckIds.slice(0, 2);
+
+    const archived = await repo.setArchivedMany(ids, userId, true);
+    expect(archived.map((deck) => deck.id).toSorted()).toEqual(ids.toSorted());
+    expect(archived.every((deck) => deck.archivedAt !== null)).toBe(true);
+
+    const restored = await repo.setArchivedMany(ids, userId, false);
+    expect(restored.every((deck) => deck.archivedAt === null)).toBe(true);
+  });
+
+  it("leaves another user's decks out of a bulk archive", async () => {
+    const ids = createdDeckIds.slice(0, 1);
+
+    const result = await repo.setArchivedMany(ids, "a0000000-9999-4000-a000-000000000001", true);
+
+    expect(result).toEqual([]);
+    const untouched = await repo.getByIdForUser(ids[0]!, userId);
+    expect(untouched?.archivedAt).toBeNull();
+  });
+
   it("deletes a deck and returns numDeletedRows = 1", async () => {
     const deck = await repo.create({
       userId,

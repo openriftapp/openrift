@@ -184,7 +184,7 @@ export function CollectionTopBar({
           )}
           <SelectModeActions
             mode={mode}
-            view={view}
+            enterLabel={m.cards_manage({ view })}
             isAllSelected={isAllSelected}
             hasSelectableItems={hasCards}
             onEnterSelect={onEnterSelect}

@@ -195,6 +195,65 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
     expect(await repo.rename(mine.id, otherUserId, "DF Hijacked")).toBeUndefined();
   });
 
+  it("adds several decks to a folder in one call and keeps their other folders", async () => {
+    const kept = await repo.create(userId, "DF Bulk Kept");
+    const target = await repo.create(userId, "DF Bulk Target");
+    await repo.setForDeck(deckA, userId, [kept.id]);
+
+    await repo.addDecks(target.id, userId, [deckA, deckB]);
+
+    const byDeck = await repo.folderIdsByDeckIds([deckA, deckB], userId);
+    expect(byDeck.get(deckA)?.toSorted()).toEqual([kept.id, target.id].toSorted());
+    expect(byDeck.get(deckB)).toContain(target.id);
+  });
+
+  it("skips decks already in the folder when adding", async () => {
+    const folder = await repo.create(userId, "DF Bulk Twice");
+    await repo.addDecks(folder.id, userId, [deckA]);
+
+    await repo.addDecks(folder.id, userId, [deckA, deckB]);
+
+    const folders = await repo.listForUser(userId);
+    expect(folders.find((entry) => entry.id === folder.id)?.deckCount).toBe(2);
+  });
+
+  it("adds nothing to another user's folder or from another user's decks", async () => {
+    const theirs = await repo.create(otherUserId, "DF Bulk Theirs");
+    const theirDeck = await seedDeck(otherUserId, "DF Their Deck");
+    const mine = await repo.create(userId, "DF Bulk Mine");
+
+    await repo.addDecks(theirs.id, userId, [deckA]);
+    await repo.addDecks(mine.id, userId, [theirDeck]);
+
+    const folders = [...(await repo.listForUser(userId)), ...(await repo.listForUser(otherUserId))];
+    expect(folders.find((entry) => entry.id === theirs.id)?.deckCount).toBe(0);
+    expect(folders.find((entry) => entry.id === mine.id)?.deckCount).toBe(0);
+  });
+
+  it("removes several decks from one folder and leaves their other folders", async () => {
+    const kept = await repo.create(userId, "DF Remove Kept");
+    const target = await repo.create(userId, "DF Remove Target");
+    await repo.setForDeck(deckA, userId, [kept.id, target.id]);
+    await repo.setForDeck(deckB, userId, [target.id]);
+
+    await repo.removeDecks(target.id, userId, [deckA, deckB]);
+
+    const byDeck = await repo.folderIdsByDeckIds([deckA, deckB], userId);
+    expect(byDeck.get(deckA)).toEqual([kept.id]);
+    expect(byDeck.has(deckB)).toBe(false);
+  });
+
+  it("will not remove decks from another user's folder", async () => {
+    const theirDeck = await seedDeck(otherUserId, "DF Their Filed Deck");
+    const theirs = await repo.create(otherUserId, "DF Remove Theirs");
+    await repo.addDecks(theirs.id, otherUserId, [theirDeck]);
+
+    await repo.removeDecks(theirs.id, userId, [theirDeck]);
+
+    const byDeck = await repo.folderIdsByDeckIds([theirDeck], otherUserId);
+    expect(byDeck.get(theirDeck)).toEqual([theirs.id]);
+  });
+
   it("returns an empty map for no deck ids", async () => {
     const byDeck = await repo.folderIdsByDeckIds([], userId);
     expect(byDeck.size).toBe(0);

@@ -9,6 +9,7 @@ import { cardLinkVariants } from "@/components/ui/card-link";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
+import { useDeckSelectState } from "@/features/decks/hooks/use-deck-select-state";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import { resolveFormatTagSummary } from "@/features/decks/lib/format-tag-config";
@@ -24,6 +25,7 @@ import { DeckFolderChips } from "./deck-folder-chips";
 import { DeckFormatBadge } from "./deck-format-badge";
 import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
+import { DeckSelectMark } from "./deck-select-mark";
 import { DraftBadge, VariantCountToggle } from "./deck-variant-controls";
 import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
@@ -228,6 +230,7 @@ export function DeckTile({
     requiredTotal,
   } = item;
   const isLocal = useIsLocalDeck(deck.id);
+  const { selectMode, selected } = useDeckSelectState(deck.id, isLocal);
   const { getPreferredPrinting, getPreferredFrontImage, getFaceImage } = usePreferredPrinting();
   const { all: customTags } = useCustomTagList();
 
@@ -269,8 +272,10 @@ export function DeckTile({
         // Must sit above the ::after overlay or hover never reaches them.
         "**:data-[slot=tooltip-trigger]:relative **:data-[slot=tooltip-trigger]:z-10",
         "[&_[title]]:relative [&_[title]]:z-10",
+        "data-[selected=true]:ring-border-accent data-[selected=true]:ring-2",
       )}
       data-archived={deck.archivedAt !== null}
+      data-selected={selected}
       style={gradientStyle}
     >
       <div className="bg-background/60 absolute top-2 right-2 z-10 rounded-md backdrop-blur-sm">
@@ -327,14 +332,19 @@ export function DeckTile({
                 aria-label={m.decks_list_archived()}
               />
             )}
+            {selectMode && <DeckSelectMark deckId={deck.id} deckName={deck.name} />}
             <h3 className="min-w-0 truncate leading-tight font-semibold">
-              <Link
-                to="/decks/$deckId"
-                params={{ deckId: deck.id }}
-                className="rounded-lg outline-none after:absolute after:inset-0"
-              >
-                {deck.name}
-              </Link>
+              {selectMode ? (
+                deck.name
+              ) : (
+                <Link
+                  to="/decks/$deckId"
+                  params={{ deckId: deck.id }}
+                  className="rounded-lg outline-none after:absolute after:inset-0"
+                >
+                  {deck.name}
+                </Link>
+              )}
             </h3>
             {deck.isDraft && <DraftBadge />}
           </div>

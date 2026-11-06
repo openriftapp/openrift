@@ -303,6 +303,23 @@ export function decksCoreRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
+    async setArchivedMany(
+      ids: readonly string[],
+      userId: string,
+      archived: boolean,
+    ): Promise<Selectable<DecksTable>[]> {
+      if (ids.length === 0) {
+        return [];
+      }
+      return await db
+        .updateTable("decks")
+        .set({ archivedAt: archived ? sql`now()` : null })
+        .where("id", "in", [...ids])
+        .where("userId", "=", userId)
+        .returningAll()
+        .execute();
+    },
+
     /**
      * Returns `undefined` only when the deck is missing or not owned by
      * `userId`; an owned-but-unshared deck returns `{ shareToken: null, isPublic: false }`.

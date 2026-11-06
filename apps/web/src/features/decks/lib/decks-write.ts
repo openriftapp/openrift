@@ -39,6 +39,64 @@ export function deckCardKey(row: {
 const reorders = new WeakMap<object, readonly string[]>();
 const deckPatches = new WeakMap<object, Record<string, unknown>>();
 
+export type DeckBulkChange =
+  | { kind: "archive"; archived: boolean }
+  | { kind: "addToFolder"; folderId: string }
+  | { kind: "removeFromFolder"; folderId: string };
+
+const bulkChanges = new WeakMap<object, DeckBulkChange>();
+
+function needsBulkChange(row: DeckListItemResponse, change: DeckBulkChange): boolean {
+  if (change.kind === "archive") {
+    return (row.deck.archivedAt !== null) !== change.archived;
+  }
+  const filed = row.folderIds.includes(change.folderId);
+  return change.kind === "addToFolder" ? !filed : filed;
+}
+
+/** The decks among `deckIds` the change would alter; the rest are already in that state or not in the store. */
+export function decksNeedingChange(
+  collection: DecksCollection,
+  deckIds: readonly string[],
+  change: DeckBulkChange,
+): string[] {
+  return deckIds.filter((id) => {
+    const row = collection.get(id);
+    return row !== undefined && needsBulkChange(row, change);
+  });
+}
+
+/** One transaction, which the write path sends as one bulk call. Undefined when no deck needs the change. */
+export function bulkUpdateDecks(
+  collection: DecksCollection,
+  deckIds: readonly string[],
+  change: DeckBulkChange,
+): Transaction | undefined {
+  const ids = decksNeedingChange(collection, deckIds, change);
+  if (ids.length === 0) {
+    return undefined;
+  }
+  const metadata = {};
+  bulkChanges.set(metadata, change);
+  const archivedAt = new Date().toISOString();
+  return collection.update(ids, { metadata }, (drafts) => {
+    for (const draft of drafts) {
+      if (change.kind === "archive") {
+        draft.deck = { ...draft.deck, archivedAt: change.archived ? archivedAt : null };
+      } else if (change.kind === "addToFolder") {
+        draft.folderIds = [...draft.folderIds, change.folderId];
+      } else {
+        draft.folderIds = draft.folderIds.filter((id) => id !== change.folderId);
+      }
+    }
+  });
+}
+
+function bulkChangeOf(mutation: PendingMutation<DeckListItemResponse>): DeckBulkChange | undefined {
+  const { metadata } = mutation;
+  return typeof metadata === "object" && metadata !== null ? bulkChanges.get(metadata) : undefined;
+}
+
 function summaryFieldsOf(patch: Record<string, unknown>): Partial<DeckListItemResponse["deck"]> {
   const fields: Record<string, unknown> = {};
   for (const field of PATCH_FIELDS) {
@@ -139,6 +197,34 @@ async function mergeDeck(collection: DecksCollection, deck: DeckResponse): Promi
   await collection.utils.writeUpsert(
     row ? { ...row, deck: { ...row.deck, ...listItem.deck } } : listItem,
   );
+}
+
+async function persistBulkChange(
+  collection: DecksCollection,
+  change: DeckBulkChange,
+  mutations: readonly PendingMutation<DeckListItemResponse>[],
+  context: DecksWriteContext,
+): Promise<void> {
+  const ids = mutations.map((mutation) => String(mutation.key));
+  if (change.kind === "archive") {
+    const { items } = await browserApiOrpcClient(decksContract).setArchivedMany({
+      ids,
+      archived: change.archived,
+    });
+    const rows = items.flatMap((deck) => {
+      const row = collection.get(deck.id);
+      return row ? [{ ...row, deck: { ...row.deck, ...listItemFor(deck).deck } }] : [];
+    });
+    if (rows.length > 0) {
+      await collection.utils.writeUpsert(rows);
+    }
+    return;
+  }
+  const client = browserApiOrpcClient(deckFoldersContract);
+  const input = { folderId: change.folderId, deckIds: ids };
+  await (change.kind === "addToFolder" ? client.addDecks(input) : client.removeDecks(input));
+  await collection.utils.writeUpdate(mutations.map((mutation) => mutation.modified));
+  void context.queryClient.invalidateQueries({ queryKey: deckFoldersKeys.all(context.userId) });
 }
 
 const PATCH_FIELDS = [
@@ -242,9 +328,13 @@ export async function persistDeckMutations(
   );
   try {
     const client = browserApiOrpcClient(decksContract);
+    const bulkGroups = new Map<DeckBulkChange, PendingMutation<DeckListItemResponse>[]>();
     for (const mutation of mutations) {
       const id = String(mutation.key);
-      if (mutation.type === "insert") {
+      const change = bulkChangeOf(mutation);
+      if (change) {
+        bulkGroups.set(change, [...(bulkGroups.get(change) ?? []), mutation]);
+      } else if (mutation.type === "insert") {
         const { deck } = mutation.modified;
         const created = await client.create({
           id,
@@ -271,6 +361,9 @@ export async function persistDeckMutations(
           context,
         );
       }
+    }
+    for (const [change, group] of bulkGroups) {
+      await persistBulkChange(collection, change, group, context);
     }
   } catch (error) {
     settleRefetchRace();

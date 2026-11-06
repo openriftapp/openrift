@@ -29,6 +29,7 @@ const mockRepo = {
   setShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   cloneFromShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  setArchivedMany: vi.fn(() => Promise.resolve([] as object[])),
 };
 
 const mockMarketplace = {
@@ -1030,6 +1031,66 @@ describe("DELETE /api/v1/decks/:id/share", () => {
     mockRepo.setShareToken.mockResolvedValue(undefined);
     const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "DELETE" });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("POST /api/v1/decks/archive", () => {
+  const OTHER_DECK_ID = "a0000000-0001-4000-a000-000000000011";
+
+  beforeEach(() => {
+    mockRepo.setArchivedMany.mockReset();
+  });
+
+  function archive(body: unknown) {
+    return app.request("/api/v1/decks/archive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("archives every listed deck in one repository call and returns them", async () => {
+    const archivedAt = new Date("2026-11-06T00:00:00Z");
+    mockRepo.setArchivedMany.mockResolvedValue([
+      { ...dbDeck, archivedAt },
+      { ...dbDeck, id: OTHER_DECK_ID, archivedAt },
+    ]);
+
+    const res = await archive({ ids: [DECK_ID, OTHER_DECK_ID], archived: true });
+
+    expect(res.status).toBe(200);
+    expect(mockRepo.setArchivedMany).toHaveBeenCalledWith([DECK_ID, OTHER_DECK_ID], USER_ID, true);
+    const json = await readJson<{ items: { id: string; archivedAt: string | null }[] }>(res);
+    expect(json.items.map((deck) => deck.id)).toEqual([DECK_ID, OTHER_DECK_ID]);
+    expect(json.items[0]?.archivedAt).toBe(archivedAt.toISOString());
+  });
+
+  it("returns an empty list when none of the ids are the caller's", async () => {
+    mockRepo.setArchivedMany.mockResolvedValue([]);
+
+    const res = await archive({ ids: [DECK_ID], archived: false });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ items: [] });
+  });
+
+  it("rejects an empty id list", async () => {
+    const res = await archive({ ids: [], archived: true });
+
+    expect(res.status).toBe(400);
+    expect(mockRepo.setArchivedMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects more ids than the bulk cap", async () => {
+    const ids = Array.from(
+      { length: 501 },
+      (_, index) => `a0000000-0001-4000-a000-${String(index).padStart(12, "0")}`,
+    );
+
+    const res = await archive({ ids, archived: true });
+
+    expect(res.status).toBe(400);
+    expect(mockRepo.setArchivedMany).not.toHaveBeenCalled();
   });
 });
 

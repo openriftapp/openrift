@@ -271,6 +271,16 @@ export const cloneSharedDeckSchema = shareTokenParamSchema.extend({
 const pinDeckBodySchema = z.object({ isPinned: z.boolean() });
 const archiveDeckBodySchema = z.object({ archived: z.boolean() });
 
+export const MAX_BULK_DECK_IDS = 500;
+
+/** Ids the caller doesn't own are ignored, not rejected. */
+export const setDecksArchivedSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(MAX_BULK_DECK_IDS),
+  archived: z.boolean(),
+});
+
+export const deckBulkResponseSchema = z.object({ items: z.array(deckResponseSchema) });
+
 export const decksContract = {
   list: authedRoute
     .route({ method: "GET", path: "/api/v1/decks", tags: [TAG] })
@@ -385,6 +395,10 @@ export const decksContract = {
     .input(withParams(idParamSchema, archiveDeckBodySchema))
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckResponseSchema),
+  setArchivedMany: authedRoute
+    .route({ method: "POST", path: "/api/v1/decks/archive", tags: [TAG] })
+    .input(setDecksArchivedSchema)
+    .output(deckBulkResponseSchema),
   getShare: authedRoute
     .route({ method: "GET", path: "/api/v1/decks/{id}/share", tags: [TAG] })
     .input(idParamSchema)

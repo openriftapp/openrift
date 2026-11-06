@@ -2861,6 +2861,70 @@
       }
     }
   ],
+  "decks_list_select": "Auswählen",
+  "decks_selection_select_deck": "{name} auswählen",
+  "decks_selection_remove_from_folder": "Aus Ordner entfernen",
+  "decks_selection_no_folders": "Noch keine Ordner. Lege einen an, um diese Decks einzusortieren.",
+  "decks_selection_add_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck zu einem Ordner hinzufügen",
+        "countPlural=*": "{count} Decks zu einem Ordner hinzufügen"
+      }
+    }
+  ],
+  "decks_selection_remove_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck aus einem Ordner entfernen",
+        "countPlural=*": "{count} Decks aus einem Ordner entfernen"
+      }
+    }
+  ],
+  "decks_selection_archived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck archiviert.",
+        "countPlural=*": "{count} Decks archiviert."
+      }
+    }
+  ],
+  "decks_selection_unarchived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck aus dem Archiv geholt.",
+        "countPlural=*": "{count} Decks aus dem Archiv geholt."
+      }
+    }
+  ],
+  "decks_selection_added": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck zu {folder} hinzugefügt.",
+        "countPlural=*": "{count} Decks zu {folder} hinzugefügt."
+      }
+    }
+  ],
+  "decks_selection_removed": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Deck aus {folder} entfernt.",
+        "countPlural=*": "{count} Decks aus {folder} entfernt."
+      }
+    }
+  ],
   "decks_share_byline": "von {name}",
   "decks_share_copying": "Wird kopiert…",
   "decks_share_copy_to_my_decks": "In meine Decks kopieren",

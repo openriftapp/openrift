@@ -47,6 +47,7 @@ const { getDeckCardsCollection, getDecksCollection } =
 const { getDeckDraftHydrated, hydrateDeckDraft } =
   await import("@/features/decks/stores/deck-draft-store");
 const {
+  useBulkUpdateDecks,
   useCreateDeck,
   useDeckCardsFor,
   useDeckDetail,
@@ -157,6 +158,137 @@ describe("useCreateDeck", () => {
 
     expect(created.id).toBe(DECK_ID);
     expect(sent).toEqual([]);
+  });
+});
+
+describe("useBulkUpdateDecks", () => {
+  const DECK_A = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a31";
+  const DECK_B = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a32";
+  const FOLDER_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8af1";
+  let sent: { method: string; path: string }[];
+  let failWrites: boolean;
+
+  function deckRow(id: string, folderIds: string[] = []): DeckListItemResponse {
+    return {
+      deck: {
+        id,
+        name: "Bandle Beatdown",
+        descriptionSnippet: null,
+        description: null,
+        links: [],
+        oddsConfig: null,
+        isPublic: false,
+        shareToken: null,
+        format: WellKnown.deckFormat.CONSTRUCTED,
+        formatConfig: null,
+        isPinned: false,
+        archivedAt: null,
+        createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z",
+        coverCardId: null,
+        coverFaceId: null,
+        coverPosition: null,
+        collectionId: null,
+        familyId: null,
+        predecessorDeckId: null,
+        isPrimary: false,
+        isDraft: false,
+      },
+      legendCardId: null,
+      championCardId: null,
+      totalCards: 0,
+      typeCounts: [],
+      domainDistribution: [],
+      isValid: false,
+      requiredProgress: 0,
+      requiredTotal: 0,
+      totalValueCents: null,
+      missingCount: null,
+      folderIds,
+    } as unknown as DeckListItemResponse;
+  }
+
+  beforeEach(() => {
+    sent = [];
+    failWrites = false;
+    vi.stubGlobal("location", { origin: "http://localhost" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: Request) => {
+        sent.push({ method: input.method, path: new URL(input.url).pathname });
+        if (input.method === "GET") {
+          return Promise.resolve(
+            Response.json({ items: [deckRow(DECK_A), deckRow(DECK_B, [FOLDER_ID])] }),
+          );
+        }
+        if (failWrites) {
+          return Promise.resolve(
+            Response.json(
+              { defined: true, code: "NOT_FOUND", status: 404, message: "Folder not found" },
+              { status: 404 },
+            ),
+          );
+        }
+        return Promise.resolve(Response.json({ items: [] }));
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function mountWithStore() {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const collection = getDecksCollection(client, "user-1");
+    await collection.preload();
+    sent = [];
+    const { result } = renderHook(() => useBulkUpdateDecks(), {
+      wrapper: ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client }, children),
+    });
+    return { result, collection };
+  }
+
+  it("files the decks not yet in the folder with one request and reports how many changed", async () => {
+    const { result, collection } = await mountWithStore();
+
+    const changed = await result.current.mutateAsync({
+      deckIds: [DECK_A, DECK_B],
+      change: { kind: "addToFolder", folderId: FOLDER_ID },
+    });
+
+    expect(changed).toBe(1);
+    expect(sent.filter((request) => request.method === "POST")).toEqual([
+      { method: "POST", path: `/api/v1/deck-folders/${FOLDER_ID}/decks` },
+    ]);
+    expect(collection.get(DECK_A)?.folderIds).toEqual([FOLDER_ID]);
+  });
+
+  it("sends nothing and reports zero when every deck already has the change", async () => {
+    const { result } = await mountWithStore();
+
+    const changed = await result.current.mutateAsync({
+      deckIds: [DECK_A, DECK_B],
+      change: { kind: "archive", archived: false },
+    });
+
+    expect(changed).toBe(0);
+    expect(sent).toEqual([]);
+  });
+
+  it("rejects and restores the decks when the server refuses the change", async () => {
+    failWrites = true;
+    const { result, collection } = await mountWithStore();
+
+    await expect(
+      result.current.mutateAsync({
+        deckIds: [DECK_B],
+        change: { kind: "removeFromFolder", folderId: FOLDER_ID },
+      }),
+    ).rejects.toThrow();
+
+    expect(collection.get(DECK_B)?.folderIds).toEqual([FOLDER_ID]);
   });
 });
 

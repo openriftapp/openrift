@@ -38,8 +38,11 @@ import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input
 import { getDeckCardsCollection, getDecksCollection } from "@/features/decks/lib/decks-collection";
 import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
+import type { DeckBulkChange } from "@/features/decks/lib/decks-write";
 import {
+  bulkUpdateDecks,
   deckCardKey,
+  decksNeedingChange,
   saveDeckCards as applyDeckCards,
   updateDeck,
 } from "@/features/decks/lib/decks-write";
@@ -401,6 +404,26 @@ export function useSetDeckArchived() {
           draft.deck = { ...draft.deck, archivedAt: archived ? new Date().toISOString() : null };
         })
         .when("settled");
+    },
+  });
+}
+
+/** Resolves to the number of decks the change altered. */
+export function useBulkUpdateDecks() {
+  const userId = useRequiredUserId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      deckIds,
+      change,
+    }: {
+      deckIds: readonly string[];
+      change: DeckBulkChange;
+    }): Promise<number> => {
+      const collection = await loadedDecks(queryClient, userId);
+      const ids = decksNeedingChange(collection, deckIds, change);
+      await bulkUpdateDecks(collection, ids, change)?.when("settled");
+      return ids.length;
     },
   });
 }

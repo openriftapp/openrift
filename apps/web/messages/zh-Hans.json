@@ -2861,6 +2861,70 @@
       }
     }
   ],
+  "decks_list_select": "选择",
+  "decks_selection_select_deck": "选择{name}",
+  "decks_selection_remove_from_folder": "从文件夹移除",
+  "decks_selection_no_folders": "还没有文件夹。新建一个来整理这些卡组。",
+  "decks_selection_add_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "将{count}个卡组添加到文件夹",
+        "countPlural=*": "将{count}个卡组添加到文件夹"
+      }
+    }
+  ],
+  "decks_selection_remove_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "将{count}个卡组移出文件夹",
+        "countPlural=*": "将{count}个卡组移出文件夹"
+      }
+    }
+  ],
+  "decks_selection_archived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已归档{count}个卡组。",
+        "countPlural=*": "已归档{count}个卡组。"
+      }
+    }
+  ],
+  "decks_selection_unarchived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已取消归档{count}个卡组。",
+        "countPlural=*": "已取消归档{count}个卡组。"
+      }
+    }
+  ],
+  "decks_selection_added": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已将{count}个卡组添加到{folder}。",
+        "countPlural=*": "已将{count}个卡组添加到{folder}。"
+      }
+    }
+  ],
+  "decks_selection_removed": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已将{count}个卡组移出{folder}。",
+        "countPlural=*": "已将{count}个卡组移出{folder}。"
+      }
+    }
+  ],
   "decks_share_byline": "作者：{name}",
   "decks_share_copying": "正在复制…",
   "decks_share_copy_to_my_decks": "复制到我的卡组",

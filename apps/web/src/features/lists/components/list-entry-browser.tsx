@@ -263,7 +263,7 @@ export function ListEntryBrowser({
   const selectActions = showLibrary ? null : (
     <SelectModeActions
       mode={mode}
-      view={view}
+      enterLabel={m.cards_manage({ view })}
       isAllSelected={isAllSelected}
       hasSelectableItems={hasSelectableEntries}
       onEnterSelect={enterSelectMode}

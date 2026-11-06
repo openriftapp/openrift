@@ -2862,6 +2862,70 @@
       }
     }
   ],
+  "decks_list_select": "Select",
+  "decks_selection_select_deck": "Select {name}",
+  "decks_selection_remove_from_folder": "Remove from folder",
+  "decks_selection_no_folders": "No folders yet. Create one to file these decks.",
+  "decks_selection_add_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Add {count} deck to a folder",
+        "countPlural=*": "Add {count} decks to a folder"
+      }
+    }
+  ],
+  "decks_selection_remove_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove {count} deck from a folder",
+        "countPlural=*": "Remove {count} decks from a folder"
+      }
+    }
+  ],
+  "decks_selection_archived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Archived {count} deck.",
+        "countPlural=*": "Archived {count} decks."
+      }
+    }
+  ],
+  "decks_selection_unarchived": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Unarchived {count} deck.",
+        "countPlural=*": "Unarchived {count} decks."
+      }
+    }
+  ],
+  "decks_selection_added": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added {count} deck to {folder}.",
+        "countPlural=*": "Added {count} decks to {folder}."
+      }
+    }
+  ],
+  "decks_selection_removed": [
+    {
+      "declarations": ["input count", "input folder", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Removed {count} deck from {folder}.",
+        "countPlural=*": "Removed {count} decks from {folder}."
+      }
+    }
+  ],
   "decks_share_byline": "by {name}",
   "decks_share_copying": "Copying…",
   "decks_share_copy_to_my_decks": "Copy to my decks",

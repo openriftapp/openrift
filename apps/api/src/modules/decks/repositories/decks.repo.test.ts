@@ -73,6 +73,18 @@ describe("decksRepo", () => {
     expect(await repo.deleteByIdForUser("d-1", "u1")).toBe(true);
   });
 
+  it("setArchivedMany returns the updated decks", async () => {
+    const db = createMockDb([DECK]);
+    const repo = decksRepo(db);
+    expect(await repo.setArchivedMany(["d-1"], "u1", true)).toEqual([DECK]);
+  });
+
+  it("setArchivedMany skips the query for no ids", async () => {
+    const db = createMockDb([DECK]);
+    const repo = decksRepo(db);
+    expect(await repo.setArchivedMany([], "u1", true)).toEqual([]);
+  });
+
   it("cardsForDeck returns slim deck card rows", async () => {
     const rows = [{ cardId: "c-1", zone: "main", quantity: 4 }];
     const db = createMockDb(rows);

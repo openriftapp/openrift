@@ -599,6 +599,15 @@ export const decksRouter = {
     return toDeck(updated);
   }),
 
+  setArchivedMany: os.setArchivedMany.handler(async ({ input, context }) => {
+    const rows = await context.repos.decks.setArchivedMany(
+      input.ids,
+      context.userId,
+      input.archived,
+    );
+    return { items: rows.map((row) => toDeck(row)) };
+  }),
+
   // An owned-but-unshared deck returns { shareToken: null, isPublic: false }; only a missing or foreign deck 404s.
   getShare: os.getShare.handler(async ({ input, context }): Promise<DeckShareResponse> => {
     const { decks } = context.repos;

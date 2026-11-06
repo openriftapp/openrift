@@ -9,7 +9,7 @@ import { m } from "@/paraglide/messages.js";
 
 interface SelectModeActionsProps {
   mode: "browse" | "select";
-  view: string;
+  enterLabel: string;
   isAllSelected: boolean;
   hasSelectableItems: boolean;
   onEnterSelect: () => void;
@@ -25,7 +25,7 @@ const BREAKPOINT_CLASSES = {
 
 export function SelectModeActions({
   mode,
-  view,
+  enterLabel,
   isAllSelected,
   hasSelectableItems,
   onEnterSelect,
@@ -71,14 +71,14 @@ export function SelectModeActions({
     <>
       <PageTopBarIconButton
         onClick={onEnterSelect}
-        aria-label={m.cards_manage({ view })}
+        aria-label={enterLabel}
         className={classes.icon}
       >
         <CheckSquareIcon className="size-4" />
       </PageTopBarIconButton>
       <PageTopBarButton onClick={onEnterSelect} className={classes.labelled}>
         <CheckSquareIcon className="size-4" />
-        {m.cards_manage({ view })}
+        {enterLabel}
       </PageTopBarButton>
     </>
   );

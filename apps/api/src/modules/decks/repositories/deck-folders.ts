@@ -131,6 +131,42 @@ export function deckFoldersRepo(db: Kysely<Database>) {
       });
     },
 
+    async addDecks(folderId: string, userId: string, deckIds: readonly string[]): Promise<void> {
+      if (deckIds.length === 0) {
+        return;
+      }
+      // The userId filter and the join's userId match are the only ownership checks.
+      await db
+        .insertInto("deckFolderEntries")
+        .columns(["folderId", "deckId", "userId"])
+        .expression((eb) =>
+          eb
+            .selectFrom("decks")
+            .innerJoin("deckFolders", (join) =>
+              join
+                .on("deckFolders.id", "=", folderId)
+                .onRef("deckFolders.userId", "=", "decks.userId"),
+            )
+            .select(["deckFolders.id", "decks.id as deckId", "decks.userId"])
+            .where("decks.userId", "=", userId)
+            .where("decks.id", "in", [...deckIds]),
+        )
+        .onConflict((oc) => oc.columns(["folderId", "deckId"]).doNothing())
+        .execute();
+    },
+
+    async removeDecks(folderId: string, userId: string, deckIds: readonly string[]): Promise<void> {
+      if (deckIds.length === 0) {
+        return;
+      }
+      await db
+        .deleteFrom("deckFolderEntries")
+        .where("folderId", "=", folderId)
+        .where("userId", "=", userId)
+        .where("deckId", "in", [...deckIds])
+        .execute();
+    },
+
     // Decks with no folders are absent from the map, not present with an empty array.
     async folderIdsByDeckIds(
       deckIds: readonly string[],

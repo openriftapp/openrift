@@ -2,6 +2,7 @@ import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { MAX_BULK_DECK_IDS } from "./decks.js";
 import { nameField } from "./fields.js";
 
 export const createDeckFolderSchema = z.object({
@@ -21,6 +22,12 @@ export const reorderDeckFoldersSchema = z.object({
 /** Folder ids the caller doesn't own are ignored, not rejected. */
 export const setDeckFoldersSchema = z.object({
   folderIds: z.array(z.uuid()).max(100),
+});
+
+/** Deck ids the caller doesn't own are ignored, not rejected. */
+export const deckFolderDecksSchema = z.object({
+  folderId: z.uuid(),
+  deckIds: z.array(z.uuid()).min(1).max(MAX_BULK_DECK_IDS),
 });
 
 export const deckFolderResponseSchema = z.object({
@@ -74,5 +81,15 @@ export const deckFoldersContract = {
     .route({ method: "PUT", path: "/api/v1/decks/{id}/folders", tags: [TAG] })
     .input(withParams(idParamSchema, setDeckFoldersSchema))
     .errors({ NOT_FOUND: { message: "Deck not found" } })
+    .output(deckFolderListResponseSchema),
+  addDecks: authedRoute
+    .route({ method: "POST", path: "/api/v1/deck-folders/{folderId}/decks", tags: [TAG] })
+    .input(deckFolderDecksSchema)
+    .errors({ NOT_FOUND: { message: "Folder not found" } })
+    .output(deckFolderListResponseSchema),
+  removeDecks: authedRoute
+    .route({ method: "POST", path: "/api/v1/deck-folders/{folderId}/decks/remove", tags: [TAG] })
+    .input(deckFolderDecksSchema)
+    .errors({ NOT_FOUND: { message: "Folder not found" } })
     .output(deckFolderListResponseSchema),
 };

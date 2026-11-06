@@ -28,10 +28,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pressable } from "@/components/ui/pressable";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { SelectModeActions } from "@/features/cards/components/select-mode-actions";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
+import { useDeckSelectionLifecycle } from "@/features/decks/hooks/use-deck-selection-lifecycle";
 import { useCreateDeck, useDeckList, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { CollapsedDeckEntry, DeckGridEntry } from "@/features/decks/lib/deck-family";
@@ -60,6 +62,7 @@ import {
   useDeckListPrefsStore,
   useDeckListViewPrefs,
 } from "@/features/decks/stores/deck-list-prefs-store";
+import { useDeckSelectionStore } from "@/features/decks/stores/deck-selection-store";
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -71,6 +74,7 @@ import { m } from "@/paraglide/messages.js";
 import { ClaimLocalDecksPrompt } from "./claim-local-decks-prompt";
 import { DeckListRow } from "./deck-list-row";
 import { DeckListToolbar } from "./deck-list-toolbar";
+import { DeckSelectionBar } from "./deck-selection-bar";
 import { DeckTile, FannedPreview } from "./deck-tile";
 import { DeckVariantsPanel } from "./deck-variants-panel";
 import { LocalDeckSaveBanner, LocalDeckSaveNote } from "./local-save-hint";
@@ -214,6 +218,13 @@ export function DeckListPage() {
     ...serverItems,
   ];
   const [createOpen, setCreateOpen] = useState(false);
+  const selectMode = useDeckSelectionStore((state) => state.selectMode);
+  const selectedIds = useDeckSelectionStore((state) => state.selected);
+  const setSelectMode = useDeckSelectionStore((state) => state.setSelectMode);
+  const toggleStack = useDeckSelectionStore((state) => state.toggleStack);
+  const clearSelection = useDeckSelectionStore((state) => state.clearSelection);
+  const resetSelection = useDeckSelectionStore((state) => state.resetSelection);
+  useDeckSelectionLifecycle();
 
   const sampleCards =
     deckItems.length === 0 || creatingSample ? buildSampleDeckCards(allPrintings) : null;
@@ -356,6 +367,17 @@ export function DeckListPage() {
       />
     );
 
+  const renderedGroups = groups.map((group) => ({
+    group,
+    entries: collapseFamilies(group.items, expandedFamilies),
+  }));
+  const localIds = new Set(localItems.map((item) => item.deck.id));
+  const selectableItems = renderedGroups
+    .flatMap(({ entries }) => entries.map((entry) => entry.item))
+    .filter((item) => !localIds.has(item.deck.id));
+  const selectedItems = selectableItems.filter((item) => selectedIds.has(item.deck.id));
+  const canSelect = Boolean(userId) && selectableItems.length > 0;
+
   const renderRow = (entry: CollapsedDeckEntry<DeckListItemWithNames>) => (
     <DeckListRow
       key={entry.item.deck.id}
@@ -373,22 +395,41 @@ export function DeckListPage() {
         <PageTopBar>
           <PageTopBarTitle>{m.decks_list_title()}</PageTopBarTitle>
           <PageTopBarActions>
-            <Link
-              to="/help/$slug"
-              params={{ slug: "deck-building" }}
-              aria-label={m.decks_list_help_aria()}
-              className={buttonVariants({ variant: "ghost", size: "icon" })}
-            >
-              <CircleHelpIcon className="size-4" />
-            </Link>
-            <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
-              <UploadIcon className="size-4" />
-              {m.decks_list_import()}
-            </Link>
-            <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
-              <PlusIcon className="size-4" />
-              {m.decks_list_new_deck()}
-            </PageTopBarPrimaryButton>
+            {!selectMode && (
+              <>
+                <Link
+                  to="/help/$slug"
+                  params={{ slug: "deck-building" }}
+                  aria-label={m.decks_list_help_aria()}
+                  className={buttonVariants({ variant: "ghost", size: "icon" })}
+                >
+                  <CircleHelpIcon className="size-4" />
+                </Link>
+                <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
+                  <UploadIcon className="size-4" />
+                  {m.decks_list_import()}
+                </Link>
+              </>
+            )}
+            {(canSelect || selectMode) && (
+              <SelectModeActions
+                mode={selectMode ? "select" : "browse"}
+                enterLabel={m.decks_list_select()}
+                isAllSelected={
+                  selectedItems.length > 0 && selectedItems.length === selectableItems.length
+                }
+                hasSelectableItems={canSelect}
+                onEnterSelect={() => setSelectMode(true)}
+                onExitSelect={resetSelection}
+                onSelectAll={() => toggleStack(selectableItems.map((item) => item.deck.id))}
+              />
+            )}
+            {!selectMode && (
+              <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
+                <PlusIcon className="size-4" />
+                {m.decks_list_new_deck()}
+              </PageTopBarPrimaryButton>
+            )}
           </PageTopBarActions>
         </PageTopBar>
       </div>
@@ -472,24 +513,24 @@ export function DeckListPage() {
             </Empty>
           ) : (
             <div className="flex flex-col gap-8 pt-3">
-              {groups.map((group) => {
-                const entries = collapseFamilies(group.items, expandedFamilies);
-                return (
-                  <div key={group.key}>
-                    <GroupHeader label={group.label} count={group.items.length} />
-                    <div className={containerClass}>
-                      {density === "grid"
-                        ? withVariantPanels(entries).map((entry) => renderGridEntry(entry))
-                        : entries.map((entry) => renderRow(entry))}
-                    </div>
+              {renderedGroups.map(({ group, entries }) => (
+                <div key={group.key}>
+                  <GroupHeader label={group.label} count={group.items.length} />
+                  <div className={containerClass}>
+                    {density === "grid"
+                      ? withVariantPanels(entries).map((entry) => renderGridEntry(entry))
+                      : entries.map((entry) => renderRow(entry))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
+      {selectMode && (
+        <DeckSelectionBar items={selectedItems} folders={folderList} onClear={clearSelection} />
+      )}
       <CreateDeckDialog open={createOpen} onOpenChange={setCreateOpen} />
       <ClaimLocalDecksPrompt />
     </div>
