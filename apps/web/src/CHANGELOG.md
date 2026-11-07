@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-07
+
+### Other
+
+- fix(Decks): **New variants open with their cards** — a variant you just created shows the cards copied from its source deck right away, without reloading the page.
+
 ## 2026-11-06
 
 ### Highlights

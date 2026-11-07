@@ -438,7 +438,7 @@ const createDeckVariantFn = createServerFn({ method: "POST" })
     }),
   );
 
-/** The variant joins the source's folders, so the folder counts move too. */
+/** The variant copies the source's cards and joins its folders, so both stores refetch. */
 export function useCreateDeckVariant() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
@@ -448,6 +448,7 @@ export function useCreateDeckVariant() {
       // Awaited: the caller navigates to the variant, whose route reads it from the store.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) }),
+        queryClient.invalidateQueries({ queryKey: decksKeys.cardsStore(userId) }),
         queryClient.invalidateQueries({ queryKey: deckFoldersKeys.all(userId) }),
       ]);
       return created;

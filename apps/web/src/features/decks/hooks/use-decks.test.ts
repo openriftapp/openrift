@@ -49,6 +49,7 @@ const { getDeckDraftHydrated, hydrateDeckDraft } =
 const {
   useBulkUpdateDecks,
   useCreateDeck,
+  useCreateDeckVariant,
   useDeckCardsFor,
   useDeckDetail,
   useDeckList,
@@ -158,6 +159,30 @@ describe("useCreateDeck", () => {
 
     expect(created.id).toBe(DECK_ID);
     expect(sent).toEqual([]);
+  });
+});
+
+describe("useCreateDeckVariant", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("refetches the cards store before resolving, so the variant opens with its copied cards", async () => {
+    vi.stubGlobal("location", { origin: "http://localhost:3000" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(Response.json({ id: "variant-1", name: "Poro Party v2" }))),
+    );
+    const client = new QueryClient();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useCreateDeckVariant(), {
+      wrapper: ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client }, children),
+    });
+
+    await result.current.mutateAsync({ deckId: "deck-1" });
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["decks", "user-1", "cards-store"] });
   });
 });
 
