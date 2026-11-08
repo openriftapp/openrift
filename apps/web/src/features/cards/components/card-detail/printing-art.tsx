@@ -15,11 +15,13 @@ export function PrintingArt({
   showImages,
   sizes,
   frame,
+  compactFlip,
 }: {
   printing: Printing;
   showImages?: boolean;
   sizes: string;
   frame: (art: ReactNode) => ReactNode;
+  compactFlip?: boolean;
 }) {
   const { printingsByCardId } = useCards();
   const [showBack, setShowBack] = useState(false);
@@ -47,6 +49,7 @@ export function PrintingArt({
       otherSide={{ ...other, cardName: legendDisplayName(flipTarget.card) }}
       back={showBack ? front : back}
       onFlip={() => setShowBack(!showBack)}
+      compact={compactFlip}
     >
       {framed}
     </DoubleSidedFlip>

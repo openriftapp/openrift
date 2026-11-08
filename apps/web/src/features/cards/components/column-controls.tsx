@@ -24,8 +24,7 @@ export function ColumnControls({
     <ButtonGroup aria-label={m.cards_columns()}>
       <Button
         variant="control"
-        size={compact ? "sm" : "icon"}
-        className={compact ? "size-7 p-0" : undefined}
+        size={compact ? "icon-sm" : "icon"}
         onClick={() => {
           if (maxColumns === null) {
             const next = autoColumns - 1;
@@ -42,7 +41,7 @@ export function ColumnControls({
         }
         aria-label={m.cards_columns_fewer()}
       >
-        <MinusIcon className={compact ? undefined : "size-4"} />
+        <MinusIcon className={compact ? "size-3.5" : "size-4"} />
       </Button>
       <Button
         variant="control"
@@ -62,8 +61,7 @@ export function ColumnControls({
       </Button>
       <Button
         variant="control"
-        size={compact ? "sm" : "icon"}
-        className={compact ? "size-7 p-0" : undefined}
+        size={compact ? "icon-sm" : "icon"}
         onClick={() => {
           const next = maxColumns === null ? autoColumns + 1 : maxColumns + 1;
           if (next <= maxColumnsLimit) {
@@ -75,7 +73,7 @@ export function ColumnControls({
         }
         aria-label={m.cards_columns_more()}
       >
-        <PlusIcon className={compact ? undefined : "size-4"} />
+        <PlusIcon className={compact ? "size-3.5" : "size-4"} />
       </Button>
     </ButtonGroup>
   );

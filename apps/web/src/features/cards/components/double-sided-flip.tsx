@@ -16,22 +16,26 @@ interface PillProps {
 }
 
 const PILL_CLASS = "absolute right-3 bottom-0 z-10 translate-y-1/2 pr-3.5 pl-3";
+const COMPACT_PILL_CLASS = "absolute right-1 bottom-0 z-10 translate-y-1/2 rounded-full";
 
 /**
  * `back` is the face the card turns to, and `onFlip` runs once the turn finishes.
  * `renderLink` makes the pill a link that keeps modified clicks.
+ * `compact` drops the name from the pill for thumbnails too narrow to hold it.
  */
 export function DoubleSidedFlip({
   otherSide,
   back,
   onFlip,
   renderLink,
+  compact,
   children,
 }: {
   otherSide: PrintingOtherSide;
   back?: ReactNode;
   onFlip: () => void;
   renderLink?: (pill: PillProps) => ReactElement;
+  compact?: boolean;
   children: ReactNode;
 }) {
   const [flipped, setFlipped] = useState(false);
@@ -40,9 +44,11 @@ export function DoubleSidedFlip({
   const pillContent = (
     <>
       <RefreshCwIcon aria-hidden="true" />
-      {otherSide.cardName}
+      {!compact && otherSide.cardName}
     </>
   );
+  const pillSize = compact ? "icon-sm" : "default";
+  const pillClass = compact ? COMPACT_PILL_CLASS : PILL_CLASS;
 
   function handleClick(event: MouseEvent) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -85,7 +91,11 @@ export function DoubleSidedFlip({
         </div>
         {renderLink ? (
           renderLink({
-            className: buttonVariants({ variant: "glass-pill", className: PILL_CLASS }),
+            className: buttonVariants({
+              variant: "glass-pill",
+              size: pillSize,
+              className: pillClass,
+            }),
             onClick: handleClick,
             "aria-label": pillLabel,
             children: pillContent,
@@ -93,9 +103,10 @@ export function DoubleSidedFlip({
         ) : (
           <Button
             variant="glass-pill"
+            size={pillSize}
             onClick={handleClick}
             aria-label={pillLabel}
-            className={PILL_CLASS}
+            className={pillClass}
           >
             {pillContent}
           </Button>

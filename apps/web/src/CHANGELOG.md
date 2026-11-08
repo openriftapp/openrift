@@ -6,6 +6,11 @@
 
 - feat(Cards): **Search syntax in quick search** — the top search and the deck builder's quick add now understand filters such as t:unit and e<=3 and show how many cards match.
 
+### Other
+
+- fix(Cards): **Flip buttons fit small cards** — double-sided printings in a card's printing grid show a small flip icon that no longer covers the cards next to it.
+- fix(Cards): **Even column buttons on phones** — the column stepper in the card options now matches the height of the view toggle beside it.
+
 ## 2026-11-07
 
 ### Other

@@ -33,6 +33,17 @@ afterEach(() => {
 });
 
 describe("DoubleSidedFlip", () => {
+  it("drops the name from a compact pill but keeps it in the label", () => {
+    render(
+      <DoubleSidedFlip otherSide={otherSide} onFlip={vi.fn()} compact>
+        <span>Buff</span>
+      </DoubleSidedFlip>,
+    );
+    const pill = screen.getByRole("button", { name: "Flip to Recruit" });
+    expect(pill.textContent).toBe("");
+    expect(pill).toHaveClass("size-(--control-h-sm)");
+  });
+
   it("labels the pill with the other side's name", () => {
     renderFlip();
     expect(screen.getByRole("button", { name: "Flip to Recruit" }).textContent).toBe("Recruit");

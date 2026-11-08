@@ -272,6 +272,7 @@ function PrintingCell({
           printing={printing}
           showImages={showImages}
           sizes={sizes}
+          compactFlip
           frame={(art) => (
             <Pressable
               ref={cellRef}
