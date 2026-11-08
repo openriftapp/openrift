@@ -382,6 +382,16 @@
   "palette_clear_search": "清除搜尋",
   "palette_no_results": "沒有符合的結果。",
   "palette_search_all_cards": "在所有卡牌中搜尋「{query}」",
+  "palette_search_all_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "顯示 {count} 張符合的卡牌",
+        "countPlural=*": "顯示全部 {count} 張符合的卡牌"
+      }
+    }
+  ],
   "palette_search_rules": "在規則中搜尋「{query}」",
   "palette_hint_open": "開啟",
   "palette_hint_navigate": "移動",
@@ -2728,6 +2738,7 @@
   "decks_editor_quick_add_input_aria": "將卡牌加入牌組",
   "decks_editor_quick_add_label": "將卡牌加入這副牌組",
   "decks_editor_quick_add_no_results": "沒有符合「{query}」的卡牌",
+  "decks_editor_quick_add_more_matches": "顯示 {count} 個結果中的 {shown} 個",
   "decks_editor_quick_add_placeholder": "搜尋卡牌…",
   "decks_editor_quick_add_scope": "加入這副牌組",
   "decks_editor_quick_add_title": "將卡牌加入牌組",

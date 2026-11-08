@@ -16,7 +16,7 @@ export type PaletteRow =
   | { kind: "card"; id: string; card: QuickAddCardResult }
   | { kind: "nav"; id: string; item: NavItemConfig }
   | { kind: "help"; id: string; article: HelpArticle }
-  | { kind: "searchCards"; id: string; query: string }
+  | { kind: "searchCards"; id: string; query: string; matchCount?: number }
   | { kind: "searchRules"; id: string; query: string };
 
 export interface PaletteGroup {
@@ -30,6 +30,7 @@ interface BuildPaletteGroupsInput {
   navItems: NavItemConfig[];
   helpArticles: HelpArticle[];
   quickAdd: { label: string; moveLabel: string | null } | null;
+  syntaxMatchCount?: number;
 }
 
 function matches(query: string, ...haystack: (string | undefined)[]): boolean {
@@ -59,6 +60,7 @@ export function buildPaletteGroups({
   navItems,
   helpArticles,
   quickAdd,
+  syntaxMatchCount,
 }: BuildPaletteGroupsInput): PaletteGroup[] {
   const trimmed = query.trim();
   const folded = trimmed.toLowerCase();
@@ -103,12 +105,17 @@ export function buildPaletteGroups({
         .map((article) => ({ kind: "help", id: `help:${article.slug}`, article }))
     : [];
 
-  const searchRows: PaletteRow[] = searchable
-    ? [
-        { kind: "searchCards", id: "search:cards", query: trimmed },
-        { kind: "searchRules", id: "search:rules", query: trimmed },
-      ]
-    : [];
+  let searchRows: PaletteRow[] = [];
+  if (syntaxMatchCount !== undefined) {
+    searchRows = [
+      { kind: "searchCards", id: "search:cards", query: trimmed, matchCount: syntaxMatchCount },
+    ];
+  } else if (searchable) {
+    searchRows = [
+      { kind: "searchCards", id: "search:cards", query: trimmed },
+      { kind: "searchRules", id: "search:rules", query: trimmed },
+    ];
+  }
 
   const groups: PaletteGroup[] = [];
   const pushSearch = () => {

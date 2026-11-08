@@ -382,6 +382,16 @@
   "palette_clear_search": "清除搜索",
   "palette_no_results": "没有匹配的内容。",
   "palette_search_all_cards": "在全部卡牌中搜索“{query}”",
+  "palette_search_all_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "显示 {count} 张匹配的卡牌",
+        "countPlural=*": "显示全部 {count} 张匹配的卡牌"
+      }
+    }
+  ],
   "palette_search_rules": "在规则中搜索“{query}”",
   "palette_hint_open": "打开",
   "palette_hint_navigate": "导航",
@@ -2728,6 +2738,7 @@
   "decks_editor_quick_add_input_aria": "向卡组添加卡牌",
   "decks_editor_quick_add_label": "向此卡组添加卡牌",
   "decks_editor_quick_add_no_results": "没有匹配“{query}”的卡牌",
+  "decks_editor_quick_add_more_matches": "显示 {count} 个结果中的 {shown} 个",
   "decks_editor_quick_add_placeholder": "搜索卡牌…",
   "decks_editor_quick_add_scope": "添加到此卡组",
   "decks_editor_quick_add_title": "向卡组添加卡牌",

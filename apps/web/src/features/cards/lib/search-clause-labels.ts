@@ -273,7 +273,7 @@ export function describeSearchTerms(
   return [...terms, ...directives, ...problems].toSorted((a, b) => a.span.start - b.span.start);
 }
 
-function describeDiagnostic(diagnostic: SearchDiagnostic): string | null {
+export function describeDiagnostic(diagnostic: SearchDiagnostic): string | null {
   const typed = `${diagnostic.key ?? ""}:`;
   const value = diagnostic.value ?? "";
   switch (diagnostic.code) {

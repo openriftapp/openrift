@@ -154,6 +154,21 @@ describe("buildPaletteGroups", () => {
       expect(rows.every((row) => "query" in row && row.query === "might")).toBe(true);
     });
 
+    it("offers only the cards search, with its match count, for a syntax query", () => {
+      const groups = buildPaletteGroups({
+        query: "t:unit",
+        cards: [],
+        navItems: NAV,
+        helpArticles: HELP,
+        quickAdd: null,
+        syntaxMatchCount: 214,
+      });
+      const rows = groups.find((group) => group.heading === "Search")?.rows ?? [];
+      expect(rows).toEqual([
+        { kind: "searchCards", id: "search:cards", query: "t:unit", matchCount: 214 },
+      ]);
+    });
+
     it("keeps the description when folding a duplicate destination", () => {
       const groups = buildPaletteGroups({
         query: "camera",

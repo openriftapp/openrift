@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "lucide-react";
 
+import { SearchProblems } from "@/components/command-palette/search-problems";
 import type { NavFlags } from "@/components/layout/nav-items";
 import { moreNavSections, primaryNavItems } from "@/components/layout/nav-items";
 import {
@@ -26,7 +27,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton } from "@/components/ui/i
 import { Kbd } from "@/components/ui/kbd";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
+import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
 import { visibleHelpArticles } from "@/features/marketing/components/articles";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
@@ -64,7 +65,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
   const highlighted = useCommandPaletteStore((state) => state.highlighted);
   const setHighlighted = useCommandPaletteStore((state) => state.setHighlighted);
 
-  const cards = useQuickAddSearch(query, printingsByCardId, {
+  const { results: cards, syntax } = useQuickCardSearch(query, printingsByCardId, {
     preferredLanguages,
     limit: SEARCH_DEPTH,
   });
@@ -84,6 +85,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
     navItems,
     helpArticles: visibleHelpArticles(flags),
     quickAdd,
+    syntaxMatchCount: syntax?.total,
   });
 
   const rowIds = groups.flatMap((group) => group.rows).map((row) => row.id);
@@ -165,6 +167,8 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
 
       <div className="border-border border-t" />
 
+      <SearchProblems problems={syntax?.problems ?? []} />
+
       <CommandList className={isMobile ? "max-h-[50dvh]" : "max-h-96"}>
         <CommandEmpty className="text-muted-foreground px-3 py-8 text-center">
           {m.palette_no_results()}
@@ -223,7 +227,11 @@ function PaletteRowContent({ row }: { row: PaletteRow }) {
     return (
       <>
         <LayersIcon />
-        <span className="truncate">{m.palette_search_all_cards({ query: row.query })}</span>
+        <span className="truncate">
+          {row.matchCount
+            ? m.palette_search_all_matches({ count: row.matchCount })
+            : m.palette_search_all_cards({ query: row.query })}
+        </span>
       </>
     );
   }

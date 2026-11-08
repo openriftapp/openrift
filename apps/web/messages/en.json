@@ -382,6 +382,16 @@
   "palette_clear_search": "Clear search",
   "palette_no_results": "Nothing matches that.",
   "palette_search_all_cards": "Search all cards for “{query}”",
+  "palette_search_all_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show {count} matching card",
+        "countPlural=*": "Show all {count} matching cards"
+      }
+    }
+  ],
   "palette_search_rules": "Search rules for “{query}”",
   "palette_hint_open": "open",
   "palette_hint_navigate": "navigate",
@@ -2729,6 +2739,7 @@
   "decks_editor_quick_add_input_aria": "Add a card to the deck",
   "decks_editor_quick_add_label": "Add cards to this deck",
   "decks_editor_quick_add_no_results": "No cards matching “{query}”",
+  "decks_editor_quick_add_more_matches": "Showing {shown} of {count} matches",
   "decks_editor_quick_add_placeholder": "Search cards…",
   "decks_editor_quick_add_scope": "Add to this deck",
   "decks_editor_quick_add_title": "Add cards to the deck",

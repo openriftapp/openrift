@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-08
+
+### Highlights
+
+- feat(Cards): **Search syntax in quick search** — the top search and the deck builder's quick add now understand filters such as t:unit and e<=3 and show how many cards match.
+
 ## 2026-11-07
 
 ### Other

@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 
 import { PaletteFrame } from "@/components/command-palette/palette-frame";
 import { PaletteScopeToken } from "@/components/command-palette/palette-scope-token";
+import { SearchProblems } from "@/components/command-palette/search-problems";
 import {
   InputGroup,
   InputGroupAddon,
@@ -19,7 +20,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { QuickAddPreview } from "@/features/collections/components/quick-add-preview";
 import { QuickAddStepper } from "@/features/collections/components/quick-add-stepper";
-import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
+import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
 import { useDeckUndo } from "@/features/decks/components/deck-undo-controls";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -202,7 +203,7 @@ function QuickAddInner({
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const results = useQuickAddSearch(query, printingsByCardId);
+  const { results, syntax } = useQuickCardSearch(query, printingsByCardId);
   const clampedIndex = Math.min(selectedIndex, Math.max(0, results.length - 1));
   const selected = results[clampedIndex];
   const expanded =
@@ -428,6 +429,8 @@ function QuickAddInner({
         )}
       </InputGroup>
 
+      <SearchProblems problems={syntax?.problems ?? []} />
+
       <div ref={listRef} className={cn("overflow-y-auto", isMobile ? "max-h-72" : "max-h-96")}>
         {query.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-center text-sm">
@@ -575,6 +578,12 @@ function QuickAddInner({
             </div>
           );
         })}
+
+        {syntax && syntax.total > results.length && (
+          <div className="text-muted-foreground px-3 py-2 text-center text-sm">
+            {m.decks_editor_quick_add_more_matches({ shown: results.length, count: syntax.total })}
+          </div>
+        )}
       </div>
 
       {!isMobile && (

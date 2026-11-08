@@ -382,6 +382,16 @@
   "palette_clear_search": "Effacer la recherche",
   "palette_no_results": "Aucun résultat.",
   "palette_search_all_cards": "Chercher « {query} » dans toutes les cartes",
+  "palette_search_all_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher {count} carte correspondante",
+        "countPlural=*": "Afficher les {count} cartes correspondantes"
+      }
+    }
+  ],
   "palette_search_rules": "Chercher « {query} » dans les règles",
   "palette_hint_open": "ouvrir",
   "palette_hint_navigate": "naviguer",
@@ -2729,6 +2739,7 @@
   "decks_editor_quick_add_input_aria": "Ajouter une carte au deck",
   "decks_editor_quick_add_label": "Ajouter des cartes à ce deck",
   "decks_editor_quick_add_no_results": "Aucune carte ne correspond à « {query} »",
+  "decks_editor_quick_add_more_matches": "{shown} résultats affichés sur {count}",
   "decks_editor_quick_add_placeholder": "Rechercher des cartes…",
   "decks_editor_quick_add_scope": "Ajouter à ce deck",
   "decks_editor_quick_add_title": "Ajouter des cartes au deck",
