@@ -55,6 +55,7 @@ interface DeckCardRowProps {
   hasViolation?: boolean;
   violationMessage?: string;
   planTag?: string;
+  printingLabel?: string;
   shortfall?: number;
   locked?: number;
   lockedReason?: string;
@@ -224,6 +225,7 @@ export function DeckCardRow({
   hasViolation,
   violationMessage,
   planTag,
+  printingLabel,
   shortfall,
   locked,
   lockedReason,
@@ -309,7 +311,10 @@ export function DeckCardRow({
 
       {cardControls}
 
-      <span className="min-w-0 flex-1 truncate text-left">{cardName}</span>
+      <span className="min-w-0 flex-1 truncate text-left">
+        {cardName}
+        {printingLabel && <span className="text-muted-foreground"> · {printingLabel}</span>}
+      </span>
 
       {planTag && <Badge variant="neutral">{planTag}</Badge>}
 

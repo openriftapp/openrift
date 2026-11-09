@@ -9,13 +9,31 @@ import { DeckOverviewViewControls } from "./deck-overview-view-controls";
 const resetStore = createStoreResetter(useDeckOverviewViewStore);
 
 function renderControls(
-  overrides: { showPrices?: boolean; showBands?: boolean; paneToggle?: boolean } = {},
+  overrides: {
+    showPrices?: boolean;
+    showBands?: boolean;
+    paneToggle?: boolean;
+    showStatsSummary?: boolean;
+    hasStatsSummary?: boolean;
+    displayMode?: "grid" | "list";
+  } = {},
 ) {
-  const { showPrices = false, showBands = true, paneToggle } = overrides;
-  useDeckOverviewViewStore.setState({ showPrices, showOwnershipBands: showBands });
+  const {
+    showPrices = false,
+    showBands = true,
+    paneToggle,
+    showStatsSummary = true,
+    hasStatsSummary = true,
+    displayMode = "grid",
+  } = overrides;
+  useDeckOverviewViewStore.setState({
+    showPrices,
+    showOwnershipBands: showBands,
+    showStatsSummary,
+  });
   render(
     <DeckOverviewViewControls
-      displayMode="grid"
+      displayMode={displayMode}
       ordering={{
         sortBy: "energy",
         sortDir: "asc",
@@ -35,6 +53,8 @@ function renderControls(
       showAllRuneCopies={false}
       showBands={showBands}
       showPrices={showPrices}
+      showStatsSummary={showStatsSummary}
+      hasStatsSummary={hasStatsSummary}
       preferOwned={false}
       canPreferOwned
       hasOwnershipData
@@ -48,13 +68,46 @@ describe("DeckOverviewViewControls", () => {
   afterEach(resetStore);
 
   it("resets every changed option to its default", () => {
-    renderControls({ showPrices: true, showBands: false });
+    renderControls({ showPrices: true, showBands: false, showStatsSummary: false });
     fireEvent.click(screen.getByRole("button", { name: "Display options, changed" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
 
     const state = useDeckOverviewViewStore.getState();
     expect(state.showPrices).toBe(false);
     expect(state.showOwnershipBands).toBe(true);
+    expect(state.showStatsSummary).toBe(true);
+  });
+
+  it("hides the stats summary from its switch", () => {
+    renderControls();
+    fireEvent.click(screen.getByRole("button", { name: "Display options" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Show stats summary" }));
+    expect(useDeckOverviewViewStore.getState().showStatsSummary).toBe(false);
+  });
+
+  it("leaves out the stats summary switch where no summary renders", () => {
+    renderControls({ hasStatsSummary: false });
+    fireEvent.click(screen.getByRole("button", { name: "Display options" }));
+    expect(screen.queryByRole("switch", { name: "Show stats summary" })).toBeNull();
+  });
+
+  it("keeps the list's price switch separate from the grid's", () => {
+    renderControls({ displayMode: "list", showPrices: true });
+    fireEvent.click(screen.getByRole("button", { name: "Display options" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Show prices" }));
+    const state = useDeckOverviewViewStore.getState();
+    expect(state.showListPrices).toBe(false);
+    expect(state.showPrices).toBe(true);
+  });
+
+  it("offers the ownership switch in the list with a list hint", () => {
+    renderControls({ displayMode: "list", showPrices: true });
+    fireEvent.click(screen.getByRole("button", { name: "Display options" }));
+    expect(
+      screen.getByRole("switch", {
+        name: "Show ownership Owned and needed copies for each card.",
+      }),
+    ).toBeTruthy();
   });
 
   it("offers no reset while every option is at its default", () => {

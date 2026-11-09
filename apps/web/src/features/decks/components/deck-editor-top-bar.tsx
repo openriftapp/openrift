@@ -68,7 +68,7 @@ interface DeckEditorTopBarProps {
   hasViolations: boolean;
   onToggleSidebar?: () => void;
   openDialog: (dialog: DeckEditorDialog) => void;
-  workbench?: { modeControl: React.ReactNode; menuPrefix: React.ReactNode };
+  workbench?: { modeControl: React.ReactNode; menuPrefix: React.ReactNode; viewing: boolean };
 }
 
 export function DeckEditorTopBar({
@@ -170,31 +170,35 @@ export function DeckEditorTopBar({
       </div>
       <PageTopBarActions>
         {workbench?.modeControl}
-        {/* No tooltip on the phone icon: no hover to open one and no
-              Ctrl+K to advertise. */}
-        <PageTopBarIconButton
-          className={workbench ? "hidden" : "md:hidden"}
-          aria-label={m.decks_editor_add_card_aria()}
-          onClick={() => openQuickAdd("add")}
-        >
-          <PlusIcon className="size-4" />
-        </PageTopBarIconButton>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <PageTopBarButton
-                className="hidden md:inline-flex"
-                aria-keyshortcuts="Control+K"
-                onClick={() => openQuickAdd("add")}
-              />
-            }
-          >
-            <PlusIcon className="size-4" />
-            {m.decks_editor_add_card()}
-          </TooltipTrigger>
-          <TooltipContent>{m.decks_editor_add_card_tooltip()}</TooltipContent>
-        </Tooltip>
-        <DeckUndoControls deckId={deckId} />
+        {!workbench?.viewing && (
+          <>
+            {/* No tooltip on the phone icon: no hover to open one and no
+                  Ctrl+K to advertise. */}
+            <PageTopBarIconButton
+              className={workbench ? "hidden" : "md:hidden"}
+              aria-label={m.decks_editor_add_card_aria()}
+              onClick={() => openQuickAdd("add")}
+            >
+              <PlusIcon className="size-4" />
+            </PageTopBarIconButton>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <PageTopBarButton
+                    className="hidden md:inline-flex"
+                    aria-keyshortcuts="Control+K"
+                    onClick={() => openQuickAdd("add")}
+                  />
+                }
+              >
+                <PlusIcon className="size-4" />
+                {m.decks_editor_add_card()}
+              </TooltipTrigger>
+              <TooltipContent>{m.decks_editor_add_card_tooltip()}</TooltipContent>
+            </Tooltip>
+            <DeckUndoControls deckId={deckId} />
+          </>
+        )}
         <div className="hidden md:flex md:items-center md:gap-1">
           <PageTopBarButton onClick={() => openDialog("share")}>
             <Share2Icon className="size-4" />

@@ -14,7 +14,14 @@ import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangleIcon, HandHeartIcon, LockIcon, PlusIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckIcon,
+  HandHeartIcon,
+  LockIcon,
+  PlusIcon,
+  XIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +38,7 @@ import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group
 import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-link";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
-import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
+import { lockedReasonText, toOwnershipPrinting } from "@/features/decks/hooks/use-deck-ownership";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
 import { orderByBattlefieldPlan } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -41,7 +48,7 @@ import {
   isDeckZoneFullForDrag,
 } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
-import { groupDeckCards } from "@/features/decks/lib/deck-card-group";
+import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import type {
   AnyDragData,
@@ -53,6 +60,8 @@ import {
   DRAG_SOURCE_ZONES,
   resolveDraggedCard,
 } from "@/features/decks/lib/deck-dnd-data";
+import type { CopyOwnershipStatus } from "@/features/decks/lib/deck-overview-derive";
+import { copyOwnershipStatus, zoneShowsAllCopies } from "@/features/decks/lib/deck-overview-derive";
 import type {
   DeckListSortContext,
   DeckOverviewSort,
@@ -90,6 +99,37 @@ interface ReservedCells {
   price: boolean;
 }
 
+export function reservedListCells(
+  cards: readonly DeckBuilderCard[],
+  getEntry: (card: DeckBuilderCard) => CardOwnership | undefined,
+  options: {
+    showOwnership: boolean;
+    showPrices: boolean;
+    getPrice: (card: DeckBuilderCard) => number | undefined;
+  },
+): ReservedCells {
+  const { showOwnership, showPrices, getPrice } = options;
+  return {
+    lock: showOwnership && cards.some((card) => (getEntry(card)?.locked ?? 0) > 0),
+    borrowed: showOwnership && cards.some((card) => (getEntry(card)?.borrowed ?? 0) > 0),
+    price: showPrices && cards.some((card) => getPrice(card) !== undefined),
+  };
+}
+
+interface ListRowCopy {
+  card: DeckBuilderCard;
+  copyIndex?: number;
+}
+
+export function listRowCopies(cards: readonly DeckBuilderCard[], perCopy: boolean): ListRowCopy[] {
+  if (!perCopy) {
+    return cards.map((card) => ({ card }));
+  }
+  return cards.flatMap((card) =>
+    Array.from({ length: card.quantity }, (_, copyIndex) => ({ card, copyIndex })),
+  );
+}
+
 export function deckOverviewSortOptions(): SortGroupOption<DeckOverviewSort>[] {
   return [
     { value: "default", label: m.decks_overview_sort_curve() },
@@ -121,6 +161,10 @@ interface DeckOverviewListProps {
   violations: DeckViolation[];
   ownership?: DeckOwnershipData;
   showOwnership: boolean;
+  showPrices: boolean;
+  showAllCopies: boolean;
+  showAllRuneCopies: boolean;
+  copyPrintingIdFor?: (card: DeckBuilderCard, copyIndex: number) => string | undefined;
   marketplace: Marketplace;
   sortBy: DeckOverviewSort;
   sortDir: "asc" | "desc";
@@ -143,6 +187,10 @@ export function DeckOverviewList({
   violations,
   ownership,
   showOwnership,
+  showPrices,
+  showAllCopies,
+  showAllRuneCopies,
+  copyPrintingIdFor,
   marketplace,
   sortBy,
   sortDir,
@@ -162,7 +210,7 @@ export function DeckOverviewList({
   const isRowDimmed = (card: DeckBuilderCard) =>
     statsFocus !== null && statsFocus !== undefined && !cardMatchesStatsFocus(card, statsFocus);
   const { orders, labels } = useEnumOrders();
-  const { sets } = useCards();
+  const { sets, printingsByCardId } = useCards();
   const domainColors = useDomainColors();
   const isMobile = useIsMobile();
   const fmtPrice = formatterForMarketplace(marketplace);
@@ -175,7 +223,19 @@ export function DeckOverviewList({
   const resolveRowPrinting = (
     card: DeckBuilderCard,
     entry: CardOwnership | undefined,
+    copyIndex?: number,
   ): RowPrinting => {
+    const copyId = copyIndex === undefined ? undefined : copyPrintingIdFor?.(card, copyIndex);
+    const copyPrinting = copyId
+      ? printingsByCardId.get(card.cardId)?.find((printing) => printing.printingId === copyId)
+      : undefined;
+    if (copyPrinting) {
+      return {
+        printing: toOwnershipPrinting(copyPrinting),
+        price: prices?.get(copyPrinting.printingId, marketplace),
+        hoverPrintingId: copyPrinting.printingId,
+      };
+    }
     const owned = ownedPrintingFor?.(card.cardId);
     return {
       printing: owned ?? entry?.displayPrinting,
@@ -192,11 +252,11 @@ export function DeckOverviewList({
     ownership?.byCardZone.get(`${card.cardId}:${card.zone}`);
 
   const { data: borrowedLenders } = useBorrowedLenders();
-  const reserved: ReservedCells = {
-    lock: showOwnership && cards.some((card) => (getEntry(card)?.locked ?? 0) > 0),
-    borrowed: showOwnership && cards.some((card) => (getEntry(card)?.borrowed ?? 0) > 0),
-    price: cards.some((card) => resolveRowPrinting(card, getEntry(card)).price !== undefined),
-  };
+  const reserved = reservedListCells(cards, getEntry, {
+    showOwnership,
+    showPrices,
+    getPrice: (card) => resolveRowPrinting(card, getEntry(card)).price,
+  });
 
   const sortContext: DeckListSortContext = {
     getEntry,
@@ -233,6 +293,7 @@ export function DeckOverviewList({
 
   const renderZone = ({ zone, cards: zoneCards }: (typeof zones)[number]) => {
     const quantity = totalQuantity(zoneCards);
+    const perCopy = zoneShowsAllCopies(zone, showAllCopies, showAllRuneCopies);
     const expected = zoneExpected(zone, format, cards);
     const showExpected =
       expected !== undefined &&
@@ -320,19 +381,24 @@ export function DeckOverviewList({
             onHoverCard={onHoverCard}
             onCardClick={onCardClick}
             draggable={rowsDraggable}
+            perCopy={perCopy}
+            groupDir={groupDir}
           />
         ) : (
           <div className="flex flex-col gap-0.5">
-            {(zone === WellKnown.deckZone.BATTLEFIELD && planTags
-              ? orderByBattlefieldPlan(
-                  sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext),
-                  planTags,
-                )
-              : sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext)
-            ).map((card) => (
+            {listRowCopies(
+              zone === WellKnown.deckZone.BATTLEFIELD && planTags
+                ? orderByBattlefieldPlan(
+                    sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext),
+                    planTags,
+                  )
+                : sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext),
+              perCopy,
+            ).map(({ card, copyIndex }) => (
               <ListRow
-                key={getDeckCardKey(card)}
+                key={`${getDeckCardKey(card)}-${copyIndex ?? "all"}`}
                 card={card}
+                copyIndex={copyIndex}
                 entry={sortContext.getEntry(card)}
                 rarityLabels={labels.rarities}
                 domainLabels={labels.domains}
@@ -509,6 +575,8 @@ function GroupedRows({
   onHoverCard,
   onCardClick,
   draggable,
+  perCopy,
+  groupDir,
 }: {
   groups: DeckCardGroup[];
   groupBy: DeckOverviewGroup;
@@ -522,49 +590,63 @@ function GroupedRows({
   reserved: ReservedCells;
   borrowedLenders?: Record<string, string[]>;
   fmtPrice: (cents: number) => string;
-  resolveRowPrinting: (card: DeckBuilderCard, entry: CardOwnership | undefined) => RowPrinting;
+  resolveRowPrinting: (
+    card: DeckBuilderCard,
+    entry: CardOwnership | undefined,
+    copyIndex?: number,
+  ) => RowPrinting;
   cardViolations: ReadonlyMap<string, string>;
   isDimmed: (card: DeckBuilderCard) => boolean;
   onHoverCard?: HoverHandler;
   onCardClick?: (card: CardOpenTarget) => void;
   draggable: boolean;
+  perCopy: boolean;
+  groupDir: "asc" | "desc";
 }) {
   return (
     <div className="flex flex-col gap-3">
-      {groups.map((group) => {
-        const sorted = sortDeckOverviewList(group.cards, sortBy, sortDir, sortContext);
-        return (
-          <div key={group.key} className="flex flex-col gap-0.5">
-            <DeckCardGroupHeader group={group} groupBy={groupBy} className="px-2" />
-            {sorted.map((card) => (
-              <ListRow
-                key={getDeckCardKey(card)}
-                card={card}
-                entry={sortContext.getEntry(card)}
-                rarityLabels={rarityLabels}
-                domainLabels={domainLabels}
-                domainColors={domainColors}
-                showOwnership={showOwnership}
-                reserved={reserved}
-                borrowedLenders={borrowedLenders}
-                fmtPrice={fmtPrice}
-                resolveRowPrinting={resolveRowPrinting}
-                violationMessage={cardViolations.get(card.cardId)}
-                dimmed={isDimmed(card)}
-                onHoverCard={onHoverCard}
-                onCardClick={onCardClick}
-                draggable={draggable}
-              />
-            ))}
-          </div>
-        );
-      })}
+      {copyRowGroups(
+        groups,
+        (cards) =>
+          listRowCopies(sortDeckOverviewList(cards, sortBy, sortDir, sortContext), perCopy),
+        {
+          splitByCopy: perCopy && groupBy === "ownership",
+          dir: groupDir,
+          getEntry: sortContext.getEntry,
+        },
+      ).map(({ group, count, rows }) => (
+        <div key={group.key} className="flex flex-col gap-0.5">
+          <DeckCardGroupHeader group={group} groupBy={groupBy} count={count} className="px-2" />
+          {rows.map(({ card, copyIndex }) => (
+            <ListRow
+              key={`${getDeckCardKey(card)}-${copyIndex ?? "all"}`}
+              card={card}
+              copyIndex={copyIndex}
+              entry={sortContext.getEntry(card)}
+              rarityLabels={rarityLabels}
+              domainLabels={domainLabels}
+              domainColors={domainColors}
+              showOwnership={showOwnership}
+              reserved={reserved}
+              borrowedLenders={borrowedLenders}
+              fmtPrice={fmtPrice}
+              resolveRowPrinting={resolveRowPrinting}
+              violationMessage={cardViolations.get(card.cardId)}
+              dimmed={isDimmed(card)}
+              onHoverCard={onHoverCard}
+              onCardClick={onCardClick}
+              draggable={draggable}
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
 
 interface DeckListRowProps {
   card: DeckBuilderCard;
+  copyIndex?: number;
   entry: CardOwnership | undefined;
   rarityLabels: Record<string, string>;
   domainLabels: Record<string, string>;
@@ -573,7 +655,11 @@ interface DeckListRowProps {
   reserved: ReservedCells;
   borrowedLenders?: Record<string, string[]>;
   fmtPrice: (cents: number) => string;
-  resolveRowPrinting: (card: DeckBuilderCard, entry: CardOwnership | undefined) => RowPrinting;
+  resolveRowPrinting: (
+    card: DeckBuilderCard,
+    entry: CardOwnership | undefined,
+    copyIndex?: number,
+  ) => RowPrinting;
   violationMessage?: string;
   planTag?: string;
   dimmed?: boolean;
@@ -593,7 +679,7 @@ function ListRow({ draggable, ...props }: DeckListRowProps & { draggable: boolea
 // The payload is byte-for-byte the grid thumbnail's `DeckCardDragData`, so
 // every existing drop handler treats a list drag exactly like a grid drag.
 function DraggableDeckListRow(props: DeckListRowProps) {
-  const { card } = props;
+  const { card, copyIndex } = props;
   const dragData: DeckCardDragData = {
     type: "deck-card",
     cardId: card.cardId,
@@ -605,7 +691,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
   // Destructured before use: member access on the hook's return object during
   // render makes the React Compiler bail.
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
-    id: `overview-list-${card.cardId}-${card.zone}-${card.preferredPrintingId ?? "default"}`,
+    id: `overview-list-${card.cardId}-${card.zone}-${card.preferredPrintingId ?? "default"}-${copyIndex ?? "all"}`,
     data: dragData,
   });
 
@@ -622,6 +708,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
 // Hook-free so tests can render it on its own.
 export function DeckListRow({
   card,
+  copyIndex,
   entry,
   rarityLabels,
   domainLabels,
@@ -649,7 +736,7 @@ export function DeckListRow({
     types: card.cardTypes,
     tags: card.tags,
   });
-  const { printing, price, hoverPrintingId } = resolveRowPrinting(card, entry);
+  const { printing, price, hoverPrintingId } = resolveRowPrinting(card, entry, copyIndex);
   const rarity = printing?.rarity;
   const missing = (entry?.shortfall ?? 0) > 0;
 
@@ -663,7 +750,7 @@ export function DeckListRow({
         // render trips the React Compiler's refs-during-render check
         // (build-failing bailout); the two props are always set together.
         dragProps && "cursor-grab active:cursor-grabbing",
-        isDragging && card.quantity === 1 && "opacity-40",
+        isDragging && (card.quantity === 1 || copyIndex !== undefined) && "opacity-40",
         dimmed && "opacity-30 transition-opacity",
       )}
       {...cardHoverProps(onHoverCard, card.cardId, hoverPrintingId)}
@@ -683,7 +770,9 @@ export function DeckListRow({
         hideMetaOnMobile
       />
 
-      <span className="w-6 shrink-0 text-right tabular-nums">{card.quantity}×</span>
+      <span className="w-6 shrink-0 text-right tabular-nums">
+        {copyIndex === undefined ? card.quantity : 1}×
+      </span>
 
       <span className="min-w-0 flex-1 truncate">
         <DeckCardPageLink cardId={card.cardId} printingId={hoverPrintingId}>
@@ -710,7 +799,14 @@ export function DeckListRow({
 
       {card.energy !== null && <EnergyGlyph value={card.energy} />}
 
-      {showOwnership && entry && (
+      {showOwnership && entry && copyIndex !== undefined && (
+        <CopyStatusCell
+          status={copyOwnershipStatus(entry, copyIndex)}
+          entry={entry}
+          lenders={borrowedLenders?.[card.cardId] ?? []}
+        />
+      )}
+      {showOwnership && entry && copyIndex === undefined && (
         <span
           className={cn(
             "w-12 shrink-0 text-right tabular-nums",
@@ -722,7 +818,7 @@ export function DeckListRow({
       )}
       {reserved.lock && (
         <span className="flex w-7 shrink-0 justify-end">
-          {entry && entry.locked > 0 && (
+          {copyIndex === undefined && entry && entry.locked > 0 && (
             <Tooltip>
               <TooltipTrigger className="text-muted-foreground flex items-center gap-0.5">
                 <LockIcon className="size-3" />
@@ -735,7 +831,7 @@ export function DeckListRow({
       )}
       {reserved.borrowed && (
         <span className="flex w-7 shrink-0 justify-end">
-          {entry && entry.borrowed > 0 && (
+          {copyIndex === undefined && entry && entry.borrowed > 0 && (
             <Tooltip>
               <TooltipTrigger className="text-muted-foreground flex items-center gap-0.5">
                 <HandHeartIcon className="size-3" />
@@ -755,5 +851,52 @@ export function DeckListRow({
         </span>
       )}
     </div>
+  );
+}
+
+const COPY_STATUS_ICONS = {
+  owned: CheckIcon,
+  borrowed: HandHeartIcon,
+  locked: LockIcon,
+  missing: XIcon,
+} as const;
+
+function CopyStatusCell({
+  status,
+  entry,
+  lenders,
+}: {
+  status: CopyOwnershipStatus;
+  entry: CardOwnership;
+  lenders: string[];
+}) {
+  const Icon = COPY_STATUS_ICONS[status];
+  const label = {
+    owned: m.decks_overview_own_owned(),
+    borrowed: m.decks_overview_own_borrowed(),
+    locked: m.decks_overview_own_locked(),
+    missing: m.decks_overview_own_missing(),
+  }[status];
+  const detail =
+    status === "borrowed"
+      ? borrowedReasonText(1, lenders)
+      : status === "locked"
+        ? lockedReasonText(entry, 1)
+        : label;
+  return (
+    <span className="flex w-12 shrink-0 justify-end">
+      <Tooltip>
+        <TooltipTrigger
+          aria-label={label}
+          className={cn(
+            "flex items-center",
+            status === "missing" ? "text-warning" : "text-muted-foreground",
+          )}
+        >
+          <Icon className="size-3.5" />
+        </TooltipTrigger>
+        <TooltipContent>{detail}</TooltipContent>
+      </Tooltip>
+    </span>
   );
 }

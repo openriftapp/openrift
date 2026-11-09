@@ -1,10 +1,4 @@
-import {
-  GalleryVerticalEndIcon,
-  LayoutGridIcon,
-  ListIcon,
-  RotateCcwIcon,
-  SlidersHorizontalIcon,
-} from "lucide-react";
+import { LayoutGridIcon, ListIcon, RotateCcwIcon, SlidersHorizontalIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -113,6 +107,8 @@ interface DeckOverviewViewControlsProps {
   showAllRuneCopies: boolean;
   showBands: boolean;
   showPrices: boolean;
+  showStatsSummary: boolean;
+  hasStatsSummary: boolean;
   preferOwned: boolean;
   canPreferOwned: boolean;
   hasOwnershipData: boolean;
@@ -131,6 +127,8 @@ export function DeckOverviewViewControls({
   showAllRuneCopies,
   showBands,
   showPrices,
+  showStatsSummary,
+  hasStatsSummary,
   preferOwned,
   canPreferOwned,
   hasOwnershipData,
@@ -141,7 +139,9 @@ export function DeckOverviewViewControls({
   const setShowAllCopies = useDeckOverviewViewStore((state) => state.setShowAllCopies);
   const setShowAllRuneCopies = useDeckOverviewViewStore((state) => state.setShowAllRuneCopies);
   const setShowOwnershipBands = useDeckOverviewViewStore((state) => state.setShowOwnershipBands);
-  const setShowPrices = useDeckOverviewViewStore((state) => state.setShowPrices);
+  const setShowGridPrices = useDeckOverviewViewStore((state) => state.setShowPrices);
+  const setShowListPrices = useDeckOverviewViewStore((state) => state.setShowListPrices);
+  const setShowStatsSummary = useDeckOverviewViewStore((state) => state.setShowStatsSummary);
   const setPreferOwnedPrintings = useDeckOverviewViewStore(
     (state) => state.setPreferOwnedPrintings,
   );
@@ -156,7 +156,7 @@ export function DeckOverviewViewControls({
       spacing={0}
       value={[displayMode]}
       onValueChange={([next]) => {
-        if (next === "grid" || next === "stacks" || next === "list") {
+        if (next === "grid" || next === "list") {
           setDisplayMode(next);
         }
       }}
@@ -172,20 +172,6 @@ export function DeckOverviewViewControls({
       </Tooltip>
       <Tooltip>
         <TooltipTrigger
-          render={
-            <ToggleGroupItem
-              value="stacks"
-
-              aria-label={m.decks_overview_view_stacks()}
-            />
-          }
-        >
-          <GalleryVerticalEndIcon className="size-4" />
-        </TooltipTrigger>
-        <TooltipContent>{m.decks_overview_view_stacks()}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger
           render={<ToggleGroupItem value="list" aria-label={m.decks_overview_view_list()} />}
         >
           <ListIcon className="size-4" />
@@ -195,22 +181,31 @@ export function DeckOverviewViewControls({
     </ToggleGroup>
   );
 
-  // `modified` drives the dot on the popover trigger: bands default to on,
-  // the rest to off.
+  // `modified` drives the dot on the popover trigger: ownership, the stats
+  // summary and list prices default to on, the rest to off.
   const optionSwitches: DeckOptionSwitch[] = [
-    ...(hasThumbnails
+    ...(hasStatsSummary
       ? [
           {
-            key: "copies",
-            label: m.decks_overview_option_every_copy(),
-            description: m.decks_overview_option_every_copy_hint(),
-            checked: showAllCopies,
-            modified: showAllCopies,
-            onCheckedChange: setShowAllCopies,
+            key: "stats-summary",
+            label: m.decks_overview_option_stats_summary(),
+            checked: showStatsSummary,
+            modified: !showStatsSummary,
+            onCheckedChange: setShowStatsSummary,
           },
         ]
       : []),
-    ...(hasThumbnails && showAllCopies
+    {
+      key: "copies",
+      label: m.decks_overview_option_every_copy(),
+      description: hasThumbnails
+        ? m.decks_overview_option_every_copy_hint()
+        : m.decks_overview_option_every_copy_list_hint(),
+      checked: showAllCopies,
+      modified: showAllCopies,
+      onCheckedChange: setShowAllCopies,
+    },
+    ...(showAllCopies
       ? [
           {
             key: "rune-copies",
@@ -223,26 +218,28 @@ export function DeckOverviewViewControls({
           },
         ]
       : []),
-    ...(hasThumbnails && canPreferOwned
+    ...(canPreferOwned
       ? [
           {
             key: "bands",
             label: m.decks_overview_option_bands(),
-            description: m.decks_overview_option_bands_hint(),
+            description: hasThumbnails
+              ? m.decks_overview_option_bands_hint()
+              : m.decks_overview_option_bands_list_hint(),
             checked: showBands,
             modified: !showBands,
             onCheckedChange: setShowOwnershipBands,
           },
         ]
       : []),
-    ...(hasThumbnails && hasOwnershipData
+    ...(hasOwnershipData
       ? [
           {
             key: "prices",
             label: m.decks_overview_option_prices(),
             checked: showPrices,
-            modified: showPrices,
-            onCheckedChange: setShowPrices,
+            modified: hasThumbnails ? showPrices : !showPrices,
+            onCheckedChange: hasThumbnails ? setShowGridPrices : setShowListPrices,
           },
         ]
       : []),

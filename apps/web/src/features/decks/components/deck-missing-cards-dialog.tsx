@@ -28,6 +28,7 @@ import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useMarketplaceLinks } from "@/features/cards/hooks/use-marketplace-links";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
+import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
 import {
   missingCardsToListEntries,
   missingCardsToWants,
@@ -87,29 +88,6 @@ function CardIdentity({
       {content}
     </Pressable>
   );
-}
-
-// Reasons are joined as alternatives, not counted per-reason: the per-reason
-// counts aren't zone-capped the way `locked` is, so they can't be shown beside it.
-function lockedTooltipText(card: CardOwnership): string {
-  const reasons: string[] = [];
-  if (card.lockedLoaned > 0) {
-    reasons.push(m.decks_overview_locked_reason_loan());
-  }
-  if (card.lockedReserved > 0) {
-    reasons.push(m.decks_overview_locked_reason_trade());
-  }
-  if (card.lockedExcluded > 0) {
-    reasons.push(m.decks_overview_locked_reason_excluded());
-  }
-
-  if (reasons.length <= 1) {
-    const reason = reasons[0] ?? m.decks_overview_locked_reason_generic();
-    return m.decks_overview_locked({ count: card.locked, reason });
-  }
-  const last = reasons.at(-1) ?? "";
-  const rest = reasons.slice(0, -1).join(", ");
-  return m.decks_overview_locked_multi({ count: card.locked, rest, last });
 }
 
 // Incoming copies aren't locked and aren't the viewer's yet: they explain
@@ -258,7 +236,7 @@ function MissingCardsDialogBody({
                               <LockIcon className="size-3" />
                             </TooltipTrigger>
                             <TooltipContent side="top" className="max-w-56 text-xs">
-                              {lockedTooltipText(card)}
+                              {lockedReasonText(card)}
                             </TooltipContent>
                           </Tooltip>
                         )}

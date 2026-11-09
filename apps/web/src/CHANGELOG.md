@@ -4,10 +4,16 @@
 
 ### Highlights
 
+- feat(Decks): **Deck list options match the grid** — the list view now has Show ownership, Show prices and Show every copy, which splits a card into one row per copy marked owned or missing.
+- feat(Decks): **Own printing per copy** — with Show my printings and Show every copy on, each copy shows the printing you own for it, and bands, grouping and prices follow each copy.
+- feat(Decks): **Stats summary on desktop** — the mini stats card with the energy curve and turn-1 odds now shows on the Cards tab on desktop too, with a switch in the display options.
 - feat(Decks): **Battlefield plan on the deck list** — battlefields picked in a deck's plan are tagged Game 1, Going first or Going second and listed in that order, in the deck list and in the sidebar, and right-clicking a battlefield in the sidebar opens the plan to change them.
 
 ### Other
 
+- feat(Decks): **Printing named on repeated cards** — when a zone holds a card in more than one printing, the sidebar and the card panel name each printing.
+- fix(Decks): **View mode stays read-only** — the deck builder's View mode no longer shows Add card or undo and redo, and the undo shortcuts do nothing there.
+- fix(Decks): **Stacks view removed** — the deck overview no longer has a stacks view, and anyone who had it selected gets the grid.
 - fix(Decks): **Full drop highlight in the sidebar** — dragging a card onto the open zone in the deck builder's sidebar no longer cuts off the highlight's left edge.
 - fix(Decks): **Deck sheet on phones** — the deck sheet opened while adding cards is taller, scrolls all the way to the bottom, and its quantity and menu buttons are lighter. The "Adding to" line above the cards wraps instead of scrolling sideways.
 - fix(App): **Themed scrollbars** — scrollbars follow the light or dark theme and are thinner inside panels and dialogs, so dark mode no longer shows bright white bars.

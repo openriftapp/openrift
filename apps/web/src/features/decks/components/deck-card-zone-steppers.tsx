@@ -19,8 +19,10 @@ export function DeckCardZoneSteppers({
   isFreeform,
   onAdd,
   onRemove,
+  printingLabels,
 }: {
   entries: readonly DeckBuilderCard[];
+  printingLabels?: ReadonlyMap<string, string>;
   isFreeform: boolean;
   onAdd: (entry: DeckBuilderCard) => void;
   onRemove: (entry: DeckBuilderCard) => void;
@@ -32,7 +34,15 @@ export function DeckCardZoneSteppers({
     <ul className="grid w-fit grid-cols-[auto_auto] items-center gap-x-4 gap-y-1">
       {entries.map((entry) => (
         <li key={getDeckCardKey(entry)} className="contents">
-          <span>{ZONE_LABELS[entry.zone]}</span>
+          <span>
+            {ZONE_LABELS[entry.zone]}
+            {printingLabels?.has(getDeckCardKey(entry)) && (
+              <span className="text-muted-foreground">
+                {" · "}
+                {printingLabels.get(getDeckCardKey(entry))}
+              </span>
+            )}
+          </span>
           <InlineCountStepper
             size="sm"
             variant="outline"

@@ -6,36 +6,30 @@ import { getTypeIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
 /**
- * Shared by the overview's list rows, thumbnail wraps, and stacks-mode piles
- * so all three read identically. The "none" group has no label and renders nothing.
+ * Shared by the overview's list rows and thumbnail wraps so both read
+ * identically. The "none" group has no label and renders nothing.
  */
 export function DeckCardGroupHeader({
   group,
   groupBy,
+  count,
   className,
-  truncate,
 }: {
   group: DeckCardGroup;
   groupBy: DeckOverviewGroup;
+  count?: number;
   className?: string;
-  truncate?: boolean;
 }) {
   if (group.label === null) {
     return null;
   }
-  const count = totalQuantity(group.cards);
+  const shownCount = count ?? totalQuantity(group.cards);
   const iconPath = groupBy === "type" ? getTypeIconPath(group.key, []) : undefined;
   return (
-    <div
-      className={cn(
-        "text-muted-foreground flex items-center gap-1.5 text-xs",
-        truncate && "min-w-0",
-        className,
-      )}
-    >
+    <div className={cn("text-muted-foreground flex items-center gap-1.5 text-xs", className)}>
       {iconPath && <CardIcon src={iconPath} className="size-3.5" />}
-      <span className={truncate ? "truncate" : "whitespace-nowrap"}>
-        {group.label} <span className="text-muted-foreground/60">· {count}</span>
+      <span className="whitespace-nowrap">
+        {group.label} <span className="text-muted-foreground/60">· {shownCount}</span>
       </span>
     </div>
   );

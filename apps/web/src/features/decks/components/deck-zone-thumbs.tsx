@@ -22,6 +22,7 @@ import { cardInteractiveProps, deckCardDragData } from "@/features/decks/lib/dec
 import { DRAG_SOURCE_ZONES } from "@/features/decks/lib/deck-dnd-data";
 import { STEPPER_ZONES } from "@/features/decks/lib/deck-overview-derive";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
+import { copyBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import {
   LANDSCAPE_THUMB_CLASS,
   LANDSCAPE_THUMB_STYLE,
@@ -200,6 +201,8 @@ function portraitCqw(value: number, isLandscape: boolean): string {
   return isLandscape ? `${(value * 63) / 88}cqw` : `${value}cqw`;
 }
 
+const EXACT_COPY = { exact: 1, other: 0, borrowed: 0, locked: 0, missing: 0 };
+
 export function ZoneThumb({
   deckId,
   card,
@@ -209,6 +212,7 @@ export function ZoneThumb({
   addRoom,
   hoverPrintingId,
   copyIndex,
+  showsCopyPrinting = false,
   dimmed,
   zone,
   thumbnail,
@@ -225,6 +229,7 @@ export function ZoneThumb({
   addRoom?: number;
   hoverPrintingId?: string | null;
   copyIndex?: number | null;
+  showsCopyPrinting?: boolean;
   dimmed?: boolean;
   zone: DeckZone;
   thumbnail?: string;
@@ -238,6 +243,7 @@ export function ZoneThumb({
   const controlsAlwaysVisible = isMobile || coarsePointer;
   const stepAbove = !readOnly && isMobile && STEPPER_ZONES.has(zone);
   const enableDrag = !readOnly && !isMobile && DRAG_SOURCE_ZONES.has(zone);
+  const perCopy = copyIndex !== null && copyIndex !== undefined;
   const editable = !readOnly;
   const displayName = legendDisplayName({
     name: card.cardName,
@@ -319,7 +325,7 @@ export function ZoneThumb({
           <PinIcon className="text-muted-foreground size-2.5" />
         </span>
       )}
-      {card.quantity > 1 && (copyIndex === null || copyIndex === undefined) && (
+      {card.quantity > 1 && !perCopy && (
         <CardQuantityChip
           quantity={card.quantity}
           className={cn(
@@ -347,7 +353,7 @@ export function ZoneThumb({
           card={card}
           zone={zone}
           addRoom={addRoom ?? 0}
-          perCopy={copyIndex !== null && copyIndex !== undefined}
+          perCopy={perCopy}
           alwaysVisible={controlsAlwaysVisible}
         />
       )}
@@ -360,7 +366,19 @@ export function ZoneThumb({
         {caption && (
           <span className="text-muted-foreground mt-1 truncate text-center text-xs">{caption}</span>
         )}
-        {band && <LabeledOwnershipBand quantity={card.quantity} band={band} className="mt-1" />}
+        {band && (
+          <LabeledOwnershipBand
+            quantity={perCopy ? 1 : card.quantity}
+            band={
+              showsCopyPrinting
+                ? EXACT_COPY
+                : perCopy
+                  ? copyBandSegments(band, copyIndex ?? 0)
+                  : band
+            }
+            className="mt-1"
+          />
+        )}
       </>
     ) : null;
   const withBand = (node: React.ReactNode) =>
@@ -398,7 +416,7 @@ export function ZoneThumb({
         card={card}
         zone={zone}
         addRoom={addRoom ?? 0}
-        perCopy={copyIndex !== null && copyIndex !== undefined}
+        perCopy={perCopy}
       />
       {menuThumb}
       {bandBar}

@@ -29,9 +29,9 @@ export function DeckStatsSummary({
 
   return (
     <Card size="sm">
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
         {curve.length > 0 && (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 md:w-64 md:shrink-0">
             <span className="text-muted-foreground text-xs">{m.decks_stats_energy()}</span>
             <div className="flex h-10 items-end gap-1" aria-hidden="true">
               {curve.map((entry) => (
@@ -54,38 +54,40 @@ export function DeckStatsSummary({
             </div>
           </div>
         )}
-        {turnOne && (
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-muted-foreground text-xs">
-              {m.decks_stats_turn_one_play_label()}
-            </span>
-            <span>
-              {m.decks_odds_going_first()}{" "}
-              <span className="font-medium tabular-nums">{formatChancePct(turnOne.first)}</span>
-            </span>
-            <span>
-              {m.decks_odds_going_second()}{" "}
-              <span className="font-medium tabular-nums">{formatChancePct(turnOne.second)}</span>
-            </span>
-          </div>
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          {stats.typeBreakdown.length > 0 && (
-            <span className="text-muted-foreground tabular-nums">
-              {stats.typeBreakdown
-                .map((entry) =>
-                  m.decks_stats_type_axis({
-                    count: entry.total,
-                    label: enumLabel(cardTypeLabels, entry.type),
-                    type: entry.type,
-                  }),
-                )
-                .join(" · ")}
-            </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          {turnOne && (
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-muted-foreground text-xs">
+                {m.decks_stats_turn_one_play_label()}
+              </span>
+              <span>
+                {m.decks_odds_going_first()}{" "}
+                <span className="font-medium tabular-nums">{formatChancePct(turnOne.first)}</span>
+              </span>
+              <span>
+                {m.decks_odds_going_second()}{" "}
+                <span className="font-medium tabular-nums">{formatChancePct(turnOne.second)}</span>
+              </span>
+            </div>
           )}
-          <Button variant="link" size="sm" className="ml-auto h-auto px-0" onClick={onShowAll}>
-            {m.decks_stats_all()}
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            {stats.typeBreakdown.length > 0 && (
+              <span className="text-muted-foreground tabular-nums">
+                {stats.typeBreakdown
+                  .map((entry) =>
+                    m.decks_stats_type_axis({
+                      count: entry.total,
+                      label: enumLabel(cardTypeLabels, entry.type),
+                      type: entry.type,
+                    }),
+                  )
+                  .join(" · ")}
+              </span>
+            )}
+            <Button variant="link" size="sm" className="ml-auto h-auto px-0" onClick={onShowAll}>
+              {m.decks_stats_all()}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

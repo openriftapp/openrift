@@ -55,6 +55,7 @@ import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckPlanIfAvailable } from "@/features/decks/hooks/use-deck-plan";
 import { useDeckDetail, useUpdateDeck } from "@/features/decks/hooks/use-decks";
+import { useEntryPrintingLabels } from "@/features/decks/hooks/use-entry-printing-labels";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
@@ -389,6 +390,7 @@ function DeckCardBrowserInner({
   } = useFilterValues();
   const { setSearch } = useFilterActions();
   const { getPreferredPrinting } = usePreferredPrinting();
+  const entryPrintingLabelsFor = useEntryPrintingLabels();
   const { addCard, removeCard, setLegend, setQuantity } = useDeckBuilderActions(deckId);
   const isFreeform = deckDetail.deck.format === WellKnown.deckFormat.FREEFORM;
   const isCustomRegion = deckDetail.deck.format === WellKnown.deckFormat.CUSTOM_REGION;
@@ -713,6 +715,7 @@ function DeckCardBrowserInner({
         </div>
         <DeckCardZoneSteppers
           entries={deckEntries}
+          printingLabels={entryPrintingLabelsFor(deckEntries)}
           isFreeform={isFreeform}
           onAdd={(entry) => addCard(entry, entry.zone)}
           onRemove={(entry) => removeCard(entry.cardId, entry.zone, entry.preferredPrintingId)}

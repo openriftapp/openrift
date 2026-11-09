@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Pressable } from "@/components/ui/pressable";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { GroupedThumbs } from "@/features/decks/components/deck-grouped-thumbs";
-import { StackPile } from "@/features/decks/components/deck-stack-pile";
 import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
@@ -20,9 +19,11 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
-import { expandCopies, overviewHoverHandler } from "@/features/decks/lib/deck-overview-derive";
+import type { CopyViewFor } from "@/features/decks/lib/deck-overview-derive";
+import { expandCopies } from "@/features/decks/lib/deck-overview-derive";
 import { LANDSCAPE_ZONES } from "@/features/decks/lib/deck-overview-geometry";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
+import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import {
@@ -67,7 +68,9 @@ export interface ZoneTileProps {
   groupCards: (cards: DeckBuilderCard[]) => DeckCardGroup[];
   sortCards: (cards: DeckBuilderCard[]) => DeckBuilderCard[];
   groupBy: DeckOverviewGroup;
-  stacked: boolean;
+  groupDir: "asc" | "desc";
+  copyViewFor?: CopyViewFor;
+  getOwnershipEntry: (card: DeckBuilderCard) => CardOwnership | undefined;
   zone: DeckZone;
   label: string;
   cards: DeckBuilderCard[];
@@ -101,7 +104,9 @@ export function ZoneTile({
   groupCards,
   sortCards,
   groupBy,
-  stacked,
+  groupDir,
+  copyViewFor,
+  getOwnershipEntry,
   zone,
   label,
   cards,
@@ -130,7 +135,6 @@ export function ZoneTile({
   const isComplete = !hasViolation && expected !== undefined && quantity === expected;
   const hideCount = isComplete && (countsOnlyUnfinished || isSingleSlotZone(zone));
   const isLandscape = LANDSCAPE_ZONES.has(zone);
-  const hoverCard = overviewHoverHandler(stacked, onHoverCard);
 
   const groups = GROUPED_ZONES.has(zone) ? groupCards(cards) : null;
   const unknownSlots =
@@ -273,23 +277,6 @@ export function ZoneTile({
         ) : (
           emptyStrip
         )
-      ) : stacked && isLandscape && cards.length > 1 ? (
-        <div className="flex flex-wrap items-start gap-1.5">
-          <StackPile
-            deckId={deckId}
-            entries={expandCopies(cards, showAllCopies)}
-            zone={zone}
-            statsFocus={statsFocus}
-            bandByCardKey={bandByCardKey}
-            priceTextByCardKey={priceTextByCardKey}
-            addRoomByCardKey={addRoomByCardKey}
-            resolveHoverPrintingId={resolveHoverPrintingId}
-            getThumbnail={getThumbnail}
-            readOnly={readOnly}
-            onCardClick={onCardClick}
-          />
-          {unknownSlots}
-        </div>
       ) : groups ? (
         <>
           <GroupedThumbs
@@ -304,9 +291,11 @@ export function ZoneTile({
             groups={groups}
             sortCards={sortCards}
             groupBy={groupBy}
-            stacked={stacked}
+            groupDir={groupDir}
+            copyViewFor={copyViewFor}
+            getOwnershipEntry={getOwnershipEntry}
             isLandscape={isLandscape}
-            onHoverCard={hoverCard}
+            onHoverCard={onHoverCard}
             getThumbnail={getThumbnail}
             readOnly={readOnly}
             onCardClick={onCardClick}
@@ -318,23 +307,28 @@ export function ZoneTile({
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">
           {expandCopies(cards, showAllCopies).map(({ card, copyIndex }) => {
-            const thumbnail = getThumbnail(card.cardId, card.preferredPrintingId);
+            const copy = copyIndex === null ? undefined : copyViewFor?.(card, copyIndex);
+            const thumbnail =
+              copy?.thumbnail ?? getThumbnail(card.cardId, card.preferredPrintingId);
             return (
               <ZoneThumb
                 key={`${getDeckCardKey(card)}-${copyIndex ?? "stack"}`}
                 deckId={deckId}
                 card={card}
                 band={bandByCardKey.get(getDeckCardKey(card))}
-                priceText={priceTextByCardKey.get(getDeckCardKey(card))}
+                priceText={copy ? copy.priceText : priceTextByCardKey.get(getDeckCardKey(card))}
                 caption={planTags?.get(card.cardId)?.label}
                 addRoom={addRoomByCardKey.get(getDeckCardKey(card)) ?? 0}
-                hoverPrintingId={resolveHoverPrintingId(card.cardId, card.preferredPrintingId)}
+                hoverPrintingId={
+                  copy?.printingId ?? resolveHoverPrintingId(card.cardId, card.preferredPrintingId)
+                }
                 copyIndex={copyIndex}
+                showsCopyPrinting={copy !== undefined}
                 dimmed={statsFocus !== null && !cardMatchesStatsFocus(card, statsFocus)}
                 zone={zone}
                 thumbnail={thumbnail}
                 isLandscape={isLandscape}
-                onHoverCard={hoverCard}
+                onHoverCard={onHoverCard}
                 readOnly={readOnly}
                 onCardClick={onCardClick}
               />

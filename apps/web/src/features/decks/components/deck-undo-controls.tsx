@@ -36,13 +36,13 @@ function restoreSnapshot(
   applyDeckSnapshot(queryClient, scope, deckId, snapshot);
 }
 
-export function useDeckUndoShortcuts(deckId: string): void {
+export function useDeckUndoShortcuts(deckId: string, enabled = true): void {
   const queryClient = useQueryClient();
   const scope = useDeckDraftScope(deckId);
   const collection = useDeckDraftCollection(deckId);
 
   useEffect(() => {
-    if (!collection || !scope) {
+    if (!enabled || !collection || !scope) {
       return;
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -66,7 +66,7 @@ export function useDeckUndoShortcuts(deckId: string): void {
     return () => {
       globalThis.removeEventListener("keydown", onKeyDown);
     };
-  }, [collection, scope, deckId, queryClient]);
+  }, [enabled, collection, scope, deckId, queryClient]);
 }
 
 export function useDeckUndo(deckId: string): {

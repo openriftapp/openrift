@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import {
   buildAddRoom,
+  copyOwnershipStatus,
   expandCopies,
   zoneShowsAllCopies,
 } from "@/features/decks/lib/deck-overview-derive";
@@ -116,5 +117,20 @@ describe("zoneShowsAllCopies", () => {
     expect(zoneShowsAllCopies(WellKnown.deckZone.RUNES, true, false)).toBe(false);
     expect(zoneShowsAllCopies(WellKnown.deckZone.RUNES, true, true)).toBe(true);
     expect(zoneShowsAllCopies(WellKnown.deckZone.RUNES, false, true)).toBe(false);
+  });
+});
+
+describe("copyOwnershipStatus", () => {
+  const entry = { owned: 1, borrowed: 1, locked: 1 };
+
+  it("fills owned, then borrowed, then locked copies", () => {
+    expect(copyOwnershipStatus(entry, 0)).toBe("owned");
+    expect(copyOwnershipStatus(entry, 1)).toBe("borrowed");
+    expect(copyOwnershipStatus(entry, 2)).toBe("locked");
+  });
+
+  it("marks every copy past those as missing", () => {
+    expect(copyOwnershipStatus(entry, 3)).toBe("missing");
+    expect(copyOwnershipStatus({ owned: 0, borrowed: 0, locked: 0 }, 0)).toBe("missing");
   });
 });

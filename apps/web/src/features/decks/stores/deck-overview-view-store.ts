@@ -6,7 +6,7 @@ import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-s
 import type { FieldPicker } from "@/lib/persist-merge";
 import { mergeFields, pickBoolean, pickEnum } from "@/lib/persist-merge";
 
-export type DeckOverviewDisplayMode = "grid" | "list" | "stacks";
+export type DeckOverviewDisplayMode = "grid" | "list";
 
 const MAX_PERSISTED_COLUMNS = 24;
 
@@ -36,9 +36,13 @@ interface DeckOverviewViewState {
   setShowOwnershipBands: (showOwnershipBands: boolean) => void;
   showPrices: boolean;
   setShowPrices: (showPrices: boolean) => void;
+  showListPrices: boolean;
+  setShowListPrices: (showListPrices: boolean) => void;
+  showStatsSummary: boolean;
+  setShowStatsSummary: (showStatsSummary: boolean) => void;
 }
 
-const DISPLAY_MODES: readonly DeckOverviewDisplayMode[] = ["grid", "list", "stacks"];
+const DISPLAY_MODES: readonly DeckOverviewDisplayMode[] = ["grid", "list"];
 
 const SORTS: readonly DeckOverviewSort[] = [
   "default",
@@ -92,6 +96,10 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
       setShowOwnershipBands: (showOwnershipBands) => set({ showOwnershipBands }),
       showPrices: false,
       setShowPrices: (showPrices) => set({ showPrices }),
+      showListPrices: true,
+      setShowListPrices: (showListPrices) => set({ showListPrices }),
+      showStatsSummary: true,
+      setShowStatsSummary: (showStatsSummary) => set({ showStatsSummary }),
     }),
     {
       name: "deck-overview-view",
@@ -111,6 +119,8 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
         statsOpen: pickBoolean,
         showOwnershipBands: pickBoolean,
         showPrices: pickBoolean,
+        showListPrices: pickBoolean,
+        showStatsSummary: pickBoolean,
       }),
     },
   ),

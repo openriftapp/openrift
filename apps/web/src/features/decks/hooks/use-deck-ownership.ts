@@ -18,8 +18,9 @@ import type {
 } from "@/features/decks/lib/deck-ownership-types";
 import { coveredByPairPartner } from "@/features/decks/lib/pair-copy-cover";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
+import { m } from "@/paraglide/messages.js";
 
-function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
+export function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
   return {
     id: printing.printingId,
     sideKey: sideKey(printing),
@@ -33,22 +34,26 @@ function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
   };
 }
 
-// Only meaningful when `entry.locked > 0`.
-export function lockedReasonText(entry: CardOwnership): string {
+// Only meaningful when `entry.locked > 0`. Reasons are joined as alternatives:
+// the per-reason counts aren't zone-capped the way `locked` is.
+export function lockedReasonText(entry: CardOwnership, count = entry.locked): string {
   const reasons: string[] = [];
   if (entry.lockedLoaned > 0) {
-    reasons.push("out on loan");
+    reasons.push(m.decks_overview_locked_reason_loan());
   }
   if (entry.lockedReserved > 0) {
-    reasons.push("reserved for a trade");
+    reasons.push(m.decks_overview_locked_reason_trade());
   }
   if (entry.lockedExcluded > 0) {
-    reasons.push("in a collection excluded from deck building");
+    reasons.push(m.decks_overview_locked_reason_excluded());
   }
-  const why = reasons.length > 0 ? reasons.join(" or ") : "unavailable for deck building";
-  return entry.locked === 1
-    ? `1 more copy is locked: ${why}`
-    : `${entry.locked} more copies are locked: ${why}`;
+  if (reasons.length <= 1) {
+    const reason = reasons[0] ?? m.decks_overview_locked_reason_generic();
+    return m.decks_overview_locked({ count, reason });
+  }
+  const last = reasons.at(-1) ?? "";
+  const rest = reasons.slice(0, -1).join(", ");
+  return m.decks_overview_locked_multi({ count, rest, last });
 }
 
 const REQUIRED_ZONE_SET: ReadonlySet<DeckZone> = new Set(REQUIRED_ZONES);

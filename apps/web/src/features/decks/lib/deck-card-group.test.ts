@@ -2,7 +2,7 @@ import type { CardType, Domain } from "@openrift/shared/types/enums";
 import { describe, expect, it } from "vitest";
 
 import type { DeckCardGroupContext } from "@/features/decks/lib/deck-card-group";
-import { groupDeckCards } from "@/features/decks/lib/deck-card-group";
+import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { stubCardOwnership, stubDeckBuilderCard } from "@/test/factories";
 
 const ctx: DeckCardGroupContext = {
@@ -94,5 +94,52 @@ describe("groupDeckCards", () => {
     ];
     const groups = groupDeckCards(cards, "energy", "desc", ctx);
     expect(groups.map((group) => group.label)).toEqual(["No energy cost", "4 energy", "1 energy"]);
+  });
+});
+
+describe("copyRowGroups", () => {
+  const jinx = stubDeckBuilderCard({ cardId: "jinx", quantity: 3 });
+  const vi = stubDeckBuilderCard({ cardId: "vi", quantity: 1 });
+  const entries = new Map([
+    ["jinx", stubCardOwnership({ cardId: "jinx", owned: 1, borrowed: 1, locked: 1 })],
+    ["vi", stubCardOwnership({ cardId: "vi", owned: 0, borrowed: 0, locked: 0 })],
+  ]);
+  const getEntry = (card: { cardId: string }) => entries.get(card.cardId);
+  const perCopy = (cards: (typeof jinx)[]) =>
+    cards.flatMap((card) =>
+      Array.from({ length: card.quantity }, (_, copyIndex) => ({ card, copyIndex })),
+    );
+  const groups = [{ key: "partial", label: "Missing copies", cards: [jinx, vi] }];
+
+  it("keeps card groups and counts copies when not splitting", () => {
+    const result = copyRowGroups(groups, perCopy, { splitByCopy: false, dir: "asc", getEntry });
+    expect(result.map(({ group, count }) => [group.key, count])).toEqual([["partial", 4]]);
+  });
+
+  it("puts owned and borrowed copies under owned, the rest under not owned", () => {
+    const result = copyRowGroups(groups, perCopy, { splitByCopy: true, dir: "asc", getEntry });
+    expect(
+      result.map(({ group, rows }) => [
+        group.key,
+        rows.map((row) => `${row.card.cardId}#${row.copyIndex}`),
+      ]),
+    ).toEqual([
+      ["owned", ["jinx#0", "jinx#1"]],
+      ["missing", ["jinx#2", "vi#0"]],
+    ]);
+  });
+
+  it("reverses the group order for a descending direction", () => {
+    const result = copyRowGroups(groups, perCopy, { splitByCopy: true, dir: "desc", getEntry });
+    expect(result.map(({ group }) => group.key)).toEqual(["missing", "owned"]);
+  });
+
+  it("counts a copy without ownership data as owned", () => {
+    const result = copyRowGroups(groups, perCopy, {
+      splitByCopy: true,
+      dir: "asc",
+      getEntry: () => undefined,
+    });
+    expect(result.map(({ group, count }) => [group.key, count])).toEqual([["owned", 4]]);
   });
 });

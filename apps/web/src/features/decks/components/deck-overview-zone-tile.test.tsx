@@ -13,9 +13,6 @@ vi.mock("@/features/decks/components/deck-zone-thumbs", () => ({
 vi.mock("@/features/decks/components/deck-grouped-thumbs", () => ({
   GroupedThumbs: () => <div>grouped</div>,
 }));
-vi.mock("@/features/decks/components/deck-stack-pile", () => ({
-  StackPile: () => <div>pile</div>,
-}));
 
 afterEach(cleanup);
 
@@ -53,7 +50,8 @@ function renderZone({
       groupCards={(zoneCards) => [{ key: "none", label: "", cards: zoneCards }]}
       sortCards={(zoneCards) => zoneCards}
       groupBy="none"
-      stacked={false}
+      groupDir="asc"
+      getOwnershipEntry={() => undefined}
       zone={zone}
       label={label}
       cards={cards}

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { stubDeckBuilderCard } from "@/test/factories";
 
 import { DeckCardZoneSteppers } from "./deck-card-zone-steppers";
@@ -27,6 +28,32 @@ describe("DeckCardZoneSteppers", () => {
 
     expect(onAdd).toHaveBeenCalledWith(buccaneer);
     expect(onRemove).toHaveBeenCalledWith(buccaneer);
+  });
+
+  it("names the printing of each entry that shares its zone", () => {
+    const plain = stubDeckBuilderCard({ cardId: "rampage", cardName: "Rampage", quantity: 1 });
+    const foil = stubDeckBuilderCard({
+      cardId: "rampage",
+      cardName: "Rampage",
+      quantity: 1,
+      preferredPrintingId: "rampage-foil",
+    });
+    render(
+      <DeckCardZoneSteppers
+        entries={[plain, foil]}
+        isFreeform={false}
+        onAdd={vi.fn()}
+        onRemove={vi.fn()}
+        printingLabels={
+          new Map([
+            [getDeckCardKey(plain), "Standard"],
+            [getDeckCardKey(foil), "Foil"],
+          ])
+        }
+      />,
+    );
+    expect(screen.getByText("· Standard")).toBeDefined();
+    expect(screen.getByText("· Foil")).toBeDefined();
   });
 
   it("offers no extra copy in a one-copy zone", () => {

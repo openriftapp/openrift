@@ -4,7 +4,6 @@ import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 
-import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   canAddRune,
@@ -13,7 +12,7 @@ import {
   RUNE_TARGET,
 } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
-import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
+import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { formatterForMarketplace } from "@/lib/format";
 
 export const STEPPER_ZONES: ReadonlySet<DeckZone> = new Set([
@@ -112,10 +111,28 @@ export function zoneShowsAllCopies(
   return zone === WellKnown.deckZone.RUNES ? showAllCopies && showAllRuneCopies : showAllCopies;
 }
 
-// Stacks mode expands cards in place; suppress the docked hover preview there.
-export function overviewHoverHandler(
-  stacked: boolean,
-  onHoverCard?: HoverHandler,
-): HoverHandler | undefined {
-  return stacked ? undefined : onHoverCard;
+export type CopyOwnershipStatus = "owned" | "borrowed" | "locked" | "missing";
+
+export function copyOwnershipStatus(
+  entry: Pick<CardOwnership, "owned" | "borrowed" | "locked">,
+  copyIndex: number,
+): CopyOwnershipStatus {
+  if (copyIndex < entry.owned) {
+    return "owned";
+  }
+  if (copyIndex < entry.owned + entry.borrowed) {
+    return "borrowed";
+  }
+  if (copyIndex < entry.owned + entry.borrowed + entry.locked) {
+    return "locked";
+  }
+  return "missing";
 }
+
+export interface CopyView {
+  printingId: string;
+  thumbnail: string | undefined;
+  priceText: string | undefined;
+}
+
+export type CopyViewFor = (card: DeckBuilderCard, copyIndex: number) => CopyView | undefined;

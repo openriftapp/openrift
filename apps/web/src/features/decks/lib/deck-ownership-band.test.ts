@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
 import {
+  buildOwnershipCopies,
+  copyBandSegments,
+  copyPrintingId,
   buildOwnershipBands,
   collectOwnershipBandSources,
   ownershipBandSegments,
@@ -29,6 +33,9 @@ function sourcesFor(
     lockedByCardId: lockedByCardId ?? {},
     borrowedByCardId: borrowedByCardId ?? {},
     displayedPrintingIdByCardKey,
+    ownedPrintingIdsByCardId: {
+      [CARD]: Object.keys(availableByPrinting).filter((id) => (availableByPrinting[id] ?? 0) > 0),
+    },
   };
 }
 
@@ -180,6 +187,30 @@ describe("ownershipBandSegments", () => {
       locked: 0,
       missing: 0,
     });
+  });
+});
+
+describe("copyBandSegments", () => {
+  const band = { exact: 1, other: 1, borrowed: 1, locked: 1, missing: 1 };
+  const only = (key: keyof typeof band) => ({
+    exact: 0,
+    other: 0,
+    borrowed: 0,
+    locked: 0,
+    missing: 0,
+    [key]: 1,
+  });
+
+  it("puts each copy in the segment it fills, in band order", () => {
+    expect(copyBandSegments(band, 0)).toEqual(only("exact"));
+    expect(copyBandSegments(band, 1)).toEqual(only("other"));
+    expect(copyBandSegments(band, 2)).toEqual(only("borrowed"));
+    expect(copyBandSegments(band, 3)).toEqual(only("locked"));
+    expect(copyBandSegments(band, 4)).toEqual(only("missing"));
+  });
+
+  it("treats a copy past the band as missing", () => {
+    expect(copyBandSegments({ ...band, missing: 0 }, 4)).toEqual(only("missing"));
   });
 });
 
@@ -506,6 +537,46 @@ describe("buildOwnershipBands", () => {
   });
 });
 
+describe("buildOwnershipCopies", () => {
+  const owned = new Map([[CARD, { id: STANDARD, imageId: "img-standard" }]]);
+
+  it("names the printing behind each other-printing copy", () => {
+    const stack = stubDeckBuilderCard({ cardId: CARD, quantity: 3 });
+    const copies = buildOwnershipCopies(
+      [stack],
+      sourcesFor({ [STANDARD]: 2, [FOIL]: 1 }, {}),
+      owned,
+      true,
+    );
+    expect(copies.bands.get(getDeckCardKey(stack))).toMatchObject({ exact: 2, other: 1 });
+    expect(copyPrintingId(copies, stack, 0)).toBeUndefined();
+    expect(copyPrintingId(copies, stack, 1)).toBeUndefined();
+    expect(copyPrintingId(copies, stack, 2)).toBe(FOIL);
+  });
+
+  it("leaves missing copies without a printing", () => {
+    const stack = stubDeckBuilderCard({ cardId: CARD, quantity: 3 });
+    const copies = buildOwnershipCopies([stack], sourcesFor({ [STANDARD]: 1 }, {}), owned, true);
+    expect(copyPrintingId(copies, stack, 1)).toBeUndefined();
+    expect(copyPrintingId(copies, stack, 2)).toBeUndefined();
+  });
+
+  it("does not hand one owned copy to two entries", () => {
+    const main = stubDeckBuilderCard({ cardId: CARD, quantity: 2 });
+    const side = stubDeckBuilderCard({ cardId: CARD, quantity: 1, zone: "sideboard" });
+    const copies = buildOwnershipCopies(
+      [main, side],
+      sourcesFor({ [STANDARD]: 1, [FOIL]: 1 }, {}),
+      owned,
+      true,
+    );
+    const assigned = [copyPrintingId(copies, main, 1), copyPrintingId(copies, side, 0)].filter(
+      (id) => id !== undefined,
+    );
+    expect(assigned).toEqual([FOIL]);
+  });
+});
+
 describe("collectOwnershipBandSources", () => {
   it("sums a card's copies across its printings and resolves each entry's art", () => {
     const unpinned = stubDeckBuilderCard({ cardId: CARD, quantity: 1 });
@@ -525,6 +596,7 @@ describe("collectOwnershipBandSources", () => {
 
     expect(sources.availableByCardId).toEqual({ [CARD]: 3 });
     expect(sources.lockedByCardId).toEqual({ [CARD]: 1 });
+    expect(sources.ownedPrintingIdsByCardId).toEqual({ [CARD]: [STANDARD, FOIL] });
     expect(sources.displayedPrintingIdByCardKey).toEqual({
       [`${CARD}|main|`]: `${CARD}-default`,
       [`${CARD}|main|${FOIL}`]: FOIL,

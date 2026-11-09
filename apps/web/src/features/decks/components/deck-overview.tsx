@@ -65,6 +65,7 @@ import { toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { formatChancePct } from "@/features/decks/lib/deck-draw-odds";
+import type { CopyViewFor } from "@/features/decks/lib/deck-overview-derive";
 import {
   buildAddRoom,
   buildPriceTexts,
@@ -83,7 +84,7 @@ import {
 import type { DeckListSortContext } from "@/features/decks/lib/deck-overview-list-sort";
 import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-sort";
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
-import { buildOwnershipBands } from "@/features/decks/lib/deck-ownership-band";
+import { buildOwnershipCopies, copyPrintingId } from "@/features/decks/lib/deck-ownership-band";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import {
@@ -98,6 +99,7 @@ import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
@@ -245,6 +247,8 @@ export function DeckOverview({
   const setStatsOpen = useDeckOverviewViewStore((state) => state.setStatsOpen);
   const storedShowBands = useDeckOverviewViewStore((state) => state.showOwnershipBands);
   const storedShowPrices = useDeckOverviewViewStore((state) => state.showPrices);
+  const storedShowListPrices = useDeckOverviewViewStore((state) => state.showListPrices);
+  const storedShowStatsSummary = useDeckOverviewViewStore((state) => state.showStatsSummary);
   const displayMode = hydrated
     ? phone && !readOnly && !displayModePicked
       ? "list"
@@ -287,7 +291,7 @@ export function DeckOverview({
   const smallZoneTemplateStyle: React.CSSProperties = {
     gridTemplateColumns: `repeat(${tileColumns}, minmax(0, 1fr))`,
   };
-  const smallZoneStyles = smallZoneGridStyles(tileColumns, displayMode === "stacks");
+  const smallZoneStyles = smallZoneGridStyles(tileColumns);
 
   const listReadOnly = readOnly === true || cardListReadOnly === true;
   const addRoomByCardKey = listReadOnly ? NO_ADD_ROOM : buildAddRoom(cards, deck.format);
@@ -297,20 +301,37 @@ export function DeckOverview({
   const ownedPrintingByCardId = ownershipData?.ownedPrintingByCardId;
   // Computed whenever sources are up, not just while bands show: the stats
   // band's ownership lens reads the same split in any display mode.
-  const ownershipSegmentsByCardKey =
+  const ownershipCopies =
     canPreferOwned && bandSources
-      ? buildOwnershipBands(cards, bandSources, ownedPrintingByCardId, preferOwned)
+      ? buildOwnershipCopies(cards, bandSources, ownedPrintingByCardId, preferOwned)
       : undefined;
+  const ownershipSegmentsByCardKey = ownershipCopies?.bands;
+  const copyPrintingIdFor = (card: DeckBuilderCard, copyIndex: number) =>
+    preferOwned && ownershipCopies ? copyPrintingId(ownershipCopies, card, copyIndex) : undefined;
   const bandByCardKey =
     bandsActive && ownershipSegmentsByCardKey ? ownershipSegmentsByCardKey : NO_BANDS;
 
   // priceMap only prices owned printings; display printings are already priced by ownership.
   const showPrices = hydrated && storedShowPrices;
+  const showListPrices = hydrated ? storedShowListPrices : true;
   const { data: priceMap } = useQuery(pricesQueryOptions);
+  const gridPricesShown = showPrices && displayMode !== "list" && ownershipData !== undefined;
   const priceTextByCardKey =
-    showPrices && displayMode !== "list" && ownershipData !== undefined
+    gridPricesShown && ownershipData
       ? buildPriceTexts(cards, ownershipData, preferOwned, priceMap, marketplace)
       : NO_PRICE_TEXTS;
+  const copyViewFor: CopyViewFor = (card, copyIndex) => {
+    const printingId = copyPrintingIdFor(card, copyIndex);
+    if (!printingId) {
+      return;
+    }
+    const cents = gridPricesShown ? priceMap?.get(printingId, marketplace) : undefined;
+    return {
+      printingId,
+      thumbnail: getThumbnail(card.cardId, printingId),
+      priceText: cents === undefined ? undefined : formatterForMarketplace(marketplace)(cents),
+    };
+  };
 
   // Deliberately not art-gated: image-rendering consumers check art themselves,
   // while a row's set code, rarity and price follow the owned printing regardless.
@@ -388,6 +409,8 @@ export function DeckOverview({
 
   const [statsFocus, setStatsFocus] = useState<StatsFocus | null>(null);
   const statsInTab = phone || cardListReadOnly === true;
+  const hasStatsSummary = statsInTab && !readOnly;
+  const showStatsSummary = !hydrated || storedShowStatsSummary;
   const applyStatsFocus = (focus: StatsFocus) => {
     const isSame =
       statsFocus !== null && statsFocus.kind === focus.kind && statsFocus.value === focus.value;
@@ -436,7 +459,9 @@ export function DeckOverview({
         showAllCopies={showAllCopies}
         showAllRuneCopies={showAllRuneCopies}
         showBands={showBands}
-        showPrices={showPrices}
+        showPrices={displayMode === "list" ? showListPrices : showPrices}
+        showStatsSummary={showStatsSummary}
+        hasStatsSummary={hasStatsSummary}
         preferOwned={preferOwned}
         canPreferOwned={canPreferOwned}
         hasOwnershipData={ownershipData !== undefined}
@@ -468,7 +493,9 @@ export function DeckOverview({
       groupCards={groupZoneCards}
       sortCards={sortZoneCards}
       groupBy={groupBy}
-      stacked={displayMode === "stacks"}
+      groupDir={groupDir}
+      getOwnershipEntry={getOwnershipEntry}
+      copyViewFor={copyViewFor}
       zone={zone}
       label={ZONE_LABELS[zone]}
       cards={zoneCardsFor(zone)}
@@ -575,7 +602,7 @@ export function DeckOverview({
             ) : undefined
           }
         />
-        {showOverviewContent && phone && !readOnly && (
+        {showOverviewContent && hasStatsSummary && showStatsSummary && (
           <DeckStatsSummary
             cards={cards}
             stats={stats}
@@ -719,7 +746,11 @@ export function DeckOverview({
                 format={deck.format}
                 violations={violations}
                 ownership={ownershipData}
-                showOwnership={ownershipData !== undefined && !showSignIn}
+                showOwnership={canPreferOwned && showBands}
+                showPrices={showListPrices}
+                showAllCopies={showAllCopies}
+                showAllRuneCopies={showAllRuneCopies}
+                copyPrintingIdFor={copyPrintingIdFor}
                 marketplace={marketplace}
                 sortBy={listSortBy}
                 sortDir={listSortDir}
@@ -743,21 +774,13 @@ export function DeckOverview({
                 <div className="grid gap-x-1.5 gap-y-8" style={smallZoneTemplateStyle}>
                   {SMALL_ZONES.map((zone) => renderZone(zone, smallZoneStyles[zone]))}
                 </div>
-                <div
-                  className={
-                    displayMode === "stacks"
-                      ? "flex flex-wrap items-start gap-x-8 gap-y-8"
-                      : "contents"
-                  }
-                >
-                  {isZoneShown(WellKnown.deckZone.LEGEND_OPTIONS, deck.format, cards) &&
-                    renderZone(WellKnown.deckZone.LEGEND_OPTIONS)}
-                  {renderZone(WellKnown.deckZone.MAIN)}
-                  {isZoneShown(WellKnown.deckZone.SIDEBOARD, deck.format, cards) &&
-                    renderZone(WellKnown.deckZone.SIDEBOARD)}
-                  {cards.some((card) => card.zone === WellKnown.deckZone.OVERFLOW) &&
-                    renderZone(WellKnown.deckZone.OVERFLOW)}
-                </div>
+                {isZoneShown(WellKnown.deckZone.LEGEND_OPTIONS, deck.format, cards) &&
+                  renderZone(WellKnown.deckZone.LEGEND_OPTIONS)}
+                {renderZone(WellKnown.deckZone.MAIN)}
+                {isZoneShown(WellKnown.deckZone.SIDEBOARD, deck.format, cards) &&
+                  renderZone(WellKnown.deckZone.SIDEBOARD)}
+                {cards.some((card) => card.zone === WellKnown.deckZone.OVERFLOW) &&
+                  renderZone(WellKnown.deckZone.OVERFLOW)}
                 {tokensSection}
               </div>
             )}

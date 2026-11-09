@@ -42,6 +42,25 @@ export function ownershipBandSegments(
   };
 }
 
+const BAND_FILL_ORDER = ["exact", "other", "borrowed", "locked", "missing"] as const;
+
+export function copyBandSegments(
+  band: OwnershipBandSegments,
+  copyIndex: number,
+): OwnershipBandSegments {
+  const single: OwnershipBandSegments = { exact: 0, other: 0, borrowed: 0, locked: 0, missing: 0 };
+  let filled = 0;
+  for (const key of BAND_FILL_ORDER) {
+    filled += band[key];
+    if (copyIndex < filled) {
+      single[key] = 1;
+      return single;
+    }
+  }
+  single.missing = 1;
+  return single;
+}
+
 export interface OwnershipBandSources {
   availableByPrinting: Record<string, number>;
   availableByCardId: Record<string, number>;
@@ -49,6 +68,7 @@ export interface OwnershipBandSources {
   borrowedByCardId: Record<string, number>;
   /** Keyed by {@link getDeckCardKey}, resolved through the same helper as the thumbnail. */
   displayedPrintingIdByCardKey: Record<string, string>;
+  ownedPrintingIdsByCardId: Record<string, readonly string[]>;
 }
 
 interface PrintingRef {
@@ -71,6 +91,7 @@ export function collectOwnershipBandSources(
   const lockedByCardId: Record<string, number> = {};
   const borrowedByCardId: Record<string, number> = {};
   const displayedPrintingIdByCardKey: Record<string, string> = {};
+  const ownedPrintingIdsByCardId: Record<string, readonly string[]> = {};
   for (const card of cards) {
     if (availableByCardId[card.cardId] === undefined) {
       let total = 0;
@@ -85,6 +106,9 @@ export function collectOwnershipBandSources(
         borrowed += borrowedByPrinting[printingId] ?? 0;
       }
       availableByCardId[card.cardId] = total;
+      ownedPrintingIdsByCardId[card.cardId] = [...printingIds].filter(
+        (printingId) => (availableByPrinting[printingId] ?? 0) > 0,
+      );
       lockedByCardId[card.cardId] = locked;
       borrowedByCardId[card.cardId] = borrowed;
     }
@@ -99,7 +123,19 @@ export function collectOwnershipBandSources(
     lockedByCardId,
     borrowedByCardId,
     displayedPrintingIdByCardKey,
+    ownedPrintingIdsByCardId,
   };
+}
+
+function sameIdLists(
+  left: Record<string, readonly string[]>,
+  right: Record<string, readonly string[]>,
+): boolean {
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) {
+    return false;
+  }
+  return keys.every((key) => left[key]?.join(",") === right[key]?.join(","));
 }
 
 function sameRecord<Value>(left: Record<string, Value>, right: Record<string, Value>): boolean {
@@ -137,7 +173,8 @@ export function sameOwnershipBandSources(
     sameRecord(left.availableByCardId, right.availableByCardId) &&
     sameRecord(left.lockedByCardId, right.lockedByCardId) &&
     sameRecord(left.borrowedByCardId, right.borrowedByCardId) &&
-    sameRecord(left.displayedPrintingIdByCardKey, right.displayedPrintingIdByCardKey)
+    sameRecord(left.displayedPrintingIdByCardKey, right.displayedPrintingIdByCardKey) &&
+    sameIdLists(left.ownedPrintingIdsByCardId, right.ownedPrintingIdsByCardId)
   );
 }
 
@@ -156,6 +193,22 @@ export function buildOwnershipBands(
     | undefined,
   preferOwned: boolean,
 ): Map<string, OwnershipBandSegments> {
+  return buildOwnershipCopies(cards, sources, ownedPrintingByCardId, preferOwned).bands;
+}
+
+export interface OwnershipCopies {
+  bands: Map<string, OwnershipBandSegments>;
+  otherPrintingIdsByCardKey: Map<string, string[]>;
+}
+
+export function buildOwnershipCopies(
+  cards: readonly DeckBuilderCard[],
+  sources: OwnershipBandSources,
+  ownedPrintingByCardId:
+    | ReadonlyMap<string, { id: string; imageId: string | undefined }>
+    | undefined,
+  preferOwned: boolean,
+): OwnershipCopies {
   const ordered = cards.toSorted(
     (left, right) => Number(isCountedZone(right.zone)) - Number(isCountedZone(left.zone)),
   );
@@ -163,6 +216,7 @@ export function buildOwnershipBands(
   const claimedByPrinting = new Map<string, number>();
   const claimedByCard = new Map<string, number>();
   const exactByCardKey = new Map<string, number>();
+  const displayedIdByCardKey = new Map<string, string>();
 
   // Every entry claims its own printing before any "other printing" is
   // handed out, so a later entry's printing isn't spent as a substitute.
@@ -178,6 +232,9 @@ export function buildOwnershipBands(
       : 0;
     const exact = Math.max(0, Math.min(card.quantity, printingLeft, cardLeft));
     exactByCardKey.set(getDeckCardKey(card), exact);
+    if (displayedId) {
+      displayedIdByCardKey.set(getDeckCardKey(card), displayedId);
+    }
     if (exact > 0 && displayedId) {
       claimedByPrinting.set(displayedId, (claimedByPrinting.get(displayedId) ?? 0) + exact);
       claimedByCard.set(card.cardId, (claimedByCard.get(card.cardId) ?? 0) + exact);
@@ -187,6 +244,7 @@ export function buildOwnershipBands(
   const claimedBorrowedByCard = new Map<string, number>();
   const claimedLockedByCard = new Map<string, number>();
   const bands = new Map<string, OwnershipBandSegments>();
+  const otherPrintingIdsByCardKey = new Map<string, string[]>();
   for (const card of ordered) {
     const key = getDeckCardKey(card);
     const cardLeft =
@@ -204,6 +262,23 @@ export function buildOwnershipBands(
     );
     if (segments.other > 0) {
       claimedByCard.set(card.cardId, (claimedByCard.get(card.cardId) ?? 0) + segments.other);
+      const displayedId = displayedIdByCardKey.get(key);
+      const otherIds: string[] = [];
+      for (const printingId of sources.ownedPrintingIdsByCardId[card.cardId] ?? []) {
+        if (printingId === displayedId) {
+          continue;
+        }
+        const left =
+          (sources.availableByPrinting[printingId] ?? 0) - (claimedByPrinting.get(printingId) ?? 0);
+        const take = Math.min(left, segments.other - otherIds.length);
+        for (let step = 0; step < take; step++) {
+          otherIds.push(printingId);
+        }
+        if (take > 0) {
+          claimedByPrinting.set(printingId, (claimedByPrinting.get(printingId) ?? 0) + take);
+        }
+      }
+      otherPrintingIdsByCardKey.set(key, otherIds);
     }
     if (segments.borrowed > 0) {
       claimedBorrowedByCard.set(
@@ -221,7 +296,20 @@ export function buildOwnershipBands(
       bands.set(key, segments);
     }
   }
-  return bands;
+  return { bands, otherPrintingIdsByCardKey };
+}
+
+export function copyPrintingId(
+  copies: OwnershipCopies,
+  card: DeckBuilderCard,
+  copyIndex: number,
+): string | undefined {
+  const key = getDeckCardKey(card);
+  const band = copies.bands.get(key);
+  if (!band || copyIndex < band.exact) {
+    return undefined;
+  }
+  return copies.otherPrintingIdsByCardKey.get(key)?.[copyIndex - band.exact];
 }
 
 export function ownershipBandTitle(quantity: number, segments: OwnershipBandSegments): string {

@@ -54,11 +54,6 @@ describe("useDeckOverviewViewStore", () => {
     expect(useDeckOverviewViewStore.getState().groupDir).toBe("desc");
   });
 
-  it("accepts the stacks display mode", () => {
-    useDeckOverviewViewStore.getState().setDisplayMode("stacks");
-    expect(useDeckOverviewViewStore.getState().displayMode).toBe("stacks");
-  });
-
   it("defaults to catalog printings and can prefer owned ones", () => {
     expect(useDeckOverviewViewStore.getState().preferOwnedPrintings).toBe(false);
     useDeckOverviewViewStore.getState().setPreferOwnedPrintings(true);
@@ -157,7 +152,7 @@ describe("rehydrate validation", () => {
       "deck-overview-view",
       JSON.stringify({
         state: {
-          displayMode: "stacks",
+          displayMode: "list",
           columns: 6,
           sortBy: "ownership",
           sortDir: "desc",
@@ -174,7 +169,7 @@ describe("rehydrate validation", () => {
     );
     await useDeckOverviewViewStore.persist.rehydrate();
     const state = useDeckOverviewViewStore.getState();
-    expect(state.displayMode).toBe("stacks");
+    expect(state.displayMode).toBe("list");
     expect(state.columns).toBe(6);
     expect(state.sortBy).toBe("ownership");
     expect(state.sortDir).toBe("desc");
@@ -196,6 +191,15 @@ describe("rehydrate validation", () => {
       await useDeckOverviewViewStore.persist.rehydrate();
       expect(useDeckOverviewViewStore.getState().columns).toBeNull();
     }
+  });
+
+  it("falls back to the grid for the retired stacks mode", async () => {
+    localStorage.setItem(
+      "deck-overview-view",
+      JSON.stringify({ state: { displayMode: "stacks" }, version: 0 }),
+    );
+    await useDeckOverviewViewStore.persist.rehydrate();
+    expect(useDeckOverviewViewStore.getState().displayMode).toBe("grid");
   });
 
   it("ignores a blob left over from the old thumb-size control", async () => {

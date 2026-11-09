@@ -1026,25 +1026,33 @@ describe("computeDeckOwnership (source-level regression)", () => {
 describe("lockedReasonText", () => {
   it("words a single locked copy with its reason", () => {
     expect(lockedReasonText(stubCardOwnership({ locked: 1, lockedExcluded: 1 }))).toBe(
-      "1 more copy is locked: in a collection excluded from deck building",
+      "You have 1 copy in a collection that's excluded from deck building.",
     );
     expect(lockedReasonText(stubCardOwnership({ locked: 1, lockedLoaned: 1 }))).toBe(
-      "1 more copy is locked: out on loan",
+      "You have 1 copy out on loan.",
     );
     expect(lockedReasonText(stubCardOwnership({ locked: 1, lockedReserved: 1 }))).toBe(
-      "1 more copy is locked: reserved for a trade",
+      "You have 1 copy reserved for a trade.",
     );
   });
 
   it("joins multiple reasons and pluralizes the count", () => {
     expect(
       lockedReasonText(stubCardOwnership({ locked: 2, lockedLoaned: 1, lockedExcluded: 1 })),
-    ).toBe("2 more copies are locked: out on loan or in a collection excluded from deck building");
+    ).toBe(
+      "You have 2 copies that are out on loan or in a collection that's excluded from deck building.",
+    );
   });
 
   it("falls back to a generic reason when the breakdown is empty", () => {
     expect(lockedReasonText(stubCardOwnership({ locked: 1 }))).toBe(
-      "1 more copy is locked: unavailable for deck building",
+      "You have 1 copy you can't build with right now.",
+    );
+  });
+
+  it("words one copy when a per-copy row asks for it", () => {
+    expect(lockedReasonText(stubCardOwnership({ locked: 3, lockedLoaned: 3 }), 1)).toBe(
+      "You have 1 copy out on loan.",
     );
   });
 });

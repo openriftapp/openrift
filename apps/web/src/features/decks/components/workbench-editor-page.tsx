@@ -7,7 +7,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { FlaskConicalIcon, PencilIcon, PlusIcon } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Footer } from "@/components/layout/footer";
@@ -146,7 +146,6 @@ function WorkbenchContent({
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const marketplace = marketplaceOrder[0];
   const editorViolations = useDeckViolations(deckId, data.deck.format, data.deck.formatConfig);
-  useDeckUndoShortcuts(deckId);
   useRegisterQuickAdd({ key: `deck:${deckId}`, label: m.decks_editor_quick_add_label() });
   const ownershipData = useDeckOwnership(
     deckCards,
@@ -174,6 +173,7 @@ function WorkbenchContent({
   }
   const openingMode = opening?.mode ?? null;
   const mode: WorkbenchMode = search.editor ?? openingMode ?? "deck";
+  useDeckUndoShortcuts(deckId, mode === "build");
   const shownZones = Object.values(WellKnown.deckZone).filter((zone) =>
     isZoneShown(zone, data.deck.format, deckCards),
   );
@@ -272,7 +272,9 @@ function WorkbenchContent({
     }
     shownMode.current = mode;
     const region = modeRegionRef.current;
-    region?.focus({ preventScroll: true });
+    if (!useCommandPaletteStore.getState().quickAddOpen) {
+      region?.focus({ preventScroll: true });
+    }
     if (!globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       region?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "ease-out" });
     }
@@ -329,6 +331,18 @@ function WorkbenchContent({
       });
     }
   };
+
+  const quickAddOpen = useCommandPaletteStore((state) => state.quickAddOpen);
+  const enterBuildForQuickAdd = useEffectEvent(() => {
+    if (mode === "deck") {
+      setMode("build");
+    }
+  });
+  useEffect(() => {
+    if (quickAddOpen) {
+      enterBuildForQuickAdd();
+    }
+  }, [quickAddOpen]);
 
   const handleOpenPlan = () => {
     setOverviewTab("plan");
@@ -403,10 +417,12 @@ function WorkbenchContent({
 
   const menuPrefix = (
     <>
-      <DropdownMenuItem onClick={() => openQuickAdd("add")}>
-        <PlusIcon className="size-4" />
-        {m.decks_editor_add_card()}
-      </DropdownMenuItem>
+      {mode === "build" && (
+        <DropdownMenuItem onClick={() => openQuickAdd("add")}>
+          <PlusIcon className="size-4" />
+          {m.decks_editor_add_card()}
+        </DropdownMenuItem>
+      )}
       <DropdownMenuItem
         onClick={() => setOwnFlag.mutate({ key: "deck-builder-beta", enabled: false })}
       >
@@ -472,6 +488,7 @@ function WorkbenchContent({
                 </>
               ),
               menuPrefix,
+              viewing: mode === "deck",
             }}
           />,
           topBarSlot,

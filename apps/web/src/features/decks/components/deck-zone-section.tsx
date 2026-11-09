@@ -23,6 +23,7 @@ import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckPlanIfAvailable } from "@/features/decks/hooks/use-deck-plan";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import { useEntryPrintingLabels } from "@/features/decks/hooks/use-entry-printing-labels";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import {
   battlefieldPlanTags,
@@ -113,6 +114,7 @@ export function DeckZoneSection({
   const { getPreferredPrinting } = usePreferredPrinting();
   const { data: borrowedLenders } = useBorrowedLenders();
   const { labels } = useEnumOrders();
+  const labelEntryPrintings = useEntryPrintingLabels();
   const isBattlefieldZone = zone === WellKnown.deckZone.BATTLEFIELD;
   const isLocal = useIsLocalDeck(deckId);
   const battlefieldPlan = useDeckPlanIfAvailable(deckId, isBattlefieldZone && !isLocal);
@@ -182,6 +184,7 @@ export function DeckZoneSection({
   const isGrouped = GROUPED_ZONES.has(zone);
   const addLabel = zoneAddLabel(zone);
 
+  const printingLabels = labelEntryPrintings(cards);
   const renderCardRow = (card: DeckBuilderCard) => {
     const entry = ownership?.byCardZone.get(`${card.cardId}:${zone}`);
     return (
@@ -198,6 +201,7 @@ export function DeckZoneSection({
           hasViolation={!workbench && cardViolations.has(card.cardId)}
           violationMessage={workbench ? undefined : cardViolations.get(card.cardId)}
           planTag={planTags.get(card.cardId)?.label}
+          printingLabel={printingLabels.get(getDeckCardKey(card))}
           shortfall={entry?.shortfall}
           locked={entry?.locked}
           lockedReason={entry && entry.locked > 0 ? lockedReasonText(entry) : undefined}

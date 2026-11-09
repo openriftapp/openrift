@@ -1,9 +1,11 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { CardType } from "@openrift/shared/types/enums";
 
 import { comboKey } from "@/features/collections/lib/stat-types";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { TYPE_GROUP_ORDER } from "@/features/decks/lib/deck-card-sort";
+import { copyOwnershipStatus } from "@/features/decks/lib/deck-overview-derive";
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
 import { m } from "@/paraglide/messages.js";
 
@@ -154,4 +156,49 @@ function buildGroups(
     label: ownershipGroupLabel(key),
     cards: grouped.get(key) ?? [],
   }));
+}
+
+export interface CopyRowGroup<Row> {
+  group: DeckCardGroup;
+  count: number;
+  rows: Row[];
+}
+
+/** With `splitByCopy`, ownership groups hold copies, not cards. Borrowed copies count as owned, locked ones as missing. */
+export function copyRowGroups<Row extends { card: DeckBuilderCard; copyIndex?: number | null }>(
+  groups: DeckCardGroup[],
+  rowsFor: (cards: DeckBuilderCard[]) => Row[],
+  options: {
+    splitByCopy: boolean;
+    dir: "asc" | "desc";
+    getEntry?: (card: DeckBuilderCard) => CardOwnership | undefined;
+  },
+): CopyRowGroup<Row>[] {
+  if (!options.splitByCopy) {
+    return groups.map((group) => ({
+      group,
+      count: totalQuantity(group.cards),
+      rows: rowsFor(group.cards),
+    }));
+  }
+  const rows = rowsFor(groups.flatMap((group) => group.cards));
+  const byKey = Map.groupBy(rows, (row): "owned" | "missing" => {
+    const entry = options.getEntry?.(row.card);
+    const status = entry ? copyOwnershipStatus(entry, row.copyIndex ?? 0) : "owned";
+    return status === "owned" || status === "borrowed" ? "owned" : "missing";
+  });
+  const keys = (["owned", "missing"] as const).filter((key) => byKey.has(key));
+  const ordered = options.dir === "desc" ? keys.toReversed() : keys;
+  return ordered.map((key) => {
+    const keyRows = byKey.get(key) ?? [];
+    return {
+      group: {
+        key,
+        label: ownershipGroupLabel(key),
+        cards: [...new Set(keyRows.map((row) => row.card))],
+      },
+      count: keyRows.length,
+      rows: keyRows,
+    };
+  });
 }
