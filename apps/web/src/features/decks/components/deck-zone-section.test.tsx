@@ -15,6 +15,11 @@ vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
 vi.mock("@/features/decks/hooks/use-decks", () => ({
   useDeckDetail: () => ({ data: { deck: { format: "constructed" } } }),
 }));
+const planMock = vi.hoisted(() => ({ plan: undefined as unknown }));
+vi.mock("@/features/decks/hooks/use-deck-plan", () => ({
+  useDeckPlanIfAvailable: () => planMock.plan,
+}));
+vi.mock("@/features/decks/hooks/use-local-decks", () => ({ useIsLocalDeck: () => false }));
 vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({ getPreferredPrinting: () => undefined }),
 }));
@@ -36,13 +41,17 @@ vi.mock("@/features/decks/components/deck-card-row", () => ({
     controlMode,
     onIncrement,
     hasViolation,
+    planTag,
   }: {
     card: { cardName: string };
     controlMode: string;
     onIncrement?: () => void;
     hasViolation?: boolean;
+    planTag?: string;
   }) => (
     <div
+      data-testid="deck-card-row"
+      data-plan-tag={planTag ?? ""}
       data-control-mode={controlMode}
       data-can-increment={String(onIncrement !== undefined)}
       data-has-violation={String(hasViolation === true)}
@@ -265,6 +274,30 @@ describe("DeckZoneSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand Overflow" }));
     expect(screen.getByText("Captain Farron")).toBeInTheDocument();
     expect(screen.getByText("Sunken Temple")).toBeInTheDocument();
+  });
+
+  it("tags and orders battlefields by their plan scenario", () => {
+    planMock.plan = {
+      battlefieldGame1CardId: "temple",
+      battlefieldFirstCardId: "camp",
+      battlefieldSecondCardId: null,
+      battlefieldCustom: false,
+    };
+    renderSection({
+      zone: "battlefield",
+      cards: [
+        stubDeckBuilderCard({ cardId: "seat", cardName: "Seat of Power", cardType: "battlefield" }),
+        stubDeckBuilderCard({ cardId: "camp", cardName: "War Camp", cardType: "battlefield" }),
+        stubDeckBuilderCard({ cardId: "temple", cardName: "Temple", cardType: "battlefield" }),
+      ],
+    });
+    planMock.plan = undefined;
+    const rows = screen.getAllByTestId("deck-card-row");
+    expect(rows.map((row) => [row.textContent, row.dataset.planTag])).toEqual([
+      ["Temple", "Game 1"],
+      ["War Camp", "Going first"],
+      ["Seat of Power", ""],
+    ]);
   });
 
   it("hides the rows and the add strip once collapsed", () => {

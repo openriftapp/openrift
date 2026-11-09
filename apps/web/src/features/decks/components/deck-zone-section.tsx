@@ -20,8 +20,14 @@ import { DeckCardRow } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
+import { useDeckPlanIfAvailable } from "@/features/decks/hooks/use-deck-plan";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
+import {
+  battlefieldPlanTags,
+  orderByBattlefieldPlan,
+} from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { canAddRune, getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import {
@@ -107,6 +113,12 @@ export function DeckZoneSection({
   const { getPreferredPrinting } = usePreferredPrinting();
   const { data: borrowedLenders } = useBorrowedLenders();
   const { labels } = useEnumOrders();
+  const isBattlefieldZone = zone === WellKnown.deckZone.BATTLEFIELD;
+  const isLocal = useIsLocalDeck(deckId);
+  const battlefieldPlan = useDeckPlanIfAvailable(deckId, isBattlefieldZone && !isLocal);
+  const planTags = isBattlefieldZone
+    ? battlefieldPlanTags(battlefieldPlan, format)
+    : new Map<string, never>();
 
   // Champion counts toward the 3-copy limit too; overflow is excluded since
   // it is a free parking zone with no copy cap.
@@ -185,6 +197,7 @@ export function DeckZoneSection({
           card={card}
           hasViolation={!workbench && cardViolations.has(card.cardId)}
           violationMessage={workbench ? undefined : cardViolations.get(card.cardId)}
+          planTag={planTags.get(card.cardId)?.label}
           shortfall={entry?.shortfall}
           locked={entry?.locked}
           lockedReason={entry && entry.locked > 0 ? lockedReasonText(entry) : undefined}
@@ -370,7 +383,9 @@ export function DeckZoneSection({
           {isEmpty ? null : isGrouped ? (
             <div className="flex flex-col gap-2">{renderGroupedCards()}</div>
           ) : (
-            <div className="flex flex-col gap-0.5">{cards.map((card) => renderCardRow(card))}</div>
+            <div className="flex flex-col gap-0.5">
+              {orderByBattlefieldPlan(cards, planTags).map((card) => renderCardRow(card))}
+            </div>
           )}
           {showAddStrip && (
             <Button

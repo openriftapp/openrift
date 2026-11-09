@@ -123,6 +123,7 @@ function WorkbenchContent({
   const saveStatus = useDeckSaveStatus(queryClient, scope, deckId);
   const { isMobile, setOpenMobile } = useSidebar();
   const setActiveZone = useDeckBuilderUiStore((state) => state.setActiveZone);
+  const setOverviewTab = useDeckBuilderUiStore((state) => state.setOverviewTab);
   const resetUi = useDeckBuilderUiStore((state) => state.reset);
   const setRunesByDomain = useDeckBuilderUiStore((state) => state.setRunesByDomain);
   const setRelaxed = useWorkbenchStore((state) => state.setRelaxed);
@@ -329,6 +330,11 @@ function WorkbenchContent({
     }
   };
 
+  const handleOpenPlan = () => {
+    setOverviewTab("plan");
+    setMode("deck");
+  };
+
   const handleOverviewCardClick = (card: CardOpenTarget) => {
     const printing = getPreferredPrinting(card.cardId, card.preferredPrintingId);
     if (!printing) {
@@ -378,6 +384,7 @@ function WorkbenchContent({
       deckId={deckId}
       onZoneClick={setZone}
       onZoneAdd={setZone}
+      onOpenPlan={isLocal ? undefined : handleOpenPlan}
       onHoverCard={setHoveredSidebar}
       ownershipData={ownershipData}
       hideStats

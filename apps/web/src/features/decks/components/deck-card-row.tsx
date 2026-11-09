@@ -12,6 +12,7 @@ import {
   XIcon,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -53,6 +54,7 @@ interface DeckCardRowProps {
   card: DeckBuilderCard;
   hasViolation?: boolean;
   violationMessage?: string;
+  planTag?: string;
   shortfall?: number;
   locked?: number;
   lockedReason?: string;
@@ -225,6 +227,7 @@ export function DeckCardRow({
   card,
   hasViolation,
   violationMessage,
+  planTag,
   shortfall,
   locked,
   lockedReason,
@@ -311,6 +314,8 @@ export function DeckCardRow({
       {cardControls}
 
       <span className="min-w-0 flex-1 truncate text-left">{cardName}</span>
+
+      {planTag && <Badge variant="neutral">{planTag}</Badge>}
 
       <PowerPips
         power={card.power}

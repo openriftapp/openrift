@@ -4,7 +4,7 @@
 
 ### Highlights
 
-- feat(Decks): **Battlefield plan on the deck list** — battlefields picked in a deck's plan are tagged Game 1, Going first or Going second and listed in that order, and right-clicking a battlefield in the sidebar opens the plan to change them.
+- feat(Decks): **Battlefield plan on the deck list** — battlefields picked in a deck's plan are tagged Game 1, Going first or Going second and listed in that order, in the deck list and in the sidebar, and right-clicking a battlefield in the sidebar opens the plan to change them.
 
 ### Other
 
