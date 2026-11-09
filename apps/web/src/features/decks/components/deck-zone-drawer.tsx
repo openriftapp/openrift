@@ -15,8 +15,6 @@ import { DeckZonePanelHeader } from "@/features/decks/components/deck-zone-panel
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-const WORKBENCH_SNAP_POINTS = [0.6, 1];
-
 export function DeckZoneDrawer({
   deckId,
   onOverviewClick,
@@ -64,7 +62,6 @@ export function DeckZoneDrawer({
       showSwipeHandle
       open={openMobile}
       onOpenChange={workbench ? handleWorkbenchOpenChange : setOpenMobile}
-      snapPoints={workbench ? WORKBENCH_SNAP_POINTS : undefined}
     >
       <DrawerContent className={cn(workbench && "motion-reduce:transition-none")}>
         <DrawerTitle className="sr-only">{m.decks_editor_zones_heading()}</DrawerTitle>

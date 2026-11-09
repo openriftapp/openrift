@@ -150,6 +150,7 @@ export function EnergyGlyph({ value }: { value: number }) {
 }
 
 const ROW_BUTTON_HOVER = "hover:bg-foreground/20 dark:hover:bg-foreground/20";
+const TOUCH_ROW_BUTTON = "bg-foreground/10 size-8 rounded-full [&_svg]:size-3.5";
 
 export function CardControls({
   controlMode,
@@ -186,7 +187,7 @@ export function CardControls({
           "shrink-0",
           ROW_BUTTON_HOVER,
           coarsePointer
-            ? "border-border size-8 border"
+            ? TOUCH_ROW_BUTTON
             : "invisible size-5 group-focus-within/card:visible group-hover/card:visible",
         )}
         onClick={(event) => {
@@ -203,12 +204,7 @@ export function CardControls({
   return (
     <InlineCountStepper
       size="xs"
-      className={
-        coarsePointer
-          ? "[&>button]:border-border gap-1.5 [&>button]:size-8 [&>button]:border"
-          : undefined
-      }
-      buttonClassName={ROW_BUTTON_HOVER}
+      buttonClassName={cn(ROW_BUTTON_HOVER, coarsePointer && TOUCH_ROW_BUTTON)}
       count={<span className={cn("block text-right", countWidthClass)}>{quantity}×</span>}
       decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
       incrementLabel={m.decks_editor_add_one_copy({ card: cardName })}
@@ -369,7 +365,7 @@ export function DeckCardRow({
           className={cn(
             "shrink-0",
             coarsePointer
-              ? "border-border size-8 border"
+              ? "text-muted-foreground size-8 [&_svg]:size-4"
               : "hidden size-5 group-focus-within/card:inline-flex group-hover/card:inline-flex",
           )}
           aria-label={m.decks_workbench_row_menu({ card: cardName })}

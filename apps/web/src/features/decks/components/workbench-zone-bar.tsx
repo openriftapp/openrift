@@ -55,7 +55,7 @@ export function WorkbenchZoneBar({
 
   return (
     <div className="flex flex-col gap-2 pb-3">
-      <div className="-mx-1 flex h-8 items-center gap-2 overflow-x-auto px-1 text-sm whitespace-nowrap max-md:[scrollbar-width:none] [&>*]:shrink-0">
+      <div className="flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span className="text-muted-foreground">{m.decks_workbench_adding_to()}</span>
         <span className="text-primary font-semibold">{ZONE_LABELS[zone]}</span>
         {expected !== undefined && (
@@ -74,7 +74,12 @@ export function WorkbenchZoneBar({
                 : m.decks_workbench_showing_allowed_cards()}
               {!showAllCards && pausesStats && ` ${m.decks_workbench_stats_paused_note()}`}
             </span>
-            <Button variant="ghost" size="sm" onClick={() => setShowAllCards(zone, !showAllCards)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2.5"
+              onClick={() => setShowAllCards(zone, !showAllCards)}
+            >
               {showAllCards
                 ? m.decks_workbench_only_allowed_cards()
                 : m.decks_workbench_show_all_cards()}

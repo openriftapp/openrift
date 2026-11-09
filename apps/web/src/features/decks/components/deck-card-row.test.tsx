@@ -136,14 +136,14 @@ describe("CardControls", () => {
       '[data-slot="inline-count-stepper"]',
     );
     expect(stepper?.className).not.toMatch(/(?:^|\s)(?:\S+:)?\[&>button\]:hidden/u);
-    expect(stepper?.className).not.toContain("[&>button]:size-8");
+    expect(stepper?.querySelector("button")?.className).not.toContain("size-8");
   });
 
   it("keeps an enlarged stepper visible on touch at any width", () => {
     const stepper = renderControls("quantity", true).querySelector(
       '[data-slot="inline-count-stepper"]',
     );
-    expect(stepper?.className).toContain("[&>button]:size-8");
+    expect(stepper?.querySelector("button")?.className).toContain("size-8");
     expect(stepper?.className).not.toMatch(/(?:^|\s)(?:\w+:)?\[&>button\]:hidden/u);
   });
 
