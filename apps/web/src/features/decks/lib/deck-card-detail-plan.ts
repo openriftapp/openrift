@@ -38,7 +38,7 @@ export interface UncoveredCopies {
   notOwned: number;
 }
 
-export interface DeckDetailRow {
+interface DeckDetailRow {
   copies: number;
   uncovered: UncoveredCopies | undefined;
   isDefault: boolean;

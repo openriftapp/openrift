@@ -129,7 +129,7 @@ export function copyOwnershipStatus(
   return "missing";
 }
 
-export interface CopyView {
+interface CopyView {
   printingId: string;
   thumbnail: string | undefined;
   priceText: string | undefined;
