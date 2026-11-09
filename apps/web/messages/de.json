@@ -834,6 +834,8 @@
   "card_detail_lightbox_show_overview": "Übersicht zeigen",
   "card_detail_printings_show_hidden": "{count} außerhalb deiner Filter zeigen",
   "card_detail_printings_hide_hidden": "Drucke außerhalb deiner Filter ausblenden",
+  "card_detail_printings_show_other_languages": "{count} in anderen Sprachen zeigen",
+  "card_detail_printings_hide_other_languages": "Andere Sprachen ausblenden",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -10219,6 +10221,12 @@
   "decks_workbench_detail_add_to": "Zu {zone} hinzufügen",
   "decks_workbench_detail_set_as": "Als {zone} festlegen",
   "decks_workbench_detail_missing": "{count} fehlen",
+  "decks_workbench_detail_your_copies": "Deine Exemplare",
+  "decks_workbench_detail_copies_excluded": "Nicht für Decks",
+  "decks_workbench_detail_row_excluded": "{count} nur in ausgeschlossenen Sammlungen",
+  "decks_workbench_detail_row_lent": "{count} verliehen oder reserviert",
+  "decks_workbench_detail_row_not_owned": "{count} nicht im Besitz",
+  "decks_workbench_detail_zone_toggle": "Zu bearbeitender Bereich",
   "decks_workbench_sheet_hint": "Hinzufügen zu {zone}. Tippe auf eine andere Zone, um zu wechseln.",
   "decks_workbench_showing_allowed_cards": "Es werden hier erlaubte Karten gezeigt.",
   "decks_workbench_showing_all_cards": "Es werden alle Karten gezeigt.",

@@ -2,7 +2,10 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
-import { entryPrintingLabels } from "@/features/decks/lib/deck-entry-printing-labels";
+import {
+  entryPrintingLabels,
+  printingRowLabel,
+} from "@/features/decks/lib/deck-entry-printing-labels";
 import { stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 const LABELS = { artVariants: {}, finishes: { foil: "Foil" }, cardSizes: {} };
@@ -78,5 +81,13 @@ describe("entryPrintingLabels", () => {
     expect(
       labelsFor([main, side], { "rampage-default": standard, "rampage-foil": foil }).size,
     ).toBe(0);
+  });
+});
+
+describe("printingRowLabel", () => {
+  it("names the code and what sets the printing apart from its siblings", () => {
+    const standard = stubPrinting({ printingId: "standard", shortCode: "VEN-083" });
+    const foil = stubPrinting({ printingId: "foil", shortCode: "VEN-083", finish: "foil" });
+    expect(printingRowLabel(foil, [standard, foil], LABELS)).toBe("VEN-083 · Foil");
   });
 });

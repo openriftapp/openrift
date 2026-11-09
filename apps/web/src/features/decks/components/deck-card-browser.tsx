@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyLimitFor, formatHasSideboard, totalQuantity } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone, ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -8,9 +9,11 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PackageCheckIcon, PlusIcon } from "lucide-react";
-import { Suspense, useDeferredValue, useLayoutEffect, useRef } from "react";
+import { Suspense, useDeferredValue, useLayoutEffect, useRef, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
@@ -19,6 +22,7 @@ import {
   CardBrowserFilterProvider,
 } from "@/features/cards/components/card-browser-filter-scaffold";
 import { CardCell } from "@/features/cards/components/card-cell";
+import type { CardDetailDeckBuilding } from "@/features/cards/components/card-detail/card-detail";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useCardData } from "@/features/cards/hooks/use-card-data";
@@ -36,6 +40,11 @@ import { useRowActionHandlers } from "@/features/collections/hooks/use-row-actio
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { CardQuantityChip } from "@/features/decks/components/card-quantity-chip";
 import { DeckAddStrip } from "@/features/decks/components/deck-add-strip";
+import {
+  DeckCardCopies,
+  DeckCardDetailHeader,
+  DeckRowNote,
+} from "@/features/decks/components/deck-card-detail-controls";
 import { DeckCardDetailMenu } from "@/features/decks/components/deck-card-detail-menu";
 import { DeckCardZoneSteppers } from "@/features/decks/components/deck-card-zone-steppers";
 import { DeckCountMark } from "@/features/decks/components/deck-count-mark";
@@ -55,7 +64,10 @@ import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckPlanIfAvailable } from "@/features/decks/hooks/use-deck-plan";
 import { useDeckDetail, useUpdateDeck } from "@/features/decks/hooks/use-decks";
-import { useEntryPrintingLabels } from "@/features/decks/hooks/use-entry-printing-labels";
+import {
+  useEntryPrintingLabels,
+  usePrintingRowLabel,
+} from "@/features/decks/hooks/use-entry-printing-labels";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
@@ -67,6 +79,11 @@ import {
   isDeckZoneFullForDrag,
   RUNE_TARGET,
 } from "@/features/decks/lib/deck-builder-card";
+import {
+  deckDetailControlsApply,
+  deckPrintingStock,
+  planDeckCardDetail,
+} from "@/features/decks/lib/deck-card-detail-plan";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
@@ -256,7 +273,13 @@ export function DeckCardBrowser({
     );
   }
 
-  return <DeckCardBrowserInner deckId={deckId} onTargetZone={onTargetZone} />;
+  return (
+    <DeckCardBrowserInner
+      deckId={deckId}
+      ownershipData={ownershipData}
+      onTargetZone={onTargetZone}
+    />
+  );
 }
 
 const EMPTY_SIBLINGS: Printing[] = [];
@@ -355,9 +378,11 @@ function DeckOverviewForEditor({
 
 function DeckCardBrowserInner({
   deckId,
+  ownershipData,
   onTargetZone,
 }: {
   deckId: string;
+  ownershipData?: DeckOwnershipData;
   onTargetZone?: (zone: DeckZone) => void;
 }) {
   const { data: deckDetail } = useDeckDetail(deckId);
@@ -365,7 +390,7 @@ function DeckCardBrowserInner({
   const highlightOwned = useDisplayStore((state) => state.deckHighlightOwned);
   const toggleHighlightOwned = useDisplayStore((state) => state.toggleDeckHighlightOwned);
   const isMobile = useIsMobile();
-  const { allPrintings, sets } = useCards();
+  const { allPrintings, sets, printingsByCardId: catalogPrintingsByCardId } = useCards();
   const channels = useChannelRegistry();
   const customTagAssignments = useCustomTagAssignments();
   const display = useCardThumbnailDisplay();
@@ -378,6 +403,8 @@ function DeckCardBrowserInner({
     deckDetail.deck.collectionId,
   );
   const ownedCountByPrinting = deckCounts?.available;
+  const countExcluded = useDisplayStore((state) => state.countExcludedCollections);
+  const deckStock = deckCounts && deckPrintingStock(deckCounts, countExcluded);
 
   const {
     filters: urlFilters,
@@ -391,6 +418,7 @@ function DeckCardBrowserInner({
   const { setSearch } = useFilterActions();
   const { getPreferredPrinting } = usePreferredPrinting();
   const entryPrintingLabelsFor = useEntryPrintingLabels();
+  const printingRowLabelFor = usePrintingRowLabel();
   const { addCard, removeCard, setLegend, setQuantity } = useDeckBuilderActions(deckId);
   const isFreeform = deckDetail.deck.format === WellKnown.deckFormat.FREEFORM;
   const isCustomRegion = deckDetail.deck.format === WellKnown.deckFormat.CUSTOM_REGION;
@@ -409,6 +437,11 @@ function DeckCardBrowserInner({
     isSingleCardZone && deckCards.some((card) => card.zone === activeZone);
 
   const workbench = useWorkbenchStore((state) => state.relaxed);
+  const [detailZonePick, setDetailZonePick] = useState<{
+    from: DeckZone;
+    cardId: string;
+    zone: DeckZone;
+  }>();
   const detailOpen = useSelectionStore((state) => state.detailOpen);
   const selectedCard = useSelectionStore((state) => state.selectedCard);
   const detailReplacesCatalog = workbench && !isMobile;
@@ -734,6 +767,103 @@ function DeckCardBrowserInner({
     );
   };
 
+  const zoneSwitchable =
+    formatHasSideboard(deckDetail.deck.format) &&
+    (activeZone === WellKnown.deckZone.MAIN || activeZone === WellKnown.deckZone.SIDEBOARD);
+  const detailZoneFor = (cardId: string) =>
+    zoneSwitchable && detailZonePick?.from === activeZone && detailZonePick.cardId === cardId
+      ? detailZonePick.zone
+      : activeZone;
+  const deckBuildingFor = (printing: Printing): CardDetailDeckBuilding | undefined => {
+    if (!deckDetailControlsApply({ workbench, isSingleCardZone, activeZone })) {
+      return undefined;
+    }
+    const cardId = printing.cardId;
+    const detailZone = detailZoneFor(cardId);
+    const catalogPrintings = catalogPrintingsByCardId.get(cardId) ?? EMPTY_SIBLINGS;
+    const defaultPrintingId = getPreferredPrinting(cardId)?.printingId;
+    const plan = planDeckCardDetail({
+      cardEntries: deckCards.filter((card) => card.cardId === cardId),
+      activeZone,
+      detailZone,
+      zoneSwitchable,
+      defaultPrintingId,
+      rowPrintingIds: new Set(catalogPrintings.map((row) => row.printingId)),
+      activeZoneFull: isMaxReached({ id: sideKey(printing), printing }),
+      copyLimitReached: (copyLimitTotalByCard.get(cardId) ?? 0) >= copyLimitFor(printing.card),
+      isFreeform,
+      stock: deckStock,
+    });
+    const cardName = legendDisplayName(printing.card);
+    return {
+      header: (
+        <DeckCardDetailHeader
+          deckId={deckId}
+          format={deckDetail.deck.format}
+          formatConfig={deckDetail.deck.formatConfig}
+          cardId={cardId}
+          zone={detailZone}
+          zones={plan.zones}
+          onZoneChange={(zone) => setDetailZonePick({ from: activeZone, cardId, zone })}
+          otherZones={
+            plan.looseEntries.length > 0 ? (
+              <DeckCardZoneSteppers
+                entries={plan.looseEntries}
+                printingLabels={entryPrintingLabelsFor(plan.looseEntries)}
+                isFreeform={isFreeform}
+                onAdd={(entry) => addCard(entry, entry.zone)}
+                onRemove={(entry) =>
+                  removeCard(entry.cardId, entry.zone, entry.preferredPrintingId)
+                }
+              />
+            ) : undefined
+          }
+          missing={ownershipData?.byCardZone.get(`${cardId}:${detailZone}`)?.shortfall ?? 0}
+        />
+      ),
+      rowEnd: (row) => {
+        const { copies, isDefault, removeTarget, addPrintingId } = plan.row(row.printingId);
+        const rowName = `${cardName} (${printingRowLabelFor(row, catalogPrintings)})`;
+        return (
+          <>
+            {isDefault && <Badge variant="neutral">{m.decks_editor_printing_default()}</Badge>}
+            <InlineCountStepper
+              variant="outline"
+              count={`${copies}×`}
+              decrementLabel={m.decks_editor_remove_one_copy({ card: rowName })}
+              incrementLabel={m.decks_editor_add_one_copy({ card: rowName })}
+              onDecrement={
+                removeTarget === undefined
+                  ? undefined
+                  : () => removeCard(cardId, detailZone, removeTarget)
+              }
+              onIncrement={
+                plan.canAdd
+                  ? () =>
+                      addCard(
+                        {
+                          ...catalogCardToDeckBuilderCard(row.cardId, row.card),
+                          preferredPrintingId: addPrintingId,
+                        },
+                        detailZone,
+                      )
+                  : undefined
+              }
+            />
+          </>
+        );
+      },
+      rowNote: (row) => <DeckRowNote uncovered={plan.row(row.printingId).uncovered} />,
+      holdsCopies: (row) => plan.row(row.printingId).copies > 0,
+      copies: (
+        <DeckCardCopies
+          printings={catalogPrintings}
+          homeCollectionId={deckDetail.deck.collectionId}
+        />
+      ),
+    };
+  };
+
   // Extracted so the detail overlay can show the same add controls for the
   // card it covers.
   const deckStripFor = (printing: Printing) => {
@@ -879,6 +1009,7 @@ function DeckCardBrowserInner({
           showImages={showImages}
           onSearchAndClose={setSearch}
           actions={workbenchDetailActions}
+          deckBuilding={deckBuildingFor}
         />
       )}
       <div className={cn(showCatalogDetail && "hidden")}>
@@ -930,6 +1061,7 @@ function DeckCardBrowserInner({
               showImages={showImages}
               onSearchAndClose={setSearch}
               actions={deckStripFor}
+              deckBuilding={deckBuildingFor}
             />
           )}
         </BrowserCardViewer>

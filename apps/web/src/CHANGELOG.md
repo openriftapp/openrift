@@ -9,6 +9,8 @@
 - feat(Decks): **Stats summary on desktop** — the mini stats card with the energy curve and turn-1 odds now shows on the Cards tab on desktop too, with a switch in the display options.
 - feat(Decks): **Battlefield plan on the deck list** — battlefields picked in a deck's plan are tagged Game 1, Going first or Going second and listed in that order, in the deck list and in the sidebar, and right-clicking a battlefield in the sidebar opens the plan to change them.
 
+- feat(Decks): **Card detail built for decks** — opening a card in the deck builder shows each printing with its own copy count and steppers, your copies by collection, and a warning on printings you can't build with. View mode opens the same detail read-only.
+
 ### Other
 
 - feat(Decks): **Printing named on repeated cards** — when a zone holds a card in more than one printing, the sidebar and the card panel name each printing.

@@ -110,14 +110,22 @@ describe("CardDetailPrintingList", () => {
     expect(nested).toHaveLength(0);
   });
 
-  it("renders the row as a non-button element with role=button", () => {
+  it("selects a row through a button named by its printing, beside the row's controls", async () => {
     const printing = stubPrinting();
-    const { container } = render(
-      <CardDetailPrintingList current={printing} printings={[printing]} onSelect={() => {}} />,
+    const onSelect = vi.fn();
+    render(
+      <CardDetailPrintingList
+        current={printing}
+        printings={[printing]}
+        onSelect={onSelect}
+        rowEnd={() => <button type="button">Add</button>}
+      />,
     );
-    const row = container.querySelector('[role="button"]');
-    expect(row).not.toBeNull();
-    expect(row?.tagName).not.toBe("BUTTON");
+    const select = screen.getByRole("button", { pressed: true });
+    expect(select).toHaveAccessibleName();
+    expect(select).not.toContainElement(screen.getByRole("button", { name: "Add" }));
+    await userEvent.click(select);
+    expect(onSelect).toHaveBeenCalledWith(printing);
   });
 
   it("lists a printing with the same card on both sides once, active from either side", () => {
@@ -137,7 +145,7 @@ describe("CardDetailPrintingList", () => {
     const { container } = render(
       <CardDetailPrintingList current={back} printings={[front, back]} onSelect={() => {}} />,
     );
-    const rows = container.querySelectorAll('[role="button"]');
+    const rows = container.querySelectorAll("[data-printing-id] > button[aria-pressed]");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveAttribute("aria-pressed", "true");
   });
@@ -272,6 +280,23 @@ describe("CardDetailPrintingList", () => {
     expect(ownedMock).toHaveBeenLastCalledWith(["p-en"], true, undefined);
   });
 
+  it("names the hidden printings as other languages when asked to", async () => {
+    const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
+    const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
+    catalogMock.printingsByCardId = new Map([["card-1", [english, japanese]]]);
+
+    render(
+      <CardDetailPrintingList
+        current={english}
+        printings={[english]}
+        onSelect={() => {}}
+        hiddenAreOtherLanguages
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Show 1 in other languages" }));
+    expect(screen.getByRole("button", { name: "Hide other languages" })).toBeInTheDocument();
+  });
+
   it("hides the revealed printings again on the next card", async () => {
     const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
     const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
@@ -296,6 +321,24 @@ describe("CardDetailPrintingList", () => {
 
     expect(ownedMock).toHaveBeenLastCalledWith(["p2-en"], true, undefined);
     expect(screen.getByRole("button", { name: "Show 1 outside your filters" })).toBeTruthy();
+  });
+
+  it("keeps a filtered-out printing listed when the caller asks for it", () => {
+    const standard = stubPrinting({ printingId: "p-std", cardId: "card-1" });
+    const foil = stubPrinting({ printingId: "p-foil", cardId: "card-1", finish: "foil" });
+    catalogMock.printingsByCardId = new Map([["card-1", [standard, foil]]]);
+
+    render(
+      <CardDetailPrintingList
+        current={standard}
+        printings={[standard]}
+        onSelect={() => {}}
+        keepListed={(printing) => printing.printingId === "p-foil"}
+      />,
+    );
+
+    expect(ownedMock).toHaveBeenLastCalledWith(["p-std", "p-foil"], true, undefined);
+    expect(screen.queryByRole("button", { name: /outside your filters/u })).toBeNull();
   });
 
   it("offers no reveal when the filters hide nothing", () => {

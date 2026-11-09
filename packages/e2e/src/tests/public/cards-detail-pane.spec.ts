@@ -50,8 +50,7 @@ test.describe("card detail pane", () => {
   test("the printing picker lists siblings and clicking one updates the pane", async ({ page }) => {
     const pane = await openPaneViaDeepLink(page);
 
-    // Rows are role=button (a div, to allow the nested owned-collections
-    // popover trigger) carrying aria-pressed for the active row.
+    // Each row's select button carries aria-pressed for the active row.
     await expect(pane.getByRole("heading", { name: /printings/iu })).toBeVisible();
     const rows = pane.locator("[aria-pressed]");
     const rowCount = await rows.count();

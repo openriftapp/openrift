@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CountPill } from "@/components/ui/count-pill";
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CardPriceChip } from "@/features/cards/components/card-price-chip";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
@@ -197,10 +198,6 @@ function ThumbStepStrip({
   );
 }
 
-function portraitCqw(value: number, isLandscape: boolean): string {
-  return isLandscape ? `${(value * 63) / 88}cqw` : `${value}cqw`;
-}
-
 const EXACT_COPY = { exact: 1, other: 0, borrowed: 0, locked: 0, missing: 0 };
 
 export function ZoneThumb({
@@ -333,20 +330,7 @@ export function ZoneThumb({
           )}
         />
       )}
-      {priceText && (
-        <span
-          className="bg-background/85 text-muted-foreground absolute leading-tight font-medium tabular-nums"
-          style={{
-            fontSize: `max(10px, ${portraitCqw(7.5, isLandscape)})`,
-            padding: `${portraitCqw(0.5, isLandscape)} ${portraitCqw(2.5, isLandscape)}`,
-            borderRadius: portraitCqw(3, isLandscape),
-            left: portraitCqw(2, isLandscape),
-            bottom: portraitCqw(2, isLandscape),
-          }}
-        >
-          {priceText}
-        </span>
-      )}
+      {priceText && <CardPriceChip text={priceText} isLandscape={isLandscape} />}
       {editable && !stepAbove && (
         <ThumbEditControls
           deckId={deckId}

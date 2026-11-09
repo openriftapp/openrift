@@ -2,6 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { lazy } from "react";
 import type { ReactNode } from "react";
 
+import type { CardDetailDeckBuilding } from "@/features/cards/components/card-detail/card-detail";
 import { CardDetailDrawerShell } from "@/features/cards/components/card-detail/card-detail-shells";
 import {
   closeOverlayHistoryEntry,
@@ -26,6 +27,7 @@ interface SelectionMobileOverlayProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  deckBuilding?: (printing: Printing) => CardDetailDeckBuilding | undefined;
   collectionId?: string;
 }
 
@@ -35,6 +37,7 @@ export function SelectionMobileOverlay({
   showImages,
   onSearchAndClose,
   actions,
+  deckBuilding,
   collectionId,
 }: SelectionMobileOverlayProps) {
   const closeDetail = useSelectionStore((s) => s.closeDetail);
@@ -68,6 +71,7 @@ export function SelectionMobileOverlay({
   if (!isMobile || !selectedCard) {
     return null;
   }
+  const building = deckBuilding?.(selectedCard);
 
   return (
     <CardDetailDrawerShell
@@ -85,7 +89,8 @@ export function SelectionMobileOverlay({
         onKeywordClick={handleKeywordClick}
         printings={siblingPrintings}
         onSelectPrinting={handleSelectPrinting}
-        actions={actions?.(selectedCard)}
+        actions={building ? undefined : actions?.(selectedCard)}
+        deckBuilding={building}
         collectionId={collectionId}
       />
     </CardDetailDrawerShell>

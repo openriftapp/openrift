@@ -41,6 +41,7 @@ import { useDeckUndoShortcuts } from "@/features/decks/components/deck-undo-cont
 import { DeckVariantRail } from "@/features/decks/components/deck-variant-rail";
 import { DeckZoneDrawer } from "@/features/decks/components/deck-zone-drawer";
 import { DeckZonePanel } from "@/features/decks/components/deck-zone-panel";
+import { useViewDeckCardDetail } from "@/features/decks/components/use-view-deck-card-detail";
 import { WorkbenchDialogs } from "@/features/decks/components/workbench-dialogs";
 import { WorkbenchModeControl } from "@/features/decks/components/workbench-mode-control";
 import { WorkbenchStatsStrip } from "@/features/decks/components/workbench-stats-strip";
@@ -161,6 +162,7 @@ function WorkbenchContent({
     },
     incomingCounts,
   );
+  const viewDeckBuilding = useViewDeckCardDetail({ deck: data.deck, deckCounts, ownershipData });
 
   const hasLegend = deckCards.some((card) => card.zone === WellKnown.deckZone.LEGEND);
   const [opening, setOpening] = useState<{ mode: WorkbenchMode; zone: DeckZone } | null>(null);
@@ -254,6 +256,16 @@ function WorkbenchContent({
   }, [unsavedWarning]);
 
   const { items: deckItems, printingsByCardId } = useDeckItems(deckCards);
+  const preferredLanguages = useDisplayStore((state) => state.languages);
+  const viewPrintingsByCardId =
+    preferredLanguages.length === 0
+      ? printingsByCardId
+      : new Map(
+          [...printingsByCardId].map(([cardId, printings]) => [
+            cardId,
+            printings.filter((printing) => preferredLanguages.includes(printing.language)),
+          ]),
+        );
   const showImages = useDisplayStore((state) => state.showImages);
   const detailOpen = useSelectionStore((state) => state.detailOpen);
   const topBarHeight = usePageTopBarHeight();
@@ -571,10 +583,11 @@ function WorkbenchContent({
         {mode === "deck" && (
           <SelectionDetailOverlays
             items={deckItems}
-            printingsByCardId={printingsByCardId}
+            printingsByCardId={viewPrintingsByCardId}
             showImages={showImages}
             onSearchAndClose={noop}
             docking={false}
+            deckBuilding={viewDeckBuilding}
           />
         )}
         {isMobile && mode === "build" && <DeckMobileDock deckId={deckId} zone={zone} />}

@@ -2,6 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { lazy, useRef } from "react";
 import type { ReactNode } from "react";
 
+import type { CardDetailDeckBuilding } from "@/features/cards/components/card-detail/card-detail";
 import { CardDetailDialogShell } from "@/features/cards/components/card-detail/card-detail-shells";
 import {
   closeOverlayHistoryEntry,
@@ -27,6 +28,7 @@ interface SelectionDetailModalProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  deckBuilding?: (printing: Printing) => CardDetailDeckBuilding | undefined;
   collectionId?: string;
   docking?: boolean;
 }
@@ -42,6 +44,7 @@ export function SelectionDetailModal({
   showImages,
   onSearchAndClose,
   actions,
+  deckBuilding,
   collectionId,
   docking = true,
 }: SelectionDetailModalProps) {
@@ -99,6 +102,7 @@ export function SelectionDetailModal({
     }
     setPaneDocked(true);
   };
+  const building = deckBuilding?.(selectedCard);
 
   return (
     <CardDetailDialogShell
@@ -116,7 +120,8 @@ export function SelectionDetailModal({
         onKeywordClick={handleKeywordClick}
         printings={siblingPrintings}
         onSelectPrinting={handleSelectPrinting}
-        actions={actions?.(selectedCard)}
+        actions={building ? undefined : actions?.(selectedCard)}
+        deckBuilding={building}
         collectionId={collectionId}
         navLabel={navLabel}
         onDock={docking ? handleDock : undefined}

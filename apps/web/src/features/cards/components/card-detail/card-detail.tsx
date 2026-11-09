@@ -18,7 +18,7 @@ import { CardDetailOtherSide } from "./card-detail-other-side";
 import { CardDetailPrintingList } from "./card-detail-printing-list";
 import { CardDetailStats } from "./card-detail-stats";
 import { CardDetailText } from "./card-detail-text";
-import { CardFooter } from "./card-footer";
+import { CardArtPrice, CardCredits, CardFooter } from "./card-footer";
 import { CardHoldingsSection } from "./card-holdings-section";
 import { PrintingNotesSection } from "./printing-notes-section";
 
@@ -45,8 +45,18 @@ interface CardDetailProps {
   /** Scopes the printing picker's owned counts to one collection. */
   collectionId?: string;
   actions?: ReactNode;
+  deckBuilding?: CardDetailDeckBuilding;
   navLabel?: string;
   onDock?: () => void;
+}
+
+export interface CardDetailDeckBuilding {
+  header: ReactNode;
+  rowEnd: (printing: Printing) => ReactNode;
+  rowNote: (printing: Printing) => ReactNode;
+  holdsCopies: (printing: Printing) => boolean;
+  copies: ReactNode;
+  hiddenAreOtherLanguages?: boolean;
 }
 
 function BanAlert({ bans, upcoming }: { bans: CardBan[]; upcoming: boolean }) {
@@ -84,6 +94,7 @@ export function CardDetail({
   showPrices = true,
   collectionId,
   actions,
+  deckBuilding,
   navLabel,
   onDock,
 }: CardDetailProps) {
@@ -98,7 +109,7 @@ export function CardDetail({
 
   const notes = <PrintingNotesSection printing={printing} />;
   const holdings = <CardHoldingsSection printing={printing} printings={printings} />;
-  const footer = <CardFooter printing={printing} showPrices={showPrices} />;
+  const footer = deckBuilding ? null : <CardFooter printing={printing} showPrices={showPrices} />;
   const picker = hasPicker ? (
     <CardDetailPrintingList
       current={printing}
@@ -106,10 +117,22 @@ export function CardDetail({
       onSelect={onSelectPrinting}
       collectionId={collectionId}
       showImages={showImages}
+      rowEnd={deckBuilding?.rowEnd}
+      rowNote={deckBuilding?.rowNote}
+      keepListed={deckBuilding?.holdsCopies}
+      hiddenAreOtherLanguages={deckBuilding?.hiddenAreOtherLanguages}
     />
   ) : null;
   const text = <CardDetailText printing={printing} onKeywordClick={onKeywordClick} />;
-  const cardArt = <CardDetailArt printing={printing} showImages={showImages} />;
+  const cardArt =
+    deckBuilding && showPrices ? (
+      <div className="@container relative">
+        <CardDetailArt printing={printing} showImages={showImages} />
+        <CardArtPrice printing={printing} />
+      </div>
+    ) : (
+      <CardDetailArt printing={printing} showImages={showImages} />
+    );
   const art =
     printing.otherSide && onSelectPrinting ? (
       <CardDetailOtherSide
@@ -180,22 +203,58 @@ export function CardDetail({
           </div>
         </div>
 
-        <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="space-y-3">
-            {actions}
-            {art}
-            {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
-            {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
-            <CardDetailStats printing={printing} align="start" />
-            {text}
-            {notes}
-            {holdings}
+        <div
+          className={cn(
+            "grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]",
+            deckBuilding &&
+              "@[110rem]:grid-cols-[340px_repeat(3,minmax(0,1fr))] @[110rem]:grid-rows-[auto_1fr] @[110rem]:items-start",
+          )}
+        >
+          <div className={cn("space-y-3", deckBuilding && "@[110rem]:contents")}>
+            <div className="space-y-3 @[110rem]:col-start-1 @[110rem]:row-span-2 @[110rem]:row-start-1">
+              {actions}
+              {art}
+            </div>
+            <div
+              className={cn(
+                "space-y-3",
+                deckBuilding &&
+                  "@[110rem]:col-start-2 @[110rem]:row-span-2 @[110rem]:row-start-1 @[110rem]:mt-0",
+              )}
+            >
+              {deckBuilding && (
+                <div className="space-y-1">
+                  <CardCredits printing={printing} />
+                </div>
+              )}
+              {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
+              {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
+              <CardDetailStats printing={printing} align="start" />
+              {text}
+              {notes}
+              {holdings}
+            </div>
           </div>
 
-          <div className="min-w-0 space-y-4">
-            {picker}
-            {footer}
-          </div>
+          {deckBuilding ? (
+            <div className="grid min-w-0 content-start gap-4 @6xl:grid-cols-2 @6xl:items-start @6xl:gap-6 @[110rem]:contents">
+              <div className="min-w-0 empty:hidden @6xl:col-span-2 @[110rem]:col-start-3 @[110rem]:row-start-1">
+                {deckBuilding.header}
+              </div>
+              <div className="min-w-0 space-y-4 @[110rem]:col-start-3 @[110rem]:row-start-2">
+                {picker}
+              </div>
+              <div className="min-w-0 space-y-4 @[110rem]:col-start-4 @[110rem]:row-start-2">
+                {deckBuilding.copies}
+                {footer}
+              </div>
+            </div>
+          ) : (
+            <div className="min-w-0 space-y-4">
+              {picker}
+              {footer}
+            </div>
+          )}
         </div>
 
         <div className="mt-4">
@@ -273,7 +332,16 @@ export function CardDetail({
 
         {actions}
 
+        {deckBuilding?.header}
+
+        {deckBuilding && picker}
+
         {art}
+        {deckBuilding && (
+          <div className="space-y-1">
+            <CardCredits printing={printing} />
+          </div>
+        )}
 
         <div className="flex items-start gap-2">
           {hasNav && (
@@ -305,13 +373,15 @@ export function CardDetail({
 
         {text}
 
+        {deckBuilding?.copies}
+
         {notes}
 
         {holdings}
 
         {footer}
 
-        {picker}
+        {!deckBuilding && picker}
 
         {onClose && <CardDetailLinks card={card} printing={printing} />}
       </div>

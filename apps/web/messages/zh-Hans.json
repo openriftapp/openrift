@@ -834,6 +834,8 @@
   "card_detail_lightbox_show_overview": "显示总览",
   "card_detail_printings_show_hidden": "显示筛选之外的 {count} 个",
   "card_detail_printings_hide_hidden": "隐藏筛选之外的印刷版本",
+  "card_detail_printings_show_other_languages": "显示其他语言的 {count} 个版本",
+  "card_detail_printings_hide_other_languages": "隐藏其他语言",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -10214,6 +10216,12 @@
   "decks_workbench_detail_add_to": "添加到{zone}",
   "decks_workbench_detail_set_as": "设为{zone}",
   "decks_workbench_detail_missing": "缺少{count}张",
+  "decks_workbench_detail_your_copies": "你的卡牌",
+  "decks_workbench_detail_copies_excluded": "不用于卡组构筑",
+  "decks_workbench_detail_row_excluded": "{count} 张仅在已排除的收藏中",
+  "decks_workbench_detail_row_lent": "{count} 张已借出或已预留",
+  "decks_workbench_detail_row_not_owned": "{count} 张未拥有",
+  "decks_workbench_detail_zone_toggle": "要编辑的区域",
   "decks_workbench_sheet_hint": "正在添加到{zone}。点按其他区域即可切换。",
   "decks_workbench_showing_allowed_cards": "正在显示此处允许的卡牌。",
   "decks_workbench_showing_all_cards": "正在显示所有卡牌。",

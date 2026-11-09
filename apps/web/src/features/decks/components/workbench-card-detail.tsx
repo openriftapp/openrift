@@ -4,6 +4,7 @@ import { Suspense, lazy, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import type { CardDetailDeckBuilding } from "@/features/cards/components/card-detail/card-detail";
 import {
   PrintingsHostProvider,
   usePrintingsHostState,
@@ -47,12 +48,14 @@ export function WorkbenchCardDetail({
   showImages,
   onSearchAndClose,
   actions,
+  deckBuilding,
 }: {
   items: CardViewerItem[];
   printingsByCardId: Map<string, Printing[]>;
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  deckBuilding?: (printing: Printing) => CardDetailDeckBuilding | undefined;
 }) {
   const closeDetail = useSelectionStore((s) => s.closeDetail);
   const domainColors = useDomainColors();
@@ -99,6 +102,7 @@ export function WorkbenchCardDetail({
   }
 
   const handleClose = () => closeOverlayHistoryEntry("cardDetail", closeDetail);
+  const building = deckBuilding?.(selectedCard);
 
   return (
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Esc is handled for the whole detail region
@@ -136,7 +140,8 @@ export function WorkbenchCardDetail({
                 onKeywordClick={handleKeywordClick}
                 printings={siblingPrintings}
                 onSelectPrinting={handleSelectPrinting}
-                actions={actions?.(selectedCard)}
+                actions={building ? undefined : actions?.(selectedCard)}
+                deckBuilding={building}
                 navLabel={navLabel}
               />
             </Suspense>

@@ -61,6 +61,32 @@ describe("computeDeckOwnership", () => {
     expect(entry?.shortfall).toBe(0);
   });
 
+  it("sums a card's entries in one zone across their printings", () => {
+    const cardId = "card-1";
+    const deckCards = [
+      stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" }),
+      stubDeckBuilderCard({ cardId, quantity: 1, zone: "main", preferredPrintingId: "foil" }),
+    ];
+    const printings = [
+      stubPrinting({ printingId: "standard", cardId }),
+      stubPrinting({ printingId: "foil", cardId, finish: "foil" }),
+    ];
+
+    const result = computeDeckOwnership(
+      deckCards,
+      printings,
+      { standard: 1 },
+      "tcgplayer",
+      EMPTY_PRICE_LOOKUP,
+      EN_FIRST,
+    );
+
+    const entry = result.byCardZone.get(`${cardId}:main`);
+    expect(entry?.needed).toBe(3);
+    expect(entry?.owned).toBe(1);
+    expect(entry?.shortfall).toBe(2);
+  });
+
   it("counts a double-sided copy for each of its cards and links the missing side", () => {
     const deckCards = [
       stubDeckBuilderCard({ cardId: "bird", quantity: 1, zone: "main" }),

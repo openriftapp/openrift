@@ -6,6 +6,15 @@ import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link"
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 
+export function printingRowLabel(
+  printing: Printing,
+  siblings: readonly Printing[],
+  labels: VariantLabelEnumLabels,
+): string {
+  const { language, rest } = formatPrintingVariantLabelParts(printing, siblings, labels);
+  return [distinctPrintingCode(printing), ...(language ? [language] : []), ...rest].join(" · ");
+}
+
 export function entryPrintingLabels(
   entries: readonly DeckBuilderCard[],
   resolvePrinting: (cardId: string, preferredPrintingId: string | null) => Printing | undefined,

@@ -1,10 +1,13 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Suspense, lazy, useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CardPriceChip } from "@/features/cards/components/card-price-chip";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { formatterForMarketplace } from "@/lib/format";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { ImageCreditLine } from "./image-credit";
@@ -26,6 +29,33 @@ function ChartSkeleton() {
   );
 }
 
+export function CardCredits({ printing }: { printing: Printing }) {
+  const frontImage = printing.images[0];
+  return (
+    <>
+      <p className="text-muted-foreground flex items-center gap-1 text-xs">
+        <CardIcon src="/images/artist.svg" className="size-3.5" />
+        {printing.artist}
+      </p>
+      {frontImage?.credit !== undefined && <ImageCreditLine credit={frontImage.credit} />}
+    </>
+  );
+}
+
+export function CardArtPrice({ printing }: { printing: Printing }) {
+  const favorite = useDisplayStore((s) => s.marketplaceOrder[0]);
+  const price = usePrices().get(printing.printingId, favorite);
+  if (price === undefined) {
+    return null;
+  }
+  return (
+    <CardPriceChip
+      text={formatterForMarketplace(favorite)(price)}
+      isLandscape={getOrientation(printing.card.types) === "landscape"}
+    />
+  );
+}
+
 export function CardFooter({
   printing,
   showPrices = true,
@@ -38,15 +68,10 @@ export function CardFooter({
   const [source, setSource] = useState<Marketplace>(favorite);
   const prices = usePrices();
   const hasPrice = showPrices && prices.get(printing.printingId, favorite) !== undefined;
-  const frontImage = printing.images[0] ?? printing.images[0];
 
   return (
     <div className="mt-2 space-y-2">
-      <p className="text-muted-foreground flex items-center gap-1 text-xs">
-        <CardIcon src="/images/artist.svg" className="size-3.5" />
-        {printing.artist}
-      </p>
-      {frontImage?.credit !== undefined && <ImageCreditLine credit={frontImage.credit} />}
+      <CardCredits printing={printing} />
       {showPrices && <PriceTable printing={printing} selected={source} onSelect={setSource} />}
       {hasPrice && (
         <Suspense fallback={<ChartSkeleton />}>

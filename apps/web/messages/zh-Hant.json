@@ -834,6 +834,8 @@
   "card_detail_lightbox_show_overview": "顯示總覽",
   "card_detail_printings_show_hidden": "顯示篩選之外的 {count} 個",
   "card_detail_printings_hide_hidden": "隱藏篩選之外的印刷版本",
+  "card_detail_printings_show_other_languages": "顯示其他語言的 {count} 個版本",
+  "card_detail_printings_hide_other_languages": "隱藏其他語言",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -10214,6 +10216,12 @@
   "decks_workbench_detail_add_to": "加入到 {zone}",
   "decks_workbench_detail_set_as": "設為{zone}",
   "decks_workbench_detail_missing": "缺少 {count} 張",
+  "decks_workbench_detail_your_copies": "你的卡牌",
+  "decks_workbench_detail_copies_excluded": "不用於牌組組建",
+  "decks_workbench_detail_row_excluded": "{count} 張僅在已排除的收藏中",
+  "decks_workbench_detail_row_lent": "{count} 張已借出或已預留",
+  "decks_workbench_detail_row_not_owned": "{count} 張未擁有",
+  "decks_workbench_detail_zone_toggle": "要編輯的區域",
   "decks_workbench_sheet_hint": "正在加入 {zone}。點選其他區域即可切換。",
   "decks_workbench_showing_allowed_cards": "正在顯示此處允許的卡牌。",
   "decks_workbench_showing_all_cards": "正在顯示所有卡牌。",

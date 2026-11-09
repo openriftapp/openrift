@@ -834,6 +834,8 @@
   "card_detail_lightbox_show_overview": "전체 보기",
   "card_detail_printings_show_hidden": "필터 밖의 {count}개 보기",
   "card_detail_printings_hide_hidden": "필터 밖의 인쇄판 숨기기",
+  "card_detail_printings_show_other_languages": "다른 언어 {count}개 보기",
+  "card_detail_printings_hide_other_languages": "다른 언어 숨기기",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -10214,6 +10216,12 @@
   "decks_workbench_detail_add_to": "{zone}에 추가",
   "decks_workbench_detail_set_as": "{zone}(으)로 설정",
   "decks_workbench_detail_missing": "{count}장 부족",
+  "decks_workbench_detail_your_copies": "내 카드",
+  "decks_workbench_detail_copies_excluded": "덱 구성에서 제외",
+  "decks_workbench_detail_row_excluded": "{count}장은 제외된 컬렉션에만 있음",
+  "decks_workbench_detail_row_lent": "{count}장 대여 중 또는 예약됨",
+  "decks_workbench_detail_row_not_owned": "{count}장 미보유",
+  "decks_workbench_detail_zone_toggle": "편집할 영역",
   "decks_workbench_sheet_hint": "{zone}에 추가 중. 다른 구역을 누르면 바뀝니다.",
   "decks_workbench_showing_allowed_cards": "여기에 넣을 수 있는 카드만 표시 중입니다.",
   "decks_workbench_showing_all_cards": "모든 카드를 표시 중입니다.",

@@ -1,7 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
@@ -61,6 +61,7 @@ function DesignRow({
 }: RowProps & { design: PrintingDesign; leads: Printing[]; showLanguages: boolean }) {
   const languageLabels = useLanguageLabels();
   const rowRef = useRef<HTMLDivElement>(null);
+  const labelId = useId();
   const members = [...design.byLanguage.values()];
   const selected = members.find((member) => isSelectedSide(member, selectedSideKey));
   const shown = selected ?? design.lead;
@@ -79,30 +80,25 @@ function DesignRow({
   return (
     <div
       ref={rowRef}
-      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- can't use <button>; the row holds the language pills and the caller's controls, and nested buttons are invalid HTML
-      role="button"
       data-highlighted={highlighted || undefined}
       onAnimationEnd={(event) => {
         if (highlighted && event.target === event.currentTarget) {
           onHighlightEnd?.();
         }
       }}
-      tabIndex={0}
-      aria-pressed={selected !== undefined}
       data-printing-id={shown.printingId}
-      onClick={() => onSelect(shown)}
-      onKeyDown={(event) => {
-        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
-          event.preventDefault();
-          onSelect(shown);
-        }
-      }}
       className={cn(
-        "-mx-2.5 flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
+        "relative -mx-2.5 flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
         selected ? "bg-muted ring-border ring-1" : "hover:bg-muted/50",
         highlighted && "animate-printing-picked",
       )}
     >
+      <Pressable
+        aria-pressed={selected !== undefined}
+        aria-labelledby={labelId}
+        onClick={() => onSelect(shown)}
+        className="absolute inset-0 rounded-md"
+      />
       <span className="relative shrink-0">
         <CardArtThumb
           imageId={frontImageId(shown)}
@@ -115,11 +111,11 @@ function DesignRow({
         <span className="absolute -top-1.5 -right-2">{badge?.(shown)}</span>
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="min-w-0 text-xs font-normal">
+        <span id={labelId} className="min-w-0 text-xs font-normal">
           <PrintingVariantLine printing={shown} siblings={leads} hideLanguage />
         </span>
         {showLanguages && (
-          <span className="flex flex-wrap gap-1">
+          <span className="relative flex flex-wrap gap-1 self-start">
             {members.map((member) => (
               <Pressable
                 key={member.language}
@@ -141,7 +137,7 @@ function DesignRow({
         )}
         {details?.(design)}
       </span>
-      {right?.(shown)}
+      {right && <span className="relative flex shrink-0 items-center gap-2">{right(shown)}</span>}
     </div>
   );
 }

@@ -58,6 +58,19 @@ export function lockedReasonText(entry: CardOwnership, count = entry.locked): st
 
 const REQUIRED_ZONE_SET: ReadonlySet<DeckZone> = new Set(REQUIRED_ZONES);
 
+// A card can sit in one zone as several entries, one per printing.
+function mergeZoneEntries(first: CardOwnership, next: CardOwnership): CardOwnership {
+  return {
+    ...first,
+    needed: first.needed + next.needed,
+    owned: first.owned + next.owned,
+    shortfall: first.shortfall + next.shortfall,
+    locked: first.locked + next.locked,
+    borrowed: first.borrowed + next.borrowed,
+    incoming: first.incoming + next.incoming,
+  };
+}
+
 export function computeDeckOwnership(
   deckCards: DeckBuilderCard[],
   allPrintings: Printing[],
@@ -265,7 +278,9 @@ export function computeDeckOwnership(
       cheapestPrinting,
     };
 
-    byCardZone.set(`${card.cardId}:${card.zone}`, entry);
+    const zoneKey = `${card.cardId}:${card.zone}`;
+    const sameZone = byCardZone.get(zoneKey);
+    byCardZone.set(zoneKey, sameZone ? mergeZoneEntries(sameZone, entry) : entry);
 
     if (!counted) {
       continue;
