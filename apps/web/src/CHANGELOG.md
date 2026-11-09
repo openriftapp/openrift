@@ -10,6 +10,7 @@
 
 - fix(Decks): **Full drop highlight in the sidebar** — dragging a card onto the open zone in the deck builder's sidebar no longer cuts off the highlight's left edge.
 - fix(Decks): **Deck sheet on phones** — the deck sheet opened while adding cards is taller, scrolls all the way to the bottom, and its quantity and menu buttons are lighter. The "Adding to" line above the cards wraps instead of scrolling sideways.
+- fix(App): **Themed scrollbars** — scrollbars follow the light or dark theme and are thinner inside panels and dialogs, so dark mode no longer shows bright white bars.
 
 ## 2026-11-08
 

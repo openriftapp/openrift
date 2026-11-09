@@ -558,6 +558,18 @@ html.hide-scrollbar::-webkit-scrollbar {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+  }
+  :root {
+    color-scheme: light;
+    scrollbar-width: auto;
+  }
+  :root,
+  .dark {
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 50%, transparent) transparent;
+  }
+  .dark {
+    color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground font-sans;
