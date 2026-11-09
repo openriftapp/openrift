@@ -205,6 +205,7 @@ export function ZoneThumb({
   card,
   band,
   priceText,
+  caption,
   addRoom,
   hoverPrintingId,
   copyIndex,
@@ -220,6 +221,7 @@ export function ZoneThumb({
   card: DeckBuilderCard;
   band?: OwnershipBandSegments;
   priceText?: string;
+  caption?: string;
   addRoom?: number;
   hoverPrintingId?: string | null;
   copyIndex?: number | null;
@@ -352,9 +354,15 @@ export function ZoneThumb({
     </div>
   );
 
-  const bandBar = band ? (
-    <LabeledOwnershipBand quantity={card.quantity} band={band} className="mt-1" />
-  ) : null;
+  const bandBar =
+    band || caption ? (
+      <>
+        {caption && (
+          <span className="text-muted-foreground mt-1 truncate text-center text-xs">{caption}</span>
+        )}
+        {band && <LabeledOwnershipBand quantity={card.quantity} band={band} className="mt-1" />}
+      </>
+    ) : null;
   const withBand = (node: React.ReactNode) =>
     bandBar ? (
       <div

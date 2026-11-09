@@ -65,6 +65,7 @@ interface DeckZoneSectionProps {
   shiftHeld?: boolean;
   onActivate: () => void;
   onAdd?: () => void;
+  onOpenPlan?: () => void;
   onHoverCard?: HoverHandler;
   deckItems: CardViewerItem[];
   workbench?: boolean;
@@ -80,6 +81,7 @@ export function DeckZoneSection({
   shiftHeld,
   onActivate,
   onAdd,
+  onOpenPlan,
   onHoverCard,
   deckItems,
   workbench = false,
@@ -177,6 +179,7 @@ export function DeckZoneSection({
         card={card}
         onViewCard={workbench ? () => handleCardClick(card) : undefined}
         onSwitch={workbench && isSingleCard ? onActivate : undefined}
+        onOpenPlan={zone === WellKnown.deckZone.BATTLEFIELD ? onOpenPlan : undefined}
       >
         <DeckCardRow
           card={card}

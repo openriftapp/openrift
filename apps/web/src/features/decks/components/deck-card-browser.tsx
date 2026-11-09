@@ -53,6 +53,7 @@ import {
 import { WorkbenchZoneBar } from "@/features/decks/components/workbench-zone-bar";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
+import { useDeckPlanIfAvailable } from "@/features/decks/hooks/use-deck-plan";
 import { useDeckDetail, useUpdateDeck } from "@/features/decks/hooks/use-decks";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -281,6 +282,7 @@ function DeckOverviewForEditor({
   const { getPreferredFrontImage } = usePreferredPrinting();
   const updateDeck = useUpdateDeck();
   const isLocal = useIsLocalDeck(deck.id);
+  const battlefieldPlan = useDeckPlanIfAvailable(deck.id, !isLocal);
 
   // Mirrors the parent editor's deckItems so arrow-key nav and the detail
   // pane's prev/next walk the same dedup'd visual-order list on both paths.
@@ -328,6 +330,7 @@ function DeckOverviewForEditor({
             ? undefined
             : (config) => updateDeck.mutate({ deckId: deck.id, oddsConfig: config })
         }
+        battlefieldPlan={battlefieldPlan}
         planSlot={
           isLocal ? undefined : (
             <Suspense

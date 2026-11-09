@@ -537,7 +537,7 @@ function WorkbenchContent({
               aria-label={m.decks_workbench_deck_column()}
               className="motion-safe:animate-in motion-safe:fade-in-0 sticky top-(--sticky-top) z-30 flex h-[calc(100dvh-var(--sticky-top))] w-[260px] shrink-0 flex-col gap-3 pb-3 motion-safe:duration-150 min-[1200px]:w-[340px] lg:w-[300px]"
             >
-              <div className="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-gutter:stable] overflow-y-auto overscroll-contain py-1 pr-4 pl-2">
+              <div className="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-gutter:stable] overflow-y-auto overscroll-contain py-1 pr-4 pl-3">
                 {zonePanel(false)}
               </div>
               <WorkbenchStatsStrip deckId={deckId} />

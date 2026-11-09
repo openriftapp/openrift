@@ -3627,6 +3627,7 @@
   "decks_share_gone_action": "Zu deinen Decks",
   "decks_card_menu_view_details": "Details ansehen",
   "decks_card_menu_switch": "Andere Karte als {zone} wählen",
+  "decks_card_menu_plan_battlefields": "Schlachtfelder pro Spiel im Plan wählen",
   "decks_card_menu_move_to": "Verschieben nach",
   "decks_card_menu_shift_move_hint": "· Shift-Klick verschiebt 1",
   "decks_card_menu_shift_split_hint": "· Shift-Klick teilt 1 ab",

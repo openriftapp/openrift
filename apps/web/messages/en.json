@@ -3633,6 +3633,7 @@
   "decks_share_gone_action": "Go to your decks",
   "decks_card_menu_view_details": "View details",
   "decks_card_menu_switch": "Pick a different {zone}",
+  "decks_card_menu_plan_battlefields": "Choose battlefields per game in the plan",
   "decks_card_menu_move_to": "Move to",
   "decks_card_menu_shift_move_hint": "· shift-click to move 1",
   "decks_card_menu_shift_split_hint": "· shift-click to split 1",

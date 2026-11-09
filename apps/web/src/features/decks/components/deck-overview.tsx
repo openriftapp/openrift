@@ -55,6 +55,11 @@ import { FormatConfigCard } from "@/features/decks/components/format-config-card
 import { DeckStatsBand } from "@/features/decks/components/stats/deck-stats-band";
 import { DeckStatsSummary } from "@/features/decks/components/stats/deck-stats-summary";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
+import type { BattlefieldPlanPicks } from "@/features/decks/lib/battlefield-plan-tags";
+import {
+  battlefieldPlanTags,
+  orderByBattlefieldPlan,
+} from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
@@ -124,6 +129,7 @@ interface DeckOverviewProps {
   onEditDescription?: () => void;
   onCardClick?: (card: CardOpenTarget) => void;
   planSlot?: React.ReactNode;
+  battlefieldPlan?: BattlefieldPlanPicks | null;
   variantRailSlot?: React.ReactNode;
   heroByline?: React.ReactNode;
   heroHeading?: React.ReactNode;
@@ -154,6 +160,7 @@ export function DeckOverview({
   onEditDescription,
   onCardClick,
   planSlot,
+  battlefieldPlan,
   variantRailSlot,
   heroByline,
   heroHeading,
@@ -438,6 +445,14 @@ export function DeckOverview({
 
   const showList = totalCards > 0 && displayMode === "list";
 
+  const planTags = battlefieldPlanTags(battlefieldPlan, deck.format);
+  const zoneCardsFor = (zone: DeckZone) => {
+    const zoneCards = cards.filter((card) => card.zone === zone);
+    return zone === WellKnown.deckZone.BATTLEFIELD
+      ? orderByBattlefieldPlan(zoneCards, planTags)
+      : zoneCards;
+  };
+
   const renderZone = (zone: DeckZone, style?: React.CSSProperties) => (
     <ZoneTile
       key={zone}
@@ -456,7 +471,8 @@ export function DeckOverview({
       stacked={displayMode === "stacks"}
       zone={zone}
       label={ZONE_LABELS[zone]}
-      cards={cards.filter((card) => card.zone === zone)}
+      cards={zoneCardsFor(zone)}
+      planTags={zone === WellKnown.deckZone.BATTLEFIELD ? planTags : undefined}
       allCards={cards}
       expected={zoneExpected(zone, deck.format, cards)}
       emptyHint={zoneEmptyHint(zone, deck.format)}
@@ -718,6 +734,7 @@ export function DeckOverview({
                 draggable={!listReadOnly}
                 countsOnlyUnfinished={cardListReadOnly === true}
                 tokensSlot={tokensSection}
+                planTags={planTags}
               />
             ) : (
               <div ref={containerRef} style={cardWidthStyle} className="flex flex-col gap-8">

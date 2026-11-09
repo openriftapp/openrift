@@ -15,6 +15,7 @@ import { StackPile } from "@/features/decks/components/deck-stack-pile";
 import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
+import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
@@ -70,6 +71,7 @@ export interface ZoneTileProps {
   zone: DeckZone;
   label: string;
   cards: DeckBuilderCard[];
+  planTags?: ReadonlyMap<string, BattlefieldPlanTag>;
   allCards: DeckBuilderCard[];
   expected: number | undefined;
   emptyHint: string;
@@ -103,6 +105,7 @@ export function ZoneTile({
   zone,
   label,
   cards,
+  planTags,
   allCards,
   expected,
   emptyHint,
@@ -323,6 +326,7 @@ export function ZoneTile({
                 card={card}
                 band={bandByCardKey.get(getDeckCardKey(card))}
                 priceText={priceTextByCardKey.get(getDeckCardKey(card))}
+                caption={planTags?.get(card.cardId)?.label}
                 addRoom={addRoomByCardKey.get(getDeckCardKey(card)) ?? 0}
                 hoverPrintingId={resolveHoverPrintingId(card.cardId, card.preferredPrintingId)}
                 copyIndex={copyIndex}

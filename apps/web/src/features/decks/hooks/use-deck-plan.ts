@@ -1,11 +1,17 @@
 import { decksContract } from "@openrift/shared/contracts/decks";
 import type { DeckPlanDetailResponse } from "@openrift/shared/types/api/deck";
-import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { DeckPlanSaveInput } from "@/features/decks/lib/deck-plan";
 import { decksKeys } from "@/features/decks/lib/decks-query-keys";
-import { useRequiredUserId } from "@/hooks/use-session";
+import { useRequiredUserId, useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -27,6 +33,15 @@ function deckPlanQueryOptions(userId: string, deckId: string) {
 export function useDeckPlan(deckId: string) {
   const userId = useRequiredUserId();
   return useSuspenseQuery(deckPlanQueryOptions(userId, deckId));
+}
+
+export function useDeckPlanIfAvailable(deckId: string, enabled: boolean) {
+  const userId = useUserId();
+  const { data } = useQuery({
+    ...deckPlanQueryOptions(userId ?? "", deckId),
+    enabled: enabled && userId !== null,
+  });
+  return data?.plan;
 }
 
 const saveDeckPlanFn = createServerFn({ method: "POST" })

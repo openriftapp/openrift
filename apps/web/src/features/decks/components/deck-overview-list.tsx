@@ -16,6 +16,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangleIcon, HandHeartIcon, LockIcon, PlusIcon } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -31,6 +32,8 @@ import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-lin
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
+import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
+import { orderByBattlefieldPlan } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   getDeckCardKey,
@@ -131,6 +134,7 @@ interface DeckOverviewListProps {
   draggable?: boolean;
   onZoneClick?: (zone: DeckZone) => void;
   tokensSlot?: React.ReactNode;
+  planTags?: ReadonlyMap<string, BattlefieldPlanTag>;
 }
 
 export function DeckOverviewList({
@@ -152,6 +156,7 @@ export function DeckOverviewList({
   draggable = false,
   onZoneClick,
   tokensSlot,
+  planTags,
   countsOnlyUnfinished = false,
 }: DeckOverviewListProps) {
   const isRowDimmed = (card: DeckBuilderCard) =>
@@ -318,7 +323,13 @@ export function DeckOverviewList({
           />
         ) : (
           <div className="flex flex-col gap-0.5">
-            {sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext).map((card) => (
+            {(zone === WellKnown.deckZone.BATTLEFIELD && planTags
+              ? orderByBattlefieldPlan(
+                  sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext),
+                  planTags,
+                )
+              : sortDeckOverviewList(zoneCards, sortBy, sortDir, sortContext)
+            ).map((card) => (
               <ListRow
                 key={getDeckCardKey(card)}
                 card={card}
@@ -332,6 +343,7 @@ export function DeckOverviewList({
                 fmtPrice={fmtPrice}
                 resolveRowPrinting={resolveRowPrinting}
                 violationMessage={cardViolations.get(card.cardId)}
+                planTag={planTags?.get(card.cardId)?.label}
                 dimmed={isRowDimmed(card)}
                 onHoverCard={onHoverCard}
                 onCardClick={onCardClick}
@@ -563,6 +575,7 @@ interface DeckListRowProps {
   fmtPrice: (cents: number) => string;
   resolveRowPrinting: (card: DeckBuilderCard, entry: CardOwnership | undefined) => RowPrinting;
   violationMessage?: string;
+  planTag?: string;
   dimmed?: boolean;
   onHoverCard?: HoverHandler;
   onCardClick?: (card: CardOpenTarget) => void;
@@ -619,6 +632,7 @@ export function DeckListRow({
   fmtPrice,
   resolveRowPrinting,
   violationMessage,
+  planTag,
   dimmed,
   onHoverCard,
   onCardClick,
@@ -684,6 +698,8 @@ export function DeckListRow({
           </Tooltip>
         )}
       </span>
+
+      {planTag && <Badge variant="neutral">{planTag}</Badge>}
 
       <PowerPips
         power={card.power}

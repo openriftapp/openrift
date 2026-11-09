@@ -322,12 +322,21 @@ function DeckEditorContent({
     setOverviewTab("overview");
   };
 
+  const handleOpenPlan = () => {
+    setActiveZone(null);
+    setOverviewTab("plan");
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const zonePanel = (inDrawer: boolean) => (
     <DeckZonePanel
       deckId={deckId}
       onZoneClick={handleZoneClick}
       onZoneAdd={handleZoneAdd}
       onOverviewClick={handleOverviewClick}
+      onOpenPlan={isLocal ? undefined : handleOpenPlan}
       onHoverCard={setHoveredSidebar}
       ownershipData={ownershipData}
       hideStats={activeZone === null}

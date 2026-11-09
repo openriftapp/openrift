@@ -207,6 +207,7 @@ function PublicDeckContent({
             description={data.deck.description ?? undefined}
             oddsConfig={data.deck.oddsConfig}
             onCardClick={handleCardClick}
+            battlefieldPlan={data.plan}
             planSlot={
               data.plan ? (
                 <DeckPlanView plan={data.plan} planCardMeta={data.planCardMeta} />

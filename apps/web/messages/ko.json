@@ -3627,6 +3627,7 @@
   "decks_share_gone_action": "내 덱으로 이동",
   "decks_card_menu_view_details": "상세 보기",
   "decks_card_menu_switch": "다른 {zone} 고르기",
+  "decks_card_menu_plan_battlefields": "플랜에서 게임별 전장 고르기",
   "decks_card_menu_move_to": "이동 위치",
   "decks_card_menu_shift_move_hint": "· Shift를 누른 채 클릭하면 1장 이동",
   "decks_card_menu_shift_split_hint": "· Shift를 누른 채 클릭하면 1장 분리",

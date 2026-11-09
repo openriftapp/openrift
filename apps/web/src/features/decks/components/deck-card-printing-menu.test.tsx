@@ -49,4 +49,29 @@ describe("DeckCardPrintingMenu", () => {
 
     expect(onSwitch).toHaveBeenCalledOnce();
   });
+
+  it("links a battlefield to the plan even with nothing else to offer", () => {
+    useWorkbenchStore.setState({ relaxed: false });
+    const onOpenPlan = vi.fn();
+    render(
+      <DeckCardPrintingMenu
+        deckId="deck-1"
+        card={stubDeckBuilderCard({
+          cardName: "Sunken Temple",
+          cardType: "battlefield",
+          zone: "battlefield",
+        })}
+        onOpenPlan={onOpenPlan}
+      >
+        <div>Sunken Temple row</div>
+      </DeckCardPrintingMenu>,
+    );
+
+    fireEvent.contextMenu(screen.getByText("Sunken Temple row"));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Choose battlefields per game in the plan" }),
+    );
+
+    expect(onOpenPlan).toHaveBeenCalledOnce();
+  });
 });

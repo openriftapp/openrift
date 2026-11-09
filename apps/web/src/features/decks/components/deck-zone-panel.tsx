@@ -184,6 +184,7 @@ interface DeckZonePanelProps {
   onZoneClick?: (zone: DeckZone) => void;
   onZoneAdd?: (zone: DeckZone) => void;
   onOverviewClick?: () => void;
+  onOpenPlan?: () => void;
   onHoverCard?: HoverHandler;
   ownershipData?: DeckOwnershipData;
   hideStats?: boolean;
@@ -198,6 +199,7 @@ export function DeckZonePanel({
   onZoneClick,
   onZoneAdd,
   onOverviewClick,
+  onOpenPlan,
   onHoverCard,
   ownershipData,
   hideStats,
@@ -255,6 +257,7 @@ export function DeckZonePanel({
           shiftHeld={shiftHeld}
           onActivate={() => onZoneClick?.(zone)}
           onAdd={onZoneAdd ? () => onZoneAdd(zone) : undefined}
+          onOpenPlan={onOpenPlan}
           onHoverCard={onHoverCard}
           deckItems={deckItems}
           workbench={workbench}

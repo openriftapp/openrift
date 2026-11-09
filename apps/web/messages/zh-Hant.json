@@ -3627,6 +3627,7 @@
   "decks_share_gone_action": "前往你的牌組",
   "decks_card_menu_view_details": "查看詳細資料",
   "decks_card_menu_switch": "選擇其他{zone}",
+  "decks_card_menu_plan_battlefields": "在計畫中按對局選擇戰場",
   "decks_card_menu_move_to": "移動到",
   "decks_card_menu_shift_move_hint": "· 按住 Shift 點擊可移動 1 張",
   "decks_card_menu_shift_split_hint": "· 按住 Shift 點擊可分出 1 張",

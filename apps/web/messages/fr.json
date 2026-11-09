@@ -3628,6 +3628,7 @@
   "decks_share_gone_action": "Aller à vos decks",
   "decks_card_menu_view_details": "Voir les détails",
   "decks_card_menu_switch": "Choisir un autre {zone}",
+  "decks_card_menu_plan_battlefields": "Choisir les champs de bataille par partie dans le plan",
   "decks_card_menu_move_to": "Déplacer vers",
   "decks_card_menu_shift_move_hint": "· Maj+clic pour en déplacer 1",
   "decks_card_menu_shift_split_hint": "· Maj+clic pour en séparer 1",

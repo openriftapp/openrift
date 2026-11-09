@@ -3627,6 +3627,7 @@
   "decks_share_gone_action": "前往我的卡组",
   "decks_card_menu_view_details": "查看详情",
   "decks_card_menu_switch": "选择其他{zone}",
+  "decks_card_menu_plan_battlefields": "在计划中按对局选择战场",
   "decks_card_menu_move_to": "移动到",
   "decks_card_menu_shift_move_hint": "· 按住 Shift 点击移动 1 张",
   "decks_card_menu_shift_split_hint": "· 按住 Shift 点击拆分 1 张",

@@ -31,6 +31,7 @@ interface DeckCardPrintingMenuProps {
   children: ReactNode;
   onViewCard?: () => void;
   onSwitch?: () => void;
+  onOpenPlan?: () => void;
 }
 
 function SplitHint({ children }: { children: ReactNode }) {
@@ -46,6 +47,7 @@ export function DeckCardPrintingMenu({
   children,
   onViewCard,
   onSwitch,
+  onOpenPlan,
 }: DeckCardPrintingMenuProps) {
   const { changePreferredPrinting, moveCard, moveOneCard, setQuantity } =
     useDeckBuilderActions(deckId);
@@ -61,7 +63,7 @@ export function DeckCardPrintingMenu({
   const splitRowsShown = explicitSplit && card.quantity > 1;
   const moveRows = buildMoveRows(moveTargets, card.quantity, explicitSplit);
 
-  if (printings.length === 0 && moveTargets.length === 0 && !workbench) {
+  if (printings.length === 0 && moveTargets.length === 0 && !workbench && !onOpenPlan) {
     return children;
   }
 
@@ -105,7 +107,7 @@ export function DeckCardPrintingMenu({
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
-        {(onViewCard || onSwitch) && (
+        {(onViewCard || onSwitch || onOpenPlan) && (
           <>
             {onViewCard && (
               <ContextMenuItem onClick={onViewCard}>
@@ -115,6 +117,11 @@ export function DeckCardPrintingMenu({
             {onSwitch && (
               <ContextMenuItem onClick={onSwitch}>
                 {m.decks_card_menu_switch({ zone: ZONE_LABELS[card.zone] })}
+              </ContextMenuItem>
+            )}
+            {onOpenPlan && (
+              <ContextMenuItem onClick={onOpenPlan}>
+                {m.decks_card_menu_plan_battlefields()}
               </ContextMenuItem>
             )}
             <ContextMenuSeparator />

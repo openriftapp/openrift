@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-09
+
+### Highlights
+
+- feat(Decks): **Battlefield plan on the deck list** — battlefields picked in a deck's plan are tagged Game 1, Going first or Going second and listed in that order, and right-clicking a battlefield in the sidebar opens the plan to change them.
+
+### Other
+
+- fix(Decks): **Full drop highlight in the sidebar** — dragging a card onto the open zone in the deck builder's sidebar no longer cuts off the highlight's left edge.
+
 ## 2026-11-08
 
 ### Highlights
