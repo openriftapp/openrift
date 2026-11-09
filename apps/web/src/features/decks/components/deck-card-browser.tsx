@@ -823,7 +823,6 @@ function DeckCardBrowserInner({
     <BrowserToolbar
       totalCards={totalUniqueCards}
       filteredCount={sortedCards.length}
-      countBelowOnPhone
       mobileDoneLabel={
         hasActiveFilters ? m.decks_editor_show_cards({ count: sortedCards.length }) : undefined
       }

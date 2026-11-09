@@ -96,7 +96,7 @@
 - fix(Collection): **Readable stats page on phones** — filters open in a bottom sheet that names the picked collection, completion rows show a full-width bar, and empty groups are hidden.
 - fix(Decks): **Deck view controls on tablets** — the sort, view and options controls sit on their own row under the tabs, so the deck page no longer scrolls sideways.
 - fix(Decks): **Gear group label** — deck type groups and stats now say "Gear" instead of "Gears".
-- fix(Decks): **Deck card search fits on phones** — the search field keeps its full placeholder, the card count sits under it, and Highlight owned is a compact icon button.
+- fix(Decks): **Deck card search fits on phones** — the search field keeps its full placeholder and Highlight owned is a compact icon button.
 - fix(Meta): **Meta headers fit phones** — the legend, player and event headers use the full card width on phones, with the art behind the text and the counts in an aligned grid.
 - fix(Meta): **Shown counts in one place** — the "N of M shown" line sits above the filters on the archived decks, legends and events pages alike.
 - fix(Groups): **Tidier shared profiles** — the avatar, name, stats and copy-link button sit together in one card, and the profile settings name each section once.
