@@ -38,6 +38,7 @@ import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
 import { FormatStateBadge } from "@/features/decks/components/deck-format-badge";
 import { FannedPreview, typeCountSummary } from "@/features/decks/components/deck-tile";
 import { EntryStateBadge } from "@/features/tournaments/components/deck-check-event-page";
+import { useDraftRevision } from "@/features/tournaments/hooks/use-draft-revision";
 import {
   useDenyTournamentDeckCheckUnlock,
   useUnlinkTournamentDeckCheckEntry,
@@ -399,7 +400,7 @@ export function PlayerMessageField({
 }) {
   const updateEntry = useUpdateTournamentDeckCheckEntry();
   const [message, setMessage] = useState("");
-  const [dirty, setDirty] = useState(false);
+  const { dirty, markEdited, beginSave } = useDraftRevision();
   const value = dirty ? message : (entry.playerMessage ?? "");
 
   return (
@@ -408,7 +409,7 @@ export function PlayerMessageField({
         value={value}
         onChange={(event) => {
           setMessage(event.target.value);
-          setDirty(true);
+          markEdited();
         }}
         placeholder={m.tournaments_deck_check_player_message_placeholder()}
         maxLength={2000}
@@ -423,7 +424,7 @@ export function PlayerMessageField({
           onClick={() => {
             updateEntry.mutate(
               { tournamentId, entryId, playerMessage: value.trim() || null },
-              { onSuccess: () => setDirty(false) },
+              { onSuccess: beginSave() },
             );
           }}
         >

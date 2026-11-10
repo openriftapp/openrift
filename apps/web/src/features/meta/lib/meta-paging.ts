@@ -1,6 +1,7 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-import { MAX_OFFSET, META_MAX_PAGE_SIZE, META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
-import { z } from "zod";
+import { MAX_OFFSET, META_MAX_PAGE_SIZE, META_PAGE_SIZES } from "@openrift/shared/meta-query";
+import { z } from "zod/mini";
+
+import { lenient } from "@/lib/lenient-param";
 
 // Schema and page arithmetic only, no logic: a route's non-lazy `*.tsx` runs
 // on every page load, so anything this module pulls in lands in the startup
@@ -14,25 +15,22 @@ export type MetaPageSizeValue = (typeof META_PAGE_SIZES)[number];
 export type MetaPageSize = MetaPageSizeValue | typeof META_PAGE_ALL;
 
 // `z.coerce.number()` accepts 1e30, which no offset arithmetic survives.
-const pageField = z.coerce.number().int().positive().max(MAX_OFFSET).optional().catch(undefined);
+const pageField = lenient(z.coerce.number().check(z.int(), z.positive(), z.lte(MAX_OFFSET)));
 
 // Only the sizes the pickers offer: any other number leaves the picker's
 // trigger with no item to show.
-const offeredSize = z.coerce.number().pipe(z.literal(META_PAGE_SIZES));
+const offeredSize = z.pipe(z.coerce.number(), z.literal(META_PAGE_SIZES));
 
 /** A page and a size a link may carry, for a list whose pages stop at a size. */
 export function metaPagingSearchFields() {
-  return { page: pageField, per: offeredSize.optional().catch(undefined) };
+  return { page: pageField, per: lenient(offeredSize) };
 }
 
 /** The same, for a list a reader may ask to see whole. */
 export function metaPagingSearchFieldsWithAll() {
   return {
     page: pageField,
-    per: z
-      .union([z.literal(META_PAGE_ALL), offeredSize])
-      .optional()
-      .catch(undefined),
+    per: lenient(z.union([z.literal(META_PAGE_ALL), offeredSize])),
   };
 }
 

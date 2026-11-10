@@ -40,7 +40,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaSubmissionsPage } from "./meta-submissions-page";
 
 /** @returns One ledger row, pending against a named event unless overridden. */

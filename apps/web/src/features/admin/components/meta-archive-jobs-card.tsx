@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
 import { MetaRunCellView } from "@/features/admin/components/meta-overview-shared";
 import { useMetaArchiveJobs, useRunMetaSync } from "@/features/admin/hooks/use-admin-meta-catalog";
-import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import {
   ARCHIVE_KIND_BY_TRIGGER,
@@ -16,6 +15,7 @@ import {
 } from "@/features/admin/lib/meta-admin-triggers";
 import { latestRun } from "@/features/admin/lib/meta-source-overview";
 import { runningRunId } from "@/features/meta/lib/meta-catalog-display";
+import { summarizeRunResult } from "@/lib/job-run-display";
 
 // These re-derive published events from mirrors already held; neither belongs to a source.
 export function ArchiveJobsCard() {

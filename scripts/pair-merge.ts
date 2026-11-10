@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI script reading the pair list */
 /**
  * ADR-020 pair merge. Prints the plan; `--apply` runs it in one transaction.
  * `--owners <file>` writes the owners of copies that move to a default home as CSV.

@@ -28,7 +28,6 @@ import {
 import { useAdminMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { useMetaEventCorrections } from "@/features/admin/hooks/use-admin-meta-submissions";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
-import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 import { catalogueSource } from "@/features/admin/lib/meta-admin-triggers";
 import type { MetaRun, MetaRunCell } from "@/features/admin/lib/meta-source-overview";
 import {
@@ -49,6 +48,7 @@ import {
   overlayCountsForProvider,
 } from "@/features/meta/lib/meta-catalog-display";
 import { useMountedAt } from "@/hooks/use-mounted-at";
+import { summarizeRunResult } from "@/lib/job-run-display";
 import { cn } from "@/lib/utils";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/meta");

@@ -178,24 +178,16 @@ export function BoardCaptionText({
       {splitCaption(text).map((segment, index) => {
         if (segment.type === "rule") {
           return (
-            <RuleChip
-              // oxlint-disable-next-line react/no-array-index-key -- segments are positional
-              key={index}
-              reference={segment.ref}
-              pins={pins}
-              knownRules={knownRules}
-            />
+            <RuleChip key={index} reference={segment.ref} pins={pins} knownRules={knownRules} />
           );
         }
         if (segment.type === "card") {
           const piece = pieces.find((candidate) => candidate.id === segment.pieceId);
           if (!piece) {
-            // oxlint-disable-next-line react/no-array-index-key -- segments are positional
             return <RemovedRef key={index} text={m.board_states_caption_removed_card()} />;
           }
           return (
             <RefChip
-              // oxlint-disable-next-line react/no-array-index-key -- segments are positional
               key={index}
               id={piece.id}
               name={pieceName(piece)}
@@ -211,12 +203,10 @@ export function BoardCaptionText({
           const position = chain.findIndex((entry) => entry.id === segment.entryId);
           const entry = chain[position];
           if (!entry) {
-            // oxlint-disable-next-line react/no-array-index-key -- segments are positional
             return <RemovedRef key={index} text={m.board_states_caption_removed_chain()} />;
           }
           return (
             <RefChip
-              // oxlint-disable-next-line react/no-array-index-key -- segments are positional
               key={index}
               id={`chain:${entry.id}`}
               name={chainEntryLabel(entry, pieces)}
@@ -228,7 +218,6 @@ export function BoardCaptionText({
             />
           );
         }
-        // oxlint-disable-next-line react/no-array-index-key -- segments are positional
         return <span key={index}>{segment.text}</span>;
       })}
     </p>

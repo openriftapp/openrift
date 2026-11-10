@@ -1,5 +1,5 @@
-import { META_PAGE_SIZES, STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import { todayUtc } from "@openrift/shared/format-date";
+import { META_PAGE_SIZES, STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { cutSizeOf } from "@openrift/shared/meta-standings";
 import type {
   MetaEventField,

@@ -131,11 +131,7 @@ export function RuleRow({
           ) : isTitle || isSubtitle ? (
             ruleHtmlToText(rule.contentHtml)
           ) : (
-            <div
-              className="rule-html"
-              // oxlint-disable-next-line react/no-danger -- server-rendered through the allowlist serializer in @openrift/shared/rules-html
-              dangerouslySetInnerHTML={{ __html: rule.contentHtml }}
-            />
+            <div className="rule-html" dangerouslySetInnerHTML={{ __html: rule.contentHtml }} />
           )}
           {!isTitle && !isSubtitle && <RuleExamplesMarker ruleNumber={rule.ruleNumber} />}
         </div>

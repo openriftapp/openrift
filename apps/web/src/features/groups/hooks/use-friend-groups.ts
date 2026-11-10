@@ -173,6 +173,7 @@ export function useFriendGroupActivity(slug: string) {
     queryOptions({
       queryKey: friendGroupsKeys.activity(userId, slug),
       queryFn: () => fetchGroupActivity({ data: slug }),
+      staleTime: 0,
     }),
   );
 }

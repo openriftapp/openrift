@@ -45,7 +45,6 @@ export class TracingDialect implements Dialect {
   createDriver(): Driver {
     return new TracingDriver(this.inner.createDriver());
   }
-  // oxlint-disable-next-line typescript/no-explicit-any -- Dialect interface uses any
   createIntrospector(db: Kysely<any>): DatabaseIntrospector {
     return this.inner.createIntrospector(db);
   }

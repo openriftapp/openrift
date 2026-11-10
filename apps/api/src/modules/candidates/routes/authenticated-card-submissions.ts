@@ -80,7 +80,7 @@ export const cardSubmissionsRouter = {
 
     // Runs after commit, outside any transaction; the service swallows its own
     // errors so a mail failure never fails an already-committed submission.
-    await context.services.notifyAdminsOfCardSubmission(context.repos, {
+    void context.services.notifyAdminsOfCardSubmission(context.repos, {
       submitterUserId: context.userId,
       card,
       note: input.submissionNote ?? null,

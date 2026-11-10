@@ -24,7 +24,6 @@ vi.mock("@/features/collections/hooks/use-owned-count", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { TableCountActions } = await import("./table-count-actions");
 
 describe("TableCountActions", () => {

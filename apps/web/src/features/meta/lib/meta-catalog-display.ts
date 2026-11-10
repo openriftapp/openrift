@@ -16,7 +16,7 @@ import {
 } from "@openrift/shared/types/enums";
 import type { PlayloltcgStatus, PlayriftboundTournamentType } from "@openrift/shared/types/enums";
 
-import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
+import { summarizeRunResult } from "@/lib/job-run-display";
 
 export const META_SOURCE_LABELS: Record<MetaSource, string> = {
   uvsgames: "UVS Games",

@@ -10,7 +10,6 @@ const USER_ID = "a0000000-0012-4000-a000-000000000001";
 const ctx = createTestContext(USER_ID);
 
 describe.skipIf(!ctx)("Admin marketplace-groups routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   describe("GET /admin/marketplace-groups (after seeding)", () => {

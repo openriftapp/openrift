@@ -15,7 +15,6 @@ const mockCustomTagsRepo = {
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   c.set("repos", { customTags: mockCustomTagsRepo } as any);
   await next();
 });

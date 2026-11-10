@@ -1,11 +1,12 @@
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { DefaultCardView } from "@openrift/shared/types/api/preferences";
-import type { PresenceDimension, SortDirection } from "@openrift/shared/types/search";
+import type { PresenceDimension, RangeKey, SortDirection } from "@openrift/shared/types/search";
 
 import { oversizeState } from "@/features/cards/lib/oversize-filter";
 import type { PresenceParamValue } from "@/features/cards/lib/presence-filter";
 import { presenceLabel, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
+import type { FilterCategory } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
 export function ownedBucketLabel(value: string): string {
@@ -129,10 +130,33 @@ export interface FilterDimensionLabels {
   ownedBucket: (value: string) => string;
 }
 
+type FilterParam = keyof FilterSearch;
+
+type FilterParamOfType<T> = {
+  [K in FilterParam]-?: NonNullable<FilterSearch[K]> extends T ? K : never;
+}[FilterParam];
+
+export type ArrayFilterParam = FilterParamOfType<readonly string[]>;
+export type FlagFilterParam = FilterParamOfType<boolean>;
+type PresenceFilterParam = Extract<FilterParam, `${string}Presence`>;
+type RangeFilterParam = FilterParamOfType<number>;
+
+interface FilterDimensionParams {
+  include?: ArrayFilterParam;
+  exclude?: ArrayFilterParam;
+  presence?: PresenceFilterParam;
+  flag?: FlagFilterParam;
+  min?: RangeFilterParam;
+  max?: RangeFilterParam;
+}
+
 export interface FilterDimension {
   key: string;
   unit: string;
   section: string;
+  params: FilterDimensionParams;
+  presenceDimension?: PresenceDimension;
+  keptOnClear?: true;
   hasContent: (input: FilterDimensionAvailability) => boolean;
   activeCount: (state: FilterDimensionState) => number;
   activeLabels: (state: FilterDimensionState, labels: FilterDimensionLabels) => string[];
@@ -175,6 +199,8 @@ function setCount(value: unknown): number {
 export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   {
     key: "languages",
+    params: { include: "languages", exclude: "languagesEx" },
+    keptOnClear: true,
     unit: "languages",
     section: "languages",
     hasContent: ({ availableLanguages }) => (availableLanguages?.length ?? 0) > 1,
@@ -183,6 +209,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "sets",
+    params: { include: "sets", exclude: "setsEx" },
     unit: "sets",
     section: "sets",
     hasContent: ({ availableFilters }) => availableFilters.sets.length > 0,
@@ -191,6 +218,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "domains",
+    params: { include: "domains", exclude: "domainsEx" },
     unit: "domains",
     section: "domains",
     hasContent: ({ availableFilters }) => availableFilters.domains.length > 0,
@@ -199,6 +227,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "rarities",
+    params: { include: "rarities", exclude: "raritiesEx" },
     unit: "rarities",
     section: "rarities",
     hasContent: ({ availableFilters }) => availableFilters.rarities.length > 0,
@@ -207,6 +236,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "types",
+    params: { include: "types", exclude: "typesEx" },
     unit: "types",
     section: "types",
     hasContent: ({ availableFilters }) => availableFilters.types.length > 0,
@@ -215,6 +245,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "superTypes",
+    params: { include: "superTypes", exclude: "superTypesEx", presence: "superTypesPresence" },
+    presenceDimension: "superTypes",
     unit: "superTypes",
     section: "superTypes",
     hasContent: ({ availableFilters }) => availableFilters.superTypes.length > 0,
@@ -227,6 +259,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "artVariants",
+    params: { include: "artVariants", exclude: "artVariantsEx" },
     unit: "variant",
     section: "artVariants",
     hasContent: ({ availableFilters }) => availableFilters.artVariants.length > 1,
@@ -235,6 +268,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "finishes",
+    params: { include: "finishes", exclude: "finishesEx" },
     unit: "variant",
     section: "finishes",
     hasContent: ({ availableFilters }) => availableFilters.finishes.length > 1,
@@ -243,6 +277,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "overnumbered",
+    params: { flag: "overnumbered" },
     unit: "variant",
     section: "overnumbered",
     hasContent: ({ availableFilters }) => availableFilters.hasOvernumbered,
@@ -251,6 +286,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "signed",
+    params: { flag: "signed" },
     unit: "variant",
     section: "signed",
     hasContent: ({ availableFilters }) => availableFilters.hasSigned,
@@ -259,6 +295,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "standard",
+    params: { flag: "standard" },
     unit: "standard",
     section: "standard",
     hasContent: ({ availableFilters }) => availableFilters.hasNonStandard,
@@ -267,6 +304,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "promo",
+    params: { presence: "markersPresence" },
+    presenceDimension: "markers",
     unit: "promo",
     section: "promo",
     hasContent: ({ availableFilters }) => availableFilters.markers.length > 0,
@@ -276,6 +315,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "energy",
+    params: { min: "energyMin", max: "energyMax" },
     unit: "stats",
     section: "energy",
     hasContent: () => true,
@@ -285,6 +325,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "power",
+    params: { min: "powerMin", max: "powerMax" },
     unit: "stats",
     section: "power",
     hasContent: () => true,
@@ -293,6 +334,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "might",
+    params: { min: "mightMin", max: "mightMax" },
     unit: "stats",
     section: "might",
     hasContent: () => true,
@@ -301,6 +343,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "markers",
+    params: { include: "markers", exclude: "markersEx" },
+    presenceDimension: "markers",
     unit: "markers",
     section: "markers",
     hasContent: ({ availableFilters }) => availableFilters.markers.length > 0,
@@ -309,6 +353,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "cardSizes",
+    params: { include: "cardSizes" },
     unit: "cardSizes",
     section: "cardSizes",
     hasContent: ({ availableFilters }) => availableFilters.cardSizes.length > 1,
@@ -317,6 +362,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "channels",
+    params: { include: "channels", exclude: "channelsEx", presence: "channelsPresence" },
+    presenceDimension: "distributionChannels",
     unit: "channels",
     section: "channels",
     hasContent: ({ availableFilters }) => availableFilters.distributionChannels.length > 0,
@@ -328,6 +375,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "customTags",
+    params: { include: "customTags", exclude: "customTagsEx", presence: "customTagsPresence" },
+    presenceDimension: "customTags",
     unit: "customTags",
     section: "customTags",
     hasContent: ({ customTagCategoryCount }) => customTagCategoryCount > 0,
@@ -340,6 +389,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "tags",
+    params: { include: "tags", exclude: "tagsEx", presence: "tagsPresence" },
+    presenceDimension: "tags",
     unit: "tags",
     section: "tags",
     hasContent: ({ availableFilters }) => availableFilters.tags.length > 0,
@@ -351,6 +402,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "keywords",
+    params: { include: "keywords", exclude: "keywordsEx", presence: "keywordsPresence" },
+    presenceDimension: "keywords",
     unit: "keywords",
     section: "keywords",
     hasContent: ({ availableFilters }) => availableFilters.keywords.length > 0,
@@ -362,6 +415,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "banned",
+    params: { flag: "banned" },
     unit: "banned",
     section: "banned",
     hasContent: ({ availableFilters }) => availableFilters.hasBanned,
@@ -370,6 +424,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "errata",
+    params: { flag: "errata" },
     unit: "errata",
     section: "errata",
     hasContent: ({ availableFilters }) => availableFilters.hasErrata,
@@ -378,6 +433,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "noImage",
+    params: { flag: "noImage" },
     unit: "noImage",
     section: "noImage",
     hasContent: ({ availableFilters }) => availableFilters.hasNoImage,
@@ -386,6 +442,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "owned",
+    params: { include: "owned" },
     unit: "owned",
     section: "owned",
     hasContent: () => true,
@@ -394,6 +451,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "copies",
+    params: { min: "ownedCountMin", max: "ownedCountMax" },
     unit: "owned",
     section: "owned",
     hasContent: ({ ownedCountMax }) => ownedCountMax !== undefined && ownedCountMax > 0,
@@ -403,6 +461,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
   },
   {
     key: "price",
+    params: { min: "priceMin", max: "priceMax" },
     unit: "price",
     section: "price",
     hasContent: ({ availableFilters }) => availableFilters.price.max > 0,
@@ -412,6 +471,234 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
 ];
 
 const BY_KEY = new Map(FILTER_DIMENSIONS.map((dimension) => [dimension.key, dimension]));
+
+export function dimensionParams(dimension: FilterDimension): FilterParam[] {
+  const { include, exclude, presence, flag, min, max } = dimension.params;
+  return [include, exclude, presence, flag, min, max].filter((param) => param !== undefined);
+}
+
+export const KEPT_FILTER_PARAMS: readonly FilterParam[] = FILTER_DIMENSIONS.filter(
+  (dimension) => dimension.keptOnClear,
+).flatMap((dimension) => dimensionParams(dimension));
+
+export const CLEARABLE_FILTER_PARAMS: readonly FilterParam[] = [
+  "q",
+  ...FILTER_DIMENSIONS.filter((dimension) => !dimension.keptOnClear).flatMap((dimension) =>
+    dimensionParams(dimension),
+  ),
+];
+
+function paramIsActive(value: unknown): boolean {
+  if (value === undefined || value === null || value === "") {
+    return false;
+  }
+  return !Array.isArray(value) || value.length > 0;
+}
+
+export function hasActiveParam(search: FilterSearch, params: readonly FilterParam[]): boolean {
+  return params.some((param) => paramIsActive(search[param]));
+}
+
+function presenceMaps() {
+  const presenceParams: Partial<Record<PresenceDimension, PresenceFilterParam>> = {};
+  const valueParams: Partial<
+    Record<PresenceDimension, { include?: ArrayFilterParam; exclude?: ArrayFilterParam }>
+  > = {};
+  for (const dimension of FILTER_DIMENSIONS) {
+    const target = dimension.presenceDimension;
+    if (target === undefined) {
+      continue;
+    }
+    const { include, exclude, presence } = dimension.params;
+    if (presence) {
+      presenceParams[target] = presence;
+    }
+    if (include || exclude) {
+      valueParams[target] = { include, exclude };
+    }
+  }
+  const arrayParamPresence: Partial<Record<ArrayFilterParam, PresenceFilterParam>> = {};
+  for (const [target, { include }] of Object.entries(valueParams) as [
+    PresenceDimension,
+    { include?: ArrayFilterParam },
+  ][]) {
+    const presence = presenceParams[target];
+    if (include && presence) {
+      arrayParamPresence[include] = presence;
+    }
+  }
+  return {
+    presenceParams: presenceParams as Record<PresenceDimension, PresenceFilterParam>,
+    valueParams: valueParams as Record<
+      PresenceDimension,
+      { include?: ArrayFilterParam; exclude?: ArrayFilterParam }
+    >,
+    arrayParamPresence,
+  };
+}
+
+const PRESENCE_MAPS = presenceMaps();
+
+export const PRESENCE_PARAMS = PRESENCE_MAPS.presenceParams;
+
+export const PRESENCE_VALUE_PARAMS = PRESENCE_MAPS.valueParams;
+
+export const ARRAY_PARAM_PRESENCE = PRESENCE_MAPS.arrayParamPresence;
+
+export type ChipValueLabel =
+  | "set"
+  | "rarity"
+  | "type"
+  | "superType"
+  | "domain"
+  | "artVariant"
+  | "finish"
+  | "cardSize"
+  | "marker"
+  | "channel"
+  | "ownedBucket"
+  | "raw";
+
+export type ActiveFilterChip =
+  | {
+      kind: "values";
+      param: ArrayFilterParam;
+      excluded: boolean;
+      hiddenBy: string;
+      label: () => string;
+      valueLabel: ChipValueLabel;
+      icon?: FilterCategory;
+    }
+  | { kind: "customTags"; param: "customTags" | "customTagsEx"; excluded: boolean }
+  | { kind: "tags"; param: "tags" | "tagsEx"; excluded: boolean }
+  | { kind: "range"; range: RangeKey; label: () => string }
+  | { kind: "copies" }
+  | { kind: "flag"; param: FlagFilterParam; label: () => string }
+  | { kind: "presence"; dimension: PresenceDimension; label: () => string };
+
+function valueChip(
+  param: ArrayFilterParam,
+  excluded: boolean,
+  hiddenBy: string,
+  label: () => string,
+  valueLabel: ChipValueLabel,
+  icon?: FilterCategory,
+): ActiveFilterChip {
+  return { kind: "values", param, excluded, hiddenBy, label, valueLabel, icon };
+}
+
+export const ACTIVE_FILTER_CHIPS: readonly ActiveFilterChip[] = [
+  valueChip("sets", false, "sets", () => m.cards_filter_unit_sets(), "set", "sets"),
+  valueChip(
+    "rarities",
+    false,
+    "rarities",
+    () => m.cards_filter_unit_rarities(),
+    "rarity",
+    "rarities",
+  ),
+  valueChip("types", false, "types", () => m.cards_filter_unit_types(), "type", "types"),
+  valueChip(
+    "superTypes",
+    false,
+    "superTypes",
+    () => m.cards_filter_unit_super_types(),
+    "superType",
+    "superTypes",
+  ),
+  valueChip("domains", false, "domains", () => m.cards_filter_unit_domains(), "domain", "domains"),
+  valueChip(
+    "artVariants",
+    false,
+    "artVariants",
+    () => m.cards_filter_label_art_variant(),
+    "artVariant",
+    "artVariants",
+  ),
+  valueChip(
+    "finishes",
+    false,
+    "finishes",
+    () => m.cards_filter_label_finish(),
+    "finish",
+    "finishes",
+  ),
+  valueChip(
+    "cardSizes",
+    false,
+    "cardSizes",
+    () => m.cards_filter_unit_card_sizes(),
+    "cardSize",
+    "cardSizes",
+  ),
+  valueChip("markers", false, "markers", () => m.cards_filter_label_marker(), "marker"),
+  valueChip("channels", false, "channels", () => m.cards_filter_label_channel(), "channel"),
+  valueChip("keywords", false, "keywords", () => m.cards_filter_label_keyword(), "raw"),
+  valueChip("owned", false, "owned", () => m.cards_filter_unit_owned(), "ownedBucket"),
+  { kind: "customTags", param: "customTags", excluded: false },
+  { kind: "tags", param: "tags", excluded: false },
+  valueChip("setsEx", true, "sets", () => m.cards_filter_unit_sets(), "set", "sets"),
+  valueChip(
+    "raritiesEx",
+    true,
+    "rarities",
+    () => m.cards_filter_unit_rarities(),
+    "rarity",
+    "rarities",
+  ),
+  valueChip("typesEx", true, "types", () => m.cards_filter_unit_types(), "type", "types"),
+  valueChip(
+    "superTypesEx",
+    true,
+    "superTypes",
+    () => m.cards_filter_unit_super_types(),
+    "superType",
+    "superTypes",
+  ),
+  valueChip("domainsEx", true, "domains", () => m.cards_filter_unit_domains(), "domain", "domains"),
+  valueChip(
+    "artVariantsEx",
+    true,
+    "artVariants",
+    () => m.cards_filter_label_art_variant(),
+    "artVariant",
+    "artVariants",
+  ),
+  valueChip(
+    "finishesEx",
+    true,
+    "finishes",
+    () => m.cards_filter_label_finish(),
+    "finish",
+    "finishes",
+  ),
+  valueChip("markersEx", true, "markers", () => m.cards_filter_label_marker(), "marker"),
+  valueChip("channelsEx", true, "channels", () => m.cards_filter_label_channel(), "channel"),
+  valueChip("keywordsEx", true, "keywords", () => m.cards_filter_label_keyword(), "raw"),
+  { kind: "customTags", param: "customTagsEx", excluded: true },
+  { kind: "tags", param: "tagsEx", excluded: true },
+  { kind: "range", range: "energy", label: () => m.cards_filter_range_energy() },
+  { kind: "range", range: "might", label: () => m.cards_filter_range_might() },
+  { kind: "range", range: "power", label: () => m.cards_filter_range_power() },
+  { kind: "range", range: "price", label: () => m.cards_filter_range_price() },
+  { kind: "copies" },
+  { kind: "flag", param: "overnumbered", label: () => m.cards_filter_flag_overnumbered() },
+  { kind: "flag", param: "signed", label: () => m.cards_filter_flag_signed() },
+  { kind: "presence", dimension: "markers", label: () => m.cards_filter_flag_promo() },
+  { kind: "presence", dimension: "superTypes", label: () => presenceLabel("superTypes") },
+  { kind: "presence", dimension: "customTags", label: () => presenceLabel("customTags") },
+  {
+    kind: "presence",
+    dimension: "distributionChannels",
+    label: () => presenceLabel("distributionChannels"),
+  },
+  { kind: "presence", dimension: "keywords", label: () => presenceLabel("keywords") },
+  { kind: "presence", dimension: "tags", label: () => presenceLabel("tags") },
+  { kind: "flag", param: "banned", label: () => m.cards_filter_flag_banned() },
+  { kind: "flag", param: "errata", label: () => m.cards_filter_flag_errata() },
+  { kind: "flag", param: "noImage", label: () => m.cards_filter_flag_no_image() },
+  { kind: "flag", param: "standard", label: () => m.cards_filter_flag_standard() },
+];
 
 export function filterDimension(key: string): FilterDimension {
   const dimension = BY_KEY.get(key);

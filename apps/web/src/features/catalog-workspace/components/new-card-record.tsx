@@ -1,10 +1,10 @@
-import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import type { AcceptNewCardBody } from "@openrift/shared/contracts/admin/card-mutations";
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminCardDetailResponse,
   UnmatchedCardDetailResponse,
 } from "@openrift/shared/types/api/admin";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { LinkIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -24,23 +24,26 @@ import {
   useCardDetailData,
 } from "@/features/admin/components/card-detail-shared";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import type { AcceptNewCardBody } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
   useAcceptNewCard,
   useAcceptPrintingGroup,
   useLinkCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAllCards, useUnmatchedCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
-import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
+import { useIgnoreNewCardDrafts } from "@/features/admin/hooks/use-ignored-candidates";
 import {
   describeAcceptCardFieldIssues,
   hasRequiredActiveFields,
 } from "@/features/admin/lib/accept-card-validation";
 import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
+import { ignorableSources } from "@/features/admin/lib/ignorable-sources";
+import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
+import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
 import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
@@ -50,8 +53,10 @@ import {
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { CreationDraft, DraftCard } from "@/features/catalog-workspace/lib/creation-draft";
 import { toAcceptInput } from "@/features/catalog-workspace/lib/creation-draft";
 import type { NewCardGroup } from "@/features/catalog-workspace/lib/new-card-groups";
@@ -87,9 +92,11 @@ export function NewCardRecord({ name }: { name: string }) {
   const acceptNewCard = useAcceptNewCard();
   const acceptPrintingGroup = useAcceptPrintingGroup(scope);
   const linkCard = useLinkCard();
-  const ignoreSource = useIgnoreCandidateCard(scope);
+  const ignoreDrafts = useIgnoreNewCardDrafts(scope);
+  const { announce } = useWorkspaceUndo();
   const { data: allCards } = useAllCards();
   const costKeywords = useCostKeywords();
+  const { data: setsData } = useQuery(setsQueryOptions);
 
   const [edits, setEdits] = useState<Record<string, unknown> | null>(null);
   const [cardIdEdit, setCardIdEdit] = useState<string | null>(null);
@@ -119,7 +126,15 @@ export function NewCardRecord({ name }: { name: string }) {
     summary: `${sources.length} ${pluralize(sources.length, "source")}`,
   };
   const groups: NewCardGroup[] = (
-    detail ? seedNewCardGroups(detail, sortByProviderOrder(providerSettings), newCard) : []
+    detail
+      ? seedNewCardGroups(
+          detail,
+          sortByProviderOrder(providerSettings),
+          newCard,
+          buildSetReleaseYears(setsData?.sets ?? []),
+          favoriteProviderSet(providerSettings),
+        )
+      : []
   ).map((group) => {
     const edit = groupEdits.get(group.key);
     return edit === undefined ? group : { ...group, draft: { ...edit, card: newCard } };
@@ -128,7 +143,7 @@ export function NewCardRecord({ name }: { name: string }) {
   const focused = groups.find((group) => group.key === focusKey) ?? groups.at(0);
   const busy = acceptPending || acceptNewCard.isPending || acceptPrintingGroup.isPending;
   const canAccept = hasRequiredActiveFields(activeCard) && cardId.length > 0;
-  const providerRows = sources.filter((source) => source.provider !== USER_SUBMISSION_PROVIDER);
+  const providerRows = ignorableSources(sources);
   const remainingGroups = groups.length - checked.size;
 
   function openCard(cardSlug: string) {
@@ -195,15 +210,19 @@ export function NewCardRecord({ name }: { name: string }) {
     setGroupEdits(new Map(groupEdits).set(key, draft));
   }
 
-  function ignoreDraft() {
-    for (const source of providerRows) {
-      ignoreSource.mutate({ provider: source.provider, externalId: source.externalId });
+  async function ignoreDraft() {
+    const result = await ignoreDrafts.mutateAsync([name]).catch(() => null);
+    if (result !== null && result.sources.length > 0) {
+      announce(ignoredCardsUndo(result.sources, displayName));
     }
   }
 
   function mergeInto(targetId: string) {
     const targetSlug = allCards.find((card) => card.id === targetId)?.slug ?? targetId;
-    linkCard.mutate({ name, cardId: targetId }, { onSuccess: () => openCard(targetSlug) });
+    linkCard.mutate(
+      { name, cardId: targetId, cardSlug: targetSlug },
+      { onSuccess: () => openCard(targetSlug) },
+    );
   }
 
   useRegisterRecordActions({
@@ -212,7 +231,7 @@ export function NewCardRecord({ name }: { name: string }) {
     ignore: isAdmin && providerRows.length > 0 ? ignoreDraft : undefined,
   });
 
-  if (isLoading || detail === undefined) {
+  if (isLoading || detail === undefined || setsData === undefined) {
     return (
       <RecordPane header={<Skeleton className="h-10 w-64" />}>
         <Skeleton className="h-64" />
@@ -230,7 +249,11 @@ export function NewCardRecord({ name }: { name: string }) {
             Skip to end <Kbd>S</Kbd>
           </Button>
           {isAdmin && providerRows.length > 0 && (
-            <Button variant="outline" disabled={ignoreSource.isPending} onClick={ignoreDraft}>
+            <Button
+              variant="outline"
+              disabled={ignoreDrafts.isPending}
+              onClick={() => void ignoreDraft()}
+            >
               Ignore
               <Kbd>X</Kbd>
             </Button>

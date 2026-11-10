@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { ruleVersionLabel, ruleVersionLabels, rulesSettingsLabel } from "./rule-version-label";
+import {
+  ruleVersionLabel,
+  ruleVersionLabels,
+  rulesPhoneFacts,
+  rulesSettingsLabel,
+} from "./rule-version-label";
 
 function entry(
   version: string,
@@ -55,5 +60,26 @@ describe("rulesSettingsLabel", () => {
 
   it("leaves the language out when it cannot be switched", () => {
     expect(rulesSettingsLabel(entry("2026-10-09", "1.5"), "en", false)).toBe("1.5");
+  });
+});
+
+describe("rulesPhoneFacts", () => {
+  it("names the document version, the spelled-out publish date and the language count", () => {
+    expect(rulesPhoneFacts(entry("2026-10-09", "1.5"), 4)).toEqual([
+      "Version 1.5",
+      "Published Oct 9, 2026",
+      "4 languages",
+    ]);
+  });
+
+  it("leaves the version out when the document has none", () => {
+    expect(rulesPhoneFacts(entry("2026-04-29"), 2)).toEqual([
+      "Published Apr 29, 2026",
+      "2 languages",
+    ]);
+  });
+
+  it("counts a single language in the singular", () => {
+    expect(rulesPhoneFacts(entry("2026-10-09", "1.5"), 1)).toContain("1 language");
   });
 });

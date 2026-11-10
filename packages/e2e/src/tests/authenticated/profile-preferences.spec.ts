@@ -136,7 +136,7 @@ test.describe("profile preferences", () => {
       await expect(page.getByRole("button", { name: "Reset show images" })).toHaveCount(0);
     });
 
-    test("all four display switches render and expose reset buttons after toggle", async ({
+    test("all three display switches render and expose reset buttons after toggle", async ({
       page,
     }) => {
       userEmail = await createAndLogin(page);
@@ -146,7 +146,6 @@ test.describe("profile preferences", () => {
         { name: "Show card images", resetLabel: "Reset show images", defaultChecked: true },
         { name: "Fancy card fan", resetLabel: "Reset fancy fan", defaultChecked: true },
         { name: "Foil effect", resetLabel: "Reset foil effect", defaultChecked: false },
-        { name: "Card tilt on hover", resetLabel: "Reset card tilt", defaultChecked: true },
       ];
 
       for (const { name, resetLabel, defaultChecked } of switches) {

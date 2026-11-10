@@ -3,7 +3,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { META_DECKS_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -18,6 +17,7 @@ const captured = vi.hoisted(() => ({
   hydrated: true,
   smUp: true,
   query: {} as Record<string, unknown>,
+  href: "/meta/decks",
 }));
 
 const navigate = vi.hoisted(() => vi.fn());
@@ -27,22 +27,28 @@ vi.mock("@tanstack/react-router", () => ({
     useSearch: () => captured.search,
     useNavigate: () => navigate,
   }),
+  useLocation: ({ select }: { select: (location: { href: string }) => string }) =>
+    select({ href: captured.href }),
   Link: ({
     children,
     to,
     params,
+    search,
     ...rest
   }: {
     children?: React.ReactNode;
     to?: string;
     params?: { token?: string; cardSlug?: string; slug?: string };
+    search?: { redirect?: string };
   }) => (
     <a
       {...rest}
-      href={(to ?? "/")
+      href={`${(to ?? "/")
         .replace("$cardSlug", params?.cardSlug ?? "")
         .replace("$token", params?.token ?? "")
-        .replace("$slug", params?.slug ?? "")}
+        .replace("$slug", params?.slug ?? "")}${
+        search?.redirect === undefined ? "" : `?redirect=${encodeURIComponent(search.redirect)}`
+      }`}
     >
       {children}
     </a>
@@ -132,7 +138,6 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
 }));
 vi.mock("@/features/decks/components/deck-tile", () => ({ FannedPreview: () => null }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaDeckBrowserPage } from "./meta-deck-browser-page";
 
 function deck(overrides: Partial<MetaDeckSummary> = {}): MetaDeckSummary {
@@ -186,6 +191,7 @@ describe("MetaDeckBrowserPage", () => {
     captured.eventCount = undefined;
     captured.archiveTotal = undefined;
     captured.query = {};
+    captured.href = "/meta/decks";
     captured.search = {};
     captured.signedIn = false;
     captured.costs = undefined;
@@ -195,6 +201,8 @@ describe("MetaDeckBrowserPage", () => {
   });
 
   const seen = (text: string | RegExp) => screen.queryAllByText(text).length > 0;
+  const lead =
+    "Every decklist in the Riftbound meta archive, newest event first, with what each list is worth and how much of it you already own.";
 
   const lastSearch = () =>
     navigate.mock.calls.at(-1)?.[0].search as (
@@ -203,13 +211,65 @@ describe("MetaDeckBrowserPage", () => {
 
   it("serves the page chrome without the archive before hydration", () => {
     captured.hydrated = false;
+    captured.signedIn = true;
     render(<MetaDeckBrowserPage />);
     expect(screen.getByRole("heading", { name: "Archived decks" })).toBeInTheDocument();
-    expect(seen(META_DECKS_DESCRIPTION)).toBe(true);
+    expect(seen(lead)).toBe(true);
     expect(seen("Nova")).toBe(false);
     expect(
       screen.queryByRole("button", { name: "Show only the best list per legend" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("serves a signed-out reader the sign-in link in place of the lead, before hydration", () => {
+    captured.hydrated = false;
+    captured.href = "/meta/decks?era=all&by=finish";
+    render(<MetaDeckBrowserPage />);
+    expect(seen(lead)).toBe(false);
+    const signIn = screen.getByRole("link", { name: "Sign in to compare with your collection" });
+    expect(signIn).toHaveAttribute(
+      "href",
+      `/login?redirect=${encodeURIComponent("/meta/decks?era=all&by=finish")}`,
+    );
+    expect(signIn).toHaveAttribute("rel", "nofollow");
+  });
+
+  it("offers a signed-in reader no sign-in link", () => {
+    captured.signedIn = true;
+    render(<MetaDeckBrowserPage />);
+    expect(
+      screen.queryByRole("link", { name: "Sign in to compare with your collection" }),
+    ).toBeNull();
+  });
+
+  it("drops the to-complete column for a signed-out reader", () => {
+    render(<MetaDeckBrowserPage />);
+    expect(screen.getByRole("button", { name: "Sort by value" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sort by to complete" })).toBeNull();
+  });
+
+  it("keeps the to-complete column for a signed-in reader", () => {
+    captured.signedIn = true;
+    render(<MetaDeckBrowserPage />);
+    expect(screen.getByRole("button", { name: "Sort by to complete" })).toBeInTheDocument();
+  });
+
+  it("reads a shared cost sort as newest first for a signed-out reader", async () => {
+    captured.search = { by: "cost", dir: "asc" };
+    render(<MetaDeckBrowserPage />);
+    expect(captured.query).toMatchObject({ by: "date", dir: "desc" });
+    expect(seen("Prices are worked out in your browser, so this orders the page you are on.")).toBe(
+      false,
+    );
+    expect(screen.getByRole("link", { name: /Regional Qualifier Barcelona/u })).toHaveAttribute(
+      "href",
+      "/meta/regional-qualifier-barcelona",
+    );
+    const select = screen.getByRole("combobox", { name: "Sort" });
+    expect(select).toHaveTextContent("Newest first");
+    await userEvent.click(select);
+    expect(await screen.findByRole("option", { name: "Best finish" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Cheapest to complete" })).toBeNull();
   });
 
   it("renders the page the API served, as rows", () => {
@@ -241,6 +301,7 @@ describe("MetaDeckBrowserPage", () => {
   });
 
   it("asks for the newest page under a priced sort, which it orders itself", () => {
+    captured.signedIn = true;
     captured.search = { by: "cost", dir: "asc" };
     render(<MetaDeckBrowserPage />);
     expect(captured.query).toMatchObject({ by: "date", dir: "desc" });
@@ -307,6 +368,19 @@ describe("MetaDeckBrowserPage", () => {
 
     expect(screen.queryByRole("button", { name: "Pick an era" })).toBeNull();
     expect(screen.getByText("This page is past the end of the results.")).toBeInTheDocument();
+  });
+
+  it("offers the first page from a page past the end", async () => {
+    captured.decks = [];
+    captured.total = 12;
+    captured.search = { page: 9 };
+    render(<MetaDeckBrowserPage />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Go to the first page" }));
+    const update = navigate.mock.calls.at(-1)?.[0] as {
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(update.search({ page: 9 }).page).toBeUndefined();
   });
 
   it("counts what the filter matched against the whole archive under the title", () => {

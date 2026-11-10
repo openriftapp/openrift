@@ -39,10 +39,8 @@ vi.mock("@/hooks/use-enums", () => ({
 
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => captured.userId }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeMetaPlayerFinish, resetIdCounter } from "@/test/factories";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaPlayerFinishes } from "./meta-player-finishes";
 
 function finish(overrides: Parameters<typeof makeMetaPlayerFinish>[0] = {}): MetaPlayerFinish {

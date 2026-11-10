@@ -39,3 +39,5 @@ export interface StagingRow extends PriceColumns {
   language: string | null;
   recordedAt: Date;
 }
+
+export const PRICE_FETCH_RETRIES = 2;

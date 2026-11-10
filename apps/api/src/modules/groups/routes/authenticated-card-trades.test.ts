@@ -407,6 +407,30 @@ describe("GET /api/v1/trades/with/:userId", () => {
     }
   });
 
+  it("reads one shared group at a time", async () => {
+    mockFriendGroupsRepo.sharedGroups.mockResolvedValue([GROUP_A, GROUP_B, GROUP_A, GROUP_B]);
+    mockFriendGroupsRepo.listMembers.mockResolvedValue([counterpartyMember]);
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const tracked = <T>(value: T) =>
+      vi.fn(async () => {
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await Promise.resolve();
+        inFlight--;
+        return value;
+      });
+    mockFriendGroupsRepo.getRevealedContactsForMembers.mockImplementation(tracked(new Map()));
+    mockFriendGroupMatchesRepo.othersHaveYourWants.mockImplementation(tracked([]));
+    mockFriendGroupMatchesRepo.othersWantYourHaves.mockImplementation(tracked([]));
+
+    const res = await app.request(`/api/v1/trades/with/${COUNTERPARTY_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(mockFriendGroupMatchesRepo.othersHaveYourWants).toHaveBeenCalledTimes(4);
+    expect(maxInFlight).toBe(3);
+  });
+
   it("collapses a row that both shared groups produce onto the first", async () => {
     mockFriendGroupsRepo.sharedGroups.mockResolvedValue([GROUP_A, GROUP_B]);
     seedCounterparty();

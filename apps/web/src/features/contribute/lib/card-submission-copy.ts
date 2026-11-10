@@ -42,8 +42,8 @@ export function submissionStatusHints(): Record<CardSubmissionStatus, string | n
     pending: m.contribute_status_hint_pending(),
     accepted: m.contribute_status_hint_accepted(),
     already_correct: m.contribute_status_hint_already_correct(),
-    not_applied: null,
-    rejected: null,
+    not_applied: m.contribute_status_hint_not_used(),
+    rejected: m.contribute_status_hint_not_used(),
   };
 }
 
@@ -77,12 +77,13 @@ export function submissionReasonLabels(): Record<CardSubmissionReason, string> {
   };
 }
 
-export function submissionExplanation(
+/** The `other` sentence points at the admin's note, so it is dropped when there is none. */
+export function submissionReasonSentence(
   reason: CardSubmissionReason | null,
   note: string | null,
 ): string | null {
-  if (note) {
-    return note;
+  if (reason === null || (reason === "other" && !note)) {
+    return null;
   }
-  return reason ? submissionReasonSentences()[reason] : null;
+  return submissionReasonSentences()[reason];
 }

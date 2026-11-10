@@ -25,7 +25,7 @@ async function settleCheckedSubmissions(
 ): Promise<void> {
   const acceptedIds = await resolveCheckedSubmissions(context.repos, { ...args, io: context.io });
   for (const submissionId of acceptedIds) {
-    await context.services.notifySubmitterOfCardAcceptance(context.repos, submissionId);
+    void context.services.notifySubmitterOfCardAcceptance(context.repos, submissionId);
   }
 }
 

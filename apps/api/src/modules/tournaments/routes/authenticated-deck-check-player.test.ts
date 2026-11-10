@@ -30,7 +30,6 @@ const TOKEN = "submission-token-abc";
 const now = new Date("2026-06-01T00:00:00Z");
 const PAST = new Date("2026-01-01T00:00:00Z");
 
-// oxlint-disable-next-line typescript/no-explicit-any -- fixture kept loose; the repos double below is cast past `Repos` like services/deck-check-player.test.ts does
 function entryRow(overrides: Record<string, any> = {}) {
   return {
     id: ENTRY_ID,
@@ -67,7 +66,6 @@ function entryRow(overrides: Record<string, any> = {}) {
   };
 }
 
-// oxlint-disable-next-line typescript/no-explicit-any -- see entryRow
 function playerRow(overrides: Record<string, any> = {}) {
   return {
     ...entryRow(),
@@ -81,7 +79,6 @@ function playerRow(overrides: Record<string, any> = {}) {
   };
 }
 
-// oxlint-disable-next-line typescript/no-explicit-any -- see entryRow
 function deckEvent(overrides: Record<string, any> = {}) {
   return {
     id: TOURNAMENT_ID,
@@ -102,7 +99,6 @@ function deckEvent(overrides: Record<string, any> = {}) {
   };
 }
 
-// oxlint-disable-next-line typescript/no-explicit-any -- see entryRow
 function cardRow(overrides: Record<string, any> = {}) {
   return {
     id: "stored-card-1",
@@ -126,7 +122,6 @@ function cardRow(overrides: Record<string, any> = {}) {
  * `.mockResolvedValue(...)` / `.mockImplementation(...)` in a test can hand it
  * any realistic fixture without fighting inference.
  */
-// oxlint-disable-next-line typescript/no-explicit-any -- generic repo-method stub; call sites narrow via the fixture they pass in
 function stub<T = any>(defaultValue: T) {
   return vi.fn((..._args: any[]): Promise<T> => Promise.resolve(defaultValue));
 }
@@ -149,6 +144,9 @@ function makeRepos() {
     getEntryByExternalId: stub<any>(undefined),
     getUserAccount: stub<any>(undefined),
     listCardsForEntry: stub([] as unknown[]),
+    listCardsForEntries: stub(new Map()),
+    listEditableBaselines: stub([] as unknown[]),
+    settleEditableEntries: stub([] as string[]),
     replaceEntryCards: stub<any>(undefined),
     updateEntry: stub<any>(undefined),
     createEntry: stub<any>(undefined),
@@ -259,29 +257,24 @@ describe("GET /deck-check/mine/tournament/{tournamentId} (getMine)", () => {
     expect(body.entry.canRequestUnlock).toBe(false);
   });
 
-  it("auto-submits an editable entry once the window has closed, and reports the settled state", async () => {
-    // The lazy deadline settle (settleExpiredEditable): an entry still
-    // "editable" once submissionsCloseAt has passed auto-submits as-is. A
-    // reader must see the settled state, not the stale "editable" row.
+  it("presents an entry left editable past the deadline as submitted without writing", async () => {
     const repos = makeRepos();
     const row = playerRow({ state: "editable", submissionsCloseAt: PAST });
     const event = deckEvent({ submissionsCloseAt: PAST });
     repos.deckCheck.getEntryForPlayerByTournament.mockResolvedValue(row);
     repos.deckCheck.getEventById.mockResolvedValue(event);
-    repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
-      Promise.resolve({ ...row, ...patch }),
-    );
 
     const res = await makeApp(repos).fetch(req("GET", `/mine/tournament/${TOURNAMENT_ID}`));
-    const body = (await res.json()) as { entry: { state: string; windowOpen: boolean } };
+    const body = (await res.json()) as {
+      entry: { state: string; windowOpen: boolean; submittedAt: string | null };
+    };
 
     expect(res.status).toBe(200);
     expect(body.entry.state).toBe("submitted");
+    expect(body.entry.submittedAt).toBe(PAST.toISOString());
     expect(body.entry.windowOpen).toBe(false);
-    expect(repos.deckCheck.updateEntry).toHaveBeenCalledWith(
-      ENTRY_ID,
-      expect.objectContaining({ state: "submitted", submittedAt: PAST }),
-    );
+    expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
+    expect(repos.deckCheck.settleEditableEntries).not.toHaveBeenCalled();
   });
 
   it("404s without leaking existence when the caller has no entry in the tournament", async () => {
@@ -301,7 +294,6 @@ describe("GET /deck-check/mine/tournament/{tournamentId} (getMine)", () => {
     repos.deckCheck.getEntryForPlayerByTournament.mockResolvedValue(row);
     repos.deckCheck.getEventById.mockResolvedValue(event);
     const res = await makeApp(repos).fetch(req("GET", `/mine/tournament/${TOURNAMENT_ID}`));
-    // oxlint-disable-next-line typescript/no-explicit-any -- response shape asserted field by field per test
     const body = (await res.json()) as any;
     return { res, body };
   }
@@ -677,31 +669,23 @@ describe("POST /deck-check/mine/{entryId}/submit", () => {
     expect(repos.deckCheck.updateEntry).not.toHaveBeenCalled();
   });
 
-  it("answers 200 when the closed window auto-settled the entry on this very request", async () => {
-    // withSettledEvent's lazy auto-settle (settleExpiredEditable) runs inside
-    // loadOwnEntry, before this handler's own submissionWindowOpen check. So
-    // hitting POST submit on a still-"editable" entry after the window closed
-    // DOES write: the deck is auto-submitted, backdated to the close time.
-    // Answering 409 there would contradict the write this request just caused
-    // and send the player to a judge over a deck that is in fact submitted, so
-    // the handler returns the settled entry instead.
+  it("answers 200 and persists the deadline submit when the stored entry is still editable", async () => {
     const repos = makeRepos();
     const row = playerRow({ state: "editable", submissionsCloseAt: PAST });
     repos.deckCheck.getEntryForPlayer.mockResolvedValue(row);
     repos.deckCheck.getEventById.mockResolvedValue(deckEvent({ submissionsCloseAt: PAST }));
-    repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
-      Promise.resolve({ ...row, ...patch }),
-    );
+    repos.deckCheck.listEditableBaselines.mockResolvedValue([
+      { id: ENTRY_ID, preEditLines: null, updatedAt: now },
+    ]);
 
     const res = await makeApp(repos).fetch(req("POST", `/mine/${ENTRY_ID}/submit`));
     const body = (await res.json()) as { entry: { state: string } };
 
     expect(res.status).toBe(200);
     expect(body.entry.state).toBe("submitted");
-    expect(repos.deckCheck.updateEntry).toHaveBeenCalledWith(
-      ENTRY_ID,
-      expect.objectContaining({ state: "submitted" }),
-    );
+    expect(repos.deckCheck.settleEditableEntries).toHaveBeenCalledWith(TOURNAMENT_ID, [
+      { id: ENTRY_ID, submittedAt: PAST, changeSummary: null },
+    ]);
   });
 
   it("still 409s a closed window when the entry was already settled before this request", async () => {

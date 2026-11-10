@@ -31,8 +31,12 @@ import {
 } from "@/features/admin/hooks/use-admin-image-mutations";
 import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
 import { useUpdateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
+import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unlinkedGroupCandidates } from "@/features/admin/lib/candidate-groups";
+import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
+import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
+import { useSets } from "@/features/cards/hooks/use-sets";
 import { CardListingsRecord } from "@/features/catalog-workspace/components/card-listings-record";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
 import { ListingRecord } from "@/features/catalog-workspace/components/listing-record";
@@ -42,9 +46,11 @@ import {
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { ignoredPrintingUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type {
   CreationDraft,
   PlannedImageUpload,
@@ -121,12 +127,15 @@ function NewPrintingBody({
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
   const labels = useValueLabels();
+  const { data: setsData } = useSets();
+  const { data: providerData } = useProviderSettings();
   const navigation = useQueueNavigation("printing");
   const queryClient = useQueryClient();
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
   const acceptGroup = useAcceptPrintingGroup(scope);
   const linkCandidates = useLinkCandidatePrintings(scope);
   const ignoreCandidate = useIgnoreCandidatePrinting(scope);
+  const { announce } = useWorkspaceUndo();
   const updateDesk = useUpdateDeskPrinting();
   const uploadImage = useUploadPrintingImage(scope);
   const addImageFromUrl = useAddImageFromUrl(scope);
@@ -155,6 +164,8 @@ function NewPrintingBody({
             },
             candidate,
             provider,
+            buildSetReleaseYears(setsData.sets),
+            favoriteProviderSet(providerData.providerSettings).has(provider),
           ),
           candidatePrintingIds: unlinkedGroupCandidates(detail, candidatePrintingId).map(
             (entry) => entry.id,
@@ -239,10 +250,14 @@ function NewPrintingBody({
     if (candidate === undefined) {
       return;
     }
-    ignoreCandidate.mutate(
-      { provider, externalId: candidate.externalId, finish: candidate.finish },
-      { onSuccess: navigation.goNext },
-    );
+    const ignored = { provider, externalId: candidate.externalId, finish: candidate.finish };
+    const entry = ignoredPrintingUndo(ignored, detail?.displayName ?? cardSlug);
+    ignoreCandidate.mutate(ignored, {
+      onSuccess: () => {
+        announce(entry);
+        navigation.goNext();
+      },
+    });
   };
 
   const merge = (printingId: string) => {

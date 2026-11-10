@@ -6,9 +6,7 @@ vi.mock("@/components/language-chip", () => ({
   LanguageChip: ({ code }: { code: string }) => <span>{code}</span>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardAttentionNewPrintings } from "@/features/admin/components/card-attention-new-printings";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeAdminCardDetail, makeCandidatePrinting } from "@/test/factories";
 
 const ownCandidate = makeCandidatePrinting({ id: "cp-own", candidateCardId: "src-a" });

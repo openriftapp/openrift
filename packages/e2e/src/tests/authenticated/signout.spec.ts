@@ -81,6 +81,7 @@ test.describe("sign out", () => {
     await openUserMenu(page);
 
     await expect(page.getByRole("menuitem", { name: "Profile" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /^theme/iu })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   });
 
@@ -89,7 +90,7 @@ test.describe("sign out", () => {
     await waitForHydration(page);
     await openUserMenu(page);
 
-    await expect(page.getByRole("menuitem", { name: /dark mode|light mode/iu })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /^theme/iu })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: "Sign out" })).toHaveCount(0);
     await expect(page.getByRole("menuitem", { name: "Profile" })).toHaveCount(0);
   });

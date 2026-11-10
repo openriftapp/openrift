@@ -27,7 +27,6 @@ vi.mock("kysely/migration", async (importOriginal) => {
 // Must import after the mock
 const { migrate } = await import("./migrate.js");
 
-// oxlint-disable-next-line no-empty-function -- noop logger for tests
 const noop = () => {};
 function makeLog(): Logger {
   return { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger;

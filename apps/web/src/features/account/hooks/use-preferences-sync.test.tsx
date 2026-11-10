@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import path from "node:path";
 
 import type { UserPreferencesResponse } from "@openrift/shared/types/api/preferences";
@@ -9,14 +7,23 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+interface ServerFnCallOptions {
+  data?: unknown;
+  fetch?: typeof fetch;
+}
+
+const { serverFnCalls } = vi.hoisted(() => ({ serverFnCalls: [] as ServerFnCallOptions[] }));
+
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler:
         (fn: (args: { context: { cookie: string }; data: unknown }) => unknown) =>
-        (args?: { data?: unknown }) =>
-          fn({ context: { cookie: "" }, data: args?.data }),
+        (args?: ServerFnCallOptions) => {
+          serverFnCalls.push(args ?? {});
+          return fn({ context: { cookie: "" }, data: args?.data });
+        },
       middleware: () => chain,
       validator: () => chain,
     };
@@ -94,7 +101,6 @@ const SAVE_DEBOUNCE_MS = 1000;
 
 async function flushSaveDebounce() {
   await act(async () => {
-    // oxlint-disable-next-line promise/avoid-new -- a real delay is the point: "the debounce elapsed and nothing was sent" has no promise to await.
     await new Promise<void>((resolve) => {
       setTimeout(resolve, SAVE_DEBOUNCE_MS + 250);
     });
@@ -108,6 +114,7 @@ async function flushMicrotasks() {
 }
 
 beforeEach(() => {
+  serverFnCalls.length = 0;
   resetDisplay();
   resetTheme();
   resetLocaleBanner();
@@ -168,6 +175,18 @@ describe("usePreferencesSync", () => {
 
     expect(patches()).toHaveLength(1);
     expect(patches()[0]?.body).toMatchObject({ showImages: false });
+  });
+
+  it("sends the retired completionScope as null so the account copy is cleared", async () => {
+    const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+
+    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    act(() => useDisplayStore.getState().setShowImages(false));
+    await flushSaveDebounce();
+
+    expect(patches()[0]?.body).toMatchObject({ completionScope: null });
   });
 
   it("ignores device-local store changes that carry no preference", async () => {
@@ -292,6 +311,96 @@ describe("usePreferencesSync", () => {
 
     expect(useDisplayStore.getState().showImages).toBe(false);
     expect(patches()).toHaveLength(0);
+  });
+
+  it("sends a pending edit with keepalive as soon as the tab is hidden", async () => {
+    const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+
+    act(() => useDisplayStore.getState().setShowImages(false));
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    try {
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await waitFor(() => expect(patches()).toHaveLength(1), { timeout: 500 });
+    } finally {
+      Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    }
+
+    const keepaliveCall = serverFnCalls.at(-1);
+    const sentInits: RequestInit[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: unknown, init: RequestInit) => {
+        sentInits.push(init);
+        return new Response(null, { status: 200 });
+      }),
+    );
+    await keepaliveCall?.fetch?.("/_serverFn/prefs", { method: "POST" });
+    expect(sentInits[0]).toMatchObject({ method: "POST", keepalive: true });
+  });
+
+  it("flushes a pending edit on pagehide without waiting for the debounce", async () => {
+    const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+
+    act(() => useDisplayStore.getState().setShowImages(false));
+    act(() => {
+      globalThis.dispatchEvent(new Event("pagehide"));
+    });
+
+    await waitFor(() => expect(patches()).toHaveLength(1), { timeout: 500 });
+    expect(patches()[0]?.body).toMatchObject({ showImages: false });
+    await flushSaveDebounce();
+    expect(patches()).toHaveLength(1);
+  });
+
+  it("retries a failed save once", { timeout: 10_000 }, async () => {
+    stubFetch({ showImages: true } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+
+    const patchStatuses = [500, 200];
+    const attempts: number[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        const status = patchStatuses[attempts.length] ?? 200;
+        attempts.push(status);
+        return new Response(status === 200 ? null : "{}", { status });
+      }),
+    );
+    act(() => useDisplayStore.getState().setShowImages(false));
+    await flushSaveDebounce();
+    expect(attempts).toEqual([500]);
+
+    await waitFor(() => expect(attempts).toEqual([500, 200]), { timeout: 3000 });
+  });
+
+  it("gives up after one retry", { timeout: 10_000 }, async () => {
+    stubFetch({ showImages: true } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+
+    const failing = vi.fn(async () => new Response("{}", { status: 500 }));
+    vi.stubGlobal("fetch", failing);
+    act(() => useDisplayStore.getState().setShowImages(false));
+    await flushSaveDebounce();
+    await waitFor(() => expect(failing).toHaveBeenCalledTimes(2), { timeout: 3000 });
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 2500);
+      });
+    });
+
+    expect(failing).toHaveBeenCalledTimes(2);
   });
 
   // React Compiler cannot lower `??=` and bails out of the whole hook; this

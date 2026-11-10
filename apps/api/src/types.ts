@@ -20,6 +20,9 @@ export interface Variables {
   repos: Repos;
   services: Services;
   transact: Transact;
+  backgroundRepos: Repos | undefined;
+  backgroundTransact: Transact | undefined;
   scheduler: JobScheduler | null;
   log: Logger | undefined;
+  apiRoute: string | undefined;
 }

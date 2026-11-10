@@ -265,9 +265,7 @@ describe("toAbsoluteUrl", () => {
 
 const SITE_URL = "https://openrift.app";
 
-// oxlint-disable-next-line typescript/no-explicit-any -- JSON-LD payloads are dynamic; assertions check specific fields.
 function parseJsonLd(script: { type: string; children: string }): any {
-  // oxlint-disable-next-line typescript/no-unsafe-return -- see above.
   return JSON.parse(script.children);
 }
 

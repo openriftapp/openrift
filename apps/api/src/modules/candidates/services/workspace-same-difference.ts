@@ -94,7 +94,6 @@ export async function discardSameDifference(
     const ids = matches.map((row) => row.id);
     const checked = await trx.candidateCards.checkCandidateCardsByIds(ids, now);
     for (const row of matches) {
-      // oxlint-disable-next-line no-await-in-loop -- sequential writes on one transaction connection
       await trx.adminEvents.insert({
         actorUserId: options.userId,
         action: "candidate-card.discard-same-difference",

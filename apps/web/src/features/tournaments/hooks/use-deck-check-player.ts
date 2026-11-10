@@ -101,6 +101,7 @@ export function useMyTournamentDeck(tournamentId: string) {
   return useQuery({
     queryKey: tournamentDecksKeys.entry(userId, tournamentId),
     queryFn: () => fetchMyTournamentDeck({ data: tournamentId }),
+    staleTime: 0,
   });
 }
 

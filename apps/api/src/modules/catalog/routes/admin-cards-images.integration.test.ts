@@ -31,7 +31,6 @@ const mockSharpPipeline = {
   metadata: async () => ({ width: 400, height: 560 }),
 };
 
-/* oxlint-disable no-empty-function -- noop mocks for io operations */
 const mockIo: Io = {
   fs: {
     mkdir: async () => undefined as any,
@@ -48,7 +47,6 @@ const mockIo: Io = {
   dnsLookupAll: async () => [{ address: "203.0.113.10" }],
   sharp: (() => mockSharpPipeline) as any,
 };
-/* oxlint-enable no-empty-function */
 
 const USER_ID = "a0000000-0021-4000-a000-000000000001";
 
@@ -238,7 +236,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   let mainImageId = "";
@@ -262,9 +259,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
 
       const active = images.find((i) => i.isActive);
       expect(active).toBeDefined();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(active!.originalUrl).toBe("https://example.com/csi-test.png");
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       mainImageId = active!.id;
     });
 
@@ -382,7 +377,6 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select("isActive")
         .where("id", "=", additionalImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(image!.isActive).toBe(true);
 
       const prev = await db
@@ -390,7 +384,6 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select("isActive")
         .where("id", "=", mainImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(prev!.isActive).toBe(false);
     });
 
@@ -407,7 +400,6 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select("isActive")
         .where("id", "=", additionalImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(image!.isActive).toBe(false);
     });
 
@@ -469,9 +461,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select(["faceImages.isActive", "ci.rehostedUrl"])
         .where("faceImages.id", "=", additionalImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(newActive!.isActive).toBe(true);
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(newActive!.rehostedUrl).toBe(additionalUrl);
 
       const demoted = await db
@@ -480,9 +470,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select(["faceImages.isActive", "ci.rehostedUrl"])
         .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(demoted!.isActive).toBe(false);
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(demoted!.rehostedUrl).toBe(mainUrl);
     });
 
@@ -502,9 +490,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select(["faceImages.isActive", "ci.rehostedUrl"])
         .where("faceImages.id", "=", additionalImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(image!.isActive).toBe(false);
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(image!.rehostedUrl).toBe(additionalUrl);
     });
 
@@ -539,9 +525,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select(["faceImages.isActive", "ci.rehostedUrl"])
         .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(image!.isActive).toBe(true);
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(image!.rehostedUrl).toBeNull();
     });
   });
@@ -560,7 +544,6 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select("ci.rehostedUrl")
         .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(image!.rehostedUrl).toBeTypeOf("string");
     });
 
@@ -608,7 +591,6 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select("ci.rehostedUrl")
         .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(before!.rehostedUrl).toBeTypeOf("string");
 
       const res = await app.fetch(
@@ -622,7 +604,6 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .select("ci.rehostedUrl")
         .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(after!.rehostedUrl).toBeNull();
     });
 

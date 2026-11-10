@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { DeckPending } from "@/features/decks/components/deck-pending";
@@ -14,8 +14,8 @@ import { getSiteUrl } from "@/lib/site-config";
 // deck link, and either may be missing (a comparison opened from a deck menu
 // starts with only one deck).
 const compareSearchSchema = z.object({
-  from: z.string().optional(),
-  to: z.string().optional(),
+  from: z.optional(z.string()),
+  to: z.optional(z.string()),
 });
 
 export const Route = createFileRoute("/_app/decks/compare")({

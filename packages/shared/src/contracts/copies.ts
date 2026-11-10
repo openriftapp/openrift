@@ -7,6 +7,11 @@ import { copiesQuerySchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import {
+  cancelTradeIdsField,
+  tradeCancelConflictDataSchema,
+  tradeCancelConflictError,
+} from "./fields.js";
 
 // Field pairing mirrors the `copies` table check constraints.
 const copyMetadataInputShape = {
@@ -77,14 +82,27 @@ export const updateCopiesSchema = z.object({
   patch: copyMetadataPatchSchema,
 });
 
+export const MAX_COPIES_PER_TRADE_CANCEL_CHECK = 10_000;
+
 export const moveCopiesSchema = z.object({
   copyIds: z.array(z.uuid()).min(1).max(MAX_COPIES_PER_REQUEST),
   toCollectionId: z.uuid(),
+  cancelTradeIds: cancelTradeIdsField,
 });
 
 export const disposeCopiesSchema = z.object({
   copyIds: z.array(z.uuid()).min(1).max(MAX_COPIES_PER_REQUEST),
+  cancelTradeIds: cancelTradeIdsField,
 });
+
+const checkedCopyIdsField = z.array(z.uuid()).min(1).max(MAX_COPIES_PER_TRADE_CANCEL_CHECK);
+
+export const moveCopiesTradeCancelsSchema = z.object({
+  copyIds: checkedCopyIdsField,
+  toCollectionId: z.uuid(),
+});
+
+export const disposeCopiesTradeCancelsSchema = z.object({ copyIds: checkedCopyIdsField });
 
 export const copyListMembershipsSchema = z.object({
   copyIds: z.array(z.uuid()).min(1).max(500),
@@ -119,8 +137,16 @@ export const copiesContract = {
     .output(copyAddResponseSchema),
   move: authedRoute
     .route({ method: "POST", path: "/api/v1/copies/move", tags: ["Copies"], successStatus: 204 })
-    .errors({ NOT_FOUND: { message: "Target collection or copies not found" } })
+    .errors({
+      NOT_FOUND: { message: "Target collection or copies not found" },
+      CONFLICT: tradeCancelConflictError,
+    })
     .input(moveCopiesSchema),
+  moveTradeCancels: authedRoute
+    .route({ method: "POST", path: "/api/v1/copies/trade-cancels/move", tags: ["Copies"] })
+    .errors({ NOT_FOUND: { message: "Target collection or copies not found" } })
+    .input(moveCopiesTradeCancelsSchema)
+    .output(tradeCancelConflictDataSchema),
   update: authedRoute
     .route({ method: "POST", path: "/api/v1/copies/update", tags: ["Copies"], successStatus: 204 })
     .errors({
@@ -132,9 +158,14 @@ export const copiesContract = {
     .route({ method: "POST", path: "/api/v1/copies/dispose", tags: ["Copies"], successStatus: 204 })
     .errors({
       NOT_FOUND: { message: "One or more copies not found" },
-      CONFLICT: { message: "One or more copies could not be disposed" },
+      CONFLICT: tradeCancelConflictError,
     })
     .input(disposeCopiesSchema),
+  disposeTradeCancels: authedRoute
+    .route({ method: "POST", path: "/api/v1/copies/trade-cancels/dispose", tags: ["Copies"] })
+    .errors({ NOT_FOUND: { message: "One or more copies not found" } })
+    .input(disposeCopiesTradeCancelsSchema)
+    .output(tradeCancelConflictDataSchema),
   listMemberships: authedRoute
     .route({ method: "POST", path: "/api/v1/copies/list-memberships", tags: ["Copies"] })
     .input(copyListMembershipsSchema)

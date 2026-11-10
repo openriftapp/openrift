@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- setup file needs node:util */
 /**
  * Vitest per-file setup: polyfills Bun-specific APIs that source code uses.
  */

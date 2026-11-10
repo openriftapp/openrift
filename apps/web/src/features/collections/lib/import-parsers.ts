@@ -30,6 +30,8 @@ export interface ImportEntry {
   cardName: string;
   sourceCode: string;
   promoSlug?: string;
+  /** The source wrote the printing's real finish and full marker set, so both match exactly. */
+  exactPrinting?: boolean;
   isPromo?: boolean;
   language?: string;
   metadata?: ImportCopyMetadata;
@@ -237,17 +239,14 @@ function parsePiltoverArchive(text: string): ParseResult {
 interface PiltoverVariantParts {
   setPrefix: string;
   artVariant: ArtVariant;
-  hasFoilSuffix: boolean;
   shortCode: string;
   promoSuffix?: string;
 }
 
 function parsePiltoverVariantNumber(variantNumber: string): PiltoverVariantParts | null {
   let code = variantNumber;
-  let hasFoilSuffix = false;
 
   if (code.endsWith("-Foil")) {
-    hasFoilSuffix = true;
     code = code.slice(0, -5);
   }
 
@@ -262,7 +261,6 @@ function parsePiltoverVariantNumber(variantNumber: string): PiltoverVariantParts
     return {
       setPrefix,
       artVariant,
-      hasFoilSuffix,
       shortCode,
     };
   }
@@ -279,7 +277,6 @@ function parsePiltoverVariantNumber(variantNumber: string): PiltoverVariantParts
     return {
       setPrefix,
       artVariant,
-      hasFoilSuffix,
       shortCode,
       promoSuffix,
     };
@@ -379,10 +376,10 @@ function parseOpenRift(text: string): ParseResult {
       continue;
     }
 
+    const finishRaw = record["Finish"]?.trim();
     const finish: Finish =
-      record["Finish"]?.trim() === WellKnown.finish.FOIL
-        ? WellKnown.finish.FOIL
-        : WellKnown.finish.NORMAL;
+      Object.values(WellKnown.finish).find((value) => value === finishRaw) ??
+      WellKnown.finish.NORMAL;
     const artVariantRaw = record["Art Variant"]?.trim();
     // Exports written before the Overnumbered column named it as an art
     // variant; drop that fallback once those are out of circulation.
@@ -409,6 +406,7 @@ function parseOpenRift(text: string): ParseResult {
       cardName,
       sourceCode: cardId,
       promoSlug,
+      exactPrinting: true,
       language: record["Language"]?.trim() || undefined,
       metadata: parseOpenRiftMetadata(record),
       rawFields: buildRawFields({

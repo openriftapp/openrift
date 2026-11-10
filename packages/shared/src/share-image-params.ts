@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 
 /** `vertical` is download-only: no crawler consumes a 9:16 og:image, so an aspect never reaches an og:image URL. */
 export type ShareImageAspect = "landscape" | "vertical";
@@ -47,14 +47,14 @@ export function qrFromQuery(value: string | undefined): boolean {
 }
 
 export const deckImageBodySchema = z.object({
-  deckName: z.string().optional(),
-  format: z.string().optional(),
-  ownerName: z.string().optional(),
+  deckName: z.optional(z.string()),
+  format: z.optional(z.string()),
+  ownerName: z.optional(z.string()),
   cards: z.array(
     z.object({
       cardId: z.string(),
-      preferredPrintingId: z.string().nullable().optional(),
-      quantity: z.number().optional(),
+      preferredPrintingId: z.optional(z.nullable(z.string())),
+      quantity: z.optional(z.number()),
       zone: z.string(),
     }),
   ),

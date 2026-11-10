@@ -1,4 +1,3 @@
-/* oxlint-disable import/first -- vi.mock must precede the mocked imports */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";

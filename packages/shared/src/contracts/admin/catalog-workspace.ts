@@ -1,4 +1,8 @@
 import { isoDateTime } from "@openrift/shared/schemas";
+import {
+  WORKSPACE_REASONS,
+  WORKSPACE_RECORD_FILTER_VALUES,
+} from "@openrift/shared/workspace-kinds";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
@@ -11,14 +15,7 @@ export const workspaceOwnerSchema = z.enum(["card", "face", "printing"]);
 
 export const workspaceSegmentSchema = z.enum(["open", "new"]);
 
-export const workspaceReasonSchema = z.enum([
-  "source-difference",
-  "contributor-proposal",
-  "new-card",
-  "new-printing",
-  "new-image",
-  "listing",
-]);
+export const workspaceReasonSchema = z.enum(WORKSPACE_REASONS);
 
 export const workspaceListingVariantSchema = z.object({
   language: z.string().nullable(),
@@ -65,14 +62,7 @@ export const workspaceQueueResponseSchema = z.object({
 
 export const workspaceRecordKindSchema = z.enum(["printing", "face"]);
 
-export const workspaceRecordFilterSchema = z.enum([
-  "promo",
-  "double-sided",
-  "no-image",
-  "mine",
-  "substitute",
-  "shared",
-]);
+export const workspaceRecordFilterSchema = z.enum(WORKSPACE_RECORD_FILTER_VALUES);
 
 export const WORKSPACE_RECORD_FILTERS = {
   printing: ["promo", "double-sided", "no-image", "mine"],

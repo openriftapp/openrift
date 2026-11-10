@@ -11,9 +11,7 @@ const mockAuth = {
 };
 
 const app = createApp({
-  // oxlint-disable-next-line typescript/no-explicit-any -- minimal stubs to boot the app
   db: {} as any,
-  // oxlint-disable-next-line typescript/no-explicit-any -- minimal stubs to boot the app
   auth: mockAuth as any,
   config: {
     port: 3000,
@@ -22,7 +20,6 @@ const app = createApp({
     auth: { secret: "test-secret", adminEmail: undefined, google: undefined, discord: undefined },
     smtp: { configured: false },
     isDev: false,
-    // oxlint-disable-next-line typescript/no-explicit-any -- minimal stubs to boot the app
   } as any,
   log: createLogger("test", "silent"),
 });

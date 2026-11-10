@@ -22,12 +22,17 @@ import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
  * for that champion is printed later. A legend with no champion tag keys on
  * its card slug alone.
  */
+interface MetaLegendHeadData {
+  legend: Pick<MetaLegendDetailResponse["legend"], "name" | "imageId">;
+  counts: Pick<MetaLegendDetailResponse["counts"], "finishes">;
+}
+
 export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
   validateSearch: metaLegendSearchSchema,
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/meta/legends/${params.slug}`;
-    const data = loaderData as MetaLegendDetailResponse | undefined;
+    const data = loaderData as MetaLegendHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Legend", path, unlisted: true });
     }
@@ -55,7 +60,9 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
     };
   },
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, params, deps }): Promise<MetaLegendDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params, deps }): Promise<MetaLegendHeadData> => {
     try {
       const [sets] = await Promise.all([
         context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
@@ -74,7 +81,10 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
         }),
         staleTime: "static",
       });
-      return legend;
+      return {
+        legend: { name: legend.legend.name, imageId: legend.legend.imageId },
+        counts: { finishes: legend.counts.finishes },
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

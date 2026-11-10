@@ -33,7 +33,6 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a href="/collections">{children}</a>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckCardCopies, DeckCardDetailHeader } from "./deck-card-detail-controls";
 
 afterEach(() => {

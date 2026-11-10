@@ -33,7 +33,6 @@ app.use("*", async (c, next) => {
   const repos = {
     tournaments: mockTournamentsRepo,
     podTournaments: mockPodTournamentsRepo,
-    // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   } as any;
   c.set("repos", repos);
   c.set("transact", ((fn: (trxRepos: unknown) => unknown) => fn(repos)) as never);
@@ -396,7 +395,6 @@ describe("pod-tournaments route registration", () => {
       c.set("repos", {
         tournaments: mockTournamentsRepo,
         podTournaments: mockPodTournamentsRepo,
-        // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
       } as any);
       await next();
     });

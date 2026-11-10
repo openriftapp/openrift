@@ -13,7 +13,7 @@ interface ImportMeta {
  * Runtime config inlined by the SSR shell from web-scoped site_settings.
  * Available before hydration so `initSentry()` can read the DSN at script-load time.
  */
-// oxlint-disable-next-line no-var, vars-on-top -- `declare var` is the documented way to type a `globalThis` property
+// oxlint-disable-next-line vars-on-top -- `declare var` is the documented way to type a `globalThis` property
 declare var __OPENRIFT_CONFIG__:
   | { sentryDsn?: string; appEnv?: string; legalNoticeUrl?: string; privacyPolicyUrl?: string }
   | undefined;

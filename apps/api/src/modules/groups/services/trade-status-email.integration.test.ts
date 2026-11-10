@@ -27,7 +27,6 @@ describe.skipIf(!ctx)("trade-status emails (integration)", () => {
 
   function makeSink() {
     const sent: { to: string; subject: string }[] = [];
-    // oxlint-disable-next-line require-await -- mock matches the async sender shape
     const sendEmail = async ({ to, subject }: { to: string; subject: string }) => {
       sent.push({ to, subject });
       return undefined;
@@ -171,22 +170,28 @@ describe.skipIf(!ctx)("trade-status emails (integration)", () => {
   }
 
   async function requestBoth(group: { slug: string }): Promise<{ first: string; second: string }> {
-    const first = await createTrade(transact, {
-      callerUserId: RECEIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
-    const second = await createTrade(transact, {
-      callerUserId: RECEIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_2.id,
-      quantity: 1,
-    });
+    const first = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: RECEIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
+    const second = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: RECEIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_2.id,
+        quantity: 1,
+      },
+    );
     return { first: first.id, second: second.id };
   }
 

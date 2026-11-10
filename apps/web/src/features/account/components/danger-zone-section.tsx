@@ -21,8 +21,8 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/features/account/lib/auth-client";
 import { useResetCollections } from "@/features/collections/hooks/use-collections";
-import { sessionQueryOptions } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
+import { leaveAsSignedOut } from "@/stores/leave-as-signed-out";
 
 const RESET_CONFIRM_WORD = "reset";
 
@@ -91,12 +91,8 @@ function DeleteAccountAction() {
       setError(result.error.message ?? m.profile_danger_delete_failed());
       return;
     }
-    // Navigate before invalidating the session query: flipping the session
-    // synchronously would re-render the still-mounted authenticated routes
-    // with no userId, and useRequiredUserId throws.
     try {
-      await router.navigate({ to: "/" });
-      void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      await leaveAsSignedOut(queryClient, () => router.navigate({ to: "/" }));
     } catch {
       /* The account is already gone; a reload lands on the signed-out app. */
     }

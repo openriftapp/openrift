@@ -447,6 +447,21 @@ describe("buildCardEmbed", () => {
     expect(embed.fields?.[1]?.value).toContain("€3.80");
   });
 
+  it("formats prices in the given locale", () => {
+    const snapshot = snapshotWithPrices(
+      makePricesResponse({ "printing-1": { cardmarket: 380, tcgplayer: 452 } }),
+    );
+    const embed = buildCardEmbed({
+      card: snapshot.cards[0]!,
+      printing: snapshot.printingsByCardId.get("card-1")![0],
+      snapshot,
+      siteUrl: SITE,
+      locale: "de",
+    });
+    expect(embed.fields?.[0]?.value).toContain("[4,52 $]");
+    expect(embed.fields?.[1]?.value).toContain("[3,80 €]");
+  });
+
   it("links prices to the affiliate product page when a product mapping exists", () => {
     const snapshot = snapshotWithPrices(
       makePricesResponse({ "printing-1": { tcgplayer: 452, cardtrader: 390 } }),

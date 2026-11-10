@@ -40,7 +40,7 @@ export const adminOperationsRouter = {
   ),
 
   refreshMatviews: os.refreshMatviews.handler(async ({ context }) => {
-    const repos = context.repos;
+    const repos = context.backgroundRepos;
     return await runJobAsync({ repos, log }, "matviews.refresh", "admin", async () => {
       await Promise.all([
         repos.marketplace.refreshLatestPrices(),
@@ -55,7 +55,7 @@ export const adminOperationsRouter = {
   }),
 
   backfillSiblingVariants: os.backfillSiblingVariants.handler(async ({ context }) => {
-    const repos = context.repos;
+    const repos = context.backgroundRepos;
     return await runJobAsync(
       { repos, log },
       "marketplace_variants.backfill_siblings",
@@ -66,7 +66,7 @@ export const adminOperationsRouter = {
   }),
 
   recomputeCardTokens: os.recomputeCardTokens.handler(async ({ context }) => {
-    const repos = context.repos;
+    const repos = context.backgroundRepos;
     return await runJobAsync(
       { repos, log },
       "card_tokens.recompute",

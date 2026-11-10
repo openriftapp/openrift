@@ -79,6 +79,7 @@ type HeadFn = (ctx: {
   match: { params: { printingSlug?: string }; search: { printingId?: string } };
 }) => {
   meta: HeadMeta[];
+  links?: { rel: string; href: string }[];
   scripts?: { type: string; children: string }[];
 };
 
@@ -212,5 +213,41 @@ describe("/cards/$cardSlug SSR head", () => {
     expect(withoutOffers.find((entry) => entry.name === "description")?.content).not.toContain(
       "Prices from",
     );
+  });
+});
+
+describe("/cards/$cardSlug SSR head for an unknown card", () => {
+  const head = Route.options.head as unknown as HeadFn;
+  const notFoundHead = () => head({ loaderData: undefined, match: { params: {}, search: {} } });
+
+  it("tells crawlers not to index the not-found page", () => {
+    const meta = notFoundHead().meta;
+    expect(meta.find((entry) => entry.name === "robots")?.content).toBe("noindex, nofollow");
+  });
+
+  it("names no canonical URL and no share URL", () => {
+    const { meta, links } = notFoundHead();
+    expect(links?.some((link) => link.rel === "canonical")).toBe(false);
+    expect(meta.some((entry) => entry.property === "og:url")).toBe(false);
+  });
+});
+
+describe("/cards/$cardSlug search", () => {
+  const validateSearch = Route.options.validateSearch as unknown as {
+    parse: (search: unknown) => Record<string, unknown>;
+  };
+
+  it("keeps the second side however the URL spells it", () => {
+    expect(validateSearch.parse({ side: 2 })).toEqual({ side: 2 });
+    expect(validateSearch.parse({ side: "2" })).toEqual({ side: 2 });
+  });
+
+  it("drops any other side instead of failing the page", () => {
+    expect(validateSearch.parse({ side: "1" }).side).toBeUndefined();
+    expect(validateSearch.parse({ side: "back" }).side).toBeUndefined();
+  });
+
+  it("keeps the printing a link names", () => {
+    expect(validateSearch.parse({ printingId: "p-1" })).toMatchObject({ printingId: "p-1" });
   });
 });

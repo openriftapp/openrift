@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
 import type { DraftImage } from "@/features/catalog-workspace/lib/creation-draft";
+import { isAttachedImage } from "@/features/catalog-workspace/lib/creation-draft";
+import { cn } from "@/lib/utils";
 
 function FileThumb({ file, alt }: { file: File; alt: string }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -35,7 +37,10 @@ function DraftImageThumb({ image }: { image: DraftImage }) {
 }
 
 export function draftImageLabel(image: DraftImage): string {
-  return image.kind === "file" ? image.file.name : image.label;
+  if (image.kind === "file") {
+    return image.file.name;
+  }
+  return image.attached ? image.label : `${image.label} (not attached)`;
 }
 
 export function CreationImagesSummary({ images }: { images: readonly DraftImage[] }) {
@@ -45,7 +50,9 @@ export function CreationImagesSummary({ images }: { images: readonly DraftImage[
   return (
     <span className="flex flex-wrap items-center gap-2">
       {images.map((image) => (
-        <DraftImageThumb key={image.key} image={image} />
+        <span key={image.key} className={cn(!isAttachedImage(image) && "opacity-50")}>
+          <DraftImageThumb image={image} />
+        </span>
       ))}
       <span>{images.map((image) => draftImageLabel(image)).join(", ")}</span>
     </span>
@@ -67,10 +74,28 @@ export function CreationImages({
         <ul className="flex flex-wrap gap-3">
           {images.map((image) => (
             <li key={image.key} className="flex flex-col items-start gap-1">
-              <DraftImageThumb image={image} />
+              <span className={cn(!isAttachedImage(image) && "opacity-50")}>
+                <DraftImageThumb image={image} />
+              </span>
               <span className="text-muted-foreground max-w-24 truncate text-xs">
                 {draftImageLabel(image)}
               </span>
+              {image.kind === "source" && !image.attached && (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  disabled={disabled}
+                  onClick={() =>
+                    onChange(
+                      images.map((other) =>
+                        other.key === image.key ? { ...image, attached: true } : other,
+                      ),
+                    )
+                  }
+                >
+                  Attach
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="xs"

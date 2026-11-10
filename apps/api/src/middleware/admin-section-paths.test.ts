@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sectionAllowsRequest } from "./admin-section-paths";
+import { sectionAllowsRequest, STATIC_CARD_GET_PATHS } from "./admin-section-paths";
 
 describe("sectionAllowsRequest", () => {
   describe("custom-tags", () => {
@@ -172,6 +172,17 @@ describe("sectionAllowsRequest", () => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);
     });
 
+    it("denies every static GET under /cards/ that it does not list, errata announcements included", () => {
+      expect(STATIC_CARD_GET_PATHS).toContain("/api/admin/v1/cards/errata-announcements");
+      const allowed = [...STATIC_CARD_GET_PATHS].filter((path) =>
+        sectionAllowsRequest("card-review", "GET", path),
+      );
+      expect(allowed.toSorted()).toEqual([
+        "/api/admin/v1/cards/all-cards",
+        "/api/admin/v1/cards/distinct-artists",
+      ]);
+    });
+
     it.each([
       ["POST", "/api/admin/v1/cards/some-id/check"],
       ["POST", "/api/admin/v1/cards/some-id/uncheck"],
@@ -320,6 +331,16 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/cards/provider-names",
     ])("rejects GET %s despite matching the card-detail shape", (path) => {
       expect(sectionAllowsRequest("printing-desk", "GET", path)).toBe(false);
+    });
+
+    it("denies every static GET under /cards/ that it does not list, errata announcements included", () => {
+      const allowed = [...STATIC_CARD_GET_PATHS].filter((path) =>
+        sectionAllowsRequest("printing-desk", "GET", path),
+      );
+      expect(allowed.toSorted()).toEqual([
+        "/api/admin/v1/cards/all-cards",
+        "/api/admin/v1/cards/distinct-artists",
+      ]);
     });
 
     it.each([

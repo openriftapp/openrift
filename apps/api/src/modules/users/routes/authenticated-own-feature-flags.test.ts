@@ -19,9 +19,7 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test stub doesn't match full types
   c.set("user", { id: USER_ID } as any);
-  // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   c.set("repos", { userFeatureFlags: mockRepo, featureFlags: mockFlagsRepo } as any);
   await next();
 });
@@ -64,7 +62,6 @@ describe("PUT /api/v1/feature-flags/self", () => {
     const anonymous = new Hono<{ Variables: Variables }>();
     anonymous.use("*", async (c, next) => {
       c.set("auth", { api: { getSession: () => Promise.resolve(null) } } as never);
-      // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
       c.set("repos", { userFeatureFlags: mockRepo, featureFlags: mockFlagsRepo } as any);
       await next();
     });

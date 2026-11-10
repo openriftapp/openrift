@@ -30,4 +30,11 @@ export default defineConfig(
       "react-compiler/react-compiler": "error",
     },
   },
+  {
+    // oxlint reports an inline eslint-disable as unused, so these two exceptions live here.
+    files: ["src/components/ui/sidebar.tsx", "src/lib/virtualizer-fresh.ts"],
+    rules: {
+      "react-compiler/react-compiler": "off",
+    },
+  },
 );

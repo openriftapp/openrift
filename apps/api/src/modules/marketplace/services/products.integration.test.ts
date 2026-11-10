@@ -10,7 +10,6 @@ const USER_ID = "a0000000-0197-4000-a000-000000000001";
 const ctx = createDbContext(USER_ID);
 
 describe.skipIf(!ctx)("products snapshot service (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db, userId } = ctx!;
   const repos = createRepos(db);
   const transact = createTransact(db);

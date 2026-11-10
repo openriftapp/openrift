@@ -1,4 +1,4 @@
-import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { Link, getRouteApi } from "@tanstack/react-router";
 
 import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";

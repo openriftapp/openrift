@@ -262,6 +262,30 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     expect(await repo.listKinds()).toEqual(["kind.a", "kind.b"]);
   });
 
+  it("failStale fails a running row started before the cutoff and frees the kind", async () => {
+    const { id } = await begin("test.kind");
+    await db
+      .updateTable("jobRuns")
+      .set({ startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000) })
+      .where("id", "=", id)
+      .execute();
+
+    const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    expect(await repo.failStale(id, cutoff, "presumed dead")).toBe(true);
+    expect(await repo.failStale(id, cutoff, "presumed dead")).toBe(false);
+    const rows = await repo.listRecent({ kind: "test.kind" });
+    expect(rows[0]?.status).toBe("failed");
+    expect(rows[0]?.errorMessage).toBe("presumed dead");
+    expect(await repo.start({ kind: "test.kind", trigger: "cron" })).not.toBeNull();
+  });
+
+  it("failStale leaves a run started after the cutoff running", async () => {
+    const { id } = await begin("test.kind");
+    expect(await repo.failStale(id, new Date(Date.now() - 2 * 60 * 60 * 1000), "x")).toBe(false);
+    const running = await repo.getRunning("test.kind");
+    expect(running?.id).toBe(id);
+  });
+
   it("purgeOlderThan deletes rows whose started_at is before the cutoff", async () => {
     const { id } = await begin("test.kind");
     await db

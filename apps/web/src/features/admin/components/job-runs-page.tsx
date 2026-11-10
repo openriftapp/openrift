@@ -1,10 +1,6 @@
-import type { JobRunActivity } from "@openrift/shared/contracts/admin/job-runs";
-import {
-  JOB_RUN_ACTIVITIES,
-  JOB_STATUSES,
-  JOB_TRIGGERS,
-} from "@openrift/shared/contracts/admin/job-runs";
+import type { JobRunActivity, JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
+import { JOB_RUN_ACTIVITIES, JOB_STATUSES, JOB_TRIGGERS } from "@openrift/shared/job-run-kinds";
 import { getRouteApi } from "@tanstack/react-router";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
@@ -22,13 +18,12 @@ import { RefreshCountdownButton } from "@/features/admin/components/refresh-coun
 import { useAdminJobRuns } from "@/features/admin/hooks/use-job-runs";
 import { useCancelRegenerateImages } from "@/features/admin/hooks/use-rehost";
 import type { JobRunsSearch } from "@/features/admin/lib/admin-job-runs-search";
-import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 import {
   jobRunsParamsFromSearch,
   jobRunsRefreshIntervalMs,
 } from "@/features/admin/lib/job-runs-queries";
 import { formatDuration } from "@/lib/format-duration";
-import type { JobRunView } from "@/lib/server-fns/api-types";
+import { summarizeRunResult } from "@/lib/job-run-display";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/job-runs");
 

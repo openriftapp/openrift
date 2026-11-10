@@ -17,6 +17,7 @@ export function SubmissionMessageFields<TReason extends string>({
   onNoteChange,
   allowNoReason = false,
   noReasonLabel = "No canned reason",
+  notePlaceholder = "Replaces the sentence above when filled in.",
   disabled = false,
 }: {
   idPrefix: string;
@@ -29,6 +30,7 @@ export function SubmissionMessageFields<TReason extends string>({
   onNoteChange: (note: string) => void;
   allowNoReason?: boolean;
   noReasonLabel?: string;
+  notePlaceholder?: string;
   disabled?: boolean;
 }) {
   const NO_REASON = "__none__";
@@ -67,7 +69,7 @@ export function SubmissionMessageFields<TReason extends string>({
           maxLength={2000}
           rows={3}
           disabled={disabled}
-          placeholder="Replaces the sentence above when filled in."
+          placeholder={notePlaceholder}
           onChange={(event) => onNoteChange(event.target.value)}
         />
       </div>

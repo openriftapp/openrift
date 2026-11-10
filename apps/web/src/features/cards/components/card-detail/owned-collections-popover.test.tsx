@@ -48,7 +48,6 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: { finishes: {} } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { OwnedCollectionsPopover } from "./owned-collections-popover";
 
 // React 19 reports uncaught render errors via onUncaughtError, not by rethrowing

@@ -39,6 +39,7 @@ import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-row
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { setReleaseYear } from "@/features/admin/lib/set-release-years";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -416,11 +417,11 @@ export function buildPreseededActivePrinting(
   // one. Sets reach each language on their own date, so the printing's own
   // language wins; the set's earliest release is the fallback.
   if (!candidateHasValue(seed.printedYear) && typeof seed.setId === "string") {
-    const languageKey =
-      typeof seed.language === "string" ? `${seed.setId}|${seed.language}` : undefined;
-    const year =
-      (languageKey === undefined ? undefined : setReleaseYears[languageKey]) ??
-      setReleaseYears[seed.setId];
+    const year = setReleaseYear(
+      setReleaseYears,
+      seed.setId,
+      typeof seed.language === "string" ? seed.language : undefined,
+    );
     if (year !== undefined) {
       seed.printedYear = year;
     }

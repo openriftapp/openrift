@@ -36,9 +36,7 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { activeRowIndex } from "./energy-power-chart";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { TypeBreakdown } from "./type-breakdown";
 
 describe("activeRowIndex", () => {

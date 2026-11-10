@@ -55,7 +55,7 @@ Route tests pin that a `card-review` grant holder reaches the new paths and no o
 ### Verbs on a submission
 
 - **Accept** applies the ticked changes (card fields, printing fields, ticked new printings, a proposed image), marks the candidate card and its printings checked, and resolves the ledger row in the same transaction: `accepted` when at least one change was applied, `not_applied` when every change was unticked. An edited incoming value counts as applied.
-- **Reject** records a required reason (`duplicate`, `already_correct`, `unverified`, `not_a_card`, `bad_image`, `other`) and an optional message, then ignores the candidate, which resolves the row as `rejected`.
+- **Reject** records a required reason (`duplicate`, `already_correct`, `unverified`, `not_a_card`, `bad_image`, `other`) and an optional message, then ignores the candidate, which resolves the row as `rejected`. The contract refuses a reject without a reason, and the dialog asks for the message when the reason is `other`. The contributor's submissions page shows the reason as a sentence with the message under it. A row settled without a reason shows a neutral "not used" line.
 - **Message contributor** writes the message without settling anything, as today.
 
 ### Attention rules

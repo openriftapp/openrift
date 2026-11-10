@@ -1,8 +1,8 @@
+import { JOB_STATUSES } from "@openrift/shared/job-run-kinds";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
-import { JOB_STATUSES } from "./job-runs.js";
 
 const TAG = "Admin - Job Schedules";
 

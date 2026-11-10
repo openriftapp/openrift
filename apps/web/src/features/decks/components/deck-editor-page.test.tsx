@@ -62,7 +62,6 @@ vi.mock("@/components/ui/sidebar", () => ({
   useSidebar: () => ({ isMobile: false, setOpenMobile: vi.fn(), toggleSidebar: vi.fn() }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckEditorPage } from "./deck-editor-page";
 
 function renderPage(deckId: string) {

@@ -92,7 +92,6 @@ function Steps({ steps }: { steps: ReactNode[] }) {
   return (
     <ol className="flex flex-col gap-2">
       {steps.map((step, index) => (
-        // oxlint-disable-next-line react/no-array-index-key -- fixed-order static steps
         <li key={index} className="bg-card flex items-start gap-3 rounded-lg border p-3">
           <span className="border-primary text-primary flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-sm font-bold">
             {index + 1}

@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Rebuilds the bench frames under clips/full from the archived recordings.
  * Skips clips whose frames already exist unless --force is given.

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createTransact } from "../../../deps.js";
+import { createRepos, createTransact } from "../../../deps.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
@@ -18,8 +18,8 @@ const ALL_USER_IDS = [GIVER_ID, RECEIVER_ID];
 const ctx = createDbContext(GIVER_ID);
 
 describe.skipIf(!ctx)("acceptTrade vs createLoan cross-claim race (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
+  const repos = createRepos(db);
   const transact = createTransact(db);
   const groupsRepo = friendGroupsRepo(db);
 
@@ -116,14 +116,17 @@ describe.skipIf(!ctx)("acceptTrade vs createLoan cross-claim race (integration)"
       .execute();
     await groupsRepo.share(group.id, tradeList.id, GIVER_ID);
 
-    const trade = await createTrade(transact, {
-      callerUserId: RECEIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+    const trade = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: RECEIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
     expect(trade.status).toBe("pending");
 
     const [acceptResult, loanResult] = await Promise.allSettled([

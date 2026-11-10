@@ -537,7 +537,6 @@ export function SetsPage() {
         }}
         delete={{
           onDelete: (s) => deleteMutation.mutateAsync(s.id),
-          // oxlint-disable-next-line react/no-unstable-nested-components -- callback returns a {title, description} record; JSX in description is via a hoisted DeleteSetDescription, not an inline component
           confirm: (s) => ({
             title: `Delete set “${s.slug}”?`,
             description: <DeleteSetDescription name={s.name} />,

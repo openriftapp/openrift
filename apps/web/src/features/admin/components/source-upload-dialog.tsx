@@ -1,3 +1,7 @@
+import type {
+  UploadCandidatesBody,
+  UploadCandidatesResponse,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { pluralize } from "@openrift/shared/strings";
 import { CheckIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -27,7 +31,6 @@ import { useUploadCandidates } from "@/features/admin/hooks/use-admin-image-muta
 import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { parseJsonEntries } from "@/features/admin/lib/json-upload";
-import type { UploadCandidatesBody, UploadCandidatesResponse } from "@/lib/server-fns/api-types";
 
 type UploadDetail = UploadCandidatesResponse["newCardDetails"][number];
 type UploadDiff = UploadCandidatesResponse["updatedCards"][number];

@@ -29,7 +29,7 @@ export function useIgnoredProducts() {
   return useSuspenseQuery(ignoredProductsQueryOptions);
 }
 
-const unignoreProductFn = createServerFn({ method: "POST" })
+export const unignoreProductFn = createServerFn({ method: "POST" })
   .validator((input: UnignoreInput) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {

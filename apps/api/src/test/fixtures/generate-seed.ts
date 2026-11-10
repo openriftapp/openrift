@@ -7,9 +7,7 @@
  * Requires DATABASE_URL to be set (reads from ../../.env automatically).
  */
 
-// oxlint-disable-next-line import/no-nodejs-modules -- CLI script, not a browser module
 import { writeFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- CLI script, not a browser module
 import { resolve } from "node:path";
 
 import { stringifyUnknown } from "@openrift/shared/strings";

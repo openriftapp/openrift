@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- config file needs fs/path */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 

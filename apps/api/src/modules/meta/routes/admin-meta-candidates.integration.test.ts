@@ -74,17 +74,14 @@ function event(externalId: string, overrides: Record<string, unknown> = {}) {
 }
 
 async function upload(events: unknown[]): Promise<Response> {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   return await ctx!.app.fetch(adminReq("POST", "/meta/upload", { provider: PROVIDER, events }));
 }
 
 async function get(path: string): Promise<Response> {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   return await ctx!.app.fetch(adminReq("GET", path));
 }
 
 async function post(path: string, body?: unknown): Promise<Response> {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   return await ctx!.app.fetch(adminReq("POST", path, body));
 }
 
@@ -112,14 +109,12 @@ afterAll(async () => {
 
 describe.skipIf(!ctx)("meta overlay review", () => {
   it("refuses a non-admin", async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
     const response = await ctx!.app.fetch(adminReq("GET", "/meta/overlays"));
 
     expect(response.status).toBe(403);
   });
 
   it("takes a push provider's payload as pending overlays", async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
     await ctx!.db.insertInto("admins").values({ userId: USER_ID }).execute();
 
     const response = await upload([event("mcd-1")]);

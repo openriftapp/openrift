@@ -32,7 +32,7 @@ const csvBounded = z.string().min(1).max(CSV_MAX_CHARS);
 
 export const collectionValueHistoryQuerySchema = z.object({
   range: z.enum(["7d", "30d", "90d", "all"]).default("30d"),
-  marketplace: marketplaceEnum.default("tcgplayer"),
+  marketplace: z._default(marketplaceEnum, "tcgplayer"),
   collectionIds: csvUuidList.optional(),
   sets: csvBounded.optional(),
   languages: csvBounded.optional(),
@@ -61,6 +61,7 @@ export const collectionValueHistoryQuerySchema = z.object({
   customTagsExclude: csvBounded.optional(),
   promos: z.enum(["only", "exclude"]).optional(),
   signed: z.enum(["true", "false"]).optional(),
+  overnumbered: z.enum(["true", "false"]).optional(),
   banned: z.enum(["true", "false"]).optional(),
   errata: z.enum(["true", "false"]).optional(),
 });

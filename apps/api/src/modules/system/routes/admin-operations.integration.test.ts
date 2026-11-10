@@ -67,7 +67,6 @@ const MARKETPLACE_ORDINAL: Record<Marketplace, number> = {
 const seededGroups: { marketplace: Marketplace; groupId: number }[] = [];
 
 async function seedMarketplaceData(marketplace: Marketplace) {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
 
   const suffix = seedCounter++;
@@ -202,7 +201,6 @@ async function seedMarketplaceData(marketplace: Marketplace) {
 }
 
 describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   afterAll(async () => {
@@ -236,7 +234,6 @@ describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
 
   describe("authentication and authorization", () => {
     it("returns 401 for unauthenticated request to clear-prices", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const res = await unauthCtx!.app.fetch(
         adminReq("POST", "/clear-prices", { marketplace: "tcgplayer" }),
       );
@@ -244,19 +241,16 @@ describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
     });
 
     it("returns 401 for unauthenticated request to refresh-tcgplayer-prices", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const res = await unauthCtx!.app.fetch(adminReq("POST", "/refresh-tcgplayer-prices"));
       expect(res.status).toBe(401);
     });
 
     it("returns 401 for unauthenticated request to refresh-cardmarket-prices", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const res = await unauthCtx!.app.fetch(adminReq("POST", "/refresh-cardmarket-prices"));
       expect(res.status).toBe(401);
     });
 
     it("returns 403 for non-admin user on clear-prices", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const res = await nonAdminCtx!.app.fetch(
         adminReq("POST", "/clear-prices", { marketplace: "tcgplayer" }),
       );
@@ -264,13 +258,11 @@ describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
     });
 
     it("returns 403 for non-admin user on refresh-tcgplayer-prices", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const res = await nonAdminCtx!.app.fetch(adminReq("POST", "/refresh-tcgplayer-prices"));
       expect(res.status).toBe(403);
     });
 
     it("returns 403 for non-admin user on refresh-cardmarket-prices", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const res = await nonAdminCtx!.app.fetch(adminReq("POST", "/refresh-cardmarket-prices"));
       expect(res.status).toBe(403);
     });

@@ -24,7 +24,6 @@ describe("watchForRefetchRace", () => {
     const settle = watchForRefetchRace(client, queryKey);
     const observer = new QueryObserver(client, {
       queryKey,
-      // oxlint-disable-next-line promise/avoid-new -- a fetch that never settles during the test
       queryFn: () => new Promise<string>(() => {}),
     });
     const unsubscribe = observer.subscribe(() => {});

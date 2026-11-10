@@ -14,6 +14,7 @@ import { bodyLimit } from "hono/body-limit";
 
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { clientAddress } from "../../../lib/client-address.js";
 import { jsonError, pngResponse } from "../../../lib/http-response.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import type { Variables } from "../../../types.js";
@@ -62,23 +63,18 @@ const RENDERS_PER_MINUTE = 10;
 // above the pool's throughput. An unfurler fetches a given link once.
 const SHARE_IMAGE_RENDERS_PER_MINUTE = 20;
 
-/** `x-real-ip` is trustworthy because nginx overwrites it from the connection
- * address (see docs/deployment.md). */
-const keyByRealIp = (c: Context<{ Variables: Variables }>): string =>
-  c.req.header("x-real-ip") ?? "unknown";
-
 const renderRateLimit = rateLimiter<{ Variables: Variables }>({
   windowMs: 60_000,
   limit: RENDERS_PER_MINUTE,
   standardHeaders: "draft-6",
-  keyGenerator: keyByRealIp,
+  keyGenerator: clientAddress,
 });
 
 const shareImageRateLimit = rateLimiter<{ Variables: Variables }>({
   windowMs: 60_000,
   limit: SHARE_IMAGE_RENDERS_PER_MINUTE,
   standardHeaders: "draft-6",
-  keyGenerator: keyByRealIp,
+  keyGenerator: clientAddress,
 });
 
 // Throwing routes the rejection through `app.onError`, so it answers with the

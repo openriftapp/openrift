@@ -10,7 +10,6 @@ describe("restartInFlightCopiesRefetch", () => {
     const client = new QueryClient();
     client.setQueryData(queryKey, "seeded");
     let release = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- gate resolved from outside the fetch
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
@@ -32,7 +31,6 @@ describe("restartInFlightCopiesRefetch", () => {
     restartInFlightCopiesRefetch(client, "user-1");
     await vi.waitFor(() => expect(client.getQueryData(queryKey)).toBe("fresh"));
     release();
-    // oxlint-disable-next-line promise/avoid-new -- let the cancelled fetch settle
     await new Promise((resolve) => {
       setTimeout(resolve, 10);
     });

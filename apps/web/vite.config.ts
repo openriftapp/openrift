@@ -1,8 +1,5 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
 import { execSync } from "node:child_process";
-// oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
 import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
 import path from "node:path";
 
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
@@ -20,6 +17,8 @@ import Sonda from "sonda/vite";
 import type { Plugin, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
 
+import { adminRouteSplitBehavior } from "./vite-plugins/admin-route-split.ts";
+import { bootChunkGuardPlugin } from "./vite-plugins/boot-chunk-guard.ts";
 import { latestMilestonePlugin } from "./vite-plugins/latest-milestone.ts";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
@@ -166,13 +165,11 @@ const compilerLogger = {
       const reason = event.detail?.options?.reason ?? event.reason ?? "no reason given";
       compilerBailouts.set(relative, `${event.kind}${at}: ${reason}`);
     }
-    // oxlint-disable no-console -- diagnostic printed to the server terminal
     console.log(`[react-compiler] ${event.kind} ${relative}${at}`);
     if (event.detail) {
       // console.log's default depth=2 would truncate nested detail as "[Object]".
       console.dir(event.detail, { depth: null, colors: true });
     }
-    // oxlint-enable no-console
   },
 };
 
@@ -323,7 +320,9 @@ export default defineConfig(({ mode, command }) => {
       tailwindcss(),
       // Router options live in tsr.config.json so this plugin and the lint
       // job's `tsr generate` read the same routeFileIgnorePattern.
-      tanstackStart(),
+      tanstackStart({
+        router: { codeSplittingOptions: { splitBehavior: adminRouteSplitBehavior } },
+      }),
       // Build only: in dev, Nitro caches stale SSR HTML after HMR, causing
       // hydration mismatches. https://github.com/TanStack/router/issues/6556
       command === "build" &&
@@ -340,6 +339,7 @@ export default defineConfig(({ mode, command }) => {
         presets: [withReactCompilerLogger(reactCompilerPreset())],
       }),
       reactCompilerBailoutGuard,
+      bootChunkGuardPlugin(),
       ...sentryPlugins,
       // Opt-in via `bun run analyze`, to avoid the post-build cost on every prod build.
       ...(process.env.ANALYZE
@@ -388,7 +388,7 @@ export default defineConfig(({ mode, command }) => {
                 name: "better-auth",
               },
               {
-                test: /node_modules\/(?:@base-ui\/react\/(?:navigation-menu|menu|popover|avatar|separator|button|dialog|drawer|merge-props|use-render|utils|internals|floating-ui-react)|@base-ui\/utils|@floating-ui)\//u,
+                test: /node_modules\/(?:@base-ui\/react\/(?:navigation-menu|menu|popover|tooltip|avatar|separator|button|dialog|drawer|merge-props|use-render|utils|internals|floating-ui-react)|@base-ui\/utils|@floating-ui)\//u,
                 name: "base-ui-shell",
               },
               {

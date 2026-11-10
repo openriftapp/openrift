@@ -395,22 +395,21 @@ function ChecklistRow({
   const matched = printing !== undefined && card.matchStatus === "matched";
   const name = matched ? legendDisplayName(printing.card) : card.rawName;
 
-  const toggle = async () => {
+  const toggle = () => {
     if (tickLocked) {
       return;
     }
-    try {
-      await tickCard.mutateAsync({
-        tournamentId,
-        entryId,
-        cardId: card.id,
-        copyIndex,
-        found: !found,
-      });
-    } catch {
-      toast.info(m.tournaments_deck_check_list_changed());
-      onStale();
-    }
+    tickCard.mutate(
+      { tournamentId, entryId, cardId: card.id, copyIndex, found: !found },
+      {
+        onSuccess: (result) => {
+          if (result.status === "stale") {
+            toast.info(m.tournaments_deck_check_list_changed());
+            onStale();
+          }
+        },
+      },
+    );
   };
 
   const handleRemove = async () => {
@@ -433,7 +432,9 @@ function ChecklistRow({
       onMouseLeave={() => onHover?.(null)}
     >
       <Pressable
-        onClick={() => void toggle()}
+        role="checkbox"
+        aria-checked={found}
+        onClick={toggle}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1.5"
       >
         <span
@@ -557,23 +558,21 @@ function ChecklistCell({
   const [fixOpen, setFixOpen] = useState(false);
   const found = card.foundCopies[copyIndex] === true;
 
-  const toggle = async () => {
+  const toggle = () => {
     if (tickLocked) {
       return;
     }
-    try {
-      await tickCard.mutateAsync({
-        tournamentId,
-        entryId,
-        cardId: card.id,
-        copyIndex,
-        found: !found,
-      });
-    } catch {
-      // A 409 means the list was re-imported under us; reload the entry.
-      toast.info(m.tournaments_deck_check_list_changed());
-      onStale();
-    }
+    tickCard.mutate(
+      { tournamentId, entryId, cardId: card.id, copyIndex, found: !found },
+      {
+        onSuccess: (result) => {
+          if (result.status === "stale") {
+            toast.info(m.tournaments_deck_check_list_changed());
+            onStale();
+          }
+        },
+      },
+    );
   };
 
   const handleRemove = async () => {
@@ -653,7 +652,9 @@ function ChecklistCell({
         {actionStrip}
         <div className="relative">
           <Pressable
-            onClick={() => void toggle()}
+            role="checkbox"
+            aria-checked={found}
+            onClick={toggle}
             className={cn(
               "border-warning/40 bg-warning-soft flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed p-2 text-sm",
               found && "opacity-60",
@@ -678,7 +679,8 @@ function ChecklistCell({
       ctx={{ isSelected: false, isFlashing: false, cardWidth: cellWidth, priority: false }}
       display={display}
       showImages
-      onClick={() => void toggle()}
+      onClick={toggle}
+      checked={found}
       strip={actionStrip}
       imageOverlay={foundOverlay}
       dimmed={found}

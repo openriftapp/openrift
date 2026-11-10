@@ -39,7 +39,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaSourceVocabularyDialog } from "./meta-source-vocabulary-dialog";
 
 function template(overrides: Partial<MetaSourceTemplate> = {}): MetaSourceTemplate {

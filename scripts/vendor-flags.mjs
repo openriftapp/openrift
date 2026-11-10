@@ -1,4 +1,3 @@
-// oxlint-disable import/no-nodejs-modules -- build-time Node script, never bundled
 // Vendors flag-icons SVGs into apps/web/public/images/flags/ as small WebP.
 // Run under Node, never Bun: sharp 0.35.3 under Bun corrupts one-off WebP
 // encodes with row ghosting.

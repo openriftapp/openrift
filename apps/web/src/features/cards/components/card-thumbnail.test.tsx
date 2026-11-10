@@ -172,6 +172,21 @@ describe("CardThumbnail siblings", () => {
     expect(getByText("×3")).toBeDefined();
   });
 
+  it("exposes a checked state as a checkbox when one is given", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const { getByRole } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        checked
+        display={{ ...baseDisplay, coarsePointer: false }}
+      />,
+    );
+
+    expect(getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
+  });
+
   it("counts the printings in the meta row on coarse-pointer devices", () => {
     const front = makePrintingWithImage("RB1-001");
     const siblings = [

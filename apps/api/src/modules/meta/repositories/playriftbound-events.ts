@@ -18,6 +18,7 @@ import type {
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
   MetaSyncBuckets,
+  MetaSyncBucketTriage,
 } from "./meta-sync-buckets.js";
 import {
   metaSyncBucketCondition,
@@ -177,6 +178,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
   )`;
   const pagedNew = sql<SqlBool>`${notDismissed} and ${notLinked}`;
   const pagedAccepted = sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`;
+  const bucketTriage: MetaSyncBucketTriage = { undecided: pagedNew, published: pagedAccepted };
   const pagedDismissed = sql<SqlBool>`i.provider is not null`;
 
   function listSelect() {
@@ -421,7 +423,12 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
         }
         if (filters.bucket !== undefined) {
           base = base.where(
-            metaSyncBucketCondition(filters.bucket.name, bucketColumns, filters.bucket.rule),
+            metaSyncBucketCondition(
+              filters.bucket.name,
+              bucketColumns,
+              filters.bucket.rule,
+              bucketTriage,
+            ),
           ) as T;
         }
         if (filters.triage === "new") {
@@ -578,7 +585,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.tournament_id`.as("key"))
-        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, bucketTriage))
         .execute();
       return rows.map((row) => row.key);
     },

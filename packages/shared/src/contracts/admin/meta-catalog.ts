@@ -1,3 +1,4 @@
+import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/meta-sync-buckets";
 import { metaEventTierSchema } from "@openrift/shared/response-schemas";
 import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
@@ -101,16 +102,6 @@ export const META_NOTABLE_EVENT_NAMES = [
   "circuit",
 ] as const;
 
-export const META_SYNC_BUCKET_FILTERS = [
-  "needsDecision",
-  "passingNoResults",
-  "skippedUpcoming",
-  "skippedPast",
-  "notStarted",
-  "collecting",
-  "final",
-  "noResults",
-] as const;
 export type MetaSyncBucketFilter = (typeof META_SYNC_BUCKET_FILTERS)[number];
 const syncBucketFilterSchema = z.enum(META_SYNC_BUCKET_FILTERS);
 

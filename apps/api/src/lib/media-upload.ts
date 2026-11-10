@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem access
 import { existsSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem path join
 import { dirname, join } from "node:path";
 
 import { v7 as uuidv7 } from "uuid";

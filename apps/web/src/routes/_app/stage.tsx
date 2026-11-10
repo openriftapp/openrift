@@ -1,7 +1,6 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
@@ -10,6 +9,7 @@ import { DeckPending } from "@/features/decks/components/deck-pending";
 import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
+import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -25,16 +25,16 @@ const DECK_ZONES = [
 
 // Carries the shared filter params on top of its own: dropping them would
 // make a link copied from /cards fail validation here.
-const stageSearchSchema = filterSearchSchema.extend({
-  deck: z.string().optional().catch(undefined),
-  tier: z.string().optional().catch(undefined),
-  tierShare: z.string().optional().catch(undefined),
+const stageSearchSchema = z.extend(filterSearchSchema, {
+  deck: lenient(z.string()),
+  tier: lenient(z.string()),
+  tierShare: lenient(z.string()),
   cards: queueCardsSearchSchema,
-  zone: z.enum(DECK_ZONES).optional().catch(undefined),
-  i: z.number().int().nonnegative().optional().catch(undefined),
-  mode: z.enum(["edit"]).optional().catch(undefined),
-  preset: z.string().optional().catch(undefined),
-  edit: z.boolean().optional().catch(undefined),
+  zone: lenient(z.enum(DECK_ZONES)),
+  i: lenient(z.number().check(z.int(), z.nonnegative())),
+  mode: lenient(z.enum(["edit"])),
+  preset: lenient(z.string()),
+  edit: lenient(z.boolean()),
 });
 
 export const Route = createFileRoute("/_app/stage")({

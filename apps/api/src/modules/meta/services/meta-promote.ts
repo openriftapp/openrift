@@ -3,7 +3,6 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { loadCardNameIndex } from "../../candidates/services/candidate-links.js";
 import { metaEventSlugCandidates } from "../lib/meta-event-naming.js";
 import type { MetaEventOverlayPatch } from "../lib/meta-overlay-apply.js";
@@ -55,8 +54,8 @@ export function promoteMetaEvent(
   metaEventId: string,
   context?: MetaPromoteContext,
 ): Promise<MetaPromoteResult> {
-  return repos.meta.withPromoteLock(`event:${metaEventId}`, () =>
-    promoteMetaEventLocked(repos, metaEventId, context),
+  return repos.meta.withPromoteLock(`event:${metaEventId}`, (locked) =>
+    promoteMetaEventLocked(locked, metaEventId, context),
   );
 }
 
@@ -195,8 +194,8 @@ export function promoteNewEvent(
   if (provider === null || externalId === null) {
     return promoteNewEventLocked(repos, provider, externalId, seed);
   }
-  return repos.meta.withPromoteLock(`source:${provider}:${externalId}`, () =>
-    promoteNewEventLocked(repos, provider, externalId, seed),
+  return repos.meta.withPromoteLock(`source:${provider}:${externalId}`, (locked) =>
+    promoteNewEventLocked(locked, provider, externalId, seed),
   );
 }
 
@@ -236,28 +235,33 @@ async function createEventWithFreshSlug(
   repos: Repos,
   seed: { name: string; eventDate: string; format: string },
 ): Promise<{ created: { id: string }; slug: string }> {
-  for (let attempt = 1; ; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     const slug = await resolveEventSlug(repos, seed.name, seed.eventDate);
-    try {
-      const created = await repos.meta.createEvent({
-        slug,
-        name: seed.name,
-        eventDate: seed.eventDate,
-        format: seed.format,
-        playerCount: null,
-        organizer: null,
-        notes: null,
-        tier: "local",
-        country: null,
-        location: null,
-      });
+    const created = await repos.meta.createEventIfSlugFree({
+      slug,
+      name: seed.name,
+      eventDate: seed.eventDate,
+      format: seed.format,
+      playerCount: null,
+      organizer: null,
+      notes: null,
+      tier: "local",
+      country: null,
+      location: null,
+    });
+    if (created !== undefined) {
       return { created, slug };
-    } catch (error) {
-      if (attempt >= 3 || !isUniqueViolationOn(error, "uq_meta_events_slug")) {
-        throw error;
-      }
     }
   }
+  throw slugExhausted(seed.name);
+}
+
+function slugExhausted(name: string): AppError {
+  return new AppError(
+    409,
+    ERROR_CODES.CONFLICT,
+    `Could not find a free slug for "${name}". Rename the event, or add it by hand.`,
+  );
 }
 
 function mintSlugId(): string {
@@ -277,9 +281,5 @@ async function resolveEventSlug(repos: Repos, name: string, eventDate: string): 
       return slug;
     }
   }
-  throw new AppError(
-    409,
-    ERROR_CODES.CONFLICT,
-    `Could not find a free slug for "${name}". Rename the event, or add it by hand.`,
-  );
+  throw slugExhausted(name);
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   isCheckViolation,
   isForeignKeyViolation,
+  isForeignKeyViolationOn,
   isUniqueViolation,
   isUniqueViolationOn,
   raisedExceptionMessage,
@@ -42,6 +43,23 @@ describe("isUniqueViolation", () => {
     expect(isUniqueViolation(null)).toBe(false);
     expect(isUniqueViolation(undefined)).toBe(false);
     expect(isUniqueViolation("23505")).toBe(false);
+  });
+});
+
+describe("isForeignKeyViolationOn", () => {
+  it("is true only when the 23503 names the given constraint", () => {
+    const error = { code: "23503", constraint_name: "copies_grader_fkey" };
+    expect(isForeignKeyViolationOn(error, "copies_grader_fkey")).toBe(true);
+    expect(isForeignKeyViolationOn(error, "copies_printing_id_fkey")).toBe(false);
+  });
+
+  it("is false for another SQLSTATE on the same constraint name", () => {
+    expect(
+      isForeignKeyViolationOn(
+        { code: "23505", constraint_name: "copies_grader_fkey" },
+        "copies_grader_fkey",
+      ),
+    ).toBe(false);
   });
 });
 

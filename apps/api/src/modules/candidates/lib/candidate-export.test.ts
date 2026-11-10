@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildExport } from "./candidate-export.js";

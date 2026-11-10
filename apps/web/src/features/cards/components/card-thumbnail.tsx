@@ -1,5 +1,4 @@
 import { useDraggable } from "@dnd-kit/core";
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { errataForLanguage } from "@openrift/shared/errata";
@@ -21,7 +20,12 @@ import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badg
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import {
+  BUTTON_PAD_CLASS,
+  CARD_BORDER_RADIUS,
+  LABEL_WRAPPER_MT_CLASS,
+} from "@/features/cards/lib/card-grid-constants";
+import { printingName } from "@/features/cards/lib/card-meta";
 import { isPlainPrimaryClick } from "@/features/cards/lib/card-row-interactions";
 import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -305,7 +309,7 @@ function inDisplayOrder(side: 1 | 2, own: string, other: string): string {
 function displayCard(printing: Printing) {
   return {
     ...printing.card,
-    name: printing.printedName ?? legendDisplayName(printing.card),
+    name: printingName(printing, printing.card),
     rulesText: printing.printedRulesText,
     effectText: printing.printedEffectText,
     flavorText: printing.flavorText,
@@ -351,6 +355,7 @@ interface CardThumbnailProps {
   imageOverlay?: ReactNode;
   imageBadge?: ReactNode;
   href?: string;
+  checked?: boolean;
 }
 
 interface ImageTargetProps {
@@ -360,12 +365,27 @@ interface ImageTargetProps {
   className: string;
   style: CSSProperties;
   children: ReactNode;
+  checked?: boolean;
 }
 
-function ImageTarget({ href, onClick, className, style, children, draggable }: ImageTargetProps) {
+function ImageTarget({
+  href,
+  onClick,
+  className,
+  style,
+  children,
+  draggable,
+  checked,
+}: ImageTargetProps) {
   if (href === undefined) {
     return (
-      <Pressable className={className} style={style} onClick={onClick}>
+      <Pressable
+        className={className}
+        style={style}
+        onClick={onClick}
+        role={checked === undefined ? undefined : "checkbox"}
+        aria-checked={checked}
+      >
         {children}
       </Pressable>
     );
@@ -519,12 +539,10 @@ export const CardThumbnail = memo(function CardThumbnail({
   imageOverlay,
   imageBadge,
   href,
+  checked,
 }: CardThumbnailProps) {
   const card = displayCard(printing);
-  const displayName =
-    printing.printedName && printing.printedName !== printing.card.name
-      ? printing.printedName
-      : legendDisplayName(printing.card);
+  const displayName = printingName(printing, printing.card);
   const frontImage = printing.images[0] ?? null;
   // Reads printing.card.types directly, not card.types: coupling this to the derived
   // `card` object would block React Compiler from memoizing it and its JSX.
@@ -711,6 +729,7 @@ export const CardThumbnail = memo(function CardThumbnail({
           href={href}
           draggable={dragData ? false : undefined}
           onClick={(event) => onClick(printing, event)}
+          checked={checked}
         >
           <CardImageContent
             thumbnailUrl={thumbnailUrl}
@@ -774,9 +793,8 @@ export const CardThumbnail = memo(function CardThumbnail({
 
   const labelOtherSide = view === "cards" ? undefined : printing.otherSide;
   const labelSection = (
-    // ⚠ mt-2.5 is mirrored as LABEL_WRAPPER_MT in card-grid.tsx — update both together
     <CardMetaLabel
-      className="relative z-10 mt-2.5"
+      className={cn("relative z-10", LABEL_WRAPPER_MT_CLASS)}
       shortCode={
         labelOtherSide
           ? inDisplayOrder(printing.side, printing.shortCode, labelOtherSide.shortCode)
@@ -842,8 +860,8 @@ export const CardThumbnail = memo(function CardThumbnail({
     />
   );
   const wrapperClassName = cn(
-    // ⚠ p-0.75 is mirrored as BUTTON_PAD in card-grid-constants.ts — update both together
-    "group relative z-0 w-full rounded-lg p-0.75 text-left hover:z-10",
+    "group relative z-0 w-full rounded-lg text-left hover:z-10",
+    BUTTON_PAD_CLASS,
     otherPrintings.length > 0 && "hover:[--fan:1]",
     // Without this, equal-z siblings paint in DOM order: the glow shows over the
     // left neighbour but under the right one.

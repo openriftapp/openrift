@@ -410,10 +410,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
 
               {/* Spacer offsets are tbody-relative; virtual items are reported in
                   document space, so scrollMargin is subtracted here and added back below. */}
-              {firstVirtualItem && (
-                // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- TanStack Virtual spacer row, no semantic content
-                <tr style={{ height: firstVirtualItem.start - scrollMargin }} />
-              )}
+              {firstVirtualItem && <tr style={{ height: firstVirtualItem.start - scrollMargin }} />}
 
               {renderedRows.map((row) => {
                 if (!row) {
@@ -464,7 +461,6 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
               })}
 
               {lastVirtualItem && (
-                // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- TanStack Virtual spacer row, no semantic content
                 <tr style={{ height: totalSize - lastVirtualItem.end + scrollMargin }} />
               )}
             </TableBody>

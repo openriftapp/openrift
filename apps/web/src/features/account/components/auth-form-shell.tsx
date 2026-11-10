@@ -19,12 +19,14 @@ export function AuthFormCard({
   title,
   subtitle,
   layout = "split",
+  aside,
   children,
   ...props
 }: Omit<React.ComponentProps<"div">, "title"> & {
   title: string;
-  subtitle: ReactNode;
+  subtitle?: ReactNode;
   layout?: "split" | "single";
+  aside?: ReactNode;
 }) {
   const split = layout === "split";
   return (
@@ -40,18 +42,20 @@ export function AuthFormCard({
                   className={cn("size-12", split && "md:hidden")}
                 />
                 <Heading level={1}>{title}</Heading>
-                <p className="text-muted-foreground text-balance">{subtitle}</p>
+                {subtitle && <p className="text-muted-foreground text-balance">{subtitle}</p>}
               </div>
               {children}
             </FieldGroup>
           </div>
           {split && (
             <div className="bg-muted relative hidden md:block">
-              <img
-                src="/logo-color.svg"
-                alt="OpenRift"
-                className="absolute inset-0 m-auto size-48 object-contain"
-              />
+              {aside ?? (
+                <img
+                  src="/logo-color.svg"
+                  alt="OpenRift"
+                  className="absolute inset-0 m-auto size-48 object-contain"
+                />
+              )}
             </div>
           )}
         </CardContent>

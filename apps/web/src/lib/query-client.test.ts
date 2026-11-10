@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { QueryObserver } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +12,11 @@ import { loadSonner, PERSISTENT_ERROR_TOAST } from "./toast";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 vi.mock("./report-error", () => ({ captureHandledError: vi.fn() }));
+
+const fetchFlags = vi.fn(() => Promise.resolve({}));
+vi.mock("./feature-flags", () => ({
+  featureFlagsQueryOptions: { queryKey: ["feature-flags"], queryFn: () => fetchFlags() },
+}));
 
 // Post-seroval-boundary ApiError: a plain object, prototype gone. instanceof fails here.
 const unauthorized = {
@@ -155,12 +161,39 @@ describe("createQueryClient session-expiry handling", () => {
     await expect(
       client.query({
         queryKey: ["deck", "1"],
-        // oxlint-disable-next-line prefer-promise-reject-errors -- deliberately a plain object: the post-seroval ApiError shape
         queryFn: () => Promise.reject(unauthorized),
       }),
     ).rejects.toBe(unauthorized);
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: sessionQueryOptions().queryKey });
+  });
+
+  it("refetches the viewer's feature flags when a query fails with a 401", async () => {
+    const client = createQueryClient();
+    fetchFlags.mockClear();
+
+    await expect(
+      client.query({
+        queryKey: ["deck", "3"],
+        queryFn: () => Promise.reject(unauthorized),
+      }),
+    ).rejects.toBe(unauthorized);
+
+    expect(fetchFlags).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not refetch the flags when the flag query itself fails with a 401", async () => {
+    const client = createQueryClient();
+    fetchFlags.mockClear();
+
+    await expect(
+      client.query({
+        queryKey: ["feature-flags"],
+        queryFn: () => Promise.reject(unauthorized),
+      }),
+    ).rejects.toBe(unauthorized);
+
+    expect(fetchFlags).not.toHaveBeenCalled();
   });
 
   it("does not invalidate the session for non-401 query errors", async () => {
@@ -185,7 +218,6 @@ describe("createQueryClient session-expiry handling", () => {
     await expect(
       client.query({
         queryKey: ["deck-check", "entries"],
-        // oxlint-disable-next-line prefer-promise-reject-errors -- the post-boundary server-fn error shape
         queryFn: () => Promise.reject(staleServerFn),
         retry: false,
       }),
@@ -235,6 +267,40 @@ describe("createQueryClient session-expiry handling", () => {
     expect(retry(2, serverError)).toBe(true);
     expect(retry(3, serverError)).toBe(false);
     expect(retry(2, networkError)).toBe(true);
+  });
+});
+
+describe("createQueryClient staleTime default", () => {
+  it("serves data younger than 30 s without fetching again", async () => {
+    const client = createQueryClient();
+    client.setQueryData(["fresh"], "hydrated");
+    const queryFn = vi.fn(() => Promise.resolve("refetched"));
+
+    await expect(client.query({ queryKey: ["fresh"], queryFn })).resolves.toBe("hydrated");
+    expect(queryFn).not.toHaveBeenCalled();
+  });
+
+  it("fetches again once the data is older than 30 s", async () => {
+    const client = createQueryClient();
+    client.setQueryData(["old"], "hydrated", { updatedAt: Date.now() - 31_000 });
+    const queryFn = vi.fn(() => Promise.resolve("refetched"));
+
+    await expect(client.query({ queryKey: ["old"], queryFn })).resolves.toBe("refetched");
+  });
+
+  it("still refetches a fresh, observed query when a mutation invalidates it", async () => {
+    const client = createQueryClient();
+    client.setQueryData(["observed"], "hydrated");
+    const queryFn = vi.fn(() => Promise.resolve("refetched"));
+    const observer = new QueryObserver(client, { queryKey: ["observed"], queryFn });
+    const unsubscribe = observer.subscribe(() => {});
+    expect(queryFn).not.toHaveBeenCalled();
+
+    await client.invalidateQueries({ queryKey: ["observed"] });
+
+    expect(queryFn).toHaveBeenCalledTimes(1);
+    expect(client.getQueryData(["observed"])).toBe("refetched");
+    unsubscribe();
   });
 });
 

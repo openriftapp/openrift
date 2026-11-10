@@ -33,10 +33,8 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { MetaPlayerLegendEntry } from "@/features/meta/lib/meta-player-page";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaPlayerLegends } from "./meta-player-legends";
 
 const LUX: MetaPlayerLegendEntry = {

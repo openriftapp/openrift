@@ -22,7 +22,7 @@ import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbna
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useFilterCountsVisible } from "@/features/cards/hooks/use-filter-counts-visible";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
-import { splitsCardIntoTiles, tileSiblings } from "@/features/cards/lib/card-tiles";
+import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
@@ -220,11 +220,8 @@ export function CardBrowser() {
     printing,
   }));
 
-  // Cards+set shares a cardId across multiple tiles, so selection must
-  // navigate by printing or clicking a reprint jumps back to the wrong tile.
   const inCardsView = view === "cards";
-  const findBy: "card" | "printing" =
-    inCardsView && !splitsCardIntoTiles(groupBy) ? "card" : "printing";
+  const findBy = selectionFindBy(view, groupBy);
 
   const { printingId: linkedPrintingId } = useSearch({ from: "/_app/cards" });
   useCardDeepLink({ linkedPrintingId, printingsById, items });
@@ -439,12 +436,12 @@ export function CardBrowser() {
         onCancel={cancelAnnotatedDispose}
         isPending={disposeIsPending}
       />
-      {inboxId && (
+      {inbox && (
         <QuickAddPalette
           open={quickAddOpen}
           onOpenChange={setQuickAddOpen}
-          collectionId={inboxId}
-          collectionName="Inbox"
+          collectionId={inbox.id}
+          collectionName={inbox.name}
           printingsByCardId={catalogAllPrintingsByCardId}
           ownedCountByPrinting={ownedCountByPrinting}
           collections={collections}

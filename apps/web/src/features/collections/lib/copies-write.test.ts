@@ -209,7 +209,6 @@ describe("persisting copy writes", () => {
     let calls = 0;
     respond = (request) => {
       calls += 1;
-      // oxlint-disable-next-line promise/avoid-new -- a request that never answers, like one lost on the network
       return calls === 1 ? new Promise<Response>(() => {}) : succeed(request);
     };
     const add = pendingInsert(
@@ -314,13 +313,29 @@ describe("persisting copy writes", () => {
       .when("settled");
     expect(invalidatedKeys()).toContainEqual(["collections", userId]);
   });
+
+  it("marks the reads derived from copies stale after a detail edit", async () => {
+    const collection = await copiesOnServer([stubCopy({ id: "c1", collectionId: "source" })]);
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const invalidatedKeys = () => invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+
+    await updateCopyMetadata(collection, ["c1"], { condition: "mint" }).when("settled");
+
+    expect(invalidatedKeys()).toEqual(
+      expect.arrayContaining([
+        ["collection-events", userId],
+        ["collectionValueHistory", userId],
+        ["lists", userId],
+        ["extension", userId],
+      ]),
+    );
+  });
 });
 
 describe("confirmed writes survive a copies refetch that started before them", () => {
   async function withSlowRefetch(initial: CopyResponse[]) {
     const server = { rows: initial };
     let release = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- gate resolved from outside the fetch
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
@@ -343,7 +358,6 @@ describe("confirmed writes survive a copies refetch that started before them", (
     release();
     await refetching.catch(() => {});
     await vi.waitFor(() => expect(queryClient.isFetching()).toBe(0));
-    // oxlint-disable-next-line promise/avoid-new -- let queued result applications run
     await new Promise((resolve) => {
       setTimeout(resolve, 20);
     });

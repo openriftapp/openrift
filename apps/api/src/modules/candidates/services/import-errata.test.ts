@@ -1,6 +1,3 @@
-/* oxlint-disable
-   no-restricted-imports
-   -- test file: api has no @/ alias */
 import type { UploadErrataEntry } from "@openrift/shared/contracts/admin/card-mutations";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

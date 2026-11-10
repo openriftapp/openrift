@@ -1,6 +1,3 @@
-/* oxlint-disable
-   no-empty-function
-   -- test file: mocks require empty fns */
 import { describe, expect, it, vi } from "vitest";
 
 import { printingEventsRepo } from "./printing-events.js";

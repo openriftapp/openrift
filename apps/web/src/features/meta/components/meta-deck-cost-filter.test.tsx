@@ -46,9 +46,7 @@ vi.mock("@/components/ui/slider", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { MetaCostFilterValue, MetaDeckCostFilterProps } from "./meta-deck-cost-filter";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { EMPTY_META_COST_FILTER, MetaDeckCostFilter } from "./meta-deck-cost-filter";
 
 type Overrides = Partial<Omit<MetaDeckCostFilterProps, "value">> & {

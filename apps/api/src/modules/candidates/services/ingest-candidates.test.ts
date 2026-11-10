@@ -1,8 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   no-restricted-imports,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined; api has no @/ alias */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
@@ -1364,5 +1359,179 @@ describe("ingestCandidates", () => {
     expect(b.updates).toHaveLength(0);
     expect(a.inserts[0][0].artist).toBe("Alpha");
     expect(b.inserts[0][0].artist).toBe("Beta");
+  });
+
+  describe("existing rows whose external id is in the upload", () => {
+    function existingCard(overrides: Record<string, unknown> = {}) {
+      return {
+        id: "cc-1",
+        externalId: "ext-card-1",
+        name: "Fireball",
+        types: ["spell"],
+        superTypes: [],
+        domains: ["fury"],
+        might: 3,
+        energy: 2,
+        power: null,
+        mightBonus: null,
+        rulesText: "Deal damage",
+        effectText: null,
+        tags: [],
+        shortCode: "OGN-001",
+        extraData: null,
+        ...overrides,
+      };
+    }
+
+    function existingPrinting(overrides: Record<string, unknown> = {}) {
+      return {
+        id: "cp-1",
+        candidateCardId: "cc-1",
+        externalId: "ext-print-1",
+        shortCode: "OGN-001",
+        setId: "origin",
+        setName: "Origin Set",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        markerSlugs: [],
+        distributionChannelSlugs: [],
+        finish: "normal",
+        size: null,
+        artist: "Jane Doe",
+        publicCode: "001",
+        printedRulesText: null,
+        printedEffectText: null,
+        imageUrl: null,
+        flavorText: null,
+        extraData: null,
+        printingId: null,
+        ...overrides,
+      };
+    }
+
+    it("keeps an existing card and its printings when the re-uploaded card is invalid", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([existingCard()]),
+        candidatePrintingsByCandidateCardIds: vi.fn().mockResolvedValue([existingPrinting()]),
+      });
+      const card = makeCard({ name: "", printings: [makePrinting()] });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [card]);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain("name:");
+      expect((repos.ingest as any).updateCandidateCard).not.toHaveBeenCalled();
+      expect((repos.ingest as any).deleteCandidateCards).not.toHaveBeenCalled();
+      expect((repos.ingest as any).deleteCandidatePrintings).not.toHaveBeenCalled();
+      expect(result.removedCards).toBe(0);
+      expect(result.removedPrintings).toBe(0);
+      expect(result.removedCardDetails).toEqual([]);
+      expect(result.removedPrintingDetails).toEqual([]);
+    });
+
+    it("keeps an existing printing when its re-uploaded row is invalid", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([existingCard()]),
+        candidatePrintingsByCandidateCardIds: vi.fn().mockResolvedValue([existingPrinting()]),
+      });
+      const card = makeCard({ printings: [makePrinting({ short_code: "" })] });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [card]);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain("short_code:");
+      expect((repos.ingest as any).updateCandidatePrinting).not.toHaveBeenCalled();
+      expect((repos.ingest as any).deleteCandidatePrintings).not.toHaveBeenCalled();
+      expect(result.removedPrintings).toBe(0);
+      expect(result.removedPrintingDetails).toEqual([]);
+    });
+
+    it("keeps an existing printing carried only by a dropped duplicate card", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([existingCard()]),
+        candidatePrintingsByCandidateCardIds: vi
+          .fn()
+          .mockResolvedValue([existingPrinting({ id: "cp-2", externalId: "ext-print-2" })]),
+      });
+      const cards = [
+        makeCard(),
+        makeCard({ printings: [makePrinting({ external_id: "ext-print-2" })] }),
+      ];
+      const result = await ingestCandidates(mockTransact(repos), "gallery", cards);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain("Duplicate card external_id");
+      expect((repos.ingest as any).deleteCandidatePrintings).not.toHaveBeenCalled();
+      expect(result.removedPrintings).toBe(0);
+    });
+
+    it("still removes rows absent from the upload next to a kept invalid row", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi
+          .fn()
+          .mockResolvedValue([
+            existingCard(),
+            existingCard({ id: "cc-2", externalId: "ext-card-2", name: "Frostbite" }),
+          ]),
+        candidatePrintingsByCandidateCardIds: vi
+          .fn()
+          .mockResolvedValue([
+            existingPrinting(),
+            existingPrinting({ id: "cp-2", candidateCardId: "cc-2", externalId: "ext-print-2" }),
+          ]),
+      });
+      const card = makeCard({ name: "", printings: [makePrinting()] });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [card]);
+
+      expect((repos.ingest as any).deleteCandidateCards).toHaveBeenCalledWith(["cc-2"]);
+      expect((repos.ingest as any).deleteCandidatePrintings).toHaveBeenCalledWith(["cp-2"]);
+      expect(result.removedCardDetails).toEqual([{ name: "Frostbite", shortCode: "OGN-001" }]);
+    });
+
+    it("counts a kept printing as removed when its existing card is removed", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([existingCard()]),
+        candidatePrintingsByCandidateCardIds: vi.fn().mockResolvedValue([existingPrinting()]),
+      });
+      const card = makeCard({
+        external_id: "ext-card-9",
+        printings: [makePrinting({ short_code: "" })],
+      });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [card]);
+
+      expect((repos.ingest as any).deleteCandidateCards).toHaveBeenCalledWith(["cc-1"]);
+      expect((repos.ingest as any).deleteCandidatePrintings).toHaveBeenCalledWith(["cp-1"]);
+      expect(result.removedPrintings).toBe(1);
+    });
+
+    it("still removes an existing card that is now ignored, with its printings", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([existingCard()]),
+        candidatePrintingsByCandidateCardIds: vi.fn().mockResolvedValue([existingPrinting()]),
+        ignoredCandidateCards: vi.fn().mockResolvedValue([{ externalId: "ext-card-1" }]),
+      });
+      const card = makeCard({ printings: [makePrinting()] });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [card]);
+
+      expect((repos.ingest as any).deleteCandidateCards).toHaveBeenCalledWith(["cc-1"]);
+      expect((repos.ingest as any).deleteCandidatePrintings).toHaveBeenCalledWith(["cp-1"]);
+      expect(result.removedCards).toBe(1);
+      expect(result.removedPrintings).toBe(1);
+    });
+
+    it("still removes an existing printing that is now ignored", async () => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([existingCard()]),
+        candidatePrintingsByCandidateCardIds: vi.fn().mockResolvedValue([existingPrinting()]),
+        ignoredCandidatePrintings: vi
+          .fn()
+          .mockResolvedValue([{ externalId: "ext-print-1", finish: "normal" }]),
+      });
+      const card = makeCard({ printings: [makePrinting()] });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [card]);
+
+      expect((repos.ingest as any).deleteCandidateCards).not.toHaveBeenCalled();
+      expect((repos.ingest as any).deleteCandidatePrintings).toHaveBeenCalledWith(["cp-1"]);
+      expect(result.removedPrintings).toBe(1);
+    });
   });
 });

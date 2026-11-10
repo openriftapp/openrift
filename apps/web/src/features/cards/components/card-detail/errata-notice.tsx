@@ -79,19 +79,16 @@ export function ErrataCardText({
   }
   return markCorrected(diffCardText(printed, corrected)).map((segment, index) => {
     if (segment.status === "gap") {
-      // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
       return <ErrataMark key={index} mobile={mobile} gap />;
     }
     if (segment.status === "added" && !isBlankSegment(segment)) {
       return (
-        // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
         <ErrataMark key={index} mobile={mobile} italic={segment.italic}>
           <CardTextTokens tokens={segment.tokens} />
         </ErrataMark>
       );
     }
     return (
-      // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
       <span key={index} className={cn(segment.italic && "italic")}>
         <CardTextTokens
           tokens={segment.tokens}

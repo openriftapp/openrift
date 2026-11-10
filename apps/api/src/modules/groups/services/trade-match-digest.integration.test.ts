@@ -30,7 +30,6 @@ describe.skipIf(!ctx)("trade match digest (integration)", () => {
     return {
       repos,
       log: createLogger("test", "silent"),
-      // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async ({ to, subject, html }) => {
         sent.push({ to, subject, html });
         return undefined;

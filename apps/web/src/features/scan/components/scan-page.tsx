@@ -1,9 +1,11 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { SignInRequiredDialog } from "@/components/layout/nav-items";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { TakeWishlistFollowUpDialog } from "@/features/collections/components/take-wishlist-followup-dialog";
@@ -56,6 +58,7 @@ import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useLanguageLabels } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 function recordScanned(printing: Printing): void {
@@ -63,9 +66,31 @@ function recordScanned(printing: Printing): void {
   appendScanJournal({ type: "scan", printingId: printing.printingId });
 }
 
+const NO_COLLECTIONS: CollectionResponse[] = [];
+
 export function ScanPage() {
-  const { allPrintings } = useCards();
+  const userId = useUserId();
+  return userId ? (
+    <SignedInScanPage />
+  ) : (
+    <ScanPageBody collections={NO_COLLECTIONS} signedIn={false} />
+  );
+}
+
+function SignedInScanPage() {
   const { data: collections } = useCollections();
+  return <ScanPageBody collections={collections} signedIn />;
+}
+
+function ScanPageBody({
+  collections,
+  signedIn,
+}: {
+  collections: CollectionResponse[];
+  signedIn: boolean;
+}) {
+  const { allPrintings } = useCards();
+  const [signInOpen, setSignInOpen] = useState(false);
 
   const muted = useScanPrefsStore((state) => state.muted);
   const setMuted = useScanPrefsStore((state) => state.setMuted);
@@ -335,6 +360,10 @@ export function ScanPage() {
   } = useScanClear(resetFailedCount);
 
   function handleAddAllToDestination() {
+    if (!signedIn) {
+      setSignInOpen(true);
+      return;
+    }
     if (destination) {
       void addAll(destination.id);
     }
@@ -402,7 +431,8 @@ export function ScanPage() {
       collections={collections}
       destination={destination}
       adding={adding}
-      failedCount={failedCount}
+      failedCount={signedIn ? failedCount : 0}
+      onSignInToAdd={signedIn ? undefined : () => setSignInOpen(true)}
       compact={immersive && layout === "portrait"}
       resumed={resumeNotice !== null}
       notice={
@@ -518,16 +548,23 @@ export function ScanPage() {
         }}
         onClear={handleClearNow}
       />
-      <TakeWishlistFollowUpDialog
-        printing={followUp?.printing ?? null}
-        entries={followUp?.entries ?? []}
-        takenQuantity={followUp?.taken ?? 0}
-        onOpenChange={(open) => {
-          if (!open) {
-            dismissFollowUp();
-          }
-        }}
-      />
+      {signedIn ? (
+        <TakeWishlistFollowUpDialog
+          printing={followUp?.printing ?? null}
+          entries={followUp?.entries ?? []}
+          takenQuantity={followUp?.taken ?? 0}
+          onOpenChange={(open) => {
+            if (!open) {
+              dismissFollowUp();
+            }
+          }}
+        />
+      ) : (
+        <SignInRequiredDialog
+          featureKey={signInOpen ? "scan" : null}
+          onOpenChange={setSignInOpen}
+        />
+      )}
     </CardDetailOverlayProvider>
   );
 }

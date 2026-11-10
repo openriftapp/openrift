@@ -10,8 +10,10 @@ export const CARD_BORDER_RADIUS = "5% / 3.6%";
 
 // Kept small: the hover ring and selection tint are their own layers and need no room here.
 export const BUTTON_PAD = 3;
+export const BUTTON_PAD_CLASS = "p-0.75";
 
-export const LABEL_WRAPPER_MT = 10; // mt-2.5 on CardThumbnail label wrapper
+export const LABEL_WRAPPER_MT = 10;
+export const LABEL_WRAPPER_MT_CLASS = "mt-2.5";
 export const META_LABEL_PY = 4; // py-0.5 on CardMetaLabel root
 export const META_LINE_HEIGHT = 16; // text-xs line-height
 export const META_LINE_GAP = 2; // space-y-0.5 between CardMetaLabel lines

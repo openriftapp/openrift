@@ -45,7 +45,6 @@ const mockCatalogRepo = {
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test stub doesn't match full Repos type
   c.set("repos", { catalog: mockCatalogRepo } as any);
   await next();
 });

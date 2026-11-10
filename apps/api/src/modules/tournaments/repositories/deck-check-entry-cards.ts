@@ -58,6 +58,21 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    async listCardsForEntries(entryIds: string[]): Promise<Map<string, DeckCheckEntryCard[]>> {
+      if (entryIds.length === 0) {
+        return new Map();
+      }
+      const rows = await db
+        .selectFrom("deckCheckEntryCards")
+        .selectAll()
+        .select(resolvedPrintingId("deckCheckEntryCards"))
+        .where("entryId", "in", entryIds)
+        .orderBy("entryId")
+        .orderBy("sortOrder", "asc")
+        .execute();
+      return Map.groupBy(rows, (row) => row.entryId);
+    },
+
     async replaceEntryCards(entryId: string, cards: NewDeckCheckEntryCard[]): Promise<void> {
       await db.deleteFrom("deckCheckEntryCards").where("entryId", "=", entryId).execute();
       if (cards.length > 0) {

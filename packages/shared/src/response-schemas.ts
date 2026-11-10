@@ -27,8 +27,7 @@ export const apiErrorResponseSchema = z.object({
   code: z.enum(errorCodeValues).meta({ examples: [ERROR_CODES.NOT_FOUND] }),
 });
 
-// Deliberately non-recursive: a fully recursive JSON type breaks @hono/zod-openapi
-// (TS2589) and leaks the ZodType through hc's response-type inference.
+// Deliberately non-recursive: a fully recursive JSON type breaks type inference (TS2589).
 const diffScalarSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 export type DiffValue = z.infer<typeof diffScalarSchema> | z.infer<typeof diffScalarSchema>[];
 export const diffValueSchema = z.union([diffScalarSchema, z.array(diffScalarSchema)]);

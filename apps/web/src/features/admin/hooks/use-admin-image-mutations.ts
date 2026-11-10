@@ -1,11 +1,14 @@
 import type { ImageOriginalOutput, ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { adminCardImagesContract } from "@openrift/shared/contracts/admin/card-images";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
+import type {
+  UploadCandidatesBody,
+  UploadCandidatesResponse,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import type { UploadCandidatesBody, UploadCandidatesResponse } from "@/lib/server-fns/api-types";
 import { getApiUrl } from "@/lib/server-fns/api-url";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";

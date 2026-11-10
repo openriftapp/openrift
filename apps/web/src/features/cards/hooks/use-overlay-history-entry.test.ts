@@ -19,7 +19,6 @@ vi.mock("@tanstack/react-router", () => ({
 
 function deferred() {
   let finish = () => {};
-  // oxlint-disable-next-line promise/avoid-new -- a navigation the test finishes by hand
   const promise = new Promise<void>((resolve) => {
     finish = () => resolve();
   });

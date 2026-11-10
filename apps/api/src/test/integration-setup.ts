@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test bootstrap reads the seed fixture from disk
 import { readFileSync } from "node:fs";
 
 import type { Logger } from "@openrift/shared/logger";

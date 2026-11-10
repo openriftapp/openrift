@@ -16,6 +16,7 @@ import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { stackSideForTile } from "@/features/collections/lib/stacked-entry";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import type { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
+import { m } from "@/paraglide/messages.js";
 
 export interface LendTarget {
   printing: Printing;
@@ -143,8 +144,11 @@ export function useCollectionGridActions({
         onSuccess: () => {
           toast.success(
             takenQuantity === 1
-              ? `Took ${printingDisplayName(printing)}`
-              : `Took ${takenQuantity}× ${printingDisplayName(printing)}`,
+              ? m.collections_toast_took_one({ name: printingDisplayName(printing) })
+              : m.collections_toast_took_many({
+                  count: takenQuantity,
+                  name: printingDisplayName(printing),
+                }),
           );
           useCollectionOverlayStore.getState().setTakeConfirm(null);
           const matches = wish.entriesForCopy(printing);

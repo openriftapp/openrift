@@ -63,7 +63,6 @@ describe("groupByShim", () => {
 describe("Map.groupBy install", () => {
   it("installs the shim when the built-in is missing", async () => {
     const native = Map.groupBy;
-    // oxlint-disable-next-line typescript/no-explicit-any -- simulating an engine that predates the built-in
     delete (Map as any).groupBy;
 
     try {

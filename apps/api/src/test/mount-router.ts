@@ -13,7 +13,6 @@ import type { Variables } from "../types.js";
  */
 export function registerRouterForTest(
   app: Hono<{ Variables: Variables }>,
-  // oxlint-disable-next-line typescript/no-explicit-any -- oRPC's own `Router<TInitialContext, TContext>` uses `any` for the initial context
   router: Router<any, ApiContext>,
 ): void {
   const handler = new OpenAPIHandler(router, { interceptors: [appErrorInterceptor] });

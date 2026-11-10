@@ -6,6 +6,7 @@ import type { Fetch } from "../../../../io";
 import * as fetchMod from "../../../../lib/http";
 import * as logMod from "./log";
 import { refreshTcgplayerPrices } from "./tcgplayer";
+import { PRICE_FETCH_RETRIES } from "./types";
 import type { StagingRow, UpsertCounts } from "./types";
 import * as upsertMod from "./upsert";
 
@@ -256,6 +257,20 @@ describe("refreshTcgplayerPrices", () => {
       expect(urls).toContainEqual("https://tcgcsv.com/tcgplayer/89/102/products");
       expect(urls).toContainEqual("https://tcgcsv.com/tcgplayer/89/101/prices");
       expect(urls).toContainEqual("https://tcgcsv.com/tcgplayer/89/102/prices");
+    });
+
+    it("asks every fetch to retry a transient failure", async () => {
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      setupFetchJson(fetchJsonSpy, { groups: [GROUP_A] });
+
+      await refreshTcgplayerPrices(stubFetch, repos, log);
+
+      const options = fetchJsonSpy.mock.calls.map((c: unknown[]) => c[2]);
+      expect(options).toHaveLength(3);
+      for (const option of options) {
+        expect(option).toMatchObject({ retries: PRICE_FETCH_RETRIES });
+      }
     });
   });
 

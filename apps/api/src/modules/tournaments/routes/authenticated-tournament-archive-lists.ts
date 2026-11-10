@@ -22,6 +22,7 @@ import {
   canSendArchiveList,
   suggestArchiveListIdentities,
 } from "../lib/archive-lists.js";
+import { presentedEntryState, tournamentSubmissionWindow } from "../lib/deck-check-deadline.js";
 import { loadTournament, requireManage } from "../lib/tournament-access.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 
@@ -64,7 +65,13 @@ async function buildState(
       ? Promise.resolve(null)
       : context.services.loadTournamentListTarget(repos, tournament.uvsgamesEventId),
   ]);
-  const entryByParticipant = new Map(entries.map((entry) => [entry.participantId, entry]));
+  const window = tournamentSubmissionWindow(tournament);
+  const entryByParticipant = new Map(
+    entries.map((entry) => [
+      entry.participantId,
+      { ...entry, state: presentedEntryState(window, entry) },
+    ]),
+  );
   const seated = participants
     .filter((participant) => SEATED_STATUSES.has(participant.status))
     .toSorted((a, b) => a.displayName.localeCompare(b.displayName));
@@ -196,7 +203,7 @@ export const tournamentArchiveListsRouter = {
     }
 
     if (result.sent + result.updated > 0) {
-      await context.services.notifyAdminsOfMetaSubmission(context.repos, {
+      void context.services.notifyAdminsOfMetaSubmission(context.repos, {
         submitterUserId: context.userId,
         kind: "new_list",
         eventName: result.eventName,

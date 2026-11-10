@@ -8,8 +8,10 @@ import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { signUp } from "@/features/account/lib/auth-client";
+import { authDestination } from "@/features/account/lib/auth-destination";
 import { routeTemplate, trackSignupSubmit } from "@/lib/analytics";
 import { setServerError } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
@@ -47,6 +49,7 @@ export function SignupForm({
     resolver: zodResolver(signUpSchema()),
     defaultValues: { name: "", email: initialEmail, password: "" },
   });
+  const destination = authDestination(redirectTo);
 
   async function onSubmit(values: SignUpValues) {
     setLoading(true);
@@ -73,6 +76,7 @@ export function SignupForm({
       className={className}
       title={m.auth_signup_title()}
       subtitle={m.auth_signup_subtitle()}
+      aside={destination && <AuthDestinationPanel destination={destination} />}
       {...props}
     >
       <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>

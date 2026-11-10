@@ -344,7 +344,7 @@
   "nav_pack_opener_description": "用真实出货率模拟开补充包",
   "nav_card_designer_description": "用你自己的背景图制作自定义卡牌",
   "nav_locked_collections_description": "记录你拥有的每一张卡，精确到印刷版本，收藏数量不限。",
-  "nav_locked_scan_description": "把卡牌举到摄像头前即可加入收藏，识别在你的设备上完成，不会上传任何图片。",
+  "nav_locked_scan_description": "登录或创建账号，即可把扫描的卡牌加入收藏。登录期间，列表会保留在这台设备上。",
   "nav_locked_groups_description": "与朋友或本地卡店组建私密小组，共享收藏并进行交换匹配，一眼看出谁有你想要的卡。",
   "nav_locked_trades_description": "与小组成员交换卡牌：来自心愿单和交换清单的匹配、交换请求，以及待确认的交换。",
   "nav_locked_loans_description": "记录你借给朋友的卡：在谁手上，以及你借来了什么。",
@@ -377,12 +377,9 @@
   "layout_header_more": "更多",
   "layout_header_profile": "个人资料",
   "layout_header_admin": "管理",
-  "layout_header_light_mode": "浅色模式",
-  "layout_header_dark_mode": "深色模式",
   "layout_header_sign_out": "退出登录",
   "layout_header_sign_out_failed": "无法退出登录，请重试。",
   "layout_header_section_attention": "{section}需要你处理",
-  "layout_header_join_discord": "加入我们的 Discord",
   "layout_header_help": "帮助",
   "layout_header_help_intro": "卡住了，还是发现了问题？",
   "layout_header_help_articles": "帮助文章",
@@ -439,25 +436,13 @@
   "palette_load_failed": "无法加载卡牌。",
   "palette_load_failed_hint": "关闭后重试。",
   "palette_leave_scope": "退出{label}",
-  "error_heading_rift_collapsed": "裂隙坍塌了",
-  "error_heading_misprint": "检测到严重错印",
-  "error_heading_blank": "这个页面抽了张白卡",
-  "error_heading_void": "被洗进了虚空",
-  "error_heading_not_supposed": "嗯，这本来不该发生",
-  "error_heading_drew_bug": "我们抽到了一个 bug",
-  "error_heading_cant_grade": "出了点问题（不，这个不能拿去评级）",
-  "error_heading_not_ideal": "情况不太妙",
-  "error_heading_yeah_bug": "没错，这就是个 bug",
-  "error_subtext_shuffled_wrong": "有人把代码洗乱了。",
-  "error_subtext_binder": "我们翻遍了卡册，这一页不见了。",
-  "error_subtext_giveth": "裂隙给予，裂隙也收回。",
-  "error_subtext_fell_through": "这个页面掉进了裂隙，再也没回来。",
-  "error_subtext_bad_days": "就算是全新品相的应用也有不顺的时候。",
-  "error_subtext_looking_into_it": "我们正在排查。大概吧。",
-  "error_subtext_not_your_fault": "出了点问题，这绝对不是你的错。",
-  "error_subtext_rest_is_fine": "别担心，其余部分都还正常。大概吧。",
-  "error_emoji_misprint": "[错印]",
-  "error_emoji_damaged": "[破损]",
+  "error_failed_heading": "此页面未能加载",
+  "error_failed_subtext": "我们这边出了点问题。",
+  "error_offline_heading": "你已离线",
+  "error_forbidden_heading": "你无权访问此页面",
+  "error_forbidden_subtext": "你的账号没有打开此页面的权限。",
+  "error_forbidden_subtext_signed_out": "登录以确认你的账号能否打开此页面。",
+  "error_try_again": "重试",
   "error_emoji_missing": "[缺失]",
   "error_notfound_heading_dust": "这里只剩灰尘",
   "error_notfound_heading_never_printed": "这张卡从未印制过",
@@ -467,6 +452,7 @@
   "error_notfound_heading_doesnt_exist": "这个页面不存在",
   "error_notfound_heading_no_card": "这个地址上没有卡牌",
   "error_notfound_heading_no_record": "裂隙没有相关记录",
+  "error_notfound_card_browse_all": "浏览全部卡牌",
   "error_notfound_subtext_gone": "这里原本有什么，现在都没了。",
   "error_notfound_subtext_double_check": "请再确认一下网址，或者回到安全的地方。",
   "error_notfound_subtext_no_set": "这个页面不属于我们已知的任何系列。",
@@ -476,7 +462,6 @@
   "error_hide_details": "隐藏详情",
   "error_show_details": "显示详情",
   "error_go_home": "回到首页",
-  "error_reshuffle": "重新洗牌",
   "shared_preparing": "准备中…",
   "shared_open_cardmarket": "打开 Cardmarket",
   "shared_open_cardtrader": "打开 CardTrader",
@@ -516,6 +501,39 @@
   "palette_group_help": "帮助",
   "auth_login_title": "欢迎回来",
   "auth_login_subtitle": "登录你的 OpenRift 账号",
+  "auth_destination_collections_title": "登录以打开你的收藏",
+  "auth_destination_collections_perk_copies": "记录你拥有的每一张卡，精确到印刷版本和品相。",
+  "auth_destination_collections_perk_lists": "管理心愿单和交换清单，并通过链接分享。",
+  "auth_destination_collections_perk_scan": "把卡牌举到摄像头前即可加入收藏。",
+  "auth_destination_scan_title": "登录以把扫描的卡牌加入收藏",
+  "auth_destination_scan_perk_add": "把卡牌举到摄像头前，然后一次性全部加入收藏。",
+  "auth_destination_scan_perk_device": "卡牌识别在你的设备上完成。",
+  "auth_destination_scan_perk_owned": "每张扫描的卡都会显示你已拥有的数量。",
+  "auth_destination_groups_title": "登录以打开你的小组",
+  "auth_destination_groups_perk_invite": "创建小组，并用邀请链接邀请朋友。",
+  "auth_destination_groups_perk_share": "与小组共享收藏和清单。",
+  "auth_destination_groups_perk_matches": "看看小组里谁在交换你心愿单上的卡。",
+  "auth_destination_trades_title": "登录以交换卡牌",
+  "auth_destination_trades_perk_groups": "与你小组里的成员交换。",
+  "auth_destination_trades_perk_matches": "找到你的心愿单与对方交换清单相匹配的交换。",
+  "auth_destination_trades_perk_requests": "发送交换请求并确认交换。",
+  "auth_destination_loans_title": "登录以记录借出的卡",
+  "auth_destination_loans_perk_lent": "记下你把哪些卡借给了谁，没有账号的朋友也可以。",
+  "auth_destination_loans_perk_returned": "卡牌归还后将其标记为已归还。",
+  "auth_destination_loans_perk_borrowed": "查看你向别人借来的卡。",
+  "auth_destination_tournaments_title": "登录以举办比赛",
+  "auth_destination_tournaments_perk_pairings": "按瑞士轮或分组为选手配对。",
+  "auth_destination_tournaments_perk_decklists": "在赛前收集卡组表。",
+  "auth_destination_tournaments_perk_judges": "添加裁判协助办赛。",
+  "auth_destination_tier_lists_title": "登录以制作梯度表",
+  "auth_destination_tier_lists_perk_rank": "在可拖放的面板上给卡牌排名。",
+  "auth_destination_tier_lists_perk_save": "保存你的梯度表，随时回来继续。",
+  "auth_destination_tier_lists_perk_share": "通过链接分享梯度表，或下载为图片。",
+  "auth_destination_contribute_title": "登录以贡献卡牌数据",
+  "auth_destination_contribute_perk_cards": "提交缺失的卡牌和印刷版本。",
+  "auth_destination_contribute_perk_fixes": "发送勘误和卡图。",
+  "auth_destination_contribute_perk_review": "跟进每条提交，直到审核完成。",
+  "auth_destination_no_account": "无需账号即可{#cards}浏览卡牌{/cards}或{#decks}组建卡组{/decks}。未登录时组建的卡组只保存在这台设备上。",
   "auth_login_no_account": "还没有账号？",
   "auth_login_submit": "登录",
   "auth_signing_in": "登录中…",
@@ -1240,6 +1258,8 @@
   "collections_cell_choose_variant": "为{name}选择变体",
   "collections_cell_remove": "移除{name}",
   "collections_cell_take_copy_of": "取走一张{name}",
+  "collections_toast_took_one": "已取走{name}",
+  "collections_toast_took_many": "已取走{count}张{name}",
   "collections_cell_variants_and_collections": "{name}的变体与收藏",
   "collections_drag_cards_plural": [
     {
@@ -1588,6 +1608,7 @@
   "collections_copies_links_label": "照片与视频",
   "collections_copies_link_title_placeholder": "标签",
   "collections_copies_network_error": "无法连接服务器。请检查你的网络连接。",
+  "collections_copies_trade_cancel_stopped": "为保留你的交换，已在处理 {total} 张中的 {done} 张后停止。其余卡牌保持不变。",
   "collections_copies_signed_out": "未登录时无法添加实体卡",
   "collections_copies_quick_scope_move": "移动",
   "collections_copies_quick_scope_add": "添加到{collection}",
@@ -3568,6 +3589,18 @@
   "rules_stat_version": "版本",
   "rules_stat_languages": "语言",
   "rules_stat_published": "发布日期",
+  "rules_facts_version": "版本 {version}",
+  "rules_facts_published": "{date}发布",
+  "rules_facts_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 种语言",
+        "countPlural=*": "{count} 种语言"
+      }
+    }
+  ],
   "rules_changes_off": "关闭",
   "rules_changes_inline": "合并",
   "rules_changes_side": "并排",
@@ -4687,6 +4720,21 @@
   "trades_accept_all": "全部接受（{count}）",
   "trades_accept_all_confirm_title": "接受来自 {name} 的全部 {count} 项请求？",
   "trades_accept_all_confirm_description": "每接受一项请求，就会为这次交换预留你的实体卡。之后你仍可以单独取消某笔交换。",
+  "trades_cancel_consent_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "取消 {count} 笔待处理的交换？",
+        "countPlural=*": "取消 {count} 笔待处理的交换？"
+      }
+    }
+  ],
+  "trades_cancel_consent_description": "此更改后，你共享的交换清单将无法再满足这些交换，因此它们会被取消。",
+  "trades_cancel_consent_line": "{count}× {card}，给 {name}",
+  "trades_cancel_consent_more": "另外 {count} 笔",
+  "trades_cancel_consent_confirm": "取消交换",
+  "trades_cancel_consent_keep": "保留交换",
   "trades_settle_adds_to": "向其中加入 {count} 张",
   "trades_settle_removes": "从你的收藏中移除 {count} 张",
   "trades_settle_partial_failure": "部分卡牌无法结算。其余已经完成。",
@@ -5273,13 +5321,14 @@
   "contribute_status_hint_pending": "会有人逐条人工查看，可能需要一段时间。",
   "contribute_status_hint_accepted": "你提供的信息已进入卡牌目录。谢谢。",
   "contribute_status_hint_already_correct": "卡牌目录里的内容与你提交的完全一致。",
+  "contribute_status_hint_not_used": "我们没有采用这一条。感谢你的提交。",
   "contribute_kind_new_card": "新卡牌",
   "contribute_kind_correction": "修正",
   "contribute_kind_image": "图片",
   "contribute_reason_duplicate": "已经有人提交过这一条了。",
   "contribute_reason_already_correct": "卡牌目录里已经有这些信息了。",
   "contribute_reason_unverified": "我们无法从来源核实这一条，因此卡牌保持原样。",
-  "contribute_reason_not_a_card": "这看起来不像一张真实的 Riftbound 卡牌。",
+  "contribute_reason_not_a_card": "这似乎不是官方的 Riftbound 卡牌。",
   "contribute_reason_bad_image": "这张图片无法使用，通常是尺寸、角度或画质的问题。",
   "contribute_reason_other": "我们无法采用这一条，下方备注说明了原因。",
   "contribute_reason_label_duplicate": "已提交过",
@@ -6827,6 +6876,7 @@
   "tournaments_list_no_upcoming": "没有即将开始的赛事。创建一场，或者通过报名链接加入某场赛事。",
   "tournaments_overview_also_coming_up": "其他即将开始",
   "tournaments_overview_past_events": "往期赛事",
+  "tournaments_overview_show_older_events": "显示更早的赛事",
   "help_chat_commands_intro": "给你的聊天机器人加一条命令，观众不用离开聊天就能查询任何 Riftbound 卡牌。他们输入 {#code}!card Jinx{/code}，机器人就会回复这张卡牌和它的页面链接。如果没有匹配结果，回复会给出针对他们所输内容的卡牌搜索链接，所以即使打错字也能落到有用的地方。",
   "help_chat_commands_pick_heading": "选择你的机器人",
   "help_chat_commands_pick_intro": "下面每一行都原样粘贴即可，可以作为管理员粘进你自己的聊天，也可以粘进机器人的控制台。无需安装，也不需要账号。",
@@ -7161,8 +7211,8 @@
   "help_deck_building_rules_champion_detail": "恰好 1 名与你的传奇共享标签的英雄",
   "help_deck_building_rules_runes_detail": "恰好 12 张符文，且全部符合传奇的特性",
   "help_deck_building_rules_battlefield_detail": "恰好 3 张各不相同的战场",
-  "help_deck_building_rules_main_detail": "恰好 39 张牌，加上英雄共 40 张。同名卡牌最多 3 张。专属卡牌总共最多 3 张，且都要与传奇共享英雄标签。所有卡牌的特性必须在传奇的特性之内，或为无色。",
-  "help_deck_building_rules_sideboard_detail": "最多 8 张牌。张数上限与主牌堆共用（例如主牌堆中已有 2 张某卡牌，备牌中最多只能再放 1 张）。",
+  "help_deck_building_rules_main_detail": "恰好 39 张牌，加上英雄共 40 张。同名卡牌在主牌堆、备牌和选定英雄中合计最多 3 张。专属卡牌总共最多 3 张，且都要与传奇共享英雄标签。所有卡牌的特性必须在传奇的特性之内，或为无色。",
+  "help_deck_building_rules_sideboard_detail": "最多 10 张牌。张数上限与主牌堆和选定英雄共用（例如主牌堆中已有 2 张某卡牌，备牌中最多只能再放 1 张）。",
   "help_deck_building_rules_freeform": "在 Freeform 下，这些规则都不会强制执行。切到 Freeform 自由推演，再切回 Constructed 校验。区域侧边栏会按区域标出违规之处。",
   "help_deck_building_rules_custom_region": "每张牌都必须属于你选择的地区，只使用一张战场，没有备牌，专属卡牌需要其对应英雄在卡组中。违规之处会在构筑过程中显示出来。",
   "help_deck_building_runes_heading": "符文自动填充",
@@ -7592,6 +7642,7 @@
   "pager_previous_page": "上一页",
   "pager_next_page": "下一页",
   "meta_page_past_end": "此页已超出结果范围。",
+  "meta_page_first": "回到第一页",
   "meta_events_per_page_aria": "每页赛事数",
   "meta_events_per_page": "显示 {size}",
   "meta_events_holdings_any": "全部赛事",
@@ -7951,6 +8002,49 @@
   "meta_front_title": "Meta 档案",
   "meta_front_eyebrow": "赛事结果",
   "meta_front_lead": "收录截至{date}的结果，来自 UVS Games、PlayLoLTCG 和 TopDeck。",
+  "meta_front_facts_through": "收录截至{date}的结果",
+  "meta_front_facts_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已归档赛事 {countFormatted} 场",
+        "countPlural=*": "已归档赛事 {countFormatted} 场"
+      }
+    }
+  ],
+  "meta_front_facts_player_results": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "选手成绩 {countFormatted} 条",
+        "countPlural=*": "选手成绩 {countFormatted} 条"
+      }
+    }
+  ],
+  "meta_front_facts_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "卡组表 {countFormatted} 份",
+        "countPlural=*": "卡组表 {countFormatted} 份"
+      }
+    }
+  ],
   "meta_front_empty_title": "暂无已归档的赛事",
   "meta_front_empty_description": "赛事成绩一经录入就会出现在这里。",
   "meta_front_add_event": "添加赛事",
@@ -9091,6 +9185,11 @@
   "tournaments_group_redraw": "重新抽签分组",
   "tournaments_seat_editor_hint": "把一名选手拖到另一名选手身上即可互换座位，组内或跨组都可以。各组人数保持抽签时的结果。",
   "tournaments_seat_editor_save": "保存分组",
+  "tournaments_pairing_editor_move_to": "移至",
+  "tournaments_pairing_editor_move_label": "移动 {name}",
+  "tournaments_seat_editor_swap_with": "互换对象",
+  "tournaments_seat_editor_swap_label": "互换 {name} 的座位",
+  "tournaments_seat_editor_swap_seat": "{label} 组，{seat} 号座位",
   "tournaments_cut_edit_bracket_pairing": "编辑对阵图",
   "tournaments_cut_results_entered_hint": "本轮的结果已经录入。",
   "tournaments_champion_label": "冠军",
@@ -9896,6 +9995,23 @@
   ],
   "trades_market_two_have": "{first} 和 {second} 有",
   "trades_market_want_count": "你想要 {count} 张",
+  "trades_match_wanted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "想要 {count} 张",
+        "countPlural=*": "想要 {count} 张"
+      }
+    }
+  ],
+  "trades_match_variants": "{count} 个变体",
+  "trades_match_price": "价格",
+  "trades_match_they_pay": "对方出价",
+  "trades_match_price_from": "最低",
+  "trades_match_expand_variants": "展开 {card} 的变体",
+  "trades_match_collapse_variants": "收起 {card} 的变体",
+  "trades_match_request_all": "全部求购（{count}）",
   "trades_market_empty_get": "目前你的小组里没有人有你心愿单上的卡。",
   "trades_market_empty_give": "目前你的小组里没有人想要你交换清单上的卡。",
   "trades_market_empty_buy": "你心愿单上、小组里没人有的卡会显示在这里。",

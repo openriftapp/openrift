@@ -145,7 +145,6 @@ export function ListEntryBrowser({
   useEffect(() => {
     useSiblingOverrideStore.getState().clearScope("list");
     return () => useSiblingOverrideStore.getState().clearScope("list");
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once-on-mount, once-on-unmount
   }, []);
 
   const { setSearch } = useFilterActions();

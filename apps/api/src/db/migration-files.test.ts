@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- compares the loader against the directory listing
 import { readdir } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";

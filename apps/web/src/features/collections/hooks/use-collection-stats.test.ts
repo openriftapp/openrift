@@ -1,15 +1,15 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import path from "node:path";
 
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
+import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { Domain } from "@openrift/shared/types/enums";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { statsScopePredicate } from "@/features/collections/lib/stats-scope";
 import { resetIdCounter, stubPriceLookup, stubPrinting } from "@/test/factories";
 
 import {
@@ -19,8 +19,15 @@ import {
   excludeUnreleasedSets,
   filterByScope,
   filterStacksByScope,
-  matchesScope,
 } from "./use-collection-stats";
+
+function inStatsScope(
+  printing: Printing,
+  scope: CompletionScopePreference,
+  customTagSlugs: readonly string[] = [],
+): boolean {
+  return statsScopePredicate(scope, { [printing.cardId]: customTagSlugs })(printing);
+}
 
 const ORDERS = {
   domains: ["fury", "calm", "mind", "body", "chaos", "order", "colorless"] as const,
@@ -853,9 +860,9 @@ describe("useCollectionStats source invariants", () => {
   });
 });
 
-describe("matchesScope", () => {
+describe("statsScopePredicate", () => {
   it("matches every printing when the scope is empty", () => {
-    expect(matchesScope(stubPrinting(), {})).toBe(true);
+    expect(inStatsScope(stubPrinting(), {})).toBe(true);
   });
 
   it("filters by set, language, rarity, finish, and art variant", () => {
@@ -866,46 +873,46 @@ describe("matchesScope", () => {
       finish: "normal",
       artVariant: "normal",
     });
-    expect(matchesScope(printing, { sets: ["RB1"] })).toBe(true);
-    expect(matchesScope(printing, { sets: ["RB2"] })).toBe(false);
-    expect(matchesScope(printing, { languages: ["DE"] })).toBe(false);
-    expect(matchesScope(printing, { rarities: ["rare"] })).toBe(false);
-    expect(matchesScope(printing, { finishes: ["foil"] })).toBe(false);
-    expect(matchesScope(printing, { artVariants: ["showcase"] })).toBe(false);
+    expect(inStatsScope(printing, { sets: ["RB1"] })).toBe(true);
+    expect(inStatsScope(printing, { sets: ["RB2"] })).toBe(false);
+    expect(inStatsScope(printing, { languages: ["DE"] })).toBe(false);
+    expect(inStatsScope(printing, { rarities: ["rare"] })).toBe(false);
+    expect(inStatsScope(printing, { finishes: ["foil"] })).toBe(false);
+    expect(inStatsScope(printing, { artVariants: ["showcase"] })).toBe(false);
   });
 
   it("matches a multi-domain card when any of its domains is in scope", () => {
     const printing = stubPrinting({ card: { domains: ["fury", "calm"] as Domain[] } });
-    expect(matchesScope(printing, { domains: ["calm"] })).toBe(true);
-    expect(matchesScope(printing, { domains: ["mind"] })).toBe(false);
+    expect(inStatsScope(printing, { domains: ["calm"] })).toBe(true);
+    expect(inStatsScope(printing, { domains: ["mind"] })).toBe(false);
   });
 
   it("filters by card type", () => {
     const printing = stubPrinting({ card: { types: ["unit"] } });
-    expect(matchesScope(printing, { types: ["unit"] })).toBe(true);
-    expect(matchesScope(printing, { types: ["spell"] })).toBe(false);
+    expect(inStatsScope(printing, { types: ["unit"] })).toBe(true);
+    expect(inStatsScope(printing, { types: ["spell"] })).toBe(false);
   });
 
   it("filters promos by marker presence", () => {
     const noMarkers = stubPrinting({ markers: [] });
-    expect(matchesScope(noMarkers, { promos: "exclude" })).toBe(true);
-    expect(matchesScope(noMarkers, { promos: "only" })).toBe(false);
+    expect(inStatsScope(noMarkers, { promos: "exclude" })).toBe(true);
+    expect(inStatsScope(noMarkers, { promos: "only" })).toBe(false);
   });
 
   it("filters by signed, banned, and errata flags", () => {
     const plain = stubPrinting({ isSigned: false, card: { bans: [], errata: [] } });
-    expect(matchesScope(plain, { signed: true })).toBe(false);
-    expect(matchesScope(plain, { signed: false })).toBe(true);
-    expect(matchesScope(plain, { banned: true })).toBe(false);
-    expect(matchesScope(plain, { banned: false })).toBe(true);
-    expect(matchesScope(plain, { errata: true })).toBe(false);
-    expect(matchesScope(plain, { errata: false })).toBe(true);
+    expect(inStatsScope(plain, { signed: true })).toBe(false);
+    expect(inStatsScope(plain, { signed: false })).toBe(true);
+    expect(inStatsScope(plain, { banned: true })).toBe(false);
+    expect(inStatsScope(plain, { banned: false })).toBe(true);
+    expect(inStatsScope(plain, { errata: true })).toBe(false);
+    expect(inStatsScope(plain, { errata: false })).toBe(true);
   });
 
   it("requires every active filter to pass (AND semantics)", () => {
     const printing = stubPrinting({ setSlug: "RB1", rarity: "common" });
-    expect(matchesScope(printing, { sets: ["RB1"], rarities: ["common"] })).toBe(true);
-    expect(matchesScope(printing, { sets: ["RB1"], rarities: ["rare"] })).toBe(false);
+    expect(inStatsScope(printing, { sets: ["RB1"], rarities: ["common"] })).toBe(true);
+    expect(inStatsScope(printing, { sets: ["RB1"], rarities: ["rare"] })).toBe(false);
   });
 
   it("rejects a printing on any single-valued exclude axis", () => {
@@ -916,22 +923,22 @@ describe("matchesScope", () => {
       finish: "normal",
       artVariant: "normal",
     });
-    expect(matchesScope(printing, { setsExclude: ["RB1"] })).toBe(false);
-    expect(matchesScope(printing, { setsExclude: ["RB2"] })).toBe(true);
-    expect(matchesScope(printing, { languagesExclude: ["EN"] })).toBe(false);
-    expect(matchesScope(printing, { raritiesExclude: ["common"] })).toBe(false);
-    expect(matchesScope(printing, { finishesExclude: ["normal"] })).toBe(false);
-    expect(matchesScope(printing, { artVariantsExclude: ["normal"] })).toBe(false);
+    expect(inStatsScope(printing, { setsExclude: ["RB1"] })).toBe(false);
+    expect(inStatsScope(printing, { setsExclude: ["RB2"] })).toBe(true);
+    expect(inStatsScope(printing, { languagesExclude: ["EN"] })).toBe(false);
+    expect(inStatsScope(printing, { raritiesExclude: ["common"] })).toBe(false);
+    expect(inStatsScope(printing, { finishesExclude: ["normal"] })).toBe(false);
+    expect(inStatsScope(printing, { artVariantsExclude: ["normal"] })).toBe(false);
   });
 
   it("rejects a card when any of its domains or types is excluded", () => {
     const printing = stubPrinting({
       card: { domains: ["fury", "calm"] as Domain[], types: ["unit"] },
     });
-    expect(matchesScope(printing, { domainsExclude: ["calm"] })).toBe(false);
-    expect(matchesScope(printing, { domainsExclude: ["mind"] })).toBe(true);
-    expect(matchesScope(printing, { typesExclude: ["unit"] })).toBe(false);
-    expect(matchesScope(printing, { typesExclude: ["spell"] })).toBe(true);
+    expect(inStatsScope(printing, { domainsExclude: ["calm"] })).toBe(false);
+    expect(inStatsScope(printing, { domainsExclude: ["mind"] })).toBe(true);
+    expect(inStatsScope(printing, { typesExclude: ["unit"] })).toBe(false);
+    expect(inStatsScope(printing, { typesExclude: ["spell"] })).toBe(true);
   });
 
   it("filters by keywords, tags, custom tags and size", () => {
@@ -939,29 +946,29 @@ describe("matchesScope", () => {
       size: "standard",
       card: { keywords: ["Unique"], tags: ["champion-spell"] },
     });
-    expect(matchesScope(printing, { keywords: ["Unique"] })).toBe(true);
-    expect(matchesScope(printing, { keywords: ["Deflect"] })).toBe(false);
-    expect(matchesScope(printing, { keywordsExclude: ["Unique"] })).toBe(false);
-    expect(matchesScope(printing, { tags: ["champion-spell"] })).toBe(true);
-    expect(matchesScope(printing, { tagsExclude: ["champion-spell"] })).toBe(false);
-    expect(matchesScope(printing, { cardSizes: ["standard"] })).toBe(true);
-    expect(matchesScope(printing, { cardSizes: ["oversized"] })).toBe(false);
+    expect(inStatsScope(printing, { keywords: ["Unique"] })).toBe(true);
+    expect(inStatsScope(printing, { keywords: ["Deflect"] })).toBe(false);
+    expect(inStatsScope(printing, { keywordsExclude: ["Unique"] })).toBe(false);
+    expect(inStatsScope(printing, { tags: ["champion-spell"] })).toBe(true);
+    expect(inStatsScope(printing, { tagsExclude: ["champion-spell"] })).toBe(false);
+    expect(inStatsScope(printing, { cardSizes: ["standard"] })).toBe(true);
+    expect(inStatsScope(printing, { cardSizes: ["oversized"] })).toBe(false);
     // Custom tags come from the assignment map, not the printing.
-    expect(matchesScope(printing, { customTags: ["staple"] }, ["staple"])).toBe(true);
-    expect(matchesScope(printing, { customTags: ["staple"] }, ["budget"])).toBe(false);
-    expect(matchesScope(printing, { customTags: ["staple"] })).toBe(false);
-    expect(matchesScope(printing, { customTagsExclude: ["staple"] }, ["staple"])).toBe(false);
+    expect(inStatsScope(printing, { customTags: ["staple"] }, ["staple"])).toBe(true);
+    expect(inStatsScope(printing, { customTags: ["staple"] }, ["budget"])).toBe(false);
+    expect(inStatsScope(printing, { customTags: ["staple"] })).toBe(false);
+    expect(inStatsScope(printing, { customTagsExclude: ["staple"] }, ["staple"])).toBe(false);
   });
 
   it("applies presence constraints per dimension", () => {
     const withKeywords = stubPrinting({ card: { keywords: ["Unique"], tags: [] } });
-    expect(matchesScope(withKeywords, { keywordsPresence: "any" })).toBe(true);
-    expect(matchesScope(withKeywords, { keywordsPresence: "none" })).toBe(false);
-    expect(matchesScope(withKeywords, { tagsPresence: "any" })).toBe(false);
-    expect(matchesScope(withKeywords, { tagsPresence: "none" })).toBe(true);
-    expect(matchesScope(withKeywords, { customTagsPresence: "any" }, ["staple"])).toBe(true);
-    expect(matchesScope(withKeywords, { customTagsPresence: "any" })).toBe(false);
-    expect(matchesScope(withKeywords, { customTagsPresence: "none" })).toBe(true);
+    expect(inStatsScope(withKeywords, { keywordsPresence: "any" })).toBe(true);
+    expect(inStatsScope(withKeywords, { keywordsPresence: "none" })).toBe(false);
+    expect(inStatsScope(withKeywords, { tagsPresence: "any" })).toBe(false);
+    expect(inStatsScope(withKeywords, { tagsPresence: "none" })).toBe(true);
+    expect(inStatsScope(withKeywords, { customTagsPresence: "any" }, ["staple"])).toBe(true);
+    expect(inStatsScope(withKeywords, { customTagsPresence: "any" })).toBe(false);
+    expect(inStatsScope(withKeywords, { customTagsPresence: "none" })).toBe(true);
   });
 
   it("filters by the standard-printing flag", () => {
@@ -979,16 +986,16 @@ describe("matchesScope", () => {
       finish: "foil",
       rarity: "common",
     });
-    expect(matchesScope(plain, { standard: true })).toBe(true);
-    expect(matchesScope(plain, { standard: false })).toBe(false);
+    expect(inStatsScope(plain, { standard: true })).toBe(true);
+    expect(inStatsScope(plain, { standard: false })).toBe(false);
     // A foil common is premium, not the plain version of its card.
-    expect(matchesScope(foilCommon, { standard: true })).toBe(false);
-    expect(matchesScope(foilCommon, { standard: false })).toBe(true);
+    expect(inStatsScope(foilCommon, { standard: true })).toBe(false);
+    expect(inStatsScope(foilCommon, { standard: false })).toBe(true);
   });
 
   it("combines an include and an exclude across axes", () => {
     const printing = stubPrinting({ setSlug: "RB1", rarity: "common" });
-    expect(matchesScope(printing, { sets: ["RB1"], raritiesExclude: ["rare"] })).toBe(true);
-    expect(matchesScope(printing, { sets: ["RB1"], raritiesExclude: ["common"] })).toBe(false);
+    expect(inStatsScope(printing, { sets: ["RB1"], raritiesExclude: ["rare"] })).toBe(true);
+    expect(inStatsScope(printing, { sets: ["RB1"], raritiesExclude: ["common"] })).toBe(false);
   });
 });

@@ -30,7 +30,12 @@ import {
   orderByBattlefieldPlan,
 } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { canAddRune, getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import {
+  canAddRune,
+  COPY_LIMIT_ZONES,
+  copyLimitTotal,
+  getDeckCardKey,
+} from "@/features/decks/lib/deck-builder-card";
 import {
   compareGroupedCards,
   GROUPED_ZONES,
@@ -122,18 +127,6 @@ export function DeckZoneSection({
     ? battlefieldPlanTags(battlefieldPlan, format)
     : new Map<string, never>();
 
-  // Champion counts toward the 3-copy limit too; overflow is excluded since
-  // it is a free parking zone with no copy cap.
-  const copyLimitZones = new Set<DeckZone>([
-    WellKnown.deckZone.MAIN,
-    WellKnown.deckZone.SIDEBOARD,
-    WellKnown.deckZone.CHAMPION,
-  ]);
-  const crossZoneTotal = (cardId: string) =>
-    allCards
-      .filter((entry) => entry.cardId === cardId && copyLimitZones.has(entry.zone))
-      .reduce((sum, entry) => sum + entry.quantity, 0);
-
   // The same hook the overview's zone tiles use, so the two reject the same drags.
   const { dropRef, isOver, dropDisabled } = useDeckZoneDrop({
     id: `deck-zone-${zone}`,
@@ -222,7 +215,8 @@ export function DeckZoneSection({
             isUniqueOnly ||
             (!workbench &&
               !isFreeform &&
-              ((copyLimitZones.has(zone) && crossZoneTotal(card.cardId) >= copyLimitFor(card)) ||
+              ((COPY_LIMIT_ZONES.has(zone) &&
+                copyLimitTotal(allCards, card.cardId) >= copyLimitFor(card)) ||
                 (zone === WellKnown.deckZone.RUNES && !canAddRune(card, allCards))))
               ? undefined
               : (event) => addCard(card, zone, event.shiftKey ? 3 : undefined)

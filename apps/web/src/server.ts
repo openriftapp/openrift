@@ -142,7 +142,6 @@ export default createServerEntry({
     const finalResponse = indexable ? cachedResponse : withNoindex(cachedResponse);
     if (LOG_SSR_TIMINGS) {
       const tEnd = performance.now();
-      // oxlint-disable-next-line no-console -- opt-in SSR timing instrumentation, see LOG_SSR_TIMINGS flag above.
       console.info(
         `[SSR] ${request.method} ${url.pathname} total=${(tEnd - t0).toFixed(0)}ms handler=${(tHandler - t0).toFixed(0)}ms postprocess=${(tEnd - tHandler).toFixed(0)}ms`,
       );

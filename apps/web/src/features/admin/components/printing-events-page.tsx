@@ -1,3 +1,5 @@
+import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
+import type { PrintingEventView } from "@openrift/shared/contracts/admin/printing-events";
 import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
@@ -38,7 +40,6 @@ import {
 import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { PRINTING_EVENTS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/flush-printing-events-queries";
-import type { JobRunView, PrintingEventView } from "@/lib/server-fns/api-types";
 
 export function PrintingEventsPage() {
   const { data, refetch, isFetching, dataUpdatedAt } = useAdminPrintingEvents();

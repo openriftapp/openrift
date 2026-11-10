@@ -50,7 +50,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("decksRepo variants", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const decks = decksRepo(db);
   const plans = deckPlansRepo(db);

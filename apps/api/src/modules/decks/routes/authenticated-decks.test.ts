@@ -419,7 +419,6 @@ describe("GET /api/v1/deck-cards", () => {
   it("reads the touched deck ids before the rows", async () => {
     let releaseIds: (ids: string[]) => void = () => {};
     mockRepo.deckIdsTouchedSince.mockReturnValue(
-      // oxlint-disable-next-line promise/avoid-new -- held open by hand to observe the order
       new Promise<string[]>((resolve) => {
         releaseIds = resolve;
       }),

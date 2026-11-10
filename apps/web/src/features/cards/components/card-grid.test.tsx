@@ -33,7 +33,6 @@ vi.mock("@/features/cards/hooks/use-responsive-columns", () => ({
   SSR_RESPONSIVE_GRID_COLS: "",
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import {
   BUTTON_PAD,
   CARD_ASPECT_INVERSE,
@@ -42,10 +41,8 @@ import {
   HEADER_PT,
   LABEL_HEIGHT,
 } from "@/features/cards/lib/card-grid-constants";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { computeGridMetrics } from "@/features/cards/lib/card-grid-metrics";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardGrid } from "./card-grid";
 
 // Mirrors CardGrid's estimateRowHeight for the mocked layout above.

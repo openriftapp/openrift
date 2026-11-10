@@ -1,7 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { XIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
@@ -62,18 +62,14 @@ function usePickerResults(
 ): CardSearchResult[] {
   const { getPreferredPrinting } = usePreferredPrinting();
   const { labels } = useEnumOrders();
-  const searchable = useMemo(
-    () =>
-      candidates.map((card) => ({
-        id: card.cardId,
-        // The matcher only reads `slug` for exact-slug lookups; the id keeps
-        // every entry distinct.
-        slug: card.cardId,
-        name: card.cardName,
-        altNames: card.altNames,
-      })),
-    [candidates],
-  );
+  const searchable = candidates.map((card) => ({
+    id: card.cardId,
+    // The matcher only reads `slug` for exact-slug lookups; the id keeps
+    // every entry distinct.
+    slug: card.cardId,
+    name: card.cardName,
+    altNames: card.altNames,
+  }));
 
   const matches = useCardSearch(
     searchable,

@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem access
 import { join } from "node:path";
 
 import type { Logger } from "@openrift/shared/logger";

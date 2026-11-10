@@ -32,6 +32,9 @@ export interface ApiContext {
   services: Services;
   config: Config;
   transact: Transact;
+  /** Same repositories on the pool without request timeouts, for work a request hands to `runJobAsync`. */
+  backgroundRepos: Repos;
+  backgroundTransact: Transact;
   io: Io;
   auth: Auth;
   scheduler: JobScheduler | null;
@@ -99,6 +102,8 @@ export function buildApiContext(c: Context<{ Variables: Variables }>): ApiContex
     services: c.get("services"),
     config: c.get("config"),
     transact: c.get("transact"),
+    backgroundRepos: c.get("backgroundRepos") ?? c.get("repos"),
+    backgroundTransact: c.get("backgroundTransact") ?? c.get("transact"),
     io: c.get("io"),
     auth: c.get("auth"),
     scheduler: c.get("scheduler") ?? null,

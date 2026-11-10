@@ -342,7 +342,6 @@ export function DeckTestBench({
   };
 
   // No dependency array: handlers must close over fresh state each render.
-  // oxlint-disable-next-line react-hooks/exhaustive-deps -- see comment above
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {

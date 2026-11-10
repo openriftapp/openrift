@@ -36,7 +36,6 @@ afterEach(() => {
   exporter.reset();
 });
 
-// oxlint-disable-next-line @typescript-eslint/no-non-null-assertion -- the middleware always has a server handler
 const handler = otelRequestMiddleware.options.server!;
 
 describe("otelRequestMiddleware (web)", () => {

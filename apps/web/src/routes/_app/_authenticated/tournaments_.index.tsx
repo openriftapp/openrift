@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/_authenticated/tournaments_/")({
   ssr: "data-only",
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Tournaments", noIndex: true }),
   loader: async ({ context }) => {
-    await context.queryClient.query({
+    await context.queryClient.infiniteQuery({
       ...tournamentsQueryOptions(context.userId),
       staleTime: "static",
     });

@@ -14,7 +14,6 @@ vi.mock("@/hooks/use-price-history", () => ({
   usePriceHistory: () => ({ data: undefined }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardFooter } from "./card-footer";
 
 function makeWrapper(prices: Record<string, Partial<Record<Marketplace, number>>>) {

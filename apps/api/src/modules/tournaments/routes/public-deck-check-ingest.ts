@@ -5,9 +5,11 @@ import { implement } from "@orpc/server";
 import type { Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
 import { bodyLimit } from "hono/body-limit";
+import { createMiddleware } from "hono/factory";
 
 import { AppError } from "../../../errors.js";
 import { bearerToken } from "../../../lib/bearer.js";
+import { clientAddress } from "../../../lib/client-address.js";
 import { sha256Hex } from "../../../lib/hash.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -18,13 +20,33 @@ import { ingestDeckCheckPush } from "../services/deck-check-ingest.js";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 const PUSHES_PER_MINUTE = 60;
+const REJECTED_PUSHES_PER_MINUTE = 20;
 
 /** Keyed by the raw Authorization header, so a valid key is rate-limited per-key. */
 const ingestRateLimit = rateLimiter<{ Variables: Variables }>({
   windowMs: 60_000,
   limit: PUSHES_PER_MINUTE,
   standardHeaders: "draft-6",
-  keyGenerator: (c) => c.req.header("authorization") ?? c.req.header("x-real-ip") ?? "unknown",
+  keyGenerator: (c) => c.req.header("authorization") ?? clientAddress(c),
+});
+
+const rejectedPushesByAddress = new Map<string, number>();
+let rejectedWindowStartedAt = 0;
+
+const throttleRejectedKeys = createMiddleware<{ Variables: Variables }>(async (c, next) => {
+  const now = Date.now();
+  if (now - rejectedWindowStartedAt >= 60_000) {
+    rejectedPushesByAddress.clear();
+    rejectedWindowStartedAt = now;
+  }
+  const address = clientAddress(c);
+  if ((rejectedPushesByAddress.get(address) ?? 0) >= REJECTED_PUSHES_PER_MINUTE) {
+    return orpcErrorResponse(c, "TOO_MANY_REQUESTS", "Too many pushes with an unknown key");
+  }
+  await next();
+  if (c.res.status === 401) {
+    rejectedPushesByAddress.set(address, (rejectedPushesByAddress.get(address) ?? 0) + 1);
+  }
 });
 
 const os = implement(deckCheckIngestContract).$context<ApiContext>().use(requireUser);
@@ -65,6 +87,7 @@ export const deckCheckIngestRouter = {
 
 /** Must be registered before the oRPC catch-all so it can reject an oversized or over-rate push early. */
 export function mountDeckCheckIngestMiddleware(app: Hono<{ Variables: Variables }>): void {
+  app.use("/api/v1/ingest/deck-check", throttleRejectedKeys);
   app.use("/api/v1/ingest/deck-check", ingestRateLimit);
   app.use(
     "/api/v1/ingest/deck-check",

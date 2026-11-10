@@ -48,6 +48,52 @@ describe("useBoardEditorStore", () => {
     expect(store().selectedPieceId).toBeNull();
   });
 
+  describe("markSaved", () => {
+    it("clears dirty when nothing changed since the save started", () => {
+      addUnit();
+      store().markSaved(store().revision);
+      expect(store().dirty).toBe(false);
+    });
+
+    it("keeps an edit made during the save dirty", () => {
+      addUnit();
+      const revision = store().revision;
+      addUnit();
+      store().markSaved(revision);
+      expect(store().dirty).toBe(true);
+    });
+
+    it("keeps an undo made during the save dirty", () => {
+      addUnit();
+      addUnit();
+      const revision = store().revision;
+      store().undo();
+      store().markSaved(revision);
+      expect(store().dirty).toBe(true);
+    });
+
+    it("leaves a document loaded during the save untouched", () => {
+      addUnit();
+      const revision = store().revision;
+      store().load(emptyBoardDocument());
+      addUnit();
+      store().markSaved(revision);
+      expect(store().dirty).toBe(true);
+    });
+  });
+
+  it("drops a pending hand-over when another document loads", () => {
+    store().adopt({
+      boardId: "board-1",
+      title: "Summoner Skirmish turn 3",
+      coreRulesVersion: "1.0",
+      tournamentRulesVersion: null,
+      metaDirty: false,
+    });
+    store().load(emptyBoardDocument());
+    expect(store().adoption).toBeNull();
+  });
+
   describe("pieces", () => {
     it("adds a piece with sequential ids and selects it", () => {
       expect(addUnit()).toBe("p1");

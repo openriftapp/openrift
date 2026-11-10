@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { RouteErrorFallback } from "@/components/error-message";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -97,6 +98,7 @@ import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/wor
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import type { EnumLabels } from "@/lib/enum-labels";
+import { errorStatus } from "@/lib/server-fns/api-error";
 import { cn } from "@/lib/utils";
 
 type FieldsView = "differences" | "all";
@@ -176,7 +178,7 @@ function CardMenu({
               disabled={renameCard.isPending}
               onClick={() =>
                 renameCard.mutate(
-                  { cardId: card.id, newId: expectedCardId },
+                  { cardId: card.id, cardSlug, newId: expectedCardId },
                   {
                     onSuccess: () =>
                       void navigate({
@@ -713,7 +715,7 @@ function CardRecordBody({
 export function CardRecord({ cardSlug }: { cardSlug: string }) {
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
-  const { data, isLoading, isError } = useAdminCardDetail(cardSlug);
+  const { data, isLoading, isError, error, refetch } = useAdminCardDetail(cardSlug);
   const detail = data as AdminCardDetailResponse | undefined;
   const { providerSettings } = useCardDetailData(cardRecordScope(cardSlug));
   const costKeywords = useCostKeywords();
@@ -734,7 +736,11 @@ export function CardRecord({ cardSlug }: { cardSlug: string }) {
   if (isError) {
     return (
       <RecordPane header={<RecordHeader title={cardSlug} />}>
-        <p className="text-muted-foreground">No card with ID &ldquo;{cardSlug}&rdquo; exists.</p>
+        {errorStatus(error) === 404 ? (
+          <p className="text-muted-foreground">No card with ID &ldquo;{cardSlug}&rdquo; exists.</p>
+        ) : (
+          <RouteErrorFallback error={error} onRetry={() => void refetch()} />
+        )}
       </RecordPane>
     );
   }

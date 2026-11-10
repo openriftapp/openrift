@@ -13,6 +13,7 @@ import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { computeZoneSuggestions } from "../lib/deck-check-advisories.js";
+import { presentDeadlineSettled, presentDeadlineSettledEntry } from "../lib/deck-check-deadline.js";
 import { buildEntryDetail, toEntrySummary, toEventSummary } from "../lib/deck-check-presenters.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
@@ -24,7 +25,7 @@ import { createManualDeckCheckEntry, recomputeEntryHash } from "../services/deck
 import {
   applyJudgeTransition,
   settleExpiredEditable,
-  submissionWindowOpen,
+  settleExpiredEditableEntries,
 } from "../services/deck-check-states.js";
 
 /**
@@ -49,10 +50,7 @@ async function authorizeJudge(
   return event;
 }
 
-/**
- * Loads one of the event's entries, settling the deadline auto-submit so the
- * judge never sees a stale `editable` entry once the window closed.
- */
+/** Read-only: an entry left editable past the deadline is presented as submitted. */
 async function loadEntry(
   repos: Repos,
   event: DeckCheckEvent,
@@ -60,7 +58,19 @@ async function loadEntry(
 ): Promise<DeckCheckEntry> {
   const entry = await repos.deckCheck.getEntry(event.id, entryId);
   assertFound(entry, "Entry not found");
-  return await settleExpiredEditable(repos, event, entry);
+  return await presentDeadlineSettledEntry(repos, event, entry);
+}
+
+/** For write paths: persists the event's deadline auto-submits before loading. */
+async function loadEntryForWrite(
+  repos: Repos,
+  event: DeckCheckEvent,
+  entryId: string,
+): Promise<DeckCheckEntry> {
+  await settleExpiredEditableEntries(repos, event);
+  const entry = await repos.deckCheck.getEntry(event.id, entryId);
+  assertFound(entry, "Entry not found");
+  return entry;
 }
 
 /**
@@ -86,13 +96,11 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEventDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      let entries = await repos.deckCheck.listEntriesForEvent(event.id);
-      if (!submissionWindowOpen(event) && entries.some((entry) => entry.state === "editable")) {
-        for (const entry of entries) {
-          await settleExpiredEditable(repos, event, entry);
-        }
-        entries = await repos.deckCheck.listEntriesForEvent(event.id);
-      }
+      const entries = await presentDeadlineSettled(
+        repos,
+        event,
+        await repos.deckCheck.listEntriesForEvent(event.id),
+      );
       const active = entries.filter((entry) => entry.state !== "withdrawn");
       const summary = toEventSummary({
         ...event,
@@ -149,7 +157,7 @@ export const tournamentDeckCheckRouter = {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
       // This 404s fast, outside the transaction; it is not the entry the transition validates against.
-      await loadEntry(repos, event, input.entryId);
+      assertFound(await repos.deckCheck.getEntry(event.id, input.entryId), "Entry not found");
 
       const updated = await context.transact(async (txRepos) => {
         // Row-locked re-load: without it, two concurrent judge requests validate
@@ -172,7 +180,7 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      const entry = await loadEntry(repos, event, input.entryId);
+      const entry = await loadEntryForWrite(repos, event, input.entryId);
 
       const updated = entry.unlockRequestedAt
         ? await repos.deckCheck.updateEntry(entry.id, { unlockRequestedAt: null })
@@ -185,7 +193,7 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      await loadEntry(repos, event, input.entryId);
+      await loadEntryForWrite(repos, event, input.entryId);
 
       const updated = await context.transact((txRepos) =>
         txRepos.deckCheck.updateEntry(input.entryId, {
@@ -212,7 +220,7 @@ export const tournamentDeckCheckRouter = {
   addCard: os.addCard.handler(async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-    const entry = await loadEntry(repos, event, input.entryId);
+    const entry = await loadEntryForWrite(repos, event, input.entryId);
     requireListVisible(entry);
 
     const zone = mapSectionToZone(input.section);
@@ -250,7 +258,7 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      const entry = await loadEntry(repos, event, input.entryId);
+      const entry = await loadEntryForWrite(repos, event, input.entryId);
       requireListVisible(entry);
 
       const { name, section, copies } = input;
@@ -288,7 +296,7 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      const entry = await loadEntry(repos, event, input.entryId);
+      const entry = await loadEntryForWrite(repos, event, input.entryId);
       requireListVisible(entry);
 
       // The client names which cards to move, never the destination; only a
@@ -331,7 +339,7 @@ export const tournamentDeckCheckRouter = {
   removeCardCopy: os.removeCardCopy.handler(async ({ input, context }): Promise<void> => {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-    requireListVisible(await loadEntry(repos, event, input.entryId));
+    requireListVisible(await loadEntryForWrite(repos, event, input.entryId));
 
     const removed = await repos.deckCheck.deleteEntryCardCopy(
       input.entryId,
@@ -345,7 +353,7 @@ export const tournamentDeckCheckRouter = {
   tickCard: os.tickCard.handler(async ({ input, context }): Promise<void> => {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-    requireListVisible(await loadEntry(repos, event, input.entryId));
+    requireListVisible(await loadEntryForWrite(repos, event, input.entryId));
 
     const stored = await repos.deckCheck.setCardCopyFound(
       input.entryId,
@@ -363,7 +371,7 @@ export const tournamentDeckCheckRouter = {
     async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
-      await loadEntry(repos, event, input.entryId);
+      await loadEntryForWrite(repos, event, input.entryId);
 
       const updated = await repos.deckCheck.unlinkEntry(input.entryId);
       assertFound(updated, "Entry not found");
@@ -374,6 +382,7 @@ export const tournamentDeckCheckRouter = {
   reResolve: os.reResolve.handler(async ({ input, context }): Promise<{ updatedLines: number }> => {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
+    await settleExpiredEditableEntries(repos, event);
 
     const unresolved = await repos.deckCheck.listUnresolvedCardsForEvent(event.id);
     const resolutions = await resolveDeckCheckCards(

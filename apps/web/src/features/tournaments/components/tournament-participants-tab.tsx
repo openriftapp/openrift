@@ -52,6 +52,7 @@ import {
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import { canCheckDecks, canManageTournament } from "@/features/tournaments/lib/tournament-display";
 import { useCustomTagList } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 function rosterGroups(): {
@@ -177,16 +178,8 @@ export function TournamentParticipantsTab({
     matchesTextQuery(search, [participant.displayName, participant.userName]),
   );
 
-  async function run(action: () => Promise<unknown>) {
-    try {
-      await action();
-    } catch {
-      // Reported by the global mutation onError toast.
-    }
-  }
-
   function fireAction(participantId: string, action: ParticipantAction) {
-    void run(() => participantAction.mutateAsync({ id, participantId, action }));
+    void runReportedMutation(() => participantAction.mutateAsync({ id, participantId, action }));
   }
 
   const groups = rosterGroups()
@@ -203,14 +196,17 @@ export function TournamentParticipantsTab({
     if (!renameTarget || !displayName) {
       return;
     }
-    await run(() =>
-      updateParticipant.mutateAsync({
-        id,
-        participantId: renameTarget.participantId,
-        displayName,
-      }),
-    );
-    setRenameTarget(null);
+    if (
+      await runReportedMutation(() =>
+        updateParticipant.mutateAsync({
+          id,
+          participantId: renameTarget.participantId,
+          displayName,
+        }),
+      )
+    ) {
+      setRenameTarget(null);
+    }
   }
 
   async function handleSetRegion() {
@@ -218,15 +214,23 @@ export function TournamentParticipantsTab({
       return;
     }
     const region = regionTarget.region === "none" ? null : regionTarget.region;
-    await run(() =>
-      updateParticipant.mutateAsync({ id, participantId: regionTarget.participantId, region }),
-    );
-    setRegionTarget(null);
+    if (
+      await runReportedMutation(() =>
+        updateParticipant.mutateAsync({ id, participantId: regionTarget.participantId, region }),
+      )
+    ) {
+      setRegionTarget(null);
+    }
   }
 
   async function handleSetLegend(participantId: string, legendCardId: string | null) {
-    await run(() => updateParticipant.mutateAsync({ id, participantId, legendCardId }));
-    setLegendTarget(null);
+    if (
+      await runReportedMutation(() =>
+        updateParticipant.mutateAsync({ id, participantId, legendCardId }),
+      )
+    ) {
+      setLegendTarget(null);
+    }
   }
 
   async function handleSetFixedTable() {
@@ -237,14 +241,17 @@ export function TournamentParticipantsTab({
     if (parsed === undefined) {
       return;
     }
-    await run(() =>
-      updateParticipant.mutateAsync({
-        id,
-        participantId: fixedTableTarget.participantId,
-        fixedTable: parsed,
-      }),
-    );
-    setFixedTableTarget(null);
+    if (
+      await runReportedMutation(() =>
+        updateParticipant.mutateAsync({
+          id,
+          participantId: fixedTableTarget.participantId,
+          fixedTable: parsed,
+        }),
+      )
+    ) {
+      setFixedTableTarget(null);
+    }
   }
 
   return (

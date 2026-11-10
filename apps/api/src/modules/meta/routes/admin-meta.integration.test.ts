@@ -136,7 +136,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   describe("admin-only access control (non-admin)", () => {
@@ -535,7 +534,6 @@ describe.skipIf(!ctx)("Meta archive routes (integration)", () => {
 
 // Public reads, from a request with no session at all.
 describe.skipIf(!ctx || !anonCtx)("Meta archive public reads (anonymous)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const anonApp = anonCtx!.app;
 
   async function scopedCounts(
@@ -693,7 +691,6 @@ describe.skipIf(!ctx || !anonCtx)("Meta archive public reads (anonymous)", () =>
   });
 
   it("404s a share token that belongs to a deck outside the archive", async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
     await ctx!.db
       .insertInto("decks")
       .values({
@@ -708,7 +705,6 @@ describe.skipIf(!ctx || !anonCtx)("Meta archive public reads (anonymous)", () =>
       .execute();
 
     // The same token resolves fine on the ordinary share endpoint...
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
     const share = await anonCtx!.app.fetch(req("GET", "/decks/share/mtrOutside01"));
     expect(share.status).toBe(200);
     // ...but must not render as an archive entry.

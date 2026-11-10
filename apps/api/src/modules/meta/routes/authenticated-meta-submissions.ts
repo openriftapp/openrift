@@ -50,7 +50,7 @@ export const metaSubmissionsRouter = {
       throw errors.BAD_REQUEST({ message: result.errors.join("; ") });
     }
 
-    await context.services.notifyAdminsOfMetaSubmission(context.repos, {
+    void context.services.notifyAdminsOfMetaSubmission(context.repos, {
       submitterUserId: context.userId,
       kind: input.kind,
       eventName: result.eventName,
@@ -75,7 +75,7 @@ export const metaSubmissionsRouter = {
         message: `You already have ${result.limit} submissions awaiting review. Please wait until they are looked at.`,
       });
     }
-    await context.services.notifyAdminsOfMetaSubmission(context.repos, {
+    void context.services.notifyAdminsOfMetaSubmission(context.repos, {
       submitterUserId: context.userId,
       kind: "event_correction",
       eventName: result.eventName,

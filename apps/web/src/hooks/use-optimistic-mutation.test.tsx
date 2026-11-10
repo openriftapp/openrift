@@ -38,7 +38,6 @@ describe("useOptimisticMutation", () => {
     let finish: () => void = () => {};
     const mutationFn = vi.fn(
       () =>
-        // oxlint-disable-next-line promise/avoid-new -- holds the request open to observe the optimistic state
         new Promise<void>((resolve) => {
           finish = resolve;
         }),

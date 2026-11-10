@@ -7,7 +7,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DomainBar } from "./deck-stats-panel";
 
 const COLORS = { fury: "#f00", calm: "#00f" };

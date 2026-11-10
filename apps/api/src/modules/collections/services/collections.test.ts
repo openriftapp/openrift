@@ -1,12 +1,18 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import { clearCollection, deleteCollection, resetCollections } from "./collections.js";
+import {
+  CANCEL_WITHOUT_ASKING,
+  consentedTradeCancels,
+  TradeCancelConsentRequiredError,
+} from "../../groups/services/trade-supply.js";
+import {
+  clearCollection,
+  deleteCollection,
+  previewResetCollectionsTradeCancels,
+  resetCollections,
+} from "./collections.js";
 
 function mockTransact(trxRepos: unknown): Transact {
   return (fn) => fn(trxRepos as any) as any;
@@ -32,6 +38,9 @@ function createMockRepos(
     collectionEvents: {
       insert: vi.fn(async () => {}),
     },
+    cardTrades: {
+      listPendingPrintingIdsForGiver: vi.fn(async () => []),
+    },
   } as unknown as Repos;
 
   return {
@@ -53,13 +62,17 @@ describe("deleteCollection", () => {
     });
     const transact = mockTransact(repos);
 
-    await deleteCollection(transact, {
-      collectionId: "col-1",
-      collectionName: "Old Collection",
-      moveCopiesTo: "col-2",
-      targetName: "Target",
-      userId: "user-1",
-    });
+    await deleteCollection(
+      transact,
+      {
+        collectionId: "col-1",
+        collectionName: "Old Collection",
+        moveCopiesTo: "col-2",
+        targetName: "Target",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(moveCopiesBetweenCollections).not.toHaveBeenCalled();
     expect(deleteByIdForUser).toHaveBeenCalledWith("col-1", "user-1");
@@ -74,13 +87,17 @@ describe("deleteCollection", () => {
     });
     const transact = mockTransact(repos);
 
-    await deleteCollection(transact, {
-      collectionId: "col-1",
-      collectionName: "Old Collection",
-      moveCopiesTo: "col-2",
-      targetName: "Target",
-      userId: "user-1",
-    });
+    await deleteCollection(
+      transact,
+      {
+        collectionId: "col-1",
+        collectionName: "Old Collection",
+        moveCopiesTo: "col-2",
+        targetName: "Target",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(moveCopiesBetweenCollections).toHaveBeenCalledWith("col-1", "col-2");
     expect(deleteByIdForUser).toHaveBeenCalledWith("col-1", "user-1");
@@ -93,13 +110,17 @@ describe("deleteCollection", () => {
     const transact = mockTransact(repos);
     const insertSpy = (repos as any).collectionEvents.insert;
 
-    await deleteCollection(transact, {
-      collectionId: "col-1",
-      collectionName: "Old Collection",
-      moveCopiesTo: "col-2",
-      targetName: "Target",
-      userId: "user-1",
-    });
+    await deleteCollection(
+      transact,
+      {
+        collectionId: "col-1",
+        collectionName: "Old Collection",
+        moveCopiesTo: "col-2",
+        targetName: "Target",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(insertSpy).toHaveBeenCalledTimes(1);
     const events = insertSpy.mock.calls[0][0];
@@ -113,15 +134,64 @@ describe("deleteCollection", () => {
     const transact = mockTransact(repos);
     const insertSpy = (repos as any).collectionEvents.insert;
 
-    await deleteCollection(transact, {
-      collectionId: "col-1",
-      collectionName: "Empty",
-      moveCopiesTo: "col-2",
-      targetName: "Target",
-      userId: "user-1",
-    });
+    await deleteCollection(
+      transact,
+      {
+        collectionId: "col-1",
+        collectionName: "Empty",
+        moveCopiesTo: "col-2",
+        targetName: "Target",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  function withDoomedTrade(repos: Repos) {
+    const markAutoCancelled = vi.fn(async () => 1);
+    Object.assign(repos, {
+      cardTrades: {
+        listPendingPrintingIdsForGiver: vi.fn(async () => ["p-1"]),
+        listPendingForGiverPrinting: vi.fn(async () => [
+          { id: "trade-1", groupId: "group-1", quantity: 1, initiator: "receiver" },
+        ]),
+        listCancelSummaries: vi.fn(async (ids: string[]) => ids.map((id) => ({ id }))),
+        markAutoCancelled,
+      },
+      friendGroupMatches: {
+        giverPrintingSupply: vi.fn(async () => ({ unreservedCopyIds: [], hasAny: false })),
+      },
+    });
+    return markAutoCancelled;
+  }
+
+  const deleteOpts = {
+    collectionId: "col-1",
+    collectionName: "Binder",
+    moveCopiesTo: "inbox",
+    targetName: "Inbox",
+    userId: "user-1",
+  };
+
+  it("refuses when moving the copies to the inbox would cancel an unconfirmed trade", async () => {
+    const { repos } = createMockRepos({ copies: [{ id: "copy-1", printingId: "p-1" }] });
+    const markAutoCancelled = withDoomedTrade(repos);
+
+    await expect(
+      deleteCollection(mockTransact(repos), deleteOpts, consentedTradeCancels()),
+    ).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("cancels the trades a delete confirms", async () => {
+    const { repos } = createMockRepos({ copies: [{ id: "copy-1", printingId: "p-1" }] });
+    const markAutoCancelled = withDoomedTrade(repos);
+
+    await deleteCollection(mockTransact(repos), deleteOpts, consentedTradeCancels(["trade-1"]));
+
+    expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
   });
 });
 
@@ -151,11 +221,16 @@ function createClearMockRepos(
       deleteBatchById,
     },
     cardTrades: {
-      filterReservedCopyIds: vi.fn(async () => overrides.reservedIds ?? []),
+      filterReservedCopyIds: vi.fn(async (ids: string[]) =>
+        (overrides.reservedIds ?? []).filter((id) => ids.includes(id)),
+      ),
       listPendingForGiverPrinting: vi.fn(async () => []),
+      listPendingPrintingIdsForGiver: vi.fn(async () => []),
     },
     loans: {
-      filterLoanedCopyIds: vi.fn(async () => overrides.loanedIds ?? []),
+      filterLoanedCopyIds: vi.fn(async (ids: string[]) =>
+        (overrides.loanedIds ?? []).filter((id) => ids.includes(id)),
+      ),
     },
     collectionEvents: {
       insert,
@@ -173,10 +248,14 @@ describe("clearCollection", () => {
   it("returns zero counts and disposes nothing for an empty collection", async () => {
     const { repos, deleteBatchById, insert } = createClearMockRepos({ copies: [] });
 
-    const result = await clearCollection(mockTransact(repos), {
-      collectionId: "col-1",
-      userId: "user-1",
-    });
+    const result = await clearCollection(
+      mockTransact(repos),
+      {
+        collectionId: "col-1",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(result).toEqual({ removedCount: 0, keptCopyIds: [] });
     expect(deleteBatchById).not.toHaveBeenCalled();
@@ -191,10 +270,14 @@ describe("clearCollection", () => {
       ],
     });
 
-    const result = await clearCollection(mockTransact(repos), {
-      collectionId: "col-1",
-      userId: "user-1",
-    });
+    const result = await clearCollection(
+      mockTransact(repos),
+      {
+        collectionId: "col-1",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(result).toEqual({ removedCount: 2, keptCopyIds: [] });
     expect(deleteBatchById).toHaveBeenCalledWith(["copy-1", "copy-2"]);
@@ -215,10 +298,14 @@ describe("clearCollection", () => {
       loanedIds: ["copy-2"],
     });
 
-    const result = await clearCollection(mockTransact(repos), {
-      collectionId: "col-1",
-      userId: "user-1",
-    });
+    const result = await clearCollection(
+      mockTransact(repos),
+      {
+        collectionId: "col-1",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(result.removedCount).toBe(1);
     expect(result.keptCopyIds.toSorted()).toEqual(["copy-1", "copy-2"]);
@@ -231,14 +318,70 @@ describe("clearCollection", () => {
       reservedIds: ["copy-1"],
     });
 
-    const result = await clearCollection(mockTransact(repos), {
-      collectionId: "col-1",
-      userId: "user-1",
-    });
+    const result = await clearCollection(
+      mockTransact(repos),
+      {
+        collectionId: "col-1",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(result).toEqual({ removedCount: 0, keptCopyIds: ["copy-1"] });
     expect(deleteBatchById).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("splits every id list of a large collection into bounded batches", async () => {
+    const copies = Array.from({ length: 2500 }, (_, index) => ({
+      id: `copy-${index}`,
+      printingId: `p-${index % 7}`,
+    }));
+    const { repos, deleteBatchById } = createClearMockRepos({
+      copies,
+      reservedIds: ["copy-0"],
+    });
+
+    const result = await clearCollection(
+      mockTransact(repos),
+      {
+        collectionId: "col-1",
+        userId: "user-1",
+      },
+      CANCEL_WITHOUT_ASKING,
+    );
+
+    const idListCalls = [
+      ...(repos.copies.lockByIds as any).mock.calls,
+      ...(repos.copies.listWithCollectionContext as any).mock.calls,
+      ...(repos.cardTrades.filterReservedCopyIds as any).mock.calls,
+      ...(repos.loans.filterLoanedCopyIds as any).mock.calls,
+      ...deleteBatchById.mock.calls,
+    ] as [string[]][];
+    expect(idListCalls.length).toBeGreaterThan(5);
+    for (const [ids] of idListCalls) {
+      expect(ids.length).toBeLessThanOrEqual(1000);
+    }
+    expect(deleteBatchById.mock.calls.flatMap(([ids]: any) => ids)).toHaveLength(2499);
+    expect(result).toEqual({ removedCount: 2499, keptCopyIds: ["copy-0"] });
+  });
+
+  it("sweeps trades once, after the last batch, over every disposed printing", async () => {
+    const copies = Array.from({ length: 2500 }, (_, index) => ({
+      id: `copy-${index}`,
+      printingId: `p-${index % 7}`,
+    }));
+    const { repos } = createClearMockRepos({ copies });
+
+    await clearCollection(
+      mockTransact(repos),
+      { collectionId: "col-1", userId: "user-1" },
+      consentedTradeCancels(),
+    );
+
+    const sweeps = (repos.cardTrades.listPendingPrintingIdsForGiver as any).mock.calls;
+    expect(sweeps).toHaveLength(1);
+    expect(sweeps[0][1].toSorted()).toEqual(["p-0", "p-1", "p-2", "p-3", "p-4", "p-5", "p-6"]);
   });
 });
 
@@ -258,6 +401,7 @@ function createResetMocks(
     removedCopies?: number;
     removedCollections?: number;
     removedLists?: number;
+    pendingTrade?: boolean;
   } = {},
 ) {
   const copies = overrides.copies ?? [];
@@ -274,6 +418,14 @@ function createResetMocks(
   );
   const filterLoanedCopyIds = vi.fn(async (_copyIds: string[]) => overrides.loanedCopyIds ?? []);
   const insertEvents = vi.fn(async (_events: unknown[]) => {});
+  const doomed = overrides.pendingTrade ?? false;
+  const listPendingPrintingIdsForGiver = vi.fn(async (_userId: string, ids: string[]) =>
+    doomed ? ids : [],
+  );
+  const listPendingForGiverPrinting = vi.fn(async () =>
+    doomed ? [{ id: "trade-1", groupId: "group-1", quantity: 1, initiator: "receiver" }] : [],
+  );
+  const markAutoCancelled = vi.fn(async (_id: string) => 1);
 
   const repos = {
     copies: {
@@ -283,13 +435,24 @@ function createResetMocks(
     },
     collections: { deleteAllPersonalExceptInbox, ensureInbox },
     lists: { listIdsWithEntries, deleteEmptyWithoutRules },
-    cardTrades: { filterReservedCopyIds, listPendingForGiverPrinting: vi.fn(async () => []) },
+    cardTrades: {
+      filterReservedCopyIds,
+      listPendingForGiverPrinting,
+      listPendingPrintingIdsForGiver,
+      listCancelSummaries: vi.fn(async (ids: string[]) => ids.map((id) => ({ id }))),
+      markAutoCancelled,
+    },
+    friendGroupMatches: {
+      giverPrintingSupply: vi.fn(async () => ({ unreservedCopyIds: [], hasAny: false })),
+    },
     loans: { filterLoanedCopyIds },
     collectionEvents: { insert: insertEvents },
   } as unknown as Repos;
 
   return {
     repos,
+    listPendingPrintingIdsForGiver,
+    markAutoCancelled,
     listInPersonalCollections,
     deleteAllInPersonalCollections,
     deleteAllPersonalExceptInbox,
@@ -325,7 +488,7 @@ describe("resetCollections", () => {
     });
     const transact = mockTransact(mocks.repos);
 
-    const result = await resetCollections(transact, "user-1");
+    const result = await resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING);
 
     expect(result).toEqual({ removedCopies: 2, removedCollections: 3, removedLists: 1 });
     expect(mocks.deleteAllInPersonalCollections).toHaveBeenCalledWith("user-1");
@@ -337,7 +500,7 @@ describe("resetCollections", () => {
     const mocks = createResetMocks({ copies: [resetCopy(1), resetCopy(2)] });
     const transact = mockTransact(mocks.repos);
 
-    await resetCollections(transact, "user-1");
+    await resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING);
 
     expect(mocks.insertEvents).toHaveBeenCalledTimes(1);
     const events = mocks.insertEvents.mock.calls[0]![0] as any[];
@@ -359,7 +522,7 @@ describe("resetCollections", () => {
     const mocks = createResetMocks({ copies: [], listIdsWithEntries: [] });
     const transact = mockTransact(mocks.repos);
 
-    const result = await resetCollections(transact, "user-1");
+    const result = await resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING);
 
     expect(mocks.insertEvents).not.toHaveBeenCalled();
     expect(mocks.deleteEmptyWithoutRules).toHaveBeenCalledWith("user-1", []);
@@ -373,7 +536,7 @@ describe("resetCollections", () => {
     });
     const transact = mockTransact(mocks.repos);
 
-    await resetCollections(transact, "user-1");
+    await resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING);
 
     expect(mocks.listIdsWithEntries).toHaveBeenCalledWith("user-1");
     expect(mocks.deleteEmptyWithoutRules).toHaveBeenCalledWith("user-1", ["list-1", "list-2"]);
@@ -389,10 +552,14 @@ describe("resetCollections", () => {
     });
     const transact = mockTransact(mocks.repos);
 
-    await expect(resetCollections(transact, "user-1")).rejects.toMatchObject({
-      status: 409,
-    });
-    await expect(resetCollections(transact, "user-1")).rejects.toBeInstanceOf(AppError);
+    await expect(resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING)).rejects.toMatchObject(
+      {
+        status: 409,
+      },
+    );
+    await expect(
+      resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING),
+    ).rejects.toBeInstanceOf(AppError);
     expect(mocks.deleteAllInPersonalCollections).not.toHaveBeenCalled();
     expect(mocks.insertEvents).not.toHaveBeenCalled();
   });
@@ -404,9 +571,11 @@ describe("resetCollections", () => {
     });
     const transact = mockTransact(mocks.repos);
 
-    await expect(resetCollections(transact, "user-1")).rejects.toMatchObject({
-      status: 409,
-    });
+    await expect(resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING)).rejects.toMatchObject(
+      {
+        status: 409,
+      },
+    );
     expect(mocks.deleteAllInPersonalCollections).not.toHaveBeenCalled();
   });
 
@@ -415,12 +584,79 @@ describe("resetCollections", () => {
     const mocks = createResetMocks({ copies });
     const transact = mockTransact(mocks.repos);
 
-    await resetCollections(transact, "user-1");
+    await resetCollections(transact, "user-1", CANCEL_WITHOUT_ASKING);
 
     expect(mocks.filterReservedCopyIds).toHaveBeenCalledTimes(3);
     expect(mocks.filterLoanedCopyIds).toHaveBeenCalledTimes(3);
     expect(mocks.insertEvents).toHaveBeenCalledTimes(3);
     expect(mocks.filterReservedCopyIds.mock.calls[0]![0] as string[]).toHaveLength(1000);
     expect(mocks.filterReservedCopyIds.mock.calls[2]![0] as string[]).toHaveLength(500);
+  });
+
+  it("refuses when the wipe would cancel an unconfirmed trade", async () => {
+    const mocks = createResetMocks({ copies: [resetCopy(1)], pendingTrade: true });
+
+    await expect(
+      resetCollections(mockTransact(mocks.repos), "user-1", consentedTradeCancels()),
+    ).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    expect(mocks.markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("cancels the trades a reset confirms, after the copies are gone", async () => {
+    const mocks = createResetMocks({ copies: [resetCopy(1)], pendingTrade: true });
+
+    await resetCollections(mockTransact(mocks.repos), "user-1", consentedTradeCancels(["trade-1"]));
+
+    expect(mocks.markAutoCancelled).toHaveBeenCalledWith("trade-1");
+    expect(mocks.deleteAllInPersonalCollections.mock.invocationCallOrder[0]!).toBeLessThan(
+      mocks.listPendingPrintingIdsForGiver.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("sweeps trades once, after every batch, over every removed printing", async () => {
+    const copies = Array.from({ length: 2500 }, (_, i) => ({
+      ...resetCopy(i),
+      printingId: `p-${i % 7}`,
+    }));
+    const mocks = createResetMocks({ copies });
+
+    await resetCollections(mockTransact(mocks.repos), "user-1", consentedTradeCancels());
+
+    const sweeps = mocks.listPendingPrintingIdsForGiver.mock.calls;
+    expect(sweeps).toHaveLength(1);
+    expect(sweeps[0]![1].toSorted()).toEqual(["p-0", "p-1", "p-2", "p-3", "p-4", "p-5", "p-6"]);
+  });
+
+  it("refuses for a reserved copy before sweeping", async () => {
+    const mocks = createResetMocks({
+      copies: [resetCopy(1)],
+      reservedCopyIds: ["copy-1"],
+      pendingTrade: true,
+    });
+
+    await expect(
+      resetCollections(mockTransact(mocks.repos), "user-1", consentedTradeCancels(["trade-1"])),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(mocks.listPendingPrintingIdsForGiver).not.toHaveBeenCalled();
+  });
+
+  it("previews the trades a reset would cancel inside a transaction that rolls back", async () => {
+    const mocks = createResetMocks({ copies: [resetCopy(1)], pendingTrade: true });
+    let outcome: "committed" | "rolled back" | undefined;
+    const transact: Transact = async (fn) => {
+      try {
+        const result = await fn(mocks.repos as any);
+        outcome = "committed";
+        return result;
+      } catch (error) {
+        outcome = "rolled back";
+        throw error;
+      }
+    };
+
+    const preview = await previewResetCollectionsTradeCancels(transact, "user-1");
+
+    expect(preview).toEqual({ trades: [{ id: "trade-1" }] });
+    expect(outcome).toBe("rolled back");
   });
 });

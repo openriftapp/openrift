@@ -1,6 +1,5 @@
 import { fallbackArtModeSchema } from "@openrift/shared/contracts/admin/card-detail-schemas";
 import { channelKindEnum } from "@openrift/shared/contracts/admin/distribution-channels";
-import { JOB_STATUSES, JOB_TRIGGERS } from "@openrift/shared/contracts/admin/job-runs";
 import { printingEventStatusSchema } from "@openrift/shared/contracts/admin/printing-events";
 import { scopeEnum } from "@openrift/shared/contracts/admin/site-settings";
 import {
@@ -36,6 +35,7 @@ import {
   tournamentStaffRoleSchema,
   tournamentStatusSchema,
 } from "@openrift/shared/contracts/tournaments";
+import { JOB_STATUSES, JOB_TRIGGERS } from "@openrift/shared/job-run-kinds";
 import {
   currencyResponseSchema,
   deckCheckEntryStateSchema,
@@ -189,7 +189,6 @@ const SQL_STRING_LITERAL = /'(?<value>(?:[^']|'')*)'/gu;
 /** Pulls the quoted literals out of an `ARRAY[...]` body, dropping the casts. */
 function parseArrayLiterals(body: string): string[] {
   return [...body.matchAll(SQL_STRING_LITERAL)].map((match) =>
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- the group is in the pattern
     match.groups!.value!.replaceAll("''", "'"),
   );
 }
@@ -206,7 +205,6 @@ describe.skipIf(!DATABASE_URL)("DB enum CHECKs match their TypeScript unions", (
   let subsetChecks: CheckRow[];
 
   beforeAll(async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
     ({ db, teardown } = await setupTestDb(DATABASE_URL!, "enum-checks"));
     const result = await sql<CheckRow>`
       SELECT c.conname, pg_get_constraintdef(c.oid) AS definition

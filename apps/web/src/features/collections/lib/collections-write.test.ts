@@ -266,9 +266,7 @@ describe("persisting collection writes", () => {
 
     await collection.delete("pool").when("settled");
 
-    expect(writes()).toEqual([
-      { method: "DELETE", path: "/api/v1/collections/pool", body: undefined },
-    ]);
+    expect(writes()).toEqual([{ method: "DELETE", path: "/api/v1/collections/pool", body: {} }]);
     await vi.waitFor(() => {
       expect(collection.has("pool")).toBe(false);
     });

@@ -20,7 +20,7 @@ pre-commit:
         if [ ! -f apps/web/src/paraglide/runtime.js ] || git diff --cached --name-only | grep -qE '^apps/web/(messages/|project\.inlang/)'; then
           bun run --cwd apps/web paraglide:compile
         fi
-        bunx oxlint --type-aware --deny-warnings '{staged_files}'
+        bunx oxlint --type-aware --deny-warnings --report-unused-disable-directives '{staged_files}'
     eslint-check:
       glob: "*.{js,ts,jsx,tsx}"
       root: "apps/web/"
@@ -54,22 +54,25 @@ pre-commit:
         fi
 
 pre-push:
-  commands:
-    typescript-check:
-      # Runs everywhere, including constrained remote/CI runners.
-      # Goes through turbo so all packages (shared, api, web) are covered and
-      # a /done that already typechecked is a cache hit here.
-      glob: "*.{ts,tsx}"
-      run: bun run typecheck
-    knip-check:
-      glob: "*.{js,ts,cjs,mjs,jsx,tsx}"
-      run: bun run knip
-    lockfile-check:
-      glob: "**/package.json"
-      run: bun install --frozen-lockfile
-    test:
+  jobs:
+    - group:
+        parallel: true
+        jobs:
+          - name: typescript-check
+            # Runs everywhere, including constrained remote/CI runners.
+            # Goes through turbo so all packages (shared, api, web) are covered and
+            # a /done that already typechecked is a cache hit here.
+            glob: "*.{ts,tsx}"
+            run: bun run typecheck
+          - name: knip-check
+            glob: "*.{js,ts,cjs,mjs,jsx,tsx}"
+            run: bun run knip
+          - name: lockfile-check
+            glob: "**/package.json"
+            run: bun install --frozen-lockfile
+    - name: test
       run: bun run test
-    test-integration:
+    - name: test-integration
       # Needs the local docker DB. Runs once per push; not part of /done, and
       # agents never run it manually as a verification step.
       run: bun run test:integration

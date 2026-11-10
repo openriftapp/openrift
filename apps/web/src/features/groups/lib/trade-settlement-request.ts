@@ -1,6 +1,8 @@
 import { tradeSettlementFingerprint } from "@openrift/shared/trade-settlement";
 import type { TradeSettlementOptions } from "@openrift/shared/trade-settlement";
 
+const KEY_PREFIX = "openrift-settlement:";
+
 const requests = new Map<string, { requestId: string; completed: boolean }>();
 
 function settlementRequestId(key: string): string {
@@ -37,13 +39,29 @@ function completeSettlementRequest(key: string, requestId: string): void {
   }
 }
 
+export function clearTradeSettlementRequests(): void {
+  requests.clear();
+  try {
+    const keys = Array.from({ length: sessionStorage.length }, (_, index) =>
+      sessionStorage.key(index),
+    );
+    for (const key of keys) {
+      if (key?.startsWith(KEY_PREFIX)) {
+        sessionStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export async function runTradeSettlement<T>(
   userId: string,
   action: "apply" | "skip",
   input: TradeSettlementOptions & { tradeId: string },
   send: (requestId: string) => Promise<T>,
 ): Promise<T> {
-  const key = `openrift-settlement:${JSON.stringify([userId, input.tradeId, tradeSettlementFingerprint(action, input)])}`;
+  const key = `${KEY_PREFIX}${JSON.stringify([userId, input.tradeId, tradeSettlementFingerprint(action, input)])}`;
   const requestId = settlementRequestId(key);
   const result = await send(requestId);
   completeSettlementRequest(key, requestId);

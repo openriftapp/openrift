@@ -50,6 +50,7 @@ import {
 } from "@/features/admin/lib/printing-desk-filter";
 import type { DeskListMode } from "@/features/admin/lib/printing-desk-queries";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
+import { selectionSummary, splitSelection } from "@/features/admin/lib/selection-summary";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { downloadCsv } from "@/lib/download";
@@ -73,6 +74,10 @@ const SORT_OPTIONS = [
   { value: "release", label: "Available from" },
 ] as const satisfies readonly { value: DeskSort; label: string }[];
 
+function todayDay(): string {
+  return formatDay(new Date());
+}
+
 export function PrintingDeskPage() {
   const { data: isAdmin } = useIsAdmin();
   const [modeOverride, setModeOverride] = useState<DeskListMode | null>(null);
@@ -95,7 +100,8 @@ export function PrintingDeskPage() {
     sort,
   );
 
-  const selectedRows = (data?.printings ?? []).filter((row) => selected.has(row.printingId));
+  const split = splitSelection(data?.printings ?? [], rows, (row) => row.printingId, selected);
+  const selectedRows = split.selected;
   const postSlides = selectedRows.flatMap((row) =>
     row.activeImageFileId === null
       ? []
@@ -105,7 +111,7 @@ export function PrintingDeskPage() {
 
   function handleExport() {
     const csv = buildPrintingDeskCsv(rows, { channelPaths, siteUrl: getSiteUrl() });
-    downloadCsv(csv, printingDeskCsvFilename(mode, formatDay(new Date())));
+    downloadCsv(csv, printingDeskCsvFilename(mode, todayDay()));
   }
 
   function toggleSelected(printingId: string, checked: boolean) {
@@ -177,7 +183,9 @@ export function PrintingDeskPage() {
 
         {selectedRows.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground text-sm">{selectedRows.length} selected</span>
+            <span className="text-muted-foreground text-sm">
+              {selectionSummary(selectedRows.length, split.hiddenCount)}
+            </span>
             {postSlides.length === 0 ? (
               <Button variant="outline" size="sm" disabled>
                 <Share2Icon />

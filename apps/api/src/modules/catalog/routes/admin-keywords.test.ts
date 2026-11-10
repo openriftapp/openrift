@@ -9,9 +9,7 @@ vi.mock("../services/keyword-translation-discovery.js", () => ({
   discoverKeywordTranslations: vi.fn(),
 }));
 
-// eslint-disable-next-line import/first -- imported after vi.mock so the mock applies.
 import { discoverKeywordTranslations } from "../services/keyword-translation-discovery.js";
-// eslint-disable-next-line import/first
 import { adminKeywordsRouter } from "./admin-keywords";
 
 const discoverMock = vi.mocked(discoverKeywordTranslations);

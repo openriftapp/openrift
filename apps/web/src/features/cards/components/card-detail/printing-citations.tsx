@@ -2,7 +2,7 @@ import type { PrintingCitation } from "@openrift/shared/types/catalog";
 import { LinkIcon } from "lucide-react";
 
 import { BrandGlyph } from "@/components/ui/brand-glyph";
-import { sourceBrand } from "@/features/admin/lib/source-brand";
+import { sourceBrand } from "@/features/cards/lib/source-brand";
 
 export function CitationEntry({ citation }: { citation: PrintingCitation }) {
   const glyph = (

@@ -27,7 +27,6 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
   function makeEmailDeps(): { deps: EmailDeps; sent: { to: string; subject: string }[] } {
     const sent: { to: string; subject: string }[] = [];
     const deps: EmailDeps = {
-      // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async ({ to, subject }) => {
         sent.push({ to, subject });
         return undefined;
@@ -168,7 +167,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
 
   function requestAsReceiver(group: { slug: string }, deps?: EmailDeps) {
     return createTrade(
-      transact,
+      { repos, transact },
       {
         callerUserId: RECEIVER_ID,
         groupSlug: group.slug,
@@ -183,7 +182,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
 
   function offerAsGiver(group: { slug: string }, deps?: EmailDeps) {
     return createTrade(
-      transact,
+      { repos, transact },
       {
         callerUserId: GIVER_ID,
         groupSlug: group.slug,
@@ -241,7 +240,6 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
   it("still creates the trade when the email send throws", async () => {
     const group = await setupMatch();
     const failingDeps: EmailDeps = {
-      // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async () => {
         throw new Error("SMTP down");
       },

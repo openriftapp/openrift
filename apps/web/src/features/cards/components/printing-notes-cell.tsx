@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { InfoHint } from "@/components/ui/info-hint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { sourceBrand } from "@/features/admin/lib/source-brand";
+import { sourceBrand } from "@/features/cards/lib/source-brand";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

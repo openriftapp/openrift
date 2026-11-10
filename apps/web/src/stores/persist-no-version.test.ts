@@ -1,4 +1,3 @@
-// oxlint-disable no-nodejs-modules -- this test introspects the source tree, so it must read files from disk
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 

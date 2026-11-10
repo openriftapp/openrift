@@ -29,9 +29,8 @@ import {
   ruleVersionsListResponseSchema,
 } from "../packages/shared/src/contracts/rules.js";
 import { createLogger } from "../packages/shared/src/logger.js";
-import { requireEnv } from "./env.js";
+import { isLocalDatabase, requireEnv } from "./env.js";
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const FETCH_CONCURRENCY = 5;
 
 const log = createLogger("db:sync");
@@ -40,7 +39,7 @@ const databaseUrl = requireEnv("DATABASE_URL");
 const sourceUrl = requireEnv("CATALOG_SOURCE_URL").replace(/\/$/u, "");
 const target = new URL(databaseUrl);
 const databaseName = target.pathname.replace(/^\//u, "");
-const isLocal = LOCAL_HOSTS.has(target.hostname);
+const isLocal = isLocalDatabase(databaseUrl);
 
 function print(line = ""): void {
   process.stdout.write(`${line}\n`);

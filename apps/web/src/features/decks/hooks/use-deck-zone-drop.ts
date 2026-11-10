@@ -1,7 +1,5 @@
 import { useDndContext, useDroppable } from "@dnd-kit/core";
-import { formatHasSideboard } from "@openrift/shared/deck-rules";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
-import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { isCardAllowedInZone, isDeckZoneFullForDrag } from "@/features/decks/lib/deck-builder-card";
@@ -26,14 +24,7 @@ export function isZoneDropRejected(args: {
     return true;
   }
   const fromZone = dragData?.type === "deck-card" ? dragData.fromZone : null;
-  if (relaxed) {
-    return (
-      zone === WellKnown.deckZone.SIDEBOARD &&
-      !formatHasSideboard(format) &&
-      fromZone !== WellKnown.deckZone.SIDEBOARD
-    );
-  }
-  return isDeckZoneFullForDrag({ zone, draggedCard, fromZone, allCards, format });
+  return isDeckZoneFullForDrag({ zone, draggedCard, fromZone, allCards, format, relaxed });
 }
 
 /** Never disables the droppable for a rejected drag: that drops out of collision

@@ -10,6 +10,7 @@ import type {
   MetaListStatus,
   MetaOverlayStatus,
   MetaPlayerOverlayField,
+  MetaSubmissionReason,
 } from "@openrift/shared/types/enums";
 import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import type { Insertable } from "kysely";
@@ -59,74 +60,85 @@ function redundantClaims(
 }
 
 export async function acceptMetaEventOverlay(
-  repos: Repos,
+  transact: Transact,
   overlayId: string,
   intoMetaEventId: string | null = null,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
-  assertFound(overlay, "That overlay no longer exists.");
+  return await transact((trx) =>
+    // Read under the lock, so a concurrent accept of one proposal sees the event the first one minted.
+    trx.meta.withPromoteLock(`event-overlay:${overlayId}`, async (repos) => {
+      const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
+      assertFound(overlay, "That overlay no longer exists.");
 
-  if (overlay.metaEventId !== null) {
-    await repos.metaOverlays.setEventOverlayStatus(overlayId, "accepted", now);
-    await promoteMetaEvent(repos, overlay.metaEventId);
-    return { metaEventId: overlay.metaEventId, created: false };
-  }
+      if (overlay.metaEventId !== null) {
+        await repos.metaOverlays.setEventOverlayStatus(overlayId, "accepted", now);
+        await promoteMetaEvent(repos, overlay.metaEventId);
+        return { metaEventId: overlay.metaEventId, created: false };
+      }
 
-  if (intoMetaEventId !== null) {
-    const target = await repos.meta.eventById(intoMetaEventId);
-    assertFound(target, "That archived event no longer exists.");
-    const redundant = redundantClaims(
-      overlay.claimedFields,
-      overlay as unknown as Record<string, unknown>,
-      target as unknown as Record<string, unknown>,
-    );
-    await repos.metaOverlays.updateEventOverlay(overlayId, {
-      metaEventId: intoMetaEventId,
-      status: "accepted",
-      acceptedAt: now,
-      claimedFields: overlay.claimedFields.filter(
-        (field) => !redundant.includes(field),
-      ) as MetaEventOverlayField[],
-      ...Object.fromEntries(redundant.map((field) => [field, null])),
-    });
-    await repos.metaOverlays.adoptProposedPlayers(overlayId, intoMetaEventId);
-    await promoteMetaEvent(repos, intoMetaEventId);
-    return { metaEventId: intoMetaEventId, created: false };
-  }
+      if (intoMetaEventId !== null) {
+        const target = await repos.meta.eventById(intoMetaEventId);
+        assertFound(target, "That archived event no longer exists.");
+        const redundant = redundantClaims(
+          overlay.claimedFields,
+          overlay as unknown as Record<string, unknown>,
+          target as unknown as Record<string, unknown>,
+        );
+        await repos.metaOverlays.updateEventOverlay(overlayId, {
+          metaEventId: intoMetaEventId,
+          status: "accepted",
+          acceptedAt: now,
+          claimedFields: overlay.claimedFields.filter(
+            (field) => !redundant.includes(field),
+          ) as MetaEventOverlayField[],
+          ...Object.fromEntries(redundant.map((field) => [field, null])),
+        });
+        await repos.metaOverlays.adoptProposedPlayers(overlayId, intoMetaEventId);
+        await promoteMetaEvent(repos, intoMetaEventId);
+        return { metaEventId: intoMetaEventId, created: false };
+      }
 
-  if (overlay.provider === TOURNAMENT_LIST_PROVIDER && overlay.externalId !== null) {
-    return await acceptMirroredProposal(repos, overlay.id, overlay.externalId, overlay.format, now);
-  }
+      if (overlay.provider === TOURNAMENT_LIST_PROVIDER && overlay.externalId !== null) {
+        return await acceptMirroredProposal(
+          repos,
+          overlay.id,
+          overlay.externalId,
+          overlay.format,
+          now,
+        );
+      }
 
-  // The check runs before anything is written: a failed validation must leave
-  // the overlay pending, not accepted with no live event behind it.
-  if (overlay.name === null || overlay.eventDate === null || overlay.format === null) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "A proposed event needs a name, a date and a format before it can be accepted.",
-    );
-  }
+      // The check runs before anything is written: a failed validation must leave
+      // the overlay pending, not accepted with no live event behind it.
+      if (overlay.name === null || overlay.eventDate === null || overlay.format === null) {
+        throw new AppError(
+          400,
+          ERROR_CODES.BAD_REQUEST,
+          "A proposed event needs a name, a date and a format before it can be accepted.",
+        );
+      }
 
-  // Minted before the overlay is flipped: a failure here must leave the
-  // proposal pending, not accepted with no live event behind it.
-  const promoted = await promoteNewEvent(repos, overlay.provider, overlay.externalId, {
-    name: overlay.name,
-    eventDate: overlay.eventDate,
-    format: overlay.format,
-    sourceUrl: null,
-  });
+      // Minted before the overlay is flipped: a failure here must leave the
+      // proposal pending, not accepted with no live event behind it.
+      const promoted = await promoteNewEvent(repos, overlay.provider, overlay.externalId, {
+        name: overlay.name,
+        eventDate: overlay.eventDate,
+        format: overlay.format,
+        sourceUrl: null,
+      });
 
-  await repos.metaOverlays.updateEventOverlay(overlayId, {
-    metaEventId: promoted.metaEventId,
-    status: "accepted",
-    acceptedAt: now,
-  });
-  await repos.metaOverlays.adoptProposedPlayers(overlayId, promoted.metaEventId);
-  await promoteMetaEvent(repos, promoted.metaEventId);
+      await repos.metaOverlays.updateEventOverlay(overlayId, {
+        metaEventId: promoted.metaEventId,
+        status: "accepted",
+        acceptedAt: now,
+      });
+      await repos.metaOverlays.adoptProposedPlayers(overlayId, promoted.metaEventId);
+      await promoteMetaEvent(repos, promoted.metaEventId);
 
-  return { metaEventId: promoted.metaEventId, created: promoted.created };
+      return { metaEventId: promoted.metaEventId, created: promoted.created };
+    }),
+  );
 }
 
 /**
@@ -194,37 +206,38 @@ async function anchorTournamentLists(
 }
 
 export async function moveMetaEventOverlay(
-  repos: Repos,
+  transact: Transact,
   overlayId: string,
   intoMetaEventId: string,
 ): Promise<MetaOverlayReviewResult> {
-  const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
-  assertFound(overlay, "That overlay no longer exists.");
-  if (overlay.provider === null || overlay.externalId === null) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "Only a provider's upload can be moved; a person's overlay is a correction to one event.",
-    );
-  }
-  if (overlay.metaEventId === intoMetaEventId) {
-    return { metaEventId: intoMetaEventId, created: false };
-  }
-  const target = await repos.meta.eventById(intoMetaEventId);
-  assertFound(target, "That archived event no longer exists.");
+  return await transact(async (repos) => {
+    const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
+    assertFound(overlay, "That overlay no longer exists.");
+    if (overlay.provider === null || overlay.externalId === null) {
+      throw new AppError(
+        400,
+        ERROR_CODES.BAD_REQUEST,
+        "Only a provider's upload can be moved; a person's overlay is a correction to one event.",
+      );
+    }
+    if (overlay.metaEventId === intoMetaEventId) {
+      return { metaEventId: intoMetaEventId, created: false };
+    }
+    const target = await repos.meta.eventById(intoMetaEventId);
+    assertFound(target, "That archived event no longer exists.");
 
-  const leaving = overlay.metaEventId;
-  await repos.metaOverlays.reanchorPlayerOverlays(
-    overlay.provider,
-    overlay.externalId,
-    intoMetaEventId,
-  );
-  await repos.metaOverlays.updateEventOverlay(overlayId, { metaEventId: intoMetaEventId });
-  if (leaving !== null) {
-    await promoteMetaEvent(repos, leaving);
-  }
-  await promoteMetaEvent(repos, intoMetaEventId);
-  return { metaEventId: intoMetaEventId, created: false };
+    const leaving = overlay.metaEventId;
+    await repos.metaOverlays.reanchorPlayerOverlays(
+      overlay.provider,
+      overlay.externalId,
+      intoMetaEventId,
+    );
+    await repos.metaOverlays.updateEventOverlay(overlayId, { metaEventId: intoMetaEventId });
+    for (const metaEventId of [leaving, intoMetaEventId].filter((id) => id !== null).toSorted()) {
+      await promoteMetaEvent(repos, metaEventId);
+    }
+    return { metaEventId: intoMetaEventId, created: false };
+  });
 }
 
 export interface MetaUploadSummary {
@@ -277,47 +290,52 @@ export interface MetaUploadRevertResult {
  * wrote. Nothing is deleted, so a corrected file can be accepted again.
  */
 export async function revertMetaUpload(
-  repos: Repos,
+  transact: Transact,
   provider: string,
   eventExternalId: string,
   now: Date = new Date(),
 ): Promise<MetaUploadRevertResult> {
-  const players = await repos.metaOverlays.playerOverlaysForSourceEvent(provider, eventExternalId);
-  const [eventOverlay] = await repos.metaOverlays.eventOverlaysBySourceKeys(provider, [
-    eventExternalId,
-  ]);
-  if (eventOverlay === undefined && players.length === 0) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "No upload with that source key exists.");
-  }
-
-  const affected = new Set<string>();
-  for (const player of players) {
-    const metaEventId = await eventIdForPlayerOverlay(repos, player);
-    if (metaEventId !== null) {
-      affected.add(metaEventId);
+  return await transact(async (repos) => {
+    const players = await repos.metaOverlays.playerOverlaysForSourceEvent(
+      provider,
+      eventExternalId,
+    );
+    const [eventOverlay] = await repos.metaOverlays.eventOverlaysBySourceKeys(provider, [
+      eventExternalId,
+    ]);
+    if (eventOverlay === undefined && players.length === 0) {
+      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No upload with that source key exists.");
     }
-  }
-  if (eventOverlay !== undefined && eventOverlay.metaEventId !== null) {
-    affected.add(eventOverlay.metaEventId);
-  }
 
-  const settled = players.filter((player) => player.status !== "rejected");
-  await repos.metaOverlays.setPlayerOverlayStatuses(
-    settled.map((player) => player.id),
-    "rejected",
-    now,
-  );
-  let eventRejected = false;
-  if (eventOverlay !== undefined && eventOverlay.status !== "rejected") {
-    await repos.metaOverlays.setEventOverlayStatus(eventOverlay.id, "rejected", now);
-    eventRejected = true;
-  }
+    const affected = new Set<string>();
+    for (const player of players) {
+      const metaEventId = await eventIdForPlayerOverlay(repos, player);
+      if (metaEventId !== null) {
+        affected.add(metaEventId);
+      }
+    }
+    if (eventOverlay !== undefined && eventOverlay.metaEventId !== null) {
+      affected.add(eventOverlay.metaEventId);
+    }
 
-  for (const metaEventId of affected) {
-    await promoteMetaEvent(repos, metaEventId);
-  }
+    const settled = players.filter((player) => player.status !== "rejected");
+    await repos.metaOverlays.setPlayerOverlayStatuses(
+      settled.map((player) => player.id),
+      "rejected",
+      now,
+    );
+    let eventRejected = false;
+    if (eventOverlay !== undefined && eventOverlay.status !== "rejected") {
+      await repos.metaOverlays.setEventOverlayStatus(eventOverlay.id, "rejected", now);
+      eventRejected = true;
+    }
 
-  return { metaEventIds: [...affected], players: settled.length, eventRejected };
+    for (const metaEventId of [...affected].toSorted()) {
+      await promoteMetaEvent(repos, metaEventId);
+    }
+
+    return { metaEventIds: [...affected], players: settled.length, eventRejected };
+  });
 }
 
 export interface MetaEventFieldEdit {
@@ -330,43 +348,45 @@ export interface MetaEventFieldEdit {
  * now on each merge, so the latest edit outranks overlays accepted between.
  */
 export async function writeEventOverlayFields(
-  repos: Repos,
+  transact: Transact,
   metaEventId: string,
   edits: readonly MetaEventFieldEdit[],
   authorUserId: string,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  const live = await repos.meta.eventById(metaEventId);
-  assertFound(live, "That archived event no longer exists.");
-  if (edits.length === 0) {
+  return await transact(async (repos) => {
+    const live = await repos.meta.eventById(metaEventId);
+    assertFound(live, "That archived event no longer exists.");
+    if (edits.length === 0) {
+      return { metaEventId, created: false };
+    }
+
+    const columns: Record<string, unknown> = {};
+    for (const edit of edits) {
+      Object.assign(columns, coerceEventField(edit.field, edit.value));
+    }
+    const fields = [...new Set(edits.map((edit) => edit.field))];
+
+    await repos.meta.withPromoteLock(`admin-edit:${metaEventId}:${authorUserId}`, async () => {
+      const existing = await repos.metaOverlays.adminEditOverlay(metaEventId, authorUserId);
+      await (existing === undefined
+        ? repos.metaOverlays.insertEventOverlay({
+            metaEventId,
+            claimedFields: fields,
+            status: "accepted",
+            acceptedAt: now,
+            submittedByUserId: authorUserId,
+            ...columns,
+          })
+        : repos.metaOverlays.updateEventOverlay(existing.id, {
+            claimedFields: [...new Set([...existing.claimedFields, ...fields])],
+            acceptedAt: now,
+            ...columns,
+          }));
+    });
+    await promoteMetaEvent(repos, metaEventId);
     return { metaEventId, created: false };
-  }
-
-  const columns: Record<string, unknown> = {};
-  for (const edit of edits) {
-    Object.assign(columns, coerceEventField(edit.field, edit.value));
-  }
-  const fields = [...new Set(edits.map((edit) => edit.field))];
-
-  await repos.meta.withPromoteLock(`admin-edit:${metaEventId}:${authorUserId}`, async () => {
-    const existing = await repos.metaOverlays.adminEditOverlay(metaEventId, authorUserId);
-    await (existing === undefined
-      ? repos.metaOverlays.insertEventOverlay({
-          metaEventId,
-          claimedFields: fields,
-          status: "accepted",
-          acceptedAt: now,
-          submittedByUserId: authorUserId,
-          ...columns,
-        })
-      : repos.metaOverlays.updateEventOverlay(existing.id, {
-          claimedFields: [...new Set([...existing.claimedFields, ...fields])],
-          acceptedAt: now,
-          ...columns,
-        }));
   });
-  await promoteMetaEvent(repos, metaEventId);
-  return { metaEventId, created: false };
 }
 
 /**
@@ -376,7 +396,6 @@ export async function writeEventOverlayFields(
  */
 export async function applyMetaEventCorrection(
   transact: Transact,
-  repos: Repos,
   submissionId: string,
   options: { fields: readonly MetaEventOverlayField[] | null; reviewedByUserId: string },
   now: Date = new Date(),
@@ -441,10 +460,9 @@ export async function applyMetaEventCorrection(
       resolvedAt: now,
       resolvedByUserId: options.reviewedByUserId,
     });
+    await promoteMetaEvent(trx, eventId);
     return eventId;
   });
-
-  await promoteMetaEvent(repos, metaEventId);
   return { metaEventId, created: false };
 }
 
@@ -453,37 +471,39 @@ export async function applyMetaEventCorrection(
  * list must stay non-empty by CHECK, so releasing its last claim rejects it.
  */
 export async function releaseEventOverlayField(
-  repos: Repos,
+  transact: Transact,
   metaEventId: string,
   field: MetaEventOverlayField,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  const live = await repos.meta.eventById(metaEventId);
-  assertFound(live, "That archived event no longer exists.");
+  return await transact(async (repos) => {
+    const live = await repos.meta.eventById(metaEventId);
+    assertFound(live, "That archived event no longer exists.");
 
-  const overlays = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
-  for (const overlay of overlays) {
-    if (!overlay.claimedFields.includes(field)) {
-      continue;
+    const overlays = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
+    for (const overlay of overlays) {
+      if (!overlay.claimedFields.includes(field)) {
+        continue;
+      }
+      const remaining = overlay.claimedFields.filter((claimed) => claimed !== field);
+      const isAdminEdit = overlay.provider === null && overlay.submissionNote === null;
+      if (remaining.length === 0 && isAdminEdit) {
+        await repos.metaOverlays.deleteEventOverlay(overlay.id);
+        continue;
+      }
+      if (remaining.length === 0) {
+        await repos.metaOverlays.setEventOverlayStatus(overlay.id, "rejected", now);
+        continue;
+      }
+      await repos.metaOverlays.updateEventOverlay(overlay.id, {
+        claimedFields: remaining,
+        [field]: null,
+      });
     }
-    const remaining = overlay.claimedFields.filter((claimed) => claimed !== field);
-    const isAdminEdit = overlay.provider === null && overlay.submissionNote === null;
-    if (remaining.length === 0 && isAdminEdit) {
-      await repos.metaOverlays.deleteEventOverlay(overlay.id);
-      continue;
-    }
-    if (remaining.length === 0) {
-      await repos.metaOverlays.setEventOverlayStatus(overlay.id, "rejected", now);
-      continue;
-    }
-    await repos.metaOverlays.updateEventOverlay(overlay.id, {
-      claimedFields: remaining,
-      [field]: null,
-    });
-  }
 
-  await promoteMetaEvent(repos, metaEventId);
-  return { metaEventId, created: false };
+    await promoteMetaEvent(repos, metaEventId);
+    return { metaEventId, created: false };
+  });
 }
 
 function coerceEventField(
@@ -577,93 +597,95 @@ const PLAYER_SCALAR_FIELDS = [
  * names alone otherwise.
  */
 export async function writeMetaPlayerOverlayFields(
-  repos: Repos,
+  transact: Transact,
   metaEventPlayerId: string,
   edits: { fields?: MetaPlayerFieldEdits; list?: MetaPlayerOverlayList | null },
   authorUserId: string,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
-  assertFound(metaEventId, "That standings row no longer exists.");
+  return await transact(async (repos) => {
+    const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
+    assertFound(metaEventId, "That standings row no longer exists.");
 
-  const fields = edits.fields ?? {};
-  const claimedScalars = PLAYER_SCALAR_FIELDS.filter((field) => Object.hasOwn(fields, field));
-  const claimed: MetaPlayerOverlayField[] = [...claimedScalars];
-  const columns: Record<string, unknown> = Object.fromEntries(
-    claimedScalars.map((field) => [field, fields[field]]),
-  );
+    const fields = edits.fields ?? {};
+    const claimedScalars = PLAYER_SCALAR_FIELDS.filter((field) => Object.hasOwn(fields, field));
+    const claimed: MetaPlayerOverlayField[] = [...claimedScalars];
+    const columns: Record<string, unknown> = Object.fromEntries(
+      claimedScalars.map((field) => [field, fields[field]]),
+    );
 
-  if (fields.playerName === null) {
-    const rows = await repos.meta.rawStandingsForEvent(metaEventId);
-    const row = rows.find((candidate) => candidate.id === metaEventPlayerId);
-    if (row?.uvsgamesPlayerId === null) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "This entry has no source name to fall back to, so it must keep a name.",
-      );
+    if (fields.playerName === null) {
+      const rows = await repos.meta.rawStandingsForEvent(metaEventId);
+      const row = rows.find((candidate) => candidate.id === metaEventPlayerId);
+      if (row?.uvsgamesPlayerId === null) {
+        throw new AppError(
+          400,
+          ERROR_CODES.BAD_REQUEST,
+          "This entry has no source name to fall back to, so it must keep a name.",
+        );
+      }
     }
-  }
 
-  let lines:
-    | {
-        lineNumber: number;
-        zone: string;
-        quantity: number;
-        cardName: string;
-        cardId: string;
-        preferredPrintingId: string | null;
-      }[]
-    | undefined;
-  if (edits.list !== undefined) {
-    claimed.push("cards", "listStatus");
-    columns.listStatus = edits.list === null ? "none" : edits.list.listStatus;
-    lines = edits.list === null ? [] : await toOverlayLines(repos, edits.list.cards);
-  }
+    let lines:
+      | {
+          lineNumber: number;
+          zone: string;
+          quantity: number;
+          cardName: string;
+          cardId: string;
+          preferredPrintingId: string | null;
+        }[]
+      | undefined;
+    if (edits.list !== undefined) {
+      claimed.push("cards", "listStatus");
+      columns.listStatus = edits.list === null ? "none" : edits.list.listStatus;
+      lines = edits.list === null ? [] : await toOverlayLines(repos, edits.list.cards);
+    }
 
-  if (claimed.length === 0) {
+    if (claimed.length === 0) {
+      return { metaEventId, created: false };
+    }
+
+    await repos.meta.withPromoteLock(
+      `admin-player-edit:${metaEventPlayerId}:${authorUserId}`,
+      async () => {
+        const existing = await repos.metaOverlays.adminPlayerEditOverlay(
+          metaEventPlayerId,
+          authorUserId,
+        );
+        await (existing === undefined
+          ? repos.metaOverlays.insertPlayerOverlay(
+              {
+                metaEventPlayerId,
+                metaEventId: null,
+                eventOverlayId: null,
+                claimedFields: claimed,
+                status: "accepted",
+                acceptedAt: now,
+                submittedByUserId: authorUserId,
+                ...columns,
+              } as Insertable<MetaEventPlayerOverlaysTable>,
+              lines ?? [],
+            )
+          : repos.metaOverlays.updatePlayerOverlay(
+              existing.id,
+              {
+                claimedFields: [...new Set([...existing.claimedFields, ...claimed])],
+                acceptedAt: now,
+                ...columns,
+              },
+              lines,
+            ));
+      },
+    );
+
+    await promoteMetaEvent(repos, metaEventId);
+    if (edits.list !== null && edits.list?.name !== undefined) {
+      // After the promote, so a freshly claimed list has its deck to rename.
+      await repos.meta.renamePlayerDeck(metaEventPlayerId, edits.list.name);
+    }
     return { metaEventId, created: false };
-  }
-
-  await repos.meta.withPromoteLock(
-    `admin-player-edit:${metaEventPlayerId}:${authorUserId}`,
-    async () => {
-      const existing = await repos.metaOverlays.adminPlayerEditOverlay(
-        metaEventPlayerId,
-        authorUserId,
-      );
-      await (existing === undefined
-        ? repos.metaOverlays.insertPlayerOverlay(
-            {
-              metaEventPlayerId,
-              metaEventId: null,
-              eventOverlayId: null,
-              claimedFields: claimed,
-              status: "accepted",
-              acceptedAt: now,
-              submittedByUserId: authorUserId,
-              ...columns,
-            } as Insertable<MetaEventPlayerOverlaysTable>,
-            lines ?? [],
-          )
-        : repos.metaOverlays.updatePlayerOverlay(
-            existing.id,
-            {
-              claimedFields: [...new Set([...existing.claimedFields, ...claimed])],
-              acceptedAt: now,
-              ...columns,
-            },
-            lines,
-          ));
-    },
-  );
-
-  await promoteMetaEvent(repos, metaEventId);
-  if (edits.list !== null && edits.list?.name !== undefined) {
-    // After the promote, so a freshly claimed list has its deck to rename.
-    await repos.meta.renamePlayerDeck(metaEventPlayerId, edits.list.name);
-  }
-  return { metaEventId, created: false };
+  });
 }
 
 /**
@@ -705,46 +727,48 @@ async function toOverlayLines(
  * disagree.
  */
 export async function releaseMetaPlayerOverlayField(
-  repos: Repos,
+  transact: Transact,
   metaEventPlayerId: string,
   field: MetaPlayerOverlayField,
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
-  assertFound(metaEventId, "That standings row no longer exists.");
+  return await transact(async (repos) => {
+    const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
+    assertFound(metaEventId, "That standings row no longer exists.");
 
-  const released: MetaPlayerOverlayField[] =
-    field === "cards" || field === "listStatus" ? ["cards", "listStatus"] : [field];
-  const accepted = await repos.metaOverlays.acceptedPlayerOverlays(metaEventId);
-  const overlays = accepted.filter(
-    (overlay) =>
-      overlay.metaEventPlayerId === metaEventPlayerId &&
-      overlay.claimedFields.some((claim) => released.includes(claim)),
-  );
-
-  for (const overlay of overlays) {
-    const remaining = overlay.claimedFields.filter((claim) => !released.includes(claim));
-    const isAdminEdit = overlay.provider === null && overlay.submissionNote === null;
-    if (remaining.length === 0 && isAdminEdit) {
-      await repos.metaOverlays.deletePlayerOverlay(overlay.id);
-      continue;
-    }
-    if (remaining.length === 0) {
-      await repos.metaOverlays.setPlayerOverlayStatus(overlay.id, "rejected", now);
-      continue;
-    }
-    const cleared = Object.fromEntries(
-      released.filter((claim) => claim !== "cards").map((claim) => [claim, null]),
+    const released: MetaPlayerOverlayField[] =
+      field === "cards" || field === "listStatus" ? ["cards", "listStatus"] : [field];
+    const accepted = await repos.metaOverlays.acceptedPlayerOverlays(metaEventId);
+    const overlays = accepted.filter(
+      (overlay) =>
+        overlay.metaEventPlayerId === metaEventPlayerId &&
+        overlay.claimedFields.some((claim) => released.includes(claim)),
     );
-    await repos.metaOverlays.updatePlayerOverlay(
-      overlay.id,
-      { claimedFields: remaining, ...cleared },
-      released.includes("cards") && isAdminEdit ? [] : undefined,
-    );
-  }
 
-  await promoteMetaEvent(repos, metaEventId);
-  return { metaEventId, created: false };
+    for (const overlay of overlays) {
+      const remaining = overlay.claimedFields.filter((claim) => !released.includes(claim));
+      const isAdminEdit = overlay.provider === null && overlay.submissionNote === null;
+      if (remaining.length === 0 && isAdminEdit) {
+        await repos.metaOverlays.deletePlayerOverlay(overlay.id);
+        continue;
+      }
+      if (remaining.length === 0) {
+        await repos.metaOverlays.setPlayerOverlayStatus(overlay.id, "rejected", now);
+        continue;
+      }
+      const cleared = Object.fromEntries(
+        released.filter((claim) => claim !== "cards").map((claim) => [claim, null]),
+      );
+      await repos.metaOverlays.updatePlayerOverlay(
+        overlay.id,
+        { claimedFields: remaining, ...cleared },
+        released.includes("cards") && isAdminEdit ? [] : undefined,
+      );
+    }
+
+    await promoteMetaEvent(repos, metaEventId);
+    return { metaEventId, created: false };
+  });
 }
 
 interface PendingPlayerAccept {
@@ -875,7 +899,7 @@ async function recordOverlayAcceptance(
 }
 
 export async function acceptMetaPlayerOverlay(
-  repos: Repos,
+  transact: Transact,
   overlayId: string,
   options: {
     metaEventPlayerId?: string | null;
@@ -884,26 +908,28 @@ export async function acceptMetaPlayerOverlay(
   } = {},
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  const { overlay, player, metaEventId } = await loadPlayerAccept(
-    repos,
-    overlayId,
-    options.metaEventPlayerId ?? null,
-  );
-  const claimed =
-    player === null
-      ? [...overlay.claimedFields]
-      : await anchorPlayerOverlay(repos, overlay, player);
-  await narrowPlayerClaims(repos, overlayId, claimed, options.fields ?? null);
-  await repos.metaOverlays.setPlayerOverlayStatus(overlayId, "accepted", now);
-  await promoteMetaEvent(repos, metaEventId);
-  await recordOverlayAcceptance(
-    repos,
-    overlayId,
-    metaEventId,
-    options.reviewedByUserId ?? null,
-    now,
-  );
-  return { metaEventId, created: false };
+  return await transact(async (repos) => {
+    const { overlay, player, metaEventId } = await loadPlayerAccept(
+      repos,
+      overlayId,
+      options.metaEventPlayerId ?? null,
+    );
+    const claimed =
+      player === null
+        ? [...overlay.claimedFields]
+        : await anchorPlayerOverlay(repos, overlay, player);
+    await narrowPlayerClaims(repos, overlayId, claimed, options.fields ?? null);
+    await repos.metaOverlays.setPlayerOverlayStatus(overlayId, "accepted", now);
+    await promoteMetaEvent(repos, metaEventId);
+    await recordOverlayAcceptance(
+      repos,
+      overlayId,
+      metaEventId,
+      options.reviewedByUserId ?? null,
+      now,
+    );
+    return { metaEventId, created: false };
+  });
 }
 
 /**
@@ -911,7 +937,7 @@ export async function acceptMetaPlayerOverlay(
  * the whole batch, and each touched event is promoted once at the end.
  */
 export async function acceptMetaPlayerOverlays(
-  repos: Repos,
+  transact: Transact,
   items: readonly {
     id: string;
     metaEventPlayerId: string | null;
@@ -920,29 +946,31 @@ export async function acceptMetaPlayerOverlays(
   reviewedByUserId: string | null = null,
   now: Date = new Date(),
 ): Promise<MetaOverlayBulkAcceptResult> {
-  const pending: PendingPlayerAccept[] = [];
-  for (const item of items) {
-    pending.push({
-      ...(await loadPlayerAccept(repos, item.id, item.metaEventPlayerId)),
-      fields: item.fields ?? null,
-    });
-  }
-  for (const { overlay, player, fields } of pending) {
-    const claimed =
-      player === null
-        ? [...overlay.claimedFields]
-        : await anchorPlayerOverlay(repos, overlay, player);
-    await narrowPlayerClaims(repos, overlay.id, claimed, fields ?? null);
-    await repos.metaOverlays.setPlayerOverlayStatus(overlay.id, "accepted", now);
-  }
-  const metaEventIds = [...new Set(pending.map((entry) => entry.metaEventId))];
-  for (const metaEventId of metaEventIds) {
-    await promoteMetaEvent(repos, metaEventId);
-  }
-  for (const { overlay, metaEventId } of pending) {
-    await recordOverlayAcceptance(repos, overlay.id, metaEventId, reviewedByUserId, now);
-  }
-  return { accepted: pending.length, metaEventIds };
+  return await transact(async (repos) => {
+    const pending: PendingPlayerAccept[] = [];
+    for (const item of items) {
+      pending.push({
+        ...(await loadPlayerAccept(repos, item.id, item.metaEventPlayerId)),
+        fields: item.fields ?? null,
+      });
+    }
+    for (const { overlay, player, fields } of pending) {
+      const claimed =
+        player === null
+          ? [...overlay.claimedFields]
+          : await anchorPlayerOverlay(repos, overlay, player);
+      await narrowPlayerClaims(repos, overlay.id, claimed, fields ?? null);
+      await repos.metaOverlays.setPlayerOverlayStatus(overlay.id, "accepted", now);
+    }
+    const metaEventIds = [...new Set(pending.map((entry) => entry.metaEventId))];
+    for (const metaEventId of metaEventIds.toSorted()) {
+      await promoteMetaEvent(repos, metaEventId);
+    }
+    for (const { overlay, metaEventId } of pending) {
+      await recordOverlayAcceptance(repos, overlay.id, metaEventId, reviewedByUserId, now);
+    }
+    return { accepted: pending.length, metaEventIds };
+  });
 }
 
 /**
@@ -950,21 +978,23 @@ export async function acceptMetaPlayerOverlays(
  * an already-accepted overlay lands immediately.
  */
 export async function linkMetaPlayerOverlay(
-  repos: Repos,
+  transact: Transact,
   overlayId: string,
   metaEventPlayerId: string,
 ): Promise<MetaOverlayReviewResult> {
-  const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
-  assertFound(overlay, "That overlay no longer exists.");
-  const player = await repos.meta.playerById(metaEventPlayerId);
-  assertFound(player, "That standings row no longer exists.");
+  return await transact(async (repos) => {
+    const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
+    assertFound(overlay, "That overlay no longer exists.");
+    const player = await repos.meta.playerById(metaEventPlayerId);
+    assertFound(player, "That standings row no longer exists.");
 
-  await anchorPlayerOverlay(repos, overlay, player);
-  const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
-  if (overlay.status === "accepted" && metaEventId !== undefined) {
-    await promoteMetaEvent(repos, metaEventId);
-  }
-  return { metaEventId: metaEventId ?? null, created: false };
+    await anchorPlayerOverlay(repos, overlay, player);
+    const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
+    if (overlay.status === "accepted" && metaEventId !== undefined) {
+      await promoteMetaEvent(repos, metaEventId);
+    }
+    return { metaEventId: metaEventId ?? null, created: false };
+  });
 }
 
 /**
@@ -972,30 +1002,48 @@ export async function linkMetaPlayerOverlay(
  * un-accepting a patch must put the promoted value back, which a re-promote does.
  */
 export async function rejectMetaOverlay(
-  repos: Repos,
+  transact: Transact,
   target: { kind: "event" | "player"; id: string },
+  resolution: {
+    reason?: MetaSubmissionReason | null;
+    note?: string | null;
+    resolvedByUserId?: string | null;
+  } = {},
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
-  if (target.kind === "event") {
-    const overlay = await repos.metaOverlays.eventOverlayById(target.id);
+  return await transact(async (repos) => {
+    if (target.kind === "event") {
+      const overlay = await repos.metaOverlays.eventOverlayById(target.id);
+      assertFound(overlay, "That overlay no longer exists.");
+      const wasApplied = overlay.status === "accepted";
+      await repos.metaOverlays.setEventOverlayStatus(target.id, "rejected", now);
+      if (wasApplied && overlay.metaEventId !== null) {
+        await promoteMetaEvent(repos, overlay.metaEventId);
+      }
+      return { metaEventId: overlay.metaEventId, created: false };
+    }
+
+    const overlay = await repos.metaOverlays.playerOverlayById(target.id);
     assertFound(overlay, "That overlay no longer exists.");
     const wasApplied = overlay.status === "accepted";
-    await repos.metaOverlays.setEventOverlayStatus(target.id, "rejected", now);
-    if (wasApplied && overlay.metaEventId !== null) {
-      await promoteMetaEvent(repos, overlay.metaEventId);
+    const metaEventId = await eventIdForPlayerOverlay(repos, overlay);
+    await repos.metaOverlays.setPlayerOverlayStatus(target.id, "rejected", now);
+    if (wasApplied && metaEventId !== null) {
+      await promoteMetaEvent(repos, metaEventId);
     }
-    return { metaEventId: overlay.metaEventId, created: false };
-  }
-
-  const overlay = await repos.metaOverlays.playerOverlayById(target.id);
-  assertFound(overlay, "That overlay no longer exists.");
-  const wasApplied = overlay.status === "accepted";
-  const metaEventId = await eventIdForPlayerOverlay(repos, overlay);
-  await repos.metaOverlays.setPlayerOverlayStatus(target.id, "rejected", now);
-  if (wasApplied && metaEventId !== null) {
-    await promoteMetaEvent(repos, metaEventId);
-  }
-  return { metaEventId, created: false };
+    const submission = await repos.metaSubmissions.byPlayerOverlayId(target.id);
+    if (submission?.status === "pending") {
+      await repos.metaSubmissions.resolve(submission.id, {
+        status: "rejected",
+        resolvedAt: now,
+        reason: resolution.reason ?? null,
+        note: resolution.note ?? null,
+        resolvedByUserId: resolution.resolvedByUserId ?? null,
+        acceptedDeckId: null,
+      });
+    }
+    return { metaEventId, created: false };
+  });
 }
 
 async function eventIdForPlayerOverlay(

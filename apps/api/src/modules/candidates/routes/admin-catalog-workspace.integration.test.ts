@@ -305,13 +305,9 @@ afterAll(async () => {
 });
 
 describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: adminApp } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: reviewApp } = reviewCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: deskApp } = deskCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: plainApp } = plainCtx!;
 
   async function queueIds(app: typeof adminApp, query = ""): Promise<string[]> {

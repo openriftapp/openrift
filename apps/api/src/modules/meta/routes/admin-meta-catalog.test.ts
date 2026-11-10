@@ -175,7 +175,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("409s while the run has not written its first checkpoint", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
     mockJobRuns.getResult.mockResolvedValue(null);
 
     const res = await post("/sync/cancel", uvsBackfill);
@@ -185,7 +185,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("sets the flag in place, so a heartbeat between the read and the write cannot lose it", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
     mockJobRuns.getResult.mockResolvedValue(checkpoint());
 
     const res = await post("/sync/cancel", uvsBackfill);
@@ -197,7 +197,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("cancels the playloltcg backfill when that source is named", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
     mockJobRuns.getResult.mockResolvedValue(checkpoint());
 
     await post("/sync/cancel", { source: "playloltcg", job: "backfill" });
@@ -206,7 +206,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("aims a recheck stop at the named source's recheck run", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
 
     const res = await post("/sync/cancel", { source: "uvsgames", job: "recheck" });
 
@@ -216,7 +216,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("flags a recheck that has written no result yet, since it never writes a checkpoint", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
     mockJobRuns.getResult.mockResolvedValue(null);
 
     const res = await post("/sync/cancel", { source: "uvsgames", job: "recheck" });
@@ -238,7 +238,7 @@ describe("POST /catalogue/sync/cancel", () => {
   it.each(["playloltcg", "playriftbound"])(
     "refuses the %s recheck, which runs without a run id to read the flag from",
     async (source) => {
-      mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+      mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
 
       const res = await post("/sync/cancel", { source, job: "recheck" });
 
@@ -249,7 +249,7 @@ describe("POST /catalogue/sync/cancel", () => {
   );
 
   it("cancels a running playriftbound sweep", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
     mockJobRuns.getResult.mockResolvedValue({
       complete: false,
       cancelRequested: false,

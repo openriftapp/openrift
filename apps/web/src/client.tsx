@@ -31,7 +31,6 @@ function reportHydrationError(
 ): void {
   const duringHydration = !isHydrationSettled();
   const label = duringHydration ? "hydration" : "render";
-  // oxlint-disable-next-line no-console -- deliberate prod diagnostic for render/hydration errors
   console.error(`[${label}:${phase}]`, error, errorInfo.componentStack ?? "(no component stack)");
   if (reloadIfChunkLoadError(error)) {
     return;

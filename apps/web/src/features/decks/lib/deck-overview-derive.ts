@@ -1,4 +1,4 @@
-import { copyLimitFor } from "@openrift/shared/deck-rules";
+import { copyLimitFor, RUNE_TARGET } from "@openrift/shared/deck-rules";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -8,8 +8,8 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   canAddRune,
   COPY_LIMIT_ZONES,
+  copyLimitTotal,
   getDeckCardKey,
-  RUNE_TARGET,
 } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
@@ -50,14 +50,7 @@ export function buildAddRoom(cards: DeckBuilderCard[], format: DeckFormat): Map<
       continue;
     }
     if (COPY_LIMIT_ZONES.has(card.zone)) {
-      const held = cards.reduce(
-        (sum, entry) =>
-          entry.cardId === card.cardId && COPY_LIMIT_ZONES.has(entry.zone)
-            ? sum + entry.quantity
-            : sum,
-        0,
-      );
-      room.set(key, Math.max(0, copyLimitFor(card) - held));
+      room.set(key, Math.max(0, copyLimitFor(card) - copyLimitTotal(cards, card.cardId)));
       continue;
     }
     room.set(key, Number.POSITIVE_INFINITY);

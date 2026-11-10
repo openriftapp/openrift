@@ -185,9 +185,7 @@ async function seedInactiveImage(db: NonNullable<typeof adminCtx>["db"], printin
 }
 
 describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: grantApp } = grantCtx!;
 
   describe("POST /printing-desk/printings", () => {

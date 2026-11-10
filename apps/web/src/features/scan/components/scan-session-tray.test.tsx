@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,21 +11,13 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { ScanSessionTray } from "@/features/scan/components/scan-session-tray";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { ScanTrayExpandedContext } from "@/features/scan/components/scan-tray-shell";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { printingsByCardId } from "@/features/scan/lib/scan-resolve";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { initKeys } from "@/lib/query-keys";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubPrinting } from "@/test/factories";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubInitResponse } from "@/test/init-fixtures";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { createStoreResetter } from "@/test/store-helpers";
 
 const english = stubPrinting({ printingId: "p-en", card: { name: "Yasuo" } });
@@ -38,7 +30,11 @@ const german = stubPrinting({
 
 const resetSession = createStoreResetter(useScanSessionStore);
 
-function renderTray({ compact = false, expanded = false } = {}) {
+function renderTray({
+  compact = false,
+  expanded = false,
+  onSignInToAdd,
+}: { compact?: boolean; expanded?: boolean; onSignInToAdd?: () => void } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(
     initKeys.all,
@@ -56,6 +52,7 @@ function renderTray({ compact = false, expanded = false } = {}) {
           destination={null}
           adding={false}
           failedCount={0}
+          onSignInToAdd={onSignInToAdd}
           compact={compact}
           resumed={false}
           onAddOne={vi.fn()}
@@ -106,5 +103,23 @@ describe("ScanSessionTray", () => {
     renderTray({ compact: true, expanded: true });
 
     expect(addButtonFollowsLastRow()).toBe(true);
+  });
+
+  it("asks a signed-out visitor to sign in when they add the scanned cards", () => {
+    const onSignInToAdd = vi.fn();
+    useScanSessionStore.getState().add(english);
+    renderTray({ onSignInToAdd });
+
+    fireEvent.click(screen.getByRole("button", { name: /add 1 card to a collection/iu }));
+
+    expect(onSignInToAdd).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: /pick another collection/iu })).toBeNull();
+  });
+
+  it("keeps the add button disabled without a destination for a signed-in user", () => {
+    useScanSessionStore.getState().add(english);
+    renderTray();
+
+    expect(screen.getByRole("button", { name: /add 1 card to a collection/iu })).toBeDisabled();
   });
 });

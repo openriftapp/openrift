@@ -7,7 +7,7 @@
  * The viewer becomes the group owner; re-running drops and rebuilds the rest.
  */
 import { createDb } from "../apps/api/src/db/connect.js";
-import { requireEnv } from "./env.js";
+import { assertLocalDatabase, requireEnv } from "./env.js";
 
 const viewerEmail = process.argv[2];
 if (!viewerEmail) {
@@ -141,7 +141,9 @@ const BULK_COLLECTION = {
 
 const CONDITIONS = ["near-mint", "excellent", "light-played"];
 
-const { db } = createDb(requireEnv("DATABASE_URL"));
+const databaseUrl = requireEnv("DATABASE_URL");
+assertLocalDatabase(databaseUrl);
+const { db } = createDb(databaseUrl);
 
 const NOW = Date.now();
 const DAY_MS = 24 * 60 * 60 * 1000;

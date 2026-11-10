@@ -37,7 +37,6 @@ export function LinkRowsField({
   return (
     <>
       {links.map((link, index) => (
-        // oxlint-disable-next-line react/no-array-index-key -- drafts have no stable identity
         <div key={index} className="flex items-center gap-2">
           <Input
             value={link.url}

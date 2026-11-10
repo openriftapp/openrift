@@ -30,6 +30,7 @@ import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-corre
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
 import { cardShareUrl } from "@/features/cards/lib/card-share-url";
+import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
 import { sortByLanguagePreference } from "@/features/cards/lib/printing-designs";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { getSiteUrl } from "@/lib/site-config";
@@ -86,7 +87,7 @@ export function CardDetailPage() {
   }
 
   return (
-    <>
+    <CatalogSubsetContext value={data.catalogSubset}>
       <PageTopBarSticky width="capped">
         <PageTopBar>
           <PageTopBarBack
@@ -158,6 +159,6 @@ export function CardDetailPage() {
 
         <RelatedCardsSection related={data.related} />
       </div>
-    </>
+    </CatalogSubsetContext>
   );
 }

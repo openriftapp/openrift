@@ -13,11 +13,16 @@ import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+interface SharedUserBundleHeadData {
+  owner: Pick<PublicUserBundleResponse["owner"], "displayName">;
+  lists: Pick<PublicUserBundleResponse["lists"][number], "intent" | "entryCount" | "updatedAt">[];
+}
+
 export const Route = createFileRoute("/_app/users_/share/$token")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/users/share/${params.token}`;
-    const data = loaderData as PublicUserBundleResponse | undefined;
+    const data = loaderData as SharedUserBundleHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Shared lists", path, unlisted: true });
     }
@@ -36,12 +41,22 @@ export const Route = createFileRoute("/_app/users_/share/$token")({
     const ogImage = bundleShareImageUrl(siteUrl, params.token, bundleVersion);
     return seoHead({ siteUrl, title, description, path, ogImage, oembed: true, unlisted: true });
   },
-  loader: async ({ context, params }): Promise<PublicUserBundleResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<SharedUserBundleHeadData> => {
     try {
-      return await context.queryClient.query({
+      const data = await context.queryClient.query({
         ...publicUserBundleQueryOptions(params.token),
         staleTime: "static",
       });
+      return {
+        owner: { displayName: data.owner.displayName },
+        lists: data.lists.map(({ intent, entryCount, updatedAt }) => ({
+          intent,
+          entryCount,
+          updatedAt,
+        })),
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

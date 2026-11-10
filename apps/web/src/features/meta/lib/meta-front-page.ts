@@ -1,3 +1,4 @@
+import { formatShortDayYear } from "@openrift/shared/format-date";
 import type {
   MetaEventFilterQuery,
   MetaEventFinish,
@@ -5,6 +6,9 @@ import type {
   MetaEventSummary,
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
+
+import { DATE_WORDS } from "@/lib/date-words";
+import { m } from "@/paraglide/messages.js";
 
 export function metaEventWinners(event: MetaEventSummary): MetaEventFinish[] {
   return event.topFinishes.filter((finish) => finish.rank === 1);
@@ -51,4 +55,20 @@ export function metaFrontUpcomingQuery(filters: MetaEventFilterQuery): MetaEvent
     dir: "asc",
     limit: META_FRONT_SECTION_LIMITS.upcoming,
   };
+}
+
+export function metaFrontPhoneFacts(
+  latestResultDate: string | null,
+  totals: { events: number; playerRows: number; decks: number },
+): string[] {
+  return [
+    ...(latestResultDate
+      ? [m.meta_front_facts_through({ date: formatShortDayYear(latestResultDate, DATE_WORDS) })]
+      : []),
+    ...(totals.events > 0 ? [m.meta_front_facts_events({ count: totals.events })] : []),
+    ...(totals.playerRows > 0
+      ? [m.meta_front_facts_player_results({ count: totals.playerRows })]
+      : []),
+    ...(totals.decks > 0 ? [m.meta_front_facts_decklists({ count: totals.decks })] : []),
+  ];
 }

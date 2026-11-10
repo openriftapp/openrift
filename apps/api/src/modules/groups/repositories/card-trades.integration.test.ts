@@ -5,7 +5,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createRepos, createTransact } from "../../../deps.js";
 import { CARD_FURY_UNIT, PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
-import { disposeCopies, moveCopies } from "../../collections/services/copies.js";
+import {
+  disposeCopies,
+  moveCopies,
+  previewDisposeTradeCancels,
+} from "../../collections/services/copies.js";
+import { withTradeSupplySweep } from "../../lists/services/lists.js";
 import {
   acceptTrade,
   cancelTrade,
@@ -16,7 +21,12 @@ import {
   skipTradeSync,
   applyTradeSync,
 } from "../services/card-trades.js";
-import { autoCancelUnfillablePendingTrades } from "../services/trade-supply.js";
+import {
+  CANCEL_WITHOUT_ASKING,
+  consentedTradeCancels,
+  sweepGiverTradesInGroups,
+  TradeCancelConsentRequiredError,
+} from "../services/trade-supply.js";
 import { friendGroupsRepo } from "./friend-groups.js";
 
 const GIVER_ID = crypto.randomUUID();
@@ -268,26 +278,32 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
   }
 
   function request(group: { slug: string }, quantity: number) {
-    return createTrade(transact, {
-      callerUserId: RECEIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity,
-    });
+    return createTrade(
+      { repos, transact },
+      {
+        callerUserId: RECEIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity,
+      },
+    );
   }
 
   /** The giver's "I have this, want it?" offer, so the initiator is the giver. */
   function offer(group: { slug: string }, toUserId: string, quantity: number) {
-    return createTrade(transact, {
-      callerUserId: GIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: toUserId,
-      role: "giver",
-      printingId: PRINTING_1.id,
-      quantity,
-    });
+    return createTrade(
+      { repos, transact },
+      {
+        callerUserId: GIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: toUserId,
+        role: "giver",
+        printingId: PRINTING_1.id,
+        quantity,
+      },
+    );
   }
 
   async function shareWish(groupId: string, userId: string, quantity: number): Promise<void> {
@@ -400,14 +416,17 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const { group } = await setupRuleMatch(1);
     expect(await availableForReceiver(group.id)).toBe(1);
 
-    const trade = await createTrade(transact, {
-      callerUserId: GIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: RECEIVER_ID,
-      role: "giver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+    const trade = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: GIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: RECEIVER_ID,
+        role: "giver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
     expect(trade.status).toBe("pending");
     expect(trade.initiator).toBe("giver");
 
@@ -470,22 +489,28 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       .execute();
     await groupsRepo.share(group.id, tradeList.id, GIVER_ID);
 
-    const tradeForReceiver = await createTrade(transact, {
-      callerUserId: RECEIVER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
-    const tradeForOutsider = await createTrade(transact, {
-      callerUserId: OUTSIDER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+    const tradeForReceiver = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: RECEIVER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
+    const tradeForOutsider = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: OUTSIDER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
 
     await acceptTrade(transact, tradeForReceiver.id, GIVER_ID);
 
@@ -781,7 +806,9 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const trade = await request(group, 1);
     await acceptTrade(transact, trade.id, GIVER_ID);
 
-    await expect(disposeCopies(transact, GIVER_ID, [copyIds[0]!])).rejects.toMatchObject({
+    await expect(
+      disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING),
+    ).rejects.toMatchObject({
       status: 409,
     });
 
@@ -797,7 +824,14 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       .returning("id")
       .executeTakeFirstOrThrow();
     await expect(
-      moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], otherCollection.id),
+      moveCopies(
+        repos,
+        transact,
+        GIVER_ID,
+        [copyIds[0]!],
+        otherCollection.id,
+        CANCEL_WITHOUT_ASKING,
+      ),
     ).resolves.toBeUndefined();
 
     // Settling (which releases the pin first) disposes successfully. The trade
@@ -826,7 +860,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       .executeTakeFirstOrThrow();
 
     await expect(
-      moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], pooled.id),
+      moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], pooled.id, CANCEL_WITHOUT_ASKING),
     ).rejects.toMatchObject({ status: 409 });
 
     const stayed = await db
@@ -838,12 +872,12 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
 
     await cancelTrade(transact, trade.id, GIVER_ID);
     await expect(
-      moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], pooled.id),
+      moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], pooled.id, CANCEL_WITHOUT_ASKING),
     ).resolves.toBeUndefined();
 
     // Move it back so the group collection is empty when the group cascades.
     const home = await collectionFor(GIVER_ID);
-    await moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], home);
+    await moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], home, CANCEL_WITHOUT_ASKING);
   });
 
   it("disposeCopies points a live pin at cancelling the trade", async () => {
@@ -852,14 +886,18 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     await acceptTrade(transact, trade.id, GIVER_ID);
     expect(await repos.cardTrades.listReservedCopyIds(trade.id)).toHaveLength(1);
 
-    await expect(disposeCopies(transact, GIVER_ID, [copyIds[0]!])).rejects.toMatchObject({
+    await expect(
+      disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING),
+    ).rejects.toMatchObject({
       status: 409,
       message: "This card is reserved in an active trade — cancel the trade to free it.",
     });
 
     // Settling the giver's side releases the pin, and the copy is disposable.
     await skipTradeSync(transact, trade.id, GIVER_ID);
-    await expect(disposeCopies(transact, GIVER_ID, [copyIds[0]!])).resolves.toBeUndefined();
+    await expect(
+      disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING),
+    ).resolves.toBeUndefined();
   });
 
   it("expirePending moves only pending rows past 24h to expired", async () => {
@@ -980,14 +1018,17 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     // A second request on top, which only the giver has to answer. It comes from
     // a third member because `uq_card_trades_live` is keyed on giver + receiver +
     // printing, so the same receiver cannot stack one on their reserved trade.
-    await createTrade(transact, {
-      callerUserId: OUTSIDER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+    await createTrade(
+      { repos, transact },
+      {
+        callerUserId: OUTSIDER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
 
     const giverCounts = await repos.cardTrades.actionNeededCountsForUser(GIVER_ID);
     expect(giverCounts.find((entry) => entry.groupId === group.id)).toMatchObject({
@@ -1018,14 +1059,17 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
 
     await groupsRepo.addMember(group.id, OUTSIDER_ID, "member");
     await shareWish(group.id, OUTSIDER_ID, 1);
-    await createTrade(transact, {
-      callerUserId: OUTSIDER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+    await createTrade(
+      { repos, transact },
+      {
+        callerUserId: OUTSIDER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
     expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(2);
 
     // The receiver owes only their half of the reserved swap; nobody waits on the outsider.
@@ -1070,14 +1114,17 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     // Two members ask for the same single copy. Both requests stand; the giver
     // picks which one to accept.
     const fromReceiver = await request(group, 1);
-    const fromOutsider = await createTrade(transact, {
-      callerUserId: OUTSIDER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: GIVER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+    const fromOutsider = await createTrade(
+      { repos, transact },
+      {
+        callerUserId: OUTSIDER_ID,
+        groupSlug: group.slug,
+        counterpartyUserId: GIVER_ID,
+        role: "receiver",
+        printingId: PRINTING_1.id,
+        quantity: 1,
+      },
+    );
     expect(fromReceiver.status).toBe("pending");
     expect(fromOutsider.status).toBe("pending");
     // Neither request consumed the giver's supply: the copy is still visible
@@ -1133,7 +1180,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const trade = await request(group, 1);
     expect(trade.status).toBe("pending");
 
-    await disposeCopies(transact, GIVER_ID, [copyIds[0]!]);
+    await disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING);
 
     const row = await repos.cardTrades.getById(trade.id);
     expect(row?.status).toBe("cancelled");
@@ -1145,11 +1192,44 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const { group, copyIds } = await setupMatch(2);
     const trade = await request(group, 1);
 
-    await disposeCopies(transact, GIVER_ID, [copyIds[0]!]);
+    await disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING);
     expect(await statusOf(trade.id)).toBe("pending");
 
-    await disposeCopies(transact, GIVER_ID, [copyIds[1]!]);
+    await disposeCopies(transact, GIVER_ID, [copyIds[1]!], CANCEL_WITHOUT_ASKING);
     expect(await statusOf(trade.id)).toBe("cancelled");
+  });
+
+  it("refuses an unconfirmed dispose that would close a request, keeping copy and trade", async () => {
+    const { group, copyIds } = await setupMatch(1);
+    const trade = await request(group, 1);
+
+    await expect(
+      disposeCopies(transact, GIVER_ID, [copyIds[0]!], consentedTradeCancels()),
+    ).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    expect(await statusOf(trade.id)).toBe("pending");
+    const kept = await db
+      .selectFrom("copies")
+      .select("id")
+      .where("id", "=", copyIds[0]!)
+      .executeTakeFirst();
+    expect(kept?.id).toBe(copyIds[0]);
+
+    await disposeCopies(transact, GIVER_ID, [copyIds[0]!], consentedTradeCancels([trade.id]));
+    expect(await statusOf(trade.id)).toBe("cancelled");
+  });
+
+  it("previews the requests a dispose would close and leaves everything in place", async () => {
+    const { group, copyIds } = await setupMatch(2);
+    const trade = await request(group, 2);
+
+    const preview = await previewDisposeTradeCancels(transact, GIVER_ID, [copyIds[0]!]);
+
+    expect(preview.trades.map((row) => row.id)).toEqual([trade.id]);
+    expect(await statusOf(trade.id)).toBe("pending");
+    const kept = await db.selectFrom("copies").select("id").where("id", "in", copyIds).execute();
+    expect(kept).toHaveLength(2);
+
+    await cancelTrade(transact, trade.id, RECEIVER_ID);
   });
 
   it("closes a pending request for 2 once only one copy is left", async () => {
@@ -1157,7 +1237,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const { group, copyIds } = await setupMatch(2);
     const trade = await request(group, 2);
 
-    await disposeCopies(transact, GIVER_ID, [copyIds[0]!]);
+    await disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING);
 
     expect(await statusOf(trade.id)).toBe("cancelled");
   });
@@ -1173,7 +1253,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
 
     // Destroying one copy leaves a single one, already committed by the offer.
     // Offers are settled before requests are judged, so only the request dies.
-    await disposeCopies(transact, GIVER_ID, [copyIds[0]!]);
+    await disposeCopies(transact, GIVER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING);
 
     expect(await statusOf(offered.id)).toBe("pending");
     expect(await statusOf(requested.id)).toBe("cancelled");
@@ -1192,33 +1272,108 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       .values({ groupId: group.id, name: "Pooled Binder", isInbox: false, sortOrder: 4 })
       .returning("id")
       .executeTakeFirstOrThrow();
-    await moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], pooled.id);
+    await moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], pooled.id, CANCEL_WITHOUT_ASKING);
 
     expect(await statusOf(trade.id)).toBe("cancelled");
 
     // Move it back so the group collection is empty when the group cascades.
     const home = await collectionFor(GIVER_ID);
-    await moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], home);
+    await moveCopies(repos, transact, GIVER_ID, [copyIds[0]!], home, CANCEL_WITHOUT_ASKING);
   });
 
   it("unsharing the trade list closes the requests it was backing", async () => {
     const { group, tradeListId } = await setupMatch(1);
     const trade = await request(group, 1);
 
-    // Mirrors the unshareList route: drop the share, then re-check the giver's
-    // pending trades for the printings still in flight, all in one transaction.
-    await transact(async (trxRepos) => {
-      await trxRepos.friendGroups.unshare(group.id, tradeListId);
-      const printingIds = await trxRepos.cardTrades.listPendingPrintingIdsForGiverInGroup(
-        group.id,
+    // Mirrors the unshareList route: drop the share and re-check the giver's
+    // pending trades in one transaction.
+    const unshare = (cancelTradeIds: string[]) =>
+      transact(async (trxRepos) => {
+        await trxRepos.friendGroups.unshare(group.id, tradeListId);
+        await sweepGiverTradesInGroups(trxRepos, GIVER_ID, [group.id], cancelTradeIds);
+      });
+
+    await expect(unshare([])).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    expect(await statusOf(trade.id)).toBe("pending");
+    const sharing = await repos.friendGroups.listGroupsSharingList(tradeListId);
+    expect(sharing.map((row) => row.groupId)).toEqual([group.id]);
+
+    await unshare([trade.id]);
+    expect(await statusOf(trade.id)).toBe("cancelled");
+  });
+
+  it("deleting the shared trade list closes the requests it was backing", async () => {
+    const { group, tradeListId } = await setupMatch(1);
+    const trade = await request(group, 1);
+    const deleteList = (cancelTradeIds: string[]) =>
+      withTradeSupplySweep(
+        repos,
+        transact,
         GIVER_ID,
+        [{ id: tradeListId, intent: "trade" }],
+        cancelTradeIds,
+        async (trxRepos) => {
+          await trxRepos.lists.deleteByIdForUser(tradeListId, GIVER_ID);
+        },
       );
-      for (const printingId of printingIds) {
-        await autoCancelUnfillablePendingTrades(trxRepos, GIVER_ID, printingId);
-      }
-    });
+
+    const refusal = await deleteList([]).catch((error: unknown) => error);
+    expect(refusal).toBeInstanceOf(TradeCancelConsentRequiredError);
+    expect((refusal as TradeCancelConsentRequiredError).data.trades).toEqual([
+      {
+        id: trade.id,
+        cardId: trade.cardId,
+        printingId: PRINTING_1.id,
+        quantity: 1,
+        counterpartyName: "Test User",
+      },
+    ]);
+    expect(await statusOf(trade.id)).toBe("pending");
+    expect(await repos.lists.getByIdForUser(tradeListId, GIVER_ID)).toBeDefined();
+
+    await deleteList([trade.id]);
+    expect(await statusOf(trade.id)).toBe("cancelled");
+  });
+
+  it("removing the backing entry from the trade list closes the request", async () => {
+    const { group, tradeListId } = await setupMatch(1);
+    const trade = await request(group, 1);
+    const entries = await db
+      .selectFrom("listEntries")
+      .select("id")
+      .where("listId", "=", tradeListId)
+      .execute();
+
+    await withTradeSupplySweep(
+      repos,
+      transact,
+      GIVER_ID,
+      [{ id: tradeListId, intent: "trade" }],
+      [trade.id],
+      (trxRepos) =>
+        trxRepos.lists.deleteEntriesByIds(
+          entries.map((entry) => entry.id),
+          tradeListId,
+          GIVER_ID,
+        ),
+    );
 
     expect(await statusOf(trade.id)).toBe("cancelled");
+  });
+
+  it("finds the giver's pending printings across a batch in one read", async () => {
+    const { group } = await setupMatch(1);
+    const trade = await request(group, 1);
+
+    expect(
+      await repos.cardTrades.listPendingPrintingIdsForGiver(GIVER_ID, [
+        PRINTING_1.id,
+        crypto.randomUUID(),
+      ]),
+    ).toEqual([PRINTING_1.id]);
+    expect(await repos.cardTrades.listPendingPrintingIdsForGiver(GIVER_ID, [])).toEqual([]);
+
+    await cancelTrade(transact, trade.id, RECEIVER_ID);
   });
 
   it("promises the plainest copy when the giver makes no choice", async () => {

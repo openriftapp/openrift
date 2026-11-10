@@ -21,7 +21,6 @@ const USER_ID = "a0000000-0042-4000-a000-000000000001";
 const ctx = createDbContext(USER_ID);
 
 describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const transact = createTransact(db);
 
@@ -157,7 +156,6 @@ describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
 // `requireNew` makes that identity collision a 409 instead.
 
 describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const transact = createTransact(db);
   const io = {} as Io;

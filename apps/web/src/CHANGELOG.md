@@ -4,11 +4,40 @@
 
 ### Highlights
 
+- feat(Collection): **Scan without an account** — the card scanner now works signed out, and you sign in only to add the scanned cards to a collection.
+- feat(Account): **Sign-in names where you were going** — opening your collection, groups, trades, tournaments or another page that needs an account now says so on the sign-in page, with a short list of what you get there.
+- feat(Cards): **Help on a mistyped card address** — a card link that leads nowhere now offers a card search filled in from the address, the closest card by name, and a link to browse all cards.
+- feat(App): **Help and Contribute in the phone menu** — on phones, help articles, what's new, bug reports and contributing now sit at the bottom of the main menu, and the account menu has a theme switch for everyone.
+- feat(App): **Page errors you can retry** — a page that fails to load now says so plainly and offers Try again without reloading the site, plus a way back. Being offline gets its own message.
+- feat(Tournaments): **Move players without dragging** — each player in the pairing editor has a menu to move them to another pod, a new pod or the byes, and each seat in the group editor has one to swap seats. Both work with the keyboard.
+- feat(Rules): **Room for the rules on phones** — on phones the rules, glossary and meta archive pages open with a short title and one line of facts, so the first rule or event shows without scrolling.
 - feat(App): **Include or exclude switch** — filter menus and rows now offer Exclude directly instead of a hidden second click.
 - feat(Account): **Invite friends** — friends who join through your invite or shared links earn you a badge on your profile.
 
 ### Other
 
+- feat(Meta): **Cleaner archived decks list** — signed out, the deck list drops the empty "To complete" column and offers to compare with your collection instead.
+- feat(App): **Menu badge on phones** — the menu button shows a count when trades, group requests or loans are waiting for you.
+- feat(Decks): **Copy limit counts every zone** — a card's copies are now counted across main deck, sideboard and Chosen Champion together, following the current rules. The sideboard holds up to 10 cards.
+- feat(Tournaments): **Older events on demand** — the tournaments list shows everything that is not over plus your latest past events, with Show older events for the rest.
+- feat(Contribute): **Reasons on declined submissions** — when a submission is not used, your submissions page now says why.
+- fix(Collections): **Metal finishes survive CSV re-import** — exporting your collection and importing it again keeps metal, metal deluxe and promo printings on the right printing.
+- fix(Collections): **Overnumbered filter on stats** — the Overnumbered filter now changes completion, cost to complete and the value chart on the collection stats page.
+- fix(Collections): **Large collections can be cleared** — deleting or clearing a collection with many thousands of copies no longer fails.
+- fix(Collections): **Right card selected under rarity grouping** — on lists and shared collections grouped by rarity, clicking a card's second tile selects that tile.
+- fix(Decks): **Add buttons agree with the rules** — the add button, dragging and the list view now apply the same copy and battlefield limits, so an add that would be refused is no longer offered. Custom Region decks ignore cards parked in overflow.
+- fix(Decks): **Undo reverts one thing** — a refused add no longer leaves an empty undo step, and Undo on the removal notice brings back only that card.
+- fix(Board states): **Edits during a save stay unsaved** — moving a piece or changing the title while a board is saving keeps the unsaved changes warning, so the edit is not lost when you leave. Saving a new board twice no longer creates a second board.
+- fix(Tournaments): **Dialogs keep your input when saving fails** — when adding a member, renaming a player, setting a region, legend or fixed table, or entering a match result fails, the dialog stays open with what you typed.
+- fix(Tournaments): **Faster deck checks** — ticking a card shows at once, notes typed while a save is running are kept, and seat chips can be dragged on phones.
+- fix(Groups): **Request all skips pending trades** — Request all no longer asks again for cards you already requested, and the match rows are translated.
+- fix(Trades): **Asked before a trade is cancelled** — editing or unsharing a tradelist, moving or removing cards and deleting a collection cancel the pending trades you can no longer cover, and now ask you first, listing each card and who it was for.
+- fix(Collections): **Stats count domains like the card browser** — with two or more domains selected, collection stats and the value chart now count the same cards the card browser shows, so View missing matches the numbers.
+- fix(Cards): **Price chart matches the price** — a printing's price chart and shop link now belong to the product its headline price comes from.
+- fix(Trades): **Failed trades keep your choices** — when settling or accepting a trade fails, the dialog stays open with the copies you picked.
+- fix(App): **No theme flash** — visitors on the light theme no longer get a dark page for a moment on first load.
+- fix(Account): **Sign-out clears your data** — signing out now also clears your buy cart, trade tally, scan list and board drafts from the device.
+- fix(Account): **Settings saved when you leave** — a display setting changed right before closing the tab is still saved, and features tied to your account appear right after signing in.
 - fix(Decks): **Removing a format filter** — removing the only included format or domain from the deck list filters clears it and no longer excludes it.
 - feat(Groups): **Join requests after sign-in** — signing in or creating an account from a group invite link now sends the join request without a second click.
 

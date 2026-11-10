@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";

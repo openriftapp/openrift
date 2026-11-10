@@ -7,6 +7,7 @@ import type { useLinkCard } from "@/features/admin/hooks/use-admin-card-mutation
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import type { AdminSearchableCard } from "@/features/cards/hooks/use-card-search";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function AssignButton({
   normalizedName,
@@ -20,6 +21,18 @@ export function AssignButton({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const results = useAdminCardSearch(allCards, search);
+
+  async function assign(cardId: string) {
+    const cardSlug = allCards.find((card) => card.id === cardId)?.slug ?? cardId;
+    if (
+      await runReportedMutation(() =>
+        linkCard.mutateAsync({ name: normalizedName, cardId, cardSlug }),
+      )
+    ) {
+      setSearch("");
+      setOpen(false);
+    }
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -39,11 +52,7 @@ export function AssignButton({
         <CardSearchDropdown
           results={results}
           onSearch={setSearch}
-          onSelect={(cardId) => {
-            linkCard.mutate({ name: normalizedName, cardId });
-            setSearch("");
-            setOpen(false);
-          }}
+          onSelect={(cardId) => void assign(cardId)}
           placeholder="Search by name…"
           className="w-full"
           // oxlint-disable-next-line jsx-a11y/no-autofocus -- admin-only UI, autofocus is intentional

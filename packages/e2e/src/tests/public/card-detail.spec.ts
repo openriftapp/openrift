@@ -195,7 +195,6 @@ function isCardDetailServerFn(url: string): boolean {
 
 async function readJsonLdScripts(page: Page) {
   const texts = await page.locator('script[type="application/ld+json"]').allInnerTexts();
-  // oxlint-disable-next-line typescript-eslint/no-unsafe-return -- JSON-LD payloads are dynamically shaped.
   return texts.map((t) => JSON.parse(t));
 }
 
@@ -216,10 +215,48 @@ test.describe("card detail route — essentials", () => {
     await expect(page.getByPlaceholder(/search/iu)).toBeVisible({ timeout: 10_000 });
   });
 
-  test("an unknown slug renders the not-found fallback", async ({ page }) => {
-    await page.goto("/cards/this-card-does-not-exist-anywhere", { waitUntil: "domcontentloaded" });
+  test("an unknown slug answers 404 with a noindex card search", async ({ page }) => {
+    const response = await page.goto("/cards/this-card-does-not-exist-anywhere", {
+      waitUntil: "domcontentloaded",
+    });
 
-    await expect(page.getByRole("link", { name: "Go home" })).toBeVisible({ timeout: 10_000 });
+    expect(response?.status()).toBe(404);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      "noindex, nofollow",
+    );
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "No card at this address" }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("textbox", { name: "Search cards", exact: true })).toHaveValue(
+      "this card does not exist anywhere",
+    );
+    await expect(page.getByRole("link", { name: "Browse all cards" })).toHaveAttribute(
+      "href",
+      "/cards",
+    );
+  });
+
+  test("searching from an unknown slug opens the card browser with that search", async ({
+    page,
+  }) => {
+    await page.goto("/cards/this-card-does-not-exist-anywhere");
+    const search = page.getByRole("textbox", { name: "Search cards", exact: true });
+    await waitForHydrated(search);
+
+    await search.fill("annie");
+    await search.press("Enter");
+
+    await expect(page).toHaveURL(/\/cards\?q=annie$/u);
+  });
+
+  test("an unknown slug one letter off a card name links to that card", async ({ page }) => {
+    await page.goto("/cards/annie-fiey");
+
+    await page.getByRole("link", { name: new RegExp(SEED_CARD_NAME, "u") }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/cards/${SEED_CARD_SLUG}$`, "u"));
   });
 
   // The grid tile click isn't drivable in the harness, so open the pane via
@@ -246,7 +283,9 @@ test.describe("card detail route — essentials", () => {
 
     await pane.getByRole("link", { name: /open card page/iu }).click();
 
-    await expect(page.getByRole("button", { name: "Reshuffle" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("a slow detail server fn shows the skeleton before the heading", async ({ page }) => {
@@ -257,18 +296,23 @@ test.describe("card detail route — essentials", () => {
     });
     await expect(pane).toBeVisible({ timeout: 15_000 });
 
+    const { promise: released, resolve: release } = Promise.withResolvers<void>();
     await page.route("**/_serverFn/**", async (route) => {
       if (isCardDetailServerFn(route.request().url())) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await released;
       }
       await route.continue();
     });
 
     await pane.getByRole("link", { name: /open card page/iu }).click();
 
-    // TanStack's defaults are pendingMs=1000/pendingMinMs=500, so the skeleton
-    // window is roughly t=1000..2000ms after the click.
-    await expect(page.locator('[data-slot="skeleton"]').first()).toBeVisible({ timeout: 5000 });
+    // TanStack's default pendingMs is 1000, so the skeleton shows a second
+    // after the click and stays until the held response is released.
+    try {
+      await expect(page.locator('[data-slot="skeleton"]').first()).toBeVisible({ timeout: 5000 });
+    } finally {
+      release();
+    }
     await expect(page.getByRole("heading", { level: 1, name: SEED_CARD_NAME })).toBeVisible({
       timeout: 10_000,
     });
@@ -464,7 +508,7 @@ test.describe("card detail route — info panel", () => {
     // Printings share a publicCode, so target by id.
     const promoButton = page.locator(`button[data-printing-id="${promoPrinting.id}"]`);
 
-    await page.waitForLoadState("networkidle");
+    await waitForHydrated(promoButton);
     await expect(promoButton).toHaveAttribute("aria-pressed", "false");
 
     // Retry via aria-pressed: a pre-hydration click leaves it unchanged; once

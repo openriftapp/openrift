@@ -15,17 +15,11 @@ vi.mock("@tanstack/react-router", () => ({
   useBlocker: () => ({ status: "idle" }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { setsKeys } from "@/features/cards/lib/cards-query-keys";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { ContributeFormScope } from "@/features/contribute/components/contribute-form";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { ContributeForm } from "@/features/contribute/components/contribute-form";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { ContributeFormState } from "@/features/contribute/lib/contribute-json";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { emptyFormState } from "@/features/contribute/lib/contribute-json";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { initKeys } from "@/lib/query-keys";
 
 const mutate = vi.fn();

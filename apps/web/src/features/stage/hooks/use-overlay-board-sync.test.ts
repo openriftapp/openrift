@@ -14,7 +14,6 @@ vi.mock("@/features/stage/hooks/use-overlay", () => ({
   useClearOverlay: () => ({ mutate: mockClear }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useOverlayBoardSync } from "./use-overlay-board-sync";
 
 const TIERS: TierRow[] = [

@@ -24,7 +24,12 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-import { nameField, shareStateResponseSchema } from "./fields.js";
+import {
+  cancelTradeIdsField,
+  nameField,
+  shareStateResponseSchema,
+  tradeCancelConflictError,
+} from "./fields.js";
 
 const listIntentSchema = z.enum(LIST_INTENTS);
 
@@ -95,6 +100,7 @@ export const updateListSchema = z.object({
   currency: currencySchema.nullable().optional(),
   rules: listRulesSchema.optional(),
   ruleCombine: listRuleCombineSchema.nullable().optional(),
+  cancelTradeIds: cancelTradeIdsField,
 });
 
 /** Server renumbers sort_order to match orderedIds, scoped to one intent bucket. */
@@ -146,6 +152,7 @@ export const moveListEntriesSchema = z.object({
     )
     .max(500)
     .optional(),
+  cancelTradeIds: cancelTradeIdsField,
 });
 
 export type MoveListEntriesResolution = NonNullable<
@@ -154,6 +161,7 @@ export type MoveListEntriesResolution = NonNullable<
 
 export const bulkDeleteListEntriesSchema = z.object({
   entryIds: z.array(z.uuid()).min(1).max(500),
+  cancelTradeIds: cancelTradeIdsField,
 });
 
 export const decrementListEntriesSchema = z.object({
@@ -161,6 +169,7 @@ export const decrementListEntriesSchema = z.object({
     .array(z.object({ entryId: z.uuid(), by: z.number().int().positive() }))
     .min(1)
     .max(500),
+  cancelTradeIds: cancelTradeIdsField,
 });
 
 const listResponseShape = {
@@ -247,12 +256,13 @@ export const listsContract = {
     .errors({
       NOT_FOUND: { message: "List not found" },
       BAD_REQUEST: { message: "No fields to update" },
+      CONFLICT: tradeCancelConflictError,
     })
     .output(listResponseSchema),
   remove: authedRoute
     .route({ method: "DELETE", path: "/api/v1/lists/{id}", tags: [TAG], successStatus: 204 })
-    .errors({ NOT_FOUND: { message: "List not found" } })
-    .input(idParamSchema),
+    .errors({ NOT_FOUND: { message: "List not found" }, CONFLICT: tradeCancelConflictError })
+    .input(withParams(idParamSchema, { cancelTradeIds: cancelTradeIdsField })),
   createEntry: authedRoute
     .route({ method: "POST", path: "/api/v1/lists/{id}/entries", tags: [TAG], successStatus: 201 })
     .input(withParams(idParamSchema, listEntryInputShape))
@@ -281,6 +291,7 @@ export const listsContract = {
     .errors({
       NOT_FOUND: { message: "List not found" },
       BAD_REQUEST: { message: "Entries can't be moved to that list" },
+      CONFLICT: tradeCancelConflictError,
     })
     .output(listMoveResponseSchema),
   updateEntry: authedRoute
@@ -298,8 +309,8 @@ export const listsContract = {
       tags: [TAG],
       successStatus: 204,
     })
-    .errors({ NOT_FOUND: { message: "Entry not found" } })
-    .input(idAndItemIdParamSchema),
+    .errors({ NOT_FOUND: { message: "Entry not found" }, CONFLICT: tradeCancelConflictError })
+    .input(withParams(idAndItemIdParamSchema, { cancelTradeIds: cancelTradeIdsField })),
   bulkDeleteEntries: authedRoute
     .route({
       method: "POST",
@@ -307,7 +318,7 @@ export const listsContract = {
       tags: [TAG],
       successStatus: 204,
     })
-    .errors({ NOT_FOUND: { message: "List not found" } })
+    .errors({ NOT_FOUND: { message: "List not found" }, CONFLICT: tradeCancelConflictError })
     .input(withParams(idParamSchema, bulkDeleteListEntriesSchema)),
   decrementEntries: authedRoute
     .route({
@@ -316,6 +327,7 @@ export const listsContract = {
       tags: [TAG],
       successStatus: 204,
     })
+    .errors({ CONFLICT: tradeCancelConflictError })
     .input(decrementListEntriesSchema),
   getShare: authedRoute
     .route({ method: "GET", path: "/api/v1/lists/{id}/share", tags: [TAG] })

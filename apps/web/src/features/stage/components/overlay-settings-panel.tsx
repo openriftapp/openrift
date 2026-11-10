@@ -128,8 +128,7 @@ export function OverlaySettingsPanel({
         pendingLabel={m.stage_browser_source_disable_pending()}
         isPending={disableToken.isPending}
         onConfirm={() => {
-          disableToken.mutate();
-          setConfirmDisable(false);
+          disableToken.mutate(undefined, { onSuccess: () => setConfirmDisable(false) });
         }}
       />
 

@@ -478,6 +478,7 @@ describe("DELETE /api/v1/collections/:id", () => {
         targetName: "Inbox",
         userId: USER_ID,
       }),
+      { kind: "listed", tradeIds: new Set() },
     );
   });
 
@@ -544,10 +545,11 @@ describe("POST /api/v1/collections/:id/clear", () => {
     const json = await readJson(res);
     expect(json.removedCount).toBe(3);
     expect(json.keptCopyIds).toEqual(["copy-9"]);
-    expect(mockClearCollection).toHaveBeenCalledWith(expect.anything(), {
-      collectionId: dbInbox.id,
-      userId: USER_ID,
-    });
+    expect(mockClearCollection).toHaveBeenCalledWith(
+      expect.anything(),
+      { collectionId: dbInbox.id, userId: USER_ID },
+      { kind: "listed", tradeIds: new Set() },
+    );
   });
 
   it("returns 403 when viewer is not an admin of the collection", async () => {

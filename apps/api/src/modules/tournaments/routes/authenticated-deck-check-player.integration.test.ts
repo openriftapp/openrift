@@ -40,7 +40,6 @@ function ingestReq(token: string, body: unknown): Request {
 }
 
 describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026)", () => {
-  // oxlint-disable typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ownerCtx!;
   const ownerApp = ownerCtx!.app;
   const judgeApp = judgeCtx!.app;
@@ -49,7 +48,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
   const strangerApp = strangerCtx!.app;
   const unverifiedApp = unverifiedCtx!.app;
   const outsiderApp = outsiderCtx!.app;
-  // oxlint-enable typescript/no-non-null-assertion
   const repos = createRepos(db);
 
   let groupId: string;
@@ -60,7 +58,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
   let submissionToken: string;
 
   async function push(entries: Record<string, unknown>[]): Promise<Response> {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
     return await ownerCtx!.app.fetch(ingestReq(pushToken, { tournamentId: eventId, entries }));
   }
 
@@ -612,7 +609,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
         }),
       );
       const entry = await repos.deckCheck.getEntryByExternalId(eventId, `openrift:${STRANGER_ID}`);
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- created by the earlier suite
       entryId2 = entry!.id;
     });
 
@@ -740,18 +736,35 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
 
     it("auto-submits an entry left editable when the deadline passes", async () => {
       const closeAt = "2020-06-01T12:00:00.000Z";
+      // A baseline that differs from the stored list, so the settle writes a change summary.
+      await repos.deckCheck.updateEntry(entryId2, {
+        preEditLines: [{ name: "Teemo, Swift Scout", zone: "main", quantity: 3 }],
+      });
       await ownerApp.fetch(
         req("PATCH", `/tournaments/${eventId}`, {
           submissionsCloseAt: closeAt,
         }),
       );
 
-      // Any judge or player load settles the entry; use the judge event list.
+      // Reads present the auto-submit without writing it.
       const list = await judgeApp.fetch(req("GET", `/tournaments/${eventId}/deck-check/entries`));
       expect(list.status).toBe(200);
+      const listed = (await readJson(list)) as { entries: { id: string; state: string }[] };
+      expect(listed.entries.find((row) => row.id === entryId2)?.state).toBe("submitted");
+      const stored = await repos.deckCheck.getEntry(eventId, entryId2);
+      expect(stored?.state).toBe("editable");
+
+      // A write path persists it, backdated to the close.
+      const late = await strangerApp.fetch(req("POST", `/deck-check/mine/${entryId2}/submit`));
+      expect(late.status).toBe(200);
       const settled = await repos.deckCheck.getEntry(eventId, entryId2);
       expect(settled?.state).toBe("submitted");
       expect(settled?.submittedAt?.toISOString()).toBe(closeAt);
+      expect(settled?.changeSummary?.removed).toContainEqual({
+        name: "Teemo, Swift Scout",
+        zone: "main",
+        quantity: 3,
+      });
 
       // After the deadline the player is fully locked out...
       const unlock = await strangerApp.fetch(req("POST", `/deck-check/mine/${entryId2}/unlock`));
@@ -788,7 +801,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       expect(((await readJson(patch)) as { listLockMode: string }).listLockMode).toBe("on_submit");
 
       const entry = await repos.deckCheck.getEntryByExternalId(eventId, `openrift:${STRANGER_ID}`);
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- created by the earlier suite
       entryId2 = entry!.id;
       // The previous block left it approved; bring it back to submitted.
       await judgeApp.fetch(
@@ -912,7 +924,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       await db
         .updateTable("tournamentParticipants")
         .set({ claimToken: null })
-        // oxlint-disable-next-line typescript/no-non-null-assertion -- just pushed
         .where("id", "=", before!.participantId!)
         .execute();
 
@@ -921,7 +932,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       const after = await repos.deckCheck.getEntryByExternalId(eventId, "claim-mint");
       expect(after?.claimToken).not.toBeNull();
       const row = body.entries.find((entryRow) => entryRow.externalId === "claim-mint");
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- asserted above
       expect(row?.claimUrl).toContain(after!.claimToken!);
     });
 
@@ -986,7 +996,6 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
       await db
         .updateTable("tournamentParticipants")
         .set({ claimBlockedAt: new Date() })
-        // oxlint-disable-next-line typescript/no-non-null-assertion -- just pushed
         .where("id", "=", entry!.participantId!)
         .execute();
 

@@ -45,9 +45,7 @@ vi.mock("@/hooks/use-enums", () => ({
   useZoneOrder: () => ({ zoneOrder: [], zoneLabels: {} }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckZoneDrawer } from "./deck-zone-drawer";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckZonePanelHeader } from "./deck-zone-panel";
 
 afterEach(() => {

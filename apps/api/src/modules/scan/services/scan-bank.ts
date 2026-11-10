@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- hashing is pure, not IO worth injecting
 import { createHash } from "node:crypto";
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side path handling
 import { join } from "node:path";
 
 import type { Logger } from "@openrift/shared/logger";

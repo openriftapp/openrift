@@ -1,6 +1,11 @@
 import type {
   AcceptCardField,
+  AcceptNewCardBody,
+  AcceptPrintingBody,
   AcceptPrintingField,
+  CreateCardBody,
+  CreatePrintingBody,
+  PatchCandidatePrintingBody,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
@@ -14,23 +19,8 @@ import { toast } from "sonner";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { checkMatchingResultFromRun, waitForJobRun } from "@/features/admin/lib/job-run-wait";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import type {
-  AcceptNewCardBody,
-  AcceptPrintingBody,
-  CreateCardBody,
-  CreatePrintingBody,
-  PatchCandidatePrintingBody,
-} from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-export type {
-  AcceptNewCardBody,
-  AcceptPrintingBody,
-  CreateCardBody,
-  CreatePrintingBody,
-  PatchCandidatePrintingBody,
-} from "@/lib/server-fns/api-types";
 
 const checkCandidateCardFn = createServerFn({ method: "POST" })
   .validator((input: { candidateCardId: string }) => input)
@@ -41,7 +31,7 @@ const checkCandidateCardFn = createServerFn({ method: "POST" })
     });
   });
 
-const uncheckCandidateCardFn = createServerFn({ method: "POST" })
+export const uncheckCandidateCardFn = createServerFn({ method: "POST" })
   .validator((input: { candidateCardId: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -68,7 +58,7 @@ const checkCandidatePrintingFn = createServerFn({ method: "POST" })
     });
   });
 
-const uncheckCandidatePrintingFn = createServerFn({ method: "POST" })
+export const uncheckCandidatePrintingFn = createServerFn({ method: "POST" })
   .validator((input: { id: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -97,7 +87,7 @@ const renameCardFn = createServerFn({ method: "POST" })
     });
   });
 
-const acceptCardFieldFn = createServerFn({ method: "POST" })
+export const acceptCardFieldFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       cardId: string;
@@ -116,7 +106,7 @@ const acceptCardFieldFn = createServerFn({ method: "POST" })
     });
   });
 
-const acceptPrintingFieldFn = createServerFn({ method: "POST" })
+export const acceptPrintingFieldFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       printingId: string;
@@ -286,14 +276,12 @@ export function useUncheckCandidateCard(invalidates: Scope = defaultScope) {
   });
 }
 
-export function useCheckAllCandidateCards(invalidates?: Scope) {
+export function useCheckAllCandidateCards(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
     mutationFn: async (cardId: string) => {
       await checkAllCandidateCardsFn({ data: { cardId } });
     },
-    invalidates:
-      invalidates ??
-      ((cardId) => [adminKeys.cards.detail(cardId), adminKeys.cards.list, adminKeys.workspace]),
+    invalidates,
   });
 }
 
@@ -326,11 +314,11 @@ export function useCheckAllCandidatePrintings(invalidates: Scope = defaultScope)
 
 export function useRenameCard() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ cardId, newId }: { cardId: string; newId: string }) => {
+    mutationFn: async ({ cardId, newId }: { cardId: string; cardSlug: string; newId: string }) => {
       await renameCardFn({ data: { cardId, newId } });
     },
-    invalidates: ({ cardId, newId }) => [
-      adminKeys.cards.detail(cardId),
+    invalidates: ({ cardSlug, newId }) => [
+      adminKeys.cards.detail(cardSlug),
       adminKeys.cards.detail(newId),
       adminKeys.cards.list,
       adminKeys.workspace,
@@ -437,20 +425,14 @@ export function useCreatePrinting() {
       printingFields,
     }: {
       cardId: string;
-      cardSlug?: string;
+      cardSlug: string;
       printingFields: CreatePrintingBody;
     }) => createPrintingFn({ data: { cardId, printingFields } }),
-    invalidates: ({ cardId, cardSlug }) => {
-      const keys: (readonly unknown[])[] = [
-        adminKeys.cards.detail(cardId),
-        adminKeys.cards.list,
-        adminKeys.workspace,
-      ];
-      if (cardSlug) {
-        keys.push(adminKeys.cards.detail(cardSlug));
-      }
-      return keys;
-    },
+    invalidates: ({ cardSlug }) => [
+      adminKeys.cards.detail(cardSlug),
+      adminKeys.cards.list,
+      adminKeys.workspace,
+    ],
   });
 }
 
@@ -470,11 +452,11 @@ export function useAcceptFavoriteNewCard() {
 
 export function useLinkCard() {
   return useMutationWithInvalidation({
-    mutationFn: async ({ name, cardId }: { name: string; cardId: string }) => {
+    mutationFn: async ({ name, cardId }: { name: string; cardId: string; cardSlug: string }) => {
       await linkCardFn({ data: { name, cardId } });
     },
-    invalidates: ({ name, cardId }) => [
-      adminKeys.cards.detail(cardId),
+    invalidates: ({ name, cardSlug }) => [
+      adminKeys.cards.detail(cardSlug),
       adminKeys.cards.unmatched(name),
       adminKeys.cards.list,
       adminKeys.workspace,
@@ -663,7 +645,7 @@ export function useDeleteProvider() {
   });
 }
 
-const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
+export const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       marketplace: Marketplace;

@@ -1,4 +1,4 @@
-import { META_MAX_PAGE_SIZE, STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_MAX_PAGE_SIZE, STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import {

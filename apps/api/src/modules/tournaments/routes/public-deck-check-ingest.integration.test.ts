@@ -42,11 +42,9 @@ function entryPayload(overrides: Record<string, unknown> = {}): Record<string, u
 }
 
 describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () => {
-  // oxlint-disable typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ownerCtx!;
   const ownerApp = ownerCtx!.app;
   const judgeApp = judgeCtx!.app;
-  // oxlint-enable typescript/no-non-null-assertion
   const repos = createRepos(db);
 
   let groupId: string;

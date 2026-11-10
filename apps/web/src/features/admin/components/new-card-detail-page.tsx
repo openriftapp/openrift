@@ -1,3 +1,7 @@
+import type {
+  AcceptNewCardBody,
+  PatchCandidatePrintingBody,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { pluralize } from "@openrift/shared/strings";
 import type {
@@ -42,10 +46,6 @@ import {
 import { GroupImagePreview } from "@/features/admin/components/image-preview";
 import { SubmissionResolutionDialog } from "@/features/admin/components/submission-resolution-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import type {
-  AcceptNewCardBody,
-  PatchCandidatePrintingBody,
-} from "@/features/admin/hooks/use-admin-card-mutations";
 import {
   useAcceptNewCard,
   useLinkCard,
@@ -248,7 +248,7 @@ function NewCardDetail({ identifier }: { identifier: string }) {
     const targetId = linkCardId.trim();
     const targetSlug = allCards?.find((c) => c.id === targetId)?.slug ?? targetId;
     linkCard.mutate(
-      { name: identifier, cardId: targetId },
+      { name: identifier, cardId: targetId, cardSlug: targetSlug },
       {
         onSuccess: () => {
           void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: targetSlug } });

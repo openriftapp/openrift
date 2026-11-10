@@ -54,14 +54,18 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
         const vals = sql.join(scope.artVariants.map((val) => sql`${val}`));
         scopeClauses.push(sql`AND p.art_variant IN (${vals})`);
       }
+      // Same rule as `matchesDomains`: one selected domain keeps any card that has it,
+      // two or more keep a card only when every one of its domains is selected.
       if (scope.domains?.length) {
         const vals = sql.join(scope.domains.map((val) => sql`${val}`));
         scopeClauses.push(
-          sql`AND EXISTS (SELECT 1 FROM card_domains cd WHERE cd.card_id = c.id AND cd.domain_slug IN (${vals}))`,
+          scope.domains.length === 1
+            ? sql`AND EXISTS (SELECT 1 FROM card_domains cd WHERE cd.card_id = c.id AND cd.domain_slug IN (${vals}))`
+            : sql`AND NOT EXISTS (SELECT 1 FROM card_domains cd WHERE cd.card_id = c.id AND cd.domain_slug NOT IN (${vals}))`,
         );
       }
       // `types` and `domains` are join tables: one excluded value rejects the card,
-      // as in `noneExcluded` (web filters) and `matchesScope` (stats page).
+      // as in `noneExcluded` (web filters and the stats page).
       if (scope.setsExclude?.length) {
         const vals = sql.join(scope.setsExclude.map((val) => sql`${val}`));
         scopeClauses.push(sql`AND s.slug NOT IN (${vals})`);
@@ -152,6 +156,11 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
         scopeClauses.push(sql`AND p.is_signed = true`);
       } else if (scope.signed === false) {
         scopeClauses.push(sql`AND p.is_signed = false`);
+      }
+      if (scope.overnumbered === true) {
+        scopeClauses.push(sql`AND p.is_overnumbered = true`);
+      } else if (scope.overnumbered === false) {
+        scopeClauses.push(sql`AND p.is_overnumbered = false`);
       }
       if (scope.banned === true) {
         scopeClauses.push(

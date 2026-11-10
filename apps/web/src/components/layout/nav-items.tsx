@@ -3,11 +3,14 @@ import {
   BookOpenIcon,
   BookTextIcon,
   CameraIcon,
+  CircleHelpIcon,
+  ExternalLinkIcon,
   FileDiffIcon,
   GavelIcon,
   GiftIcon,
   HandHeartIcon,
   HandshakeIcon,
+  HeartIcon,
   LayersIcon,
   LibraryIcon,
   ListOrderedIcon,
@@ -16,14 +19,19 @@ import {
   PackagePlusIcon,
   PaletteIcon,
   PencilLineIcon,
+  SmartphoneIcon,
+  SparklesIcon,
   SwordsIcon,
   TrendingUpIcon,
   TrophyIcon,
   UsersIcon,
   LayoutDashboardIcon,
 } from "lucide-react";
+import type { ComponentType } from "react";
 import { useEffect } from "react";
+import { siDiscord, siGithub } from "simple-icons";
 
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { trackAuthGate, trackSignupCta } from "@/lib/analytics";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
+import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
 
 function lockedFeatures(): Record<
@@ -110,7 +119,6 @@ export function primaryNavItems(): NavItemConfig[] {
       label: m.nav_scan(),
       to: "/scan",
       icon: CameraIcon,
-      lockedKey: "scan",
       flag: "scanner",
       platform: "mobile",
     },
@@ -172,7 +180,6 @@ export function moreNavSections(): NavSectionConfig[] {
           label: m.nav_scan(),
           to: "/scan",
           icon: CameraIcon,
-          lockedKey: "scan",
           flag: "scanner",
           platform: "desktop",
           description: m.nav_scan_description(),
@@ -321,6 +328,91 @@ export function splitTabletNav(
 
 export function keepsSearch(item: NavItemConfig, pathname: string): boolean {
   return item.keepSearch === true && pathname === item.to;
+}
+
+type HeaderLinkTarget = { to: string; href?: never } | { href: string; to?: never };
+
+export type HeaderLinkConfig = HeaderLinkTarget & {
+  id: "help" | "whats-new" | "install" | "report-bug" | "discord" | "card-data" | "support";
+  label: string;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+  lockedKey?: LockedFeatureKey;
+  unreadDot?: boolean;
+};
+
+function GithubGlyph({ className }: { className?: string }) {
+  return <BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} className={className} />;
+}
+
+function DiscordGlyph({ className }: { className?: string }) {
+  return <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} className={className} />;
+}
+
+export function helpLinks(opts: {
+  showInstall: boolean;
+  installLast?: boolean;
+}): HeaderLinkConfig[] {
+  const install: HeaderLinkConfig = {
+    id: "install",
+    to: "/install",
+    label: m.nav_get_app(),
+    description: m.nav_get_app_description(),
+    icon: SmartphoneIcon,
+  };
+  const links: HeaderLinkConfig[] = [
+    {
+      id: "help",
+      to: "/help",
+      label: m.layout_header_help_articles(),
+      description: m.layout_header_help_articles_description(),
+      icon: CircleHelpIcon,
+    },
+    {
+      id: "whats-new",
+      to: "/changelog",
+      label: m.layout_header_whats_new(),
+      description: m.layout_header_whats_new_description(),
+      icon: SparklesIcon,
+      unreadDot: true,
+    },
+    ...(opts.showInstall && !opts.installLast ? [install] : []),
+    {
+      id: "report-bug",
+      href: SOCIAL_LINKS.githubNewIssue,
+      label: m.layout_header_report_bug(),
+      description: m.layout_header_report_bug_description(),
+      icon: GithubGlyph,
+    },
+    {
+      id: "discord",
+      href: SOCIAL_LINKS.discordInvite,
+      label: m.layout_header_ask_discord(),
+      description: m.layout_header_ask_discord_description(),
+      icon: DiscordGlyph,
+    },
+  ];
+  return opts.showInstall && opts.installLast ? [...links, install] : links;
+}
+
+export function contributeLinks(): HeaderLinkConfig[] {
+  return [
+    {
+      id: "card-data",
+      to: "/contribute",
+      label: m.layout_header_card_data(),
+      description: m.layout_header_card_data_description(),
+      icon: PencilLineIcon,
+      lockedKey: "contribute",
+    },
+    {
+      id: "support",
+      to: "/support",
+      label: m.layout_header_support(),
+      description: m.layout_header_support_description(),
+      icon: HeartIcon,
+    },
+  ];
 }
 
 export function badgeAriaLabel(badge: keyof NavBadgeCounts, count: number): string {

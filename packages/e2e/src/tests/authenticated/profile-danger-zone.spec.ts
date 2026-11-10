@@ -156,8 +156,6 @@ test.describe("profile danger zone", () => {
       await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
       await expect(dialog).toBeHidden();
 
-      // Give any stray request a chance to settle before asserting.
-      await page.waitForTimeout(500);
       page.off("request", onRequest);
       expect(deleteRequestFired).toBe(false);
     });
@@ -199,7 +197,6 @@ test.describe("profile danger zone", () => {
       await dialog.getByRole("button", { name: "Delete account", exact: true }).click();
       await expect(dialog.getByText("Password is required.")).toBeVisible();
 
-      await page.waitForTimeout(500);
       page.off("request", onRequest);
       expect(deleteRequestFired).toBe(false);
     });
@@ -328,8 +325,9 @@ test.describe("profile danger zone", () => {
       await page.goto("/profile");
 
       // Route must be installed before the dialog fires the request.
+      const { promise: released, resolve: release } = Promise.withResolvers<void>();
       await page.route(`**${DELETE_USER_PATH}`, async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await released;
         await route.continue();
       });
 
@@ -339,9 +337,13 @@ test.describe("profile danger zone", () => {
       const confirmButton = dialog.getByRole("button", { name: /delete account|deleting/iu });
       await confirmButton.click();
 
-      await expect(confirmButton).toHaveText("Deleting…", { timeout: 5000 });
-      await expect(confirmButton).toBeDisabled();
-      await expect(dialog).toBeVisible();
+      try {
+        await expect(confirmButton).toHaveText("Deleting…", { timeout: 5000 });
+        await expect(confirmButton).toBeDisabled();
+        await expect(dialog).toBeVisible();
+      } finally {
+        release();
+      }
 
       // The authenticated-home guard on "/" can still see the just-invalidated
       // session and forward to /cards before it clears; accept either landing.

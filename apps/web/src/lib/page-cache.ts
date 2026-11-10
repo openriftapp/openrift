@@ -1,5 +1,7 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/server-only";
+import { getCookie, getRequest } from "@tanstack/react-start/server";
+
 import { baseLocale, cookieName } from "@/paraglide/runtime.js";
 
 const PUBLIC_PAGE_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600";
@@ -73,14 +75,28 @@ function hasNonBaseLocaleCookie(request: Request): boolean {
   return match !== null && decodeURIComponent(match[1] ?? "") !== baseLocale;
 }
 
-function isAnonymousCacheable(request: Request, response: Response): boolean {
+function isAnonymousRequest(request: Request): boolean {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return false;
   }
-  if (response.headers.has("set-cookie")) {
-    return false;
-  }
   return !hasSessionCookie(request) && !hasNonBaseLocaleCookie(request);
+}
+
+function isAnonymousCacheable(request: Request, response: Response): boolean {
+  return !response.headers.has("set-cookie") && isAnonymousRequest(request);
+}
+
+/** True for every page request whose HTML may be stored in the shared edge cache. */
+export function rendersDefaultShell(request: Request): boolean {
+  return isCacheablePublicPath(new URL(request.url).pathname) && isAnonymousRequest(request);
+}
+
+/**
+ * Shell preference cookies (theme, palette, view prefs) as the SSR pass may read them:
+ * absent on edge-cacheable pages, so the stored HTML carries no visitor's choices.
+ */
+export function getShellCookie(name: string): string | undefined {
+  return rendersDefaultShell(getRequest()) ? undefined : getCookie(name);
 }
 
 function withCacheControl(response: Response, cacheControl: string): Response {

@@ -13,7 +13,6 @@ vi.mock("@/features/decks/lib/deck-compare-side", () => ({
   queryDeckLink: queryDeckLinkMock,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckComparePasteDialog } from "./deck-compare-paste-dialog";
 
 function renderDialog() {

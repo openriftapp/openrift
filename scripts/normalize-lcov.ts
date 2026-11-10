@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone script */
 /**
  * Bun coverage writes SF: paths relative to each package's directory, so the
  * same file can appear under two different relative paths and

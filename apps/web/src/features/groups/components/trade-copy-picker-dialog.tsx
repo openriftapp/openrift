@@ -68,7 +68,16 @@ export function useTradeAcceptFlow({ onSettled }: { onSettled?: () => void } = {
     setBusy(true);
     accept.mutate(
       { tradeId: target.tradeId, groupSlug: target.groupSlug, copyIds },
-      { onSettled: finish },
+      {
+        onSuccess: finish,
+        onError: () => {
+          if (copyIds === undefined) {
+            finish();
+          } else {
+            setBusy(false);
+          }
+        },
+      },
     );
   }
 

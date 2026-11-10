@@ -6,6 +6,7 @@ import type { Fetch } from "../../../../io";
 import * as fetchMod from "../../../../lib/http";
 import { refreshCardmarketPrices } from "./cardmarket";
 import * as logMod from "./log";
+import { PRICE_FETCH_RETRIES } from "./types";
 import type { StagingRow, UpsertCounts } from "./types";
 import * as upsertMod from "./upsert";
 
@@ -193,6 +194,17 @@ describe("refreshCardmarketPrices", () => {
       expect(urls).toContainEqual(
         "https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_22.json",
       );
+    });
+
+    it("asks both downloads to retry a transient failure", async () => {
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+      setupFetchJson(fetchJsonSpy, [], []);
+
+      await refreshCardmarketPrices(stubFetch, repos, log);
+
+      const options = fetchJsonSpy.mock.calls.map((c: unknown[]) => c[2]);
+      expect(options).toEqual([{ retries: PRICE_FETCH_RETRIES }, { retries: PRICE_FETCH_RETRIES }]);
     });
 
     it("handles empty API responses gracefully", async () => {

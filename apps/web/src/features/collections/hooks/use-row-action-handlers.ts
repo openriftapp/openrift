@@ -14,7 +14,6 @@ export function useRowActionHandlers<TSurface extends CardRowSurface>(
   surface: TSurface,
   handlers: HandlersBySurface[TSurface],
 ): void {
-  // oxlint-disable-next-line react-hooks/exhaustive-deps -- intentional: re-register every render
   useEffect(() => {
     useCardRowActionsStore.getState().setHandlers(surface, handlers);
     return () => {

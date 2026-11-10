@@ -32,7 +32,6 @@ vi.mock("@tanstack/react-router", () => {
 
 vi.mock("@/hooks/use-session", () => ({ useUserId: () => captured.userId }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaLegendFinishes } from "./meta-legend-finishes";
 
 type FinishOverrides = Partial<Omit<MetaLegendFinish, "event">> & {

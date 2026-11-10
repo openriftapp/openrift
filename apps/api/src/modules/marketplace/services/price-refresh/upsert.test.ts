@@ -14,7 +14,6 @@ function makeMockLogger(): { log: Logger; messages: string[] } {
   return { log, messages };
 }
 
-// oxlint-disable-next-line no-empty-function -- noop logger for tests
 const noop = () => {};
 const noopLogger = { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger;
 
@@ -47,7 +46,11 @@ function emptyIgnoredKeys(): LoadedIgnoredKeys {
   return { productIds: new Set<number>(), variantKeys: new Set<string>() };
 }
 
-function makeMockRepo(opts: { ignoredKeys?: LoadedIgnoredKeys; countResult?: number }) {
+function makeMockRepo(opts: {
+  ignoredKeys?: LoadedIgnoredKeys;
+  countResult?: number;
+  outcomeOf?: (productId: string) => "inserted" | "updated" | "unchanged";
+}) {
   const ignoredKeys = opts.ignoredKeys ?? emptyIgnoredKeys();
   const countResult = opts.countResult ?? 0;
   let upsertGroupsCalled = false;
@@ -76,7 +79,6 @@ function makeMockRepo(opts: { ignoredKeys?: LoadedIgnoredKeys; countResult?: num
         finish: s.finish,
         language: s.language,
       })),
-    countProductPrices: async () => countResult,
     countStaging: async () => countResult,
     upsertProductPrices: async (batch: { marketplaceProductId: string; recordedAt: Date }[]) => {
       for (const row of batch) {
@@ -85,7 +87,11 @@ function makeMockRepo(opts: { ignoredKeys?: LoadedIgnoredKeys; countResult?: num
           recordedAt: row.recordedAt,
         });
       }
-      return 0;
+      const outcomes = batch.map((row) => opts.outcomeOf?.(row.marketplaceProductId));
+      return {
+        inserted: outcomes.filter((o) => o === "inserted").length,
+        updated: outcomes.filter((o) => o === "updated").length,
+      };
     },
     upsertStaging: async () => 0,
   } as unknown as Repos["priceRefresh"];
@@ -159,6 +165,20 @@ describe("upsertPriceData", () => {
     expect(counts.prices.new).toBe(0);
     expect(counts.prices.updated).toBe(0);
     expect(counts.prices.unchanged).toBe(0);
+  });
+
+  it("counts new, updated and unchanged rows from the upsert's own result", async () => {
+    const outcomes: Record<string, "inserted" | "updated" | "unchanged"> = {
+      "mp-1-normal-EN": "inserted",
+      "mp-2-normal-EN": "updated",
+      "mp-3-normal-EN": "unchanged",
+    };
+    const { repo } = makeMockRepo({ outcomeOf: (id) => outcomes[id] ?? "unchanged" });
+    const staging = [1, 2, 3].map((id) => makeStagingRow(id, "normal"));
+
+    const counts = await upsertPriceData(repo, noopLogger, config, staging);
+
+    expect(counts.prices).toEqual({ total: 3, new: 1, updated: 1, unchanged: 1 });
   });
 
   it("writes one price row per staging SKU", async () => {

@@ -109,6 +109,9 @@ export function buildMissingSearch({
   if (scope.signed !== undefined) {
     search.signed = scope.signed;
   }
+  if (scope.overnumbered !== undefined) {
+    search.overnumbered = scope.overnumbered;
+  }
   if (scope.banned !== undefined) {
     search.banned = scope.banned;
   }
@@ -124,7 +127,11 @@ export function buildMissingSearch({
       break;
     }
     case "domain": {
-      search.domains = [key];
+      if (search.domains && !(search.domains.length === 1 && search.domains[0] === key)) {
+        search.q = `domain:${key}`;
+      } else {
+        search.domains = [key];
+      }
       break;
     }
     case "rarity": {

@@ -13,7 +13,7 @@ const os = implement(adminScanContract).$context<ApiContext>().use(requireAuthed
 
 export const adminScanRouter = {
   rebuildBank: os.rebuildBank.handler(async ({ context }) => {
-    const { repos, config, io } = context;
+    const { backgroundRepos: repos, config, io } = context;
 
     return await runJobAsync(
       { repos, log },

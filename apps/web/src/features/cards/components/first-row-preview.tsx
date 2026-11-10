@@ -22,7 +22,7 @@ import {
   SSR_RESPONSIVE_GRID_GAP,
 } from "@/features/cards/hooks/use-responsive-columns";
 import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
-import { LABEL_HEIGHT } from "@/features/cards/lib/card-grid-constants";
+import { BUTTON_PAD_CLASS, LABEL_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { fromWireFacets, fromWireFilterCounts } from "@/features/cards/lib/cards-facets";
 import { DEFAULT_TOP_LEVEL_UNITS } from "@/features/cards/lib/filter-sections";
 import { LANDSCAPE_ROTATION_STYLE } from "@/lib/images";
@@ -152,7 +152,7 @@ export function FirstRowPreview() {
                   // or the SSR cells render a different size and hydration shifts the grid.
                   <div
                     key={sideKey(card)}
-                    className={cn("rounded-lg p-0.75", visibilityForIndex(i))}
+                    className={cn("rounded-lg", BUTTON_PAD_CLASS, visibilityForIndex(i))}
                   >
                     {card.rotated ? (
                       // aspect-card spacer gives the box a definite height so the rotated

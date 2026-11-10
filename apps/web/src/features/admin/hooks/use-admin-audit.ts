@@ -1,14 +1,14 @@
 import { adminAuditEventsContract } from "@openrift/shared/contracts/admin/audit-events";
+import type {
+  AdminAuditActionsResponse,
+  AdminAuditActorsResponse,
+} from "@openrift/shared/contracts/admin/audit-events";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { AuditFilters } from "@/features/admin/lib/admin-audit-queries";
 import { auditEventsQueryOptions } from "@/features/admin/lib/admin-audit-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type {
-  AdminAuditActionsResponse,
-  AdminAuditActorsResponse,
-} from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

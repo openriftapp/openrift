@@ -297,6 +297,35 @@ describe("TournamentParticipantsTab fixed tables", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(updateParticipantMutateAsync).not.toHaveBeenCalled();
   });
+
+  it("keeps the dialog open with the typed table when the save is rejected", async () => {
+    updateParticipantMutateAsync.mockRejectedValueOnce(new Error("offline"));
+    const user = userEvent.setup();
+    participants = [makeParticipant("p1", { displayName: "Ashe" })];
+    renderTab();
+
+    await user.click(screen.getByRole("button", { name: "Participant actions" }));
+    await user.click(await screen.findByText("Set fixed table"));
+    await user.type(screen.getByRole("spinbutton", { name: "Fixed table number" }), "7");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(updateParticipantMutateAsync).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Set fixed table for Ashe")).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Fixed table number" })).toHaveValue(7);
+  });
+
+  it("closes the dialog after the fixed table is saved", async () => {
+    const user = userEvent.setup();
+    participants = [makeParticipant("p1", { displayName: "Ashe" })];
+    renderTab();
+
+    await user.click(screen.getByRole("button", { name: "Participant actions" }));
+    await user.click(await screen.findByText("Set fixed table"));
+    await user.type(screen.getByRole("spinbutton", { name: "Fixed table number" }), "7");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.queryByText("Set fixed table for Ashe")).not.toBeInTheDocument();
+  });
 });
 
 describe("TournamentParticipantsTab deck-check query gating", () => {

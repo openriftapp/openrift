@@ -106,7 +106,6 @@ vi.mock("@/hooks/use-mounted-at", () => ({
   useMountedAt: () => new Date("2026-10-28T17:00:00.000Z"),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaMirrorPage } from "./meta-mirror-page";
 
 const STATUS_COUNTS: MirrorCounts = {

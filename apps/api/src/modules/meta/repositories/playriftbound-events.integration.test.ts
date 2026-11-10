@@ -102,7 +102,6 @@ afterAll(async () => {
 });
 
 describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = playriftboundEventsRepo(db);
   const results = playriftboundResultsRepo(db);

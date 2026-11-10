@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- assertions compare joined disk paths
 import { join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";

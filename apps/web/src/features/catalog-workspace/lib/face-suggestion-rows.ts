@@ -157,21 +157,6 @@ export function discardLabel(
 export const ADMIN_ONLY_DISCARD = "Only an admin discards source suggestions.";
 export const ADMIN_ONLY_REPLY = "Only an admin replies to contributors.";
 
-export function discardedLabel(
-  sources: readonly SuggestionSource[],
-  candidatePrintingIds: readonly string[],
-): string {
-  const picked = sources.filter((source) =>
-    candidatePrintingIds.includes(source.candidatePrintingId),
-  );
-  const differences = picked.reduce((sum, source) => sum + source.differences, 0);
-  const providers = [...new Set(picked.map((source) => source.provider))];
-  const from = providers.length === 0 ? "" : ` from ${providers.join(", ")}`;
-  return differences === 0
-    ? `Discarded ${picked.length} ${pluralize(picked.length, "source")}${from}`
-    : `Discarded ${differences} ${pluralize(differences, "suggestion")}${from}`;
-}
-
 export function faceCompareCandidates(
   detail: AdminCardDetailResponse,
   faceId: string,

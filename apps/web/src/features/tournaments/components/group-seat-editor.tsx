@@ -10,13 +10,22 @@ import {
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import type { GroupStageView } from "@openrift/shared/types/api/pod-tournament";
-import { GripVerticalIcon } from "lucide-react";
-import { useState } from "react";
+import { EllipsisVerticalIcon, GripVerticalIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
@@ -70,9 +79,8 @@ function SeatChip({ playerId, name }: { playerId: string; name: string }) {
         droppable.setNodeRef(node);
       }}
       {...draggable.listeners}
-      {...draggable.attributes}
       className={cn(
-        "bg-background flex cursor-grab items-center gap-1.5 rounded-md border px-2 py-1 text-sm",
+        "bg-background flex cursor-grab touch-none items-center gap-1.5 rounded-md border px-2 py-1 text-sm",
         draggable.isDragging && "opacity-40",
         droppable.isOver && !draggable.isDragging && "ring-primary ring-2",
       )}
@@ -80,6 +88,59 @@ function SeatChip({ playerId, name }: { playerId: string; name: string }) {
       <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
       <span className="min-w-0 truncate">{name}</span>
     </span>
+  );
+}
+
+interface SwapOption {
+  playerId: string;
+  name: string;
+  groupLabel: string;
+  seat: number;
+}
+
+function SwapMenu({
+  playerId,
+  name,
+  options,
+  onSwap,
+}: {
+  playerId: string;
+  name: string;
+  options: SwapOption[];
+  onSwap: (otherId: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        data-swap-player={playerId}
+        aria-label={m.tournaments_seat_editor_swap_label({ name })}
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground pointer-coarse:size-9"
+          >
+            <EllipsisVerticalIcon />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{m.tournaments_seat_editor_swap_with()}</DropdownMenuLabel>
+          {options.map((option) => (
+            <DropdownMenuItem key={option.playerId} onClick={() => onSwap(option.playerId)}>
+              <span>{option.name}</span>
+              <span className="text-muted-foreground ml-auto pl-3">
+                {m.tournaments_seat_editor_swap_seat({
+                  label: option.groupLabel,
+                  seat: option.seat,
+                })}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -108,6 +169,29 @@ export function GroupSeatEditor({
     ),
   );
   const sizes = new Set(groups.map((group) => group.playerIds.length));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const nameOf = (playerId: string) =>
+    nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player();
+  const seats: SwapOption[] = groups.flatMap((group) =>
+    group.playerIds.map((playerId, seat) => ({
+      playerId,
+      name: nameOf(playerId),
+      groupLabel: group.label,
+      seat: seat + 1,
+    })),
+  );
+
+  function applySwap(a: string, b: string) {
+    setGroups((current) => swapSeats(current, a, b));
+  }
+
+  // A swap across groups remounts the chip, so the menu's own focus return has
+  // no trigger left to land on.
+  function handleMenuSwap(playerId: string, otherId: string) {
+    flushSync(() => applySwap(playerId, otherId));
+    const triggers = rootRef.current?.querySelectorAll<HTMLElement>("[data-swap-player]") ?? [];
+    [...triggers].find((trigger) => trigger.dataset.swapPlayer === playerId)?.focus();
+  }
 
   function handleDragStart(event: DragStartEvent) {
     setDraggingId(
@@ -120,7 +204,7 @@ export function GroupSeatEditor({
     const drag = asDragData<SeatDragData>(event.active.data.current, SEAT_TYPES);
     const drop = asDragData<SeatDragData>(event.over?.data.current, SEAT_TYPES);
     if (drag && drop) {
-      setGroups((current) => swapSeats(current, drag.playerId, drop.playerId));
+      applySwap(drag.playerId, drop.playerId);
     }
   }
 
@@ -143,7 +227,7 @@ export function GroupSeatEditor({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col gap-4">
+      <div ref={rootRef} className="flex flex-col gap-4">
         <Heading as="h3">{m.tournaments_group_edit_groups()}</Heading>
         <p className="text-muted-foreground text-sm">{m.tournaments_seat_editor_hint()}</p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -165,9 +249,12 @@ export function GroupSeatEditor({
                     <span className="text-muted-foreground w-4 shrink-0 text-right text-xs tabular-nums">
                       {seat + 1}
                     </span>
-                    <SeatChip
+                    <SeatChip playerId={playerId} name={nameOf(playerId)} />
+                    <SwapMenu
                       playerId={playerId}
-                      name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
+                      name={nameOf(playerId)}
+                      options={seats.filter((option) => option.playerId !== playerId)}
+                      onSwap={(otherId) => handleMenuSwap(playerId, otherId)}
                     />
                   </div>
                 ))}

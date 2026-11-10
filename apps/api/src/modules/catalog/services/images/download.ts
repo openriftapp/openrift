@@ -1,12 +1,11 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- SSRF guard needs IP literal detection
 import { isIP } from "node:net";
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem access
 import { extname } from "node:path";
 
 import type { Io } from "../../../../io.js";
 
 const DOWNLOAD_TIMEOUT_MS = 15_000;
 const MAX_REDIRECTS = 5;
+export const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
 
 function guessExtension(contentType: string | null, url: string): string {
   if (contentType?.includes("png")) {
@@ -99,6 +98,38 @@ async function assertPublicImageUrl(io: Io, url: string): Promise<void> {
   }
 }
 
+function isImageContentType(contentType: string): boolean {
+  const type = contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+  return type.startsWith("image/") || type.endsWith("/octet-stream");
+}
+
+async function readCapped(res: Response, url: string): Promise<Buffer> {
+  const tooLarge = () =>
+    new Error(`Download failed (larger than ${MAX_IMAGE_BYTES} bytes): ${url}`);
+  if (Number(res.headers.get("content-length") ?? 0) > MAX_IMAGE_BYTES) {
+    await res.body?.cancel();
+    throw tooLarge();
+  }
+  if (!res.body) {
+    return Buffer.alloc(0);
+  }
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const result = (await reader.read()) as { done: true } | { done: false; value: Uint8Array };
+    if (result.done) {
+      return Buffer.concat(chunks, total);
+    }
+    total += result.value.byteLength;
+    if (total > MAX_IMAGE_BYTES) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(result.value);
+  }
+}
+
 export async function downloadImage(io: Io, url: string): Promise<{ buffer: Buffer; ext: string }> {
   // Redirects are followed manually: every hop must get the SSRF check.
   let current = url;
@@ -121,8 +152,13 @@ export async function downloadImage(io: Io, url: string): Promise<{ buffer: Buff
     if (!res.ok) {
       throw new Error(`Download failed (${res.status}): ${url}`);
     }
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const ext = guessExtension(res.headers.get("content-type"), current);
+    const contentType = res.headers.get("content-type");
+    if (contentType && !isImageContentType(contentType)) {
+      await res.body?.cancel();
+      throw new Error(`Download failed (not an image: ${contentType}): ${url}`);
+    }
+    const buffer = await readCapped(res, url);
+    const ext = guessExtension(contentType, current);
     return { buffer, ext };
   }
   throw new Error(`Download failed (too many redirects): ${url}`);

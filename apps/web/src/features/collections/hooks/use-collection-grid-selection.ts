@@ -4,7 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { useEffect } from "react";
 
-import { cardsViewTileKey, splitsCardIntoTiles } from "@/features/cards/lib/card-tiles";
+import { cardsViewTileKey, selectionFindBy } from "@/features/cards/lib/card-tiles";
 import type { CollectionContextAction } from "@/features/cards/stores/card-row-actions-store";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
@@ -99,10 +99,7 @@ export function useCollectionGridSelection({
     dataView === "cards" ? buildCardsViewTileIndex(stacks, tileGroupBy) : EMPTY_TILE_INDEX;
   const printingByItemId = new Map(items.map((item) => [item.id, item.printing]));
 
-  // Multiple cells can share a cardId when split into tiles, so selection
-  // must navigate by printing to land on the tile the user clicked.
-  const findBy =
-    dataView === "cards" && !splitsCardIntoTiles(tileGroupBy) ? "card" : ("printing" as const);
+  const findBy = selectionFindBy(dataView, tileGroupBy);
 
   // Skips the store update when the walk returns the same printing refs, or
   // cells re-render on every +/- click.

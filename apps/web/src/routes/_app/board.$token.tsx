@@ -12,11 +12,16 @@ import { boardStateShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
+interface BoardStateHeadData {
+  boardState: Pick<PublicBoardStateDetailResponse["boardState"], "title" | "summary" | "updatedAt">;
+  owner: Pick<PublicBoardStateDetailResponse["owner"], "displayName">;
+}
+
 export const Route = createFileRoute("/_app/board/$token")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/board/${params.token}`;
-    const data = loaderData as PublicBoardStateDetailResponse | undefined;
+    const data = loaderData as BoardStateHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Board state", path, unlisted: true });
     }
@@ -34,13 +39,20 @@ export const Route = createFileRoute("/_app/board/$token")({
       unlisted: true,
     });
   },
-  loader: async ({ context, params }): Promise<PublicBoardStateDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<BoardStateHeadData> => {
     await requireBoardStatesFlag(context.queryClient);
     try {
-      return await context.queryClient.query({
+      const data = await context.queryClient.query({
         ...publicBoardStateQueryOptions(params.token),
         staleTime: "static",
       });
+      const { title, summary, updatedAt } = data.boardState;
+      return {
+        boardState: { title, summary, updatedAt },
+        owner: { displayName: data.owner.displayName },
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

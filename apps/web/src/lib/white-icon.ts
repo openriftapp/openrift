@@ -4,6 +4,8 @@
  * a real flat-colored silhouette instead.
  */
 
+import { loadImage } from "@/lib/load-image";
+
 export const TINT_WHITE = "#ffffff";
 export const TINT_BLACK = "#000000";
 
@@ -18,8 +20,38 @@ export function getCachedTintedIcon(src: string, color: string): string | undefi
   return cache.get(cacheKey(src, color));
 }
 
-// Best-effort: any failure (decode error, no 2D context, tainted canvas)
-// resolves to null so callers fall back to the CSS-filter rendering.
+async function rasterTintedIcon(src: string, color: string, key: string): Promise<string | null> {
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(src);
+  } catch {
+    return null;
+  }
+  const width = image.naturalWidth || 64;
+  const height = image.naturalHeight || 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+  context.drawImage(image, 0, 0, width, height);
+  context.globalCompositeOperation = "source-in";
+  context.fillStyle = color;
+  context.fillRect(0, 0, width, height);
+  let url: string;
+  try {
+    url = canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+  cache.set(key, url);
+  return url;
+}
+
+// Best-effort: any failure (load or decode error, no 2D context, tainted
+// canvas) resolves to null so callers fall back to the CSS-filter rendering.
 function tintIcon(src: string, color: string): Promise<string | null> {
   const key = cacheKey(src, color);
   const cached = cache.get(key);
@@ -30,35 +62,7 @@ function tintIcon(src: string, color: string): Promise<string | null> {
   if (inflight) {
     return inflight;
   }
-  // oxlint-disable-next-line promise/avoid-new -- wrapping the HTMLImageElement load callbacks
-  const promise = new Promise<string | null>((resolve) => {
-    const image = new Image();
-    image.addEventListener("load", () => {
-      const width = image.naturalWidth || 64;
-      const height = image.naturalHeight || 64;
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) {
-        resolve(null);
-        return;
-      }
-      context.drawImage(image, 0, 0, width, height);
-      context.globalCompositeOperation = "source-in";
-      context.fillStyle = color;
-      context.fillRect(0, 0, width, height);
-      try {
-        const url = canvas.toDataURL("image/png");
-        cache.set(key, url);
-        resolve(url);
-      } catch {
-        resolve(null);
-      }
-    });
-    image.addEventListener("error", () => resolve(null));
-    image.src = src;
-  });
+  const promise = rasterTintedIcon(src, color, key);
   pending.set(key, promise);
   return promise;
 }

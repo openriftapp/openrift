@@ -158,7 +158,6 @@ function CardRowShell({
   );
   if (!pressable) {
     return (
-      // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover only tracks the highlighted row; every action inside is its own control
       <div data-selected={selected} className={className} onMouseEnter={onMouseEnter}>
         {children}
       </div>
@@ -541,7 +540,6 @@ function QuickAddInner({
                       );
                     }
                     return (
-                      // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover only tracks the highlighted zone; the stepper carries the actions
                       <div
                         key={target.zone}
                         data-selected={isTargetSelected}

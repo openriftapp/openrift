@@ -164,7 +164,6 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
   MetaScopeBar: ({ search }: { search?: React.ReactNode }) => <div>{search}</div>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaFrontPage } from "./meta-front-page";
 
 const WINNER = {
@@ -496,7 +495,19 @@ describe("MetaFrontPage", () => {
 
     render(<MetaFrontPage />);
 
-    expect(screen.getByText(/Results through Sep 30, 2026/u)).toBeInTheDocument();
+    expect(screen.getByText(/^Results through Sep 30, 2026 from /u)).toBeInTheDocument();
+  });
+
+  it("folds the date and the scope's counts into one line for phones", () => {
+    captured.counts = { ...captured.counts, latestResultDate: "2026-09-30" };
+
+    render(<MetaFrontPage />);
+
+    const facts = screen.getByText(
+      "Results through Sep 30, 2026 · 1 archived event · 588 player results · 32 decklists",
+    );
+    expect(facts.classList.contains("md:hidden")).toBe(true);
+    expect(archiveCount("archived events")).toBe("1");
   });
 
   it("offers the ledger only once a signed-in visitor has sent something", () => {

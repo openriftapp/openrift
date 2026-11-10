@@ -100,7 +100,6 @@ export function MarkdownText({
   const components: Components | undefined =
     renderCardLink || links !== "any"
       ? {
-          // oxlint-disable-next-line react/no-unstable-nested-components -- built inline to close over link mode and renderCardLink
           a: ({ href, children, ...rest }) => {
             if (renderCardLink && href?.startsWith(CARD_HREF_PREFIX)) {
               return renderCardLink(

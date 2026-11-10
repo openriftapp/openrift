@@ -13,7 +13,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardTableRow, getCardTableColumns, getCardTableMinWidth } from "./card-table-row";
 
 describe("CardTableRow", () => {

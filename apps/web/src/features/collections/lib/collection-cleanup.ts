@@ -5,7 +5,6 @@
 
 import type { Collection } from "@tanstack/react-db";
 
-// oxlint-disable-next-line typescript/no-explicit-any -- variance escape hatch for the 5-generic Collection<...> shape
 type AnyCollection = Collection<any, any, any, any, any>;
 
 /** Dev-only: traces an orphaned collection's subscriber detach and warns if none occurs within 3s. */
@@ -15,7 +14,6 @@ export function markOrphaned(collection: AnyCollection, label: string): void {
   }
   const startedAt = performance.now();
   const initialCount = collection.subscriberCount;
-  // oxlint-disable no-console -- dev-only diagnostic
   console.debug(`[orphan] ${label}: orphaned with ${initialCount} subscribers`);
 
   const offSubs = collection.on("subscribers:change", (event) => {
@@ -35,7 +33,6 @@ export function markOrphaned(collection: AnyCollection, label: string): void {
       );
     }
   }, 3000);
-  // oxlint-enable no-console
 }
 
 /** Runs cleanup() once subscriberCount hits 0. Safe to call repeatedly; no-ops after cleanup. */

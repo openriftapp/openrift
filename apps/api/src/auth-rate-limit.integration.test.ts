@@ -18,7 +18,6 @@ function signInReq(ip: string): Request {
 describe.skipIf(!ctx || process.env.DISABLE_AUTH_RATE_LIMIT === "1")(
   "Auth rate limiter (integration)",
   () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
     const { app } = ctx!;
 
     it("returns 429 on the 11th request within the window", async () => {

@@ -1,7 +1,8 @@
-import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { describe, expect, it, vi } from "vitest";
 
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
+import { headMeta, headTitle, loadedHead, runRouteLoader } from "@/test/route-head";
 
 import { Route } from "./meta_.players_.$key";
 
@@ -89,5 +90,29 @@ describe("/meta/players/$key loader", () => {
     expect(keys).toContainEqual([
       ...metaKeys.decks({ player: KEY, limit: META_MAX_LIST_PAGE_SIZE }),
     ]);
+  });
+});
+
+const PLAYER_DETAIL = {
+  key: KEY,
+  name: "Renata",
+  finishes: [{ rank: 1 }, { rank: 8 }],
+};
+
+describe("/meta/players/$key head", () => {
+  it("counts the archived finishes", async () => {
+    const head = await loadedHead(Route, { key: KEY }, PLAYER_DETAIL);
+
+    expect(headTitle(head)).toBe("Renata in the Meta Archive - OpenRift");
+    expect(headMeta(head, "description")).toBe(
+      "Renata in the Riftbound meta archive: 2 archived finishes, the legends they brought, and the decklists they registered.",
+    );
+  });
+
+  it("keeps the finish rows out of the loader data", async () => {
+    expect(await runRouteLoader(Route, { key: KEY }, PLAYER_DETAIL)).toEqual({
+      name: "Renata",
+      finishCount: 2,
+    });
   });
 });

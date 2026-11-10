@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Detector training only: proposes card outlines on the sweep and auto clips, keeping an outline
  * as a card when the recognizer names it and the aligned check agrees, else as an ignore region.

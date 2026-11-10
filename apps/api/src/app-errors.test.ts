@@ -1,6 +1,7 @@
 import { createLogger } from "@openrift/shared/logger";
 import { HTTPException } from "hono/http-exception";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z as zm } from "zod/mini";
 import { z } from "zod/v4";
 
 import { createApp } from "./app.js";
@@ -22,7 +23,6 @@ const baseMockConfig = {
 };
 
 function buildApp(isDev: boolean) {
-  // oxlint-disable -- test mocks don't match full types
   const a = createApp({
     db: {} as any,
     auth: mockAuth as any,
@@ -44,6 +44,11 @@ function buildApp(isDev: boolean) {
     throw new Error("unreachable — the parse above always throws");
   });
 
+  a.get("/api/test-error/zod-mini-error", (): never => {
+    zm.object({ name: zm.string() }).parse({ name: 123 });
+    throw new Error("unreachable — the parse above always throws");
+  });
+
   a.get("/api/test-error/http-exception", () => {
     throw new HTTPException(403, { message: "Forbidden" });
   });
@@ -56,7 +61,6 @@ function buildApp(isDev: boolean) {
     await c.req.json();
     return c.json({ ok: true });
   });
-  // oxlint-enable
 
   return a;
 }
@@ -102,6 +106,14 @@ describe("onError handler", () => {
     expect(json.code).toBe("VALIDATION_ERROR");
     expect(json.error).toBe("Invalid request body");
     expect(Array.isArray(json.details)).toBe(true);
+  });
+
+  it("handles a zod mini parse error like a classic one", async () => {
+    const res = await app.fetch(new Request("http://localhost/api/test-error/zod-mini-error"));
+    expect(res.status).toBe(400);
+    const json = (await readJson(res)) as Record<string, unknown>;
+    expect(json.code).toBe("VALIDATION_ERROR");
+    expect(json.details).toEqual([{ path: ["name"], message: expect.any(String) }]);
   });
 
   it("handles HTTPException, mapping its status to a canonical code", async () => {

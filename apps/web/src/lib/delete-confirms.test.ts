@@ -1,4 +1,3 @@
-// oxlint-disable no-nodejs-modules -- this test introspects the source tree, so it must read files from disk
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -31,7 +30,6 @@ describe("delete confirms", () => {
     const files = await listSourceFiles(SRC_DIR);
     const offenders: string[] = [];
     for (const file of files) {
-      // oxlint-disable-next-line no-await-in-loop -- a few hundred small files, read in order
       const contents = await readFile(file, "utf-8");
       for (const match of contents.matchAll(ACTION)) {
         const { attributes = "", label = "" } = match.groups ?? {};

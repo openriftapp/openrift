@@ -12,6 +12,9 @@ export type JobOutcome<T> =
   | { status: "failed"; message: string }
   | { status: "already_running"; runId: string };
 
+export const STALE_RUN_MS = 2 * 60 * 60 * 1000;
+const STALE_RUN_MESSAGE = "still running after 2 h, presumed dead";
+
 let shuttingDown = false;
 
 /**
@@ -51,11 +54,17 @@ async function claimRun(
   kind: string,
   trigger: JobTrigger,
 ): Promise<{ started: string } | { alreadyRunning: string }> {
-  const { repos } = deps;
+  const { repos, log } = deps;
   for (let attempt = 0; attempt < 3; attempt++) {
     const existing = await repos.jobRuns.getRunning(kind);
     if (existing !== null) {
-      return { alreadyRunning: existing.id };
+      const staleBefore = new Date(Date.now() - STALE_RUN_MS);
+      if (existing.startedAt >= staleBefore) {
+        return { alreadyRunning: existing.id };
+      }
+      if (await repos.jobRuns.failStale(existing.id, staleBefore, STALE_RUN_MESSAGE)) {
+        log.warn({ kind, runId: existing.id }, "Marked a stale running job as failed");
+      }
     }
     const started = await repos.jobRuns.start({ kind, trigger });
     if (started !== null) {

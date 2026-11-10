@@ -10,9 +10,7 @@ const adminCtx = createTestContext(ADMIN_ID);
 const nonAdminCtx = createTestContext(NON_ADMIN_ID);
 
 describe.skipIf(!adminCtx)("Admin site-settings routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: nonAdminApp } = nonAdminCtx!;
 
   describe("admin-only access control (non-admin)", () => {

@@ -37,7 +37,6 @@ function ready(labelsUrl: string): ScanServing {
 
 function deferredLabels() {
   let finish!: (labels: CardLabels) => void;
-  // oxlint-disable-next-line promise/avoid-new -- held open until the test finishes it
   const promise = new Promise<CardLabels>((resolve) => {
     finish = resolve;
   });

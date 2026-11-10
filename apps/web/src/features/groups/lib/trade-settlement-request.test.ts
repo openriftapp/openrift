@@ -1,15 +1,20 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { runTradeSettlement as RunTradeSettlement } from "./trade-settlement-request";
+import type {
+  clearTradeSettlementRequests as ClearTradeSettlementRequests,
+  runTradeSettlement as RunTradeSettlement,
+} from "./trade-settlement-request";
 
 let runTradeSettlement: typeof RunTradeSettlement;
+let clearTradeSettlementRequests: typeof ClearTradeSettlementRequests;
 
 describe("runTradeSettlement", () => {
   beforeEach(async () => {
     sessionStorage.clear();
     vi.resetModules();
-    ({ runTradeSettlement } = await import("./trade-settlement-request"));
+    ({ runTradeSettlement, clearTradeSettlementRequests } =
+      await import("./trade-settlement-request"));
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -56,6 +61,25 @@ describe("runTradeSettlement", () => {
     const reloaded = await import("./trade-settlement-request");
     await reloaded.runTradeSettlement("user-1", "apply", input, send);
     expect(send.mock.calls[0]![0]).toBe(send.mock.calls[1]![0]);
+  });
+
+  it("forgets pending requests on clear and leaves other session keys alone", async () => {
+    sessionStorage.setItem("openrift:reload-attempted", "1");
+    const input = { tradeId: "trade-1", quantity: 1 };
+    const send = vi
+      .fn<(id: string) => Promise<string>>()
+      .mockRejectedValueOnce(new Error("Response lost"))
+      .mockResolvedValue("settled");
+    await expect(runTradeSettlement("user-1", "apply", input, send)).rejects.toThrow(
+      "Response lost",
+    );
+
+    clearTradeSettlementRequests();
+
+    expect(sessionStorage.length).toBe(1);
+    expect(sessionStorage.getItem("openrift:reload-attempted")).toBe("1");
+    await runTradeSettlement("user-1", "apply", input, send);
+    expect(send.mock.calls[1]![0]).not.toBe(send.mock.calls[0]![0]);
   });
 
   it("reuses the request after a lost response and creates a new one after success", async () => {

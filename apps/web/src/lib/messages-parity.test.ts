@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads the message files as text
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads the message files as text
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";

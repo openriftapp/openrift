@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Replays the bank build's shared-illustration grouping on the dev catalogue
  * and prints every cross-artKey pair of one card with its score. Run under

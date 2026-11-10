@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- reads the table sources as text to check their declared types */
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 

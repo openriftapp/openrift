@@ -180,7 +180,10 @@ describe("POST /api/admin/v1/refresh-materialized-views", () => {
   });
 
   it("returns 'already_running' when a refresh is already in flight", async () => {
-    mockJobRuns.getRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
+    mockJobRuns.getRunning.mockResolvedValueOnce({
+      id: "019d4999-4219-72f6-b7bb-64004e1b1c00",
+      startedAt: new Date(),
+    });
 
     const res = await app.request("/api/admin/v1/refresh-materialized-views", {
       method: "POST",
@@ -210,6 +213,34 @@ describe("POST /api/admin/v1/refresh-materialized-views", () => {
       );
     });
     expect(mockJobRuns.succeed).not.toHaveBeenCalled();
+  });
+
+  it("runs the refresh on the background repositories", async () => {
+    const requestMarketplace = { refreshLatestPrices: vi.fn() };
+    const backgroundApp = new Hono<{ Variables: Variables }>();
+    backgroundApp.use("*", async (c, next) => {
+      c.set("user", { id: USER_ID } as never);
+      c.set("repos", { marketplace: requestMarketplace, jobRuns: mockJobRuns } as never);
+      c.set("backgroundRepos", {
+        marketplace: mockMarketplace,
+        catalog: mockCatalog,
+        jobRuns: mockJobRuns,
+      } as never);
+      await next();
+    });
+    registerRouterForTest(backgroundApp, adminOperationsRouter);
+    mockMarketplace.refreshLatestPrices.mockResolvedValue(undefined);
+    mockCatalog.refreshCatalogViews.mockResolvedValue(undefined);
+
+    const res = await backgroundApp.request("/api/admin/v1/refresh-materialized-views", {
+      method: "POST",
+    });
+    expect(res.status).toBe(202);
+    await vi.waitFor(() => {
+      expect(mockJobRuns.succeed).toHaveBeenCalled();
+    });
+    expect(mockMarketplace.refreshLatestPrices).toHaveBeenCalled();
+    expect(requestMarketplace.refreshLatestPrices).not.toHaveBeenCalled();
   });
 });
 
@@ -248,7 +279,10 @@ describe("POST /api/admin/v1/recompute-card-tokens", () => {
   });
 
   it("returns 'already_running' when a recompute is already in flight", async () => {
-    mockJobRuns.getRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
+    mockJobRuns.getRunning.mockResolvedValueOnce({
+      id: "019d4999-4219-72f6-b7bb-64004e1b1c00",
+      startedAt: new Date(),
+    });
 
     const res = await app.request("/api/admin/v1/recompute-card-tokens", {
       method: "POST",

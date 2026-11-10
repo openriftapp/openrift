@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI script that shells out to docker/pg_dump */
 import { execSync } from "node:child_process";
 
 import { createDb } from "../apps/api/src/db/connect.js";

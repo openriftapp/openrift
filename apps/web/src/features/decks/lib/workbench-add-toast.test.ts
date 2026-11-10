@@ -23,10 +23,8 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("sonner", () => ({ toast: mocks.toast }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubDeckBuilderCard } from "@/test/factories";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import {
   dismissRelaxedAddToasts,
   dismissRemovalToast,

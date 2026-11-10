@@ -19,11 +19,9 @@ const judgeACtx = createTestContext(JUDGE_A_ID, `test-${JUDGE_A_ID}@test.com`);
 const judgeBCtx = createTestContext(JUDGE_B_ID, `test-${JUDGE_B_ID}@test.com`);
 
 describe.skipIf(!hostCtx)("setEntryState concurrent judge transitions (integration)", () => {
-  // oxlint-disable typescript/no-non-null-assertion -- guarded by skipIf
   const host = hostCtx!;
   const judgeA = judgeACtx!;
   const judgeB = judgeBCtx!;
-  // oxlint-enable typescript/no-non-null-assertion
   const repos = createRepos(host.db);
 
   let tournamentId = "";

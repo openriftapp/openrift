@@ -5,9 +5,10 @@ import type {
 } from "@openrift/shared/contracts/admin/catalog-review";
 import { pluralize } from "@openrift/shared/strings";
 
-export type ReviewFilter = "all" | "contributors" | "sources";
+import type { ReviewFilter } from "@/features/admin/lib/admin-search-values";
 
-export const REVIEW_FILTERS: readonly ReviewFilter[] = ["all", "contributors", "sources"];
+export { REVIEW_FILTERS } from "@/features/admin/lib/admin-search-values";
+export type { ReviewFilter } from "@/features/admin/lib/admin-search-values";
 
 export const REVIEW_FILTER_LABELS: Record<ReviewFilter, string> = {
   all: "All",

@@ -87,7 +87,7 @@ export const acceptSubmissionResponseSchema = z.object({
 });
 
 export const rejectSubmissionInputSchema = candidateCardIdParam.extend({
-  reason: cardSubmissionReasonSchema.nullable().optional().default(null),
+  reason: cardSubmissionReasonSchema,
   note: z.string().trim().min(1).max(2000).nullable(),
 });
 

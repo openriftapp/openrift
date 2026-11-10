@@ -10,9 +10,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TradeSettleChoice, TradeSettleChoiceControl } from "./trade-copy-picker-dialog";
 
-const acceptMutate = vi.fn((_variables: unknown, options?: { onSettled?: () => void }) => {
-  options?.onSettled?.();
-});
+let acceptFails = false;
+const acceptMutate = vi.fn(
+  (
+    _variables: unknown,
+    options?: { onSuccess?: () => void; onError?: () => void; onSettled?: () => void },
+  ) => {
+    if (acceptFails) {
+      options?.onError?.();
+    } else {
+      options?.onSuccess?.();
+    }
+    options?.onSettled?.();
+  },
+);
 const syncMutate = vi.fn((_variables: unknown, options?: { onSettled?: () => void }) => {
   options?.onSettled?.();
 });
@@ -126,6 +137,7 @@ beforeEach(() => {
   confirmed.mockClear();
   cancelled.mockClear();
   optionsFail = false;
+  acceptFails = false;
   currentOptions = {
     tradeId: "trade-1",
     quantity: 2,
@@ -208,6 +220,26 @@ describe("TradeCopyPickerDialog", () => {
     });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(settled).toHaveBeenCalled();
+  });
+
+  it("keeps the dialog and the picked copies when the accept fails", async () => {
+    acceptFails = true;
+    renderFlow();
+    const user = await startAccept();
+
+    await screen.findByRole("dialog");
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]!);
+    await user.click(checkboxes[2]!);
+    await user.click(screen.getByRole("button", { name: "Accept" }));
+
+    expect(acceptMutate).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(checkboxes[0]).toBeChecked();
+    expect(checkboxes[1]).not.toBeChecked();
+    expect(checkboxes[2]).toBeChecked();
+    expect(screen.getByRole("button", { name: "Accept" })).toBeEnabled();
+    expect(settled).not.toHaveBeenCalled();
   });
 
   it("shows what distinguishes each copy", async () => {

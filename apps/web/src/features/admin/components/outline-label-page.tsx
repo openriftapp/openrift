@@ -444,7 +444,6 @@ export function OutlineLabelPage() {
                         strokeDasharray={`${stroke * 4} ${stroke * 4}`}
                       />
                       {label.cards.map((quad, card) => (
-                        // oxlint-disable-next-line react/no-array-index-key -- outlines have no identity beyond their position
                         <g key={card}>
                           <polygon
                             points={quad.map((point) => `${point.x},${point.y}`).join(" ")}
@@ -470,7 +469,6 @@ export function OutlineLabelPage() {
                             const next = quad[(edge + 1) % 4] ?? point;
                             return (
                               <line
-                                // oxlint-disable-next-line react/no-array-index-key -- a card always has the same four edges
                                 key={edge}
                                 x1={point.x}
                                 y1={point.y}
@@ -489,7 +487,6 @@ export function OutlineLabelPage() {
                           })}
                           {quad.map((point, corner) => (
                             <circle
-                              // oxlint-disable-next-line react/no-array-index-key -- a card always has the same four corners
                               key={corner}
                               cx={point.x}
                               cy={point.y}

@@ -5,11 +5,9 @@ import type {
   ResetCollectionsResponse,
 } from "@openrift/shared/types/api/collection";
 import type { FriendGroupListResponse } from "@openrift/shared/types/api/friend-group";
-import { isDefinedError, safe } from "@orpc/client";
 import { count, useLiveQuery, useLiveSuspenseQuery } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createServerFn } from "@tanstack/react-start";
 import { useSyncExternalStore } from "react";
 import { v7 as uuidv7 } from "uuid";
 
@@ -22,9 +20,16 @@ import { publicCollectionQueryOptions } from "@/features/collections/lib/collect
 import { reorderCollections } from "@/features/collections/lib/collections-write";
 import type { CopiesCollection } from "@/features/collections/lib/copies-write";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
+import {
+  sendWithTradeCancelConsent,
+  tradeCancelConsentMetadata,
+} from "@/features/groups/lib/trade-cancel-conflict";
+import {
+  consentBeforeTradeCancels,
+  dialogTradeCancelConsent,
+} from "@/features/groups/stores/trade-cancel-consent-check";
 import { useRequiredUserId } from "@/hooks/use-session";
-import { withCookies } from "@/lib/server-fns/middleware";
-import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 function withLiveCopyCounts(
   collections: readonly CollectionResponse[],
@@ -296,30 +301,25 @@ export function useDeleteCollection() {
   return useMutation({
     mutationFn: async (id: string) => {
       const collection = await loadedCollections(queryClient, userId);
-      if (collection.has(id)) {
-        await collection.delete(id).when("settled");
+      const row = collection.get(id);
+      if (row) {
+        // A shared collection must be empty to be deleted, so it moves no copies.
+        const consent =
+          row.groupId === null
+            ? await consentBeforeTradeCancels({
+                queryClient,
+                userId,
+                check: () => browserApiOrpcClient(collectionsContract).removeTradeCancels({ id }),
+              })
+            : dialogTradeCancelConsent();
+        await collection
+          .delete(id, { metadata: tradeCancelConsentMetadata(consent) })
+          .when("settled");
       }
       return id;
     },
   });
 }
-
-// Exported for tests only — call through useResetCollections in app code.
-export const resetCollectionsFn = createServerFn({ method: "POST" })
-  .middleware([withCookies])
-  .handler(async ({ context }): Promise<ResetCollectionsResponse> => {
-    const { error, data } = await safe(
-      apiOrpcClient(collectionsContract, context.cookie).resetAll(),
-    );
-    if (error) {
-      // Rethrow the 409 CONFLICT plain so the dialog can show its user-readable message.
-      if (isDefinedError(error) && error.code === "CONFLICT") {
-        throw new Error(error.message);
-      }
-      throw error;
-    }
-    return data;
-  });
 
 /**
  * Danger-zone reset: wipes every copy from the user's personal collections, deletes
@@ -327,10 +327,21 @@ export const resetCollectionsFn = createServerFn({ method: "POST" })
  */
 export function useResetCollections() {
   const queryClient = useQueryClient();
+  const userId = useRequiredUserId();
   const copiesCollection = useCopiesCollection();
 
   return useMutation({
-    mutationFn: () => resetCollectionsFn(),
+    mutationFn: async (): Promise<ResetCollectionsResponse> => {
+      const client = browserApiOrpcClient(collectionsContract);
+      const consent = await consentBeforeTradeCancels({
+        queryClient,
+        userId,
+        check: () => client.resetAllTradeCancels(),
+      });
+      return sendWithTradeCancelConsent(consent, (cancelTradeIds) =>
+        client.resetAll({ cancelTradeIds }),
+      );
+    },
     onSuccess: async () => {
       // Drop personal copies from the synced store immediately; group-owned copies survive.
       if (copiesCollection) {

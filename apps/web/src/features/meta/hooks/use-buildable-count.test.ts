@@ -17,7 +17,6 @@ vi.mock("@/features/groups/hooks/use-loans", () => ({
   useBorrowedCounts: (enabled: boolean) => ({ data: enabled ? borrowed : undefined }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useBuildableCount } from "./use-buildable-count";
 
 const resetDisplayStore = createStoreResetter(useDisplayStore);

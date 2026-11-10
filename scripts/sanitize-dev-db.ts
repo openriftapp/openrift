@@ -1,8 +1,7 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI script that hashes passwords with node's scrypt */
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 
 import { createDb } from "../apps/api/src/db/connect.js";
-import { requireEnv } from "./env.js";
+import { assertLocalDatabase, requireEnv } from "./env.js";
 
 const DEFAULT_PASSWORD = "1111";
 
@@ -17,8 +16,6 @@ const CREDENTIAL_ISSUER = "local:credential";
 // working after a better-auth upgrade, re-check that file.
 const SCRYPT = { N: 16_384, r: 16, p: 1, dkLen: 64 };
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   const key = scryptSync(password.normalize("NFKC"), salt, SCRYPT.dkLen, {
@@ -28,16 +25,6 @@ function hashPassword(password: string): string {
     maxmem: 128 * SCRYPT.N * SCRYPT.r * 2,
   });
   return `${salt}:${key.toString("hex")}`;
-}
-
-// Restoring a production dump and sanitizing it is a dev-only operation.
-function assertLocalDatabase(connectionString: string): void {
-  const host = new URL(connectionString).hostname;
-  if (!LOCAL_HOSTS.has(host)) {
-    throw new Error(
-      `Refusing to run against a non-local database (host: ${host}). This script is for local dev only.`,
-    );
-  }
 }
 
 const password = process.argv[2] ?? DEFAULT_PASSWORD;

@@ -7,6 +7,7 @@ import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
 import { toLoanResponse } from "../lib/loan-presenters.js";
+import { CANCEL_WITHOUT_ASKING } from "./trade-supply.js";
 
 export interface CreateLoanInput {
   lenderUserId: string;
@@ -252,7 +253,7 @@ export function writeOffLoan(
     if (removeCopies && pinned.length > 0) {
       // Pins are already released, so the loan guard passes; a lent copy can
       // never be trade-reserved, so the reservation guard passes too.
-      await disposeCopiesInTransaction(trxRepos, userId, pinned);
+      await disposeCopiesInTransaction(trxRepos, userId, pinned, CANCEL_WITHOUT_ASKING);
     }
 
     return reloadDto(trxRepos, loanId, userId);

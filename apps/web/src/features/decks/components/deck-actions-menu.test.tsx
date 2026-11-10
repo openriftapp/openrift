@@ -5,7 +5,7 @@ import type {
 import type { Card } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -163,5 +163,25 @@ describe("DeckActionsMenu", () => {
     });
     const cards = dialogProps.export?.cards as DeckBuilderCard[];
     expect(cards.map((card) => [card.cardId, card.quantity])).toEqual([["card-own", 3]]);
+  });
+
+  it("keeps the delete confirmation open until the delete succeeds", async () => {
+    const user = userEvent.setup();
+    noopMutation.mutate.mockClear();
+    render(<DeckActionsMenu item={ITEM} />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    expect(noopMutation.mutate).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+
+    const [, options] = noopMutation.mutate.mock.calls[0] as [string, { onSuccess: () => void }];
+    act(() => options.onSuccess());
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
   });
 });

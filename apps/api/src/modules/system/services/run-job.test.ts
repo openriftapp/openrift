@@ -2,7 +2,13 @@ import type { Logger } from "@openrift/shared/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import { runJob, runJobAsync, runJobOutcome, setJobsShuttingDown } from "./run-job.js";
+import {
+  runJob,
+  runJobAsync,
+  runJobOutcome,
+  setJobsShuttingDown,
+  STALE_RUN_MS,
+} from "./run-job.js";
 
 const captureException = vi.fn();
 vi.mock("@sentry/bun", () => ({
@@ -13,7 +19,10 @@ function createMockDeps() {
   const start = vi.fn(async (): Promise<{ id: string }> => ({ id: "run-1" }));
   const succeed = vi.fn(async (): Promise<void> => undefined);
   const fail = vi.fn(async (): Promise<void> => undefined);
-  const getRunning = vi.fn(async (): Promise<{ id: string } | null> => null);
+  const getRunning = vi.fn(async (): Promise<{ id: string; startedAt: Date } | null> => null);
+  const failStale = vi.fn(
+    async (_id: string, _startedBefore: Date, _message: string): Promise<boolean> => true,
+  );
 
   const log: Logger = {
     info: vi.fn(),
@@ -33,6 +42,7 @@ function createMockDeps() {
           succeed,
           fail,
           getRunning,
+          failStale,
           listRecent: vi.fn(),
           getLatestPerKind: vi.fn(),
           sweepOrphaned: vi.fn(),
@@ -41,7 +51,7 @@ function createMockDeps() {
       } as unknown as Pick<Repos, "jobRuns">,
       log,
     },
-    mocks: { start, succeed, fail, getRunning, log },
+    mocks: { start, succeed, fail, getRunning, failStale, log },
   };
 }
 
@@ -150,7 +160,7 @@ describe("runJob", () => {
   });
 
   it("does not report a skipped run", async () => {
-    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run" });
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run", startedAt: new Date() });
     await runJob(ctx.deps, "k", "cron", async () => "never");
     expect(captureException).not.toHaveBeenCalled();
   });
@@ -168,13 +178,49 @@ describe("runJob", () => {
   });
 
   it("skips when a run of the same kind is already running (re-entrancy guard)", async () => {
-    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run" });
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run", startedAt: new Date() });
     const fn = vi.fn(async () => "never");
     const result = await runJob(ctx.deps, "k", "cron", fn);
 
     expect(result).toBeNull();
     expect(fn).not.toHaveBeenCalled();
     expect(ctx.mocks.start).not.toHaveBeenCalled();
+  });
+
+  it("skips a running run that started just inside the stale ceiling", async () => {
+    const startedAt = new Date(Date.now() - STALE_RUN_MS + 60_000);
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run", startedAt });
+    const fn = vi.fn(async () => "never");
+
+    expect(await runJob(ctx.deps, "k", "cron", fn)).toBeNull();
+    expect(ctx.mocks.failStale).not.toHaveBeenCalled();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("fails a run older than the stale ceiling and claims a new one", async () => {
+    const startedAt = new Date(Date.now() - STALE_RUN_MS - 60_000);
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "stuck-run", startedAt });
+    const fn = vi.fn(async () => "ran");
+
+    expect(await runJob(ctx.deps, "k", "cron", fn)).toBe("ran");
+    expect(ctx.mocks.failStale).toHaveBeenCalledWith(
+      "stuck-run",
+      expect.any(Date),
+      expect.any(String),
+    );
+    const staleBefore = ctx.mocks.failStale.mock.calls[0]![1];
+    expect(staleBefore.getTime()).toBeGreaterThan(startedAt.getTime());
+    expect(ctx.mocks.start).toHaveBeenCalledWith({ kind: "k", trigger: "cron" });
+    expect(ctx.mocks.succeed).toHaveBeenCalledWith("run-1", expect.anything());
+  });
+
+  it("claims anew when another claimer already failed the stale run", async () => {
+    const startedAt = new Date(Date.now() - STALE_RUN_MS - 60_000);
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "stuck-run", startedAt });
+    ctx.mocks.failStale.mockResolvedValueOnce(false);
+
+    expect(await runJob(ctx.deps, "k", "cron", async () => "ran")).toBe("ran");
+    expect(ctx.mocks.log.warn).not.toHaveBeenCalled();
   });
 });
 
@@ -197,7 +243,7 @@ describe("runJobOutcome", () => {
     });
     expect(failed).toEqual({ status: "failed", message: "boom" });
 
-    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run" });
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run", startedAt: new Date() });
     const skipped = await runJobOutcome(ctx.deps, "k", "admin", async () => "never");
     expect(skipped).toEqual({ status: "already_running", runId: "existing-run" });
   });
@@ -226,7 +272,7 @@ describe("runJobAsync", () => {
   });
 
   it("returns existing runId with 'already_running' when a run is in flight", async () => {
-    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run" });
+    ctx.mocks.getRunning.mockResolvedValueOnce({ id: "existing-run", startedAt: new Date() });
     const fn = vi.fn(async () => "never");
     const { runId, status } = await runJobAsync(ctx.deps, "k", "admin", fn);
 

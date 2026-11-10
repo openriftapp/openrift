@@ -57,14 +57,13 @@ const updateBoardStateFn = createServerFn({ method: "POST" })
     apiOrpcClient(boardStatesContract, context.cookie).update(data),
   );
 
+/** Usable on a public route: the builder at /board-states/new updates the board it created. */
 export function useUpdateBoardState() {
-  const userId = useRequiredUserId();
+  const userId = useUserId();
   return useMutationWithInvalidation<BoardStateResponse, UpdateBoardStateBody>({
     mutationFn: (body) => updateBoardStateFn({ data: body }),
-    invalidates: (variables) => [
-      boardStatesKeys.detail(userId, variables.id),
-      boardStatesKeys.all(userId),
-    ],
+    invalidates: (variables) =>
+      userId ? [boardStatesKeys.detail(userId, variables.id), boardStatesKeys.all(userId)] : [],
   });
 }
 

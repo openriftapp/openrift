@@ -74,7 +74,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaLegendsPage } from "./meta-legends-page";
 
 type LegendOverrides = Partial<Omit<MetaLegendSummary, "slug" | "legend">> & {

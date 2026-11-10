@@ -169,3 +169,82 @@ describe("deck-check ingest body limit", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("deck-check ingest rate limit", () => {
+  const limited = new Hono<{ Variables: Variables }>();
+  mountDeckCheckIngestMiddleware(limited);
+  limited.use("*", async (c, next) => {
+    c.set("repos", { deckCheckKeys: mockDeckCheckKeysRepo } as never);
+    c.set("config", { appBaseUrl: "https://openrift.test" } as never);
+    c.set("transact", (async (run: (repos: unknown) => unknown) =>
+      run({ deckCheckKeys: mockDeckCheckKeysRepo })) as never);
+    await next();
+  });
+  registerRouterForTest(limited, deckCheckIngestRouter);
+
+  function pushFrom(ip: string, authorization: string) {
+    return limited.request("/api/v1/ingest/deck-check", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authorization,
+        "x-real-ip": ip,
+      },
+      body: JSON.stringify({ tournamentId: EVENT_ID, entries: [] }),
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("throttles an address that keeps presenting unknown keys, whatever the header", async () => {
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue(undefined);
+
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const res = await pushFrom("203.0.113.7", `Bearer guess-${attempt}`);
+      statuses.push(res.status);
+    }
+
+    expect(statuses.slice(0, 20).every((status) => status === 401)).toBe(true);
+    expect(statuses.slice(20).every((status) => status === 429)).toBe(true);
+    expect(mockDeckCheckKeysRepo.getActiveKeyByHash).toHaveBeenCalledTimes(20);
+  });
+
+  it("does not count accepted pushes against the address", async () => {
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue({
+      id: "key-1",
+      hostType: "user",
+      hostUserId: "user-1",
+      hostOrgId: null,
+    });
+    mockIngest.mockResolvedValue(RESULT);
+
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const res = await pushFrom("203.0.113.8", `Bearer key-${attempt}`);
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("does not cap a burst of concurrent accepted pushes from one address", async () => {
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue({
+      id: "key-1",
+      hostType: "user",
+      hostUserId: "user-1",
+      hostOrgId: null,
+    });
+    mockIngest.mockImplementation(async () => {
+      await Promise.resolve();
+      return RESULT;
+    });
+
+    const pushes: Promise<Response>[] = [];
+    for (let attempt = 0; attempt < 25; attempt++) {
+      pushes.push(Promise.resolve(pushFrom("203.0.113.9", `Bearer burst-${attempt}`)));
+    }
+    const responses = await Promise.all(pushes);
+
+    expect(responses.map((res) => res.status)).toEqual(Array.from({ length: 25 }, () => 200));
+  });
+});

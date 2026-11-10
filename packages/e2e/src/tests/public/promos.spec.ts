@@ -273,7 +273,7 @@ test.describe("promos", () => {
 
       await clientSideNavigateToPromos(page);
 
-      await expect(page.getByRole("button", { name: "Reshuffle" })).toBeVisible({
+      await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible({
         timeout: 15_000,
       });
     });

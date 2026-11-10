@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
+import { copyLimitFor, RUNE_TARGET, totalQuantity } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
@@ -20,6 +20,7 @@ import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import { copyLimitTotal } from "@/features/decks/lib/deck-builder-card";
 import type { AnyDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
 import {
   DECK_DRAG_TYPES,
@@ -87,6 +88,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     quantity: number;
     fromBrowser: boolean;
     maxCopiesOverride: number | null;
+    keywords: readonly string[];
     preferredPrintingId: string | null;
   } | null>(null);
   const [shiftHeld, setShiftHeld] = useState(false);
@@ -196,6 +198,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
         quantity: data.quantity,
         fromBrowser: false,
         maxCopiesOverride: null,
+        keywords: [],
         preferredPrintingId: data.preferredPrintingId,
       });
       setShiftHeld(false);
@@ -210,6 +213,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
         quantity: 1,
         fromBrowser: true,
         maxCopiesOverride: data.card.maxCopiesOverride,
+        keywords: data.card.keywords,
         preferredPrintingId: data.card.preferredPrintingId,
       });
     }
@@ -271,7 +275,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
           const runeTotal = totalQuantity(
             deckCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
           );
-          actions.addCard(activeData.card, overData.zone, Math.max(0, 12 - runeTotal));
+          actions.addCard(activeData.card, overData.zone, Math.max(0, RUNE_TARGET - runeTotal));
         } else {
           // Unlimited-override cards have no cap, so a shift-drop adds a chunk of 3 (matching shift-click).
           const limit = copyLimitFor(activeData.card);
@@ -324,18 +328,10 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     }
   };
 
-  // Overflow is a free parking zone: copies there don't count toward the copy cap.
   const browserLimit = dragInfo?.fromBrowser ? copyLimitFor(dragInfo) : 3;
   const browserRemaining = dragInfo?.fromBrowser
     ? Number.isFinite(browserLimit)
-      ? browserLimit -
-        totalQuantity(
-          deckCards.filter(
-            (card) =>
-              card.cardId === dragInfo.cardId &&
-              (card.zone === WellKnown.deckZone.MAIN || card.zone === WellKnown.deckZone.SIDEBOARD),
-          ),
-        )
+      ? browserLimit - copyLimitTotal(deckCards, dragInfo.cardId)
       : 3
     : 0;
 

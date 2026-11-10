@@ -30,7 +30,6 @@ function codeToField(): Record<
 const BODY_FIELD_RE = /^\[body\.(?<field>\w+)\]\s*(?<text>.+)$/u;
 
 export function setServerError(
-  // oxlint-disable-next-line no-explicit-any -- generic over any form shape
   form: { setError: UseFormSetError<any> },
   error: { code?: string; message?: string },
 ) {

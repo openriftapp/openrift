@@ -29,7 +29,6 @@ describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
 
   function makeSink() {
     const sent: { to: string; subject: string }[] = [];
-    // oxlint-disable-next-line require-await -- mock matches the async sender shape
     const sendEmail = async ({ to, subject }: { to: string; subject: string }) => {
       sent.push({ to, subject });
       return undefined;
@@ -165,7 +164,7 @@ describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
 
   function requestAsReceiver(group: { slug: string }, printingId: string, deps: EmailDeps) {
     return createTrade(
-      transact,
+      { repos, transact },
       {
         callerUserId: RECEIVER_ID,
         groupSlug: group.slug,

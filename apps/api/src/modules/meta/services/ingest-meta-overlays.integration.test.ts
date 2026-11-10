@@ -90,7 +90,6 @@ function eventBody(overrides: Record<string, unknown> = {}): Record<string, unkn
 }
 
 describe.skipIf(!ctx)("ingestMetaOverlays", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
 
   function upload(event: Record<string, unknown>) {

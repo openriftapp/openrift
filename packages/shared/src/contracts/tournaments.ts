@@ -16,6 +16,7 @@ import {
 import {
   friendGroupSlugParamSchema,
   isoDateTime,
+  keysetCursorSchema,
   podResultSchema,
   withParams,
 } from "@openrift/shared/schemas";
@@ -117,6 +118,22 @@ export const tournamentSummaryResponseSchema = z.object({
 
 export const tournamentListResponseSchema = z.object({
   items: z.array(tournamentSummaryResponseSchema),
+});
+
+/**
+ * The first page holds every tournament that is not over yet plus the newest
+ * past ones; later pages hold past ones only, so paging never splits the
+ * upcoming list.
+ */
+export const tournamentPageResponseSchema = z.object({
+  items: z.array(tournamentSummaryResponseSchema),
+  nextCursor: z.string().nullable(),
+  pastCount: z.number().int().nonnegative(),
+});
+
+export const tournamentListQuerySchema = z.object({
+  cursor: keysetCursorSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 /** Null when the viewer holds no entry: not a participant, or no decks taken. */
@@ -316,7 +333,8 @@ const validationError = { VALIDATION_ERROR: { status: 422 as const, message: "In
 export const tournamentsContract = {
   list: authedRoute
     .route({ method: "GET", path: BASE, tags: [TAG] })
-    .output(tournamentListResponseSchema),
+    .input(tournamentListQuerySchema)
+    .output(tournamentPageResponseSchema),
   listForGroup: authedRoute
     .route({ method: "GET", path: "/api/v1/friend-groups/{slug}/tournaments", tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Group not found" } })

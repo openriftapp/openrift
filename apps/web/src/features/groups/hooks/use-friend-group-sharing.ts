@@ -10,12 +10,13 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
+import { withTradeCancelConsent } from "@/features/groups/stores/trade-cancel-consent-store";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
-import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { apiOrpcClient, browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchShareableLists = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -100,13 +101,6 @@ const shareListFn = createServerFn({ method: "POST" })
     await apiOrpcClient(friendGroupsContract, context.cookie).shareList(data);
   });
 
-const unshareListFn = createServerFn({ method: "POST" })
-  .validator((input: { slug: string; listId: string }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(friendGroupsContract, context.cookie).unshareList(data);
-  });
-
 const shareCollectionFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; collectionId: string }) => input)
   .middleware([withCookies])
@@ -137,7 +131,10 @@ export function useShareListWithFriendGroup() {
 export function useUnshareListFromFriendGroup() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<unknown, { slug: string; listId: string }>({
-    mutationFn: (data) => unshareListFn({ data }),
+    mutationFn: (data) =>
+      withTradeCancelConsent((cancelTradeIds) =>
+        browserApiOrpcClient(friendGroupsContract).unshareList({ ...data, cancelTradeIds }),
+      ),
     invalidates: (variables) => [
       friendGroupsKeys.detail(userId, variables.slug),
       friendGroupsKeys.shareableLists(userId, variables.slug),

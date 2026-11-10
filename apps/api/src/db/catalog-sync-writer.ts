@@ -20,7 +20,6 @@ function chunks<T>(rows: readonly T[]): T[][] {
 
 async function insertChunked(trx: Trx, table: keyof Database, rows: readonly object[]) {
   for (const chunk of chunks(rows)) {
-    // oxlint-disable-next-line typescript/no-explicit-any -- rows are typed by the sync builder
     await trx
       .insertInto(table)
       .values(chunk as any)
@@ -41,16 +40,13 @@ async function upsertChunked(
     );
     await trx
       .insertInto(table)
-      // oxlint-disable-next-line typescript/no-explicit-any -- rows are typed by the sync builder
       .values(chunk as any)
       .onConflict((oc) => {
-        // oxlint-disable-next-line typescript/no-explicit-any -- column names come from the rows
         const target = oc.columns(conflict as any);
         return columns.length === 0
           ? target.doNothing()
           : target.doUpdateSet((eb) =>
               Object.fromEntries(
-                // oxlint-disable-next-line typescript/no-explicit-any -- column names come from the rows
                 columns.map((column) => [column, eb.ref(`excluded.${column}` as any)]),
               ),
             );
@@ -67,7 +63,6 @@ async function replaceChildren(
   rows: readonly object[],
 ) {
   for (const chunk of chunks(parentIds)) {
-    // oxlint-disable-next-line typescript/no-explicit-any -- column name is one of the table's
     await trx
       .deleteFrom(table)
       .where(parentColumn as any, "in", chunk)

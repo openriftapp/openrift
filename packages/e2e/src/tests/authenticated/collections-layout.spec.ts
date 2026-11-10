@@ -20,22 +20,7 @@ const NOT_FOUND_HEADING_PATTERN = new RegExp(
   "u",
 );
 
-const ERROR_HEADING_PATTERN = new RegExp(
-  [
-    "The Rift collapsed",
-    "Critical misprint detected",
-    "This page pulled a blank",
-    "Shuffled into the void",
-    "Well, that wasn't supposed to happen",
-    "We drew a bug",
-    "Something broke (no, you can't grade it)",
-    "That's not ideal",
-    "Yeah, that's a bug",
-  ]
-    .map((heading) => heading.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`))
-    .join("|"),
-  "u",
-);
+const ERROR_HEADING = "This page didn't load";
 
 // Valid UUID shape, guaranteed not to match any real collection.
 const BOGUS_COLLECTION_ID = "00000000-0000-0000-0000-0000000dead0";
@@ -191,10 +176,10 @@ test.describe("collections layout", () => {
       await page.getByRole("link", { name: "Collection", exact: true }).first().click();
       await expect(page).toHaveURL(/\/collections/u, { timeout: 15_000 });
 
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(ERROR_HEADING_PATTERN, {
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(ERROR_HEADING, {
         timeout: 15_000,
       });
-      await expect(page.getByRole("button", { name: "Reshuffle" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
     });
   });
 });

@@ -13,7 +13,6 @@ import {
   buildFaceSuggestions,
   candidateBelongsToFace,
   describeElsewhere,
-  discardedLabel,
   discardLabel,
   faceCompareCandidates,
   formatSuggestionValue,
@@ -374,42 +373,6 @@ describe("submitterNameOf", () => {
     const detail = makeAdminCardDetail({ sources: [nameless] });
     expect(submitterNameOf([detail], nameless.id)).toBeNull();
     expect(submitterNameOf([detail], "missing")).toBeNull();
-  });
-});
-
-describe("discardedLabel", () => {
-  const sources = [
-    {
-      candidatePrintingId: "c1",
-      candidateCardId: "s1",
-      provider: "Provider A",
-      isContributor: false,
-      differences: 2,
-      elsewhere: null,
-    },
-    {
-      candidatePrintingId: "c2",
-      candidateCardId: "s2",
-      provider: "Provider B",
-      isContributor: false,
-      differences: 0,
-      elsewhere: null,
-    },
-  ];
-
-  it("counts the suggestions of the discarded rows and names their providers", () => {
-    expect(discardedLabel(sources, ["c1"])).toBe("Discarded 2 suggestions from Provider A");
-    expect(discardedLabel(sources, ["c1", "c2"])).toBe(
-      "Discarded 2 suggestions from Provider A, Provider B",
-    );
-  });
-
-  it("counts sources when the discarded rows differ nowhere on this record", () => {
-    expect(discardedLabel(sources, ["c2"])).toBe("Discarded 1 source from Provider B");
-  });
-
-  it("drops the provider part for unknown rows", () => {
-    expect(discardedLabel(sources, ["missing"])).toBe("Discarded 0 sources");
   });
 });
 

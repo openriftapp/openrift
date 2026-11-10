@@ -18,9 +18,7 @@ const SAMPLE_CONTENT = ["100. # Setup", "100.1. Players begin with seven cards i
 );
 
 describe.skipIf(!adminCtx)("Admin rules routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: nonAdminApp } = nonAdminCtx!;
 
   afterAll(async () => {

@@ -77,7 +77,6 @@ export function RuleList({
       )}
 
       {rules.map((_, index) => (
-        // oxlint-disable-next-line no-array-index-key -- store-keyed draft rows
         <RuleBlock
           key={index}
           index={index}

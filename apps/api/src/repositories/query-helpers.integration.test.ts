@@ -56,7 +56,6 @@ afterAll(async () => {
 });
 
 describe.skipIf(!ctx)("keysetCursorPredicate (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const repo = adminEventsRepo(ctx!.db);
 
   it("orders the seeded rows newest first", async () => {

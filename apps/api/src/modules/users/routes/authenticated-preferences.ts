@@ -52,7 +52,9 @@ export const preferencesRouter = {
 
   update: os.update.handler(async ({ input, context }): Promise<UserPreferencesResponse> => {
     const { userPreferences } = context.repos;
-    const result = await userPreferences.upsert(context.userId, input as PartialPreferences);
+    const { completionScope, ...rest } = input;
+    const incoming = completionScope === undefined ? rest : { ...rest, completionScope: null };
+    const result = await userPreferences.upsert(context.userId, incoming as PartialPreferences);
     return toUserPreferences(result, context.userId);
   }),
 };

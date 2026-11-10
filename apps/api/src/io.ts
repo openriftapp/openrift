@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- infrastructure layer wraps Node builtins for DI
 import { lookup } from "node:dns/promises";
-// oxlint-disable-next-line import/no-nodejs-modules -- infrastructure layer wraps Node builtins for DI
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 
 import sharp from "sharp";

@@ -8,11 +8,10 @@ import type {
   ListListResponse,
   ListMoveResponse,
   ListResponse,
-  ListShareResponse,
 } from "@openrift/shared/types/api/list";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createServerFn } from "@tanstack/react-start";
 
+import { withTradeCancelConsent } from "@/features/groups/stores/trade-cancel-consent-store";
 import {
   listDetailQueryOptions,
   listsQueryOptions,
@@ -24,9 +23,8 @@ import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { reportMutationError } from "@/lib/query-client";
 import { reorderInPlace } from "@/lib/reorder-in-place";
-import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
-import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 type CreateListInput = ContractInput<typeof listsContract, "create">;
 type UpdateListInput = Omit<ContractInput<typeof listsContract, "update">, "id"> & {
@@ -40,6 +38,24 @@ type UpdateListEntryInput = Omit<
   entryId: string;
 };
 
+function listsApi() {
+  return browserApiOrpcClient(listsContract);
+}
+
+function updateList({ listId, ...fields }: UpdateListInput): Promise<ListResponse> {
+  return withTradeCancelConsent((cancelTradeIds) =>
+    listsApi().update({ id: listId, ...fields, cancelTradeIds }),
+  );
+}
+
+function updateListEntry({
+  listId,
+  entryId,
+  ...fields
+}: UpdateListEntryInput): Promise<ListEntryResponse> {
+  return listsApi().updateEntry({ id: listId, itemId: entryId, ...fields });
+}
+
 export function useLists(intent?: ListIntent) {
   const userId = useRequiredUserId();
   return useSuspenseQuery(listsQueryOptions(userId, intent));
@@ -50,33 +66,18 @@ export function useListDetail(listId: string) {
   return useSuspenseQuery(listDetailQueryOptions(userId, listId));
 }
 
-const createListFn = createServerFn({ method: "POST" })
-  .validator((input: CreateListInput) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<ListResponse> =>
-    apiOrpcClient(listsContract, context.cookie).create(data),
-  );
-
 export function useCreateList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
-    mutationFn: (body: CreateListInput) => createListFn({ data: body }),
+    mutationFn: (body: CreateListInput) => listsApi().create(body),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.all(userId, variables.intent)],
   });
 }
 
-const updateListFn = createServerFn({ method: "POST" })
-  .validator((input: UpdateListInput) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<ListResponse> => {
-    const { listId, ...fields } = data;
-    return apiOrpcClient(listsContract, context.cookie).update({ id: listId, ...fields });
-  });
-
 export function useUpdateList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<ListResponse, UpdateListInput>({
-    mutationFn: (input) => updateListFn({ data: input }),
+    mutationFn: (input) => updateList(input),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
   });
 }
@@ -86,7 +87,7 @@ export function useSetListSidebarHidden() {
   return useOptimisticMutation<ListListResponse, { listId: string; hidden: boolean }, ListResponse>(
     {
       queryKey: listsKeys.all(userId),
-      mutationFn: ({ listId, hidden }) => updateListFn({ data: { listId, sidebarHidden: hidden } }),
+      mutationFn: ({ listId, hidden }) => updateList({ listId, sidebarHidden: hidden }),
       apply: (cached, { listId, hidden }) => ({
         ...cached,
         items: cached.items.map((list) =>
@@ -97,59 +98,26 @@ export function useSetListSidebarHidden() {
   );
 }
 
-const deleteListFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: listId }) => {
-    await apiOrpcClient(listsContract, context.cookie).remove({ id: listId });
-  });
-
 export function useDeleteList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<unknown, string>({
-    mutationFn: (listId) => deleteListFn({ data: listId }),
+    mutationFn: (listId) =>
+      withTradeCancelConsent((cancelTradeIds) => listsApi().remove({ id: listId, cancelTradeIds })),
     invalidates: [listsKeys.all(userId)],
   });
 }
-
-const reorderListsFn = createServerFn({ method: "POST" })
-  .validator((input: { intent: ListIntent; orderedIds: string[] }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(listsContract, context.cookie).reorder(data);
-  });
 
 export function useReorderLists() {
   const userId = useRequiredUserId();
   return useOptimisticMutation<ListListResponse, { intent: ListIntent; orderedIds: string[] }>({
     queryKey: listsKeys.all(userId),
-    mutationFn: (variables) => reorderListsFn({ data: variables }),
+    mutationFn: (variables) => listsApi().reorder(variables),
     apply: (cached, { orderedIds }) => ({
       ...cached,
       items: reorderInPlace(cached.items, orderedIds),
     }),
   });
 }
-
-const bulkAddEntriesFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: {
-      listId: string;
-      entries: {
-        cardId?: string;
-        printingId?: string;
-        copyId?: string;
-        quantity?: number;
-      }[];
-    }) => input,
-  )
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<ListBulkAddResponse> =>
-    apiOrpcClient(listsContract, context.cookie).bulkCreateEntries({
-      id: data.listId,
-      entries: data.entries,
-    }),
-  );
 
 interface BulkAddVariables {
   listId: string;
@@ -170,7 +138,7 @@ export function useBulkAddListEntries() {
     BulkAddVariables,
     { prev: ListDetailResponse | undefined }
   >({
-    mutationFn: (vars) => bulkAddEntriesFn({ data: vars }),
+    mutationFn: (vars) => listsApi().bulkCreateEntries({ id: vars.listId, entries: vars.entries }),
     // Bumps a matching existing entry's quantity before the server responds. Fresh
     // adds wait for the refetch: there's no card/printing detail here to fabricate one.
     onMutate: async (vars) => {
@@ -223,26 +191,14 @@ export function useBulkAddListEntries() {
   });
 }
 
-// The server derives the right entry shape from the list's kind, so the client
-// just passes raw copy IDs.
-const bulkAddCopiesToListFn = createServerFn({ method: "POST" })
-  .validator((input: { listId: string; copyIds: string[]; cardId?: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<ListBulkAddResponse> =>
-    apiOrpcClient(listsContract, context.cookie).bulkAddFromCopies({
-      id: data.listId,
-      copyIds: data.copyIds,
-      cardId: data.cardId,
-    }),
-  );
-
 export function useBulkAddCopiesToList() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<
     ListBulkAddResponse,
     { listId: string; copyIds: string[]; cardId?: string }
   >({
-    mutationFn: (vars) => bulkAddCopiesToListFn({ data: vars }),
+    mutationFn: (vars) =>
+      listsApi().bulkAddFromCopies({ id: vars.listId, copyIds: vars.copyIds, cardId: vars.cardId }),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
   });
 }
@@ -255,23 +211,20 @@ interface MoveListEntriesInput {
   mode?: "move" | "copy";
 }
 
-const moveListEntriesFn = createServerFn({ method: "POST" })
-  .validator((input: MoveListEntriesInput) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<ListMoveResponse> =>
-    apiOrpcClient(listsContract, context.cookie).moveEntries({
-      id: data.fromListId,
-      toListId: data.toListId,
-      entryIds: data.entryIds,
-      resolutions: data.resolutions,
-      mode: data.mode,
-    }),
-  );
-
 export function useMoveListEntries() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<ListMoveResponse, MoveListEntriesInput>({
-    mutationFn: (vars) => moveListEntriesFn({ data: vars }),
+    mutationFn: (vars) =>
+      withTradeCancelConsent((cancelTradeIds) =>
+        listsApi().moveEntries({
+          id: vars.fromListId,
+          toListId: vars.toListId,
+          entryIds: vars.entryIds,
+          resolutions: vars.resolutions,
+          mode: vars.mode,
+          cancelTradeIds,
+        }),
+      ),
     invalidates: (variables) => [
       listsKeys.all(userId),
       listsKeys.detail(userId, variables.fromListId),
@@ -279,18 +232,6 @@ export function useMoveListEntries() {
     ],
   });
 }
-
-const updateListEntryFn = createServerFn({ method: "POST" })
-  .validator((input: UpdateListEntryInput) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<ListEntryResponse> => {
-    const { listId, entryId, ...fields } = data;
-    return apiOrpcClient(listsContract, context.cookie).updateEntry({
-      id: listId,
-      itemId: entryId,
-      ...fields,
-    });
-  });
 
 export function useUpdateListEntry() {
   const userId = useRequiredUserId();
@@ -301,7 +242,7 @@ export function useUpdateListEntry() {
     UpdateListEntryInput,
     { prev: ListDetailResponse | undefined }
   >({
-    mutationFn: (vars) => updateListEntryFn({ data: vars }),
+    mutationFn: (vars) => updateListEntry(vars),
     onMutate: async (vars) => {
       const detailKey = listsKeys.detail(userId, vars.listId);
       await queryClient.cancelQueries({ queryKey: detailKey });
@@ -339,69 +280,44 @@ export function useUpdateListEntry() {
   });
 }
 
-const removeListEntryFn = createServerFn({ method: "POST" })
-  .validator((input: { listId: string; entryId: string }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(listsContract, context.cookie).removeEntry({
-      id: data.listId,
-      itemId: data.entryId,
-    });
-  });
-
 export function useRemoveListEntry() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<unknown, { listId: string; entryId: string }>({
-    mutationFn: (vars) => removeListEntryFn({ data: vars }),
+    mutationFn: (vars) =>
+      withTradeCancelConsent((cancelTradeIds) =>
+        listsApi().removeEntry({ id: vars.listId, itemId: vars.entryId, cancelTradeIds }),
+      ),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
   });
 }
-
-const decrementListEntriesFn = createServerFn({ method: "POST" })
-  .validator((input: { entries: { entryId: string; by: number }[] }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(listsContract, context.cookie).decrementEntries(data);
-  });
 
 export function useDecrementListEntries() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<unknown, { entries: { entryId: string; by: number }[] }>({
-    mutationFn: (vars) => decrementListEntriesFn({ data: vars }),
+    mutationFn: (vars) =>
+      withTradeCancelConsent((cancelTradeIds) =>
+        listsApi().decrementEntries({ ...vars, cancelTradeIds }),
+      ),
     invalidates: [listsKeys.all(userId)],
   });
 }
 
-const bulkRemoveListEntriesFn = createServerFn({ method: "POST" })
-  .validator((input: { listId: string; entryIds: string[] }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(listsContract, context.cookie).bulkDeleteEntries({
-      id: data.listId,
-      entryIds: data.entryIds,
-    });
-  });
-
 export function useBulkRemoveListEntries() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<unknown, { listId: string; entryIds: string[] }>({
-    mutationFn: (vars) => bulkRemoveListEntriesFn({ data: vars }),
+    mutationFn: (vars) =>
+      withTradeCancelConsent((cancelTradeIds) =>
+        listsApi().bulkDeleteEntries({ id: vars.listId, entryIds: vars.entryIds, cancelTradeIds }),
+      ),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
   });
 }
-
-const shareListFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: listId }): Promise<ListShareResponse> =>
-    apiOrpcClient(listsContract, context.cookie).share({ id: listId }),
-  );
 
 export function useShareList() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (listId: string) => shareListFn({ data: listId }),
+    mutationFn: (listId: string) => listsApi().share({ id: listId }),
     onSuccess: (data, listId) => {
       queryClient.setQueryData<ListDetailResponse>(listsKeys.detail(userId, listId), (old) =>
         old
@@ -415,18 +331,11 @@ export function useShareList() {
   });
 }
 
-const unshareListFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: listId }) => {
-    await apiOrpcClient(listsContract, context.cookie).unshare({ id: listId });
-  });
-
 export function useUnshareList() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (listId: string) => unshareListFn({ data: listId }),
+    mutationFn: (listId: string) => listsApi().unshare({ id: listId }),
     onSuccess: (_, listId) => {
       queryClient.setQueryData<ListDetailResponse>(listsKeys.detail(userId, listId), (old) =>
         old ? { ...old, list: { ...old.list, shareToken: null, isPublic: false } } : old,

@@ -1,5 +1,4 @@
 import type {
-  CompletionScopePreference,
   DisplayPreferenceOverrides,
   Palette,
   Theme,
@@ -117,9 +116,6 @@ export function sanitizeServerResponse(data: unknown): Partial<DisplayOverrides>
   }
   if ("languages" in record) {
     result.languages = sanitizeLanguageList(record.languages);
-  }
-  if ("completionScope" in record) {
-    result.completionScope = sanitizeCompletionScope(record.completionScope);
   }
   if ("defaultCardView" in record) {
     result.defaultCardView = sanitizeDefaultCardView(record.defaultCardView);
@@ -261,8 +257,6 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
 
   const safeLanguages = sanitizeLanguageList(record.languages);
 
-  const safeCompletionScope = sanitizeCompletionScope(record.completionScope);
-
   const safeDefaultCardView = sanitizeDefaultCardView(record.defaultCardView);
 
   const safeDefaultCurrency = sanitizeCurrency(record.defaultCurrency);
@@ -275,43 +269,12 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
     foilEffect,
     marketplaceOrder: safeOrder,
     languages: safeLanguages,
-    completionScope: safeCompletionScope,
     defaultCardView: safeDefaultCardView,
     defaultCurrency: safeDefaultCurrency,
     topLevelFilters: safeTopLevelFilters,
     countExcludedCollections:
       typeof record.countExcludedCollections === "boolean" ? record.countExcludedCollections : null,
   };
-}
-
-function sanitizeCompletionScope(value: unknown): CompletionScopePreference | null {
-  if (typeof value !== "object" || value === null) {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  const result: CompletionScopePreference = {};
-  const safeLanguages = sanitizeLanguageList(record.languages);
-  if (safeLanguages && safeLanguages.length > 0) {
-    result.languages = safeLanguages;
-  }
-  if (Array.isArray(record.finishes)) {
-    const safe = record.finishes.filter((finish): finish is string => typeof finish === "string");
-    if (safe.length > 0) {
-      result.finishes = safe;
-    }
-  }
-  if (Array.isArray(record.artVariants)) {
-    const safe = record.artVariants.filter(
-      (variant): variant is string => typeof variant === "string",
-    );
-    if (safe.length > 0) {
-      result.artVariants = safe;
-    }
-  }
-  if (record.promos === "only" || record.promos === "exclude") {
-    result.promos = record.promos;
-  }
-  return Object.keys(result).length > 0 ? result : null;
 }
 
 function sanitizeLegacyFlat(record: Record<string, unknown>): DisplayOverrides {

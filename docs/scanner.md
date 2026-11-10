@@ -149,6 +149,8 @@ Each winner is recorded on a track for its artwork, and a track **locks** once i
 
 A lock vibrates the phone for 50 ms, plays a short sound where the browser allows it, and flies a thumbnail of the card into the scan list. Cards collect in that list and are added to a collection in one batch when the user confirms.
 
+Scanning needs no account. The page, the models and `GET /api/v1/scan/manifest` are public, and the scan list lives in this browser's `localStorage` (`openrift-scan-session`). Adding the list to a collection needs a signed-in user: a signed-out visitor who presses Add gets a sign-in dialog that returns to `/scan`, and the list is still there afterwards in the same browser. Owned counts and wishlist hearts in the list show only when signed in. Sending a scan report (`/scan/report`) also needs a signed-in user, since its hourly cap is per user.
+
 ### 6. Resolving the printing
 
 The bank groups references by **artwork**: the set, name and art variant, with every language and promo variant of that artwork in one group. The bank build merges two kinds of artwork that no image can tell apart, both only between cards of the same name and type. Near-identical renders reused across sets (basic runes, for example) merge when their embeddings lie within 0.05 cosine distance. Reprints that show the same illustration with a new crop or colour grading merge when their renders score 0.85 or more against each other with the verifier below. Printings within one artwork, such as an English and a French copy or a regular and a promo copy, share the illustration and differ only in small text regions.

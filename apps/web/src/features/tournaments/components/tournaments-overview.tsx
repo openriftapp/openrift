@@ -1,6 +1,7 @@
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
 
 import { Heading } from "@/components/heading";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { NextEventHero } from "@/features/tournaments/components/next-event-hero";
 import { PastEventsTimeline } from "@/features/tournaments/components/past-events-timeline";
 import { TournamentCard } from "@/features/tournaments/components/tournament-card";
@@ -22,20 +23,37 @@ function UpcomingGrid({ tournaments }: { tournaments: TournamentSummaryResponse[
   );
 }
 
+interface PastPaging {
+  total: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+}
+
 interface TournamentsOverviewProps {
   tournaments: TournamentSummaryResponse[];
   noUpcomingText: string;
   showContext?: boolean;
+  pastPaging?: PastPaging;
 }
 
 export function TournamentsOverview({
   tournaments,
   noUpcomingText,
   showContext = false,
+  pastPaging,
 }: TournamentsOverviewProps) {
   const { current, pastOrArchived } = partitionTournaments(tournaments);
   const [hero, ...alsoUpcoming] = current.toSorted((a, b) => compareTournamentsForList(a, b));
   const pastSorted = pastOrArchived.toSorted((a, b) => compareTournamentsForList(a, b));
+  const hasMorePast = pastPaging?.hasMore ?? false;
+  const pastTotal = hasMorePast
+    ? Math.max(pastPaging?.total ?? 0, pastSorted.length)
+    : pastSorted.length;
+
+  function handleLoadMorePast() {
+    pastPaging?.onLoadMore();
+  }
 
   return (
     <div className="flex flex-col gap-7">
@@ -50,15 +68,20 @@ export function TournamentsOverview({
           <UpcomingGrid tournaments={alsoUpcoming} />
         </section>
       ) : null}
-      {pastSorted.length > 0 ? (
+      {pastSorted.length > 0 || hasMorePast ? (
         <section className="flex flex-col gap-3">
           <Heading>
             {m.tournaments_overview_past_events()}
             <span className="text-muted-foreground ml-2 text-sm font-normal tabular-nums">
-              {pastSorted.length}
+              {pastTotal}
             </span>
           </Heading>
           <PastEventsTimeline tournaments={pastSorted} showContext={showContext} />
+          {pastPaging && hasMorePast ? (
+            <ShowMoreButton pending={pastPaging.loadingMore} onClick={handleLoadMorePast}>
+              {m.tournaments_overview_show_older_events()}
+            </ShowMoreButton>
+          ) : null}
         </section>
       ) : null}
     </div>

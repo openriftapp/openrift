@@ -47,6 +47,7 @@ import {
   metaEventCountries,
 } from "@/features/meta/lib/meta-events-index";
 import {
+  metaFrontPhoneFacts,
   metaFrontSectionQuery,
   metaFrontSectionShown,
   metaFrontUpcomingQuery,
@@ -289,6 +290,8 @@ export function MetaFrontPage() {
             ? m.meta_front_lead({ date: formatShortDayYear(counts.latestResultDate, DATE_WORDS) })
             : undefined
         }
+        compactOnPhone
+        phoneFacts={metaFrontPhoneFacts(counts.latestResultDate, facets.totals)}
       >
         {userId !== null && <ContributionsLink />}
       </PageHero>
@@ -341,6 +344,7 @@ export function MetaFrontPage() {
                 eventCount={facets.totals.events}
                 playerResultCount={facets.totals.playerRows}
                 deckCount={facets.totals.decks}
+                className="max-md:hidden"
               />
               <ArchiveIndexTiles />
             </div>

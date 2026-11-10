@@ -35,6 +35,7 @@ vi.mock("../services/images/variants.js", () => ({
 }));
 
 vi.mock("../services/images/download.js", () => ({
+  MAX_IMAGE_BYTES: 50 * 1024 * 1024,
   downloadImage: vi.fn(),
 }));
 

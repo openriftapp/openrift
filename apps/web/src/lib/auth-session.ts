@@ -25,10 +25,31 @@ interface SessionUser {
   updatedAt: string;
 }
 
-type SessionData = {
-  session: { id: string; userId: string; expiresAt: string; token: string };
-  user: SessionUser;
-} | null;
+type SessionData = { user: SessionUser } | null;
+
+/** Keeps the session token and other unread session fields out of the client cache and the SSR payload. */
+export function toClientSession(body: { user?: SessionUser | null } | null): SessionData {
+  const user = body?.user;
+  if (!user) {
+    return null;
+  }
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      image: user.image,
+      riotId: user.riotId,
+      bio: user.bio,
+      profileShowRiotId: user.profileShowRiotId,
+      profileShowCollection: user.profileShowCollection,
+      profileShowLastActive: user.profileShowLastActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
+  };
+}
 
 // Matches both the dev name and the `__Secure-` prefixed production name.
 const SESSION_COOKIE = /(?:^|;\s*)(?:__Secure-)?better-auth\.session_token=[^;\s]/u;
@@ -54,7 +75,7 @@ const getServerSession = createServerFn({ method: "GET" })
     if (!res.ok) {
       return null;
     }
-    return res.json();
+    return toClientSession(await res.json());
   });
 
 export const sessionQueryOptions = () =>

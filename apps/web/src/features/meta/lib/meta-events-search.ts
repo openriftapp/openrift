@@ -1,9 +1,9 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-import { META_EVENT_HOLDINGS, META_EVENT_INDEX_SORTS } from "@openrift/shared/contracts/meta";
-import { z } from "zod";
+import { META_EVENT_HOLDINGS, META_EVENT_INDEX_SORTS } from "@openrift/shared/meta-query";
+import { z } from "zod/mini";
 
 import { metaPageSlice, metaPagingSearchFields } from "@/features/meta/lib/meta-paging";
 import { metaScopeSearchSchema } from "@/features/meta/lib/meta-scope";
+import { lenient } from "@/lib/lenient-param";
 
 // Schema only, no logic: a route's non-lazy `*.tsx` runs on every page load, so
 // anything this module pulls in lands in the startup bundle of every route.
@@ -27,16 +27,16 @@ const DEFAULT_EVENT_DIRECTION: MetaEventIndexSortDirection = "desc";
 export const DEFAULT_EVENT_PAGE_SIZE = 50;
 
 /**
- * Every field `.catch`es to undefined, so a stale bookmark drops the bad value and the route doesn't crash.
+ * Every field is `lenient`, so a stale bookmark drops the bad value and the route doesn't crash.
  * Named `by`, not `sort`: the router unions every route's search schema, and a `sort` key here would break other routes' search reducers.
  */
-export const metaEventsSearchSchema = metaScopeSearchSchema.extend({
-  q: z.string().max(200).optional().catch(undefined),
-  holds: z.enum(META_EVENT_INDEX_HOLDINGS).optional().catch(undefined),
-  playersMin: z.number().int().nonnegative().optional().catch(undefined),
-  playersMax: z.number().int().nonnegative().optional().catch(undefined),
-  by: z.enum(META_EVENT_INDEX_SORTS).optional().catch(undefined),
-  dir: z.enum(["asc", "desc"]).optional().catch(undefined),
+export const metaEventsSearchSchema = z.extend(metaScopeSearchSchema, {
+  q: lenient(z.string().check(z.maxLength(200))),
+  holds: lenient(z.enum(META_EVENT_INDEX_HOLDINGS)),
+  playersMin: lenient(z.number().check(z.int(), z.nonnegative())),
+  playersMax: lenient(z.number().check(z.int(), z.nonnegative())),
+  by: lenient(z.enum(META_EVENT_INDEX_SORTS)),
+  dir: lenient(z.enum(["asc", "desc"])),
   ...metaPagingSearchFields(),
 });
 

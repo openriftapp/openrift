@@ -1,4 +1,3 @@
-// oxlint-disable-next-line no-restricted-imports -- the document enumerates every contract, so the barrel is the point here; apps/api runs unbundled on Bun.
 import * as contracts from "@openrift/shared/contracts";
 import {
   catalogCardResponseValueSchema,
@@ -17,6 +16,8 @@ import type { AnyContractRouter } from "@orpc/contract";
 import type { OpenAPI } from "@orpc/openapi";
 import { OpenAPIGenerator } from "@orpc/openapi";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
+
+import { ADMIN_API_PREFIX } from "./lib/admin-api-prefix.js";
 
 // These are the only OpenAPI documents the API produces. A few plain Hono
 // endpoints (health, Sentry tunnel, share/list image generators, email
@@ -79,9 +80,9 @@ export function developerOperations(): string[] {
 }
 
 // Admin operations aren't gated by contract meta; they're gated by the
-// requireAdmin Hono middleware on the /api/admin/v1/* prefix (see app.ts).
+// requireAdmin Hono middleware on ADMIN_API_PREFIX (see app.ts).
 // Stamp the admin security marker by path instead, mirroring that mount.
-const ADMIN_PATH_PREFIX = "/api/admin/";
+const ADMIN_PATH_PREFIX = `${ADMIN_API_PREFIX}/`;
 
 /**
  * Sets each operation's OpenAPI `security`: cookieAuth by default

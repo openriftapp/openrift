@@ -6,16 +6,15 @@ import {
   totalQuantity,
   battlefieldExactlyThree,
   battlefieldNoDuplicates,
-  championCopyLimitAcrossZones,
   championExactlyOne,
   championSharesTagWithLegend,
+  copyLimitAcrossZones,
   copyLimitFor,
   formatHasSideboard,
   legendExactlyOne,
   legendOptionsAllLegends,
   legendOptionsCount,
   legendOptionsDistinctNames,
-  mainDeckCopyLimit,
   mainDeckExactly,
   noBannedCards,
   noTokenCards,
@@ -23,11 +22,9 @@ import {
   runesAllTypeRune,
   runesExactlyTwelve,
   runesMatchLegendDomains,
-  sideboardCopyLimit,
   sideboardMaximum,
   sideboardNotAllowed,
   UNLIMITED_COPIES,
-  uniqueCopyLimit,
   validateDeck,
 } from "./deck-rules";
 
@@ -459,70 +456,168 @@ describe("copyLimitFor", () => {
   it("returns a positive override as-is", () => {
     expect(copyLimitFor(makeCard({ maxCopiesOverride: 7 }))).toBe(7);
   });
+
+  it("caps a Unique card at 1", () => {
+    expect(copyLimitFor(makeCard({ keywords: ["Unique"] }))).toBe(1);
+    expect(copyLimitFor(makeCard({ keywords: ["Unique"], maxCopiesOverride: 0 }))).toBe(1);
+  });
 });
 
-describe("mainDeckCopyLimit", () => {
-  it("passes with 3 copies", () => {
-    expect(mainDeckCopyLimit(makeState([makeCard({ quantity: 3 })]))).toEqual([]);
+describe("copyLimitAcrossZones", () => {
+  it("passes with 3 copies in the main deck", () => {
+    expect(copyLimitAcrossZones(makeState([makeCard({ quantity: 3 })]))).toEqual([]);
   });
 
-  it("fails with 4 copies", () => {
-    const violations = mainDeckCopyLimit(makeState([makeCard({ quantity: 4, cardId: "over" })]));
+  it("fails with 4 copies in the main deck", () => {
+    const violations = copyLimitAcrossZones(
+      makeState([makeCard({ quantity: 4, cardId: "over", cardName: "Noxian Guillotine" })]),
+    );
+    expect(violations).toEqual([
+      {
+        zone: "main",
+        code: "COPY_LIMIT",
+        message: "Noxian Guillotine exceeds the 3-copy limit (4)",
+        cardId: "over",
+      },
+    ]);
+  });
+
+  it("fails with 4 copies in the sideboard", () => {
+    const violations = copyLimitAcrossZones(
+      makeState([makeCard({ zone: "sideboard", quantity: 4, cardId: "over" })]),
+    );
     expect(violations).toHaveLength(1);
-    expect(violations[0]!.code).toBe("MAIN_COPY_LIMIT");
-    expect(violations[0]!.cardId).toBe("over");
+    expect(violations[0]!.zone).toBe("sideboard");
+  });
+
+  it("counts the main deck and sideboard together", () => {
+    const violations = copyLimitAcrossZones(
+      makeState([
+        makeCard({ cardId: "split", cardName: "Noxian Guillotine", quantity: 2 }),
+        makeCard({
+          cardId: "split",
+          cardName: "Noxian Guillotine",
+          zone: "sideboard",
+          quantity: 2,
+        }),
+      ]),
+    );
+    expect(violations).toEqual([
+      {
+        zone: "main",
+        code: "COPY_LIMIT",
+        message:
+          "Noxian Guillotine exceeds the 3-copy limit (4 across the main deck and sideboard)",
+        cardId: "split",
+      },
+    ]);
+  });
+
+  it("passes with 2 in the main deck and 1 in the sideboard", () => {
+    expect(
+      copyLimitAcrossZones(
+        makeState([
+          makeCard({ cardId: "split", quantity: 2 }),
+          makeCard({ cardId: "split", zone: "sideboard", quantity: 1 }),
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("counts the Chosen Champion with the main deck and sideboard", () => {
+    const violations = copyLimitAcrossZones(
+      makeState([
+        makeChampion(),
+        makeCard({ cardId: "champion-1", cardName: "Fire Champion", quantity: 2 }),
+        makeCard({
+          cardId: "champion-1",
+          cardName: "Fire Champion",
+          zone: "sideboard",
+          quantity: 1,
+        }),
+      ]),
+    );
+    expect(violations).toEqual([
+      {
+        zone: "main",
+        code: "COPY_LIMIT",
+        message:
+          "Fire Champion can have at most 2 copies in the main deck and sideboard (1 is the Chosen Champion)",
+        cardId: "champion-1",
+      },
+    ]);
+  });
+
+  it("passes with the Chosen Champion and 2 copies in the main deck", () => {
+    expect(
+      copyLimitAcrossZones(
+        makeState([makeChampion(), makeCard({ cardId: "champion-1", quantity: 2 })]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports the champion case once when only the main deck is over", () => {
+    const violations = copyLimitAcrossZones(
+      makeState([makeChampion(), makeCard({ cardId: "champion-1", quantity: 3 })]),
+    );
+    expect(violations).toHaveLength(1);
+  });
+
+  it("names only the main deck in a format without a sideboard", () => {
+    const violations = copyLimitAcrossZones({
+      format: "custom-region",
+      cards: [
+        makeChampion(),
+        makeCard({ cardId: "champion-1", cardName: "Fire Champion", quantity: 3 }),
+      ],
+    });
+    expect(violations[0]!.message).toBe(
+      "Fire Champion can have at most 2 copies in the main deck (1 is the Chosen Champion)",
+    );
   });
 
   it("allows any quantity with the unlimited override", () => {
     expect(
-      mainDeckCopyLimit(makeState([makeCard({ quantity: 38, maxCopiesOverride: 0 })])),
+      copyLimitAcrossZones(
+        makeState([
+          makeChampion({ maxCopiesOverride: 0 }),
+          makeCard({ cardId: "champion-1", quantity: 30, maxCopiesOverride: 0 }),
+          makeCard({ cardId: "champion-1", zone: "sideboard", quantity: 8, maxCopiesOverride: 0 }),
+        ]),
+      ),
     ).toEqual([]);
   });
 
-  it("uses a positive override as the limit", () => {
-    expect(mainDeckCopyLimit(makeState([makeCard({ quantity: 7, maxCopiesOverride: 7 })]))).toEqual(
-      [],
-    );
-    const violations = mainDeckCopyLimit(
-      makeState([makeCard({ quantity: 8, maxCopiesOverride: 7, cardId: "over" })]),
-    );
-    expect(violations).toHaveLength(1);
-    expect(violations[0]!.code).toBe("MAIN_COPY_LIMIT");
-    expect(violations[0]!.message).toContain("7-copy limit");
-  });
-});
-
-describe("championCopyLimitAcrossZones", () => {
-  it("passes with champion in champion zone and 2 in main", () => {
-    const violations = championCopyLimitAcrossZones(
-      makeState([makeChampion(), makeCard({ cardId: "champion-1", zone: "main", quantity: 2 })]),
-    );
-    expect(violations).toEqual([]);
-  });
-
-  it("fails with champion in champion zone and 3 in main", () => {
-    const violations = championCopyLimitAcrossZones(
-      makeState([makeChampion(), makeCard({ cardId: "champion-1", zone: "main", quantity: 3 })]),
+  it("applies a positive override across zones", () => {
+    const cards = [
+      makeCard({ cardId: "seven", quantity: 5, maxCopiesOverride: 7 }),
+      makeCard({ cardId: "seven", zone: "sideboard", quantity: 2, maxCopiesOverride: 7 }),
+    ];
+    expect(copyLimitAcrossZones(makeState(cards))).toEqual([]);
+    const violations = copyLimitAcrossZones(
+      makeState([...cards, makeCard({ cardId: "seven", zone: "sideboard", maxCopiesOverride: 7 })]),
     );
     expect(violations).toHaveLength(1);
-    expect(violations[0]!.code).toBe("CHAMPION_COPY_LIMIT");
+    expect(violations[0]!.message).toContain("7-copy limit (8 across");
   });
 
-  it("allows 3 copies in main when card is not the champion", () => {
-    const violations = championCopyLimitAcrossZones(
-      makeState([makeChampion(), makeCard({ cardId: "other-card", zone: "main", quantity: 3 })]),
-    );
-    expect(violations).toEqual([]);
+  it("ignores copies in overflow", () => {
+    expect(
+      copyLimitAcrossZones(
+        makeState([
+          makeCard({ cardId: "parked", quantity: 3 }),
+          makeCard({ cardId: "parked", zone: "overflow", quantity: 3 }),
+        ]),
+      ),
+    ).toEqual([]);
   });
 
-  it("allows any main quantity when the champion has the unlimited override", () => {
-    const violations = championCopyLimitAcrossZones(
-      makeState([
-        makeChampion(),
-        makeCard({ cardId: "champion-1", zone: "main", quantity: 39, maxCopiesOverride: 0 }),
-      ]),
-    );
-    expect(violations).toEqual([]);
+  it("allows 3 copies of a card that is not the champion", () => {
+    expect(
+      copyLimitAcrossZones(
+        makeState([makeChampion(), makeCard({ cardId: "other-card", quantity: 3 })]),
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -602,30 +697,6 @@ describe("sideboardMaximum", () => {
   });
 });
 
-describe("sideboardCopyLimit", () => {
-  it("passes with 3 copies", () => {
-    expect(sideboardCopyLimit(makeState([makeCard({ zone: "sideboard", quantity: 3 })]))).toEqual(
-      [],
-    );
-  });
-
-  it("fails with 4 copies", () => {
-    const violations = sideboardCopyLimit(
-      makeState([makeCard({ zone: "sideboard", quantity: 4, cardId: "over" })]),
-    );
-    expect(violations).toHaveLength(1);
-    expect(violations[0]!.code).toBe("SIDEBOARD_COPY_LIMIT");
-  });
-
-  it("allows any quantity with the unlimited override", () => {
-    expect(
-      sideboardCopyLimit(
-        makeState([makeCard({ zone: "sideboard", quantity: 8, maxCopiesOverride: 0 })]),
-      ),
-    ).toEqual([]);
-  });
-});
-
 describe("sideboardNotAllowed", () => {
   it("passes with an empty sideboard", () => {
     expect(sideboardNotAllowed(makeState([makeCard({ zone: "main" })]))).toEqual([]);
@@ -653,31 +724,35 @@ describe("formatHasSideboard", () => {
   });
 });
 
-describe("uniqueCopyLimit", () => {
+describe("copyLimitAcrossZones for [Unique] cards", () => {
   it("passes for non-Unique cards at 3 copies", () => {
-    expect(uniqueCopyLimit(makeState([makeCard({ quantity: 3 })]))).toEqual([]);
+    expect(copyLimitAcrossZones(makeState([makeCard({ quantity: 3 })]))).toEqual([]);
   });
 
   it("passes for a Unique card at 1 copy", () => {
-    expect(uniqueCopyLimit(makeState([makeCard({ quantity: 1, keywords: ["Unique"] })]))).toEqual(
-      [],
-    );
+    expect(
+      copyLimitAcrossZones(makeState([makeCard({ quantity: 1, keywords: ["Unique"] })])),
+    ).toEqual([]);
   });
 
   it("fails for a Unique card with 2 copies in main", () => {
-    const violations = uniqueCopyLimit(
+    const violations = copyLimitAcrossZones(
       makeState([
         makeCard({ cardId: "uniq-1", cardName: "Lone Wolf", quantity: 2, keywords: ["Unique"] }),
       ]),
     );
-    expect(violations).toHaveLength(1);
-    expect(violations[0]!.code).toBe("UNIQUE_COPY_LIMIT");
-    expect(violations[0]!.zone).toBe("main");
-    expect(violations[0]!.cardId).toBe("uniq-1");
+    expect(violations).toEqual([
+      {
+        zone: "main",
+        code: "UNIQUE_COPY_LIMIT",
+        message: "Lone Wolf has the [Unique] keyword — only 1 copy allowed",
+        cardId: "uniq-1",
+      },
+    ]);
   });
 
   it("fails for a Unique card with 2 copies in sideboard", () => {
-    const violations = uniqueCopyLimit(
+    const violations = copyLimitAcrossZones(
       makeState([
         makeCard({
           cardId: "uniq-2",
@@ -692,22 +767,35 @@ describe("uniqueCopyLimit", () => {
     expect(violations[0]!.zone).toBe("sideboard");
   });
 
-  it("ignores Unique cards in non-main/sideboard zones", () => {
+  it("ignores Unique cards in overflow", () => {
     expect(
-      uniqueCopyLimit(
+      copyLimitAcrossZones(
         makeState([makeCard({ zone: "overflow", quantity: 2, keywords: ["Unique"] })]),
       ),
     ).toEqual([]);
   });
 
-  it("flags both main and sideboard copies independently", () => {
-    const violations = uniqueCopyLimit(
+  it("fails once for a Unique card with 1 copy in main and 1 in sideboard", () => {
+    const violations = copyLimitAcrossZones(
       makeState([
-        makeCard({ cardId: "uniq", quantity: 2, keywords: ["Unique"] }),
-        makeCard({ cardId: "uniq", zone: "sideboard", quantity: 2, keywords: ["Unique"] }),
+        makeCard({ cardId: "uniq", keywords: ["Unique"] }),
+        makeCard({ cardId: "uniq", zone: "sideboard", keywords: ["Unique"] }),
       ]),
     );
-    expect(violations).toHaveLength(2);
+    expect(violations).toHaveLength(1);
+    expect(violations[0]!.code).toBe("UNIQUE_COPY_LIMIT");
+    expect(violations[0]!.zone).toBe("main");
+  });
+
+  it("fails for a Unique Chosen Champion with a copy in the main deck", () => {
+    const violations = copyLimitAcrossZones(
+      makeState([
+        makeChampion({ keywords: ["Unique"] }),
+        makeCard({ cardId: "champion-1", keywords: ["Unique"] }),
+      ]),
+    );
+    expect(violations).toHaveLength(1);
+    expect(violations[0]!.code).toBe("UNIQUE_COPY_LIMIT");
   });
 });
 
@@ -1129,7 +1217,7 @@ describe("validateDeck", () => {
     expect(violations.filter((violation) => violation.code === "DOMAIN_MISMATCH")).toEqual([]);
   });
 
-  it("applies the main-deck copy limit to copies split across printing rows", () => {
+  it("applies the copy limit to copies split across printing rows", () => {
     const mainCards = [
       ...Array.from({ length: 12 }, (_, index) =>
         makeCard({ cardId: `main-${index}`, quantity: 3 }),
@@ -1138,9 +1226,22 @@ describe("validateDeck", () => {
       makeCard({ cardId: "split-1", quantity: 2 }),
     ];
     const violations = validateDeck(makeState([...makeConstructedShell(), ...mainCards]));
-    const copyLimit = violations.filter((violation) => violation.code === "MAIN_COPY_LIMIT");
+    const copyLimit = violations.filter((violation) => violation.code === "COPY_LIMIT");
     expect(copyLimit).toHaveLength(1);
     expect(copyLimit[0]!.cardId).toBe("split-1");
+  });
+
+  it("reports a card split across the main deck and sideboard once", () => {
+    const mainCards = [
+      ...Array.from({ length: 12 }, (_, index) =>
+        makeCard({ cardId: `main-${index}`, quantity: 3 }),
+      ),
+      makeCard({ cardId: "split-1", quantity: 2 }),
+      makeCard({ cardId: "filler-1", quantity: 1 }),
+      makeCard({ cardId: "split-1", zone: "sideboard", quantity: 2 }),
+    ];
+    const violations = validateDeck(makeState([...makeConstructedShell(), ...mainCards]));
+    expect(violations.filter((violation) => violation.cardId === "split-1")).toHaveLength(1);
   });
 
   it("applies the unique copy limit to copies split across printing rows", () => {
@@ -1234,6 +1335,17 @@ describe("validateDeck for custom-region", () => {
     const offending = violations.filter((v) => v.code === "CARD_NOT_IN_FORMAT_TAG");
     expect(offending).toHaveLength(1);
     expect(offending[0]!.cardId).toBe("wandering-card");
+  });
+
+  it("ignores untagged cards parked in overflow", () => {
+    const tagSlugs = ["bandle-city"];
+    const cards = [
+      ...fullyTaggedShell(tagSlugs),
+      ...fullyTaggedMain(tagSlugs),
+      withTags(makeCard({ cardId: "parked", zone: "overflow", quantity: 2 }), ["bilgewater"]),
+    ];
+    const violations = validateDeck(makeState(cards, "custom-region", { tagSlugs }));
+    expect(violations).toEqual([]);
   });
 
   it("does not run the dropped domain rules", () => {
@@ -1333,13 +1445,27 @@ describe("validateDeck for custom-region", () => {
     const cards = [
       ...fullyTaggedShell(tagSlugs),
       ...fullyTaggedMain(tagSlugs),
-      withTags(makeCard({ cardId: "side-1", zone: "sideboard", quantity: 11 }), tagSlugs),
+      ...Array.from({ length: 11 }, (_, index) =>
+        withTags(makeCard({ cardId: `side-${index}`, zone: "sideboard" }), tagSlugs),
+      ),
     ];
     const violations = validateDeck(makeState(cards, "custom-region", { tagSlugs }));
     const codes = violations.map((v) => v.code);
     expect(codes).toContain("SIDEBOARD_NOT_ALLOWED");
     expect(codes).not.toContain("SIDEBOARD_TOO_MANY");
-    expect(codes).not.toContain("SIDEBOARD_COPY_LIMIT");
+  });
+
+  it("counts stray sideboard copies toward the copy limit", () => {
+    const tagSlugs = ["bandle-city"];
+    const cards = [
+      ...fullyTaggedShell(tagSlugs),
+      ...fullyTaggedMain(tagSlugs),
+      withTags(makeCard({ cardId: "main-0", zone: "sideboard" }), tagSlugs),
+    ];
+    const violations = validateDeck(makeState(cards, "custom-region", { tagSlugs }));
+    const copyLimit = violations.filter((v) => v.code === "COPY_LIMIT");
+    expect(copyLimit).toHaveLength(1);
+    expect(copyLimit[0]!.message).toContain("(4 across the main deck and sideboard)");
   });
 
   it("constructed still allows a legal sideboard", () => {

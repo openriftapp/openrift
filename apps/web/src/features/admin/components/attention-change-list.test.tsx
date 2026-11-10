@@ -15,10 +15,8 @@ vi.mock("@/features/cards/components/card-text", () => ({
   CardText: ({ text }: { text: string }) => <span>formatted: {text}</span>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { AttentionGroup } from "@/features/admin/lib/attention-items";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { AttentionChangeList } from "./attention-change-list";
 
 const cardGroup: AttentionGroup = {

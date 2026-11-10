@@ -71,7 +71,6 @@ function session() {
 
 async function flush(): Promise<void> {
   for (let hop = 0; hop < 5; hop++) {
-    // oxlint-disable-next-line promise/avoid-new -- awaiting a macrotask boundary
     await new Promise((resolve) => {
       setTimeout(resolve, 0);
     });
@@ -244,7 +243,6 @@ describe("frames", () => {
 
 describe("board reads", () => {
   it("returns no cards while the board detector loads", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- a board detector that never finishes loading
     loadBoardDetector.mockReturnValue(new Promise(() => {}));
     await send(INIT);
     posted.length = 0;

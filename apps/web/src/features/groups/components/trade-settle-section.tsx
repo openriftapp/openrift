@@ -348,7 +348,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
                   copyIds,
                 },
                 {
-                  onSettled: () => {
+                  onSuccess: () => {
                     clearCounts([choice.trade.id]);
                     setPendingChoices((rest) => rest.slice(1));
                   },

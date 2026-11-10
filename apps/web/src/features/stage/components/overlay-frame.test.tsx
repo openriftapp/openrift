@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import type { OverlayBoard, OverlayPayload } from "@openrift/shared/contracts/overlay";
 import { DEFAULT_OVERLAY_PAYLOAD } from "@openrift/shared/contracts/overlay";
-import { render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { OverlayBoardScene } from "@/features/stage/lib/overlay-board-scene";
 import { stubCard, stubPrinting } from "@/test/factories";
@@ -18,8 +18,14 @@ vi.mock("@/hooks/use-enums", () => ({
 vi.mock("@/hooks/use-domain-colors", () => ({
   useDomainColors: () => ({}),
 }));
+const imageLoad = vi.hoisted(() => ({ fails: false }));
+vi.mock("@/lib/load-image", () => ({
+  loadImage: () =>
+    imageLoad.fails
+      ? Promise.reject(new Error("Image load timed out"))
+      : Promise.resolve({ decode: () => Promise.resolve() }),
+}));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { boardTileWidth, OverlayFrame, resolvePlatePosition } from "./overlay-frame";
 
 // With art, so the card renders as an image — the no-art fallback prints the
@@ -92,21 +98,38 @@ describe("OverlayFrame placement", () => {
     expect(cluster(container).className).toContain("flex-row");
   });
 
-  it("sizes the card by scale, so a stacked plate does not eat into it", () => {
+  it("sizes the card by scale, so a stacked plate does not eat into it", async () => {
     const { container } = render(
       <OverlayFrame payload={payload({ platePosition: "above", scale: 45 })} printing={PRINTING} />,
     );
 
-    const art = cluster(container).querySelector<HTMLElement>(".aspect-card");
-    expect(art?.style.height).toBe("45%");
+    await waitFor(() => {
+      const art = cluster(container).querySelector<HTMLElement>(".aspect-card");
+      expect(art?.style.height).toBe("45%");
+    });
+  });
+});
+
+describe("OverlayFrame card swap", () => {
+  afterEach(() => {
+    imageLoad.fails = false;
+  });
+
+  it("still shows the card when its image fails or stalls", async () => {
+    imageLoad.fails = true;
+    const { findByText } = render(<OverlayFrame payload={payload()} printing={PRINTING} />);
+
+    expect(await findByText("Garen")).toBeInTheDocument();
   });
 });
 
 describe("OverlayFrame plate contents", () => {
-  it("carries the name, code and stats by default", () => {
-    const { getByText } = render(<OverlayFrame payload={payload()} printing={PRINTING} />);
+  it("carries the name, code and stats by default", async () => {
+    const { findByText, getByText } = render(
+      <OverlayFrame payload={payload()} printing={PRINTING} />,
+    );
 
-    expect(getByText("Garen")).toBeInTheDocument();
+    expect(await findByText("Garen")).toBeInTheDocument();
     expect(getByText(/OGN-042/iu)).toBeInTheDocument();
     // The shared stat chips split the label from the value, so the label is
     // what identifies the chip.
@@ -114,8 +137,8 @@ describe("OverlayFrame plate contents", () => {
     expect(getByText("Power")).toBeInTheDocument();
   });
 
-  it("drops a line that is switched off", () => {
-    const { queryByText } = render(
+  it("drops a line that is switched off", async () => {
+    const { findByText, queryByText } = render(
       <OverlayFrame
         payload={payload({
           plateFields: { ...DEFAULT_OVERLAY_PAYLOAD.plateFields, name: false, stats: false },
@@ -124,12 +147,13 @@ describe("OverlayFrame plate contents", () => {
       />,
     );
 
+    expect(await findByText(/OGN-042/iu)).toBeInTheDocument();
     expect(queryByText("Garen")).not.toBeInTheDocument();
     expect(queryByText("Energy")).not.toBeInTheDocument();
   });
 
-  it("switches flavor independently of the rules text", () => {
-    const { getByText, queryByText } = render(
+  it("switches flavor independently of the rules text", async () => {
+    const { findByText, queryByText } = render(
       <OverlayFrame
         payload={payload({
           plateFields: {
@@ -142,12 +166,12 @@ describe("OverlayFrame plate contents", () => {
       />,
     );
 
-    expect(getByText("For Demacia.")).toBeInTheDocument();
+    expect(await findByText("For Demacia.")).toBeInTheDocument();
     expect(queryByText("Deal 2 damage.")).not.toBeInTheDocument();
   });
 
-  it("shows rules and flavor text when switched on", () => {
-    const { getByText } = render(
+  it("shows rules and flavor text when switched on", async () => {
+    const { findByText, getByText } = render(
       <OverlayFrame
         payload={payload({
           plateFields: {
@@ -160,7 +184,7 @@ describe("OverlayFrame plate contents", () => {
       />,
     );
 
-    expect(getByText("Deal 2 damage.")).toBeInTheDocument();
+    expect(await findByText("Deal 2 damage.")).toBeInTheDocument();
     expect(getByText("For Demacia.")).toBeInTheDocument();
   });
 
@@ -196,7 +220,7 @@ describe("OverlayFrame plate contents", () => {
     expect(queryByText("Deal 2 damage.")).not.toBeInTheDocument();
   });
 
-  it("renders no plate at all when every line is off", () => {
+  it("renders no plate at all when every line is off", async () => {
     const { container, queryByText } = render(
       <OverlayFrame
         payload={payload({
@@ -212,6 +236,9 @@ describe("OverlayFrame plate contents", () => {
       />,
     );
 
+    await waitFor(() => {
+      expect(container.querySelector(".aspect-card")).not.toBeNull();
+    });
     expect(queryByText("Garen")).not.toBeInTheDocument();
     // Not just empty — the black plate itself has to go, or the scene carries a
     // box with nothing in it.
@@ -220,23 +247,24 @@ describe("OverlayFrame plate contents", () => {
 });
 
 describe("OverlayFrame QR code", () => {
-  it("shows the code beside a bare card, with the plate off", () => {
-    const { getByLabelText, queryByText } = render(
+  it("shows the code beside a bare card, with the plate off", async () => {
+    const { findByLabelText, queryByText } = render(
       <OverlayFrame
         payload={payload({ showPlate: false, qrUrl: "https://openrift.app/decks/share/abc" })}
         printing={PRINTING}
       />,
     );
 
-    expect(getByLabelText("QR code for the linked page")).toBeInTheDocument();
+    expect(await findByLabelText("QR code for the linked page")).toBeInTheDocument();
     expect(queryByText("Garen")).not.toBeInTheDocument();
   });
 
-  it("hides the code when no link is set", () => {
-    const { queryByLabelText } = render(
+  it("hides the code when no link is set", async () => {
+    const { findByText, queryByLabelText } = render(
       <OverlayFrame payload={payload({ qrUrl: null })} printing={PRINTING} />,
     );
 
+    expect(await findByText("Garen")).toBeInTheDocument();
     expect(queryByLabelText("QR code for the linked page")).not.toBeInTheDocument();
   });
 });

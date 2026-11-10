@@ -1,13 +1,9 @@
 import type { WorkspaceRecordRow } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay, formatRelativeTime } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
-import type {
-  CandidateCardSummaryResponse,
-  UnmatchedCardDetailResponse,
-} from "@openrift/shared/types/api/admin";
+import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -24,9 +20,8 @@ import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
-import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
+import { useIgnoreNewCardDrafts } from "@/features/admin/hooks/use-ignored-candidates";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { unmatchedCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import {
   buildPrintingDeskCsv,
@@ -37,10 +32,15 @@ import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
 import type { PostSlide } from "@/features/admin/lib/printing-post-slides";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
+import { selectionSummary, splitSelection } from "@/features/admin/lib/selection-summary";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { WorkspaceTargetLink } from "@/features/catalog-workspace/components/queue-list";
+import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
+import type { RecordSelection } from "@/features/catalog-workspace/hooks/use-record-selection";
 import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { ignoredDraftsMessage } from "@/features/catalog-workspace/lib/ignored-drafts-message";
 import type {
   DeskMode,
   DeskRow,
@@ -71,22 +71,6 @@ import { getSiteUrl } from "@/lib/site-config";
 const ROW_HEIGHT = 57;
 
 type Selection = ReadonlySet<string>;
-
-function useSelection() {
-  const [selected, setSelected] = useState<Selection>(new Set());
-  function handleToggle(key: string, checked: boolean) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (checked) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-      return next;
-    });
-  }
-  return { selected, handleToggle, clear: () => setSelected(new Set()) };
-}
 
 function SelectCell<T>({
   row,
@@ -121,7 +105,7 @@ function selectColumn<T>(
     rowLabel: (row: T) => string;
     canSelect?: (row: T) => boolean;
   },
-  selection: ReturnType<typeof useSelection>,
+  selection: RecordSelection,
 ): AdminColumnDef<T> {
   return {
     header: "",
@@ -430,6 +414,7 @@ function summaryText(shown: number, total: number | null, noun: string, hasMore:
 function Toolbar({
   summary,
   selectedCount,
+  hiddenCount = 0,
   actions,
   note,
   onExport,
@@ -437,6 +422,7 @@ function Toolbar({
 }: {
   summary: string;
   selectedCount: number;
+  hiddenCount?: number;
   actions?: ReactNode;
   note?: string;
   onExport: () => void;
@@ -446,7 +432,9 @@ function Toolbar({
     <div className="flex flex-wrap items-center gap-2">
       {selectedCount > 0 && (
         <span className="bg-primary/10 flex flex-wrap items-center gap-2 rounded-md px-3 py-1">
-          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <span className="text-sm font-medium">
+            {selectionSummary(selectedCount, hiddenCount)}
+          </span>
           {actions}
           {note !== undefined && <Muted>{note}</Muted>}
         </span>
@@ -567,27 +555,56 @@ async function fetchMatchingRecords(records: RowRecords): Promise<WorkspaceRecor
   );
 }
 
-function CardsTable({ records, isAdmin }: { records: CardRecords; isAdmin: boolean }) {
-  const selection = useSelection();
-  const queryClient = useQueryClient();
-  const ignoreSource = useIgnoreCandidateCard([adminKeys.workspace, adminKeys.cards.list]);
-  const [ignoring, setIgnoring] = useState(false);
+function CardsTable({
+  records,
+  isAdmin,
+  selection,
+}: {
+  records: CardRecords;
+  isAdmin: boolean;
+  selection: RecordSelection;
+}) {
+  const ignoreDrafts = useIgnoreNewCardDrafts([adminKeys.workspace, adminKeys.cards.list]);
+  const { push: pushUndo } = useWorkspaceUndo();
   const exporter = useExport(() =>
     Promise.resolve({
       csv: buildCardsCsv(records.rows),
       filename: recordsCsvFilename("cards", todayDay()),
     }),
   );
-  const selectedDrafts = records.rows.filter(
-    (row) => row.cardSlug === null && selection.selected.has(cardSummaryKey(row)),
+  const split = splitSelection(
+    records.loadedRows.filter((row) => row.cardSlug === null),
+    records.rows,
+    cardSummaryKey,
+    selection.selected,
   );
+  const selectedDrafts = split.selected;
 
-  async function ignoreSelected() {
-    setIgnoring(true);
-    if (await ignoreDraftsAndReport(queryClient, ignoreSource.mutateAsync, selectedDrafts)) {
-      selection.clear();
-    }
-    setIgnoring(false);
+  function ignoreSelected() {
+    const selectedCount = selectedDrafts.length;
+    ignoreDrafts.mutate(
+      selectedDrafts.map((row) => row.normalizedName),
+      {
+        onSuccess: ({ ignored, sources }) => {
+          selection.clear();
+          if (ignored > 0) {
+            pushUndo(
+              ignoredCardsUndo(
+                sources,
+                `${ignored} new ${pluralize(ignored, "card")}`,
+                ignored > 1,
+              ),
+            );
+          }
+          const message = ignoredDraftsMessage(ignored, selectedCount - ignored);
+          if (ignored === 0) {
+            toast(message);
+          } else {
+            toast.success(message);
+          }
+        },
+      },
+    );
   }
 
   const columns: AdminColumnDef<CandidateCardSummaryResponse>[] = [
@@ -629,12 +646,13 @@ function CardsTable({ records, isAdmin }: { records: CardRecords; isAdmin: boole
         <Toolbar
           summary={summaryText(records.rows.length, records.total, "cards", false)}
           selectedCount={selectedDrafts.length}
+          hiddenCount={split.hiddenCount}
           actions={
             <Button
               variant="outline"
               size="sm"
-              disabled={ignoring}
-              onClick={() => void ignoreSelected()}
+              disabled={ignoreDrafts.isPending}
+              onClick={ignoreSelected}
             >
               Ignore
             </Button>
@@ -647,16 +665,31 @@ function CardsTable({ records, isAdmin }: { records: CardRecords; isAdmin: boole
   );
 }
 
-function PrintingsTable({ records }: { records: RowRecords }) {
-  const selection = useSelection();
+function PrintingsTable({
+  records,
+  selection,
+}: {
+  records: RowRecords;
+  selection: RecordSelection;
+}) {
   const { labels } = useEnumOrders();
   const post = useMakePost();
   const exporter = useExport(async () => ({
     csv: buildPrintingsCsv(await fetchMatchingRecords(records)),
     filename: recordsCsvFilename("printings", todayDay()),
   }));
-  const selectedRows = records.rows.filter((row) => selection.selected.has(row.id));
-  const withImage = selectedRows.filter((row) => row.imageUrl !== null && row.imageCount !== 0);
+  const loaded = splitSelection(
+    records.loadedRows,
+    records.rows,
+    (row) => row.id,
+    selection.selected,
+  );
+  const loadedIds = new Set(loaded.selected.map((row) => row.id));
+  const unloadedIds = [...selection.selected].filter((id) => !loadedIds.has(id));
+  const selectedCount = loaded.selected.length + unloadedIds.length;
+  const hiddenCount = loaded.hiddenCount + unloadedIds.length;
+  const withImage = loaded.selected.filter((row) => row.imageUrl !== null && row.imageCount !== 0);
+  const postIds = [...withImage.map((row) => row.id), ...unloadedIds];
 
   const columns: AdminColumnDef<WorkspaceRecordRow>[] = [
     selectColumn<WorkspaceRecordRow>(
@@ -700,19 +733,20 @@ function PrintingsTable({ records }: { records: RowRecords }) {
       toolbar={
         <Toolbar
           summary={summaryText(records.rows.length, records.total, "printings", records.hasMore)}
-          selectedCount={selectedRows.length}
+          selectedCount={selectedCount}
+          hiddenCount={hiddenCount}
           actions={
             <Button
               variant="outline"
               size="sm"
-              disabled={withImage.length === 0 || post.working}
-              onClick={() => void post.openFromIds(withImage.map((row) => row.id))}
+              disabled={postIds.length === 0 || post.working}
+              onClick={() => void post.openFromIds(postIds)}
             >
               <Share2Icon />
               Make a post
             </Button>
           }
-          note={withoutImageNote(selectedRows.length - withImage.length)}
+          note={withoutImageNote(loaded.selected.length - withImage.length)}
           onExport={exporter.handleExport}
           exporting={exporter.exporting}
         />
@@ -787,9 +821,17 @@ function FacesTable({ records }: { records: RowRecords }) {
   );
 }
 
-function DeskTable({ records, mode }: { records: DeskRecords; mode: DeskMode }) {
+function DeskTable({
+  records,
+  mode,
+  selection,
+}: {
+  records: DeskRecords;
+  mode: DeskMode;
+  selection: RecordSelection;
+}) {
   const rows = records.rows;
-  const selection = useSelection();
+
   const post = useMakePost();
   const { data: channelData } = useDistributionChannels();
   const { data: markerData } = useMarkers();
@@ -802,7 +844,12 @@ function DeskTable({ records, mode }: { records: DeskRecords; mode: DeskMode }) 
       filename: printingDeskCsvFilename(mode === "promos" ? "all" : "mine", todayDay()),
     }),
   );
-  const selectedRows = rows.filter((row) => selection.selected.has(row.printingId));
+  const { selected: selectedRows, hiddenCount } = splitSelection(
+    records.loadedRows,
+    rows,
+    (row) => row.printingId,
+    selection.selected,
+  );
   const slides = selectedRows.flatMap((row) =>
     row.activeImageFileId === null
       ? []
@@ -851,6 +898,7 @@ function DeskTable({ records, mode }: { records: DeskRecords; mode: DeskMode }) 
         <Toolbar
           summary={summaryText(rows.length, records.total, "printings", false)}
           selectedCount={selectedRows.length}
+          hiddenCount={hiddenCount}
           actions={
             <Button
               variant="outline"
@@ -875,47 +923,26 @@ export function RecordsTable({
   records,
   deskMode,
   role,
+  selection,
 }: {
   records: WorkspaceRecordsResult;
   deskMode: DeskMode;
   role: WorkspaceRole;
+  selection: RecordSelection;
 }) {
   switch (records.kind) {
     case "card": {
-      return <CardsTable records={records} isAdmin={role === "admin"} />;
+      return <CardsTable records={records} isAdmin={role === "admin"} selection={selection} />;
     }
     case "desk": {
-      return <DeskTable records={records} mode={deskMode} />;
+      return <DeskTable records={records} mode={deskMode} selection={selection} />;
     }
     case "printing": {
-      return <PrintingsTable records={records} />;
+      return <PrintingsTable records={records} selection={selection} />;
     }
     case "face": {
       return <FacesTable records={records} />;
     }
-  }
-}
-
-async function ignoreDraftsAndReport(
-  queryClient: QueryClient,
-  ignore: (input: { provider: string; externalId: string }) => Promise<unknown>,
-  drafts: CandidateCardSummaryResponse[],
-): Promise<boolean> {
-  try {
-    const details = (await Promise.all(
-      drafts.map((row) => queryClient.query(unmatchedCardDetailQueryOptions(row.normalizedName))),
-    )) as UnmatchedCardDetailResponse[];
-    const sources = details.flatMap((detail) =>
-      detail.sources.filter((source) => source.provider !== USER_SUBMISSION_PROVIDER),
-    );
-    await Promise.all(
-      sources.map((source) => ignore({ provider: source.provider, externalId: source.externalId })),
-    );
-    toast.success(`Ignored ${drafts.length} ${pluralize(drafts.length, "new card")}.`);
-    return true;
-  } catch (error) {
-    toast.error(error instanceof Error ? error.message : "Ignoring failed.");
-    return false;
   }
 }
 

@@ -54,6 +54,13 @@ describe("referencePriceText", () => {
   it("labels CardTrader and formats euro", () => {
     expect(referencePriceText(240, "en-US")).toBe("CT €2.40");
     expect(referencePriceText(5, "en-US")).toBe("CT €0.05");
+    expect(referencePriceText(240, "de-DE")).toBe("CT 2,40 €");
+  });
+
+  it("uses the browser's locale when none is given", () => {
+    expect(referencePriceText(240)).toBe(
+      `CT ${new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" }).format(2.4)}`,
+    );
   });
 });
 

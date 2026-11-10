@@ -13,7 +13,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("overlay routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   afterAll(async () => {

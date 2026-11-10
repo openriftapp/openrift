@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { MAX_FACET_VALUES } from "../meta-query.js";
 import {
-  MAX_FACET_VALUES,
   metaDateRangeQuerySchema,
   metaDeckQuerySchema,
   metaLegendQuerySchema,

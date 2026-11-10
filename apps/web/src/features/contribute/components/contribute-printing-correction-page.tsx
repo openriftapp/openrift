@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { notFound, getRouteApi } from "@tanstack/react-router";
 
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
+import { printingName } from "@/features/cards/lib/card-meta";
 import { ContributeForm } from "@/features/contribute/components/contribute-form";
 import {
   ContributeBackToCard,
@@ -33,10 +34,8 @@ export function ContributePrintingCorrectionPage() {
       back={<ContributeBackToCard cardSlug={cardSlug} />}
       lead={
         <>
-          <span className="text-foreground font-medium">
-            {printing.printedName ?? data.card.name}
-          </span>{" "}
-          · {setNameById.get(printing.setId) ?? ""} · {printing.publicCode} ·{" "}
+          <span className="text-foreground font-medium">{printingName(printing, data.card)}</span> ·{" "}
+          {setNameById.get(printing.setId) ?? ""} · {printing.publicCode} ·{" "}
           {enumLabel(labels.finishes, printing.finish)} ·{" "}
           {enumLabel(languageLabels, printing.language)}
         </>

@@ -47,7 +47,13 @@ export function DraftRowActions({
           disabled={linkCard.isPending}
           aria-label={`Assign to ${suggested.slug}`}
           title={`Assign to ${suggested.slug}`}
-          onClick={() => linkCard.mutate({ name: row.normalizedName, cardId: suggested.id })}
+          onClick={() =>
+            linkCard.mutate({
+              name: row.normalizedName,
+              cardId: suggested.id,
+              cardSlug: suggested.slug,
+            })
+          }
         >
           <LinkIcon />
         </Button>

@@ -1,9 +1,9 @@
 import { adminUsersContract } from "@openrift/shared/contracts/admin/users";
+import type { AdminUsersResponse } from "@openrift/shared/contracts/admin/users";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { AdminUsersResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

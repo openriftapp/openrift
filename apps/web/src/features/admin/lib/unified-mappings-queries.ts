@@ -1,13 +1,13 @@
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
-import { queryOptions } from "@tanstack/react-query";
-import { createServerFn } from "@tanstack/react-start";
-
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type {
   UnifiedMappingsCardResponse,
   UnifiedMappingsResponse,
   UnifiedMappingsSummaryResponse,
-} from "@/lib/server-fns/api-types";
+} from "@openrift/shared/contracts/admin/unified-mappings";
+import { queryOptions } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
+
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

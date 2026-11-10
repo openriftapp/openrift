@@ -20,6 +20,7 @@ import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
 import type { TournamentSummaryRow } from "../repositories/tournaments-core.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
+import { presentedEntryState } from "./deck-check-deadline.js";
 import { hasOrgRole } from "./org-access.js";
 import { isHost, loadTournament } from "./tournament-access.js";
 import { moduleFlags, toParticipant, toStaffMember } from "./tournament-presenters.js";
@@ -298,7 +299,10 @@ export async function buildDetail(
     myDeckEntry: deckEntry
       ? {
           id: deckEntry.id,
-          state: deckEntry.state,
+          state: presentedEntryState(
+            { status: deckEntry.eventStatus, submissionsCloseAt: deckEntry.submissionsCloseAt },
+            deckEntry,
+          ),
           reviewOutcome: deckEntry.reviewOutcome,
           unlockRequested: deckEntry.unlockRequestedAt !== null,
           hasPlayerMessage: deckEntry.playerMessage !== null,

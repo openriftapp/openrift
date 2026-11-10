@@ -40,7 +40,6 @@ function RuleHtml({ html, navigate }: { html: string; navigate?: (href: string) 
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- mirrors the rules page delegation
     <div onClick={(event) => handleRuleHtmlClick(event, navigate ?? vi.fn())}>
-      {/* oxlint-disable-next-line react/no-danger -- test fixture */}
       <div className="rule-html" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );

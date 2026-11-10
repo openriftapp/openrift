@@ -18,7 +18,6 @@ vi.mock("@/features/admin/components/assign-button", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DraftRowActions } from "./draft-row-actions";
 
 function makeRow(overrides: Partial<CandidateCardSummaryResponse> = {}) {

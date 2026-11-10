@@ -15,7 +15,6 @@ const USER_IDS = [OWNER_ID, ADMIN_ID, MEMBER_ID, OPTED_OUT_ID, UNVERIFIED_ID];
 const ctx = createDbContext(OWNER_ID);
 
 describe.skipIf(!ctx)("listGroupJoinRequestRecipients (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const groups = friendGroupsRepo(db);
   const preferences = userPreferencesRepo(db);

@@ -51,7 +51,6 @@ function mount(processFrame: ScanCatchUpOptions["processFrame"]) {
 
 function deferredOutcome() {
   let finish!: (result: FrameOutcome) => void;
-  // oxlint-disable-next-line promise/avoid-new -- held open until the test finishes it
   const promise = new Promise<FrameOutcome>((resolve) => {
     finish = resolve;
   });
@@ -100,7 +99,6 @@ describe("useScanCatchUp", () => {
     let finish!: (result: FrameOutcome) => void;
     const { hook, onLock, runGenerationRef } = mount(
       () =>
-        // oxlint-disable-next-line promise/avoid-new -- held open until the run is stopped
         new Promise((resolve) => {
           finish = resolve;
         }),
@@ -121,7 +119,6 @@ describe("useScanCatchUp", () => {
   });
 
   it("waits while a second look is already running", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- a second look that never finishes
     const { hook } = mount(() => new Promise(() => {}));
     act(() => {
       hook.result.current.enqueue({ frame: FRAME, thumbnail: null }, 1);

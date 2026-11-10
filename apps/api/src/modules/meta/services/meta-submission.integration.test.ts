@@ -65,7 +65,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("submitMetaDeck (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
 
   it("stages the overlay, its lines and the ledger row in one transaction", async () => {

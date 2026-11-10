@@ -42,7 +42,6 @@ describe("useGravatarHash", () => {
     const { unmount } = renderHook(() => useGravatarHash("a@example.com"));
 
     unmount();
-    // oxlint-disable-next-line promise/avoid-new -- wrapping the setTimeout callback API to await a delay
     await new Promise((resolve) => {
       setTimeout(resolve, 10);
     });

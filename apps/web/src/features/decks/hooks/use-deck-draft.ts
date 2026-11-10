@@ -22,7 +22,6 @@ export function useDeckDraftHydrated(
   deckId: string,
 ): boolean {
   return useSyncExternalStore(
-    // oxlint-disable-next-line promise/prefer-await-to-callbacks -- external-store subscribe signature
     (listener) => subscribeToDeckDraft(queryClient, userId, deckId, listener),
     () => getDeckDraftHydrated(queryClient, userId, deckId),
     () => false,
@@ -49,7 +48,6 @@ export function useDeckSaveStatus(
   deckId: string,
 ): DeckSaveStatus {
   return useSyncExternalStore(
-    // oxlint-disable-next-line promise/prefer-await-to-callbacks -- external-store subscribe signature
     (listener) => subscribeToDeckDraft(queryClient, userId, deckId, listener),
     () => getDeckDraftStatus(queryClient, userId, deckId),
     () => CLEAN_STATUS,

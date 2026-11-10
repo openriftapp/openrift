@@ -7,8 +7,8 @@ import {
 } from "@/features/admin/hooks/use-admin-printing-citations";
 
 /**
- * Unlike the meta archive's equivalent, every row here is hand-entered:
- * nothing ingests citations, so none refuses a delete.
+ * Every row here is hand-entered. A desk holder may change only the links they
+ * added, so the others show as locked.
  */
 export function PrintingCitationsEditor({
   printingId,
@@ -39,6 +39,7 @@ export function PrintingCitationsEditor({
         updateCitation.mutateAsync({ printingId, citationId, ...input })
       }
       onDelete={(citationId) => deleteCitation.mutate({ printingId, citationId })}
+      lockedReason={(citation) => (citation.canEdit ? null : "Added by someone else")}
     />
   );
 }

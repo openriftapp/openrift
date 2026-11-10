@@ -1,5 +1,10 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { copyLimitFor, formatHasSideboard, totalQuantity } from "@openrift/shared/deck-rules";
+import {
+  copyLimitFor,
+  formatHasSideboard,
+  RUNE_TARGET,
+  totalQuantity,
+} from "@openrift/shared/deck-rules";
 import { isSingleSlotZone, ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
@@ -33,7 +38,7 @@ import { useGridKeyboardNav } from "@/features/cards/hooks/use-grid-keyboard-nav
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
-import { splitsCardIntoTiles } from "@/features/cards/lib/card-tiles";
+import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
@@ -76,8 +81,9 @@ import {
   canAddRune,
   catalogCardToDeckBuilderCard,
   cellPreferredPrintingId,
+  COPY_LIMIT_ZONES,
+  isBattlefieldZoneFull,
   isDeckZoneFullForDrag,
-  RUNE_TARGET,
 } from "@/features/decks/lib/deck-builder-card";
 import {
   deckDetailControlsApply,
@@ -121,7 +127,7 @@ function workbenchLimitText(zone: DeckZone, battlefieldsFull: boolean): string {
 }
 
 function copyRemainderFor(
-  card: { maxCopiesOverride: number | null },
+  card: { maxCopiesOverride: number | null; keywords: readonly string[] },
   total: number,
 ): number | undefined {
   const limit = copyLimitFor(card);
@@ -556,10 +562,7 @@ function DeckCardBrowserInner({
     }
   }, [showCatalogDetail, selectedCard, items]);
 
-  // Must match useCardData's tile-splitting: when it renders one cell per
-  // printing, click selection has to navigate by printing too.
-  const cellRepresentsCard = view === "cards" && !splitsCardIntoTiles(groupBy);
-  const findBy: "card" | "printing" = cellRepresentsCard ? "card" : "printing";
+  const findBy = selectionFindBy(view, groupBy);
 
   const handleCardClick = (printing: Printing) => {
     useSelectionStore.getState().selectCard(printing, items, findBy);
@@ -567,9 +570,7 @@ function DeckCardBrowserInner({
 
   const battlefieldsFull =
     activeZone === WellKnown.deckZone.BATTLEFIELD &&
-    !isFreeform &&
-    deckCards.filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD).length >=
-      (isCustomRegion ? 1 : 3);
+    isBattlefieldZoneFull(deckCards, deckDetail.deck.format);
 
   // `event` is a structural `{ shiftKey?: boolean }` so the table path can
   // synthesize the bit it cares about without faking a full React.MouseEvent.
@@ -641,11 +642,9 @@ function DeckCardBrowserInner({
     }
   };
 
-  // Overflow is excluded: it's a free parking zone, so its copies don't count
-  // toward the 3-copy cap that disables the browser's add button.
   const copyLimitTotalByCard = new Map<string, number>();
   for (const card of deckCards) {
-    if (card.zone === WellKnown.deckZone.MAIN || card.zone === WellKnown.deckZone.SIDEBOARD) {
+    if (COPY_LIMIT_ZONES.has(card.zone)) {
       copyLimitTotalByCard.set(
         card.cardId,
         (copyLimitTotalByCard.get(card.cardId) ?? 0) + card.quantity,
@@ -669,33 +668,20 @@ function DeckCardBrowserInner({
     if (isSingleSlotZone(activeZone)) {
       return deckCards.some((card) => card.cardId === cardId && card.zone === activeZone);
     }
-    if (activeZone === WellKnown.deckZone.BATTLEFIELD) {
-      const alreadyInZone = deckCards.some(
-        (card) => card.cardId === cardId && card.zone === WellKnown.deckZone.BATTLEFIELD,
-      );
-      const battlefieldCap = isCustomRegion ? 1 : 3;
-      const zoneFull =
-        deckCards.filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD).length >=
-        battlefieldCap;
-      return alreadyInZone || zoneFull;
-    }
-    if (activeZone === WellKnown.deckZone.LEGEND_OPTIONS) {
-      return isDeckZoneFullForDrag({
-        zone: activeZone,
-        draggedCard: { cardId, maxCopiesOverride: item.printing.card.maxCopiesOverride },
-        fromZone: null,
-        allCards: deckCards,
-        format: deckDetail.deck.format,
-      });
-    }
     if (activeZone === WellKnown.deckZone.RUNES) {
       return !canAddRune(catalogCardToDeckBuilderCard(cardId, item.printing.card), deckCards);
     }
-    if (activeZone === WellKnown.deckZone.OVERFLOW) {
-      // Free parking zone — never capped.
-      return false;
-    }
-    return (copyLimitTotalByCard.get(cardId) ?? 0) >= copyLimitFor(item.printing.card);
+    return isDeckZoneFullForDrag({
+      zone: activeZone,
+      draggedCard: {
+        cardId,
+        maxCopiesOverride: item.printing.card.maxCopiesOverride,
+        keywords: item.printing.card.keywords,
+      },
+      fromZone: null,
+      allCards: deckCards,
+      format: deckDetail.deck.format,
+    });
   };
 
   const showSideboardAdd =

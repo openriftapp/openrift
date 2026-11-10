@@ -1,4 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
@@ -19,6 +22,10 @@ vi.mock("@/features/catalog-workspace/hooks/use-queue-navigation", () => ({
 const { handleWorkspaceKey, useWorkspaceKeyboard, workspaceKeyAction } =
   await import("./use-workspace-keyboard");
 
+function wrapper({ children }: { children: ReactNode }) {
+  return createElement(QueryClientProvider, { client: new QueryClient() }, children);
+}
+
 function keyEvent(key: string, overrides: Partial<KeyboardEvent> = {}) {
   return {
     key,
@@ -38,7 +45,7 @@ function deps(overrides: Partial<Parameters<typeof handleWorkspaceKey>[1]> = {})
     goPrev: vi.fn(),
     skipToEnd: vi.fn(),
     actions: null,
-    popUndo: vi.fn(() => null),
+    undo: vi.fn(() => false),
     overlayOpen: () => false,
     busy: { current: false },
     ...overrides,
@@ -167,6 +174,7 @@ describe("handleWorkspaceKey", () => {
     handleWorkspaceKey(keyEvent("a"), d);
     await vi.waitFor(() => expect(d.busy.current).toBe(false));
     handleWorkspaceKey(keyEvent("x"), d);
+    await vi.waitFor(() => expect(d.busy.current).toBe(false));
     handleWorkspaceKey(keyEvent("2"), d);
     expect(accept).toHaveBeenCalledOnce();
     expect(ignore).toHaveBeenCalledOnce();
@@ -177,7 +185,6 @@ describe("handleWorkspaceKey", () => {
     let finish = () => {};
     const run = vi.fn(
       () =>
-        // oxlint-disable-next-line promise/avoid-new -- held open so the second press lands mid-run
         new Promise<void>((resolve) => {
           finish = resolve;
         }),
@@ -197,14 +204,48 @@ describe("handleWorkspaceKey", () => {
     expect(run).toHaveBeenCalledTimes(2);
   });
 
+  it("ignores X and digit presses while the previous one is still writing", async () => {
+    let finish = () => {};
+    const pending = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    const ignore = vi.fn(pending);
+    const useSuggestion = vi.fn(pending);
+    const d = deps({ actions: { ignore, useSuggestion } });
+
+    handleWorkspaceKey(keyEvent("x"), d);
+    handleWorkspaceKey(keyEvent("x"), d);
+    handleWorkspaceKey(keyEvent("1"), d);
+    expect(ignore).toHaveBeenCalledOnce();
+    expect(useSuggestion).not.toHaveBeenCalled();
+
+    finish();
+    await vi.waitFor(() => expect(d.busy.current).toBe(false));
+    handleWorkspaceKey(keyEvent("1"), d);
+    handleWorkspaceKey(keyEvent("1"), d);
+    expect(useSuggestion).toHaveBeenCalledOnce();
+    finish();
+    await vi.waitFor(() => expect(d.busy.current).toBe(false));
+  });
+
+  it("frees the keys again after an action fails", async () => {
+    const ignore = vi.fn(() => Promise.reject(new Error("nope")));
+    const d = deps({ actions: { ignore } });
+    handleWorkspaceKey(keyEvent("x"), d);
+    await vi.waitFor(() => expect(d.busy.current).toBe(false));
+    handleWorkspaceKey(keyEvent("x"), d);
+    expect(ignore).toHaveBeenCalledTimes(2);
+  });
+
   it("reports unhandled keys when the record has no matching action", () => {
     expect(handleWorkspaceKey(keyEvent("a"), deps())).toBe(false);
     expect(handleWorkspaceKey(keyEvent("1"), deps())).toBe(false);
   });
 
-  it("undoes the latest step with Z", () => {
-    const undo = vi.fn(() => Promise.resolve());
-    expect(handleWorkspaceKey(keyEvent("z"), deps({ popUndo: () => ({ undo }) }))).toBe(true);
+  it("undoes the latest step with Z and leaves Z unhandled when nothing is on the stack", () => {
+    const undo = vi.fn(() => true);
+    expect(handleWorkspaceKey(keyEvent("z"), deps({ undo }))).toBe(true);
     expect(undo).toHaveBeenCalledOnce();
     expect(handleWorkspaceKey(keyEvent("z"), deps())).toBe(false);
   });
@@ -212,28 +253,33 @@ describe("handleWorkspaceKey", () => {
 
 describe("useWorkspaceKeyboard", () => {
   it("binds keys on the window and prevents their default", () => {
-    renderHook(() => useWorkspaceKeyboard("card"));
+    renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
     const event = new KeyboardEvent("keydown", { key: "j", cancelable: true });
     globalThis.dispatchEvent(event);
     expect(navigation.goNext).toHaveBeenCalledOnce();
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it("reads the registered record actions and the undo stack at key time", () => {
+  it("reads the registered record actions and the undo stack at key time", async () => {
     const accept = vi.fn();
     const undo = vi.fn(() => Promise.resolve());
-    renderHook(() => useWorkspaceKeyboard("printing"));
+    renderHook(() => useWorkspaceKeyboard("printing"), { wrapper });
     useWorkspaceActionsStore.getState().register({ accept }, Symbol("record"));
-    useWorkspaceSelectionStore.getState().pushUndo({ label: "Used rarity", undo });
+    useWorkspaceSelectionStore.getState().pushUndo({
+      label: "Used Rarity from Provider A on Vi",
+      undoneLabel: "Undone: Rarity restored on Vi",
+      invalidates: [],
+      undo,
+    });
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "z" }));
     expect(accept).toHaveBeenCalledOnce();
     expect(undo).toHaveBeenCalledOnce();
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
+    await vi.waitFor(() => expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]));
   });
 
   it("ignores keys while a dialog is in the document", () => {
-    renderHook(() => useWorkspaceKeyboard("face"));
+    renderHook(() => useWorkspaceKeyboard("face"), { wrapper });
     const dialog = document.createElement("div");
     dialog.setAttribute("role", "dialog");
     document.body.append(dialog);
@@ -242,7 +288,7 @@ describe("useWorkspaceKeyboard", () => {
   });
 
   it("stops listening on unmount", () => {
-    const { unmount } = renderHook(() => useWorkspaceKeyboard("card"));
+    const { unmount } = renderHook(() => useWorkspaceKeyboard("card"), { wrapper });
     unmount();
     globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
     expect(navigation.goNext).not.toHaveBeenCalled();

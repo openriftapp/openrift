@@ -91,7 +91,7 @@ export interface AcceptSubmissionResult {
 }
 
 export interface RejectSubmissionArgs extends ReviewerArgs {
-  reason?: CardSubmissionReason | null;
+  reason: CardSubmissionReason;
   note: string | null;
 }
 
@@ -348,8 +348,7 @@ export async function rejectSubmission(
   io: Io,
   args: RejectSubmissionArgs,
 ): Promise<void> {
-  const { candidateCardId, adminUserId, now, note } = args;
-  const reason = args.reason ?? null;
+  const { candidateCardId, adminUserId, now, note, reason } = args;
   const candidate = await loadCandidate(repos, args);
   const submission = await loadPendingSubmission(repos, candidateCardId);
 

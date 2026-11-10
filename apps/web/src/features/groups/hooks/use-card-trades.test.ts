@@ -5,7 +5,11 @@ import { createElement } from "react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { aggregateIncomingTradeCounts, useCreateTrade } from "./use-card-trades";
+import {
+  aggregateIncomingTradeCounts,
+  tradeCopyOptionsQueryOptions,
+  useCreateTrade,
+} from "./use-card-trades";
 
 const { serverFnCall, captureHandledError } = vi.hoisted(() => ({
   serverFnCall: vi.fn<() => Promise<unknown>>(),
@@ -141,5 +145,11 @@ describe("useCreateTrade", () => {
 
     expect(invalidatedKeys()).toEqual([]);
     expect(captureHandledError).toHaveBeenCalledOnce();
+  });
+});
+
+describe("tradeCopyOptionsQueryOptions", () => {
+  it("opts out of the client's default staleTime, since accept reads it right before writing", () => {
+    expect(tradeCopyOptionsQueryOptions("user-1", "trade-1").staleTime).toBe(0);
   });
 });

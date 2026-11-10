@@ -14,6 +14,9 @@ import { QueueHeader } from "@/features/catalog-workspace/components/queue-heade
 import { QueueList } from "@/features/catalog-workspace/components/queue-list";
 import { RecordsTable } from "@/features/catalog-workspace/components/records-table";
 import { WorkspaceSplitLayout } from "@/features/catalog-workspace/components/workspace-split-layout";
+import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
+import { useClearUndoOnLeave } from "@/features/catalog-workspace/hooks/use-clear-undo-on-leave";
+import { useRecordSelection } from "@/features/catalog-workspace/hooks/use-record-selection";
 import { useWorkspaceKeyboard } from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
 import type { WorkspaceSearchState } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import {
@@ -108,6 +111,7 @@ function RecordPlaceholder({ owner }: { owner: WorkspaceOwner }) {
 
 export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
   useWorkspaceKeyboard(owner);
+  useClearUndoOnLeave();
   const navigate = useNavigate();
   const params: WorkspaceRouteParams = useParams({ strict: false });
   const hasRecord = useChildMatches().length > 0;
@@ -118,6 +122,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
   const { role, view, search } = queue;
   const listAllowed = ownersForRole(role).includes(owner);
   const records = useWorkspaceRecords(owner, view === "all" && listAllowed);
+  const selection = useRecordSelection();
   const isDesk = role === "desk";
   const canCreate = owner === "card" ? role === "admin" : role === "admin" || isDesk;
 
@@ -135,6 +140,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
       title={OWNER_LABELS[owner]}
       actions={
         <>
+          <WorkspaceUndoButton />
           <NewButton owner={owner} canCreate={canCreate} />
           {hasRecord && (
             <PageTopBarIconButton
@@ -192,7 +198,12 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
           {loading ? (
             <LoadState error={records.error} pending={records.isPending} />
           ) : (
-            <RecordsTable records={records} deskMode={search.desk ?? "mine"} role={role} />
+            <RecordsTable
+              records={records}
+              deskMode={search.desk ?? "mine"}
+              role={role}
+              selection={selection}
+            />
           )}
         </div>
       </>

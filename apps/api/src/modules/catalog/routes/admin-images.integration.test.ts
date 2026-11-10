@@ -13,7 +13,6 @@ const mockSharpPipeline = {
   toBuffer: async () => FAKE_BUFFER,
 };
 
-/* oxlint-disable no-empty-function -- noop mocks for io operations */
 const mockIo: Io = {
   fs: {
     mkdir: async () => undefined as any,
@@ -30,7 +29,6 @@ const mockIo: Io = {
   dnsLookupAll: async () => [{ address: "203.0.113.10" }],
   sharp: (() => mockSharpPipeline) as any,
 };
-/* oxlint-enable no-empty-function */
 
 const USER_ID = "a0000000-0020-4000-a000-000000000001";
 
@@ -45,7 +43,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("Admin image routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   describe("POST /admin/rehost-images", () => {

@@ -180,7 +180,6 @@ export function ArrowOverlay({
       <ArrowMarkers />
       {lines.map((line, index) => (
         <ArrowStroke
-          // oxlint-disable-next-line react/no-array-index-key -- arrows are positional
           key={index}
           kind={line.kind}
           d={`M${line.x1} ${line.y1}Q${line.cx} ${line.cy} ${line.x2} ${line.y2}`}

@@ -6,9 +6,9 @@ import type {
 import { describe, expect, it } from "vitest";
 
 import {
-  submissionExplanation,
   submissionKindLabels,
   submissionReasonLabels,
+  submissionReasonSentence,
   submissionReasonSentences,
   submissionStatusBadgeVariant,
   submissionStatusHints,
@@ -71,22 +71,32 @@ describe("copy coverage", () => {
   });
 });
 
-describe("submissionExplanation", () => {
-  it("prefers the admin's own words", () => {
-    expect(submissionExplanation("not_a_card", "This is a Magic card.")).toBe(
-      "This is a Magic card.",
+describe("submissionReasonSentence", () => {
+  it("keeps the reason when the admin also wrote a note", () => {
+    expect(submissionReasonSentence("not_a_card", "This looks like a fan-made card.")).toBe(
+      submissionReasonSentences().not_a_card,
     );
   });
 
-  it("falls back to the canned sentence for the reason", () => {
-    expect(submissionExplanation("duplicate", null)).toBe(submissionReasonSentences().duplicate);
+  it("returns the canned sentence for the reason", () => {
+    expect(submissionReasonSentence("duplicate", null)).toBe(submissionReasonSentences().duplicate);
   });
 
-  it("returns nothing when neither is set", () => {
-    expect(submissionExplanation(null, null)).toBeNull();
+  it("returns nothing for a submission settled without a reason", () => {
+    expect(submissionReasonSentence(null, null)).toBeNull();
+    expect(submissionReasonSentence(null, "Thanks, added.")).toBeNull();
   });
 
-  it("returns the note even without a reason", () => {
-    expect(submissionExplanation(null, "Thanks, added.")).toBe("Thanks, added.");
+  it("drops the other sentence when there is no note for it to point at", () => {
+    expect(submissionReasonSentence("other", null)).toBeNull();
+    expect(submissionReasonSentence("other", "Wrong set.")).toBe(submissionReasonSentences().other);
+  });
+});
+
+describe("submissionStatusHints", () => {
+  it("gives a reasonless not-used submission a neutral line, the same for both statuses", () => {
+    const hints = submissionStatusHints();
+    expect(hints.rejected).toBeTruthy();
+    expect(hints.rejected).toBe(hints.not_applied);
   });
 });

@@ -4,6 +4,8 @@ import { createMiddleware } from "hono/factory";
 import { routePath } from "hono/route";
 import { collectDefaultMetrics, Counter, Gauge, Histogram, Registry } from "prom-client";
 
+import type { Variables } from "../types.js";
+
 const HISTOGRAM_BUCKETS = [
   0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10,
 ];
@@ -106,30 +108,32 @@ export const createMetricsMiddleware = (options: MetricsOptions = {}): Metrics =
     renderGauge("render_pool_workers", "Configured render worker count", (s) => s.workers);
   }
 
-  const registerMetrics = createMiddleware(async (c, next) => {
-    const start = process.hrtime.bigint();
-    const delaySec = upstreamDelaySeconds(c.req.header("x-request-start"), Date.now());
-    try {
-      await next();
-    } finally {
-      const labels = {
-        method: c.req.method,
-        route: routePath(c),
-        status: c.res.status.toString(),
-        ok: String(c.res.ok),
-      };
-      const traceId = getActiveTraceId();
-      // prom-client types exemplarLabels with the metric's label union; `as never`
-      // passes `traceID` without polluting the metric label types.
-      const exemplarLabels = traceId ? ({ traceID: traceId } as never) : undefined;
-      const durationSec = Number(process.hrtime.bigint() - start) / 1e9;
-      requestDuration.observe({ labels, value: durationSec, exemplarLabels });
-      requestsTotal.inc({ labels, value: 1, exemplarLabels });
-      if (delaySec !== undefined) {
-        upstreamDelay.observe({ method: labels.method, route: labels.route }, delaySec);
+  const registerMetrics = createMiddleware<{ Variables: Pick<Variables, "apiRoute"> }>(
+    async (c, next) => {
+      const start = process.hrtime.bigint();
+      const delaySec = upstreamDelaySeconds(c.req.header("x-request-start"), Date.now());
+      try {
+        await next();
+      } finally {
+        const labels = {
+          method: c.req.method,
+          route: c.get("apiRoute") ?? routePath(c),
+          status: c.res.status.toString(),
+          ok: String(c.res.ok),
+        };
+        const traceId = getActiveTraceId();
+        // prom-client types exemplarLabels with the metric's label union; `as never`
+        // passes `traceID` without polluting the metric label types.
+        const exemplarLabels = traceId ? ({ traceID: traceId } as never) : undefined;
+        const durationSec = Number(process.hrtime.bigint() - start) / 1e9;
+        requestDuration.observe({ labels, value: durationSec, exemplarLabels });
+        requestsTotal.inc({ labels, value: 1, exemplarLabels });
+        if (delaySec !== undefined) {
+          upstreamDelay.observe({ method: labels.method, route: labels.route }, delaySec);
+        }
       }
-    }
-  });
+    },
+  );
 
   const printMetrics = async (c: Context): Promise<Response> => {
     const body = await registry.metrics();

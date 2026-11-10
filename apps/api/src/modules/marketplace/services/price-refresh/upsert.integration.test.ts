@@ -14,7 +14,6 @@ const USER_ID = "a0000000-0022-4000-a000-000000000001";
 
 const ctx = createTestContext(USER_ID);
 
-// oxlint-disable-next-line no-empty-function -- noop logger for tests
 const noop = () => {};
 const noopLogger = { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger;
 
@@ -23,7 +22,6 @@ const CM_CONFIG: PriceUpsertConfig = {
 };
 
 describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = priceRefreshRepo(db);
 

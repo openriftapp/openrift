@@ -14,7 +14,6 @@ vi.mock("./errata-notice", () => ({
   ErrataCardText: ({ corrected }: { corrected: string }) => <span>{corrected}</span>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { CardDetailText } = await import("./card-detail-text");
 
 const englishErrata = makeCardErrata({ language: "EN", correctedRulesText: "Deal 3 to a unit." });

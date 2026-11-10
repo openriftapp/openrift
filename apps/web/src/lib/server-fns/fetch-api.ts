@@ -1,10 +1,9 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/server-only";
-import { context, propagation } from "@opentelemetry/api";
-
+import { fetchWithDeadline } from "./api-deadline";
 import { apiErrorFromResponse } from "./api-error";
+import { serverApiRequestHeaders } from "./api-trace-headers";
 import { getApiUrl } from "./api-url";
-import { activeClientIp } from "./client-ip-context";
 
 interface FetchApiOptions {
   errorTitle: string;
@@ -28,23 +27,15 @@ export async function fetchApi(options: FetchApiOptions): Promise<Response> {
     acceptStatuses,
   } = options;
   const url = `${getApiUrl()}${path}`;
-  const headers: Record<string, string> = { ...extraHeaders };
-  if (cookie !== undefined) {
-    headers.cookie = cookie;
-  }
+  const headers: Record<string, string> = { ...extraHeaders, ...serverApiRequestHeaders(cookie) };
   if (body !== undefined) {
     headers["content-type"] = "application/json";
   }
-  propagation.inject(context.active(), headers);
-  const clientIp = activeClientIp();
-  if (clientIp !== undefined) {
-    headers["x-real-ip"] = clientIp;
-  }
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const res = await fetchWithDeadline(
+    url,
+    { method, headers, body: body === undefined ? undefined : JSON.stringify(body) },
+    errorTitle,
+  );
   if (!res.ok && !acceptStatuses?.includes(res.status)) {
     throw await apiErrorFromResponse(res, errorTitle, { method, url });
   }

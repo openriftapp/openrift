@@ -7,7 +7,6 @@ import { readJson } from "../../../test/read-json.js";
 const ctx = createTestContext("a0000000-0011-4000-a000-000000000001");
 
 describe.skipIf(!ctx)("collectionEventsRepo via API (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = ctx!;
 
   let collectionId: string;

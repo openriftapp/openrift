@@ -7,6 +7,11 @@ import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup
 import { getCopiesCollection } from "@/features/collections/lib/copies-collection";
 import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
+import { badgesKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
+import {
+  sendWithTradeCancelConsent,
+  tradeCancelConsentOf,
+} from "@/features/groups/lib/trade-cancel-conflict";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export type CollectionsCollection = Collection<CollectionResponse, string | number>;
@@ -72,10 +77,18 @@ async function persistUpdate(mutation: PendingMutation<CollectionResponse>): Pro
 
 async function persistDelete(
   collection: CollectionsCollection,
-  id: string,
+  mutation: PendingMutation<CollectionResponse>,
   context: CollectionsWriteContext,
 ): Promise<void> {
-  await browserApiOrpcClient(collectionsContract).remove({ id });
+  const id = String(mutation.key);
+  const consent = tradeCancelConsentOf(mutation.metadata);
+  const remove = (cancelTradeIds?: string[]) =>
+    browserApiOrpcClient(collectionsContract).remove({ id, cancelTradeIds });
+  await (consent ? sendWithTradeCancelConsent(consent, remove) : remove());
+  if ((consent?.tradeIds.size ?? 0) > 0) {
+    void context.queryClient.invalidateQueries({ queryKey: tradesKeys.all(context.userId) });
+    void context.queryClient.invalidateQueries({ queryKey: badgesKeys.all(context.userId) });
+  }
 
   // The API moves a deleted collection's copies into the inbox, which is always personal.
   const inboxId = collection.toArray.find((row) => row.isInbox)?.id;
@@ -108,7 +121,7 @@ async function persistInOrder(
     } else if (mutation.type === "update") {
       await persistUpdate(mutation);
     } else {
-      await persistDelete(collection, String(mutation.key), context);
+      await persistDelete(collection, mutation, context);
     }
   }
 

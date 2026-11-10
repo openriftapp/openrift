@@ -34,11 +34,7 @@ function resolveAll(overrides: DisplayOverrides): DisplayPreferences {
   for (const key of DISPLAY_PREFERENCE_KEYS) {
     const override = overrides[key];
     const value = override ?? PREFERENCE_DEFAULTS[key];
-    resolved[key] = Array.isArray(value)
-      ? [...value]
-      : typeof value === "object" && value !== null
-        ? { ...value }
-        : value;
+    resolved[key] = Array.isArray(value) ? [...value] : value;
   }
   return resolved as DisplayPreferences;
 }
@@ -54,7 +50,6 @@ interface DisplayState extends DisplayPreferences {
   setFoilEffect: (value: DisplayPreferences["foilEffect"]) => void;
   setMarketplaceOrder: (value: DisplayPreferences["marketplaceOrder"]) => void;
   setLanguages: (value: DisplayPreferences["languages"]) => void;
-  setCompletionScope: (value: DisplayPreferences["completionScope"]) => void;
   setDefaultCardView: (value: DisplayPreferences["defaultCardView"]) => void;
   setDefaultCurrency: (value: DisplayPreferences["defaultCurrency"]) => void;
   setTopLevelFilters: (value: DisplayPreferences["topLevelFilters"]) => void;
@@ -122,11 +117,6 @@ export const useDisplayStore = create<DisplayState>()(
         set((state) => ({
           languages: value,
           overrides: { ...state.overrides, languages: value },
-        })),
-      setCompletionScope: (value) =>
-        set((state) => ({
-          completionScope: value,
-          overrides: { ...state.overrides, completionScope: value },
         })),
       setDefaultCardView: (value) =>
         set((state) => ({

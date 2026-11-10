@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { OverlayBoard } from "@openrift/shared/contracts/overlay";
 import { DEFAULT_OVERLAY_PAYLOAD } from "@openrift/shared/contracts/overlay";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,6 +32,10 @@ const TIER_LIST = {
 };
 
 const idleMutation = { mutate: vi.fn(), isPending: false };
+
+vi.mock("@/lib/load-image", () => ({
+  loadImage: () => Promise.resolve({ decode: () => Promise.resolve() }),
+}));
 
 vi.mock("@/features/stage/hooks/use-overlay", () => ({
   useOverlayChannel: mockUseOverlayChannel,
@@ -97,7 +101,6 @@ vi.mock("@/components/ui/slider", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { OverlayOutputPanel } from "./overlay-output-panel";
 
 const resetQueue = createStoreResetter(usePresentQueueStore);
@@ -139,9 +142,9 @@ describe("OverlayOutputPanel card size", () => {
     channelShowing(PRINTING.printingId);
   });
 
-  it("resizes the preview while the thumb is being dragged", () => {
+  it("resizes the preview while the thumb is being dragged", async () => {
     const { container, getByText } = render(<OverlayOutputPanel />);
-    expect(cardHeight(container)).toBe("70%");
+    await waitFor(() => expect(cardHeight(container)).toBe("70%"));
 
     fireEvent.click(getByText("drag-move"));
 
@@ -158,8 +161,9 @@ describe("OverlayOutputPanel card size", () => {
     expect(mockUpdateSettings).toHaveBeenCalledWith({ scale: 35 });
   });
 
-  it("falls back to the channel's size once the drag is over", () => {
+  it("falls back to the channel's size once the drag is over", async () => {
     const { container, getByText } = render(<OverlayOutputPanel />);
+    await waitFor(() => expect(cardHeight(container)).toBeDefined());
 
     fireEvent.click(getByText("drag-move"));
     fireEvent.click(getByText("drag-end"));

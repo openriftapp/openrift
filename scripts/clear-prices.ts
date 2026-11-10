@@ -1,8 +1,10 @@
 import { createDb } from "../apps/api/src/db/connect.js";
 import { marketplaceAdminRepo } from "../apps/api/src/modules/marketplace/repositories/marketplace-admin.js";
-import { requireEnv } from "./env.js";
+import { assertLocalDatabase, requireEnv } from "./env.js";
 
-const { db } = createDb(requireEnv("DATABASE_URL"));
+const databaseUrl = requireEnv("DATABASE_URL");
+assertLocalDatabase(databaseUrl);
+const { db } = createDb(databaseUrl);
 const repo = marketplaceAdminRepo(db);
 
 for (const marketplace of ["tcgplayer", "cardmarket"]) {

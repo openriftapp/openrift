@@ -5,7 +5,6 @@ import type {
   AdminPrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRightIcon,
   CropIcon,
@@ -333,7 +332,6 @@ function InactiveImageRow({
   isAdmin: boolean;
   landscape: boolean;
 }) {
-  const queryClient = useQueryClient();
   const activate = useActivatePrintingImage(scope);
   const remove = useDeletePrintingImage(scope);
   const rotate = useRotatePrintingImage(scope);
@@ -430,13 +428,11 @@ function InactiveImageRow({
           {isAdmin && face.otherFace !== null && (
             <DropdownMenuItem
               onClick={() =>
-                moveFace.mutate(
-                  { printingImageId: image.id, printingId: face.id, face: otherSide },
-                  {
-                    onSettled: () =>
-                      void queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-                  },
-                )
+                moveFace.mutate({
+                  printingImageId: image.id,
+                  printingId: face.id,
+                  face: otherSide,
+                })
               }
             >
               <ArrowLeftRightIcon />
@@ -562,7 +558,6 @@ function DeskWaitingImage({
   image: DeskImage;
   landscape: boolean;
 }) {
-  const queryClient = useQueryClient();
   const rotate = useRotatePrintingImage(DESK_IMAGE_SCOPE);
   const remove = useDeletePrintingImage(DESK_IMAGE_SCOPE);
   const updateImage = useUpdateDeskImage();
@@ -575,19 +570,16 @@ function DeskWaitingImage({
     setCredit(image.credit ?? "");
   }
 
-  const settle = {
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-  };
   const ownTools = image.canDelete;
   const otherFace = image.face === "front" ? "back" : "front";
 
   function saveCredit() {
     const next = credit.trim();
     if (next !== (image.credit ?? "")) {
-      updateImage.mutate(
-        { imageFileId: image.imageFileId, credit: next.length > 0 ? next : null },
-        settle,
-      );
+      updateImage.mutate({
+        imageFileId: image.imageFileId,
+        credit: next.length > 0 ? next : null,
+      });
     }
   }
 
@@ -639,14 +631,11 @@ function DeskWaitingImage({
                 aria-label="Move to the other face"
                 disabled={moveFace.isPending}
                 onClick={() =>
-                  moveFace.mutate(
-                    {
-                      printingImageId: image.printingImageId,
-                      printingId: printing.printingId,
-                      face: otherFace,
-                    },
-                    settle,
-                  )
+                  moveFace.mutate({
+                    printingImageId: image.printingImageId,
+                    printingId: printing.printingId,
+                    face: otherFace,
+                  })
                 }
               >
                 <ArrowLeftRightIcon />

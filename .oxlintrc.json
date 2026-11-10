@@ -426,8 +426,18 @@
         "promise/prefer-await-to-callbacks": "off",
         "unicorn/no-useless-undefined": "off",
         "react/forbid-elements": "off",
+        "import/first": "off", // vitest hoists vi.mock above the imports
+        "promise/avoid-new": "off",
+        "import/no-nodejs-modules": "off",
         "typescript/no-misused-promises": "off", // mocks legitimately hand promise-returning functions to callbacks
         "typescript/no-unsafe-member-access": "off" // bodies come back through `readJson`, which is `any` by design (apps/api/src/test/read-json.ts)
+      }
+    },
+    {
+      // Bun and Node code. apps/api repeats this in its own config (see the harness note below).
+      "files": ["apps/discord-bot/**", "scripts/**", "**/*.config.ts"],
+      "rules": {
+        "import/no-nodejs-modules": "off"
       }
     },
     {

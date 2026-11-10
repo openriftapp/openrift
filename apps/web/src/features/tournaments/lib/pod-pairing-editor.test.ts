@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   movePlayer,
+  moveTargets,
   participantIds,
   seedFromRound,
   toPayload,
@@ -114,6 +115,34 @@ describe("movePlayer", () => {
     movePlayer(state, "a", { kind: "bye" });
     expect(state.pods[0]!.playerIds).toEqual(["a", "b", "c", "d"]);
     expect(state.byes).toEqual(["h"]);
+  });
+});
+
+describe("moveTargets", () => {
+  it("offers every other pod, a new pod and the byes, never the current pod", () => {
+    expect(moveTargets(seedFromRound(round()), "a", "pod")).toEqual([
+      { kind: "pod", index: 1 },
+      { kind: "newPod" },
+      { kind: "bye" },
+    ]);
+  });
+
+  it("leaves out the byes for a player already sitting out", () => {
+    expect(moveTargets(seedFromRound(round()), "h", "swiss")).toEqual([
+      { kind: "pod", index: 0 },
+      { kind: "pod", index: 1 },
+      { kind: "newPod" },
+    ]);
+  });
+
+  it("keeps an emptied pod as a target, like its drop zone", () => {
+    const state = { pods: [{ playerIds: [] }, { playerIds: ["a", "b"] }], byes: [] };
+    expect(moveTargets(state, "a", "pod")).toContainEqual({ kind: "pod", index: 0 });
+  });
+
+  it("offers only the other bracket slots in a cut round", () => {
+    const state = { pods: [{ playerIds: ["a", "b"] }, { playerIds: ["c", "d"] }], byes: [] };
+    expect(moveTargets(state, "a", "cut")).toEqual([{ kind: "pod", index: 1 }]);
   });
 });
 

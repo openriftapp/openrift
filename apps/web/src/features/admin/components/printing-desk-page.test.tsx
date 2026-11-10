@@ -360,6 +360,10 @@ describe("PrintingDeskPage selection", () => {
     await user.type(screen.getByLabelText("Filter by card name or code"), "vi,");
 
     expect(screen.queryByText("Jinx, Loose Cannon")).not.toBeInTheDocument();
-    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    expect(screen.getByText("1 selected, 1 hidden by filter")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Make a post/u })).toHaveAttribute(
+      "href",
+      "/admin/printing-desk/post?slides=p-3%3Aimg-3",
+    );
   });
 });

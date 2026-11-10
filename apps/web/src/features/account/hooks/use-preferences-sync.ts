@@ -4,9 +4,11 @@ import type {
   UserPreferencesResponse,
 } from "@openrift/shared/types/api/preferences";
 import type { ContractRouterClient } from "@orpc/contract";
-import { useDebouncedCallback } from "@tanstack/react-pacer";
+import { useDebouncer } from "@tanstack/react-pacer";
+import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
@@ -83,24 +85,61 @@ function getPrefsSnapshot(): UserPreferencesResponse & {
     foilEffect: overrides.foilEffect,
     marketplaceOrder: overrides.marketplaceOrder,
     languages: overrides.languages,
-    completionScope: overrides.completionScope,
     defaultCardView: overrides.defaultCardView,
     defaultCurrency: overrides.defaultCurrency,
     topLevelFilters: overrides.topLevelFilters,
     countExcludedCollections: overrides.countExcludedCollections,
-    // Retired fields, folded into topLevelFilters; always null to clear them.
+    // Retired fields; always null to clear them.
     hiddenFilterSections: null,
     compactFilterView: null,
+    completionScope: null,
     theme: themePreference,
     palette: palettePreference,
     // Response type has no nulls (PATCH-only "remove this key" markers), hence the cast.
   } as unknown as UserPreferencesResponse;
 }
 
+const SAVE_RETRY_MS = 2000;
+
+/** A `fetch` that the browser finishes sending after the page is closed. */
+function keepaliveFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return fetch(input, { ...init, keepalive: true });
+}
+
 // getPrefsSnapshot builds its object literal in a fixed key order, so
 // stringify is stable and can be compared for equality.
 function serializePrefs(): string {
   return JSON.stringify(getPrefsSnapshot());
+}
+
+/** Resolves false when the save failed, leaving `lastSynced` on the last confirmed value. */
+async function pushPrefs(
+  queryClient: QueryClient,
+  userId: string,
+  lastSynced: RefObject<string | null>,
+  keepalive: boolean,
+): Promise<boolean> {
+  const snapshot = serializePrefs();
+  if (snapshot === lastSynced.current) {
+    return true;
+  }
+  const prefs = getPrefsSnapshot();
+  try {
+    await patchPreferencesFn({
+      data: { prefs },
+      ...(keepalive ? { fetch: keepaliveFetch } : {}),
+    });
+  } catch {
+    return false;
+  }
+  lastSynced.current = snapshot;
+  // Merge, not replace: overwriting would evict server-only keys (e.g.
+  // emailNotifications) not present in this snapshot.
+  queryClient.setQueryData(
+    preferencesKeys.all(userId),
+    (previous: UserPreferencesResponse | undefined) => ({ ...previous, ...prefs }),
+  );
+  return true;
 }
 
 export function usePreferencesSync(enabled: boolean) {
@@ -116,32 +155,50 @@ export function usePreferencesSync(enabled: boolean) {
     enabled: enabled && Boolean(userId) && hydrated,
   });
 
-  const debouncedSave = useDebouncedCallback(
-    async () => {
-      if (!userId) {
-        return;
-      }
-      const snapshot = serializePrefs();
-      if (snapshot === lastSynced.current) {
-        return;
-      }
-      const prefs = getPrefsSnapshot();
-      try {
-        await patchPreferencesFn({ data: { prefs } });
-      } catch {
-        // Leave lastSynced on the last confirmed value so the edit stays marked
-        // diverged and rides along with the next successful save.
-        return;
-      }
-      lastSynced.current = snapshot;
-      // Merge, not replace: overwriting would evict server-only keys (e.g.
-      // emailNotifications) not present in this snapshot.
-      queryClient.setQueryData(
-        preferencesKeys.all(userId),
-        (previous: UserPreferencesResponse | undefined) => ({ ...previous, ...prefs }),
-      );
-    },
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function save(keepalive: boolean) {
+    if (!userId) {
+      return;
+    }
+    const saved = await pushPrefs(queryClient, userId, lastSynced, keepalive);
+    if (!saved && !keepalive) {
+      retryTimer.current = setTimeout(() => {
+        void pushPrefs(queryClient, userId, lastSynced, false);
+      }, SAVE_RETRY_MS);
+    }
+  }
+
+  const { maybeExecute: debouncedSave, cancel: cancelDebouncedSave } = useDebouncer(
+    () => void save(false),
     { wait: 1000 },
+  );
+
+  useEffect(() => {
+    function flush() {
+      cancelDebouncedSave();
+      void save(true);
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        flush();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    globalThis.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      globalThis.removeEventListener("pagehide", flush);
+    };
+  });
+
+  useEffect(
+    () => () => {
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
+      }
+    },
+    [],
   );
 
   // Logged-out, or a fetch error: mark hydrated so downstream consumers

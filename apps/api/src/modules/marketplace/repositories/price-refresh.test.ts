@@ -57,13 +57,8 @@ describe("priceRefreshRepo", () => {
     expect(await priceRefreshRepo(db).upsertProductsForMarketplace("tcgplayer", [])).toEqual([]);
   });
 
-  it("countProductPrices returns count", async () => {
-    const db = createMockDb([{ count: 42 }]);
-    expect(await priceRefreshRepo(db).countProductPrices("tcgplayer")).toBe(42);
-  });
-
-  it("upsertProductPrices returns affected count", async () => {
-    const db = createMockDb([{ _: 1 }]);
+  it("upsertProductPrices splits the returned rows into inserted and updated", async () => {
+    const db = createMockDb([{ inserted: true }, { inserted: false }, { inserted: true }]);
     expect(
       await priceRefreshRepo(db).upsertProductPrices([
         {
@@ -80,7 +75,7 @@ describe("priceRefreshRepo", () => {
           avg30Cents: null,
         },
       ]),
-    ).toBe(1);
+    ).toEqual({ inserted: 2, updated: 1 });
   });
 
   it("existingSourcesByMarketplaces returns sources with finish + language", async () => {

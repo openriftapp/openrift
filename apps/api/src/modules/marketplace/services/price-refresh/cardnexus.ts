@@ -4,11 +4,12 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
-import { fetchJson } from "../../../../lib/http.js";
+import { fetchJson, fetchOk } from "../../../../lib/http.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
@@ -90,9 +91,13 @@ interface CardnexusFetchResult {
 }
 
 async function fetchFeed<T>(fetchFn: Fetch, feed: CnFeedMeta): Promise<T[]> {
-  const res = await fetchFn(feed.url, { signal: AbortSignal.timeout(FEED_TIMEOUT_MS) });
-  if (!res.ok || !res.body) {
-    throw new Error(`HTTP ${res.status} for CardNexus feed: ${await res.text()}`);
+  const res = await fetchOk(fetchFn, feed.url, {
+    timeoutMs: FEED_TIMEOUT_MS,
+    retries: PRICE_FETCH_RETRIES,
+    label: "CardNexus feed",
+  });
+  if (!res.body) {
+    throw new Error("HTTP 200 without a body for CardNexus feed");
   }
   const text = await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text();
   return text
@@ -130,6 +135,7 @@ async function fetchCardnexusData(
 ): Promise<CardnexusFetchResult> {
   const { data: feeds } = await fetchJson<CnFeeds>(fetchFn, CN_FEEDS_URL, {
     headers: { Authorization: `Bearer ${apiKey}` },
+    retries: PRICE_FETCH_RETRIES,
   });
   if (!feeds.catalog || !feeds.expansions || !feeds.prices) {
     throw new Error("CardNexus has not generated every Riftbound feed yet");

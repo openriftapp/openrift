@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI script reading the errata list */
 /**
  * Imports one language's errata announcement: the printed text onto that language's
  * faces and the corrected text as `card_errata` rows. Prints the plan; `--apply` writes it

@@ -16,7 +16,6 @@ vi.mock("./card-holdings-section", () => ({ CardHoldingsSection: () => null }));
 vi.mock("./card-detail-printing-list", () => ({ CardDetailPrintingList: () => null }));
 vi.mock("./printing-notes-section", () => ({ PrintingNotesSection: () => null }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { CardDetail } = await import("./card-detail");
 
 const printing = stubPrinting({ printingId: "p-1", card: { name: "Chaos Rune" } });

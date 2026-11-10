@@ -222,6 +222,23 @@ export async function ingestCandidates(
       }
     }
 
+    const isIgnoredPrinting = (p: IngestCard["printings"][number]) =>
+      ignoredPrintings.has(p.external_id) || ignoredPrintings.has(`${p.external_id}:${p.finish}`);
+
+    const uploadedCardExternalIds = new Set<string>();
+    const uploadedPrintingExternalIds = new Set<string>();
+    for (const card of cards) {
+      if (ignoredCards.has(card.external_id)) {
+        continue;
+      }
+      uploadedCardExternalIds.add(card.external_id);
+      for (const p of card.printings) {
+        if (!isIgnoredPrinting(p)) {
+          uploadedPrintingExternalIds.add(p.external_id);
+        }
+      }
+    }
+
     const seenCCIds = new Set<string>();
     const seenCPIds = new Set<string>();
 
@@ -293,10 +310,7 @@ export async function ingestCandidates(
           continue;
         }
 
-        if (
-          ignoredPrintings.has(p.external_id) ||
-          ignoredPrintings.has(`${p.external_id}:${p.finish}`)
-        ) {
+        if (isIgnoredPrinting(p)) {
           continue;
         }
 
@@ -361,7 +375,18 @@ export async function ingestCandidates(
 
     const ccIdToName = new Map(existingCCRows.map((cc) => [cc.id, cc.name]));
 
-    const cpsToRemove = existingCPRows.filter((cp) => !seenCPIds.has(cp.id));
+    const ccsToRemove = existingCCRows.filter(
+      (cc) => !seenCCIds.has(cc.id) && !uploadedCardExternalIds.has(cc.externalId),
+    );
+    const removedCCIds = new Set(ccsToRemove.map((cc) => cc.id));
+
+    const cpsToRemove = existingCPRows.filter(
+      (cp) =>
+        !seenCPIds.has(cp.id) &&
+        (removedCCIds.has(cp.candidateCardId) ||
+          !cp.externalId ||
+          !uploadedPrintingExternalIds.has(cp.externalId)),
+    );
     if (cpsToRemove.length > 0) {
       await repo.deleteCandidatePrintings(cpsToRemove.map((cp) => cp.id));
       removedPrintings = cpsToRemove.length;
@@ -373,7 +398,6 @@ export async function ingestCandidates(
       }
     }
 
-    const ccsToRemove = existingCCRows.filter((cc) => !seenCCIds.has(cc.id));
     if (ccsToRemove.length > 0) {
       await repo.deleteCandidateCards(ccsToRemove.map((cc) => cc.id));
       removedCards = ccsToRemove.length;

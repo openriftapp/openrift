@@ -32,6 +32,7 @@ import {
   useRemoveOrganizationMember,
   useUpdateOrganizationMemberRole,
 } from "@/features/tournaments/hooks/use-organizations";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -72,27 +73,24 @@ export function OrganizationPage({ id }: { id: string }) {
   const allRoleItems = memberRoleItems();
   const roleItems = isOwner ? allRoleItems : allRoleItems.filter((item) => item.value !== "owner");
 
-  async function run(action: () => Promise<unknown>) {
-    try {
-      await action();
-    } catch {
-      // Reported by the global mutation onError toast; swallowed so
-      // `void run(...)` call sites don't surface an uncaught promise.
-    }
-  }
-
   async function handleAddMember() {
-    await run(() => addMember.mutateAsync({ id, email: email.trim(), role }));
-    setAddOpen(false);
-    setEmail("");
+    if (await runReportedMutation(() => addMember.mutateAsync({ id, email: email.trim(), role }))) {
+      setAddOpen(false);
+      setEmail("");
+    }
   }
 
   async function handleRemoveMember() {
     if (!memberToRemove) {
       return;
     }
-    await run(() => removeMember.mutateAsync({ id, userId: memberToRemove.userId }));
-    setMemberToRemove(null);
+    if (
+      await runReportedMutation(() =>
+        removeMember.mutateAsync({ id, userId: memberToRemove.userId }),
+      )
+    ) {
+      setMemberToRemove(null);
+    }
   }
 
   return (
@@ -137,7 +135,7 @@ export function OrganizationPage({ id }: { id: string }) {
                           (value === "owner" || value === "manager" || value === "judge") &&
                           value !== member.role
                         ) {
-                          void run(() =>
+                          void runReportedMutation(() =>
                             updateMemberRole.mutateAsync({
                               id,
                               userId: member.userId,

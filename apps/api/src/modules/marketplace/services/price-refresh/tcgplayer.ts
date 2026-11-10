@@ -14,6 +14,7 @@ import type { Fetch } from "../../../../io.js";
 import { fetchJson } from "../../../../lib/http.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
@@ -62,7 +63,7 @@ async function fetchTcgplayerData(fetchFn: Fetch): Promise<TcgplayerFetchResult>
   const { data: groupsData } = await fetchJson<{ results: TcgcsvGroup[] }>(
     fetchFn,
     `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/groups`,
-    { headers: TCGCSV_HEADERS },
+    { headers: TCGCSV_HEADERS, retries: PRICE_FETCH_RETRIES },
   );
   const groups = groupsData.results;
 
@@ -77,12 +78,12 @@ async function fetchTcgplayerData(fetchFn: Fetch): Promise<TcgplayerFetchResult>
         fetchJson<{ results: TcgcsvProduct[] }>(
           fetchFn,
           `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/${group.groupId}/products`,
-          { headers: TCGCSV_HEADERS },
+          { headers: TCGCSV_HEADERS, retries: PRICE_FETCH_RETRIES },
         ),
         fetchJson<{ results: TcgcsvPrice[] }>(
           fetchFn,
           `${TCGCSV_BASE}/${TCGCSV_CATEGORY}/${group.groupId}/prices`,
-          { headers: TCGCSV_HEADERS },
+          { headers: TCGCSV_HEADERS, retries: PRICE_FETCH_RETRIES },
         ),
       ]);
 

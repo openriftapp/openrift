@@ -41,16 +41,19 @@ const os = implement(cardTradesContract).$context<ApiContext>().use(requireAuthe
 export const cardTradesRouter = {
   create: os.create.handler(({ input, context }): Promise<CardTradeResponse> => {
     const { createTrade } = context.services;
-    return createTrade(context.transact, {
-      callerUserId: context.userId,
-      groupSlug: input.groupSlug,
-      counterpartyUserId: input.counterpartyUserId,
-      role: input.role,
-      printingId: input.printingId,
-      cardId: input.cardId,
-      quantity: input.quantity,
-      copyIds: input.copyIds,
-    });
+    return createTrade(
+      { repos: context.repos, transact: context.transact },
+      {
+        callerUserId: context.userId,
+        groupSlug: input.groupSlug,
+        counterpartyUserId: input.counterpartyUserId,
+        role: input.role,
+        printingId: input.printingId,
+        cardId: input.cardId,
+        quantity: input.quantity,
+        copyIds: input.copyIds,
+      },
+    );
   }),
 
   list: os.list.handler(async ({ input, context }): Promise<CardTradeListResponse> => {
@@ -112,24 +115,23 @@ export const cardTradesRouter = {
 
     // The profile is the same in every shared group, so one roster answers it;
     // revealed contacts are per group, so those are read from all of them.
-    const [members, contactsByGroup] = await Promise.all([
-      friendGroups.listMembers(primaryGroup.id),
-      Promise.all(groups.map((group) => friendGroups.getRevealedContactsForMembers(group.id))),
-    ]);
+    const members = await friendGroups.listMembers(primaryGroup.id);
     const member = members.find((row) => row.userId === counterpartyUserId);
     assertFound(member, "Member not found");
 
+    const contactsByGroup = [];
     // Must preserve `groups`' sorted order: it decides attribution for rows shared by several groups.
-    const matchesByGroup = await Promise.all(
-      groups.map(async (group) => {
-        const scope = { groupId: group.id, viewerUserId: viewerId, counterpartyUserId };
-        const [incoming, outgoing] = await Promise.all([
-          friendGroupMatches.othersHaveYourWants(scope),
-          friendGroupMatches.othersWantYourHaves(scope),
-        ]);
-        return { group, incoming, outgoing };
-      }),
-    );
+    const matchesByGroup = [];
+    for (const group of groups) {
+      const scope = { groupId: group.id, viewerUserId: viewerId, counterpartyUserId };
+      const [contacts, incoming, outgoing] = await Promise.all([
+        friendGroups.getRevealedContactsForMembers(group.id),
+        friendGroupMatches.othersHaveYourWants(scope),
+        friendGroupMatches.othersWantYourHaves(scope),
+      ]);
+      contactsByGroup.push(contacts);
+      matchesByGroup.push({ group, incoming, outgoing });
+    }
 
     return {
       counterparty: toCardTradeCounterparty(

@@ -1,4 +1,4 @@
-import type { ListKind } from "@openrift/shared/types/api/list";
+import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { Insertable, Kysely, Selectable, Updateable } from "kysely";
 import { DeleteResult, sql } from "kysely";
 
@@ -315,6 +315,23 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .whereRef("le.cardId", "<>", "bound.cardId")
         .orderBy("le.createdAt")
         .orderBy("le.id")
+        .execute();
+    },
+
+    listsOwningEntries(
+      entryIds: readonly string[],
+      userId: string,
+    ): Promise<{ id: string; intent: ListIntent }[]> {
+      if (entryIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("listEntries as e")
+        .innerJoin("lists as l", "l.id", "e.listId")
+        .select(["l.id", "l.intent"])
+        .distinct()
+        .where("e.id", "in", [...entryIds])
+        .where("e.userId", "=", userId)
         .execute();
     },
 

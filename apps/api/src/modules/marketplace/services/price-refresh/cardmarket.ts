@@ -14,6 +14,7 @@ import type { Fetch } from "../../../../io.js";
 import { fetchJson } from "../../../../lib/http.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
@@ -57,10 +58,12 @@ async function fetchCardmarketData(fetchFn: Fetch): Promise<CardmarketFetchResul
     fetchJson<{ createdAt?: string; priceGuides: CmPriceGuide[] }>(
       fetchFn,
       `${CARDMARKET_BASE}/priceGuide/price_guide_${CARDMARKET_GAME}.json`,
+      { retries: PRICE_FETCH_RETRIES },
     ),
     fetchJson<{ products: CmProduct[] }>(
       fetchFn,
       `${CARDMARKET_BASE}/productList/products_singles_${CARDMARKET_GAME}.json`,
+      { retries: PRICE_FETCH_RETRIES },
     ),
   ]);
 

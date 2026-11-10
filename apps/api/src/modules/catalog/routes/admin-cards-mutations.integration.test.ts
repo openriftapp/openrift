@@ -242,7 +242,6 @@ if (ctx) {
 const P = "/cards";
 
 describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   describe("POST /:cardSourceId/check", () => {
@@ -894,9 +893,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .where("cct.position", "=", 0)
         .executeTakeFirst();
       expect(card).toBeDefined();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(card!.name).toBe("CSM New Card");
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(card!.typeSlug).toBe("spell");
 
       // Verify alias was created (every accepted card must have at least one)
@@ -945,7 +942,6 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .where("normName", "=", "csmanotherunmatched")
         .executeTakeFirst();
       expect(alias).toBeDefined();
-      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(alias!.cardId).toBe(cardId);
     });
 
@@ -1017,7 +1013,6 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         )
         .executeTakeFirst();
       expect(printing).toBeDefined();
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- asserted above
       expect(printing!.rarity).toBe("uncommon");
 
       const ps = await db
@@ -1206,7 +1201,6 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .where("slug", "=", "CSM-NEW-SET")
         .executeTakeFirst();
       expect(setRow).toBeDefined();
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- asserted above
       expect(setRow!.name).toBe("CSM Brand New Set");
     });
   });

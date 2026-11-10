@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { allCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDraftCollection, useDeckDraftScope } from "@/features/decks/hooks/use-deck-draft";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { dismissRemovalToast } from "@/features/decks/lib/workbench-add-toast";
 import { applyDeckSnapshot } from "@/features/decks/stores/deck-draft-store";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { m } from "@/paraglide/messages.js";
@@ -33,6 +34,7 @@ function restoreSnapshot(
   if (!snapshot) {
     return;
   }
+  dismissRemovalToast();
   applyDeckSnapshot(queryClient, scope, deckId, snapshot);
 }
 

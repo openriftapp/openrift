@@ -1,8 +1,8 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
-import type { PresenceDimension, RangeKey } from "@openrift/shared/types/search";
 import { XIcon } from "lucide-react";
+import { Fragment } from "react";
 
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -10,8 +10,16 @@ import { FilterIcon } from "@/features/cards/components/filter-icon";
 import { SearchTermChips } from "@/features/cards/components/search-term-chips";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import { ownedBucketLabel } from "@/features/cards/lib/filter-dimensions";
-import { presenceLabel } from "@/features/cards/lib/presence-filter";
+import type {
+  ActiveFilterChip,
+  ChipValueLabel,
+  FlagFilterParam,
+} from "@/features/cards/lib/filter-dimensions";
+import {
+  ACTIVE_FILTER_CHIPS,
+  ownedBucketLabel,
+  PRESENCE_PARAMS,
+} from "@/features/cards/lib/filter-dimensions";
 import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
 import { describeSearchTerms } from "@/features/cards/lib/search-clause-labels";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
@@ -21,20 +29,6 @@ import { compactFormatterForMarketplace } from "@/lib/format";
 import { rangeBadgeLabel } from "@/lib/range-label";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
-
-interface RangeBadgeSection {
-  key: RangeKey;
-  label: string;
-  formatValue?: (v: number) => string;
-}
-
-function statRangeBadgeSections(): RangeBadgeSection[] {
-  return [
-    { key: "energy", label: m.cards_filter_range_energy() },
-    { key: "might", label: m.cards_filter_range_might() },
-    { key: "power", label: m.cards_filter_range_power() },
-  ];
-}
 
 interface ActiveFiltersProps {
   availableFilters: AvailableFilters;
@@ -47,6 +41,7 @@ interface ActiveFiltersProps {
 
 const NO_VOCABULARY: SearchVocabulary = {};
 const RAW_VALUE: SearchValueLabeler = (_key, value) => value;
+const identity = (value: string) => value;
 
 export function ActiveFilters({
   availableFilters,
@@ -79,42 +74,35 @@ export function ActiveFilters({
     clearAllFilters,
     setSearch,
   } = useFilterActions();
-  const presenceChips: [PresenceDimension, "any" | "none" | null][] = [
-    ["markers", filterState.markersPresence ?? null],
-    ["superTypes", filterState.superTypesPresence ?? null],
-    ["customTags", filterState.customTagsPresence ?? null],
-    ["distributionChannels", filterState.channelsPresence ?? null],
-    ["keywords", filterState.keywordsPresence ?? null],
-    ["tags", filterState.tagsPresence ?? null],
-  ];
+  const flagClears: Record<FlagFilterParam, () => void> = {
+    signed: clearSigned,
+    overnumbered: clearOvernumbered,
+    banned: clearBanned,
+    errata: clearErrata,
+    noImage: clearNoImage,
+    standard: clearStandard,
+  };
   const favoriteMarketplace = useDisplayStore((s) => s.marketplaceOrder[0]);
-
-  const rangeBadgeSections: RangeBadgeSection[] = [
-    ...statRangeBadgeSections(),
-    {
-      key: "price",
-      label: m.cards_filter_range_price(),
-      formatValue: compactFormatterForMarketplace(favoriteMarketplace),
-    },
-  ];
-  type FilterKey =
-    | "sets"
-    | "rarities"
-    | "types"
-    | "superTypes"
-    | "domains"
-    | "artVariants"
-    | "finishes"
-    | "cardSizes"
-    | "markers"
-    | "channels"
-    | "keywords"
-    | "owned";
+  const formatPrice = compactFormatterForMarketplace(favoriteMarketplace);
 
   const markerLabel = (slug: string) =>
     availableFilters.markers.find((marker) => marker.slug === slug)?.label ?? slug;
   const channelBreadcrumbs = buildChannelBreadcrumbsBySlug(availableFilters.distributionChannels);
   const channelLabel = (slug: string) => channelBreadcrumbs.get(slug) ?? slug;
+  const valueLabels: Record<ChipValueLabel, (value: string) => string> = {
+    set: setDisplayLabel ?? identity,
+    rarity: (v) => enumLabel(labels.rarities, v),
+    type: (v) => enumLabel(labels.cardTypes, v),
+    superType: (v) => enumLabel(labels.superTypes, v),
+    domain: (v) => formatDomainFilterLabel(v, labels.domains),
+    artVariant: (v) => enumLabel(labels.artVariants, v),
+    finish: (v) => enumLabel(labels.finishes, v),
+    cardSize: (v) => enumLabel(labels.cardSizes, v),
+    marker: markerLabel,
+    channel: channelLabel,
+    ownedBucket: (v) => ownedBucketLabel(v),
+    raw: identity,
+  };
 
   // Unknown slugs (e.g. a tag deleted after being saved into a deck URL) fall
   // into an "Other" bucket so the user can still remove them.
@@ -131,112 +119,6 @@ export function ActiveFilters({
       customTagGroups.push({ categorySlug, categoryLabel, values: [slug] });
     }
   }
-  // `section` drives both the hidden-section guard and the icon lookup (icons
-  // key off the base dimension, not the `*Ex` slug).
-  type ExcludeKey =
-    | "setsEx"
-    | "raritiesEx"
-    | "typesEx"
-    | "superTypesEx"
-    | "domainsEx"
-    | "artVariantsEx"
-    | "finishesEx"
-    | "markersEx"
-    | "channelsEx"
-    | "keywordsEx";
-  // Excludes the icon-less "owned"/"cardSizes" sections; markers/channels are
-  // guarded out separately before reaching `FilterIcon`.
-  type ExcludeSection =
-    | "sets"
-    | "rarities"
-    | "types"
-    | "superTypes"
-    | "domains"
-    | "artVariants"
-    | "finishes"
-    | "markers"
-    | "channels"
-    | "keywords";
-  const excludeGroupDefs: {
-    key: ExcludeKey;
-    section: ExcludeSection;
-    label: string;
-    values: string[];
-    displayLabel?: (v: string) => string;
-  }[] = [
-    {
-      key: "setsEx",
-      section: "sets",
-      label: m.cards_filter_unit_sets(),
-      values: filterState.setsEx,
-    },
-    {
-      key: "raritiesEx",
-      section: "rarities",
-      label: m.cards_filter_unit_rarities(),
-      values: filterState.raritiesEx,
-      displayLabel: (v: string) => enumLabel(labels.rarities, v),
-    },
-    {
-      key: "typesEx",
-      section: "types",
-      label: m.cards_filter_unit_types(),
-      values: filterState.typesEx,
-      displayLabel: (v: string) => enumLabel(labels.cardTypes, v),
-    },
-    {
-      key: "superTypesEx",
-      section: "superTypes",
-      label: m.cards_filter_unit_super_types(),
-      values: filterState.superTypesEx,
-      displayLabel: (v: string) => enumLabel(labels.superTypes, v),
-    },
-    {
-      key: "domainsEx",
-      section: "domains",
-      label: m.cards_filter_unit_domains(),
-      values: filterState.domainsEx,
-      displayLabel: (v: string) => formatDomainFilterLabel(v, labels.domains),
-    },
-    {
-      key: "artVariantsEx",
-      section: "artVariants",
-      label: m.cards_filter_label_art_variant(),
-      values: filterState.artVariantsEx,
-      displayLabel: (v: string) => enumLabel(labels.artVariants, v),
-    },
-    {
-      key: "finishesEx",
-      section: "finishes",
-      label: m.cards_filter_label_finish(),
-      values: filterState.finishesEx,
-      displayLabel: (v: string) => enumLabel(labels.finishes, v),
-    },
-    {
-      key: "markersEx",
-      section: "markers",
-      label: m.cards_filter_label_marker(),
-      values: filterState.markersEx,
-      displayLabel: markerLabel,
-    },
-    {
-      key: "channelsEx",
-      section: "channels",
-      label: m.cards_filter_label_channel(),
-      values: filterState.channelsEx,
-      displayLabel: channelLabel,
-    },
-    {
-      key: "keywordsEx",
-      section: "keywords",
-      label: m.cards_filter_label_keyword(),
-      values: filterState.keywordsEx,
-    },
-  ];
-  const excludeGroups = excludeGroupDefs.filter(
-    (group) => group.values.length > 0 && !hiddenSections?.has(group.section),
-  );
-
   const customTagExcludeGroups: { categoryLabel: string; values: string[] }[] = [];
   for (const slug of filterState.customTagsEx) {
     const tag = customTagBySlug.get(slug);
@@ -249,223 +131,72 @@ export function ActiveFilters({
     }
   }
 
-  const customTagsHidden = hiddenSections?.has("customTags") ?? false;
-
   // The values ARE the labels; there is no separate label lookup.
   const { categories: tagCategories, categoryByTag } = useTagCategories();
-  const tagsHidden = hiddenSections?.has("tags") ?? false;
   const tagGroups = groupTagsByCategory(filterState.tags, tagCategories, categoryByTag);
   const tagExcludeGroups = groupTagsByCategory(filterState.tagsEx, tagCategories, categoryByTag);
 
-  const copiesRangeActive =
-    !hiddenSections?.has("owned") &&
-    (filterState.ownedCountMin !== null || filterState.ownedCountMax !== null);
+  const chipIsShown = (chip: ActiveFilterChip): boolean => {
+    switch (chip.kind) {
+      case "values": {
+        return filterState[chip.param].length > 0 && !hiddenSections?.has(chip.hiddenBy);
+      }
+      case "customTags": {
+        const groups = chip.excluded ? customTagExcludeGroups : customTagGroups;
+        return groups.length > 0 && !hiddenSections?.has("customTags");
+      }
+      case "tags": {
+        const groups = chip.excluded ? tagExcludeGroups : tagGroups;
+        return groups.length > 0 && !hiddenSections?.has("tags");
+      }
+      case "range": {
+        return ranges[chip.range].min !== null || ranges[chip.range].max !== null;
+      }
+      case "copies": {
+        return (
+          !hiddenSections?.has("owned") &&
+          (filterState.ownedCountMin !== null || filterState.ownedCountMax !== null)
+        );
+      }
+      case "flag": {
+        return filterState[chip.param] !== null;
+      }
+      case "presence": {
+        return filterState[PRESENCE_PARAMS[chip.dimension]] !== null;
+      }
+    }
+  };
+  const shownChips = ACTIVE_FILTER_CHIPS.filter((chip) => chipIsShown(chip));
 
-  interface FilterGroup {
-    key: FilterKey;
-    label: string;
-    values: string[];
-    displayLabel?: (v: string) => string;
-  }
-  const filterGroupDefs: FilterGroup[] = [
-    { key: "sets", label: m.cards_filter_unit_sets(), values: filterState.sets },
-    {
-      key: "rarities",
-      label: m.cards_filter_unit_rarities(),
-      values: filterState.rarities,
-      displayLabel: (v: string) => enumLabel(labels.rarities, v),
-    },
-    {
-      key: "types",
-      label: m.cards_filter_unit_types(),
-      values: filterState.types,
-      displayLabel: (v: string) => enumLabel(labels.cardTypes, v),
-    },
-    {
-      key: "superTypes",
-      label: m.cards_filter_unit_super_types(),
-      values: filterState.superTypes,
-      displayLabel: (v: string) => enumLabel(labels.superTypes, v),
-    },
-    {
-      key: "domains",
-      label: m.cards_filter_unit_domains(),
-      values: filterState.domains,
-      displayLabel: (v: string) => formatDomainFilterLabel(v, labels.domains),
-    },
-    {
-      key: "artVariants",
-      label: m.cards_filter_label_art_variant(),
-      values: filterState.artVariants,
-      displayLabel: (v: string) => enumLabel(labels.artVariants, v),
-    },
-    {
-      key: "finishes",
-      label: m.cards_filter_label_finish(),
-      values: filterState.finishes,
-      displayLabel: (v: string) => enumLabel(labels.finishes, v),
-    },
-    {
-      key: "cardSizes",
-      label: m.cards_filter_unit_card_sizes(),
-      values: filterState.cardSizes,
-      displayLabel: (v: string) => enumLabel(labels.cardSizes, v),
-    },
-    {
-      key: "markers",
-      label: m.cards_filter_label_marker(),
-      values: filterState.markers,
-      displayLabel: markerLabel,
-    },
-    {
-      key: "channels",
-      label: m.cards_filter_label_channel(),
-      values: filterState.channels,
-      displayLabel: channelLabel,
-    },
-    {
-      key: "keywords",
-      label: m.cards_filter_label_keyword(),
-      values: filterState.keywords,
-    },
-    {
-      key: "owned",
-      label: m.cards_filter_unit_owned(),
-      values: filterState.owned,
-      displayLabel: (v: string) => ownedBucketLabel(v),
-    },
-  ];
-  const filterGroups = filterGroupDefs.filter(
-    (g) => g.values.length > 0 && !hiddenSections?.has(g.key),
-  );
-
-  const hasVisibleContent =
-    searchTerms.length > 0 ||
-    filterGroups.length > 0 ||
-    excludeGroups.length > 0 ||
-    (!customTagsHidden && customTagGroups.length > 0) ||
-    (!customTagsHidden && customTagExcludeGroups.length > 0) ||
-    (!tagsHidden && tagGroups.length > 0) ||
-    (!tagsHidden && tagExcludeGroups.length > 0) ||
-    rangeBadgeSections.some(({ key }) => ranges[key].min !== null || ranges[key].max !== null) ||
-    copiesRangeActive ||
-    filterState.signed !== null ||
-    filterState.overnumbered !== null ||
-    presenceChips.some(([, value]) => value !== null) ||
-    filterState.banned !== null ||
-    filterState.errata !== null ||
-    filterState.noImage !== null ||
-    filterState.standard !== null;
-
-  if (!hasVisibleContent) {
-    return null;
-  }
-
-  return (
-    <div className="mb-3 flex items-center gap-2">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-        {searchTerms.length > 0 && (
-          <div className="flex min-w-0 flex-wrap items-center gap-1">
-            <SearchTermChips
-              query={filterState.search}
-              terms={searchTerms}
-              onQueryChange={setSearch}
-            />
-          </div>
-        )}
-        {filterGroups.map(({ key, label, values, displayLabel: groupDisplayLabel }) => (
-          <div key={key} className="flex min-w-0 flex-wrap items-center gap-1">
+  const renderChip = (chip: ActiveFilterChip) => {
+    switch (chip.kind) {
+      case "values": {
+        const label = chip.label();
+        const displayFn = valueLabels[chip.valueLabel];
+        const icon = chip.icon;
+        return (
+          <div key={chip.param} className="flex min-w-0 flex-wrap items-center gap-1">
             <span className="text-muted-foreground hidden text-xs sm:inline">{label}:</span>
-            {values.map((value) => {
-              const displayFn =
-                groupDisplayLabel ??
-                (key === "sets" && setDisplayLabel ? setDisplayLabel : (v: string) => v);
-              return (
-                <FilterChip
-                  key={`${key}-${value}`}
-                  label={displayFn(value)}
-                  icon={
-                    key === "markers" ||
-                    key === "channels" ||
-                    key === "owned" ||
-                    key === "keywords" ? undefined : (
-                      <FilterIcon category={key} value={value} />
-                    )
-                  }
-                  removeLabel={m.cards_filter_remove_value({ label, value: displayFn(value) })}
-                  onRemove={() => toggleArrayFilter(key, value)}
-                />
-              );
-            })}
+            {filterState[chip.param].map((value) => (
+              <FilterChip
+                key={`${chip.param}-${value}`}
+                excluded={chip.excluded}
+                label={displayFn(value)}
+                icon={icon ? <FilterIcon category={icon} value={value} /> : undefined}
+                removeLabel={
+                  chip.excluded
+                    ? m.cards_filter_remove_excluded_value({ label, value: displayFn(value) })
+                    : m.cards_filter_remove_value({ label, value: displayFn(value) })
+                }
+                onRemove={() => toggleArrayFilter(chip.param, value)}
+              />
+            ))}
           </div>
-        ))}
-        {!customTagsHidden &&
-          customTagGroups.map(({ categorySlug, categoryLabel, values }) => (
-            <div
-              key={`customTags-${categorySlug}`}
-              className="flex min-w-0 flex-wrap items-center gap-1"
-            >
-              <span className="text-muted-foreground hidden text-xs sm:inline">
-                {categoryLabel}:
-              </span>
-              {values.map((slug) => {
-                const tag = customTagBySlug.get(slug);
-                return (
-                  <FilterChip
-                    key={`customTags-${slug}`}
-                    label={tag?.label ?? slug}
-                    removeLabel={m.cards_filter_remove_tag({ tag: tag?.label ?? slug })}
-                    onRemove={() => toggleArrayFilter("customTags", slug)}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        {!tagsHidden &&
-          tagGroups.map(({ slug: groupSlug, label: groupLabel, tags }) => (
-            <div key={`tags-${groupSlug}`} className="flex min-w-0 flex-wrap items-center gap-1">
-              <span className="text-muted-foreground hidden text-xs sm:inline">{groupLabel}:</span>
-              {tags.map((tag) => (
-                <FilterChip
-                  key={`tags-${tag}`}
-                  label={tag}
-                  removeLabel={m.cards_filter_remove_tag({ tag })}
-                  onRemove={() => toggleArrayFilter("tags", tag)}
-                />
-              ))}
-            </div>
-          ))}
-        {excludeGroups.map(({ key, section, label, values, displayLabel: groupDisplayLabel }) => (
-          <div key={key} className="flex min-w-0 flex-wrap items-center gap-1">
-            <span className="text-muted-foreground hidden text-xs sm:inline">{label}:</span>
-            {values.map((value) => {
-              const displayFn =
-                groupDisplayLabel ??
-                (section === "sets" && setDisplayLabel ? setDisplayLabel : (v: string) => v);
-              return (
-                <FilterChip
-                  key={`${key}-${value}`}
-                  excluded
-                  label={displayFn(value)}
-                  icon={
-                    section === "markers" ||
-                    section === "channels" ||
-                    section === "keywords" ? undefined : (
-                      <FilterIcon category={section} value={value} />
-                    )
-                  }
-                  removeLabel={m.cards_filter_remove_excluded_value({
-                    label,
-                    value: displayFn(value),
-                  })}
-                  onRemove={() => toggleArrayFilter(key, value)}
-                />
-              );
-            })}
-          </div>
-        ))}
-        {!customTagsHidden &&
-          customTagExcludeGroups.map(({ categoryLabel, values }) => (
+        );
+      }
+      case "customTags": {
+        if (chip.excluded) {
+          return customTagExcludeGroups.map(({ categoryLabel, values }) => (
             <div
               key={`customTagsEx-${categoryLabel}`}
               className="flex min-w-0 flex-wrap items-center gap-1"
@@ -486,42 +217,71 @@ export function ActiveFilters({
                 );
               })}
             </div>
-          ))}
-        {!tagsHidden &&
-          tagExcludeGroups.map(({ slug: groupSlug, label: groupLabel, tags }) => (
-            <div key={`tagsEx-${groupSlug}`} className="flex min-w-0 flex-wrap items-center gap-1">
-              <span className="text-muted-foreground hidden text-xs sm:inline">{groupLabel}:</span>
-              {tags.map((tag) => (
+          ));
+        }
+        return customTagGroups.map(({ categorySlug, categoryLabel, values }) => (
+          <div
+            key={`customTags-${categorySlug}`}
+            className="flex min-w-0 flex-wrap items-center gap-1"
+          >
+            <span className="text-muted-foreground hidden text-xs sm:inline">{categoryLabel}:</span>
+            {values.map((slug) => {
+              const tag = customTagBySlug.get(slug);
+              return (
                 <FilterChip
-                  key={`tagsEx-${tag}`}
-                  excluded
-                  label={tag}
-                  removeLabel={m.cards_filter_remove_excluded_tag({ tag })}
-                  onRemove={() => toggleArrayFilter("tagsEx", tag)}
+                  key={`customTags-${slug}`}
+                  label={tag?.label ?? slug}
+                  removeLabel={m.cards_filter_remove_tag({ tag: tag?.label ?? slug })}
+                  onRemove={() => toggleArrayFilter("customTags", slug)}
                 />
-              ))}
-            </div>
-          ))}
-        {rangeBadgeSections.map(({ key, label, formatValue }) => {
-          const range = ranges[key];
-          if (range.min === null && range.max === null) {
-            return null;
-          }
-          return (
-            <RangeBadge
-              key={key}
-              label={label}
-              min={range.min}
-              max={range.max}
-              availableMin={availableFilters[key].min}
-              availableMax={availableFilters[key].max}
-              onClear={() => setRange(key, null, null)}
-              formatValue={formatValue}
-            />
-          );
-        })}
-        {copiesRangeActive && (
+              );
+            })}
+          </div>
+        ));
+      }
+      case "tags": {
+        const groups = chip.excluded ? tagExcludeGroups : tagGroups;
+        return groups.map(({ slug: groupSlug, label: groupLabel, tags }) => (
+          <div
+            key={`${chip.param}-${groupSlug}`}
+            className="flex min-w-0 flex-wrap items-center gap-1"
+          >
+            <span className="text-muted-foreground hidden text-xs sm:inline">{groupLabel}:</span>
+            {tags.map((tag) => (
+              <FilterChip
+                key={`${chip.param}-${tag}`}
+                excluded={chip.excluded}
+                label={tag}
+                removeLabel={
+                  chip.excluded
+                    ? m.cards_filter_remove_excluded_tag({ tag })
+                    : m.cards_filter_remove_tag({ tag })
+                }
+                onRemove={() => toggleArrayFilter(chip.param, tag)}
+              />
+            ))}
+          </div>
+        ));
+      }
+      case "range": {
+        const range = ranges[chip.range];
+        return (
           <RangeBadge
+            key={chip.range}
+            label={chip.label()}
+            min={range.min}
+            max={range.max}
+            availableMin={availableFilters[chip.range].min}
+            availableMax={availableFilters[chip.range].max}
+            onClear={() => setRange(chip.range, null, null)}
+            formatValue={chip.range === "price" ? formatPrice : undefined}
+          />
+        );
+      }
+      case "copies": {
+        return (
+          <RangeBadge
+            key="copies"
             label={m.cards_filter_range_copies()}
             min={filterState.ownedCountMin}
             max={filterState.ownedCountMax}
@@ -529,61 +289,50 @@ export function ActiveFilters({
             availableMax={ownedCountMax ?? 0}
             onClear={() => setOwnedCountRange(null, null)}
           />
-        )}
-        {filterState.overnumbered !== null && (
+        );
+      }
+      case "flag": {
+        return (
           <FlagChip
-            label={m.cards_filter_flag_overnumbered()}
-            state={filterState.overnumbered}
-            onClear={clearOvernumbered}
+            key={chip.param}
+            label={chip.label()}
+            state={filterState[chip.param] === true}
+            onClear={() => flagClears[chip.param]()}
           />
-        )}
-        {filterState.signed !== null && (
+        );
+      }
+      case "presence": {
+        return (
           <FlagChip
-            label={m.cards_filter_flag_signed()}
-            state={filterState.signed}
-            onClear={clearSigned}
+            key={`presence-${chip.dimension}`}
+            label={chip.label()}
+            state={filterState[PRESENCE_PARAMS[chip.dimension]] === "any"}
+            onClear={() => clearPresence(chip.dimension)}
           />
-        )}
-        {presenceChips.map(([dimension, value]) =>
-          value === null ? null : (
-            <FlagChip
-              key={dimension}
-              label={
-                dimension === "markers" ? m.cards_filter_flag_promo() : presenceLabel(dimension)
-              }
-              state={value === "any"}
-              onClear={() => clearPresence(dimension)}
+        );
+      }
+    }
+  };
+
+  if (searchTerms.length === 0 && shownChips.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+        {searchTerms.length > 0 && (
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <SearchTermChips
+              query={filterState.search}
+              terms={searchTerms}
+              onQueryChange={setSearch}
             />
-          ),
+          </div>
         )}
-        {filterState.banned !== null && (
-          <FlagChip
-            label={m.cards_filter_flag_banned()}
-            state={filterState.banned}
-            onClear={clearBanned}
-          />
-        )}
-        {filterState.errata !== null && (
-          <FlagChip
-            label={m.cards_filter_flag_errata()}
-            state={filterState.errata}
-            onClear={clearErrata}
-          />
-        )}
-        {filterState.noImage !== null && (
-          <FlagChip
-            label={m.cards_filter_flag_no_image()}
-            state={filterState.noImage}
-            onClear={clearNoImage}
-          />
-        )}
-        {filterState.standard !== null && (
-          <FlagChip
-            label={m.cards_filter_flag_standard()}
-            state={filterState.standard}
-            onClear={clearStandard}
-          />
-        )}
+        {shownChips.map((chip) => (
+          <Fragment key={chipKey(chip)}>{renderChip(chip)}</Fragment>
+        ))}
       </div>
       <Button
         variant="ghost"
@@ -596,6 +345,23 @@ export function ActiveFilters({
       </Button>
     </div>
   );
+}
+
+function chipKey(chip: ActiveFilterChip): string {
+  switch (chip.kind) {
+    case "range": {
+      return chip.range;
+    }
+    case "copies": {
+      return "copies";
+    }
+    case "presence": {
+      return `presence-${chip.dimension}`;
+    }
+    default: {
+      return chip.param;
+    }
+  }
 }
 
 /** Caller only renders this when the flag is set, so `state` is never null here. */

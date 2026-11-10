@@ -69,7 +69,6 @@ vi.mock("@/features/decks/components/deck-export-dialog", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PublicDeckActionsMenu } from "./public-deck-actions-menu";
 
 function publicCard(overrides: Partial<PublicDeckCardResponse> = {}): PublicDeckCardResponse {

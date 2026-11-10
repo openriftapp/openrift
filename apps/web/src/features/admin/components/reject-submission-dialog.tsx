@@ -1,3 +1,4 @@
+import type { CardSubmissionReason } from "@openrift/shared/contracts/card-submissions";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import { Textarea } from "@/components/ui/textarea";
+import { SubmissionMessageFields } from "@/features/admin/components/submission-message-fields";
 import type { SettleScope } from "@/features/admin/hooks/use-catalog-review";
 import { useRejectSubmission } from "@/features/admin/hooks/use-catalog-review";
+import {
+  CARD_NOTE_PLACEHOLDER,
+  REJECT_REASON_ORDER,
+  canSendRejection,
+} from "@/features/admin/lib/submission-reasons";
+import {
+  submissionReasonLabels,
+  submissionReasonSentences,
+} from "@/features/contribute/lib/card-submission-copy";
 
 interface RejectSubmissionDialogProps {
   candidateCardId: string | null;
@@ -32,29 +42,38 @@ export function RejectSubmissionDialog({
   onRejected,
 }: RejectSubmissionDialogProps) {
   const rejectSubmission = useRejectSubmission(scope);
+  const [reason, setReason] = useState<CardSubmissionReason | null>(null);
   const [note, setNote] = useState("");
 
   const trimmedNote = note.trim();
   const notePayload = trimmedNote === "" ? null : trimmedNote;
   const who = submitterName ?? "this contributor";
+  const ready = canSendRejection(reason, note);
+
+  function handleOpenChange(open: boolean) {
+    if (!open) {
+      setReason(null);
+      setNote("");
+    }
+    onOpenChange(open);
+  }
 
   async function handleSubmit() {
-    if (candidateCardId === null) {
+    if (candidateCardId === null || reason === null || !ready) {
       return;
     }
     try {
-      await rejectSubmission.mutateAsync({ candidateCardId, note: notePayload });
+      await rejectSubmission.mutateAsync({ candidateCardId, reason, note: notePayload });
     } catch {
       // Reported by the global mutation error toast.
       return;
     }
-    setNote("");
-    onOpenChange(false);
+    handleOpenChange(false);
     onRejected?.();
   }
 
   return (
-    <Dialog open={candidateCardId !== null} onOpenChange={onOpenChange}>
+    <Dialog open={candidateCardId !== null} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogForm onSubmit={() => void handleSubmit()}>
           <DialogHeader>
@@ -64,20 +83,27 @@ export function RejectSubmissionDialog({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="py-2">
-            <Textarea
-              value={note}
-              maxLength={2000}
-              rows={4}
-              aria-label="Message to the contributor"
-              placeholder="Tell the contributor why (optional)"
-              onChange={(event) => setNote(event.target.value)}
+          <div className="flex flex-col gap-4 py-2">
+            <SubmissionMessageFields
+              idPrefix="reject"
+              reasonOrder={REJECT_REASON_ORDER}
+              reasonLabels={submissionReasonLabels()}
+              reasonSentences={submissionReasonSentences()}
+              notePlaceholder={CARD_NOTE_PLACEHOLDER}
+              reason={reason}
+              note={note}
+              onReasonChange={setReason}
+              onNoteChange={setNote}
             />
           </div>
 
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" variant="destructive" disabled={rejectSubmission.isPending}>
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={rejectSubmission.isPending || !ready}
+            >
               Reject
             </Button>
           </DialogFooter>

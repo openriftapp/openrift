@@ -1,4 +1,3 @@
-// oxlint-disable no-nodejs-modules -- this test introspects the source tree, so it must read files from disk
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -9,8 +8,6 @@ const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
 const SKIPPED_DIRS = new Set(["node_modules", "dist", ".output", ".nitro", ".turbo", "paraglide"]);
 
 const MOUNTED_AS_ONE_AGGREGATE_ROUTER = "packages/shared/src/contracts/index.ts";
-
-const EXEMPT_SHARED_REEXPORTS = new Set(["apps/web/src/lib/server-fns/api-types.ts"]);
 
 const SHARED_REEXPORT =
   /export\s+(?:type\s+)?(?:\*(?:\s+as\s+[A-Za-z_$][\w$]*)?|\{[^}]*\})\s+from\s+["']@openrift\/shared\/[^"']+["'];?/gu;
@@ -110,7 +107,6 @@ describe("shared re-exports", () => {
       offenders
         .filter((file) => file !== null)
         .map((file) => relative(REPO_ROOT, file).replaceAll("\\", "/"))
-        .filter((file) => !EXEMPT_SHARED_REEXPORTS.has(file))
         .toSorted(),
     ).toStrictEqual([]);
   }, 30_000);

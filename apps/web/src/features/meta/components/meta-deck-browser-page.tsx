@@ -1,9 +1,9 @@
-import { META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
 import { formatDay } from "@openrift/shared/format-date";
+import { META_PAGE_SIZES } from "@openrift/shared/meta-query";
 import type { MetaDeckSummary, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
-import { LayoutGridIcon, ListIcon } from "lucide-react";
+import { LayoutGridIcon, ListIcon, LogInIcon } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 
 import {
@@ -13,8 +13,8 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList, RowListLink } from "@/components/ui/row-list";
 import { SimpleSelect } from "@/components/ui/simple-select";
@@ -23,11 +23,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
 import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-bridge";
 import { MetaDeckFilterControls } from "@/features/meta/components/meta-deck-filter-controls";
-import {
-  DECK_INDEX_GRID,
-  DECK_INDEX_GROUPED_GRID,
-  MetaDeckIndexRow,
-} from "@/features/meta/components/meta-deck-index-row";
+import { deckIndexGrid, MetaDeckIndexRow } from "@/features/meta/components/meta-deck-index-row";
 import { MetaEventHeading } from "@/features/meta/components/meta-event-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
@@ -37,6 +33,7 @@ import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
 import {
+  effectiveDeckSort,
   filterDecksByCost,
   groupDecksByEvent,
   metaDeckQueryFromFilters,
@@ -56,6 +53,7 @@ import { scopeKey } from "@/features/meta/lib/meta-scope";
 import { isCostFilterActive } from "@/features/meta/lib/meta-standings-cost";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/hooks/use-session";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { useSmUp } from "@/hooks/use-sm-up";
 import type { MetaDeckView } from "@/lib/sanitize-preferences";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -106,18 +104,24 @@ function MetaDeckBrowserFallback() {
  * The API pages and narrows the archive. Cost and value are priced in the
  * browser, so those two filters and their sorts work on the page on screen.
  */
-function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
+function MetaDeckBrowser({
+  signedIn,
+  onCount,
+}: {
+  signedIn: boolean;
+  onCount: (count: DeckCount) => void;
+}) {
   const filters = useMetaDeckFilters();
   const eras = useMetaEras();
+  const { sort, direction } = effectiveDeckSort(filters.sort, filters.direction, signedIn);
   const narrowing = metaDeckQueryFromFilters(filters, eras);
   const page = {
     ...narrowing,
-    ...serverDeckOrder(filters.sort, filters.direction),
+    ...serverDeckOrder(sort, direction),
     ...metaPageSlice(filters.page, filters.perPage),
   };
   const { data } = useMetaDecks(page);
   const { data: facets } = useMetaDeckFacets(narrowing);
-  const { data: session } = useSession();
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const view = useDisplayStore((state) => state.metaDeckView);
   const setView = useDisplayStore((state) => state.setMetaDeckView);
@@ -125,7 +129,6 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
   const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
   const [eraPickerOpen, setEraPickerOpen] = useState(false);
 
-  const signedIn = Boolean(session?.user);
   // A priced bound narrows the page in the browser, so an emptied page is not
   // the same thing as a page past the end of the results.
   const costActive = isCostFilterActive({
@@ -139,9 +142,9 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
   };
 
   const matching = filterDecksByCost(data.decks, priced, costs);
-  const decks = sortMetaDecks(matching, filters.sort, filters.direction, costs);
+  const decks = sortMetaDecks(matching, sort, direction, costs);
   const summaries = new Map(data.events.map((event) => [event.slug, event]));
-  const grouped = filters.sort === "date";
+  const grouped = sort === "date";
   const total = data.total;
   const archiveTotal = data.archiveTotal;
   const eventCount = data.eventCount;
@@ -161,9 +164,10 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
 
   const sortSelect = (size: ControlSize, className: string) => (
     <SortSelect
-      sort={filters.sort}
-      direction={filters.direction}
-      onChange={(sort, direction) => filters.setSort(sort, direction)}
+      sort={sort}
+      direction={direction}
+      withCollection={signedIn}
+      onChange={(nextSort, nextDirection) => filters.setSort(nextSort, nextDirection)}
       size={size}
       className={className}
     />
@@ -180,7 +184,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
       {m.meta_browser_best_per_legend()}
     </Button>
   );
-  const sortHint = isBrowserDeckSort(filters.sort) && (
+  const sortHint = isBrowserDeckSort(sort) && (
     <p className={cn("text-muted-foreground text-2xs", !smUp && "mt-2")}>
       {m.meta_sort_page_only()}
     </p>
@@ -206,6 +210,13 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
             {costActive ? m.meta_browser_no_match() : m.meta_page_past_end()}
           </EmptyDescription>
         </EmptyHeader>
+        {!costActive && (
+          <EmptyContent>
+            <Button variant="outline" onClick={() => filters.setPage(1)}>
+              {m.meta_page_first()}
+            </Button>
+          </EmptyContent>
+        )}
       </Empty>
     );
 
@@ -269,9 +280,10 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
         {view === "list" ? (
           <div className="mt-6 text-sm">
             <SortHeader
-              sort={filters.sort}
-              direction={filters.direction}
+              sort={sort}
+              direction={direction}
               grouped={grouped}
+              withCollection={signedIn}
               onSort={(column) => filters.sortBy(column)}
             />
             {decks.length === 0 ? (
@@ -284,6 +296,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
                 costs={costs}
                 marketplace={marketplace}
                 grouped={grouped}
+                withCollection={signedIn}
               />
             )}
           </div>
@@ -390,18 +403,21 @@ const presetKey = (sort: MetaDeckSort, direction: MetaDeckSortDirection) => `${s
 function SortSelect({
   sort,
   direction,
+  withCollection,
   onChange,
   size,
   className,
 }: {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
+  withCollection: boolean;
   onChange: (sort: MetaDeckSort, direction: MetaDeckSortDirection) => void;
   size: ControlSize;
   className?: string;
 }) {
   const items: Record<string, string> = {};
-  for (const preset of metaDeckSortPresets()) {
+  const presets = metaDeckSortPresets(withCollection);
+  for (const preset of presets) {
     items[presetKey(preset.sort, preset.direction)] = preset.label;
   }
   const current = presetKey(sort, direction);
@@ -411,9 +427,7 @@ function SortSelect({
       items={Object.entries(items).map(([itemValue, label]) => ({ value: itemValue, label }))}
       value={value}
       onChange={(next) => {
-        const preset = metaDeckSortPresets().find(
-          (entry) => presetKey(entry.sort, entry.direction) === next,
-        );
+        const preset = presets.find((entry) => presetKey(entry.sort, entry.direction) === next);
         if (preset !== undefined) {
           onChange(preset.sort, preset.direction);
         }
@@ -435,17 +449,19 @@ function SortHeader({
   sort,
   direction,
   grouped,
+  withCollection,
   onSort,
 }: {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
   grouped: boolean;
+  withCollection: boolean;
   onSort: (column: MetaDeckSort) => void;
 }) {
   return (
     <div
       className={cn(
-        grouped ? DECK_INDEX_GROUPED_GRID : DECK_INDEX_GRID,
+        deckIndexGrid(grouped, withCollection),
         "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
       )}
     >
@@ -466,9 +482,11 @@ function SortHeader({
       <SortButton column="value" sort={sort} direction={direction} onSort={onSort} align="end">
         {m.meta_standings_col_value()}
       </SortButton>
-      <SortButton column="cost" sort={sort} direction={direction} onSort={onSort}>
-        {m.meta_cost_to_complete()}
-      </SortButton>
+      {withCollection && (
+        <SortButton column="cost" sort={sort} direction={direction} onSort={onSort}>
+          {m.meta_cost_to_complete()}
+        </SortButton>
+      )}
     </div>
   );
 }
@@ -479,6 +497,7 @@ interface DeckListProps {
   costs?: ReadonlyMap<string, MetaDeckCost>;
   marketplace: Marketplace;
   grouped: boolean;
+  withCollection?: boolean;
 }
 
 function fieldSizeOf(summary: MetaEventSummary | undefined): number | null {
@@ -511,7 +530,14 @@ function DeckEventHeader({
   );
 }
 
-function DeckList({ decks, summaries, costs, marketplace, grouped }: DeckListProps) {
+function DeckList({
+  decks,
+  summaries,
+  costs,
+  marketplace,
+  grouped,
+  withCollection,
+}: DeckListProps) {
   const rows = (entries: readonly MetaDeckSummary[]) => (
     <RowList className="flex flex-col">
       {entries.map((deck) => (
@@ -522,6 +548,7 @@ function DeckList({ decks, summaries, costs, marketplace, grouped }: DeckListPro
             fieldSize={fieldSizeOf(summaries.get(deck.event.slug))}
             marketplace={marketplace}
             grouped={grouped}
+            withCollection={withCollection}
           />
         </li>
       ))}
@@ -579,6 +606,9 @@ function DeckGrid({ decks, summaries, costs, marketplace, grouped }: DeckListPro
 
 export function MetaDeckBrowserPage() {
   const hydrated = useHydrated();
+  const { data: session } = useSession();
+  const signedIn = Boolean(session?.user);
+  const signIn = useSignInSearch();
   const [count, setCount] = useState<DeckCount>();
   const onCount = (next: DeckCount) => {
     setCount((prev) =>
@@ -600,18 +630,36 @@ export function MetaDeckBrowserPage() {
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
-        <p className="text-muted-foreground mb-3 min-h-lh tabular-nums">
-          {count === undefined
-            ? null
-            : count.onPage === null
-              ? `${metaShownLabel(count.matched, count.archive, "decks")} · ${m.meta_count_events({ count: count.events })}`
-              : m.meta_shown_decks_page({ shown: count.onPage })}
-        </p>
+        {signedIn && (
+          <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
+        )}
+        <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <p className="text-muted-foreground min-h-lh tabular-nums">
+            {count === undefined
+              ? null
+              : count.onPage === null
+                ? `${metaShownLabel(count.matched, count.archive, "decks")} · ${m.meta_count_events({ count: count.events })}`
+                : m.meta_shown_decks_page({ shown: count.onPage })}
+          </p>
+          {!signedIn && (
+            <Link
+              rel="nofollow"
+              {...signIn}
+              className={buttonVariants({
+                variant: "outline",
+                size: "xs",
+                className: "sm:ml-auto",
+              })}
+            >
+              <LogInIcon />
+              {m.decks_overview_hero_sign_in()}
+            </Link>
+          )}
+        </div>
 
         {hydrated ? (
           <Suspense fallback={<MetaDeckBrowserFallback />}>
-            <MetaDeckBrowser onCount={onCount} />
+            <MetaDeckBrowser signedIn={signedIn} onCount={onCount} />
           </Suspense>
         ) : (
           <MetaDeckBrowserFallback />

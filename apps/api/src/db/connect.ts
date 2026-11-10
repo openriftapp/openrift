@@ -5,11 +5,32 @@ import postgres from "postgres";
 import type { Database } from "./tables.js";
 import { TracingDialect } from "./tracing-dialect.js";
 
-export function createDb(connectionString: string) {
+export interface PoolSettings {
+  max: number;
+  // Milliseconds. Undefined keeps the server default: postgres.js drops a 0 from the startup message.
+  statementTimeoutMs?: number;
+  idleInTransactionTimeoutMs: number;
+}
+
+export const REQUEST_POOL: PoolSettings = {
+  max: 20,
+  statementTimeoutMs: 30_000,
+  idleInTransactionTimeoutMs: 60_000,
+};
+
+export const BACKGROUND_POOL: PoolSettings = {
+  max: 10,
+  idleInTransactionTimeoutMs: 10 * 60_000,
+};
+
+export function createDb(connectionString: string, pool: PoolSettings = REQUEST_POOL) {
   const innerDialect = new PostgresJSDialect({
     postgres: postgres(connectionString, {
-      // Explicit so a postgres.js default change can't shift pool size silently.
-      max: 20,
+      max: pool.max,
+      connection: {
+        statement_timeout: pool.statementTimeoutMs,
+        idle_in_transaction_session_timeout: pool.idleInTransactionTimeoutMs,
+      },
       // kysely-postgres-js 5 prepares every query and a backend keeps each plan until the
       // connection closes.
       prepare: false,

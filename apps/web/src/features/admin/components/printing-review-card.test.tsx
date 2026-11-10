@@ -90,7 +90,11 @@ vi.mock("sonner", () => ({ toast: { success: captured.toastSuccess } }));
 
 const stubMutation = { mutate: vi.fn(), isPending: false };
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useAcceptPrintingField: () => ({ mutate: captured.acceptField, isPending: false }),
+  useAcceptPrintingField: () => ({
+    mutate: captured.acceptField,
+    mutateAsync: captured.acceptField,
+    isPending: false,
+  }),
   useCheckAllCandidatePrintings: () => ({ mutate: captured.checkAll, isPending: false }),
   useCheckCandidatePrinting: () => ({ mutate: captured.checkSource, isPending: false }),
   useCopyCandidatePrinting: () => stubMutation,
@@ -125,7 +129,6 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PrintingReviewCard } from "./printing-review-card";
 
 const CARD_ID = "yasuo";
@@ -443,7 +446,7 @@ describe("PrintingReviewCard", () => {
     expect(captured.spreadsheet).toBeNull();
   });
 
-  it("offers the old value back after accepting one from a source", () => {
+  it("offers the old value back after accepting one from a source", async () => {
     renderCard({
       printing: stubPrinting({ artist: "Base Artist" }),
       candidatePrintings: [stubSource({ id: "cp1", candidateCardId: "cc1" })],
@@ -460,6 +463,7 @@ describe("PrintingReviewCard", () => {
       value: "Zoya",
       source: "provider",
     });
+    await vi.waitFor(() => expect(captured.toastSuccess).toHaveBeenCalledOnce());
 
     const [message, options] = captured.toastSuccess.mock.calls[0] as [
       string,
@@ -545,7 +549,24 @@ describe("PrintingReviewCard", () => {
     expect(captured.spreadsheet?.fields?.map((field) => field.key)).toEqual(["artist", "size"]);
   });
 
-  it("writes an empty previous value back as null", () => {
+  it("shows no Undo toast when the accept fails", async () => {
+    captured.acceptField.mockRejectedValueOnce(new Error("conflict"));
+    renderCard({
+      printing: stubPrinting({ artist: "Base Artist" }),
+      candidatePrintings: [stubSource({ id: "cp1", candidateCardId: "cc1" })],
+      sourceLabels: { cc1: "tacter" },
+      printingSourceFields: [{ key: "artist", label: "Artist" }],
+    });
+
+    captured.spreadsheet?.onCellClick?.("artist", "Zoya", "cp1");
+    await vi.waitFor(() => expect(captured.acceptField).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(captured.toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it("writes an empty previous value back as null", async () => {
     renderCard({
       printing: stubPrinting({ artist: undefined }),
       candidatePrintings: [stubSource({ id: "cp1", candidateCardId: "cc1" })],
@@ -554,6 +575,7 @@ describe("PrintingReviewCard", () => {
     });
 
     captured.spreadsheet?.onCellClick?.("artist", "Zoya", "cp1");
+    await vi.waitFor(() => expect(captured.toastSuccess).toHaveBeenCalledOnce());
     const [, options] = captured.toastSuccess.mock.calls[0] as [
       string,
       { action: { onClick: () => void } },

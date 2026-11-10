@@ -3,7 +3,11 @@ import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { COPY_LIMIT_ZONES } from "@/features/decks/lib/deck-builder-card";
+import {
+  COPY_LIMIT_ZONES,
+  copyLimitTotal,
+  isBattlefieldZoneFull,
+} from "@/features/decks/lib/deck-builder-card";
 import type { RelaxedAddOutcome } from "@/features/decks/lib/workbench-add-toast";
 
 export type WorkbenchAddRoute = "add" | "legend" | "replace";
@@ -11,7 +15,7 @@ export type WorkbenchAddRoute = "add" | "legend" | "replace";
 export function workbenchAddRoute(
   card: { cardTypes: DeckBuilderCard["cardTypes"] },
   zone: DeckZone,
-  deckCards: readonly { zone: DeckZone }[],
+  deckCards: readonly { zone: DeckZone; quantity: number }[],
   format: DeckFormat,
 ): WorkbenchAddRoute {
   if (format === WellKnown.deckFormat.FREEFORM) {
@@ -21,9 +25,7 @@ export function workbenchAddRoute(
     return "legend";
   }
   if (zone === WellKnown.deckZone.BATTLEFIELD) {
-    const cap = format === WellKnown.deckFormat.CUSTOM_REGION ? 1 : 3;
-    const held = deckCards.filter((entry) => entry.zone === WellKnown.deckZone.BATTLEFIELD).length;
-    return held >= cap ? "replace" : "add";
+    return isBattlefieldZoneFull(deckCards, format) ? "replace" : "add";
   }
   return "add";
 }
@@ -45,10 +47,7 @@ export function relaxedMoveOutcome(args: {
     return undefined;
   }
   const limit = copyLimitFor(card);
-  const before = allCards
-    .filter((entry) => entry.cardId === card.cardId && COPY_LIMIT_ZONES.has(entry.zone))
-    .reduce((sum, entry) => sum + entry.quantity, 0);
-  const total = before + moved;
+  const total = copyLimitTotal(allCards, card.cardId) + moved;
   if (total <= limit) {
     return undefined;
   }

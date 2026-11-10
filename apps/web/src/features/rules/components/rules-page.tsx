@@ -17,7 +17,11 @@ import { featuredBoardStatesQueryOptions } from "@/features/board-states/lib/boa
 import { useRuleVersions, useRulesAtVersion } from "@/features/rules/hooks/use-rules";
 import { buildRuleExamplesMap } from "@/features/rules/lib/rule-examples";
 import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
-import { ruleVersionLabels, rulesSettingsLabel } from "@/features/rules/lib/rule-version-label";
+import {
+  ruleVersionLabels,
+  rulesPhoneFacts,
+  rulesSettingsLabel,
+} from "@/features/rules/lib/rule-version-label";
 import {
   buildChangeKindMap,
   computeAncestorsByRule,
@@ -112,7 +116,15 @@ function NoRulesYet() {
   );
 }
 
-function RulesHero({ kind, children }: { kind: RuleKind; children?: ReactNode }) {
+function RulesHero({
+  kind,
+  phoneFacts,
+  children,
+}: {
+  kind: RuleKind;
+  phoneFacts?: readonly string[];
+  children?: ReactNode;
+}) {
   return (
     <PageHero
       eyebrow={
@@ -120,11 +132,15 @@ function RulesHero({ kind, children }: { kind: RuleKind; children?: ReactNode })
           <div className="mb-2">
             <KindTabs kind={kind} />
           </div>
-          <span className={PAGE_HERO_EYEBROW_CLASS}>{m.rules_hero_eyebrow()}</span>
+          <span className={cn(PAGE_HERO_EYEBROW_CLASS, "max-md:hidden")}>
+            {m.rules_hero_eyebrow()}
+          </span>
         </>
       }
       title={ruleKindTitle(kind)}
       lead={ruleKindDescription(kind)}
+      compactOnPhone
+      phoneFacts={phoneFacts}
     >
       {children}
     </PageHero>
@@ -294,8 +310,14 @@ function RulesContent({
 
   return (
     <>
-      <RulesHero kind={kind}>
-        <PageHeroStats stats={stats} />
+      <RulesHero
+        kind={kind}
+        phoneFacts={rulesPhoneFacts(
+          currentVersion ?? { version, documentVersion: null },
+          (currentVersion?.languages ?? [language]).length,
+        )}
+      >
+        <PageHeroStats stats={stats} className="max-md:hidden" />
       </RulesHero>
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <div

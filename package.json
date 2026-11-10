@@ -19,7 +19,7 @@
     "analyze": "bun run --cwd apps/web analyze",
     "format": "oxfmt",
     "lint": "bun run lint:oxlint && bun run lint:eslint && bun run lint:oxfmt",
-    "lint:oxlint": "oxlint --type-aware --deny-warnings",
+    "lint:oxlint": "oxlint --type-aware --deny-warnings --report-unused-disable-directives",
     "lint:eslint": "bun run --cwd apps/web lint",
     "lint:oxfmt": "oxfmt ./apps ./packages --check",
     "lefthook": "lefthook",
@@ -49,17 +49,11 @@
     "knip": "knip",
     "postinstall": "test -n \"$CI\" || test -n \"$DOCKER_CONTAINER\" || env | grep -q ^DEPENDABOT || lefthook install"
   },
-  "dependencies": {
-    "@tanstack/react-pacer": "0.24.1"
-  },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/types": "21.2.3",
     "@tanstack/devtools-vite": "0.8.6",
-    "@tanstack/react-devtools": "0.10.14",
-    "@tanstack/react-pacer-devtools": "0.14.0",
-    "@tanstack/react-query-devtools": "5.105.1",
     "knip": "6.44.1",
     "lcov-result-merger": "6.0.0",
     "lefthook": "2.2.2",

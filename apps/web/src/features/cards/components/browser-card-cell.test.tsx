@@ -67,7 +67,6 @@ vi.mock("@/features/cards/components/card-cell", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { BrowserCardCell } = await import("./browser-card-cell");
 
 const display = { getFallbackArt: () => null } as unknown as CardThumbnailDisplay;

@@ -26,18 +26,22 @@ import {
 import { CardFieldsSection } from "@/features/admin/components/card-fields-section";
 import { PrintingSourceImageCell } from "@/features/admin/components/printing-source-image-cell";
 import {
+  acceptCardFieldFn,
+  acceptPrintingFieldFn,
   useAcceptPrintingField,
   useCheckCandidateCard,
   useCheckCandidatePrinting,
   useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
-import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { faceCompareCandidates } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type { PrintingCompareGroup } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { printingCompareGroups } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { undoScope, usedUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 
 export function CompareSourcesDialog({
   open,
@@ -61,6 +65,7 @@ export function CompareSourcesDialog({
   focusField?: string;
 }) {
   const checkCandidateCard = useCheckCandidateCard(invalidates);
+  const { announce } = useWorkspaceUndo();
   const openSourceIds = sources
     .filter((source) => source.provider !== USER_SUBMISSION_PROVIDER && source.checkedAt === null)
     .map((source) => source.id);
@@ -85,6 +90,15 @@ export function CompareSourcesDialog({
           invalidates={invalidates}
           isAdmin={isAdmin}
           focusField={focusField}
+          onFieldAccepted={({ fieldLabel, sourceLabel, revert }) =>
+            announce({
+              ...usedUndoText({ field: fieldLabel, source: sourceLabel, record: card.name }),
+              invalidates: undoScope(invalidates),
+              undo: async () => {
+                await acceptCardFieldFn({ data: revert });
+              },
+            })
+          }
         />
       </DialogContent>
     </Dialog>
@@ -251,6 +265,7 @@ function SourceSpreadsheet({
   const acceptPrintingField = useAcceptPrintingField(scope);
   const checkPrintingSource = useCheckCandidatePrinting(scope);
   const uncheckPrintingSource = useUncheckCandidatePrinting(scope);
+  const { announce } = useWorkspaceUndo();
 
   const fields = faceFieldsOnly
     ? printingSourceFields.filter((field) => !isPrintingLevelField(field.key))
@@ -293,26 +308,26 @@ function SourceSpreadsheet({
         if (!isAcceptPrintingField(field)) {
           return;
         }
-        const previousValue = activeRow[field];
-        acceptPrintingField.mutate({
-          printingId,
-          faceId: face.faceId,
-          field,
-          value,
-          source: "provider",
-        });
         const row = candidates.find((candidate) => candidate.id === candidateId);
-        toastFieldAccepted({
-          fieldLabel: fields.find((entry) => entry.key === field)?.label ?? field,
-          sourceLabel: row === undefined ? "this source" : getProviderLabel(row, labels),
-          previousValue,
-          onUndo: (previous) =>
-            acceptPrintingField.mutate({
-              printingId,
-              faceId: face.faceId,
-              field,
-              value: previous,
-              source: "manual",
+        const fieldLabel = fields.find((entry) => entry.key === field)?.label ?? field;
+        const sourceLabel = row === undefined ? "this source" : getProviderLabel(row, labels);
+        void acceptFieldWithUndo({
+          accept: acceptPrintingField.mutateAsync,
+          input: { printingId, faceId: face.faceId, field, value, source: "provider" },
+          fieldLabel,
+          sourceLabel,
+          previousValue: activeRow[field],
+          onAccepted: (revert) =>
+            announce({
+              ...usedUndoText({
+                field: fieldLabel,
+                source: sourceLabel,
+                record: detail.displayName,
+              }),
+              invalidates: undoScope(scope),
+              undo: async () => {
+                await acceptPrintingFieldFn({ data: revert });
+              },
             }),
         });
       }}

@@ -80,7 +80,7 @@ describe("GET /api/v1/collection-value-history", () => {
     const colA = "a0000000-0001-4000-a000-000000000010";
     const colB = "a0000000-0001-4000-a000-000000000011";
     await app.request(
-      `/api/v1/collection-value-history?marketplace=cardmarket&collectionIds=${colA},${colB}&sets=OGS,OGN&signed=true&banned=false`,
+      `/api/v1/collection-value-history?marketplace=cardmarket&collectionIds=${colA},${colB}&sets=OGS,OGN&signed=true&overnumbered=false&banned=false`,
     );
     expect(mockMarketplaceRepo.collectionValueTimeSeries).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -89,6 +89,7 @@ describe("GET /api/v1/collection-value-history", () => {
         scope: expect.objectContaining({
           sets: ["OGS", "OGN"],
           signed: true,
+          overnumbered: false,
           banned: false,
         }),
       }),

@@ -1,9 +1,11 @@
 import { primaryCardType } from "@openrift/shared/card-primary-type";
 import type { DeckCard } from "@openrift/shared/deck-rules";
 import {
+  battlefieldCapFor,
   copyLimitFor,
   formatHasSideboard,
   requiredLegendOptions,
+  RUNE_TARGET,
   totalQuantity,
 } from "@openrift/shared/deck-rules";
 import type { DeckCardResponse, PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
@@ -27,13 +29,35 @@ export function isCardBanned(card: Pick<Card, "bans">): boolean {
   return card.bans.some((ban) => isBaseBanFormat(ban.formatId));
 }
 
-export const RUNE_TARGET = 12;
-
 export const COPY_LIMIT_ZONES: ReadonlySet<DeckZone> = new Set([
   WellKnown.deckZone.MAIN,
   WellKnown.deckZone.SIDEBOARD,
   WellKnown.deckZone.CHAMPION,
 ]);
+
+export function copyLimitTotal(
+  cards: readonly { cardId: string; zone: DeckZone; quantity: number }[],
+  cardId: string,
+): number {
+  let total = 0;
+  for (const card of cards) {
+    if (card.cardId === cardId && COPY_LIMIT_ZONES.has(card.zone)) {
+      total += card.quantity;
+    }
+  }
+  return total;
+}
+
+export function isBattlefieldZoneFull(
+  cards: readonly { zone: DeckZone; quantity: number }[],
+  format: DeckFormat,
+): boolean {
+  if (format === WellKnown.deckFormat.FREEFORM) {
+    return false;
+  }
+  const held = totalQuantity(cards.filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD));
+  return held >= battlefieldCapFor(format);
+}
 
 export interface DeckBuilderCard {
   cardId: string;
@@ -220,12 +244,12 @@ export function isCardAllowedInZone(
 
 /**
  * Moves between two copy-limit zones (main/sideboard/champion) preserve the
- * cross-zone copy total, so the 3-copy cap doesn't apply there, including for
- * drops back into the source zone.
+ * cross-zone copy total, so the copy cap doesn't apply there, including for
+ * drops back into the source zone. Relaxed (workbench) mode accepts over-cap drops.
  */
 export function isDeckZoneFullForDrag(args: {
   zone: DeckZone;
-  draggedCard: { cardId: string; maxCopiesOverride: number | null };
+  draggedCard: { cardId: string; maxCopiesOverride: number | null; keywords: readonly string[] };
   fromZone: DeckZone | null;
   allCards: readonly {
     cardId: string;
@@ -234,8 +258,9 @@ export function isDeckZoneFullForDrag(args: {
     additionalLegendCount?: number | null;
   }[];
   format: DeckFormat;
+  relaxed?: boolean;
 }): boolean {
-  const { zone, draggedCard, fromZone, allCards, format } = args;
+  const { zone, draggedCard, fromZone, allCards, format, relaxed } = args;
   const draggedCardId = draggedCard.cardId;
   if (format === WellKnown.deckFormat.FREEFORM) {
     return false;
@@ -249,22 +274,18 @@ export function isDeckZoneFullForDrag(args: {
   ) {
     return true;
   }
-  if (COPY_LIMIT_ZONES.has(zone) && (fromZone === null || !COPY_LIMIT_ZONES.has(fromZone))) {
-    const total = allCards
-      .filter((entry) => entry.cardId === draggedCardId && COPY_LIMIT_ZONES.has(entry.zone))
-      .reduce((sum, entry) => sum + entry.quantity, 0);
-    if (total >= copyLimitFor(draggedCard)) {
-      return true;
-    }
+  if (relaxed) {
+    return false;
+  }
+  if (
+    COPY_LIMIT_ZONES.has(zone) &&
+    (fromZone === null || !COPY_LIMIT_ZONES.has(fromZone)) &&
+    copyLimitTotal(allCards, draggedCardId) >= copyLimitFor(draggedCard)
+  ) {
+    return true;
   }
   if (zone === WellKnown.deckZone.BATTLEFIELD) {
-    // Custom-region allows exactly one battlefield; moves within the zone
-    // stay allowed so a reorder-drop doesn't get rejected.
-    if (
-      format === WellKnown.deckFormat.CUSTOM_REGION &&
-      fromZone !== WellKnown.deckZone.BATTLEFIELD &&
-      allCards.some((card) => card.zone === WellKnown.deckZone.BATTLEFIELD)
-    ) {
+    if (fromZone !== WellKnown.deckZone.BATTLEFIELD && isBattlefieldZoneFull(allCards, format)) {
       return true;
     }
     return allCards.some(

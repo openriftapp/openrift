@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readClientCookie, resolvePaletteFromCookie, resolveThemeFromCookie } from "./shell-prefs";
+import {
+  readClientCookie,
+  resolvePaletteFromCookie,
+  resolveThemeFromCookie,
+  SHELL_PREFS_SCRIPT,
+} from "./shell-prefs";
 
 function clearCookies() {
   for (const row of document.cookie.split("; ")) {
@@ -23,8 +28,14 @@ describe("resolveThemeFromCookie", () => {
     );
   });
 
-  it("resolves auto to light (matchMedia is corrected client-side by THEME_SCRIPT)", () => {
+  it("resolves auto to light without a system preference", () => {
     expect(resolveThemeFromCookie(JSON.stringify({ state: { preference: "auto" } }))).toBe("light");
+  });
+
+  it("resolves auto to dark when the system prefers dark", () => {
+    expect(resolveThemeFromCookie(JSON.stringify({ state: { preference: "auto" } }), true)).toBe(
+      "dark",
+    );
   });
 
   it("defaults to dark when the cookie is missing", () => {
@@ -96,5 +107,91 @@ describe("readClientCookie", () => {
     const value = JSON.stringify({ state: { preference: "dark" } });
     document.cookie = `theme=${encodeURIComponent(value)}; path=/`;
     expect(resolveThemeFromCookie(readClientCookie("theme"))).toBe("dark");
+  });
+});
+
+describe("SHELL_PREFS_SCRIPT", () => {
+  function setPref(name: string, preference: unknown) {
+    document.cookie = `${name}=${encodeURIComponent(JSON.stringify({ state: { preference } }))}; path=/`;
+  }
+
+  function run(systemDark = false) {
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: systemDark, media: query }));
+    // oxlint-disable-next-line no-new-func, typescript/no-implied-eval -- runs the inline script as the browser would
+    new Function(SHELL_PREFS_SCRIPT)();
+    const root = document.documentElement;
+    return { dark: root.classList.contains("dark"), palette: root.dataset.palette };
+  }
+
+  beforeEach(() => {
+    clearCookies();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.documentElement.className = "";
+    delete document.documentElement.dataset.palette;
+  });
+
+  it("removes dark from a dark default shell for a light visitor", () => {
+    document.documentElement.className = "dark";
+    setPref("theme", "light");
+    expect(run().dark).toBe(false);
+  });
+
+  it("adds dark to a light shell for a dark visitor", () => {
+    setPref("theme", "dark");
+    expect(run().dark).toBe(true);
+  });
+
+  it("follows the system for auto", () => {
+    setPref("theme", "auto");
+    expect(run(true).dark).toBe(true);
+    document.documentElement.className = "dark";
+    expect(run(false).dark).toBe(false);
+  });
+
+  it("falls back to dark without a cookie, on unknown values and on malformed cookies", () => {
+    expect(run().dark).toBe(true);
+    setPref("theme", "sepia");
+    expect(run().dark).toBe(true);
+    document.cookie = "theme=%7Bnot-json; path=/";
+    expect(run().dark).toBe(true);
+  });
+
+  it("replaces the default shell's palette with the visitor's", () => {
+    document.documentElement.dataset.palette = "default";
+    setPref("palette", "minimal");
+    expect(run().palette).toBe("minimal");
+  });
+
+  it("resets the palette to default without a cookie or for unknown values", () => {
+    document.documentElement.dataset.palette = "minimal";
+    expect(run().palette).toBe("default");
+    document.documentElement.dataset.palette = "minimal";
+    setPref("palette", "<script>");
+    expect(run().palette).toBe("default");
+  });
+
+  it("applies the palette even when the theme cookie is malformed", () => {
+    document.cookie = "theme=%7Bnot-json; path=/";
+    setPref("palette", "minimal");
+    expect(run().palette).toBe("minimal");
+  });
+
+  it("agrees with the server resolvers for every cookie value", () => {
+    for (const theme of ["dark", "light", "auto", null, 7]) {
+      for (const systemDark of [false, true]) {
+        clearCookies();
+        setPref("theme", theme);
+        const expected = resolveThemeFromCookie(readClientCookie("theme"), systemDark);
+        expect(run(systemDark).dark).toBe(expected === "dark");
+      }
+    }
+    for (const palette of ["default", "minimal", "unknown", null]) {
+      clearCookies();
+      setPref("palette", palette);
+      expect(run().palette).toBe(resolvePaletteFromCookie(readClientCookie("palette")));
+    }
   });
 });

@@ -362,9 +362,10 @@ export function MetaSubmitPage({
   }
 
   async function handleSubmit() {
+    const current = parsedList(draft.deckText, allPrintings);
     const problem = validateMetaSubmissionDraft(draft, {
       proposing,
-      cardCount: parsed?.cards.length ?? 0,
+      cardCount: current?.cards.length ?? 0,
     });
     if (problem) {
       setFormError(problem);
@@ -375,7 +376,7 @@ export function MetaSubmitPage({
       setFormError(m.meta_submit_error_pick_event());
       return;
     }
-    if (parsed === null) {
+    if (current === null) {
       setFormError(m.meta_validate_paste_decklist());
       return;
     }
@@ -388,7 +389,7 @@ export function MetaSubmitPage({
             metaEventPlayerId:
               fromRow && event.id === eventFromSlug?.id ? row.metaEventPlayerId : undefined,
           };
-    const input = buildMetaSubmissionInput(draft, parsed, target);
+    const input = buildMetaSubmissionInput(draft, current, target);
     setFormError("");
     try {
       applyOutcome(await submit.mutateAsync(input));

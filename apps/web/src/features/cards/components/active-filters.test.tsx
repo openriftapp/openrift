@@ -33,7 +33,8 @@ vi.mock("@/stores/display-store", () => ({
   useDisplayStore: mockUseDisplayStore,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
+import { FILTER_DIMENSIONS } from "@/features/cards/lib/filter-dimensions";
+
 import { ActiveFilters } from "./active-filters";
 
 const NULL_RANGES = {
@@ -541,5 +542,260 @@ describe("ActiveFilters standard flag + exclude chips (ADR-034)", () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("ActiveFilters chip layout", () => {
+  const ACTIVE_FILTER_STATE = {
+    ...EMPTY_FILTER_STATE,
+    sets: ["RB1"],
+    languages: ["EN"],
+    rarities: ["rare"],
+    types: ["unit"],
+    superTypes: ["champion"],
+    domains: ["fury"],
+    artVariants: ["altart"],
+    finishes: ["foil"],
+    cardSizes: ["oversized"],
+    markers: ["nexus"],
+    channels: ["store"],
+    customTags: ["staple"],
+    keywords: ["Unique"],
+    tags: ["Poro"],
+    owned: ["partial"],
+    ownedCountMin: 1,
+    ownedCountMax: 3,
+    signed: true,
+    overnumbered: false,
+    markersPresence: "any",
+    superTypesPresence: "none",
+    customTagsPresence: "any",
+    channelsPresence: "none",
+    keywordsPresence: "any",
+    tagsPresence: "none",
+    banned: true,
+    errata: false,
+    noImage: true,
+    standard: false,
+    setsEx: ["RB2"],
+    languagesEx: ["DE"],
+    raritiesEx: ["common"],
+    typesEx: ["spell"],
+    superTypesEx: ["token"],
+    domainsEx: ["mind"],
+    artVariantsEx: ["normal"],
+    finishesEx: ["normal"],
+    markersEx: ["promo"],
+    channelsEx: ["event"],
+    customTagsEx: ["budget"],
+    keywordsEx: ["Deflect"],
+    tagsEx: ["Yordle"],
+  };
+  const ACTIVE_RANGES = {
+    energy: { min: 2, max: null },
+    might: { min: null, max: 4 },
+    power: { min: 1, max: 5 },
+    price: { min: 1, max: 20 },
+  };
+  const ACTION_NAMES = [
+    "toggleArrayFilter",
+    "setRange",
+    "setOwnedCountRange",
+    "clearSigned",
+    "clearOvernumbered",
+    "clearPresence",
+    "clearBanned",
+    "clearErrata",
+    "clearNoImage",
+    "clearStandard",
+    "clearAllFilters",
+    "setSearch",
+  ] as const;
+  function setupActive() {
+    const calls: unknown[][] = [];
+    const actions = Object.fromEntries(
+      ACTION_NAMES.map((name) => [
+        name,
+        vi.fn((...args: unknown[]) => {
+          calls.push([name, ...args]);
+        }),
+      ]),
+    );
+    mockUseFilterValues.mockReturnValue({
+      filterState: ACTIVE_FILTER_STATE,
+      ranges: ACTIVE_RANGES,
+    });
+    mockUseFilterActions.mockReturnValue(actions);
+    mockUseEnumOrders.mockReturnValue({
+      labels: {
+        finishes: {},
+        rarities: {},
+        domains: {},
+        cardTypes: {},
+        superTypes: {},
+        artVariants: {},
+        cardSizes: {},
+      },
+    });
+    mockUseCustomTagList.mockReturnValue({
+      all: [
+        makeCustomTag({ slug: "staple", label: "Staple" }),
+        makeCustomTag({ slug: "budget", label: "Budget", category: "cost", categoryLabel: "Cost" }),
+      ],
+      byCategory: new Map(),
+    });
+    mockUseDisplayStore.mockImplementation(
+      (selector: (state: { marketplaceOrder: string[] }) => unknown) =>
+        selector({ marketplaceOrder: ["cardtrader"] }),
+    );
+    return calls;
+  }
+
+  afterEach(() => {
+    mockUseFilterValues.mockReset();
+    mockUseFilterActions.mockReset();
+    mockUseEnumOrders.mockReset();
+    mockUseCustomTagList.mockReset();
+    mockUseDisplayStore.mockReset();
+  });
+
+  function removeLabels(container: HTMLElement): string[] {
+    return [...container.querySelectorAll("button[aria-label]")].map(
+      (button) => button.getAttribute("aria-label") ?? "",
+    );
+  }
+
+  it("orders every active chip and keeps languages out of the chips", () => {
+    setupActive();
+    const { container } = render(<ActiveFilters availableFilters={makeAvailable()} />);
+
+    expect(removeLabels(container)).toEqual([
+      "Remove Set RB1",
+      "Remove Rarity rare",
+      "Remove Type unit",
+      "Remove Supertype champion",
+      "Remove Domain fury",
+      "Remove Art Variant altart",
+      "Remove Finish foil",
+      "Remove Size oversized",
+      "Remove Marker nexus",
+      "Remove Distribution Channel store",
+      "Remove Keyword Unique",
+      "Remove Owned Partial Playset",
+      "Remove tag Staple",
+      "Remove tag Poro",
+      "Remove excluded Set RB2",
+      "Remove excluded Rarity common",
+      "Remove excluded Type spell",
+      "Remove excluded Supertype token",
+      "Remove excluded Domain mind",
+      "Remove excluded Art Variant normal",
+      "Remove excluded Finish normal",
+      "Remove excluded Marker promo",
+      "Remove excluded Distribution Channel event",
+      "Remove excluded Keyword Deflect",
+      "Remove excluded tag Budget",
+      "Remove excluded tag Yordle",
+      "Clear Energy filter",
+      "Clear Might filter",
+      "Clear Power filter",
+      "Clear Price filter",
+      "Clear Copies filter",
+      "Clear Overnumbered filter",
+      "Clear Signed filter",
+      "Clear Promo filter",
+      "Clear Has any supertype filter",
+      "Clear Has any custom tag filter",
+      "Clear Has any distribution channel filter",
+      "Clear Has any keyword filter",
+      "Clear Has any tag filter",
+      "Clear Banned filter",
+      "Clear Errata filter",
+      "Clear No image yet filter",
+      "Clear Plain filter",
+    ]);
+  });
+
+  it("removes each chip through its own action", async () => {
+    const calls = setupActive();
+    const user = userEvent.setup();
+    const { container } = render(<ActiveFilters availableFilters={makeAvailable()} />);
+
+    for (const button of container.querySelectorAll("button[aria-label]")) {
+      await user.click(button);
+    }
+
+    expect(calls).toEqual([
+      ["toggleArrayFilter", "sets", "RB1"],
+      ["toggleArrayFilter", "rarities", "rare"],
+      ["toggleArrayFilter", "types", "unit"],
+      ["toggleArrayFilter", "superTypes", "champion"],
+      ["toggleArrayFilter", "domains", "fury"],
+      ["toggleArrayFilter", "artVariants", "altart"],
+      ["toggleArrayFilter", "finishes", "foil"],
+      ["toggleArrayFilter", "cardSizes", "oversized"],
+      ["toggleArrayFilter", "markers", "nexus"],
+      ["toggleArrayFilter", "channels", "store"],
+      ["toggleArrayFilter", "keywords", "Unique"],
+      ["toggleArrayFilter", "owned", "partial"],
+      ["toggleArrayFilter", "customTags", "staple"],
+      ["toggleArrayFilter", "tags", "Poro"],
+      ["toggleArrayFilter", "setsEx", "RB2"],
+      ["toggleArrayFilter", "raritiesEx", "common"],
+      ["toggleArrayFilter", "typesEx", "spell"],
+      ["toggleArrayFilter", "superTypesEx", "token"],
+      ["toggleArrayFilter", "domainsEx", "mind"],
+      ["toggleArrayFilter", "artVariantsEx", "normal"],
+      ["toggleArrayFilter", "finishesEx", "normal"],
+      ["toggleArrayFilter", "markersEx", "promo"],
+      ["toggleArrayFilter", "channelsEx", "event"],
+      ["toggleArrayFilter", "keywordsEx", "Deflect"],
+      ["toggleArrayFilter", "customTagsEx", "budget"],
+      ["toggleArrayFilter", "tagsEx", "Yordle"],
+      ["setRange", "energy", null, null],
+      ["setRange", "might", null, null],
+      ["setRange", "power", null, null],
+      ["setRange", "price", null, null],
+      ["setOwnedCountRange", null, null],
+      ["clearOvernumbered"],
+      ["clearSigned"],
+      ["clearPresence", "markers"],
+      ["clearPresence", "superTypes"],
+      ["clearPresence", "customTags"],
+      ["clearPresence", "distributionChannels"],
+      ["clearPresence", "keywords"],
+      ["clearPresence", "tags"],
+      ["clearBanned"],
+      ["clearErrata"],
+      ["clearNoImage"],
+      ["clearStandard"],
+    ]);
+  });
+
+  it("hides value, tag and copies chips of hidden sections but keeps ranges and flags", () => {
+    setupActive();
+    const allSections = new Set(FILTER_DIMENSIONS.map((dimension) => dimension.section));
+    const { container } = render(
+      <ActiveFilters availableFilters={makeAvailable()} hiddenSections={allSections} />,
+    );
+
+    expect(removeLabels(container)).toEqual([
+      "Clear Energy filter",
+      "Clear Might filter",
+      "Clear Power filter",
+      "Clear Price filter",
+      "Clear Overnumbered filter",
+      "Clear Signed filter",
+      "Clear Promo filter",
+      "Clear Has any supertype filter",
+      "Clear Has any custom tag filter",
+      "Clear Has any distribution channel filter",
+      "Clear Has any keyword filter",
+      "Clear Has any tag filter",
+      "Clear Banned filter",
+      "Clear Errata filter",
+      "Clear No image yet filter",
+      "Clear Plain filter",
+    ]);
   });
 });

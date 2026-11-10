@@ -6,7 +6,6 @@ import { featureFlagsRepo } from "./feature-flags.js";
 const ctx = createDbContext("a0000000-0031-4000-a000-000000000001");
 
 describe.skipIf(!ctx)("featureFlagsRepo (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = featureFlagsRepo(db);
 

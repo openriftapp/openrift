@@ -32,7 +32,7 @@ import {
   useUncheckCandidateCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
-import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 
@@ -128,6 +128,16 @@ interface CardFieldsSectionProps {
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
   focusField?: string;
+  onFieldAccepted?: (accepted: {
+    fieldLabel: string;
+    sourceLabel: string;
+    revert: {
+      cardId: string;
+      field: AcceptCardField;
+      value: unknown;
+      source?: "provider" | "manual";
+    };
+  }) => void;
 }
 
 export function CardFieldsSection({
@@ -140,6 +150,7 @@ export function CardFieldsSection({
   invalidates,
   isAdmin,
   focusField,
+  onFieldAccepted,
 }: CardFieldsSectionProps) {
   const acceptCardField = useAcceptCardField(invalidates);
   const checkCandidateCard = useCheckCandidateCard(invalidates);
@@ -185,20 +196,20 @@ export function CardFieldsSection({
           if (!isAcceptCardField(field)) {
             return;
           }
-          const previousValue = (card as Record<string, unknown>)[field];
-          acceptCardField.mutate({ cardId: card.id, field, value, source: "provider" });
           const row = sources.find((source) => source.id === candidateId);
-          toastFieldAccepted({
-            fieldLabel: candidateCardFields.find((entry) => entry.key === field)?.label ?? field,
-            sourceLabel: row === undefined ? "this source" : getProviderLabel(row),
-            previousValue,
-            onUndo: (previous) =>
-              acceptCardField.mutate({
-                cardId: card.id,
-                field,
-                value: previous,
-                source: "manual",
-              }),
+          const fieldLabel =
+            candidateCardFields.find((entry) => entry.key === field)?.label ?? field;
+          const sourceLabel = row === undefined ? "this source" : getProviderLabel(row);
+          void acceptFieldWithUndo({
+            accept: acceptCardField.mutateAsync,
+            input: { cardId: card.id, field, value, source: "provider" },
+            fieldLabel,
+            sourceLabel,
+            previousValue: (card as Record<string, unknown>)[field],
+            onAccepted:
+              onFieldAccepted === undefined
+                ? undefined
+                : (revert) => onFieldAccepted({ fieldLabel, sourceLabel, revert }),
           });
         }}
         onActiveChange={(field, value) => {

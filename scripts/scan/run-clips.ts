@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Replays every labelled clip through the scanner's own session plan and
  * scores each lock against the clip's truth file. README.md lists the flags.

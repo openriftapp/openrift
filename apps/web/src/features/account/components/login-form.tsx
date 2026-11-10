@@ -11,12 +11,14 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TextLink } from "@/components/ui/text-link";
+import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { authClient, signIn } from "@/features/account/lib/auth-client";
+import { authDestination } from "@/features/account/lib/auth-destination";
 import { isNewAccount, routeTemplate, trackSignupComplete, trackSignupCta } from "@/lib/analytics";
 import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
-import { sessionQueryOptions } from "@/lib/auth-session";
+import { refreshViewer } from "@/lib/viewer-change";
 import { m } from "@/paraglide/messages.js";
 
 function signInSchema() {
@@ -49,12 +51,14 @@ export function LoginForm({
     resolver: zodResolver(signInSchema()),
     defaultValues: { email: initialEmail, password: "" },
   });
+  const destination = authDestination(redirectTo);
 
   return (
     <AuthFormCard
       className={className}
-      title={m.auth_login_title()}
-      subtitle={m.auth_login_subtitle()}
+      title={destination?.title ?? m.auth_login_title()}
+      subtitle={destination ? undefined : m.auth_login_subtitle()}
+      aside={destination && <AuthDestinationPanel destination={destination} />}
       {...props}
     >
       <Tabs value={method} onValueChange={(v) => setMethod(v as "password" | "otp")}>
@@ -122,8 +126,7 @@ function PasswordSignIn({
       setServerError(form, error);
       return;
     }
-    // Cache is keyed by the prior session's userId; invalidate so it re-keys to the new one.
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    await refreshViewer(queryClient);
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
   }
 
@@ -284,7 +287,7 @@ function OtpSignIn({
         routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
       );
     }
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    await refreshViewer(queryClient);
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
   }
 

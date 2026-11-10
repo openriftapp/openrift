@@ -20,10 +20,11 @@ import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { refusingUnconfirmedTradeCancels } from "../../groups/services/trade-supply.js";
 import { toList, toListDetail, toListEntry, toListEntryDetail } from "../lib/list-presenters.js";
 import type { ListUpdate } from "../repositories/lists-core.js";
 import type { ListEntryUpdate, NewEntryValues } from "../repositories/lists-entries.js";
-import { moveListEntries } from "../services/lists.js";
+import { moveListEntries, withTradeSupplySweep } from "../services/lists.js";
 
 const os = implement(listsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -116,15 +117,42 @@ export const listsRouter = {
     if (Object.keys(updates).length === 0) {
       throw errors.BAD_REQUEST({ message: "No fields to update" });
     }
-    const row = await lists.update(input.id, userId, updates);
+    const touchesSupply = updates.rules !== undefined || updates.ruleCombine !== undefined;
+    const row = await refusingUnconfirmedTradeCancels(
+      withTradeSupplySweep(
+        context.repos,
+        context.transact,
+        userId,
+        touchesSupply ? [existing] : [],
+        input.cancelTradeIds ?? [],
+        (repos) => repos.lists.update(input.id, userId, updates),
+      ),
+      (data) => errors.CONFLICT({ data }),
+    );
     assertFound(row, "Not found");
     return toList(row);
   }),
 
-  remove: os.remove.handler(async ({ input, context }): Promise<void> => {
+  remove: os.remove.handler(async ({ input, context, errors }): Promise<void> => {
     const { lists } = context.repos;
-    const deleted = await lists.deleteByIdForUser(input.id, context.userId);
-    assertExisted(deleted, "Not found");
+    const userId = context.userId;
+
+    const list = await lists.getIdKindIntent(input.id, userId);
+    assertFound(list, "Not found");
+
+    await refusingUnconfirmedTradeCancels(
+      withTradeSupplySweep(
+        context.repos,
+        context.transact,
+        userId,
+        [list],
+        input.cancelTradeIds ?? [],
+        async (repos) => {
+          assertExisted(await repos.lists.deleteByIdForUser(input.id, userId), "Not found");
+        },
+      ),
+      (data) => errors.CONFLICT({ data }),
+    );
   }),
 
   createEntry: os.createEntry.handler(
@@ -250,22 +278,28 @@ export const listsRouter = {
     },
   ),
 
-  moveEntries: os.moveEntries.handler(async ({ input, context }): Promise<ListMoveResponse> => {
-    const repos = context.repos;
-    const transact = context.transact;
-    const userId = context.userId;
+  moveEntries: os.moveEntries.handler(
+    async ({ input, context, errors }): Promise<ListMoveResponse> => {
+      const repos = context.repos;
+      const transact = context.transact;
+      const userId = context.userId;
 
-    return await moveListEntries(
-      repos,
-      transact,
-      userId,
-      input.id,
-      input.toListId,
-      input.entryIds,
-      input.resolutions ?? [],
-      input.mode ?? "move",
-    );
-  }),
+      return await refusingUnconfirmedTradeCancels(
+        moveListEntries(
+          repos,
+          transact,
+          userId,
+          input.id,
+          input.toListId,
+          input.entryIds,
+          input.resolutions ?? [],
+          input.mode ?? "move",
+          input.cancelTradeIds ?? [],
+        ),
+        (data) => errors.CONFLICT({ data }),
+      );
+    },
+  ),
 
   updateEntry: os.updateEntry.handler(
     async ({ input, context, errors }): Promise<ListEntryResponse> => {
@@ -290,12 +324,26 @@ export const listsRouter = {
     },
   ),
 
-  removeEntry: os.removeEntry.handler(async ({ input, context }): Promise<void> => {
+  removeEntry: os.removeEntry.handler(async ({ input, context, errors }): Promise<void> => {
     const { lists } = context.repos;
     const userId = context.userId;
 
-    const result = await lists.deleteEntry(input.itemId, input.id, userId);
-    assertDeleted(result, "Not found");
+    const list = await lists.getIdKindIntent(input.id, userId);
+    assertFound(list, "Not found");
+
+    await refusingUnconfirmedTradeCancels(
+      withTradeSupplySweep(
+        context.repos,
+        context.transact,
+        userId,
+        [list],
+        input.cancelTradeIds ?? [],
+        async (repos) => {
+          assertDeleted(await repos.lists.deleteEntry(input.itemId, input.id, userId), "Not found");
+        },
+      ),
+      (data) => errors.CONFLICT({ data }),
+    );
   }),
 
   // An owned-but-unshared list resolves to { shareToken: null, isPublic: false }; 404 means not owned.
@@ -310,24 +358,54 @@ export const listsRouter = {
   }),
 
   // deleteEntriesByIds silently drops ids not owned by this list/user; a missing list still 404s.
-  bulkDeleteEntries: os.bulkDeleteEntries.handler(async ({ input, context }): Promise<void> => {
-    const { lists } = context.repos;
-    const userId = context.userId;
-    const listId = input.id;
+  bulkDeleteEntries: os.bulkDeleteEntries.handler(
+    async ({ input, context, errors }): Promise<void> => {
+      const { lists } = context.repos;
+      const userId = context.userId;
+      const listId = input.id;
 
-    const list = await lists.getIdKindIntent(listId, userId);
-    assertFound(list, "List not found");
+      const list = await lists.getIdKindIntent(listId, userId);
+      assertFound(list, "List not found");
 
-    await lists.deleteEntriesByIds(input.entryIds, listId, userId);
-  }),
+      await refusingUnconfirmedTradeCancels(
+        withTradeSupplySweep(
+          context.repos,
+          context.transact,
+          userId,
+          [list],
+          input.cancelTradeIds ?? [],
+          (repos) => repos.lists.deleteEntriesByIds(input.entryIds, listId, userId),
+        ),
+        (data) => errors.CONFLICT({ data }),
+      );
+    },
+  ),
 
   // Relative: a concurrent decrement (a trade settling at the same moment) can't clobber this one.
-  decrementEntries: os.decrementEntries.handler(async ({ input, context }): Promise<void> => {
-    const { lists } = context.repos;
-    for (const entry of input.entries) {
-      await lists.decrementEntryQuantity(entry.entryId, context.userId, entry.by);
-    }
-  }),
+  decrementEntries: os.decrementEntries.handler(
+    async ({ input, context, errors }): Promise<void> => {
+      const userId = context.userId;
+      const owning = await context.repos.lists.listsOwningEntries(
+        input.entries.map((entry) => entry.entryId),
+        userId,
+      );
+      await refusingUnconfirmedTradeCancels(
+        withTradeSupplySweep(
+          context.repos,
+          context.transact,
+          userId,
+          owning,
+          input.cancelTradeIds ?? [],
+          async (repos) => {
+            for (const entry of input.entries) {
+              await repos.lists.decrementEntryQuantity(entry.entryId, userId, entry.by);
+            }
+          },
+        ),
+        (data) => errors.CONFLICT({ data }),
+      );
+    },
+  ),
 
   share: os.share.handler(async ({ input, context }): Promise<ListShareResponse> => {
     const { lists } = context.repos;

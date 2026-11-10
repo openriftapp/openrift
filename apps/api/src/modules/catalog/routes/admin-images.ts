@@ -34,7 +34,7 @@ export const adminImagesRouter = {
   }),
 
   regenerate: os.regenerate.handler(async ({ input, context }) => {
-    const repos = context.repos;
+    const repos = context.backgroundRepos;
     const io = context.io;
     const { reset, skipExisting, scansOnly } = input.query;
 

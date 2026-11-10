@@ -41,13 +41,9 @@ vi.mock("@/hooks/use-enums", () => ({
   useTagCategories: mockUseTagCategories,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterBadgeSections } from "./filter-badge-sections";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterChipSections } from "./filter-chip-sections";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterRangeSections } from "./filter-range-sections";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { LabelledRowLayoutContext } from "./labelled-row";
 
 const NULL_RANGES = {

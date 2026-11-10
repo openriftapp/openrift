@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-// oxlint-disable-next-line no-restricted-imports -- API has no @/ alias
 import { AppError } from "../../../errors.js";
 import {
   assertCandidatePrintingsInScope,

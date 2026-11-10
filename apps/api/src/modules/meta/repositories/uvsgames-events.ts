@@ -18,6 +18,7 @@ import type {
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
   MetaSyncBuckets,
+  MetaSyncBucketTriage,
 } from "./meta-sync-buckets.js";
 import {
   metaSyncBucketCondition,
@@ -249,6 +250,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
   )`;
   const pagedNew = sql<SqlBool>`${notDismissed} and ${notLinked}`;
   const pagedAccepted = sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`;
+  const bucketTriage: MetaSyncBucketTriage = { undecided: pagedNew, published: pagedAccepted };
 
   const stagedPlayerCount = sql<number>`(
     select count(*)::int from uvsgames_event_standings st where st.external_id = c.external_id
@@ -815,7 +817,12 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       }
       if (filters.bucket !== undefined) {
         query = query.where(
-          metaSyncBucketCondition(filters.bucket.name, bucketColumns, filters.bucket.rule),
+          metaSyncBucketCondition(
+            filters.bucket.name,
+            bucketColumns,
+            filters.bucket.rule,
+            bucketTriage,
+          ),
         );
       }
       if (filters.triage !== undefined) {
@@ -920,7 +927,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.external_id`.as("key"))
-        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, bucketTriage))
         .execute();
       return rows.map((row) => row.key);
     },

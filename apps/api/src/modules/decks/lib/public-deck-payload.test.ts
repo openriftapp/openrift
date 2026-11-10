@@ -30,7 +30,6 @@ const DECK: SharedDeckRow = {
     links: [],
     isPublic: true,
     shareToken: "tok-1",
-    // oxlint-disable-next-line typescript/no-explicit-any -- the row carries columns the payload never reads
   } as any,
   ownerName: "Archive",
   ownerEmail: "archive@example.invalid",
@@ -133,7 +132,6 @@ function repos(options: {
       listAll: vi.fn(() => Promise.resolve([])),
     },
     printingCitations: { listForPrintingIds: vi.fn(() => Promise.resolve([])) },
-    // oxlint-disable-next-line typescript/no-explicit-any -- a double of the repos the builder reads
   } as any;
 }
 

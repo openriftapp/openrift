@@ -19,7 +19,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PullCard } from "./pull-card";
 
 function makePull(overrides: Partial<PackPrinting> = {}): PackPull {

@@ -297,6 +297,55 @@ describe.skipIf(!hostCtx || !otherCtx || !judgeCtx)(
       expect(laterIndex).toBeLessThan(earlierIndex);
     });
 
+    it("pages past tournaments and keeps every current one on the first page", async () => {
+      async function create(name: string, startsAt: string): Promise<string> {
+        const res = await host.app.fetch(
+          req("POST", "/tournaments", {
+            name,
+            host: { type: "user" },
+            pairingStyle: "none",
+            deckSubmission: "required",
+            startsAt,
+          }),
+        );
+        return ((await readJson(res)) as { id: string }).id;
+      }
+      const futureId = await create("Paged Future", "2099-03-01T12:00:00Z");
+      const olderId = await create("Paged Older", "2025-03-01T12:00:00Z");
+
+      interface Page {
+        items: { id: string }[];
+        nextCursor: string | null;
+        pastCount: number;
+      }
+      const first = (await readJson(
+        await host.app.fetch(req("GET", "/tournaments?limit=1")),
+      )) as Page;
+      expect(first.items.some((item) => item.id === futureId)).toBe(true);
+      expect(first.pastCount).toBeGreaterThanOrEqual(2);
+      expect(first.nextCursor).not.toBeNull();
+
+      const seen = new Set(first.items.map((item) => item.id));
+      let laterPastCount = 0;
+      let cursor = first.nextCursor;
+      while (cursor !== null) {
+        const page = (await readJson(
+          await host.app.fetch(
+            req("GET", `/tournaments?limit=1&cursor=${encodeURIComponent(cursor)}`),
+          ),
+        )) as Page;
+        expect(page.items).toHaveLength(1);
+        for (const item of page.items) {
+          expect(seen.has(item.id)).toBe(false);
+          seen.add(item.id);
+        }
+        laterPastCount += page.items.length;
+        cursor = page.nextCursor;
+      }
+      expect(laterPastCount).toBe(first.pastCount - 1);
+      expect(seen.has(olderId)).toBe(true);
+    });
+
     it("updates settings and re-validates the invariants", async () => {
       const ok = await host.app.fetch(
         req("PATCH", `/tournaments/${id}`, { name: "Friday Night Pods", byePoints: 2 }),

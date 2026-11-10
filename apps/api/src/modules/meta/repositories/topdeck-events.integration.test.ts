@@ -108,7 +108,6 @@ afterAll(async () => {
 });
 
 describe.skipIf(!ctx)("topdeckEventsRepo", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = topdeckEventsRepo(db);
 

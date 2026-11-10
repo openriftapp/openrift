@@ -13,7 +13,6 @@ vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
   useUpdateMetaSyncSettings: () => ({ mutate: captured.updateSettings, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaAutoAcceptDialog } from "./meta-auto-accept-dialog";
 
 const settings: MetaSyncSettings = {

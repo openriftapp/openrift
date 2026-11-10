@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side hashing, never reaches the browser
 import { createHash } from "node:crypto";
 
 export function sha256Hex(input: string): string {

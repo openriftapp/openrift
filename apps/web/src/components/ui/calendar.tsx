@@ -1,4 +1,4 @@
-// oxlint-disable no-shadow, arrow-body-style, curly, import/consistent-type-specifier-style -- scaffolded shadcn component
+// oxlint-disable no-shadow -- scaffolded shadcn component
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react";
 import * as React from "react";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
@@ -117,7 +117,6 @@ function Calendar({
         ...classNames,
       }}
       // custom: suppress oxlint rule for react-day-picker's inline component prop
-      // oxlint-disable react/no-unstable-nested-components -- shadcn scaffold; react-day-picker's components prop expects inline subcomponents
       components={{
         Root: ({ className, rootRef, ...props }) => (
           <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />
@@ -144,7 +143,6 @@ function Calendar({
         ...components,
       }}
       // custom: re-enable rule after the inline components block
-      // oxlint-enable react/no-unstable-nested-components
       {...props}
     />
   );

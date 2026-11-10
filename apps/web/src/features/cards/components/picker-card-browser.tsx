@@ -14,7 +14,7 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
-import { splitsCardIntoTiles, tileSiblings } from "@/features/cards/lib/card-tiles";
+import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -116,11 +116,8 @@ export function PickerCardBrowser({
     filters.languages,
   );
 
-  // A split grouping renders one tile per (card, group), so a click must find its
-  // cell by printing, not card, or it jumps to the first tile carrying that card.
   const inCardsView = view === "cards";
-  const findBy: "card" | "printing" =
-    inCardsView && !splitsCardIntoTiles(groupBy) ? "card" : "printing";
+  const findBy = selectionFindBy(view, groupBy);
 
   const handleCardClick = (printing: Printing) => {
     useSelectionStore.getState().selectCard(printing, items, findBy);

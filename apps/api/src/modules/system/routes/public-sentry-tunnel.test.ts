@@ -191,6 +191,29 @@ describe("POST /api/v1/sentry-tunnel", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("stops reading a streamed body once it passes the size cap", async () => {
+    const app = buildApp(ALLOWED_DSN);
+    const chunk = new Uint8Array(600_000);
+    let pulls = 0;
+    const neverEnding = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls++;
+        if (pulls <= 2) {
+          controller.enqueue(chunk);
+        }
+      },
+    });
+
+    const res = await app.request("/api/v1/sentry-tunnel", {
+      method: "POST",
+      body: neverEnding,
+      duplex: "half",
+    } as RequestInit);
+
+    expect(res.status).toBe(413);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("returns 404 for non-POST methods", async () => {
     const app = buildApp(ALLOWED_DSN);
 

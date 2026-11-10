@@ -39,7 +39,6 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useDeleteCard: () => ({ mutate: captured.deleteCard, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardDetailHeader } from "./card-detail-header";
 
 const card = { id: "card-uuid", name: "Yasuo", errata: null } as unknown as AdminCardResponse;
@@ -83,7 +82,7 @@ describe("CardDetailHeader", () => {
 
     getByText("Regenerate ID (yasuo)").click();
     expect(captured.rename).toHaveBeenCalledWith(
-      { cardId: "card-uuid", newId: "yasuo" },
+      { cardId: "card-uuid", cardSlug: "yasu", newId: "yasuo" },
       expect.anything(),
     );
   });

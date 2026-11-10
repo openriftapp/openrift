@@ -3,7 +3,13 @@ import { copiesQuerySchema, idParamSchema, withParams } from "@openrift/shared/s
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-import { nameField, shareStateResponseSchema } from "./fields.js";
+import {
+  cancelTradeIdsField,
+  nameField,
+  shareStateResponseSchema,
+  tradeCancelConflictDataSchema,
+  tradeCancelConflictError,
+} from "./fields.js";
 
 /**
  * Field rules inlined from api/db/schemas — mirrors DB CHECK constraints for
@@ -125,8 +131,12 @@ export const collectionsContract = {
     .input(reorderCollectionsSchema),
   resetAll: authedRoute
     .route({ method: "POST", path: "/api/v1/collections/reset", tags: [TAG] })
-    .errors({ CONFLICT: { message: "Collections cannot be reset" } })
+    .input(z.object({ cancelTradeIds: cancelTradeIdsField }).optional())
+    .errors({ CONFLICT: tradeCancelConflictError })
     .output(resetCollectionsResponseSchema),
+  resetAllTradeCancels: authedRoute
+    .route({ method: "POST", path: "/api/v1/collections/trade-cancels/reset", tags: [TAG] })
+    .output(tradeCancelConflictDataSchema),
   get: authedRoute
     .route({ method: "GET", path: "/api/v1/collections/{id}", tags: [TAG] })
     .input(idParamSchema)
@@ -139,16 +149,23 @@ export const collectionsContract = {
     .output(collectionResponseSchema),
   remove: authedRoute
     .route({ method: "DELETE", path: "/api/v1/collections/{id}", tags: [TAG], successStatus: 204 })
-    .errors({
-      NOT_FOUND: { message: "Collection not found" },
-      CONFLICT: { message: "Collection cannot be deleted" },
-    })
-    .input(idParamSchema),
-  clear: authedRoute
-    .route({ method: "POST", path: "/api/v1/collections/{id}/clear", tags: [TAG] })
+    .errors({ NOT_FOUND: { message: "Collection not found" }, CONFLICT: tradeCancelConflictError })
+    .input(withParams(idParamSchema, { cancelTradeIds: cancelTradeIdsField })),
+  removeTradeCancels: authedRoute
+    .route({ method: "POST", path: "/api/v1/collections/{id}/trade-cancels/delete", tags: [TAG] })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Collection not found" } })
+    .output(tradeCancelConflictDataSchema),
+  clear: authedRoute
+    .route({ method: "POST", path: "/api/v1/collections/{id}/clear", tags: [TAG] })
+    .input(withParams(idParamSchema, { cancelTradeIds: cancelTradeIdsField }))
+    .errors({ NOT_FOUND: { message: "Collection not found" }, CONFLICT: tradeCancelConflictError })
     .output(clearCollectionResponseSchema),
+  clearTradeCancels: authedRoute
+    .route({ method: "POST", path: "/api/v1/collections/{id}/trade-cancels/clear", tags: [TAG] })
+    .input(idParamSchema)
+    .errors({ NOT_FOUND: { message: "Collection not found" } })
+    .output(tradeCancelConflictDataSchema),
   copies: authedRoute
     .route({ method: "GET", path: "/api/v1/collections/{id}/copies", tags: [TAG] })
     .input(withParams(idParamSchema, copiesQuerySchema))

@@ -33,11 +33,8 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test stubs don't match full types
   c.set("user", { id: USER_ID } as any);
-  // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   c.set("repos", { copies: mockRepo } as any);
-  // oxlint-disable-next-line no-explicit-any -- test stub
   c.set("transact", (() => {}) as any);
   await next();
 });
@@ -314,6 +311,22 @@ describe("pg error mapping", () => {
     expect(res.status).toBe(400);
   });
 
+  it.each([
+    ["copies_printing_id_fkey", "One or more printings do not exist"],
+    ["copies_condition_fkey", "Unknown condition or grader"],
+    ["copies_grader_fkey", "Unknown condition or grader"],
+  ])("names the failing reference when add violates %s", async (constraint, message) => {
+    mockAddCopies.mockRejectedValue({ code: "23503", constraint_name: constraint });
+    const res = await app.request("/api/v1/copies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ copies: [{ printingId: PRINTING_ID, condition: "nm" }] }),
+    });
+    expect(res.status).toBe(400);
+    const json = await readJson(res);
+    expect(json.message).toBe(message);
+  });
+
   it.each(["23503", "23514"])("maps %s on update to 400", async (code) => {
     mockUpdateCopies.mockRejectedValue({ code });
     const res = await app.request("/api/v1/copies/update", {
@@ -427,6 +440,7 @@ describe("POST /api/v1/copies/move — service arguments", () => {
       USER_ID,
       copyIds,
       COLLECTION_ID,
+      { kind: "listed", tradeIds: new Set() },
     );
   });
 });
@@ -444,7 +458,10 @@ describe("POST /api/v1/copies/dispose — service arguments", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ copyIds }),
     });
-    expect(mockDisposeCopies).toHaveBeenCalledWith(expect.anything(), USER_ID, copyIds);
+    expect(mockDisposeCopies).toHaveBeenCalledWith(expect.anything(), USER_ID, copyIds, {
+      kind: "listed",
+      tradeIds: new Set(),
+    });
   });
 });
 

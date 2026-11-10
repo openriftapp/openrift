@@ -13,7 +13,6 @@ vi.mock("@/features/admin/hooks/use-admin-meta-submissions", () => ({
   useReopenMetaSubmission: () => ({ mutateAsync: captured.reopen, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaSubmissionResolve } from "./meta-submission-resolve";
 
 function submission(overrides: Partial<AdminMetaSubmission> = {}): AdminMetaSubmission {

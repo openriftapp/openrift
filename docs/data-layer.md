@@ -443,6 +443,8 @@ Primary key on `(marketplace_product_id, recorded_at)` — one row per SKU per f
 
 Two materialized views sit on top: `mv_daily_printing_prices` (the headline-price rule and the cheapest-bound-SKU aggregation, per printing per day) and `mv_latest_printing_prices` (its latest day). Every surface that prices a printing reads one of those, so they agree by construction — see `marketplaceRepo` in `apps/api/src/modules/marketplace/repositories/marketplace.ts`.
 
+A printing's price chart and marketplace link follow one SKU per marketplace: the one whose own headline on `mv_latest_printing_prices.last_seen` equals the view's headline. Unpriced printings fall back to the lowest external id. `selectSources` in `marketplace-prices.ts` holds the one copy of the per-SKU headline rule outside the view, and `marketplace.test.ts` compares it with the view definition in `docs/schema.sql`.
+
 ### `marketplace_product_card_overrides`
 
 Manual overrides that force an unmatched marketplace SKU onto a specific card when automatic name matching fails. Keyed on the product, so one override per SKU.

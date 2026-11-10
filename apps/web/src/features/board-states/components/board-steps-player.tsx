@@ -73,7 +73,6 @@ export function BoardStepsPlayer({
             <div className="flex min-w-0 flex-1 gap-1.5 max-lg:overflow-x-auto lg:flex-wrap">
               {document.steps.map((_, stepIndex) => (
                 <Button
-                  // oxlint-disable-next-line react/no-array-index-key -- steps are positional
                   key={stepIndex}
                   size="icon-lg"
                   variant={stepIndex === index ? "default" : "outline"}

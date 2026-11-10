@@ -17,10 +17,10 @@ describe("requireScanner", () => {
     await expect(requireScanner(clientWithFlags({ scanner: true }))).resolves.toBeUndefined();
   });
 
-  it("redirects to the collections when the scanner is unavailable", async () => {
+  it("redirects to the card browser when the scanner is unavailable", async () => {
     const rejection = expect(requireScanner(clientWithFlags({ scanner: false }))).rejects;
     await rejection.toSatisfy((value: unknown) => isRedirect(value));
-    await rejection.toMatchObject({ options: { to: "/collections" } });
+    await rejection.toMatchObject({ options: { to: "/cards" } });
   });
 
   it("redirects when the API sent no scanner flag", async () => {

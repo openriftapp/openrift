@@ -10,7 +10,6 @@ function renderRow() {
   const onTouchStart = vi.fn();
   render(
     <DndContext>
-      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- stands in for Base UI's context-menu trigger */}
       <div onTouchStart={onTouchStart}>
         <SortableSidebarRow
           id="sortable-collection-c1"

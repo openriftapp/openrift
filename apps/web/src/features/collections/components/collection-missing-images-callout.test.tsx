@@ -29,17 +29,11 @@ vi.mock("@/features/contribute/hooks/use-missing-images", () => ({
   useMyMissingImages: () => ({ data: { items: missingImages.items } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CollectionMissingImagesCallout } from "@/features/collections/components/collection-missing-images-callout";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { initKeys } from "@/lib/query-keys";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useOnboardingStore } from "@/stores/onboarding-store";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubMissingImagePrinting } from "@/test/factories";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubInitResponse } from "@/test/init-fixtures";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { createStoreResetter } from "@/test/store-helpers";
 
 const resetOnboarding = createStoreResetter(useOnboardingStore);

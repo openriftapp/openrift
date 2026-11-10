@@ -227,7 +227,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("metaRepo", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = metaRepo(db);
 
@@ -3145,7 +3144,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
 });
 
 describe.skipIf(!ctx)("promotion", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = metaRepo(db);
 

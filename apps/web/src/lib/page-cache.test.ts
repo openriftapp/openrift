@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { applyPageCacheControl } from "./page-cache";
+import { applyPageCacheControl, getShellCookie, rendersDefaultShell } from "./page-cache";
+
+const server = vi.hoisted(() => ({ request: new Request("https://example.com/") }));
+
+vi.mock("@tanstack/react-start/server", () => ({
+  getRequest: () => server.request,
+  getCookie: (name: string) =>
+    new RegExp(`(?:^|;\\s*)${name}=([^;]*)`, "u").exec(
+      server.request.headers.get("cookie") ?? "",
+    )?.[1],
+}));
 
 const PUBLIC = "public, max-age=300, stale-while-revalidate=3600";
 const PRIVATE = "private, no-cache";
@@ -278,5 +288,58 @@ describe("applyPageCacheControl", () => {
   it("adds no Link header of its own", () => {
     const result = applyPageCacheControl(getRequest("/cards"), htmlResponse());
     expect(result.headers.get("Link")).toBeNull();
+  });
+});
+
+describe("rendersDefaultShell", () => {
+  const requests: [string, Request][] = [
+    ["anonymous /cards", getRequest("/cards")],
+    ["anonymous card detail", getRequest("/cards/lux")],
+    ["anonymous HEAD", getRequest("/cards", {}, "HEAD")],
+    ["anonymous with prefs cookies", getRequest("/cards", { cookie: "theme=x; view-prefs=y" })],
+    ["signed in", getRequest("/cards", { cookie: "better-auth.session_token=abc" })],
+    ["translated", getRequest("/cards", { cookie: "PARAGLIDE_LOCALE=de" })],
+    ["uncached path", getRequest("/login")],
+    ["POST", getRequest("/cards", {}, "POST")],
+    ["versioned rules", getRequest("/rules/core/2026-07-16")],
+  ];
+
+  it.each(requests)("holds for every response the edge may cache (%s)", (_label, request) => {
+    const cacheControl = applyPageCacheControl(request, htmlResponse()).headers.get(
+      "Cache-Control",
+    );
+    if (cacheControl !== PRIVATE) {
+      expect(rendersDefaultShell(request)).toBe(true);
+    }
+  });
+
+  it("is false for signed-in, translated and uncached requests", () => {
+    expect(
+      rendersDefaultShell(getRequest("/cards", { cookie: "better-auth.session_token=abc" })),
+    ).toBe(false);
+    expect(rendersDefaultShell(getRequest("/cards", { cookie: "PARAGLIDE_LOCALE=de" }))).toBe(
+      false,
+    );
+    expect(rendersDefaultShell(getRequest("/login"))).toBe(false);
+    expect(rendersDefaultShell(getRequest("/_serverFn/abc"))).toBe(false);
+  });
+});
+
+describe("getShellCookie", () => {
+  it("hides preference cookies on an edge-cacheable request", () => {
+    server.request = getRequest("/cards", { cookie: "theme=light" });
+    expect(getShellCookie("theme")).toBeUndefined();
+  });
+
+  it("reads preference cookies for signed-in visitors", () => {
+    server.request = getRequest("/cards", {
+      cookie: "better-auth.session_token=abc; theme=light",
+    });
+    expect(getShellCookie("theme")).toBe("light");
+  });
+
+  it("reads preference cookies on server-function requests", () => {
+    server.request = getRequest("/_serverFn/abc", { cookie: "theme=light" });
+    expect(getShellCookie("theme")).toBe("light");
   });
 });

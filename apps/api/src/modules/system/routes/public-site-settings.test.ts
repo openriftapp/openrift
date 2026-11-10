@@ -12,7 +12,6 @@ const mockSiteSettingsRepo = {
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   c.set("repos", { siteSettings: mockSiteSettingsRepo } as any);
   await next();
 });

@@ -61,7 +61,6 @@ vi.mock("@/features/decks/components/deck-card-row", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckZoneSection } from "./deck-zone-section";
 
 function renderSection({

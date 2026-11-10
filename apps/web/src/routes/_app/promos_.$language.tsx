@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_app/promos_/$language")({
         params: { language: renamed },
         search,
         replace: true,
+        statusCode: 301,
       });
     }
 

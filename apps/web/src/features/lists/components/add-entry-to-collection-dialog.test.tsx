@@ -10,7 +10,6 @@ vi.mock("@/features/cards/components/printing-label", () => ({
   ImportPrintingLabel: ({ printing }: { printing: Printing }) => <span>{printing.printingId}</span>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { AddEntriesToCollectionDialogBody, AddEntryToCollectionDialogBody } =
   await import("./add-entry-to-collection-dialog");
 

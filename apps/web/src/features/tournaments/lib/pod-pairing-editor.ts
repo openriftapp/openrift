@@ -53,6 +53,21 @@ export function movePlayer(state: EditorState, playerId: string, target: MoveTar
   return { pods, byes };
 }
 
+/** Every drop target the editor renders except the player's current spot; cut rounds have no new pod or bye zone. */
+export function moveTargets(state: EditorState, playerId: string, mode: EditorMode): MoveTarget[] {
+  const targets: MoveTarget[] = state.pods.flatMap((pod, index) =>
+    pod.playerIds.includes(playerId) ? [] : [{ kind: "pod", index } as const],
+  );
+  if (mode === "cut") {
+    return targets;
+  }
+  targets.push({ kind: "newPod" });
+  if (!state.byes.includes(playerId)) {
+    targets.push({ kind: "bye" });
+  }
+  return targets;
+}
+
 // Empty pods are ignored here; they are dropped on save in toPayload.
 export function validatePartition(
   state: EditorState,

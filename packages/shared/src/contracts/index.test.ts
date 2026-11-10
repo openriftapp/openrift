@@ -1,4 +1,3 @@
-// oxlint-disable no-nodejs-modules -- this test introspects the source tree, so it must read files from disk
 import { readdirSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";

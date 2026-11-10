@@ -31,9 +31,13 @@ vi.mock("@/lib/server-fns/with-cookies", () => ({
 const {
   useAcceptCardField,
   useAcceptPrintingGroup,
+  useCheckAllCandidateCards,
   useCheckProvider,
+  useCreatePrinting,
   useDeleteProvider,
+  useLinkCard,
   useRelinkCandidatePrintings,
+  useRenameCard,
 } = await import("./use-admin-card-mutations");
 const { useUploadCandidates } = await import("./use-admin-image-mutations");
 const { useUpdateProviderSetting } = await import("./use-provider-settings");
@@ -100,6 +104,66 @@ describe("useAcceptCardField", () => {
     expect(invalidateSpy).not.toHaveBeenCalledWith({
       queryKey: ["admin", "cards", "detail", "019d3342-bec8-7f50-a92d-154e120f3fa1"],
     });
+  });
+});
+
+describe("card detail invalidation by slug", () => {
+  const uuid = "019d3342-bec8-7f50-a92d-154e120f3fa1";
+  const uuidKey = ["admin", "cards", "detail", uuid];
+
+  it("useRenameCard refreshes the old and the new slug", async () => {
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useRenameCard(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync({ cardId: uuid, cardSlug: "yasu", newId: "yasuo" });
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards", "detail", "yasu"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["admin", "cards", "detail", "yasuo"],
+    });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: uuidKey });
+  });
+
+  it("useLinkCard refreshes the target card by slug", async () => {
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useLinkCard(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync({ name: "jinx", cardId: uuid, cardSlug: "jinx" });
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards", "detail", "jinx"] });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: uuidKey });
+  });
+
+  it("useCreatePrinting refreshes the card by slug", async () => {
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useCreatePrinting(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        cardId: uuid,
+        cardSlug: "jinx",
+        printingFields: {} as never,
+      });
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards", "detail", "jinx"] });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: uuidKey });
+  });
+
+  it("useCheckAllCandidateCards falls back to every admin card query", async () => {
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useCheckAllCandidateCards(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync(uuid);
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "cards"] });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: uuidKey });
   });
 });
 

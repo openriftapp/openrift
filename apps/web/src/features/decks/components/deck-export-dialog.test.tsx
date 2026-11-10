@@ -32,7 +32,6 @@ vi.mock("@/hooks/use-copy-to-clipboard", () => ({
   useCopyToClipboard: () => ({ copied: false, copy: vi.fn(), reset: vi.fn() }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckExportDialog } from "./deck-export-dialog";
 
 const cards = [stubDeckBuilderCard({ cardId: "card-1", cardName: "Yasuo", quantity: 3 })];

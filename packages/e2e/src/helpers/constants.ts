@@ -1,7 +1,10 @@
 // Clear of the dev servers (web 5173, api 3000) and the worktree dev web port
-// (5174). Overridable via env so a second checkout or CI shard can shift both.
+// (5174). Overridable via env so a second checkout or CI shard can shift them.
 export const API_PORT = Number(process.env.E2E_API_PORT ?? 4310);
 export const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 4311);
+// E2E_WEB_MODE=production only: the built SSR server sits behind the proxy on WEB_PORT.
+export const WEB_SERVER_PORT = Number(process.env.E2E_WEB_SERVER_PORT ?? 4312);
+export const IS_PRODUCTION_BUILD = process.env.E2E_WEB_MODE === "production";
 export const API_BASE_URL = `http://localhost:${API_PORT}`;
 export const WEB_BASE_URL = `http://localhost:${WEB_PORT}`;
 

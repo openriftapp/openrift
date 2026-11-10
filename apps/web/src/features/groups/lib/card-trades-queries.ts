@@ -38,6 +38,20 @@ const fetchTradeDismissals = createServerFn({ method: "GET" })
     apiOrpcClient(cardTradesContract, context.cookie).dismissals(),
   );
 
+const fetchLiveTradesByPrinting = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }) => apiOrpcClient(cardTradesContract, context.cookie).liveByPrinting());
+
+/** Shared by the card browsers' trade markers and the deck builder's incoming counts, so both read one cached response. */
+export function liveTradesByPrintingQueryOptions(userId: string | null) {
+  return queryOptions({
+    queryKey: tradesKeys.liveByPrinting(userId ?? ""),
+    queryFn: userId === null ? skipToken : () => fetchLiveTradesByPrinting(),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function tradeDismissalsQueryOptions(userId: string) {
   return queryOptions({
     queryKey: tradesKeys.dismissals(userId),
@@ -49,6 +63,7 @@ export function userTradesQueryOptions(userId: string | null) {
   return queryOptions({
     queryKey: tradesKeys.all(userId ?? ""),
     queryFn: userId === null ? skipToken : () => fetchUserTrades({ data: {} }),
+    staleTime: 0,
   });
 }
 
@@ -56,5 +71,6 @@ export function tradeSheetQueryOptions(userId: string, memberId: string) {
   return queryOptions({
     queryKey: tradesKeys.sheet(userId, memberId),
     queryFn: () => fetchTradeSheet({ data: memberId }),
+    staleTime: 0,
   });
 }

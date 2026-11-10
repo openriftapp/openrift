@@ -1,17 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { headMeta, headTitle, loadedHead, runRouteLoader } from "@/test/route-head";
+
 import { Route } from "./meta_.decks_.$token";
 
-interface HeadMeta {
-  title?: string;
-  name?: string;
-  property?: string;
-  content?: string;
-}
-type HeadFn = (context: { loaderData: unknown; params: { token: string } }) => {
-  meta: HeadMeta[];
-  scripts: { children?: string }[];
-};
+const PARAMS = { token: "PNID1X7995W0" };
 
 const LEGEND_CARD = {
   cardId: "card-1",
@@ -26,8 +19,8 @@ const LEGEND_CARD = {
   preferredPrintingId: null,
 };
 
-function runHead(overrides: { cards?: unknown[]; playerName?: string } = {}) {
-  const loaderData = {
+function archivedDeck(overrides: { cards?: unknown[]; playerName?: string } = {}) {
+  return {
     deck: {
       name: "Blade Dancer (adtoll)",
       format: "constructed",
@@ -41,44 +34,56 @@ function runHead(overrides: { cards?: unknown[]; playerName?: string } = {}) {
       event: { slug: "wuhan-open", name: "Wuhan Open", eventDate: "2026-08-29" },
     },
   };
-  const head = Route.options.head as unknown as HeadFn;
-  return head({ loaderData, params: { token: "PNID1X7995W0" } });
 }
 
-function title(meta: HeadMeta[]): string | undefined {
-  return meta.find((entry) => entry.title !== undefined)?.title;
+function runHead(overrides: { cards?: unknown[]; playerName?: string } = {}) {
+  return loadedHead(Route, PARAMS, archivedDeck(overrides));
 }
 
 describe("/meta/decks/$token SSR head", () => {
-  it("titles the page by the legend, never by the generated deck name", () => {
-    const meta = runHead().meta;
-    expect(title(meta)).toContain("Irelia, Blade Dancer, 1st at Wuhan Open");
-    expect(title(meta)).not.toContain("Blade Dancer (adtoll)");
+  it("titles the page by the legend, never by the generated deck name", async () => {
+    const head = await runHead();
+    expect(headTitle(head)).toContain("Irelia, Blade Dancer, 1st at Wuhan Open");
+    expect(headTitle(head)).not.toContain("Blade Dancer (adtoll)");
   });
 
-  it("names the legend the player piloted in the description", () => {
-    const description = runHead().meta.find((entry) => entry.name === "description")?.content;
-    expect(description).toBe(
+  it("names the legend the player piloted in the description", async () => {
+    expect(headMeta(await runHead(), "description")).toBe(
       "adtoll piloted Irelia, Blade Dancer to 1st at Wuhan Open (2026-08-29).",
     );
   });
 
-  it("falls back to the player for a list whose source published no legend", () => {
-    const meta = runHead({ cards: [] }).meta;
-    expect(title(meta)).toContain("adtoll, 1st at Wuhan Open");
-    expect(runHead({ cards: [] }).meta.find((entry) => entry.name === "description")?.content).toBe(
+  it("falls back to the player for a list whose source published no legend", async () => {
+    const head = await runHead({ cards: [] });
+    expect(headTitle(head)).toContain("adtoll, 1st at Wuhan Open");
+    expect(headMeta(head, "description")).toBe(
       "adtoll piloted this constructed deck to 1st at Wuhan Open (2026-08-29).",
     );
   });
 
-  it("unfurls with the deck's own image rather than the site's", () => {
-    const ogImage = runHead().meta.find((entry) => entry.property === "og:image")?.content;
-    expect(ogImage).toContain("/decks/share/PNID1X7995W0/image.png");
+  it("unfurls with the deck's own image rather than the site's", async () => {
+    expect(headMeta(await runHead(), "og:image")).toContain("/decks/share/PNID1X7995W0/image.png");
   });
 
-  it("ends the breadcrumb on the same name the title uses", () => {
-    const crumbs = runHead().scripts[0]?.children ?? "";
+  it("ends the breadcrumb on the same name the title uses", async () => {
+    const head = await runHead();
+    const crumbs = head.scripts?.[0]?.children ?? "";
     expect(crumbs).toContain("Irelia, Blade Dancer");
     expect(crumbs).not.toContain("Blade Dancer (adtoll)");
+  });
+});
+
+describe("/meta/decks/$token loader", () => {
+  it("keeps the card rows out of the loader data", async () => {
+    expect(await runRouteLoader(Route, PARAMS, archivedDeck())).toEqual({
+      deck: { format: "constructed", updatedAt: "2026-08-29T10:00:00.000Z" },
+      meta: {
+        playerName: "adtoll",
+        rank: 1,
+        rankIsTier: false,
+        event: { slug: "wuhan-open", name: "Wuhan Open", eventDate: "2026-08-29" },
+      },
+      legend: "Irelia, Blade Dancer",
+    });
   });
 });

@@ -34,6 +34,13 @@ export function isUniqueViolationOn(error: unknown, constraintName: string): boo
   );
 }
 
+export function isForeignKeyViolationOn(error: unknown, constraintName: string): boolean {
+  return (
+    isForeignKeyViolation(error) &&
+    (error as { constraint_name?: unknown }).constraint_name === constraintName
+  );
+}
+
 /**
  * Reads the message off a `RAISE EXCEPTION` thrown by a plpgsql trigger or
  * function (SQLSTATE P0001). Returns `null` when the error is not a P0001.

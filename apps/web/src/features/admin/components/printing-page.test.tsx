@@ -18,6 +18,7 @@ const state = vi.hoisted(() => ({
 }));
 const activate = vi.hoisted(() => vi.fn());
 const removeFace = vi.hoisted(() => vi.fn());
+const createCitation = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children }: { to?: string; children?: ReactNode }) => (
@@ -74,10 +75,10 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
-  useAdminPrintingCitations: () => ({ data: { citations: [] } }),
-  useCreatePrintingCitation: () => ({ mutate: vi.fn(), isPending: false }),
-  useDeletePrintingCitation: () => ({ mutate: vi.fn() }),
-  useUpdatePrintingCitation: () => ({ mutate: vi.fn() }),
+  useAdminPrintingCitations: () => ({ data: { citations: [] }, isPending: false }),
+  useCreatePrintingCitation: () => ({ mutateAsync: createCitation, isPending: false }),
+  useDeletePrintingCitation: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdatePrintingCitation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/features/admin/hooks/use-distribution-channels", () => ({
@@ -196,6 +197,22 @@ beforeEach(() => {
   state.cardPrintings = [];
   activate.mockClear();
   removeFace.mockClear();
+  createCitation.mockReset().mockResolvedValue(undefined);
+});
+
+describe("PrintingPage links", () => {
+  it("keeps a typed link when adding it fails", async () => {
+    createCitation.mockRejectedValue(new Error("That link is already cited on this printing."));
+    const user = userEvent.setup();
+    render(<PrintingPage printingId="p-1" />);
+
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+    await user.type(screen.getByLabelText("Source name"), "Launch party unboxing");
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+
+    expect(createCitation).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText("Source name")).toHaveValue("Launch party unboxing");
+  });
 });
 
 describe("PrintingPage card page preview", () => {

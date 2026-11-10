@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 import { lazy, Suspense } from "react";
 
 import { Analytics } from "@/components/analytics";
@@ -32,12 +32,15 @@ import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { getOperatorLinks } from "@/lib/operator-links";
+import { getShellCookie, rendersDefaultShell } from "@/lib/page-cache";
 import { runtimeConfigScript } from "@/lib/runtime-config";
 import { organizationJsonLd } from "@/lib/seo";
 import {
   readClientCookie,
   resolvePaletteFromCookie,
   resolveThemeFromCookie,
+  SHELL_PREFS_SCRIPT,
+  systemPrefersDark,
 } from "@/lib/shell-prefs";
 import { getIsPreview, getSiteUrl } from "@/lib/site-config";
 import { siteSettingsQueryOptions } from "@/lib/site-settings";
@@ -66,19 +69,24 @@ const Toaster = lazy(async () => {
 // Only invoked during SSR; client navigations resolve the same cookie
 // locally in beforeLoad.
 const getServerTheme = createServerFn({ method: "GET" }).handler((): "light" | "dark" =>
-  resolveThemeFromCookie(getCookie("theme")),
+  resolveThemeFromCookie(getShellCookie("theme")),
 );
 
 // Unknown values are clamped so untrusted cookie content never reaches the DOM.
 // Only invoked during SSR, same as getServerTheme.
 const getServerPalette = createServerFn({ method: "GET" }).handler((): Palette =>
-  resolvePaletteFromCookie(getCookie("palette")),
+  resolvePaletteFromCookie(getShellCookie("palette")),
 );
 
 // The SSR pass has no access to the Zustand store (document.cookie doesn't
 // exist server-side), so the resolved value rides in route context instead.
 const getServerViewPrefs = createServerFn({ method: "GET" }).handler(
-  (): ViewPrefsBlob<CookieViewSurface> => resolveViewPrefsFromCookie(getCookie(VIEW_PREFS_COOKIE)),
+  (): ViewPrefsBlob<CookieViewSurface> =>
+    resolveViewPrefsFromCookie(getShellCookie(VIEW_PREFS_COOKIE)),
+);
+
+const getServerDefaultShell = createServerFn({ method: "GET" }).handler((): boolean =>
+  rendersDefaultShell(getRequest()),
 );
 
 const getServerSentryDsn = createServerFn({ method: "GET" }).handler(
@@ -99,18 +107,6 @@ function safeOrigin(url: string | undefined): string | null {
     return null;
   }
 }
-
-// Blocking inline script: the server resolves "auto" as "light" since it can't
-// check matchMedia. Must stay in sync with the cookie format in theme-store.ts.
-const THEME_SCRIPT = [
-  "(function(){try{",
-  'var pref="dark";',
-  String.raw`var m=document.cookie.match(/(?:^|;\s*)theme=([^;]*)/);`,
-  "if(m){var p=JSON.parse(decodeURIComponent(m[1]));pref=p&&p.state&&p.state.preference||pref}",
-  'if(pref==="dark"||pref==="auto"&&matchMedia("(prefers-color-scheme:dark)").matches)',
-  'document.documentElement.classList.add("dark")',
-  "}catch(e){}})()",
-].join("");
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -190,25 +186,33 @@ export const Route = createRootRouteWithContext<{
     // and blocks until it resolves, so these three values must never go over
     // the network on the client.
     if (globalThis.window !== undefined) {
-      const resolvedTheme = resolveThemeFromCookie(readClientCookie("theme"));
+      const resolvedTheme = resolveThemeFromCookie(readClientCookie("theme"), systemPrefersDark());
       const resolvedPalette = resolvePaletteFromCookie(readClientCookie("palette"));
       const resolvedViewPrefs = resolveViewPrefsFromCookie(readClientCookie(VIEW_PREFS_COOKIE));
       const sentryDsn = globalThis.__OPENRIFT_CONFIG__?.sentryDsn ?? "";
       const appEnv = parseAppEnv(globalThis.__OPENRIFT_CONFIG__?.appEnv);
       await Promise.all([flagsReady, settingsReady]);
-      return { resolvedTheme, resolvedPalette, resolvedViewPrefs, sentryDsn, appEnv };
+      return {
+        resolvedTheme,
+        resolvedPalette,
+        resolvedViewPrefs,
+        defaultShell: false,
+        sentryDsn,
+        appEnv,
+      };
     }
-    const [resolvedTheme, resolvedPalette, resolvedViewPrefs, sentryDsn, appEnv] =
+    const [resolvedTheme, resolvedPalette, resolvedViewPrefs, defaultShell, sentryDsn, appEnv] =
       await Promise.all([
         getServerTheme(),
         getServerPalette(),
         getServerViewPrefs(),
+        getServerDefaultShell(),
         getServerSentryDsn(),
         getServerAppEnv(),
         flagsReady,
         settingsReady,
       ]);
-    return { resolvedTheme, resolvedPalette, resolvedViewPrefs, sentryDsn, appEnv };
+    return { resolvedTheme, resolvedPalette, resolvedViewPrefs, defaultShell, sentryDsn, appEnv };
   },
   component: RootComponent,
   notFoundComponent: RouteNotFoundFallback,
@@ -222,8 +226,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const operatorLinks = getOperatorLinks();
 
   return (
-    // suppressHydrationWarning: THEME_SCRIPT may adjust the class for "auto"
-    // theme users whose OS prefers dark mode.
+    // suppressHydrationWarning: SHELL_PREFS_SCRIPT applies the visitor's theme and
+    // palette cookies to these attributes before hydration.
     <html
       lang={getLocale()}
       className={resolvedTheme === "dark" ? "dark" : ""}
@@ -233,7 +237,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         {/* No crossOrigin: Umami's script.js loads as a non-CORS <script>. */}
         {umamiOrigin && <link rel="preconnect" href={umamiOrigin} />}
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SHELL_PREFS_SCRIPT }} />
         <script
           dangerouslySetInnerHTML={{
             __html: runtimeConfigScript({ sentryDsn, appEnv, ...operatorLinks }),
@@ -250,16 +254,21 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { resolvedViewPrefs } = Route.useRouteContext();
+  const { resolvedViewPrefs, defaultShell } = Route.useRouteContext();
   useBrowserLocale();
   useReferralCapture(useUserId());
   const hydrated = useHydrated();
+  // Hydration replays the server's context, so a default shell's cookie prefs apply only now.
+  const viewPrefs =
+    hydrated && defaultShell
+      ? resolveViewPrefsFromCookie(readClientCookie(VIEW_PREFS_COOKIE))
+      : resolvedViewPrefs;
   return (
     <>
       {/* `isolate` scopes descendant z-indexes to this div so AppBackground's
           -z-10 layer paints above this background instead of behind it. */}
       <div className="bg-background text-foreground isolate flex min-h-screen flex-col">
-        <ResolvedViewPrefsProvider value={resolvedViewPrefs}>
+        <ResolvedViewPrefsProvider value={viewPrefs}>
           <Outlet />
         </ResolvedViewPrefsProvider>
       </div>

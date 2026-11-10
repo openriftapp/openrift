@@ -13,16 +13,24 @@ import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
+interface MetaDeckHeadData {
+  deck: Pick<MetaDeckDetailResponse["deck"], "format" | "updatedAt">;
+  meta: Pick<MetaDeckDetailResponse["meta"], "playerName" | "rank" | "rankIsTier"> & {
+    event: Pick<MetaDeckDetailResponse["meta"]["event"], "slug" | "name" | "eventDate">;
+  };
+  legend: string | null;
+}
+
 export const Route = createFileRoute("/_app/meta_/decks_/$token")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/meta/decks/${params.token}`;
-    const data = loaderData as MetaDeckDetailResponse | undefined;
+    const data = loaderData as MetaDeckHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Archived deck", path, unlisted: true });
     }
     const finish = formatRank(data.meta.rank, data.meta.rankIsTier);
-    const legend = archivedDeckIdentity(data.cards)?.name ?? null;
+    const { legend } = data;
     const named = legend ?? data.meta.playerName;
     const title = `${named}, ${finish} at ${data.meta.event.name}`;
     const piloted = legend === null ? `this ${data.deck.format} deck` : legend;
@@ -43,13 +51,25 @@ export const Route = createFileRoute("/_app/meta_/decks_/$token")({
       ],
     };
   },
-  loader: async ({ context, params }): Promise<MetaDeckDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<MetaDeckHeadData> => {
     try {
       const [, deck] = await Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
         context.queryClient.query({ ...metaDeckQueryOptions(params.token), staleTime: "static" }),
       ]);
-      return deck;
+      const { playerName, rank, rankIsTier, event } = deck.meta;
+      return {
+        deck: { format: deck.deck.format, updatedAt: deck.deck.updatedAt },
+        meta: {
+          playerName,
+          rank,
+          rankIsTier,
+          event: { slug: event.slug, name: event.name, eventDate: event.eventDate },
+        },
+        legend: archivedDeckIdentity(deck.cards)?.name ?? null,
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

@@ -2,6 +2,7 @@ import { imageUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
 import type { EnrichedPrintingEvent } from "../../catalog/repositories/printing-events.js";
 
 // Discord allows up to 10 embeds per message.
@@ -232,6 +233,7 @@ async function sendPayloads(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
       });
 
       if (!response.ok) {

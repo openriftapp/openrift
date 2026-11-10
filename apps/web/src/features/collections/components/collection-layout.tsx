@@ -316,26 +316,28 @@ export function CollectionLayout() {
           })
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
+
+    // Sequential, so a move declined in the trade prompt leaves no adds behind. Each try
+    // holds only its await: the compiler can't optimize a conditional inside try/catch.
+    let moveResult: Awaited<ReturnType<typeof moveListEntries.mutateAsync>> | undefined;
+    try {
+      moveResult = await movePromise;
+    } catch {
+      return;
+    }
     const addPromise =
       added.length > 0
         ? bulkAddListEntries.mutateAsync({ listId: dropData.listId, entries: added })
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
-
-    // The compiler can't optimize a conditional inside try/catch, so the
-    // await is the only thing the try block does.
-    let results: [
-      Awaited<ReturnType<typeof moveListEntries.mutateAsync>> | undefined,
-      Awaited<ReturnType<typeof bulkAddListEntries.mutateAsync>> | undefined,
-    ];
+    let addResult: Awaited<ReturnType<typeof bulkAddListEntries.mutateAsync>> | undefined;
     try {
-      results = await Promise.all([movePromise, addPromise]);
+      addResult = await addPromise;
     } catch {
       return;
     }
 
     setPendingMove(null);
-    const [moveResult, addResult] = results;
     const copied = (addResult?.added ?? 0) + (addResult?.updated ?? 0);
     const count = (moveResult?.moved ?? 0) + copied;
     if (count === 0) {

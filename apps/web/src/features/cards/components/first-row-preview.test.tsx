@@ -49,7 +49,6 @@ vi.mock("@/features/cards/hooks/use-search-vocabulary", () => ({
   useSearchVocabulary: () => ({ validation: {}, suggestions: {}, valueLabel }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FirstRowPreview } from "./first-row-preview";
 
 function renderPreview() {

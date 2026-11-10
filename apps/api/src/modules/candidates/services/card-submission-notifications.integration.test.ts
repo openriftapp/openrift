@@ -33,7 +33,6 @@ describe.skipIf(!ctx)("card submission admin notifications (integration)", () =>
 
   function makeDeps(sent: { to: string; subject: string }[]): EmailDeps {
     return {
-      // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async ({ to, subject }) => {
         sent.push({ to, subject });
         return undefined;

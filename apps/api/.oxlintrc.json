@@ -1,7 +1,8 @@
 {
   "extends": ["../../.oxlintrc.json"],
   "rules": {
-    "no-restricted-imports": "off"
+    "no-restricted-imports": "off",
+    "import/no-nodejs-modules": "off" // Bun, not the browser
   },
   "ignorePatterns": ["node_modules/", "dist/"],
   "overrides": [

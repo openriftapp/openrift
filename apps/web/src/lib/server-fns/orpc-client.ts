@@ -1,4 +1,3 @@
-import { context, propagation } from "@opentelemetry/api";
 import type { ClientContext, ClientLink } from "@orpc/client";
 import { createORPCClient } from "@orpc/client";
 import type {
@@ -10,8 +9,9 @@ import { OpenAPILink } from "@orpc/openapi-client/fetch";
 
 import { tagProcedure } from "@/lib/orpc-procedure-tag";
 
+import { fetchWithDeadline } from "./api-deadline";
+import { apiRequestHeaders } from "./api-request-headers";
 import { getApiUrl } from "./api-url";
-import { activeClientIp } from "./client-ip-context";
 
 function withProcedureTag<TContext extends ClientContext>(
   link: ClientLink<TContext>,
@@ -28,26 +28,14 @@ function withProcedureTag<TContext extends ClientContext>(
   };
 }
 
-function requestHeaders(cookie?: string): Record<string, string> {
-  const headers: Record<string, string> = {};
-  if (cookie !== undefined) {
-    headers.cookie = cookie;
-  }
-  propagation.inject(context.active(), headers);
-  const clientIp = activeClientIp();
-  if (clientIp !== undefined) {
-    headers["x-real-ip"] = clientIp;
-  }
-  return headers;
-}
-
 export function apiOrpcClient<TContract extends AnyContractRouter>(
   contract: TContract,
   cookie?: string,
 ): ContractRouterClient<TContract> {
   const link = new OpenAPILink(contract, {
     url: getApiUrl(),
-    headers: () => requestHeaders(cookie),
+    headers: () => apiRequestHeaders(cookie),
+    fetch: (request, init) => fetchWithDeadline(request, init, ""),
   });
   return createORPCClient(withProcedureTag(link));
 }

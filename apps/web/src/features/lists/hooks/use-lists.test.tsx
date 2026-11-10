@@ -14,27 +14,11 @@ import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
-vi.mock("@tanstack/react-start", async (importOriginal) => ({
+vi.mock("@/lib/server-fns/orpc-client", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  createServerFn: () => {
-    const chain = {
-      handler:
-        (fn: (args: { context: { cookie: string }; data: unknown }) => unknown) =>
-        (args?: { data?: unknown }) =>
-          fn({ context: { cookie: "" }, data: args?.data }),
-      middleware: () => chain,
-      validator: () => chain,
-    };
-    return chain;
+  apiOrpcClient: () => {
+    throw new Error("list mutations must call the API from the browser");
   },
-  createMiddleware: () => {
-    const chain = { server: () => chain };
-    return chain;
-  },
-}));
-
-vi.mock("@/lib/server-fns/middleware", () => ({
-  withCookies: () => {},
 }));
 
 vi.mock("@/hooks/use-session", () => ({
@@ -48,6 +32,9 @@ vi.mock("@/lib/auth-session", () => ({
   sessionQueryOptions: () => ({ queryKey: ["session"] }),
 }));
 
+const { useTradeCancelConsentStore } =
+  await import("@/features/groups/stores/trade-cancel-consent-store");
+const { UserDeclinedError } = await import("@/lib/user-declined-error");
 const {
   useBulkAddListEntries,
   useCreateList,
@@ -337,6 +324,35 @@ describe("optimistic rollbacks still report the failure", () => {
     expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
   });
 
+  it("toasts the API's own message and keeps its status for the shared reporter", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        Response.json(
+          {
+            defined: true,
+            code: "BAD_REQUEST",
+            status: 400,
+            message: "Quantity must be positive",
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const client = makeAppClient();
+    const { result } = renderHook(() => useUpdateListEntry(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current
+        .mutateAsync({ listId: "lst-1", entryId: "le-1", quantity: 7 })
+        .catch(() => {});
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toMatchObject({ status: 400, code: "BAD_REQUEST" });
+    expect(toast.error).toHaveBeenCalledWith("Quantity must be positive", PERSISTENT_ERROR_TOAST);
+  });
+
   it("useUpdateListEntry restores the previous entry and toasts", async () => {
     stubFetchFailure();
     const client = makeAppClient();
@@ -353,6 +369,138 @@ describe("optimistic rollbacks still report the failure", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(client.getQueryData<ListDetailResponse>(detailKey)?.entries[0]!.quantity).toBe(1);
     expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
+  });
+});
+
+describe("edits that would cancel pending trades", () => {
+  const TRADE = {
+    id: "e0000000-0001-4000-a000-000000000001",
+    cardId: "card-1",
+    printingId: "printing-1",
+    quantity: 1,
+    counterpartyName: "Mara",
+  };
+
+  function conflictResponse() {
+    return Response.json(
+      {
+        defined: true,
+        code: "CONFLICT",
+        status: 409,
+        message: "This change would cancel pending trades. Confirm to cancel them.",
+        data: { trades: [TRADE] },
+      },
+      { status: 409 },
+    );
+  }
+
+  async function bodyOf(call: unknown[]): Promise<unknown> {
+    const text = await (call[0] as Request).text();
+    return text === "" ? undefined : JSON.parse(text);
+  }
+
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.mocked(toast.error).mockClear();
+    useTradeCancelConsentStore.setState({ request: null });
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    errorSpy.mockRestore();
+  });
+
+  it("goes straight through without asking when the server cancels nothing", async () => {
+    const fetchMock = stubFetchNoContent();
+    const { client } = makeClient();
+    const { result } = renderHook(() => useRemoveListEntry(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await result.current.mutateAsync({ listId: "lst-2", entryId: "le-1" });
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(useTradeCancelConsentStore.getState().request).toBeNull();
+  });
+
+  it("asks with the trades the server named, then retries with their ids", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(conflictResponse())
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useDeleteList(), { wrapper: wrap(client) });
+
+    let pending: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pending = result.current.mutateAsync("lst-2");
+    });
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    expect(useTradeCancelConsentStore.getState().request?.trades).toEqual([TRADE]);
+    expect(invalidateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      useTradeCancelConsentStore.getState().answer(true);
+      await pending;
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(await bodyOf(fetchMock.mock.calls[1]!)).toEqual({ cancelTradeIds: [TRADE.id] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "test-user-id"] });
+  });
+
+  it("declining sends nothing more, keeps the cache and stays quiet", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(conflictResponse());
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createQueryClient();
+    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
+    const listsKey = ["lists", "test-user-id"];
+    client.setQueryData(listsKey, { items: [LIST, SECOND_LIST] });
+    const { result } = renderHook(() => useDeleteList(), { wrapper: wrap(client) });
+
+    let outcome: Promise<unknown> = Promise.resolve();
+    act(() => {
+      outcome = result.current.mutateAsync("lst-2").catch((error: unknown) => error);
+    });
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    await act(async () => {
+      useTradeCancelConsentStore.getState().answer(false);
+      await outcome;
+    });
+
+    expect(await outcome).toBeInstanceOf(UserDeclinedError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(client.getQueryData(listsKey)).toEqual({ items: [LIST, SECOND_LIST] });
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("declining rolls an optimistic change back without a toast", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(conflictResponse()));
+    const client = createQueryClient();
+    const listsKey = ["lists", "test-user-id"];
+    client.setQueryData(listsKey, { items: [LIST, SECOND_LIST] });
+    const { result } = renderHook(() => useSetListSidebarHidden(), { wrapper: wrap(client) });
+
+    let outcome: Promise<unknown> = Promise.resolve();
+    act(() => {
+      outcome = result.current.mutateAsync({ listId: "lst-2", hidden: true }).catch(() => {});
+    });
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    const hiddenWhileAsking = client
+      .getQueryData<{ items: ListResponse[] }>(listsKey)
+      ?.items.find((list) => list.id === "lst-2")?.sidebarHidden;
+    expect(hiddenWhileAsking).toBe(true);
+
+    await act(async () => {
+      useTradeCancelConsentStore.getState().answer(false);
+      await outcome;
+    });
+
+    expect(client.getQueryData(listsKey)).toEqual({ items: [LIST, SECOND_LIST] });
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
 

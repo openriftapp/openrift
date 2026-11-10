@@ -3,7 +3,6 @@ import { indexByPrinting, indexBySideKey } from "@openrift/shared/printing-side"
 import type { CatalogPrintingsResponse, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { context, propagation } from "@opentelemetry/api";
 import type { QueryClient, UseSuspenseQueryOptions } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -15,22 +14,11 @@ import type { GroupInfo } from "@/lib/card-group-types";
 import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { apiErrorFromResponse } from "@/lib/server-fns/api-error";
+import { apiRequestHeaders } from "@/lib/server-fns/api-request-headers";
 import { getApiUrl } from "@/lib/server-fns/api-url";
-import { activeClientIp } from "@/lib/server-fns/client-ip-context";
 
 // Fetched with a plain `fetch`, not the oRPC client, so the ETag can be read
 // off the same Response as the body.
-
-function serverCatalogFetchHeaders(): Record<string, string> {
-  // No cookie: the catalog is public.
-  const headers: Record<string, string> = {};
-  propagation.inject(context.active(), headers);
-  const clientIp = activeClientIp();
-  if (clientIp !== undefined) {
-    headers["x-real-ip"] = clientIp;
-  }
-  return headers;
-}
 
 async function fetchCatalogResponse(
   url: string,
@@ -65,7 +53,8 @@ function fetchCatalogWithVersion(): Promise<{
     queryFn: async () => {
       const res = await fetchCatalogResponse(
         `${getApiUrl()}/api/v1/catalog`,
-        serverCatalogFetchHeaders(),
+        // No cookie: the catalog is public.
+        apiRequestHeaders(),
       );
       return {
         catalog: (await res.json()) as CatalogResponse,

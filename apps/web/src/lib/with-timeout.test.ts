@@ -24,7 +24,6 @@ describe("withTimeout", () => {
   });
 
   it("rejects with a labelled timeout error once timeoutMs elapses", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
     const never = new Promise<string>(() => {});
 
     const result = withTimeout(never, { label: "Loading collection", timeoutMs: 3000 });
@@ -37,7 +36,6 @@ describe("withTimeout", () => {
   });
 
   it("rejects with a TimeoutError so callers can tell a timeout from a failed request", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
     const never = new Promise<string>(() => {});
 
     const assertion = expect(withTimeout(never, { label: "load" })).rejects.toBeInstanceOf(
@@ -49,7 +47,6 @@ describe("withTimeout", () => {
   });
 
   it("uses the default 5s timeout when timeoutMs is omitted", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
     const never = new Promise<string>(() => {});
 
     const result = withTimeout(never, { label: "load" });
@@ -62,7 +59,6 @@ describe("withTimeout", () => {
   });
 
   it("does not reject before the timeout elapses", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
     const never = new Promise<string>(() => {});
     let settled = false;
     const result = withTimeout(never, { label: "load", timeoutMs: 1000 });
@@ -80,7 +76,6 @@ describe("withTimeout", () => {
 
   it("aborts the given AbortController on timeout", async () => {
     const controller = new AbortController();
-    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
     const never = new Promise<string>(() => {});
 
     const result = withTimeout(never, {
@@ -96,7 +91,6 @@ describe("withTimeout", () => {
   });
 
   it("does not abort when no AbortController is provided", async () => {
-    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
     const never = new Promise<string>(() => {});
 
     const result = withTimeout(never, { label: "load", timeoutMs: 1000 });

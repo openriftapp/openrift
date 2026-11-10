@@ -13,7 +13,6 @@ vi.mock("@piltoverarchive/riftbound-deck-codes", () => ({
   getDeckFromCode: vi.fn(),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { getDeckFromCode } from "@piltoverarchive/riftbound-deck-codes";
 
 const mockGetDeckFromCode = vi.mocked(getDeckFromCode);

@@ -1,3 +1,4 @@
+import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -104,12 +105,24 @@ describe("bulkTradeRequests", () => {
       makeDirected({ printingId: "solo", cardId: "brush", buyEntryId: "w-brush" }),
     ]);
 
-    const requests = bulkTradeRequests(groups);
+    const requests = bulkTradeRequests(groups, new Map());
 
     expect(requests.map((request) => [request.variant.cardId, request.quantity])).toEqual([
       ["gold", 2],
       ["brush", 1],
     ]);
+  });
+
+  it("skips a card that already has a live trade with that member", () => {
+    const groups = groupTradeMatches([
+      makeDirected({ printingId: "pending", cardId: "bird", buyEntryId: "w-bird" }),
+      makeDirected({ printingId: "open", cardId: "brush", buyEntryId: "w-brush" }),
+    ]);
+    const liveTradeByKey = new Map([["rift-crew\0user-1\0pending", {} as CardTradeResponse]]);
+
+    const requests = bulkTradeRequests(groups, liveTradeByKey);
+
+    expect(requests.map((request) => request.variant.cardId)).toEqual(["brush"]);
   });
 });
 

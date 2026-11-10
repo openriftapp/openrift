@@ -14,6 +14,14 @@ import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+interface SharedCollectionHeadData {
+  collection: Pick<
+    PublicCollectionDetailResponse["collection"],
+    "name" | "description" | "updatedAt" | "copyCount"
+  >;
+  owner: Pick<PublicCollectionDetailResponse["owner"], "displayName">;
+}
+
 export const Route = createFileRoute("/_app/collections_/share/$token")({
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
@@ -25,7 +33,7 @@ export const Route = createFileRoute("/_app/collections_/share/$token")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/collections/share/${params.token}`;
-    const data = loaderData as PublicCollectionDetailResponse | undefined;
+    const data = loaderData as SharedCollectionHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Shared collection", path, unlisted: true });
     }
@@ -39,12 +47,19 @@ export const Route = createFileRoute("/_app/collections_/share/$token")({
     const ogImage = collectionShareImageUrl(siteUrl, params.token, version);
     return seoHead({ siteUrl, title, description, path, ogImage, oembed: true, unlisted: true });
   },
-  loader: async ({ context, params }): Promise<PublicCollectionDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<SharedCollectionHeadData> => {
     try {
-      return await context.queryClient.query({
+      const data = await context.queryClient.query({
         ...publicCollectionQueryOptions(params.token),
         staleTime: "static",
       });
+      const { name, description, updatedAt, copyCount } = data.collection;
+      return {
+        collection: { name, description, updatedAt, copyCount },
+        owner: { displayName: data.owner.displayName },
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

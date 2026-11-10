@@ -16,7 +16,7 @@ export type RuleQuantity = z.infer<typeof ruleQuantitySchema>;
 export const wishRuleSchema = z.object({
   kind: z.literal("wish"),
   filter: cardFiltersSchema,
-  priceMarketplace: marketplaceEnum.optional(),
+  priceMarketplace: z.optional(marketplaceEnum),
   quantity: ruleQuantitySchema,
   excludeIds: z.array(z.string()),
   netOwned: z.boolean().optional(),
@@ -32,7 +32,7 @@ export type TradeKeepPer = z.infer<typeof tradeKeepPerSchema>;
 export const tradeRuleSchema = z.object({
   kind: z.literal("trade"),
   filter: cardFiltersSchema,
-  priceMarketplace: marketplaceEnum.optional(),
+  priceMarketplace: z.optional(marketplaceEnum),
   collectionIds: z.array(z.string()).nullable(),
   keepPerCard: ruleQuantitySchema,
   keepPer: tradeKeepPerSchema.optional(),

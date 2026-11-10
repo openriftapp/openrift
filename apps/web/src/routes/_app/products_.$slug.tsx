@@ -11,6 +11,11 @@ import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 
+interface ProductHeadData {
+  product: Pick<ProductDetailResponse["product"], "name" | "description" | "cardTotal">;
+  items: { name: string; url: string }[];
+}
+
 export const Route = createFileRoute("/_app/products_/$slug")({
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
@@ -22,28 +27,15 @@ export const Route = createFileRoute("/_app/products_/$slug")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/products/${params.slug}`;
-    const data = loaderData as ProductDetailResponse | undefined;
+    const data = loaderData as ProductHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Product", path, unlisted: true });
     }
-    const { product } = data;
+    const { product, items } = data;
     const description =
       product.description ??
       `Every card in ${product.name}, a fixed-content Riftbound product (${product.cardTotal} cards).`;
     const head = seoHead({ siteUrl, title: product.name, description, path });
-
-    const seenCardIds = new Set<string>();
-    const items: { name: string; url: string }[] = [];
-    for (const printing of data.printings) {
-      if (seenCardIds.has(printing.cardId)) {
-        continue;
-      }
-      seenCardIds.add(printing.cardId);
-      const card = data.cards[printing.cardId];
-      if (card) {
-        items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
-      }
-    }
 
     return {
       ...head,
@@ -56,9 +48,12 @@ export const Route = createFileRoute("/_app/products_/$slug")({
       ],
     };
   },
-  loader: async ({ context, params }): Promise<ProductDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship every printing twice.
+  loader: async ({ context, params }): Promise<ProductHeadData> => {
+    let data: ProductDetailResponse;
     try {
-      return await context.queryClient.query({
+      data = await context.queryClient.query({
         ...productDetailQueryOptions(params.slug),
         select: undefined,
         staleTime: "static",
@@ -69,6 +64,20 @@ export const Route = createFileRoute("/_app/products_/$slug")({
       }
       throw error;
     }
+    const seenCardIds = new Set<string>();
+    const items: { name: string; url: string }[] = [];
+    for (const printing of data.printings) {
+      if (seenCardIds.has(printing.cardId)) {
+        continue;
+      }
+      seenCardIds.add(printing.cardId);
+      const card = data.cards[printing.cardId];
+      if (card) {
+        items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
+      }
+    }
+    const { name, description, cardTotal } = data.product;
+    return { product: { name, description, cardTotal }, items };
   },
   pendingComponent: ProductDetailPending,
   errorComponent: RouteErrorFallback,

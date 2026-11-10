@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   captureHydrationError,
+  dropScanFrameBreadcrumb,
   enrichBareThrow,
   enrichEvent,
   INJECTED_SCRIPT_PATTERN,
@@ -258,6 +259,41 @@ describe("initClientSentry", () => {
 
     const options = initMock.mock.calls[0]?.[0] as { environment: string };
     expect(options.environment).toBe("development");
+  });
+});
+
+describe("dropScanFrameBreadcrumb", () => {
+  test.each([
+    "[scan] #42 31ms (detect 9, embed 18, verify 4) focus 120 top ogn-001 d0.210 r0 aim 1.2s",
+    "[scan] PRINTING Garen abstained | band abcd1234=0.912",
+  ])("drops the per-frame console line %s", (message) => {
+    expect(dropScanFrameBreadcrumb({ category: "console", message })).toBeNull();
+  });
+
+  test("keeps the scanner's one-off console lines", () => {
+    const breadcrumb = {
+      category: "console",
+      message: "[scan] LOCK Garen (ogn-001) after 4 frames",
+    };
+
+    expect(dropScanFrameBreadcrumb(breadcrumb)).toBe(breadcrumb);
+  });
+
+  test("keeps a non-console breadcrumb whose message looks like a frame line", () => {
+    const breadcrumb = { category: "ui.click", message: "[scan] #1 button" };
+
+    expect(dropScanFrameBreadcrumb(breadcrumb)).toBe(breadcrumb);
+  });
+
+  test("is wired into the client init", () => {
+    globalThis.__OPENRIFT_CONFIG__ = { sentryDsn: "https://key@example.ingest.sentry.io/1" };
+    initMock.mockClear();
+
+    initClientSentry({} as Parameters<typeof initClientSentry>[0]);
+    globalThis.__OPENRIFT_CONFIG__ = undefined;
+
+    const options = initMock.mock.calls[0]?.[0] as { beforeBreadcrumb: unknown };
+    expect(options.beforeBreadcrumb).toBe(dropScanFrameBreadcrumb);
   });
 });
 

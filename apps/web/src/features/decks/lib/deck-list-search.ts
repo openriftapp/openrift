@@ -1,18 +1,19 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-import { z } from "zod";
+import { z } from "zod/mini";
+
+import { lenient } from "@/lib/lenient-param";
 
 /** Filters only; density, sort and grouping live in the preference stores instead. */
 export const deckListSearchSchema = z.object({
-  search: z.string().optional().catch(undefined),
-  formats: z.array(z.string()).optional().catch(undefined),
-  validity: z.enum(["valid", "invalid"]).optional().catch(undefined),
-  domains: z.array(z.string()).optional().catch(undefined),
-  folders: z.array(z.string()).optional().catch(undefined),
-  formatsEx: z.array(z.string()).optional().catch(undefined),
-  domainsEx: z.array(z.string()).optional().catch(undefined),
-  foldersEx: z.array(z.string()).optional().catch(undefined),
-  drafts: z.enum(["hide", "only"]).optional().catch(undefined),
-  archived: z.boolean().optional().catch(undefined),
+  search: lenient(z.string()),
+  formats: lenient(z.array(z.string())),
+  validity: lenient(z.enum(["valid", "invalid"])),
+  domains: lenient(z.array(z.string())),
+  folders: lenient(z.array(z.string())),
+  formatsEx: lenient(z.array(z.string())),
+  domainsEx: lenient(z.array(z.string())),
+  foldersEx: lenient(z.array(z.string())),
+  drafts: lenient(z.enum(["hide", "only"])),
+  archived: lenient(z.boolean()),
 });
 
 export type DeckListSearch = z.infer<typeof deckListSearchSchema>;

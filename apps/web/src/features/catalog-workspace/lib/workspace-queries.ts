@@ -53,7 +53,6 @@ export async function fetchAllWorkspaceRecords(
   let cursor: string | null | undefined =
     loaded.length === 0 ? undefined : (loaded.at(-1)?.nextCursor ?? null);
   while (cursor !== null) {
-    // oxlint-disable-next-line no-await-in-loop -- each page needs the previous page's cursor
     const page: WorkspaceRecordsResponse = await fetchWorkspaceRecords({
       data: { ...input, cursor },
     });

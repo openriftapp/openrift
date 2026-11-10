@@ -12,7 +12,6 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ cardsById, printingsByCardId }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useCatalogCardSearch } from "./use-catalog-card-search";
 
 const LEGEND = WellKnown.cardType.LEGEND;

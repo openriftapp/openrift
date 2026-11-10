@@ -19,7 +19,6 @@ function outputValidationError(
     message: "Output validation failed",
     cause: new ValidationError({
       message: "Output validation failed",
-      // oxlint-disable-next-line no-explicit-any -- StandardSchema issue paths accept both segment shapes
       issues: issues as any,
       data: { secret: "never logged" },
     }),

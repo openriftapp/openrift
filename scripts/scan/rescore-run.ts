@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Re-scores a saved `run-clips.ts --json` (or device bench) result against the
  * current truth labels and printing catalogue, without replaying any frames.

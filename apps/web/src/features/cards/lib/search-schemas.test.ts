@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { z as classicZ } from "zod";
+import { z } from "zod/mini";
 
 import { cleanedSearchForRedirect, filterSearchSchema } from "./search-schemas";
 
@@ -99,5 +101,17 @@ describe("cleanedSearchForRedirect", () => {
   it("reads a number-looking legacy search value", () => {
     const search = { ...filterSearchSchema.parse({}), search: 269 };
     expect(cleanedSearchForRedirect(filterSearchSchema, search, "?search=269")?.q).toBe("269");
+  });
+
+  it("moves a legacy search param on a classic zod schema too", () => {
+    const classic = classicZ.object({ q: classicZ.string().optional() });
+    expect(cleanedSearchForRedirect(classic, { search: "annie" }, "?search=annie")).toEqual({
+      q: "annie",
+    });
+  });
+
+  it("leaves a schema without q alone", () => {
+    const noQ = z.object({ sort: z.optional(z.string()) });
+    expect(cleanedSearchForRedirect(noQ, { search: "annie" }, "?search=annie")).toEqual({});
   });
 });

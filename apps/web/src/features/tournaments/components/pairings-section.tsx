@@ -10,6 +10,7 @@ import {
   useRerollTournamentRound,
   useSubmitTournamentResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 import { GenerateRoundControls } from "./generate-round-controls";
@@ -60,14 +61,6 @@ export function PodPairingsSection({
   const suggested = suggestedRoundCount(unitCount);
   const reachedSuggestion = suggested > 0 && finalizedCount >= suggested;
 
-  async function run(action: () => Promise<unknown>) {
-    try {
-      await action();
-    } catch {
-      // Reported by the global mutation onError toast.
-    }
-  }
-
   // The manual editor takes over the open round; the rest of the history stays visible.
   const editing = editingRound !== null && openRound?.roundNumber === editingRound;
   const shownRounds = editing
@@ -88,7 +81,9 @@ export function PodPairingsSection({
           suggested={suggested}
           finalizing={finalizeRound.isPending}
           onFinalize={() =>
-            void run(() => finalizeRound.mutateAsync({ id, roundNumber: openRound.roundNumber }))
+            void runReportedMutation(() =>
+              finalizeRound.mutateAsync({ id, roundNumber: openRound.roundNumber }),
+            )
           }
         />
       ) : (
@@ -130,9 +125,9 @@ export function PodPairingsSection({
         snapshot={data.openRoundSnapshot}
         warningsExpanded={warningsExpanded}
         canEnterResult={() => !completed}
-        onSubmitResult={(podId, results) =>
-          run(() => submitResult.mutateAsync({ id, podId, results }))
-        }
+        onSubmitResult={async (podId, results) => {
+          await submitResult.mutateAsync({ id, podId, results });
+        }}
         renderRoundActions={(round) => {
           if (round.status !== "reporting") {
             return null;
@@ -170,7 +165,9 @@ export function PodPairingsSection({
                 variant="destructive"
                 disabled={anyReported || rerollRound.isPending}
                 onClick={() =>
-                  void run(() => rerollRound.mutateAsync({ id, roundNumber: round.roundNumber }))
+                  void runReportedMutation(() =>
+                    rerollRound.mutateAsync({ id, roundNumber: round.roundNumber }),
+                  )
                 }
               >
                 {m.tournaments_pairings_reroll()}

@@ -31,13 +31,9 @@ vi.mock("@tanstack/react-router", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MissingImagesList } from "@/features/contribute/components/missing-images-list";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { initKeys } from "@/lib/query-keys";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubMissingImagePrinting } from "@/test/factories";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MISSING_IMAGE_ENUMS, stubInitResponse } from "@/test/init-fixtures";
 
 function renderList(items: MissingImagePrinting[]) {

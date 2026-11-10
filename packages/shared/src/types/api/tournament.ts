@@ -35,6 +35,7 @@ import type {
   tournamentMatchFormatSchema,
   tournamentModuleFlagsSchema,
   tournamentMyDeckEntrySchema,
+  tournamentPageResponseSchema,
   tournamentPairingStyleSchema,
   tournamentParticipantListResponseSchema,
   tournamentParticipantPreviewSchema,
@@ -126,6 +127,8 @@ export type TournamentMyDeckEntry = z.infer<typeof tournamentMyDeckEntrySchema>;
 export type TournamentSummaryResponse = z.infer<typeof tournamentSummaryResponseSchema>;
 
 export type TournamentListResponse = z.infer<typeof tournamentListResponseSchema>;
+
+export type TournamentPageResponse = z.infer<typeof tournamentPageResponseSchema>;
 
 export type TournamentDetailResponse = z.infer<typeof tournamentDetailResponseSchema>;
 

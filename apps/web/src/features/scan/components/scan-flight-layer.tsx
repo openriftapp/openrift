@@ -117,7 +117,6 @@ function FlightCard({
       move.cancel();
       fade.cancel();
     };
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- one flight per id; the rest is read through refs
   }, [id]);
 
   return (

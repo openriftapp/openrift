@@ -4,10 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { MetaPlayerCounts, MetaPlayerFacts } from "@/features/meta/lib/meta-player-page";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaPlayerHero } from "./meta-player-hero";
 
 const LUX = {

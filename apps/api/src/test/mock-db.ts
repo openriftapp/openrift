@@ -1,12 +1,9 @@
 /* oxlint-disable
-   no-empty-function,
    curly,
-   no-undefined,
    eqeqeq,
    no-negated-condition,
    typescript/ban-types,
    typescript/no-unsafe-function-type,
-   jsdoc/require-returns,
    unicorn/no-useless-undefined
    -- test infrastructure: proxy mock intentionally uses loose patterns */
 

@@ -1,8 +1,6 @@
 // Used by `bun run start` only; `bun dev` proxies via Vite (see apps/web/vite.config.ts).
 
-// oxlint-disable-next-line import/no-nodejs-modules -- script runs in Bun
 import { readFile } from "node:fs/promises";
-// oxlint-disable-next-line import/no-nodejs-modules -- script runs in Bun
 import path from "node:path";
 
 const PROXY_PORT = Number(process.env.PROXY_PORT ?? 5173);
@@ -54,7 +52,6 @@ const server = Bun.serve({
   },
 });
 
-// oxlint-disable-next-line no-console -- local dev aid, single startup line
 console.log(
   `[local-proxy] :${server.port} → /api/* ${API_TARGET}, /media/* ${MEDIA_DIR}, * ${WEB_TARGET}`,
 );

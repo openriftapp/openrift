@@ -26,9 +26,7 @@ const anonCtx = createUnauthenticatedTestContext();
 const authCtx = createTestContext(USER_ID, USER_EMAIL);
 
 describe.skipIf(!anonCtx || !authCtx)("Optional-auth public reads (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const anon = anonCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const auth = authCtx!;
 
   beforeAll(async () => {

@@ -1,13 +1,6 @@
-const CARD_SECTIONS = [
-  "overview",
-  "attention",
-  "printings",
-  "marketplace",
-  "bans",
-  "history",
-] as const;
+import type { CardSection } from "@/features/admin/lib/admin-search-values";
 
-export type CardSection = (typeof CARD_SECTIONS)[number];
+export type { CardSection } from "@/features/admin/lib/admin-search-values";
 
 /** "attention" is a link target inside Fields & faces, not a section of its own. */
 export type NavCardSection = Exclude<CardSection, "attention">;
@@ -25,10 +18,6 @@ export const CARD_SECTION_LABELS: Record<NavCardSection, string> = {
 const NAV_SECTIONS: NavCardSection[] = ["overview", "printings", "marketplace", "bans", "history"];
 
 const ADMIN_ONLY_SECTIONS: CardSection[] = ["marketplace", "bans", "history"];
-
-export function isCardSection(value: unknown): value is CardSection {
-  return CARD_SECTIONS.some((section) => section === value);
-}
 
 export function cardSectionsFor(isAdmin: boolean): NavCardSection[] {
   return isAdmin

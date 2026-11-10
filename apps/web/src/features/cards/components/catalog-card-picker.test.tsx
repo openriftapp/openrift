@@ -30,7 +30,6 @@ vi.mock("@/features/cards/components/card-search-dropdown", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CatalogCardPicker } from "./catalog-card-picker";
 
 describe("CatalogCardPicker", () => {

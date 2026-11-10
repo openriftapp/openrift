@@ -40,7 +40,6 @@ export function ScanViewfinder({
 }: ScanViewfinderProps) {
   return (
     <>
-      {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no audio track */}
       <video
         ref={videoRef}
         className="h-full w-full object-cover"

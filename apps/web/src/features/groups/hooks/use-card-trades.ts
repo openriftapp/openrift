@@ -5,18 +5,13 @@ import type {
   CardTradeResponse,
   CardTradeRole,
 } from "@openrift/shared/types/api/card-trade";
-import {
-  queryOptions,
-  skipToken,
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import {
   fetchUserTrades,
+  liveTradesByPrintingQueryOptions,
   tradeSheetQueryOptions,
   userTradesQueryOptions,
 } from "@/features/groups/lib/card-trades-queries";
@@ -29,10 +24,6 @@ import { reportMutationError } from "@/lib/query-client";
 import { errorStatus } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchLiveTradesByPrinting = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }) => apiOrpcClient(cardTradesContract, context.cookie).liveByPrinting());
 
 const fetchTradeCopyOptions = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -123,6 +114,7 @@ export function useGroupTrades(groupId: string) {
     queryOptions({
       queryKey: tradesKeys.byGroup(userId, groupId),
       queryFn: () => fetchUserTrades({ data: { groupId } }),
+      staleTime: 0,
     }),
   );
 }
@@ -133,16 +125,6 @@ export function useUserTrades() {
   return useQuery({
     ...userTradesQueryOptions(userId),
     refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-  });
-}
-
-/** Shared by the card browsers' trade markers and the deck builder's incoming counts, so both read one cached response. */
-function liveTradesByPrintingQueryOptions(userId: string | null) {
-  return queryOptions({
-    queryKey: tradesKeys.liveByPrinting(userId ?? ""),
-    queryFn: userId === null ? skipToken : () => fetchLiveTradesByPrinting(),
-    staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
 }
@@ -205,6 +187,7 @@ export function tradeCopyOptionsQueryOptions(userId: string, tradeId: string) {
   return queryOptions({
     queryKey: tradesKeys.copyOptions(userId, tradeId),
     queryFn: () => fetchTradeCopyOptions({ data: tradeId }),
+    staleTime: 0,
   });
 }
 

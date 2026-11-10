@@ -30,7 +30,6 @@ vi.mock("@/features/cards/components/wishlist-heart", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { CardDetailActions } = await import("./card-detail-actions");
 
 describe("CardDetailActions", () => {

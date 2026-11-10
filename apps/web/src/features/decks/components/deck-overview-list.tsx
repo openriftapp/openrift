@@ -1,4 +1,4 @@
-import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import { useDraggable } from "@dnd-kit/core";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
@@ -39,27 +39,16 @@ import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-lin
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { lockedReasonText, toOwnershipPrinting } from "@/features/decks/hooks/use-deck-ownership";
+import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
 import { orderByBattlefieldPlan } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import {
-  getDeckCardKey,
-  isCardAllowedInZone,
-  isDeckZoneFullForDrag,
-} from "@/features/decks/lib/deck-builder-card";
+import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
-import type {
-  AnyDragData,
-  DeckCardDragData,
-  DeckDropData,
-} from "@/features/decks/lib/deck-dnd-data";
-import {
-  DECK_DRAG_TYPES,
-  DRAG_SOURCE_ZONES,
-  resolveDraggedCard,
-} from "@/features/decks/lib/deck-dnd-data";
+import type { DeckCardDragData } from "@/features/decks/lib/deck-dnd-data";
+import { DRAG_SOURCE_ZONES } from "@/features/decks/lib/deck-dnd-data";
 import type { CopyOwnershipStatus } from "@/features/decks/lib/deck-overview-derive";
 import { copyOwnershipStatus, zoneShowsAllCopies } from "@/features/decks/lib/deck-overview-derive";
 import type {
@@ -76,7 +65,6 @@ import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { asDragData } from "@/lib/dnd-data";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -522,29 +510,16 @@ function DroppableZoneSection({
   allCards: DeckBuilderCard[];
   children: React.ReactNode;
 }) {
-  const { active } = useDndContext();
-  const dragData = asDragData<AnyDragData>(active?.data.current, DECK_DRAG_TYPES);
-  const draggedCard = resolveDraggedCard(dragData, allCards);
-  const isZoneFull =
-    draggedCard !== undefined &&
-    isDeckZoneFullForDrag({
-      zone,
-      draggedCard,
-      fromZone: dragData?.type === "deck-card" ? dragData.fromZone : null,
-      allCards,
-      format,
-    });
-  const dropDisabled =
-    draggedCard !== undefined && (!isCardAllowedInZone(draggedCard, zone) || isZoneFull);
-
-  // Registered even when disabled: a droppable that drops out of collision
-  // detection makes a release read as "outside any zone" and remove a copy.
-  const dropData: DeckDropData = { type: "deck-zone", zone, disabled: dropDisabled };
-  const { setNodeRef, isOver } = useDroppable({ id: `overview-list-zone-${zone}`, data: dropData });
+  const { dropRef, isOver, dropDisabled } = useDeckZoneDrop({
+    id: `overview-list-zone-${zone}`,
+    zone,
+    allCards,
+    format,
+  });
 
   return (
     <section
-      ref={setNodeRef}
+      ref={dropRef}
       className={cn(
         DECK_LIST_SECTION_CLASS,
         isOver && !dropDisabled && "ring-primary/60 ring-2 ring-offset-2",

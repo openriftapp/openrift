@@ -10,7 +10,7 @@ import { createStoreResetter } from "@/test/store-helpers";
 const state = vi.hoisted(() => ({
   discard: vi.fn(),
   fetch: vi.fn(),
-  uncheck: vi.fn(() => Promise.resolve()),
+  uncheck: vi.fn((_input: unknown) => Promise.resolve()),
 }));
 
 vi.mock("@/features/catalog-workspace/lib/workspace-same-difference", () => ({
@@ -22,10 +22,10 @@ vi.mock("@/features/catalog-workspace/lib/workspace-same-difference", () => ({
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useUncheckCandidateCard: () => ({ mutateAsync: state.uncheck }),
+  uncheckCandidateCardFn: state.uncheck,
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 
 const { useDiscardSameDifference, useSameDifference } = await import("./use-same-difference");
 
@@ -82,9 +82,13 @@ describe("useDiscardSameDifference", () => {
       expect.anything(),
     );
 
-    const entry = useWorkspaceSelectionStore.getState().popUndo();
+    const entry = useWorkspaceSelectionStore.getState().undoStack.at(-1);
+    expect(entry?.undoneLabel).toBe("Undone: gallery's might suggestion restored on 2 cards");
     await entry?.undo();
-    expect(state.uncheck.mock.calls).toEqual([["cc-1"], ["cc-2"]]);
+    expect(state.uncheck.mock.calls).toEqual([
+      [{ data: { candidateCardId: "cc-1" } }],
+      [{ data: { candidateCardId: "cc-2" } }],
+    ]);
   });
 
   it("pushes no undo when nothing was left to discard", async () => {

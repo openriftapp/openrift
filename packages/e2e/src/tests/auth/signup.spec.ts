@@ -233,8 +233,9 @@ test.describe("signup page", () => {
     test("disables the button and shows 'Signing up...' while the request is in flight", async ({
       page,
     }) => {
+      const { promise: released, resolve: release } = Promise.withResolvers<void>();
       await page.route("**/api/auth/sign-up/email", async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await released;
         await route.continue();
       });
 
@@ -248,8 +249,12 @@ test.describe("signup page", () => {
       await page.getByRole("button", { name: /^sign up$/iu }).click();
 
       const loadingButton = page.getByRole("button", { name: /signing up/iu });
-      await expect(loadingButton).toBeVisible();
-      await expect(loadingButton).toBeDisabled();
+      try {
+        await expect(loadingButton).toBeVisible();
+        await expect(loadingButton).toBeDisabled();
+      } finally {
+        release();
+      }
     });
   });
 

@@ -37,7 +37,6 @@ vi.mock("@/hooks/use-enums", () => ({
   useTagCategories: () => ({ categories: [], categoryByTag: new Map() }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterMoreMenu } from "./filter-more-menu";
 
 const DEFAULT_TOP = new Set(PREFERENCE_DEFAULTS.topLevelFilters);

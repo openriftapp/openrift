@@ -90,7 +90,6 @@ vi.mock("@/features/decks/components/deck-builder-intro-banner", () => ({
   DeckBuilderIntroBanner: () => null,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckOverview } from "./deck-overview";
 
 const resetUiStore = createStoreResetter(useDeckBuilderUiStore);

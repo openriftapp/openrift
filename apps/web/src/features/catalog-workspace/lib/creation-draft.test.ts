@@ -1,4 +1,5 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
+import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
 import { makeAdminPrinting, makeCandidatePrinting } from "@/test/factories";
@@ -18,6 +19,7 @@ import {
   printingFollowUpFields,
   toAcceptInput,
   toDeskCreateInput,
+  updateFace,
   validateDraft,
 } from "./creation-draft";
 
@@ -460,6 +462,8 @@ describe("toAcceptInput", () => {
       { mode: "existing", ...CARD },
       candidate,
       "Provider A",
+      {},
+      true,
     );
 
     expect(toAcceptInput(draft)).toEqual({
@@ -479,11 +483,48 @@ describe("toAcceptInput", () => {
     });
   });
 
+  it("offers a scan from a source that is not a favorite without attaching it", () => {
+    const draft = draftFromCandidatePrinting(
+      { mode: "existing", ...CARD },
+      candidate,
+      "Provider B",
+      {},
+      false,
+    );
+
+    expect((draft.faces[0] as DraftFace).images).toEqual([
+      expect.objectContaining({ kind: "source", attached: false }),
+    ]);
+    expect(toAcceptInput(draft).printingFields).not.toHaveProperty("imageUrl");
+    expect(plannedImageUploads(draft)).toEqual([]);
+  });
+
+  it("sends an offered scan once the admin attaches it", () => {
+    const draft = draftFromCandidatePrinting(
+      { mode: "existing", ...CARD },
+      candidate,
+      "Provider B",
+      {},
+      false,
+    );
+    const face = draft.faces[0] as DraftFace;
+    const attached = updateFace(draft, 0, {
+      ...face,
+      images: face.images.map((image) =>
+        image.kind === "source" ? { ...image, attached: true } : image,
+      ),
+    });
+
+    expect(toAcceptInput(attached).printingFields.imageUrl).toBe("https://img.example/ahri.png");
+  });
+
   it("takes the id of a card created in the same step and the second face", () => {
     const draft = draftFromCandidatePrinting(
       { mode: "new", slug: "ahri", name: "Ahri", summary: "" },
       candidate,
       "Provider A",
+      {},
+      true,
     );
     const [second] = existingFacesFromDeskRows([deskRow({ faceId: "face-gold" })]);
     const input = toAcceptInput(
@@ -500,9 +541,51 @@ describe("toAcceptInput", () => {
       { mode: "new", slug: "ahri", name: "Ahri", summary: "" },
       candidate,
       "Provider A",
+      {},
+      true,
     );
 
     expect(() => toAcceptInput(draft)).toThrow();
+  });
+
+  const acceptFields = (
+    overrides: Partial<CandidatePrintingResponse>,
+    setReleaseYears: Record<string, number>,
+  ) =>
+    toAcceptInput(
+      draftFromCandidatePrinting(
+        { mode: "existing", ...CARD },
+        { ...candidate, ...overrides },
+        "Provider A",
+        setReleaseYears,
+        true,
+      ),
+    ).printingFields;
+
+  it("sends the source's printed year and overnumbered flag", () => {
+    const fields = acceptFields({ printedYear: 2024, isOvernumbered: true }, { "OGN|FR": 2026 });
+
+    expect(fields.printedYear).toBe(2024);
+    expect(fields.isOvernumbered).toBe(true);
+  });
+
+  it("falls back to the set's release year in the printing's language", () => {
+    const fields = acceptFields({ printedYear: null }, { OGN: 2025, "OGN|FR": 2026 });
+
+    expect(fields.printedYear).toBe(2026);
+  });
+
+  it("falls back to the set's earliest release when the language has none", () => {
+    const fields = acceptFields({ printedYear: null }, { OGN: 2025, "OGN|EN": 2025 });
+
+    expect(fields.printedYear).toBe(2025);
+  });
+
+  it("leaves the printed year out and sends not overnumbered without data", () => {
+    const fields = acceptFields({ printedYear: null, isOvernumbered: null }, {});
+
+    expect(fields).not.toHaveProperty("printedYear");
+    expect(fields.isOvernumbered).toBe(false);
   });
 });
 
@@ -560,6 +643,8 @@ describe("plannedImageUploads", () => {
       { mode: "existing", ...CARD },
       candidate,
       "Provider A",
+      {},
+      true,
     );
     const face = draft.faces[0] as DraftFace;
     const plan = plannedImageUploads({

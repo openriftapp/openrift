@@ -93,8 +93,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
     if (deleteDeck.isPending) {
       return;
     }
-    deleteDeck.mutate(deck.id);
-    setDeleteOpen(false);
+    deleteDeck.mutate(deck.id, { onSuccess: () => setDeleteOpen(false) });
   };
 
   const handleFormatChange = (slug: string) => {

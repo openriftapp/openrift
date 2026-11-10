@@ -13,9 +13,7 @@ vi.mock("../services/run-job.js", () => ({
   runJobOutcome: vi.fn(),
 }));
 
-// eslint-disable-next-line import/first -- imported after vi.mock so the mocks apply.
 import { runJobOutcome } from "../services/run-job.js";
-// eslint-disable-next-line import/first
 import { adminChangelogRouter } from "./admin-changelog";
 
 const runJobMock = vi.mocked(runJobOutcome);

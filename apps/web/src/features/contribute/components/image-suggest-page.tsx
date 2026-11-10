@@ -4,6 +4,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { notFound, getRouteApi } from "@tanstack/react-router";
 
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
+import { printingName } from "@/features/cards/lib/card-meta";
 import {
   ContributeBackToCard,
   ContributeFormFrame,
@@ -38,10 +39,8 @@ export function ImageSuggestPage() {
       lead={
         <>
           {m.contribute_page_suggest_image_for()}{" "}
-          <span className="text-foreground font-medium">
-            {printing.printedName ?? data.card.name}
-          </span>{" "}
-          · {setName} · {enumLabel(labels.finishes, printing.finish)} · {printing.language || "EN"}
+          <span className="text-foreground font-medium">{printingName(printing, data.card)}</span> ·{" "}
+          {setName} · {enumLabel(labels.finishes, printing.finish)} · {printing.language || "EN"}
         </>
       }
     >

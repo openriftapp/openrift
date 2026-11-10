@@ -13,7 +13,6 @@ const OWNER_ID = crypto.randomUUID();
 const ctx = createDbContext(OWNER_ID);
 
 describe.skipIf(!ctx)("tournament summary extras (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repos = createRepos(db);
 

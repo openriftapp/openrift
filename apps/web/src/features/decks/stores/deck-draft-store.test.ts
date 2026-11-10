@@ -220,7 +220,6 @@ describe("resetDeckDraft", () => {
 
   it("leaves no error behind when it aborts an in-flight save", async () => {
     saveDeckCardsSpy.mockImplementationOnce(() => ({
-      // oxlint-disable-next-line promise/avoid-new -- a save that never settles, so the reset's abort is what ends it
       when: () => new Promise<void>(() => {}),
     }));
     hydrateDeckDraft(queryClient, userA, "deck-reset-inflight", []);

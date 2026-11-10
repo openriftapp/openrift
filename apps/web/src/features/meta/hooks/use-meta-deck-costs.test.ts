@@ -32,7 +32,6 @@ vi.mock("@/stores/display-store", () => ({
     select({ marketplaceOrder: ["cardtrader"] }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useMetaDeckCosts } from "./use-meta-deck-costs";
 
 describe("useMetaDeckCosts", () => {

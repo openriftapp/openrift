@@ -60,7 +60,7 @@ import {
 import { useAdminPrintingCitations } from "@/features/admin/hooks/use-admin-printing-citations";
 import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import type { FaceRow } from "@/features/admin/lib/face-rows";
@@ -456,29 +456,15 @@ export function PrintingReviewCard({
                 if (!isAcceptPrintingField(field)) {
                   return;
                 }
-                const previousValue = printingWithImage[field];
-                acceptPrintingField.mutate({
-                  printingId,
-                  faceId: printing.faceId,
-                  field,
-                  value,
-                  source: "provider",
-                });
                 const row = allSources.find((source) => source.id === candidateId);
-                toastFieldAccepted({
+                void acceptFieldWithUndo({
+                  accept: acceptPrintingField.mutateAsync,
+                  input: { printingId, faceId: printing.faceId, field, value, source: "provider" },
                   fieldLabel:
                     printingSourceFields.find((entry) => entry.key === field)?.label ?? field,
                   sourceLabel:
                     row === undefined ? "this source" : getProviderLabel(row, sourceLabels),
-                  previousValue,
-                  onUndo: (previous) =>
-                    acceptPrintingField.mutate({
-                      printingId,
-                      faceId: printing.faceId,
-                      field,
-                      value: previous,
-                      source: "manual",
-                    }),
+                  previousValue: printingWithImage[field],
                 });
               }}
               onActiveChange={(field, value) => {

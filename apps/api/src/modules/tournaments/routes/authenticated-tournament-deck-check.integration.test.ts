@@ -36,13 +36,11 @@ interface CardLine {
 }
 
 describe.skipIf(!hostCtx)("Tournament-scoped deck-check + host keys (integration, ADR-033)", () => {
-  // oxlint-disable typescript/no-non-null-assertion -- guarded by skipIf
   const host = hostCtx!;
   const judge = judgeCtx!;
   const stranger = strangerCtx!;
   const orgOwner = orgOwnerCtx!;
   const member = memberCtx!;
-  // oxlint-enable typescript/no-non-null-assertion
   const repos = createRepos(host.db);
 
   let tournamentId = "";

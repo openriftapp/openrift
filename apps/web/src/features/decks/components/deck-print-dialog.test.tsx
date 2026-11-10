@@ -34,7 +34,6 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQueryClient: () => ({}),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckPrintDialog } from "./deck-print-dialog";
 
 const cards = [stubDeckBuilderCard({ cardId: "card-1", cardName: "Yasuo", quantity: 3 })];

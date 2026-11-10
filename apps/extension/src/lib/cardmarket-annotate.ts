@@ -1,3 +1,5 @@
+import { formatCents } from "@openrift/shared/money";
+
 import { overlayCell } from "./cardmarket-cell";
 import type { PriceVerdict } from "./cardmarket-price";
 import { priceVerdict } from "./cardmarket-price";
@@ -73,8 +75,11 @@ function paintSellerPrice(row: CardmarketArticleRow, colour?: string): void {
   }
 }
 
-export function formatEuro(cents: number, locale?: string): string {
-  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(cents / 100);
+export function formatEuro(
+  cents: number,
+  locale = new Intl.NumberFormat().resolvedOptions().locale,
+): string {
+  return formatCents(cents, "EUR", locale);
 }
 
 export function referencePriceText(cardtraderCents: number, locale?: string): string {

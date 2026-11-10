@@ -8,7 +8,6 @@ const USER_ID = "a0000000-0010-4000-a000-000000000001";
 const ctx = createTestContext(USER_ID);
 
 describe.skipIf(!ctx)("Admin core routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   // Must run before promotion: isAdmin caches positive results for 30s

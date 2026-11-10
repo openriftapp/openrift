@@ -20,7 +20,6 @@ vi.mock("@/features/decks/stores/deck-undo-store", () => ({
   useDeckUndoStore: { getState: () => ({ undo, redo }) },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useDeckUndoShortcuts } from "./deck-undo-controls";
 
 function wrapper({ children }: { children: ReactNode }) {

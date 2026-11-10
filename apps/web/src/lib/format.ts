@@ -1,3 +1,4 @@
+import { formatCents, moneyFormatOptions } from "@openrift/shared/money";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -66,17 +67,18 @@ export function formatCount(value: number): string {
 type Currency = "USD" | "EUR";
 
 function currencyFormat(currency: Currency, fractionDigits: number): Intl.NumberFormat {
-  return numberFormat(`${currency}:${fractionDigits}`, {
-    style: "currency",
-    currency,
-    currencyDisplay: "narrowSymbol",
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  });
+  return numberFormat(
+    `${currency}:${fractionDigits}`,
+    moneyFormatOptions(currency, fractionDigits),
+  );
 }
 
 export function formatMoney(value: number, currency: Currency): string {
   return currencyFormat(currency, 2).format(value);
+}
+
+export function formatCentsInLocale(cents: number, currency: string): string {
+  return formatCents(cents, currency, getLocale());
 }
 
 function formatMoneyCompact(value: number, currency: Currency): string {

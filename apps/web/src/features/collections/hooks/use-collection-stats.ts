@@ -1,15 +1,5 @@
-import { errataForLanguage } from "@openrift/shared/errata";
-import {
-  includes,
-  matchesCustomTags,
-  matchesFlag,
-  noneExcluded,
-  notExcluded,
-  overlaps,
-} from "@openrift/shared/filters-predicates";
 import { imageUrl } from "@openrift/shared/image-url";
 import { getPlaysetSize } from "@openrift/shared/playset";
-import { isStandardPrinting } from "@openrift/shared/standard";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
 import {
@@ -42,6 +32,7 @@ import type {
   TypeCount,
 } from "@/features/collections/lib/stat-types";
 import { comboKey, sortCombos } from "@/features/collections/lib/stat-types";
+import { statsScopePredicate } from "@/features/collections/lib/stats-scope";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatterForMarketplace } from "@/lib/format";
 import { useDisplayStore } from "@/stores/display-store";
@@ -620,52 +611,6 @@ function scopeHasFilters(scope: CompletionScopePreference): boolean {
   );
 }
 
-const NO_VALUES: string[] = [];
-
-function matchesPresence(state: "any" | "none" | undefined, has: boolean): boolean {
-  return state === undefined || (state === "any" ? has : !has);
-}
-
-export function matchesScope(
-  printing: Printing,
-  scope: CompletionScopePreference,
-  customTagSlugs: readonly string[] = [],
-): boolean {
-  const { card } = printing;
-  const markerPresence = scope.promos && (scope.promos === "only" ? "any" : "none");
-  return (
-    includes(scope.sets ?? NO_VALUES, printing.setSlug) &&
-    includes(scope.languages ?? NO_VALUES, printing.language) &&
-    includes(scope.rarities ?? NO_VALUES, printing.rarity) &&
-    includes(scope.finishes ?? NO_VALUES, printing.finish) &&
-    includes(scope.artVariants ?? NO_VALUES, printing.artVariant) &&
-    includes(scope.cardSizes ?? NO_VALUES, printing.size) &&
-    overlaps(scope.domains ?? NO_VALUES, card.domains) &&
-    overlaps(scope.types ?? NO_VALUES, card.types) &&
-    overlaps(scope.keywords ?? NO_VALUES, card.keywords) &&
-    overlaps(scope.tags ?? NO_VALUES, card.tags) &&
-    matchesCustomTags(scope.customTags ?? NO_VALUES, customTagSlugs) &&
-    notExcluded(scope.setsExclude ?? NO_VALUES, printing.setSlug) &&
-    notExcluded(scope.languagesExclude ?? NO_VALUES, printing.language) &&
-    notExcluded(scope.raritiesExclude ?? NO_VALUES, printing.rarity) &&
-    notExcluded(scope.finishesExclude ?? NO_VALUES, printing.finish) &&
-    notExcluded(scope.artVariantsExclude ?? NO_VALUES, printing.artVariant) &&
-    noneExcluded(scope.domainsExclude ?? NO_VALUES, card.domains) &&
-    noneExcluded(scope.typesExclude ?? NO_VALUES, card.types) &&
-    noneExcluded(scope.keywordsExclude ?? NO_VALUES, card.keywords) &&
-    noneExcluded(scope.tagsExclude ?? NO_VALUES, card.tags) &&
-    noneExcluded(scope.customTagsExclude ?? NO_VALUES, customTagSlugs) &&
-    matchesFlag(scope.standard ?? null, isStandardPrinting(printing)) &&
-    matchesFlag(scope.signed ?? null, printing.isSigned) &&
-    matchesFlag(scope.banned ?? null, card.bans.length > 0) &&
-    matchesFlag(scope.errata ?? null, errataForLanguage(card.errata, printing.language) !== null) &&
-    matchesPresence(markerPresence, printing.markers.length > 0) &&
-    matchesPresence(scope.keywordsPresence, card.keywords.length > 0) &&
-    matchesPresence(scope.tagsPresence, card.tags.length > 0) &&
-    matchesPresence(scope.customTagsPresence, customTagSlugs.length > 0)
-  );
-}
-
 export type CustomTagAssignments = Record<string, readonly string[]>;
 
 export function filterByScope(
@@ -676,9 +621,7 @@ export function filterByScope(
   if (!scopeHasFilters(scope)) {
     return printings;
   }
-  return printings.filter((printing) =>
-    matchesScope(printing, scope, customTagAssignments?.[printing.cardId]),
-  );
+  return printings.filter(statsScopePredicate(scope, customTagAssignments));
 }
 
 export function filterStacksByScope(
@@ -689,11 +632,8 @@ export function filterStacksByScope(
   if (!scopeHasFilters(scope)) {
     return stacks;
   }
-  return stacks.filter((stack) =>
-    stackSides(stack).some((side) =>
-      matchesScope(side, scope, customTagAssignments?.[side.cardId]),
-    ),
-  );
+  const matches = statsScopePredicate(scope, customTagAssignments);
+  return stacks.filter((stack) => stackSides(stack).some((side) => matches(side)));
 }
 
 /** Buff on both sides is one Buff per copy. */

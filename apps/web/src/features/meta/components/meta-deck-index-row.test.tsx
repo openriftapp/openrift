@@ -25,7 +25,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaDeckIndexRow } from "./meta-deck-index-row";
 
 function deck(overrides: Partial<MetaDeckSummary> = {}): MetaDeckSummary {
@@ -104,6 +103,34 @@ describe("MetaDeckIndexRow", () => {
     expect(grid.children).toHaveLength(6);
     expect(seen("Regional Qualifier Barcelona")).toBe(false);
     expect(seen("of 2,224")).toBe(false);
+  });
+
+  it("drops the to-complete cell without a collection, in both layouts", () => {
+    const { container, rerender } = render(
+      <MetaDeckIndexRow
+        deck={deck()}
+        fieldSize={2224}
+        marketplace="cardtrader"
+        withCollection={false}
+        cost={{ needed: 40, owned: undefined, value: 142, toComplete: undefined }}
+      />,
+    );
+    const grid = () => container.querySelector(String.raw`.sm\:grid`) as HTMLElement;
+    expect(grid().children).toHaveLength(7);
+    expect(grid().className).not.toContain("10.5rem");
+    expect(seen("€142")).toBe(true);
+
+    rerender(
+      <MetaDeckIndexRow
+        deck={deck()}
+        fieldSize={2224}
+        marketplace="cardtrader"
+        withCollection={false}
+        grouped
+      />,
+    );
+    expect(grid().children).toHaveLength(5);
+    expect(grid().className).not.toContain("10.5rem");
   });
 
   it("links the whole row to the list and the legend to its archive page", () => {

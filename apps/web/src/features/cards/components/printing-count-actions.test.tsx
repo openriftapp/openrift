@@ -52,7 +52,6 @@ vi.mock("@/features/collections/hooks/use-owned-count", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { PrintingCountActions } = await import("./printing-count-actions");
 
 describe("PrintingCountActions", () => {

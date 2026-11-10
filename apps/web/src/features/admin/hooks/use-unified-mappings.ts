@@ -1,6 +1,7 @@
 import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/ignored-products";
 import { adminStagingCardOverridesContract } from "@openrift/shared/contracts/admin/staging-card-overrides";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
+import type { UnifiedMappingsSummaryResponse } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -12,7 +13,6 @@ import {
   unifiedMappingsSummaryQueryOptions,
 } from "@/features/admin/lib/unified-mappings-queries";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import type { UnifiedMappingsSummaryResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";

@@ -7,7 +7,7 @@ date: 2026-06-16
 
 ## Context and Problem Statement
 
-A serious player doesn't just build a 40-card deck and a sideboard, they prepare a written plan for piloting it: the general gameplan, what to keep in the opening hand, which battlefield to take in each situation, and how to sideboard against specific opponents. Today an OpenRift deck has the raw zones for this (a `main` zone, a `sideboard` zone with max 8 cards / 3 copies, a `battlefield` zone) but no place to record _how to use them_. Players keep these notes in spreadsheets or external tools like [theMetaLab's MetaForge sideboard plans](https://www.themetalab.gg/metaforge/sideboard-plans).
+A serious player doesn't just build a 40-card deck and a sideboard, they prepare a written plan for piloting it: the general gameplan, what to keep in the opening hand, which battlefield to take in each situation, and how to sideboard against specific opponents. Today an OpenRift deck has the raw zones for this (a `main` zone, a `sideboard` zone with max 10 cards whose copies count toward each card's limit together with the main deck and Chosen Champion, a `battlefield` zone) but no place to record _how to use them_. Players keep these notes in spreadsheets or external tools like [theMetaLab's MetaForge sideboard plans](https://www.themetalab.gg/metaforge/sideboard-plans).
 
 We want to attach an optional deck plan to a deck, edited in the deck builder and rendered read-only on the public shared deck page. It must be purely additive: a deck with no plan looks and behaves exactly as it does today.
 
@@ -177,4 +177,4 @@ Notes:
 ## More Information
 
 - Reference UI: theMetaLab MetaForge sideboard plans, <https://www.themetalab.gg/metaforge/sideboard-plans>.
-- Related: ADR-014 (Tournament Decks Archive) for the "reuse the `decks` infrastructure, defer archetype taxonomy" precedent, and the `sideboard` zone constraints in `packages/shared/src/deck-rules.ts` (max 8 cards, 3 copies).
+- Related: ADR-014 (Tournament Decks Archive) for the "reuse the `decks` infrastructure, defer archetype taxonomy" precedent, and the `sideboard` zone constraints in `packages/shared/src/deck-rules.ts` (max 10 cards, copy limit shared with the main deck and Chosen Champion).

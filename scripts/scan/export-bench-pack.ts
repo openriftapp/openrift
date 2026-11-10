@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Publishes the labelled clips under media/scan-bench so the device bench on
  * /admin/scan-bench can replay them through the dev server. Frames are symlinked,

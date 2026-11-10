@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -307,7 +303,6 @@ describe("GET /api/admin/v1/cards/:cardSlug", () => {
   });
 
   it("passes the correct cardSlug parameter", async () => {
-    // oxlint-disable-next-line no-explicit-any -- partial detail fixture
     mockBuildCandidateCardDetail.mockResolvedValue({ card: null } as any);
 
     await app.request("/api/admin/v1/cards/abandon");
@@ -335,7 +330,6 @@ describe("GET /api/admin/v1/cards/new/:name", () => {
       defaultCardId: "",
       setTotals: {},
     };
-    // oxlint-disable-next-line no-explicit-any -- partial detail fixture
     mockBuildUnmatchedDetail.mockResolvedValue(detail as any);
 
     const res = await app.request("/api/admin/v1/cards/new/newcard");
@@ -346,7 +340,6 @@ describe("GET /api/admin/v1/cards/new/:name", () => {
   });
 
   it("decodes URI-encoded name parameter", async () => {
-    // oxlint-disable-next-line no-explicit-any -- partial detail fixture
     mockBuildUnmatchedDetail.mockResolvedValue({ displayName: "Card Name" } as any);
 
     await app.request("/api/admin/v1/cards/new/card%20name");
@@ -355,7 +348,6 @@ describe("GET /api/admin/v1/cards/new/:name", () => {
   });
 
   it("handles special characters in name", async () => {
-    // oxlint-disable-next-line no-explicit-any -- partial detail fixture
     mockBuildUnmatchedDetail.mockResolvedValue({ displayName: "Ki'Ryn" } as any);
 
     await app.request("/api/admin/v1/cards/new/ki%27ryn");

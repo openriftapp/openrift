@@ -5,7 +5,6 @@
  *   bun run discord:emojis -- --dry-run # render only, upload nothing
  *   bun run discord:emojis -- --force   # re-upload, replacing existing glyphs
  */
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 

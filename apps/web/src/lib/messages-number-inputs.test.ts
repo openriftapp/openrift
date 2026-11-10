@@ -1,8 +1,6 @@
 // Paraglide types every message input as `NonNullable<unknown>`, so a string
 // passed where a number local is expected compiles and renders as NaN.
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads the source tree as text
 import { readdirSync, readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads the source tree as text
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";

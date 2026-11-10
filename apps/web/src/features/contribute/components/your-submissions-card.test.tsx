@@ -20,7 +20,6 @@ vi.mock("@/features/contribute/hooks/use-card-submission-summary", () => ({
   useCardSubmissionSummary: () => summary,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { YourSubmissionsCard } from "@/features/contribute/components/your-submissions-card";
 
 function renderCard(state: {

@@ -1,16 +1,10 @@
+import { JOB_RUN_ACTIVITIES, JOB_STATUSES, JOB_TRIGGERS } from "@openrift/shared/job-run-kinds";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 
 const TAG = "Admin";
-
-/** What started a job run. Mirrors the `job_runs.trigger` CHECK. */
-export const JOB_TRIGGERS = ["cron", "admin", "api"] as const;
-/** Lifecycle of a job run. Mirrors the `job_runs.status` CHECK. */
-export const JOB_STATUSES = ["running", "succeeded", "failed"] as const;
-/** Derived filter over `job_runs.noop`, not a stored column. */
-export const JOB_RUN_ACTIVITIES = ["did-work", "noop"] as const;
 
 const triggerEnum = z.enum(JOB_TRIGGERS);
 const statusEnum = z.enum(JOB_STATUSES);

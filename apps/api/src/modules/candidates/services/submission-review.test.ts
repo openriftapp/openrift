@@ -548,11 +548,12 @@ describe("rejectSubmission", () => {
 
     await rejectSubmission(transactOn(repos), repos, io, {
       ...baseArgs,
+      reason: "unverified",
       note: "No source for this printing",
     });
 
     expect(repos.cardSubmissions.setResolutionMessage).toHaveBeenCalledWith("sub-1", {
-      reason: null,
+      reason: "unverified",
       note: "No source for this printing",
       resolvedByUserId: ADMIN_ID,
     });
@@ -568,22 +569,6 @@ describe("rejectSubmission", () => {
     expect(repos.cardSubmissions.getByExternalId).not.toHaveBeenCalled();
   });
 
-  it("passes a reason through when the caller sends one", async () => {
-    const repos = createRepos();
-
-    await rejectSubmission(transactOn(repos), repos, io, {
-      ...baseArgs,
-      reason: "duplicate",
-      note: null,
-    });
-
-    expect(repos.cardSubmissions.setResolutionMessage).toHaveBeenCalledWith("sub-1", {
-      reason: "duplicate",
-      note: null,
-      resolvedByUserId: ADMIN_ID,
-    });
-  });
-
   it("conflicts on a submission that is already settled", async () => {
     const repos = createRepos({
       cardSubmissions: {
@@ -596,6 +581,7 @@ describe("rejectSubmission", () => {
     await expect(
       rejectSubmission(transactOn(repos), repos, io, {
         ...baseArgs,
+        reason: "duplicate",
         note: null,
       }),
     ).rejects.toMatchObject({ status: 409 });
@@ -608,6 +594,7 @@ describe("rejectSubmission", () => {
       rejectSubmission(transactOn(repos), repos, io, {
         ...baseArgs,
         scope: new Set(["gallery"]),
+        reason: "duplicate",
         note: null,
       }),
     ).rejects.toBeInstanceOf(AppError);

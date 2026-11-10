@@ -136,7 +136,6 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaLegendPage } from "./meta-legend-page";
 
 const LEGEND = {

@@ -10,6 +10,6 @@ export async function requireScanner(queryClient: QueryClient): Promise<void> {
     staleTime: "static",
   })) as FeatureFlags;
   if (!featureEnabled(flags, "scanner")) {
-    throw redirect({ to: "/collections" });
+    throw redirect({ to: "/cards" });
   }
 }

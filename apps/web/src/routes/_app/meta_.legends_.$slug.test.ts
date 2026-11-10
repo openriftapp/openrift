@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
+import { headMeta, headTitle, loadedHead, runRouteLoader } from "@/test/route-head";
 
 import { Route } from "./meta_.legends_.$slug";
 
@@ -84,5 +85,36 @@ describe("/meta/legends/$slug loader", () => {
     const reads = context.queryClient.query.mock.calls.map((call) => call[0].queryKey[1]);
 
     expect(reads.indexOf("legends")).toBeLessThan(reads.indexOf("decks"));
+  });
+});
+
+const LEGEND_DETAIL = {
+  slug: SLUG,
+  legend: { cardId: CARD_ID, name: "Kennen, Heart of the Tempest", imageId: "img-kennen" },
+  counts: { wins: 2, finishes: 5, decklists: 3 },
+  best: [{ playerName: "adtoll" }],
+  finishes: [{ playerName: "adtoll" }, { playerName: "pnrenata" }],
+  total: 5,
+  page: 1,
+};
+
+describe("/meta/legends/$slug head", () => {
+  it("counts the finishes and unfurls with the legend's art", async () => {
+    const head = await loadedHead(Route, { slug: SLUG }, LEGEND_DETAIL);
+
+    expect(headTitle(head)).toBe("Kennen, Heart of the Tempest in the Meta Archive - OpenRift");
+    expect(headMeta(head, "description")).toBe(
+      "Kennen, Heart of the Tempest in the Riftbound meta archive: 5 archived finishes, the players behind them, and the decklists they registered.",
+    );
+    expect(headMeta(head, "og:image")).toBe(
+      "http://localhost:5173/media/cards/img-kennen-full.webp",
+    );
+  });
+
+  it("keeps the finish rows out of the loader data", async () => {
+    expect(await runRouteLoader(Route, { slug: SLUG }, LEGEND_DETAIL)).toEqual({
+      legend: { name: "Kennen, Heart of the Tempest", imageId: "img-kennen" },
+      counts: { finishes: 5 },
+    });
   });
 });

@@ -236,6 +236,7 @@ async function embedForCard(
   card: CatalogCard,
   printingInput?: string,
   guildId?: string | null,
+  locale?: string | null,
 ) {
   const snapshot = ctx.cache.snapshot;
   if (!snapshot) {
@@ -253,6 +254,7 @@ async function embedForCard(
     marketplaceInfo,
     siteUrl: ctx.env.siteUrl,
     tradelists,
+    locale: locale ?? undefined,
   });
   return { embed, printingId: printing?.printingId };
 }
@@ -402,6 +404,7 @@ async function handleCardCommand(ctx: BotContext, interaction: ChatInputCommandI
     card,
     interaction.options.getString("printing") ?? query,
     interaction.guildId,
+    interaction.inGuild() ? interaction.guildLocale : interaction.locale,
   );
   if (!reply) {
     await interaction.editReply("Card data is still loading, try again in a moment.");
@@ -621,7 +624,13 @@ async function handleMessage(ctx: BotContext, message: Message) {
   const replies = await Promise.all(
     matches.map(async (match) => {
       if (match.type === "card") {
-        const reply = await embedForCard(ctx, match.card, match.reference, message.guildId);
+        const reply = await embedForCard(
+          ctx,
+          match.card,
+          match.reference,
+          message.guildId,
+          message.guild?.preferredLocale,
+        );
         return reply && { ...reply, card: match.card };
       }
       const embed =

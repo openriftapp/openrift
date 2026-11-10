@@ -44,7 +44,6 @@ describe("useCardDeepLink", () => {
   it("selects only after the URL replace has committed, so the overlay entry is pushed over the clean URL", async () => {
     let commit = () => {};
     navigateMock.mockReturnValue(
-      // oxlint-disable-next-line promise/avoid-new -- the test holds the navigation open to control when it commits
       new Promise<void>((resolve) => {
         commit = resolve;
       }),
@@ -66,7 +65,6 @@ describe("useCardDeepLink", () => {
   it("selects nothing when the page unmounts before the URL replace commits", async () => {
     let commit = () => {};
     navigateMock.mockReturnValue(
-      // oxlint-disable-next-line promise/avoid-new -- the test holds the navigation open to control when it commits
       new Promise<void>((resolve) => {
         commit = resolve;
       }),

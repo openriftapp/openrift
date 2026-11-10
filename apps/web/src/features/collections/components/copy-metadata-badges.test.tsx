@@ -16,7 +16,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { CopyMetadataStrip } = await import("./copy-metadata-badges");
 
 function annotation(phase: CardTradeLivePhase): CardTradeLiveAnnotation {

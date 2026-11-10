@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockFetch, mockIo, resetImageMocks } from "../../../../test/image-mocks.js";
-import { downloadImage, isPrivateIp } from "./download.js";
+import { MAX_IMAGE_BYTES, downloadImage, isPrivateIp } from "./download.js";
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -133,6 +133,63 @@ describe("downloadImage", () => {
     await expect(downloadImage(mockIo, "https://public.example/img")).rejects.toThrow(
       "too many redirects",
     );
+  });
+
+  it("rejects a non-image content type without reading the body", async () => {
+    const pull = vi.fn();
+    mockFetch.mockResolvedValue(
+      new Response(new ReadableStream({ pull }), { headers: { "content-type": "text/html" } }),
+    );
+    await expect(downloadImage(mockIo, "https://example.com/page")).rejects.toThrow(
+      "not an image: text/html",
+    );
+    expect(pull).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts an octet-stream body", async () => {
+    mockFetch.mockResolvedValue(
+      new Response(Buffer.from("d"), {
+        headers: { "content-type": "application/octet-stream" },
+      }),
+    );
+    const { buffer } = await downloadImage(mockIo, "https://example.com/img.webp");
+    expect(buffer.toString()).toBe("d");
+  });
+
+  it("rejects a declared content-length over the image cap before reading", async () => {
+    const pull = vi.fn();
+    mockFetch.mockResolvedValue(
+      new Response(new ReadableStream({ pull }), {
+        headers: {
+          "content-type": "image/png",
+          "content-length": String(MAX_IMAGE_BYTES + 1),
+        },
+      }),
+    );
+    await expect(downloadImage(mockIo, "https://example.com/huge.png")).rejects.toThrow(
+      "larger than",
+    );
+    expect(pull).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops reading an endless body once it passes the image cap", async () => {
+    const chunk = new Uint8Array(1024 * 1024);
+    let pulls = 0;
+    mockFetch.mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          pull(controller) {
+            pulls++;
+            controller.enqueue(chunk);
+          },
+        }),
+        { headers: { "content-type": "image/png" } },
+      ),
+    );
+    await expect(downloadImage(mockIo, "https://example.com/endless.png")).rejects.toThrow(
+      "larger than",
+    );
+    expect(pulls).toBeLessThan(MAX_IMAGE_BYTES / chunk.byteLength + 5);
   });
 });
 

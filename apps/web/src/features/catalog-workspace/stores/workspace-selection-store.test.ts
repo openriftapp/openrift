@@ -15,14 +15,20 @@ afterEach(() => {
 });
 
 function entry(label: string) {
-  return { label, undo: vi.fn(() => Promise.resolve()) };
+  return {
+    label,
+    undoneLabel: `Undone: ${label}`,
+    invalidates: [],
+    undo: vi.fn(() => Promise.resolve()),
+  };
 }
 
 describe("useWorkspaceSelectionStore", () => {
-  it("starts expanded with an empty undo stack", () => {
+  it("starts expanded with an empty undo stack and no undo running", () => {
     const state = useWorkspaceSelectionStore.getState();
     expect(state.listCollapsed).toBe(false);
     expect(state.undoStack).toEqual([]);
+    expect(state.undoing).toBe(false);
   });
 
   describe("list collapse", () => {
@@ -40,25 +46,22 @@ describe("useWorkspaceSelectionStore", () => {
   });
 
   describe("undo stack", () => {
-    it("pops the most recent entry first", () => {
+    it("keeps entries newest last and never runs their undo itself", () => {
       const first = entry("Used rarity");
       const second = entry("Discarded Provider B");
       useWorkspaceSelectionStore.getState().pushUndo(first);
       useWorkspaceSelectionStore.getState().pushUndo(second);
 
-      expect(useWorkspaceSelectionStore.getState().popUndo()).toBe(second);
-      expect(useWorkspaceSelectionStore.getState().popUndo()).toBe(first);
+      expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([first, second]);
+      expect(first.undo).not.toHaveBeenCalled();
+      expect(second.undo).not.toHaveBeenCalled();
     });
 
-    it("returns null when there is nothing to undo", () => {
-      expect(useWorkspaceSelectionStore.getState().popUndo()).toBeNull();
-    });
-
-    it("does not call the undo callback when popping", () => {
-      const pushed = entry("Ignored");
-      useWorkspaceSelectionStore.getState().pushUndo(pushed);
-      useWorkspaceSelectionStore.getState().popUndo();
-      expect(pushed.undo).not.toHaveBeenCalled();
+    it("tracks whether an undo is running", () => {
+      useWorkspaceSelectionStore.getState().setUndoing(true);
+      expect(useWorkspaceSelectionStore.getState().undoing).toBe(true);
+      useWorkspaceSelectionStore.getState().setUndoing(false);
+      expect(useWorkspaceSelectionStore.getState().undoing).toBe(false);
     });
 
     it("removes one entry by identity and leaves the rest", () => {

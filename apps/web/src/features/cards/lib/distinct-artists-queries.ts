@@ -3,13 +3,12 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { DistinctArtistsResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchDistinctArtists = createServerFn({ method: "GET" })
   .middleware([withCookies])
-  .handler(({ context }): Promise<DistinctArtistsResponse> =>
+  .handler(({ context }): Promise<string[]> =>
     apiOrpcClient(adminCardQueriesContract, context.cookie).distinctArtists(),
   );
 

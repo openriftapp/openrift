@@ -1,4 +1,3 @@
-/* oxlint-disable no-restricted-imports -- api has no @/ alias */
 import { describe, expect, it, vi } from "vitest";
 
 import { relinkCandidatePrintings } from "./relink-candidates.js";

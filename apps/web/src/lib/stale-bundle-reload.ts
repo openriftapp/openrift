@@ -162,19 +162,31 @@ export function reloadIfStaleServerFnError(error: unknown): boolean {
   return true;
 }
 
-// React wraps a render-time import failure in its own error and hands it to
-// the root callbacks, which never reach initChunkErrorReloader's listeners.
-export function reloadIfChunkLoadError(error: unknown): boolean {
+function chunkLoadErrorMessage(error: unknown): string | undefined {
   let current = error;
   for (let depth = 0; depth < 5 && current !== undefined && current !== null; depth++) {
     const message = errorMessage(current);
     if (CHUNK_LOAD_ERROR_PATTERN.test(message)) {
-      reloadOnce(`chunk load error: ${message}`);
-      return true;
+      return message;
     }
     current = current instanceof Error ? current.cause : undefined;
   }
-  return false;
+  return undefined;
+}
+
+export function hasChunkLoadError(error: unknown): boolean {
+  return chunkLoadErrorMessage(error) !== undefined;
+}
+
+// React wraps a render-time import failure in its own error and hands it to
+// the root callbacks, which never reach initChunkErrorReloader's listeners.
+export function reloadIfChunkLoadError(error: unknown): boolean {
+  const message = chunkLoadErrorMessage(error);
+  if (message === undefined) {
+    return false;
+  }
+  reloadOnce(`chunk load error: ${message}`);
+  return true;
 }
 
 // `throw undefined` (or null, or empty string) escapes React error boundaries

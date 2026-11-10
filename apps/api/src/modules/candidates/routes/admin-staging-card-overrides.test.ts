@@ -1,6 +1,3 @@
-/* oxlint-disable
-   unicorn/no-useless-undefined
-   -- test file: mocks resolve with explicit undefined */
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

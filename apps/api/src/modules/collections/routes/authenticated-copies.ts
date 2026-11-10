@@ -1,4 +1,5 @@
 import { copiesContract } from "@openrift/shared/contracts/copies";
+import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import type {
   CopyAddResponse,
   CopyListMembershipsResponse,
@@ -7,15 +8,30 @@ import type {
 import { implement } from "@orpc/server";
 
 import { keysetPage } from "../../../lib/keyset-cursor.js";
-import { isCheckViolation, isForeignKeyViolation } from "../../../lib/pg-errors.js";
+import {
+  isCheckViolation,
+  isForeignKeyViolation,
+  isForeignKeyViolationOn,
+} from "../../../lib/pg-errors.js";
 import { pinWatermark, takePage } from "../../../lib/xid-watermark.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import {
+  consentedTradeCancels,
+  refusingUnconfirmedTradeCancels,
+} from "../../groups/services/trade-supply.js";
 import { clampCopiesLimit } from "../lib/copies-page-limit.js";
 import type { CopyDeltaCursor } from "../lib/copy-delta-cursor.js";
 import { buildCopyDeltaCursor, parseCopyDeltaCursor } from "../lib/copy-delta-cursor.js";
 import { toCopy } from "../lib/copy-presenters.js";
-import { addCopies, disposeCopies, moveCopies, updateCopies } from "../services/copies.js";
+import {
+  addCopies,
+  disposeCopies,
+  moveCopies,
+  previewDisposeTradeCancels,
+  previewMoveTradeCancels,
+  updateCopies,
+} from "../services/copies.js";
 
 const os = implement(copiesContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -107,6 +123,12 @@ export const copiesRouter = {
         batchId: input.batchId,
       });
     } catch (error) {
+      if (
+        isForeignKeyViolationOn(error, "copies_condition_fkey") ||
+        isForeignKeyViolationOn(error, "copies_grader_fkey")
+      ) {
+        throw errors.BAD_REQUEST({ message: "Unknown condition or grader" });
+      }
       if (isForeignKeyViolation(error)) {
         throw errors.BAD_REQUEST({ message: "One or more printings do not exist" });
       }
@@ -115,15 +137,30 @@ export const copiesRouter = {
     return { items: created };
   }),
 
-  move: os.move.handler(async ({ input, context }): Promise<void> => {
-    await moveCopies(
-      context.repos,
-      context.transact,
-      context.userId,
-      input.copyIds,
-      input.toCollectionId,
+  move: os.move.handler(async ({ input, context, errors }): Promise<void> => {
+    await refusingUnconfirmedTradeCancels(
+      moveCopies(
+        context.repos,
+        context.transact,
+        context.userId,
+        input.copyIds,
+        input.toCollectionId,
+        consentedTradeCancels(input.cancelTradeIds),
+      ),
+      (data) => errors.CONFLICT({ data }),
     );
   }),
+
+  moveTradeCancels: os.moveTradeCancels.handler(
+    ({ input, context }): Promise<TradeCancelConflictData> =>
+      previewMoveTradeCancels(
+        context.repos,
+        context.transact,
+        context.userId,
+        input.copyIds,
+        input.toCollectionId,
+      ),
+  ),
 
   update: os.update.handler(async ({ input, context, errors }): Promise<void> => {
     try {
@@ -137,9 +174,22 @@ export const copiesRouter = {
     }
   }),
 
-  dispose: os.dispose.handler(async ({ input, context }): Promise<void> => {
-    await disposeCopies(context.transact, context.userId, input.copyIds);
+  dispose: os.dispose.handler(async ({ input, context, errors }): Promise<void> => {
+    await refusingUnconfirmedTradeCancels(
+      disposeCopies(
+        context.transact,
+        context.userId,
+        input.copyIds,
+        consentedTradeCancels(input.cancelTradeIds),
+      ),
+      (data) => errors.CONFLICT({ data }),
+    );
   }),
+
+  disposeTradeCancels: os.disposeTradeCancels.handler(
+    ({ input, context }): Promise<TradeCancelConflictData> =>
+      previewDisposeTradeCancels(context.transact, context.userId, input.copyIds),
+  ),
 
   listMemberships: os.listMemberships.handler(
     async ({ input, context }): Promise<CopyListMembershipsResponse> => {

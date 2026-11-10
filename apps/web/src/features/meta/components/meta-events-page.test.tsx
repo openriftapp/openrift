@@ -104,7 +104,6 @@ vi.mock("@/features/meta/components/meta-scope-bar", async () => {
   };
 });
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventsPage } from "./meta-events-page";
 
 function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {

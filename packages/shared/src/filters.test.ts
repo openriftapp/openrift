@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { emptyFilters, getTestPrice, makePrinting, withPrice } from "./filters-test-helpers.js";
-import { filterCards } from "./filters.js";
+import { cardFiltersPredicate, filterCards } from "./filters.js";
 import { NONE } from "./types/search.js";
 
 describe("filterCards", () => {
@@ -308,6 +308,13 @@ describe("filterCards", () => {
     const result = filterCards(printings, emptyFilters({ domains: ["mind"] }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Mind Weaver");
+  });
+
+  it("keeps a card on two selected domains only when all its domains are selected", () => {
+    const filters = emptyFilters({ domains: ["fury", "mind"] });
+    const names = printings.filter(cardFiltersPredicate(filters)).map((p) => p.card.name);
+
+    expect(names).toEqual(["Fire Dragon"]);
   });
 
   it("filters by energy min", () => {

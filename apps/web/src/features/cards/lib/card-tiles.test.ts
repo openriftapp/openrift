@@ -5,6 +5,7 @@ import { resetIdCounter, stubPrinting } from "@/test/factories";
 import {
   cardsViewTileKey,
   dedupeToCardsViewTiles,
+  selectionFindBy,
   splitsCardIntoTiles,
   tileSiblings,
 } from "./card-tiles";
@@ -24,6 +25,16 @@ describe("splitsCardIntoTiles", () => {
     expect(splitsCardIntoTiles("type")).toBe(false);
     expect(splitsCardIntoTiles("domain")).toBe(false);
     expect(splitsCardIntoTiles("superType")).toBe(false);
+  });
+});
+
+describe("selectionFindBy", () => {
+  it("anchors by card only for unsplit cards view", () => {
+    expect(selectionFindBy("cards", "none")).toBe("card");
+    expect(selectionFindBy("cards", "domain")).toBe("card");
+    expect(selectionFindBy("cards", "set")).toBe("printing");
+    expect(selectionFindBy("cards", "rarity")).toBe("printing");
+    expect(selectionFindBy("printings", "none")).toBe("printing");
   });
 });
 

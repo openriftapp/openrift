@@ -21,7 +21,7 @@ import {
 } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronRightIcon,
@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
+import { toast } from "sonner";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ import { PrintingCitationsEditor } from "@/features/admin/components/printing-ci
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
+import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { SideSearch } from "@/features/admin/components/side-search";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
@@ -78,7 +80,6 @@ import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-sett
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { PrintingCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
-import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/face-record";
 import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
@@ -89,6 +90,7 @@ import {
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { SourceStrip } from "@/features/catalog-workspace/components/record/source-strip";
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
+import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import type { PrintingChip } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
 import { usePrintingRecordActions } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
@@ -105,9 +107,12 @@ import {
   buildPrintingSuggestions,
   listingSuggestionsForPrinting,
 } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { replaceSecondFace } from "@/features/catalog-workspace/lib/replace-second-face";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
 type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
@@ -165,6 +170,7 @@ function PrintingRecordBody({
   const navigation = useQueueNavigation("printing");
   const [editing, setEditing] = useState<PrintingField | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<string | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
 
   const details = [first, second].filter(
@@ -205,6 +211,7 @@ function PrintingRecordBody({
         );
   const actions = usePrintingRecordActions({
     printingId,
+    record: deskPrintingName(printing),
     model,
     listings,
     canCheck: isAdmin,
@@ -241,8 +248,9 @@ function PrintingRecordBody({
     .filter((mapping) => mapping.targetPrintingId === printingId);
 
   const primaryAndNext = async () => {
-    await actions.runPrimary();
-    navigation.goNext();
+    if (await runReportedMutation(actions.runPrimary)) {
+      navigation.goNext();
+    }
   };
 
   function chipValue(
@@ -280,7 +288,7 @@ function PrintingRecordBody({
           value={chipValue(field, suggestion)}
           hotkey={hotkeyOf(chip.key)}
           pending={actions.pending}
-          onUse={() => actions.applyChip(chip)}
+          onUse={() => void actions.applyChip(chip)}
           onDiscard={
             suggestion.isContributor || !isAdmin
               ? undefined
@@ -294,7 +302,7 @@ function PrintingRecordBody({
           )}
           onReject={
             suggestion.isContributor
-              ? () => actions.reject(suggestion.candidate.candidateCardId)
+              ? () => setRejecting(suggestion.candidate.candidateCardId)
               : undefined
           }
           onReply={
@@ -484,7 +492,11 @@ function PrintingRecordBody({
               >
                 Ignore
               </Button>
-              <Button variant="outline" size="sm" onClick={() => actions.mapListing(chip.listing)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void actions.mapListing(chip.listing)}
+              >
                 Map here
                 {hotkeyOf(chip.key) !== undefined && <Kbd>{hotkeyOf(chip.key)}</Kbd>}
               </Button>
@@ -522,6 +534,17 @@ function PrintingRecordBody({
             setReplyTo(null);
           }
         }}
+      />
+      <RejectSubmissionDialog
+        candidateCardId={rejecting}
+        submitterName={rejecting === null ? null : submitterNameOf(details, rejecting)}
+        kindLabel="Correction"
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejecting(null);
+          }
+        }}
+        onRejected={() => actions.settleCards()}
       />
     </RecordPane>
   );
@@ -590,7 +613,6 @@ function FaceSummary({
   faceCount: number;
   isAdmin: boolean;
 }) {
-  const queryClient = useQueryClient();
   const removeFace = useRemoveDeskSecondSide();
   const setFace = useSetDeskSecondSide();
   const [replacing, setReplacing] = useState(false);
@@ -598,24 +620,27 @@ function FaceSummary({
   const sideImages = images.filter((image) => image.face === face.imageFace);
   const active = sideImages.find((image) => image.isActive) ?? null;
   const waiting = sideImages.filter((image) => !image.isActive).length;
-  const settle = {
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-  };
   const canChange = printing.canEdit && faceCount > 1;
   const error = removeFace.error ?? setFace.error;
 
-  const replace = (faceId: string) =>
-    removeFace.mutate(
-      { printingId: printing.printingId, faceId: face.faceId },
-      {
-        ...settle,
-        onSuccess: () =>
-          setFace.mutate(
-            { printingId: printing.printingId, faceId },
-            { ...settle, onSuccess: () => setReplacing(false) },
-          ),
-      },
-    );
+  const replace = async (faceId: string) => {
+    const outcome = await replaceSecondFace({
+      remove: removeFace.mutateAsync,
+      set: setFace.mutateAsync,
+      printingId: printing.printingId,
+      oldFaceId: face.faceId,
+      newFaceId: faceId,
+    });
+    if (outcome === "replaced") {
+      setReplacing(false);
+    }
+    if (outcome === "lost") {
+      toast.error(
+        `Face 2 was removed and could not be put back. Add ${face.cardName} again under Add face 2.`,
+        PERSISTENT_ERROR_TOAST,
+      );
+    }
+  };
 
   return (
     <div className="flex gap-3 rounded-lg border p-3" data-face-id={face.faceId}>
@@ -673,7 +698,7 @@ function FaceSummary({
               size="sm"
               disabled={removeFace.isPending}
               onClick={() =>
-                removeFace.mutate({ printingId: printing.printingId, faceId: face.faceId }, settle)
+                removeFace.mutate({ printingId: printing.printingId, faceId: face.faceId })
               }
             >
               Remove
@@ -684,7 +709,7 @@ function FaceSummary({
           <SideSearch
             excludeFaceIds={[printing.faceId, face.faceId]}
             disabled={removeFace.isPending || setFace.isPending}
-            onPick={(side) => replace(side.faceId)}
+            onPick={(side) => void replace(side.faceId)}
           />
         )}
         {error !== null && (
@@ -698,7 +723,6 @@ function FaceSummary({
 }
 
 function AddFace({ printing }: { printing: DeskPrintingRow }) {
-  const queryClient = useQueryClient();
   const setFace = useSetDeskSecondSide();
 
   return (
@@ -710,15 +734,7 @@ function AddFace({ printing }: { printing: DeskPrintingRow }) {
       <SideSearch
         excludeFaceIds={[printing.faceId]}
         disabled={setFace.isPending}
-        onPick={(side) =>
-          setFace.mutate(
-            { printingId: printing.printingId, faceId: side.faceId },
-            {
-              onSettled: () =>
-                void queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-            },
-          )
-        }
+        onPick={(side) => setFace.mutate({ printingId: printing.printingId, faceId: side.faceId })}
       />
       {setFace.error && (
         <p className="text-destructive text-sm">

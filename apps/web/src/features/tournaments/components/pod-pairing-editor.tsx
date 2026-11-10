@@ -19,19 +19,29 @@ import type {
   PodRoundResponse,
   PodSnapshotPlayer,
 } from "@openrift/shared/types/api/pod-tournament";
-import { GripVerticalIcon, PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { EllipsisVerticalIcon, GripVerticalIcon, PlusIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   useReplaceCutPairing,
   useReplaceTournamentPairing,
 } from "@/features/tournaments/hooks/use-tournament-run";
 import {
   movePlayer,
+  moveTargets,
   participantIds,
   seedFromRound,
   toPayload,
@@ -99,6 +109,7 @@ export function PodPairingEditor({
   const seedState = teamMode ? seedUnitsFromRound(round, teams.teamByPlayer) : seedFromRound(round);
   const [state, setState] = useState<EditorState>(() => seedState);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const replace = useReplaceTournamentPairing();
   const replaceCut = useReplaceCutPairing();
   const saving = replace.isPending || replaceCut.isPending;
@@ -163,6 +174,44 @@ export function PodPairingEditor({
   }
   const byeWarnings = warnings.filter((warning) => warning.kind === "repeatBye");
 
+  function applyMove(playerId: string, target: MoveTarget) {
+    setState((current) => movePlayer(current, playerId, target));
+  }
+
+  // The move remounts the chip in its new pod, so the menu's own focus return
+  // has no trigger left to land on.
+  function handleMenuMove(playerId: string, target: MoveTarget) {
+    flushSync(() => applyMove(playerId, target));
+    focusMoveTrigger(rootRef.current, playerId);
+  }
+
+  // Named by the event's style, not seat count like pairingLabel(): a match
+  // dragged through 1 or 3 players is still a match.
+  function podTitle(index: number): string {
+    return (
+      podLabel?.(index) ??
+      (mode === "pod"
+        ? m.tournaments_pairing_editor_pod_title({ number: index + 1 })
+        : m.tournaments_pod_match_title({ number: index + 1 }))
+    );
+  }
+
+  function moveOptions(playerId: string): MoveOption[] {
+    return moveTargets(state, playerId, mode).map((target) => {
+      if (target.kind === "pod") {
+        return { key: `pod:${target.index}`, label: podTitle(target.index), target };
+      }
+      if (target.kind === "newPod") {
+        const label =
+          mode === "pod"
+            ? m.tournaments_pairing_editor_new_pod()
+            : m.tournaments_pairing_editor_new_match();
+        return { key: "new-pod", label, target };
+      }
+      return { key: "bye", label: m.tournaments_pairing_editor_byes(), target };
+    });
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const drag = asDragData<PodPlayerDragData>(event.active.data.current, POD_DRAG_TYPES);
     setDraggingId(drag?.playerId ?? null);
@@ -173,7 +222,7 @@ export function PodPairingEditor({
     const drag = asDragData<PodPlayerDragData>(event.active.data.current, POD_DRAG_TYPES);
     const drop = asDragData<PodSeatDropData>(event.over?.data.current, POD_DROP_TYPES);
     if (drag && drop) {
-      setState((current) => movePlayer(current, drag.playerId, drop.target));
+      applyMove(drag.playerId, drop.target);
     }
   }
 
@@ -231,7 +280,7 @@ export function PodPairingEditor({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col gap-4">
+      <div ref={rootRef} className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Heading as="h3">
             {m.tournaments_pairing_editor_title({ number: round.roundNumber })}
@@ -259,7 +308,7 @@ export function PodPairingEditor({
               warnings={podWarnings.get(index) ?? []}
               nameById={nameById}
               mode={mode}
-              label={podLabel?.(index)}
+              label={podTitle(index)}
             >
               {pod.playerIds.map((playerId) => (
                 <DraggablePlayer
@@ -267,6 +316,8 @@ export function PodPairingEditor({
                   playerId={playerId}
                   name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
                   score={scoreById.get(playerId) ?? 0}
+                  moveOptions={moveOptions(playerId)}
+                  onMove={(target) => handleMenuMove(playerId, target)}
                 />
               ))}
             </PodDropZone>
@@ -281,6 +332,8 @@ export function PodPairingEditor({
                     playerId={playerId}
                     name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
                     score={scoreById.get(playerId) ?? 0}
+                    moveOptions={moveOptions(playerId)}
+                    onMove={(target) => handleMenuMove(playerId, target)}
                   />
                 ))}
               </ByeDropZone>
@@ -346,6 +399,27 @@ function nthNonEmptyPodIndex(state: EditorState, nonEmptyIndex: number): number 
   return nonEmptyIndex;
 }
 
+interface MoveOption {
+  key: string;
+  label: string;
+  target: MoveTarget;
+}
+
+function focusMoveTrigger(root: HTMLElement | null, playerId: string) {
+  const triggers = root?.querySelectorAll<HTMLElement>("[data-move-player]") ?? [];
+  [...triggers].find((trigger) => trigger.dataset.movePlayer === playerId)?.focus();
+}
+
+function ChipContent({ name, score }: { name: string; score: number }) {
+  return (
+    <>
+      <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
+      <span className="font-medium">{name}</span>
+      <span className="text-muted-foreground tabular-nums">{score} pts</span>
+    </>
+  );
+}
+
 function ChipBody({ name, score, dragging }: { name: string; score: number; dragging?: boolean }) {
   return (
     <span
@@ -354,34 +428,69 @@ function ChipBody({ name, score, dragging }: { name: string; score: number; drag
         dragging && "shadow-lg",
       )}
     >
-      <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
-      <span className="font-medium">{name}</span>
-      <span className="text-muted-foreground tabular-nums">{score} pts</span>
+      <ChipContent name={name} score={score} />
     </span>
   );
 }
 
+// The menu is a sibling of the drag handle so a press on it or on its portaled
+// popup never reaches the drag listeners.
 function DraggablePlayer({
   playerId,
   name,
   score,
+  moveOptions,
+  onMove,
 }: {
   playerId: string;
   name: string;
   score: number;
+  moveOptions: MoveOption[];
+  onMove: (target: MoveTarget) => void;
 }) {
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: `player:${playerId}`,
     data: { type: "pod-player", playerId } satisfies PodPlayerDragData,
   });
   return (
     <div
       ref={setNodeRef}
-      className={cn("cursor-grab touch-none active:cursor-grabbing", isDragging && "opacity-40")}
-      {...listeners}
-      {...attributes}
+      className={cn(
+        "bg-background flex items-center rounded-md border",
+        isDragging && "opacity-40",
+      )}
     >
-      <ChipBody name={name} score={score} />
+      <div
+        className="flex min-w-0 flex-1 cursor-grab touch-none items-center gap-1.5 py-1 pl-2 active:cursor-grabbing"
+        {...listeners}
+      >
+        <ChipContent name={name} score={score} />
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          data-move-player={playerId}
+          aria-label={m.tournaments_pairing_editor_move_label({ name })}
+          render={
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground mx-0.5 pointer-coarse:size-9"
+            >
+              <EllipsisVerticalIcon />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{m.tournaments_pairing_editor_move_to()}</DropdownMenuLabel>
+            {moveOptions.map((option) => (
+              <DropdownMenuItem key={option.key} onClick={() => onMove(option.target)}>
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -402,7 +511,7 @@ function PodDropZone({
   warnings: PairingWarning[];
   nameById: Map<string, string>;
   mode: EditorMode;
-  label?: string;
+  label: string;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -416,14 +525,7 @@ function PodDropZone({
     >
       <CardHeader className="gap-1">
         <CardTitle className="flex items-center justify-between gap-2">
-          {/* Named by the event's style, not seat count like pairingLabel():
-              a match dragged through 1 or 3 players is still a match. */}
-          <span>
-            {label ??
-              (mode === "pod"
-                ? m.tournaments_pairing_editor_pod_title({ number: index + 1 })
-                : m.tournaments_pod_match_title({ number: index + 1 }))}
-          </span>
+          <span>{label}</span>
           <span className={cn("font-normal", valid ? "text-muted-foreground" : "text-destructive")}>
             {mode === "team"
               ? m.tournaments_pairing_editor_teams_count({ count })

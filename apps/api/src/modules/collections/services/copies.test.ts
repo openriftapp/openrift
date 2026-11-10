@@ -1,12 +1,13 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import { addCopies, disposeCopies, moveCopies } from "./copies.js";
+import {
+  CANCEL_WITHOUT_ASKING,
+  consentedTradeCancels,
+  TradeCancelConsentRequiredError,
+} from "../../groups/services/trade-supply.js";
+import { addCopies, disposeCopies, moveCopies, previewDisposeTradeCancels } from "./copies.js";
 
 function mockTransact(trxRepos: Repos): Transact {
   return (fn) => fn(trxRepos) as any;
@@ -108,6 +109,7 @@ function createMockRepos(overrides: {
       listReservationsForCopies: (copyIds: readonly string[]) =>
         Promise.resolve(pins.filter((pin) => copyIds.includes(pin.copyId))),
       listPendingForGiverPrinting: () => Promise.resolve([]),
+      listPendingPrintingIdsForGiver: () => Promise.resolve([]),
     },
     loans: {
       filterLoanedCopyIds: (copyIds: readonly string[]) =>
@@ -330,9 +332,9 @@ describe("moveCopies", () => {
     const repos = createMockRepos({ targetCollection: undefined });
     const transact = mockTransact(repos);
 
-    await expect(moveCopies(repos, transact, "user-1", ["copy-1"], "bad-col")).rejects.toThrow(
-      "Target collection not found",
-    );
+    await expect(
+      moveCopies(repos, transact, "user-1", ["copy-1"], "bad-col", CANCEL_WITHOUT_ASKING),
+    ).rejects.toThrow("Target collection not found");
   });
 
   it("throws NOT_FOUND if some copies are not found", async () => {
@@ -347,7 +349,14 @@ describe("moveCopies", () => {
     const transact = mockTransact(repos);
 
     await expect(
-      moveCopies(repos, transact, "user-1", ["copy-1", "copy-missing"], "col-2"),
+      moveCopies(
+        repos,
+        transact,
+        "user-1",
+        ["copy-1", "copy-missing"],
+        "col-2",
+        CANCEL_WITHOUT_ASKING,
+      ),
     ).rejects.toThrow("One or more copies not found");
   });
 
@@ -373,7 +382,14 @@ describe("moveCopies", () => {
       },
     );
 
-    await moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2");
+    await moveCopies(
+      repos,
+      mockTransact(repos),
+      "user-1",
+      ["copy-1"],
+      "col-2",
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(order.slice(0, 2)).toEqual(["lock", "read"]);
   });
@@ -393,7 +409,7 @@ describe("moveCopies", () => {
     repos.copies.lockByIds = lockByIds;
 
     await expect(
-      moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2"),
+      moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2", CANCEL_WITHOUT_ASKING),
     ).rejects.toMatchObject({ status: 404 });
     expect(lockAsMoveTarget).toHaveBeenCalledWith("col-2");
     expect(lockByIds).not.toHaveBeenCalled();
@@ -412,7 +428,7 @@ describe("moveCopies", () => {
     const transact = mockTransact(repos);
 
     await expect(
-      moveCopies(repos, transact, "user-1", ["copy-1"], "col-2"),
+      moveCopies(repos, transact, "user-1", ["copy-1"], "col-2", CANCEL_WITHOUT_ASKING),
     ).resolves.toBeUndefined();
   });
 
@@ -429,7 +445,7 @@ describe("moveCopies", () => {
     const transact = mockTransact(repos);
 
     await expect(
-      moveCopies(repos, transact, "user-1", ["copy-1"], "group-col"),
+      moveCopies(repos, transact, "user-1", ["copy-1"], "group-col", CANCEL_WITHOUT_ASKING),
     ).rejects.toMatchObject({ status: 409 });
   });
 
@@ -445,7 +461,7 @@ describe("moveCopies", () => {
     const transact = mockTransact(repos);
 
     await expect(
-      moveCopies(repos, transact, "user-1", ["copy-1"], "group-col"),
+      moveCopies(repos, transact, "user-1", ["copy-1"], "group-col", CANCEL_WITHOUT_ASKING),
     ).resolves.toBeUndefined();
   });
 
@@ -461,7 +477,14 @@ describe("moveCopies", () => {
       droppedTradeEntryCopyIds: dropped,
     });
 
-    await moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "group-col");
+    await moveCopies(
+      repos,
+      mockTransact(repos),
+      "user-1",
+      ["copy-1"],
+      "group-col",
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(dropped).toEqual(["copy-1"]);
   });
@@ -478,7 +501,14 @@ describe("moveCopies", () => {
       droppedTradeEntryCopyIds: dropped,
     });
 
-    await moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2");
+    await moveCopies(
+      repos,
+      mockTransact(repos),
+      "user-1",
+      ["copy-1"],
+      "col-2",
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(dropped).toEqual([]);
   });
@@ -494,7 +524,7 @@ describe("moveCopies", () => {
     });
     const transact = mockTransact(repos);
 
-    await moveCopies(repos, transact, "user-1", ["copy-1"], "col-2");
+    await moveCopies(repos, transact, "user-1", ["copy-1"], "col-2", CANCEL_WITHOUT_ASKING);
   });
 });
 
@@ -513,9 +543,9 @@ describe("disposeCopies", () => {
     });
     const transact = mockTransact(repos);
 
-    await expect(disposeCopies(transact, "user-1", ["copy-1", "copy-missing"])).rejects.toThrow(
-      "One or more copies not found",
-    );
+    await expect(
+      disposeCopies(transact, "user-1", ["copy-1", "copy-missing"], CANCEL_WITHOUT_ASKING),
+    ).rejects.toThrow("One or more copies not found");
   });
 
   it("completes disposal flow including event logging", async () => {
@@ -532,7 +562,7 @@ describe("disposeCopies", () => {
     });
     const transact = mockTransact(repos);
 
-    await disposeCopies(transact, "user-1", ["copy-1"]);
+    await disposeCopies(transact, "user-1", ["copy-1"], CANCEL_WITHOUT_ASKING);
   });
 
   it("disposes multiple copies at once", async () => {
@@ -555,7 +585,7 @@ describe("disposeCopies", () => {
     });
     const transact = mockTransact(repos);
 
-    await disposeCopies(transact, "user-1", ["copy-1", "copy-2"]);
+    await disposeCopies(transact, "user-1", ["copy-1", "copy-2"], CANCEL_WITHOUT_ASKING);
   });
 
   it("rejects a copy reserved by a live trade (ADR-019)", async () => {
@@ -568,7 +598,9 @@ describe("disposeCopies", () => {
     });
     const transact = mockTransact(repos);
 
-    await expect(disposeCopies(transact, "user-1", ["copy-1"])).rejects.toMatchObject({
+    await expect(
+      disposeCopies(transact, "user-1", ["copy-1"], CANCEL_WITHOUT_ASKING),
+    ).rejects.toMatchObject({
       status: 409,
       message: "This card is reserved in an active trade — cancel the trade to free it.",
     });
@@ -584,7 +616,9 @@ describe("disposeCopies", () => {
     });
     const transact = mockTransact(repos);
 
-    await expect(disposeCopies(transact, "user-1", ["copy-1"])).rejects.toMatchObject({
+    await expect(
+      disposeCopies(transact, "user-1", ["copy-1"], CANCEL_WITHOUT_ASKING),
+    ).rejects.toMatchObject({
       status: 409,
       message:
         "This card is still reserved by a completed trade. Resolve or skip that trade's sync to free it.",
@@ -620,6 +654,8 @@ describe("copy mutations sweep unfillable pending trades", () => {
           Promise.resolve([
             { id: "trade-1", groupId: "group-1", quantity: 1, initiator: "receiver" },
           ]),
+        listPendingPrintingIdsForGiver: (_userId: string, printingIds: readonly string[]) =>
+          Promise.resolve(printingIds.filter((id) => id === "p-1")),
         markAutoCancelled,
       },
       friendGroupMatches: {
@@ -632,7 +668,7 @@ describe("copy mutations sweep unfillable pending trades", () => {
   it("disposing the backing copies cancels the pending trade (ADR-019)", async () => {
     const { repos, markAutoCancelled } = sweepRepos();
 
-    await disposeCopies(mockTransact(repos), "user-1", ["copy-1"]);
+    await disposeCopies(mockTransact(repos), "user-1", ["copy-1"], CANCEL_WITHOUT_ASKING);
 
     expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
   });
@@ -640,9 +676,140 @@ describe("copy mutations sweep unfillable pending trades", () => {
   it("moving the backing copies out of view cancels the pending trade", async () => {
     const { repos, markAutoCancelled } = sweepRepos();
 
-    await moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2");
+    await moveCopies(
+      repos,
+      mockTransact(repos),
+      "user-1",
+      ["copy-1"],
+      "col-2",
+      CANCEL_WITHOUT_ASKING,
+    );
 
     expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
+  });
+
+  it("refuses a dispose that would cancel an unconfirmed trade, cancelling nothing", async () => {
+    const { repos, markAutoCancelled } = sweepRepos();
+    Object.assign(repos.cardTrades, {
+      listCancelSummaries: (ids: readonly string[]) =>
+        Promise.resolve(ids.map((id) => ({ id, cardId: "c-1", printingId: "p-1", quantity: 1 }))),
+    });
+
+    const refusal = disposeCopies(
+      mockTransact(repos),
+      "user-1",
+      ["copy-1"],
+      consentedTradeCancels(),
+    );
+
+    await expect(refusal).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    await expect(refusal).rejects.toMatchObject({ data: { trades: [{ id: "trade-1" }] } });
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("keeps a confirmed trade that a chunk leaves coverable and cancels it at the chunk that does not", async () => {
+    const { repos, markAutoCancelled } = sweepRepos();
+    const remaining = new Set(["copy-1", "copy-2"]);
+    Object.assign(repos.copies, {
+      listWithCollectionContext: (ids: readonly string[]) =>
+        Promise.resolve(
+          ids.map((id) => ({
+            id,
+            printingId: "p-1",
+            collectionId: "col-1",
+            collectionName: "Main",
+          })),
+        ),
+      deleteBatchById: (ids: readonly string[]) => {
+        for (const id of ids) {
+          remaining.delete(id);
+        }
+        return Promise.resolve();
+      },
+    });
+    Object.assign(repos.friendGroupMatches, {
+      giverPrintingSupply: () =>
+        Promise.resolve({ unreservedCopyIds: [...remaining], hasAny: remaining.size > 0 }),
+    });
+    const consent = consentedTradeCancels(["trade-1"]);
+
+    await disposeCopies(mockTransact(repos), "user-1", ["copy-1"], consent);
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+
+    await disposeCopies(mockTransact(repos), "user-1", ["copy-2"], consent);
+    expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
+  });
+
+  it("previews the trades a chunked dispose would cancel, chunk by chunk, in one rolled-back run", async () => {
+    const { repos, markAutoCancelled } = sweepRepos();
+    const summaries = vi.fn((ids: readonly string[]) =>
+      Promise.resolve(ids.map((id) => ({ id, cardId: "c-1", printingId: "p-1", quantity: 1 }))),
+    );
+    const deleteBatchById = vi.fn(() => Promise.resolve());
+    Object.assign(repos.cardTrades, { listCancelSummaries: summaries });
+    Object.assign(repos.copies, {
+      listWithCollectionContext: (ids: readonly string[]) =>
+        Promise.resolve(
+          ids.map((id) => ({
+            id,
+            printingId: "p-1",
+            collectionId: "col-1",
+            collectionName: "Main",
+          })),
+        ),
+      deleteBatchById,
+    });
+    const copyIds = Array.from({ length: 501 }, (_, index) => `copy-${index}`);
+    let rolledBack = false;
+    const transact: Transact = async (fn) => {
+      try {
+        return await fn(repos);
+      } catch (error) {
+        rolledBack = true;
+        throw error;
+      }
+    };
+
+    const preview = await previewDisposeTradeCancels(transact, "user-1", copyIds);
+
+    expect(preview.trades.map((trade) => trade.id)).toEqual(["trade-1"]);
+    expect(deleteBatchById).toHaveBeenCalledTimes(2);
+    expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
+    expect(rolledBack).toBe(true);
+  });
+
+  it("reads pending trades once for the batch and sweeps only printings that have any", async () => {
+    const { repos } = sweepRepos();
+    const listPendingPrintingIdsForGiver = vi.fn((_userId: string, ids: readonly string[]) =>
+      Promise.resolve([...new Set(ids)].filter((id) => id === "p-2")),
+    );
+    const listPendingForGiverPrinting = vi.fn(() => Promise.resolve([]));
+    Object.assign(repos.cardTrades, {
+      listPendingPrintingIdsForGiver,
+      listPendingForGiverPrinting,
+    });
+    Object.assign(repos.copies, {
+      listWithCollectionContext: () =>
+        Promise.resolve(
+          ["p-1", "p-2", "p-3", "p-2"].map((printingId, index) => ({
+            id: `copy-${index}`,
+            printingId,
+            collectionId: "col-1",
+            collectionName: "Main",
+          })),
+        ),
+    });
+
+    await disposeCopies(
+      mockTransact(repos),
+      "user-1",
+      ["copy-0", "copy-1", "copy-2", "copy-3"],
+      CANCEL_WITHOUT_ASKING,
+    );
+
+    expect(listPendingPrintingIdsForGiver).toHaveBeenCalledTimes(1);
+    expect(listPendingForGiverPrinting).toHaveBeenCalledTimes(1);
+    expect(listPendingForGiverPrinting).toHaveBeenCalledWith("user-1", "p-2");
   });
 });
 
@@ -692,6 +859,13 @@ describe("moveCopies — additional branches", () => {
     });
     const transact = mockTransact(repos);
 
-    await moveCopies(repos, transact, "user-1", ["copy-1", "copy-2"], "col-2");
+    await moveCopies(
+      repos,
+      transact,
+      "user-1",
+      ["copy-1", "copy-2"],
+      "col-2",
+      CANCEL_WITHOUT_ASKING,
+    );
   });
 });

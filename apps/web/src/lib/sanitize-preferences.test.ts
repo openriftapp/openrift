@@ -64,6 +64,11 @@ describe("sanitize-preferences — topLevelFilters", () => {
       const result = sanitizeServerResponse({ hiddenFilterSections: ["superTypes"] });
       expect("topLevelFilters" in result).toBe(false);
     });
+
+    it("ignores the retired completionScope key an older API still returns", () => {
+      const result = sanitizeServerResponse({ completionScope: { promos: "only" } });
+      expect(result).toEqual({});
+    });
   });
 
   describe("sanitizeOverrides (localStorage)", () => {
@@ -82,6 +87,14 @@ describe("sanitize-preferences — topLevelFilters", () => {
         overrides: { hiddenFilterSections: ["energy"] },
       });
       expect(overrides.topLevelFilters).toBeNull();
+    });
+
+    it("drops the retired completionScope from older persisted overrides", () => {
+      const { overrides } = sanitizeOverrides({
+        overrides: { completionScope: { promos: "only" }, showImages: false },
+      });
+      expect("completionScope" in overrides).toBe(false);
+      expect(overrides.showImages).toBe(false);
     });
   });
 });
@@ -123,11 +136,6 @@ describe("sanitize-preferences — languages", () => {
     it("collapses ZH and SC to one entry rather than emitting a duplicate", () => {
       const { overrides } = sanitizeOverrides({ overrides: { languages: ["SC", "ZH"] } });
       expect(overrides.languages).toEqual(["SC"]);
-    });
-
-    it("remaps inside completionScope, which carries its own language list", () => {
-      const result = sanitizeServerResponse({ completionScope: { languages: ["ZH"] } });
-      expect(result.completionScope?.languages).toEqual(["SC"]);
     });
 
     it("leaves live codes untouched", () => {

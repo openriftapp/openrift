@@ -1,6 +1,3 @@
-/* oxlint-disable
-   promise/avoid-new
-   -- need a never-resolving promise to test timeout */
 import { Kysely } from "kysely";
 import type { Dialect } from "kysely";
 import { describe, expect, it, vi } from "vitest";

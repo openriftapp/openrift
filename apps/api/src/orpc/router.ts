@@ -5,6 +5,7 @@
 // AppError -> ORPCError at this one boundary.
 import type { Logger } from "@openrift/shared/logger";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
+import { StandardOpenAPIMatcher } from "@orpc/openapi/standard";
 
 import { adminCardSubmissionsRouter } from "../modules/candidates/routes/admin-card-submissions.js";
 import { adminCatalogReviewRouter } from "../modules/candidates/routes/admin-catalog-review.js";
@@ -257,6 +258,8 @@ const apiRouter = {
   publicUserShareRouter,
 };
 
+export const apiRouters: Readonly<Record<string, unknown>> = apiRouter;
+
 /** Bound to `log`: oRPC encodes handler throws into a Response, so Hono's
  * `onError` never sees them and the reporting interceptor is the only path to Sentry. */
 export function createApiHandler(log: Logger) {
@@ -264,4 +267,13 @@ export function createApiHandler(log: Logger) {
     interceptors: [makeReportingErrorInterceptor(log)],
     clientInterceptors: [cacheControlInterceptor],
   });
+}
+
+export function createApiRouteResolver() {
+  const matcher = new StandardOpenAPIMatcher();
+  matcher.init(apiRouter);
+  return async (method: string, pathname: string): Promise<string | undefined> => {
+    const match = await matcher.match(method, `/${pathname.replaceAll(/^\/|\/$/gu, "")}`);
+    return match?.procedure["~orpc"].route.path;
+  };
 }

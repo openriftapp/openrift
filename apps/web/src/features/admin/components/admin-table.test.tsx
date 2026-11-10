@@ -482,7 +482,6 @@ describe("AdminTable reorder", () => {
   it("keeps showing the new order and locks further moves while the save is in flight", async () => {
     const user = userEvent.setup();
     let settle = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- a promise the test resolves by hand to hold the save open
     const pending = new Promise<void>((resolve) => {
       settle = resolve;
     });
@@ -509,7 +508,6 @@ describe("AdminTable reorder", () => {
   it("drops the pending order once the data prop lands in the order that was requested", async () => {
     const user = userEvent.setup();
     let settle = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- a promise the test resolves by hand to hold the save open
     const pending = new Promise<void>((resolve) => {
       settle = resolve;
     });
@@ -543,7 +541,6 @@ describe("AdminTable reorder", () => {
   it("drops the pending order when data changes to an order other than the one requested", async () => {
     const user = userEvent.setup();
     let settle = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- a promise the test resolves by hand to hold the save open
     const pending = new Promise<void>((resolve) => {
       settle = resolve;
     });

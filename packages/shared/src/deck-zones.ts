@@ -1,4 +1,9 @@
-import { formatHasSideboard, requiredLegendOptions } from "./deck-rules.js";
+import {
+  battlefieldCapFor,
+  formatHasSideboard,
+  RUNE_TARGET,
+  requiredLegendOptions,
+} from "./deck-rules.js";
 import type { DeckFormat, DeckZone } from "./types/enums.js";
 import { WellKnown } from "./well-known.js";
 
@@ -25,8 +30,8 @@ export function zoneLabel(zone: string): string {
 export const ZONE_EXPECTED: Partial<Record<DeckZone, number>> = {
   legend: 1,
   champion: 1,
-  runes: 12,
-  battlefield: 3,
+  runes: RUNE_TARGET,
+  battlefield: battlefieldCapFor(WellKnown.deckFormat.CONSTRUCTED),
   main: 39,
 };
 
@@ -42,8 +47,8 @@ export function zoneExpected(
   format: DeckFormat,
   cards?: readonly ZoneCard[],
 ): number | undefined {
-  if (zone === WellKnown.deckZone.BATTLEFIELD && format === WellKnown.deckFormat.CUSTOM_REGION) {
-    return 1;
+  if (zone === WellKnown.deckZone.BATTLEFIELD) {
+    return battlefieldCapFor(format);
   }
   if (zone === WellKnown.deckZone.LEGEND_OPTIONS) {
     const required = cards ? requiredLegendOptions(cards) : 0;

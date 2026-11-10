@@ -11,10 +11,8 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useApplyTagFilter } from "./use-apply-tag-filter";
 
 let mockSearch: Record<string, unknown> = {};

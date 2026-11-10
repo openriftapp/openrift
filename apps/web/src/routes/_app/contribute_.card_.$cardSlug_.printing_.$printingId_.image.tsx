@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
@@ -11,7 +11,12 @@ export const Route = createFileRoute(
   "/_app/contribute_/card_/$cardSlug_/printing_/$printingId_/image",
 )({
   validateSearch: z.object({
-    side: z.preprocess((value) => (Number(value) === 2 ? 2 : undefined), z.literal(2).optional()),
+    side: z.optional(
+      z.pipe(
+        z.transform((value) => (Number(value) === 2 ? 2 : undefined)),
+        z.optional(z.literal(2)),
+      ),
+    ),
   }),
   beforeLoad: async ({ location, context }) => {
     await requireSession({ context, location });

@@ -74,10 +74,10 @@ export function jobRunsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async getRunning(kind: string): Promise<{ id: string } | null> {
+    async getRunning(kind: string): Promise<{ id: string; startedAt: Date } | null> {
       const row = await db
         .selectFrom("jobRuns")
-        .select("id")
+        .select(["id", "startedAt"])
         .where("kind", "=", kind)
         .where("status", "=", "running")
         .orderBy("startedAt", "desc")
@@ -344,6 +344,23 @@ export function jobRunsRepo(db: Kysely<Database>) {
         .where("status", "=", "running")
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
+    },
+
+    /** Fails the run only while it is still `running` and started before `startedBefore`. */
+    async failStale(id: string, startedBefore: Date, errorMessage: string): Promise<boolean> {
+      const result = await db
+        .updateTable("jobRuns")
+        .set({
+          status: "failed",
+          finishedAt: sql<Date>`now()`,
+          durationMs: sql<number>`(extract(epoch from (now() - started_at)) * 1000)::int`,
+          errorMessage,
+        })
+        .where("id", "=", id)
+        .where("status", "=", "running")
+        .where("startedAt", "<", startedBefore)
+        .executeTakeFirst();
+      return result.numUpdatedRows > 0n;
     },
 
     async purgeOlderThan(cutoff: Date): Promise<number> {

@@ -1,4 +1,4 @@
-import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import type { MetaLegendFinish, MetaScopeQuery } from "@openrift/shared/types/api/meta";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { Link, getRouteApi } from "@tanstack/react-router";

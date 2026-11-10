@@ -1,4 +1,5 @@
-import { MAX_FACET_VALUES, metaEventFilterQuerySchema } from "@openrift/shared/contracts/meta";
+import { metaEventFilterQuerySchema } from "@openrift/shared/contracts/meta";
+import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import { eventIndexHoldings, metaEventsSearchSchema } from "./meta-events-search";

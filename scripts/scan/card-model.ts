@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Runs the card detector (ONNX file from SCAN_DETECTOR)
  * under onnxruntime-node, as the session's `detectCard` hook.

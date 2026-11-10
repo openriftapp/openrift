@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem path join
 import { extname, join } from "node:path";
 
 import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";

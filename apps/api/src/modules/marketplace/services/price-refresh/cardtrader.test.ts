@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import type { Logger } from "@openrift/shared/logger";
 import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -836,17 +832,30 @@ describe("refreshCardtraderPrices", () => {
   });
 
   describe("ctFetch edge cases", () => {
-    it("throws on HTTP error response", async () => {
+    it("throws when the error response persists through the retries", async () => {
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
 
-      fetchSpy.mockResolvedValueOnce(
-        new Response("Server Error", { status: 500, statusText: "Internal Server Error" }),
+      fetchSpy.mockImplementation(
+        async () =>
+          new Response("Server Error", { status: 500, statusText: "Internal Server Error" }),
       );
 
       await expect(
         refreshCardtraderPrices(globalThis.fetch, repos, log, "test-token"),
       ).rejects.toThrow("HTTP 500");
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it("recovers from a single 5xx with a retry", async () => {
+      const { repos } = createMockRepos();
+      const { log } = makeMockLogger();
+
+      fetchSpy.mockResolvedValueOnce(new Response("Bad Gateway", { status: 502 }));
+
+      await expect(
+        refreshCardtraderPrices(globalThis.fetch, repos, log, "test-token"),
+      ).resolves.toBeDefined();
     });
 
     it("unwraps {array: [...]} response format", async () => {

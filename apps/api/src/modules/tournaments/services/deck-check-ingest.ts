@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side id minting, never reaches the browser
 import { randomUUID } from "node:crypto";
 
 import type { createDeckCheckEntrySchema } from "@openrift/shared/contracts/deck-check";
@@ -21,11 +20,11 @@ import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { sha256Hex } from "../../../lib/hash.js";
 import { generateShareToken } from "../../../lib/share-token.js";
+import { storedCardLines } from "../lib/deck-check-deadline.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckHost } from "../repositories/deck-check-shared.js";
 import { cardResolutionKey, resolveDeckCheckCards } from "./deck-check-card-resolution.js";
-import { storedCardLines } from "./deck-check-states.js";
 
 export type DeckCheckIngestPayload = z.infer<typeof deckCheckIngestSchema>;
 

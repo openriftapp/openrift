@@ -268,6 +268,7 @@ describe("useWorkspaceRecords", () => {
     expect(result.current.kind).toBe("card");
     expect(result.current.entries.map((entry) => entry.key)).toEqual(["card:ahri-alluring"]);
     expect(result.current.total).toBe(2);
+    expect(result.current.loadedRows).toHaveLength(2);
   });
 
   it("uses the desk list for desk holders", async () => {
@@ -298,6 +299,7 @@ describe("useWorkspaceRecords", () => {
     await waitFor(() =>
       expect(result.current.entries.map((entry) => entry.key)).toEqual(["card:yasuo-unforgiven"]),
     );
+    expect(result.current.loadedRows).toHaveLength(2);
   });
 });
 

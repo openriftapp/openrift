@@ -112,6 +112,30 @@ describe("set", () => {
     expect(view.available).toBe(true);
   });
 
+  it("logs a failed cron tick and keeps the timer armed", async () => {
+    vi.useFakeTimers();
+    try {
+      const jobLog = createLogger("job");
+      const errorSpy = vi.spyOn(jobLog, "error").mockImplementation(() => undefined);
+      const failure = new Error("job_runs unavailable");
+      scheduler = build([
+        definition({ log: jobLog, skipCronTick: vi.fn().mockRejectedValue(failure) }),
+      ]);
+      await scheduler.set("tcgplayer.refresh", "* * * * * *");
+
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        { err: failure, kind: "tcgplayer.refresh" },
+        "Cron tick failed",
+      );
+      expect(scheduler.isEnabled("tcgplayer.refresh")).toBe(true);
+    } finally {
+      scheduler?.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it("replaces the timer of a job that was already scheduled", async () => {
     scheduler = build([definition()]);
     await scheduler.set("tcgplayer.refresh", NEVER);
@@ -191,7 +215,7 @@ describe("runNow", () => {
   });
 
   it("reports the in-flight run instead of starting a second one", async () => {
-    jobRuns.getRunning.mockResolvedValue({ id: "run-0" });
+    jobRuns.getRunning.mockResolvedValue({ id: "run-0", startedAt: new Date() });
     scheduler = build([definition()]);
     await expect(scheduler.runNow("tcgplayer.refresh")).resolves.toEqual({
       runId: "run-0",

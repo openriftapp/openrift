@@ -15,9 +15,7 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test stubs don't match full types
   c.set("user", { id: USER_ID } as any);
-  // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   c.set("repos", { collectionEvents: mockCollectionEventsRepo } as any);
   await next();
 });

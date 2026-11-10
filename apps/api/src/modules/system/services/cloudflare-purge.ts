@@ -1,4 +1,5 @@
 import type { Io } from "../../../io.js";
+import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
 import type { Config } from "../../../types.js";
 
 type CloudflareConfig = NonNullable<Config["cloudflare"]>;
@@ -19,6 +20,7 @@ export function requestCloudflarePurge(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     },
   );
 }

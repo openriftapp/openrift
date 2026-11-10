@@ -12,7 +12,7 @@ import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-in
 import { authClient } from "@/features/account/lib/auth-client";
 import { routeTemplate, trackSignupComplete } from "@/lib/analytics";
 import { otpErrorMessage } from "@/lib/auth-errors";
-import { sessionQueryOptions } from "@/lib/auth-session";
+import { refreshViewer } from "@/lib/viewer-change";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/verify-email");
@@ -47,9 +47,7 @@ export function VerifyEmailPage() {
       "email",
       routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
     );
-    // better-auth set the cookie, but the ["session"] query cache still holds
-    // null from before verification.
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    await refreshViewer(queryClient);
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
   }
 

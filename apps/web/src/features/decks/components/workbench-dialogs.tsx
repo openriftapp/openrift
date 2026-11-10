@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { battlefieldCapFor } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
@@ -200,7 +201,7 @@ function BattlefieldReplaceDialog({
 
   const catalogCard = cardsById[target.cardId];
   const battlefields = cards.filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD);
-  const cap = data.deck.format === WellKnown.deckFormat.CUSTOM_REGION ? 1 : 3;
+  const cap = battlefieldCapFor(data.deck.format);
   const close = () => setReplaceTarget(null);
   if (!catalogCard) {
     return null;

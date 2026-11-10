@@ -47,7 +47,6 @@ describe("useAdminReorder", () => {
 
   it("keeps showing the dropped order while the data prop still holds the old one", () => {
     let settle = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- a promise the test resolves by hand to hold the save open
     const pending = new Promise<void>((resolve) => {
       settle = resolve;
     });
@@ -63,7 +62,6 @@ describe("useAdminReorder", () => {
   });
 
   it("drops the pending order once the data prop lands in the order that was requested", () => {
-    // oxlint-disable-next-line promise/avoid-new -- a promise the test never resolves to hold the save open
     const pending = new Promise<void>(() => {});
     const { result, rerender } = renderReorder({ moves: makeMoves(), onReorder: () => pending });
 
@@ -77,7 +75,6 @@ describe("useAdminReorder", () => {
   });
 
   it("drops the pending order when the data prop lands in a different order", () => {
-    // oxlint-disable-next-line promise/avoid-new -- a promise the test never resolves to hold the save open
     const pending = new Promise<void>(() => {});
     const { result, rerender } = renderReorder({ moves: makeMoves(), onReorder: () => pending });
 

@@ -31,7 +31,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { SearchBar } from "./search-bar";
 
 function setup({

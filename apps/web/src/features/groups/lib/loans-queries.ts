@@ -14,5 +14,6 @@ export function loansQueryOptions(userId: string | null) {
   return queryOptions({
     queryKey: loansKeys.all(userId ?? ""),
     queryFn: userId === null ? skipToken : () => fetchLoans(),
+    staleTime: 0,
   });
 }

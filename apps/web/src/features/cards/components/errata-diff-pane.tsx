@@ -24,7 +24,6 @@ function DiffText({ segments }: { segments: ErrataMarkedSegment[] }) {
       {segments.map((segment, index) => {
         if (segment.status === "gap") {
           return (
-            // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
             <span key={index} className="mx-px inline-flex h-[1em] items-end align-[-0.15em]">
               <ErrataGapGlyph />
               <span className="sr-only">{m.card_detail_errata_removed_here()}</span>
@@ -34,7 +33,6 @@ function DiffText({ segments }: { segments: ErrataMarkedSegment[] }) {
         const content = <CardTextTokens tokens={segment.tokens} />;
         const italic = segment.italic && "italic";
         if (segment.status === "same" || isBlankSegment(segment)) {
-          // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
           return (
             <span key={index} className={cn(italic)}>
               {content}
@@ -43,7 +41,6 @@ function DiffText({ segments }: { segments: ErrataMarkedSegment[] }) {
         }
         if (segment.status === "added") {
           return (
-            // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
             <ins
               key={index}
               className={cn(
@@ -56,7 +53,6 @@ function DiffText({ segments }: { segments: ErrataMarkedSegment[] }) {
           );
         }
         return (
-          // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
           <del
             key={index}
             className={cn(

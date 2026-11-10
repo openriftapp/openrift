@@ -68,7 +68,7 @@ export function createRepos(db: Kysely<Database>): Repos {
     priceLookup: createRulePriceLookup(db),
   };
 
-  return instrumentModules([
+  const repos: Repos = instrumentModules([
     createCandidatesRepos(db),
     createCatalogRepos(db, catalogSources),
     createCollectionsRepos(db),
@@ -76,13 +76,14 @@ export function createRepos(db: Kysely<Database>): Repos {
     createGroupsRepos(db, ruleProviders),
     createListsRepos(db, ruleProviders),
     createMarketplaceRepos(db),
-    createMetaRepos(db),
+    createMetaRepos(db, (trx) => (trx === db ? repos : createRepos(trx))),
     createScanRepos(db),
     createStageRepos(db),
     createSystemRepos(db),
     createTournamentsRepos(db),
     createUsersRepos(db),
   ]);
+  return repos;
 }
 
 export type Transact = <T>(fn: (repos: Repos) => Promise<T>) => Promise<T>;

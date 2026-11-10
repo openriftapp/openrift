@@ -19,11 +19,16 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 // Shared by the rows and the sort header above them; keep both in sync.
-export const DECK_INDEX_GRID =
-  "grid grid-cols-[4.5rem_2.75rem_11rem_10rem_minmax(0,1fr)_2.75rem_4rem_10.5rem] items-center gap-x-3.5";
-
-export const DECK_INDEX_GROUPED_GRID =
-  "grid grid-cols-[4.5rem_2.75rem_minmax(0,1fr)_minmax(0,1fr)_4rem_10.5rem] items-center gap-x-3.5";
+export function deckIndexGrid(grouped: boolean, withCollection: boolean): string {
+  if (grouped) {
+    return withCollection
+      ? "grid grid-cols-[4.5rem_2.75rem_minmax(0,1fr)_minmax(0,1fr)_4rem_10.5rem] items-center gap-x-3.5"
+      : "grid grid-cols-[4.5rem_2.75rem_minmax(0,2fr)_minmax(0,3fr)_4rem] items-center gap-x-3.5";
+  }
+  return withCollection
+    ? "grid grid-cols-[4.5rem_2.75rem_11rem_10rem_minmax(0,1fr)_2.75rem_4rem_10.5rem] items-center gap-x-3.5"
+    : "grid grid-cols-[4.5rem_2.75rem_11rem_minmax(0,2fr)_minmax(0,1fr)_2.75rem_4rem] items-center gap-x-3.5";
+}
 
 function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number | null }) {
   return (
@@ -120,12 +125,14 @@ export function MetaDeckIndexRow({
   fieldSize,
   marketplace,
   grouped = false,
+  withCollection = true,
 }: {
   deck: MetaDeckSummary;
   cost?: MetaDeckCost;
   fieldSize: number | null;
   marketplace: Marketplace;
   grouped?: boolean;
+  withCollection?: boolean;
 }) {
   const record = formatRecord(deck.wins, deck.losses, deck.draws);
   const value = cost?.value;
@@ -140,7 +147,7 @@ export function MetaDeckIndexRow({
         className="outline-none after:absolute after:inset-0"
       />
 
-      <div className={cn(grouped ? DECK_INDEX_GROUPED_GRID : DECK_INDEX_GRID, "hidden sm:grid")}>
+      <div className={cn(deckIndexGrid(grouped, withCollection), "hidden sm:grid")}>
         <Finish deck={deck} fieldSize={grouped ? null : fieldSize} />
         <Art deck={deck} />
         <div className="min-w-0">
@@ -177,9 +184,11 @@ export function MetaDeckIndexRow({
           </>
         )}
         <span className="text-right text-sm tabular-nums">{priced}</span>
-        <div className="min-w-0">
-          <Owned cost={cost} marketplace={marketplace} />
-        </div>
+        {withCollection && (
+          <div className="min-w-0">
+            <Owned cost={cost} marketplace={marketplace} />
+          </div>
+        )}
       </div>
 
       <div className="flex items-start gap-2.5 sm:hidden">

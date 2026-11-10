@@ -44,9 +44,26 @@ vi.mock("@/features/account/lib/auth-client", () => ({
 }));
 
 vi.mock("@/features/account/components/auth-form-shell", () => ({
-  AuthFormCard: ({ children }: { children: ReactNode }) => {
+  AuthFormCard: ({
+    title,
+    subtitle,
+    aside,
+    children,
+  }: {
+    title: string;
+    subtitle?: ReactNode;
+    aside?: ReactNode;
+    children: ReactNode;
+  }) => {
     shellRenders.card += 1;
-    return <div>{children}</div>;
+    return (
+      <div>
+        <h1>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
+        {aside && <aside>{aside}</aside>}
+        {children}
+      </div>
+    );
   },
   SocialAuthButtons: () => {
     shellRenders.social += 1;
@@ -88,6 +105,31 @@ describe("LoginForm", () => {
     navigate.mockReset();
     sendVerificationOtp.mockReset();
     signInEmail.mockReset();
+  });
+
+  it("welcomes back a visitor who came without a destination", () => {
+    renderLoginForm();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Welcome back");
+    expect(screen.getByText("Sign in to your OpenRift account")).toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("names the destination and shows what it offers", () => {
+    renderLoginForm({ redirectTo: "/collections?view=grid" });
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Sign in to open your collection",
+    );
+    expect(screen.queryByText("Sign in to your OpenRift account")).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary")).toHaveTextContent("Collection");
+  });
+
+  it("keeps the default title for a page that does not need an account", () => {
+    renderLoginForm({ redirectTo: "/meta/decks" });
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Welcome back");
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 
   it("does not re-render the surrounding card while typing an email", async () => {

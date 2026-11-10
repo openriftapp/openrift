@@ -96,7 +96,6 @@ describe("POST /meta/submissions/{id}/apply-correction", () => {
     expect(await readJson(res)).toEqual({ metaEventId: EVENT_ID, created: false });
     expect(mockServices.applyMetaEventCorrection).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       SUBMISSION_ID,
       { fields: ["playerCount"], reviewedByUserId: USER_ID },
     );
@@ -112,12 +111,22 @@ describe("POST /meta/submissions/{id}/apply-correction", () => {
     );
   });
 
+  it("answers without waiting for the thank-you email to go out", async () => {
+    mockServices.notifySubmitterOfMetaAcceptance.mockReturnValueOnce(
+      Promise.withResolvers<void>().promise,
+    );
+
+    const res = await post(`/${SUBMISSION_ID}/apply-correction`, { fields: ["playerCount"] });
+
+    expect(res.status).toBe(200);
+    expect(mockServices.notifySubmitterOfMetaAcceptance).toHaveBeenCalledTimes(1);
+  });
+
   it("applies every proposed field when none are named", async () => {
     const res = await post(`/${SUBMISSION_ID}/apply-correction`, {});
 
     expect(res.status).toBe(200);
     expect(mockServices.applyMetaEventCorrection).toHaveBeenCalledWith(
-      expect.anything(),
       expect.anything(),
       SUBMISSION_ID,
       { fields: null, reviewedByUserId: USER_ID },

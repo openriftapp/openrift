@@ -123,3 +123,97 @@ describe("PUT /tournaments/{tournamentId}/deck-check/entries/{entryId}/state", (
     expect(txDeckCheck.updateEntry).not.toHaveBeenCalled();
   });
 });
+
+describe("deadline auto-submit", () => {
+  const CARD_ID = "d0000000-0001-4000-a000-000000000001";
+  const closeAt = new Date("2020-06-01T12:00:00Z");
+  const closedEvent = {
+    ...event,
+    listLockMode: "at_deadline" as const,
+    submissionsCloseAt: closeAt,
+  };
+  const editable = { ...entry("submitted"), state: "editable", submittedAt: null };
+
+  function makeDeadlineApp() {
+    const deckCheck = {
+      getEventById: vi.fn(() => Promise.resolve(closedEvent)),
+      getEntry: vi.fn((): Promise<unknown> => Promise.resolve(editable)),
+      listEntriesForEvent: vi.fn(() =>
+        Promise.resolve([
+          {
+            ...editable,
+            checkedByName: null,
+            approvedByName: null,
+            claimedUserName: null,
+            participantStatus: null,
+            copyCount: 40,
+            verifiedCopyCount: 0,
+            unmatchedLineCount: 0,
+          },
+        ]),
+      ),
+      listCardsForEntries: vi.fn(() => Promise.resolve(new Map())),
+      listEditableBaselines: vi.fn(() =>
+        Promise.resolve([{ id: ENTRY_ID, preEditLines: null, updatedAt: now }]),
+      ),
+      settleEditableEntries: vi.fn(() => Promise.resolve([ENTRY_ID])),
+      setCardCopyFound: vi.fn(() => Promise.resolve(true)),
+      updateEntry: vi.fn(),
+    };
+    const repos = {
+      deckCheck,
+      tournaments: { isHostOrStaff: vi.fn(() => Promise.resolve(true)) },
+    };
+    const app = new Hono<{ Variables: Variables }>();
+    app.use("*", async (c, next) => {
+      c.set("user", { id: USER_ID } as never);
+      c.set("repos", repos as never);
+      c.set("transact", (async (fn: (r: typeof repos) => unknown) => fn(repos)) as never);
+      await next();
+    });
+    registerRouterForTest(app, tournamentDeckCheckRouter);
+    return { app, deckCheck };
+  }
+
+  it("lists an entry left editable past the deadline as submitted without writing", async () => {
+    const { app, deckCheck } = makeDeadlineApp();
+
+    const res = await app.request(`/api/v1/tournaments/${TOURNAMENT_ID}/deck-check/entries`);
+    const body = (await readJson(res)) as {
+      entries: { state: string; submittedAt: string | null; copyCount: number }[];
+    };
+
+    expect(res.status).toBe(200);
+    expect(body.entries).toEqual([
+      expect.objectContaining({
+        state: "submitted",
+        submittedAt: closeAt.toISOString(),
+        copyCount: 40,
+      }),
+    ]);
+    expect(deckCheck.settleEditableEntries).not.toHaveBeenCalled();
+    expect(deckCheck.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("persists the deadline submit in one update before a judge write", async () => {
+    const { app, deckCheck } = makeDeadlineApp();
+    deckCheck.getEntry.mockResolvedValue(entry("submitted"));
+
+    const res = await app.request(
+      `/api/v1/tournaments/${TOURNAMENT_ID}/deck-check/entries/${ENTRY_ID}/cards/${CARD_ID}`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ copyIndex: 0, found: true }),
+      },
+    );
+
+    expect(res.status).toBe(204);
+    expect(deckCheck.settleEditableEntries).toHaveBeenCalledTimes(1);
+    expect(deckCheck.settleEditableEntries).toHaveBeenCalledWith(TOURNAMENT_ID, [
+      { id: ENTRY_ID, submittedAt: closeAt, changeSummary: null },
+    ]);
+    expect(deckCheck.updateEntry).not.toHaveBeenCalled();
+    expect(deckCheck.setCardCopyFound).toHaveBeenCalledWith(ENTRY_ID, CARD_ID, 0, true);
+  });
+});

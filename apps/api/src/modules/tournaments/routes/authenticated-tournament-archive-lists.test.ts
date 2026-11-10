@@ -25,6 +25,7 @@ function tournament(overrides: Record<string, unknown> = {}) {
     deckFormat: "constructed",
     uvsgamesEventId: "667904",
     groupId: null,
+    submissionsCloseAt: null,
     ...overrides,
   };
 }
@@ -40,7 +41,13 @@ function entry(participantId: string, state: string, allowDeckPublishing = true)
   };
 }
 
-function makeApp(options: { manager?: boolean; tournament?: Record<string, unknown> } = {}) {
+function makeApp(
+  options: {
+    manager?: boolean;
+    tournament?: Record<string, unknown>;
+    uncheckedState?: string;
+  } = {},
+) {
   const sendTournamentLists = vi.fn((_transact: unknown, args: { lists: { identity: string }[] }) =>
     Promise.resolve({
       eventName: "Summoner Skirmish",
@@ -54,12 +61,21 @@ function makeApp(options: { manager?: boolean; tournament?: Record<string, unkno
     tournaments: {
       getById: vi.fn(() => Promise.resolve(tournament(options.tournament))),
       isHostOrStaff: vi.fn(() => Promise.resolve(options.manager ?? true)),
+      listParticipants: vi.fn(() =>
+        Promise.resolve(
+          [READY, UNCHECKED, NO_CONSENT].map((id) => ({
+            id,
+            displayName: `Player ${id.slice(-1)}`,
+            status: "active",
+          })),
+        ),
+      ),
     },
     deckCheck: {
       listEntriesForEvent: vi.fn(() =>
         Promise.resolve([
           entry(READY, "checked"),
-          entry(UNCHECKED, "submitted"),
+          entry(UNCHECKED, options.uncheckedState ?? "submitted"),
           entry(NO_CONSENT, "checked", false),
         ]),
       ),
@@ -102,6 +118,22 @@ function send(app: Hono<{ Variables: Variables }>, links: unknown[]) {
     body: JSON.stringify({ links }),
   });
 }
+
+describe("GET /tournaments/{id}/archive-lists", () => {
+  it("shows a list left editable when the tournament ended as submitted", async () => {
+    const { app } = makeApp({ tournament: { uvsgamesEventId: null }, uncheckedState: "editable" });
+
+    const res = await app.request(`/api/v1/tournaments/${TOURNAMENT_ID}/archive-lists`);
+    const body = (await readJson(res)) as {
+      participants: { participantId: string; entryState: string | null }[];
+    };
+
+    expect(res.status).toBe(200);
+    expect(body.participants.find((row) => row.participantId === UNCHECKED)?.entryState).toBe(
+      "submitted",
+    );
+  });
+});
 
 describe("POST /tournaments/{id}/archive-lists/send", () => {
   it("is for the host and organizers only", async () => {
@@ -165,6 +197,16 @@ describe("POST /tournaments/{id}/archive-lists/send", () => {
         ],
       }),
     );
+    expect(notifyAdminsOfMetaSubmission).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers without waiting for the admin email to go out", async () => {
+    const { app, notifyAdminsOfMetaSubmission } = makeApp();
+    notifyAdminsOfMetaSubmission.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await send(app, [{ participantId: READY, identity: "u11" }]);
+
+    expect(res.status).toBe(200);
     expect(notifyAdminsOfMetaSubmission).toHaveBeenCalledTimes(1);
   });
 

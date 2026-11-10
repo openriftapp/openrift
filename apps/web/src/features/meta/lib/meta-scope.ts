@@ -1,38 +1,36 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
 import { todayUtc } from "@openrift/shared/format-date";
-import { isoDate } from "@openrift/shared/schemas";
+import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import type { SetReleases } from "@openrift/shared/set-release";
 import { earliestRelease } from "@openrift/shared/set-release";
 import type { MetaEventFilterQuery, MetaScopeQuery } from "@openrift/shared/types/api/meta";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import type { FilterSign } from "@/lib/filter-sign";
 import { flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
+import { lenient } from "@/lib/lenient-param";
 
 /** Must accept a bare string as a one-element list: old links used a scalar param. */
 const facetList = () =>
-  z
-    .union([
-      z
-        .string()
-        .min(1)
-        .transform((value) => [value]),
-      z.array(z.string().min(1)).max(MAX_FACET_VALUES),
-    ])
-    .optional()
-    .catch(undefined);
+  lenient(
+    z.union([
+      z.pipe(
+        z.string().check(z.minLength(1)),
+        z.transform((value: string) => [value]),
+      ),
+      z.array(z.string().check(z.minLength(1))).check(z.maxLength(MAX_FACET_VALUES)),
+    ]),
+  );
 
 /**
- * The scope every archive page narrows by, in the URL. Each field `.catch`es
- * to undefined, so a stale bookmark drops the bad value without crashing the
+ * The scope every archive page narrows by, in the URL. Each field is
+ * `lenient`, so a stale bookmark drops the bad value without crashing the
  * route. The three value facets are include/exclude pairs; an axis is never
  * both, enforced by {@link toggleScopeFacet}.
  */
 export const metaScopeSearchSchema = z.object({
-  era: z.string().optional().catch(undefined),
-  from: isoDate.optional().catch(undefined),
-  to: isoDate.optional().catch(undefined),
+  era: lenient(z.string()),
+  from: lenient(z.iso.date()),
+  to: lenient(z.iso.date()),
   formats: facetList(),
   formatsEx: facetList(),
   tiers: facetList(),

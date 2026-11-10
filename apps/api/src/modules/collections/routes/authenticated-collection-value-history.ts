@@ -50,6 +50,8 @@ export const collectionValueHistoryRouter = {
         artVariantsExclude: query.artVariantsExclude?.split(",").filter(Boolean),
         promos: query.promos,
         signed: query.signed === "true" ? true : query.signed === "false" ? false : undefined,
+        overnumbered:
+          query.overnumbered === "true" ? true : query.overnumbered === "false" ? false : undefined,
         banned: query.banned === "true" ? true : query.banned === "false" ? false : undefined,
         errata: query.errata === "true" ? true : query.errata === "false" ? false : undefined,
         standard: query.standard === "true" ? true : query.standard === "false" ? false : undefined,

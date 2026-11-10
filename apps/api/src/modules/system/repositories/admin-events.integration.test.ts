@@ -54,7 +54,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("adminEventsRepo (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const repo = adminEventsRepo(ctx!.db);
 
   it("lists newest first with actor join and parsed jsonb payloads", async () => {
@@ -111,7 +110,6 @@ describe.skipIf(!ctx)("adminEventsRepo (integration)", () => {
 
     const pageRows = firstPage.slice(0, 2);
     const last = pageRows.at(-1);
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- length asserted above
     const cursor = buildKeysetCursor(last!.createdAt, last!.id);
 
     const secondPage = await repo.list({ search: "AEV" }, 2, cursor);

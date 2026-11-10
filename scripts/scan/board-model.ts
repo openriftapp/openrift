@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Runs the board detector (ONNX file from SCAN_BOARD_DETECTOR) under
  * onnxruntime-node, as the session's `detectBoard` hook.

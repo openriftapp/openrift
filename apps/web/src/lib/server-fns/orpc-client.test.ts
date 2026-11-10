@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 interface LinkOptions {
   url: string | (() => string);
   headers?: () => Record<string, string>;
+  fetch?: (request: Request, init: RequestInit) => Promise<Response>;
 }
 const linkOptions: LinkOptions[] = [];
 
@@ -88,6 +90,34 @@ describe("apiOrpcClient", () => {
     apiOrpcClient(dummyContract, "session=abc");
     expect(headersOf()["x-real-ip"]).toBeUndefined();
   });
+
+  it("turns an API that never answers into a 504", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: Request, init?: RequestInit): Promise<Response> => {
+        const signal = init!.signal!;
+        await new Promise((resolve) => {
+          signal.addEventListener("abort", resolve);
+        });
+        throw signal.reason as Error;
+      }),
+    );
+    try {
+      apiOrpcClient(dummyContract);
+      const fetchOption = linkOptions[0]!.fetch!;
+      const settled = fetchOption(new Request("https://api.test/api/v1/decks"), {}).catch(
+        (error: unknown) => error,
+      );
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(((await settled) as { status?: number }).status).toBe(504);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  });
 });
 
 describe("browserApiOrpcClient", () => {
@@ -141,7 +171,6 @@ describe("procedure tagging", () => {
   });
 
   it("leaves a thrown non-object alone", async () => {
-    // oxlint-disable-next-line typescript/only-throw-error -- a bare throw is what this guards
     mockLinkCall.mockRejectedValue("boom");
     apiOrpcClient(dummyContract);
 

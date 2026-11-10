@@ -298,7 +298,6 @@ describe("download progress", () => {
     fetchWithProgress.mockImplementation(
       (_url: string, onProgress: (loaded: number, total: number) => void) => {
         report = onProgress;
-        // oxlint-disable-next-line promise/avoid-new -- holding the download open for the test
         return new Promise<ArrayBuffer>((resolve) => {
           release = resolve;
         });

@@ -1,3 +1,4 @@
+import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
 import { formatDayTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
 import { RefreshCwIcon } from "lucide-react";
@@ -19,7 +20,6 @@ import {
   useAuditEvents,
 } from "@/features/admin/hooks/use-admin-audit";
 import { formatAuditChanges } from "@/features/admin/lib/audit-changes";
-import type { AdminAuditEventResponse } from "@/lib/server-fns/api-types";
 
 const ALL_ACTORS = "__all__";
 const ALL_ACTIONS = "__all_actions__";

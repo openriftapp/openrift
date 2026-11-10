@@ -1,3 +1,4 @@
+import { loadImage } from "@/lib/load-image";
 import { createPdfDocument } from "@/lib/pdf-document";
 
 const A4_SHORT_MM = 210;
@@ -50,13 +51,7 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 async function imageSize(dataUrl: string): Promise<{ width: number; height: number }> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping callback-based Image loading API
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", reject);
-    image.src = dataUrl;
-  });
+  const img = await loadImage(dataUrl);
   return { width: img.naturalWidth, height: img.naturalHeight };
 }
 

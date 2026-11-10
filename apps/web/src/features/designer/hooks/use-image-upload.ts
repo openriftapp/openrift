@@ -6,6 +6,7 @@ import {
   shouldDownscale,
 } from "@/features/designer/lib/card-designer";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
+import { loadImage } from "@/lib/load-image";
 import { m } from "@/paraglide/messages.js";
 
 export function readFileAsDataUrl(file: Blob): Promise<string> {
@@ -26,36 +27,30 @@ export function readFileAsDataUrl(file: Blob): Promise<string> {
  * Best-effort: any failure (no canvas, decode error) yields the input
  * unchanged with an unknown aspect so the upload still succeeds.
  */
-function prepareImage(dataUrl: string): Promise<{ dataUrl: string; aspect: number | null }> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping the HTMLImageElement load callbacks
-  return new Promise<{ dataUrl: string; aspect: number | null }>((resolve) => {
-    const image = new Image();
-    image.addEventListener("load", () => {
-      const aspect =
-        image.naturalWidth > 0 && image.naturalHeight > 0
-          ? image.naturalWidth / image.naturalHeight
-          : null;
-      if (!shouldDownscale(image.naturalWidth, image.naturalHeight)) {
-        resolve({ dataUrl, aspect });
-        return;
-      }
-      const { width, height } = scaledDimensions(image.naturalWidth, image.naturalHeight);
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) {
-        resolve({ dataUrl, aspect });
-        return;
-      }
-      context.drawImage(image, 0, 0, width, height);
-      resolve({ dataUrl: canvas.toDataURL("image/png"), aspect });
-    });
-    image.addEventListener("error", () => {
-      resolve({ dataUrl, aspect: null });
-    });
-    image.src = dataUrl;
-  });
+async function prepareImage(dataUrl: string): Promise<{ dataUrl: string; aspect: number | null }> {
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(dataUrl);
+  } catch {
+    return { dataUrl, aspect: null };
+  }
+  const aspect =
+    image.naturalWidth > 0 && image.naturalHeight > 0
+      ? image.naturalWidth / image.naturalHeight
+      : null;
+  if (!shouldDownscale(image.naturalWidth, image.naturalHeight)) {
+    return { dataUrl, aspect };
+  }
+  const { width, height } = scaledDimensions(image.naturalWidth, image.naturalHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return { dataUrl, aspect };
+  }
+  context.drawImage(image, 0, 0, width, height);
+  return { dataUrl: canvas.toDataURL("image/png"), aspect };
 }
 
 interface UseImageUpload {

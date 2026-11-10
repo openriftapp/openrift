@@ -166,10 +166,23 @@ interface RecordsCommon {
 
 const NO_MORE = { hasMore: false, isLoadingMore: false, loadMore: () => null };
 
+/** `loadedRows` is what was fetched before the client-side filters, so ticks they hide stay resolvable. */
 export type WorkspaceRecordsResult =
-  | (RecordsCommon & { kind: "card"; rows: ReturnType<typeof filterCardSummaries> })
-  | (RecordsCommon & { kind: "desk"; rows: ReturnType<typeof filterDeskRows> })
-  | (RecordsCommon & { kind: "face" | "printing"; rows: WorkspaceRecordRow[] });
+  | (RecordsCommon & {
+      kind: "card";
+      rows: ReturnType<typeof filterCardSummaries>;
+      loadedRows: ReturnType<typeof filterCardSummaries>;
+    })
+  | (RecordsCommon & {
+      kind: "desk";
+      rows: ReturnType<typeof filterDeskRows>;
+      loadedRows: readonly DeskRow[];
+    })
+  | (RecordsCommon & {
+      kind: "face" | "printing";
+      rows: WorkspaceRecordRow[];
+      loadedRows: readonly WorkspaceRecordRow[];
+    });
 
 export function useWorkspaceRecords(
   owner: WorkspaceOwner,
@@ -214,6 +227,7 @@ export function useWorkspaceRecords(
     return {
       kind: "card" as const,
       rows,
+      loadedRows: cards.data ?? [],
       entries: rows.map((row) => cardSummaryEntry(row)),
       total: cards.data?.length ?? null,
       ...common,
@@ -227,6 +241,7 @@ export function useWorkspaceRecords(
     return {
       kind: "desk" as const,
       rows,
+      loadedRows: desk.data?.printings ?? [],
       entries: rows.map((row) => deskEntry(row)),
       total: desk.data ? rows.length : null,
       ...common,
@@ -236,12 +251,14 @@ export function useWorkspaceRecords(
     };
   }
   const pages = records.data?.pages ?? [];
-  const rows = pages
-    .flatMap((page) => page.rows)
-    .filter((row) => rowMatchesSource(groups.get(recordEntry(recordKind, row).key), search));
+  const loadedRows = pages.flatMap((page) => page.rows);
+  const rows = loadedRows.filter((row) =>
+    rowMatchesSource(groups.get(recordEntry(recordKind, row).key), search),
+  );
   return {
     kind: recordKind,
     rows,
+    loadedRows,
     entries: rows.map((row) => recordEntry(recordKind, row)),
     total: records.data ? (pages[0]?.total ?? rows.length) : null,
     ...common,

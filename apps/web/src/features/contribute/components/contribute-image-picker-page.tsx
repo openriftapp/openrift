@@ -9,6 +9,7 @@ import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CatalogCardPicker } from "@/features/cards/components/catalog-card-picker";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
+import { printingName } from "@/features/cards/lib/card-meta";
 import { ContributeHero } from "@/features/contribute/components/contribute-hero";
 import { MyMissingImagesSection } from "@/features/contribute/components/my-missing-images-section";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
@@ -67,7 +68,7 @@ function PrintingChoices({ cardSlug }: { cardSlug: string }) {
             className="justify-between"
           >
             <span className="flex min-w-0 flex-col">
-              <span className="truncate font-medium">{printing.printedName ?? data.card.name}</span>
+              <span className="truncate font-medium">{printingName(printing, data.card)}</span>
               <span className="text-muted-foreground truncate text-sm">
                 {setNameById.get(printing.setId) ?? ""} · {printing.publicCode} ·{" "}
                 {enumLabel(labels.finishes, printing.finish)} ·{" "}

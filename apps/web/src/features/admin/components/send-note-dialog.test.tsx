@@ -13,7 +13,6 @@ vi.mock("@/features/admin/hooks/use-admin-card-submissions", () => ({
   useSetSubmissionResolution: () => ({ mutateAsync: captured.setResolution, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { SendNoteDialog } from "./send-note-dialog";
 
 describe("SendNoteDialog", () => {

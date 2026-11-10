@@ -6,6 +6,7 @@ export const Route = createFileRoute("/_app/contribute_/$cardSlug_/image/$printi
       to: "/contribute/card/$cardSlug/printing/$printingId/image",
       params: { cardSlug: params.cardSlug, printingId: params.printingId },
       replace: true,
+      statusCode: 301,
     });
   },
 });

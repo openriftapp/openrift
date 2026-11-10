@@ -30,6 +30,7 @@ export function tournamentRunStateQueryOptions(userId: string, id: string) {
   return queryOptions({
     queryKey: podTournamentsKeys.detail(userId, id),
     queryFn: () => fetchRunState({ data: id }),
+    staleTime: 0,
     refetchInterval: (query) => openRoundRefetchInterval(query.state.data),
   });
 }
@@ -38,6 +39,7 @@ export function tournamentReportQueryOptions(token: string) {
   return queryOptions({
     queryKey: podTournamentsKeys.report(token),
     queryFn: () => fetchReport({ data: token }),
+    staleTime: 0,
     refetchInterval: (query) => openRoundRefetchInterval(query.state.data),
   });
 }

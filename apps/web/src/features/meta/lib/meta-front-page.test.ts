@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   META_FRONT_SECTION_LIMITS,
   metaEventWinners,
+  metaFrontPhoneFacts,
   metaFrontSectionQuery,
   metaFrontSectionShown,
   metaFrontUpcomingQuery,
@@ -116,5 +117,45 @@ describe("metaFrontUpcomingQuery", () => {
       dir: "asc",
       limit: META_FRONT_SECTION_LIMITS.upcoming,
     });
+  });
+});
+
+describe("metaFrontPhoneFacts", () => {
+  it("dates the newest results, then counts what the scope holds", () => {
+    expect(
+      metaFrontPhoneFacts("2026-11-09", { events: 5352, playerRows: 100_047, decks: 4535 }),
+    ).toEqual([
+      "Results through Nov 9, 2026",
+      "5,352 archived events",
+      "100,047 player results",
+      "4,535 decklists",
+    ]);
+  });
+
+  it("drops the date when nothing has results yet", () => {
+    expect(metaFrontPhoneFacts(null, { events: 3, playerRows: 40, decks: 2 })).toEqual([
+      "3 archived events",
+      "40 player results",
+      "2 decklists",
+    ]);
+  });
+
+  it("counts a single event in the singular", () => {
+    expect(metaFrontPhoneFacts(null, { events: 1, playerRows: 1, decks: 1 })).toEqual([
+      "1 archived event",
+      "1 player result",
+      "1 decklist",
+    ]);
+  });
+
+  it("leaves out a count of zero", () => {
+    expect(metaFrontPhoneFacts("2026-09-30", { events: 7, playerRows: 0, decks: 0 })).toEqual([
+      "Results through Sep 30, 2026",
+      "7 archived events",
+    ]);
+  });
+
+  it("returns nothing for an empty archive", () => {
+    expect(metaFrontPhoneFacts(null, { events: 0, playerRows: 0, decks: 0 })).toEqual([]);
   });
 });

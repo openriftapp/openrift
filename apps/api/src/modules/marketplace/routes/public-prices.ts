@@ -44,6 +44,9 @@ function linksFromSources(
     const entry = links[row.printingId] ?? emptyLinks();
     links[row.printingId] = entry;
     const source = row.marketplace as Marketplace;
+    if (entry[source].available) {
+      continue;
+    }
     entry[source] = {
       available: true,
       productId: row.externalId,
@@ -99,12 +102,11 @@ export const pricesRouter = {
         throw errors.NOT_FOUND({ message: `Printing not found: ${printingId}` });
       }
 
-      const [sources, linkRows, priceRows] = await Promise.all([
-        marketplace.sourcesForPrinting(printingId),
+      const [sources, priceRows] = await Promise.all([
         marketplace.sourcesForPrintings([printingId]),
         marketplace.latestPricesForPrintings([printingId]),
       ]);
-      const links = linksFromSources(linkRows, [printingId])[printingId] ?? emptyLinks();
+      const links = linksFromSources(sources, [printingId])[printingId] ?? emptyLinks();
       const priceOf = (source: Marketplace): number | null =>
         priceRows.find((row) => row.marketplace === source)?.marketCents ?? null;
       const variantOf = (source: Marketplace): string | undefined =>

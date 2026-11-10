@@ -89,3 +89,11 @@ export function appendScanJournal(payload: ScanJournalPayload): void {
   entries.push({ ...payload, t: Date.now() });
   writeRaw(store, JSON.stringify(entries.slice(-MAX_SCAN_JOURNAL_ENTRIES)));
 }
+
+export function clearScanJournal(): void {
+  try {
+    storage()?.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage blocked: nothing was written either.
+  }
+}

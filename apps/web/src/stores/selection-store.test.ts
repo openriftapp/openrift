@@ -1,5 +1,7 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -18,6 +20,16 @@ afterEach(() => {
 
 describe("useSelectionStore", () => {
   describe("selectCard", () => {
+    it("selects the clicked rarity tile when one card has printings in two rarities", () => {
+      const common = stubPrinting({ cardId: "card-1", rarity: "common" });
+      const rare = stubPrinting({ cardId: "card-1", rarity: "rare" });
+      const items = [common, rare].map((printing) => ({ id: sideKey(printing), printing }));
+
+      useSelectionStore.getState().selectCard(rare, items, selectionFindBy("cards", "rarity"));
+
+      expect(useSelectionStore.getState().selectedIndex).toBe(1);
+    });
+
     it("selects a card by printing id and opens detail", () => {
       const printing = stubPrinting({ printingId: "p1", cardId: "c1", card: { name: "Alpha" } });
       const items = [{ id: "p1", printing }];

@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import path from "node:path";
 
 import { isRedirect } from "@tanstack/react-router";

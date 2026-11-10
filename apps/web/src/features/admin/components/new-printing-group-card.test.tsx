@@ -33,7 +33,6 @@ vi.mock("@/features/admin/components/card-detail-shared", async () => {
   };
 });
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { NewPrintingGroupCard } from "./new-printing-group-card";
 
 const group = {

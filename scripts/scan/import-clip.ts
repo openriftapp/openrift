@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Archives an /admin/scan recording as a bench clip (848 px, 30 fps), extracts its frames
  * and drafts a truth file from the phone's locks. A reviewed truth file is never overwritten.

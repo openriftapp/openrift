@@ -40,6 +40,7 @@ describe("seedNewCardGroups", () => {
       id: "p2",
       candidateCardId: "s-trusted",
       artist: "Trusted Artist",
+      imageUrl: "https://img.example/trusted.png",
     });
     const foil = makeCandidatePrinting({
       id: "p3",
@@ -47,6 +48,7 @@ describe("seedNewCardGroups", () => {
       shortCode: "SFD-045a",
       publicCode: "SFD-045a/300",
       finish: "foil",
+      imageUrl: "https://img.example/other.png",
     });
     const groups = seedNewCardGroups(
       {
@@ -56,12 +58,18 @@ describe("seedNewCardGroups", () => {
       },
       order,
       card,
+      {},
+      new Set(["trusted"]),
     );
     expect(groups).toHaveLength(2);
     expect(groups[0]?.draft.faces[0]?.fields.artist).toBe("Trusted Artist");
     expect(groups[0]?.draft.candidatePrintingIds).toEqual(["p1", "p2"]);
     expect(groups[0]?.label).toBe("OGN-001 · EN · nonfoil (2 sources)");
     expect(groups[1]?.label).toBe("SFD-045a · EN · foil (1 source)");
+    expect(groups.map((entry) => entry.draft.faces[0]?.images)).toEqual([
+      [expect.objectContaining({ kind: "source", attached: true })],
+      [expect.objectContaining({ kind: "source", attached: false })],
+    ]);
   });
 
   it("skips a group whose candidates are missing", () => {
@@ -69,6 +77,8 @@ describe("seedNewCardGroups", () => {
       { sources: [], candidatePrintings: [], candidatePrintingGroups: [group(["gone"])] },
       order,
       card,
+      {},
+      new Set(),
     );
     expect(groups).toEqual([]);
   });
@@ -83,6 +93,8 @@ describe("checkedGroupKeys", () => {
     },
     () => 0,
     card,
+    {},
+    new Set(),
   );
   const incomplete = seedNewCardGroups(
     {
@@ -92,6 +104,8 @@ describe("checkedGroupKeys", () => {
     },
     () => 0,
     card,
+    {},
+    new Set(),
   );
   const groups = [...complete, ...incomplete];
 

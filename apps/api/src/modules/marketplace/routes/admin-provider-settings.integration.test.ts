@@ -13,9 +13,7 @@ const adminCtx = createTestContext(ADMIN_ID);
 const nonAdminCtx = createTestContext(NON_ADMIN_ID);
 
 describe.skipIf(!adminCtx)("Admin provider-settings routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: nonAdminApp } = nonAdminCtx!;
 
   describe("admin-only access control (non-admin)", () => {
@@ -131,7 +129,6 @@ describe.skipIf(!adminCtx)("Admin provider-settings routes (integration)", () =>
 
   describe("cleanup", () => {
     it("removes ips- test provider settings", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const { db } = adminCtx!;
       await db.deleteFrom("providerSettings").where("provider", "like", "ips-%").execute();
 

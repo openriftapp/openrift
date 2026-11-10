@@ -236,6 +236,20 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
     );
   });
 
+  it("answers the accept without waiting for the thank-you email to go out", async () => {
+    repos.cardSubmissions.getByCandidateCardId
+      .mockResolvedValueOnce(pendingSubmission)
+      .mockResolvedValueOnce({ ...pendingSubmission, status: "accepted" });
+    services.notifySubmitterOfCardAcceptance.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+      cardFields: [{ field: "energy", value: 3 }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(services.notifySubmitterOfCardAcceptance).toHaveBeenCalledTimes(1);
+  });
+
   it("sends no thank-you when the submission did not end up accepted", async () => {
     const res = await post(`${BASE}/submissions/cc-1/accept`, {
       cardFields: [{ field: "energy", value: 3 }],
@@ -288,14 +302,30 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
 describe(`POST ${BASE}/submissions/{id}/reject`, () => {
   beforeEach(resetDefaults);
 
-  it("returns 204 and ignores the candidate without a reason", async () => {
-    const res = await post(`${BASE}/submissions/cc-1/reject`, { note: null });
+  it("returns 204, records the reason and ignores the candidate", async () => {
+    const res = await post(`${BASE}/submissions/cc-1/reject`, {
+      reason: "duplicate",
+      note: null,
+    });
 
     expect(res.status).toBe(204);
+    expect(repos.cardSubmissions.setResolutionMessage).toHaveBeenCalledWith("sub-1", {
+      reason: "duplicate",
+      note: null,
+      resolvedByUserId: USER_ID,
+    });
     expect(repos.ignoredCandidates.ignoreCard).toHaveBeenCalledWith({
       provider: "usersubmission",
       externalId: "jinx--20260901--u1",
     });
+  });
+
+  it("returns 400 and changes nothing without a reason", async () => {
+    const res = await post(`${BASE}/submissions/cc-1/reject`, { note: "Seen it before" });
+
+    expect(res.status).toBe(400);
+    expect(repos.ignoredCandidates.ignoreCard).not.toHaveBeenCalled();
+    expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
   });
 
   it("returns 409 for an already settled submission", async () => {
@@ -304,7 +334,10 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
       status: "accepted",
     });
 
-    const res = await post(`${BASE}/submissions/cc-1/reject`, { note: null });
+    const res = await post(`${BASE}/submissions/cc-1/reject`, {
+      reason: "other",
+      note: "Already handled",
+    });
     expect(res.status).toBe(409);
   });
 });

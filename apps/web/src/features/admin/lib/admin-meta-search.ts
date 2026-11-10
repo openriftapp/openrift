@@ -1,5 +1,5 @@
-import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/contracts/admin/meta-catalog";
 import { META_RESULTS_STATES } from "@openrift/shared/meta-results";
+import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/meta-sync-buckets";
 import {
   META_CATALOG_DISPLAY_STATUSES,
   META_CATALOG_PROVIDERS,
@@ -14,47 +14,40 @@ import {
   PLAYRIFTBOUND_FORMATS,
   PLAYRIFTBOUND_TOURNAMENT_TYPES,
 } from "@openrift/shared/types/enums";
-import type { PlayloltcgStatus } from "@openrift/shared/types/enums";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 /**
  * Every filter is absent at its default, so an untouched tab carries a clean
  * URL and the overview's funnel links stay short.
  */
 export const metaSearchSchema = z.object({
-  tab: z.enum(["catalogue", "review", "public"]).optional(),
-  source: z.enum(META_CATALOG_PROVIDERS).optional(),
-  detail: z.enum(META_CATALOG_PROVIDERS).optional(),
-  page: z.coerce.number().int().positive().optional(),
-  q: z.string().optional(),
-  triage: z.union([z.enum(META_CATALOG_TRIAGE), z.literal("any")]).optional(),
-  eventStatus: z.enum(META_CATALOG_DISPLAY_STATUSES).optional(),
-  plStatus: z.coerce
-    .number()
-    .int()
-    .refine((value): value is PlayloltcgStatus =>
-      PLAYLOLTCG_STATUSES.some((status) => status === value),
-    )
-    .optional(),
-  tdFormat: z.string().optional(),
-  prType: z.enum(PLAYRIFTBOUND_TOURNAMENT_TYPES).optional(),
-  prFormat: z.enum(PLAYRIFTBOUND_FORMATS).optional(),
-  eventSort: z.enum(META_CATALOG_SORTS).optional(),
-  eventDir: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
-  minPlayers: z.coerce.number().int().min(0).optional(),
-  decklists: z.boolean().optional(),
-  missing: z.boolean().optional(),
-  bucket: z.enum(META_SYNC_BUCKET_FILTERS).optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-  liveFormat: z.string().optional(),
-  liveSource: z.enum(META_EVENT_SOURCE_FILTERS).optional(),
-  liveTier: z.enum(META_EVENT_TIERS).optional(),
-  liveResults: z.enum(META_RESULTS_STATES).optional(),
-  liveSort: z.enum(META_EVENT_SORTS).optional(),
-  liveDir: z.enum(META_EVENT_SORT_DIRECTIONS).optional(),
-  incompleteStandings: z.boolean().optional(),
-  hasDecks: z.boolean().optional(),
+  tab: z.optional(z.enum(["catalogue", "review", "public"])),
+  source: z.optional(z.enum(META_CATALOG_PROVIDERS)),
+  detail: z.optional(z.enum(META_CATALOG_PROVIDERS)),
+  page: z.optional(z.coerce.number().check(z.int(), z.positive())),
+  q: z.optional(z.string()),
+  triage: z.optional(z.union([z.enum(META_CATALOG_TRIAGE), z.literal("any")])),
+  eventStatus: z.optional(z.enum(META_CATALOG_DISPLAY_STATUSES)),
+  plStatus: z.optional(z.pipe(z.coerce.number().check(z.int()), z.literal(PLAYLOLTCG_STATUSES))),
+  tdFormat: z.optional(z.string()),
+  prType: z.optional(z.enum(PLAYRIFTBOUND_TOURNAMENT_TYPES)),
+  prFormat: z.optional(z.enum(PLAYRIFTBOUND_FORMATS)),
+  eventSort: z.optional(z.enum(META_CATALOG_SORTS)),
+  eventDir: z.optional(z.enum(META_CATALOG_SORT_DIRECTIONS)),
+  minPlayers: z.optional(z.coerce.number().check(z.int(), z.gte(0))),
+  decklists: z.optional(z.boolean()),
+  missing: z.optional(z.boolean()),
+  bucket: z.optional(z.enum(META_SYNC_BUCKET_FILTERS)),
+  dateFrom: z.optional(z.string()),
+  dateTo: z.optional(z.string()),
+  liveFormat: z.optional(z.string()),
+  liveSource: z.optional(z.enum(META_EVENT_SOURCE_FILTERS)),
+  liveTier: z.optional(z.enum(META_EVENT_TIERS)),
+  liveResults: z.optional(z.enum(META_RESULTS_STATES)),
+  liveSort: z.optional(z.enum(META_EVENT_SORTS)),
+  liveDir: z.optional(z.enum(META_EVENT_SORT_DIRECTIONS)),
+  incompleteStandings: z.optional(z.boolean()),
+  hasDecks: z.optional(z.boolean()),
 });
 
 export type MetaSearch = z.infer<typeof metaSearchSchema>;

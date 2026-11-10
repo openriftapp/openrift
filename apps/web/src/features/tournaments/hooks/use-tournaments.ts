@@ -1,6 +1,11 @@
 import { tournamentsContract } from "@openrift/shared/contracts/tournaments";
 import type { TournamentStaffCandidateListResponse } from "@openrift/shared/types/api/tournament";
-import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useQuery,
+  useSuspenseInfiniteQuery,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import {
@@ -33,7 +38,7 @@ function tournamentStaffCandidatesQueryOptions(userId: string, id: string) {
 
 export function useTournaments() {
   const userId = useRequiredUserId();
-  return useSuspenseQuery(tournamentsQueryOptions(userId));
+  return useSuspenseInfiniteQuery(tournamentsQueryOptions(userId));
 }
 
 export function useTournamentDetail(id: string) {

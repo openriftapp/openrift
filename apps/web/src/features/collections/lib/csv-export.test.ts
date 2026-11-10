@@ -13,6 +13,7 @@ import {
   generateRiftCoreCSV,
   generateRiftManaCSV,
 } from "./csv-export";
+import { matchEntries } from "./import-matcher";
 import { parseImportData } from "./import-parsers";
 
 function makeStack(overrides: {
@@ -576,5 +577,46 @@ describe("csvExportFilename", () => {
     expect(csvExportFilename("openrift", "☆☆☆")).toMatch(
       /^openrift-export-\d{4}-\d{2}-\d{2}\.csv$/u,
     );
+  });
+});
+
+describe("OpenRift CSV round trip through the matcher", () => {
+  const nexus = { id: "pt-nexus", slug: "nexus", label: "Nexus", description: null };
+  const release = { id: "pt-release", slug: "release", label: "Release", description: null };
+
+  function fixture(
+    id: string,
+    cardId: string,
+    shortCode: string,
+    finish: string,
+    markers: (typeof nexus)[] = [],
+  ): StackedEntry {
+    const stack = makeStack({ shortCode, name: `Card ${cardId}`, finish, markers });
+    Object.assign(stack.printing, {
+      printingId: id,
+      cardId,
+      publicCode: shortCode,
+      card: { ...stack.printing.card, slug: cardId },
+    });
+    return { ...stack, printingId: id };
+  }
+
+  const stacks = [
+    fixture("normal", "c1", "OGN-001", "normal"),
+    fixture("metal-sibling", "c1", "OGN-001", "metal"),
+    fixture("metal-only", "c2", "OGN-002", "metal-deluxe"),
+    fixture("base", "c3", "OGN-003", "normal"),
+    fixture("promo-foil", "c3", "OGN-003", "foil", [nexus]),
+    fixture("promo-normal", "c3", "OGN-003", "normal", [nexus]),
+    fixture("promo-both", "c3", "OGN-003", "foil", [nexus, release]),
+  ];
+  const printings = stacks.map((stack) => stack.printing);
+
+  it("matches every exported printing exactly to the printing it came from", () => {
+    const parsed = parseImportData(generateExportCSV(stacks));
+    expect(parsed.errors).toHaveLength(0);
+    const results = matchEntries(parsed.entries, printings);
+    expect(results.map((result) => result.status)).toEqual(stacks.map(() => "exact"));
+    expect(results.map((result) => result.resolvedPrinting)).toEqual(printings);
   });
 });

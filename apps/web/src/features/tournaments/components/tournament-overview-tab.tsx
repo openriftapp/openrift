@@ -48,6 +48,7 @@ import {
 } from "@/features/tournaments/lib/tournament-display";
 import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -195,15 +196,6 @@ function JoinRequestsSection({
 }) {
   const participantAction = useParticipantAction();
 
-  async function run(action: () => Promise<unknown>) {
-    try {
-      await action();
-    } catch {
-      // Reported by the global mutation onError toast; swallowed so the
-      // `void run(...)` call sites don't surface it as an uncaught promise.
-    }
-  }
-
   if (pending.length === 0) {
     return null;
   }
@@ -223,7 +215,7 @@ function JoinRequestsSection({
                 size="sm"
                 disabled={participantAction.isPending}
                 onClick={() =>
-                  void run(() =>
+                  void runReportedMutation(() =>
                     participantAction.mutateAsync({
                       id,
                       participantId: participant.id,
@@ -240,7 +232,7 @@ function JoinRequestsSection({
                 className="text-destructive"
                 disabled={participantAction.isPending}
                 onClick={() =>
-                  void run(() =>
+                  void runReportedMutation(() =>
                     participantAction.mutateAsync({
                       id,
                       participantId: participant.id,

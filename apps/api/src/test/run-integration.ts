@@ -1,4 +1,4 @@
-/* oxlint-disable import/no-nodejs-modules, typescript/no-non-null-assertion -- standalone script */
+/* oxlint-disable typescript/no-non-null-assertion -- standalone script */
 /**
  * Integration test orchestrator.
  *

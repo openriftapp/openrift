@@ -122,7 +122,6 @@ vi.mock("@tanstack/react-router", () => ({
   createLink: (component: unknown) => component,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaDeckPage } from "./meta-deck-page";
 
 function deckCard(zone: string, quantity: number): Record<string, unknown> {

@@ -13,13 +13,13 @@ import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { PrintingSide } from "@openrift/shared/types/catalog";
 import type { GroupByField, SortOption } from "@openrift/shared/types/search";
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
 
 import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
 import { searchToFilters } from "@/features/cards/lib/cards-facets";
 import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { needsCssRotation } from "@/lib/images";
+import { getShellCookie } from "@/lib/page-cache";
 import type { SurfaceViewPrefs } from "@/lib/view-prefs";
 import {
   resolveViewPrefsFromCookie,
@@ -134,6 +134,6 @@ export const fetchFirstRowCards = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<FirstRowCard[]> => {
     const catalog = await readCatalogFromServerCache();
     // Same cookie the hydrated grid resolves its defaults from.
-    const viewPrefs = resolveViewPrefsFromCookie(getCookie(VIEW_PREFS_COOKIE));
+    const viewPrefs = resolveViewPrefsFromCookie(getShellCookie(VIEW_PREFS_COOKIE));
     return extractFirstRow(catalog, data, FIRST_ROW_LIMIT, viewPrefs.cards);
   });

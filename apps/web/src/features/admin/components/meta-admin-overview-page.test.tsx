@@ -90,7 +90,6 @@ vi.mock("@/features/admin/hooks/use-job-schedules", () => ({
   useJobSchedulesQuery: () => ({ data: { jobs: captured.schedules } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaAdminOverviewPage } from "./meta-admin-overview-page";
 
 const NOW = new Date("2026-10-28T15:00:00.000Z");

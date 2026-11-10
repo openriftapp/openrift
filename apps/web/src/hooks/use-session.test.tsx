@@ -63,14 +63,15 @@ beforeEach(() => {
 });
 
 describe("useSession", () => {
-  it("returns the session the API answers with", async () => {
+  it("returns the signed-in user without the session token", async () => {
     fetchApi.mockResolvedValue(Response.json(SESSION));
     const { Wrapper } = makeWrapper();
 
     const { result } = renderHook(() => useSession(), { wrapper: Wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual(SESSION);
+    expect(result.current.data).toEqual({ user: expect.objectContaining(SESSION.user) });
+    expect(JSON.stringify(result.current.data)).not.toContain(SESSION.session.token);
   });
 
   it("forwards the request cookie and tolerates a 401", async () => {
@@ -131,7 +132,6 @@ describe("useUserId", () => {
   });
 
   it("returns null while the session is still loading", () => {
-    // oxlint-disable-next-line promise/avoid-new -- a never-settling promise holds the query in flight
     fetchApi.mockReturnValue(new Promise(() => {}));
     const { Wrapper } = makeWrapper();
 
@@ -155,7 +155,6 @@ describe("useRequiredUserId", () => {
     // The SSR-dehydrated cache can miss the client render; `_authenticated`'s
     // beforeLoad has resolved the id either way.
     const { Wrapper } = makeWrapper("u1");
-    // oxlint-disable-next-line promise/avoid-new -- a never-settling promise holds the query in flight
     fetchApi.mockReturnValue(new Promise(() => {}));
 
     const { result } = renderHook(() => useRequiredUserId(), { wrapper: Wrapper });

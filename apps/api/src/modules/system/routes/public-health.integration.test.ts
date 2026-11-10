@@ -6,7 +6,6 @@ import { readJson } from "../../../test/read-json.js";
 const ctx = createUnauthenticatedTestContext();
 
 describe.skipIf(!ctx)("Health route (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = ctx!;
 
   function healthReq(): Request {

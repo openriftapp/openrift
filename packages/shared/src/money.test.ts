@@ -61,4 +61,13 @@ describe("formatCents", () => {
   it("groups thousands and keeps two decimals", () => {
     expect(formatCents(123_456, "USD")).toBe("$1,234.56");
   });
+
+  it("formats in the given locale", () => {
+    expect(formatCents(123_456, "EUR", "de")).toBe("1.234,56 €");
+    expect(formatCents(150, "USD", "fr")).toBe("1,50 $");
+  });
+
+  it("uses the narrow symbol in locales whose default symbol is longer", () => {
+    expect(formatCents(150, "USD", "en-CA")).toBe("$1.50");
+  });
 });

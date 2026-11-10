@@ -1,4 +1,8 @@
-import { copiesContract } from "@openrift/shared/contracts/copies";
+import {
+  copiesContract,
+  MAX_COPIES_PER_TRADE_CANCEL_CHECK,
+} from "@openrift/shared/contracts/copies";
+import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import type {
   CopyListMembershipsResponse,
   CopyMetadataPatch,
@@ -14,6 +18,7 @@ import { v7 as uuidv7 } from "uuid";
 
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
+import type { CopiesCollection } from "@/features/collections/lib/copies-write";
 import {
   groupIdForCollection,
   persistCopyMutations,
@@ -21,6 +26,12 @@ import {
   updateCopyMetadata,
   waitForInsert,
 } from "@/features/collections/lib/copies-write";
+import type { TradeCancelConsent } from "@/features/groups/lib/trade-cancel-conflict";
+import { tradeCancelConsentMetadata } from "@/features/groups/lib/trade-cancel-conflict";
+import {
+  consentBeforeTradeCancels,
+  dialogTradeCancelConsent,
+} from "@/features/groups/stores/trade-cancel-consent-check";
 import { useUserId } from "@/hooks/use-session";
 import { trackEvent } from "@/lib/analytics";
 import { reportMutationError } from "@/lib/query-client";
@@ -138,6 +149,21 @@ export function useAddCopies() {
   });
 }
 
+// A selection over the check's cap skips it; each write chunk's own refusal still asks.
+function consentForCopies(
+  queryClient: QueryClient,
+  userId: string,
+  collection: CopiesCollection,
+  copyIds: string[],
+  check: () => Promise<TradeCancelConflictData>,
+): Promise<TradeCancelConsent> {
+  if (copyIds.length > MAX_COPIES_PER_TRADE_CANCEL_CHECK) {
+    return Promise.resolve(dialogTradeCancelConsent());
+  }
+  const printingIds = new Set(copyIds.map((id) => collection.get(id)?.printingId ?? ""));
+  return consentBeforeTradeCancels({ queryClient, userId, printingIds, check });
+}
+
 export function useMoveCopies() {
   const userId = useUserId();
   const queryClient = useQueryClient();
@@ -160,13 +186,23 @@ export function useMoveCopies() {
       if (present.length === 0) {
         return;
       }
+      const consent = await consentForCopies(queryClient, userId, collection, present, () =>
+        browserApiOrpcClient(copiesContract).moveTradeCancels({
+          copyIds: present,
+          toCollectionId,
+        }),
+      );
       const groupId = groupIdForCollection(queryClient, userId, toCollectionId);
-      const transaction = collection.update(present, (drafts) => {
-        for (const draft of drafts) {
-          draft.collectionId = toCollectionId;
-          draft.groupId = groupId;
-        }
-      });
+      const transaction = collection.update(
+        present,
+        { metadata: tradeCancelConsentMetadata(consent) },
+        (drafts) => {
+          for (const draft of drafts) {
+            draft.collectionId = toCollectionId;
+            draft.groupId = groupId;
+          }
+        },
+      );
       await transaction.when("settled");
     },
   });
@@ -198,6 +234,7 @@ export function useUpdateCopies() {
 
 export function useDisposeCopies() {
   const userId = useUserId();
+  const queryClient = useQueryClient();
   const copiesCollection = useCopiesCollection();
 
   return useMutation({
@@ -211,7 +248,12 @@ export function useDisposeCopies() {
       if (present.length === 0) {
         return;
       }
-      await collection.delete(present).when("settled");
+      const consent = await consentForCopies(queryClient, userId, collection, present, () =>
+        browserApiOrpcClient(copiesContract).disposeTradeCancels({ copyIds: present }),
+      );
+      await collection
+        .delete(present, { metadata: tradeCancelConsentMetadata(consent) })
+        .when("settled");
       trackEvent("collection-remove", { count: present.length });
     },
   });

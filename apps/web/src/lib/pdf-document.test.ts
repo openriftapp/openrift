@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads a real PNG fixture from public/
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads a real PNG fixture from public/
 import { join } from "node:path";
 
 import { jsPDF } from "jspdf";

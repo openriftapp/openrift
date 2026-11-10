@@ -2,25 +2,40 @@ import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mut
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { useAcceptPrintingField } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
-  useAcceptSubmission,
-  useRejectSubmission,
-} from "@/features/admin/hooks/use-catalog-review";
+  acceptPrintingFieldFn,
+  useAcceptPrintingField,
+} from "@/features/admin/hooks/use-admin-card-mutations";
+import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import {
   useUnifiedIgnoreVariants,
   useUnifiedSaveMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
-import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
+import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import {
+  assignedListingUndo,
+  ignoredVariantsUndo,
+} from "@/features/catalog-workspace/hooks/listing-undo";
 import { useCandidateDiscards } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { FieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { primaryLabel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type {
   ListingSuggestion,
   PrintingSuggestionModel,
 } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { undoScope, usedUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
+
+function skuOf(listing: ListingSuggestion) {
+  return {
+    externalId: listing.product.externalId,
+    finish: listing.product.finish,
+    language: listing.product.language,
+  };
+}
 
 export type PrintingChip =
   | { kind: "field"; key: string; suggestion: FieldSuggestion }
@@ -42,12 +57,14 @@ export function printingChips(
 
 export function usePrintingRecordActions({
   printingId,
+  record,
   model,
   listings,
   canCheck,
   canMap,
 }: {
   printingId: string;
+  record: string;
   model: PrintingSuggestionModel;
   listings: readonly ListingSuggestion[];
   canCheck: boolean;
@@ -56,9 +73,9 @@ export function usePrintingRecordActions({
   const queryClient = useQueryClient();
   const scope = [adminKeys.cards.all, adminKeys.printingDesk.all, adminKeys.workspace];
   const acceptField = useAcceptPrintingField(scope);
-  const discards = useCandidateDiscards(scope, model.sources);
+  const discards = useCandidateDiscards({ scope, sources: model.sources, record });
+  const { announce } = useWorkspaceUndo();
   const acceptSubmission = useAcceptSubmission();
-  const rejectSubmission = useRejectSubmission();
   const save: Record<AdminMarketplaceName, ReturnType<typeof useUnifiedSaveMappings>> = {
     tcgplayer: useUnifiedSaveMappings("tcgplayer"),
     cardmarket: useUnifiedSaveMappings("cardmarket"),
@@ -74,18 +91,14 @@ export function usePrintingRecordActions({
 
   const chips = printingChips(model, canMap ? listings : []);
   const enterIds = canCheck ? model.enterCandidateIds : [];
-  const pending =
-    acceptField.isPending ||
-    discards.pending ||
-    acceptSubmission.isPending ||
-    rejectSubmission.isPending;
+  const pending = acceptField.isPending || discards.pending || acceptSubmission.isPending;
 
   function settleCards() {
     void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
   }
 
-  function applyField(suggestion: FieldSuggestion) {
+  async function applyField(suggestion: FieldSuggestion): Promise<void> {
     if (!isAcceptPrintingField(suggestion.field)) {
       return;
     }
@@ -105,60 +118,53 @@ export function usePrintingRecordActions({
           }
         : suggestion.current;
     if (suggestion.isContributor) {
-      acceptSubmission.mutate(
-        {
+      await runReportedMutation(() =>
+        acceptSubmission.mutateAsync({
           candidateCardId: suggestion.candidate.candidateCardId,
           printingFields: [{ printingId, field, value, source: "provider" }],
-        },
-        { onSettled: settleCards },
+        }),
       );
+      settleCards();
       return;
     }
-    acceptField.mutate({ printingId, field, value, source: "provider" });
-    toastFieldAccepted({
+    await acceptFieldWithUndo({
+      accept: acceptField.mutateAsync,
+      input: { printingId, field, value, source: "provider" },
       fieldLabel: suggestion.label,
       sourceLabel: suggestion.provider,
       previousValue: undoValue,
-      onUndo: (previous) =>
-        acceptField.mutate({ printingId, field, value: previous, source: "manual" }),
+      onAccepted: (revert) =>
+        announce({
+          ...usedUndoText({ field: suggestion.label, source: suggestion.provider, record }),
+          invalidates: undoScope(scope),
+          undo: async () => {
+            await acceptPrintingFieldFn({ data: revert });
+          },
+        }),
     });
   }
 
-  function mapListing(listing: ListingSuggestion) {
-    save[listing.marketplace].mutate(
-      {
-        mappings: [
-          {
-            externalId: listing.product.externalId,
-            finish: listing.product.finish,
-            language: listing.product.language,
-            printingId,
-          },
-        ],
-      },
-      { onSettled: settleCards },
-    );
+  async function mapListing(listing: ListingSuggestion): Promise<void> {
+    const sku = skuOf(listing);
+    const result = await save[listing.marketplace]
+      .mutateAsync({ mappings: [{ ...sku, printingId }] })
+      .catch(() => null);
+    settleCards();
+    if (result !== null && result.skipped.length === 0) {
+      announce(assignedListingUndo(listing.marketplace, sku, printingId, record));
+    }
   }
 
   function ignoreListing(listing: ListingSuggestion) {
-    ignore[listing.marketplace].mutate(
-      [
-        {
-          externalId: listing.product.externalId,
-          finish: listing.product.finish,
-          language: listing.product.language,
-        },
-      ],
-      { onSettled: settleCards },
-    );
+    const sku = skuOf(listing);
+    ignore[listing.marketplace].mutate([sku], {
+      onSuccess: () => announce(ignoredVariantsUndo(listing.marketplace, [sku], record)),
+      onSettled: settleCards,
+    });
   }
 
-  function applyChip(chip: PrintingChip) {
-    if (chip.kind === "field") {
-      applyField(chip.suggestion);
-    } else {
-      mapListing(chip.listing);
-    }
+  function applyChip(chip: PrintingChip): Promise<void> {
+    return chip.kind === "field" ? applyField(chip.suggestion) : mapListing(chip.listing);
   }
 
   async function runPrimary() {
@@ -169,10 +175,10 @@ export function usePrintingRecordActions({
     primary: canCheck
       ? { label: primaryLabel(enterIds.length), disabled: pending, run: runPrimary }
       : undefined,
-    useSuggestion: (n) => {
+    useSuggestion: async (n) => {
       const chip = chips[n - 1];
       if (chip !== undefined) {
-        applyChip(chip);
+        await applyChip(chip);
       }
     },
   });
@@ -185,8 +191,7 @@ export function usePrintingRecordActions({
     mapListing,
     ignoreListing,
     discard: discards.discard,
-    reject: (candidateCardId: string) =>
-      rejectSubmission.mutate({ candidateCardId, note: null }, { onSettled: settleCards }),
+    settleCards,
     runPrimary,
   };
 }

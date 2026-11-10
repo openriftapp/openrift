@@ -214,7 +214,7 @@ export const adminMetaRouter = {
       }),
     );
 
-    await writeEventOverlayFields(context.repos, row.id, creationEdits(input), context.userId);
+    await writeEventOverlayFields(context.transact, row.id, creationEdits(input), context.userId);
     const promoted = await meta.eventById(row.id);
     assertFound(promoted, "Event not found");
     return toAdminMetaEvent(promoted, []);

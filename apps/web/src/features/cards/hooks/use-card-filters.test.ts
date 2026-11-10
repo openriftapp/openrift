@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import { readFileSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test reads its sibling source file as text
 import path from "node:path";
 
 import { renderHook, act } from "@testing-library/react";
@@ -16,16 +14,12 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import type { QueryFilterOptions } from "@/features/cards/lib/query-filters";
-// oxlint-disable-next-line import/first -- must import after vi.mock
+import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { useDisplayStore } from "@/stores/display-store";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useFilterActions, useFilterValues, useStaleGroupByGuard } from "./use-card-filters";
 
 function useCardFilters() {
@@ -958,4 +952,121 @@ describe("query clauses shown on the filter buttons", () => {
     expect(search).not.toHaveProperty("q");
     expect(search).not.toHaveProperty("energyMin");
   });
+});
+
+describe("URL filter params", () => {
+  const VIEW_PARAMS = new Set(["sort", "sortDir", "view", "groupBy", "groupDir"]);
+  const KEPT_FILTER_PARAMS = new Set(["languages", "languagesEx"]);
+
+  const ACTIVE_VALUES: Record<string, unknown> = {
+    q: "jinx",
+    sort: "name",
+    sortDir: "desc",
+    view: "printings",
+    groupBy: "rarity",
+    groupDir: "desc",
+  };
+
+  function activeValue(key: string): unknown {
+    if (key in ACTIVE_VALUES) {
+      return ACTIVE_VALUES[key];
+    }
+    if (key.endsWith("Presence")) {
+      return "any";
+    }
+    if (key.endsWith("Min") || key.endsWith("Max")) {
+      return 0;
+    }
+    if (key === "owned") {
+      return ["partial"];
+    }
+    if (["standard", "signed", "overnumbered", "banned", "errata", "noImage"].includes(key)) {
+      return false;
+    }
+    return ["x"];
+  }
+
+  const PARAMS = Object.keys(filterSearchSchema._zod.def.shape);
+  const FULL_SEARCH = Object.fromEntries(PARAMS.map((key) => [key, activeValue(key)]));
+
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    useDisplayStore.setState({ defaultCardView: "cards" });
+  });
+
+  it("clearAllFilters drops every filter param but languages and the view", () => {
+    mockSearch = FULL_SEARCH;
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    act(() => result.current.clearAllFilters());
+
+    expect(Object.keys(lastNavigateSearch()).toSorted()).toEqual([
+      "groupBy",
+      "groupDir",
+      "languages",
+      "languagesEx",
+      "view",
+    ]);
+  });
+
+  it.each(PARAMS)("classifies the %s param for the clear-all indicator", (key) => {
+    mockSearch = { [key]: activeValue(key) };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    const clearable = !VIEW_PARAMS.has(key) && !KEPT_FILTER_PARAMS.has(key);
+    expect(result.current.hasClearableFilters).toBe(clearable);
+    expect(result.current.hasActiveFilters).toBe(!VIEW_PARAMS.has(key));
+  });
+
+  it("treats an empty query and empty lists as inactive", () => {
+    mockSearch = { q: "", sets: [], languages: [], setsEx: [] };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    expect(result.current.hasClearableFilters).toBe(false);
+    expect(result.current.hasActiveFilters).toBe(false);
+  });
+
+  const PRESENCE_CASES = [
+    ["markers", "markersPresence", "markers", "markersEx"],
+    ["superTypes", "superTypesPresence", "superTypes", "superTypesEx"],
+    ["customTags", "customTagsPresence", "customTags", "customTagsEx"],
+    ["distributionChannels", "channelsPresence", "channels", "channelsEx"],
+    ["keywords", "keywordsPresence", "keywords", "keywordsEx"],
+    ["tags", "tagsPresence", "tags", "tagsEx"],
+  ] as const;
+
+  it.each(PRESENCE_CASES)(
+    "cycles %s presence through %s and clears its values on none",
+    (dimension, param, include, exclude) => {
+      mockSearch = {};
+      const { result } = renderHook(() => useCardFilters(), { wrapper });
+      act(() => result.current.cyclePresence(dimension));
+      expect(lastNavigateSearch()).toEqual({ [param]: "any" });
+
+      mockSearch = { [param]: "any", [include]: ["a"], [exclude]: ["b"] };
+      const { result: second } = renderHook(() => useCardFilters(), { wrapper });
+      act(() => second.current.cyclePresence(dimension));
+      expect(lastNavigateSearch()).toEqual({ [param]: "none" });
+
+      mockSearch = { [param]: "none" };
+      const { result: third } = renderHook(() => useCardFilters(), { wrapper });
+      act(() => third.current.clearPresence(dimension));
+      expect(lastNavigateSearch()).toEqual({});
+    },
+  );
+
+  it.each(PRESENCE_CASES)(
+    "picking a %s value clears a lingering none in %s",
+    (_dimension, param, include, exclude) => {
+      mockSearch = { [param]: "none" };
+      const { result } = renderHook(() => useCardFilters(), { wrapper });
+      act(() => result.current.toggleSignedFilter(include, exclude, "a", "include"));
+      expect(lastNavigateSearch()).toEqual({ [include]: ["a"] });
+
+      mockSearch = { [param]: "any" };
+      const { result: second } = renderHook(() => useCardFilters(), { wrapper });
+      act(() => second.current.toggleSignedFilter(include, exclude, "a", "include"));
+      expect(lastNavigateSearch()).toEqual({ [param]: "any", [include]: ["a"] });
+    },
+  );
 });

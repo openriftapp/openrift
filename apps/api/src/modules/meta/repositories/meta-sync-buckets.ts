@@ -52,38 +52,51 @@ export function sizeRulePasses(
     : sql<SqlBool>`(coalesce(${players} >= ${minPlayers}, false) and not (${team}))`;
 }
 
+export interface MetaSyncBucketTriage {
+  undecided: RawBuilder<SqlBool>;
+  published: RawBuilder<SqlBool>;
+}
+
+const joinedTriage: MetaSyncBucketTriage = { undecided, published };
+
+/**
+ * In a `where`, pass the source's anti-join triage: a joined null leaves the
+ * planner estimating one row and nesting loops over the whole catalogue.
+ */
 export function metaSyncBucketCondition(
   bucket: MetaSyncBucketFilter,
   columns: MetaSyncBucketColumns,
   rule: MetaAutoPublishRule,
+  triage: MetaSyncBucketTriage = joinedTriage,
 ): RawBuilder<SqlBool> {
   const { started, hasResults, nextCheckAt } = columns;
+  const { undecided: isUndecided, published: isPublished } = triage;
   const passes = columns.passes(rule);
   const scheduled = sql<SqlBool>`${nextCheckAt} is not null`;
   switch (bucket) {
     case "needsDecision": {
-      return sql<SqlBool>`((${undecided}) and (${started}) and (${passes}) and (${hasResults}))`;
+      return sql<SqlBool>`((${isUndecided}) and (${started}) and (${passes}) and (${hasResults}))`;
     }
     case "passingNoResults": {
-      return sql<SqlBool>`((${undecided}) and (${started}) and (${passes}) and not (${hasResults}))`;
+      return sql<SqlBool>`((${isUndecided}) and (${started}) and (${passes}) and not (${hasResults}))`;
     }
     case "skippedUpcoming": {
-      return sql<SqlBool>`((${undecided}) and not (${started}))`;
+      return sql<SqlBool>`((${isUndecided}) and not (${started}))`;
     }
     case "skippedPast": {
-      return sql<SqlBool>`((${undecided}) and (${started}) and not (${passes}))`;
+      return sql<SqlBool>`((${isUndecided}) and (${started}) and not (${passes}))`;
     }
     case "notStarted": {
-      return sql<SqlBool>`((${published}) and not (${started}))`;
+      return sql<SqlBool>`((${isPublished}) and not (${started}))`;
     }
     case "collecting": {
-      return sql<SqlBool>`((${published}) and (${started}) and (${scheduled}))`;
+      return sql<SqlBool>`((${isPublished}) and (${started}) and (${scheduled}))`;
     }
     case "final": {
-      return sql<SqlBool>`((${published}) and (${started}) and not (${scheduled}) and (${hasResults}))`;
+      return sql<SqlBool>`((${isPublished}) and (${started}) and not (${scheduled}) and (${hasResults}))`;
     }
     case "noResults": {
-      return sql<SqlBool>`((${published}) and (${started}) and not (${scheduled}) and not (${hasResults}))`;
+      return sql<SqlBool>`((${isPublished}) and (${started}) and not (${scheduled}) and not (${hasResults}))`;
     }
   }
 }

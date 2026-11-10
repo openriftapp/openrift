@@ -73,7 +73,6 @@ describe("ConfirmActionButton", () => {
     let finish: () => void = () => {};
     const onConfirm = vi.fn(
       () =>
-        // oxlint-disable-next-line promise/avoid-new -- holds the action open to observe the pending state
         new Promise<void>((resolve) => {
           finish = resolve;
         }),

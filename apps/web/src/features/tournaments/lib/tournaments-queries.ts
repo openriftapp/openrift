@@ -4,10 +4,11 @@ import type {
   PublicTournamentLandingResponse,
   TournamentDetailResponse,
   TournamentListResponse,
+  TournamentPageResponse,
   TournamentParticipantListResponse,
   TournamentStaffInviteLandingResponse,
 } from "@openrift/shared/types/api/tournament";
-import { queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
@@ -16,9 +17,12 @@ import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchTournaments = createServerFn({ method: "GET" })
+  .validator((input: { cursor?: string }) => input)
   .middleware([withCookies])
-  .handler(({ context }): Promise<TournamentListResponse> =>
-    apiOrpcClient(tournamentsContract, context.cookie).list(),
+  .handler(({ context, data }): Promise<TournamentPageResponse> =>
+    apiOrpcClient(tournamentsContract, context.cookie).list(
+      data.cursor ? { cursor: data.cursor } : {},
+    ),
   );
 
 const fetchTournamentDetail = createServerFn({ method: "GET" })
@@ -57,10 +61,14 @@ const fetchStaffInviteLanding = createServerFn({ method: "GET" })
     ),
   );
 
+/** The API scopes to the session user; `userId` here only keys the cache. */
 export function tournamentsQueryOptions(userId: string) {
-  return queryOptions({
+  return infiniteQueryOptions({
     queryKey: tournamentsKeys.all(userId),
-    queryFn: () => fetchTournaments(),
+    queryFn: ({ pageParam }): Promise<TournamentPageResponse> =>
+      fetchTournaments({ data: { cursor: pageParam } }) as Promise<TournamentPageResponse>,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: TournamentPageResponse) => lastPage.nextCursor ?? undefined,
   });
 }
 
@@ -82,6 +90,7 @@ export function tournamentParticipantsQueryOptions(userId: string, id: string) {
   return queryOptions({
     queryKey: tournamentsKeys.participants(userId, id),
     queryFn: () => fetchParticipants({ data: id }),
+    staleTime: 0,
   });
 }
 

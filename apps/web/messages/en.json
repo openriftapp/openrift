@@ -344,7 +344,7 @@
   "nav_pack_opener_description": "Simulate opening boosters with real pull rates",
   "nav_card_designer_description": "Make a custom card with your own background image",
   "nav_locked_collections_description": "Track every card you own, down to the printing, across as many collections as you like.",
-  "nav_locked_scan_description": "Hold your cards in front of the camera to add them to a collection, recognised on your device so no pictures are uploaded.",
+  "nav_locked_scan_description": "Sign in or create an account to add the cards you scanned to a collection. The list stays on this device while you sign in.",
   "nav_locked_groups_description": "Form a private group with friends or your local store, with shared collections and trade matching that shows who has the cards you want.",
   "nav_locked_trades_description": "Swap cards with people in your groups: matches from your wishlists and tradelists, requests, and swaps to confirm.",
   "nav_locked_loans_description": "Keep track of cards you lend to friends: who has them, and what you're borrowing back.",
@@ -377,12 +377,9 @@
   "layout_header_more": "More",
   "layout_header_profile": "Profile",
   "layout_header_admin": "Admin",
-  "layout_header_light_mode": "Light mode",
-  "layout_header_dark_mode": "Dark mode",
   "layout_header_sign_out": "Sign out",
   "layout_header_sign_out_failed": "Could not sign out. Please try again.",
   "layout_header_section_attention": "{section} needs your attention",
-  "layout_header_join_discord": "Join our Discord",
   "layout_header_help": "Help",
   "layout_header_help_intro": "Stuck, or found something broken?",
   "layout_header_help_articles": "Help articles",
@@ -439,25 +436,13 @@
   "palette_load_failed": "Couldn't load cards.",
   "palette_load_failed_hint": "Close this and try again.",
   "palette_leave_scope": "Leave {label}",
-  "error_heading_rift_collapsed": "The Rift collapsed",
-  "error_heading_misprint": "Critical misprint detected",
-  "error_heading_blank": "This page pulled a blank",
-  "error_heading_void": "Shuffled into the void",
-  "error_heading_not_supposed": "Well, that wasn't supposed to happen",
-  "error_heading_drew_bug": "We drew a bug",
-  "error_heading_cant_grade": "Something broke (no, you can't grade it)",
-  "error_heading_not_ideal": "That's not ideal",
-  "error_heading_yeah_bug": "Yeah, that's a bug",
-  "error_subtext_shuffled_wrong": "Someone shuffled the code wrong.",
-  "error_subtext_binder": "We checked the binder. This page is missing.",
-  "error_subtext_giveth": "The Rift giveth, the Rift taketh away.",
-  "error_subtext_fell_through": "This page fell through a Rift and didn't come back.",
-  "error_subtext_bad_days": "Even mint-condition apps have bad days.",
-  "error_subtext_looking_into_it": "We're looking into it. Probably.",
-  "error_subtext_not_your_fault": "Something broke and it's definitely not your fault.",
-  "error_subtext_rest_is_fine": "No worries, the rest of the app is fine. Probably.",
-  "error_emoji_misprint": "[MISPRINT]",
-  "error_emoji_damaged": "[DAMAGED]",
+  "error_failed_heading": "This page didn't load",
+  "error_failed_subtext": "Something went wrong on our side.",
+  "error_offline_heading": "You're offline",
+  "error_forbidden_heading": "You don't have access to this page",
+  "error_forbidden_subtext": "Your account doesn't have permission to open it.",
+  "error_forbidden_subtext_signed_out": "Sign in to check whether your account can open it.",
+  "error_try_again": "Try again",
   "error_emoji_missing": "[MISSING]",
   "error_notfound_heading_dust": "Nothing here but dust",
   "error_notfound_heading_never_printed": "This card was never printed",
@@ -467,6 +452,7 @@
   "error_notfound_heading_doesnt_exist": "This page doesn't exist",
   "error_notfound_heading_no_card": "No card at this address",
   "error_notfound_heading_no_record": "The Rift has no record of this",
+  "error_notfound_card_browse_all": "Browse all cards",
   "error_notfound_subtext_gone": "Whatever was here, it's gone now.",
   "error_notfound_subtext_double_check": "Double-check the URL or head back to safety.",
   "error_notfound_subtext_no_set": "This page isn't in any set we know of.",
@@ -476,7 +462,6 @@
   "error_hide_details": "Hide details",
   "error_show_details": "Show details",
   "error_go_home": "Go home",
-  "error_reshuffle": "Reshuffle",
   "shared_preparing": "Preparing…",
   "shared_open_cardmarket": "Open Cardmarket",
   "shared_open_cardtrader": "Open CardTrader",
@@ -516,6 +501,39 @@
   "palette_group_help": "Help",
   "auth_login_title": "Welcome back",
   "auth_login_subtitle": "Sign in to your OpenRift account",
+  "auth_destination_collections_title": "Sign in to open your collection",
+  "auth_destination_collections_perk_copies": "Track every copy you own, down to the printing and its condition.",
+  "auth_destination_collections_perk_lists": "Keep wishlists and tradelists, and share them by link.",
+  "auth_destination_collections_perk_scan": "Add cards to a collection by holding them up to your camera.",
+  "auth_destination_scan_title": "Sign in to add your scanned cards to a collection",
+  "auth_destination_scan_perk_add": "Hold cards up to your camera, then add them all to a collection in one go.",
+  "auth_destination_scan_perk_device": "Cards are recognised on your device.",
+  "auth_destination_scan_perk_owned": "Each scanned card shows how many copies you already own.",
+  "auth_destination_groups_title": "Sign in to open your groups",
+  "auth_destination_groups_perk_invite": "Start a group and send friends an invite link.",
+  "auth_destination_groups_perk_share": "Share collections and lists with the group.",
+  "auth_destination_groups_perk_matches": "See who in the group has cards from your wishlist up for trade.",
+  "auth_destination_trades_title": "Sign in to trade cards",
+  "auth_destination_trades_perk_groups": "Trade with the people in your groups.",
+  "auth_destination_trades_perk_matches": "Find trades where your wishlist meets their tradelist.",
+  "auth_destination_trades_perk_requests": "Send trade requests and confirm swaps.",
+  "auth_destination_loans_title": "Sign in to keep track of lent cards",
+  "auth_destination_loans_perk_lent": "Note which cards you lent and to whom, even to friends without an account.",
+  "auth_destination_loans_perk_returned": "Mark cards as returned when they come back.",
+  "auth_destination_loans_perk_borrowed": "See the cards you are borrowing from others.",
+  "auth_destination_tournaments_title": "Sign in to run tournaments",
+  "auth_destination_tournaments_perk_pairings": "Pair players in Swiss rounds or in pods.",
+  "auth_destination_tournaments_perk_decklists": "Collect decklists before the event.",
+  "auth_destination_tournaments_perk_judges": "Add judges to help run the event.",
+  "auth_destination_tier_lists_title": "Sign in to make tier lists",
+  "auth_destination_tier_lists_perk_rank": "Rank cards on a drag-and-drop board.",
+  "auth_destination_tier_lists_perk_save": "Save your lists and come back to them.",
+  "auth_destination_tier_lists_perk_share": "Share a list by link or download it as an image.",
+  "auth_destination_contribute_title": "Sign in to contribute card data",
+  "auth_destination_contribute_perk_cards": "Submit missing cards and printings.",
+  "auth_destination_contribute_perk_fixes": "Send corrections and card images.",
+  "auth_destination_contribute_perk_review": "Follow each submission until it has been reviewed.",
+  "auth_destination_no_account": "No account needed to {#cards}browse cards{/cards} or {#decks}build decks{/decks}. Decks built without an account stay on this device.",
   "auth_login_no_account": "Don't have an account?",
   "auth_login_submit": "Sign in",
   "auth_signing_in": "Signing in…",
@@ -1240,6 +1258,8 @@
   "collections_cell_choose_variant": "Choose variant for {name}",
   "collections_cell_remove": "Remove {name}",
   "collections_cell_take_copy_of": "Take a copy of {name}",
+  "collections_toast_took_one": "Took {name}",
+  "collections_toast_took_many": "Took {count}× {name}",
   "collections_cell_variants_and_collections": "Variants and collections for {name}",
   "collections_drag_cards_plural": [
     {
@@ -1588,6 +1608,7 @@
   "collections_copies_links_label": "Photos & videos",
   "collections_copies_link_title_placeholder": "Label",
   "collections_copies_network_error": "Can't reach the server. Check your connection.",
+  "collections_copies_trade_cancel_stopped": "Stopped after {done} of {total} cards to keep your trades. The rest are unchanged.",
   "collections_copies_signed_out": "Cannot add copies while signed out",
   "collections_copies_quick_scope_move": "Move",
   "collections_copies_quick_scope_add": "Add to {collection}",
@@ -3571,6 +3592,18 @@
   "rules_stat_version": "version",
   "rules_stat_languages": "languages",
   "rules_stat_published": "published",
+  "rules_facts_version": "Version {version}",
+  "rules_facts_published": "Published {date}",
+  "rules_facts_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} language",
+        "countPlural=*": "{count} languages"
+      }
+    }
+  ],
   "rules_changes_off": "Off",
   "rules_changes_inline": "Inline",
   "rules_changes_side": "Side by side",
@@ -4694,6 +4727,21 @@
   "trades_accept_all": "Accept all ({count})",
   "trades_accept_all_confirm_title": "Accept all {count} requests from {name}?",
   "trades_accept_all_confirm_description": "Each accepted request reserves your copies for the swap. You can still cancel individual trades afterwards.",
+  "trades_cancel_consent_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Cancel {count} pending trade?",
+        "countPlural=*": "Cancel {count} pending trades?"
+      }
+    }
+  ],
+  "trades_cancel_consent_description": "After this change, the tradelists you share no longer cover these trades, so they are cancelled.",
+  "trades_cancel_consent_line": "{count}× {card} for {name}",
+  "trades_cancel_consent_more": "and {count} more",
+  "trades_cancel_consent_confirm": "Cancel trades",
+  "trades_cancel_consent_keep": "Keep trades",
   "trades_settle_adds_to": "Adds {count} to",
   "trades_settle_removes": "Removes {count} from your collection",
   "trades_settle_partial_failure": "Some cards could not be settled. The rest went through.",
@@ -5280,13 +5328,14 @@
   "contribute_status_hint_pending": "Someone will look at this by hand. That can take a while.",
   "contribute_status_hint_accepted": "Your details are in the catalogue. Thank you.",
   "contribute_status_hint_already_correct": "The catalogue already matched everything you sent.",
+  "contribute_status_hint_not_used": "We did not use this one. Thank you for sending it in.",
   "contribute_kind_new_card": "New card",
   "contribute_kind_correction": "Correction",
   "contribute_kind_image": "Image",
   "contribute_reason_duplicate": "Someone had already sent this one in.",
   "contribute_reason_already_correct": "The catalogue already had these details.",
   "contribute_reason_unverified": "We could not confirm this against a source, so we left the card as it was.",
-  "contribute_reason_not_a_card": "This did not look like a real Riftbound card.",
+  "contribute_reason_not_a_card": "This does not appear to be an official Riftbound card.",
   "contribute_reason_bad_image": "The image was not usable, usually because of its size, angle, or quality.",
   "contribute_reason_other": "We could not apply this one; the note below says why.",
   "contribute_reason_label_duplicate": "Already submitted",
@@ -6834,6 +6883,7 @@
   "tournaments_list_no_upcoming": "No upcoming tournaments. Create one, or join an event through its registration link.",
   "tournaments_overview_also_coming_up": "Also coming up",
   "tournaments_overview_past_events": "Past events",
+  "tournaments_overview_show_older_events": "Show older events",
   "help_chat_commands_intro": "Add one command to your chat bot and viewers can look up any Riftbound card without leaving chat. They type {#code}!card Jinx{/code} and the bot answers with the card and a link to its page. If nothing matches, the reply links to a card search for what they typed, so even a typo lands somewhere useful.",
   "help_chat_commands_pick_heading": "Pick your bot",
   "help_chat_commands_pick_intro": "Each line below is pasted verbatim, either into your own chat as a moderator or into the bot's dashboard. Nothing to install and no account needed.",
@@ -7168,8 +7218,8 @@
   "help_deck_building_rules_champion_detail": "Exactly 1 champion that shares a tag with your legend",
   "help_deck_building_rules_runes_detail": "Exactly 12 runes, all matching the legend's domains",
   "help_deck_building_rules_battlefield_detail": "Exactly 3 unique battlefields",
-  "help_deck_building_rules_main_detail": "Exactly 39 cards, plus the champion for a total of 40. Max 3 copies of any card. Max 3 Signature cards total, all sharing a Champion tag with the legend. All card domains must be within the legend's domains or colorless.",
-  "help_deck_building_rules_sideboard_detail": "Up to 8 cards. Copy limits are shared with the main deck (e.g. if you have 2 copies of a card in main, you can only have 1 more in the sideboard).",
+  "help_deck_building_rules_main_detail": "Exactly 39 cards, plus the champion for a total of 40. Max 3 copies of any card across the main deck, sideboard and Chosen Champion. Max 3 Signature cards total, all sharing a Champion tag with the legend. All card domains must be within the legend's domains or colorless.",
+  "help_deck_building_rules_sideboard_detail": "Up to 10 cards. Copy limits are shared with the main deck and the Chosen Champion (e.g. if you have 2 copies of a card in main, you can only have 1 more in the sideboard).",
   "help_deck_building_rules_freeform": "In Freeform, none of these rules are enforced. Switch to Freeform to theorycraft, then back to Constructed to validate. The zone sidebar highlights violations per zone.",
   "help_deck_building_rules_custom_region": "Every card must belong to your chosen regions, one battlefield is played, there is no sideboard, and signature cards need their champion in the deck. Violations show up as you build.",
   "help_deck_building_runes_heading": "Rune auto-population",
@@ -7599,6 +7649,7 @@
   "pager_previous_page": "Previous page",
   "pager_next_page": "Next page",
   "meta_page_past_end": "This page is past the end of the results.",
+  "meta_page_first": "Go to the first page",
   "meta_events_per_page_aria": "Events per page",
   "meta_events_per_page": "Show {size}",
   "meta_events_holdings_any": "All events",
@@ -8158,6 +8209,49 @@
   "meta_front_title": "Meta Archive",
   "meta_front_eyebrow": "Tournament results",
   "meta_front_lead": "Results through {date} from UVS Games, PlayLoLTCG and TopDeck.",
+  "meta_front_facts_through": "Results through {date}",
+  "meta_front_facts_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} archived event",
+        "countPlural=*": "{countFormatted} archived events"
+      }
+    }
+  ],
+  "meta_front_facts_player_results": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} player result",
+        "countPlural=*": "{countFormatted} player results"
+      }
+    }
+  ],
+  "meta_front_facts_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} decklist",
+        "countPlural=*": "{countFormatted} decklists"
+      }
+    }
+  ],
   "meta_front_empty_title": "No events archived yet",
   "meta_front_empty_description": "Tournament results land here as soon as they are entered.",
   "meta_front_add_event": "Add an event",
@@ -9298,6 +9392,11 @@
   "tournaments_group_redraw": "Re-draw groups",
   "tournaments_seat_editor_hint": "Drag a player onto another to swap their seats, within a group or between groups. Group sizes stay as drawn.",
   "tournaments_seat_editor_save": "Save groups",
+  "tournaments_pairing_editor_move_to": "Move to",
+  "tournaments_pairing_editor_move_label": "Move {name}",
+  "tournaments_seat_editor_swap_with": "Swap with",
+  "tournaments_seat_editor_swap_label": "Swap seat of {name}",
+  "tournaments_seat_editor_swap_seat": "Group {label}, seat {seat}",
   "tournaments_cut_edit_bracket_pairing": "Edit bracket pairing",
   "tournaments_cut_results_entered_hint": "Results are already entered for this round.",
   "tournaments_champion_label": "Champion",
@@ -9900,6 +9999,23 @@
   ],
   "trades_market_two_have": "{first} and {second} have it",
   "trades_market_want_count": "You want {count}",
+  "trades_match_wanted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} wanted",
+        "countPlural=*": "{count} wanted"
+      }
+    }
+  ],
+  "trades_match_variants": "{count} variants",
+  "trades_match_price": "Price",
+  "trades_match_they_pay": "They'd pay",
+  "trades_match_price_from": "from",
+  "trades_match_expand_variants": "Expand {card} variants",
+  "trades_match_collapse_variants": "Collapse {card} variants",
+  "trades_match_request_all": "Request all ({count})",
   "trades_market_empty_get": "No one in your groups has a card from your wishlists right now.",
   "trades_market_empty_give": "No one in your groups wants a card from your tradelists right now.",
   "trades_market_empty_buy": "Cards from your wishlists that no one in your groups has show up here.",

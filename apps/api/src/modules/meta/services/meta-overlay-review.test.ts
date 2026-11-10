@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Repos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { playerSourceKey } from "./ingest-meta-overlays.js";
 import {
@@ -11,6 +11,7 @@ import {
   linkMetaPlayerOverlay,
   listMetaUploadsForEvent,
   moveMetaEventOverlay,
+  rejectMetaOverlay,
   revertMetaUpload,
 } from "./meta-overlay-review.js";
 import { promoteMetaEvent, promoteNewEvent } from "./meta-promote.js";
@@ -64,6 +65,7 @@ const mockOverlays = {
 };
 
 const mockMeta = {
+  withPromoteLock: vi.fn((_key: string, run: (locked: Repos) => Promise<unknown>) => run(repos)),
   eventById: vi.fn(),
   mintedPlayerCounts: vi.fn(),
   playerById: vi.fn(),
@@ -77,6 +79,7 @@ const mockSubmissions = {
   byId: vi.fn(),
   byPlayerOverlayId: vi.fn(),
   recordAcceptance: vi.fn(),
+  resolve: vi.fn(),
 };
 
 const repos = {
@@ -86,7 +89,29 @@ const repos = {
   uvsgamesEvents: mockUvsgamesEvents,
 } as unknown as Repos;
 
+const transactions: { open: boolean; outcome?: "committed" | "rolled back" }[] = [];
+
+const transact: Transact = async (fn) => {
+  const transaction: (typeof transactions)[number] = { open: true };
+  transactions.push(transaction);
+  try {
+    const result = await fn(repos);
+    transaction.outcome = "committed";
+    return result;
+  } catch (error) {
+    transaction.outcome = "rolled back";
+    throw error;
+  } finally {
+    transaction.open = false;
+  }
+};
+
+function insideTransaction(): boolean {
+  return transactions.at(-1)?.open === true;
+}
+
 beforeEach(() => {
+  transactions.length = 0;
   vi.clearAllMocks();
   mockOverlays.eventOverlayById.mockResolvedValue(PROPOSAL);
   mockOverlays.reanchorPlayerOverlays.mockResolvedValue(0);
@@ -101,13 +126,13 @@ describe("moveMetaEventOverlay", () => {
   it("refuses an overlay that no longer exists", async () => {
     mockOverlays.eventOverlayById.mockResolvedValue(undefined);
 
-    await expect(moveMetaEventOverlay(repos, OVERLAY_ID, OTHER_EVENT_ID)).rejects.toMatchObject({
+    await expect(moveMetaEventOverlay(transact, OVERLAY_ID, OTHER_EVENT_ID)).rejects.toMatchObject({
       status: 404,
     });
   });
 
   it("refuses a person's overlay, which is a correction to one event", async () => {
-    await expect(moveMetaEventOverlay(repos, OVERLAY_ID, OTHER_EVENT_ID)).rejects.toMatchObject({
+    await expect(moveMetaEventOverlay(transact, OVERLAY_ID, OTHER_EVENT_ID)).rejects.toMatchObject({
       status: 400,
     });
     expect(mockOverlays.reanchorPlayerOverlays).not.toHaveBeenCalled();
@@ -117,7 +142,7 @@ describe("moveMetaEventOverlay", () => {
     mockOverlays.eventOverlayById.mockResolvedValue(UPLOAD);
     mockMeta.eventById.mockResolvedValue(undefined);
 
-    await expect(moveMetaEventOverlay(repos, OVERLAY_ID, OTHER_EVENT_ID)).rejects.toBeInstanceOf(
+    await expect(moveMetaEventOverlay(transact, OVERLAY_ID, OTHER_EVENT_ID)).rejects.toBeInstanceOf(
       AppError,
     );
     expect(mockOverlays.updateEventOverlay).not.toHaveBeenCalled();
@@ -126,7 +151,7 @@ describe("moveMetaEventOverlay", () => {
   it("writes nothing when the upload is already on the target", async () => {
     mockOverlays.eventOverlayById.mockResolvedValue(UPLOAD);
 
-    const result = await moveMetaEventOverlay(repos, OVERLAY_ID, UPLOAD.metaEventId);
+    const result = await moveMetaEventOverlay(transact, OVERLAY_ID, UPLOAD.metaEventId);
 
     expect(result).toEqual({ metaEventId: UPLOAD.metaEventId, created: false });
     expect(mockOverlays.updateEventOverlay).not.toHaveBeenCalled();
@@ -136,7 +161,7 @@ describe("moveMetaEventOverlay", () => {
   it("re-anchors the standings, keeps the status, and promotes both events", async () => {
     mockOverlays.eventOverlayById.mockResolvedValue(UPLOAD);
 
-    await moveMetaEventOverlay(repos, OVERLAY_ID, OTHER_EVENT_ID);
+    await moveMetaEventOverlay(transact, OVERLAY_ID, OTHER_EVENT_ID);
 
     expect(mockOverlays.reanchorPlayerOverlays).toHaveBeenCalledWith(
       "morpush",
@@ -155,7 +180,7 @@ describe("moveMetaEventOverlay", () => {
 
 describe("revertMetaUpload", () => {
   it("refuses a source key no upload was filed under", async () => {
-    await expect(revertMetaUpload(repos, "morpush", "mor-missing")).rejects.toMatchObject({
+    await expect(revertMetaUpload(transact, "morpush", "mor-missing")).rejects.toMatchObject({
       status: 404,
     });
   });
@@ -233,7 +258,7 @@ describe("acceptMetaEventOverlay", () => {
   it("leaves a proposal pending when minting its live event fails", async () => {
     vi.mocked(promoteNewEvent).mockRejectedValue(new Error("connection lost"));
 
-    await expect(acceptMetaEventOverlay(repos, OVERLAY_ID)).rejects.toThrow("connection lost");
+    await expect(acceptMetaEventOverlay(transact, OVERLAY_ID)).rejects.toThrow("connection lost");
 
     expect(mockOverlays.setEventOverlayStatus).not.toHaveBeenCalled();
     expect(mockOverlays.updateEventOverlay).not.toHaveBeenCalled();
@@ -246,7 +271,7 @@ describe("acceptMetaEventOverlay", () => {
       created: true,
     });
 
-    const result = await acceptMetaEventOverlay(repos, OVERLAY_ID);
+    const result = await acceptMetaEventOverlay(transact, OVERLAY_ID);
 
     expect(result).toEqual({
       metaEventId: "e0000000-0001-4000-a000-000000000001",
@@ -269,7 +294,7 @@ describe("acceptMetaEventOverlay", () => {
       format: "freeform",
     });
 
-    await acceptMetaEventOverlay(repos, OVERLAY_ID, OTHER_EVENT_ID);
+    await acceptMetaEventOverlay(transact, OVERLAY_ID, OTHER_EVENT_ID);
 
     expect(mockOverlays.updateEventOverlay).toHaveBeenCalledWith(
       OVERLAY_ID,
@@ -285,7 +310,7 @@ describe("acceptMetaEventOverlay", () => {
       format: "constructed",
     });
 
-    await acceptMetaEventOverlay(repos, OVERLAY_ID, OTHER_EVENT_ID);
+    await acceptMetaEventOverlay(transact, OVERLAY_ID, OTHER_EVENT_ID);
 
     expect(mockOverlays.updateEventOverlay).toHaveBeenCalledWith(
       OVERLAY_ID,
@@ -319,12 +344,14 @@ describe("acceptMetaEventOverlay on a tournament's proposal", () => {
   it("refuses when the event is no longer mirrored", async () => {
     mockUvsgamesEvents.byKey.mockResolvedValue(undefined);
 
-    await expect(acceptMetaEventOverlay(repos, OVERLAY_ID)).rejects.toMatchObject({ status: 404 });
+    await expect(acceptMetaEventOverlay(transact, OVERLAY_ID)).rejects.toMatchObject({
+      status: 404,
+    });
     expect(mockOverlays.updateEventOverlay).not.toHaveBeenCalled();
   });
 
   it("accepts it through the catalogue and keeps no claims", async () => {
-    const result = await acceptMetaEventOverlay(repos, OVERLAY_ID, null, NOW);
+    const result = await acceptMetaEventOverlay(transact, OVERLAY_ID, null, NOW);
 
     expect(result).toEqual({ metaEventId: LIVE_EVENT_ID, created: true });
     expect(acceptCatalogEvent).toHaveBeenCalledWith(
@@ -360,7 +387,7 @@ describe("acceptMetaEventOverlay on a tournament's proposal", () => {
       { id: "row-12", sourceIdentity: "u12" },
     ]);
 
-    await acceptMetaEventOverlay(repos, OVERLAY_ID, null, NOW);
+    await acceptMetaEventOverlay(transact, OVERLAY_ID, null, NOW);
 
     expect(mockOverlays.unanchoredPlayerOverlays).toHaveBeenCalledWith(LIVE_EVENT_ID, "tournament");
     expect(mockOverlays.linkPlayerOverlay).toHaveBeenCalledTimes(1);
@@ -401,12 +428,11 @@ describe("applyMetaEventCorrection", () => {
 
   const lockUserSubmissions = vi.fn();
   const trxRepos = { ...repos, ingest: { lockUserSubmissions } } as unknown as Repos;
-  const transact = vi.fn((fn: (r: Repos) => Promise<unknown>) => fn(trxRepos));
+  const correctionTransact = vi.fn((fn: (r: Repos) => Promise<unknown>) => fn(trxRepos));
 
   function apply(fields: string[] | null = null) {
     return applyMetaEventCorrection(
-      transact as never,
-      repos,
+      correctionTransact as never,
       SUBMISSION_ID,
       { fields: fields as never, reviewedByUserId: ADMIN_ID },
       NOW,
@@ -427,7 +453,7 @@ describe("applyMetaEventCorrection", () => {
       playerCount: 32,
       country: "DE",
     });
-    expect(promoteMetaEvent).toHaveBeenCalledWith(repos, LIVE_EVENT_ID);
+    expect(promoteMetaEvent).toHaveBeenCalledWith(trxRepos, LIVE_EVENT_ID);
     expect(mockSubmissions.recordAcceptance).toHaveBeenCalledExactlyOnceWith({
       submissionId: SUBMISSION_ID,
       credit: { metaEventId: LIVE_EVENT_ID, metaEventPlayerId: null, userId: "user-7" },
@@ -534,7 +560,7 @@ describe("linkMetaPlayerOverlay", () => {
     mockOverlays.playerOverlayById.mockResolvedValue(playerOverlay());
     mockMeta.playerById.mockResolvedValue(liveRow);
 
-    await linkMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
+    await linkMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
 
     expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID, {
       claimedFields: ["championCardId", "listStatus", "cards"],
@@ -551,7 +577,7 @@ describe("linkMetaPlayerOverlay", () => {
     );
     mockMeta.playerById.mockResolvedValue(liveRow);
 
-    await linkMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
+    await linkMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
 
     const [, patch] = mockOverlays.updatePlayerOverlay.mock.calls[0] as [
       string,
@@ -566,7 +592,7 @@ describe("linkMetaPlayerOverlay", () => {
     );
     mockMeta.playerById.mockResolvedValue(liveRow);
 
-    await linkMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
+    await linkMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
 
     expect(mockOverlays.updatePlayerOverlay).not.toHaveBeenCalled();
   });
@@ -603,7 +629,7 @@ describe("acceptMetaPlayerOverlay", () => {
     });
     mockMeta.playerById.mockResolvedValue({ id: LIVE_PLAYER_ID, deckId: DECK_ID });
 
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { reviewedByUserId: ADMIN_ID });
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, { reviewedByUserId: ADMIN_ID });
 
     expect(mockSubmissions.recordAcceptance).toHaveBeenCalledWith({
       submissionId: "s0000000-0001-4000-a000-000000000001",
@@ -619,13 +645,13 @@ describe("acceptMetaPlayerOverlay", () => {
   });
 
   it("writes no ledger row for an upload nobody submitted", async () => {
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID);
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID);
 
     expect(mockSubmissions.recordAcceptance).not.toHaveBeenCalled();
   });
 
   it("accepts and promotes without touching the anchor when no row is named", async () => {
-    const result = await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID);
+    const result = await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID);
 
     expect(result).toEqual({ metaEventId: LIVE_EVENT_ID, created: false });
     expect(mockOverlays.linkPlayerOverlay).not.toHaveBeenCalled();
@@ -638,7 +664,9 @@ describe("acceptMetaPlayerOverlay", () => {
   });
 
   it("anchors to the named row first, then accepts and promotes once", async () => {
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { metaEventPlayerId: LIVE_PLAYER_ID });
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, {
+      metaEventPlayerId: LIVE_PLAYER_ID,
+    });
 
     expect(mockOverlays.linkPlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
     expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID, {
@@ -656,7 +684,7 @@ describe("acceptMetaPlayerOverlay", () => {
       claimedFields: ["playerName", "rank", "listStatus", "cards"],
     });
 
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { fields: ["cards"] });
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, { fields: ["cards"] });
 
     expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID, {
       claimedFields: ["listStatus", "cards"],
@@ -672,7 +700,7 @@ describe("acceptMetaPlayerOverlay", () => {
       claimedFields: ["rank", "listStatus", "cards"],
     });
 
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { fields: ["listStatus"] });
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, { fields: ["listStatus"] });
 
     expect(mockOverlays.updatePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID, {
       claimedFields: ["listStatus", "cards"],
@@ -681,7 +709,7 @@ describe("acceptMetaPlayerOverlay", () => {
   });
 
   it("writes nothing when the mask keeps every claim the overlay already had", async () => {
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { fields: ["playerName", "rank"] });
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, { fields: ["playerName", "rank"] });
 
     expect(mockOverlays.updatePlayerOverlay).not.toHaveBeenCalled();
     expect(mockOverlays.setPlayerOverlayStatus).toHaveBeenCalledTimes(1);
@@ -689,7 +717,7 @@ describe("acceptMetaPlayerOverlay", () => {
 
   it("refuses a mask that keeps no claim, since that is a reject", async () => {
     await expect(
-      acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { fields: ["wins"] }),
+      acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, { fields: ["wins"] }),
     ).rejects.toMatchObject({ status: 400 });
     expect(mockOverlays.setPlayerOverlayStatus).not.toHaveBeenCalled();
   });
@@ -700,7 +728,7 @@ describe("acceptMetaPlayerOverlay", () => {
       claimedFields: ["playerName", "rank", "listStatus", "cards"],
     });
 
-    await acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, {
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, {
       metaEventPlayerId: LIVE_PLAYER_ID,
       fields: ["cards", "rank"],
     });
@@ -717,7 +745,7 @@ describe("acceptMetaPlayerOverlay", () => {
     mockMeta.playerById.mockResolvedValue(undefined);
 
     await expect(
-      acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID, { metaEventPlayerId: LIVE_PLAYER_ID }),
+      acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID, { metaEventPlayerId: LIVE_PLAYER_ID }),
     ).rejects.toMatchObject({ status: 404 });
     expect(mockOverlays.setPlayerOverlayStatus).not.toHaveBeenCalled();
   });
@@ -729,7 +757,7 @@ describe("acceptMetaPlayerOverlay", () => {
       eventOverlayId: OVERLAY_ID,
     });
 
-    await expect(acceptMetaPlayerOverlay(repos, PLAYER_OVERLAY_ID)).rejects.toMatchObject({
+    await expect(acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID)).rejects.toMatchObject({
       status: 409,
     });
   });
@@ -767,7 +795,7 @@ describe("acceptMetaPlayerOverlays", () => {
   });
 
   it("accepts every row and promotes each touched event once", async () => {
-    const result = await acceptMetaPlayerOverlays(repos, [
+    const result = await acceptMetaPlayerOverlays(transact, [
       { id: FIRST, metaEventPlayerId: LIVE_PLAYER_ID },
       { id: SECOND, metaEventPlayerId: null },
       { id: THIRD, metaEventPlayerId: null },
@@ -782,7 +810,7 @@ describe("acceptMetaPlayerOverlays", () => {
 
   it("writes nothing when one id in the batch is unknown", async () => {
     await expect(
-      acceptMetaPlayerOverlays(repos, [
+      acceptMetaPlayerOverlays(transact, [
         { id: FIRST, metaEventPlayerId: null },
         { id: "c0000000-0001-4000-a000-0000000000ff", metaEventPlayerId: null },
       ]),
@@ -796,12 +824,138 @@ describe("acceptMetaPlayerOverlays", () => {
     stage({ [FIRST]: loose(FIRST, LIVE_EVENT_ID), [SECOND]: loose(SECOND, null) });
 
     await expect(
-      acceptMetaPlayerOverlays(repos, [
+      acceptMetaPlayerOverlays(transact, [
         { id: FIRST, metaEventPlayerId: null },
         { id: SECOND, metaEventPlayerId: null },
       ]),
     ).rejects.toMatchObject({ status: 409 });
 
     expect(mockOverlays.setPlayerOverlayStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe("review writers commit as one transaction", () => {
+  const SUBMISSION = { id: "s0000000-0001-4000-a000-000000000002", userId: "user-7" };
+  const SUBMITTED = {
+    id: PLAYER_OVERLAY_ID,
+    metaEventId: LIVE_EVENT_ID,
+    metaEventPlayerId: null,
+    eventOverlayId: null,
+    status: "pending",
+    claimedFields: ["playerName"],
+  };
+
+  function recordWhere(mock: { mockImplementation: (impl: () => Promise<void>) => unknown }) {
+    const inside: boolean[] = [];
+    mock.mockImplementation(() => {
+      inside.push(insideTransaction());
+      return Promise.resolve();
+    });
+    return inside;
+  }
+
+  beforeEach(() => {
+    mockOverlays.playerOverlayById.mockResolvedValue(SUBMITTED);
+    mockSubmissions.byPlayerOverlayId.mockResolvedValue({ ...SUBMISSION, status: "pending" });
+  });
+
+  it("rolls the player accept back, ledger untouched, when its promote throws", async () => {
+    const statusWrites = recordWhere(mockOverlays.setPlayerOverlayStatus);
+    vi.mocked(promoteMetaEvent).mockRejectedValueOnce(new Error("promote failed"));
+
+    await expect(acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID)).rejects.toThrow(
+      "promote failed",
+    );
+
+    expect(statusWrites).toEqual([true]);
+    expect(transactions).toEqual([{ open: false, outcome: "rolled back" }]);
+    expect(mockSubmissions.recordAcceptance).not.toHaveBeenCalled();
+  });
+
+  it("settles the ledger in the transaction that accepts and promotes", async () => {
+    const statusWrites = recordWhere(mockOverlays.setPlayerOverlayStatus);
+    const ledgerWrites = recordWhere(mockSubmissions.recordAcceptance);
+
+    await acceptMetaPlayerOverlay(transact, PLAYER_OVERLAY_ID);
+
+    expect(statusWrites).toEqual([true]);
+    expect(ledgerWrites).toEqual([true]);
+    expect(promoteMetaEvent).toHaveBeenCalledWith(repos, LIVE_EVENT_ID);
+    expect(transactions).toEqual([{ open: false, outcome: "committed" }]);
+  });
+
+  it("rolls a bulk accept back whole when one event's promote throws", async () => {
+    const statusWrites = recordWhere(mockOverlays.setPlayerOverlayStatus);
+    vi.mocked(promoteMetaEvent).mockRejectedValueOnce(new Error("promote failed"));
+
+    await expect(
+      acceptMetaPlayerOverlays(transact, [{ id: PLAYER_OVERLAY_ID, metaEventPlayerId: null }]),
+    ).rejects.toThrow("promote failed");
+
+    expect(statusWrites).toEqual([true]);
+    expect(transactions).toEqual([{ open: false, outcome: "rolled back" }]);
+    expect(mockSubmissions.recordAcceptance).not.toHaveBeenCalled();
+  });
+
+  it("rolls an upload's accept back when its promote throws", async () => {
+    mockOverlays.eventOverlayById.mockResolvedValue(UPLOAD);
+    const statusWrites = recordWhere(mockOverlays.setEventOverlayStatus);
+    vi.mocked(promoteMetaEvent).mockRejectedValueOnce(new Error("promote failed"));
+
+    await expect(acceptMetaEventOverlay(transact, OVERLAY_ID)).rejects.toThrow("promote failed");
+
+    expect(statusWrites).toEqual([true]);
+    expect(transactions).toEqual([{ open: false, outcome: "rolled back" }]);
+  });
+
+  it("reads a proposal only under its lock, so a second accept finds the minted event", async () => {
+    vi.mocked(promoteNewEvent).mockResolvedValue({
+      metaEventId: LIVE_EVENT_ID,
+      slug: "summoner-skirmish",
+      created: true,
+    });
+
+    await acceptMetaEventOverlay(transact, OVERLAY_ID);
+
+    expect(mockMeta.withPromoteLock).toHaveBeenCalledWith(
+      `event-overlay:${OVERLAY_ID}`,
+      expect.any(Function),
+    );
+    expect(mockMeta.withPromoteLock.mock.invocationCallOrder[0]).toBeLessThan(
+      mockOverlays.eventOverlayById.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("resolves the submission behind a rejected row in the same transaction", async () => {
+    const resolves = recordWhere(mockSubmissions.resolve);
+
+    await rejectMetaOverlay(
+      transact,
+      { kind: "player", id: PLAYER_OVERLAY_ID },
+      { reason: "duplicate", note: null, resolvedByUserId: "admin-1" },
+    );
+
+    expect(resolves).toEqual([true]);
+    expect(mockSubmissions.resolve).toHaveBeenCalledWith(
+      SUBMISSION.id,
+      expect.objectContaining({
+        status: "rejected",
+        reason: "duplicate",
+        resolvedByUserId: "admin-1",
+      }),
+    );
+    expect(transactions).toEqual([{ open: false, outcome: "committed" }]);
+  });
+
+  it("leaves the submission pending when the reject's promote throws", async () => {
+    mockOverlays.playerOverlayById.mockResolvedValue({ ...SUBMITTED, status: "accepted" });
+    vi.mocked(promoteMetaEvent).mockRejectedValueOnce(new Error("promote failed"));
+
+    await expect(
+      rejectMetaOverlay(transact, { kind: "player", id: PLAYER_OVERLAY_ID }),
+    ).rejects.toThrow("promote failed");
+
+    expect(mockSubmissions.resolve).not.toHaveBeenCalled();
+    expect(transactions).toEqual([{ open: false, outcome: "rolled back" }]);
   });
 });

@@ -10,14 +10,12 @@ const DECK_ID = "e0000000-0000-4000-a000-00000000de01";
 const LIST_ID = "e1000000-0000-4000-a000-000000000e01";
 
 async function expectStatus(method: string, path: string, expected: number, body?: unknown) {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const res = await ctx!.app.fetch(req(method, path, body));
   expect(res.status).toBe(expected);
   return res;
 }
 
 describe.skipIf(!ctx)("Authorization: user isolation — CRUD factory (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = ctx!;
 
   describe("getOne", () => {

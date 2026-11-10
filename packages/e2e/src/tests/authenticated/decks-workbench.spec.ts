@@ -115,11 +115,11 @@ test.describe("deck builder beta", () => {
 
     await page
       .getByRole("group", { name: "Editor mode" })
-      .getByRole("button", { name: "Deck", exact: true })
+      .getByRole("button", { name: "View", exact: true })
       .click();
     await expect(deckColumn(page)).toBeHidden();
     await expect(page.getByRole("button", { name: "Add to deck" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Edit in Build" }).click();
+    await page.getByRole("button", { name: "Edit deck", exact: true }).click();
     await expect(deckColumn(page)).toBeVisible();
 
     await page.context().close();

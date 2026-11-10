@@ -41,7 +41,6 @@ export function PrintingLabel({
     <span>
       {pairName !== undefined && <span className="mr-1 font-sans">{pairName}</span>}
       {parts.map((part, index) => (
-        // oxlint-disable-next-line react/no-array-index-key -- the parts are positional
         <Fragment key={index}>
           {index > 0 && ":"}
           <span className={partClasses[index]}>{part}</span>

@@ -46,12 +46,15 @@ export function GenerateGroupsBand({
   }
 
   async function skipLegendTiebreak() {
-    await runReportedMutation(() =>
-      updateTournament
-        .mutateAsync({ id, legendTiebreak: false })
-        .then(() => generateRound.mutateAsync({ id })),
-    );
-    setCheckOpen(false);
+    if (
+      await runReportedMutation(() =>
+        updateTournament
+          .mutateAsync({ id, legendTiebreak: false })
+          .then(() => generateRound.mutateAsync({ id })),
+      )
+    ) {
+      setCheckOpen(false);
+    }
   }
 
   function handleGenerate() {

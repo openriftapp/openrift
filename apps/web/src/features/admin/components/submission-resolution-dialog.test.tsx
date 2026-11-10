@@ -13,7 +13,6 @@ vi.mock("@/features/admin/hooks/use-admin-card-submissions", () => ({
   useSetSubmissionResolution: () => ({ mutateAsync: captured.setResolution, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { SubmissionResolutionDialog } from "./submission-resolution-dialog";
 
 describe("SubmissionResolutionDialog", () => {
@@ -30,7 +29,7 @@ describe("SubmissionResolutionDialog", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Reject submission");
     expect(dialog).toHaveTextContent(
-      "They will read: This did not look like a real Riftbound card.",
+      "They will read: This does not appear to be an official Riftbound card.",
     );
   });
 
@@ -116,6 +115,22 @@ describe("SubmissionResolutionDialog", () => {
     await user.type(screen.getByLabelText("Your own words (optional)"), "Blurry photo.");
     expect(within(dialog).getByRole("button", { name: "Reject" })).toBeDisabled();
     expect(captured.setResolution).not.toHaveBeenCalled();
+  });
+
+  it("blocks reject with the other reason until a note says why", async () => {
+    const user = userEvent.setup();
+    render(
+      <SubmissionResolutionDialog candidateCardId="cand-1" mode="reject" onOpenChange={vi.fn()} />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await user.click(screen.getByLabelText("Reason"));
+    await user.click(await screen.findByRole("option", { name: "Other" }));
+    expect(within(dialog).getByRole("button", { name: "Reject" })).toBeDisabled();
+
+    await user.type(screen.getByLabelText("Your own words (optional)"), "Wrong set.");
+    await user.click(screen.getByLabelText("Reason"));
+    await user.click(await screen.findByRole("option", { name: "Other" }));
+    expect(within(dialog).getByRole("button", { name: "Reject" })).toBeEnabled();
   });
 
   it("stays closed until a candidate is passed", () => {

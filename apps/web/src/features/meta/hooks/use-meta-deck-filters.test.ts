@@ -13,7 +13,6 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useMetaDeckFilters } from "./use-meta-deck-filters";
 
 function resultingSearch(): Record<string, unknown> {

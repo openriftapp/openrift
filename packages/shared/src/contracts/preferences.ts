@@ -55,11 +55,10 @@ const completionScopeFields = {
   customTagsExclude: z.array(z.string()).optional(),
   promos: z.enum(["only", "exclude"]).optional(),
   signed: z.boolean().optional(),
+  overnumbered: z.boolean().optional(),
   banned: z.boolean().optional(),
   errata: z.boolean().optional(),
 };
-
-const completionScopeWriteSchema = z.object(completionScopeFields);
 
 export const updatePreferencesSchema = z.object({
   showImages: z.boolean().nullable().optional(),
@@ -80,7 +79,7 @@ export const updatePreferencesSchema = z.object({
     .refine((arr) => new Set(arr).size === arr.length, { message: "Duplicate languages" })
     .nullable()
     .optional(),
-  completionScope: completionScopeWriteSchema.nullable().optional(),
+  completionScope: z.unknown().optional(),
   defaultCardView: defaultCardViewEnum.nullable().optional(),
   defaultCurrency: currencySchema.nullable().optional(),
   hiddenFilterSections: z
@@ -111,7 +110,6 @@ export const userPreferencesResponseSchema = z.object({
   displayLocale: displayLocaleEnum.optional(),
   marketplaceOrder: z.array(marketplaceEnum).min(1).optional(),
   languages: z.array(z.string()).optional(),
-  completionScope: completionScopePreferenceSchema.optional(),
   defaultCardView: z.enum(["cards", "printings"]).optional(),
   defaultCurrency: z.enum(["EUR", "USD"]).optional(),
   topLevelFilters: z.array(z.string()).optional(),

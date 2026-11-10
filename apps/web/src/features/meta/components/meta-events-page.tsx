@@ -1,4 +1,4 @@
-import { META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
+import { META_PAGE_SIZES } from "@openrift/shared/meta-query";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { getRouteApi } from "@tanstack/react-router";
 import { TrophyIcon } from "lucide-react";

@@ -47,7 +47,7 @@ export const friendGroupsMembersRouter = {
     // After the commit and outside the transaction: approval is otherwise
     // silent, and the service swallows its own errors so a mail failure can
     // never fail an approval that already landed.
-    await context.services.notifyMemberOfGroupApproval(context.repos, {
+    void context.services.notifyMemberOfGroupApproval(context.repos, {
       groupId: group.id,
       groupSlug: group.slug,
       groupName: group.name,

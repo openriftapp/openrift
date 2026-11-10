@@ -47,6 +47,7 @@ function facets(overrides: Partial<MetaDeckFacetsResponse> = {}): MetaDeckFacets
 function renderControls(
   facetData: MetaDeckFacetsResponse,
   filters: Partial<MetaDeckFilterState> = {},
+  cost: MetaDeckCostFilterData = COST,
 ) {
   setLegends.mockReset();
   filterState.value = {
@@ -73,7 +74,7 @@ function renderControls(
     setIncludeSideboard: vi.fn(),
     ...filters,
   } as MetaDeckFilterState & Record<string, unknown>;
-  return render(<MetaDeckFilterControls facets={facetData} eras={ERAS} cost={COST} />);
+  return render(<MetaDeckFilterControls facets={facetData} eras={ERAS} cost={cost} />);
 }
 
 describe("MetaDeckFilterControls", () => {
@@ -103,5 +104,17 @@ describe("MetaDeckFilterControls", () => {
     expect(
       screen.getAllByRole("combobox").some((element) => element.textContent?.includes("event-1")),
     ).toBe(true);
+  });
+
+  it("offers no clear-all for a cost bound a signed-out reader cannot be measured against", () => {
+    renderControls(facets(), { maxCost: 0 });
+
+    expect(screen.queryByRole("button", { name: "Clear all filters" })).toBeNull();
+  });
+
+  it("offers clear-all for a cost bound once the collection is in", () => {
+    renderControls(facets(), { maxCost: 0 }, { ...COST, withCollection: true });
+
+    expect(screen.getByRole("button", { name: "Clear all filters" })).toBeInTheDocument();
   });
 });

@@ -29,7 +29,6 @@ vi.mock("@/hooks/use-enums", () => ({
   useLanguageColors: () => ({}),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PrintingRowContent, PrintingVariantLine } from "./printing-row";
 
 describe("PrintingVariantLine", () => {

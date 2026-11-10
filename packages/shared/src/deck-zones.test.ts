@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { battlefieldCapFor, RUNE_TARGET } from "./deck-rules.js";
 import {
   deckIdentityCard,
   isCountedZone,
@@ -75,6 +76,15 @@ describe("zoneExpected", () => {
       zoneExpected(WellKnown.deckZone.LEGEND_OPTIONS, "constructed", [option]),
     ).toBeUndefined();
     expect(zoneExpected(WellKnown.deckZone.LEGEND_OPTIONS, "constructed")).toBeUndefined();
+  });
+
+  it("targets the same battlefield and rune counts the rule engine enforces", () => {
+    for (const format of [WellKnown.deckFormat.CONSTRUCTED, WellKnown.deckFormat.CUSTOM_REGION]) {
+      expect(zoneExpected(WellKnown.deckZone.BATTLEFIELD, format)).toBe(battlefieldCapFor(format));
+      expect(zoneExpected(WellKnown.deckZone.RUNES, format)).toBe(RUNE_TARGET);
+    }
+    expect(battlefieldCapFor(WellKnown.deckFormat.CONSTRUCTED)).toBe(3);
+    expect(battlefieldCapFor(WellKnown.deckFormat.CUSTOM_REGION)).toBe(1);
   });
 });
 

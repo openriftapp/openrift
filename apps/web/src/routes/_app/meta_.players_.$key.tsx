@@ -1,5 +1,4 @@
-import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
-import type { MetaPlayerDetailResponse } from "@openrift/shared/types/api/meta";
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
@@ -26,17 +25,22 @@ import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
  * player table of its own, so the key is the source's and the page is whatever
  * the source published under it.
  */
+interface MetaPlayerHeadData {
+  name: string;
+  finishCount: number;
+}
+
 export const Route = createFileRoute("/_app/meta_/players_/$key")({
   validateSearch: metaScopeSearchSchema,
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/meta/players/${encodeURIComponent(params.key)}`;
-    const data = loaderData as MetaPlayerDetailResponse | undefined;
+    const data = loaderData as MetaPlayerHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Player", path, unlisted: true });
     }
-    const { name, finishes } = data;
-    const description = `${name} in the Riftbound meta archive: ${finishes.length} archived ${finishes.length === 1 ? "finish" : "finishes"}, the legends they brought, and the decklists they registered.`;
+    const { name, finishCount } = data;
+    const description = `${name} in the Riftbound meta archive: ${finishCount} archived ${finishCount === 1 ? "finish" : "finishes"}, the legends they brought, and the decklists they registered.`;
     return {
       ...seoHead({
         siteUrl,
@@ -53,7 +57,9 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
     };
   },
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, params, deps }): Promise<MetaPlayerDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params, deps }): Promise<MetaPlayerHeadData> => {
     try {
       const [player, sets] = await Promise.all([
         context.queryClient.query({ ...metaPlayerQueryOptions(params.key), staleTime: "static" }),
@@ -68,7 +74,7 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
         }),
         staleTime: "static",
       });
-      return player;
+      return { name: player.name, finishCount: player.finishes.length };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

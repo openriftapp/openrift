@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Bun-side adapter for the shared embedding module (packages/shared/src/scan):
  * opens the ONNX vision encoder from https://huggingface.co/Xenova/mobileclip_s0

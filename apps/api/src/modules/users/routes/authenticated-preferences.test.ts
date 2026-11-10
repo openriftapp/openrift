@@ -17,9 +17,7 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  // oxlint-disable-next-line no-explicit-any -- test stub doesn't match full types
   c.set("user", { id: USER_ID } as any);
-  // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   c.set("repos", { userPreferences: mockRepo } as any);
   await next();
 });
@@ -67,7 +65,7 @@ describe("GET /api/v1/preferences", () => {
     expect(json).toEqual({});
   });
 
-  it("returns languages and completionScope when stored", async () => {
+  it("returns stored languages and leaves out the retired completionScope", async () => {
     const storedPrefs = {
       languages: ["en", "de"],
       completionScope: { sets: ["set-a"], promos: "exclude", signed: true },
@@ -76,8 +74,7 @@ describe("GET /api/v1/preferences", () => {
     const res = await app.request("/api/v1/preferences");
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json.languages).toEqual(["en", "de"]);
-    expect(json.completionScope).toEqual({ sets: ["set-a"], promos: "exclude", signed: true });
+    expect(json).toEqual({ languages: ["en", "de"] });
   });
 
   it("drops a stored value the response schema rejects and keeps the rest", async () => {
@@ -94,7 +91,7 @@ describe("GET /api/v1/preferences", () => {
   it("drops a nested value the response schema rejects", async () => {
     mockRepo.getByUserId.mockResolvedValue({
       userId: USER_ID,
-      data: { completionScope: { promos: "sometimes" }, languages: ["en"] },
+      data: { emailNotifications: { tradeMatches: "yes" }, languages: ["en"] },
     });
     const res = await app.request("/api/v1/preferences");
     expect(res.status).toBe(200);
@@ -215,13 +212,8 @@ describe("PATCH /api/v1/preferences", () => {
     expect(res.status).toBe(200);
   });
 
-  it("persists languages and completionScope instead of stripping them", async () => {
-    const completionScope = {
-      sets: ["set-a"],
-      languages: ["en"],
-      promos: "only",
-      banned: false,
-    };
+  it("accepts an older client's completionScope and clears the stored one", async () => {
+    const completionScope = { sets: ["set-a"], promos: "only", banned: false };
     mockRepo.upsert.mockResolvedValue({ languages: ["en"], completionScope });
     const res = await app.request("/api/v1/preferences", {
       method: "PATCH",
@@ -229,18 +221,33 @@ describe("PATCH /api/v1/preferences", () => {
       body: JSON.stringify({ languages: ["en"], completionScope }),
     });
     expect(res.status).toBe(200);
-    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, { languages: ["en"], completionScope });
+    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, {
+      languages: ["en"],
+      completionScope: null,
+    });
     const json = await readJson(res);
-    expect(json.completionScope).toEqual(completionScope);
+    expect(json).toEqual({ languages: ["en"] });
   });
 
-  it("rejects an invalid completionScope.promos value", async () => {
+  it("accepts a completionScope shape the old schema rejected", async () => {
+    mockRepo.upsert.mockResolvedValue({});
     const res = await app.request("/api/v1/preferences", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completionScope: { promos: "sometimes" } }),
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, { completionScope: null });
+  });
+
+  it("does not touch the stored completionScope when the key is absent", async () => {
+    mockRepo.upsert.mockResolvedValue({ showImages: false });
+    await app.request("/api/v1/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ showImages: false }),
+    });
+    expect(mockRepo.upsert).toHaveBeenCalledWith(USER_ID, { showImages: false });
   });
 });
 
@@ -252,7 +259,11 @@ describe("preferences read/write schema parity", () => {
       await import("@openrift/shared/contracts/preferences");
 
     // Retired preferences stay writable so clients can still send `null` to clear them.
-    const retiredWriteOnlyKeys = new Set(["hiddenFilterSections", "compactFilterView"]);
+    const retiredWriteOnlyKeys = new Set([
+      "hiddenFilterSections",
+      "compactFilterView",
+      "completionScope",
+    ]);
 
     const writeKeys = Object.keys(updatePreferencesSchema.shape).filter(
       (key) => !retiredWriteOnlyKeys.has(key),

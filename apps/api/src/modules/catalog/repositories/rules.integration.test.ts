@@ -11,7 +11,6 @@ import { rulesRepo } from "./rules.js";
 const ctx = createDbContext("a0000000-0044-4000-a000-000000000001");
 
 describe.skipIf(!ctx)("rulesRepo (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = rulesRepo(db);
 

@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import { metaDeckCosts } from "./meta-deck-collection";
 import type { MetaDeckFilterValues } from "./meta-deck-filters";
 import {
+  effectiveDeckSort,
   filterDecksByCost,
   groupDecksByEvent,
   hasActiveMetaDeckFilters,
   metaDeckQueryFromFilters,
+  metaDeckSortPresets,
   nextDeckSort,
   sortMetaDecks,
 } from "./meta-deck-filters";
@@ -236,6 +238,34 @@ describe("nextDeckSort", () => {
       sort: "cost",
       direction: "asc",
     });
+  });
+});
+
+describe("effectiveDeckSort", () => {
+  it("keeps the cost sort for a reader with a collection", () => {
+    expect(effectiveDeckSort("cost", "asc", true)).toEqual({ sort: "cost", direction: "asc" });
+  });
+
+  it("falls back to newest first for a cost sort without a collection", () => {
+    expect(effectiveDeckSort("cost", "asc", false)).toEqual({ sort: "date", direction: "desc" });
+  });
+
+  it("keeps every other sort without a collection", () => {
+    expect(effectiveDeckSort("value", "desc", false)).toEqual({ sort: "value", direction: "desc" });
+    expect(effectiveDeckSort("finish", "asc", false)).toEqual({ sort: "finish", direction: "asc" });
+  });
+});
+
+describe("metaDeckSortPresets", () => {
+  it("offers the cheapest-to-complete order with a collection", () => {
+    expect(metaDeckSortPresets().some((preset) => preset.sort === "cost")).toBe(true);
+    expect(metaDeckSortPresets(true)).toHaveLength(6);
+  });
+
+  it("leaves the cost order out without a collection", () => {
+    const presets = metaDeckSortPresets(false);
+    expect(presets.some((preset) => preset.sort === "cost")).toBe(false);
+    expect(presets).toHaveLength(5);
   });
 });
 describe("filterDecksByCost", () => {

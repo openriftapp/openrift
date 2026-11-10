@@ -1,4 +1,4 @@
-import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
+import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import { describe, expect, it } from "vitest";
 
 import type { EraSet } from "./meta-scope";

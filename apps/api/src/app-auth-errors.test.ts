@@ -40,14 +40,12 @@ function buildApp(toThrow: unknown) {
     },
     $Infer: { Session: { user: null, session: null } },
   };
-  // oxlint-disable -- test mocks don't match full types
   return createApp({
     db: {} as any,
     auth: auth as any,
     config: baseMockConfig as any,
     log: createLogger("test", "silent"),
   });
-  // oxlint-enable
 }
 
 async function fetchWithKey(app: ReturnType<typeof buildApp>, path: string): Promise<Response> {

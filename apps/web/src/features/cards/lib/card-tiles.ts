@@ -9,6 +9,10 @@ export function splitsCardIntoTiles(groupBy: GroupByField): boolean {
   return groupBy === "set" || groupBy === "rarity";
 }
 
+export function selectionFindBy(view: string, groupBy: GroupByField): "card" | "printing" {
+  return view === "cards" && !splitsCardIntoTiles(groupBy) ? "card" : "printing";
+}
+
 /**
  * Single source of truth for how a card collapses into tiles in "cards"
  * view. Every surface that does so (catalog, decks, lists, collections, the

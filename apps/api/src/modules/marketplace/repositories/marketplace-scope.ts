@@ -28,6 +28,7 @@ export interface ScopeFilter {
   customTagsPresence?: "any" | "none";
   promos?: "only" | "exclude";
   signed?: boolean;
+  overnumbered?: boolean;
   banned?: boolean;
   errata?: boolean;
   standard?: boolean;

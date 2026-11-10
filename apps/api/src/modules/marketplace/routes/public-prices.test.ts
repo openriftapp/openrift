@@ -15,7 +15,6 @@ const mockCatalogRepo = {
 const mockMarketplaceRepo = {
   latestPrices: vi.fn(() => Promise.resolve([] as object[])),
   latestPricesForPrintings: vi.fn((..._args: string[][]) => Promise.resolve([] as object[])),
-  sourcesForPrinting: vi.fn(() => Promise.resolve([] as object[])),
   sourcesForPrintings: vi.fn((..._args: Parameters<Repos["marketplace"]["sourcesForPrintings"]>) =>
     Promise.resolve([] as object[]),
   ),
@@ -123,9 +122,6 @@ describe("GET /api/v1/prices/:printingId", () => {
   beforeEach(() => {
     mockCatalogRepo.getPrintingById.mockReset().mockResolvedValue(dbPrinting);
     mockMarketplaceRepo.latestPricesForPrintings.mockReset().mockResolvedValue([dbPrice]);
-    mockMarketplaceRepo.sourcesForPrinting
-      .mockReset()
-      .mockResolvedValue([dbMarketplaceSource, dbMarketplaceSourceCM]);
     mockMarketplaceRepo.sourcesForPrintings
       .mockReset()
       .mockResolvedValue([dbMarketplaceSource, dbMarketplaceSourceCM]);
@@ -160,6 +156,19 @@ describe("GET /api/v1/prices/:printingId", () => {
     expect(json.cardnexus).toEqual({ ...UNAVAILABLE, currency: "EUR", price: null, snapshots: [] });
   });
 
+  it("charts the same product the link points at when a marketplace has two", async () => {
+    mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([
+      { ...dbMarketplaceSource, variantId: "ms-tcg-first", externalId: 111 },
+      { ...dbMarketplaceSource, variantId: "ms-tcg-second", externalId: 222 },
+    ]);
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
+    const json = await readJson(res);
+    expect(json.tcgplayer.productId).toBe(111);
+    expect(mockMarketplaceRepo.snapshots.mock.calls.map((call) => call[0])).toEqual([
+      "ms-tcg-first",
+    ]);
+  });
+
   it("returns 404 for an unknown printing", async () => {
     mockCatalogRepo.getPrintingById.mockResolvedValue(undefined);
     const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-ffffffffffff");
@@ -170,7 +179,6 @@ describe("GET /api/v1/prices/:printingId", () => {
   });
 
   it("returns unavailable marketplaces when no sources exist", async () => {
-    mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([]);
     mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([]);
     mockMarketplaceRepo.snapshots.mockResolvedValue([]);
     const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
@@ -213,7 +221,6 @@ describe("GET /api/v1/prices/:printingId", () => {
       printingId: PRINTING_A,
       language: "EN",
     };
-    mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([ctSource]);
     mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([ctSource]);
     mockMarketplaceRepo.snapshots.mockResolvedValue([
       { recordedAt: new Date("2026-03-01"), marketCents: null, zeroLowCents: null, lowCents: 150 },
@@ -237,7 +244,6 @@ describe("GET /api/v1/prices/:printingId", () => {
       printingId: PRINTING_A,
       language: "EN",
     };
-    mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([cnSource]);
     mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([cnSource]);
     mockMarketplaceRepo.snapshots.mockResolvedValue([
       { recordedAt: new Date("2026-10-01"), marketCents: null, lowCents: 37 },

@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,21 +34,26 @@ function fakeMutation(): FakeMutation {
 const mutations = {
   acceptCardField: fakeMutation(),
   check: fakeMutation(),
-  uncheck: fakeMutation(),
   acceptSubmission: fakeMutation(),
 };
 
+const serverFns = vi.hoisted(() => ({
+  acceptCardField: vi.fn((_input: unknown) => Promise.resolve()),
+  uncheckCandidateCard: vi.fn((_input: unknown) => Promise.resolve()),
+}));
+
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
+  acceptCardFieldFn: serverFns.acceptCardField,
+  uncheckCandidateCardFn: serverFns.uncheckCandidateCard,
   useAcceptCardField: () => mutations.acceptCardField,
   useCheckCandidateCard: () => mutations.check,
-  useUncheckCandidateCard: () => mutations.uncheck,
 }));
 
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: () => mutations.acceptSubmission,
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 
 const { primaryLabel, useCardRecordActions } = await import("./use-card-record-actions");
 
@@ -57,8 +64,10 @@ beforeEach(() => {
   resetStore = createStoreResetter(useWorkspaceSelectionStore);
   mutations.acceptCardField = fakeMutation();
   mutations.check = fakeMutation();
-  mutations.uncheck = fakeMutation();
   mutations.acceptSubmission = fakeMutation();
+  serverFns.acceptCardField.mockClear();
+  serverFns.uncheckCandidateCard.mockClear();
+  vi.mocked(toast.success).mockClear();
 });
 
 afterEach(() => {
@@ -84,45 +93,63 @@ function setup(sources: ReturnType<typeof makeCandidateCard>[], canCheck = true)
   const detail = makeAdminCardDetail({ card, sources });
   const submissions = buildAttentionSubmissions(detail, []);
   const model = buildCardSuggestions(detail, [], submissions);
-  return renderHook(() =>
-    useCardRecordActions({ cardSlug: "jinx", detail, model, submissions, canCheck }),
+  return renderHook(
+    () => useCardRecordActions({ cardSlug: "jinx", detail, model, submissions, canCheck }),
+    { wrapper },
   );
+}
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>;
+}
+
+function latest() {
+  return useWorkspaceSelectionStore.getState().undoStack.at(-1);
 }
 
 describe("useCardRecordActions", () => {
   it("Use writes the source value and pushes an undo that restores the old one", async () => {
     const { result } = setup([source({ might: 3 })]);
 
-    act(() => result.current.actions.useSuggestion?.(1));
+    act(() => {
+      void result.current.actions.useSuggestion?.(1);
+    });
 
     expect(mutations.acceptCardField.mutate).toHaveBeenCalledWith(
       { cardId: card.id, field: "might", value: 3, source: "provider" },
       expect.anything(),
     );
-    const entry = useWorkspaceSelectionStore.getState().popUndo();
-    await entry?.undo();
-    expect(mutations.acceptCardField.mutateAsync).toHaveBeenCalledWith({
-      cardId: card.id,
-      field: "might",
-      value: 4,
-      source: "manual",
+    expect(latest()?.label).toBe("Used Might from scans on Jinx, Demolitionist");
+    expect(latest()?.undoneLabel).toBe("Undone: Might restored on Jinx, Demolitionist");
+    await latest()?.undo();
+    expect(serverFns.acceptCardField).toHaveBeenCalledWith({
+      data: { cardId: card.id, field: "might", value: 4, source: "manual" },
     });
   });
 
   it("toast Undo removes its own entry, not the newest, and runs once", async () => {
     const { result } = setup([source({ might: 3 })]);
-    act(() => result.current.actions.useSuggestion?.(1));
+    act(() => {
+      void result.current.actions.useSuggestion?.(1);
+    });
     const [[, options]] = vi.mocked(toast.success).mock.calls.slice(-1) as unknown as [
       [string, { action: { onClick: () => void } }],
     ];
-    const later = { label: "Later step", undo: vi.fn(() => Promise.resolve()) };
+    const later = {
+      label: "Later step",
+      undoneLabel: "Undone: later step",
+      invalidates: [],
+      undo: vi.fn(() => Promise.resolve()),
+    };
     useWorkspaceSelectionStore.getState().pushUndo(later);
 
     options.action.onClick();
     options.action.onClick();
 
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([later]);
-    expect(mutations.acceptCardField.mutateAsync).toHaveBeenCalledOnce();
+    await vi.waitFor(() =>
+      expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([later]),
+    );
+    expect(serverFns.acceptCardField).toHaveBeenCalledOnce();
     expect(later.undo).not.toHaveBeenCalled();
   });
 
@@ -137,8 +164,11 @@ describe("useCardRecordActions", () => {
     act(() => result.current.discardSuggestion(first));
 
     expect(mutations.check.mutate).toHaveBeenCalledWith(row.id, expect.anything());
-    await useWorkspaceSelectionStore.getState().popUndo()?.undo();
-    expect(mutations.uncheck.mutateAsync).toHaveBeenCalledWith(row.id);
+    expect(latest()?.label).toBe("Discarded 2 suggestions on Jinx, Demolitionist");
+    await latest()?.undo();
+    expect(serverFns.uncheckCandidateCard).toHaveBeenCalledWith({
+      data: { candidateCardId: row.id },
+    });
   });
 
   it("Enter checks every open source row but never a contributor row", async () => {
@@ -155,6 +185,23 @@ describe("useCardRecordActions", () => {
       quiet.id,
     ]);
     expect(useWorkspaceSelectionStore.getState().undoStack).toHaveLength(1);
+    expect(latest()?.label).toBe("Discarded 1 suggestion on Jinx, Demolitionist");
+    await latest()?.undo();
+    expect(serverFns.uncheckCandidateCard.mock.calls.map((call) => call[0])).toEqual([
+      { data: { candidateCardId: changed.id } },
+      { data: { candidateCardId: quiet.id } },
+    ]);
+  });
+
+  it("pushes no entry when Enter's discard fails", async () => {
+    const { result } = setup([source({ might: 3 })]);
+    mutations.check.mutateAsync.mockRejectedValueOnce(new Error("offline"));
+
+    await act(async () => {
+      await expect(result.current.actions.primary?.run()).rejects.toThrow("offline");
+    });
+
+    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
   });
 
   it("disables Enter while a contributor proposal is open", () => {
@@ -206,7 +253,9 @@ describe("useCardRecordActions", () => {
     });
     const { result } = setup([submission]);
 
-    act(() => result.current.actions.useSuggestion?.(1));
+    act(() => {
+      void result.current.actions.useSuggestion?.(1);
+    });
 
     expect(mutations.acceptSubmission.mutate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -220,7 +269,9 @@ describe("useCardRecordActions", () => {
 
   it("ignores a hotkey with no suggestion", () => {
     const { result } = setup([source()]);
-    act(() => result.current.actions.useSuggestion?.(4));
+    act(() => {
+      void result.current.actions.useSuggestion?.(4);
+    });
     expect(mutations.acceptCardField.mutate).not.toHaveBeenCalled();
   });
 });

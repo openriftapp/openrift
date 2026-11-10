@@ -2,11 +2,11 @@ import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-wo
 import { useEffect, useEffectEvent, useRef } from "react";
 
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { WorkspaceKeyAction } from "@/features/catalog-workspace/lib/workspace-keys";
 import { SUGGESTION_KEYS, WORKSPACE_KEYS } from "@/features/catalog-workspace/lib/workspace-keys";
 import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { isTypingTarget } from "@/lib/keyboard-target";
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
@@ -18,7 +18,7 @@ export interface WorkspaceKeyDeps {
   goPrev: () => void;
   skipToEnd: () => void;
   actions: WorkspaceRecordActions | null;
-  popUndo: () => { undo: () => Promise<void> } | null;
+  undo: () => boolean;
   overlayOpen: () => boolean;
   busy: { current: boolean };
 }
@@ -75,9 +75,8 @@ async function runExclusive(
   busy.current = true;
   try {
     await task();
-  } catch (error) {
-    busy.current = false;
-    throw error;
+  } catch {
+    // The mutation's own error toast reports the failure.
   }
   busy.current = false;
 }
@@ -138,18 +137,17 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
       return true;
     }
     case "undo": {
-      const entry = deps.popUndo();
-      if (entry === null) {
-        return false;
-      }
-      void entry.undo();
-      return true;
+      return deps.undo();
     }
     case "use-suggestion": {
       if (actions?.useSuggestion === undefined || resolved.digit === undefined) {
         return false;
       }
-      actions.useSuggestion(resolved.digit);
+      if (!deps.busy.current) {
+        const apply = actions.useSuggestion;
+        const { digit } = resolved;
+        void runExclusive(deps.busy, () => apply(digit));
+      }
       return true;
     }
   }
@@ -161,6 +159,7 @@ function overlayOpen(): boolean {
 
 export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
   const navigation = useQueueNavigation(owner);
+  const { undoLatest } = useWorkspaceUndo();
   const busy = useRef(false);
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -169,7 +168,7 @@ export function useWorkspaceKeyboard(owner: WorkspaceOwner): void {
       goPrev: navigation.goPrev,
       skipToEnd: navigation.skipToEnd,
       actions: useWorkspaceActionsStore.getState().actions,
-      popUndo: () => useWorkspaceSelectionStore.getState().popUndo(),
+      undo: undoLatest,
       overlayOpen,
       busy,
     });

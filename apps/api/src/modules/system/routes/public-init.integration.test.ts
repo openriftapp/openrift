@@ -25,7 +25,6 @@ afterAll(async () => {
 });
 
 describe.skipIf(!ctx)("Init route (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = ctx!;
 
   it("returns 200 with enums and keywords", async () => {

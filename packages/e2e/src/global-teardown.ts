@@ -11,6 +11,7 @@ interface E2eState {
   databaseUrl: string;
   apiPid?: number;
   webPid?: number;
+  proxyPid?: number;
 }
 
 export default async function globalTeardown(_config: FullConfig) {
@@ -35,6 +36,15 @@ export default async function globalTeardown(_config: FullConfig) {
     try {
       process.kill(state.webPid, "SIGTERM");
       console.log(`[e2e] Stopped web server (pid ${state.webPid})`);
+    } catch {
+      // Process may have already exited
+    }
+  }
+
+  if (state.proxyPid) {
+    try {
+      process.kill(state.proxyPid, "SIGTERM");
+      console.log(`[e2e] Stopped local proxy (pid ${state.proxyPid})`);
     } catch {
       // Process may have already exited
     }

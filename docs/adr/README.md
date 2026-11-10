@@ -57,6 +57,7 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-040](040-per-section-admin-grants.md)**: Per-Section Admin Grants (extends ADR-032's binary admin role with section-scoped grants)
 - **[ADR-041](041-swiss-pairing-and-regions.md)**: Swiss 1v1 Pairing and Player Regions (amends ADR-033's pods-only pairing scope)
 - **[ADR-042](042-deck-variants.md)**: Deck Variants and Checkpoints
+- **[ADR-043](043-zod-mini-on-the-boot-path.md)**: zod/mini on the Boot Path, Classic zod Everywhere Else
 - **[ADR-044](044-overnumbered-as-a-flag.md)**: Overnumbered as a Printing Flag (moves `overnumbered` off ADR-008's `art_variant` enum)
 - **[ADR-046](046-layered-module-layout.md)**: Layered Module Layout with Lint-Enforced Import Direction
 - **[ADR-047](047-printing-desk.md)**: Printing Desk for Trusted Contributors
@@ -74,7 +75,6 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 
 - **[ADR-015](015-preconstructed-product-catalog.md)**: Preconstructed Product Catalog
 - **[ADR-039](039-card-lending.md)**: Card Lending Ledger
-- **[ADR-043](043-zod-mini-on-the-boot-path.md)**: zod/mini on the Boot Path, Classic zod Everywhere Else
 - **[ADR-045](045-borrowed-cards-in-deck-boxes.md)**: Borrowed Cards in Deck Boxes (undecided; placement rows vs. flagged copies)
 - **[ADR-048](048-cardmarket-stock-sync.md)**: Cardmarket Stock Sync through the Browser Extension
 - **[ADR-053](053-catalog-workspace.md)**: Catalog Workspace for Cards, Printings and Faces

@@ -109,6 +109,7 @@ describe("buildMissingSearch", () => {
       artVariants: ["full-art"],
       promos: "exclude",
       signed: true,
+      overnumbered: true,
       banned: false,
       errata: true,
     };
@@ -126,6 +127,7 @@ describe("buildMissingSearch", () => {
       artVariants: ["full-art"],
       markersPresence: "none",
       signed: true,
+      overnumbered: true,
       banned: false,
       errata: true,
       domains: ["fury"],

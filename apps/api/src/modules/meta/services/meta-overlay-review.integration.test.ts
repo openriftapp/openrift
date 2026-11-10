@@ -1,8 +1,8 @@
 import type { CardType } from "@openrift/shared/types/enums";
 import { afterAll, describe, expect, it } from "vitest";
 
-import type { Repos } from "../../../deps.js";
-import { createRepos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
+import { createRepos, createTransact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import {
   createDbContext,
@@ -42,6 +42,7 @@ const createdCardIds: string[] = [];
 const createdDeckIds: string[] = [];
 
 let repos: Repos;
+let transact: Transact;
 let otherAdminId: string;
 let sourceCardId: string;
 let addedCardId: string;
@@ -59,6 +60,7 @@ function takeShopId(): number {
 if (ctx) {
   const { db } = ctx;
   repos = createRepos(db);
+  transact = createTransact(db);
   const other = await seedTestUser(db, { isAdmin: true });
   otherAdminId = other.id;
   createdUserIds.push(other.id);
@@ -133,7 +135,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("overlay review", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = metaRepo(db);
 
@@ -253,13 +254,13 @@ describe.skipIf(!ctx)("overlay review", () => {
       const metaEventId = await seedLiveEvent("mor-merge-edits");
 
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [{ field: "organizer", value: "MOR Card Bazaar" }],
         META_ARCHIVE_USER_ID,
       );
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [
           { field: "location", value: "Zaun" },
@@ -286,13 +287,13 @@ describe.skipIf(!ctx)("overlay review", () => {
       const metaEventId = await seedLiveEvent("mor-two-admins");
 
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [{ field: "organizer", value: "MOR Card Bazaar" }],
         META_ARCHIVE_USER_ID,
       );
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [{ field: "location", value: "Piltover" }],
         otherAdminId,
@@ -313,7 +314,7 @@ describe.skipIf(!ctx)("overlay review", () => {
       expect(await repo.eventById(metaEventId)).toMatchObject({ organizer: "MOR Mirror Shop" });
 
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [{ field: "organizer", value: "MOR Admin Choice" }],
         META_ARCHIVE_USER_ID,
@@ -327,7 +328,7 @@ describe.skipIf(!ctx)("overlay review", () => {
 
       await expect(
         writeEventOverlayFields(
-          repos,
+          transact,
           metaEventId,
           [
             { field: "organizer", value: "MOR Card Bazaar" },
@@ -346,7 +347,7 @@ describe.skipIf(!ctx)("overlay review", () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-scalar");
 
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         { fields: { wins: 9 } },
         META_ARCHIVE_USER_ID,
@@ -361,13 +362,13 @@ describe.skipIf(!ctx)("overlay review", () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-merge");
 
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         { fields: { wins: 9 } },
         META_ARCHIVE_USER_ID,
       );
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         { fields: { losses: 2 } },
         META_ARCHIVE_USER_ID,
@@ -385,7 +386,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         await seedMirroredPlayer("mor-player-list");
 
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         {
           list: {
@@ -415,7 +416,7 @@ describe.skipIf(!ctx)("overlay review", () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-legend");
 
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         {
           list: {
@@ -439,7 +440,7 @@ describe.skipIf(!ctx)("overlay review", () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-no-list");
 
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         { list: null },
         META_ARCHIVE_USER_ID,
@@ -455,7 +456,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         await seedMirroredPlayer("mor-player-rename");
 
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         {
           list: {
@@ -489,7 +490,7 @@ describe.skipIf(!ctx)("overlay review", () => {
 
       await expect(
         writeMetaPlayerOverlayFields(
-          repos,
+          transact,
           metaEventPlayerId,
           {
             list: {
@@ -525,7 +526,7 @@ describe.skipIf(!ctx)("overlay review", () => {
 
       await expect(
         writeMetaPlayerOverlayFields(
-          repos,
+          transact,
           created?.metaEventPlayerId as string,
           { fields: { playerName: null } },
           META_ARCHIVE_USER_ID,
@@ -538,7 +539,7 @@ describe.skipIf(!ctx)("overlay review", () => {
     it("404s a standings row that no longer exists", async () => {
       await expect(
         writeMetaPlayerOverlayFields(
-          repos,
+          transact,
           crypto.randomUUID(),
           { fields: { wins: 1 } },
           META_ARCHIVE_USER_ID,
@@ -551,13 +552,13 @@ describe.skipIf(!ctx)("overlay review", () => {
     it("hands a scalar back to the source and deletes the emptied admin row", async () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-release");
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         { fields: { wins: 9 } },
         META_ARCHIVE_USER_ID,
       );
 
-      await releaseMetaPlayerOverlayField(repos, metaEventPlayerId, "wins");
+      await releaseMetaPlayerOverlayField(transact, metaEventPlayerId, "wins");
 
       expect(await repos.metaOverlays.acceptedPlayerOverlays(metaEventId)).toEqual([]);
       const [player] = await repo.rawStandingsForEvent(metaEventId);
@@ -567,13 +568,13 @@ describe.skipIf(!ctx)("overlay review", () => {
     it("re-attaches the source's deck when the list claim is handed back", async () => {
       const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-relist");
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         { list: null },
         META_ARCHIVE_USER_ID,
       );
 
-      await releaseMetaPlayerOverlayField(repos, metaEventPlayerId, "cards");
+      await releaseMetaPlayerOverlayField(transact, metaEventPlayerId, "cards");
 
       const [player] = await repo.rawStandingsForEvent(metaEventId);
       expect(player!.deckId).not.toBeNull();
@@ -585,7 +586,7 @@ describe.skipIf(!ctx)("overlay review", () => {
       const { metaEventId, metaEventPlayerId } =
         await seedMirroredPlayer("mor-player-release-both");
       await writeMetaPlayerOverlayFields(
-        repos,
+        transact,
         metaEventPlayerId,
         {
           fields: { wins: 9 },
@@ -594,7 +595,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         META_ARCHIVE_USER_ID,
       );
 
-      await releaseMetaPlayerOverlayField(repos, metaEventPlayerId, "listStatus");
+      await releaseMetaPlayerOverlayField(transact, metaEventPlayerId, "listStatus");
 
       const overlays = await repos.metaOverlays.acceptedPlayerOverlays(metaEventId);
       expect(overlays).toHaveLength(1);
@@ -618,7 +619,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         [],
       );
 
-      await releaseMetaPlayerOverlayField(repos, metaEventPlayerId, "wins");
+      await releaseMetaPlayerOverlayField(transact, metaEventPlayerId, "wins");
 
       expect(await repos.metaOverlays.playerOverlayById(overlayId)).toMatchObject({
         status: "rejected",
@@ -630,7 +631,7 @@ describe.skipIf(!ctx)("overlay review", () => {
 
     it("404s a standings row that no longer exists", async () => {
       await expect(
-        releaseMetaPlayerOverlayField(repos, crypto.randomUUID(), "wins"),
+        releaseMetaPlayerOverlayField(transact, crypto.randomUUID(), "wins"),
       ).rejects.toBeInstanceOf(AppError);
     });
   });
@@ -639,13 +640,13 @@ describe.skipIf(!ctx)("overlay review", () => {
     it("hands the field back to the source and deletes the emptied admin row", async () => {
       const metaEventId = await seedMirroredEvent("mor-release-to-source");
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [{ field: "organizer", value: "MOR Admin Choice" }],
         META_ARCHIVE_USER_ID,
       );
 
-      await releaseEventOverlayField(repos, metaEventId, "organizer");
+      await releaseEventOverlayField(transact, metaEventId, "organizer");
 
       expect(await repos.metaOverlays.acceptedEventOverlays(metaEventId)).toEqual([]);
       expect(await repo.eventById(metaEventId)).toMatchObject({ organizer: "MOR Mirror Shop" });
@@ -654,7 +655,7 @@ describe.skipIf(!ctx)("overlay review", () => {
     it("keeps the claims it did not release", async () => {
       const metaEventId = await seedLiveEvent("mor-release-one-of-two");
       await writeEventOverlayFields(
-        repos,
+        transact,
         metaEventId,
         [
           { field: "organizer", value: "MOR Card Bazaar" },
@@ -663,7 +664,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         META_ARCHIVE_USER_ID,
       );
 
-      await releaseEventOverlayField(repos, metaEventId, "organizer");
+      await releaseEventOverlayField(transact, metaEventId, "organizer");
 
       const overlays = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
       expect(overlays).toHaveLength(1);
@@ -686,7 +687,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         submittedByUserId: otherAdminId,
       });
 
-      await releaseEventOverlayField(repos, metaEventId, "organizer");
+      await releaseEventOverlayField(transact, metaEventId, "organizer");
 
       expect(await repos.metaOverlays.eventOverlayById(overlayId)).toMatchObject({
         status: "rejected",
@@ -714,7 +715,7 @@ describe.skipIf(!ctx)("overlay review", () => {
     it("leaves a proposal pending when it names too little to mint an event", async () => {
       const overlayId = await seedProposal("mor-incomplete", { organizer: "MOR Card Bazaar" });
 
-      await expect(acceptMetaEventOverlay(repos, overlayId)).rejects.toBeInstanceOf(AppError);
+      await expect(acceptMetaEventOverlay(transact, overlayId)).rejects.toBeInstanceOf(AppError);
 
       // The check runs before the status flip: an overlay marked accepted with
       // no live event behind it would never be re-offered for review.
@@ -746,7 +747,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         [],
       );
 
-      const result = await acceptMetaEventOverlay(repos, overlayId, metaEventId);
+      const result = await acceptMetaEventOverlay(transact, overlayId, metaEventId);
 
       expect(result).toEqual({ metaEventId, created: false });
       expect(await repos.metaOverlays.eventOverlayById(overlayId)).toMatchObject({
@@ -758,6 +759,97 @@ describe.skipIf(!ctx)("overlay review", () => {
         eventOverlayId: null,
       });
       expect(await repo.eventById(metaEventId)).toMatchObject({ organizer: "MOR Card Bazaar" });
+    });
+
+    it("mints one live event when two accepts of a person's proposal race", async () => {
+      const overlayId = await repos.metaOverlays.insertEventOverlay({
+        metaEventId: null,
+        name: "MOR Race Skirmish",
+        eventDate: "2026-08-16",
+        format: "constructed",
+        claimedFields: ["name", "eventDate", "format"],
+        submittedByUserId: otherAdminId,
+      });
+
+      try {
+        const results = await Promise.all([
+          acceptMetaEventOverlay(transact, overlayId),
+          acceptMetaEventOverlay(transact, overlayId),
+        ]);
+        const minted = new Set(results.map((result) => result.metaEventId as string));
+        createdEventIds.push(...minted);
+
+        expect(minted.size).toBe(1);
+        expect(results.map((result) => result.created).toSorted()).toEqual([false, true]);
+        expect(await repos.metaOverlays.eventOverlayById(overlayId)).toMatchObject({
+          metaEventId: [...minted][0],
+          status: "accepted",
+        });
+      } finally {
+        await db.deleteFrom("metaEventOverlays").where("id", "=", overlayId).execute();
+      }
+    });
+  });
+
+  describe("transaction scope", () => {
+    it("writes through the promote lock's transaction, so a throw takes the write back", async () => {
+      const metaEventId = await seedLiveEvent("mor-lock-rollback");
+
+      await expect(
+        repos.meta.withPromoteLock(`event:${metaEventId}`, async (locked) => {
+          await locked.meta.updateEvent(metaEventId, { organizer: "MOR Rolled Back" });
+          throw new Error("abort");
+        }),
+      ).rejects.toThrow("abort");
+
+      expect(await repo.eventById(metaEventId)).toMatchObject({ organizer: null });
+    });
+
+    it("takes an accept back whole, promote included, when its transaction fails", async () => {
+      const metaEventId = await seedLiveEvent("mor-accept-abort");
+      const overlayId = await repos.metaOverlays.insertEventOverlay({
+        metaEventId,
+        provider: "morpush",
+        externalId: "mor-accept-abort",
+        claimedFields: ["organizer"],
+        organizer: "MOR Rolled Back",
+        submittedByUserId: otherAdminId,
+      });
+      const failing: Transact = (fn) =>
+        transact(async (trx) => {
+          await fn(trx);
+          throw new Error("abort");
+        });
+
+      await expect(acceptMetaEventOverlay(failing, overlayId)).rejects.toThrow("abort");
+
+      expect(await repos.metaOverlays.eventOverlayById(overlayId)).toMatchObject({
+        status: "pending",
+      });
+      expect(await repo.eventById(metaEventId)).toMatchObject({ organizer: null });
+    });
+
+    it("answers a taken slug without aborting the transaction it runs in", async () => {
+      const metaEventId = await seedLiveEvent("mor-slug-taken");
+
+      const after = await transact(async (trx) => {
+        const created = await trx.meta.createEventIfSlugFree({
+          slug: "mor-slug-taken",
+          name: "MOR Summoner Skirmish",
+          eventDate: "2026-08-15",
+          format: "constructed",
+          playerCount: null,
+          organizer: null,
+          notes: null,
+          tier: "local",
+          country: null,
+          location: null,
+        });
+        expect(created).toBeUndefined();
+        return await trx.meta.eventById(metaEventId);
+      });
+
+      expect(after?.id).toBe(metaEventId);
     });
   });
 
@@ -790,8 +882,8 @@ describe.skipIf(!ctx)("overlay review", () => {
         },
         [],
       );
-      await acceptMetaEventOverlay(repos, eventOverlayId, metaEventId);
-      await acceptMetaPlayerOverlay(repos, playerOverlayId);
+      await acceptMetaEventOverlay(transact, eventOverlayId, metaEventId);
+      await acceptMetaPlayerOverlay(transact, playerOverlayId);
       return { eventOverlayId, playerOverlayId };
     }
 
@@ -802,7 +894,7 @@ describe.skipIf(!ctx)("overlay review", () => {
       expect(await repo.rawStandingsForEvent(metaEventId)).toHaveLength(1);
       expect(await repo.eventById(metaEventId)).toMatchObject({ organizer: "MOR Card Bazaar" });
 
-      const result = await revertMetaUpload(repos, "morpush", "mor-revert-evt");
+      const result = await revertMetaUpload(transact, "morpush", "mor-revert-evt");
 
       expect(result).toMatchObject({ players: 1, eventRejected: true });
       expect(await repo.rawStandingsForEvent(metaEventId)).toHaveLength(0);
@@ -817,7 +909,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         "MOR Kept",
       );
 
-      await revertMetaUpload(repos, "morpush", "mor-revert-keep");
+      await revertMetaUpload(transact, "morpush", "mor-revert-keep");
 
       expect(await repos.metaOverlays.eventOverlayById(eventOverlayId)).toMatchObject({
         status: "rejected",
@@ -837,7 +929,7 @@ describe.skipIf(!ctx)("overlay review", () => {
         "MOR Moved",
       );
 
-      await moveMetaEventOverlay(repos, eventOverlayId, right);
+      await moveMetaEventOverlay(transact, eventOverlayId, right);
 
       expect(await repo.rawStandingsForEvent(wrong)).toHaveLength(0);
       expect(await repo.eventById(wrong)).toMatchObject({ organizer: null });
@@ -870,7 +962,7 @@ describe.skipIf(!ctx)("overlay review", () => {
 
       expect(await repo.rawStandingsForEvent(metaEventId)).toHaveLength(2);
 
-      await linkMetaPlayerOverlay(repos, playerOverlayId, listed?.metaEventPlayerId ?? "");
+      await linkMetaPlayerOverlay(transact, playerOverlayId, listed?.metaEventPlayerId ?? "");
 
       const after = await repo.rawStandingsForEvent(metaEventId);
       expect(after).toHaveLength(1);

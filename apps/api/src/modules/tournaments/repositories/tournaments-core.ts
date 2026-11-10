@@ -1,4 +1,5 @@
 import type { CutSize } from "@openrift/shared/pairing/group-cut-types";
+import { AUTO_COMPLETE_GRACE_MS } from "@openrift/shared/tournament-lifecycle";
 import type { PodScoringScheme } from "@openrift/shared/types/api/pod-tournament";
 import type {
   TournamentDeckPhase,
@@ -11,10 +12,11 @@ import type {
   TournamentPlayMode,
   TournamentStatus,
 } from "@openrift/shared/types/api/tournament";
-import type { Kysely } from "kysely";
+import type { Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { keysetCursorPredicate } from "../../../repositories/query-helpers.js";
 import type { Tournament } from "./tournaments-shared.js";
 
 export interface NewTournament {
@@ -274,51 +276,119 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
       return row !== undefined;
     },
 
-    async listForUser(userId: string, orgIds: string[]): Promise<TournamentSummaryRow[]> {
-      const rows = await db
-        .selectFrom("tournaments as t")
-        .selectAll("t")
-        .select((eb) => [
-          eb
-            .selectFrom("tournamentParticipants as p")
-            .select(eb.fn.countAll<number>().as("c"))
-            .whereRef("p.tournamentId", "=", "t.id")
-            .as("participantCount"),
-          eb
-            .selectFrom("tournamentParticipants as p")
-            .select(eb.fn.countAll<number>().as("c"))
-            .whereRef("p.tournamentId", "=", "t.id")
-            .where("p.status", "=", "requested")
-            .as("pendingRequestCount"),
-        ])
-        .where((eb) =>
-          eb.or([
-            eb.and([eb("t.hostType", "=", "user"), eb("t.hostUserId", "=", userId)]),
-            orgIds.length > 0 ? eb("t.hostOrgId", "in", orgIds) : eb.val(false),
-            eb.exists(
-              eb
-                .selectFrom("tournamentStaff as s")
-                .select("s.userId")
-                .whereRef("s.tournamentId", "=", "t.id")
-                .where("s.userId", "=", userId),
-            ),
-            eb.exists(
-              eb
-                .selectFrom("tournamentParticipants as p")
-                .select("p.id")
-                .whereRef("p.tournamentId", "=", "t.id")
-                .where("p.userId", "=", userId),
-            ),
-          ]),
-        )
+    /** Every tournament of the user's that is not over yet; unpaged. */
+    async listCurrentForUser(
+      userId: string,
+      orgIds: string[],
+      now: Date,
+    ): Promise<TournamentSummaryRow[]> {
+      const rows = await withSummaryCounts(forUser(db, userId, orgIds))
+        .where(sql<SqlBool>`not ${isOver(now)}`)
         .orderBy("t.startsAt", "desc")
         .orderBy("t.createdAt", "desc")
         .execute();
-      return rows.map((row) => ({
-        ...row,
-        participantCount: Number(row.participantCount ?? 0),
-        pendingRequestCount: Number(row.pendingRequestCount ?? 0),
-      }));
+      return rows.map((row) => toSummaryRow(row));
     },
+
+    /**
+     * Over tournaments, keyset paginated on `(starts_at desc, id desc)`.
+     * Returns up to `limit + 1` rows so the caller can detect a next page.
+     */
+    async listPastForUser(
+      userId: string,
+      orgIds: string[],
+      now: Date,
+      options: { cursor?: string | null; limit: number },
+    ): Promise<TournamentSummaryRow[]> {
+      let query = withSummaryCounts(forUser(db, userId, orgIds))
+        .where(isOver(now))
+        .orderBy("t.startsAt", "desc")
+        .orderBy("t.id", "desc")
+        .limit(options.limit + 1);
+      if (options.cursor) {
+        query = query.where(
+          keysetCursorPredicate(options.cursor, {
+            timeColumn: "t.startsAt",
+            idColumn: "t.id",
+            idDirection: "desc",
+          }),
+        );
+      }
+      const rows = await query.execute();
+      return rows.map((row) => toSummaryRow(row));
+    },
+
+    async countPastForUser(userId: string, orgIds: string[], now: Date): Promise<number> {
+      const row = await forUser(db, userId, orgIds)
+        .where(isOver(now))
+        .select((eb) => eb.fn.countAll<number>().as("count"))
+        .executeTakeFirst();
+      return Number(row?.count ?? 0);
+    },
+  };
+}
+
+/** Hosted by the user or one of `orgIds`, staffed by the user, or played by the user. */
+function forUser(db: Kysely<Database>, userId: string, orgIds: string[]) {
+  return db
+    .selectFrom("tournaments as t")
+    .where((eb) =>
+      eb.or([
+        eb.and([eb("t.hostType", "=", "user"), eb("t.hostUserId", "=", userId)]),
+        orgIds.length > 0 ? eb("t.hostOrgId", "in", orgIds) : eb.val(false),
+        eb.exists(
+          eb
+            .selectFrom("tournamentStaff as s")
+            .select("s.userId")
+            .whereRef("s.tournamentId", "=", "t.id")
+            .where("s.userId", "=", userId),
+        ),
+        eb.exists(
+          eb
+            .selectFrom("tournamentParticipants as p")
+            .select("p.id")
+            .whereRef("p.tournamentId", "=", "t.id")
+            .where("p.userId", "=", userId),
+        ),
+      ]),
+    );
+}
+
+function withSummaryCounts(query: ReturnType<typeof forUser>) {
+  return query
+    .selectAll("t")
+    .select((eb) => [
+      eb
+        .selectFrom("tournamentParticipants as p")
+        .select(eb.fn.countAll<number>().as("c"))
+        .whereRef("p.tournamentId", "=", "t.id")
+        .as("participantCount"),
+      eb
+        .selectFrom("tournamentParticipants as p")
+        .select(eb.fn.countAll<number>().as("c"))
+        .whereRef("p.tournamentId", "=", "t.id")
+        .where("p.status", "=", "requested")
+        .as("pendingRequestCount"),
+    ]);
+}
+
+/** SQL twin of `effectiveTournamentState` reaching "completed" or "cancelled". */
+function isOver(now: Date) {
+  return sql<SqlBool>`(
+    t.status in ('completed', 'cancelled')
+    or date_trunc(
+      'milliseconds',
+      coalesce(t.ends_at, t.starts_at + ${AUTO_COMPLETE_GRACE_MS}::int * interval '1 millisecond')
+    ) <= ${now}
+  )`;
+}
+
+function toSummaryRow<
+  T extends { participantCount: number | null; pendingRequestCount: number | null },
+>(row: T): T & { participantCount: number; pendingRequestCount: number } {
+  return {
+    ...row,
+    participantCount: Number(row.participantCount ?? 0),
+    pendingRequestCount: Number(row.pendingRequestCount ?? 0),
   };
 }

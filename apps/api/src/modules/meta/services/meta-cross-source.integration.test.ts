@@ -42,7 +42,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("cross-mirror player links", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = metaRepo(db);
 

@@ -1,4 +1,4 @@
-import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
+import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type {
   CardType,

@@ -10,7 +10,7 @@ import * as Sentry from "@sentry/bun";
 import { createApp } from "./app.js";
 import { createAuth } from "./auth.js";
 import { createConfig, validateConfig } from "./config.js";
-import { createDb } from "./db/connect.js";
+import { BACKGROUND_POOL, createDb, REQUEST_POOL } from "./db/connect.js";
 import { migrate } from "./db/migrate.js";
 import { createRepos } from "./deps.js";
 import { createEmailSender } from "./email.js";
@@ -66,39 +66,46 @@ if (config.sentryDsn) {
   });
 }
 
-const { db, dialect } = createDb(config.databaseUrl);
+const { db, dialect } = createDb(config.databaseUrl, REQUEST_POOL);
+const { db: backgroundDb } = createDb(config.databaseUrl, BACKGROUND_POOL);
 const sendEmail = createEmailSender(config.smtp, config.isDev);
 
 log.info("Starting API server");
 
 log.info("Running migrations");
-await migrate(db, log.child({ service: "migrate" }));
+await migrate(backgroundDb, log.child({ service: "migrate" }));
 
 // better-auth validates its schema on creation and caches a mismatch for the
 // process lifetime, so the instance must not exist before migrations ran.
 const auth = createAuth({ config, db, dialect, sendEmail });
 
 log.info("Validating well-known slugs");
-await validateWellKnownSlugs(wellKnownRepo(db));
+await validateWellKnownSlugs(wellKnownRepo(backgroundDb));
 
-const repos = createRepos(db);
+const backgroundRepos = createRepos(backgroundDb);
 
 // A row left 'running' from a previous crash would block re-entrancy.
-const swept = await repos.jobRuns.sweepOrphaned();
+const swept = await backgroundRepos.jobRuns.sweepOrphaned();
 if (swept > 0) {
   log.warn({ swept }, "Marked orphaned job_runs as failed on startup");
 }
 
 const scheduler = createJobScheduler({
-  repos,
-  definitions: createJobDefinitions({ config, repos, db, sendEmail, log }),
+  repos: backgroundRepos,
+  definitions: createJobDefinitions({
+    config,
+    repos: backgroundRepos,
+    db: backgroundDb,
+    sendEmail,
+    log,
+  }),
   log,
 });
 await scheduler.start();
 
 configureRenderPool(config.render);
 
-const app = createApp({ db, auth, config, log, sendEmail, scheduler });
+const app = createApp({ db, backgroundDb, auth, config, log, sendEmail, scheduler });
 
 // Bun's default idleTimeout (10s) cuts slow admin requests mid-request.
 // Anything long-running still belongs in runJobAsync.
@@ -133,7 +140,7 @@ const shutdown = gracefulShutdown({
       },
     },
     { name: "render pool", run: () => shutdownRenderPool() },
-    { name: "database", run: () => db.destroy() },
+    { name: "database", run: () => Promise.all([db.destroy(), backgroundDb.destroy()]) },
     { name: "sentry", run: () => Sentry.flush(2000) },
     { name: "tracing", run: () => shutdownTracing() },
   ],

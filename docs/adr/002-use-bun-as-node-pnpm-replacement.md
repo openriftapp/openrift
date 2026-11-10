@@ -106,9 +106,9 @@ Only 7 queries exist across the entire codebase: 3 SELECTs in the cards route, 1
 The [`kysely-postgres-js`](https://github.com/kysely-org/kysely-postgres-js) package (maintained by the Kysely core team) supports Bun's native `SQL` class as of v3.0.0. This means Kysely queries, migrations, and type definitions remain unchanged, only the dialect configuration changes:
 
 ```typescript
+import { PostgresDialect } from "kysely";
 // Before (Node + pg)
 import { Pool } from "pg";
-import { PostgresDialect } from "kysely";
 new Kysely<Database>({
   dialect: new PostgresDialect({ pool: new Pool({ connectionString }) }),
 });

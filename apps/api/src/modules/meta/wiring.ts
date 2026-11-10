@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
+import type { Repos } from "../../deps.js";
 import { bindEmailDeps } from "../../email.js";
 import type { EmailDeps } from "../../email.js";
 import { metaOverlaysRepo } from "./repositories/meta-overlays.js";
@@ -37,7 +38,7 @@ import { fetchUvsgamesEvent } from "./services/meta-sync/uvsgames-on-demand.js";
 import { loadTournamentListTarget, sendTournamentLists } from "./services/meta-tournament-lists.js";
 
 export interface MetaRepos {
-  meta: ReturnType<typeof metaRepo>;
+  meta: ReturnType<typeof metaRepo<Repos>>;
   metaOverlays: ReturnType<typeof metaOverlaysRepo>;
   metaPlayerLinks: ReturnType<typeof metaPlayerLinksRepo>;
   uvsgamesEvents: ReturnType<typeof uvsgamesEventsRepo>;
@@ -73,9 +74,12 @@ export interface MetaServices {
   sendTournamentLists: typeof sendTournamentLists;
 }
 
-export function createMetaRepos(db: Kysely<Database>): MetaRepos {
+export function createMetaRepos(
+  db: Kysely<Database>,
+  scopedRepos: (trx: Kysely<Database>) => Repos,
+): MetaRepos {
   return {
-    meta: metaRepo(db),
+    meta: metaRepo(db, scopedRepos),
     metaOverlays: metaOverlaysRepo(db),
     metaPlayerLinks: metaPlayerLinksRepo(db),
     uvsgamesEvents: uvsgamesEventsRepo(db),

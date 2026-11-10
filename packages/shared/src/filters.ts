@@ -25,6 +25,13 @@ export function filterCards(
   rawFilters: CardFilters,
   options: FilterCardsOptions = {},
 ): Printing[] {
+  return printings.filter(cardFiltersPredicate(rawFilters, options));
+}
+
+export function cardFiltersPredicate(
+  rawFilters: CardFilters,
+  options: FilterCardsOptions = {},
+): (printing: Printing) => boolean {
   // Persisted list rules re-hydrate via a bare JSON.parse, so an older rule may
   // lack a newer dimension's key; backfill or the first predicate to read it throws.
   const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
@@ -44,7 +51,7 @@ export function filterCards(
     filters.customTagSlugsExclude.length > 0 ||
     presence.customTags !== undefined;
 
-  return printings.filter((printing) => {
+  return (printing) => {
     const { card } = printing;
     const artVariant = printing.artVariant || WellKnown.artVariant.NORMAL;
     if (
@@ -141,5 +148,5 @@ export function filterCards(
       return false;
     }
     return !hasQuery || matchesQuery(printing, options);
-  });
+  };
 }

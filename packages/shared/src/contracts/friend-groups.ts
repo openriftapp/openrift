@@ -19,7 +19,12 @@ import { z } from "zod";
 
 import { GROUP_SHOP_SOURCES, parseGroupShopKey } from "../group-shops.js";
 import { authedRoute } from "./_base.js";
-import { cardArtSchema, nameField } from "./fields.js";
+import {
+  cancelTradeIdsField,
+  cardArtSchema,
+  nameField,
+  tradeCancelConflictError,
+} from "./fields.js";
 
 // Slugs that collide with app-level routes or squat targets, mirrored in the
 // route layer for a clean 400 before the DB rejects.
@@ -631,8 +636,13 @@ export const friendGroupsContract = {
       tags: [TAG],
       successStatus: 204,
     })
-    .errors({ NOT_FOUND: { message: "Group or list not found" } })
-    .input(friendGroupSlugAndListIdParamSchema),
+    .errors({
+      NOT_FOUND: { message: "Group or list not found" },
+      CONFLICT: tradeCancelConflictError,
+    })
+    .input(
+      withParams(friendGroupSlugAndListIdParamSchema, { cancelTradeIds: cancelTradeIdsField }),
+    ),
   shareableCollections: authedRoute
     .route({ method: "GET", path: `${FG}/{slug}/shareable-collections`, tags: [TAG] })
     .input(friendGroupSlugParamSchema)

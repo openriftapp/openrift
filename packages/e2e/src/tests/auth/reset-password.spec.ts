@@ -88,8 +88,9 @@ test.describe("reset password", () => {
     test("Send code button shows a 'Sending...' loading state while in flight", async ({
       page,
     }) => {
+      const { promise: released, resolve: release } = Promise.withResolvers<void>();
       await page.route("**/api/auth/email-otp/send-verification-otp", async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await released;
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -103,8 +104,12 @@ test.describe("reset password", () => {
       await page.getByRole("button", { name: /send code/iu }).click();
 
       const sending = page.getByRole("button", { name: "Sending…" });
-      await expect(sending).toBeVisible();
-      await expect(sending).toBeDisabled();
+      try {
+        await expect(sending).toBeVisible();
+        await expect(sending).toBeDisabled();
+      } finally {
+        release();
+      }
     });
   });
 

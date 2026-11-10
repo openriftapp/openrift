@@ -4,7 +4,7 @@ export type EffectiveTournamentState = "upcoming" | "in_progress" | "completed" 
 
 // Auto-complete window when no end is set: a tournament with only a start closes
 // 24h after it starts (so a 23:00 event closes the next evening, never at midnight).
-const AUTO_COMPLETE_GRACE_MS = 24 * 60 * 60 * 1000;
+export const AUTO_COMPLETE_GRACE_MS = 24 * 60 * 60 * 1000;
 
 /** Shared between the web lists and the API's summary extras so both derive completion the same way. */
 export function effectiveTournamentState(

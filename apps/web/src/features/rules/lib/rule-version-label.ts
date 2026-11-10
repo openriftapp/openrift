@@ -1,4 +1,8 @@
+import { formatShortDayYear } from "@openrift/shared/format-date";
 import type { RuleVersionResponse } from "@openrift/shared/types/api/rules";
+
+import { DATE_WORDS } from "@/lib/date-words";
+import { m } from "@/paraglide/messages.js";
 
 type VersionNaming = Pick<RuleVersionResponse, "version" | "label" | "documentVersion">;
 
@@ -22,4 +26,15 @@ export function rulesSettingsLabel(
   }
   const code = language.split("-")[0] ?? language;
   return `${version} ${code.toUpperCase()}`;
+}
+
+export function rulesPhoneFacts(
+  entry: Pick<RuleVersionResponse, "version" | "documentVersion">,
+  languageCount: number,
+): string[] {
+  return [
+    ...(entry.documentVersion ? [m.rules_facts_version({ version: entry.documentVersion })] : []),
+    m.rules_facts_published({ date: formatShortDayYear(entry.version, DATE_WORDS) }),
+    m.rules_facts_languages({ count: languageCount }),
+  ];
 }

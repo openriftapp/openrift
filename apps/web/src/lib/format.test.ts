@@ -7,6 +7,7 @@ import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
 import {
   describePriceChange,
   formatCardId,
+  formatCentsInLocale,
   formatCount,
   formatImportPrintingLabel,
   formatImportPrintingLabelParts,
@@ -310,6 +311,12 @@ describe("locale-aware number formatting", () => {
     expect(formatPrice(3.5)).toBe("3,50\u00A0$");
     overwriteGetLocale(() => "fr");
     expect(formatPriceEur(1.23)).toBe("1,23\u00A0\u20AC");
+  });
+
+  it("formats cents in the active locale", () => {
+    expect(formatCentsInLocale(123_456, "EUR")).toBe("€1,234.56");
+    overwriteGetLocale(() => "de");
+    expect(formatCentsInLocale(123_456, "EUR")).toBe("1.234,56 €");
   });
 
   it("keeps the thousands suffix inside the localized currency pattern", () => {

@@ -1,5 +1,5 @@
 import type { AnyRedirect } from "@tanstack/react-router";
-import { isRedirect } from "@tanstack/react-router";
+import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/features/cards/lib/card-detail-queries", () => ({
@@ -158,5 +158,37 @@ describe("/cards/$cardSlug loader — stale printing slugs", () => {
 
   it("renders a printing slug the card still has", async () => {
     await expect(runLoader(makeContext(), "en-ogn-202-normal-standard")).resolves.toBeDefined();
+  });
+});
+
+describe("/cards/$cardSlug loader — unknown cards", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", undefined);
+  });
+
+  function contextFailingWith(error: Error) {
+    const context = makeContext();
+    const loaded = context.queryClient.query.getMockImplementation();
+    context.queryClient.query.mockImplementation((options: { queryKey: unknown[] }) => {
+      if (options.queryKey[0] === "cards" || loaded === undefined) {
+        throw error;
+      }
+      return loaded(options);
+    });
+    return context;
+  }
+
+  it("throws notFound for a slug the API does not know, so the page renders as a 404", async () => {
+    const thrown = await runLoader(contextFailingWith(new Error("NOT_FOUND"))).catch(
+      (error: unknown) => error,
+    );
+
+    expect(isNotFound(thrown)).toBe(true);
+  });
+
+  it("rethrows any other failure for the error fallback", async () => {
+    const failure = new Error("upstream down");
+
+    await expect(runLoader(contextFailingWith(failure))).rejects.toBe(failure);
   });
 });

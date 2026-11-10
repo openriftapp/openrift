@@ -21,8 +21,9 @@ import type { Variables } from "../types.js";
 const tracer = trace.getTracer("openrift-api/http");
 
 /**
- * Falls back to route="<unmatched>" on a 404 so unrouted traffic stays
- * visible without exploding route cardinality.
+ * Names the span after the oRPC procedure's path template once the catch-all
+ * mount has resolved it. Falls back to route="<unmatched>" on a 404 so unrouted
+ * traffic stays visible without exploding route cardinality.
  */
 export const otelRequestMiddleware: MiddlewareHandler<{ Variables: Variables }> = async (
   c,
@@ -66,6 +67,11 @@ export const otelRequestMiddleware: MiddlewareHandler<{ Variables: Variables }> 
       recordSpanError(span, error);
       throw error;
     } finally {
+      const apiRoute = c.get("apiRoute");
+      if (apiRoute) {
+        span.updateName(`${c.req.method} ${apiRoute}`);
+        span.setAttribute(ATTR_HTTP_ROUTE, apiRoute);
+      }
       span.end();
     }
   });

@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- migrations are discovered on the server's own disk
 import { readdir } from "node:fs/promises";
 
 import type { Migration } from "kysely/migration";

@@ -1,4 +1,5 @@
 import { priceRefreshResponseSchema } from "@openrift/shared/contracts/admin/job-results";
+import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -21,7 +22,6 @@ import {
   useSiblingVariantDrift,
 } from "@/features/admin/hooks/use-sibling-variants";
 import { refreshActions } from "@/features/admin/lib/refresh-actions";
-import type { JobRunView } from "@/lib/server-fns/api-types";
 
 // Old `job_runs.result` rows predate the per-SKU prices reshape and lack `upserted.prices`.
 export function isPriceRefreshResult(value: unknown): value is PriceRefreshResponse {

@@ -7,24 +7,70 @@ import type { MarketplaceProductPricesTable } from "../../../db/tables/marketpla
 
 export interface MarketplaceSourceRow {
   printingId: string;
+  variantId: string;
   externalId: number;
   marketplace: string;
   /** The printing's own language, which the Cardmarket link filters by. */
   language: string;
 }
 
-function selectSources(db: Kysely<Database>) {
-  return db
-    .selectFrom("marketplaceProductVariants as mpv")
-    .innerJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
-    .innerJoin("printings as p", "p.id", "mpv.printingId")
-    .innerJoin("faces as pf", "pf.id", "p.face1Id")
-    .select([
-      "mpv.printingId as printingId",
-      "mp.externalId as externalId",
-      "mp.marketplace as marketplace",
-      "pf.language as language",
-    ]);
+/**
+ * Picks the product whose own headline on the view's latest day equals the view's headline.
+ * `own` mirrors the view's per-product expression; marketplace.test.ts compares the two.
+ */
+async function selectSources(
+  db: Kysely<Database>,
+  printingIds?: readonly string[],
+): Promise<MarketplaceSourceRow[]> {
+  const filter = printingIds ? sql`WHERE mpv.printing_id IN (${sql.join(printingIds)})` : sql``;
+  const result = await sql<MarketplaceSourceRow>`
+    SELECT DISTINCT ON (mpv.printing_id, mp.marketplace)
+      mpv.printing_id AS "printingId",
+      mpv.id AS "variantId",
+      mp.external_id AS "externalId",
+      mp.marketplace AS "marketplace",
+      pf.language AS "language"
+    FROM marketplace_product_variants mpv
+    INNER JOIN marketplace_products mp ON mp.id = mpv.marketplace_product_id
+    INNER JOIN printings p ON p.id = mpv.printing_id
+    INNER JOIN faces pf ON pf.id = p.face1_id
+    LEFT JOIN mv_latest_printing_prices lp
+      ON lp.printing_id = mpv.printing_id AND lp.marketplace = mp.marketplace
+    LEFT JOIN LATERAL (
+      SELECT CASE
+          WHEN mp.marketplace = 'cardtrader' THEN COALESCE(carry.zero_low_cents, day_row.low_cents)
+          WHEN mp.marketplace = 'cardmarket' THEN COALESCE(day_row.low_cents, day_row.market_cents)
+          ELSE COALESCE(day_row.market_cents, day_row.low_cents)
+        END AS headline_cents
+      FROM (
+        SELECT pp.low_cents, pp.market_cents
+        FROM marketplace_product_prices pp
+        WHERE pp.marketplace_product_id = mp.id
+          AND pp.recorded_at >= lp.last_seen
+          AND pp.recorded_at < lp.last_seen + 1
+        ORDER BY (pp.zero_low_cents IS NULL), pp.recorded_at DESC
+        LIMIT 1
+      ) day_row
+      LEFT JOIN LATERAL (
+        SELECT pp.zero_low_cents
+        FROM marketplace_product_prices pp
+        WHERE pp.marketplace_product_id = mp.id
+          AND mp.marketplace = 'cardtrader'
+          AND pp.zero_low_cents IS NOT NULL
+          AND pp.recorded_at < lp.last_seen + 1
+        ORDER BY pp.recorded_at DESC
+        LIMIT 1
+      ) carry ON true
+    ) own ON true
+    ${filter}
+    ORDER BY
+      mpv.printing_id,
+      mp.marketplace,
+      (own.headline_cents = lp.headline_cents) IS TRUE DESC,
+      mp.external_id,
+      mpv.id
+  `.execute(db);
+  return result.rows;
 }
 
 /**
@@ -33,7 +79,7 @@ function selectSources(db: Kysely<Database>) {
  * price-refresh pipeline run (see {@link refreshLatestPrices}). The headline
  * rule and the "cheapest bound SKU" aggregation live in the daily view, so
  * every surface that prices a printing agrees by construction. Don't
- * re-implement the headline CASE in a query here.
+ * re-implement the headline CASE in a query here, except in {@link selectSources}.
  */
 export function marketplacePricesRepo(db: Kysely<Database>) {
   return {
@@ -76,44 +122,15 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    /**
-     * Marketplace variants bound to a printing. Cross-language aggregates are
-     * materialised as explicit variant rows, so a printing sees exactly the
-     * variants that carry its own `printing_id` — there is no sibling fan-out
-     * here. `language` is the parent product's SKU axis, and is `null` on the
-     * marketplaces that don't split by language (CM/TCG), which is how callers
-     * still recognise an aggregate.
-     */
-    sourcesForPrinting(printingId: string): Promise<
-      {
-        variantId: string;
-        externalId: number;
-        marketplace: string;
-        language: string | null;
-      }[]
-    > {
-      return db
-        .selectFrom("marketplaceProductVariants as mpv")
-        .innerJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
-        .select([
-          "mpv.id as variantId",
-          "mp.externalId as externalId",
-          "mp.marketplace as marketplace",
-          "mp.language as language",
-        ])
-        .where("mpv.printingId", "=", printingId)
-        .execute();
-    },
-
     sourcesForPrintings(printingIds: string[]): Promise<MarketplaceSourceRow[]> {
       if (printingIds.length === 0) {
         return Promise.resolve([]);
       }
-      return selectSources(db).where("mpv.printingId", "in", printingIds).execute();
+      return selectSources(db, printingIds);
     },
 
     sourcesForAllPrintings(): Promise<MarketplaceSourceRow[]> {
-      return selectSources(db).execute();
+      return selectSources(db);
     },
 
     /**

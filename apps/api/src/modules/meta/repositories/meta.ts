@@ -16,9 +16,12 @@ import { metaSourcesRepo } from "./meta-sources.js";
  * {@link META_ARCHIVE_USER_ID}) hanging off it. This repo owns the event rows,
  * the standings rows, and every join that treats the three as one thing.
  */
-export function metaRepo(db: Kysely<Database>) {
+export function metaRepo<R = never>(
+  db: Kysely<Database>,
+  scopedRepos?: (trx: Kysely<Database>) => R,
+) {
   return {
-    ...metaEventsRepo(db),
+    ...metaEventsRepo(db, scopedRepos),
     ...metaEventIndexRepo(db),
     ...metaPlayersRepo(db),
     ...metaDecksRepo(db),

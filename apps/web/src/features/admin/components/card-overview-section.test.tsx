@@ -52,10 +52,8 @@ vi.mock("@/components/language-chip", () => ({
   LanguageChip: ({ code }: { code: string }) => <span>{code}</span>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeAdminCardDetail, makeAdminPrinting } from "@/test/factories";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardOverviewSection } from "./card-overview-section";
 
 const fields: FieldDef<CandidateCardFieldKey>[] = [

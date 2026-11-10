@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 
 export type SearchField =
   | "name"
@@ -72,19 +72,22 @@ export type PresenceDimension = (typeof PRESENCE_DIMENSIONS)[number];
 
 export type PresenceState = "any" | "none";
 
-// Every dimension needs a `.default()`, so an absent key backfills.
+// Every dimension needs a default, so an absent key backfills.
 // `cardFiltersSchema.parse({})` must equal EMPTY_CARD_FILTERS.
-const filterRangeSchema = z
-  .object({
-    min: z.number().nullable(),
-    max: z.number().nullable(),
-  })
-  .default(() => ({ min: null, max: null }));
+const filterRangeSchema = z._default(
+  z.object({
+    min: z.nullable(z.number()),
+    max: z.nullable(z.number()),
+  }),
+  () => ({ min: null, max: null }),
+);
 
-const stringArray = () => z.array(z.string()).default(() => []);
+const stringArray = () => z._default(z.array(z.string()), () => []);
+
+const nullableFlag = () => z._default(z.nullable(z.boolean()), null);
 
 export const cardFiltersSchema = z.object({
-  search: z.string().default(""),
+  search: z._default(z.string(), ""),
   sets: stringArray(),
   languages: stringArray(),
   rarities: stringArray(),
@@ -98,19 +101,20 @@ export const cardFiltersSchema = z.object({
   artVariants: stringArray(),
   finishes: stringArray(),
   cardSizes: stringArray(),
-  isSigned: z.boolean().nullable().default(null),
-  isOvernumbered: z.boolean().nullable().default(null),
-  presence: z
-    .partialRecord(z.enum(PRESENCE_DIMENSIONS), z.enum(["any", "none"]))
-    .default(() => ({})),
+  isSigned: nullableFlag(),
+  isOvernumbered: nullableFlag(),
+  presence: z._default(
+    z.partialRecord(z.enum(PRESENCE_DIMENSIONS), z.enum(["any", "none"])),
+    () => ({}),
+  ),
   markerSlugs: stringArray(),
   distributionChannelSlugs: stringArray(),
   customTagSlugs: stringArray(),
   keywords: stringArray(),
   tags: stringArray(),
-  isBanned: z.boolean().nullable().default(null),
-  hasErrata: z.boolean().nullable().default(null),
-  hasNoImage: z.boolean().nullable().default(null),
+  isBanned: nullableFlag(),
+  hasErrata: nullableFlag(),
+  hasNoImage: nullableFlag(),
   setsExclude: stringArray(),
   languagesExclude: stringArray(),
   raritiesExclude: stringArray(),
@@ -124,7 +128,7 @@ export const cardFiltersSchema = z.object({
   customTagSlugsExclude: stringArray(),
   keywordsExclude: stringArray(),
   tagsExclude: stringArray(),
-  isStandard: z.boolean().nullable().default(null),
+  isStandard: nullableFlag(),
 });
 
 export type CardFilters = z.infer<typeof cardFiltersSchema>;

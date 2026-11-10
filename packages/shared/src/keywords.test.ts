@@ -8,7 +8,6 @@ describe("extractBracketedTerms", () => {
   });
 
   it("returns empty array for null-ish input", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(extractBracketedTerms(null as any)).toEqual([]);
     expect(extractBracketedTerms(undefined as any)).toEqual([]);
   });

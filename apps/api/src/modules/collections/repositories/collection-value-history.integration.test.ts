@@ -1,7 +1,7 @@
 import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { PRINTING_1 } from "../../../test/fixtures/constants.js";
+import { CARDS, PRINTING_1 } from "../../../test/fixtures/constants.js";
 import {
   createDbContext,
   deletePrintingsById,
@@ -418,5 +418,163 @@ describe.skipIf(!ctx)("collection value history (integration)", () => {
       .executeTakeFirstOrThrow();
 
     expect(latest.headlineCents).toBe(daily.headlineCents);
+  });
+});
+
+const domainUserId = crypto.randomUUID();
+const furyPrintingId = crypto.randomUUID();
+const furyChaosPrintingId = crypto.randomUUID();
+const domainCtx = createDbContext(domainUserId);
+
+describe.skipIf(!domainCtx)("collection value history domain scope (integration)", () => {
+  const { db } = domainCtx!;
+  const repo = marketplaceRepo(db);
+  const groupId = 80_103;
+  const externalIds = [91_003, 91_004];
+  let collectionId = "";
+
+  beforeAll(async () => {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const seedPrinting = await db
+      .selectFrom("faces")
+      .select(["setId", "artist"])
+      .where("id", "=", PRINTING_1.id)
+      .executeTakeFirstOrThrow();
+
+    await insertPrintings(
+      db,
+      [
+        { id: furyPrintingId, shortCode: "VH-011", cardId: CARDS["annie-fiery"].id },
+        { id: furyChaosPrintingId, shortCode: "VH-012", cardId: CARDS["dark-child-starter"].id },
+      ].map((p) => ({
+        ...p,
+        publicCode: `${p.shortCode}/012`,
+        setId: seedPrinting.setId,
+        artist: seedPrinting.artist,
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        size: "standard",
+        language: "EN",
+      })),
+    );
+
+    await seedTestUser(db, { id: domainUserId });
+    const collection = await db
+      .insertInto("collections")
+      .values({ userId: domainUserId, name: "Domain Binder", isInbox: false, sortOrder: 1 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    collectionId = collection.id;
+
+    await db
+      .insertInto("marketplaceGroups")
+      .values({ marketplace: "tcgplayer", groupId, name: "VH Domains", abbreviation: null })
+      .onConflict((oc) => oc.columns(["marketplace", "groupId"]).doNothing())
+      .execute();
+    const products = await db
+      .insertInto("marketplaceProducts")
+      .values(
+        externalIds.map((externalId) => ({
+          marketplace: "tcgplayer",
+          groupId,
+          externalId,
+          productName: `VH Domains ${externalId}`,
+          finish: "normal",
+          language: null,
+        })),
+      )
+      .returning(["id", "externalId"])
+      .execute();
+    const productId = (externalId: number) =>
+      products.find((product) => product.externalId === externalId)!.id;
+    await db
+      .insertInto("marketplaceProductVariants")
+      .values([
+        { marketplaceProductId: productId(91_003), printingId: furyPrintingId },
+        { marketplaceProductId: productId(91_004), printingId: furyChaosPrintingId },
+      ])
+      .execute();
+    await db
+      .insertInto("marketplaceProductPrices")
+      .values([
+        { marketplaceProductId: productId(91_003), recordedAt: today, marketCents: 100 },
+        { marketplaceProductId: productId(91_004), recordedAt: today, marketCents: 1000 },
+      ])
+      .execute();
+
+    const copies = await db
+      .insertInto("copies")
+      .values([
+        { printingId: furyPrintingId, collectionId },
+        { printingId: furyChaosPrintingId, collectionId },
+      ])
+      .returning(["id", "printingId"])
+      .execute();
+    await db
+      .insertInto("collectionEvents")
+      .values(
+        copies.map((copy) => ({
+          userId: domainUserId,
+          action: "added" as const,
+          printingId: copy.printingId,
+          copyId: copy.id,
+          toCollectionId: collectionId,
+          toCollectionName: "Domain Binder",
+          createdAt: new Date(Date.now() - 86_400_000),
+        })),
+      )
+      .execute();
+
+    await repo.refreshLatestPrices();
+  });
+
+  afterAll(async () => {
+    await db.deleteFrom("collectionEvents").where("userId", "=", domainUserId).execute();
+    await db.deleteFrom("copies").where("collectionId", "=", collectionId).execute();
+    await db.deleteFrom("collections").where("id", "=", collectionId).execute();
+    await db.deleteFrom("users").where("id", "=", domainUserId).execute();
+    await sql`
+      DELETE FROM marketplace_product_prices pp
+      USING marketplace_products mp
+      WHERE mp.id = pp.marketplace_product_id
+        AND mp.external_id IN (91003, 91004)
+    `.execute(db);
+    await sql`
+      DELETE FROM marketplace_product_variants mpv
+      USING marketplace_products mp
+      WHERE mp.id = mpv.marketplace_product_id
+        AND mp.external_id IN (91003, 91004)
+    `.execute(db);
+    await db.deleteFrom("marketplaceProducts").where("externalId", "in", externalIds).execute();
+    await sql`
+      DELETE FROM marketplace_groups WHERE marketplace = 'tcgplayer' AND group_id = ${groupId}
+    `.execute(db);
+    await deletePrintingsById(db, [furyPrintingId, furyChaosPrintingId]);
+    await repo.refreshLatestPrices();
+  });
+
+  async function latestValue(domains: string[]): Promise<number> {
+    const series = await repo.collectionValueTimeSeries({
+      userId: domainUserId,
+      marketplace: "tcgplayer",
+      collectionIds: [collectionId],
+      cutoff: null,
+      scope: { domains },
+    });
+    return series.at(-1)?.valueCents ?? 0;
+  }
+
+  it("keeps every card that has the one selected domain", async () => {
+    expect(await latestValue(["fury"])).toBe(1100);
+    expect(await latestValue(["chaos"])).toBe(1000);
+  });
+
+  it("keeps a card on two selected domains only when all its domains are selected", async () => {
+    expect(await latestValue(["fury", "chaos"])).toBe(1100);
+    expect(await latestValue(["fury", "order"])).toBe(100);
+    expect(await latestValue(["calm", "order"])).toBe(0);
   });
 });

@@ -34,7 +34,6 @@ vi.mock("@/hooks/use-enums", () => ({
 
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaLegendHero } from "./meta-legend-hero";
 
 const legend = {

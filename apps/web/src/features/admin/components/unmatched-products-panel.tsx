@@ -1,5 +1,4 @@
 import { formatDayTime } from "@openrift/shared/format-date";
-import { formatCents } from "@openrift/shared/money";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
   AssignableCardResponse,
@@ -42,6 +41,7 @@ import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/adm
 import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
+import { formatCentsInLocale } from "@/lib/format";
 
 import { ProductLink } from "./price-mappings-utils";
 import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
@@ -308,7 +308,7 @@ function UnmatchedProductRow({
   const isStale = isStaleRecord(recordedAt);
   const priceCents = product.marketCents ?? product.lowCents;
   const priceDisplay =
-    priceCents && priceCents > 0 ? formatCents(priceCents, product.currency) : "";
+    priceCents && priceCents > 0 ? formatCentsInLocale(priceCents, product.currency) : "";
 
   const filteredResults = useAssignableCardSearch(allCards, cardSearchQuery);
 

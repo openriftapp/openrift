@@ -1,14 +1,14 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
-const sharedListSearchSchema = filterSearchSchema.extend({
-  fromUser: z.string().optional().catch(undefined),
+const sharedListSearchSchema = z.extend(filterSearchSchema, {
+  fromUser: lenient(z.string()),
 });
 
 export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/lists/$listId")({

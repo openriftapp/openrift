@@ -7,7 +7,6 @@ import { metaOverlaysRepo } from "./meta-overlays.js";
 const ctx = createDbContext(crypto.randomUUID());
 
 describe.skipIf(!ctx)("metaOverlaysRepo key batching (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = metaOverlaysRepo(db);
 

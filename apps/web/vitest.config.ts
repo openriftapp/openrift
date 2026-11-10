@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- Vitest config runs in Node.js
 import path from "node:path";
 
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
@@ -66,7 +65,7 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["src/**/*.test.ts"],
+          include: ["src/**/*.test.ts", "vite-plugins/**/*.test.ts"],
           exclude: [...configDefaults.exclude, ...domTests, ...localeTests],
           setupFiles: [],
         },

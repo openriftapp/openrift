@@ -265,6 +265,39 @@ describe("fetchApi traceparent injection", () => {
   });
 });
 
+describe("fetchApi deadline", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("throws a 504 ApiError titled with errorTitle when the API never answers", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit): Promise<Response> => {
+        const signal = init!.signal!;
+        await new Promise((resolve) => {
+          signal.addEventListener("abort", resolve);
+        });
+        throw signal.reason as Error;
+      }),
+    );
+
+    const settled = fetchApi({ errorTitle: "Couldn't load session", path: "/api/auth/get-session" })
+      .then(() => null)
+      .catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(15_000);
+    const error = await settled;
+
+    expect(isApiError(error)).toBe(true);
+    expect((error as { status: number }).status).toBe(504);
+    expect((error as Error).message).toBe("Couldn't load session");
+  });
+});
+
 describe("fetchApiJson", () => {
   afterEach(() => {
     vi.unstubAllGlobals();

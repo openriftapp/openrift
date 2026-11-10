@@ -1,8 +1,6 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { COMPARABLE_PRINTING_FIELDS } from "@openrift/shared/catalog-field-compare";
-import type { WorkspaceEvent } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { formatRelativeTime } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { pluralize } from "@openrift/shared/strings";
@@ -10,7 +8,6 @@ import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
@@ -35,12 +32,12 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
+import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useDeskCardPrintings, useDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
@@ -60,6 +57,7 @@ import {
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { SourceStrip } from "@/features/catalog-workspace/components/record/source-strip";
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
+import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
 import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import {
   useFaceRecordActions,
@@ -67,8 +65,6 @@ import {
 } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
-import type { WorkspaceHistoryTarget } from "@/features/catalog-workspace/hooks/use-workspace-history";
-import { useWorkspaceHistory } from "@/features/catalog-workspace/hooks/use-workspace-history";
 import {
   ADMIN_ONLY_DISCARD,
   ADMIN_ONLY_REPLY,
@@ -80,6 +76,7 @@ import {
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 declare module "@tanstack/react-router" {
   interface HistoryState {
@@ -129,8 +126,11 @@ function ReviewFaceRecord({
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<{
+    candidateCardId: string;
+    kindLabel: string;
+  } | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const providerSettings = providerData.providerSettings;
   const hiddenProviders = new Set(
@@ -149,7 +149,13 @@ function ReviewFaceRecord({
           setTotals: detail.setTotals,
           hiddenProviders,
         });
-  const actions = useFaceRecordActions({ cardSlug, model, canCheck: isAdmin, enabled: true });
+  const actions = useFaceRecordActions({
+    cardSlug,
+    record: detail?.displayName ?? cardSlug,
+    model,
+    canCheck: isAdmin,
+    enabled: true,
+  });
 
   if (detail === undefined || model === null) {
     return detailQuery.isError ? (
@@ -190,8 +196,9 @@ function ReviewFaceRecord({
   const printingCount = new Set(detail.printings.map((printing) => printing.id)).size;
 
   const primaryAndNext = async () => {
-    await actions.runPrimary();
-    navigation.goNext();
+    if (await runReportedMutation(actions.runPrimary)) {
+      navigation.goNext();
+    }
   };
 
   return (
@@ -255,9 +262,9 @@ function ReviewFaceRecord({
         hotkeyOf={hotkeyOf}
         discardLabelOf={discardLabelOf}
         pending={actions.pending}
-        onUse={(chip) => actions.applyChip(chip)}
+        onUse={(chip) => void actions.applyChip(chip)}
         onDiscard={(id) => actions.discard(id)}
-        onReject={(id) => actions.reject(id)}
+        onReject={(id) => setRejecting({ candidateCardId: id, kindLabel: "Image" })}
         onReply={setReplyTo}
         landscape={landscape}
       />
@@ -300,11 +307,7 @@ function ReviewFaceRecord({
               printingId={face.id}
               side={face.side}
               scope="face"
-              onSaved={() => {
-                setEditing(false);
-                void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
-                void queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) });
-              }}
+              onSaved={() => setEditing(false)}
               onCancel={() => setEditing(false)}
             />
           </Suspense>
@@ -336,7 +339,7 @@ function ReviewFaceRecord({
                               value={formatSuggestionValue(field, suggestion.proposed, labels)}
                               hotkey={hotkeyOf(chip.key)}
                               pending={actions.pending}
-                              onUse={() => actions.applyChip(chip)}
+                              onUse={() => void actions.applyChip(chip)}
                               onDiscard={
                                 suggestion.isContributor || !isAdmin
                                   ? undefined
@@ -351,7 +354,11 @@ function ReviewFaceRecord({
                               )}
                               onReject={
                                 suggestion.isContributor
-                                  ? () => actions.reject(suggestion.candidate.candidateCardId)
+                                  ? () =>
+                                      setRejecting({
+                                        candidateCardId: suggestion.candidate.candidateCardId,
+                                        kindLabel: "Correction",
+                                      })
                                   : undefined
                               }
                               onReply={
@@ -418,6 +425,19 @@ function ReviewFaceRecord({
         onOpenChange={(open) => {
           if (!open) {
             setReplyTo(null);
+          }
+        }}
+      />
+      <RejectSubmissionDialog
+        candidateCardId={rejecting?.candidateCardId ?? null}
+        submitterName={
+          rejecting === null ? null : submitterNameOf([detail], rejecting.candidateCardId)
+        }
+        kindLabel={rejecting?.kindLabel ?? "Correction"}
+        scope={{ cardSlug }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejecting(null);
           }
         }}
       />
@@ -491,62 +511,6 @@ function FaceActionsMenu({ cardSlug, faceId }: { cardSlug: string; faceId: strin
   );
 }
 
-export function WorkspaceHistorySection({
-  target,
-  summary,
-}: {
-  target: WorkspaceHistoryTarget;
-  summary?: string;
-}) {
-  const history = useWorkspaceHistory(target);
-  return (
-    <RecordSection
-      title="History"
-      collapsible
-      defaultOpen={false}
-      summary={summary ?? history.summary}
-    >
-      <WorkspaceHistoryList
-        events={history.events}
-        isPending={history.isPending}
-        isError={history.isError}
-      />
-    </RecordSection>
-  );
-}
-
-function WorkspaceHistoryList({
-  events,
-  isPending,
-  isError,
-}: {
-  events: readonly WorkspaceEvent[];
-  isPending: boolean;
-  isError: boolean;
-}) {
-  if (isPending) {
-    return <Skeleton className="h-16 w-full" />;
-  }
-  if (isError) {
-    return <p className="text-muted-foreground text-sm">The change log could not be loaded.</p>;
-  }
-  if (events.length === 0) {
-    return <p className="text-muted-foreground text-sm">Nothing has happened here yet.</p>;
-  }
-  return (
-    <ul className="space-y-1">
-      {events.map((event) => (
-        <li key={event.id} className="flex flex-wrap items-baseline gap-x-3">
-          <span className="min-w-0 flex-1">{event.label}</span>
-          <span className="text-muted-foreground text-sm">
-            {formatRelativeTime(event.createdAt)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function pickDeskRow(
   rows: readonly DeskPrintingRow[],
   faceId: string,
@@ -587,7 +551,6 @@ function DeskFaceBody({
 }) {
   const { data } = useDeskPrinting(printingId, 1);
   const labels = useValueLabels();
-  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
 
   const printing = data.printing;
@@ -676,10 +639,7 @@ function DeskFaceBody({
               printingId={printingId}
               side={face.position}
               scope="face"
-              onSaved={() => {
-                setEditing(false);
-                void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
-              }}
+              onSaved={() => setEditing(false)}
               onCancel={() => setEditing(false)}
             />
           </Suspense>

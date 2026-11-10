@@ -13,15 +13,21 @@ import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+interface SharedTierListHeadData {
+  tierList: Pick<PublicTierListDetailResponse["tierList"], "title" | "description" | "updatedAt">;
+  owner: Pick<PublicTierListDetailResponse["owner"], "displayName">;
+  rankedCount: number;
+}
+
 export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/tier-lists/share/${params.token}`;
-    const data = loaderData as PublicTierListDetailResponse | undefined;
+    const data = loaderData as SharedTierListHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Shared tier list", path, unlisted: true });
     }
-    const { tierList, owner } = data;
+    const { tierList, owner, rankedCount } = data;
     // Server-rendered board image, versioned off updatedAt (which every save
     // advances), so the immutably-cached URL busts whenever the ranking changes.
     const ogImage = tierListShareImageUrl(
@@ -29,7 +35,6 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
       params.token,
       shareImageVersion(tierList.updatedAt),
     );
-    const rankedCount = tierList.tiers.reduce((sum, tier) => sum + tier.cards.length, 0);
     return seoHead({
       siteUrl,
       title: tierList.title,
@@ -42,12 +47,20 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
       unlisted: true,
     });
   },
-  loader: async ({ context, params }): Promise<PublicTierListDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<SharedTierListHeadData> => {
     try {
-      return await context.queryClient.query({
+      const data = await context.queryClient.query({
         ...publicTierListQueryOptions(params.token),
         staleTime: "static",
       });
+      const { title, description, updatedAt, tiers } = data.tierList;
+      return {
+        tierList: { title, description, updatedAt },
+        owner: { displayName: data.owner.displayName },
+        rankedCount: tiers.reduce((sum, tier) => sum + tier.cards.length, 0),
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

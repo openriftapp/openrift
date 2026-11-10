@@ -175,11 +175,7 @@ export function VersionComments({ html }: { html: string }) {
       </ExpandToggle>
       {expanded && (
         <Callout id={contentId} className="mt-2">
-          <div
-            className="rule-comments"
-            // oxlint-disable-next-line react/no-danger -- server-rendered through the allowlist serializer in @openrift/shared/rules-html
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          <div className="rule-comments" dangerouslySetInnerHTML={{ __html: html }} />
         </Callout>
       )}
     </div>

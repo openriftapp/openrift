@@ -326,7 +326,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db: testDb } = ctx!;
 
   describe("GET /admin/cards/all-cards", () => {

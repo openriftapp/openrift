@@ -32,6 +32,15 @@ import { isHiddenZone, nextChainId, nextPieceId } from "@/features/board-states/
 const HISTORY_LIMIT = 50;
 const RECENT_LIMIT = 8;
 
+/** A board created from the draft editor, handed to its saved-board page with the unsaved edits. */
+export interface BoardEditorAdoption {
+  boardId: string;
+  title: string;
+  coreRulesVersion: string | null;
+  tournamentRulesVersion: string | null;
+  metaDirty: boolean;
+}
+
 interface BoardEditorState {
   document: BoardDocument;
   activeStep: number;
@@ -39,14 +48,18 @@ interface BoardEditorState {
   /** Ctrl-click and shift-range selection; `selectedPieceId` is always its last entry. */
   selectedPieceIds: string[];
   dirty: boolean;
+  revision: number;
   history: BoardDocument[];
   /** Consecutive edits sharing a tag collapse into one undo step. */
   historyTag: string | null;
   /** Newest first; outside the document and the undo history. */
   recentCardIds: string[];
+  adoption: BoardEditorAdoption | null;
 
   undo: () => void;
   load: (document: BoardDocument) => void;
+  markSaved: (revision: number) => void;
+  adopt: (adoption: BoardEditorAdoption | null) => void;
   setPlayerCount: (count: number) => void;
   setScoring: (scoring: ScoringMode) => void;
   setBattlefieldCount: (count: number) => void;
@@ -128,13 +141,20 @@ function withStep(
   return {
     document: { ...state.document, steps },
     dirty: true,
+    revision: state.revision + 1,
     history: pushed(state, tag),
     historyTag: tag,
   };
 }
 
 function withDocument(state: BoardEditorState, document: BoardDocument): Partial<BoardEditorState> {
-  return { document, dirty: true, history: pushed(state), historyTag: null };
+  return {
+    document,
+    dirty: true,
+    revision: state.revision + 1,
+    history: pushed(state),
+    historyTag: null,
+  };
 }
 
 /**
@@ -201,9 +221,11 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
   selectedPieceId: null,
   selectedPieceIds: [],
   dirty: false,
+  revision: 0,
   history: [],
   historyTag: null,
   recentCardIds: [],
+  adoption: null,
 
   undo: () =>
     set((state) => {
@@ -218,20 +240,27 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
         selectedPieceId: null,
         selectedPieceIds: [],
         dirty: true,
+        revision: state.revision + 1,
         historyTag: null,
       };
     }),
 
   load: (document) =>
-    set({
+    set((state) => ({
       document,
       activeStep: 0,
       selectedPieceId: null,
       selectedPieceIds: [],
       dirty: false,
+      revision: state.revision + 1,
       history: [],
       historyTag: null,
-    }),
+      adoption: null,
+    })),
+
+  markSaved: (revision) => set((state) => (state.revision === revision ? { dirty: false } : state)),
+
+  adopt: (adoption) => set({ adoption }),
 
   setPlayerCount: (count) =>
     set((state) => {
@@ -329,6 +358,7 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
         selectedPieceId: null,
         selectedPieceIds: [],
         dirty: true,
+        revision: state.revision + 1,
         history: pushed(state),
         historyTag: null,
       };
@@ -347,6 +377,7 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
         selectedPieceId: null,
         selectedPieceIds: [],
         dirty: true,
+        revision: state.revision + 1,
         history: pushed(state),
         historyTag: null,
       };
@@ -364,6 +395,7 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
         document: { ...state.document, steps: next },
         activeStep: to,
         dirty: true,
+        revision: state.revision + 1,
         history: pushed(state),
         historyTag: null,
       };

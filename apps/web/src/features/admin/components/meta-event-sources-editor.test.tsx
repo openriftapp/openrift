@@ -19,7 +19,6 @@ vi.mock("@/features/admin/hooks/use-admin-meta", () => ({
   useDeleteMetaEventSource: () => ({ mutate: captured.remove, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventSourcesEditor } from "./meta-event-sources-editor";
 
 const providerSource: AdminMetaEventSource = {

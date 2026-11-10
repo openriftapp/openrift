@@ -73,9 +73,10 @@ export function LegendMetaSharesDialog({
     if (entries.length !== pending.length) {
       return;
     }
-    await runReportedMutation(() => setShares.mutateAsync({ id, shares: entries }));
-    setSeededKey(null);
-    onOpenChange(false);
+    if (await runReportedMutation(() => setShares.mutateAsync({ id, shares: entries }))) {
+      setSeededKey(null);
+      onOpenChange(false);
+    }
   }
 
   return (

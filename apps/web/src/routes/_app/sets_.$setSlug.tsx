@@ -8,26 +8,70 @@ import { breadcrumbJsonLd, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
+interface JsonLdItem {
+  name: string;
+  url: string;
+}
+
+interface SetHeadData {
+  slug: string;
+  name: string;
+  cardCount: number;
+  printingCount: number;
+  items: JsonLdItem[];
+}
+
 export const Route = createFileRoute("/_app/sets_/$setSlug")({
   head: ({ loaderData }) => {
     const siteUrl = getSiteUrl();
-    const data = loaderData as SetDetailResponse | undefined;
+    const data = loaderData as SetHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Set" });
     }
 
-    const cardCount = new Set(data.printings.map((p) => p.cardId)).size;
-    const setPath = `/sets/${data.set.slug}`;
-    const description = `${data.set.name} contains ${cardCount} unique cards and ${new Set(data.printings.map((p) => p.printingId)).size} printings. Browse the complete set on OpenRift.`;
+    const setPath = `/sets/${data.slug}`;
+    const description = `${data.name} contains ${data.cardCount} unique cards and ${data.printingCount} printings. Browse the complete set on OpenRift.`;
     const head = seoHead({
       siteUrl,
-      title: `${data.set.name} - Riftbound Card Set`,
+      title: `${data.name} - Riftbound Card Set`,
       description,
       path: setPath,
     });
 
+    return {
+      ...head,
+      scripts: [
+        collectionPageJsonLd({
+          siteUrl,
+          name: `${data.name} - Riftbound Card Set`,
+          description,
+          path: setPath,
+          items: data.items,
+        }),
+        breadcrumbJsonLd(siteUrl, [
+          { name: "Sets", path: "/sets" },
+          { name: data.name, path: setPath },
+        ]),
+      ],
+    };
+  },
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship every printing twice.
+  loader: async ({ context, params }): Promise<SetHeadData> => {
+    let data: SetDetailResponse;
+    try {
+      data = await context.queryClient.query({
+        ...publicSetDetailQueryOptions(params.setSlug),
+        staleTime: "static",
+      });
+    } catch (error) {
+      if (isNotFoundSentinel(error)) {
+        throw notFound();
+      }
+      throw error;
+    }
     const seenCardIds = new Set<string>();
-    const items: { name: string; url: string }[] = [];
+    const items: JsonLdItem[] = [];
     for (const printing of data.printings) {
       if (seenCardIds.has(printing.cardId)) {
         continue;
@@ -39,36 +83,13 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
       }
       items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
     }
-
     return {
-      ...head,
-      scripts: [
-        collectionPageJsonLd({
-          siteUrl,
-          name: `${data.set.name} - Riftbound Card Set`,
-          description,
-          path: setPath,
-          items,
-        }),
-        breadcrumbJsonLd(siteUrl, [
-          { name: "Sets", path: "/sets" },
-          { name: data.set.name, path: setPath },
-        ]),
-      ],
+      slug: data.set.slug,
+      name: data.set.name,
+      cardCount: seenCardIds.size,
+      printingCount: new Set(data.printings.map((p) => p.printingId)).size,
+      items,
     };
-  },
-  loader: async ({ context, params }) => {
-    try {
-      return await context.queryClient.query({
-        ...publicSetDetailQueryOptions(params.setSlug),
-        staleTime: "static",
-      });
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
   },
   component: () => null,
   pendingComponent: () => null,

@@ -6,7 +6,6 @@ import { metaSubmissionsRepo } from "./meta-submissions.js";
 const ctx = createDbContext(crypto.randomUUID());
 
 describe.skipIf(!ctx)("metaSubmissionsRepo event corrections (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repo = metaSubmissionsRepo(db);
 

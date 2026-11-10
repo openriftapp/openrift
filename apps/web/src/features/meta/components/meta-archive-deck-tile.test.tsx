@@ -30,7 +30,6 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: { domains: [] }, labels: { domains: {} } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaArchiveDeckTile } from "./meta-archive-deck-tile";
 
 const DECK: MetaDeckSummary = {

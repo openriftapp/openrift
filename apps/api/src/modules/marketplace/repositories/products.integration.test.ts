@@ -20,7 +20,6 @@ const FIRESTORM_NORMAL = PRINTINGS["OGS-002:uncommon:normal::EN"];
 const UNUSED_CARD = CARDS["master-yi-meditative"];
 
 describe.skipIf(!ctx)("products repo productsForCard (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repos = createRepos(db);
 
@@ -99,7 +98,6 @@ describe.skipIf(!ctx)("products repo productsForCard (integration)", () => {
 });
 
 describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repos = createRepos(db);
 
@@ -287,7 +285,6 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
 });
 
 describe.skipIf(!ctx)("products repo set grouping (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const repos = createRepos(db);
 

@@ -22,7 +22,16 @@ import { useRouter } from "@tanstack/react-router";
 import { use, useEffect, useRef } from "react";
 
 import { useFilterSearch } from "@/features/cards/hooks/use-filter-search";
-import { toFilterState } from "@/features/cards/lib/filter-dimensions";
+import type { ArrayFilterParam } from "@/features/cards/lib/filter-dimensions";
+import {
+  ARRAY_PARAM_PRESENCE,
+  CLEARABLE_FILTER_PARAMS,
+  hasActiveParam,
+  KEPT_FILTER_PARAMS,
+  PRESENCE_PARAMS,
+  PRESENCE_VALUE_PARAMS,
+  toFilterState,
+} from "@/features/cards/lib/filter-dimensions";
 import { isPrintingsOnlyGrouping } from "@/features/cards/lib/group-by-field";
 import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
 import { absorbQueryFilters, showQueryFilters } from "@/features/cards/lib/query-filters";
@@ -33,74 +42,9 @@ import type { FilterSign, SignedValues } from "@/lib/filter-sign";
 import { flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 import { useDisplayStore } from "@/stores/display-store";
 
-type ArrayKey =
-  | "sets"
-  | "languages"
-  | "rarities"
-  | "types"
-  | "superTypes"
-  | "domains"
-  | "artVariants"
-  | "finishes"
-  | "cardSizes"
-  | "markers"
-  | "channels"
-  | "customTags"
-  | "keywords"
-  | "tags"
-  | "owned"
-  | "setsEx"
-  | "languagesEx"
-  | "raritiesEx"
-  | "typesEx"
-  | "superTypesEx"
-  | "domainsEx"
-  | "artVariantsEx"
-  | "finishesEx"
-  | "markersEx"
-  | "channelsEx"
-  | "customTagsEx"
-  | "keywordsEx"
-  | "tagsEx";
-
-type PresenceParam =
-  | "markersPresence"
-  | "superTypesPresence"
-  | "customTagsPresence"
-  | "channelsPresence"
-  | "keywordsPresence"
-  | "tagsPresence";
-
-const PRESENCE_PARAMS: Record<PresenceDimension, PresenceParam> = {
-  markers: "markersPresence",
-  superTypes: "superTypesPresence",
-  customTags: "customTagsPresence",
-  distributionChannels: "channelsPresence",
-  keywords: "keywordsPresence",
-  tags: "tagsPresence",
-};
-
-/** Cleared when the dimension's presence is "none"; consulted in reverse to
- * clear a lingering "none" when a value is picked. */
-const PRESENCE_VALUE_PARAMS: Record<PresenceDimension, { include?: ArrayKey; exclude?: ArrayKey }> =
-  {
-    markers: { include: "markers", exclude: "markersEx" },
-    superTypes: { include: "superTypes", exclude: "superTypesEx" },
-    customTags: { include: "customTags", exclude: "customTagsEx" },
-    distributionChannels: { include: "channels", exclude: "channelsEx" },
-    keywords: { include: "keywords", exclude: "keywordsEx" },
-    tags: { include: "tags", exclude: "tagsEx" },
-  };
-
-/** Reverse of PRESENCE_VALUE_PARAMS' include side; must mirror it. */
-const ARRAY_KEY_PRESENCE_PARAM: Partial<Record<ArrayKey, PresenceParam>> = {
-  markers: "markersPresence",
-  superTypes: "superTypesPresence",
-  customTags: "customTagsPresence",
-  channels: "channelsPresence",
-  keywords: "keywordsPresence",
-  tags: "tagsPresence",
-};
+const CLEAR_ALL_PATCH = Object.fromEntries(
+  [...CLEARABLE_FILTER_PARAMS, "sort", "sortDir"].map((param) => [param, undefined]),
+) as Partial<FilterSearch>;
 
 /**
  * Read-only filter/sort/view state from URL params. Prefer this over
@@ -169,8 +113,6 @@ export function useFilterValues() {
     isSigned: filterState.signed ?? null,
     isOvernumbered: filterState.overnumbered ?? null,
     presence,
-    markers: filterState.markers,
-    channels: filterState.channels,
     markerSlugs: filterState.markers,
     distributionChannelSlugs: filterState.channels,
     customTagSlugs: filterState.customTags,
@@ -224,60 +166,8 @@ export function useFilterValues() {
   const groupDir = filterState.groupDir as SortDirection;
 
   // Language survives clearAllFilters, so it counts as active but not clearable.
-  const hasClearableFilters =
-    filterState.search !== "" ||
-    filterState.sets.length > 0 ||
-    filterState.rarities.length > 0 ||
-    filterState.types.length > 0 ||
-    filterState.superTypes.length > 0 ||
-    filterState.domains.length > 0 ||
-    filterState.artVariants.length > 0 ||
-    filterState.finishes.length > 0 ||
-    filterState.cardSizes.length > 0 ||
-    filterState.markers.length > 0 ||
-    filterState.channels.length > 0 ||
-    filterState.customTags.length > 0 ||
-    filterState.keywords.length > 0 ||
-    filterState.tags.length > 0 ||
-    filterState.energyMin !== null ||
-    filterState.energyMax !== null ||
-    filterState.mightMin !== null ||
-    filterState.mightMax !== null ||
-    filterState.powerMin !== null ||
-    filterState.powerMax !== null ||
-    filterState.priceMin !== null ||
-    filterState.priceMax !== null ||
-    filterState.ownedCountMin !== null ||
-    filterState.ownedCountMax !== null ||
-    filterState.owned.length > 0 ||
-    filterState.signed !== null ||
-    filterState.overnumbered !== null ||
-    filterState.markersPresence !== null ||
-    filterState.superTypesPresence !== null ||
-    filterState.customTagsPresence !== null ||
-    filterState.channelsPresence !== null ||
-    filterState.keywordsPresence !== null ||
-    filterState.tagsPresence !== null ||
-    filterState.banned !== null ||
-    filterState.errata !== null ||
-    filterState.noImage !== null ||
-    // Omitting these lets a "Standard"-only or exclude-only filter silently
-    // trim the grid while the active-filter indicators stay off.
-    filterState.standard !== null ||
-    filterState.setsEx.length > 0 ||
-    filterState.raritiesEx.length > 0 ||
-    filterState.typesEx.length > 0 ||
-    filterState.superTypesEx.length > 0 ||
-    filterState.domainsEx.length > 0 ||
-    filterState.artVariantsEx.length > 0 ||
-    filterState.finishesEx.length > 0 ||
-    filterState.markersEx.length > 0 ||
-    filterState.channelsEx.length > 0 ||
-    filterState.customTagsEx.length > 0 ||
-    filterState.keywordsEx.length > 0 ||
-    filterState.tagsEx.length > 0;
-  const hasActiveFilters =
-    hasClearableFilters || filterState.languages.length > 0 || filterState.languagesEx.length > 0;
+  const hasClearableFilters = hasActiveParam(raw, CLEARABLE_FILTER_PARAMS);
+  const hasActiveFilters = hasClearableFilters || hasActiveParam(raw, KEPT_FILTER_PARAMS);
 
   return {
     filters,
@@ -328,68 +218,14 @@ export function useFilterActions() {
   };
 
   const clearAllFilters = () => {
-    updateSearch({
-      q: undefined,
-      sets: undefined,
-      // Language is intentionally preserved when clearing filters.
-      rarities: undefined,
-      types: undefined,
-      superTypes: undefined,
-      domains: undefined,
-      artVariants: undefined,
-      finishes: undefined,
-      cardSizes: undefined,
-      markers: undefined,
-      channels: undefined,
-      customTags: undefined,
-      keywords: undefined,
-      tags: undefined,
-      energyMin: undefined,
-      energyMax: undefined,
-      mightMin: undefined,
-      mightMax: undefined,
-      powerMin: undefined,
-      powerMax: undefined,
-      priceMin: undefined,
-      priceMax: undefined,
-      ownedCountMin: undefined,
-      ownedCountMax: undefined,
-      owned: undefined,
-      signed: undefined,
-      overnumbered: undefined,
-      markersPresence: undefined,
-      superTypesPresence: undefined,
-      customTagsPresence: undefined,
-      channelsPresence: undefined,
-      keywordsPresence: undefined,
-      tagsPresence: undefined,
-      banned: undefined,
-      errata: undefined,
-      noImage: undefined,
-      standard: undefined,
-      setsEx: undefined,
-      // Language (incl. its negation companion) is preserved when clearing.
-      raritiesEx: undefined,
-      typesEx: undefined,
-      superTypesEx: undefined,
-      domainsEx: undefined,
-      artVariantsEx: undefined,
-      finishesEx: undefined,
-      markersEx: undefined,
-      channelsEx: undefined,
-      customTagsEx: undefined,
-      keywordsEx: undefined,
-      tagsEx: undefined,
-      sort: undefined,
-      sortDir: undefined,
-    });
+    updateSearch(CLEAR_ALL_PATCH);
   };
 
   const setSearch = (search: string) => {
     updateSearch({ q: search || undefined });
   };
 
-  const toggleArrayFilter = (key: ArrayKey, value: string) => {
+  const toggleArrayFilter = (key: ArrayFilterParam, value: string) => {
     trackEvent("filter-apply", { type: key });
     void router.navigate({
       to: ".",
@@ -408,22 +244,22 @@ export function useFilterActions() {
     });
   };
 
-  const setArrayFilter = (key: ArrayKey, values: string[]) => {
+  const setArrayFilter = (key: ArrayFilterParam, values: string[]) => {
     trackEvent("filter-apply", { type: key });
     updateSearch({ [key]: values.length > 0 ? values : undefined });
   };
 
-  const setArrayFilters = (updates: Partial<Record<ArrayKey, string[]>>) => {
+  const setArrayFilters = (updates: Partial<Record<ArrayFilterParam, string[]>>) => {
     const patch: Partial<FilterSearch> = {};
-    for (const [key, values] of Object.entries(updates) as [ArrayKey, string[]][]) {
+    for (const [key, values] of Object.entries(updates) as [ArrayFilterParam, string[]][]) {
       (patch as Record<string, unknown>)[key] = values.length > 0 ? values : undefined;
     }
     updateSearch(patch);
   };
 
   const editSignedFilter = (
-    includeKey: ArrayKey,
-    excludeKey: ArrayKey,
+    includeKey: ArrayFilterParam,
+    excludeKey: ArrayFilterParam,
     edit: (included: string[], excluded: string[]) => SignedValues,
   ) => {
     trackEvent("filter-apply", { type: includeKey });
@@ -436,7 +272,7 @@ export function useFilterActions() {
         const { included: nextInclude, excluded: nextExclude } = edit(include, exclude);
         // Naming a value clears a lingering "none" presence for the dimension;
         // the two are contradictory.
-        const presenceParam = ARRAY_KEY_PRESENCE_PARAM[includeKey];
+        const presenceParam = ARRAY_PARAM_PRESENCE[includeKey];
         const clearNone =
           presenceParam &&
           (nextInclude.length > 0 || nextExclude.length > 0) &&
@@ -456,8 +292,8 @@ export function useFilterActions() {
   };
 
   const toggleSignedFilter = (
-    includeKey: ArrayKey,
-    excludeKey: ArrayKey,
+    includeKey: ArrayFilterParam,
+    excludeKey: ArrayFilterParam,
     value: string,
     sign: FilterSign,
   ) =>
@@ -465,7 +301,7 @@ export function useFilterActions() {
       toggleSignedValue(included, excluded, value, sign),
     );
 
-  const flipSignedFilter = (includeKey: ArrayKey, excludeKey: ArrayKey) =>
+  const flipSignedFilter = (includeKey: ArrayFilterParam, excludeKey: ArrayFilterParam) =>
     editSignedFilter(includeKey, excludeKey, flipSignedValues);
 
   const setRange = (key: RangeKey, min: number | null, max: number | null) => {

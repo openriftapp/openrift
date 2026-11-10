@@ -10,7 +10,6 @@ const mockHealthRepo = {
   healthCheck: vi.fn(async (): Promise<HealthStatus> => "ok"),
 };
 
-// oxlint-disable-next-line -- test mock doesn't match full Repos type
 const app = new Hono<{ Variables: Variables }>()
   .use("*", async (c, next) => {
     c.set("repos", { health: mockHealthRepo } as never);

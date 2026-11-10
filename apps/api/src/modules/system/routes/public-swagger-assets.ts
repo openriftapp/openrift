@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side static-asset reads, never reaches the browser
 import { readFile } from "node:fs/promises";
-// oxlint-disable-next-line import/no-nodejs-modules -- resolves swagger-ui-dist files from node_modules at runtime
 import { createRequire } from "node:module";
 
 import { Hono } from "hono";

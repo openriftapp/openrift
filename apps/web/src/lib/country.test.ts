@@ -1,6 +1,4 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- test lists the vendored flag files on disk
 import { readdirSync } from "node:fs";
-// oxlint-disable-next-line import/no-nodejs-modules -- test lists the vendored flag files on disk
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";

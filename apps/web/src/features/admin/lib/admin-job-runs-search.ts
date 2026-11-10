@@ -1,18 +1,14 @@
-import {
-  JOB_RUN_ACTIVITIES,
-  JOB_STATUSES,
-  JOB_TRIGGERS,
-} from "@openrift/shared/contracts/admin/job-runs";
-import { z } from "zod";
+import { JOB_RUN_ACTIVITIES, JOB_STATUSES, JOB_TRIGGERS } from "@openrift/shared/job-run-kinds";
+import { z } from "zod/mini";
 
 /** Every param carries a `run` prefix: plain `status` already names something else on the admin cards tab. */
 export const jobRunsSearchSchema = z.object({
-  page: z.coerce.number().int().positive().optional(),
-  runKind: z.string().optional(),
-  runPrefix: z.string().optional(),
-  runTrigger: z.enum(JOB_TRIGGERS).optional(),
-  runStatus: z.enum(JOB_STATUSES).optional(),
-  runActivity: z.enum(JOB_RUN_ACTIVITIES).optional(),
+  page: z.optional(z.coerce.number().check(z.int(), z.positive())),
+  runKind: z.optional(z.string()),
+  runPrefix: z.optional(z.string()),
+  runTrigger: z.optional(z.enum(JOB_TRIGGERS)),
+  runStatus: z.optional(z.enum(JOB_STATUSES)),
+  runActivity: z.optional(z.enum(JOB_RUN_ACTIVITIES)),
 });
 
 export type JobRunsSearch = z.infer<typeof jobRunsSearchSchema>;

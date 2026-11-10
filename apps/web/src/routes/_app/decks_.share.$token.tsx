@@ -14,11 +14,16 @@ import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+interface SharedDeckHeadData {
+  deck: Pick<PublicDeckDetailResponse["deck"], "name" | "format" | "description" | "updatedAt">;
+  owner: Pick<PublicDeckDetailResponse["owner"], "displayName">;
+}
+
 export const Route = createFileRoute("/_app/decks_/share/$token")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/decks/share/${params.token}`;
-    const data = loaderData as PublicDeckDetailResponse | undefined;
+    const data = loaderData as SharedDeckHeadData | undefined;
     if (!data) {
       return seoHead({ siteUrl, title: "Shared deck", path, unlisted: true });
     }
@@ -41,12 +46,19 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
       unlisted: true,
     });
   },
-  loader: async ({ context, params }): Promise<PublicDeckDetailResponse> => {
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<SharedDeckHeadData> => {
     try {
-      return await context.queryClient.query({
+      const data = await context.queryClient.query({
         ...publicDeckQueryOptions(params.token),
         staleTime: "static",
       });
+      const { name, format, description, updatedAt } = data.deck;
+      return {
+        deck: { name, format, description, updatedAt },
+        owner: { displayName: data.owner.displayName },
+      };
     } catch (error) {
       if (isNotFoundSentinel(error)) {
         throw notFound();

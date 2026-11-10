@@ -24,7 +24,6 @@ vi.mock("@/features/cards/components/card-search-dropdown", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MoveSubmissionDialog } from "./move-submission-dialog";
 
 describe("MoveSubmissionDialog", () => {

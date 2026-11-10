@@ -14,6 +14,8 @@ import type {
 } from "@openrift/shared/types/api/admin";
 
 import { buildPrintingFieldsFromCandidate } from "@/features/admin/lib/printing-fields";
+import type { SetReleaseYears } from "@/features/admin/lib/set-release-years";
+import { setReleaseYear } from "@/features/admin/lib/set-release-years";
 
 export interface DraftFaceFields {
   shortCode: string;
@@ -27,8 +29,10 @@ export interface DraftFaceFields {
   rarity: string;
   artVariant: string;
   isSigned: boolean;
+  isOvernumbered: boolean;
   artist: string;
   markerSlugs: string[];
+  printedYear: number | null;
   printedName: string | null;
   printedRulesText: string | null;
   printedEffectText: string | null;
@@ -37,7 +41,11 @@ export interface DraftFaceFields {
 
 export type DraftImage =
   | { kind: "file"; key: string; file: File }
-  | { kind: "source"; key: string; url: string; label: string };
+  | { kind: "source"; key: string; url: string; label: string; attached: boolean };
+
+export function isAttachedImage(image: DraftImage): boolean {
+  return image.kind === "file" || image.attached;
+}
 
 export type DraftFace =
   | { mode: "new"; fields: DraftFaceFields; images: DraftImage[] }
@@ -128,8 +136,10 @@ export function emptyFaceFields(defaults: Partial<DraftFaceFields> = {}): DraftF
     rarity: "",
     artVariant: "",
     isSigned: false,
+    isOvernumbered: false,
     artist: "",
     markerSlugs: [],
+    printedYear: null,
     printedName: null,
     printedRulesText: null,
     printedEffectText: null,
@@ -281,8 +291,16 @@ export function draftFromDeskPrinting(
   };
 }
 
-function faceFieldsFromCandidate(candidate: CandidatePrintingResponse): DraftFaceFields {
+function faceFieldsFromCandidate(
+  candidate: CandidatePrintingResponse,
+  setReleaseYears: SetReleaseYears,
+): DraftFaceFields {
   const fields = buildPrintingFieldsFromCandidate(candidate);
+  const printedYear =
+    fields.printedYear ??
+    (fields.setId === undefined
+      ? undefined
+      : setReleaseYear(setReleaseYears, fields.setId, fields.language));
   return emptyFaceFields({
     shortCode: fields.shortCode,
     codeTba: false,
@@ -294,8 +312,10 @@ function faceFieldsFromCandidate(candidate: CandidatePrintingResponse): DraftFac
     rarity: fields.rarity ?? "",
     artVariant: fields.artVariant ?? "",
     isSigned: fields.isSigned ?? false,
+    isOvernumbered: fields.isOvernumbered ?? false,
     artist: fields.artist,
     markerSlugs: [...(fields.markerSlugs ?? [])],
+    printedYear: printedYear ?? null,
     printedName: fields.printedName ?? null,
     printedRulesText: fields.printedRulesText ?? null,
     printedEffectText: fields.printedEffectText ?? null,
@@ -307,6 +327,8 @@ export function draftFromCandidatePrinting(
   card: DraftCard,
   candidate: CandidatePrintingResponse,
   sourceLabel: string,
+  setReleaseYears: SetReleaseYears,
+  isFavoriteSource: boolean,
 ): CreationDraft {
   const images: DraftImage[] = hasFieldValue(candidate.imageUrl)
     ? [
@@ -315,13 +337,14 @@ export function draftFromCandidatePrinting(
           key: `source:${candidate.id}`,
           url: candidate.imageUrl as string,
           label: `${sourceLabel} scan`,
+          attached: isFavoriteSource,
         },
       ]
     : [];
   return {
     target: "accept",
     card,
-    faces: [{ mode: "new", fields: faceFieldsFromCandidate(candidate), images }],
+    faces: [{ mode: "new", fields: faceFieldsFromCandidate(candidate, setReleaseYears), images }],
     printing: emptyPrintingFields({
       distributionChannelSlugs: [...candidate.distributionChannelSlugs],
       size: candidate.size ?? "",
@@ -565,7 +588,7 @@ export function toAcceptInput(draft: CreationDraft, cardId?: string): AcceptInpu
   const face = requireFirstFace(draft);
   const { fields } = face;
   const shortCode = fields.shortCode.trim();
-  const sourceImage = face.images.find((image) => image.kind === "source");
+  const sourceImage = face.images.find((image) => image.kind === "source" && image.attached);
   const printingFields: AcceptPrintingBody["printingFields"] = {
     shortCode,
     publicCode: fields.publicCode.trim().length > 0 ? fields.publicCode.trim() : shortCode,
@@ -573,6 +596,7 @@ export function toAcceptInput(draft: CreationDraft, cardId?: string): AcceptInpu
     markerSlugs: [...fields.markerSlugs],
     distributionChannelSlugs: [...draft.printing.distributionChannelSlugs],
     isSigned: fields.isSigned,
+    isOvernumbered: fields.isOvernumbered,
   };
   if (fields.setSlug.length > 0) {
     printingFields.setId = fields.setSlug;
@@ -591,6 +615,9 @@ export function toAcceptInput(draft: CreationDraft, cardId?: string): AcceptInpu
     if (value.length > 0) {
       printingFields[key as keyof typeof optional] = value;
     }
+  }
+  if (fields.printedYear !== null) {
+    printingFields.printedYear = fields.printedYear;
   }
   if (fields.printedName !== null) {
     printingFields.printedName = fields.printedName;
@@ -635,11 +662,12 @@ export function printingFollowUpFields(
 
 export function plannedImageUploads(draft: CreationDraft): PlannedImageUpload[] {
   return draft.faces.flatMap((face, faceIndex) => {
+    const attached = face.images.filter((image) => isAttachedImage(image));
     const ridesAlong =
       draft.target === "accept" && faceIndex === 0
-        ? face.images.find((image) => image.kind === "source")
+        ? attached.find((image) => image.kind === "source")
         : undefined;
-    const images = face.images.filter((image) => image !== ridesAlong);
+    const images = attached.filter((image) => image !== ridesAlong);
     const hasActive = face.mode === "existing" || ridesAlong !== undefined;
     return images.map((image, index) => ({
       faceIndex,

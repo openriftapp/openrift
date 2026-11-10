@@ -8,6 +8,7 @@ export const Route = createFileRoute(
       to: "/admin/printings/$printingId",
       params: { printingId: params.printingId },
       replace: true,
+      statusCode: 301,
     });
   },
 });

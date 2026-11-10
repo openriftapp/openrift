@@ -1,10 +1,13 @@
 import type { AdminSectionSlug } from "@openrift/shared/admin-sections";
 
+import { ADMIN_API_PREFIX } from "../lib/admin-api-prefix.js";
+import { collectContractRoutes } from "../lib/contract-routes.js";
+
 function underPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
 
-const BASE = "/api/admin/v1";
+const BASE = ADMIN_API_PREFIX;
 
 // `provider-settings` is list-only: reorder/update live under the same
 // prefix but differ by method and path, so they stay closed here.
@@ -28,9 +31,17 @@ const CARD_REVIEW_GET_EXACT = new Set([
   `${BASE}/sets`,
 ]);
 
-// GET /cards/{x} endpoints that share the card-detail path shape but must not
-// be readable by a grant holder.
-const CARD_DETAIL_SLUG_DENY = new Set(["export", "provider-stats", "provider-names"]);
+export const STATIC_CARD_GET_PATHS: ReadonlySet<string> = new Set(
+  collectContractRoutes()
+    .filter(
+      ({ method, path }) => method === "GET" && /^\/api\/admin\/v1\/cards\/[^/{]+$/u.test(path),
+    )
+    .map(({ path }) => path),
+);
+
+function isCardDetailPath(path: string): boolean {
+  return /^\/api\/admin\/v1\/cards\/[^/]+$/u.test(path) && !STATIC_CARD_GET_PATHS.has(path);
+}
 
 const PRINTING_DESK_GET_EXACT = new Set([
   `${BASE}/cards/all-cards`,
@@ -63,8 +74,7 @@ const SECTION_PATH_MATCHERS: Record<AdminSectionSlug, (method: string, path: str
       if (/^\/api\/admin\/v1\/printing-desk\/printings\/[^/]+$/u.test(path)) {
         return true;
       }
-      const detail = /^\/api\/admin\/v1\/cards\/(?<slug>[^/]+)$/u.exec(path);
-      return detail?.groups?.slug !== undefined && !CARD_DETAIL_SLUG_DENY.has(detail.groups.slug);
+      return isCardDetailPath(path);
     }
     if (method === "POST") {
       return (
@@ -105,8 +115,7 @@ const SECTION_PATH_MATCHERS: Record<AdminSectionSlug, (method: string, path: str
       if (PRINTING_DESK_GET_EXACT.has(path)) {
         return true;
       }
-      const detail = /^\/api\/admin\/v1\/cards\/(?<slug>[^/]+)$/u.exec(path);
-      return detail?.groups?.slug !== undefined && !CARD_DETAIL_SLUG_DENY.has(detail.groups.slug);
+      return isCardDetailPath(path);
     }
     if (method === "POST") {
       return (

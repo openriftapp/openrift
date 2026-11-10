@@ -3,6 +3,7 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { m } from "@/paraglide/messages.js";
 
 import { sessionQueryOptions } from "./auth-session";
+import { featureFlagsKeys } from "./query-keys";
 import { captureHandledError } from "./report-error";
 import {
   errorStatus,
@@ -13,17 +14,19 @@ import {
 import { isStaleServerFnError, reloadIfStaleServerFnError } from "./stale-bundle-reload";
 import { PERSISTENT_ERROR_TOAST, toastError } from "./toast";
 import { toastableMessage } from "./toastable-message";
+import { UserDeclinedError } from "./user-declined-error";
+import { refreshViewer } from "./viewer-change";
 
 /**
  * react-query merges mutation options shallowly, so a mutation's own
  * `onError` overrides this default; such handlers must call this directly.
  */
 export function reportMutationError(err: Error, queryClient: QueryClient): void {
-  if (reloadIfStaleServerFnError(err)) {
+  if (err instanceof UserDeclinedError || reloadIfStaleServerFnError(err)) {
     return;
   }
   if (isSessionExpiredError(err)) {
-    void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    void refreshViewer(queryClient);
   }
   const diagnostic = isApiError(err) ? err.diagnostic : undefined;
   if (diagnostic) {
@@ -41,21 +44,26 @@ export function reportMutationError(err: Error, queryClient: QueryClient): void 
 /** Called once per request on the server, to avoid cross-request data leakage, and once on the client. */
 export function createQueryClient() {
   const invalidateSession = () => {
-    void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    if (globalThis.window === undefined) {
+      void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      return;
+    }
+    void refreshViewer(queryClient);
   };
   const queryClient: QueryClient = new QueryClient({
     queryCache: new QueryCache({
-      onError: (err) => {
+      onError: (err, query) => {
         if (reloadIfStaleServerFnError(err)) {
           return;
         }
-        if (isSessionExpiredError(err)) {
+        if (isSessionExpiredError(err) && query.queryKey[0] !== featureFlagsKeys.all[0]) {
           invalidateSession();
         }
       },
     }),
     defaultOptions: {
       queries: {
+        staleTime: 30_000,
         retry: (failureCount, error) =>
           isRetryableError(error) &&
           !isStaleServerFnError(error) &&

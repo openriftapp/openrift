@@ -1,5 +1,5 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { earliestRelease } from "@openrift/shared/set-release";
+import type { AcceptPrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
 import type {
   AdminCardDetailResponse,
   AdminMarketplaceName,
@@ -10,8 +10,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, PlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
+import { RouteErrorFallback } from "@/components/error-message";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -46,8 +47,8 @@ import {
   useDeleteCandidatePrinting,
   useLinkCandidatePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
-import type { AcceptPrintingBody } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
+import { useCardPageFocus } from "@/features/admin/hooks/use-card-page-focus";
 import { useCardReviewNavigation } from "@/features/admin/hooks/use-card-review-navigation";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -58,17 +59,15 @@ import {
 } from "@/features/admin/lib/attention-items";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
 import type { AdminCardListStatus } from "@/features/admin/lib/card-attention";
+import { cardFoldKeys, NEEDS_DECISION_ID } from "@/features/admin/lib/card-page-focus";
 import type { CardSection, NavCardSection } from "@/features/admin/lib/card-sections";
 import {
   cardSectionsFor,
   DEFAULT_CARD_SECTION,
   navSectionOf,
 } from "@/features/admin/lib/card-sections";
-import {
-  buildFaceRows,
-  faceIdsOfPrinting,
-  pairNamesByPrinting,
-} from "@/features/admin/lib/face-rows";
+import { buildFaceRows, pairNamesByPrinting } from "@/features/admin/lib/face-rows";
+import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { buildOverviewSourceGroups } from "@/features/admin/lib/source-groups";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import {
@@ -79,6 +78,7 @@ import {
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
+import { errorStatus } from "@/lib/server-fns/api-error";
 
 /** Stable placeholder so the filter hook can run before the detail lands. */
 const NO_PRINTINGS: AdminPrintingResponse[] = [];
@@ -94,13 +94,6 @@ function MissingCard({ identifier, children }: { identifier: string; children: R
     </>
   );
 }
-
-function foldKeys(detail: AdminCardDetailResponse): string[] {
-  const groups = buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings);
-  return [...new Set(detail.printings.map((p) => p.faceId)), ...groups.map((g) => g.groupKey)];
-}
-
-const NEEDS_DECISION_ID = "needs-decision";
 
 export function ExistingCardDetailPage({
   identifier,
@@ -143,10 +136,14 @@ export function ExistingCardDetailPage({
     data: existingData,
     isLoading,
     isError,
+    error,
+    refetch,
   } = useAdminCardDetail(identifier) as {
     data: AdminCardDetailResponse | undefined;
     isLoading: boolean;
     isError: boolean;
+    error: unknown;
+    refetch: () => Promise<unknown>;
   };
 
   const { providerSettings, candidateCardFields, printingSourceFields, ignorePrintingSource } =
@@ -182,9 +179,7 @@ export function ExistingCardDetailPage({
     getStoredCollapsedPrintings(state, cardId),
   );
   const togglePrintingFold = useAdminCardFoldStore((state) => state.togglePrinting);
-  const focusPrintingFold = useAdminCardFoldStore((state) => state.focusPrinting);
   const setCollapsedForCard = useAdminCardFoldStore((state) => state.setCollapsedForCard);
-  const initCollapsedForCard = useAdminCardFoldStore((state) => state.initCollapsedForCard);
   const decisionsFolded = useAdminCardFoldStore((state) =>
     getCollapsedSections(state).has("attention"),
   );
@@ -200,20 +195,6 @@ export function ExistingCardDetailPage({
     : DEFAULT_CARD_SECTION;
   const navigate = useNavigate();
 
-  function focusFaces(detail: AdminCardDetailResponse, faceIds: readonly string[]): void {
-    setCollapsedForCard(cardId, new Set(foldKeys(detail).filter((key) => !faceIds.includes(key))));
-  }
-  function scrollToFace(faceId: string | undefined): void {
-    if (faceId === undefined) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      document
-        .querySelector(`[data-face-id="${faceId}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }
-
   function goToSection(next: CardSection) {
     return navigate({
       to: "/admin/cards/$cardSlug",
@@ -222,48 +203,16 @@ export function ExistingCardDetailPage({
     });
   }
 
-  function revealDecisions(): void {
-    if (decisionsFolded) {
-      toggleSectionFold("attention");
-    }
-    requestAnimationFrame(() => {
-      document
-        .querySelector(`#${NEEDS_DECISION_ID}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-  function revealPrinting(printingId: string): void {
-    if (!existingData) {
-      return;
-    }
-    const faceIds = faceIdsOfPrinting(existingData.printings, printingId);
-    focusFaces(existingData, faceIds);
-    void (async () => {
-      await goToSection("printings");
-      scrollToFace(faceIds[0]);
-    })();
-  }
-  function revealNewPrinting(candidatePrintingId: string): void {
-    if (!existingData) {
-      return;
-    }
-    const group = buildPrintingGroups(
-      existingData.candidatePrintingGroups,
-      existingData.candidatePrintings,
-    ).find((entry) => entry.candidates.some((candidate) => candidate.id === candidatePrintingId));
-    if (!group) {
-      return;
-    }
-    focusPrintingFold(cardId, group.groupKey, foldKeys(existingData));
-    void (async () => {
-      await goToSection("printings");
-      requestAnimationFrame(() => {
-        document
-          .querySelector(`[data-printing-group="${group.groupKey}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    })();
-  }
+  const { revealPrinting, revealNewPrinting, focusAcceptedPrinting } = useCardPageFocus({
+    cardId,
+    detail: existingData,
+    face,
+    section,
+    focusMarketplace,
+    focusFinish,
+    focusLanguage,
+    goToSection,
+  });
   const [agreedFieldsFolded, setAgreedFieldsFolded] = useState(true);
   const { filteredPrintings, filters } = usePrintingFilters(
     existingData?.printings ?? NO_PRINTINGS,
@@ -291,94 +240,16 @@ export function ExistingCardDetailPage({
           0,
         );
 
-  const pendingScrollTarget = useRef<string | null>(null);
-  const focusHandledRef = useRef(false);
-  const faceFocusHandledRef = useRef<string | null>(null);
-  const decisionsScrollHandledRef = useRef(false);
-
-  // Seeding runs before the focus effects below, which reach into a seeded card
-  // to open one row.
-  useEffect(() => {
-    if (!existingData) {
-      return;
-    }
-    initCollapsedForCard(cardId, new Set(foldKeys(existingData)));
-  }, [existingData, cardId, initCollapsedForCard]);
-
-  useEffect(() => {
-    const targetId = pendingScrollTarget.current;
-    if (!targetId || !existingData) {
-      return;
-    }
-    const faceIds = faceIdsOfPrinting(existingData.printings, targetId);
-    if (faceIds.length === 0) {
-      return;
-    }
-    pendingScrollTarget.current = null;
-    focusFaces(existingData, faceIds);
-    scrollToFace(faceIds[0]);
-  });
-
-  useEffect(() => {
-    if (face === undefined) {
-      faceFocusHandledRef.current = null;
-      return;
-    }
-    if (faceFocusHandledRef.current === face || !existingData) {
-      return;
-    }
-    if (!existingData.printings.some((printing) => printing.faceId === face)) {
-      return;
-    }
-    faceFocusHandledRef.current = face;
-    focusFaces(existingData, [face]);
-    scrollToFace(face);
-  });
-
-  useEffect(() => {
-    if (section !== "attention") {
-      decisionsScrollHandledRef.current = false;
-      return;
-    }
-    if (decisionsScrollHandledRef.current || !existingData) {
-      return;
-    }
-    decisionsScrollHandledRef.current = true;
-    revealDecisions();
-  });
-
-  // Cardmarket rows apply to all siblings, so any matching finish works there;
-  // other marketplaces also require a language match.
-  useEffect(() => {
-    if (focusHandledRef.current || !focusMarketplace || !focusFinish || !existingData) {
-      return;
-    }
-    const printings = existingData.printings;
-    if (printings.length === 0) {
-      return;
-    }
-    const isLanguageAggregate = focusMarketplace === "cardmarket";
-    const match =
-      printings.find(
-        (p) =>
-          p.finish === focusFinish &&
-          (isLanguageAggregate || !focusLanguage || p.language === focusLanguage),
-      ) ??
-      printings.find((p) => p.finish === focusFinish) ??
-      null;
-    if (!match) {
-      return;
-    }
-    focusHandledRef.current = true;
-    focusFaces(existingData, [match.faceId]);
-    scrollToFace(match.faceId);
-  });
-
   if (isError) {
-    return (
+    return errorStatus(error) === 404 ? (
       <MissingCard identifier={identifier}>
         No card with ID &ldquo;{identifier}&rdquo; exists.
       </MissingCard>
+    ) : (
+      <>
+        <AdminPageTopBar title={identifier} />
+        <RouteErrorFallback error={error} onRetry={() => void refetch()} />
+      </>
     );
   }
 
@@ -399,20 +270,7 @@ export function ExistingCardDetailPage({
   const printings = existingData.printings;
   const printingImages = existingData.printingImages;
   const setTotals = existingData.setTotals ?? {};
-  // Keyed both by set slug (earliest release, as a fallback) and by
-  // `slug|LANGUAGE`, since a set reaches each language in its own year.
-  const setReleaseYears: Record<string, number> = {};
-  for (const set of setsData.sets) {
-    for (const [language, release] of Object.entries(set.releases)) {
-      if (release.releasedAt) {
-        setReleaseYears[`${set.slug}|${language}`] = Number(release.releasedAt.slice(0, 4));
-      }
-    }
-    const earliest = earliestRelease(set.releases);
-    if (earliest?.releasedAt) {
-      setReleaseYears[set.slug] = Number(earliest.releasedAt.slice(0, 4));
-    }
-  }
+  const setReleaseYears = buildSetReleaseYears(setsData.sets);
   const expectedCardId = existingData.expectedCardId;
   const card = existingData.card;
   if (!card) {
@@ -456,7 +314,7 @@ export function ExistingCardDetailPage({
 
   const allPrintingKeys = [...faceIds, ...ambiguousGroups.map((g) => g.groupKey)];
   // Until the seeding effect lands, read the folds the card is about to get.
-  const collapsedPrintings = storedCollapsedPrintings ?? new Set(foldKeys(existingData));
+  const collapsedPrintings = storedCollapsedPrintings ?? new Set(cardFoldKeys(existingData));
   const allExpanded =
     allPrintingKeys.length > 0 && allPrintingKeys.every((k) => !collapsedPrintings.has(k));
 
@@ -673,9 +531,7 @@ export function ExistingCardDetailPage({
                           },
                           {
                             onSuccess: (data) => {
-                              pendingScrollTarget.current = (
-                                data as { printingId: string }
-                              ).printingId;
+                              focusAcceptedPrinting((data as { printingId: string }).printingId);
                             },
                           },
                         );

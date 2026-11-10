@@ -1,5 +1,5 @@
 import { oc } from "@orpc/contract";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { TIME_RANGE_DAYS } from "../types/pricing.js";
 import type { TimeRange } from "../types/pricing.js";
@@ -7,25 +7,17 @@ import type { TimeRange } from "../types/pricing.js";
 // Integer cents in each marketplace's own currency (tcgplayer=USD, the rest EUR, see MARKETPLACE_CURRENCY).
 const marketplacePriceMapSchema = z.object({
   tcgplayer: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [452], description: "Integer cents (USD)" }),
+    .optional(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [452], description: "Integer cents (USD)" }),
   cardmarket: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [380], description: "Integer cents (EUR)" }),
+    .optional(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [380], description: "Integer cents (EUR)" }),
   cardtrader: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [390], description: "Integer cents (EUR)" }),
+    .optional(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [390], description: "Integer cents (EUR)" }),
   cardnexus: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [370], description: "Integer cents (EUR)" }),
+    .optional(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [370], description: "Integer cents (EUR)" }),
 });
 
 const marketplaceCurrenciesSchema = z
@@ -35,12 +27,12 @@ const marketplaceCurrenciesSchema = z
     cardtrader: z.enum(["EUR", "USD"]),
     cardnexus: z.enum(["EUR", "USD"]),
   })
-  .meta({
+  .register(z.globalRegistry, {
     examples: [{ tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR", cardnexus: "EUR" }],
   });
 
 export const pricesResponseSchema = z.object({
-  prices: z.record(z.string(), marketplacePriceMapSchema).meta({
+  prices: z.record(z.string(), marketplacePriceMapSchema).register(z.globalRegistry, {
     description: "Keyed by printing id. A marketplace is absent when it has no price.",
     examples: [
       {
@@ -57,96 +49,94 @@ export const pricesResponseSchema = z.object({
 });
 
 export const tcgplayerSnapshotSchema = z.object({
-  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), USD" }),
+  date: z.string().register(z.globalRegistry, {
+    examples: ["2026-04-01"],
+    description: "Date-only (YYYY-MM-DD), USD",
+  }),
   market: z
     .number()
-    .int()
-    .meta({ examples: [452], description: "Integer cents (USD)" }),
+    .check(z.int())
+    .register(z.globalRegistry, { examples: [452], description: "Integer cents (USD)" }),
   low: z
-    .number()
-    .int()
-    .nullable()
-    .meta({ examples: [325], description: "Integer cents (USD)" }),
+    .nullable(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [325], description: "Integer cents (USD)" }),
 });
 
 export const cardmarketSnapshotSchema = z.object({
-  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), EUR" }),
+  date: z.string().register(z.globalRegistry, {
+    examples: ["2026-04-01"],
+    description: "Date-only (YYYY-MM-DD), EUR",
+  }),
   market: z
     .number()
-    .int()
-    .meta({ examples: [380], description: "Integer cents (EUR)" }),
+    .check(z.int())
+    .register(z.globalRegistry, { examples: [380], description: "Integer cents (EUR)" }),
   low: z
-    .number()
-    .int()
-    .nullable()
-    .meta({ examples: [250], description: "Integer cents (EUR)" }),
+    .nullable(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [250], description: "Integer cents (EUR)" }),
 });
 
 export const cardtraderSnapshotSchema = z.object({
-  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), EUR" }),
+  date: z.string().register(z.globalRegistry, {
+    examples: ["2026-04-01"],
+    description: "Date-only (YYYY-MM-DD), EUR",
+  }),
   zeroLow: z
-    .number()
-    .int()
-    .nullable()
-    .meta({ examples: [420], description: "Integer cents (EUR)" }),
+    .nullable(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [420], description: "Integer cents (EUR)" }),
   low: z
-    .number()
-    .int()
-    .nullable()
-    .meta({ examples: [390], description: "Integer cents (EUR)" }),
+    .nullable(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [390], description: "Integer cents (EUR)" }),
 });
 
 export const cardnexusSnapshotSchema = z.object({
-  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), EUR" }),
+  date: z.string().register(z.globalRegistry, {
+    examples: ["2026-04-01"],
+    description: "Date-only (YYYY-MM-DD), EUR",
+  }),
   low: z
-    .number()
-    .int()
-    .nullable()
-    .meta({ examples: [370], description: "Integer cents (EUR)" }),
+    .nullable(z.number().check(z.int()))
+    .register(z.globalRegistry, { examples: [370], description: "Integer cents (EUR)" }),
 });
 
 export const marketplaceLinkSchema = z.object({
-  available: z.boolean().meta({ examples: [true] }),
-  productId: z
-    .number()
-    .nullable()
-    .meta({ examples: [582_391], description: "The marketplace's own product id" }),
-  url: z
-    .string()
-    .nullable()
-    .meta({
-      examples: [
-        "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F582391",
-      ],
-      description: "Product page link, with OpenRift's referral code where the marketplace has one",
-    }),
+  available: z.boolean().register(z.globalRegistry, { examples: [true] }),
+  productId: z.nullable(z.number()).register(z.globalRegistry, {
+    examples: [582_391],
+    description: "The marketplace's own product id",
+  }),
+  url: z.nullable(z.string()).register(z.globalRegistry, {
+    examples: [
+      "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F582391",
+    ],
+    description: "Product page link, with OpenRift's referral code where the marketplace has one",
+  }),
 });
 
 const currencyFieldSchema = z.enum(["EUR", "USD"]);
 
-const currentPriceSchema = z
-  .number()
-  .int()
-  .nullable()
-  .meta({ examples: [452], description: "Today's price in integer cents, null when unpriced" });
+const currentPriceSchema = z.nullable(z.number().check(z.int())).register(z.globalRegistry, {
+  examples: [452],
+  description: "Today's price in integer cents, null when unpriced",
+});
 
 export const printingPricesResponseSchema = z.object({
-  tcgplayer: marketplaceLinkSchema.extend({
+  tcgplayer: z.extend(marketplaceLinkSchema, {
     currency: currencyFieldSchema,
     price: currentPriceSchema,
     snapshots: z.array(tcgplayerSnapshotSchema),
   }),
-  cardmarket: marketplaceLinkSchema.extend({
+  cardmarket: z.extend(marketplaceLinkSchema, {
     currency: currencyFieldSchema,
     price: currentPriceSchema,
     snapshots: z.array(cardmarketSnapshotSchema),
   }),
-  cardtrader: marketplaceLinkSchema.extend({
+  cardtrader: z.extend(marketplaceLinkSchema, {
     currency: currencyFieldSchema,
     price: currentPriceSchema,
     snapshots: z.array(cardtraderSnapshotSchema),
   }),
-  cardnexus: marketplaceLinkSchema.extend({
+  cardnexus: z.extend(marketplaceLinkSchema, {
     currency: currencyFieldSchema,
     price: currentPriceSchema,
     snapshots: z.array(cardnexusSnapshotSchema),
@@ -164,7 +154,7 @@ export const marketplaceLinksResponseSchema = z.object({
         cardnexus: marketplaceLinkSchema,
       }),
     )
-    .meta({
+    .register(z.globalRegistry, {
       description: "Keyed by printing id.",
       examples: [
         {
@@ -197,20 +187,17 @@ const MARKETPLACE_LINKS_MAX_PRINTINGS = 200;
 
 const rangeQuerySchema = z.object({
   range: z
-    .enum(Object.keys(TIME_RANGE_DAYS) as [TimeRange, ...TimeRange[]])
-    .default("30d")
-    .meta({ description: "How far back `snapshots` reach." }),
+    ._default(z.enum(Object.keys(TIME_RANGE_DAYS) as [TimeRange, ...TimeRange[]]), "30d")
+    .register(z.globalRegistry, { description: "How far back `snapshots` reach." }),
 });
 
 const marketplaceLinksQuerySchema = z.object({
-  printings: z
-    .string()
-    .optional()
-    .meta({
+  printings: z.pipe(
+    z.optional(z.string()).register(z.globalRegistry, {
       description: `Comma-separated printing ids, at most ${MARKETPLACE_LINKS_MAX_PRINTINGS}. Omit it for every printing that has a marketplace product.`,
       examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"],
-    })
-    .transform((value, ctx) => {
+    }),
+    z.transform((value: string | undefined, ctx) => {
       if (value === undefined) {
         return value;
       }
@@ -219,13 +206,14 @@ const marketplaceLinksQuerySchema = z.object({
         .map((id) => id.trim())
         .filter(Boolean);
       if (ids.length === 0) {
-        ctx.addIssue({ code: "custom", message: "printings must not be empty" });
+        ctx.issues.push({ code: "custom", message: "printings must not be empty", input: value });
         return z.NEVER;
       }
       if (ids.length > MARKETPLACE_LINKS_MAX_PRINTINGS) {
-        ctx.addIssue({
+        ctx.issues.push({
           code: "custom",
           message: `printings must be at most ${MARKETPLACE_LINKS_MAX_PRINTINGS} ids`,
+          input: value,
         });
         return z.NEVER;
       }
@@ -233,15 +221,16 @@ const marketplaceLinksQuerySchema = z.object({
       for (const id of ids) {
         const parsed = uuid.safeParse(id);
         if (!parsed.success) {
-          ctx.addIssue({ code: "custom", message: `invalid uuid: ${id}` });
+          ctx.issues.push({ code: "custom", message: `invalid uuid: ${id}`, input: value });
           return z.NEVER;
         }
       }
       return [...new Set(ids)];
     }),
+  ),
 });
 
-const printingIdParam = z.uuid().meta({
+const printingIdParam = z.uuid().register(z.globalRegistry, {
   description: "A printing id from `/catalog`.",
   examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"],
 });
@@ -287,7 +276,7 @@ export const pricesContract = {
         "Today's price, the store link and the daily price history of one printing on every marketplace. A marketplace the printing is not sold on comes back as `available: false` with empty snapshots.",
     })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
-    .input(rangeQuerySchema.extend({ printingId: printingIdParam }))
+    .input(z.extend(rangeQuerySchema, { printingId: printingIdParam }))
     .errors({ NOT_FOUND: { message: "Printing not found" } })
     .output(printingPricesResponseSchema),
 };

@@ -14,6 +14,7 @@ import { getAppDiagnostics } from "./app-diagnostics";
 import { COMMIT_HASH, PROD } from "./env";
 import { drainHydrationErrors } from "./hydration-error-buffer";
 import { isKnownBot } from "./known-bot";
+import { NETWORK_ERROR_MESSAGES } from "./route-error-kind";
 import { CHUNK_LOAD_ERROR_PATTERN, STALE_SERVER_FN_ERROR_PATTERN } from "./stale-bundle-reload";
 
 type TanstackRouter = Parameters<typeof tanstackRouterBrowserTracingIntegration>[0];
@@ -27,6 +28,19 @@ export const INJECTED_SCRIPT_PATTERN = /__firefox__|window\.ethereum/u;
 type SentryBeforeSend = NonNullable<Parameters<typeof init>[0]>["beforeSend"];
 type SentryErrorEvent = Parameters<NonNullable<SentryBeforeSend>>[0];
 type SentryEventHint = Parameters<NonNullable<SentryBeforeSend>>[1];
+type SentryBeforeBreadcrumb = NonNullable<Parameters<typeof init>[0]>["beforeBreadcrumb"];
+type SentryBreadcrumb = Parameters<NonNullable<SentryBeforeBreadcrumb>>[0];
+
+// The scanner's per-frame console lines would push every other breadcrumb out
+// of an event raised on /scan. They stay in the console.
+const SCAN_FRAME_LOG_PATTERN = /^\[scan\] (?:#\d+|PRINTING) /u;
+
+export function dropScanFrameBreadcrumb(breadcrumb: SentryBreadcrumb): SentryBreadcrumb | null {
+  if (breadcrumb.category === "console" && SCAN_FRAME_LOG_PATTERN.test(breadcrumb.message ?? "")) {
+    return null;
+  }
+  return breadcrumb;
+}
 
 // A bare throw (undefined/null/"") reaches window.onerror with no stack or
 // message, so Sentry titles the issue `<unknown>`; enrich it with the route.
@@ -88,13 +102,12 @@ export function initClientSentry(router: TanstackRouter): void {
     attachStacktrace: true,
     dataCollection: SENTRY_DATA_COLLECTION,
     beforeSend: enrichEvent,
+    beforeBreadcrumb: dropScanFrameBreadcrumb,
     // Each is already handled elsewhere or external; Sentry's global handlers
     // fire before those handlers do, so they're filtered here too.
     ignoreErrors: [
       "NOT_FOUND",
-      "Load failed",
-      "Failed to fetch",
-      "NetworkError when attempting to fetch resource",
+      ...NETWORK_ERROR_MESSAGES,
       CHUNK_LOAD_ERROR_PATTERN,
       STALE_SERVER_FN_ERROR_PATTERN,
       INJECTED_SCRIPT_PATTERN,

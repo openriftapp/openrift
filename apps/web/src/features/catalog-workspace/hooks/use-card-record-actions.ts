@@ -3,9 +3,10 @@ import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { toast } from "sonner";
 
 import {
+  acceptCardFieldFn,
+  uncheckCandidateCardFn,
   useAcceptCardField,
   useCheckCandidateCard,
-  useUncheckCandidateCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -16,6 +17,7 @@ import {
 } from "@/features/admin/lib/build-accept-input";
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type {
   CardSuggestions,
   FieldSuggestion,
@@ -24,8 +26,12 @@ import {
   enterDifferenceCount,
   suggestionByHotkey,
 } from "@/features/catalog-workspace/lib/suggestion-rows";
-import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/stores/workspace-selection-store";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
+import {
+  discardUndoText,
+  undoScope,
+  usedUndoText,
+} from "@/features/catalog-workspace/lib/workspace-undo";
 
 interface UseCardRecordActionsOptions {
   cardSlug: string;
@@ -54,30 +60,24 @@ export function useCardRecordActions({
   const scope = cardRecordScope(cardSlug);
   const acceptCardField = useAcceptCardField(scope);
   const checkCandidateCard = useCheckCandidateCard(scope);
-  const uncheckCandidateCard = useUncheckCandidateCard(scope);
   const acceptSubmission = useAcceptSubmission({ cardSlug });
-  const pushUndo = useWorkspaceSelectionStore((state) => state.pushUndo);
-  const removeUndo = useWorkspaceSelectionStore((state) => state.removeUndo);
+  const { announce, push } = useWorkspaceUndo();
 
   const cardId = detail?.card?.id;
+  const record = detail?.card?.name ?? cardSlug;
   const isPending =
-    acceptCardField.isPending ||
-    checkCandidateCard.isPending ||
-    uncheckCandidateCard.isPending ||
-    acceptSubmission.isPending;
+    acceptCardField.isPending || checkCandidateCard.isPending || acceptSubmission.isPending;
 
-  function announce(entry: WorkspaceUndoEntry) {
-    pushUndo(entry);
-    toast.success(entry.label, {
-      action: {
-        label: "Undo (Z)",
-        onClick: () => {
-          if (removeUndo(entry)) {
-            void entry.undo();
-          }
-        },
+  function uncheckEntry(ids: readonly string[], suggestions: number): WorkspaceUndoEntry {
+    return {
+      ...discardUndoText({ suggestions, images: 0, sources: ids.length, record }),
+      invalidates: undoScope(scope),
+      undo: async () => {
+        await Promise.all(
+          ids.map((candidateCardId) => uncheckCandidateCardFn({ data: { candidateCardId } })),
+        );
       },
-    });
+    };
   }
 
   function applySourceSuggestion(suggestion: FieldSuggestion) {
@@ -86,22 +86,18 @@ export function useCardRecordActions({
     }
     const label = CARD_FIELD_LABELS[suggestion.field];
     const previous = (detail?.card as Record<string, unknown> | null)?.[suggestion.field] ?? null;
+    const entry: WorkspaceUndoEntry = {
+      ...usedUndoText({ field: label, source: suggestion.sourceLabel, record }),
+      invalidates: undoScope(scope),
+      undo: async () => {
+        await acceptCardFieldFn({
+          data: { cardId, field: suggestion.field, value: previous, source: "manual" },
+        });
+      },
+    };
     acceptCardField.mutate(
       { cardId, field: suggestion.field, value: suggestion.value, source: "provider" },
-      {
-        onSuccess: () =>
-          announce({
-            label: `Used ${label} from ${suggestion.sourceLabel}`,
-            undo: async () => {
-              await acceptCardField.mutateAsync({
-                cardId,
-                field: suggestion.field,
-                value: previous,
-                source: "manual",
-              });
-            },
-          }),
-      },
+      { onSuccess: () => announce(entry) },
     );
   }
 
@@ -142,15 +138,8 @@ export function useCardRecordActions({
       return;
     }
     const candidateCardId = suggestion.candidateRowId;
-    checkCandidateCard.mutate(candidateCardId, {
-      onSuccess: () =>
-        announce({
-          label: `Discarded ${suggestion.rowDifferences} ${pluralize(suggestion.rowDifferences, "suggestion")} from ${suggestion.sourceLabel}`,
-          undo: async () => {
-            await uncheckCandidateCard.mutateAsync(candidateCardId);
-          },
-        }),
-    });
+    const entry = uncheckEntry([candidateCardId], suggestion.rowDifferences);
+    checkCandidateCard.mutate(candidateCardId, { onSuccess: () => announce(entry) });
   }
 
   async function discardRemaining() {
@@ -159,14 +148,9 @@ export function useCardRecordActions({
       return;
     }
     const ids = targets.map((target) => target.candidateRowId);
+    const entry = uncheckEntry(ids, enterDifferenceCount(targets));
     await Promise.all(ids.map((id) => checkCandidateCard.mutateAsync(id)));
-    const differences = enterDifferenceCount(targets);
-    pushUndo({
-      label: `Discarded ${differences} ${pluralize(differences, "suggestion")} on ${detail?.card?.name ?? cardSlug}`,
-      undo: async () => {
-        await Promise.all(ids.map((id) => uncheckCandidateCard.mutateAsync(id)));
-      },
-    });
+    push(entry);
   }
 
   const contributorOpen = (model?.openContributorIds.length ?? 0) > 0;

@@ -36,6 +36,7 @@ export interface CardEmbedInput {
   marketplaceInfo?: PrintingMarketplaceLinks;
   siteUrl: string;
   tradelists?: TradelistHolders | null;
+  locale?: string;
 }
 
 const MAX_TRADELIST_HOLDERS = 5;
@@ -280,7 +281,7 @@ export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
     if (cents === undefined) {
       return [];
     }
-    const amount = formatCents(cents, snapshot.currencies[marketplace]);
+    const amount = formatCents(cents, snapshot.currencies[marketplace], input.locale);
     const link = priceLink(marketplace, card, printing, input.marketplaceInfo);
     return [
       {

@@ -1,12 +1,12 @@
 // Cache-Control policy for public oRPC reads, derived from contract `.meta()`
 // (`cache`, `etag`, `cacheVary`) so there is no second route table to maintain.
 // The header itself is resolved per request in `cache-control-interceptor.ts`;
-// `ETAG_PATHS` and `DEVELOPER_API_PATHS` are walked out of the contracts up front
-// for Hono middleware registered before oRPC runs.
+// `ETAG_PATHS`, `VIEWER_VARYING_PATHS` and `DEVELOPER_API_PATHS` are walked out of the
+// contracts up front for Hono middleware registered before oRPC runs.
 
-// oxlint-disable-next-line no-restricted-imports -- ETAG_PATHS is walked out of every contract, so the barrel is the point here; apps/api runs unbundled on Bun.
-import * as contracts from "@openrift/shared/contracts";
 import type { Context, Next } from "hono";
+
+import { collectContractRoutes } from "../lib/contract-routes.js";
 
 type CacheLevel = "long" | "medium" | "short" | "sitemap" | "revalidate";
 
@@ -24,40 +24,27 @@ const CACHE_HEADERS: Record<CacheLevel, string> = {
   revalidate: "private, no-cache",
 };
 
-interface ContractDef {
-  route?: { method?: string; path?: string };
-  meta?: CacheMeta & { developerApi?: boolean };
+type RouteMeta = CacheMeta & { developerApi?: boolean };
+
+function collectGetPaths(include: (meta: RouteMeta) => boolean): string[] {
+  return collectContractRoutes()
+    .filter(({ method, meta }) => method === "GET" && include(meta as RouteMeta))
+    .map(({ path }) => path);
 }
 
-function collectGetPaths(include: (meta: NonNullable<ContractDef["meta"]>) => boolean): string[] {
-  const paths: string[] = [];
-  const visit = (node: unknown): void => {
-    if (!node || typeof node !== "object") {
-      return;
-    }
-    const def = (node as { "~orpc"?: ContractDef })["~orpc"];
-    if (def?.route?.method && def.route.path) {
-      if (def.route.method === "GET" && def.meta && include(def.meta)) {
-        paths.push(def.route.path);
-      }
-      return;
-    }
-    for (const value of Object.values(node)) {
-      visit(value);
-    }
-  };
-  for (const [key, value] of Object.entries(contracts)) {
-    if (key.endsWith("Contract")) {
-      visit(value);
-    }
-  }
-  return paths;
+function toHonoPath(path: string): string {
+  return path.replaceAll(/\{(?<param>[^}]+)\}/gu, ":$<param>");
 }
 
 /** Etag'd GET paths in Hono `:param` form, e.g. `/api/v1/cards/:cardSlug`. */
 export const ETAG_PATHS: string[] = collectGetPaths((meta) => meta.etag === true).map((path) =>
-  path.replaceAll(/\{(?<param>[^}]+)\}/gu, ":$<param>"),
+  toHonoPath(path),
 );
+
+/** In Hono `:param` form. */
+export const VIEWER_VARYING_PATHS: string[] = collectGetPaths(
+  (meta) => meta.cacheVary === "viewer",
+).map((path) => toHonoPath(path));
 
 export const DEVELOPER_API_PATHS: string[] = collectGetPaths((meta) => meta.developerApi === true);
 

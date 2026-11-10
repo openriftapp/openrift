@@ -9,7 +9,6 @@ vi.mock("@/hooks/use-enums", () => ({
   useLanguageLabels: () => ({ EN: "English", JA: "Japanese", DE: "German" }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PrintingLanguageTabs } from "./printing-language-tabs";
 
 const renderList = (printings: Printing[]) => (

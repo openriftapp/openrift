@@ -35,6 +35,9 @@ const mockListsRepo = {
   deleteEntry: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
   reorder: vi.fn(() => Promise.resolve()),
   decrementEntryQuantity: vi.fn(() => Promise.resolve(undefined as number | undefined)),
+  deleteEntriesByIds: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
+  listsOwningEntries: vi.fn(() => Promise.resolve([] as { id: string; intent: string }[])),
+  entriesForMove: vi.fn(() => Promise.resolve([] as object[])),
 };
 
 const mockCopiesRepo = {
@@ -43,7 +46,32 @@ const mockCopiesRepo = {
 };
 
 const mockFriendGroupsRepo = {
-  listGroupsSharingList: vi.fn(() => Promise.resolve([])),
+  listGroupsSharingList: vi.fn(() => Promise.resolve([] as { groupId: string }[])),
+};
+
+const TRADE_ID = "e0000000-0001-4000-a000-000000000001";
+
+const mockCardTradesRepo = {
+  listPendingPrintingIdsForGiverInGroup: vi.fn(() => Promise.resolve(["printing-1"])),
+  listPendingForGiverPrinting: vi.fn(() =>
+    Promise.resolve([{ id: TRADE_ID, groupId: "group-1", quantity: 1, initiator: "receiver" }]),
+  ),
+  markAutoCancelled: vi.fn(() => Promise.resolve(1)),
+  listCancelSummaries: vi.fn(() =>
+    Promise.resolve([
+      {
+        id: TRADE_ID,
+        cardId: CARD_ID,
+        printingId: PRINTING_ID,
+        quantity: 1,
+        counterpartyName: "Mara",
+      },
+    ]),
+  ),
+};
+
+const mockFriendGroupMatchesRepo = {
+  giverPrintingSupply: vi.fn(() => Promise.resolve({ unreservedCopyIds: [], hasAny: false })),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -56,11 +84,15 @@ const COPY_ID = "550e8400-e29b-41d4-a716-446655440000";
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", {
+  const repos = {
     lists: mockListsRepo,
     copies: mockCopiesRepo,
     friendGroups: mockFriendGroupsRepo,
-  } as never);
+    cardTrades: mockCardTradesRepo,
+    friendGroupMatches: mockFriendGroupMatchesRepo,
+  };
+  c.set("repos", repos as never);
+  c.set("transact", (async (fn: (r: typeof repos) => unknown) => fn(repos)) as never);
   await next();
 });
 registerRouterForTest(app, listsRouter);
@@ -439,6 +471,8 @@ describe("PATCH /api/v1/lists/:id", () => {
 describe("DELETE /api/v1/lists/:id", () => {
   beforeEach(() => {
     mockListsRepo.deleteByIdForUser.mockReset();
+    mockListsRepo.getIdKindIntent.mockReset();
+    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
   });
 
   it("returns 204 on success", async () => {
@@ -732,6 +766,8 @@ describe("PATCH /api/v1/lists/:id/entries/:itemId", () => {
 describe("DELETE /api/v1/lists/:id/entries/:itemId", () => {
   beforeEach(() => {
     mockListsRepo.deleteEntry.mockReset();
+    mockListsRepo.getIdKindIntent.mockReset();
+    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
   });
 
   it("returns 204 on success", async () => {
@@ -918,5 +954,179 @@ describe("POST /api/v1/lists/entries/decrement", () => {
     });
     expect(res.status).toBe(400);
     expect(mockListsRepo.decrementEntryQuantity).not.toHaveBeenCalled();
+  });
+});
+
+describe("trade-list edits sweep the trades they leave unfillable (ADR-019)", () => {
+  const tradeList = { id: LIST_ID, kind: "copy" as const, intent: "trade" as const };
+  const dbTradeList = { ...dbList, intent: "trade" as const, kind: "copy" as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFriendGroupsRepo.listGroupsSharingList.mockResolvedValue([{ groupId: "group-1" }]);
+    mockListsRepo.getIdKindIntent.mockResolvedValue(tradeList);
+    mockListsRepo.getByIdForUser.mockResolvedValue(dbTradeList);
+    mockListsRepo.update.mockResolvedValue(dbTradeList);
+    mockListsRepo.deleteByIdForUser.mockResolvedValue(true);
+    mockListsRepo.deleteEntry.mockResolvedValue({ numDeletedRows: 1n });
+    mockListsRepo.listsOwningEntries.mockResolvedValue([{ id: LIST_ID, intent: "trade" }]);
+  });
+
+  const edits: {
+    name: string;
+    path: string;
+    method: string;
+    body: Record<string, unknown>;
+    status: number;
+  }[] = [
+    {
+      name: "deleting the list",
+      path: `/api/v1/lists/${LIST_ID}`,
+      method: "DELETE",
+      body: {},
+      status: 204,
+    },
+    {
+      name: "removing an entry",
+      path: `/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`,
+      method: "DELETE",
+      body: {},
+      status: 204,
+    },
+    {
+      name: "bulk-deleting entries",
+      path: `/api/v1/lists/${LIST_ID}/entries/bulk-delete`,
+      method: "POST",
+      body: { entryIds: [ENTRY_ID] },
+      status: 204,
+    },
+    {
+      name: "decrementing an entry",
+      path: "/api/v1/lists/entries/decrement",
+      method: "POST",
+      body: { entries: [{ entryId: ENTRY_ID, by: 1 }] },
+      status: 204,
+    },
+    {
+      name: "editing the rules",
+      path: `/api/v1/lists/${LIST_ID}`,
+      method: "PATCH",
+      body: { rules: [] },
+      status: 200,
+    },
+  ];
+
+  function send(edit: (typeof edits)[number], cancelTradeIds?: string[]) {
+    return app.request(edit.path, {
+      method: edit.method,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...edit.body, ...(cancelTradeIds && { cancelTradeIds }) }),
+    });
+  }
+
+  it.each(edits)("$name refuses with the trades it would cancel when unconfirmed", async (edit) => {
+    const res = await send(edit);
+
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({
+      defined: true,
+      code: "CONFLICT",
+      data: {
+        trades: [
+          {
+            id: TRADE_ID,
+            cardId: CARD_ID,
+            printingId: PRINTING_ID,
+            quantity: 1,
+            counterpartyName: "Mara",
+          },
+        ],
+      },
+    });
+    expect(mockCardTradesRepo.markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it.each(edits)("$name cancels the trades the request confirms", async (edit) => {
+    const res = await send(edit, [TRADE_ID]);
+
+    expect(res.status).toBe(edit.status);
+    expect(mockCardTradesRepo.markAutoCancelled).toHaveBeenCalledWith(TRADE_ID);
+  });
+
+  it("refuses when the confirmation names other trades than the edit would cancel", async () => {
+    const res = await send(edits[0]!, ["e0000000-0001-4000-a000-000000000099"]);
+
+    expect(res.status).toBe(409);
+    expect(mockCardTradesRepo.markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("deleting a shared trade list reads its groups before the delete", async () => {
+    await send(edits[0]!, [TRADE_ID]);
+
+    expect(mockFriendGroupsRepo.listGroupsSharingList.mock.invocationCallOrder[0]).toBeLessThan(
+      mockListsRepo.deleteByIdForUser.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("moving entries out of the list refuses when unconfirmed and cancels when confirmed", async () => {
+    const dest = "a0000000-0001-4000-a000-000000000011";
+    mockListsRepo.getByIdForUser.mockImplementation(((id: string) =>
+      Promise.resolve(
+        id === LIST_ID ? dbTradeList : { ...dbTradeList, id: dest, intent: "organize" },
+      )) as never);
+    mockListsRepo.entriesForMove.mockResolvedValue([
+      { ...dbCopyEntry, resolvedPrintingId: null, resolvedCardId: null },
+    ]);
+    mockListsRepo.deleteEntriesByIds.mockResolvedValue({ numDeletedRows: 1n });
+    const move = (cancelTradeIds?: string[]) =>
+      app.request(`/api/v1/lists/${LIST_ID}/entries/move`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ toListId: dest, entryIds: [ENTRY_ID], cancelTradeIds }),
+      });
+
+    const refused = await move();
+    expect(refused.status).toBe(409);
+    expect(mockCardTradesRepo.markAutoCancelled).not.toHaveBeenCalled();
+
+    const confirmed = await move([TRADE_ID]);
+    expect(confirmed.status).toBe(200);
+    expect(mockCardTradesRepo.markAutoCancelled).toHaveBeenCalledWith(TRADE_ID);
+  });
+
+  it("an edit that cancels nothing goes through without asking", async () => {
+    mockFriendGroupMatchesRepo.giverPrintingSupply.mockResolvedValueOnce({
+      unreservedCopyIds: [COPY_ID] as never,
+      hasAny: true,
+    });
+
+    const res = await send(edits[1]!);
+
+    expect(res.status).toBe(204);
+    expect(mockCardTradesRepo.listCancelSummaries).not.toHaveBeenCalled();
+  });
+
+  it("renaming a trade list leaves its trades alone", async () => {
+    const res = await app.request(`/api/v1/lists/${LIST_ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Binder trades" }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockCardTradesRepo.markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("removing an entry from a wish list leaves trades alone", async () => {
+    mockListsRepo.getIdKindIntent.mockResolvedValue({ id: LIST_ID, kind: "card", intent: "wish" });
+    mockListsRepo.deleteEntry.mockResolvedValue({ numDeletedRows: 1n });
+
+    const res = await app.request(`/api/v1/lists/${LIST_ID}/entries/${ENTRY_ID}`, {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+    expect(mockFriendGroupsRepo.listGroupsSharingList).not.toHaveBeenCalled();
+    expect(mockCardTradesRepo.markAutoCancelled).not.toHaveBeenCalled();
   });
 });

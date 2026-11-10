@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 interface SetListEntryFixture {
   id: string;
@@ -68,7 +69,6 @@ async function fetchCardDetail(slug: string): Promise<CardDetailFixture> {
 
 async function readJsonLdScripts(page: Page) {
   const texts = await page.locator('script[type="application/ld+json"]').allInnerTexts();
-  // oxlint-disable-next-line typescript-eslint/no-unsafe-return -- JSON-LD payloads are dynamically shaped.
   return texts.map((text) => JSON.parse(text));
 }
 
@@ -199,10 +199,10 @@ test.describe("sets", () => {
       }
 
       await page.goto(`/sets/${knownSet.slug}`);
-      await page.waitForLoadState("networkidle");
 
       const tile = page.getByRole("link", { name: firstCard.name }).first();
       await expect(tile).toBeVisible({ timeout: 10_000 });
+      await waitForHydrated(tile);
 
       await tile.click();
 

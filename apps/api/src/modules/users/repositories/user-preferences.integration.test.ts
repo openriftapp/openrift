@@ -6,7 +6,6 @@ import { userPreferencesRepo } from "./user-preferences.js";
 const ctx = createDbContext("a0000000-0037-4000-a000-000000000001");
 
 describe.skipIf(!ctx)("userPreferencesRepo (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db, userId } = ctx!;
   const repo = userPreferencesRepo(db);
 
@@ -28,9 +27,7 @@ describe.skipIf(!ctx)("userPreferencesRepo (integration)", () => {
   it("getByUserId returns saved preferences after upsert", async () => {
     const row = await repo.getByUserId(userId);
     expect(row).toBeDefined();
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- asserted above
     expect(row!.userId).toBe(userId);
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- asserted above
     const data = row!.data;
     expect(data.showImages).toBe(false);
     expect(data.theme).toBeUndefined();

@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone script */
 /**
  * An extension missing from the deployed nginx's mime.types is served as
  * application/octet-stream, which the browser refuses to run as a module or

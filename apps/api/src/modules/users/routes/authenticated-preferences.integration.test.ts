@@ -31,7 +31,6 @@ function parsePrefs(json: unknown): Record<string, unknown> {
 }
 
 describe.skipIf(!ctx)("Preferences routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = ctx!;
 
   describe("GET /preferences", () => {
@@ -98,7 +97,6 @@ describe.skipIf(!ctx)("Preferences routes (integration)", () => {
     });
 
     it.skipIf(!emailPrefCtx)("round-trips emailNotifications.tradeStatus", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const emailApp = emailPrefCtx!.app;
       const patched = await emailApp.fetch(
         req("PATCH", "/preferences", { emailNotifications: { tradeStatus: false } }),
@@ -113,7 +111,6 @@ describe.skipIf(!ctx)("Preferences routes (integration)", () => {
     });
 
     it.skipIf(!emailPrefCtx)("keeps both of two channel toggles sent at once", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const emailApp = emailPrefCtx!.app;
       const responses = await Promise.all([
         emailApp.fetch(
@@ -136,14 +133,12 @@ describe.skipIf(!ctx)("Preferences routes (integration)", () => {
 
   describe("auth enforcement", () => {
     it("returns 401 for unauthenticated GET", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by outer skipIf
       const unauthed = unauthCtx!;
       const res = await unauthed.app.fetch(req("GET", "/preferences"));
       expect(res.status).toBe(401);
     });
 
     it("returns 401 for unauthenticated PATCH", async () => {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by outer skipIf
       const unauthed = unauthCtx!;
       const res = await unauthed.app.fetch(req("PATCH", "/preferences", { showImages: false }));
       expect(res.status).toBe(401);

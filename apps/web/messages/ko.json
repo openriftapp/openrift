@@ -344,7 +344,7 @@
   "nav_pack_opener_description": "실제 출현 확률로 부스터 개봉 시뮬레이션",
   "nav_card_designer_description": "직접 준비한 배경 이미지로 커스텀 카드 제작",
   "nav_locked_collections_description": "원하는 만큼 컬렉션을 만들어 보유한 카드를 인쇄판 단위까지 기록하세요.",
-  "nav_locked_scan_description": "카메라 앞에 카드를 들면 컬렉션에 추가됩니다. 기기 안에서 인식하므로 사진은 전송되지 않습니다.",
+  "nav_locked_scan_description": "로그인하거나 계정을 만들면 스캔한 카드를 컬렉션에 추가할 수 있습니다. 로그인하는 동안 목록은 이 기기에 남아 있습니다.",
   "nav_locked_groups_description": "친구나 동네 카드샵과 비공개 그룹을 만들어 컬렉션을 공유하고, 원하는 카드를 누가 가지고 있는지 교환 매칭으로 확인하세요.",
   "nav_locked_trades_description": "그룹 멤버와 카드를 교환하세요. 위시리스트와 교환 목록 기반 매칭, 요청, 확정 대기 교환을 한곳에서 관리합니다.",
   "nav_locked_loans_description": "친구에게 빌려준 카드를 누가 가지고 있는지, 빌려온 카드는 무엇인지 관리하세요.",
@@ -377,12 +377,9 @@
   "layout_header_more": "더 보기",
   "layout_header_profile": "프로필",
   "layout_header_admin": "관리자",
-  "layout_header_light_mode": "라이트 모드",
-  "layout_header_dark_mode": "다크 모드",
   "layout_header_sign_out": "로그아웃",
   "layout_header_sign_out_failed": "로그아웃하지 못했습니다. 다시 시도하세요.",
   "layout_header_section_attention": "{section}에 확인할 항목이 있습니다",
-  "layout_header_join_discord": "Discord 참여하기",
   "layout_header_help": "도움말",
   "layout_header_help_intro": "막히거나 잘못된 부분을 발견하셨나요?",
   "layout_header_help_articles": "도움말 문서",
@@ -439,25 +436,13 @@
   "palette_load_failed": "카드를 불러오지 못했습니다.",
   "palette_load_failed_hint": "창을 닫고 다시 시도하세요.",
   "palette_leave_scope": "{label} 벗어나기",
-  "error_heading_rift_collapsed": "균열이 무너졌습니다",
-  "error_heading_misprint": "치명적인 인쇄 오류 발견",
-  "error_heading_blank": "이 페이지는 빈 카드를 뽑았습니다",
-  "error_heading_void": "공허 속에 섞여 버렸습니다",
-  "error_heading_not_supposed": "이런 일은 일어나면 안 되는데요",
-  "error_heading_drew_bug": "버그를 뽑았습니다",
-  "error_heading_cant_grade": "무언가 망가졌습니다(등급 감정은 안 됩니다)",
-  "error_heading_not_ideal": "상황이 좋지 않네요",
-  "error_heading_yeah_bug": "네, 버그가 맞습니다",
-  "error_subtext_shuffled_wrong": "누군가 코드를 잘못 섞었습니다.",
-  "error_subtext_binder": "바인더를 확인했지만 이 페이지가 없습니다.",
-  "error_subtext_giveth": "균열은 주기도 하고 가져가기도 합니다.",
-  "error_subtext_fell_through": "이 페이지는 균열로 떨어져 돌아오지 못했습니다.",
-  "error_subtext_bad_days": "민트 상태인 앱에도 안 좋은 날은 있습니다.",
-  "error_subtext_looking_into_it": "확인하고 있습니다. 아마도요.",
-  "error_subtext_not_your_fault": "무언가 망가졌지만 회원님 잘못은 절대 아닙니다.",
-  "error_subtext_rest_is_fine": "걱정 마세요, 나머지 기능은 멀쩡합니다. 아마도요.",
-  "error_emoji_misprint": "[인쇄 오류]",
-  "error_emoji_damaged": "[손상]",
+  "error_failed_heading": "페이지를 불러오지 못했습니다",
+  "error_failed_subtext": "저희 쪽에서 문제가 발생했습니다.",
+  "error_offline_heading": "오프라인 상태입니다",
+  "error_forbidden_heading": "이 페이지에 접근할 권한이 없습니다",
+  "error_forbidden_subtext": "현재 계정으로는 이 페이지를 열 수 없습니다.",
+  "error_forbidden_subtext_signed_out": "로그인하여 계정으로 이 페이지를 열 수 있는지 확인하세요.",
+  "error_try_again": "다시 시도",
   "error_emoji_missing": "[분실]",
   "error_notfound_heading_dust": "먼지밖에 없습니다",
   "error_notfound_heading_never_printed": "이 카드는 인쇄된 적이 없습니다",
@@ -467,6 +452,7 @@
   "error_notfound_heading_doesnt_exist": "이 페이지는 존재하지 않습니다",
   "error_notfound_heading_no_card": "이 주소에는 카드가 없습니다",
   "error_notfound_heading_no_record": "균열에는 이런 기록이 없습니다",
+  "error_notfound_card_browse_all": "전체 카드 둘러보기",
   "error_notfound_subtext_gone": "여기 있던 것이 무엇이든 지금은 사라졌습니다.",
   "error_notfound_subtext_double_check": "URL을 다시 확인하거나 안전한 곳으로 돌아가세요.",
   "error_notfound_subtext_no_set": "이 페이지는 저희가 아는 어떤 세트에도 없습니다.",
@@ -476,7 +462,6 @@
   "error_hide_details": "상세 정보 숨기기",
   "error_show_details": "상세 정보 보기",
   "error_go_home": "홈으로",
-  "error_reshuffle": "다시 섞기",
   "shared_preparing": "준비 중…",
   "shared_open_cardmarket": "Cardmarket 열기",
   "shared_open_cardtrader": "CardTrader 열기",
@@ -516,6 +501,39 @@
   "palette_group_help": "도움말",
   "auth_login_title": "다시 오신 것을 환영합니다",
   "auth_login_subtitle": "OpenRift 계정으로 로그인하세요",
+  "auth_destination_collections_title": "로그인하고 컬렉션을 열어 보세요",
+  "auth_destination_collections_perk_copies": "보유한 카드 한 장 한 장을 인쇄판과 상태까지 기록하세요.",
+  "auth_destination_collections_perk_lists": "위시리스트와 교환 목록을 만들고 링크로 공유하세요.",
+  "auth_destination_collections_perk_scan": "카메라 앞에 카드를 들어 컬렉션에 추가하세요.",
+  "auth_destination_scan_title": "로그인하고 스캔한 카드를 컬렉션에 추가하세요",
+  "auth_destination_scan_perk_add": "카메라 앞에 카드를 든 뒤 한 번에 컬렉션에 추가하세요.",
+  "auth_destination_scan_perk_device": "카드는 기기 안에서 인식됩니다.",
+  "auth_destination_scan_perk_owned": "스캔한 카드마다 이미 보유한 수량이 표시됩니다.",
+  "auth_destination_groups_title": "로그인하고 그룹을 열어 보세요",
+  "auth_destination_groups_perk_invite": "그룹을 만들고 초대 링크로 친구를 초대하세요.",
+  "auth_destination_groups_perk_share": "컬렉션과 목록을 그룹과 공유하세요.",
+  "auth_destination_groups_perk_matches": "그룹에서 누가 내 위시리스트의 카드를 교환용으로 내놓았는지 확인하세요.",
+  "auth_destination_trades_title": "로그인하고 카드를 교환하세요",
+  "auth_destination_trades_perk_groups": "그룹 멤버와 교환하세요.",
+  "auth_destination_trades_perk_matches": "내 위시리스트와 상대의 교환 목록이 맞는 교환을 찾으세요.",
+  "auth_destination_trades_perk_requests": "교환 요청을 보내고 교환을 확정하세요.",
+  "auth_destination_loans_title": "로그인하고 빌려준 카드를 관리하세요",
+  "auth_destination_loans_perk_lent": "어떤 카드를 누구에게 빌려줬는지 기록하세요. 계정이 없는 친구도 됩니다.",
+  "auth_destination_loans_perk_returned": "카드가 돌아오면 반납으로 표시하세요.",
+  "auth_destination_loans_perk_borrowed": "다른 사람에게 빌린 카드를 확인하세요.",
+  "auth_destination_tournaments_title": "로그인하고 대회를 운영하세요",
+  "auth_destination_tournaments_perk_pairings": "스위스 라운드나 팟으로 플레이어를 매칭하세요.",
+  "auth_destination_tournaments_perk_decklists": "대회 전에 덱 목록을 받으세요.",
+  "auth_destination_tournaments_perk_judges": "대회 운영을 도울 심판을 추가하세요.",
+  "auth_destination_tier_lists_title": "로그인하고 티어 리스트를 만드세요",
+  "auth_destination_tier_lists_perk_rank": "드래그 앤 드롭 보드에서 카드 순위를 매기세요.",
+  "auth_destination_tier_lists_perk_save": "리스트를 저장하고 나중에 이어서 작업하세요.",
+  "auth_destination_tier_lists_perk_share": "리스트를 링크로 공유하거나 이미지로 내려받으세요.",
+  "auth_destination_contribute_title": "로그인하고 카드 데이터에 기여하세요",
+  "auth_destination_contribute_perk_cards": "빠진 카드와 인쇄판을 제출하세요.",
+  "auth_destination_contribute_perk_fixes": "오류 수정과 카드 이미지를 보내세요.",
+  "auth_destination_contribute_perk_review": "제출한 내용이 검토될 때까지 진행 상황을 확인하세요.",
+  "auth_destination_no_account": "{#cards}카드 둘러보기{/cards}와 {#decks}덱 만들기{/decks}는 계정 없이도 됩니다. 계정 없이 만든 덱은 이 기기에만 저장됩니다.",
   "auth_login_no_account": "계정이 없으신가요?",
   "auth_login_submit": "로그인",
   "auth_signing_in": "로그인 중…",
@@ -1240,6 +1258,8 @@
   "collections_cell_choose_variant": "{name}의 변형 선택",
   "collections_cell_remove": "{name} 제거",
   "collections_cell_take_copy_of": "{name} 한 장 가져가기",
+  "collections_toast_took_one": "{name} 가져왔어요",
+  "collections_toast_took_many": "{name} {count}장 가져왔어요",
   "collections_cell_variants_and_collections": "{name}의 변형과 컬렉션",
   "collections_drag_cards_plural": [
     {
@@ -1588,6 +1608,7 @@
   "collections_copies_links_label": "사진 및 영상",
   "collections_copies_link_title_placeholder": "라벨",
   "collections_copies_network_error": "서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.",
+  "collections_copies_trade_cancel_stopped": "교환을 유지하기 위해 {total}장 중 {done}장까지만 처리했습니다. 나머지는 그대로입니다.",
   "collections_copies_signed_out": "로그아웃 상태에서는 사본을 추가할 수 없습니다",
   "collections_copies_quick_scope_move": "이동",
   "collections_copies_quick_scope_add": "{collection}에 추가",
@@ -3568,6 +3589,18 @@
   "rules_stat_version": "버전",
   "rules_stat_languages": "언어",
   "rules_stat_published": "게시일",
+  "rules_facts_version": "버전 {version}",
+  "rules_facts_published": "{date} 게시",
+  "rules_facts_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count}개 언어",
+        "countPlural=*": "{count}개 언어"
+      }
+    }
+  ],
   "rules_changes_off": "끄기",
   "rules_changes_inline": "한 줄로",
   "rules_changes_side": "나란히",
@@ -4687,6 +4720,21 @@
   "trades_accept_all": "전체 수락 ({count}건)",
   "trades_accept_all_confirm_title": "{name}님의 요청 {count}건을 모두 수락할까요?",
   "trades_accept_all_confirm_description": "수락한 요청마다 내 카드가 교환용으로 예약됩니다. 이후에도 개별 교환은 취소할 수 있습니다.",
+  "trades_cancel_consent_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "대기 중인 교환 {count}건을 취소할까요?",
+        "countPlural=*": "대기 중인 교환 {count}건을 취소할까요?"
+      }
+    }
+  ],
+  "trades_cancel_consent_description": "이 변경 후에는 공유한 교환 목록으로 이 교환을 더 이상 진행할 수 없어 교환이 취소됩니다.",
+  "trades_cancel_consent_line": "{name}님에게 {card} {count}장",
+  "trades_cancel_consent_more": "외 {count}건",
+  "trades_cancel_consent_confirm": "교환 취소",
+  "trades_cancel_consent_keep": "교환 유지",
   "trades_settle_adds_to": "{count}장 추가 위치",
   "trades_settle_removes": "내 컬렉션에서 {count}장 제거",
   "trades_settle_partial_failure": "일부 카드는 정산하지 못했습니다. 나머지는 처리되었습니다.",
@@ -5273,13 +5321,14 @@
   "contribute_status_hint_pending": "사람이 직접 확인합니다. 시간이 걸릴 수 있습니다.",
   "contribute_status_hint_accepted": "보내 주신 정보가 카탈로그에 반영되었습니다. 감사합니다.",
   "contribute_status_hint_already_correct": "보내 주신 내용이 이미 카탈로그와 모두 일치했습니다.",
+  "contribute_status_hint_not_used": "이번 제출은 반영하지 않았습니다. 보내 주셔서 감사합니다.",
   "contribute_kind_new_card": "새 카드",
   "contribute_kind_correction": "수정",
   "contribute_kind_image": "이미지",
   "contribute_reason_duplicate": "이미 다른 분이 보내 주신 내용입니다.",
   "contribute_reason_already_correct": "카탈로그에 이미 이 정보가 있었습니다.",
   "contribute_reason_unverified": "출처로 확인할 수 없어 카드를 그대로 두었습니다.",
-  "contribute_reason_not_a_card": "실제 Riftbound 카드로 보이지 않았습니다.",
+  "contribute_reason_not_a_card": "공식 Riftbound 카드가 아닌 것으로 보입니다.",
   "contribute_reason_bad_image": "이미지를 사용할 수 없었습니다. 보통 크기, 각도, 화질 때문입니다.",
   "contribute_reason_other": "이 내용은 반영하지 못했습니다. 아래 메모에 이유를 적었습니다.",
   "contribute_reason_label_duplicate": "이미 제출됨",
@@ -6827,6 +6876,7 @@
   "tournaments_list_no_upcoming": "예정된 대회가 없습니다. 하나 만들거나, 등록 링크로 대회에 참가하세요.",
   "tournaments_overview_also_coming_up": "이어지는 일정",
   "tournaments_overview_past_events": "지난 이벤트",
+  "tournaments_overview_show_older_events": "이전 이벤트 보기",
   "help_chat_commands_intro": "채팅 봇에 명령 하나만 추가하면 시청자가 채팅을 벗어나지 않고 Riftbound 카드를 찾아볼 수 있습니다. {#code}!card Jinx{/code}라고 입력하면 봇이 카드와 카드 페이지 링크로 답합니다. 일치하는 것이 없으면 입력한 내용에 대한 카드 검색 링크로 답하므로, 오타를 내도 쓸모 있는 곳으로 이어집니다.",
   "help_chat_commands_pick_heading": "봇 고르기",
   "help_chat_commands_pick_intro": "아래 각 줄은 모더레이터로서 자기 채팅에 붙여 넣거나 봇 대시보드에 그대로 붙여 넣으면 됩니다. 설치할 것도, 계정도 필요 없습니다.",
@@ -7161,8 +7211,8 @@
   "help_deck_building_rules_champion_detail": "전설과 태그를 공유하는 챔피언 정확히 1장",
   "help_deck_building_rules_runes_detail": "전설의 영역과 모두 일치하는 룬 정확히 12장",
   "help_deck_building_rules_battlefield_detail": "서로 다른 전장 정확히 3장",
-  "help_deck_building_rules_main_detail": "정확히 39장이며 챔피언을 포함해 총 40장입니다. 같은 카드는 최대 3장까지 넣을 수 있습니다. 시그니처 카드는 전부 합쳐 최대 3장이며, 모두 전설과 챔피언 태그를 공유해야 합니다. 모든 카드의 영역은 전설의 영역에 포함되거나 무색이어야 합니다.",
-  "help_deck_building_rules_sideboard_detail": "최대 8장입니다. 장수 제한은 주 덱과 공유됩니다. 예를 들어 주 덱에 같은 카드가 2장 있다면 보조 덱에는 1장만 더 넣을 수 있습니다.",
+  "help_deck_building_rules_main_detail": "정확히 39장이며 챔피언을 포함해 총 40장입니다. 같은 카드는 주 덱, 보조 덱, 선발 챔피언을 합쳐 최대 3장까지 넣을 수 있습니다. 시그니처 카드는 전부 합쳐 최대 3장이며, 모두 전설과 챔피언 태그를 공유해야 합니다. 모든 카드의 영역은 전설의 영역에 포함되거나 무색이어야 합니다.",
+  "help_deck_building_rules_sideboard_detail": "최대 10장입니다. 장수 제한은 주 덱 및 선발 챔피언과 공유됩니다. 예를 들어 주 덱에 같은 카드가 2장 있다면 보조 덱에는 1장만 더 넣을 수 있습니다.",
   "help_deck_building_rules_freeform": "Freeform에서는 이런 규칙이 적용되지 않습니다. Freeform으로 전환해 자유롭게 구상한 뒤 다시 사전 구성 형식으로 돌아와 검증하세요. 구역 사이드바에 구역별 위반 사항이 강조되어 표시됩니다.",
   "help_deck_building_rules_custom_region": "모든 카드가 선택한 지역에 속해야 하고, 전장은 한 장만 사용하며, 보조 덱은 없고, 시그니처 카드는 해당 챔피언이 덱에 있어야 합니다. 위반 사항은 만드는 동안 바로 표시됩니다.",
   "help_deck_building_runes_heading": "룬 자동 채우기",
@@ -7592,6 +7642,7 @@
   "pager_previous_page": "이전 페이지",
   "pager_next_page": "다음 페이지",
   "meta_page_past_end": "이 페이지는 결과의 마지막을 넘어섰습니다.",
+  "meta_page_first": "첫 페이지로",
   "meta_events_per_page_aria": "페이지당 대회 수",
   "meta_events_per_page": "{size}개 보기",
   "meta_events_holdings_any": "모든 이벤트",
@@ -7951,6 +8002,49 @@
   "meta_front_title": "메타 아카이브",
   "meta_front_eyebrow": "토너먼트 결과",
   "meta_front_lead": "UVS Games, PlayLoLTCG, TopDeck에서 가져온 {date}까지의 결과입니다.",
+  "meta_front_facts_through": "{date}까지의 결과",
+  "meta_front_facts_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "기록된 이벤트 {countFormatted}개",
+        "countPlural=*": "기록된 이벤트 {countFormatted}개"
+      }
+    }
+  ],
+  "meta_front_facts_player_results": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "플레이어 결과 {countFormatted}개",
+        "countPlural=*": "플레이어 결과 {countFormatted}개"
+      }
+    }
+  ],
+  "meta_front_facts_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 목록 {countFormatted}개",
+        "countPlural=*": "덱 목록 {countFormatted}개"
+      }
+    }
+  ],
   "meta_front_empty_title": "아직 아카이브된 이벤트가 없습니다",
   "meta_front_empty_description": "대회 결과가 등록되는 대로 여기에 표시됩니다.",
   "meta_front_add_event": "이벤트 추가",
@@ -9091,6 +9185,11 @@
   "tournaments_group_redraw": "조 다시 추첨",
   "tournaments_seat_editor_hint": "한 플레이어를 다른 플레이어 위로 끌어다 놓으면 자리를 맞바꿉니다. 같은 조 안에서도, 조 사이에서도 됩니다. 조 인원은 추첨된 그대로 유지됩니다.",
   "tournaments_seat_editor_save": "조 저장",
+  "tournaments_pairing_editor_move_to": "이동할 곳",
+  "tournaments_pairing_editor_move_label": "{name} 이동",
+  "tournaments_seat_editor_swap_with": "자리 바꿀 상대",
+  "tournaments_seat_editor_swap_label": "{name}의 자리 바꾸기",
+  "tournaments_seat_editor_swap_seat": "{label} 조, {seat}번 자리",
   "tournaments_cut_edit_bracket_pairing": "대진표 편집",
   "tournaments_cut_results_entered_hint": "이 라운드는 이미 결과가 입력되었습니다.",
   "tournaments_champion_label": "우승자",
@@ -9896,6 +9995,23 @@
   ],
   "trades_market_two_have": "{first} 님과 {second} 님이 보유",
   "trades_market_want_count": "{count}장 필요",
+  "trades_match_wanted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count}장 필요",
+        "countPlural=*": "{count}장 필요"
+      }
+    }
+  ],
+  "trades_match_variants": "변형 {count}개",
+  "trades_match_price": "가격",
+  "trades_match_they_pay": "상대 희망가",
+  "trades_match_price_from": "최저",
+  "trades_match_expand_variants": "{card} 변형 펼치기",
+  "trades_match_collapse_variants": "{card} 변형 접기",
+  "trades_match_request_all": "모두 요청 ({count})",
   "trades_market_empty_get": "지금은 그룹에 내 위시리스트의 카드를 가진 사람이 없습니다.",
   "trades_market_empty_give": "지금은 그룹에 내 교환 목록의 카드를 원하는 사람이 없습니다.",
   "trades_market_empty_buy": "위시리스트의 카드 중 그룹에 가진 사람이 없는 카드가 여기에 표시됩니다.",

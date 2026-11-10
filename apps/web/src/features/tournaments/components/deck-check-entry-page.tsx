@@ -36,6 +36,7 @@ import {
   FindingsBanner,
 } from "@/features/tournaments/components/deck-check-findings";
 import { DeckCheckCardZonesSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
+import { useDraftRevision } from "@/features/tournaments/hooks/use-draft-revision";
 import {
   useDeleteTournamentDeckCheckEntry,
   useSetTournamentDeckCheckEntryState,
@@ -82,7 +83,12 @@ export function TournamentDeckCheckEntry({
   const { containerRef, columns, physicalMax, physicalMin, autoColumns, containerWidth } =
     useResponsiveColumns(maxColumns);
   const [notes, setNotes] = useState("");
-  const [notesDirty, setNotesDirty] = useState(false);
+  const {
+    dirty: notesDirty,
+    markEdited: markNotesEdited,
+    beginSave: beginNotesSave,
+    reset: resetNotesDirty,
+  } = useDraftRevision();
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -95,7 +101,7 @@ export function TournamentDeckCheckEntry({
       await deleteEntry.mutateAsync({ tournamentId, entryId });
       flushSync(() => {
         setDeleteOpen(false);
-        setNotesDirty(false);
+        resetNotesDirty();
       });
       void navigate({ to: "/tournaments/$id/decks", params: { id: tournamentId } });
     } catch {
@@ -116,7 +122,7 @@ export function TournamentDeckCheckEntry({
         reviewOutcome,
         ...(notesDirty ? { notes: notes.trim() || null } : {}),
       },
-      { onSuccess: () => setNotesDirty(false) },
+      { onSuccess: notesDirty ? beginNotesSave() : undefined },
     );
   };
 
@@ -185,7 +191,7 @@ export function TournamentDeckCheckEntry({
               value={notesDirty ? notes : (detail.entry.notes ?? "")}
               onChange={(event) => {
                 setNotes(event.target.value);
-                setNotesDirty(true);
+                markNotesEdited();
               }}
               placeholder={m.tournaments_deck_check_notes_placeholder()}
               maxLength={4000}

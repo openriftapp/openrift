@@ -28,6 +28,7 @@ import { sendTradeRequestEmail } from "./trade-notifications.js";
 import {
   assertSupplyAvailable,
   autoCancelUnfillablePendingTrades,
+  CANCEL_WITHOUT_ASKING,
   tooFewAvailable,
 } from "./trade-supply.js";
 
@@ -164,19 +165,17 @@ async function assertRequestableCopies(
 }
 
 export async function createTrade(
-  transact: Transact,
+  { repos, transact }: { repos: Repos; transact: Transact },
   input: CreateTradeInput,
   emailDeps?: EmailDeps,
 ): Promise<CardTradeResponse> {
   const created = await transact((trxRepos) => createTradeLocked(trxRepos, input));
-  return transact(async (repos) => {
-    // Best-effort (the helper swallows its own errors) so a mail failure can
-    // never fail the trade — the bell stays the source of truth.
-    if (emailDeps !== undefined) {
-      await sendTradeRequestEmail(repos, created, emailDeps);
-    }
-    return reloadDto(repos, created.id, input.callerUserId);
-  });
+  // Best-effort (the helper swallows its own errors) so a mail failure can
+  // never fail the trade — the bell stays the source of truth.
+  if (emailDeps !== undefined) {
+    await sendTradeRequestEmail(repos, created, emailDeps);
+  }
+  return reloadDto(repos, created.id, input.callerUserId);
 }
 
 async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise<LiveCardTrade> {
@@ -951,9 +950,13 @@ export function applyTradeSync(
       // shared service body so the `removed` event and sweep still happen.
       await trxRepos.cardTrades.deleteCopiesForTrade(target.id);
       if (copyIds.length > 0) {
-        await disposeCopiesInTransaction(trxRepos, trade.giverUserId, copyIds, {
-          skipReservationGuard: true,
-        });
+        await disposeCopiesInTransaction(
+          trxRepos,
+          trade.giverUserId,
+          copyIds,
+          CANCEL_WITHOUT_ASKING,
+          { skipReservationGuard: true },
+        );
       }
     } else {
       // Claim first, so a concurrent double-apply cannot add the copies

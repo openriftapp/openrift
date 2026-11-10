@@ -3,7 +3,6 @@ import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admi
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import type { AdminPrintingCitation } from "@openrift/shared/types/api/admin";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -11,9 +10,7 @@ import {
   CropIcon,
   EllipsisVerticalIcon,
   ExternalLinkIcon,
-  LinkIcon,
   PencilIcon,
-  PlusIcon,
   RotateCcwIcon,
   RotateCwIcon,
   Share2Icon,
@@ -27,7 +24,6 @@ import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { PageTopBarBack, PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -45,7 +41,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dropzone } from "@/components/ui/dropzone";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,6 +51,7 @@ import {
   PrintingMarketplaceCard,
   PrintingSourcesCard,
 } from "@/features/admin/components/printing-admin-sections";
+import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { SideSearch } from "@/features/admin/components/side-search";
@@ -68,12 +64,6 @@ import {
   useRotatePrintingImage,
   useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
-import {
-  useAdminPrintingCitations,
-  useCreatePrintingCitation,
-  useDeletePrintingCitation,
-  useUpdatePrintingCitation,
-} from "@/features/admin/hooks/use-admin-printing-citations";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import {
@@ -91,7 +81,6 @@ import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
-import { sourceBrand } from "@/features/admin/lib/source-brand";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetail } from "@/features/cards/components/card-detail/card-detail";
 import { ImageHoverPreview } from "@/features/cards/components/printing-hover-preview";
@@ -786,113 +775,15 @@ function DeskImageRow({
 }
 
 function LinksCard({ printingId }: { printingId: string }) {
-  const { data } = useAdminPrintingCitations(printingId);
-  const createCitation = useCreatePrintingCitation();
-  const updateCitation = useUpdatePrintingCitation();
-  const deleteCitation = useDeletePrintingCitation();
-  const [newLabel, setNewLabel] = useState("");
-  const [newUrl, setNewUrl] = useState("");
-
-  const citations = data?.citations ?? [];
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Links</CardTitle>
         <CardDescription>Where the printing was shown or announced.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {citations.map((citation) => (
-          <CitationRow
-            key={citation.id}
-            citation={citation}
-            onSave={(sourceUrl) =>
-              updateCitation.mutate({ printingId, citationId: citation.id, sourceUrl })
-            }
-            onDelete={() => deleteCitation.mutate({ printingId, citationId: citation.id })}
-          />
-        ))}
-
-        <div className="flex flex-wrap items-end gap-2">
-          <Field className="min-w-40 flex-1">
-            <FieldLabel htmlFor="desk-link-label">Add link</FieldLabel>
-            <Input
-              id="desk-link-label"
-              value={newLabel}
-              placeholder="Launch party unboxing"
-              onChange={(event) => setNewLabel(event.target.value)}
-            />
-          </Field>
-          <Input
-            aria-label="Link address"
-            className="min-w-48 flex-1"
-            value={newUrl}
-            placeholder="https://…"
-            onChange={(event) => setNewUrl(event.target.value)}
-          />
-          <Button
-            variant="outline"
-            disabled={newLabel.trim().length === 0 || createCitation.isPending}
-            onClick={() => {
-              createCitation.mutate({
-                printingId,
-                label: newLabel.trim(),
-                sourceUrl: newUrl.trim().length > 0 ? newUrl.trim() : null,
-              });
-              setNewLabel("");
-              setNewUrl("");
-            }}
-          >
-            <PlusIcon />
-            Add
-          </Button>
-        </div>
+      <CardContent>
+        <PrintingCitationsEditor printingId={printingId} />
       </CardContent>
     </Card>
-  );
-}
-
-function CitationRow({
-  citation,
-  onSave,
-  onDelete,
-}: {
-  citation: AdminPrintingCitation;
-  onSave: (sourceUrl: string | null) => void;
-  onDelete: () => void;
-}) {
-  const [url, setUrl] = useState(citation.sourceUrl ?? "");
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="flex min-w-32 flex-1 items-center gap-1.5 truncate text-sm">
-        <BrandGlyph icon={sourceBrand(url)} fallback={LinkIcon} className="size-3.5" />
-        <span className="truncate">{citation.label}</span>
-      </span>
-      <Input
-        aria-label={`Link for ${citation.label}`}
-        className="min-w-48 flex-1"
-        value={url}
-        placeholder="https://…"
-        disabled={!citation.canEdit}
-        onChange={(event) => setUrl(event.target.value)}
-        onBlur={() => {
-          const next = url.trim();
-          if (next !== (citation.sourceUrl ?? "")) {
-            onSave(next.length > 0 ? next : null);
-          }
-        }}
-      />
-      {citation.canEdit && (
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label={`Remove ${citation.label}`}
-          onClick={onDelete}
-        >
-          <Trash2Icon />
-        </Button>
-      )}
-    </div>
   );
 }

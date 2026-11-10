@@ -1,7 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTime } from "@openrift/shared/format-date";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { formatCents } from "@openrift/shared/money";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
   AssignableCardResponse,
@@ -22,6 +21,7 @@ import { nameBeyondCardName } from "@/features/admin/lib/name-suffix";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { formatCentsInLocale } from "@/lib/format";
 
 import { PrintingLabel } from "./marketplace-printing-label";
 import type { MarketplaceHandlers, MarketplaceTableRow } from "./marketplace-product-entries";
@@ -104,7 +104,9 @@ export function PriceCell({ row }: CellProps) {
           <AlertTriangleIcon className="text-destructive size-3.5" />
         </span>
       )}
-      <span>{priceCents && priceCents > 0 ? formatCents(priceCents, product.currency) : ""}</span>
+      <span>
+        {priceCents && priceCents > 0 ? formatCentsInLocale(priceCents, product.currency) : ""}
+      </span>
     </span>
   );
 }

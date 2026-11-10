@@ -49,13 +49,9 @@ vi.mock("@/features/contribute/hooks/use-missing-images", () => ({
   useMyMissingImages: () => ({ data: { items: missingImages.items } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { ImageSuggestForm } from "@/features/contribute/components/image-suggest-form";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { initKeys } from "@/lib/query-keys";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubMissingImagePrinting, stubPrinting } from "@/test/factories";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MISSING_IMAGE_ENUMS, stubInitResponse } from "@/test/init-fixtures";
 
 const UPLOADED_URL = "/media/submissions/11111111-2222-3333-4444-555555555555.jpg";

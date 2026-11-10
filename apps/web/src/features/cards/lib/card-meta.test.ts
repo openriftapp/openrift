@@ -15,6 +15,7 @@ import {
   pickCardMetaPrinting,
   printingArt,
   printingDisplayName,
+  printingName,
   resolveCardMetaPrinting,
 } from "./card-meta";
 
@@ -378,5 +379,23 @@ describe("resolveCardMetaPrinting on a card printed on both sides", () => {
 
   it("falls back to the only side showing the card", () => {
     expect(resolveCardMetaPrinting([back], "ogn-t09", ["EN"])).toBe(back);
+  });
+});
+
+describe("printingName", () => {
+  const legend = { name: "Emperor of the Sands", types: ["legend" as const], tags: ["Azir"] };
+
+  it("composes a legend's character prefix when there is no printed name", () => {
+    expect(printingName({ printedName: null }, legend)).toBe("Azir, Emperor of the Sands");
+  });
+
+  it("composes the prefix when the printed name repeats the stored name", () => {
+    expect(printingName({ printedName: "Emperor of the Sands" }, legend)).toBe(
+      "Azir, Emperor of the Sands",
+    );
+  });
+
+  it("prefers a printed name that differs from the stored name", () => {
+    expect(printingName({ printedName: "Kaiser der Sande" }, legend)).toBe("Kaiser der Sande");
   });
 });

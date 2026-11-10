@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone test script that shells out to pg_dump */
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -25,7 +24,6 @@ describe.skipIf(!DATABASE_URL)("migrations up/down cycle", () => {
   let teardown: () => Promise<void>;
 
   beforeAll(async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
     ({ db, log, teardown } = await setupTestDb(DATABASE_URL!, "migrations"));
   });
 
@@ -59,7 +57,6 @@ describe.skipIf(!DATABASE_URL)("fresh migrate seeds the well-known reference row
   let teardown: () => Promise<void>;
 
   beforeAll(async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
     ({ db, teardown } = await setupTestDb(DATABASE_URL!, "migration_well_known"));
   });
 
@@ -79,7 +76,6 @@ describe.skipIf(!DATABASE_URL)("migration order is clock-step resilient", () => 
   let teardown: () => Promise<void>;
 
   beforeAll(async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
     ({ db, log, teardown } = await setupTestDb(DATABASE_URL!, "migration_clock"));
   });
 
@@ -133,7 +129,6 @@ describe.skipIf(!DATABASE_URL)("migrate refuses a database that predates the squ
   let teardown: () => Promise<void>;
 
   beforeAll(async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
     ({ db, log, teardown } = await setupTestDb(DATABASE_URL!, "migration_squash_guard"));
   });
 
@@ -192,7 +187,6 @@ describe.skipIf(!DATABASE_URL)("schema snapshot matches migrations", () => {
   let teardown: () => Promise<void>;
 
   beforeAll(async () => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
     ({ db, teardown } = await setupTestDb(DATABASE_URL!, "schema_snapshot"));
 
     // Extract the database name from the connection

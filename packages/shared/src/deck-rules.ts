@@ -45,7 +45,19 @@ export function totalQuantity(cards: readonly { quantity: number }[]): number {
 
 export const UNLIMITED_COPIES = 0;
 
-export function copyLimitFor(card: { maxCopiesOverride?: number | null }): number {
+export const RUNE_TARGET = 12;
+
+export function battlefieldCapFor(format: DeckFormat): number {
+  return format === WellKnown.deckFormat.CUSTOM_REGION ? 1 : 3;
+}
+
+export function copyLimitFor(card: {
+  maxCopiesOverride?: number | null;
+  keywords?: readonly string[];
+}): number {
+  if (card.keywords?.includes(WellKnown.keyword.UNIQUE)) {
+    return 1;
+  }
   const override = card.maxCopiesOverride;
   if (override === null || override === undefined) {
     return 3;
@@ -271,25 +283,25 @@ export const runesExactlyTwelve: DeckRule = (state) => {
       {
         zone: WellKnown.deckZone.RUNES,
         code: "RUNES_REQUIRED",
-        message: "12 Rune cards are required",
+        message: `${RUNE_TARGET} Rune cards are required`,
       },
     ];
   }
-  if (count < 12) {
+  if (count < RUNE_TARGET) {
     return [
       {
         zone: WellKnown.deckZone.RUNES,
         code: "RUNES_TOO_FEW",
-        message: `${count}/12 Rune cards — need ${12 - count} more`,
+        message: `${count}/${RUNE_TARGET} Rune cards — need ${RUNE_TARGET - count} more`,
       },
     ];
   }
-  if (count > 12) {
+  if (count > RUNE_TARGET) {
     return [
       {
         zone: WellKnown.deckZone.RUNES,
         code: "RUNES_TOO_MANY",
-        message: `${count}/12 Rune cards — remove ${count - 12}`,
+        message: `${count}/${RUNE_TARGET} Rune cards — remove ${count - RUNE_TARGET}`,
       },
     ];
   }
@@ -366,21 +378,67 @@ export const mainDeckExactly: DeckRule = (state) => {
   return [];
 };
 
-export const mainDeckCopyLimit: DeckRule = (state) => {
-  const violations: DeckViolation[] = [];
+const COPY_LIMIT_ZONE_ORDER: readonly DeckZone[] = [
+  WellKnown.deckZone.MAIN,
+  WellKnown.deckZone.SIDEBOARD,
+  WellKnown.deckZone.CHAMPION,
+];
 
-  for (const card of cardsInZone(state.cards, WellKnown.deckZone.MAIN)) {
-    const limit = copyLimitFor(card);
-    if (card.quantity > limit) {
-      violations.push({
-        zone: WellKnown.deckZone.MAIN,
-        code: "MAIN_COPY_LIMIT",
-        message: `${card.cardName} exceeds the ${limit}-copy limit (${card.quantity})`,
-        cardId: card.cardId,
-      });
+const COPY_LIMIT_ZONE_NAMES: Partial<Record<DeckZone, string>> = {
+  [WellKnown.deckZone.MAIN]: "main deck",
+  [WellKnown.deckZone.SIDEBOARD]: "sideboard",
+  [WellKnown.deckZone.CHAMPION]: "Chosen Champion",
+};
+
+function copyLimitMessage(
+  card: DeckCard,
+  limit: number,
+  total: number,
+  byZone: ReadonlyMap<DeckZone, number>,
+  format: DeckFormat,
+): string {
+  if (card.keywords.includes(WellKnown.keyword.UNIQUE)) {
+    return `${card.cardName} has the [Unique] keyword — only 1 copy allowed`;
+  }
+  const deckZones = formatHasSideboard(format) ? "the main deck and sideboard" : "the main deck";
+  if (byZone.get(WellKnown.deckZone.CHAMPION) === 1) {
+    return `${card.cardName} can have at most ${limit - 1} copies in ${deckZones} (1 is the Chosen Champion)`;
+  }
+  if (byZone.size > 1) {
+    const names = [...byZone.keys()].map((zone) => COPY_LIMIT_ZONE_NAMES[zone]);
+    const across = `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+    return `${card.cardName} exceeds the ${limit}-copy limit (${total} across the ${across})`;
+  }
+  return `${card.cardName} exceeds the ${limit}-copy limit (${total})`;
+}
+
+export const copyLimitAcrossZones: DeckRule = (state) => {
+  const byCard = new Map<string, { card: DeckCard; byZone: Map<DeckZone, number> }>();
+  for (const zone of COPY_LIMIT_ZONE_ORDER) {
+    for (const card of cardsInZone(state.cards, zone)) {
+      const entry = byCard.get(card.cardId) ?? { card, byZone: new Map<DeckZone, number>() };
+      entry.byZone.set(zone, (entry.byZone.get(zone) ?? 0) + card.quantity);
+      byCard.set(card.cardId, entry);
     }
   }
 
+  const violations: DeckViolation[] = [];
+  for (const { card, byZone } of byCard.values()) {
+    const limit = copyLimitFor(card);
+    let total = 0;
+    for (const quantity of byZone.values()) {
+      total += quantity;
+    }
+    if (total <= limit) {
+      continue;
+    }
+    violations.push({
+      zone: card.zone,
+      code: card.keywords.includes(WellKnown.keyword.UNIQUE) ? "UNIQUE_COPY_LIMIT" : "COPY_LIMIT",
+      message: copyLimitMessage(card, limit, total, byZone, state.format),
+      cardId: card.cardId,
+    });
+  }
   return violations;
 };
 
@@ -416,32 +474,6 @@ const mainDeckDomainMatch: DeckRule = (state) => {
   return violations;
 };
 
-export const championCopyLimitAcrossZones: DeckRule = (state) => {
-  const champions = cardsInZone(state.cards, WellKnown.deckZone.CHAMPION);
-  const champion = champions.length === 1 ? champions[0] : undefined;
-  if (champion === undefined) {
-    return [];
-  }
-
-  const championCardId = champion.cardId;
-  const mainCopies = cardsInZone(state.cards, WellKnown.deckZone.MAIN).find(
-    (card) => card.cardId === championCardId,
-  );
-
-  if (mainCopies && mainCopies.quantity > copyLimitFor(mainCopies) - 1) {
-    return [
-      {
-        zone: WellKnown.deckZone.MAIN,
-        code: "CHAMPION_COPY_LIMIT",
-        message: `${mainCopies.cardName} can have at most ${copyLimitFor(mainCopies) - 1} copies in the main deck (1 is the Chosen Champion)`,
-        cardId: mainCopies.cardId,
-      },
-    ];
-  }
-
-  return [];
-};
-
 export const SIDEBOARD_MAXIMUM = 10;
 
 export const sideboardMaximum: DeckRule = (state) => {
@@ -458,26 +490,6 @@ export const sideboardMaximum: DeckRule = (state) => {
   }
 
   return [];
-};
-
-export const uniqueCopyLimit: DeckRule = (state) => {
-  const violations: DeckViolation[] = [];
-
-  for (const card of [
-    ...cardsInZone(state.cards, WellKnown.deckZone.MAIN),
-    ...cardsInZone(state.cards, WellKnown.deckZone.SIDEBOARD),
-  ]) {
-    if (card.keywords.includes(WellKnown.keyword.UNIQUE) && card.quantity > 1) {
-      violations.push({
-        zone: card.zone,
-        code: "UNIQUE_COPY_LIMIT",
-        message: `${card.cardName} has the [Unique] keyword — only 1 copy allowed`,
-        cardId: card.cardId,
-      });
-    }
-  }
-
-  return violations;
 };
 
 // Cards can land here via a format switch or an imported list; they are
@@ -498,27 +510,10 @@ export const sideboardNotAllowed: DeckRule = (state) => {
   return [];
 };
 
-export const sideboardCopyLimit: DeckRule = (state) => {
-  const violations: DeckViolation[] = [];
-
-  for (const card of cardsInZone(state.cards, WellKnown.deckZone.SIDEBOARD)) {
-    const limit = copyLimitFor(card);
-    if (card.quantity > limit) {
-      violations.push({
-        zone: WellKnown.deckZone.SIDEBOARD,
-        code: "SIDEBOARD_COPY_LIMIT",
-        message: `${card.cardName} exceeds the ${limit}-copy limit (${card.quantity})`,
-        cardId: card.cardId,
-      });
-    }
-  }
-
-  return violations;
-};
-
 const battlefieldExactlyOne: DeckRule = (state) => {
   const battlefields = cardsInZone(state.cards, WellKnown.deckZone.BATTLEFIELD);
   const count = totalQuantity(battlefields);
+  const cap = battlefieldCapFor(WellKnown.deckFormat.CUSTOM_REGION);
 
   if (count === 0) {
     return [
@@ -529,12 +524,12 @@ const battlefieldExactlyOne: DeckRule = (state) => {
       },
     ];
   }
-  if (count > 1) {
+  if (count > cap) {
     return [
       {
         zone: WellKnown.deckZone.BATTLEFIELD,
         code: "BATTLEFIELD_TOO_MANY",
-        message: `This format plays exactly 1 Battlefield — remove ${count - 1} of the ${count} in the deck`,
+        message: `This format plays exactly ${cap} Battlefield — remove ${count - cap} of the ${count} in the deck`,
       },
     ];
   }
@@ -545,31 +540,32 @@ const battlefieldExactlyOne: DeckRule = (state) => {
 export const battlefieldExactlyThree: DeckRule = (state) => {
   const battlefields = cardsInZone(state.cards, WellKnown.deckZone.BATTLEFIELD);
   const count = totalQuantity(battlefields);
+  const cap = battlefieldCapFor(WellKnown.deckFormat.CONSTRUCTED);
 
   if (count === 0) {
     return [
       {
         zone: WellKnown.deckZone.BATTLEFIELD,
         code: "BATTLEFIELD_REQUIRED",
-        message: "3 Battlefield cards are required",
+        message: `${cap} Battlefield cards are required`,
       },
     ];
   }
-  if (count < 3) {
+  if (count < cap) {
     return [
       {
         zone: WellKnown.deckZone.BATTLEFIELD,
         code: "BATTLEFIELD_TOO_FEW",
-        message: `${count}/3 Battlefield cards — need ${3 - count} more`,
+        message: `${count}/${cap} Battlefield cards — need ${cap - count} more`,
       },
     ];
   }
-  if (count > 3) {
+  if (count > cap) {
     return [
       {
         zone: WellKnown.deckZone.BATTLEFIELD,
         code: "BATTLEFIELD_TOO_MANY",
-        message: `${count}/3 Battlefield cards — remove ${count - 3}`,
+        message: `${count}/${cap} Battlefield cards — remove ${count - cap}`,
       },
     ];
   }
@@ -813,6 +809,9 @@ const cardsCarryFormatTag: DeckRule = (state) => {
   }
   const violations: DeckViolation[] = [];
   for (const card of state.cards) {
+    if (card.zone === WellKnown.deckZone.OVERFLOW) {
+      continue;
+    }
     // Runes carry no region tags; every rune is legal in a tag-locked deck.
     if (card.cardTypes.includes(WellKnown.cardType.RUNE)) {
       continue;
@@ -846,12 +845,9 @@ const CONSTRUCTED_RULES: DeckRule[] = [
   battlefieldAllTypeBattlefield,
   battlefieldNoDuplicates,
   mainDeckExactly,
-  mainDeckCopyLimit,
+  copyLimitAcrossZones,
   mainDeckDomainMatch,
-  championCopyLimitAcrossZones,
   sideboardMaximum,
-  sideboardCopyLimit,
-  uniqueCopyLimit,
   signatureTotalLimit,
   signatureMatchesLegendTag,
 ];
@@ -874,10 +870,8 @@ const REGION_LOCKED_RULES: DeckRule[] = [
   battlefieldAllTypeBattlefield,
   battlefieldNoDuplicates,
   mainDeckExactly,
-  mainDeckCopyLimit,
-  championCopyLimitAcrossZones,
+  copyLimitAcrossZones,
   sideboardNotAllowed,
-  uniqueCopyLimit,
   signatureTotalLimit,
   signatureChampionCopiesInDeck,
 ];

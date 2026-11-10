@@ -145,7 +145,6 @@ export function BoardEditorFilmstrip() {
       <div className="-m-1 flex gap-2 overflow-x-auto p-1">
         {Array.from({ length: count }, (_, index) => (
           <StepThumb
-            // oxlint-disable-next-line react/no-array-index-key -- steps are positional
             key={index}
             document={document}
             index={index}

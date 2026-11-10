@@ -126,6 +126,22 @@ describe("POST /meta/submissions", () => {
     );
   });
 
+  it("answers without waiting for the admin email to go out", async () => {
+    mockSubmitMetaDeck.mockResolvedValue({
+      status: "ok",
+      submissionId: "sub-1",
+      eventName: "Summoner Skirmish Berlin",
+      candidatePlayerId: "cand-1",
+      unresolvedNames: [],
+    });
+    mockNotifyAdmins.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await submit(submissionBody());
+
+    expect(res.status).toBe(201);
+    expect(mockNotifyAdmins).toHaveBeenCalledTimes(1);
+  });
+
   it("carries a tier rank through as one", async () => {
     mockSubmitMetaDeck.mockResolvedValue({
       status: "ok",
@@ -431,6 +447,24 @@ describe("POST /meta/submissions/event-corrections", () => {
         note: "The results page lists 48 players.",
       }),
     );
+  });
+
+  it("answers without waiting for the admin email to go out", async () => {
+    mockSubmitMetaEventCorrection.mockResolvedValue({
+      status: "ok",
+      submissionId: "sub-9",
+      eventName: "Summoner Skirmish Berlin",
+    });
+    mockNotifyAdmins.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await correct({
+      metaEventId: EVENT_ID,
+      fieldEdits: { playerCount: 48 },
+      note: "The results page lists 48 players.",
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockNotifyAdmins).toHaveBeenCalledTimes(1);
   });
 
   it("defaults a correction with no field edits to an empty set", async () => {

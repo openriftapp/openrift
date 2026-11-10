@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrganizationPage } from "./organization-page";
 
-const { removeMutateAsync } = vi.hoisted(() => ({
-  removeMutateAsync: vi.fn(() => Promise.resolve()),
+const { addMutateAsync, removeMutateAsync } = vi.hoisted(() => ({
+  addMutateAsync: vi.fn((): Promise<unknown> => Promise.resolve()),
+  removeMutateAsync: vi.fn((): Promise<unknown> => Promise.resolve()),
 }));
 
 vi.mock("@/features/tournaments/hooks/use-organizations", () => ({
@@ -29,7 +30,7 @@ vi.mock("@/features/tournaments/hooks/use-organizations", () => ({
       ],
     },
   }),
-  useAddOrganizationMember: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useAddOrganizationMember: () => ({ mutateAsync: addMutateAsync, isPending: false }),
   useRemoveOrganizationMember: () => ({ mutateAsync: removeMutateAsync, isPending: false }),
   useUpdateOrganizationMemberRole: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
@@ -64,5 +65,54 @@ describe("OrganizationPage member removal", () => {
     await user.click(within(dialog).getByRole("button", { name: "Remove" }));
 
     expect(removeMutateAsync).toHaveBeenCalledWith({ id: "org-1", userId: "member-1" });
+  });
+
+  it("keeps the confirmation open when the removal is rejected", async () => {
+    removeMutateAsync.mockRejectedValueOnce(new Error("forbidden"));
+    const user = userEvent.setup();
+    render(<OrganizationPage id="org-1" />);
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+
+    expect(removeMutateAsync).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+});
+
+describe("OrganizationPage add member", () => {
+  beforeEach(() => {
+    addMutateAsync.mockReset();
+    addMutateAsync.mockResolvedValue(undefined);
+  });
+
+  async function submitEmail(email: string) {
+    const user = userEvent.setup();
+    render(<OrganizationPage id="org-1" />);
+    await user.click(screen.getByRole("button", { name: "Add member" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Email"), email);
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+  }
+
+  it("keeps the dialog open with the typed email when the request is rejected", async () => {
+    addMutateAsync.mockRejectedValueOnce(new Error("already a member"));
+    await submitEmail("teemo@example.com");
+
+    expect(addMutateAsync).toHaveBeenCalledTimes(1);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByLabelText("Email")).toHaveValue("teemo@example.com");
+  });
+
+  it("closes the dialog after the member is added", async () => {
+    await submitEmail("teemo@example.com");
+
+    expect(addMutateAsync).toHaveBeenCalledWith({
+      id: "org-1",
+      email: "teemo@example.com",
+      role: "manager",
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

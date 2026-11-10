@@ -8,7 +8,6 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
   useSetCandidatePrintingImage: () => ({ mutate: captured.setImage, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PrintingSourceImageCell } from "./printing-source-image-cell";
 
 function renderCell(isUsed = false) {

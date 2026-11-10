@@ -134,11 +134,8 @@ afterAll(async () => {
 });
 
 describe.skipIf(!adminCtx)("Admin catalog workspace bulk routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: adminApp, db } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: reviewApp } = reviewCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: plainApp } = plainCtx!;
 
   describe("GET /catalog/workspace/same-difference", () => {

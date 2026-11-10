@@ -71,7 +71,6 @@ vi.mock("@/features/collections/components/annotated-dispose-dialog", () => ({
   AnnotatedDisposeDialog: () => null,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardPageCollectionActions } from "./card-page-collection-actions";
 
 const printing = stubPrinting({ printingId: "printing-1", cardId: "card-1" });

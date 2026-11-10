@@ -1,3 +1,5 @@
+import { MAX_COPIES_PER_REQUEST } from "@openrift/shared/contracts/copies";
+import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import { normalizeCopyMetadataPatch } from "@openrift/shared/copy-metadata";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createLogger } from "@openrift/shared/logger";
@@ -7,7 +9,8 @@ import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { ensureInbox } from "../../groups/services/inbox.js";
-import { autoCancelUnfillablePendingTrades } from "../../groups/services/trade-supply.js";
+import type { TradeCancelConsent } from "../../groups/services/trade-supply.js";
+import { previewTradeCancels, sweepGiverPrintings } from "../../groups/services/trade-supply.js";
 import { logEvents } from "../../system/services/event-logger.js";
 import { loadWritableCopies } from "../lib/collection-access.js";
 
@@ -185,15 +188,100 @@ export async function updateCopies(
 }
 
 /** Must run inside the caller's transaction so the copy change and the cancellations commit together. */
-async function sweepUnfillableTrades(
+export async function sweepUnfillableTrades(
   trxRepos: Repos,
   userId: string,
   printingIds: Iterable<string>,
+  consent: TradeCancelConsent,
 ): Promise<void> {
-  for (const printingId of new Set(printingIds)) {
-    // Sequential: the repos are bound to a single transaction connection.
-    await autoCancelUnfillablePendingTrades(trxRepos, userId, printingId);
+  const distinct = [...new Set(printingIds)];
+  if (distinct.length === 0) {
+    return;
   }
+  const pending = await trxRepos.cardTrades.listPendingPrintingIdsForGiver(userId, distinct);
+  await sweepGiverPrintings(trxRepos, userId, pending, consent);
+}
+
+interface MoveTarget {
+  id: string;
+  name: string;
+  groupId: string | null;
+}
+
+async function resolveMoveTarget(
+  repos: Repos,
+  userId: string,
+  toCollectionId: string,
+): Promise<MoveTarget> {
+  const targetWritable = await repos.collections.filterWritableByViewer([toCollectionId], userId);
+  if (targetWritable.length === 0) {
+    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+  }
+  const targetMeta = await repos.collections.listIdNameGroupByIds([toCollectionId]);
+  const target = targetMeta[0];
+  assertFound(target, "Target collection not found");
+  return target;
+}
+
+async function moveCopiesInTransaction(
+  trxRepos: Repos,
+  userId: string,
+  copyIds: string[],
+  target: MoveTarget,
+  consent: TradeCancelConsent,
+): Promise<void> {
+  if (!(await trxRepos.collections.lockAsMoveTarget(target.id))) {
+    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+  }
+  await trxRepos.copies.lockByIds(copyIds);
+  const copies = await loadWritableCopies(trxRepos, userId, copyIds);
+
+  if (target.groupId !== null) {
+    const reserved = await trxRepos.cardTrades.filterReservedCopyIds(copyIds);
+    if (reserved.length > 0) {
+      throw new AppError(
+        409,
+        ERROR_CODES.CONFLICT,
+        "This card is reserved in a trade. It can only move between your own collections.",
+      );
+    }
+  }
+
+  await trxRepos.copies.moveBatchById(
+    copies.map((row) => row.id),
+    target.id,
+  );
+
+  await logEvents(
+    trxRepos,
+    copies.map((copy) => ({
+      userId,
+      action: "moved" as const,
+      printingId: copy.printingId,
+      copyId: copy.id,
+      fromCollectionId: copy.collectionId,
+      fromCollectionName: copy.collectionName,
+      toCollectionId: target.id,
+      toCollectionName: target.name,
+    })),
+  );
+
+  if (target.groupId !== null) {
+    // The copy now belongs to the group, so the owner has nothing left to
+    // offer. Their trade-list entries would otherwise keep advertising it:
+    // supply is built from list membership, not ownership, and nothing else
+    // clears an entry whose copy left the owner's collections.
+    await trxRepos.lists.deleteTradeEntriesForCopies(copyIds, userId);
+  }
+
+  // A move can take a copy out of the supply a group can see, so the owner's
+  // pending trades for those printings may no longer be fillable.
+  await sweepUnfillableTrades(
+    trxRepos,
+    userId,
+    copies.map((copy) => copy.printingId),
+    consent,
+  );
 }
 
 /**
@@ -208,67 +296,33 @@ export async function moveCopies(
   userId: string,
   copyIds: string[],
   toCollectionId: string,
+  consent: TradeCancelConsent,
 ): Promise<void> {
-  const targetWritable = await repos.collections.filterWritableByViewer([toCollectionId], userId);
-  if (targetWritable.length === 0) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+  const target = await resolveMoveTarget(repos, userId, toCollectionId);
+  await transact((trxRepos) => moveCopiesInTransaction(trxRepos, userId, copyIds, target, consent));
+}
+
+function writeChunks(copyIds: readonly string[]): string[][] {
+  const chunks: string[][] = [];
+  for (let start = 0; start < copyIds.length; start += MAX_COPIES_PER_REQUEST) {
+    chunks.push(copyIds.slice(start, start + MAX_COPIES_PER_REQUEST));
   }
-  const targetMeta = await repos.collections.listIdNameGroupByIds([toCollectionId]);
-  const target = targetMeta[0];
-  assertFound(target, "Target collection not found");
+  return chunks;
+}
 
-  await transact(async (trxRepos) => {
-    if (!(await trxRepos.collections.lockAsMoveTarget(toCollectionId))) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+/** Each write-sized chunk sweeps on its own, as the client's chunked writes will. */
+export async function previewMoveTradeCancels(
+  repos: Repos,
+  transact: Transact,
+  userId: string,
+  copyIds: string[],
+  toCollectionId: string,
+): Promise<TradeCancelConflictData> {
+  const target = await resolveMoveTarget(repos, userId, toCollectionId);
+  return previewTradeCancels(transact, async (trxRepos, consent) => {
+    for (const chunk of writeChunks(copyIds)) {
+      await moveCopiesInTransaction(trxRepos, userId, chunk, target, consent);
     }
-    await trxRepos.copies.lockByIds(copyIds);
-    const copies = await loadWritableCopies(trxRepos, userId, copyIds);
-
-    if (target.groupId !== null) {
-      const reserved = await trxRepos.cardTrades.filterReservedCopyIds(copyIds);
-      if (reserved.length > 0) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          "This card is reserved in a trade. It can only move between your own collections.",
-        );
-      }
-    }
-
-    await trxRepos.copies.moveBatchById(
-      copies.map((row) => row.id),
-      toCollectionId,
-    );
-
-    await logEvents(
-      trxRepos,
-      copies.map((copy) => ({
-        userId,
-        action: "moved" as const,
-        printingId: copy.printingId,
-        copyId: copy.id,
-        fromCollectionId: copy.collectionId,
-        fromCollectionName: copy.collectionName,
-        toCollectionId: target.id,
-        toCollectionName: target.name,
-      })),
-    );
-
-    if (target.groupId !== null) {
-      // The copy now belongs to the group, so the owner has nothing left to
-      // offer. Their trade-list entries would otherwise keep advertising it:
-      // supply is built from list membership, not ownership, and nothing else
-      // clears an entry whose copy left the owner's collections.
-      await trxRepos.lists.deleteTradeEntriesForCopies(copyIds, userId);
-    }
-
-    // A move can take a copy out of the supply a group can see, so the owner's
-    // pending trades for those printings may no longer be fillable.
-    await sweepUnfillableTrades(
-      trxRepos,
-      userId,
-      copies.map((copy) => copy.printingId),
-    );
   });
 }
 
@@ -280,8 +334,21 @@ export async function disposeCopies(
   transact: Transact,
   userId: string,
   copyIds: string[],
+  consent: TradeCancelConsent,
 ): Promise<void> {
-  await transact((trxRepos) => disposeCopiesInTransaction(trxRepos, userId, copyIds));
+  await transact((trxRepos) => disposeCopiesInTransaction(trxRepos, userId, copyIds, consent));
+}
+
+export function previewDisposeTradeCancels(
+  transact: Transact,
+  userId: string,
+  copyIds: string[],
+): Promise<TradeCancelConflictData> {
+  return previewTradeCancels(transact, async (trxRepos, consent) => {
+    for (const chunk of writeChunks(copyIds)) {
+      await disposeCopiesInTransaction(trxRepos, userId, chunk, consent);
+    }
+  });
 }
 
 /**
@@ -293,8 +360,22 @@ export async function disposeCopiesInTransaction(
   trxRepos: Repos,
   userId: string,
   copyIds: string[],
+  consent: TradeCancelConsent,
   options?: { skipReservationGuard?: boolean },
 ): Promise<void> {
+  const printingIds = await disposeCopiesUnswept(trxRepos, userId, copyIds, options);
+  // Close now: a pending trade counting on a deleted copy would otherwise
+  // 409 only when accepted, possibly a week later.
+  await sweepUnfillableTrades(trxRepos, userId, printingIds, consent);
+}
+
+/** Returns the disposed copies' printing ids; the caller owes the trade sweep. */
+export async function disposeCopiesUnswept(
+  trxRepos: Repos,
+  userId: string,
+  copyIds: string[],
+  options?: { skipReservationGuard?: boolean },
+): Promise<string[]> {
   // Lock the copy rows first so a concurrent trade-accept or loan reserving one
   // of them serializes against this dispose. Without the lock the reservation
   // guard below could pass, the reserve pin lands in the gap, and the delete
@@ -348,11 +429,5 @@ export async function disposeCopiesInTransaction(
   // Hard-delete copies (collection_events.copy_id → SET NULL via FK)
   await trxRepos.copies.deleteBatchById(copies.map((row) => row.id));
 
-  // Close now: a pending trade counting on a deleted copy would otherwise
-  // 409 only when accepted, possibly a week later.
-  await sweepUnfillableTrades(
-    trxRepos,
-    userId,
-    copies.map((row) => row.printingId),
-  );
+  return copies.map((row) => row.printingId);
 }

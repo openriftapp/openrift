@@ -1,30 +1,23 @@
-import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
-import { DISPLAY_LOCALES } from "@openrift/shared/types/api/preferences";
+import type { DisplayLocale, Theme } from "@openrift/shared/types/api/preferences";
+import { DISPLAY_LOCALES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { useQueryClient } from "@tanstack/react-query";
-import type { LinkProps } from "@tanstack/react-router";
 import { Link, useLocation, useMatch, useRouter } from "@tanstack/react-router";
 import {
-  CircleHelpIcon,
-  ExternalLinkIcon,
   EllipsisVerticalIcon,
-  HeartIcon,
   LanguagesIcon,
   LogOutIcon,
   MenuIcon,
   MoonIcon,
-  PencilLineIcon,
   SearchIcon,
   ShieldIcon,
-  SmartphoneIcon,
-  SparklesIcon,
   SunIcon,
   UserIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useState } from "react";
-import { siDiscord, siGithub } from "simple-icons";
-import latestMilestone from "virtual:latest-milestone";
+import { useId, useState } from "react";
 
+import { ContributePopover, ContributeSubmenu, HelpPopover } from "@/components/layout/help-menu";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { NavCountBadge } from "@/components/layout/nav-count-badge";
 import type { NavFlags } from "@/components/layout/nav-items";
 import {
   badgeAriaLabel,
@@ -34,8 +27,6 @@ import {
   visibleMoreSections,
   visiblePrimaryItems,
 } from "@/components/layout/nav-items";
-import { Badge } from "@/components/ui/badge";
-import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -60,42 +51,29 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/user-avatar";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
-import { usePaletteStore } from "@/features/collections/stores/palette-store";
-import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useBadges } from "@/features/groups/hooks/use-badges";
-import { milestoneBannerDecision } from "@/features/marketing/lib/milestone-banner";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useGravatarHash } from "@/hooks/use-gravatar-hash";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/hooks/use-session";
-import { sessionQueryOptions } from "@/lib/auth-session";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
-import { isStandaloneDisplay } from "@/lib/install-platform";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
-import { SOCIAL_LINKS } from "@/lib/social-links";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { toastError } from "@/lib/toast";
 import { cn, CONTAINER_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
-import { useDisplayStore } from "@/stores/display-store";
-import { useMilestoneBannerStore } from "@/stores/milestone-banner-store";
+import { leaveAsSignedOut, loadClientStateReset } from "@/stores/leave-as-signed-out";
 import { useThemeStore } from "@/stores/theme-store";
+
+const THEME_LABELS: Record<Theme, () => string> = {
+  auto: m.profile_display_theme_auto,
+  light: m.profile_display_theme_light,
+  dark: m.profile_display_theme_dark,
+};
 
 function LogoLink({ className }: { className?: string }) {
   const isHome = useMatch({ from: "/_app/cards", shouldThrow: false });
@@ -117,16 +95,38 @@ function LogoLink({ className }: { className?: string }) {
   );
 }
 
-function MenuButton({ onClick, className }: { onClick: () => void; className?: string }) {
+export function navBadgeTotal(badges: NavBadgeCounts): number {
+  return badges.groups + badges.trades + badges.loans;
+}
+
+function MenuButton({
+  onClick,
+  badgeCount,
+  className,
+}: {
+  onClick: () => void;
+  badgeCount: number;
+  className?: string;
+}) {
+  const badgeId = useId();
   return (
     <Button
       variant="ghost"
       size="icon"
       aria-label={m.layout_header_open_menu()}
-      className={className}
+      aria-describedby={badgeCount > 0 ? badgeId : undefined}
+      className={cn("relative", className)}
       onClick={onClick}
     >
       <MenuIcon className="size-5" />
+      {badgeCount > 0 && (
+        <NavCountBadge
+          id={badgeId}
+          count={badgeCount}
+          label={m.layout_header_section_attention({ section: m.layout_header_menu() })}
+          className="absolute -top-1 -right-1"
+        />
+      )}
     </Button>
   );
 }
@@ -170,13 +170,11 @@ function DesktopPrimaryItem({
     >
       {item.label}
       {item.badge && badgeCount > 0 && (
-        <Badge
-          variant="count"
-          aria-label={badgeAriaLabel(item.badge, badgeCount)}
+        <NavCountBadge
+          count={badgeCount}
+          label={badgeAriaLabel(item.badge, badgeCount)}
           className="ml-1.5"
-        >
-          {badgeCount > 9 ? "9+" : badgeCount}
-        </Badge>
+        />
       )}
     </NavigationMenuLink>
   );
@@ -202,13 +200,11 @@ function DesktopMoreItem({
         <div className="font-medium">
           {item.label}
           {item.badge && badgeCount > 0 && (
-            <Badge
-              variant="count"
-              aria-label={badgeAriaLabel(item.badge, badgeCount)}
+            <NavCountBadge
+              count={badgeCount}
+              label={badgeAriaLabel(item.badge, badgeCount)}
               className="ml-1.5"
-            >
-              {badgeCount > 9 ? "9+" : badgeCount}
-            </Badge>
+            />
           )}
         </div>
         <div className="text-muted-foreground text-xs">{item.description}</div>
@@ -273,13 +269,11 @@ function DesktopNav({
           <NavigationMenuTrigger className="text-muted-foreground hover:text-foreground focus:text-foreground data-popup-open:text-foreground">
             {m.layout_header_more()}
             {overflowBadgeCount > 0 && (
-              <Badge
-                variant="count"
-                aria-label={m.layout_header_section_attention({ section: m.layout_header_more() })}
+              <NavCountBadge
+                count={overflowBadgeCount}
+                label={m.layout_header_section_attention({ section: m.layout_header_more() })}
                 className="ml-1.5 lg:hidden"
-              >
-                {overflowBadgeCount > 9 ? "9+" : overflowBadgeCount}
-              </Badge>
+              />
             )}
           </NavigationMenuTrigger>
           <NavigationMenuContent>
@@ -376,83 +370,7 @@ function LanguageSubmenu({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 }
 
-function HelpSubmenu() {
-  const hydrated = useHydrated();
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger className="md:hidden">
-        <CircleHelpIcon className="size-4" />
-        {m.layout_header_help()}
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent>
-        <DropdownMenuItem render={<Link to="/help" />}>
-          <CircleHelpIcon className="size-4" />
-          {m.layout_header_help_articles()}
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/changelog" />}>
-          <SparklesIcon className="size-4" />
-          {m.layout_header_whats_new()}
-        </DropdownMenuItem>
-        {hydrated && !isStandaloneDisplay() && (
-          <DropdownMenuItem render={<Link to="/install" />}>
-            <SmartphoneIcon className="size-4" />
-            {m.nav_get_app()}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem
-          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of DropdownMenuItem
-          render={<a href={SOCIAL_LINKS.githubNewIssue} target="_blank" rel="noreferrer" />}
-        >
-          <BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} />
-          {m.layout_header_report_bug()}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of DropdownMenuItem
-          render={<a href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer" />}
-        >
-          <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
-          {m.layout_header_ask_discord()}
-        </DropdownMenuItem>
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
-  );
-}
-
-function ContributeSubmenu({
-  isLoggedIn,
-  onLockedClick,
-}: {
-  isLoggedIn: boolean;
-  onLockedClick: (key: LockedFeatureKey) => void;
-}) {
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger className="lg:hidden">
-        <PencilLineIcon className="size-4" />
-        {m.layout_header_contribute()}
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent>
-        {isLoggedIn ? (
-          <DropdownMenuItem render={<Link to="/contribute" />}>
-            <PencilLineIcon className="size-4" />
-            {m.layout_header_card_data()}
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onClick={() => onLockedClick("contribute")}>
-            <PencilLineIcon className="size-4" />
-            {m.layout_header_card_data()}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem render={<Link to="/support" />}>
-          <HeartIcon className="size-4" />
-          {m.layout_header_support()}
-        </DropdownMenuItem>
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
-  );
-}
-
-function UserMenuItems({
+export function UserMenuItems({
   isLoggedIn,
   onLockedClick,
 }: {
@@ -460,6 +378,7 @@ function UserMenuItems({
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
   const theme = useThemeStore((s) => s.theme);
+  const themePreference = useThemeStore((s) => s.preference ?? PREFERENCE_DEFAULTS.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const darkMode = theme === "dark";
   const { data: adminAccess } = useAdminAccess();
@@ -470,16 +389,13 @@ function UserMenuItems({
 
   const handleSignOut = async () => {
     try {
+      const reset = loadClientStateReset();
       await signOutViaAuthClient();
-      useDisplayStore.getState().reset();
-      useThemeStore.getState().reset();
-      usePaletteStore.getState().reset();
-      useAddModeStore.getState().reset();
-      useDeckBuilderUiStore.getState().reset();
-      // Navigate before invalidating the session query: a still-mounted
-      // authenticated component would see the null session and crash on useRequiredUserId.
-      await router.navigate({ to: "/cards", search: {} });
-      void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      await leaveAsSignedOut(
+        queryClient,
+        () => router.navigate({ to: "/cards", search: {} }),
+        reset,
+      );
     } catch {
       toastError(m.layout_header_sign_out_failed());
     }
@@ -499,18 +415,17 @@ function UserMenuItems({
           {m.layout_header_admin()}
         </DropdownMenuItem>
       )}
-      {isLoggedIn && <DropdownMenuSeparator className="lg:hidden" />}
-      <HelpSubmenu />
+      {isLoggedIn && <DropdownMenuSeparator />}
       <ContributeSubmenu isLoggedIn={isLoggedIn} onLockedClick={onLockedClick} />
-      <DropdownMenuSeparator className="lg:hidden" />
-      {isLoggedIn && <DropdownMenuSeparator className="hidden lg:block" />}
-      {!isLoggedIn && (
-        <DropdownMenuItem onClick={toggleTheme}>
-          {darkMode ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
-          {darkMode ? m.layout_header_light_mode() : m.layout_header_dark_mode()}
-        </DropdownMenuItem>
-      )}
+      <DropdownMenuSeparator className="hidden md:block lg:hidden" />
       <LanguageSubmenu isLoggedIn={isLoggedIn} />
+      <DropdownMenuItem closeOnClick={false} onClick={toggleTheme}>
+        {darkMode ? <MoonIcon className="size-4" /> : <SunIcon className="size-4" />}
+        {m.profile_display_theme()}
+        <span className="text-muted-foreground ml-auto pl-4">
+          {THEME_LABELS[themePreference]()}
+        </span>
+      </DropdownMenuItem>
       {isLoggedIn && <DropdownMenuSeparator />}
       {isLoggedIn && (
         <DropdownMenuItem onClick={() => void handleSignOut()}>
@@ -588,351 +503,6 @@ function UserMenu({
   );
 }
 
-// Same active-state treatment as DESKTOP_NAV_ITEM_CLASS: background for
-// hover only, text emphasis for the active route.
-const MOBILE_NAV_ITEM_CLASS =
-  "text-muted-foreground hover:bg-muted hover:text-foreground flex items-center gap-3 rounded-lg px-3 py-2.5 text-base data-[status=active]:font-semibold data-[status=active]:text-foreground";
-
-const MOBILE_NAV_CELL_CLASS =
-  "text-muted-foreground hover:bg-muted hover:text-foreground flex h-11 min-w-0 items-center gap-2 rounded-lg px-2.5 text-left text-sm leading-tight data-[status=active]:font-semibold data-[status=active]:text-foreground";
-
-function MobileNavItem({
-  item,
-  cell,
-  isLoggedIn,
-  badges,
-  onLockedClick,
-}: {
-  item: NavItemConfig;
-  cell?: boolean;
-  isLoggedIn: boolean;
-  badges: NavBadgeCounts;
-  onLockedClick: (key: LockedFeatureKey) => void;
-}) {
-  const lockedKey = item.lockedKey;
-  const keepSearch = useLocation({ select: (location) => keepsSearch(item, location.pathname) });
-  const rowClass = cell ? MOBILE_NAV_CELL_CLASS : MOBILE_NAV_ITEM_CLASS;
-  const icon = (
-    <item.icon className={cn("text-muted-foreground shrink-0", cell ? "size-4" : "size-5")} />
-  );
-  if (lockedKey && !isLoggedIn) {
-    return (
-      <SheetClose
-        // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; SheetClose/MOBILE_NAV_ITEM_CLASS owns all styling and provides the label as children
-        render={<button type="button" onClick={() => onLockedClick(lockedKey)} />}
-        className={rowClass}
-      >
-        {icon}
-        {item.label}
-      </SheetClose>
-    );
-  }
-  const badgeCount = item.badge ? badges[item.badge] : 0;
-  return (
-    <SheetClose
-      nativeButton={false}
-      render={<Link to={item.to} search={keepSearch ? (prev) => prev : undefined} />}
-      className={rowClass}
-    >
-      {icon}
-      {item.label}
-      {item.badge && badgeCount > 0 && (
-        <Badge
-          variant="count"
-          aria-label={badgeAriaLabel(item.badge, badgeCount)}
-          className="ml-auto"
-        >
-          {badgeCount > 9 ? "9+" : badgeCount}
-        </Badge>
-      )}
-    </SheetClose>
-  );
-}
-
-function MobileNavSection({
-  section,
-  isLoggedIn,
-  badges,
-  onLockedClick,
-}: {
-  section: { label: string; items: NavItemConfig[] };
-  isLoggedIn: boolean;
-  badges: NavBadgeCounts;
-  onLockedClick: (key: LockedFeatureKey) => void;
-}) {
-  return (
-    <section className="mt-2">
-      <SectionHeading as="h3" className="px-3 pb-1">
-        {section.label}
-      </SectionHeading>
-      <div className="grid grid-cols-2 gap-1">
-        {section.items.map((item) => (
-          <MobileNavItem
-            key={item.to}
-            item={item}
-            cell
-            isLoggedIn={isLoggedIn}
-            badges={badges}
-            onLockedClick={onLockedClick}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function MobileNav({
-  open,
-  onOpenChange,
-  isLoggedIn,
-  flags,
-  badges,
-  onLockedClick,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  isLoggedIn: boolean;
-  flags: NavFlags;
-  badges: NavBadgeCounts;
-  onLockedClick: (key: LockedFeatureKey) => void;
-}) {
-  const hydrated = useHydrated();
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left">
-        <SheetHeader>
-          <SheetTitle>
-            <Link
-              to="/cards"
-              className="font-heading flex items-center gap-2 font-bold"
-              onClick={() => onOpenChange(false)}
-            >
-              <img src="/logo-color.svg" alt="OpenRift" className="size-6" />
-              OpenRift
-            </Link>
-          </SheetTitle>
-        </SheetHeader>
-        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2">
-          {visiblePrimaryItems({ flags, mobile: true, badges }).map((item) => (
-            <MobileNavItem
-              key={item.to}
-              item={item}
-              isLoggedIn={isLoggedIn}
-              badges={badges}
-              onLockedClick={onLockedClick}
-            />
-          ))}
-          {visibleMoreSections({ flags, mobile: true, badges }).map((section) => (
-            <MobileNavSection
-              key={section.id}
-              section={section}
-              isLoggedIn={isLoggedIn}
-              badges={badges}
-              onLockedClick={onLockedClick}
-            />
-          ))}
-        </nav>
-        <SheetFooter className="px-5 pt-6">
-          {hydrated && !isStandaloneDisplay() && (
-            <SheetClose
-              nativeButton={false}
-              render={<Link to="/install" />}
-              className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm"
-            >
-              <SmartphoneIcon className="text-primary size-4" />
-              {m.nav_get_app()}
-            </SheetClose>
-          )}
-          <a
-            href={SOCIAL_LINKS.discordInvite}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm"
-          >
-            <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
-            {m.layout_header_join_discord()}
-          </a>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-const POPOVER_ROW_CLASS = "hover:bg-muted flex items-center gap-3 rounded-md px-2 py-2 text-sm";
-
-function PopoverRowText({ label, description }: { label: string; description: string }) {
-  return (
-    <div>
-      <div className="font-medium">{label}</div>
-      <div className="text-muted-foreground text-xs">{description}</div>
-    </div>
-  );
-}
-
-function InternalPopoverRow({
-  to,
-  icon,
-  label,
-  description,
-}: {
-  to: LinkProps["to"];
-  icon: ReactNode;
-  label: string;
-  description: string;
-}) {
-  return (
-    <PopoverClose nativeButton={false} render={<Link to={to} />} className={POPOVER_ROW_CLASS}>
-      {icon}
-      <PopoverRowText label={label} description={description} />
-    </PopoverClose>
-  );
-}
-
-function ExternalPopoverRow({
-  href,
-  icon,
-  label,
-  description,
-}: {
-  href: string;
-  icon: ReactNode;
-  label: string;
-  description: string;
-}) {
-  return (
-    <PopoverClose
-      nativeButton={false}
-      render={
-        // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of PopoverClose
-        <a href={href} target="_blank" rel="noreferrer" />
-      }
-      className={POPOVER_ROW_CLASS}
-    >
-      {icon}
-      <PopoverRowText label={label} description={description} />
-      <ExternalLinkIcon className="text-muted-foreground ml-auto size-3.5" />
-    </PopoverClose>
-  );
-}
-
-function HelpPopover() {
-  const hydrated = useHydrated();
-  const dismissedDate = useMilestoneBannerStore((state) => state.dismissedDate);
-  const hasNewMilestone =
-    hydrated && milestoneBannerDecision(latestMilestone, dismissedDate) === "show";
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={<Button variant="ghost" size="sm" />}
-        className="hidden gap-1.5 md:inline-flex"
-      >
-        <CircleHelpIcon className="size-4" />
-        <span className="sr-only lg:not-sr-only">{m.layout_header_help()}</span>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 gap-1 p-1.5">
-        <p className="text-muted-foreground px-2 pt-1.5 pb-1 text-xs">
-          {m.layout_header_help_intro()}
-        </p>
-        <InternalPopoverRow
-          to="/help"
-          icon={<CircleHelpIcon className="size-4 shrink-0" />}
-          label={m.layout_header_help_articles()}
-          description={m.layout_header_help_articles_description()}
-        />
-        <InternalPopoverRow
-          to="/changelog"
-          icon={
-            <span className="relative shrink-0">
-              <SparklesIcon className="size-4" />
-              {hasNewMilestone && (
-                <span
-                  aria-hidden="true"
-                  className="bg-primary absolute -top-0.5 -right-0.5 size-2 rounded-full"
-                />
-              )}
-            </span>
-          }
-          label={m.layout_header_whats_new()}
-          description={m.layout_header_whats_new_description()}
-        />
-        {hydrated && !isStandaloneDisplay() && (
-          <InternalPopoverRow
-            to="/install"
-            icon={<SmartphoneIcon className="size-4 shrink-0" />}
-            label={m.nav_get_app()}
-            description={m.nav_get_app_description()}
-          />
-        )}
-        <ExternalPopoverRow
-          href={SOCIAL_LINKS.githubNewIssue}
-          icon={<BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} />}
-          label={m.layout_header_report_bug()}
-          description={m.layout_header_report_bug_description()}
-        />
-        <ExternalPopoverRow
-          href={SOCIAL_LINKS.discordInvite}
-          icon={<BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />}
-          label={m.layout_header_ask_discord()}
-          description={m.layout_header_ask_discord_description()}
-        />
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function ContributePopover({
-  isLoggedIn,
-  onLockedClick,
-}: {
-  isLoggedIn: boolean;
-  onLockedClick: (key: LockedFeatureKey) => void;
-}) {
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={<Button variant="ghost" size="sm" />}
-        className="hidden gap-1.5 lg:inline-flex"
-      >
-        <PencilLineIcon className="size-4" />
-        <span className="sr-only lg:not-sr-only">{m.layout_header_contribute()}</span>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 gap-1 p-1.5">
-        <p className="text-muted-foreground px-2 pt-1.5 pb-1 text-xs">
-          {m.layout_header_contribute_intro()}
-        </p>
-        {isLoggedIn ? (
-          <InternalPopoverRow
-            to="/contribute"
-            icon={<PencilLineIcon className="size-4 shrink-0" />}
-            label={m.layout_header_card_data()}
-            description={m.layout_header_card_data_description()}
-          />
-        ) : (
-          <PopoverClose
-            // A native <button> shrinks to its content and centers its text; force
-            // it to fill and left-align so it matches the <Link>-rendered rows.
-            className={cn(POPOVER_ROW_CLASS, "w-full text-left")}
-            // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; PopoverClose owns all styling and provides the label as children
-            render={<button type="button" onClick={() => onLockedClick("contribute")} />}
-          >
-            <PencilLineIcon className="size-4 shrink-0" />
-            <PopoverRowText
-              label={m.layout_header_card_data()}
-              description={m.layout_header_card_data_description()}
-            />
-          </PopoverClose>
-        )}
-        <InternalPopoverRow
-          to="/support"
-          icon={<HeartIcon className="size-4 shrink-0" />}
-          label={m.layout_header_support()}
-          description={m.layout_header_support_description()}
-        />
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // Do not swap in a platform-detected glyph (Cmd/Ctrl): navigator-based
 // detection differs between server and client and breaks SSR hydration.
 function HeaderSearchButton() {
@@ -968,6 +538,7 @@ export function Header() {
   const loansBadge = badges?.loans.total ?? 0;
   const groupsBadge = badges?.groupRequests.count ?? 0;
   const tradesBadge = badges?.trades.people ?? 0;
+  const navBadges: NavBadgeCounts = { groups: groupsBadge, trades: tradesBadge, loans: loansBadge };
 
   return (
     <header
@@ -982,7 +553,10 @@ export function Header() {
             of the 28px icon button's padding so it lands on the px-safe gutter,
             flush with page content below (cards, titles). */}
         <div className="-ml-1 flex items-center gap-1 md:hidden">
-          <MenuButton onClick={() => setMobileMenuOpen(true)} />
+          <MenuButton
+            onClick={() => setMobileMenuOpen(true)}
+            badgeCount={navBadgeTotal(navBadges)}
+          />
           <LogoLink />
         </div>
 
@@ -991,7 +565,7 @@ export function Header() {
           <DesktopNav
             isLoggedIn={isLoggedIn}
             flags={navFlags}
-            badges={{ groups: groupsBadge, trades: tradesBadge, loans: loansBadge }}
+            badges={navBadges}
             onLockedClick={setLockedFeature}
           />
         </div>
@@ -1012,7 +586,7 @@ export function Header() {
         onOpenChange={setMobileMenuOpen}
         isLoggedIn={isLoggedIn}
         flags={navFlags}
-        badges={{ groups: groupsBadge, trades: tradesBadge, loans: loansBadge }}
+        badges={navBadges}
         onLockedClick={setLockedFeature}
       />
 

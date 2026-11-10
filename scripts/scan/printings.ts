@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /** The catalogue's printings in the shape the web app's `resolveLock` reads. */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";

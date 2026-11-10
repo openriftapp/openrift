@@ -16,14 +16,15 @@ import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export function TournamentsListPage() {
-  const { data } = useTournaments();
+  const { data, hasNextPage, isFetchingNextPage, fetchNextPage } = useTournaments();
+  const items = data.pages.flatMap((page) => page.items);
 
   return (
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
           <PageTopBarTitle>{m.nav_tournaments()}</PageTopBarTitle>
-          {data.items.length > 0 && (
+          {items.length > 0 && (
             <PageTopBarActions>
               <Link to="/tournaments/new" className={buttonVariants()}>
                 <PlusIcon /> {m.tournaments_list_new()}
@@ -35,7 +36,7 @@ export function TournamentsListPage() {
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         <PageDescription>{m.tournaments_list_description()}</PageDescription>
 
-        {data.items.length === 0 ? (
+        {items.length === 0 ? (
           <EmptyState
             className="py-12"
             icon={TrophyIcon}
@@ -49,9 +50,15 @@ export function TournamentsListPage() {
           </EmptyState>
         ) : (
           <TournamentsOverview
-            tournaments={data.items}
+            tournaments={items}
             noUpcomingText={m.tournaments_list_no_upcoming()}
             showContext
+            pastPaging={{
+              total: data.pages[0]?.pastCount ?? 0,
+              hasMore: hasNextPage,
+              loadingMore: isFetchingNextPage,
+              onLoadMore: () => void fetchNextPage(),
+            }}
           />
         )}
       </div>

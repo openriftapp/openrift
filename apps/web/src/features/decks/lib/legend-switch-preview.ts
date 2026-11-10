@@ -1,11 +1,11 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
-import { validateDeck } from "@openrift/shared/deck-rules";
+import { RUNE_TARGET, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { RUNE_TARGET, deckCardKey, toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey, toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 
 interface RuneChange {
   name: string;

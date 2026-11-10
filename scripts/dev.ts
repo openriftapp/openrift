@@ -1,8 +1,6 @@
 // Auto-picks free ports (from api 3000, web 5173) so `bun run dev` works in
 // any worktree alongside main with no per-worktree config.
-// oxlint-disable-next-line import/no-nodejs-modules -- dev orchestrator runs in Node/Bun
 import { spawn } from "node:child_process";
-// oxlint-disable-next-line import/no-nodejs-modules -- dev orchestrator runs in Node/Bun
 import { createServer } from "node:net";
 
 const API_DEFAULT_PORT = 3000;

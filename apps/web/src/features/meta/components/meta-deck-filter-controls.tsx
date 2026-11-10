@@ -48,6 +48,7 @@ export function MetaDeckFilterControls({
 
   const extrasActive = hasActiveMetaDeckFilters({
     ...filters,
+    maxCost: cost.withCollection ? filters.maxCost : null,
     valueMin: filters.valueRange.min,
     valueMax: filters.valueRange.max,
   });

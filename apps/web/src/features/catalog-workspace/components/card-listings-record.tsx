@@ -2,7 +2,6 @@ import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalo
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
-import { formatCents } from "@openrift/shared/money";
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,15 +36,24 @@ import {
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import {
+  assignedListingUndo,
+  ignoredProductUndo,
+  ignoredVariantsUndo,
+} from "@/features/catalog-workspace/hooks/listing-undo";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { ListingVariantGroup } from "@/features/catalog-workspace/lib/card-listing-groups";
 import { unmatchedListingGroups } from "@/features/catalog-workspace/lib/card-listing-groups";
 import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
 import { listingAssignment } from "@/features/catalog-workspace/lib/card-listing-rows";
 import { listingVariantsText } from "@/features/catalog-workspace/lib/owner-items";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
+import { combinedUndo, ignoredUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { formatCentsInLocale } from "@/lib/format";
 
 type IgnoreVariants = Record<AdminMarketplaceName, ReturnType<typeof useUnifiedIgnoreVariants>>;
 
@@ -61,7 +69,7 @@ async function ignoreVariantGroup(
   group: ListingVariantGroup,
   ignores: IgnoreVariants,
   onDone: () => Promise<void>,
-): Promise<void> {
+): Promise<boolean> {
   const byMarketplace = Map.groupBy(group.rows, (row) => row.marketplace);
   const runs = [...byMarketplace].map(([marketplace, rows]) =>
     ignores[marketplace].mutateAsync(rows.map((row) => skuOf(row))),
@@ -73,6 +81,21 @@ async function ignoreVariantGroup(
   if (ok) {
     await onDone();
   }
+  return ok;
+}
+
+function groupIgnoreUndo(group: ListingVariantGroup, what: string, record: string) {
+  const byMarketplace = Map.groupBy(group.rows, (row) => row.marketplace);
+  return combinedUndo(
+    ignoredUndoText({ what, record }),
+    [...byMarketplace].map(([marketplace, rows]) =>
+      ignoredVariantsUndo(
+        marketplace,
+        rows.map((row) => skuOf(row)),
+        record,
+      ),
+    ),
+  );
 }
 
 export function CardListingsRecord({ ownerId }: { ownerId: string }) {
@@ -115,6 +138,7 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
     cardnexus: useUnifiedIgnoreVariants("cardnexus"),
   };
   const ignoring = Object.values(ignores).some((mutation) => mutation.isPending);
+  const { announce } = useWorkspaceUndo();
 
   const variants = item.variants ?? [];
   const mapping = data?.group ?? null;
@@ -124,14 +148,18 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
       : unmatchedListingGroups(mapping, computeProductSuggestions(mapping), variants);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
-  const ignoreGroup = (group: ListingVariantGroup) => {
+  const ignoreGroup = async (group: ListingVariantGroup, what: string) => {
     const last = groups.length === 1;
-    void ignoreVariantGroup(group, ignores, async () => {
+    const entry = groupIgnoreUndo(group, what, item.cardName);
+    const ignored = await ignoreVariantGroup(group, ignores, async () => {
       await refresh();
       if (last) {
         navigation.goNext();
       }
     });
+    if (ignored) {
+      announce(entry);
+    }
   };
 
   useRegisterRecordActions({});
@@ -162,10 +190,11 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
       ) : (
         groups.map((group) => {
           const finish = enumLabel(labels.finishes, group.finish);
+          const variantName = [group.language ?? "Language not listed", finish].join(" · ");
           return (
             <RecordSection
               key={group.key}
-              title={[group.language ?? "Language not listed", finish].join(" · ")}
+              title={variantName}
               actions={
                 <>
                   <Link
@@ -183,7 +212,7 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
                     variant="outline"
                     size="sm"
                     disabled={ignoring}
-                    onClick={() => ignoreGroup(group)}
+                    onClick={() => void ignoreGroup(group, `the ${variantName} variant`)}
                   >
                     Ignore variant
                   </Button>
@@ -192,7 +221,13 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
             >
               <ul className="flex flex-col">
                 {group.rows.map((row) => (
-                  <ListingLine key={row.key} row={row} onDone={refresh} disabled={ignoring} />
+                  <ListingLine
+                    key={row.key}
+                    row={row}
+                    record={item.cardName}
+                    onDone={refresh}
+                    disabled={ignoring}
+                  />
                 ))}
               </ul>
             </RecordSection>
@@ -205,10 +240,12 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
 
 function ListingLine({
   row,
+  record,
   disabled,
   onDone,
 }: {
   row: CardListingRow;
+  record: string;
   disabled: boolean;
   onDone: () => Promise<void>;
 }) {
@@ -219,7 +256,13 @@ function ListingLine({
   const [assigning, setAssigning] = useState(false);
   const pending = disabled || save.isPending || ignoreVariant.isPending || ignoreProduct.isPending;
   const price = product.lowCents ?? product.marketCents;
-  const done = { onSuccess: onDone };
+  const { announce } = useWorkspaceUndo();
+  const doneWith = (entry: WorkspaceUndoEntry) => ({
+    onSuccess: () => {
+      announce(entry);
+      void onDone();
+    },
+  });
 
   return (
     <li className="flex flex-col gap-2 border-t py-1.5 first:border-t-0">
@@ -235,7 +278,9 @@ function ListingLine({
           </ProductLink>
         </span>
         {price !== null && (
-          <span className="text-sm tabular-nums">{formatCents(price, product.currency)}</span>
+          <span className="text-sm tabular-nums">
+            {formatCentsInLocale(price, product.currency)}
+          </span>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -256,12 +301,24 @@ function ListingLine({
               Assign to printing…
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => ignoreVariant.mutate([skuOf(row)], done)}>
+            <DropdownMenuItem
+              onClick={() =>
+                ignoreVariant.mutate(
+                  [skuOf(row)],
+                  doneWith(ignoredVariantsUndo(marketplace, [skuOf(row)], record)),
+                )
+              }
+            >
               <BanIcon />
               Ignore this SKU
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => ignoreProduct.mutate([{ externalId: product.externalId }], done)}
+              onClick={() =>
+                ignoreProduct.mutate(
+                  [{ externalId: product.externalId }],
+                  doneWith(ignoredProductUndo(marketplace, product.externalId, record)),
+                )
+              }
             >
               <BanIcon />
               Ignore every SKU of #{product.externalId}
@@ -274,7 +331,17 @@ function ListingLine({
           <ListingPrintingCombobox
             disabled={pending}
             onPick={(printingId) =>
-              save.mutate({ mappings: [listingAssignment(row, printingId)] }, done)
+              save.mutate(
+                { mappings: [listingAssignment(row, printingId)] },
+                {
+                  onSuccess: (result) => {
+                    if (result.skipped.length === 0) {
+                      announce(assignedListingUndo(marketplace, skuOf(row), printingId, record));
+                    }
+                    void onDone();
+                  },
+                },
+              )
             }
           />
         </Suspense>

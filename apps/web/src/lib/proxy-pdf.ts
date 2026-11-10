@@ -9,6 +9,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { jsPDF } from "jspdf";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { loadImage } from "@/lib/load-image";
 import { createPdfDocument } from "@/lib/pdf-document";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
@@ -104,6 +105,7 @@ export function resolveProxyCards(
 
 const RENDER_WIDTH_PX = 504;
 const RENDER_HEIGHT_PX = 704;
+const CARD_IMAGE_TIMEOUT_MS = 15_000;
 
 export interface RenderedCard {
   dataUrl: string;
@@ -111,14 +113,7 @@ export interface RenderedCard {
 }
 
 async function loadImageAsDataUrl(url: string): Promise<RenderedCard> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping callback-based Image loading API
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", reject);
-    image.src = url;
-  });
+  const img = await loadImage(url, { crossOrigin: "anonymous", timeoutMs: CARD_IMAGE_TIMEOUT_MS });
 
   const isLandscape = img.naturalWidth > img.naturalHeight;
   const canvas = document.createElement("canvas");

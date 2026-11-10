@@ -26,7 +26,6 @@ vi.mock("@tanstack/react-router", () => {
   return { Link: Anchor, createLink: () => Anchor };
 });
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaPlayerName } from "./meta-player-name";
 
 describe("MetaPlayerName", () => {

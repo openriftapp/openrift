@@ -96,30 +96,12 @@ test.describe("/cards route essentials", () => {
       .first()
       .click();
 
-    // RouteErrorFallback picks a heading at random from error-message.tsx.
-    const errorHeadings = [
-      "The Rift collapsed",
-      "Critical misprint detected",
-      "This page pulled a blank",
-      "Shuffled into the void",
-      "Well, that wasn't supposed to happen",
-      "We drew a bug",
-      "Something broke (no, you can't grade it)",
-      "That's not ideal",
-      "Yeah, that's a bug",
-    ];
-    const headingPattern = new RegExp(
-      errorHeadings
-        .map((heading) => heading.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`))
-        .join("|"),
-      "u",
-    );
     // Scope by name: strict mode briefly sees two h1s during the transition.
-    await expect(page.getByRole("heading", { level: 1, name: headingPattern })).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(
+      page.getByRole("heading", { level: 1, name: "This page didn't load", exact: true }),
+    ).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByRole("button", { name: "Reshuffle" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /Show details/u })).toBeVisible();
   });
 });

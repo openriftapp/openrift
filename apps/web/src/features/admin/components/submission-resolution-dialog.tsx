@@ -17,6 +17,7 @@ import {
   useSetSubmissionResolution,
   useSubmissionForCandidate,
 } from "@/features/admin/hooks/use-admin-card-submissions";
+import { CARD_NOTE_PLACEHOLDER, canSendRejection } from "@/features/admin/lib/submission-reasons";
 import {
   submissionReasonLabels,
   submissionReasonSentences,
@@ -64,9 +65,10 @@ export function SubmissionResolutionDialog({
   // Resolved before the try: a ternary inside a try body bails the React Compiler.
   const trimmedNote = effectiveNote.trim();
   const notePayload = trimmedNote || null;
+  const blocked = mode === "reject" && !canSendRejection(effectiveReason, effectiveNote);
 
   async function handleSubmit() {
-    if (candidateCardId === null) {
+    if (candidateCardId === null || blocked) {
       return;
     }
     try {
@@ -106,6 +108,7 @@ export function SubmissionResolutionDialog({
               reasonOrder={REASON_ORDER}
               reasonLabels={submissionReasonLabels()}
               reasonSentences={submissionReasonSentences()}
+              notePlaceholder={CARD_NOTE_PLACEHOLDER}
               reason={effectiveReason}
               note={effectiveNote}
               onReasonChange={(next) => {
@@ -124,7 +127,7 @@ export function SubmissionResolutionDialog({
             <Button
               type="submit"
               variant={mode === "reject" ? "destructive" : "default"}
-              disabled={setResolution.isPending || (mode === "reject" && !effectiveReason)}
+              disabled={setResolution.isPending || blocked}
             >
               {mode === "reject" ? "Reject" : "Save"}
             </Button>

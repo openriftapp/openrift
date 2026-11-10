@@ -268,19 +268,69 @@ describe.skipIf(!ctx)("marketplaceRepo (integration)", () => {
     await sql`REFRESH MATERIALIZED VIEW mv_latest_printing_prices`.execute(db);
   });
 
-  it("returns marketplace sources for a known printing", async () => {
-    const sources = await repo.sourcesForPrinting(anniePrintingId);
+  it("returns one source per marketplace for a known printing", async () => {
+    const sources = await repo.sourcesForPrintings([anniePrintingId]);
 
-    // The seed binds this printing too, so scope to this file's externalIds.
-    const testSources = sources.filter(
-      (s) => s.externalId === tcgExternalId || s.externalId === cmExternalId,
-    );
-    expect(testSources.length).toBe(2);
-    expect(new Set(testSources.map((s) => s.marketplace))).toEqual(new Set([mpTcg, mpCm]));
+    const marketplaces = sources.map((s) => s.marketplace);
+    expect(marketplaces).toEqual([...new Set(marketplaces)]);
+    expect(marketplaces).toEqual(expect.arrayContaining([mpTcg, mpCm]));
+    for (const source of sources) {
+      expect(source.variantId).toEqual(expect.any(String));
+    }
+  });
+
+  it("picks the product the headline price comes from when a marketplace has two", async () => {
+    const products = await db
+      .insertInto("marketplaceProducts")
+      .values([
+        {
+          marketplace: mpCm,
+          groupId: cmGroupId,
+          externalId: 913_201,
+          productName: "Fury Rune (Test CM dear)",
+          finish: "normal",
+          language: null,
+        },
+        {
+          marketplace: mpCm,
+          groupId: cmGroupId,
+          externalId: 913_202,
+          productName: "Fury Rune (Test CM cheap)",
+          finish: "foil",
+          language: null,
+        },
+      ])
+      .returning(["id", "externalId"])
+      .execute();
+    createdProductIds.push(...products.map((row) => row.id));
+    await db
+      .insertInto("marketplaceProductVariants")
+      .values(
+        products.map((row) => ({ marketplaceProductId: row.id, printingId: runeEnPrintingId })),
+      )
+      .execute();
+    const recordedAt = new Date("2126-04-01T12:00:00Z");
+    await db
+      .insertInto("marketplaceProductPrices")
+      .values(
+        products.map((row) => ({
+          marketplaceProductId: row.id,
+          marketCents: 50,
+          lowCents: row.externalId === 913_201 ? 700 : 300,
+          recordedAt,
+        })),
+      )
+      .execute();
+    await sql`REFRESH MATERIALIZED VIEW mv_daily_printing_prices`.execute(db);
+    await sql`REFRESH MATERIALIZED VIEW mv_latest_printing_prices`.execute(db);
+
+    const sources = await repo.sourcesForPrintings([runeEnPrintingId]);
+
+    expect(sources.find((s) => s.marketplace === mpCm)?.externalId).toBe(913_202);
   });
 
   it("returns empty array for a nonexistent printing", async () => {
-    const sources = await repo.sourcesForPrinting("a0000000-0000-4000-a000-000000000000");
+    const sources = await repo.sourcesForPrintings(["a0000000-0000-4000-a000-000000000000"]);
 
     expect(sources).toEqual([]);
   });

@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Pre-draws card outlines for the outline-labels admin page: learned detector
  * outlines, tiled on large images and snapped to edges. Writes

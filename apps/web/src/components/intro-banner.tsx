@@ -92,7 +92,6 @@ function IntroGuideIcons({ icons }: { icons: readonly LucideIcon[] }) {
   return (
     <span className="flex shrink-0 items-center gap-1">
       {icons.map((Icon, index) => (
-        // oxlint-disable-next-line react/no-array-index-key -- static icon list, never reordered
         <span
           key={index}
           className="bg-background flex size-6 items-center justify-center rounded-md border"

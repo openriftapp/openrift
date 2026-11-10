@@ -36,13 +36,9 @@ vi.mock("@/features/contribute/hooks/use-missing-images", () => ({
   useMyMissingImages: () => ({ data: { items: missingImages.items } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MyMissingImagesSection } from "@/features/contribute/components/my-missing-images-section";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { initKeys } from "@/lib/query-keys";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { stubMissingImagePrinting } from "@/test/factories";
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MISSING_IMAGE_ENUMS, stubInitResponse } from "@/test/init-fixtures";
 
 function renderSection(items: MissingImagePrinting[], layout?: "list" | "tiles") {

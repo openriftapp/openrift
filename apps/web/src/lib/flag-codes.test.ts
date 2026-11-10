@@ -1,4 +1,3 @@
-// oxlint-disable no-nodejs-modules -- this test compares the generated set against the shipped assets, so it must read files from disk
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 

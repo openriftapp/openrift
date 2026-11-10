@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone script */
 /**
  * Checks that every root `overrides` pin still matches the workspace or
  * companion-package version it exists to dedupe. Neither syncpack nor

@@ -80,7 +80,7 @@ every field instead of only on links.
 - `copies` gains: `condition` (FK `conditions`), `grader` (FK `graders`),
   `grade double precision` (1 to 10 in half steps, check-enforced; `numeric` would
   come back from postgres.js as a string, precedent in migration 145), `notes_public
-text`, `notes_private text`, `is_altered boolean NOT NULL DEFAULT false`,
+  text`, `notes_private text`, `is_altered boolean NOT NULL DEFAULT false`,
   `links jsonb NOT NULL DEFAULT '[]'`.
 - `CHECK ((grader IS NULL) = (grade IS NULL))` and
   `CHECK (condition IS NULL OR grader IS NULL)`: a copy is either ungraded with an

@@ -21,10 +21,8 @@ const mockConfig = {
 function buildApp() {
   const app = new Hono<{ Variables: Variables }>();
   app.use("*", async (c, next) => {
-    // oxlint-disable-next-line no-explicit-any -- test stub doesn't match full Repos/Auth
     c.set("repos", { featureFlags: mockFeatureFlagsRepo, scanIndex: mockScanIndex } as any);
     c.set("config", mockConfig as never);
-    // oxlint-disable-next-line no-explicit-any -- minimal auth stub: no session
     c.set("auth", { api: { getSession: () => Promise.resolve(null) } } as any);
     await next();
   });

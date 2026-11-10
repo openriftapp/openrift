@@ -1,38 +1,16 @@
-import { diffCardLines } from "@openrift/shared/deck-check";
-import type { DeckCheckCardLine } from "@openrift/shared/deck-check";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import type { DeckCheckChangeSummary } from "@openrift/shared/types/api/deck-check";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import type { SubmissionWindow } from "../lib/deck-check-deadline.js";
+import {
+  changeSummaryFor,
+  deadlineSubmittedAt,
+  isExpiredEditable,
+  storedCardLines,
+  submissionWindowOpen,
+} from "../lib/deck-check-deadline.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
-import type { DeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
-
-/**
- * Judges are never bound by this; `allow_self_submission` gates only the
- * creation of new entries, and is checked separately.
- */
-export function submissionWindowOpen(event: {
-  status: string;
-  submissionsCloseAt: Date | null;
-}): boolean {
-  return (
-    event.status === "active" &&
-    (event.submissionsCloseAt === null || event.submissionsCloseAt.getTime() > Date.now())
-  );
-}
-
-export function storedCardLines(cards: DeckCheckEntryCard[]): DeckCheckCardLine[] {
-  return cards.map((card) => ({
-    name: card.rawName,
-    zone: card.zone as DeckCheckCardLine["zone"],
-    quantity: card.quantity,
-  }));
-}
-
-function summaryIsEmpty(summary: DeckCheckChangeSummary): boolean {
-  return summary.added.length === 0 && summary.removed.length === 0 && summary.changed.length === 0;
-}
 
 /**
  * The pre-edit baseline (`preEditLines`) is not cleared here; it persists
@@ -43,12 +21,9 @@ export async function submitEntryList(
   entry: DeckCheckEntry,
   submittedAt?: Date,
 ): Promise<DeckCheckEntry> {
-  let changeSummary: DeckCheckChangeSummary | null = null;
-  if (entry.preEditLines) {
-    const cards = await repos.deckCheck.listCardsForEntry(entry.id);
-    const diff = diffCardLines(entry.preEditLines, storedCardLines(cards));
-    changeSummary = summaryIsEmpty(diff) ? null : diff;
-  }
+  const changeSummary = entry.preEditLines
+    ? changeSummaryFor(entry.preEditLines, await repos.deckCheck.listCardsForEntry(entry.id))
+    : null;
   const updated = await repos.deckCheck.updateEntry(entry.id, {
     state: "submitted",
     submittedAt: submittedAt ?? new Date(),
@@ -85,16 +60,46 @@ export async function unlockEntryToEditable(
   return updated ?? entry;
 }
 
-/** Run wherever an entry (or its event) is loaded; a no-op while the window is open. */
+/** For an entry the caller holds `FOR UPDATE`; a no-op while the window is open. */
 export function settleExpiredEditable(
   repos: Repos,
-  event: { status: string; submissionsCloseAt: Date | null },
+  event: SubmissionWindow,
   entry: DeckCheckEntry,
 ): Promise<DeckCheckEntry> | DeckCheckEntry {
-  if (entry.state !== "editable" || submissionWindowOpen(event)) {
+  if (!isExpiredEditable(event, entry)) {
     return entry;
   }
-  return submitEntryList(repos, entry, event.submissionsCloseAt ?? new Date());
+  return submitEntryList(repos, entry, deadlineSubmittedAt(event, entry));
+}
+
+/**
+ * Persists the deadline auto-submit for every expired editable entry of the
+ * event in one update. Write paths call this before they validate an entry's
+ * state; reads use `presentDeadlineSettled` and never write.
+ * @returns The ids this call settled.
+ */
+export async function settleExpiredEditableEntries(
+  repos: Repos,
+  event: SubmissionWindow & { id: string },
+): Promise<string[]> {
+  if (submissionWindowOpen(event)) {
+    return [];
+  }
+  const editable = await repos.deckCheck.listEditableBaselines(event.id);
+  if (editable.length === 0) {
+    return [];
+  }
+  const cardsByEntry = await repos.deckCheck.listCardsForEntries(
+    editable.filter((entry) => entry.preEditLines).map((entry) => entry.id),
+  );
+  return repos.deckCheck.settleEditableEntries(
+    event.id,
+    editable.map((entry) => ({
+      id: entry.id,
+      submittedAt: deadlineSubmittedAt(event, entry),
+      changeSummary: changeSummaryFor(entry.preEditLines, cardsByEntry.get(entry.id) ?? []),
+    })),
+  );
 }
 
 export interface JudgeTransitionInput {
@@ -104,7 +109,6 @@ export interface JudgeTransitionInput {
   playerMessage?: string | null;
 }
 
-// oxlint-disable-next-line max-lines-per-function -- one branch per transition, splitting hurts readability
 export async function applyJudgeTransition(
   repos: Repos,
   judgeId: string,

@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side key minting, never reaches the browser
 import { randomBytes } from "node:crypto";
 
 import { deckCheckKeysContract } from "@openrift/shared/contracts/deck-check-keys";

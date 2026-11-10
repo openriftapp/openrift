@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { AppError } from "../../../errors.js";
+import { MAX_BIND_PARAMETERS } from "../../../lib/bind-batches.js";
 import { createMockDb } from "../../../test/mock-db.js";
+import { createRecordingDb } from "../../../test/recording-db.js";
 import { collectionEventsRepo } from "./collection-events.js";
 
 describe("collectionEventsRepo", () => {
@@ -54,5 +56,28 @@ describe("collectionEventsRepo", () => {
         },
       ]),
     ).resolves.toBeUndefined();
+  });
+
+  it("insert splits a collection-sized event batch under the bind-parameter limit", async () => {
+    const recorded = createRecordingDb();
+    const repo = collectionEventsRepo(recorded.db);
+    const items = Array.from({ length: 9000 }, (_, index) => ({
+      userId: "u1",
+      action: "moved" as const,
+      printingId: "p1",
+      copyId: `c${index}`,
+      fromCollectionId: "col1",
+      fromCollectionName: "Binder",
+      toCollectionId: "col2",
+      toCollectionName: "Inbox",
+    }));
+
+    await repo.insert(items);
+
+    expect(recorded.parameters.length).toBeGreaterThan(1);
+    for (const parameters of recorded.parameters) {
+      expect(parameters.length).toBeLessThanOrEqual(MAX_BIND_PARAMETERS);
+    }
+    expect(recorded.parameters.flat()).toHaveLength(9000 * 8);
   });
 });

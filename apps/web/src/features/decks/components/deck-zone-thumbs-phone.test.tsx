@@ -18,7 +18,6 @@ vi.mock("@/features/decks/components/deck-card-printing-menu", () => ({
   DeckCardPrintingMenu: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { ZoneThumb } from "./deck-zone-thumbs";
 
 afterEach(() => {

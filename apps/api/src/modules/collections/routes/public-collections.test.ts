@@ -34,7 +34,6 @@ app.use("*", async (c, next) => {
     copies: mockCopiesRepo,
     marketplace: mockMarketplaceRepo,
     userPreferences: mockUserPreferencesRepo,
-    // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   } as any);
   await next();
 });

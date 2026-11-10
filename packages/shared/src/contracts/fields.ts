@@ -18,3 +18,24 @@ export const cardArtSchema = z.object({
   imageId: z.string(),
   landscape: z.boolean(),
 });
+
+export const cancelTradeIdsField = z.array(z.uuid()).max(1000).optional();
+
+export const tradeCancelConflictDataSchema = z.object({
+  trades: z.array(
+    z.object({
+      id: z.string(),
+      cardId: z.string(),
+      printingId: z.string(),
+      quantity: z.number().int().positive(),
+      counterpartyName: z.string().nullable(),
+    }),
+  ),
+});
+
+export type TradeCancelConflictData = z.infer<typeof tradeCancelConflictDataSchema>;
+
+export const tradeCancelConflictError = {
+  message: "This change would cancel pending trades. Confirm to cancel them.",
+  data: tradeCancelConflictDataSchema,
+};

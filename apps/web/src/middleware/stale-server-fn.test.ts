@@ -4,7 +4,6 @@ import { STALE_SERVER_FN_ERROR_PATTERN } from "@/lib/stale-bundle-reload";
 
 import { staleServerFnMiddleware } from "./stale-server-fn";
 
-// oxlint-disable-next-line @typescript-eslint/no-non-null-assertion -- the middleware always has a server handler
 const handler = staleServerFnMiddleware.options.server!;
 
 async function run(handlerType: string, next: () => Promise<unknown>): Promise<unknown> {

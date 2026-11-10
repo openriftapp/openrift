@@ -29,7 +29,6 @@ vi.mock("@tanstack/react-router", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardNameCell } from "./card-name-cell";
 
 function makeRow(overrides: Partial<CandidateCardSummaryResponse> = {}) {

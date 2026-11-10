@@ -213,6 +213,17 @@ describe("POST /cards/:candidateCardId/check", () => {
     ]);
   });
 
+  it("answers the check without waiting for the thank-you emails to go out", async () => {
+    mockCandidateCards.checkCandidateCard.mockResolvedValue({ numUpdatedRows: 1n });
+    mockResolveCheckedSubmissions.mockResolvedValue(["sub-1", "sub-2"]);
+    mockNotifySubmitterOfCardAcceptance.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/check`, { method: "POST" });
+
+    expect(res.status).toBe(204);
+    expect(mockNotifySubmitterOfCardAcceptance).toHaveBeenCalledTimes(2);
+  });
+
   it("sends no thank-you when the check accepted nothing", async () => {
     mockCandidateCards.checkCandidateCard.mockResolvedValue({ numUpdatedRows: 1n });
 

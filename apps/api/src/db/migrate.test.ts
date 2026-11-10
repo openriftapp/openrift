@@ -16,7 +16,6 @@ const fakeExecutor = {
 };
 const fakeDb = { getExecutor: () => fakeExecutor } as unknown as Kysely<Database>;
 
-// oxlint-disable-next-line no-empty-function -- noop logger for tests
 const noop = () => {};
 function makeLog(): Logger {
   return { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger;

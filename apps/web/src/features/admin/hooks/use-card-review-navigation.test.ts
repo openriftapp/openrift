@@ -93,10 +93,8 @@ vi.mock("@/features/admin/hooks/use-provider-settings", () => ({
 
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess } }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeReviewQueueItem } from "@/test/factories";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import {
   cardListSearch,
   collectReviewCheckTargets,

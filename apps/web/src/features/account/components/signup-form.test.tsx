@@ -31,9 +31,14 @@ vi.mock("@/features/account/lib/auth-client", () => ({
 }));
 
 vi.mock("@/features/account/components/auth-form-shell", () => ({
-  AuthFormCard: ({ children }: { children: ReactNode }) => {
+  AuthFormCard: ({ aside, children }: { aside?: ReactNode; children: ReactNode }) => {
     shellRenders.card += 1;
-    return <div>{children}</div>;
+    return (
+      <div>
+        {aside && <aside>{aside}</aside>}
+        {children}
+      </div>
+    );
   },
   SocialAuthButtons: () => {
     shellRenders.social += 1;
@@ -74,5 +79,17 @@ describe("SignupForm", () => {
       "href",
       "/login?email=vi%40example.com",
     );
+  });
+
+  it("shows what the destination offers next to the form", () => {
+    render(<SignupForm emailPlaceholder="summoner@example.com" redirectTo="/tournaments" />);
+
+    expect(screen.getByRole("complementary")).toHaveTextContent("Tournaments");
+  });
+
+  it("shows no destination panel without a known destination", () => {
+    render(<SignupForm emailPlaceholder="summoner@example.com" />);
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 });

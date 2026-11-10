@@ -1,14 +1,76 @@
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { FullConfig } from "@playwright/test";
 import { chromium } from "@playwright/test";
 
-import { API_BASE_URL, API_PORT, STATE_FILE, WEB_BASE_URL, WEB_PORT } from "./helpers/constants.js";
+import {
+  API_BASE_URL,
+  API_PORT,
+  IS_PRODUCTION_BUILD,
+  STATE_FILE,
+  WEB_BASE_URL,
+  WEB_PORT,
+  WEB_SERVER_PORT,
+} from "./helpers/constants.js";
 import { connectToDb, createTempDb, replaceDbName } from "./helpers/db.js";
 
 const repoRoot = resolve(import.meta.dirname, "../../..");
+const webRoot = resolve(repoRoot, "apps/web");
+const WEB_SERVER_URL = `http://localhost:${WEB_SERVER_PORT}`;
+
+function startWebDevServer() {
+  console.log("[e2e] Starting web dev server on port", WEB_PORT, "...");
+  return spawn("bun", ["run", "dev"], {
+    cwd: webRoot,
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      PORT: String(WEB_PORT),
+      API_INTERNAL_URL: API_BASE_URL,
+      VITE_API_PROXY_TARGET: API_BASE_URL,
+      SITE_URL: WEB_BASE_URL,
+    },
+  });
+}
+
+function startBuiltWebServer() {
+  const entry = resolve(webRoot, ".output/server/index.mjs");
+  if (!existsSync(entry)) {
+    throw new Error(`E2E_WEB_MODE=production needs a web build at ${entry}. Run "bun run build".`);
+  }
+  console.log("[e2e] Starting built web server on port", WEB_SERVER_PORT, "...");
+  return spawn("bun", [entry], {
+    cwd: webRoot,
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      PORT: String(WEB_SERVER_PORT),
+      API_INTERNAL_URL: API_BASE_URL,
+      SITE_URL: WEB_BASE_URL,
+    },
+  });
+}
+
+// The built server has no /api proxy; scripts/local-proxy.ts routes /api to the
+// API and everything else to the web server, as `bun run start` does.
+function startLocalProxy() {
+  console.log("[e2e] Starting local proxy on port", WEB_PORT, "...");
+  const proxy = spawn("bun", [resolve(repoRoot, "scripts/local-proxy.ts")], {
+    cwd: repoRoot,
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      PROXY_PORT: String(WEB_PORT),
+      WEB_TARGET: WEB_SERVER_URL,
+      API_TARGET: API_BASE_URL,
+    },
+  });
+  proxy.stdout?.on("data", (data: Buffer) => console.log(`[proxy] ${data.toString().trim()}`));
+  proxy.stderr?.on("data", (data: Buffer) => console.error(`[proxy] ${data.toString().trim()}`));
+  return proxy;
+}
 
 async function waitForServer(url: string, timeoutMs: number) {
   const start = Date.now();
@@ -125,18 +187,8 @@ export default async function globalSetup(_config: FullConfig) {
   await waitForApiHealthy(`${API_BASE_URL}/api/health`, 120_000);
   console.log("[e2e] API server is ready");
 
-  console.log("[e2e] Starting web dev server on port", WEB_PORT, "...");
-  const webProcess = spawn("bun", ["run", "dev"], {
-    cwd: resolve(repoRoot, "apps/web"),
-    stdio: "pipe",
-    env: {
-      ...process.env,
-      PORT: String(WEB_PORT),
-      API_INTERNAL_URL: API_BASE_URL,
-      VITE_API_PROXY_TARGET: API_BASE_URL,
-      SITE_URL: WEB_BASE_URL,
-    },
-  });
+  const webProcess = IS_PRODUCTION_BUILD ? startBuiltWebServer() : startWebDevServer();
+  const proxyProcess = IS_PRODUCTION_BUILD ? startLocalProxy() : undefined;
 
   // Vite's startup/restart errors span multiple lines; keeps the last 100 lines for diagnosis.
   const webOutputTail: string[] = [];
@@ -164,11 +216,14 @@ export default async function globalSetup(_config: FullConfig) {
   webProcess.on("exit", (code, signal) => {
     if (code !== 0 && code !== 143 && signal !== "SIGTERM") {
       console.error(
-        `[e2e] ⚠ Web dev server exited unexpectedly (code=${code}, signal=${signal}). Recent output:\n${webOutputTail.join("\n")}`,
+        `[e2e] ⚠ Web server exited unexpectedly (code=${code}, signal=${signal}). Recent output:\n${webOutputTail.join("\n")}`,
       );
     }
   });
 
+  if (IS_PRODUCTION_BUILD) {
+    await waitForServer(WEB_SERVER_URL, 60_000);
+  }
   await waitForServer(`${WEB_BASE_URL}`, 60_000);
   console.log("[e2e] Web server is ready");
 
@@ -185,7 +240,10 @@ export default async function globalSetup(_config: FullConfig) {
 
     // Vite dev compiles each route on first request; without this, a test's
     // first hit to a route can interact before it finished hydrating.
-    for (const route of ["/cards", "/cards/annie-fiery", "/promos", "/sets", "/help", "/login"]) {
+    const devRoutes = IS_PRODUCTION_BUILD
+      ? []
+      : ["/cards", "/cards/annie-fiery", "/promos", "/sets", "/help", "/login"];
+    for (const route of devRoutes) {
       try {
         await page.goto(`${WEB_BASE_URL}${route}`, { waitUntil: "networkidle", timeout: 60_000 });
       } catch {
@@ -204,6 +262,7 @@ export default async function globalSetup(_config: FullConfig) {
     databaseUrl,
     apiPid: apiProcess.pid,
     webPid: webProcess.pid,
+    proxyPid: proxyProcess?.pid,
   };
   writeFileSync(STATE_FILE, JSON.stringify(state));
 

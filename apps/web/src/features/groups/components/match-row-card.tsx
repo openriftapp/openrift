@@ -53,6 +53,7 @@ import {
   formatterForMarketplace,
   priceColorClass,
 } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -135,7 +136,7 @@ function MatchRowTradeAction({
         disabled={createTrade.isPending || match.availableCount <= 0}
         onClick={() => setOpen(true)}
       >
-        {incoming ? "Request" : "Offer"}
+        {incoming ? m.lists_share_request() : m.lists_share_offer()}
       </Button>
       <RequestTradeDialog
         open={open}
@@ -223,14 +224,14 @@ function MatchRowMeta({ match }: { match: DirectedMatch }) {
       rarity={match.rarity}
       trailing={
         <>
-          <span>· {match.buyQuantity} wanted</span>
+          <span>· {m.trades_match_wanted({ count: match.buyQuantity })}</span>
           {match.direction === "outgoing" ? (
             <>
               <span>·</span>
               <AvailableCopiesPopover cardId={match.cardId} availableCount={match.availableCount} />
             </>
           ) : (
-            <span>· {match.availableCount} available</span>
+            <span>· {m.trades_market_person_available({ count: match.availableCount })}</span>
           )}
           <TradePerCopyPrice printingId={match.printingId} />
         </>
@@ -365,7 +366,7 @@ function MatchRow({
   // sellPref is always the seller's side, buyPref the buyer's: the counterparty
   // is the seller when the card comes to the viewer, the buyer when it goes to them.
   const counterpartyPref = incoming ? match.sellPref : match.buyPref;
-  const priceLabel = incoming ? "Price" : "They'd pay";
+  const priceLabel = incoming ? m.trades_match_price() : m.trades_match_they_pay();
   const hasCounterpartyPref =
     counterpartyPref.pricePref !== null || counterpartyPref.tradeType !== null;
 
@@ -581,7 +582,8 @@ function MatchTradeRowGroup({
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="max-w-full self-start truncate font-medium">{group.cardName}</span>
             <span className="text-muted-foreground text-xs">
-              {group.variants.length} variants · {group.buyQuantity} wanted ·{" "}
+              {m.trades_match_variants({ count: group.variants.length })} ·{" "}
+              {m.trades_match_wanted({ count: group.buyQuantity })} ·{" "}
               {group.direction === "outgoing" ? (
                 <span className="relative z-10">
                   <AvailableCopiesPopover
@@ -590,14 +592,16 @@ function MatchTradeRowGroup({
                   />
                 </span>
               ) : (
-                <>{group.totalAvailable} available</>
+                <>{m.trades_market_person_available({ count: group.totalAvailable })}</>
               )}
               {cheapestUnit !== undefined && (
                 <>
                   {" · "}
-                  {pricesVary ? "from " : ""}
+                  {pricesVary ? `${m.trades_match_price_from()} ` : ""}
                   <span className={cn("font-medium", priceColorClass(cheapestUnit))}>
-                    {compactFormatterForMarketplace(marketplace)(cheapestUnit)}/copy
+                    {m.trades_per_copy_amount({
+                      amount: compactFormatterForMarketplace(marketplace)(cheapestUnit),
+                    })}
                   </span>
                 </>
               )}
@@ -613,7 +617,9 @@ function MatchTradeRowGroup({
             expanded={expanded}
             onClick={() => toggle(group.foldId)}
             aria-label={
-              expanded ? `Collapse ${group.cardName} variants` : `Expand ${group.cardName} variants`
+              expanded
+                ? m.trades_match_collapse_variants({ card: group.cardName })
+                : m.trades_match_expand_variants({ card: group.cardName })
             }
             className="text-muted-foreground hover:text-foreground shrink-0 transition-colors before:absolute before:inset-0 before:content-[''] @lg:order-last"
             chevronClassName="text-inherit"
@@ -681,21 +687,29 @@ interface MatchTradeListProps {
   groupSlug: string;
 }
 
-function isBulkRequestable(group: MatchTradeGroup): boolean {
+function isBulkRequestable(
+  group: MatchTradeGroup,
+  liveTradeByKey: ReadonlyMap<string, CardTradeResponse>,
+): boolean {
+  const variant = group.variants[0];
   return (
     group.direction === "incoming" &&
     group.variants.length === 1 &&
-    maxTradeQuantity(group.buyQuantity, group.totalAvailable) > 0
+    maxTradeQuantity(group.buyQuantity, group.totalAvailable) > 0 &&
+    !liveTradeByKey.has(
+      liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
+    )
   );
 }
 
 /** One request per printing: a double-sided printing wished for under both cards asks for the larger count. */
 export function bulkTradeRequests(
   groups: readonly MatchTradeGroup[],
+  liveTradeByKey: ReadonlyMap<string, CardTradeResponse>,
 ): { variant: DirectedMatch; quantity: number }[] {
   const byPrinting = new Map<string, { variant: DirectedMatch; quantity: number }>();
   for (const group of groups) {
-    if (!isBulkRequestable(group)) {
+    if (!isBulkRequestable(group, liveTradeByKey)) {
       continue;
     }
     const variant = group.variants[0];
@@ -709,30 +723,45 @@ export function bulkTradeRequests(
   return [...byPrinting.values()];
 }
 
-function BulkRequestRow({ groups }: { groups: MatchTradeGroup[] }) {
+function BulkRequestRow({
+  groups,
+  liveTradeByKey,
+}: {
+  groups: MatchTradeGroup[];
+  liveTradeByKey: ReadonlyMap<string, CardTradeResponse>;
+}) {
   const createTrade = useCreateTrade();
-  const requests = bulkTradeRequests(groups);
+  const { refetch: refetchUserTrades } = useUserTrades();
+  const [pending, setPending] = useState(false);
+  const requests = bulkTradeRequests(groups, liveTradeByKey);
   if (requests.length < 2) {
     return null;
   }
 
-  function requestAll(): void {
-    for (const { variant, quantity } of requests) {
-      createTrade.mutate({
-        groupSlug: variant.groupSlug,
-        counterpartyUserId: variant.counterpartyUserId,
-        role: "receiver",
-        printingId: variant.printingId,
-        cardId: variant.cardId,
-        quantity,
-      });
-    }
+  async function requestAll(): Promise<void> {
+    setPending(true);
+    await Promise.all(
+      requests.map(({ variant, quantity }) =>
+        runReportedMutation(() =>
+          createTrade.mutateAsync({
+            groupSlug: variant.groupSlug,
+            counterpartyUserId: variant.counterpartyUserId,
+            role: "receiver",
+            printingId: variant.printingId,
+            cardId: variant.cardId,
+            quantity,
+          }),
+        ),
+      ),
+    );
+    await refetchUserTrades();
+    setPending(false);
   }
 
   return (
     <div className="flex items-center justify-end">
-      <Button size="sm" variant="outline" onClick={requestAll}>
-        Request all ({requests.length})
+      <Button size="sm" variant="outline" disabled={pending} onClick={() => void requestAll()}>
+        {m.trades_match_request_all({ count: requests.length })}
       </Button>
     </div>
   );
@@ -887,7 +916,7 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
 
   return (
     <div className="@container flex flex-col gap-2">
-      <BulkRequestRow groups={groups} />
+      <BulkRequestRow groups={groups} liveTradeByKey={liveTradeByKey} />
       {groups.map((group) => (
         <MatchGroupItem
           key={group.foldId}

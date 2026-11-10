@@ -1,8 +1,7 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { lenient } from "@/lib/lenient-param";
 
 const WORKBENCH_MODES = ["build", "deck"] as const;
 
@@ -25,7 +24,7 @@ export function isWorkbenchModeNavigation(
   );
 }
 
-export const deckEditorSearchSchema = filterSearchSchema.extend({
-  editor: z.enum(WORKBENCH_MODES).optional().catch(undefined),
-  target: z.string().optional().catch(undefined),
+export const deckEditorSearchSchema = z.extend(filterSearchSchema, {
+  editor: lenient(z.enum(WORKBENCH_MODES)),
+  target: lenient(z.string()),
 });

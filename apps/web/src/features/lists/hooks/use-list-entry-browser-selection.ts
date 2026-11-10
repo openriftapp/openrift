@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
+import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import type {
   CardRowClickModifiers,
   ListBulkAction,
@@ -193,8 +194,7 @@ export function useListEntryBrowserSelection({
   const bulkAddEntries = useBulkAddListEntries();
   const updateEntryMutation = useUpdateListEntry();
 
-  // Grouped-by-set tiles are per (cardId, setId), so clicks navigate by printing, not card.
-  const findBy: "card" | "printing" = view === "cards" && groupBy !== "set" ? "card" : "printing";
+  const findBy = selectionFindBy(view, groupBy);
 
   const handleCardClick = (printing: Printing) => {
     useSelectionStore.getState().selectCard(printing, items, findBy);
@@ -372,25 +372,27 @@ export function useListEntryBrowserSelection({
           })
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
+
+    // Sequential, so a move declined in the trade prompt leaves no adds behind. Each try
+    // holds only its await: the compiler can't optimize a conditional inside try/catch.
+    let moveResult: Awaited<ReturnType<typeof moveEntries.mutateAsync>> | undefined;
+    try {
+      moveResult = await movePromise;
+    } catch {
+      return;
+    }
     const addPromise =
       added.length > 0
         ? bulkAddEntries.mutateAsync({ listId: toList.id, entries: added })
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
-
-    // The compiler can't optimize a conditional inside try/catch, so the
-    // await is the only thing the try block does.
-    let results: [
-      Awaited<ReturnType<typeof moveEntries.mutateAsync>> | undefined,
-      Awaited<ReturnType<typeof bulkAddEntries.mutateAsync>> | undefined,
-    ];
+    let addResult: Awaited<ReturnType<typeof bulkAddEntries.mutateAsync>> | undefined;
     try {
-      results = await Promise.all([movePromise, addPromise]);
+      addResult = await addPromise;
     } catch {
       return;
     }
 
-    const [moveResult, addResult] = results;
     const count = (moveResult?.moved ?? 0) + (addResult ? addResult.added + addResult.updated : 0);
     toast.success(
       moveMode === "copy"

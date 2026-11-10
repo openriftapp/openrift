@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Replays a clip's frames through `createPlacementDetector` and prints every
  * settle event with the numbers the gates are cut from.

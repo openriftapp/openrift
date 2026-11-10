@@ -44,9 +44,7 @@ if (adminCtx && grantCtx) {
 }
 
 describe.skipIf(!adminCtx || !grantCtx)("audit-events routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: adminApp } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: grantApp } = grantCtx!;
 
   it("an admin mutation lands in the audit log with actor and old/new values", async () => {

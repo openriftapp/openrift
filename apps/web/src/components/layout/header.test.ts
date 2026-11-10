@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { showsSignInButton, signInRedirectFor } from "./header";
+import { authDestinationKey } from "@/features/account/lib/auth-destination";
+
+import { navBadgeTotal, showsSignInButton, signInRedirectFor } from "./header";
 import {
+  contributeLinks,
+  helpLinks,
   keepsSearch,
+  moreNavSections,
   navItemVisible,
   primaryNavItems,
   splitTabletNav,
@@ -200,5 +205,94 @@ describe("keepsSearch", () => {
 
   it("never keeps the search for items without keepSearch", () => {
     expect(meta && keepsSearch(meta, "/meta")).toBe(false);
+  });
+});
+
+describe("sign-in wall destinations", () => {
+  it("names the destination of every nav entry that asks a signed-out visitor to sign in", () => {
+    const locked = [
+      ...primaryNavItems(),
+      ...moreNavSections().flatMap((section) => section.items),
+    ].filter((item) => item.lockedKey !== undefined);
+
+    expect(locked.length).toBeGreaterThan(0);
+    for (const item of locked) {
+      expect(authDestinationKey(item.to)).toBe(item.lockedKey);
+    }
+  });
+
+  it("links Scan for signed-out visitors without a sign-in wall", () => {
+    const scan = [
+      ...primaryNavItems(),
+      ...moreNavSections().flatMap((section) => section.items),
+    ].filter((item) => item.to === "/scan");
+
+    expect(scan.length).toBeGreaterThan(0);
+    for (const item of scan) {
+      expect(item.lockedKey).toBeUndefined();
+      expect(item.flag).toBe("scanner");
+    }
+  });
+});
+
+describe("navBadgeTotal", () => {
+  it("adds group requests, trades and loans for the phone menu badge", () => {
+    expect(navBadgeTotal({ groups: 1, trades: 2, loans: 3 })).toBe(6);
+  });
+
+  it("is zero when nothing needs attention", () => {
+    expect(navBadgeTotal({ groups: 0, trades: 0, loans: 0 })).toBe(0);
+  });
+});
+
+describe("helpLinks", () => {
+  const ids = (opts: Parameters<typeof helpLinks>[0]) => helpLinks(opts).map((link) => link.id);
+
+  it("lists the popover order with Get the app third", () => {
+    expect(ids({ showInstall: true })).toEqual([
+      "help",
+      "whats-new",
+      "install",
+      "report-bug",
+      "discord",
+    ]);
+  });
+
+  it("moves Get the app to the end for the phone sheet", () => {
+    expect(ids({ showInstall: true, installLast: true })).toEqual([
+      "help",
+      "whats-new",
+      "report-bug",
+      "discord",
+      "install",
+    ]);
+  });
+
+  it("drops Get the app when the site already runs as an installed app", () => {
+    expect(ids({ showInstall: false })).not.toContain("install");
+    expect(ids({ showInstall: false, installLast: true })).not.toContain("install");
+  });
+
+  it("marks only What's new for the unread dot", () => {
+    const dotted = helpLinks({ showInstall: true }).filter((link) => link.unreadDot);
+    expect(dotted.map((link) => link.id)).toEqual(["whats-new"]);
+  });
+
+  it("points internal links at routes and external links at full URLs", () => {
+    const byId = new Map(helpLinks({ showInstall: true }).map((link) => [link.id, link]));
+    expect(byId.get("help")?.to).toBe("/help");
+    expect(byId.get("whats-new")?.to).toBe("/changelog");
+    expect(byId.get("install")?.to).toBe("/install");
+    expect(byId.get("report-bug")?.href).toMatch(/^https:\/\/github\.com\//u);
+    expect(byId.get("discord")?.href).toMatch(/^https:\/\/discord\.gg\//u);
+  });
+});
+
+describe("contributeLinks", () => {
+  it("lists Card data behind the contribute sign-in gate, then Support the site", () => {
+    expect(contributeLinks().map(({ id, to, lockedKey }) => ({ id, to, lockedKey }))).toEqual([
+      { id: "card-data", to: "/contribute", lockedKey: "contribute" },
+      { id: "support", to: "/support", lockedKey: undefined },
+    ]);
   });
 });

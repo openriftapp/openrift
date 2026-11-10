@@ -1,3 +1,4 @@
+import type { CardNameParts } from "@openrift/shared/card-name";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -131,6 +132,15 @@ export function frontImageId(
 export interface PrintingArt {
   imageId: string | null;
   landscape: boolean;
+}
+
+export function printingName(
+  printing: { printedName?: string | null },
+  card: CardNameParts,
+): string {
+  return printing.printedName && printing.printedName !== card.name
+    ? printing.printedName
+    : legendDisplayName(card);
 }
 
 /** A double-sided printing is named by both of its cards, side 1 first. */

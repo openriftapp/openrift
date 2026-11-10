@@ -1,6 +1,4 @@
 /* oxlint-disable
-   no-empty-function,
-   promise/prefer-await-to-then,
    unicorn/no-useless-undefined
    -- test harness: mocks require Promise.resolve(), empty fns, explicit undefined */
 /**

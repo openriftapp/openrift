@@ -8,6 +8,9 @@ import { describe, expect, it } from "vitest";
 
 import { useStandardArtFallback } from "@/features/cards/hooks/use-standard-art-fallback";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { buildCardsResult } from "@/features/cards/lib/catalog-queries";
+import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
+import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
 import { stubPrinting } from "@/test/factories";
 
 const SET_ID = "00000000-0000-0000-0000-00000000set1";
@@ -41,13 +44,17 @@ function makeCatalog(printings: Printing[]): CatalogResponse {
   } as unknown as CatalogResponse;
 }
 
-function setup(catalog?: CatalogResponse) {
+function setup(catalog?: CatalogResponse, subset?: UseCardsResult) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (catalog) {
     client.setQueryData(catalogKeys.all, catalog);
   }
   function wrapper({ children }: PropsWithChildren) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={client}>
+        <CatalogSubsetContext value={subset ?? null}>{children}</CatalogSubsetContext>
+      </QueryClientProvider>
+    );
   }
   const { result } = renderHook(() => useStandardArtFallback(), { wrapper });
   return { client, result };
@@ -77,6 +84,25 @@ describe("useStandardArtFallback", () => {
     const target = stubPrinting({ printingId: "p-target", cardId: "card-1", images: [] });
     const { result } = setup(makeCatalog([target]));
     expect(result.current(target)).toBeNull();
+  });
+
+  it("resolves fallback art from a provided subset when the catalog is not cached", () => {
+    const target = stubPrinting({
+      printingId: "p-target",
+      cardId: "card-1",
+      language: "SC",
+      images: [],
+    });
+    const enStandard = stubPrinting({
+      printingId: "p-en",
+      cardId: "card-1",
+      language: "EN",
+      images: [{ imageId: "img-en" }],
+    });
+    const subset = buildCardsResult({ "card-1": target.card }, [target, enStandard], []);
+    const { client, result } = setup(undefined, subset);
+    expect(result.current(target)?.image.imageId).toBe("img-en");
+    expect(client.getQueryState(catalogKeys.all)?.fetchStatus ?? "idle").toBe("idle");
   });
 
   it("returns null and does not fetch when the catalog is not cached", () => {

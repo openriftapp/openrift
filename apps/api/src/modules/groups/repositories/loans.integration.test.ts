@@ -23,6 +23,7 @@ import {
   returnLoanCopies,
   writeOffLoan,
 } from "../services/loans.js";
+import { CANCEL_WITHOUT_ASKING } from "../services/trade-supply.js";
 import { friendGroupsRepo } from "./friend-groups.js";
 
 const LENDER_ID = crypto.randomUUID();
@@ -446,7 +447,7 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     await acknowledgeLoan(transact, loan.id, BORROWER_ID);
     await declareLoanReturn(transact, loan.id, BORROWER_ID, 2);
 
-    await disposeCopies(transact, LENDER_ID, [copyIds[0]!]);
+    await disposeCopies(transact, LENDER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING);
 
     const reopened = await reopenBorrowerReturn(transact, loan.id, LENDER_ID);
     expect(reopened.status).toBe("active");
@@ -516,7 +517,9 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
       contextCollectionId: collectionId,
     });
 
-    await expect(disposeCopies(transact, LENDER_ID, [copyIds[0]!])).rejects.toMatchObject({
+    await expect(
+      disposeCopies(transact, LENDER_ID, [copyIds[0]!], CANCEL_WITHOUT_ASKING),
+    ).rejects.toMatchObject({
       status: 409,
     });
   });
@@ -614,24 +617,30 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     const loanedCopyId = loanedPins[0]!;
 
     await expect(
-      createTrade(transact, {
+      createTrade(
+        { repos, transact },
+        {
+          callerUserId: BORROWER_ID,
+          groupSlug: group.slug,
+          counterpartyUserId: LENDER_ID,
+          role: "receiver",
+          printingId: PRINTING_1.id,
+          quantity: 2,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    const trade = await createTrade(
+      { repos, transact },
+      {
         callerUserId: BORROWER_ID,
         groupSlug: group.slug,
         counterpartyUserId: LENDER_ID,
         role: "receiver",
         printingId: PRINTING_1.id,
-        quantity: 2,
-      }),
-    ).rejects.toMatchObject({ status: 409 });
-
-    const trade = await createTrade(transact, {
-      callerUserId: BORROWER_ID,
-      groupSlug: group.slug,
-      counterpartyUserId: LENDER_ID,
-      role: "receiver",
-      printingId: PRINTING_1.id,
-      quantity: 1,
-    });
+        quantity: 1,
+      },
+    );
     await acceptTrade(transact, trade.id, LENDER_ID);
 
     // The reservation pinned the copy that is NOT on loan.

@@ -19,7 +19,6 @@ const USER_ID = crypto.randomUUID();
 const ctx = createDbContext(USER_ID);
 
 describe.skipIf(!ctx)("deleteCard (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
   const transact = createTransact(db);
   const mut = catalogMutationsRepo(db);

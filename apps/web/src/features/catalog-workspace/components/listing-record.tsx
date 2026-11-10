@@ -4,7 +4,6 @@ import {
   computeProductSuggestions,
   productSuggestionKey,
 } from "@openrift/shared/marketplace-suggestions";
-import { formatCents } from "@openrift/shared/money";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -49,9 +48,17 @@ import {
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import {
+  assignedListingUndo,
+  ignoredProductUndo,
+  ignoredVariantsUndo,
+} from "@/features/catalog-workspace/hooks/listing-undo";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
+import { formatCentsInLocale } from "@/lib/format";
 
 const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
   tcgplayer: TCG_CONFIG,
@@ -106,6 +113,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
   const save = useUnifiedSaveMappings(sku.marketplace);
   const ignoreVariant = useUnifiedIgnoreVariants(sku.marketplace);
   const ignoreProduct = useUnifiedIgnoreProducts(sku.marketplace);
+  const { announce } = useWorkspaceUndo();
   const pending = save.isPending || ignoreVariant.isPending || ignoreProduct.isPending;
 
   const group = mappingData?.group ?? null;
@@ -131,20 +139,36 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
   const config = CONFIG_BY_MARKETPLACE[sku.marketplace];
   const skuValues = { externalId: sku.externalId, finish: sku.finish, language: sku.language };
 
-  const done = {
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
-      navigation.goNext();
-    },
+  const record = product?.productName ?? item.cardName;
+  const settle = (entry: WorkspaceUndoEntry | null) => {
+    if (entry !== null) {
+      announce(entry);
+    }
+    void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
+    navigation.goNext();
   };
+  const doneWith = (entry: WorkspaceUndoEntry) => ({ onSuccess: () => settle(entry) });
   const assign = (printingId: string) => {
-    save.mutate({ mappings: [{ ...skuValues, printingId }] }, done);
+    const printing = candidates.find((entry) => entry.printing.printingId === printingId);
+    const target =
+      printing === undefined ? item.cardName : formatPrintingCode(printing.printing.shortCode);
+    const entry = assignedListingUndo(sku.marketplace, skuValues, printingId, target);
+    save.mutate(
+      { mappings: [{ ...skuValues, printingId }] },
+      { onSuccess: (result) => settle(result.skipped.length === 0 ? entry : null) },
+    );
   };
   const ignore = () => {
-    ignoreVariant.mutate([skuValues], done);
+    ignoreVariant.mutate(
+      [skuValues],
+      doneWith(ignoredVariantsUndo(sku.marketplace, [skuValues], record)),
+    );
   };
   const ignoreWholeProduct = () => {
-    ignoreProduct.mutate([{ externalId: sku.externalId }], done);
+    ignoreProduct.mutate(
+      [{ externalId: sku.externalId }],
+      doneWith(ignoredProductUndo(sku.marketplace, sku.externalId, record)),
+    );
   };
 
   useRegisterRecordActions({
@@ -218,7 +242,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
           {price !== null && product !== null && (
             <>
               <dt className="text-muted-foreground">Price</dt>
-              <dd>{formatCents(price, product.currency)}</dd>
+              <dd>{formatCentsInLocale(price, product.currency)}</dd>
             </>
           )}
         </dl>

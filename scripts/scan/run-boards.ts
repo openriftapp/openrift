@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
 /**
  * Board-photo bench: identifies every card in each still photo listed in
  * data/image-recognition-test/boards/boards.json and scores card names

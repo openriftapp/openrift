@@ -731,7 +731,6 @@ export function BoardWorkspace({ hideEmptyZones }: { hideEmptyZones: boolean }) 
         {step.arrows.length > 0 && (
           <Section title={m.board_states_editor_arrows()}>
             {step.arrows.map((entry, index) => (
-              // oxlint-disable-next-line react/no-array-index-key -- arrows are positional
               <span key={index} className="flex items-center gap-2 text-sm">
                 {describeArrow(entry, step)}
                 <ChipRemoveButton

@@ -1,10 +1,10 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { initQueryOptions } from "@/lib/init-queries";
+import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/stage_/source/$token")({
   // Falls back to undefined on a bad value: a browser source is added once and left
   // alone for months, and a typo in the URL must not break it.
   validateSearch: z.object({
-    preset: z.string().optional().catch(undefined),
+    preset: lenient(z.string()),
   }),
   loader: async ({ context }) => {
     // initQueryOptions is a suspending read, so it must be resolved before the canvas mounts.

@@ -24,6 +24,7 @@ export function useBadges() {
   return useQuery({
     queryKey: badgesKeys.all(userId ?? ""),
     queryFn: userId === null ? skipToken : () => fetchBadges(),
+    staleTime: 0,
     refetchInterval: 120_000,
     refetchOnWindowFocus: true,
   });

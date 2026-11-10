@@ -23,7 +23,6 @@ vi.mock("@/stores/display-store", () => ({
   useDisplayStore: mockUseDisplayStore,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterDropdownChip, FilterIconCluster, OwnedFilterChip } from "./compact-filter-bar";
 
 const DOMAINS = ["fury", "calm", "mind"];

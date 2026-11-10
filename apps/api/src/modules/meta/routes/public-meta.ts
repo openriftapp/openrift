@@ -1,4 +1,5 @@
-import { metaContract, STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { metaContract } from "@openrift/shared/contracts/meta";
+import { STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { cutPhaseOrders, cutSizeOf } from "@openrift/shared/meta-standings";
 import type {
   MetaDeckCardIndexResponse,

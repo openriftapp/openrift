@@ -85,7 +85,7 @@ describe("loadLogoDataUrl", () => {
     state.outcome = "error";
     const { loadLogoDataUrl } = await loadModule();
 
-    await expect(loadLogoDataUrl()).rejects.toThrow("Logo failed to load");
+    await expect(loadLogoDataUrl()).rejects.toThrow("Image failed to load");
   });
 
   it("rejects once the load exceeds the timeout", async () => {
@@ -93,7 +93,7 @@ describe("loadLogoDataUrl", () => {
     const { loadLogoDataUrl } = await loadModule();
     vi.useFakeTimers();
 
-    const rejects = expect(loadLogoDataUrl()).rejects.toThrow("Logo load timed out");
+    const rejects = expect(loadLogoDataUrl()).rejects.toThrow("Image load timed out after 3s");
     await vi.advanceTimersByTimeAsync(3000);
 
     await rejects;
@@ -122,7 +122,7 @@ describe("loadLogoDataUrl", () => {
     state.outcome = "error";
     const { loadLogoDataUrl } = await loadModule();
 
-    await expect(loadLogoDataUrl()).rejects.toThrow("Logo failed to load");
+    await expect(loadLogoDataUrl()).rejects.toThrow("Image failed to load");
     state.outcome = "load";
 
     await expect(loadLogoDataUrl()).resolves.toBe("data:image/png;base64,LOGO");

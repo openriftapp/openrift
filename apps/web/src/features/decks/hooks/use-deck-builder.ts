@@ -1,8 +1,10 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import {
+  battlefieldCapFor,
   copyLimitFor,
   requiredLegendOptions,
+  RUNE_TARGET,
   totalQuantity,
   validateDeck,
 } from "@openrift/shared/deck-rules";
@@ -21,9 +23,10 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   canAddRune,
   COPY_LIMIT_ZONES,
+  copyLimitTotal,
   deckCardKey,
+  isBattlefieldZoneFull,
   isCardAllowedInZone,
-  RUNE_TARGET,
   runeTotalOf,
   toRuleEngineCard,
 } from "@/features/decks/lib/deck-builder-card";
@@ -36,7 +39,11 @@ import {
 } from "@/features/decks/lib/workbench-add-toast";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { applyDeckSnapshot } from "@/features/decks/stores/deck-draft-store";
-import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import {
+  copySnapshot,
+  sameDeckCards,
+  useDeckUndoStore,
+} from "@/features/decks/stores/deck-undo-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChampionIdentifierTags } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
@@ -144,16 +151,6 @@ function rebalanceRunes(
   return undefined;
 }
 
-function crossZoneTotal(cards: DeckBuilderCard[], cardId: string): number {
-  let total = 0;
-  for (const card of cards) {
-    if (card.cardId === cardId && COPY_LIMIT_ZONES.has(card.zone)) {
-      total += card.quantity;
-    }
-  }
-  return total;
-}
-
 function incrementOrInsert(
   collection: DeckCollection,
   card: DeckBuilderCard,
@@ -210,10 +207,8 @@ export function addCardAction(
     }
     const cards = allCards(collection);
     const zoneCards = cards.filter((entry) => entry.zone === WellKnown.deckZone.BATTLEFIELD);
-    // Custom-region allows exactly one battlefield, constructed three.
-    const battlefieldCap = format === WellKnown.deckFormat.CUSTOM_REGION ? 1 : 3;
     const duplicate = zoneCards.some((entry) => entry.cardId === card.cardId);
-    const full = zoneCards.length >= battlefieldCap;
+    const full = isBattlefieldZoneFull(cards, format);
     if ((duplicate || full) && !relaxed) {
       return undefined;
     }
@@ -224,8 +219,8 @@ export function addCardAction(
         card,
         zone,
         quantity: 1,
-        total: zoneCards.length + (duplicate ? 0 : 1),
-        limit: battlefieldCap,
+        total: totalQuantity(zoneCards) + (duplicate ? 0 : 1),
+        limit: battlefieldCapFor(format),
       };
     }
     return undefined;
@@ -317,7 +312,7 @@ export function addCardAction(
   let addQty = count ?? 1;
   if (!freeform && COPY_LIMIT_ZONES.has(zone)) {
     const limit = copyLimitFor(card);
-    const total = crossZoneTotal(allCards(collection), card.cardId);
+    const total = copyLimitTotal(allCards(collection), card.cardId);
     if (relaxed && total >= limit) {
       incrementOrInsert(collection, card, zone, preferredPrintingId, 1);
       return { rule: "copyLimit", card, zone, quantity: 1, total: total + 1, limit };
@@ -652,8 +647,8 @@ export function setLegendAction(
     return;
   }
 
-  // Auto-populate: distribute 6 slots per domain, grouping by cardId so each
-  // unique rune gets a single entry.
+  // Auto-populate: split the rune target evenly per domain, grouping by cardId
+  // so each unique rune gets a single entry.
   const runeEntries = new Map<string, DeckBuilderCard>();
   const fillDomain = (domain: string, target: number): void => {
     const runes = runesByDomain.get(domain) ?? [];
@@ -684,14 +679,33 @@ export function setLegendAction(
   };
   const [firstDomain, secondDomain] = card.domains;
   if (firstDomain !== undefined) {
-    fillDomain(firstDomain, 6);
+    fillDomain(firstDomain, RUNE_TARGET / 2);
   }
   if (secondDomain !== undefined) {
-    fillDomain(secondDomain, 6);
+    fillDomain(secondDomain, RUNE_TARGET / 2);
   }
   for (const rune of runeEntries.values()) {
     collection.insert(rune);
   }
+}
+
+/**
+ * Every card mutation in the app routes through here. Undo restores the deck
+ * the user left, and an edit that changed nothing leaves no step behind.
+ */
+export function recordDeckEdit<T>(
+  collection: DeckCollection,
+  deckId: string,
+  apply: () => T,
+  options?: { separate?: boolean },
+): T {
+  dismissRemovalToast();
+  const before = copySnapshot(allCards(collection));
+  const result = apply();
+  if (!sameDeckCards(before, allCards(collection))) {
+    useDeckUndoStore.getState().record(deckId, before, options);
+  }
+  return result;
 }
 
 interface DeckBuilderActions {
@@ -758,18 +772,25 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
     return noopActions;
   }
 
-  // Snapshot the deck before each edit so undo restores the state the user is
-  // about to leave; every card mutation in the app routes through here.
-  const record = () => {
-    dismissRemovalToast();
-    useDeckUndoStore.getState().record(deckId, allCards(collection));
-  };
+  const edit = <T>(apply: () => T, options?: { separate?: boolean }): T =>
+    recordDeckEdit(collection, deckId, apply, options);
 
-  // Only for a row about to disappear; the toast closes on any later edit, so
-  // its undo always reverts this removal.
-  const offerRemovalUndo = (cardId: string, zone: DeckZone, allCopies: boolean) => {
-    const removed = findRowForCardInZone(allCards(collection), cardId, zone);
-    if (!relaxed || !removed || (!allCopies && removed.quantity > 1)) {
+  // A removal the toast offers to undo is its own undo step, so its Undo
+  // reverts this removal and nothing recorded just before it.
+  const removeWithUndoToast = (
+    cardId: string,
+    zone: DeckZone,
+    preferredPrintingId: string | null | undefined,
+    allCopies: boolean,
+    apply: () => void,
+  ) => {
+    const removed =
+      preferredPrintingId === undefined
+        ? findRowForCardInZone(allCards(collection), cardId, zone)
+        : collection.get(deckCardKey(cardId, zone, preferredPrintingId));
+    const offerUndo = relaxed && removed !== undefined && (allCopies || removed.quantity <= 1);
+    edit(apply, { separate: offerUndo });
+    if (!offerUndo || removed === undefined) {
       return;
     }
     showRemovalToast(
@@ -789,11 +810,10 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       if (!target) {
         return;
       }
-      record();
       const before = zoneTotal(collection, target);
-      const outcome = addCardAction(collection, card, target, count, runesByDomain, format, {
-        relaxed,
-      });
+      const outcome = edit(() =>
+        addCardAction(collection, card, target, count, runesByDomain, format, { relaxed }),
+      );
       if (relaxed && zoneTotal(collection, target) > before) {
         useWorkbenchStore.getState().announceAdd(displayName(card), target);
       }
@@ -802,20 +822,20 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       }
       showRelaxedAddToast(outcome, {
         undo: () => {
-          record();
-          undoRelaxedAddAction(collection, outcome, runesByDomain, format);
+          edit(() => undoRelaxedAddAction(collection, outcome, runesByDomain, format));
         },
         keepBoth: outcome.swappedOut
           ? () => {
               const rune = outcome.swappedOut;
               if (rune) {
-                record();
-                incrementOrInsert(
-                  collection,
-                  rune,
-                  WellKnown.deckZone.RUNES,
-                  rune.preferredPrintingId,
-                  1,
+                edit(() =>
+                  incrementOrInsert(
+                    collection,
+                    rune,
+                    WellKnown.deckZone.RUNES,
+                    rune.preferredPrintingId,
+                    1,
+                  ),
                 );
               }
             }
@@ -823,38 +843,38 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       });
     },
     replaceCard: (outgoing, incoming, zone) => {
-      record();
-      replaceCardAction(collection, outgoing, incoming, zone, runesByDomain, format);
+      edit(() => replaceCardAction(collection, outgoing, incoming, zone, runesByDomain, format));
     },
     removeCard: (cardId, zone, preferredPrintingId) => {
-      record();
-      offerRemovalUndo(cardId, zone, false);
-      removeCardAction(collection, cardId, zone, runesByDomain, format, preferredPrintingId);
+      removeWithUndoToast(cardId, zone, preferredPrintingId, false, () =>
+        removeCardAction(collection, cardId, zone, runesByDomain, format, preferredPrintingId),
+      );
     },
     moveCard: (cardId, from, to, preferredPrintingId) => {
-      record();
-      moveCardAction(collection, cardId, from, to, preferredPrintingId, format);
+      edit(() => moveCardAction(collection, cardId, from, to, preferredPrintingId, format));
     },
     moveOneCard: (cardId, from, to, preferredPrintingId) => {
-      record();
-      moveOneCardAction(collection, cardId, from, to, preferredPrintingId, format);
+      edit(() => moveOneCardAction(collection, cardId, from, to, preferredPrintingId, format));
     },
     setQuantity: (cardId, zone, quantity, preferredPrintingId) => {
-      record();
+      const apply = () =>
+        setQuantityAction(collection, cardId, zone, quantity, preferredPrintingId);
       if (quantity <= 0) {
-        offerRemovalUndo(cardId, zone, true);
+        removeWithUndoToast(cardId, zone, preferredPrintingId, true, apply);
+      } else {
+        edit(apply);
       }
-      setQuantityAction(collection, cardId, zone, quantity, preferredPrintingId);
     },
     changePreferredPrinting: (cardId, zone, fromPrintingId, toPrintingId, countToConvert) => {
-      record();
-      changePreferredPrintingAction(
-        collection,
-        cardId,
-        zone,
-        fromPrintingId,
-        toPrintingId,
-        countToConvert,
+      edit(() =>
+        changePreferredPrintingAction(
+          collection,
+          cardId,
+          zone,
+          fromPrintingId,
+          toPrintingId,
+          countToConvert,
+        ),
       );
     },
     setLegend: (card, rbd, options) => {
@@ -871,11 +891,12 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
         useWorkbenchStore.getState().setPendingLegend(card);
         return;
       }
-      record();
-      setLegendAction(collection, card, rbd ?? runesByDomain, format, {
-        refill: relaxed,
-        moveOffColorToOverflow: options?.moveOffColorToOverflow,
-      });
+      edit(() =>
+        setLegendAction(collection, card, rbd ?? runesByDomain, format, {
+          refill: relaxed,
+          moveOffColorToOverflow: options?.moveOffColorToOverflow,
+        }),
+      );
       if (relaxed) {
         useWorkbenchStore.getState().announceAdd(displayName(card), WellKnown.deckZone.LEGEND);
       }

@@ -53,11 +53,6 @@ export const candidateCardSummarySchema = z.object({
   updatedAt: isoDateTime,
 });
 
-/**
- * The two detail endpoints and the export return loosely-typed payloads
- * (`z.unknown()`); the API maps them to the rich hand-written response
- * interfaces the web client re-points to directly.
- */
 export const adminCardQueriesContract = {
   allCards: authedRoute
     .route({ method: "GET", path: `${CARDS}/all-cards`, tags: [TAG] })

@@ -102,7 +102,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventsPage } from "./meta-events-page";
 
 function event(overrides: Partial<AdminMetaEvent> = {}): AdminMetaEvent {

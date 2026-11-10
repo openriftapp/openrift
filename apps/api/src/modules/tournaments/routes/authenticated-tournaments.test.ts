@@ -120,6 +120,95 @@ const CREATE_BASE = {
   startsAt: "2026-06-01T12:00:00Z",
 };
 
+describe("GET /tournaments", () => {
+  const PAST_A = "b0000000-0001-4000-a000-00000000000a";
+  const PAST_B = "b0000000-0001-4000-a000-00000000000b";
+
+  function makeListApp() {
+    const { app, repos } = makeApp(tournamentRow());
+    const current = tournamentRow({ startsAt: new Date("2099-01-01T12:00:00Z") });
+    const pastRows = [
+      tournamentRow({ id: PAST_A, startsAt: new Date("2025-05-01T12:00:00Z") }),
+      tournamentRow({ id: PAST_B, startsAt: new Date("2025-04-01T12:00:00Z") }),
+    ].map((row) => ({ ...row, participantCount: 0, pendingRequestCount: 0 }));
+    const list = {
+      listCurrentForUser: vi.fn(() =>
+        Promise.resolve([{ ...current, participantCount: 0, pendingRequestCount: 0 }]),
+      ),
+      listPastForUser: vi.fn(() => Promise.resolve(pastRows)),
+      countPastForUser: vi.fn(() => Promise.resolve(7)),
+      staffRolesAcross: vi.fn(() => Promise.resolve([])),
+      participantTournamentIdsAcross: vi.fn(() => Promise.resolve(new Set())),
+      getGroupInfo: vi.fn(() => Promise.resolve(new Map())),
+    };
+    Object.assign(repos.tournaments, list);
+    Object.assign(repos, {
+      organizations: {
+        listIdsForUser: vi.fn(() => Promise.resolve([])),
+        listJudgeOrgIdsForUser: vi.fn(() => Promise.resolve([])),
+        findByIds: vi.fn(() => Promise.resolve([])),
+      },
+    });
+    return { app, list };
+  }
+
+  it("returns every current tournament plus one page of past ones, with a cursor for the rest", async () => {
+    const { app, list } = makeListApp();
+
+    const res = await app.fetch(req("GET", "/tournaments?limit=1"));
+    const body = (await res.json()) as {
+      items: { id: string }[];
+      nextCursor: string | null;
+      pastCount: number;
+    };
+
+    expect(res.status).toBe(200);
+    expect(body.items.map((item) => item.id)).toEqual([TOURNAMENT_ID, PAST_A]);
+    expect(body.nextCursor).toBe(`2025-05-01T12:00:00.000Z_${PAST_A}`);
+    expect(body.pastCount).toBe(7);
+    expect(list.listPastForUser).toHaveBeenCalledWith(USER_ID, [], expect.any(Date), {
+      cursor: null,
+      limit: 1,
+    });
+  });
+
+  it("returns only past tournaments after the first page", async () => {
+    const { app, list } = makeListApp();
+    const cursor = `2025-05-01T12:00:00.000Z_${PAST_A}`;
+
+    const res = await app.fetch(
+      req("GET", `/tournaments?limit=2&cursor=${encodeURIComponent(cursor)}`),
+    );
+    const body = (await res.json()) as { items: { id: string }[]; nextCursor: string | null };
+
+    expect(res.status).toBe(200);
+    expect(list.listCurrentForUser).not.toHaveBeenCalled();
+    expect(body.items.map((item) => item.id)).toEqual([PAST_A, PAST_B]);
+    expect(body.nextCursor).toBeNull();
+  });
+});
+
+describe("GET /tournaments/{id}", () => {
+  it("shows the viewer's list left editable past the deadline as submitted", async () => {
+    const { app, repos } = makeApp(tournamentRow({ deckSubmission: "required" }));
+    repos.deckCheck.getEntryForPlayerByTournament.mockResolvedValue({
+      id: "entry-1",
+      state: "editable",
+      reviewOutcome: null,
+      unlockRequestedAt: null,
+      playerMessage: null,
+      eventStatus: "active",
+      submissionsCloseAt: new Date("2020-06-01T12:00:00Z"),
+    } as never);
+
+    const res = await app.fetch(req("GET", `/tournaments/${TOURNAMENT_ID}`));
+    const body = (await res.json()) as { myDeckEntry: { state: string } | null };
+
+    expect(res.status).toBe(200);
+    expect(body.myDeckEntry?.state).toBe("submitted");
+  });
+});
+
 describe("POST /tournaments", () => {
   it("rejects 2v2 team play combined with pod pairing", async () => {
     const { app, repos } = makeApp(tournamentRow());

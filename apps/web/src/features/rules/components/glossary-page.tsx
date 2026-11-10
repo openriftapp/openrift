@@ -98,11 +98,14 @@ export function GlossaryPage() {
             <div className="mb-2">
               <KindTabs kind="glossary" />
             </div>
-            <span className={PAGE_HERO_EYEBROW_CLASS}>{m.rules_hero_eyebrow()}</span>
+            <span className={cn(PAGE_HERO_EYEBROW_CLASS, "max-md:hidden")}>
+              {m.rules_hero_eyebrow()}
+            </span>
           </>
         }
         title={m.glossary_title()}
         lead={m.glossary_intro()}
+        compactOnPhone
       />
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <div

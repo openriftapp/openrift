@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem access
 import { dirname, join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";

@@ -22,4 +22,16 @@ describe("MetaArchiveCounts", () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("passes a class through to the row", () => {
+    const { container } = render(
+      <MetaArchiveCounts
+        eventCount={7}
+        playerResultCount={0}
+        deckCount={0}
+        className="max-md:hidden"
+      />,
+    );
+    expect(container.firstElementChild?.classList.contains("max-md:hidden")).toBe(true);
+  });
 });

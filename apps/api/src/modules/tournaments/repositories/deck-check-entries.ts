@@ -501,6 +501,53 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
       return loadEntryById(entryId);
     },
 
+    listEditableBaselines(
+      tournamentId: string,
+    ): Promise<{ id: string; preEditLines: DeckCheckCardLine[] | null; updatedAt: Date }[]> {
+      return db
+        .selectFrom("deckCheckEntries")
+        .select(["id", "preEditLines", "updatedAt"])
+        .where("tournamentId", "=", tournamentId)
+        .where("state", "=", "editable")
+        .execute();
+    },
+
+    /**
+     * Submits the given entries in one statement. Only rows still `editable`
+     * change, so a concurrent settle or judge transition wins over this one.
+     * @returns The ids that were settled.
+     */
+    async settleEditableEntries(
+      tournamentId: string,
+      rows: readonly {
+        id: string;
+        submittedAt: Date;
+        changeSummary: DeckCheckChangeSummary | null;
+      }[],
+    ): Promise<string[]> {
+      if (rows.length === 0) {
+        return [];
+      }
+      const values = sql.join(
+        rows.map(
+          (row) =>
+            sql`(${row.id}::uuid, ${row.submittedAt}::timestamptz, ${row.changeSummary}::jsonb)`,
+        ),
+      );
+      const result = await sql<{ id: string }>`
+        update deck_check_entries as en
+           set state = 'submitted',
+               submitted_at = v.submitted_at,
+               change_summary = v.change_summary
+          from (values ${values}) as v(id, submitted_at, change_summary)
+         where en.id = v.id
+           and en.tournament_id = ${tournamentId}
+           and en.state = 'editable'
+        returning en.id
+      `.execute(db);
+      return result.rows.map((row) => row.id);
+    },
+
     async deleteEntry(tournamentId: string, entryId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("deckCheckEntries")

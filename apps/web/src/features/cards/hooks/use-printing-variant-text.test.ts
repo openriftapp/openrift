@@ -13,7 +13,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { usePrintingVariantText } from "./use-printing-variant-text";
 
 function otherSide(shortCode: string) {

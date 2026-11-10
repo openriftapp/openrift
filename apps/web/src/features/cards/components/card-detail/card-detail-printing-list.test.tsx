@@ -88,7 +88,6 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => catalogMock,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardDetailPrintingList } from "./card-detail-printing-list";
 
 describe("CardDetailPrintingList", () => {

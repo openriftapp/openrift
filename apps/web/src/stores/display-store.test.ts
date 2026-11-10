@@ -171,7 +171,6 @@ describe("useDisplayStore", () => {
         foilEffect: null,
         marketplaceOrder: null,
         languages: null,
-        completionScope: null,
         defaultCardView: null,
         defaultCurrency: null,
         topLevelFilters: null,
@@ -213,7 +212,6 @@ describe("useDisplayStore", () => {
         foilEffect: null,
         marketplaceOrder: ["cardmarket"],
         languages: null,
-        completionScope: null,
         defaultCardView: "cards",
       });
 

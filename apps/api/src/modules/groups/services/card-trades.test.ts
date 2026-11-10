@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { AppError } from "../../../errors.js";
 import type { CardTradeDtoRow, LiveCardTrade } from "../repositories/card-trades-shared.js";
 import {
@@ -317,15 +318,18 @@ function runCreate(
   quantity: number,
   copyIds?: string[],
 ): Promise<unknown> {
-  return createTrade(mockTransact(repos), {
-    callerUserId: role === "giver" ? "giver-1" : "receiver-1",
-    groupSlug: GROUP.slug,
-    counterpartyUserId: role === "giver" ? "receiver-1" : "giver-1",
-    role,
-    printingId: MATCH_ROW.printingId,
-    quantity,
-    copyIds,
-  }).catch((error: unknown) => error);
+  return createTrade(
+    { repos, transact: mockTransact(repos) },
+    {
+      callerUserId: role === "giver" ? "giver-1" : "receiver-1",
+      groupSlug: GROUP.slug,
+      counterpartyUserId: role === "giver" ? "receiver-1" : "giver-1",
+      role,
+      printingId: MATCH_ROW.printingId,
+      quantity,
+      copyIds,
+    },
+  ).catch((error: unknown) => error);
 }
 
 describe("createTrade supply accounting", () => {
@@ -458,15 +462,18 @@ describe("createTrade on a double-sided printing", () => {
       { ...MATCH_ROW, cardId: "card-2", buyEntryId: "wish-2", buyQuantity: 1 },
     ] as never);
 
-    await createTrade(mockTransact(repos), {
-      callerUserId: "receiver-1",
-      groupSlug: GROUP.slug,
-      counterpartyUserId: "giver-1",
-      role: "receiver",
-      printingId: MATCH_ROW.printingId,
-      cardId: "card-2",
-      quantity: 1,
-    });
+    await createTrade(
+      { repos, transact: mockTransact(repos) },
+      {
+        callerUserId: "receiver-1",
+        groupSlug: GROUP.slug,
+        counterpartyUserId: "giver-1",
+        role: "receiver",
+        printingId: MATCH_ROW.printingId,
+        cardId: "card-2",
+        quantity: 1,
+      },
+    );
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ receiverWishEntryId: "wish-2", cardId: "card-2" }),
@@ -478,19 +485,89 @@ describe("createTrade on a printing wish from the second side", () => {
   it("binds the printing wish when no row names the requested card", async () => {
     const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
 
-    await createTrade(mockTransact(repos), {
-      callerUserId: "receiver-1",
-      groupSlug: GROUP.slug,
-      counterpartyUserId: "giver-1",
-      role: "receiver",
-      printingId: MATCH_ROW.printingId,
-      cardId: "card-2",
-      quantity: 1,
-    });
+    await createTrade(
+      { repos, transact: mockTransact(repos) },
+      {
+        callerUserId: "receiver-1",
+        groupSlug: GROUP.slug,
+        counterpartyUserId: "giver-1",
+        role: "receiver",
+        printingId: MATCH_ROW.printingId,
+        cardId: "card-2",
+        quantity: 1,
+      },
+    );
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ receiverWishEntryId: "wish-1", cardId: "card-1" }),
     );
+  });
+});
+
+describe("createTrade request email", () => {
+  it("claims and sends the instant email after the trade transaction has committed", async () => {
+    const { repos: trxRepos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+    create.mockResolvedValue({
+      ...TRADE,
+      id: "trade-new",
+      initiator: "receiver",
+    } as unknown as LiveCardTrade);
+    let inTransaction = false;
+    const transact: Transact = async (fn) => {
+      inTransaction = true;
+      try {
+        return await fn(trxRepos);
+      } finally {
+        inTransaction = false;
+      }
+    };
+    const steps: string[] = [];
+    const record = (step: string) => steps.push(inTransaction ? `${step} in transaction` : step);
+    const repos = {
+      siteSettings: { getBool: vi.fn(async () => null) },
+      userPreferences: {
+        getEmailNotificationContext: vi.fn(async () => ({
+          email: "ekko@example.com",
+          emailVerified: true,
+          name: "Ekko",
+          displayLocale: "en",
+          emailNotifications: { tradeRequestCadence: "instant" },
+        })),
+      },
+      cardTrades: {
+        claimRequestEmails: vi.fn(async (ids: string[]) => {
+          record("claim");
+          return ids;
+        }),
+        getDtoRowByIdForUser: vi.fn(async () => ({ ...DTO_ROW, id: "trade-new" })),
+      },
+      catalog: { printingNamesByIds: vi.fn(async () => new Map()) },
+    } as unknown as Repos;
+    const log = { error: vi.fn() };
+    const emailDeps = {
+      sendEmail: vi.fn(async () => {
+        record("send");
+      }),
+      appBaseUrl: "https://example.test",
+      unsubscribeSecret: "secret",
+      log,
+    } as unknown as EmailDeps;
+
+    await createTrade(
+      { repos, transact },
+      {
+        callerUserId: "receiver-1",
+        groupSlug: GROUP.slug,
+        counterpartyUserId: "giver-1",
+        role: "receiver",
+        printingId: MATCH_ROW.printingId,
+        quantity: 1,
+      },
+      emailDeps,
+    );
+
+    expect(log.error).not.toHaveBeenCalled();
+    expect(steps).toEqual(["claim", "send"]);
   });
 });
 

@@ -38,7 +38,6 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { CatalogCardContextMenu } = await import("./catalog-card-context-menu");
 
 const printing = stubPrinting({ printingId: "printing-1", card: { slug: "annie-fiery" } });

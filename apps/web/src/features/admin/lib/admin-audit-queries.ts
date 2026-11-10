@@ -1,9 +1,9 @@
 import { adminAuditEventsContract } from "@openrift/shared/contracts/admin/audit-events";
+import type { AdminAuditEventsListResponse } from "@openrift/shared/contracts/admin/audit-events";
 import { infiniteQueryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { AdminAuditEventsListResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

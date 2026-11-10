@@ -19,7 +19,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaUpcomingRow } from "./meta-upcoming-row";
 
 function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {

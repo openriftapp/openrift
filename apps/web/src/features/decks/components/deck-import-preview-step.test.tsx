@@ -11,7 +11,6 @@ vi.mock("@/features/decks/components/deck-import-summary", () => ({
   DeckImportSummary: () => null,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { DeckImportPreviewStep } from "./deck-import-preview-step";
 
 function entry(cardName: string, quantity: number): DeckMatchedEntry {

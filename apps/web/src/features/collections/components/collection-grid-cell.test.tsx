@@ -99,7 +99,6 @@ vi.mock("@/features/collections/components/draggable-card", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { CollectionGridCell } = await import("./collection-grid-cell");
 
 const collectionId = "col-1";

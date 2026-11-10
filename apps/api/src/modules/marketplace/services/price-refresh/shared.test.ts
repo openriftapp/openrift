@@ -13,7 +13,6 @@ describe("toCents", () => {
   });
 
   it("returns null for undefined", () => {
-    // oxlint-disable-next-line unicorn/no-useless-undefined -- testing the undefined path explicitly
     const val = undefined;
     expect(toCents(val)).toBeNull();
   });

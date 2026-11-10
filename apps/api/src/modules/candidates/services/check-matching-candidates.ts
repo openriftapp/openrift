@@ -37,7 +37,6 @@ async function checkInPages<Row extends { id: string }>(
   const rows = await paged.list(afterId);
   const matchingIds: string[] = [];
   for (const row of rows) {
-    // oxlint-disable-next-line no-await-in-loop -- hands the event loop back so API requests are served mid-page
     await paged.yieldIfBusy();
     if (paged.matches(row)) {
       matchingIds.push(row.id);

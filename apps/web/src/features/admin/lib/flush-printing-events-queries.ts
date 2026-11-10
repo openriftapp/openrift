@@ -1,9 +1,9 @@
 import { adminPrintingEventsContract } from "@openrift/shared/contracts/admin/printing-events";
+import type { PrintingEventsListResponse } from "@openrift/shared/contracts/admin/printing-events";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { PrintingEventsListResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

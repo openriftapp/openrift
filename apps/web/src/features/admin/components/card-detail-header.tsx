@@ -152,7 +152,7 @@ export function CardDetailHeader({
                       disabled={renameCard.isPending}
                       onClick={() =>
                         renameCard.mutate(
-                          { cardId: card.id, newId: expectedCardId },
+                          { cardId: card.id, cardSlug: cardId, newId: expectedCardId },
                           { onSuccess: () => goToCard(expectedCardId) },
                         )
                       }

@@ -115,6 +115,8 @@ export interface MetaEventListCounts {
 }
 
 /** Mirrors `metaResultsState` from the shared package. */
+const ACTIVITY_WINDOW_DAYS = 7;
+
 const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<boolean>> = {
   notStarted: sql<boolean>`meta_events.status = 'upcoming'`,
   collecting: sql<boolean>`meta_events.status = 'in_progress'`,
@@ -179,7 +181,15 @@ function sourcedBy(source: MetaEventSourceFilter) {
   };
 }
 
-export function metaEventsRepo(db: Kysely<Database>) {
+function noScopedRepos(): never {
+  throw new Error("This meta repository was built without a scoped-repos factory.");
+}
+
+/** `scopedRepos` builds the repos `withPromoteLock` hands its callback, bound to the lock's transaction. */
+export function metaEventsRepo<R = never>(
+  db: Kysely<Database>,
+  scopedRepos: (trx: Kysely<Database>) => R = noScopedRepos,
+) {
   /**
    * Lateral so the roster and deck counts stay filterable and sortable:
    * neither is a column on `meta_events`.
@@ -339,13 +349,13 @@ export function metaEventsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Runs `run` while holding an advisory lock on `key`, so two promotions of one
-     * event (or one source) never interleave. `run` keeps using its own connections.
+     * Runs `run` in a transaction holding an advisory lock on `key`, so two promotions
+     * of one event (or one source) never interleave. Reuses an open transaction.
      */
-    withPromoteLock<T>(key: string, run: () => Promise<T>): Promise<T> {
+    withPromoteLock<T>(key: string, run: (repos: R) => Promise<T>): Promise<T> {
       return inTransaction(db, async (trx) => {
         await lockKey(trx, `meta-promote:${key}`);
-        return run();
+        return run(scopedRepos(trx));
       });
     },
 
@@ -375,15 +385,12 @@ export function metaEventsRepo(db: Kysely<Database>) {
      */
     async recentActivity(limit: number): Promise<MetaActivityRow[]> {
       const eventDay = sql`(e.created_at at time zone 'UTC')::date`;
+      // Bursts are whole UTC days, so a window starting at UTC midnight that already
+      // holds `limit` of them holds the newest `limit` of the whole table.
+      const windowStart = sql<Date>`((now() at time zone 'UTC')::date - ${ACTIVITY_WINDOW_DAYS}::int) at time zone 'UTC'`;
 
-      const [events, deckBursts, resultBursts] = await Promise.all([
-        db
-          .selectFrom("metaEvents")
-          .select(["slug", "name", "createdAt"])
-          .orderBy("createdAt", "desc")
-          .limit(limit)
-          .execute(),
-        db
+      function deckBursts(since?: typeof windowStart) {
+        let query = db
           .selectFrom("metaEventPlayers as p")
           .innerJoin("decks as d", "d.id", "p.deckId")
           .innerJoin("metaEvents as e", "e.id", "p.metaEventId")
@@ -393,12 +400,19 @@ export function metaEventsRepo(db: Kysely<Database>) {
             eb.fn.countAll<string>().as("count"),
             eb.fn.max("d.createdAt").as("occurredAt"),
           ])
-          .where(sql`(d.created_at at time zone 'UTC')::date`, ">", eventDay)
+          .where(sql`(d.created_at at time zone 'UTC')::date`, ">", eventDay);
+        if (since) {
+          query = query.where("d.createdAt", ">=", since);
+        }
+        return query
           .groupBy(["e.slug", "e.name", sql`(d.created_at at time zone 'UTC')::date`])
           .orderBy(sql`max(d.created_at)`, "desc")
           .limit(limit)
-          .execute(),
-        db
+          .execute();
+      }
+
+      function resultBursts(since?: typeof windowStart) {
+        let query = db
           .selectFrom("metaEventPlayers as p")
           .innerJoin("metaEvents as e", "e.id", "p.metaEventId")
           .select((eb) => [
@@ -407,11 +421,33 @@ export function metaEventsRepo(db: Kysely<Database>) {
             eb.fn.countAll<string>().as("count"),
             eb.fn.max("p.createdAt").as("occurredAt"),
           ])
-          .where(sql`(p.created_at at time zone 'UTC')::date`, ">", eventDay)
+          .where(sql`(p.created_at at time zone 'UTC')::date`, ">", eventDay);
+        if (since) {
+          query = query.where("p.createdAt", ">=", since);
+        }
+        return query
           .groupBy(["e.slug", "e.name", sql`(p.created_at at time zone 'UTC')::date`])
           .orderBy(sql`max(p.created_at)`, "desc")
           .limit(limit)
+          .execute();
+      }
+
+      async function newestBursts<T>(
+        bursts: (since?: typeof windowStart) => Promise<T[]>,
+      ): Promise<T[]> {
+        const recent = await bursts(windowStart);
+        return recent.length >= limit ? recent : bursts();
+      }
+
+      const [events, deckRows, resultRows] = await Promise.all([
+        db
+          .selectFrom("metaEvents")
+          .select(["slug", "name", "createdAt"])
+          .orderBy("createdAt", "desc")
+          .limit(limit)
           .execute(),
+        newestBursts(deckBursts),
+        newestBursts(resultBursts),
       ]);
 
       const rows: MetaActivityRow[] = [
@@ -422,14 +458,14 @@ export function metaEventsRepo(db: Kysely<Database>) {
           eventSlug: row.slug,
           eventName: row.name,
         })),
-        ...deckBursts.map((row): MetaActivityRow => ({
+        ...deckRows.map((row): MetaActivityRow => ({
           kind: "decks-added",
           occurredAt: row.occurredAt,
           count: Number(row.count),
           eventSlug: row.eventSlug,
           eventName: row.eventName,
         })),
-        ...resultBursts.map((row): MetaActivityRow => ({
+        ...resultRows.map((row): MetaActivityRow => ({
           kind: "results-added",
           occurredAt: row.occurredAt,
           count: Number(row.count),
@@ -567,6 +603,17 @@ export function metaEventsRepo(db: Kysely<Database>) {
         }
         return written;
       });
+    },
+
+    /** Undefined when the slug is taken; a unique violation would abort the caller's transaction. */
+    async createEventIfSlugFree(input: MetaEventInput): Promise<MetaEventWithCounts | undefined> {
+      const row = await db
+        .insertInto("metaEvents")
+        .values(input)
+        .onConflict((oc) => oc.column("slug").doNothing())
+        .returningAll()
+        .executeTakeFirst();
+      return row === undefined ? undefined : { ...row, playerRowCount: 0, deckCount: 0 };
     },
 
     async createEvent(input: MetaEventInput): Promise<MetaEventWithCounts> {

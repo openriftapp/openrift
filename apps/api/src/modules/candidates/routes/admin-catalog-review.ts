@@ -19,7 +19,7 @@ const os = implement(adminCatalogReviewContract).$context<ApiContext>().use(requ
 async function thankIfAccepted(context: ApiContext, candidateCardId: string): Promise<void> {
   const submission = await context.repos.cardSubmissions.getByCandidateCardId(candidateCardId);
   if (submission?.status === "accepted") {
-    await context.services.notifySubmitterOfCardAcceptance(context.repos, submission.id);
+    void context.services.notifySubmitterOfCardAcceptance(context.repos, submission.id);
   }
 }
 

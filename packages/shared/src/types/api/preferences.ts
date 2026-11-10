@@ -61,6 +61,7 @@ const COMPLETION_SCOPE_KEY_KINDS = {
   customTagsExclude: "array",
   promos: "scalar",
   signed: "scalar",
+  overnumbered: "scalar",
   banned: "scalar",
   errata: "scalar",
   standard: "scalar",
@@ -198,7 +199,6 @@ export interface ResolvedPreferences {
   displayLocale: DisplayLocale;
   marketplaceOrder: [Marketplace, ...Marketplace[]];
   languages: string[];
-  completionScope: CompletionScopePreference;
   defaultCardView: DefaultCardView;
   defaultCurrency: Currency;
   topLevelFilters: string[];
@@ -215,7 +215,6 @@ export const DISPLAY_PREFERENCE_KEYS = [
   "foilEffect",
   "marketplaceOrder",
   "languages",
-  "completionScope",
   "defaultCardView",
   "defaultCurrency",
   "topLevelFilters",
@@ -240,7 +239,6 @@ export const PREFERENCE_DEFAULTS: ResolvedPreferences = {
   displayLocale: "en",
   marketplaceOrder: [...ALL_MARKETPLACES],
   languages: [WellKnown.language.EN],
-  completionScope: {},
   defaultCardView: "cards",
   defaultCurrency: "EUR",
   topLevelFilters: [

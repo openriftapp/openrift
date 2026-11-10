@@ -346,6 +346,26 @@ describe("friend-groups route", () => {
     });
   });
 
+  it("POST /join answers without waiting for the admin email to go out", async () => {
+    const { app, notifyAdminsOfGroupJoinRequest } = makeApp({
+      friendGroups: {
+        getByCode: vi.fn(() => Promise.resolve(group)),
+        getMembership: vi.fn(() => Promise.resolve(undefined)),
+        createInvite: vi.fn(() => Promise.resolve(true)),
+      },
+    });
+    notifyAdminsOfGroupJoinRequest.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await app.request("/api/v1/friend-groups/join", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "ABCDEFGHIJKL" }),
+    });
+
+    expect(res.status).toBe(202);
+    expect(notifyAdminsOfGroupJoinRequest).toHaveBeenCalledTimes(1);
+  });
+
   it("POST /join re-sent for an existing request emails nobody again", async () => {
     const { app, notifyAdminsOfGroupJoinRequest } = makeApp({
       friendGroups: {
@@ -389,6 +409,26 @@ describe("friend-groups route", () => {
       groupName: "Tuesday Crew",
       memberUserId: "joiner-1",
     });
+  });
+
+  it("POST accept answers without waiting for the welcome email to go out", async () => {
+    const { app, notifyMemberOfGroupApproval } = makeApp({
+      friendGroups: {
+        getBySlug: vi.fn(() => Promise.resolve(group)),
+        getInvite: vi.fn(() => Promise.resolve({ groupId: GROUP_ID, userId: "joiner-1" })),
+        getMembership: vi.fn(() => Promise.resolve(ownerMembership)),
+        addMember: vi.fn(),
+        deleteInvite: vi.fn(),
+      },
+    });
+    notifyMemberOfGroupApproval.mockReturnValue(Promise.withResolvers<void>().promise);
+
+    const res = await app.request("/api/v1/friend-groups/playgroup/invites/joiner-1/accept", {
+      method: "POST",
+    });
+
+    expect(res.status).toBe(204);
+    expect(notifyMemberOfGroupApproval).toHaveBeenCalledTimes(1);
   });
 
   it("POST accept by a non-admin is rejected and welcomes nobody", async () => {
@@ -884,6 +924,80 @@ describe("friend-groups route", () => {
       body: JSON.stringify({ listId: LIST_ID }),
     });
     expect(res.status).toBe(404);
+  });
+
+  describe("DELETE /{slug}/lists/{listId} on a trade list", () => {
+    const TRADE_ID = "e0000000-0001-4000-a000-000000000001";
+
+    function unshareApp() {
+      const unshare = vi.fn(() => Promise.resolve());
+      const markAutoCancelled = vi.fn(() => Promise.resolve(1));
+      const { app } = makeApp({
+        friendGroups: {
+          getBySlug: vi.fn(() => Promise.resolve(group)),
+          getMembership: vi.fn(() => Promise.resolve(memberMembership)),
+          unshare,
+        },
+        lists: {
+          getByIdForUser: vi.fn(() => Promise.resolve({ id: LIST_ID, intent: "trade" })),
+        },
+        friendGroupMatches: {
+          giverPrintingSupply: vi.fn(() =>
+            Promise.resolve({ unreservedCopyIds: [], hasAny: false }),
+          ),
+        },
+        cardTrades: {
+          listPendingPrintingIdsForGiverInGroup: vi.fn(() => Promise.resolve(["printing-1"])),
+          listPendingForGiverPrinting: vi.fn(() =>
+            Promise.resolve([
+              { id: TRADE_ID, groupId: GROUP_ID, quantity: 1, initiator: "receiver" },
+            ]),
+          ),
+          listCancelSummaries: vi.fn(() =>
+            Promise.resolve([
+              {
+                id: TRADE_ID,
+                cardId: "card-1",
+                printingId: "printing-1",
+                quantity: 1,
+                counterpartyName: "Mara",
+              },
+            ]),
+          ),
+          markAutoCancelled,
+        },
+      });
+      return { app, unshare, markAutoCancelled };
+    }
+
+    it("refuses with the trades it would cancel when unconfirmed", async () => {
+      const { app, markAutoCancelled } = unshareApp();
+
+      const res = await app.request(`/api/v1/friend-groups/playgroup/lists/${LIST_ID}`, {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(409);
+      expect(await readJson(res)).toMatchObject({
+        code: "CONFLICT",
+        data: { trades: [{ id: TRADE_ID, counterpartyName: "Mara" }] },
+      });
+      expect(markAutoCancelled).not.toHaveBeenCalled();
+    });
+
+    it("unshares and cancels the trades the request confirms", async () => {
+      const { app, unshare, markAutoCancelled } = unshareApp();
+
+      const res = await app.request(`/api/v1/friend-groups/playgroup/lists/${LIST_ID}`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ cancelTradeIds: [TRADE_ID] }),
+      });
+
+      expect(res.status).toBe(204);
+      expect(unshare).toHaveBeenCalledWith(GROUP_ID, LIST_ID);
+      expect(markAutoCancelled).toHaveBeenCalledWith(TRADE_ID);
+    });
   });
 
   it("POST /{slug}/collections shares a personal collection the viewer owns", async () => {

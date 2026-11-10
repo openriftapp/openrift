@@ -65,6 +65,7 @@ interface ScanSessionTrayProps {
   destination: CollectionResponse | null;
   adding: boolean;
   failedCount: number;
+  onSignInToAdd?: () => void;
   compact: boolean;
   resumed: boolean;
   notice?: ReactNode;
@@ -84,6 +85,7 @@ export function ScanSessionTray({
   destination,
   adding,
   failedCount,
+  onSignInToAdd,
   compact,
   resumed,
   notice,
@@ -150,6 +152,7 @@ export function ScanSessionTray({
       failedCount={failedCount}
       compact={peek}
       onAddAll={onAddAll}
+      onSignInToAdd={onSignInToAdd}
     />
   );
 
@@ -272,6 +275,7 @@ interface TrayFooterProps {
   failedCount: number;
   compact: boolean;
   onAddAll: (collectionId: string) => void;
+  onSignInToAdd?: () => void;
 }
 
 function TrayFooter({
@@ -282,6 +286,7 @@ function TrayFooter({
   failedCount,
   compact,
   onAddAll,
+  onSignInToAdd,
 }: TrayFooterProps) {
   const destinationName = destination?.name ?? m.scan_a_collection();
   const cards = cardWord(count);
@@ -294,6 +299,26 @@ function TrayFooter({
     label = m.scan_tray_retry_add({ count, cards });
   }
   const disabled = adding || count === 0 || destination === null;
+  const note = !compact && (
+    <p className="text-muted-foreground text-sm">{m.scan_tray_local_note()}</p>
+  );
+
+  if (onSignInToAdd) {
+    return (
+      <div className={cn("flex shrink-0 flex-col gap-2 pt-2", !compact && "mt-auto")}>
+        <Button
+          variant={count === 0 ? "outline" : "default"}
+          className="w-full min-w-0"
+          disabled={count === 0}
+          onClick={onSignInToAdd}
+        >
+          <FolderPlusIcon />
+          <span className="truncate">{label}</span>
+        </Button>
+        {note}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex shrink-0 flex-col gap-2 pt-2", !compact && "mt-auto")}>
@@ -334,7 +359,7 @@ function TrayFooter({
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
-      {!compact && <p className="text-muted-foreground text-sm">{m.scan_tray_local_note()}</p>}
+      {note}
     </div>
   );
 }

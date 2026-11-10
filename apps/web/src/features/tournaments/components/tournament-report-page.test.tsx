@@ -5,19 +5,28 @@ import type {
   PodRoundResponse,
 } from "@openrift/shared/types/api/pod-tournament";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ReportRoundsContent } from "./tournament-report-page";
 
+const { submitResultMutateAsync, submitPlayerMutateAsync } = vi.hoisted(() => ({
+  submitResultMutateAsync: vi.fn((): Promise<unknown> => Promise.resolve()),
+  submitPlayerMutateAsync: vi.fn((): Promise<unknown> => Promise.resolve()),
+}));
+
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => false }));
-vi.mock("@/features/tournaments/hooks/use-tournament-run", () => {
-  const mutation = { mutateAsync: vi.fn(), isPending: false };
-  return {
-    useStartReportGroupRound: () => mutation,
-    useSubmitTournamentReportPlayerResult: () => mutation,
-    useSubmitTournamentReportResult: () => mutation,
-  };
-});
+vi.mock("@/features/tournaments/hooks/use-tournament-run", () => ({
+  useStartReportGroupRound: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSubmitTournamentReportPlayerResult: () => ({
+    mutateAsync: submitPlayerMutateAsync,
+    isPending: false,
+  }),
+  useSubmitTournamentReportResult: () => ({
+    mutateAsync: submitResultMutateAsync,
+    isPending: false,
+  }),
+}));
 
 function pod(id: string, players: [string, number][]): PodResponse {
   return {
@@ -121,5 +130,38 @@ describe("ReportRoundsContent", () => {
     expect(screen.queryByText(/Enter your games won/u)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit result" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Edit score/u })).not.toBeInTheDocument();
+  });
+});
+
+describe("ReportRoundsContent failed submissions", () => {
+  beforeEach(() => {
+    submitResultMutateAsync.mockReset();
+    submitResultMutateAsync.mockResolvedValue(undefined);
+    submitPlayerMutateAsync.mockReset();
+    submitPlayerMutateAsync.mockResolvedValue(undefined);
+  });
+
+  it("keeps the result form open when the submission is rejected", async () => {
+    submitResultMutateAsync.mockRejectedValueOnce(new Error("offline"));
+    const user = userEvent.setup();
+    render(<ReportRoundsContent token="t" data={report("running", "reporting")} />);
+
+    await user.click(screen.getByRole("button", { name: "Edit result" }));
+    await user.click(screen.getAllByRole("button", { name: /wins/u })[0]!);
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+
+    expect(submitResultMutateAsync).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Save result" })).toBeInTheDocument();
+  });
+
+  it("closes the result form after the submission is saved", async () => {
+    const user = userEvent.setup();
+    render(<ReportRoundsContent token="t" data={report("running", "reporting")} />);
+
+    await user.click(screen.getByRole("button", { name: "Edit result" }));
+    await user.click(screen.getAllByRole("button", { name: /wins/u })[0]!);
+    await user.click(screen.getByRole("button", { name: "Save result" }));
+
+    expect(screen.queryByRole("button", { name: "Save result" })).not.toBeInTheDocument();
   });
 });

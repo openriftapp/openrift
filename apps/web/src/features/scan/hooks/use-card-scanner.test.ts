@@ -229,7 +229,6 @@ function createFakeVideo(): HTMLVideoElement {
  * pipeline's internal awaits need to run to completion.
  */
 function flushAsync(): Promise<void> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping the setTimeout callback API to await a macrotask boundary
   return new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
@@ -242,7 +241,7 @@ function deferred<T>(): {
 } {
   let resolve!: (value: T) => void;
   let reject!: (reason: unknown) => void;
-  // oxlint-disable-next-line promise/avoid-new, promise/param-names -- a hand-rolled deferred exists to expose the executor's settle functions
+  // oxlint-disable-next-line promise/param-names -- a hand-rolled deferred exists to expose the executor's settle functions
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -626,7 +625,6 @@ describe("useCardScanner", () => {
     });
 
     it("refuses to start before the engine is ready, without touching the camera", async () => {
-      // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling load to hold the engine in its loading state
       workerInit = () => new Promise(() => {});
       const getUserMedia = stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
       const { hook } = await mountScanner();
@@ -983,7 +981,6 @@ describe("useCardScanner", () => {
       await runFrames(1);
       await act(async () => {
         hook.rerender({ settings: DEFAULT_SCANNER_SETTINGS });
-        // oxlint-disable-next-line promise/avoid-new -- lets both paused polls fire on the real clock
         await new Promise((resolve) => {
           setTimeout(resolve, PAUSED_POLL_MS + 50);
         });

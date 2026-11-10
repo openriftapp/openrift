@@ -99,7 +99,6 @@ export function setup() {
   if (!session || !session.user) {
     throw new Error("Session cookie probe returned no user — cookie is invalid or expired.");
   }
-  // oxlint-disable-next-line no-console -- k6 setup log is useful
   console.log(`Authed as ${session.user.email}`);
 
   const collectionsRes = http.get(`${API_BASE}/collections`, {

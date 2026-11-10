@@ -175,7 +175,6 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("Marketplace mapping routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = ctx!;
 
   describe("GET /admin/marketplace-mappings (TCGPlayer data)", () => {

@@ -1,5 +1,6 @@
 import { createLogger } from "@openrift/shared/logger";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 
 import type { Fetch } from "../../../io.js";
 import { jsonError } from "../../../lib/http-response.js";
@@ -15,6 +16,7 @@ const MAX_ENVELOPE_BYTES = 1_000_000;
 // never reads the response, so upstream 429s are only logged, not backed off from.
 export const sentryTunnelRoute = new Hono<{ Variables: Variables }>().post(
   "/sentry-tunnel",
+  bodyLimit({ maxSize: MAX_ENVELOPE_BYTES, onError: (c) => c.body(null, 413) }),
   async (c) => {
     const { sentryDsnSsr } = c.get("config");
     const { fetch } = c.get("io");
@@ -26,12 +28,7 @@ export const sentryTunnelRoute = new Hono<{ Variables: Variables }>().post(
     const allowed = new URL(sentryDsnSsr);
     const allowedProjectId = allowed.pathname.replace(/^\/+/u, "");
 
-    const body = await c.req.raw.arrayBuffer();
-    if (body.byteLength > MAX_ENVELOPE_BYTES) {
-      return c.body(null, 413);
-    }
-
-    const bytes = new Uint8Array(body);
+    const bytes = new Uint8Array(await c.req.raw.arrayBuffer());
     const newlineIdx = bytes.indexOf(0x0a);
     if (newlineIdx === -1) {
       return c.body(null, 400);

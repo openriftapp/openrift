@@ -141,7 +141,6 @@ export function PhoneRow({
   const token = player.shareToken;
 
   return (
-    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- the row is the disclosure, with aria-expanded and Enter / Space on itself
     <li
       {...slot}
       {...rowToggleProps(token, expanded, onToggle)}

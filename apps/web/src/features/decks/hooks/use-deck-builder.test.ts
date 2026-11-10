@@ -1,17 +1,20 @@
 import type { Domain } from "@openrift/shared/types/enums";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { canAddRune, getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 import {
   addCardAction,
   changePreferredPrintingAction,
   moveCardAction,
   moveOneCardAction,
+  recordDeckEdit,
   removeCardAction,
   replaceCardAction,
   setLegendAction,
@@ -95,6 +98,26 @@ describe("addCardAction", () => {
     );
     const total = cardsOf(collection).reduce((sum, entry) => sum + entry.quantity, 0);
     expect(total).toBe(3);
+  });
+
+  it("refuses a second copy of a Unique card in another copy-limit zone", () => {
+    const card = stubDeckBuilderCard({
+      cardId: "card-1",
+      cardType: "unit",
+      zone: "main",
+      quantity: 1,
+      keywords: ["Unique"],
+    });
+    collection = createDraftCollection([card]);
+    addCardAction(
+      collection,
+      { ...card, zone: "sideboard" },
+      "sideboard",
+      undefined,
+      EMPTY_RUNES,
+      "constructed",
+    );
+    expect(cardsOf(collection)).toHaveLength(1);
   });
 
   it("skips the copy cap for cards with the unlimited override", () => {
@@ -1194,6 +1217,28 @@ describe("relaxed addCardAction", () => {
       expect(outcome?.card.cardId).toBe("card-1");
     });
 
+    it("lets a second Unique copy in and reports the broken limit", () => {
+      const card = stubDeckBuilderCard({
+        cardId: "card-1",
+        cardType: "unit",
+        zone: "main",
+        quantity: 1,
+        keywords: ["Unique"],
+      });
+      collection = createDraftCollection([card]);
+      const outcome = addCardAction(
+        collection,
+        card,
+        "sideboard",
+        undefined,
+        EMPTY_RUNES,
+        "constructed",
+        relaxed,
+      );
+      expect(totalOf("sideboard")).toBe(1);
+      expect(outcome).toMatchObject({ rule: "copyLimit", total: 2, limit: 1 });
+    });
+
     it("blocks the 4th copy without the relaxed option", () => {
       const card = unit();
       collection = createDraftCollection([card]);
@@ -1691,5 +1736,57 @@ describe("replaceCardAction", () => {
         .map((card) => card.cardId)
         .toSorted(),
     ).toEqual(["bf-0", "bf-2", "bf-new"]);
+  });
+});
+
+describe("recordDeckEdit", () => {
+  const resetUndo = createStoreResetter(useDeckUndoStore);
+  const undoStore = () => useDeckUndoStore.getState();
+  const unit = (quantity: number) =>
+    stubDeckBuilderCard({ cardId: "scorcher", cardType: "unit", zone: "main", quantity });
+
+  beforeEach(() => {
+    resetUndo();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    resetUndo();
+  });
+
+  it("leaves no undo step when an add is rejected at the copy cap", () => {
+    collection = createDraftCollection([unit(3)]);
+    recordDeckEdit(collection, "deck-1", () =>
+      addCardAction(collection, unit(1), "main", undefined, EMPTY_RUNES, "constructed"),
+    );
+    expect(undoStore().past).toEqual([]);
+  });
+
+  it("records the deck as it was before an edit that changed it", () => {
+    collection = createDraftCollection([unit(1)]);
+    recordDeckEdit(collection, "deck-1", () =>
+      addCardAction(collection, unit(1), "main", undefined, EMPTY_RUNES, "constructed"),
+    );
+    expect(undoStore().past).toHaveLength(1);
+    expect(undoStore().past[0]?.[0]?.quantity).toBe(1);
+  });
+
+  it("undoes a separate removal without reverting an add made just before it", () => {
+    const bolt = stubDeckBuilderCard({ cardId: "bolt", cardType: "spell", zone: "main" });
+    collection = createDraftCollection([bolt]);
+    recordDeckEdit(collection, "deck-1", () =>
+      addCardAction(collection, unit(1), "main", undefined, EMPTY_RUNES, "constructed"),
+    );
+    vi.advanceTimersByTime(100);
+    recordDeckEdit(
+      collection,
+      "deck-1",
+      () => removeCardAction(collection, "bolt", "main", EMPTY_RUNES, "constructed"),
+      { separate: true },
+    );
+
+    const restored = undoStore().undo("deck-1", cardsOf(collection));
+    expect(restored?.map((card) => card.cardId).toSorted()).toEqual(["bolt", "scorcher"]);
   });
 });

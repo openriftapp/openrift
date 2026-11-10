@@ -49,7 +49,6 @@ const cache = new WeakMap<QueryClient, CacheEntry>();
 
 function notify(entry: DraftEntry): void {
   for (const listener of entry.subscribers) {
-    // oxlint-disable-next-line promise/prefer-await-to-callbacks -- sync store subscribers
     listener();
   }
 }

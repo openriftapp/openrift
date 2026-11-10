@@ -1,21 +1,20 @@
 import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-queries";
+import type { AllCardsResponse } from "@openrift/shared/contracts/admin/card-queries";
 import type { ErrataAnnouncement } from "@openrift/shared/contracts/errata";
+import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type {
-  AdminCardDetailResponse,
-  AdminCardListResponse,
-  AllCardsResponse,
-  UnmatchedCardDetailResponse,
-} from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
+// The detail schemas contain `z.unknown()` fields, which createServerFn's serializable return check rejects.
+type LooseDetail = Record<string, any>;
+
 const fetchAdminCardList = createServerFn({ method: "GET" })
   .middleware([withCookies])
-  .handler(({ context }): Promise<AdminCardListResponse> =>
+  .handler(({ context }): Promise<CandidateCardSummaryResponse[]> =>
     apiOrpcClient(adminCardQueriesContract, context.cookie).listCandidates(),
   );
 
@@ -52,14 +51,12 @@ export const errataAnnouncementsQueryOptions = queryOptions({
 const fetchAdminCardDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: cardSlug }): Promise<AdminCardDetailResponse> => {
-    // The contract output is intentionally loose (`z.unknown()`); the service
-    // returns the rich detail shape, so cast to its hand-written interface.
-    const result = await apiOrpcClient(adminCardQueriesContract, context.cookie).getCandidateCard({
-      cardSlug,
-    });
-    return result as AdminCardDetailResponse;
-  });
+  .handler(
+    ({ context, data: cardSlug }) =>
+      apiOrpcClient(adminCardQueriesContract, context.cookie).getCandidateCard({
+        cardSlug,
+      }) as Promise<LooseDetail>,
+  );
 
 const REHOST_POLL_INTERVAL_MS = 3000;
 
@@ -91,12 +88,12 @@ export function adminCardDetailQueryOptions(cardSlug: string) {
 const fetchUnmatchedCardDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: name }): Promise<UnmatchedCardDetailResponse> => {
-    const result = await apiOrpcClient(adminCardQueriesContract, context.cookie).getUnmatchedDetail(
-      { name },
-    );
-    return result as UnmatchedCardDetailResponse;
-  });
+  .handler(
+    ({ context, data: name }) =>
+      apiOrpcClient(adminCardQueriesContract, context.cookie).getUnmatchedDetail({
+        name,
+      }) as Promise<LooseDetail>,
+  );
 
 export function unmatchedCardDetailQueryOptions(name: string) {
   return queryOptions({

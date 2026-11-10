@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   import/first
-   -- test file: mocks require empty fns and vi.mock before imports */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../system/services/discord-webhook.js", () => ({

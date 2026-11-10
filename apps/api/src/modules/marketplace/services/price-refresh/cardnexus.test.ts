@@ -1,6 +1,3 @@
-/* oxlint-disable
-   no-empty-function
-   -- test file: mocks require empty fns */
 import type { Logger } from "@openrift/shared/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -342,6 +339,25 @@ describe("refreshCardnexusPrices", () => {
     await expect(
       refreshCardnexusPrices(makeFetch({ missingFeed: "prices" }), createMockRepos(), log, "key"),
     ).rejects.toThrow("CardNexus has not generated every Riftbound feed yet");
+  });
+
+  it("retries a feed download that fails once with a 5xx", async () => {
+    const healthy = makeFetch();
+    let failed = false;
+    const fetchFn = vi.fn<Fetch>(async (input, init) => {
+      if (!failed && input === "https://feeds.test/prices") {
+        failed = true;
+        return new Response("upstream down", { status: 503 });
+      }
+      return await healthy(input, init);
+    });
+
+    await refreshCardnexusPrices(fetchFn, createMockRepos(), log, "key");
+
+    expect(failed).toBe(true);
+    expect(
+      fetchFn.mock.calls.filter(([input]) => input === "https://feeds.test/prices"),
+    ).toHaveLength(2);
   });
 
   it("throws on a failed feed download", async () => {

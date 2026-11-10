@@ -76,7 +76,6 @@ vi.mock("@/features/admin/hooks/use-rehost", () => ({
   useCancelRegenerateImages: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { JobRunsPage } from "./job-runs-page";
 
 const KINDS = [

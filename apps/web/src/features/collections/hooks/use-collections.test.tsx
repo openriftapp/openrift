@@ -6,8 +6,10 @@ import { Suspense } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { tradesKeys } from "@/features/groups/lib/groups-query-keys";
 import { createQueryClient } from "@/lib/query-client";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
+import { UserDeclinedError } from "@/lib/user-declined-error";
 import { stubCollection, stubCopy } from "@/test/factories";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
@@ -43,9 +45,13 @@ const {
   useCollections,
   useCollectionsList,
   useCreateCollection,
+  useDeleteCollection,
   useReorderCollections,
+  useResetCollections,
   useSetCollectionSidebarHidden,
 } = await import("./use-collections");
+const { useTradeCancelConsentStore } =
+  await import("@/features/groups/stores/trade-cancel-consent-store");
 
 const USER = "user-1";
 
@@ -232,7 +238,6 @@ describe("useSetCollectionSidebarHidden", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const collection = await signedInWithCollections(client, [stubCollection({ id: "col-1" })]);
     let release = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- held open so the optimistic state is observable
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
@@ -269,6 +274,244 @@ describe("useSetCollectionSidebarHidden", () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
     });
+  });
+});
+
+describe("useDeleteCollection", () => {
+  const TRADE = {
+    id: "e0000000-0001-4000-a000-000000000001",
+    cardId: "card-1",
+    printingId: "p1",
+    quantity: 1,
+    counterpartyName: "Mara",
+  };
+  const CHECK_PATH = "/api/v1/collections/col-1/trade-cancels/delete";
+
+  function givingTrades(client: QueryClient, giving: boolean) {
+    client.setQueryData(tradesKeys.liveByPrinting(USER), {
+      annotations: giving
+        ? [{ printingId: "p1", role: "giver", phase: "offered", tradeCount: 1, quantity: 1 }]
+        : [],
+    });
+  }
+
+  beforeEach(() => {
+    useTradeCancelConsentStore.setState({ request: null });
+  });
+
+  it("deletes without a check when the viewer gives in no pending trade", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await signedInWithCollections(client, [stubCollection({ id: "col-1" })]);
+    givingTrades(client, false);
+    const { result } = renderHook(() => useDeleteCollection(), { wrapper: wrap(client) });
+
+    await result.current.mutateAsync("col-1");
+
+    expect(sent.filter((request) => request.method !== "GET")).toEqual([
+      { method: "DELETE", path: "/api/v1/collections/col-1", body: {} },
+    ]);
+  });
+
+  it("asks first and sends the confirmed trade ids with the delete", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await signedInWithCollections(client, [stubCollection({ id: "col-1" })]);
+    givingTrades(client, true);
+    respond = (request) =>
+      request.path === CHECK_PATH ? Response.json({ trades: [TRADE] }) : succeed(request);
+    const { result } = renderHook(() => useDeleteCollection(), { wrapper: wrap(client) });
+
+    const pending = result.current.mutateAsync("col-1");
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    useTradeCancelConsentStore.getState().answer(true);
+    await pending;
+
+    expect(sent.filter((request) => request.method !== "GET")).toEqual([
+      { method: "POST", path: CHECK_PATH, body: undefined },
+      {
+        method: "DELETE",
+        path: "/api/v1/collections/col-1",
+        body: { cancelTradeIds: [TRADE.id] },
+      },
+    ]);
+  });
+
+  it("declining keeps the collection and sends no delete", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const collection = await signedInWithCollections(client, [stubCollection({ id: "col-1" })]);
+    givingTrades(client, true);
+    respond = (request) =>
+      request.path === CHECK_PATH ? Response.json({ trades: [TRADE] }) : succeed(request);
+    const before = collection.get("col-1");
+    const { result } = renderHook(() => useDeleteCollection(), { wrapper: wrap(client) });
+
+    const outcome = result.current.mutateAsync("col-1").catch((error: unknown) => error);
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    useTradeCancelConsentStore.getState().answer(false);
+
+    expect(await outcome).toBeInstanceOf(UserDeclinedError);
+    expect(sent.some((request) => request.method === "DELETE")).toBe(false);
+    expect(collection.get("col-1")).toEqual(before);
+  });
+});
+
+describe("useResetCollections", () => {
+  const TRADE = {
+    id: "e0000000-0001-4000-a000-000000000001",
+    cardId: "card-1",
+    printingId: "p1",
+    quantity: 1,
+    counterpartyName: "Mara",
+  };
+  const CHECK_PATH = "/api/v1/collections/trade-cancels/reset";
+  const RESET_PATH = "/api/v1/collections/reset";
+  const SUMMARY = { removedCopies: 1, removedCollections: 0, removedLists: 0 };
+
+  function givingTrades(client: QueryClient, giving: boolean) {
+    client.setQueryData(tradesKeys.liveByPrinting(USER), {
+      annotations: giving
+        ? [{ printingId: "p1", role: "giver", phase: "asked", tradeCount: 1, quantity: 1 }]
+        : [],
+    });
+  }
+
+  function conflict(message: string, data?: unknown): Response {
+    return Response.json(
+      { defined: data !== undefined, code: "CONFLICT", status: 409, message, data },
+      { status: 409 },
+    );
+  }
+
+  async function signedInWithCopy(client: QueryClient) {
+    seedSession(client);
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ id: "copy-1", collectionId: "inbox" })],
+      nextCursor: null,
+    });
+    const copies = getCopiesCollection(client, USER);
+    await copies.preload();
+    return copies;
+  }
+
+  beforeEach(() => {
+    useTradeCancelConsentStore.setState({ request: null });
+  });
+
+  it("resets without a check when the viewer gives in no pending trade", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await signedInWithCopy(client);
+    givingTrades(client, false);
+    respond = (request) =>
+      request.path === RESET_PATH ? Response.json(SUMMARY) : succeed(request);
+    const { result } = renderHook(() => useResetCollections(), { wrapper: wrap(client) });
+
+    await expect(result.current.mutateAsync()).resolves.toEqual(SUMMARY);
+
+    expect(sent.filter((request) => request.method !== "GET")).toEqual([
+      { method: "POST", path: RESET_PATH, body: {} },
+    ]);
+  });
+
+  it("asks first and sends the confirmed trade ids with the reset", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await signedInWithCopy(client);
+    givingTrades(client, true);
+    respond = (request) => {
+      if (request.path === CHECK_PATH) {
+        return Response.json({ trades: [TRADE] });
+      }
+      return request.path === RESET_PATH ? Response.json(SUMMARY) : succeed(request);
+    };
+    const { result } = renderHook(() => useResetCollections(), { wrapper: wrap(client) });
+
+    const pending = result.current.mutateAsync();
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    useTradeCancelConsentStore.getState().answer(true);
+    await pending;
+
+    expect(sent.filter((request) => request.method !== "GET")).toEqual([
+      { method: "POST", path: CHECK_PATH, body: undefined },
+      { method: "POST", path: RESET_PATH, body: { cancelTradeIds: [TRADE.id] } },
+    ]);
+  });
+
+  it("declining sends no reset and leaves the copies and the cache as they were", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const copies = await signedInWithCopy(client);
+    givingTrades(client, true);
+    respond = (request) =>
+      request.path === CHECK_PATH ? Response.json({ trades: [TRADE] }) : succeed(request);
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useResetCollections(), { wrapper: wrap(client) });
+
+    const outcome = result.current.mutateAsync().catch((error: unknown) => error);
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    useTradeCancelConsentStore.getState().answer(false);
+
+    expect(await outcome).toBeInstanceOf(UserDeclinedError);
+    expect(sent.some((request) => request.path === RESET_PATH)).toBe(false);
+    expect(copies.toArray.map((copy) => copy.id)).toEqual(["copy-1"]);
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("asks when the server refuses for a trade the cached trades did not show", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await signedInWithCopy(client);
+    givingTrades(client, false);
+    respond = (request) => {
+      if (request.path !== RESET_PATH) {
+        return succeed(request);
+      }
+      const confirmed = (request.body as { cancelTradeIds?: string[] }).cancelTradeIds;
+      return confirmed?.includes(TRADE.id)
+        ? Response.json(SUMMARY)
+        : conflict("This change would cancel pending trades.", { trades: [TRADE] });
+    };
+    const { result } = renderHook(() => useResetCollections(), { wrapper: wrap(client) });
+
+    const pending = result.current.mutateAsync();
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    useTradeCancelConsentStore.getState().answer(true);
+
+    await expect(pending).resolves.toEqual(SUMMARY);
+    expect(sent.filter((request) => request.path === RESET_PATH)).toHaveLength(2);
+  });
+
+  it("declining after a server refusal leaves the copies and the cache as they were", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const copies = await signedInWithCopy(client);
+    givingTrades(client, false);
+    respond = (request) =>
+      request.path === RESET_PATH
+        ? conflict("This change would cancel pending trades.", { trades: [TRADE] })
+        : succeed(request);
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useResetCollections(), { wrapper: wrap(client) });
+
+    const outcome = result.current.mutateAsync().catch((error: unknown) => error);
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    useTradeCancelConsentStore.getState().answer(false);
+
+    expect(await outcome).toBeInstanceOf(UserDeclinedError);
+    expect(sent.filter((request) => request.path === RESET_PATH)).toHaveLength(1);
+    expect(copies.toArray.map((copy) => copy.id)).toEqual(["copy-1"]);
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's message when a reserved card blocks the reset", async () => {
+    const client = createQueryClient();
+    await signedInWithCopy(client);
+    givingTrades(client, true);
+    const message = "Some of your cards are reserved in active trades, cancel those trades first.";
+    respond = (request) =>
+      request.path === CHECK_PATH || request.path === RESET_PATH
+        ? conflict(message)
+        : succeed(request);
+    const { result } = renderHook(() => useResetCollections(), { wrapper: wrap(client) });
+
+    await expect(result.current.mutateAsync()).rejects.toThrow(message);
+
+    expect(toast.error).toHaveBeenCalledWith(message, PERSISTENT_ERROR_TOAST);
+    expect(useTradeCancelConsentStore.getState().request).toBeNull();
   });
 });
 

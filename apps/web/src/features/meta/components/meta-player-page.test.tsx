@@ -1,4 +1,4 @@
-import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import type { MetaDeckSummary, MetaPlayerDetailResponse } from "@openrift/shared/types/api/meta";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -111,11 +111,8 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeMetaPlayerDetail, makeMetaPlayerFinish, resetIdCounter } from "@/test/factories";
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaPlayerPage } from "./meta-player-page";
 
 const LUX = {

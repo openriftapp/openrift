@@ -151,7 +151,7 @@ describe("POST /api/admin/v1/regenerate-images", () => {
   });
 
   it("returns already_running when a regenerate job is already in flight", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: EARLIER_RUN });
+    mockJobRuns.getRunning.mockResolvedValue({ id: EARLIER_RUN, startedAt: new Date() });
     const res = await app.request("/api/admin/v1/regenerate-images", { method: "POST" });
     expect(res.status).toBe(200);
     const json = await readJson(res);
@@ -196,7 +196,7 @@ describe("POST /api/admin/v1/regenerate-images/cancel", () => {
   });
 
   it("flips cancelRequested on the running row's checkpoint", async () => {
-    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_X });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_X, startedAt: new Date() });
     mockJobRuns.getResult.mockResolvedValue({
       snapshot: [],
       totalFiles: 5,

@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   import/first
-   -- test file: mocks require empty fns and vi.mock before imports */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Transact } from "../../../deps.js";

@@ -1,6 +1,5 @@
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type { CardSubmissionInput } from "@openrift/shared/contracts/card-submissions";
-/* oxlint-disable no-restricted-imports -- api has no @/ alias */
 import { formatCompactUtcStamp } from "@openrift/shared/format-date";
 import { describe, expect, it, vi } from "vitest";
 

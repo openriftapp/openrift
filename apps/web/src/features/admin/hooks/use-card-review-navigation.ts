@@ -136,8 +136,6 @@ export function useCardReviewNavigation({
 }: UseCardReviewNavigationOptions) {
   const navigate = useNavigate();
   const { data: allCards } = useAllCards();
-  // The caller's scope, not the mutation's default: that one keys off the card's
-  // UUID, while this page's detail query is keyed by slug.
   const checkAllCardSources = useCheckAllCandidateCards(invalidates);
   const checkAllCandidatePrintings = useCheckAllCandidatePrintings(invalidates);
 

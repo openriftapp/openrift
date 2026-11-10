@@ -100,7 +100,7 @@ export const friendGroupsCoreRouter = {
     // admins at will. Best-effort (the service swallows its own errors) so a
     // mail failure can never fail a request the visitor already made.
     if (created) {
-      await context.services.notifyAdminsOfGroupJoinRequest(context.repos, {
+      void context.services.notifyAdminsOfGroupJoinRequest(context.repos, {
         groupId: group.id,
         groupSlug: group.slug,
         groupName: group.name,

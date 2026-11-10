@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 type Listener = () => void;
 
 interface ImageState {
-  outcome: "load" | "error";
+  outcome: "load" | "error" | "never";
   naturalWidth: number;
   naturalHeight: number;
 }
@@ -29,6 +29,9 @@ class FakeImage {
   set src(value: string) {
     this.source = value;
     constructed.push(value);
+    if (state.outcome === "never") {
+      return;
+    }
     globalThis.setTimeout(() => this.listeners.get(state.outcome)?.(), 0);
   }
 }
@@ -60,6 +63,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -120,6 +124,18 @@ describe("prewarmTintedIcons", () => {
 
     await prewarmTintedIcons([{ src: "/icons/might.svg", color: TINT_WHITE }]);
 
+    expect(getCachedTintedIcon("/icons/might.svg", TINT_WHITE)).toBeUndefined();
+  });
+
+  it("resolves once a stalled image request times out", async () => {
+    state.outcome = "never";
+    const { getCachedTintedIcon, prewarmTintedIcons, TINT_WHITE } = await loadModule();
+    vi.useFakeTimers();
+
+    const prewarm = prewarmTintedIcons([{ src: "/icons/might.svg", color: TINT_WHITE }]);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    await expect(prewarm).resolves.toBeUndefined();
     expect(getCachedTintedIcon("/icons/might.svg", TINT_WHITE)).toBeUndefined();
   });
 

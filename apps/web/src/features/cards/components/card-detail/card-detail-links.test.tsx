@@ -51,7 +51,6 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
   useIsAdmin: () => ({ data: isAdminMock() }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardDetailLinks, CardPageButton } from "./card-detail-links";
 
 async function openCorrectionMenu() {

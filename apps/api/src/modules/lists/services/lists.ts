@@ -1,16 +1,49 @@
 import type { MoveListEntriesResolution } from "@openrift/shared/contracts/lists";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import type { ListKind, ListMoveResponse } from "@openrift/shared/types/api/list";
+import type { ListIntent, ListKind, ListMoveResponse } from "@openrift/shared/types/api/list";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { sweepGiverTradesInGroups } from "../../groups/services/trade-supply.js";
 import type { MoveEntry, NewEntryValues } from "../repositories/lists-entries.js";
 
 const KIND_RANK: Record<ListKind, number> = { card: 0, printing: 1, copy: 2 };
 
 function badRequest(message: string): AppError {
   return new AppError(400, ERROR_CODES.BAD_REQUEST, message);
+}
+
+async function groupIdsSharingLists(repos: Repos, listIds: readonly string[]): Promise<string[]> {
+  const groupIds: string[] = [];
+  for (const listId of listIds) {
+    const groups = await repos.friendGroups.listGroupsSharingList(listId);
+    groupIds.push(...groups.map((group) => group.groupId));
+  }
+  return groupIds;
+}
+
+/** The edit and the sweep of the owner's pending trades in every group sharing a trade list commit
+ * together, and a sweep that would cancel a trade outside `cancelTradeIds` rolls the edit back. */
+export function withTradeSupplySweep<T>(
+  repos: Repos,
+  transact: Transact,
+  userId: string,
+  lists: readonly { id: string; intent: ListIntent }[],
+  cancelTradeIds: readonly string[],
+  edit: (repos: Repos) => Promise<T>,
+): Promise<T> {
+  const tradeListIds = lists.filter((list) => list.intent === "trade").map((list) => list.id);
+  if (tradeListIds.length === 0) {
+    return edit(repos);
+  }
+  return transact(async (trxRepos) => {
+    // Read first: deleting a list cascades its shares away.
+    const groupIds = await groupIdsSharingLists(trxRepos, tradeListIds);
+    const result = await edit(trxRepos);
+    await sweepGiverTradesInGroups(trxRepos, userId, groupIds, cancelTradeIds);
+    return result;
+  });
 }
 
 /** Merge semantics mirror `bulkCreateEntries`: card/printing entries absorb into an
@@ -24,6 +57,7 @@ export async function moveListEntries(
   entryIds: string[],
   resolutions: MoveListEntriesResolution[] = [],
   mode: "move" | "copy" = "move",
+  cancelTradeIds: readonly string[] = [],
 ): Promise<ListMoveResponse> {
   if (fromListId === toListId) {
     throw badRequest("Source and destination must differ");
@@ -173,8 +207,11 @@ export async function moveListEntries(
     }
 
     const sourceIds = entries.map((entry) => entry.id);
+    const sweepGroupIds =
+      source.intent === "trade" ? await groupIdsSharingLists(trxRepos, [fromListId]) : [];
     const deleted = await trxRepos.lists.deleteEntriesByIds(sourceIds, fromListId, userId);
     const moved = Number(deleted.numDeletedRows);
+    await sweepGiverTradesInGroups(trxRepos, userId, sweepGroupIds, cancelTradeIds);
 
     return { moved, merged: upsertResult.updated };
   });

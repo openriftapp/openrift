@@ -3,13 +3,15 @@ import type {
   DeckCheckEntryDetailResponse,
   DeckCheckEventDetailResponse,
 } from "@openrift/shared/types/api/deck-check";
-import { useQuery } from "@tanstack/react-query";
+import { isDefinedError, safe } from "@orpc/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { deckCheckEntryInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentDeckCheckKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { reportMutationError } from "@/lib/query-client";
 import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -40,6 +42,7 @@ export function useTournamentDeckCheckEntries(tournamentId: string, enabled = tr
     queryKey: tournamentDeckCheckKeys.entries(userId, tournamentId),
     queryFn: () => fetchEntries({ data: tournamentId }),
     enabled,
+    staleTime: 0,
     refetchInterval: POLL_INTERVAL_MS,
     refetchOnWindowFocus: true,
   });
@@ -50,6 +53,7 @@ export function useTournamentDeckCheckEntry(tournamentId: string, entryId: strin
   return useQuery({
     queryKey: tournamentDeckCheckKeys.entry(userId, tournamentId, entryId),
     queryFn: () => fetchEntry({ data: { tournamentId, entryId } }),
+    staleTime: 0,
     refetchInterval: POLL_INTERVAL_MS,
     refetchOnWindowFocus: true,
   });
@@ -188,8 +192,17 @@ const tickCardFn = createServerFn({ method: "POST" })
     }) => input,
   )
   .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(tournamentDeckCheckContract, context.cookie).tickCard(data);
+  .handler(async ({ context, data }): Promise<{ status: "ok" | "stale" }> => {
+    const { error } = await safe(
+      apiOrpcClient(tournamentDeckCheckContract, context.cookie).tickCard(data),
+    );
+    if (error) {
+      if (isDefinedError(error) && error.code === "CONFLICT") {
+        return { status: "stale" };
+      }
+      throw error;
+    }
+    return { status: "ok" };
   });
 
 export function useCreateTournamentDeckCheckEntry() {
@@ -290,10 +303,58 @@ export function useRemoveTournamentDeckCheckCard() {
   });
 }
 
+type TickVars = Parameters<typeof tickCardFn>[0]["data"];
+
+const TICK_MUTATION_KEY = ["deck-check-tick"];
+
+function withCopyFound(
+  detail: DeckCheckEntryDetailResponse | undefined,
+  vars: TickVars,
+  found: boolean,
+): DeckCheckEntryDetailResponse | undefined {
+  if (!detail) {
+    return detail;
+  }
+  return {
+    ...detail,
+    cards: detail.cards.map((card) =>
+      card.id === vars.cardId
+        ? {
+            ...card,
+            foundCopies: card.foundCopies.map((value, index) =>
+              index === vars.copyIndex ? found : value,
+            ),
+          }
+        : card,
+    ),
+  };
+}
+
 export function useTickTournamentDeckCheckCard() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation({
-    mutationFn: (vars: Parameters<typeof tickCardFn>[0]["data"]) => tickCardFn({ data: vars }),
-    invalidates: (vars) => [tournamentDeckCheckKeys.entry(userId, vars.tournamentId, vars.entryId)],
+  const queryClient = useQueryClient();
+  const entryKey = (vars: TickVars) =>
+    tournamentDeckCheckKeys.entry(userId, vars.tournamentId, vars.entryId);
+  return useMutation({
+    mutationKey: TICK_MUTATION_KEY,
+    mutationFn: (vars: TickVars) => tickCardFn({ data: vars }),
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: entryKey(vars) });
+      queryClient.setQueryData<DeckCheckEntryDetailResponse>(entryKey(vars), (detail) =>
+        withCopyFound(detail, vars, vars.found),
+      );
+    },
+    onError: (error, vars) => {
+      queryClient.setQueryData<DeckCheckEntryDetailResponse>(entryKey(vars), (detail) =>
+        withCopyFound(detail, vars, !vars.found),
+      );
+      reportMutationError(error, queryClient);
+    },
+    onSettled: (_data, _error, vars) => {
+      // Refetching while another tick is in flight would overwrite its optimistic value.
+      if (queryClient.isMutating({ mutationKey: TICK_MUTATION_KEY }) === 1) {
+        void queryClient.invalidateQueries({ queryKey: entryKey(vars) });
+      }
+    },
   });
 }

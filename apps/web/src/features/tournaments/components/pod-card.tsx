@@ -22,6 +22,7 @@ import { isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -163,13 +164,8 @@ export function PodCard({
       return;
     }
     setSaving(true);
-    // Same try/catch shape as handleSubmit (no try/finally under React Compiler).
-    try {
-      await onSubmitPlayerResult(pod.id, scoringPlayerId, parsed);
+    if (await runReportedMutation(() => onSubmitPlayerResult(pod.id, scoringPlayerId, parsed))) {
       setScoringPlayerId(null);
-    } catch (error) {
-      setSaving(false);
-      throw error;
     }
     setSaving(false);
   }

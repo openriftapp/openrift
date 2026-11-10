@@ -21,7 +21,6 @@ vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
   useDeletePrintingCitation: () => ({ mutate: captured.remove, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { PrintingCitationsEditor } from "./printing-citations-editor";
 
 const PRINTING_ID = "b0000000-0001-4000-a000-000000000001";
@@ -144,6 +143,19 @@ describe("PrintingCitationsEditor", () => {
       label: "Unboxing, re-watched",
       sourceUrl: citation.sourceUrl,
     });
+  });
+
+  it("locks a link the viewer did not add", () => {
+    captured.citations = [{ ...citation, canEdit: false }];
+    render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
+
+    expect(screen.getByText("Added by someone else")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: `Edit source link ${citation.label}` }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: `Delete source link ${citation.label}` }),
+    ).not.toBeInTheDocument();
   });
 
   it("deletes a citation", async () => {

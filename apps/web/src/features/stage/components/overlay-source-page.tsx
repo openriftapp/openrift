@@ -21,7 +21,6 @@ export function OverlaySourcePage() {
 
   return (
     <>
-      {/* oxlint-disable-next-line react/no-danger -- static constant above, no interpolation */}
       <style dangerouslySetInnerHTML={{ __html: TRANSPARENT_PAGE_CSS }} />
       {hydrated && <OverlaySourceCanvas token={token} presetId={preset} />}
     </>

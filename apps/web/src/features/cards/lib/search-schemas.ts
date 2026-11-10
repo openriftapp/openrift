@@ -1,21 +1,17 @@
 import { translateLegacyQuery } from "@openrift/shared/search-query/legacy";
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import { GROUP_BY_FIELDS, SORT_DIRECTIONS, SORT_OPTIONS } from "@openrift/shared/types/search";
-import { z } from "zod";
+import { z } from "zod/mini";
 
-// `.catch(undefined)` drops malformed URL values silently; it does not throw.
-const stringField = () => z.string().optional().catch(undefined);
-const numberField = () => z.number().optional().catch(undefined);
-const stringArray = () => z.array(z.string()).optional().catch(undefined);
-const boolFlag = () => z.boolean().optional().catch(undefined);
-const presenceField = () => z.enum(["any", "none"]).optional().catch(undefined);
+import { lenient } from "@/lib/lenient-param";
+
+const stringField = () => lenient(z.string());
+const numberField = () => lenient(z.number());
+const stringArray = () => lenient(z.array(z.string()));
+const boolFlag = () => lenient(z.boolean());
+const presenceField = () => lenient(z.enum(["any", "none"]));
 
 const URL_GROUP_BY_VALUES = [...GROUP_BY_FIELDS, "card"] as const;
-const ownedFilter = () =>
-  z
-    .array(z.enum(["none", "partial", "full", "extra"]))
-    .optional()
-    .catch(undefined);
+const ownedFilter = () => lenient(z.array(z.enum(["none", "partial", "full", "extra"])));
 
 export type OwnedBucket = "none" | "partial" | "full" | "extra";
 
@@ -75,11 +71,11 @@ export const filterSearchSchema = z.object({
   banned: boolFlag(),
   errata: boolFlag(),
   noImage: boolFlag(),
-  sort: z.enum(SORT_OPTIONS).optional().catch(undefined),
-  sortDir: z.enum(SORT_DIRECTIONS).optional().catch(undefined),
-  view: z.enum(["cards", "printings", "copies"]).optional().catch(undefined),
-  groupBy: z.enum(URL_GROUP_BY_VALUES).optional().catch(undefined),
-  groupDir: z.enum(SORT_DIRECTIONS).optional().catch(undefined),
+  sort: lenient(z.enum(SORT_OPTIONS)),
+  sortDir: lenient(z.enum(SORT_DIRECTIONS)),
+  view: lenient(z.enum(["cards", "printings", "copies"])),
+  groupBy: lenient(z.enum(URL_GROUP_BY_VALUES)),
+  groupDir: lenient(z.enum(SORT_DIRECTIONS)),
 });
 
 export type FilterSearch = z.infer<typeof filterSearchSchema>;
@@ -88,7 +84,7 @@ export type FilterSearch = z.infer<typeof filterSearchSchema>;
  * `wanted` narrows a group "bulk box" to printings the viewer's wish lists
  * still want; absent (not `false`) when off, so the URL stays clean.
  */
-export const collectionDetailSearchSchema = filterSearchSchema.extend({
+export const collectionDetailSearchSchema = z.extend(filterSearchSchema, {
   wanted: boolFlag(),
 });
 
@@ -97,17 +93,17 @@ export const collectionDetailSearchSchema = filterSearchSchema.extend({
  * buildLocation), so re-parsing with the schema is needed to get the clean set.
  */
 export function cleanedSearchForRedirect<Output extends Record<string, unknown>>(
-  schema: z.ZodType<Output>,
+  schema: z.core.$ZodType<Output>,
   search: unknown,
   searchStr: string,
 ): Output | null {
-  const parsed = schema.safeParse(search);
+  const parsed = z.safeParse(schema, search);
   let cleaned = parsed.success ? parsed.data : ({} as Output);
   const legacy = (search as { search?: unknown }).search;
   if (
-    schema instanceof z.ZodObject &&
-    "q" in schema.shape &&
-    !("search" in schema.shape) &&
+    schema instanceof z.core.$ZodObject &&
+    "q" in schema._zod.def.shape &&
+    !("search" in schema._zod.def.shape) &&
     (typeof legacy === "string" || typeof legacy === "number") &&
     (cleaned as { q?: string }).q === undefined
   ) {

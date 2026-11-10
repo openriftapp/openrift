@@ -1,4 +1,12 @@
 import {
+  MAX_FACET_VALUES,
+  MAX_OFFSET,
+  META_EVENT_HOLDINGS,
+  META_EVENT_INDEX_SORTS,
+  META_MAX_LIST_PAGE_SIZE,
+  META_MAX_PAGE_SIZE,
+} from "@openrift/shared/meta-query";
+import {
   deckFormatSchema,
   metaEventStatusSchema,
   metaEventTierSchema,
@@ -267,26 +275,7 @@ export const metaEventDetailResponseSchema = z.object({
   phases: z.array(metaEventPhaseSchema),
 });
 
-// `z.coerce.number()` accepts 1e30, which postgres.js sends in exponent form and
-// Postgres rejects. Every paged input is bounded before it reaches a query.
-export const MAX_OFFSET = 1_000_000;
-
-export const MAX_FACET_VALUES = 300;
-
 const pageOffset = z.coerce.number().int().nonnegative().max(MAX_OFFSET).optional();
-
-// The event payload carries this many rows, and the web seeds its cache under a
-// key built from it, so a change here silently mismatches that key on both sides.
-export const STANDINGS_PAGE_SIZE = 200;
-
-/** The page sizes a list's picker offers. */
-export const META_PAGE_SIZES = [50, 100, 200, 500] as const;
-
-/** The largest page a list serves, which is the largest size its picker offers. */
-export const META_MAX_LIST_PAGE_SIZE = Math.max(...META_PAGE_SIZES);
-
-/** The whole field of the largest event the archive holds, for a reader who asked for all of it. */
-export const META_MAX_PAGE_SIZE = 5000;
 
 const listLimit = z.coerce.number().int().positive().max(META_MAX_LIST_PAGE_SIZE).optional();
 
@@ -511,8 +500,6 @@ export const metaScopeQuerySchema = metaDateRangeQuerySchema.extend({
   countriesEx: scopeFacetList,
 });
 
-export const META_EVENT_HOLDINGS = ["decks", "standings", "upcoming", "resultless"] as const;
-
 /** Everything the event index narrows by: the scope bar, plus the page's own controls. */
 export const metaEventFilterQuerySchema = metaScopeQuerySchema.extend({
   /** One event by its own slug, for a surface holding a link and nothing else. */
@@ -522,15 +509,6 @@ export const metaEventFilterQuerySchema = metaScopeQuerySchema.extend({
   playersMin: z.coerce.number().int().nonnegative().optional(),
   playersMax: z.coerce.number().int().nonnegative().optional(),
 });
-
-export const META_EVENT_INDEX_SORTS = [
-  "date",
-  "name",
-  "tier",
-  "country",
-  "players",
-  "decks",
-] as const;
 
 export const metaEventListQuerySchema = metaEventFilterQuerySchema.extend({
   by: z.enum(META_EVENT_INDEX_SORTS).optional(),

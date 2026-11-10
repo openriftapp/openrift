@@ -15,6 +15,7 @@ import { CardPlateContent, hasCardPlateContent } from "@/features/cards/componen
 import { TierBoard } from "@/features/stage/components/tier-board";
 import type { OverlayBoardScene } from "@/features/stage/lib/overlay-board-scene";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
+import { loadImage } from "@/lib/load-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -172,13 +173,12 @@ export function OverlayFrame({
     let cancelled = false;
     const swapWhenDecoded = async () => {
       if (image) {
-        const loader = new Image();
-        loader.src = imageUrl(image.imageId, "full");
         try {
-          await loader.decode();
+          const loaded = await loadImage(imageUrl(image.imageId, "full"));
+          await loaded.decode();
         } catch {
-          // decode() rejects for undecodable images; the swap still has to
-          // happen, or the overlay wedges on the previous card.
+          // A failed, stalled or undecodable image still has to swap, or the
+          // overlay wedges on the previous card.
         }
       }
       if (!cancelled) {

@@ -1,3 +1,4 @@
+import type { CreatePrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import { setSlugFromShortCode, shortCodeFromPublicCode } from "@openrift/shared/printing-code";
@@ -17,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreatePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
-import type { CreatePrintingBody } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useLanguages } from "@/features/admin/hooks/use-languages";

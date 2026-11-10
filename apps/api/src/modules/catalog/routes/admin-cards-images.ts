@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem path join
 import { join } from "node:path";
 
 import { adminCardImagesContract } from "@openrift/shared/contracts/admin/card-images";
@@ -13,6 +12,7 @@ import {
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { MAX_IMAGE_BYTES } from "../services/images/download.js";
 import { rehostImageFile, rehostSingleImage } from "../services/images/jobs.js";
 import { fetchOriginalImage } from "../services/images/original-source.js";
 import { CARD_MEDIA_DIR, imageRehostedUrl } from "../services/images/paths.js";
@@ -394,8 +394,7 @@ export const adminCardImagesRouter = {
     const mode = context.adminAccess?.isAdmin ? requested : ("additional" as const);
     const face = rawFace ?? "front";
 
-    const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-    if (file.size > MAX_UPLOAD_BYTES) {
+    if (file.size > MAX_IMAGE_BYTES) {
       throw errors.PAYLOAD_TOO_LARGE({ message: "File exceeds 50 MB limit" });
     }
 
@@ -502,8 +501,7 @@ export const adminCardImagesRouter = {
     const current = await printingImages.getFallbackArt(printingId, face);
     assertFound(current, "Printing not found");
 
-    const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-    if (file.size > MAX_UPLOAD_BYTES) {
+    if (file.size > MAX_IMAGE_BYTES) {
       throw errors.PAYLOAD_TOO_LARGE({ message: "File exceeds 50 MB limit" });
     }
 

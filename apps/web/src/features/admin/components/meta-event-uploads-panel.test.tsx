@@ -34,7 +34,6 @@ vi.mock("@/features/admin/hooks/use-admin-meta-overlays", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventUploadsPanel } from "./meta-event-uploads-panel";
 
 function upload(overrides: Partial<MetaUploadSummary> = {}): MetaUploadSummary {

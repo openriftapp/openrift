@@ -17,7 +17,6 @@ vi.mock("@/features/cards/hooks/use-card-holdings", () => ({
   },
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardHoldingsSection } from "./card-holdings-section";
 
 function line(overrides: Partial<CardHoldingLine> = {}): CardHoldingLine {

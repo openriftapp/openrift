@@ -1,4 +1,6 @@
 import { collectionsContract } from "@openrift/shared/contracts/collections";
+import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
+import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   ClearCollectionResponse,
   CollectionListResponse,
@@ -13,6 +15,7 @@ import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
 import type { CollectionsTable } from "../../../db/tables/collections.js";
+import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { keysetPage } from "../../../lib/keyset-cursor.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
@@ -22,13 +25,25 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { buildPatchUpdates } from "../../../patch.js";
 import type { FieldMapping } from "../../../patch.js";
 import { loadGroupForMember } from "../../groups/lib/group-access.js";
+import {
+  consentedTradeCancels,
+  refusingUnconfirmedTradeCancels,
+} from "../../groups/services/trade-supply.js";
 import { getFavoriteMarketplace } from "../../users/lib/preferences.js";
 import { loadCollectionAccess, requireCollectionAdmin } from "../lib/collection-access.js";
 import type { HomeDeck } from "../lib/collection-presenters.js";
 import { toCollection } from "../lib/collection-presenters.js";
 import { clampCopiesLimit } from "../lib/copies-page-limit.js";
 import { toCopy } from "../lib/copy-presenters.js";
-import { clearCollection, deleteCollection, resetCollections } from "../services/collections.js";
+import type { DeleteCollectionOpts } from "../services/collections.js";
+import {
+  clearCollection,
+  deleteCollection,
+  previewClearCollectionTradeCancels,
+  previewDeleteCollectionTradeCancels,
+  previewResetCollectionsTradeCancels,
+  resetCollections,
+} from "../services/collections.js";
 
 const patchFields: FieldMapping<Updateable<CollectionsTable>> = {
   name: "name",
@@ -78,6 +93,35 @@ async function presentCollections(
     homeDecksByCollection(repos, userId),
   ]);
   return rows.map((row) => toCollection(row, values.get(row.id), homeDecks.get(row.id)));
+}
+
+/** Shared by delete and its trade-cancel check, so both refuse the same requests. */
+async function planCollectionDelete(
+  context: ApiContext,
+  userId: string,
+  collectionId: string,
+): Promise<"group" | DeleteCollectionOpts> {
+  const access = await requireCollectionAdmin(
+    context.repos,
+    collectionId,
+    userId,
+    "delete this collection",
+  );
+  const { collection } = access;
+  if (collection.isInbox) {
+    throw new AppError(409, ERROR_CODES.CONFLICT, "Cannot delete inbox collection");
+  }
+  if (collection.groupId) {
+    return "group";
+  }
+  const inboxId = await context.services.ensureInbox(context.repos, userId);
+  return {
+    collectionId,
+    collectionName: collection.name,
+    moveCopiesTo: inboxId,
+    targetName: "Inbox",
+    userId,
+  };
 }
 
 /** Authenticated collections contract (mounted at `/api/v1/collections`). */
@@ -233,50 +277,68 @@ export const collectionsRouter = {
   // deletion (the UI surfaces this); a personal collection's remaining copies
   // move to the owner's inbox.
   remove: os.remove.handler(async ({ input, context, errors }): Promise<void> => {
-    const repos = context.repos;
     const transact = context.transact;
-    const { ensureInbox } = context.services;
-    const userId = context.userId;
+    const plan = await planCollectionDelete(context, context.userId, input.id);
 
-    const access = await requireCollectionAdmin(repos, input.id, userId, "delete this collection");
-
-    const { collection } = access;
-    if (collection.isInbox) {
-      throw errors.CONFLICT({ message: "Cannot delete inbox collection" });
-    }
-
-    if (collection.groupId) {
+    if (plan === "group") {
       await transact(async (trxRepos) => {
         await trxRepos.collections.lockById(input.id);
         const copies = await trxRepos.collections.listCopiesInCollection(input.id);
         if (copies.length > 0) {
-          throw errors.CONFLICT({ message: "Empty the shared collection before deleting it" });
+          throw new AppError(
+            409,
+            ERROR_CODES.CONFLICT,
+            "Empty the shared collection before deleting it",
+          );
         }
         await trxRepos.collections.deleteById(input.id);
       });
       return;
     }
 
-    const inboxId = await ensureInbox(repos, userId);
-    await deleteCollection(transact, {
-      collectionId: input.id,
-      collectionName: collection.name,
-      moveCopiesTo: inboxId,
-      targetName: "Inbox",
-      userId,
-    });
+    await refusingUnconfirmedTradeCancels(
+      deleteCollection(transact, plan, consentedTradeCancels(input.cancelTradeIds)),
+      (data) => errors.CONFLICT({ data }),
+    );
   }),
+
+  // A shared collection must be empty to be deleted, so nothing leaves anyone's supply.
+  removeTradeCancels: os.removeTradeCancels.handler(
+    async ({ input, context }): Promise<TradeCancelConflictData> => {
+      const plan = await planCollectionDelete(context, context.userId, input.id);
+      if (plan === "group") {
+        return { trades: [] };
+      }
+      return previewDeleteCollectionTradeCancels(context.transact, plan);
+    },
+  ),
 
   // Copies pinned by a live trade or loan stay put and are reported back.
-  clear: os.clear.handler(async ({ input, context }): Promise<ClearCollectionResponse> => {
-    const repos = context.repos;
-    const transact = context.transact;
+  clear: os.clear.handler(async ({ input, context, errors }): Promise<ClearCollectionResponse> => {
     const userId = context.userId;
 
-    await requireCollectionAdmin(repos, input.id, userId, "clear this collection");
+    await requireCollectionAdmin(context.repos, input.id, userId, "clear this collection");
 
-    return clearCollection(transact, { collectionId: input.id, userId });
+    return refusingUnconfirmedTradeCancels(
+      clearCollection(
+        context.transact,
+        { collectionId: input.id, userId },
+        consentedTradeCancels(input.cancelTradeIds),
+      ),
+      (data) => errors.CONFLICT({ data }),
+    );
   }),
+
+  clearTradeCancels: os.clearTradeCancels.handler(
+    async ({ input, context }): Promise<TradeCancelConflictData> => {
+      const userId = context.userId;
+      await requireCollectionAdmin(context.repos, input.id, userId, "clear this collection");
+      return previewClearCollectionTradeCancels(context.transact, {
+        collectionId: input.id,
+        userId,
+      });
+    },
+  ),
 
   copies: os.copies.handler(async ({ input, context }): Promise<CopyListResponse> => {
     const { copies } = context.repos;
@@ -350,8 +412,20 @@ export const collectionsRouter = {
   // Danger-zone reset: wipes personal collections only (inbox kept, created if
   // missing; group collections untouched) and prunes lists the wipe emptied.
   // 409s while copies are reserved in active trades or out on loans.
-  resetAll: os.resetAll.handler(({ context }): Promise<ResetCollectionsResponse> =>
-    resetCollections(context.transact, context.userId),
+  resetAll: os.resetAll.handler(({ input, context, errors }): Promise<ResetCollectionsResponse> =>
+    refusingUnconfirmedTradeCancels(
+      resetCollections(
+        context.transact,
+        context.userId,
+        consentedTradeCancels(input?.cancelTradeIds),
+      ),
+      (data) => errors.CONFLICT({ data }),
+    ),
+  ),
+
+  resetAllTradeCancels: os.resetAllTradeCancels.handler(
+    ({ context }): Promise<TradeCancelConflictData> =>
+      previewResetCollectionsTradeCancels(context.transact, context.userId),
   ),
 
   // Group-owned rows are silently ignored (they stay alphabetical) so the

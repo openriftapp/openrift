@@ -1,6 +1,5 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 
-// oxlint-disable-next-line no-restricted-imports -- API has no @/ alias
 import { AppError } from "../../../errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { providerSettingsRepo } from "../../marketplace/repositories/provider-settings.js";

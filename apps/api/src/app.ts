@@ -23,6 +23,8 @@ import type { SendEmail } from "./email.js";
 import { AppError, codeForStatus } from "./errors.js";
 import { defaultIo } from "./io.js";
 import type { Io } from "./io.js";
+import { ADMIN_API_PREFIX } from "./lib/admin-api-prefix.js";
+import { clientAddress } from "./lib/client-address.js";
 import { loadSession } from "./middleware/load-session.js";
 import { createMetricsMiddleware } from "./middleware/metrics.js";
 import { otelRequestMiddleware } from "./middleware/otel-request.js";
@@ -59,10 +61,11 @@ import {
   DEVELOPER_API_PATHS,
   ETAG_PATHS,
   immutableWhenVersionMatches,
+  VIEWER_VARYING_PATHS,
 } from "./orpc/cache-policy.js";
 import { buildApiContext } from "./orpc/context.js";
 import { orpcErrorResponse } from "./orpc/error-body.js";
-import { createApiHandler } from "./orpc/router.js";
+import { createApiHandler, createApiRouteResolver } from "./orpc/router.js";
 import type { Auth, Config, Variables } from "./types.js";
 
 export interface AppDeps {
@@ -74,13 +77,15 @@ export interface AppDeps {
   services?: Partial<Services>;
   scheduler?: JobScheduler;
   sendEmail?: SendEmail;
+  /** The pool without request timeouts; work started through `runJobAsync` reads and writes through it. */
+  backgroundDb?: Kysely<Database>;
 }
 
 const authRateLimit = rateLimiter<{ Variables: Variables }>({
   windowMs: 60_000,
   limit: 10,
   standardHeaders: "draft-6",
-  keyGenerator: (c) => c.req.header("x-real-ip") ?? "unknown",
+  keyGenerator: clientAddress,
 });
 
 /** The origin a browser reached the API through; undefined when no proxy forwarded the scheme. */
@@ -111,9 +116,12 @@ export function createApp(deps: AppDeps) {
 
   const repos = createRepos(db);
   const transact = createTransact(db);
+  const backgroundRepos = deps.backgroundDb ? createRepos(deps.backgroundDb) : repos;
+  const backgroundTransact = deps.backgroundDb ? createTransact(deps.backgroundDb) : transact;
 
   // oRPC encodes handler throws into a Response, so they never reach the Hono `onError` below.
   const apiHandler = createApiHandler(log);
+  const resolveApiRoute = createApiRouteResolver();
 
   // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Hono's onError API takes a callback
   app.onError((err, c) => {
@@ -129,7 +137,7 @@ export function createApp(deps: AppDeps) {
       return c.json(body, err.status as ContentfulStatusCode);
     }
 
-    if (err instanceof z.ZodError) {
+    if (err instanceof z.core.$ZodError) {
       const body: ApiErrorResponse = {
         error: "Invalid request body",
         code: ERROR_CODES.VALIDATION_ERROR,
@@ -297,6 +305,8 @@ export function createApp(deps: AppDeps) {
     c.set("repos", repos);
     c.set("services", services);
     c.set("transact", transact);
+    c.set("backgroundRepos", backgroundRepos);
+    c.set("backgroundTransact", backgroundTransact);
     c.set("scheduler", deps.scheduler ?? null);
     c.set("log", log.child({ method: c.req.method }));
     await next();
@@ -348,9 +358,10 @@ export function createApp(deps: AppDeps) {
     .route("/api/v1", deckImageRoute)
     .route("/api/v1", tierListImageRoute);
 
-  app.use("/api/admin/v1/*", requireAdmin);
-  app.use("/api/v1/feature-flags", loadSession);
-  app.use("/api/v1/users/share/*", loadSession);
+  app.use(`${ADMIN_API_PREFIX}/*`, requireAdmin);
+  for (const path of VIEWER_VARYING_PATHS) {
+    app.use(path, loadSession);
+  }
   // These return a different body per auth state on the same URL; loadSession sets
   // `Vary: Cookie` so a shared cache can't conflate the responses.
   app.use("/api/v1/friend-groups/preview", loadSession);
@@ -381,6 +392,7 @@ export function createApp(deps: AppDeps) {
     if (!matched || !response) {
       return next();
     }
+    c.set("apiRoute", await resolveApiRoute(request.method, new URL(request.url).pathname));
     // The method guard keeps a private mutation sharing a cacheable prefix (e.g. POST
     // /decks/share/{token}/clone under the public /decks/share/ read) from being cached.
     if (response.ok && (c.req.method === "GET" || isHead) && apiContext.cacheControl) {

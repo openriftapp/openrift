@@ -131,9 +131,7 @@ afterAll(async () => {
 });
 
 describe.skipIf(!adminCtx)("Admin catalog workspace batch routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: adminApp } = adminCtx!;
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app: reviewApp } = reviewCtx!;
 
   it("lists trusted new cards without a similar live card", async () => {

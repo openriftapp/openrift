@@ -168,12 +168,25 @@ export function groupDecksByEvent(decks: readonly MetaDeckSummary[]): MetaDeckEv
   return groups;
 }
 
-export function metaDeckSortPresets(): {
+export function effectiveDeckSort(
+  sort: MetaDeckSort,
+  direction: MetaDeckSortDirection,
+  withCollection: boolean,
+): { sort: MetaDeckSort; direction: MetaDeckSortDirection } {
+  if (!withCollection && sort === "cost") {
+    return { sort: DEFAULT_DECK_SORT, direction: DEFAULT_DECK_DIRECTION };
+  }
+  return { sort, direction };
+}
+
+interface MetaDeckSortPreset {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
   label: string;
-}[] {
-  return [
+}
+
+export function metaDeckSortPresets(withCollection = true): MetaDeckSortPreset[] {
+  const presets: MetaDeckSortPreset[] = [
     { sort: "date", direction: "desc", label: m.meta_sort_newest_first() },
     { sort: "date", direction: "asc", label: m.meta_sort_oldest_first() },
     { sort: "finish", direction: "asc", label: m.meta_sort_best_finish() },
@@ -181,6 +194,7 @@ export function metaDeckSortPresets(): {
     { sort: "value", direction: "asc", label: m.meta_sort_lowest_value() },
     { sort: "value", direction: "desc", label: m.meta_sort_highest_value() },
   ];
+  return withCollection ? presets : presets.filter((preset) => preset.sort !== "cost");
 }
 
 export function hasActiveMetaDeckFilters(filters: MetaDeckFilterValues): boolean {

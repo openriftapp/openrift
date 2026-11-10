@@ -6,6 +6,8 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { cardsKeys } from "@/features/cards/lib/cards-query-keys";
+import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
+import { buildCardsResult } from "@/features/cards/lib/catalog-queries";
 import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { orNotFound } from "@/lib/server-fns/api-error";
@@ -45,6 +47,7 @@ interface EnrichedCardDetail {
   sets: CardDetailResponse["sets"];
   productsByPrinting: ReadonlyMap<string, CardDetailResponse["products"]>;
   related: CardDetailRelatedCard[];
+  catalogSubset: UseCardsResult;
 }
 
 function enrichCardDetail(response: CardDetailPayload): EnrichedCardDetail {
@@ -67,6 +70,7 @@ function enrichCardDetail(response: CardDetailPayload): EnrichedCardDetail {
     // ordered by product name; grouping preserves that order per printing.
     productsByPrinting: Map.groupBy(response.products, (p) => p.printingId),
     related: response.related,
+    catalogSubset: buildCardsResult(cardsById, printings, response.sets),
   };
 }
 

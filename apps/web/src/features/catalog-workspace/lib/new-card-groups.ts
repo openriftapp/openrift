@@ -2,6 +2,7 @@ import { pluralize } from "@openrift/shared/strings";
 import type { UnmatchedCardDetailResponse } from "@openrift/shared/types/api/admin";
 
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
+import type { SetReleaseYears } from "@/features/admin/lib/set-release-years";
 import type { CreationDraft, DraftCard } from "@/features/catalog-workspace/lib/creation-draft";
 import {
   draftFromCandidatePrinting,
@@ -46,6 +47,8 @@ export function seedNewCardGroups(
   >,
   compareProviders: (a: string, b: string) => number,
   card: DraftCard,
+  setReleaseYears: SetReleaseYears,
+  favoriteProviders: ReadonlySet<string>,
 ): NewCardGroup[] {
   const providerOf = new Map(detail.sources.map((source) => [source.id, source.provider]));
   return buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings).flatMap(
@@ -59,10 +62,13 @@ export function seedNewCardGroups(
       if (best === undefined) {
         return [];
       }
+      const provider = providerOf.get(best.candidateCardId) ?? "";
       const seeded = draftFromCandidatePrinting(
         card,
         best,
-        providerOf.get(best.candidateCardId) ?? "",
+        provider,
+        setReleaseYears,
+        favoriteProviders.has(provider),
       );
       const draft = {
         ...seeded,

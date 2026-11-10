@@ -6,6 +6,7 @@ export const Route = createFileRoute("/_app/contribute_/$cardSlug")({
       to: "/contribute/card/$cardSlug",
       params: { cardSlug: params.cardSlug },
       replace: true,
+      statusCode: 301,
     });
   },
 });

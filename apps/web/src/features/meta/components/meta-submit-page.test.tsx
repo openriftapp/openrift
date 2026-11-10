@@ -2,6 +2,7 @@ import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type * as React from "react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,6 +18,22 @@ const captured = vi.hoisted(() => ({
 }));
 
 const mutateAsync = vi.hoisted(() => vi.fn());
+
+/** While `holding`, the deferred paste stays on the last text it saw, as it does mid-render. */
+const deferral = vi.hoisted(() => ({ holding: false, held: undefined as unknown }));
+
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof React>();
+  return {
+    ...actual,
+    useDeferredValue: <T,>(value: T): T => {
+      if (!deferral.holding) {
+        deferral.held = value;
+      }
+      return deferral.held as T;
+    },
+  };
+});
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({
   useMetaEventPage: (query: { slug?: string }) => {
@@ -87,7 +104,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaSubmitPage } from "./meta-submit-page";
 
 const LEGEND_CARD_ID = "card-wandering-ronin";
@@ -135,6 +151,7 @@ const ROW_PREFILL = {
 };
 
 beforeEach(() => {
+  deferral.holding = false;
   mutateAsync.mockReset();
   captured.events = [EVENT];
   captured.searchResults = null;
@@ -290,6 +307,16 @@ describe("MetaSubmitPage from a standings row", () => {
     await send();
 
     expect(mutateAsync.mock.calls[0]![0]).toMatchObject({ listStatus: "partial" });
+  });
+
+  it("sends the text in the box even while the preview still shows the previous paste", async () => {
+    render(<MetaSubmitPage slug="summoner-skirmish" prefill={ROW_PREFILL} />);
+    await pasteDeck(MAIN_ONLY);
+    deferral.holding = true;
+    fireEvent.change(screen.getByLabelText("Decklist"), { target: { value: FULL_DECK } });
+    await send();
+
+    expect(mutateAsync.mock.calls[0]![0]).toMatchObject({ listStatus: "full" });
   });
 
   it("points back at the standings once the list is with us", async () => {

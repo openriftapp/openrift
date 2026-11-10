@@ -1,25 +1,25 @@
-/* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
-import { STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
-import { z } from "zod";
+import { STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
+import { z } from "zod/mini";
 
 import {
   metaPageSize,
   metaPageSlice,
   metaPagingSearchFieldsWithAll,
 } from "@/features/meta/lib/meta-paging";
+import { lenient } from "@/lib/lenient-param";
 
 // Schema and page arithmetic only: the event route's non-lazy `*.tsx` runs on
 // every page load.
 
 /**
- * Every field `.catch`es to undefined, so a stale link drops the bad value and
+ * Every field is `lenient`, so a stale link drops the bad value and
  * the route still renders. Each bound is the contract's own: a value the API
  * would reject has to be dropped here, or the awaited loader fails the page.
  */
 export const metaStandingsSearchSchema = z.object({
-  q: z.string().max(200).optional().catch(undefined),
-  list: z.literal("with").optional().catch(undefined),
-  legend: z.uuid().optional().catch(undefined),
+  q: lenient(z.string().check(z.maxLength(200))),
+  list: lenient(z.literal("with")),
+  legend: lenient(z.uuid()),
   ...metaPagingSearchFieldsWithAll(),
 });
 

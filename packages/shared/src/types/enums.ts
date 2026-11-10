@@ -1,17 +1,13 @@
 /** Backed by `card_types` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type CardType = string & Record<never, never>;
 
 /** Backed by `rarities` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type Rarity = string & Record<never, never>;
 
 /** Backed by `domains` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type Domain = string & Record<never, never>;
 
 /** Backed by `super_types` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type SuperType = string & Record<never, never>;
 
 export type CardFace = "front" | "back";
@@ -20,15 +16,12 @@ export type CardFace = "front" | "back";
 export type FallbackArtMode = "auto" | "pinned" | "none";
 
 /** Backed by `art_variants` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type ArtVariant = string & Record<never, never>;
 
 /** Backed by `finishes` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type Finish = string & Record<never, never>;
 
 /** Backed by `card_sizes` reference table. Physical card size (standard/oversized). */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type CardSize = string & Record<never, never>;
 
 /**
@@ -48,7 +41,6 @@ export interface EnumOrders {
 export type ActivityAction = "added" | "removed" | "moved";
 
 /** Backed by `deck_formats` reference table. */
-// oxlint-disable-next-line typescript-eslint/ban-types -- open string type for DB-driven enum values
 export type DeckFormat = string & Record<never, never>;
 
 /** Backed by `deck_zones` reference table. */

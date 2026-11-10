@@ -18,7 +18,6 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: ReactNode }) => <a href="/admin/meta/event-1">{children}</a>,
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventCorrectionCard } from "./meta-event-correction-card";
 
 function correction(overrides: Partial<AdminMetaEventCorrection> = {}): AdminMetaEventCorrection {

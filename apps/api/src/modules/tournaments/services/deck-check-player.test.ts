@@ -30,7 +30,6 @@ function makeRepos(overrides: {
       linkParticipantByClaimTokenIfUnclaimed,
     },
     deckCheck: { getEntryIdByParticipant },
-    // oxlint-disable-next-line typescript/no-explicit-any -- partial repos double for the claim path
   } as any as Repos;
   return { repos, getParticipantByUser, linkParticipantByClaimTokenIfUnclaimed };
 }

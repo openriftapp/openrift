@@ -492,7 +492,6 @@ export function ScanTestPage() {
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex flex-col gap-3">
             <div className="bg-muted relative aspect-3/4 overflow-hidden rounded-lg sm:aspect-video">
-              {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no audio track */}
               <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
               <canvas
                 ref={overlayRef}

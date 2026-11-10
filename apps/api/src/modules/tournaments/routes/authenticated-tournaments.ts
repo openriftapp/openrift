@@ -5,6 +5,7 @@ import type { PodTournamentDetailResponse } from "@openrift/shared/types/api/pod
 import type {
   TournamentDetailResponse,
   TournamentListResponse,
+  TournamentPageResponse,
   TournamentParticipantListResponse,
 } from "@openrift/shared/types/api/tournament";
 import { implement } from "@orpc/server";
@@ -12,6 +13,7 @@ import { implement } from "@orpc/server";
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertExisted } from "../../../lib/assertions.js";
+import { buildKeysetCursor } from "../../../lib/keyset-cursor.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -88,19 +90,43 @@ async function findActiveTeammate(
 
 const os = implement(tournamentsContract).$context<ApiContext>().use(requireAuthedUser);
 
+const DEFAULT_PAST_PAGE_SIZE = 25;
+
 // Handlers own request shape and ordering only; access, invariants, and
 // response assembly live in tournament-access/-invariants/-builders.ts.
 export const tournamentsRouter = {
-  list: os.list.handler(async ({ context }): Promise<TournamentListResponse> => {
+  list: os.list.handler(async ({ input, context }): Promise<TournamentPageResponse> => {
     const repos = context.repos;
     const userId = context.userId;
+    const limit = input.limit ?? DEFAULT_PAST_PAGE_SIZE;
+    const cursor = input.cursor ?? null;
+    const now = new Date();
     const [orgIds, judgeOrgIds] = await Promise.all([
       repos.organizations.listIdsForUser(userId),
       repos.organizations.listJudgeOrgIdsForUser(userId),
     ]);
-    const rows = await repos.tournaments.listForUser(userId, [...orgIds, ...judgeOrgIds]);
-    const items = await buildSummaries(repos, rows, userId, new Set(orgIds), new Set(judgeOrgIds));
-    return { items };
+    const hostOrgIds = [...orgIds, ...judgeOrgIds];
+    const [current, past, pastCount] = await Promise.all([
+      cursor === null
+        ? repos.tournaments.listCurrentForUser(userId, hostOrgIds, now)
+        : Promise.resolve([]),
+      repos.tournaments.listPastForUser(userId, hostOrgIds, now, { cursor, limit }),
+      repos.tournaments.countPastForUser(userId, hostOrgIds, now),
+    ]);
+    const pastPage = past.slice(0, limit);
+    const last = pastPage.at(-1);
+    const items = await buildSummaries(
+      repos,
+      [...current, ...pastPage],
+      userId,
+      new Set(orgIds),
+      new Set(judgeOrgIds),
+    );
+    return {
+      items,
+      nextCursor: past.length > limit && last ? buildKeysetCursor(last.startsAt, last.id) : null,
+      pastCount,
+    };
   }),
 
   listForGroup: os.listForGroup.handler(

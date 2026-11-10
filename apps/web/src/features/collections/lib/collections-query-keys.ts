@@ -19,6 +19,7 @@ export const collectionEventsKeys = {
 } as const;
 
 export const collectionValueHistoryKeys = {
+  all: (userId: string) => ["collectionValueHistory", userId] as const,
   byParams: (
     userId: string,
     marketplace: string,

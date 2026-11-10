@@ -3,7 +3,9 @@ import { releasePostDate } from "@openrift/shared/printing-post-date";
 import type { PostImageLabel } from "@openrift/shared/printing-post-image";
 import type { SetRelease } from "@openrift/shared/set-release";
 
-export const POST_DATE_NONE = "none";
+import { POST_DATE_NONE } from "@/features/admin/lib/admin-search-values";
+
+export { POST_DATE_NONE } from "@/features/admin/lib/admin-search-values";
 
 export function defaultPostDate(
   label: PostImageLabel,

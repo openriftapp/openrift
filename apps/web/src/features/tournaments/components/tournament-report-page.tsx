@@ -30,21 +30,13 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
   const groupStage = data.groupStage;
 
   async function submit(podId: string, results: { playerId: string; gamePoints: number }[]) {
-    try {
-      await submitResult.mutateAsync({ podId, results });
-      toast.success(m.tournaments_report_result_submitted());
-    } catch {
-      // Reported by the global mutation error toast.
-    }
+    await submitResult.mutateAsync({ podId, results });
+    toast.success(m.tournaments_report_result_submitted());
   }
 
   async function submitPlayer(podId: string, playerId: string, gamePoints: number) {
-    try {
-      await submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
-      toast.success(m.tournaments_report_score_saved());
-    } catch {
-      // Reported by the global mutation error toast.
-    }
+    await submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
+    toast.success(m.tournaments_report_score_saved());
   }
 
   if (data.format === "group_cut" && groupStage !== null && groupStage.groups.length > 0) {

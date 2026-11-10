@@ -10,6 +10,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { keyBatches } from "../../../lib/bind-batches.js";
 import type { CardTrade, CardTradeDtoRow } from "./card-trades-shared.js";
 import { tradeDtoBaseQuery, withCounterpartyContacts } from "./card-trades-shared.js";
 
@@ -41,6 +42,14 @@ export interface CompletedTradeFeedRow {
   giverName: string | null;
   receiverUserId: string | null;
   receiverName: string | null;
+}
+
+export interface TradeCancelSummary {
+  id: string;
+  cardId: string;
+  printingId: string;
+  quantity: number;
+  counterpartyName: string | null;
 }
 
 export interface PendingGiverTrade {
@@ -111,6 +120,25 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
       return rows.filter((row): row is PendingGiverTrade => row.groupId !== null);
     },
 
+    async listPendingPrintingIdsForGiver(
+      giverUserId: string,
+      printingIds: readonly string[],
+    ): Promise<string[]> {
+      const found: string[] = [];
+      for (const batch of keyBatches([...new Set(printingIds)])) {
+        const rows = await db
+          .selectFrom("cardTrades")
+          .select("printingId")
+          .distinct()
+          .where("giverUserId", "=", giverUserId)
+          .where("printingId", "in", batch)
+          .where("status", "=", "pending")
+          .execute();
+        found.push(...rows.map((row) => row.printingId));
+      }
+      return found;
+    },
+
     async listPendingPrintingIdsForGiverInGroup(
       groupId: string,
       giverUserId: string,
@@ -124,6 +152,28 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
         .where("status", "=", "pending")
         .execute();
       return rows.map((row) => row.printingId);
+    },
+
+    /** The counterparty is the receiver: only the giver's trades are swept. */
+    async listCancelSummaries(tradeIds: readonly string[]): Promise<TradeCancelSummary[]> {
+      const found: TradeCancelSummary[] = [];
+      for (const batch of keyBatches([...new Set(tradeIds)])) {
+        const rows = await db
+          .selectFrom("cardTrades as t")
+          .leftJoin("users as receiverUser", "receiverUser.id", "t.receiverUserId")
+          .select((eb) => [
+            "t.id",
+            "t.cardId",
+            "t.printingId",
+            "t.quantity",
+            eb.fn.coalesce("receiverUser.name", "t.receiverName").as("counterpartyName"),
+          ])
+          .where("t.id", "in", batch)
+          .orderBy("t.createdAt", "asc")
+          .execute();
+        found.push(...rows);
+      }
+      return found;
     },
 
     async listDtoRowsForUser(

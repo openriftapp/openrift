@@ -344,7 +344,7 @@
   "nav_pack_opener_description": "Simulez l'ouverture de boosters avec les vrais taux",
   "nav_card_designer_description": "Créez une carte personnalisée avec votre propre image de fond",
   "nav_locked_collections_description": "Suivez chaque carte que vous possédez, jusqu'à l'impression près, dans autant de collections que vous voulez.",
-  "nav_locked_scan_description": "Présentez vos cartes à la caméra pour les ajouter à une collection. La reconnaissance se fait sur votre appareil, aucune image n'est envoyée.",
+  "nav_locked_scan_description": "Connectez-vous ou créez un compte pour ajouter les cartes scannées à une collection. La liste reste sur cet appareil pendant la connexion.",
   "nav_locked_groups_description": "Créez un groupe privé avec vos amis ou votre boutique, avec collections partagées et correspondances d'échange qui montrent qui a les cartes que vous cherchez.",
   "nav_locked_trades_description": "Échangez des cartes avec les membres de vos groupes : correspondances de vos listes de souhaits et d'échange, demandes et échanges à confirmer.",
   "nav_locked_loans_description": "Gardez trace des cartes que vous prêtez : qui les a, et ce que vous empruntez.",
@@ -377,12 +377,9 @@
   "layout_header_more": "Plus",
   "layout_header_profile": "Profil",
   "layout_header_admin": "Admin",
-  "layout_header_light_mode": "Mode clair",
-  "layout_header_dark_mode": "Mode sombre",
   "layout_header_sign_out": "Se déconnecter",
   "layout_header_sign_out_failed": "Déconnexion impossible. Veuillez réessayer.",
   "layout_header_section_attention": "{section} demande votre attention",
-  "layout_header_join_discord": "Rejoignez notre Discord",
   "layout_header_help": "Aide",
   "layout_header_help_intro": "Bloqué, ou vous avez trouvé un problème ?",
   "layout_header_help_articles": "Articles d'aide",
@@ -439,25 +436,13 @@
   "palette_load_failed": "Impossible de charger les cartes.",
   "palette_load_failed_hint": "Fermez ceci et réessayez.",
   "palette_leave_scope": "Quitter {label}",
-  "error_heading_rift_collapsed": "La Faille s'est effondrée",
-  "error_heading_misprint": "Erreur d'impression critique détectée",
-  "error_heading_blank": "Cette page a fait chou blanc",
-  "error_heading_void": "Mélangée dans le néant",
-  "error_heading_not_supposed": "Bon, ça n'aurait pas dû arriver",
-  "error_heading_drew_bug": "Nous avons pioché un bug",
-  "error_heading_cant_grade": "Quelque chose a cassé (non, ça ne se fait pas grader)",
-  "error_heading_not_ideal": "Ce n'est pas idéal",
-  "error_heading_yeah_bug": "Oui, c'est bien un bug",
-  "error_subtext_shuffled_wrong": "Quelqu'un a mal mélangé le code.",
-  "error_subtext_binder": "Nous avons vérifié le classeur. Cette page manque.",
-  "error_subtext_giveth": "La Faille donne, la Faille reprend.",
-  "error_subtext_fell_through": "Cette page est tombée dans une Faille et n'est pas revenue.",
-  "error_subtext_bad_days": "Même les applis en état mint ont de mauvais jours.",
-  "error_subtext_looking_into_it": "Nous regardons ça. Sans doute.",
-  "error_subtext_not_your_fault": "Quelque chose a cassé et ce n'est vraiment pas votre faute.",
-  "error_subtext_rest_is_fine": "Pas d'inquiétude, le reste de l'appli va bien. Sans doute.",
-  "error_emoji_misprint": "[ERREUR D'IMPRESSION]",
-  "error_emoji_damaged": "[ENDOMMAGÉE]",
+  "error_failed_heading": "Cette page ne s'est pas chargée",
+  "error_failed_subtext": "Un problème est survenu de notre côté.",
+  "error_offline_heading": "Vous êtes hors ligne",
+  "error_forbidden_heading": "Vous n'avez pas accès à cette page",
+  "error_forbidden_subtext": "Votre compte n'a pas l'autorisation de l'ouvrir.",
+  "error_forbidden_subtext_signed_out": "Connectez-vous pour vérifier si votre compte peut l'ouvrir.",
+  "error_try_again": "Réessayer",
   "error_emoji_missing": "[MANQUANTE]",
   "error_notfound_heading_dust": "Il n'y a que de la poussière ici",
   "error_notfound_heading_never_printed": "Cette carte n'a jamais été imprimée",
@@ -467,6 +452,7 @@
   "error_notfound_heading_doesnt_exist": "Cette page n'existe pas",
   "error_notfound_heading_no_card": "Aucune carte à cette adresse",
   "error_notfound_heading_no_record": "La Faille n'en a aucune trace",
+  "error_notfound_card_browse_all": "Parcourir toutes les cartes",
   "error_notfound_subtext_gone": "Ce qui était ici a disparu.",
   "error_notfound_subtext_double_check": "Vérifiez l'URL ou revenez en terrain sûr.",
   "error_notfound_subtext_no_set": "Cette page n'est dans aucune extension que nous connaissons.",
@@ -476,7 +462,6 @@
   "error_hide_details": "Masquer les détails",
   "error_show_details": "Afficher les détails",
   "error_go_home": "Accueil",
-  "error_reshuffle": "Remélanger",
   "shared_preparing": "Préparation…",
   "shared_open_cardmarket": "Ouvrir Cardmarket",
   "shared_open_cardtrader": "Ouvrir CardTrader",
@@ -516,6 +501,39 @@
   "palette_group_help": "Aide",
   "auth_login_title": "Bon retour",
   "auth_login_subtitle": "Connectez-vous à votre compte OpenRift",
+  "auth_destination_collections_title": "Connectez-vous pour ouvrir votre collection",
+  "auth_destination_collections_perk_copies": "Suivez chaque exemplaire que vous possédez, jusqu'à l'impression et son état.",
+  "auth_destination_collections_perk_lists": "Tenez des listes de souhaits et des listes d'échange, et partagez-les par lien.",
+  "auth_destination_collections_perk_scan": "Ajoutez des cartes à une collection en les présentant à votre caméra.",
+  "auth_destination_scan_title": "Connectez-vous pour ajouter vos cartes scannées à une collection",
+  "auth_destination_scan_perk_add": "Présentez vos cartes à la caméra, puis ajoutez-les toutes d'un coup à une collection.",
+  "auth_destination_scan_perk_device": "Les cartes sont reconnues sur votre appareil.",
+  "auth_destination_scan_perk_owned": "Chaque carte scannée indique combien d'exemplaires vous possédez déjà.",
+  "auth_destination_groups_title": "Connectez-vous pour ouvrir vos groupes",
+  "auth_destination_groups_perk_invite": "Créez un groupe et invitez vos amis avec un lien d'invitation.",
+  "auth_destination_groups_perk_share": "Partagez des collections et des listes avec le groupe.",
+  "auth_destination_groups_perk_matches": "Voyez qui, dans le groupe, propose à l'échange des cartes de votre liste de souhaits.",
+  "auth_destination_trades_title": "Connectez-vous pour échanger des cartes",
+  "auth_destination_trades_perk_groups": "Échangez avec les membres de vos groupes.",
+  "auth_destination_trades_perk_matches": "Trouvez des échanges là où votre liste de souhaits rencontre leur liste d'échange.",
+  "auth_destination_trades_perk_requests": "Envoyez des demandes d'échange et confirmez les échanges.",
+  "auth_destination_loans_title": "Connectez-vous pour suivre vos cartes prêtées",
+  "auth_destination_loans_perk_lent": "Notez quelles cartes vous avez prêtées et à qui, même à des amis sans compte.",
+  "auth_destination_loans_perk_returned": "Marquez les cartes comme rendues à leur retour.",
+  "auth_destination_loans_perk_borrowed": "Voyez les cartes que vous empruntez à d'autres.",
+  "auth_destination_tournaments_title": "Connectez-vous pour organiser des tournois",
+  "auth_destination_tournaments_perk_pairings": "Appariez les joueurs en rondes suisses ou en pods.",
+  "auth_destination_tournaments_perk_decklists": "Récupérez les listes de deck avant l'événement.",
+  "auth_destination_tournaments_perk_judges": "Ajoutez des arbitres pour vous aider pendant l'événement.",
+  "auth_destination_tier_lists_title": "Connectez-vous pour créer des tier lists",
+  "auth_destination_tier_lists_perk_rank": "Classez des cartes sur un tableau par glisser-déposer.",
+  "auth_destination_tier_lists_perk_save": "Enregistrez vos listes et reprenez-les plus tard.",
+  "auth_destination_tier_lists_perk_share": "Partagez une liste par lien ou téléchargez-la en image.",
+  "auth_destination_contribute_title": "Connectez-vous pour contribuer aux données des cartes",
+  "auth_destination_contribute_perk_cards": "Soumettez des cartes et des impressions manquantes.",
+  "auth_destination_contribute_perk_fixes": "Envoyez des corrections et des images de cartes.",
+  "auth_destination_contribute_perk_review": "Suivez chaque soumission jusqu'à sa vérification.",
+  "auth_destination_no_account": "Pas besoin de compte pour {#cards}parcourir les cartes{/cards} ou {#decks}construire des decks{/decks}. Les decks créés sans compte restent sur cet appareil.",
   "auth_login_no_account": "Pas encore de compte ?",
   "auth_login_submit": "Se connecter",
   "auth_signing_in": "Connexion en cours…",
@@ -1240,6 +1258,8 @@
   "collections_cell_choose_variant": "Choisir une variante pour {name}",
   "collections_cell_remove": "Retirer {name}",
   "collections_cell_take_copy_of": "Prendre un exemplaire de {name}",
+  "collections_toast_took_one": "{name} pris",
+  "collections_toast_took_many": "{count}× {name} pris",
   "collections_cell_variants_and_collections": "Variantes et collections pour {name}",
   "collections_drag_cards_plural": [
     {
@@ -1588,6 +1608,7 @@
   "collections_copies_links_label": "Photos et vidéos",
   "collections_copies_link_title_placeholder": "Libellé",
   "collections_copies_network_error": "Serveur injoignable, vérifiez votre connexion",
+  "collections_copies_trade_cancel_stopped": "Arrêté après {done} cartes sur {total} pour garder vos échanges. Le reste n'a pas changé.",
   "collections_copies_signed_out": "Impossible d'ajouter des cartes hors connexion",
   "collections_copies_quick_scope_move": "Déplacer",
   "collections_copies_quick_scope_add": "Ajouter à {collection}",
@@ -3569,6 +3590,18 @@
   "rules_stat_version": "version",
   "rules_stat_languages": "langues",
   "rules_stat_published": "publication",
+  "rules_facts_version": "Version {version}",
+  "rules_facts_published": "Publiée le {date}",
+  "rules_facts_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} langue",
+        "countPlural=*": "{count} langues"
+      }
+    }
+  ],
   "rules_changes_off": "Masquées",
   "rules_changes_inline": "Dans le texte",
   "rules_changes_side": "Côte à côte",
@@ -4689,6 +4722,21 @@
   "trades_accept_all": "Tout accepter ({count})",
   "trades_accept_all_confirm_title": "Accepter les {count} demandes de {name} ?",
   "trades_accept_all_confirm_description": "Chaque demande acceptée réserve vos exemplaires pour l'échange. Vous pourrez encore annuler des échanges individuels ensuite.",
+  "trades_cancel_consent_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Annuler {count} échange en attente ?",
+        "countPlural=*": "Annuler {count} échanges en attente ?"
+      }
+    }
+  ],
+  "trades_cancel_consent_description": "Après cette modification, les listes d'échange que vous partagez ne couvrent plus ces échanges, ils sont donc annulés.",
+  "trades_cancel_consent_line": "{count}× {card} pour {name}",
+  "trades_cancel_consent_more": "et {count} de plus",
+  "trades_cancel_consent_confirm": "Annuler les échanges",
+  "trades_cancel_consent_keep": "Garder les échanges",
   "trades_settle_adds_to": "Ajoute {count} à",
   "trades_settle_removes": "Retire {count} de votre collection",
   "trades_settle_partial_failure": "Certaines cartes n'ont pas pu être réglées. Le reste est passé.",
@@ -5275,13 +5323,14 @@
   "contribute_status_hint_pending": "Quelqu'un va l'examiner à la main. Cela peut prendre un moment.",
   "contribute_status_hint_accepted": "Vos informations sont dans le catalogue. Merci.",
   "contribute_status_hint_already_correct": "Le catalogue correspondait déjà à tout ce que vous avez envoyé.",
+  "contribute_status_hint_not_used": "Nous ne l'avons pas utilisé. Merci de nous l'avoir envoyé.",
   "contribute_kind_new_card": "Nouvelle carte",
   "contribute_kind_correction": "Correction",
   "contribute_kind_image": "Image",
   "contribute_reason_duplicate": "Quelqu'un l'avait déjà envoyée.",
   "contribute_reason_already_correct": "Le catalogue contenait déjà ces informations.",
   "contribute_reason_unverified": "Nous n'avons pas pu le confirmer auprès d'une source, la carte reste donc inchangée.",
-  "contribute_reason_not_a_card": "Cela ne ressemblait pas à une vraie carte Riftbound.",
+  "contribute_reason_not_a_card": "Cela ne semble pas être une carte Riftbound officielle.",
   "contribute_reason_bad_image": "L'image n'était pas exploitable, généralement à cause de sa taille, de son angle ou de sa qualité.",
   "contribute_reason_other": "Nous n'avons pas pu l'appliquer. La note ci-dessous en explique la raison.",
   "contribute_reason_label_duplicate": "Déjà soumise",
@@ -6829,6 +6878,7 @@
   "tournaments_list_no_upcoming": "Aucun tournoi à venir. Créez-en un, ou rejoignez un événement via son lien d’inscription.",
   "tournaments_overview_also_coming_up": "Également à venir",
   "tournaments_overview_past_events": "Événements passés",
+  "tournaments_overview_show_older_events": "Afficher les événements plus anciens",
   "help_chat_commands_intro": "Ajoutez une commande à votre bot de chat et les spectateurs peuvent consulter n'importe quelle carte Riftbound sans quitter le chat. Ils tapent {#code}!card Jinx{/code} et le bot répond avec la carte et un lien vers sa page. Si rien ne correspond, la réponse renvoie vers une recherche de cartes sur ce qui a été tapé : même une faute de frappe mène quelque part d'utile.",
   "help_chat_commands_pick_heading": "Choisissez votre bot",
   "help_chat_commands_pick_intro": "Chaque ligne ci-dessous se colle telle quelle, soit dans votre propre chat en tant que modérateur, soit dans le tableau de bord du bot. Rien à installer et aucun compte nécessaire.",
@@ -7163,8 +7213,8 @@
   "help_deck_building_rules_champion_detail": "Exactement 1 Champion qui partage un tag avec votre Légende",
   "help_deck_building_rules_runes_detail": "Exactement 12 Runes, toutes correspondant aux domaines de la Légende",
   "help_deck_building_rules_battlefield_detail": "Exactement 3 Champs de bataille différents",
-  "help_deck_building_rules_main_detail": "Exactement 39 cartes, plus le Champion pour un total de 40. Au maximum 3 exemplaires de chaque carte. Au maximum 3 cartes Signature au total, partageant toutes un tag de Champion avec la Légende. Tous les domaines des cartes doivent faire partie des domaines de la Légende ou être incolores.",
-  "help_deck_building_rules_sideboard_detail": "Jusqu'à 8 cartes. Les limites d'exemplaires sont partagées avec le deck principal (par exemple, si vous avez 2 exemplaires d'une carte dans le deck principal, vous ne pouvez en avoir qu'un de plus dans la réserve).",
+  "help_deck_building_rules_main_detail": "Exactement 39 cartes, plus le Champion pour un total de 40. Au maximum 3 exemplaires de chaque carte entre le deck principal, la réserve et le Champion élu. Au maximum 3 cartes Signature au total, partageant toutes un tag de Champion avec la Légende. Tous les domaines des cartes doivent faire partie des domaines de la Légende ou être incolores.",
+  "help_deck_building_rules_sideboard_detail": "Jusqu'à 10 cartes. Les limites d'exemplaires sont partagées avec le deck principal et le Champion élu (par exemple, si vous avez 2 exemplaires d'une carte dans le deck principal, vous ne pouvez en avoir qu'un de plus dans la réserve).",
   "help_deck_building_rules_freeform": "En Freeform, aucune de ces règles n'est appliquée. Passez en Freeform pour théoriser, puis revenez au format construit pour valider. La barre latérale des zones met en évidence les infractions zone par zone.",
   "help_deck_building_rules_custom_region": "Chaque carte doit appartenir aux régions que vous avez choisies, un seul champ de bataille est joué, il n'y a pas de réserve, et les cartes signature exigent leur champion dans le deck. Les infractions apparaissent pendant la construction.",
   "help_deck_building_runes_heading": "Remplissage automatique des Runes",
@@ -7594,6 +7644,7 @@
   "pager_previous_page": "Page précédente",
   "pager_next_page": "Page suivante",
   "meta_page_past_end": "Cette page se situe au-delà de la fin des résultats.",
+  "meta_page_first": "Aller à la première page",
   "meta_events_per_page_aria": "Événements par page",
   "meta_events_per_page": "Afficher {size}",
   "meta_events_holdings_any": "Tous les événements",
@@ -7953,6 +8004,49 @@
   "meta_front_title": "Archives Méta",
   "meta_front_eyebrow": "Résultats de tournois",
   "meta_front_lead": "Résultats jusqu'au {date}, issus de UVS Games, PlayLoLTCG et TopDeck.",
+  "meta_front_facts_through": "Résultats jusqu'au {date}",
+  "meta_front_facts_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} événement archivé",
+        "countPlural=*": "{countFormatted} événements archivés"
+      }
+    }
+  ],
+  "meta_front_facts_player_results": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} résultat de joueur",
+        "countPlural=*": "{countFormatted} résultats de joueurs"
+      }
+    }
+  ],
+  "meta_front_facts_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} decklist",
+        "countPlural=*": "{countFormatted} decklists"
+      }
+    }
+  ],
   "meta_front_empty_title": "Aucun événement archivé pour l'instant",
   "meta_front_empty_description": "Les résultats de tournoi apparaissent ici dès leur saisie.",
   "meta_front_add_event": "Ajouter un événement",
@@ -9093,6 +9187,11 @@
   "tournaments_group_redraw": "Refaire le tirage des groupes",
   "tournaments_seat_editor_hint": "Faites glisser un joueur sur un autre pour échanger leurs places, dans un groupe ou entre groupes. Les tailles des groupes restent telles que tirées.",
   "tournaments_seat_editor_save": "Enregistrer les groupes",
+  "tournaments_pairing_editor_move_to": "Déplacer vers",
+  "tournaments_pairing_editor_move_label": "Déplacer {name}",
+  "tournaments_seat_editor_swap_with": "Échanger avec",
+  "tournaments_seat_editor_swap_label": "Échanger la place de {name}",
+  "tournaments_seat_editor_swap_seat": "Groupe {label}, place {seat}",
   "tournaments_cut_edit_bracket_pairing": "Modifier l'appariement du bracket",
   "tournaments_cut_results_entered_hint": "Des résultats sont déjà saisis pour cette ronde.",
   "tournaments_champion_label": "Champion",
@@ -9896,6 +9995,23 @@
   ],
   "trades_market_two_have": "{first} et {second} l'ont",
   "trades_market_want_count": "Vous en cherchez {count}",
+  "trades_match_wanted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} recherchée",
+        "countPlural=*": "{count} recherchées"
+      }
+    }
+  ],
+  "trades_match_variants": "{count} variantes",
+  "trades_match_price": "Prix",
+  "trades_match_they_pay": "Prêt à payer",
+  "trades_match_price_from": "à partir de",
+  "trades_match_expand_variants": "Afficher les variantes de {card}",
+  "trades_match_collapse_variants": "Masquer les variantes de {card}",
+  "trades_match_request_all": "Tout demander ({count})",
   "trades_market_empty_get": "Personne dans vos groupes n'a de carte de vos listes de souhaits pour l'instant.",
   "trades_market_empty_give": "Personne dans vos groupes ne cherche de carte de vos listes d'échange pour l'instant.",
   "trades_market_empty_buy": "Les cartes de vos listes de souhaits qu'aucun membre de vos groupes ne possède apparaissent ici.",

@@ -1,4 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- HMAC signing is server-only and Node's crypto is the right primitive
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { EmailNotificationChannel } from "@openrift/shared/types/api/preferences";

@@ -41,7 +41,6 @@ app.use("*", async (c, next) => {
     distributionChannels: mockDistributionChannelsRepo,
     printingCitations: mockPrintingCitationsRepo,
     products: mockProductsRepo,
-    // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   } as any);
   await next();
 });

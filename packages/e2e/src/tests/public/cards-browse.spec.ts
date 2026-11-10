@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { typeSearch } from "../../helpers/catalog.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 test.describe("card browser", () => {
@@ -18,10 +19,7 @@ test.describe("card browser", () => {
 
     await scrollUntilVisible(page, page.getByRole("img", { name: "Annie, Fiery" }));
 
-    const searchInput = page.getByPlaceholder(/search/iu);
-    await searchInput.fill("Garen");
-
-    await page.waitForTimeout(500);
+    await typeSearch(page, "Garen");
 
     await scrollUntilVisible(page, page.getByRole("img", { name: "Garen, Rugged" }));
   });

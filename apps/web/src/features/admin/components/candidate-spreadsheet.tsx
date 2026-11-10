@@ -117,7 +117,6 @@ export function CandidateSpreadsheet<
 
   function foldToggleRow(key: string) {
     return (
-      // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- label lives in the <td> inside; rule doesn't see across children
       <tr
         key={`${key}+toggle`}
         className="bg-muted/30 hover:bg-muted/50 cursor-pointer border-b"

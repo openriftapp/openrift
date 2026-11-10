@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { ALL_MARKETPLACES, marketplaceCarriesLanguage } from "./pricing";
+import {
+  ALL_MARKETPLACES,
+  EUR_MARKETPLACES,
+  MARKETPLACE_CURRENCY,
+  marketplaceCarriesLanguage,
+} from "./pricing";
+
+describe("EUR_MARKETPLACES", () => {
+  it("holds exactly the marketplaces priced in EUR", () => {
+    for (const marketplace of ALL_MARKETPLACES) {
+      expect(EUR_MARKETPLACES.has(marketplace)).toBe(MARKETPLACE_CURRENCY[marketplace] === "EUR");
+    }
+    expect([...EUR_MARKETPLACES].toSorted()).toStrictEqual([
+      "cardmarket",
+      "cardnexus",
+      "cardtrader",
+    ]);
+  });
+});
 
 describe("marketplaceCarriesLanguage", () => {
   it("carries English on every marketplace", () => {

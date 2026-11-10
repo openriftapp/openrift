@@ -16,9 +16,23 @@ import type { Collection, PendingMutation, Transaction } from "@tanstack/react-d
 import type { QueryClient } from "@tanstack/react-query";
 
 import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
-import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
+import {
+  collectionEventsKeys,
+  collectionsKeys,
+  collectionValueHistoryKeys,
+  copiesKeys,
+} from "@/features/collections/lib/collections-query-keys";
+import { extensionKeys } from "@/features/extension/lib/extension-query-keys";
+import { badgesKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
+import type { TradeCancelConsent } from "@/features/groups/lib/trade-cancel-conflict";
+import {
+  sendWithTradeCancelConsent,
+  tradeCancelConsentOf,
+} from "@/features/groups/lib/trade-cancel-conflict";
+import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { watchForRefetchRace } from "@/lib/refetch-race";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { UserDeclinedError } from "@/lib/user-declined-error";
 import { TimeoutError, withTimeout } from "@/lib/with-timeout";
 import { m } from "@/paraglide/messages.js";
 
@@ -288,11 +302,55 @@ async function persistInserts(
   }
 }
 
+interface ChunkProgress {
+  written: number;
+  total: number;
+}
+
+function consentOf(
+  mutations: readonly PendingMutation<CopyResponse>[],
+): TradeCancelConsent | undefined {
+  for (const mutation of mutations) {
+    const consent = tradeCancelConsentOf(mutation.metadata);
+    if (consent) {
+      return consent;
+    }
+  }
+  return undefined;
+}
+
+// Chunks already sent stay written, so a decline after one of them is a partial failure.
+async function sendConsented<T>(
+  consent: TradeCancelConsent | undefined,
+  progress: ChunkProgress,
+  call: (cancelTradeIds?: string[]) => Promise<T>,
+): Promise<T> {
+  if (!consent) {
+    return call();
+  }
+  try {
+    return await sendWithTradeCancelConsent(consent, call);
+  } catch (error) {
+    if (error instanceof UserDeclinedError && progress.written > 0) {
+      throw new Error(
+        m.collections_copies_trade_cancel_stopped({
+          done: progress.written,
+          total: progress.total,
+        }),
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
 async function persistUpdates(
   collection: CopiesCollection,
   mutations: readonly PendingMutation<CopyResponse>[],
   context: CopiesWriteContext,
+  progress: ChunkProgress,
 ): Promise<void> {
+  const consent = consentOf(mutations);
   const moves = new Map<string, string[]>();
   const patches = new Map<string, { patch: CopyMetadataPatch; copyIds: string[] }>();
   for (const mutation of mutations) {
@@ -315,9 +373,15 @@ async function persistUpdates(
   for (const [toCollectionId, copyIds] of moves) {
     const groupId = groupIdForCollection(context.queryClient, context.userId, toCollectionId);
     await inChunks(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
-      await send(m.collections_copies_timeout_move(), (signal) =>
-        browserApiOrpcClient(copiesContract).move({ copyIds: chunk, toCollectionId }, { signal }),
+      await sendConsented(consent, progress, (cancelTradeIds) =>
+        send(m.collections_copies_timeout_move(), (signal) =>
+          browserApiOrpcClient(copiesContract).move(
+            { copyIds: chunk, toCollectionId, cancelTradeIds },
+            { signal },
+          ),
+        ),
       );
+      progress.written += chunk.length;
       await writeSkippingMissing(
         chunk.map((id) => ({ id, collectionId: toCollectionId, groupId })),
         (rows) => collection.utils.writeUpdate(rows),
@@ -340,12 +404,21 @@ async function persistUpdates(
 
 async function persistDeletes(
   collection: CopiesCollection,
-  copyIds: readonly string[],
+  mutations: readonly PendingMutation<CopyResponse>[],
+  progress: ChunkProgress,
 ): Promise<void> {
+  const consent = consentOf(mutations);
+  const copyIds = mutations.map((mutation) => String(mutation.key));
   await inChunks(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
-    await send(m.collections_copies_timeout_dispose(), (signal) =>
-      browserApiOrpcClient(copiesContract).dispose({ copyIds: chunk }, { signal }),
+    await sendConsented(consent, progress, (cancelTradeIds) =>
+      send(m.collections_copies_timeout_dispose(), (signal) =>
+        browserApiOrpcClient(copiesContract).dispose(
+          { copyIds: chunk, cancelTradeIds },
+          { signal },
+        ),
+      ),
     );
+    progress.written += chunk.length;
     await writeSkippingMissing(chunk, (ids) => collection.utils.writeDelete(ids));
   });
 }
@@ -385,26 +458,39 @@ async function persistInOrder(
   const skipped = await abandoned;
   const live = later.filter((mutation) => !skipped.has(String(mutation.key)));
   const updates = live.filter((mutation) => mutation.type === "update");
-  const deletes = live
-    .filter((mutation) => mutation.type === "delete")
-    .map((mutation) => String(mutation.key));
+  const deletes = live.filter((mutation) => mutation.type === "delete");
+  const progress: ChunkProgress = {
+    written: 0,
+    total:
+      deletes.length +
+      updates.filter((mutation) => mutation.changes.collectionId !== undefined).length,
+  };
   if (updates.length > 0) {
-    await persistUpdates(collection, updates, context);
+    await persistUpdates(collection, updates, context, progress);
   }
   if (deletes.length > 0) {
-    await persistDeletes(collection, deletes);
+    await persistDeletes(collection, deletes, progress);
   }
 
-  void context.queryClient.invalidateQueries({
-    queryKey: copiesKeys.all(context.userId),
-    refetchType: "none",
-  });
+  for (const queryKey of [
+    copiesKeys.all(context.userId),
+    collectionEventsKeys.all(context.userId),
+    collectionValueHistoryKeys.all(context.userId),
+    listsKeys.all(context.userId),
+    extensionKeys.all(context.userId),
+  ]) {
+    void context.queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+  }
   const changesTotals =
     inserts.length > 0 ||
     deletes.length > 0 ||
     updates.some((mutation) => mutation.changes.collectionId !== undefined);
   if (changesTotals) {
     void context.queryClient.invalidateQueries({ queryKey: collectionsKeys.all(context.userId) });
+  }
+  if ((consentOf(later)?.tradeIds.size ?? 0) > 0) {
+    void context.queryClient.invalidateQueries({ queryKey: tradesKeys.all(context.userId) });
+    void context.queryClient.invalidateQueries({ queryKey: badgesKeys.all(context.userId) });
   }
 }
 

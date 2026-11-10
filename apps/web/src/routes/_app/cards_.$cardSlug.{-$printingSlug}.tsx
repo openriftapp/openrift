@@ -5,9 +5,9 @@ import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import { z } from "zod";
+import { z } from "zod/mini";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cardDetailQueryOptions, ownFaces } from "@/features/cards/lib/card-detail-queries";
 import type { CardDetailPayload } from "@/features/cards/lib/card-detail-queries";
@@ -27,8 +27,13 @@ import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
 const cardDetailSearchSchema = z.object({
-  printingId: z.string().optional(),
-  side: z.preprocess((value) => (Number(value) === 2 ? 2 : undefined), z.literal(2).optional()),
+  printingId: z.optional(z.string()),
+  side: z.optional(
+    z.pipe(
+      z.transform((value) => (Number(value) === 2 ? 2 : undefined)),
+      z.optional(z.literal(2)),
+    ),
+  ),
 });
 
 interface CardDetailLoaderData {
@@ -54,8 +59,9 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     const siteUrl = getSiteUrl();
     const loaded = loaderData as CardDetailLoaderData | undefined;
     const data = loaded?.data;
+    // Reached when the loader threw: notFound() still runs head, and a 404 must not be indexed.
     if (!data) {
-      return seoHead({ siteUrl, title: "Card" });
+      return seoHead({ siteUrl, title: "Card not found", noIndex: true });
     }
 
     // Read from the live params and search, not loaderData: loaderDeps is empty
@@ -194,7 +200,6 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
   component: () => null,
   pendingComponent: CardDetailPending,
   errorComponent: RouteErrorFallback,
-  notFoundComponent: NotFoundFallback,
 });
 
 function CardDetailPending() {

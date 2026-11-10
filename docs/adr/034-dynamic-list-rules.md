@@ -255,7 +255,7 @@ export function evaluateListRule(
 export type EntrySource = "manual" | "rule" | "both";
 export interface ExpandedEntry extends VirtualEntry {
   id: string | null;
-  source: EntrySource; /* + trade prefs */
+  source: EntrySource /* + trade prefs */;
 }
 export function expandList(
   list: {

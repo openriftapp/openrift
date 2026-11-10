@@ -83,7 +83,6 @@ vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({ formats: [], labels: { standard: "Standard" } }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventPlayersPage } from "./meta-event-players-page";
 
 function player(overrides: Partial<AdminMetaPlayer> = {}): AdminMetaPlayer {

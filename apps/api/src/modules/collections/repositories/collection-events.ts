@@ -4,6 +4,7 @@ import type { Kysely, Selectable } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { FacesTable } from "../../../db/tables/catalog.js";
 import type { CollectionEventsTable } from "../../../db/tables/collections.js";
+import { rowBatches } from "../../../lib/bind-batches.js";
 import {
   imageId,
   joinFaceImage,
@@ -91,10 +92,9 @@ export function collectionEventsRepo(db: Kysely<Database>) {
         toCollectionName: string | null;
       }[],
     ): Promise<void> {
-      if (items.length === 0) {
-        return;
+      for (const batch of rowBatches(items)) {
+        await db.insertInto("collectionEvents").values(batch).execute();
       }
-      await db.insertInto("collectionEvents").values(items).execute();
     },
   };
 }

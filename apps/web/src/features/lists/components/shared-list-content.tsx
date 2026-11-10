@@ -34,6 +34,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { cardPageHref } from "@/features/cards/lib/card-page-href";
+import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
@@ -342,7 +343,7 @@ function SharedListGrid({
     }
   }
 
-  const findBy: "card" | "printing" = view === "cards" && groupBy !== "set" ? "card" : "printing";
+  const findBy = selectionFindBy(view, groupBy);
 
   const handleCardClick = (printing: Printing) => {
     useSelectionStore.getState().selectCard(printing, items, findBy);

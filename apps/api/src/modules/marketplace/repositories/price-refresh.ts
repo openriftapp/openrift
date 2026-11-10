@@ -154,16 +154,6 @@ export function priceRefreshRepo(db: Db) {
         .execute();
     },
 
-    async countProductPrices(marketplace: Marketplace): Promise<number> {
-      const result = await db
-        .selectFrom("marketplaceProductPrices as pp")
-        .innerJoin("marketplaceProducts as mp", "mp.id", "pp.marketplaceProductId")
-        .select(sql<number>`count(*)::int`.as("count"))
-        .where("mp.marketplace", "=", marketplace)
-        .executeTakeFirstOrThrow();
-      return result.count;
-    },
-
     /** Rows are keyed on (marketplaceProductId, recordedAt): one per SKU per fetch cycle. */
     async upsertProductPrices(
       batch: {
@@ -179,7 +169,7 @@ export function priceRefreshRepo(db: Db) {
         avg7Cents: number | null;
         avg30Cents: number | null;
       }[],
-    ): Promise<number> {
+    ): Promise<{ inserted: number; updated: number }> {
       const distinctWhere = buildDistinctWhere("marketplace_product_prices", PRICE_COL_NAMES);
       const rows = await db
         .insertInto("marketplaceProductPrices")
@@ -190,9 +180,10 @@ export function priceRefreshRepo(db: Db) {
             .doUpdateSet(PRICE_EXCLUDED_SET)
             .where(distinctWhere),
         )
-        .returning(sql<number>`1`.as("_"))
+        .returning(sql<boolean>`(xmax = 0)`.as("inserted"))
         .execute();
-      return rows.length;
+      const inserted = rows.filter((row) => row.inserted).length;
+      return { inserted, updated: rows.length - inserted };
     },
 
     /** A single external_id can resolve to multiple rows (e.g. foil + normal SKUs). */

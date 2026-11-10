@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { SiteBanner } from "@/components/layout/site-banner";
 import { usePreferencesSync } from "@/features/account/hooks/use-preferences-sync";
+import { TradeCancelConsentHost } from "@/features/groups/components/trade-cancel-consent-host";
 import { useIdleAreaPrefetch } from "@/hooks/use-idle-area-prefetch";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSession } from "@/hooks/use-session";
@@ -39,6 +40,7 @@ export function AppLayout() {
       <Header />
       <SiteBanner />
       <CommandPalette />
+      <TradeCancelConsentHost />
       <main className={cn("flex min-h-0 flex-1 flex-col", CONTAINER_WIDTH)}>
         <div className="flex min-h-0 flex-1 flex-col">
           <Outlet />

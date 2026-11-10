@@ -1,14 +1,11 @@
 import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 
-export const CARD_ISSUES = [
-  "proposals",
-  "new-printings",
-  "unlinked-products",
-  "unchecked-source",
-] as const;
+import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/admin-search-values";
+import { CARD_ISSUES } from "@/features/admin/lib/admin-search-values";
 
-export type CardIssue = (typeof CARD_ISSUES)[number];
+export { CARD_ISSUES } from "@/features/admin/lib/admin-search-values";
+export type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/admin-search-values";
 
 export const CARD_ISSUE_LABELS: Record<CardIssue, string> = {
   proposals: "Pending submissions",
@@ -18,22 +15,6 @@ export const CARD_ISSUE_LABELS: Record<CardIssue, string> = {
 };
 
 export const ANY_ISSUE = "any";
-
-/**
- * List-page filters that also narrow the card page's prev/next. "attention" is
- * the Needs attention tab without an issue filter. "review" comes from the
- * review inbox and returns there.
- */
-export const ADMIN_CARD_LIST_STATUSES = [
-  "attention",
-  "proposals",
-  "new-printings",
-  "unchecked-source",
-  "prices-to-assign",
-  "review",
-] as const;
-
-export type AdminCardListStatus = (typeof ADMIN_CARD_LIST_STATUSES)[number];
 
 export function listStatusFor(
   attentionTab: boolean,

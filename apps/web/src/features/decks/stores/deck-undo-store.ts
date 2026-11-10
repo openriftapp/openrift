@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 /**
  * Edits landing within this window of the previous record collapse into one
@@ -15,8 +16,19 @@ const MAX_DEPTH = 100;
  * Snapshots are handed out to callers who feed them straight into the draft
  * collection, so every entry is copied on the way in and on the way out.
  */
-function copySnapshot(cards: readonly DeckBuilderCard[]): DeckBuilderCard[] {
+export function copySnapshot(cards: readonly DeckBuilderCard[]): DeckBuilderCard[] {
   return cards.map((card) => ({ ...card }));
+}
+
+export function sameDeckCards(
+  before: readonly DeckBuilderCard[],
+  after: readonly DeckBuilderCard[],
+): boolean {
+  if (before.length !== after.length) {
+    return false;
+  }
+  const quantities = new Map(before.map((card) => [getDeckCardKey(card), card.quantity]));
+  return after.every((card) => quantities.get(getDeckCardKey(card)) === card.quantity);
 }
 
 interface DeckUndoState {
@@ -24,7 +36,11 @@ interface DeckUndoState {
   past: DeckBuilderCard[][];
   future: DeckBuilderCard[][];
   lastRecordAt: number;
-  record: (deckId: string, snapshot: readonly DeckBuilderCard[]) => void;
+  record: (
+    deckId: string,
+    snapshot: readonly DeckBuilderCard[],
+    options?: { separate?: boolean },
+  ) => void;
   undo: (deckId: string, currentCards: readonly DeckBuilderCard[]) => DeckBuilderCard[] | null;
   redo: (deckId: string, currentCards: readonly DeckBuilderCard[]) => DeckBuilderCard[] | null;
   reset: (deckId?: string) => void;
@@ -36,7 +52,7 @@ export const useDeckUndoStore = create<DeckUndoState>((set, get) => ({
   future: [],
   lastRecordAt: 0,
 
-  record: (deckId, snapshot) => {
+  record: (deckId, snapshot, options) => {
     const state = get();
     const now = Date.now();
     // A different deck's history is meaningless here.
@@ -46,7 +62,7 @@ export const useDeckUndoStore = create<DeckUndoState>((set, get) => ({
     }
     // Mid-burst: the step already on the stack is the pre-burst state, so keep
     // it and only drop the redo branch this edit invalidates.
-    if (state.past.length > 0 && now - state.lastRecordAt < BURST_MS) {
+    if (!options?.separate && state.past.length > 0 && now - state.lastRecordAt < BURST_MS) {
       set({ future: [], lastRecordAt: now });
       return;
     }

@@ -345,8 +345,8 @@ async function queueRows(
 export const adminMetaCandidatesRouter = os.router({
   upload: os.upload.handler(async ({ input, context }) => {
     const result = await context.transact((trxRepos) =>
-      trxRepos.meta.withPromoteLock(`overlay-upload:${input.provider}`, () =>
-        ingestMetaOverlays(trxRepos, input.provider, input.events, context.userId),
+      trxRepos.meta.withPromoteLock(`overlay-upload:${input.provider}`, (locked) =>
+        ingestMetaOverlays(locked, input.provider, input.events, context.userId),
       ),
     );
 
@@ -476,18 +476,18 @@ export const adminMetaCandidatesRouter = os.router({
 
   writeEventOverlayFields: os.writeEventOverlayFields.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      writeEventOverlayFields(context.repos, input.id, input.edits, context.userId),
+      writeEventOverlayFields(context.transact, input.id, input.edits, context.userId),
   ),
 
   releaseEventOverlayField: os.releaseEventOverlayField.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      releaseEventOverlayField(context.repos, input.id, input.field),
+      releaseEventOverlayField(context.transact, input.id, input.field),
   ),
 
   writePlayerOverlayFields: os.writePlayerOverlayFields.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
       writeMetaPlayerOverlayFields(
-        context.repos,
+        context.transact,
         input.id,
         { fields: input.fields, list: input.list },
         context.userId,
@@ -496,7 +496,7 @@ export const adminMetaCandidatesRouter = os.router({
 
   releasePlayerOverlayField: os.releasePlayerOverlayField.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      releaseMetaPlayerOverlayField(context.repos, input.id, input.field),
+      releaseMetaPlayerOverlayField(context.transact, input.id, input.field),
   ),
 
   setSourcePriority: os.setSourcePriority.handler(async ({ input, context }): Promise<void> => {
@@ -513,23 +513,23 @@ export const adminMetaCandidatesRouter = os.router({
 
   acceptEventOverlay: os.acceptEventOverlay.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      acceptMetaEventOverlay(context.repos, input.id, input.metaEventId),
+      acceptMetaEventOverlay(context.transact, input.id, input.metaEventId),
   ),
 
   moveEventOverlay: os.moveEventOverlay.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      moveMetaEventOverlay(context.repos, input.id, input.metaEventId),
+      moveMetaEventOverlay(context.transact, input.id, input.metaEventId),
   ),
 
   acceptPlayerOverlay: os.acceptPlayerOverlay.handler(
     async ({ input, context }): Promise<MetaOverlayReviewResult> => {
       const submissionIds = await unacceptedSubmissionIds(context.repos, [input.id]);
-      const result = await acceptMetaPlayerOverlay(context.repos, input.id, {
+      const result = await acceptMetaPlayerOverlay(context.transact, input.id, {
         metaEventPlayerId: input.metaEventPlayerId,
         fields: input.fields,
         reviewedByUserId: context.userId,
       });
-      await thankSubmitters(context, submissionIds);
+      void thankSubmitters(context, submissionIds);
       return result;
     },
   ),
@@ -538,34 +538,22 @@ export const adminMetaCandidatesRouter = os.router({
       context.repos,
       input.items.map((item) => item.id),
     );
-    const result = await acceptMetaPlayerOverlays(context.repos, input.items, context.userId);
-    await thankSubmitters(context, submissionIds);
+    const result = await acceptMetaPlayerOverlays(context.transact, input.items, context.userId);
+    void thankSubmitters(context, submissionIds);
     return result;
   }),
 
   linkPlayerOverlay: os.linkPlayerOverlay.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      linkMetaPlayerOverlay(context.repos, input.id, input.metaEventPlayerId),
+      linkMetaPlayerOverlay(context.transact, input.id, input.metaEventPlayerId),
   ),
 
-  rejectOverlay: os.rejectOverlay.handler(
-    async ({ input, context }): Promise<MetaOverlayReviewResult> => {
-      const result = await rejectMetaOverlay(context.repos, { kind: input.kind, id: input.id });
-      if (input.kind === "player") {
-        const submission = await context.repos.metaSubmissions.byPlayerOverlayId(input.id);
-        if (submission?.status === "pending") {
-          await context.repos.metaSubmissions.resolve(submission.id, {
-            status: "rejected",
-            resolvedAt: new Date(),
-            reason: input.reason ?? null,
-            note: input.note ?? null,
-            resolvedByUserId: context.userId,
-            acceptedDeckId: null,
-          });
-        }
-      }
-      return result;
-    },
+  rejectOverlay: os.rejectOverlay.handler(({ input, context }): Promise<MetaOverlayReviewResult> =>
+    rejectMetaOverlay(
+      context.transact,
+      { kind: input.kind, id: input.id },
+      { reason: input.reason, note: input.note, resolvedByUserId: context.userId },
+    ),
   ),
 
   eventUploads: os.eventUploads.handler(async ({ input, context }) => ({
@@ -573,7 +561,7 @@ export const adminMetaCandidatesRouter = os.router({
   })),
 
   revertUpload: os.revertUpload.handler(({ input, context }) =>
-    revertMetaUpload(context.repos, input.provider, input.externalId),
+    revertMetaUpload(context.transact, input.provider, input.externalId),
   ),
 
   ignoreEvent: os.ignoreEvent.handler(async ({ input, context }): Promise<void> => {

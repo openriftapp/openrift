@@ -1,10 +1,14 @@
+import type { CardTradeLiveAnnotation } from "@openrift/shared/types/api/card-trade";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
+import { tradesKeys } from "@/features/groups/lib/groups-query-keys";
+import { useTradeCancelConsentStore } from "@/features/groups/stores/trade-cancel-consent-store";
+import { UserDeclinedError } from "@/lib/user-declined-error";
 import { stubCopy } from "@/test/factories";
 
 const fetchCopies = vi.hoisted(() => vi.fn());
@@ -93,9 +97,13 @@ function seedCollections(
   );
 }
 
-async function signedInWithCopies(rows: CopyResponse[]) {
+async function signedInWithCopies(
+  rows: CopyResponse[],
+  annotations: CardTradeLiveAnnotation[] = [],
+) {
   const client = newClient();
   seedSession(client);
+  client.setQueryData(tradesKeys.liveByPrinting(USER), { annotations });
   fetchCopies.mockResolvedValue({ items: rows, nextCursor: null });
   const collection = getCopiesCollection(client, USER);
   await collection.preload();
@@ -325,5 +333,223 @@ describe("useBatchedAddCopies", () => {
       expect(onBatchError).toHaveBeenCalledWith(["p1", "p2"], expect.any(Error)),
     );
     expect(collection.toArray).toEqual([]);
+  });
+});
+
+describe("moves and disposals that would cancel pending trades", () => {
+  const TRADE = {
+    id: "e0000000-0001-4000-a000-000000000001",
+    cardId: "card-1",
+    printingId: "p1",
+    quantity: 1,
+    counterpartyName: "Mara",
+  };
+  const LATE_TRADE = {
+    ...TRADE,
+    id: "e0000000-0001-4000-a000-000000000002",
+    counterpartyName: "Jax",
+  };
+  const GIVING_P1: CardTradeLiveAnnotation = {
+    printingId: "p1",
+    role: "giver",
+    phase: "asked",
+    tradeCount: 1,
+    quantity: 1,
+  };
+
+  function conflict(trades: (typeof TRADE)[]): Response {
+    return Response.json(
+      {
+        defined: true,
+        code: "CONFLICT",
+        status: 409,
+        message: "This change would cancel pending trades. Confirm to cancel them.",
+        data: { trades },
+      },
+      { status: 409 },
+    );
+  }
+
+  async function answerNext(confirmed: boolean) {
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    const asked = useTradeCancelConsentStore.getState().request?.trades;
+    useTradeCancelConsentStore.getState().answer(confirmed);
+    return asked;
+  }
+
+  const paths = () => sent.map((request) => request.path);
+
+  beforeEach(() => {
+    useTradeCancelConsentStore.setState({ request: null });
+  });
+
+  it("skips the check when the viewer gives none of the selected printings in a pending trade", async () => {
+    const { client, collection } = await signedInWithCopies(
+      [stubCopy({ id: "c1", printingId: "p1", collectionId: "source" })],
+      [
+        { ...GIVING_P1, printingId: "p-other" },
+        { ...GIVING_P1, role: "receiver" },
+        { ...GIVING_P1, phase: "reserved" },
+      ],
+    );
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    await result.current.mutateAsync({ copyIds: ["c1"], toCollectionId: "dest" });
+
+    expect(paths()).toEqual(["/api/v1/copies/move"]);
+    expect(collection.get("c1")?.collectionId).toBe("dest");
+  });
+
+  it("asks before moving and sends the confirmed trade ids with the move", async () => {
+    const { client, collection } = await signedInWithCopies(
+      [stubCopy({ id: "c1", printingId: "p1", collectionId: "source" })],
+      [GIVING_P1],
+    );
+    respond = (request) =>
+      request.path === "/api/v1/copies/trade-cancels/move"
+        ? Response.json({ trades: [TRADE] })
+        : succeed(request);
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    const pending = result.current.mutateAsync({ copyIds: ["c1"], toCollectionId: "dest" });
+    await waitFor(() => expect(useTradeCancelConsentStore.getState().request).not.toBeNull());
+    expect(collection.get("c1")?.collectionId).toBe("source");
+    expect(await answerNext(true)).toEqual([TRADE]);
+    await pending;
+
+    expect(sent).toEqual([
+      {
+        path: "/api/v1/copies/trade-cancels/move",
+        body: { copyIds: ["c1"], toCollectionId: "dest" },
+      },
+      {
+        path: "/api/v1/copies/move",
+        body: { copyIds: ["c1"], toCollectionId: "dest", cancelTradeIds: [TRADE.id] },
+      },
+    ]);
+    expect(collection.get("c1")?.collectionId).toBe("dest");
+    expect(client.getQueryState(tradesKeys.liveByPrinting(USER))?.isInvalidated).toBe(true);
+  });
+
+  it("declining the check sends no write and leaves the store exactly as it was", async () => {
+    const rows = [
+      stubCopy({ id: "c1", printingId: "p1", collectionId: "source" }),
+      stubCopy({ id: "c2", printingId: "p1", collectionId: "source" }),
+    ];
+    const { client, collection } = await signedInWithCopies(rows, [GIVING_P1]);
+    respond = (request) =>
+      request.path === "/api/v1/copies/trade-cancels/dispose"
+        ? Response.json({ trades: [TRADE] })
+        : succeed(request);
+    const before = collection.toArray.map((row) => ({ ...row }));
+    const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
+
+    const outcome = result.current
+      .mutateAsync({ copyIds: ["c1"] })
+      .catch((error: unknown) => error);
+    await answerNext(false);
+
+    expect(await outcome).toBeInstanceOf(UserDeclinedError);
+    expect(paths()).toEqual(["/api/v1/copies/trade-cancels/dispose"]);
+    expect(collection.toArray).toEqual(before);
+  });
+
+  it("goes ahead with the write when the check fails, for a copy whose add is still in flight", async () => {
+    const { client, collection } = await signedInWithCopies([], [GIVING_P1]);
+    respond = (request) =>
+      request.path === "/api/v1/copies/trade-cancels/dispose"
+        ? Response.json({ message: "One or more copies not found" }, { status: 404 })
+        : succeed(request);
+    const adder = renderHook(() => useBatchedAddCopies(), { wrapper: wrap(client) });
+    const disposer = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
+
+    const added = adder.result.current.add("p1", "source", "c-new");
+    await disposer.result.current.mutateAsync({ copyIds: ["c-new"] });
+    await added;
+
+    expect(paths()).toEqual([
+      "/api/v1/copies/trade-cancels/dispose",
+      "/api/v1/copies",
+      "/api/v1/copies/dispose",
+    ]);
+    expect(collection.has("c-new")).toBe(false);
+  });
+
+  it("a refusal the skipped check missed asks, and declining rolls the optimistic move back", async () => {
+    const { client, collection } = await signedInWithCopies([
+      stubCopy({ id: "c1", printingId: "p1", collectionId: "source" }),
+    ]);
+    respond = (request) =>
+      request.path === "/api/v1/copies/move" ? conflict([TRADE]) : succeed(request);
+    const before = collection.toArray.map((row) => ({ ...row }));
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    const outcome = result.current
+      .mutateAsync({ copyIds: ["c1"], toCollectionId: "dest" })
+      .catch((error: unknown) => error);
+    await answerNext(false);
+
+    expect(await outcome).toBeInstanceOf(UserDeclinedError);
+    expect(paths()).toEqual(["/api/v1/copies/move"]);
+    expect(collection.toArray).toEqual(before);
+  });
+
+  function manyCopies(count: number) {
+    return Array.from({ length: count }, (_, index) =>
+      stubCopy({ id: `c${index}`, printingId: "p1", collectionId: "source" }),
+    );
+  }
+
+  function refuseSecondChunkOnce() {
+    let refused = false;
+    respond = (request) => {
+      if (request.path === "/api/v1/copies/trade-cancels/move") {
+        return Response.json({ trades: [TRADE] });
+      }
+      const body = request.body as { copyIds?: string[] };
+      if (request.path === "/api/v1/copies/move" && body.copyIds?.length === 1 && !refused) {
+        refused = true;
+        return conflict([TRADE, LATE_TRADE]);
+      }
+      return succeed(request);
+    };
+  }
+
+  it("asks about a trade a later chunk would cancel alone, then sends every confirmed id", async () => {
+    const { client, collection } = await signedInWithCopies(manyCopies(501), [GIVING_P1]);
+    refuseSecondChunkOnce();
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    const pending = result.current.mutateAsync({
+      copyIds: manyCopies(501).map((copy) => copy.id),
+      toCollectionId: "dest",
+    });
+    expect(await answerNext(true)).toEqual([TRADE]);
+    expect(await answerNext(true)).toEqual([LATE_TRADE]);
+    await pending;
+
+    const moves = sent.filter((request) => request.path === "/api/v1/copies/move");
+    expect(
+      moves.map((request) => (request.body as { cancelTradeIds: string[] }).cancelTradeIds),
+    ).toEqual([[TRADE.id], [TRADE.id], [TRADE.id, LATE_TRADE.id]]);
+    expect(collection.toArray.every((copy) => copy.collectionId === "dest")).toBe(true);
+  });
+
+  it("declining at a later chunk keeps the earlier chunk and reports how far it got", async () => {
+    const { client, collection } = await signedInWithCopies(manyCopies(501), [GIVING_P1]);
+    refuseSecondChunkOnce();
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    const outcome = result.current
+      .mutateAsync({ copyIds: manyCopies(501).map((copy) => copy.id), toCollectionId: "dest" })
+      .catch((error: unknown) => error);
+    await answerNext(true);
+    await answerNext(false);
+
+    const error = await outcome;
+    expect(error).not.toBeInstanceOf(UserDeclinedError);
+    expect((error as Error).message).toMatch(/500 of 501/u);
+    expect(collection.toArray.filter((copy) => copy.collectionId === "dest")).toHaveLength(500);
+    expect(collection.get("c500")?.collectionId).toBe("source");
   });
 });

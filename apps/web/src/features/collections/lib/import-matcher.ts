@@ -178,6 +178,23 @@ function matchSingleEntry(
     // slug is matched separately. Multiple markers are joined with "+"; all must match.
     if (entry.promoSlug) {
       const promoSlugs = entry.promoSlug.split("+");
+      if (entry.exactPrinting) {
+        const exactMatch = onlyOne(
+          finishMatches.filter(
+            (printing) =>
+              printing.markers.length === promoSlugs.length &&
+              promoSlugs.every((slug) => printing.markers.some((m) => m.slug === slug)),
+          ),
+        );
+        if (exactMatch) {
+          return {
+            entry,
+            status: "exact",
+            resolvedPrinting: exactMatch,
+            candidates: langMatches,
+          };
+        }
+      }
       const promoMatches = langMatches.filter((printing) =>
         promoSlugs.every((slug) => printing.markers.some((m) => m.slug === slug)),
       );

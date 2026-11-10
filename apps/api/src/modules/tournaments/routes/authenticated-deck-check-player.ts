@@ -18,6 +18,7 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { buildEntryAdvisories } from "../lib/deck-check-advisories.js";
+import { presentDeadlineSettledEntry, submissionWindowOpen } from "../lib/deck-check-deadline.js";
 import { isoDate, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
 import type {
   DeckCheckEntry,
@@ -34,8 +35,7 @@ import {
   resolvePlayerCardRows,
 } from "../services/deck-check-player.js";
 import {
-  settleExpiredEditable,
-  submissionWindowOpen,
+  settleExpiredEditableEntries,
   submitEntryList,
   unlockEntryToEditable,
 } from "../services/deck-check-states.js";
@@ -111,20 +111,20 @@ function toPreviewCards(cardRows: NewDeckCheckEntryCard[]): DeckCheckEntryCardRe
 interface LoadedOwnEntry {
   row: PlayerDeckCheckEntryRow;
   event: DeckCheckEvent;
-  justSettled: boolean;
+  pendingDeadlineSettle: boolean;
 }
 
 /**
- * Loads one of the caller's entries with its event, settling the deadline
- * auto-submit on the way. Not-owned and missing entries are 404 (never 403),
- * so existence is not leaked.
+ * Loads one of the caller's entries with its event. Read-only: a deadline
+ * auto-submit not yet persisted is presented, not written. Not-owned and
+ * missing entries are 404 (never 403), so existence is not leaked.
  */
 async function loadOwnEntry(
   repos: Repos,
   userId: string,
   entryId: string,
 ): Promise<LoadedOwnEntry> {
-  return withSettledEvent(repos, await repos.deckCheck.getEntryForPlayer(entryId, userId));
+  return withOwnEvent(repos, await repos.deckCheck.getEntryForPlayer(entryId, userId));
 }
 
 /**
@@ -138,28 +138,25 @@ async function loadOwnEntryForTournament(
   userId: string,
   tournamentId: string,
 ): Promise<LoadedOwnEntry> {
-  return withSettledEvent(
+  return withOwnEvent(
     repos,
     await repos.deckCheck.getEntryForPlayerByTournament(tournamentId, userId),
   );
 }
 
-/**
- * 404s whenever either half is missing. `justSettled` is true only when this
- * call itself performed the deadline auto-submit; `submit`'s window guard checks it before rejecting.
- */
-async function withSettledEvent(
+/** 404s whenever either half is missing. */
+async function withOwnEvent(
   repos: Repos,
   row: PlayerDeckCheckEntryRow | undefined,
 ): Promise<LoadedOwnEntry> {
   assertFound(row, "Entry not found");
   const event = await repos.deckCheck.getEventById(row.tournamentId);
   assertFound(event, "Entry not found");
-  const settled = await settleExpiredEditable(repos, event, row);
+  const presented = await presentDeadlineSettledEntry(repos, event, row);
   return {
-    row: { ...row, ...settled },
+    row: presented,
     event,
-    justSettled: row.state === "editable" && settled.state !== "editable",
+    pendingDeadlineSettle: row.state === "editable" && presented.state !== "editable",
   };
 }
 
@@ -349,15 +346,15 @@ export const deckCheckPlayerRouter = {
     async ({ input, context }): Promise<PlayerDeckCheckEntryDetailResponse> => {
       const repos = context.repos;
       const userId = context.userId;
-      const { row, event, justSettled } = await loadOwnEntry(repos, userId, input.entryId);
+      const { row, event, pendingDeadlineSettle } = await loadOwnEntry(
+        repos,
+        userId,
+        input.entryId,
+      );
       if (!submissionWindowOpen(event)) {
-        // Loading the entry auto-submits it when the deadline has passed
-        // (settleExpiredEditable, via loadOwnEntry). Where that just happened,
-        // the deck really did go in, backdated to the close time, so the
-        // player got what they asked for and a 409 would contradict the write
-        // this request itself caused. Only an entry that was already past the
-        // deadline before this call is a genuine conflict.
-        if (justSettled) {
+        // A list still editable at the deadline counts as submitted at the close.
+        if (pendingDeadlineSettle) {
+          await settleExpiredEditableEntries(repos, event);
           return buildPlayerDetail(repos, row, event);
         }
         throw new AppError(409, ERROR_CODES.CONFLICT, "Submissions closed. Contact a judge.");

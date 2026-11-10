@@ -20,7 +20,6 @@ interface JobDefinition<T = unknown> extends JobScheduleMeta {
   log: Logger;
 }
 
-// oxlint-disable-next-line typescript/no-explicit-any -- the result type is per definition and `summarize`/`classifyNoop` make it invariant, so a list of mixed definitions cannot be typed on `unknown`
 export type AnyJobDefinition = JobDefinition<any>;
 
 export interface JobSpec<T> extends JobScheduleMeta {
@@ -119,9 +118,19 @@ export function createJobScheduler(deps: JobSchedulerDeps): JobScheduler {
 
   function register(definition: AnyJobDefinition, schedule: string): void {
     crons.get(definition.kind)?.stop();
-    const cron = new Cron(schedule, { protect: true, timezone: "UTC" }, async () => {
-      await tick(definition);
-    });
+    const cron = new Cron(
+      schedule,
+      {
+        protect: true,
+        timezone: "UTC",
+        catch: (error) => {
+          definition.log.error({ err: error, kind: definition.kind }, "Cron tick failed");
+        },
+      },
+      async () => {
+        await tick(definition);
+      },
+    );
     crons.set(definition.kind, cron);
   }
 
@@ -221,7 +230,6 @@ export function createJobScheduler(deps: JobSchedulerDeps): JobScheduler {
         if (definition.unavailableReason !== undefined || stored.has(definition.kind)) {
           continue;
         }
-        // oxlint-disable-next-line no-await-in-loop -- each write depends on the previous one having landed, and there are at most fourteen
         await set(definition.kind, definition.suggestedSchedule);
       }
       return await viewsFor(definitions);

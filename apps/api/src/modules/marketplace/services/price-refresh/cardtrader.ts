@@ -9,6 +9,7 @@ import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
+import { PRICE_FETCH_RETRIES } from "./types.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
@@ -102,6 +103,7 @@ async function ctFetch<T>(
   const { data } = await fetchJson<T>(fetchFn, url, {
     headers: { ...authHeaders, Accept: "application/json" },
     timeoutMs: FETCH_TIMEOUT_MS,
+    retries: PRICE_FETCH_RETRIES,
     transform: unwrapArray,
   });
   return data;

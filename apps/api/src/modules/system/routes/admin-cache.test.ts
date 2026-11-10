@@ -63,6 +63,7 @@ describe("POST /cache/purge", () => {
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer token-abc");
     expect(init.body).toBe(JSON.stringify({ purge_everything: true }));
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("returns 503 when Cloudflare credentials are not configured", async () => {

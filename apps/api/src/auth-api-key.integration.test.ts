@@ -11,7 +11,6 @@ const url = process.env.INTEGRATION_DB_URL;
 const conn = url ? createDb(url) : null;
 
 describe.skipIf(!conn)("API key auth (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db, dialect } = conn!;
   const config = {
     isDev: true,

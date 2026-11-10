@@ -30,7 +30,6 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { AvailableCopiesPopover } from "./available-copies-popover";
 
 const SIBLINGS = [

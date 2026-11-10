@@ -123,21 +123,21 @@ export async function upsertPriceData(
     log.info(`${priceRows.length} price rows across ${uniqueSkus.size} SKUs`);
   }
 
-  const pricesBefore = await repo.countProductPrices(marketplace);
-  let pricesAffected = 0;
+  let newPrices = 0;
+  let updatedPrices = 0;
   for (let i = 0; i < priceRows.length; i += BATCH_SIZE) {
     const batch = priceRows.slice(i, i + BATCH_SIZE);
-    pricesAffected += await repo.upsertProductPrices(batch);
+    const { inserted, updated } = await repo.upsertProductPrices(batch);
+    newPrices += inserted;
+    updatedPrices += updated;
   }
-  const pricesAfter = await repo.countProductPrices(marketplace);
-  const newPrices = pricesAfter - pricesBefore;
 
   return {
     prices: {
       total: priceRows.length,
       new: newPrices,
-      updated: pricesAffected - newPrices,
-      unchanged: priceRows.length - pricesAffected,
+      updated: updatedPrices,
+      unchanged: priceRows.length - newPrices - updatedPrices,
     },
   };
 }

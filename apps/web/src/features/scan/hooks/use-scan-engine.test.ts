@@ -160,7 +160,6 @@ describe("useScanEngine", () => {
     vi.mocked(createScanWorkerClient).mockImplementation(() => {
       const index = clients.length;
       const created = fakeClient(() =>
-        // oxlint-disable-next-line promise/avoid-new -- the first init never settles
         index === 0 ? new Promise(() => {}) : Promise.resolve(READY),
       );
       clients.push(created);
@@ -289,7 +288,6 @@ describe("useScanEngine sessions", () => {
 
   it("refuses to prepare before the engine is ready", async () => {
     vi.mocked(createScanWorkerClient).mockImplementation(() => {
-      // oxlint-disable-next-line promise/avoid-new -- an init that never settles
       client = fakeClient(() => new Promise(() => {}));
       return client;
     });
@@ -303,7 +301,6 @@ describe("useScanEngine sessions", () => {
   it("waits for the frame in flight before replacing the sessions", async () => {
     const { result } = await mountReady();
     let finish!: () => void;
-    // oxlint-disable-next-line promise/avoid-new -- a frame held in flight until the test releases it
     const inFlight = new Promise<void>((resolve) => {
       finish = resolve;
     });
@@ -412,7 +409,6 @@ describe("useScanEngine sessions", () => {
     const first = client;
     let fail!: (error: Error) => void;
     vi.mocked(first.processFrame).mockReturnValue(
-      // oxlint-disable-next-line promise/avoid-new -- held open until the worker is replaced
       new Promise((_resolve, reject) => {
         fail = reject;
       }),

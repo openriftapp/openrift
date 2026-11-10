@@ -42,7 +42,6 @@ if (ctx) {
 const setIds: Record<string, string> = {};
 
 describe.skipIf(!ctx)("Admin catalog routes (integration)", () => {
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app } = ctx!;
 
   // The shared DB has seed data (OGS set); tests create new sets with a
@@ -287,7 +286,6 @@ describe.skipIf(!ctx)("Admin catalog routes (integration)", () => {
       expect(createRes.status).toBe(201);
       const { id: tempSetId } = await readJson(createRes);
 
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const { db: testDb } = ctx!;
       const [tempCard] = await insertCards(testDb, {
         slug: "CAT-PRINT-001",

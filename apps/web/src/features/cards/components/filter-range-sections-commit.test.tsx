@@ -41,7 +41,6 @@ vi.mock("@/components/ui/slider", () => ({
   ),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterRangeSections } from "./filter-range-sections";
 
 const AVAILABLE = {

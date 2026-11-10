@@ -8,7 +8,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { EllipsisVerticalIcon, EyeIcon, PencilIcon, Trash2Icon, UndoIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { ConfirmActionButton } from "@/components/confirm-action-dialog";
@@ -45,6 +45,7 @@ import {
   useUpdateBoardState,
 } from "@/features/board-states/hooks/use-board-states";
 import { useBoardDraftStore } from "@/features/board-states/stores/board-draft-store";
+import type { BoardEditorAdoption } from "@/features/board-states/stores/board-editor-store";
 import { useBoardEditorStore } from "@/features/board-states/stores/board-editor-store";
 import { unknownRuleRefs, useKnownRules } from "@/features/rules/hooks/use-known-rules";
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
@@ -74,14 +75,23 @@ function HydratedEditor({ children }: { children: ReactNode }) {
 }
 
 export function BoardStateEditorPage({ boardState }: { boardState: BoardStateResponse }) {
-  // oxlint-disable-next-line react/hook-use-state -- run-once init, the value itself is unused
-  useState(() => {
+  // oxlint-disable-next-line react/hook-use-state -- read once on mount, never updated
+  const [adoption] = useState(() => {
+    const pending = useBoardEditorStore.getState().adoption;
+    if (pending?.boardId === boardState.id) {
+      return pending;
+    }
     useBoardEditorStore.getState().load(boardState.document);
-    return true;
+    return null;
   });
+  useEffect(() => {
+    if (adoption) {
+      useBoardEditorStore.getState().adopt(null);
+    }
+  }, [adoption]);
   return (
     <HydratedEditor>
-      <SavedEditor boardState={boardState} />
+      <SavedEditor boardState={boardState} adoption={adoption} />
     </HydratedEditor>
   );
 }
@@ -94,14 +104,23 @@ export function NewBoardStatePage() {
   );
 }
 
-function SavedEditor({ boardState }: { boardState: BoardStateResponse }) {
+function SavedEditor({
+  boardState,
+  adoption,
+}: {
+  boardState: BoardStateResponse;
+  adoption: BoardEditorAdoption | null;
+}) {
   const navigate = useNavigate();
   const [meta, setMeta] = useState<EditorMeta>({
-    title: boardState.title,
-    coreRulesVersion: boardState.coreRulesVersion,
-    tournamentRulesVersion: boardState.tournamentRulesVersion,
+    title: adoption?.title ?? boardState.title,
+    coreRulesVersion: adoption ? adoption.coreRulesVersion : boardState.coreRulesVersion,
+    tournamentRulesVersion: adoption
+      ? adoption.tournamentRulesVersion
+      : boardState.tournamentRulesVersion,
   });
-  const [metaDirty, setMetaDirty] = useState(false);
+  const [metaDirty, setMetaDirty] = useState(adoption?.metaDirty ?? false);
+  const metaRevision = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const documentDirty = useBoardEditorStore((state) => state.dirty);
   const update = useUpdateBoardState();
@@ -120,10 +139,14 @@ function SavedEditor({ boardState }: { boardState: BoardStateResponse }) {
       return;
     }
     setError(null);
+    const savedRevision = useBoardEditorStore.getState().revision;
+    const savedMetaRevision = metaRevision.current;
     try {
       await update.mutateAsync({ id: boardState.id, ...meta, document: result.document });
-      setMetaDirty(false);
-      useBoardEditorStore.setState({ dirty: false });
+      if (metaRevision.current === savedMetaRevision) {
+        setMetaDirty(false);
+      }
+      useBoardEditorStore.getState().markSaved(savedRevision);
     } catch {
       /* Reported by the global mutation error toast. */
     }
@@ -139,6 +162,7 @@ function SavedEditor({ boardState }: { boardState: BoardStateResponse }) {
         meta={meta}
         error={error}
         onMeta={(next) => {
+          metaRevision.current += 1;
           setMeta(next);
           setMetaDirty(true);
         }}
@@ -212,6 +236,7 @@ function DraftEditor() {
   const navigate = useNavigate();
   const userId = useUserId();
   const create = useCreateBoardState();
+  const update = useUpdateBoardState();
   const saveDraft = useBoardDraftStore((state) => state.saveDraft);
   const clearDraft = useBoardDraftStore((state) => state.clearDraft);
   const latestCore = useSuspenseQuery(ruleVersionsQueryOptions("core")).data.versions.at(-1);
@@ -232,13 +257,26 @@ function DraftEditor() {
   });
   const [error, setError] = useState<string | null>(null);
   const [metaDirty, setMetaDirty] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const metaRevision = useRef(0);
+  const latestMeta = useRef(meta);
+  const mounted = useRef(false);
   const documentDirty = useBoardEditorStore((state) => state.dirty);
   const dirty = metaDirty || documentDirty;
 
-  const markClean = () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const markClean = (revision: number, savedMetaRevision: number) => {
     flushSync(() => {
-      setMetaDirty(false);
-      useBoardEditorStore.setState({ dirty: false });
+      if (metaRevision.current === savedMetaRevision) {
+        setMetaDirty(false);
+      }
+      useBoardEditorStore.getState().markSaved(revision);
     });
   };
 
@@ -253,40 +291,70 @@ function DraftEditor() {
       return;
     }
     setError(null);
+    const savedRevision = useBoardEditorStore.getState().revision;
+    const savedMetaRevision = metaRevision.current;
     if (!userId) {
       saveDraft({ ...meta, document: result.document });
-      markClean();
+      markClean(savedRevision, savedMetaRevision);
       trackAuthGate("board-state-save");
       await navigate({ to: "/login", search: { redirect: "/board-states/new", email: undefined } });
       return;
     }
     const title = meta.title.trim() === "" ? m.board_states_untitled() : meta.title;
+    const body = { ...meta, title, document: result.document };
+    const request = createdId
+      ? () => update.mutateAsync({ id: createdId, ...body })
+      : () => create.mutateAsync(body);
+    let saved: BoardStateResponse;
     try {
-      const created = await create.mutateAsync({ ...meta, title, document: result.document });
-      clearDraft();
-      markClean();
-      await navigate({
-        to: "/board-states/$boardStateId",
-        params: { boardStateId: created.id },
-      });
+      saved = await request();
     } catch {
       /* Reported by the global mutation error toast. */
+      return;
     }
+    const boardId = saved.id;
+    clearDraft();
+    if (!mounted.current) {
+      return;
+    }
+    flushSync(() => setCreatedId(boardId));
+    markClean(savedRevision, savedMetaRevision);
+    const metaChanged = metaRevision.current !== savedMetaRevision;
+    useBoardEditorStore.getState().adopt({
+      boardId,
+      ...(metaChanged ? latestMeta.current : { ...meta, title }),
+      metaDirty: metaChanged,
+    });
+    await navigate({ to: "/board-states/$boardStateId", params: { boardStateId: boardId } });
   };
 
   return (
     <>
-      <UnsavedChangesGuard dirty={dirty} />
+      <UnsavedChangesGuard
+        dirty={dirty}
+        allowNavigation={(_, next) =>
+          createdId !== null && next.pathname === `/board-states/${createdId}`
+        }
+        onLeave={() => useBoardEditorStore.getState().adopt(null)}
+      />
       <EditorLayout
         meta={meta}
         error={error}
         notice={userId ? null : m.board_states_editor_draft_kept()}
         onMeta={(next) => {
+          metaRevision.current += 1;
+          latestMeta.current = next;
           setMeta(next);
           setMetaDirty(true);
+          if (createdId) {
+            useBoardEditorStore.getState().adopt({ boardId: createdId, ...next, metaDirty: true });
+          }
         }}
         actions={
-          <PageTopBarPrimaryButton pending={create.isPending} onClick={() => void save()}>
+          <PageTopBarPrimaryButton
+            pending={create.isPending || update.isPending}
+            onClick={() => void save()}
+          >
             {userId ? m.board_states_editor_save() : m.board_states_editor_sign_in_to_save()}
           </PageTopBarPrimaryButton>
         }

@@ -36,7 +36,6 @@ vi.mock("@/features/collections/hooks/use-copies", () => ({
   useMoveCopies: () => ({ mutate, isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 const { MoveCopiesToCollectionDialog } = await import("./move-copies-to-collection-dialog");
 
 function renderDialog(copyIds: string[]) {

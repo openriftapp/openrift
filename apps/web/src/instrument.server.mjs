@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-unsafe-member-access -- .mjs outside the TS project, so `process` resolves untyped */
 // Imported at the top of src/server.ts, before any request handling. Bun runs
 // `.output/server/index.mjs` directly, so Node's --import bootstrap hook
 // isn't available here; this file is the manual equivalent. DSN comes from

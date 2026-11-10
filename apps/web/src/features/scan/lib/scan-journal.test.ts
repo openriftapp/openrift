@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   appendScanJournal,
+  clearScanJournal,
   hasScanJournal,
   MAX_SCAN_JOURNAL_ENTRIES,
   readScanJournal,
@@ -63,6 +64,7 @@ describe("appendScanJournal", () => {
     });
 
     expect(() => appendScanJournal({ type: "reload-prompt" })).not.toThrow();
+    expect(() => clearScanJournal()).not.toThrow();
   });
 });
 
@@ -127,6 +129,17 @@ describe("hasScanJournal", () => {
   });
 });
 
+describe("clearScanJournal", () => {
+  it("removes the journal", () => {
+    appendScanJournal({ type: "reload-prompt" });
+
+    clearScanJournal();
+
+    expect(hasScanJournal()).toBe(false);
+    expect(localStorage.getItem(KEY)).toBeNull();
+  });
+});
+
 describe("a runtime with no localStorage at all", () => {
   it("reads nothing and writes nothing instead of throwing", () => {
     vi.stubGlobal("localStorage", undefined);
@@ -134,6 +147,7 @@ describe("a runtime with no localStorage at all", () => {
     expect(readScanJournal()).toEqual([]);
     expect(hasScanJournal()).toBe(false);
     expect(() => appendScanJournal({ type: "reload-prompt" })).not.toThrow();
+    expect(() => clearScanJournal()).not.toThrow();
 
     vi.unstubAllGlobals();
   });

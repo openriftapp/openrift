@@ -22,7 +22,6 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { urlTableSort, useUrlTableFilters } from "./use-url-table-filters";
 
 const SORTS = ["startAt", "playerCount"] as const;

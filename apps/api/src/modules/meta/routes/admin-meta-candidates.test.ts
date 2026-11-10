@@ -54,7 +54,9 @@ const mockOverlays = {
 };
 
 const mockMeta = {
-  withPromoteLock: vi.fn((_key: string, run: () => Promise<unknown>) => run()),
+  withPromoteLock: vi.fn((_key: string, run: (locked: unknown) => Promise<unknown>) =>
+    run(mockRepos),
+  ),
   eventById: vi.fn(),
   eventsByIds: vi.fn(),
   playerById: vi.fn(),
@@ -106,24 +108,27 @@ function metaSubmission(status: string) {
   return { id: "sub-1", userId: "user-2", status };
 }
 
+const mockRepos = {
+  meta: mockMeta,
+  metaOverlays: mockOverlays,
+  metaPlayerLinks: mockPlayerLinks,
+  uvsgamesEvents: mockUvsgames,
+  uvsgamesResults: mockUvsgamesResults,
+  playloltcgEvents: mockPlayloltcg,
+  topdeckEvents: mockTopdeck,
+  topdeckResults: mockTopdeckResults,
+  catalog: mockCatalog,
+  metaSubmissions: mockMetaSubmissions,
+};
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("services", {
     notifySubmitterOfMetaAcceptance: mockNotifySubmitterOfMetaAcceptance,
   } as never);
-  c.set("repos", {
-    meta: mockMeta,
-    metaOverlays: mockOverlays,
-    metaPlayerLinks: mockPlayerLinks,
-    uvsgamesEvents: mockUvsgames,
-    uvsgamesResults: mockUvsgamesResults,
-    playloltcgEvents: mockPlayloltcg,
-    topdeckEvents: mockTopdeck,
-    topdeckResults: mockTopdeckResults,
-    catalog: mockCatalog,
-    metaSubmissions: mockMetaSubmissions,
-  } as never);
+  c.set("repos", mockRepos as never);
+  c.set("transact", ((fn: (repos: unknown) => Promise<unknown>) => fn(mockRepos)) as never);
   await next();
 });
 registerRouterForTest(app, adminMetaCandidatesRouter);
@@ -1184,6 +1189,16 @@ describe("POST /meta/overlays/players/{id}/accept", () => {
     );
   });
 
+  it("answers the accept without waiting for the thank-you email to go out", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("pending"));
+    mockNotifySubmitterOfMetaAcceptance.mockReturnValueOnce(Promise.withResolvers<void>().promise);
+
+    const response = await accept({ metaEventPlayerId: LIVE_PLAYER_ID });
+
+    expect(response.status).toBe(200);
+    expect(mockNotifySubmitterOfMetaAcceptance).toHaveBeenCalledTimes(1);
+  });
+
   it("does not thank the submitter again when the overlay was already accepted", async () => {
     mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("accepted"));
 
@@ -1241,6 +1256,21 @@ describe("POST /meta/overlays/players/accept", () => {
       expect.anything(),
       "sub-1",
     );
+  });
+
+  it("answers the batch without waiting for the thank-you emails to go out", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockImplementation((id: string) =>
+      Promise.resolve(id === SECOND ? metaSubmission("pending") : null),
+    );
+    mockNotifySubmitterOfMetaAcceptance.mockReturnValueOnce(Promise.withResolvers<void>().promise);
+
+    const response = await acceptAll([
+      { id: PLAYER_OVERLAY_ID, metaEventPlayerId: LIVE_PLAYER_ID },
+      { id: SECOND },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(mockNotifySubmitterOfMetaAcceptance).toHaveBeenCalledTimes(1);
   });
 
   it("thanks an organizer once for a tournament's lists", async () => {

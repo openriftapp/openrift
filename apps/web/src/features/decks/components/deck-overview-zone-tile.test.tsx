@@ -16,7 +16,6 @@ vi.mock("@/features/decks/components/deck-grouped-thumbs", () => ({
 
 afterEach(cleanup);
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { ZoneTile } from "./deck-overview-zone-tile";
 
 function renderZone({

@@ -1,7 +1,3 @@
-/* oxlint-disable
-   no-empty-function,
-   unicorn/no-useless-undefined
-   -- test file: mocks require empty fns and explicit undefined */
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { DeleteResult, Selectable } from "kysely";
 import { describe, expect, it, vi } from "vitest";
@@ -9,8 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { ListsTable } from "../../../db/tables/lists.js";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { TradeCancelConsentRequiredError } from "../../groups/services/trade-supply.js";
 import type { MoveEntry } from "../repositories/lists-entries.js";
-import { moveListEntries } from "./lists.js";
+import { moveListEntries, withTradeSupplySweep } from "./lists.js";
 
 function mockTransact(trxRepos: Repos): Transact {
   return (fn) => fn(trxRepos) as any;
@@ -65,6 +62,7 @@ interface MockOverrides {
   deleteCount?: number;
   ownedCopies?: OwnedCopy[];
   printings?: { id: string; cardIds: string[] }[];
+  sharedGroupIds?: string[];
 }
 
 function createMockRepos(overrides: MockOverrides = {}) {
@@ -89,6 +87,11 @@ function createMockRepos(overrides: MockOverrides = {}) {
     return Promise.resolve(undefined);
   });
 
+  const listGroupsSharingList = vi
+    .fn()
+    .mockResolvedValue((overrides.sharedGroupIds ?? []).map((groupId) => ({ groupId })));
+  const markAutoCancelled = vi.fn().mockResolvedValue(1);
+
   const repos = {
     lists: {
       getByIdForUser,
@@ -98,10 +101,33 @@ function createMockRepos(overrides: MockOverrides = {}) {
       ownedCopyTargets,
       printingCardIds,
     },
+    friendGroups: { listGroupsSharingList },
+    cardTrades: {
+      listPendingPrintingIdsForGiverInGroup: vi.fn().mockResolvedValue(["printing-1"]),
+      listPendingForGiverPrinting: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "trade-1", groupId: "group-1", quantity: 1, initiator: "receiver" },
+        ]),
+      markAutoCancelled,
+      listCancelSummaries: vi.fn().mockResolvedValue([
+        {
+          id: "trade-1",
+          cardId: "card-1",
+          printingId: "printing-1",
+          quantity: 1,
+          counterpartyName: "Mara",
+        },
+      ]),
+    },
+    friendGroupMatches: {
+      giverPrintingSupply: vi.fn().mockResolvedValue({ unreservedCopyIds: [], hasAny: false }),
+    },
   } as unknown as Repos;
 
   return {
     repos,
+    markAutoCancelled,
     bulkCreateEntries,
     deleteEntriesByIds,
     entriesForMove,
@@ -483,5 +509,135 @@ describe("moveListEntries", () => {
         tradeType: "money",
       }),
     );
+  });
+
+  it("refuses to move entries out of a shared trade list when that cancels an unconfirmed trade", async () => {
+    const source = buildList({ id: "list-a", kind: "copy", intent: "trade" });
+    const destination = buildList({ id: "list-b", kind: "copy", intent: "organize" });
+    const { repos, markAutoCancelled } = createMockRepos({
+      source,
+      destination,
+      entries: [buildEntry({ id: "entry-1", kind: "copy", copyId: "copy-1" })],
+      sharedGroupIds: ["group-1"],
+    });
+
+    const refusal = moveListEntries(repos, mockTransact(repos), "user-1", "list-a", "list-b", [
+      "entry-1",
+    ]);
+
+    await expect(refusal).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    await expect(refusal).rejects.toMatchObject({
+      data: { trades: [expect.objectContaining({ id: "trade-1", counterpartyName: "Mara" })] },
+    });
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("moving entries out of a shared trade list cancels the confirmed trades they backed", async () => {
+    const source = buildList({ id: "list-a", kind: "copy", intent: "trade" });
+    const destination = buildList({ id: "list-b", kind: "copy", intent: "organize" });
+    const { repos, markAutoCancelled } = createMockRepos({
+      source,
+      destination,
+      entries: [buildEntry({ id: "entry-1", kind: "copy", copyId: "copy-1" })],
+      sharedGroupIds: ["group-1"],
+    });
+
+    await moveListEntries(
+      repos,
+      mockTransact(repos),
+      "user-1",
+      "list-a",
+      "list-b",
+      ["entry-1"],
+      [],
+      "move",
+      ["trade-1"],
+    );
+
+    expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
+  });
+
+  it("copying entries out of a shared trade list leaves its trades alone", async () => {
+    const source = buildList({ id: "list-a", kind: "copy", intent: "trade" });
+    const destination = buildList({ id: "list-b", kind: "copy", intent: "organize" });
+    const { repos, markAutoCancelled } = createMockRepos({
+      source,
+      destination,
+      entries: [buildEntry({ id: "entry-1", kind: "copy", copyId: "copy-1" })],
+      sharedGroupIds: ["group-1"],
+    });
+
+    await moveListEntries(
+      repos,
+      mockTransact(repos),
+      "user-1",
+      "list-a",
+      "list-b",
+      ["entry-1"],
+      [],
+      "copy",
+    );
+
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+});
+
+describe("withTradeSupplySweep", () => {
+  const tradeList = [{ id: "list-a", intent: "trade" as const }];
+
+  it("runs a wish-list edit outside a transaction and never asks", async () => {
+    const { repos, markAutoCancelled } = createMockRepos({ sharedGroupIds: ["group-1"] });
+    const transact = vi.fn();
+    const edit = vi.fn().mockResolvedValue("done");
+
+    const result = await withTradeSupplySweep(
+      repos,
+      transact as unknown as Transact,
+      "user-1",
+      [{ id: "list-w", intent: "wish" }],
+      [],
+      edit,
+    );
+
+    expect(result).toBe("done");
+    expect(transact).not.toHaveBeenCalled();
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("goes through without asking when the edit cancels nothing", async () => {
+    const { repos, markAutoCancelled } = createMockRepos({ sharedGroupIds: ["group-1"] });
+    vi.mocked(repos.friendGroupMatches.giverPrintingSupply).mockResolvedValue({
+      unreservedCopyIds: ["copy-1"],
+      hasAny: true,
+    });
+
+    await withTradeSupplySweep(repos, mockTransact(repos), "user-1", tradeList, [], () =>
+      Promise.resolve(),
+    );
+
+    expect(repos.cardTrades.listCancelSummaries).not.toHaveBeenCalled();
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("refuses when the edit would cancel a trade the user did not confirm", async () => {
+    const { repos, markAutoCancelled } = createMockRepos({ sharedGroupIds: ["group-1"] });
+
+    await expect(
+      withTradeSupplySweep(repos, mockTransact(repos), "user-1", tradeList, ["trade-other"], () =>
+        Promise.resolve(),
+      ),
+    ).rejects.toBeInstanceOf(TradeCancelConsentRequiredError);
+    expect(repos.cardTrades.listCancelSummaries).toHaveBeenCalledWith(["trade-1"]);
+    expect(markAutoCancelled).not.toHaveBeenCalled();
+  });
+
+  it("cancels the trades the user confirmed", async () => {
+    const { repos, markAutoCancelled } = createMockRepos({ sharedGroupIds: ["group-1"] });
+
+    await withTradeSupplySweep(repos, mockTransact(repos), "user-1", tradeList, ["trade-1"], () =>
+      Promise.resolve(),
+    );
+
+    expect(markAutoCancelled).toHaveBeenCalledWith("trade-1");
   });
 });

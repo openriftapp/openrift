@@ -4,7 +4,7 @@ export interface WorkspaceRecordActions {
   primary?: { label: string; disabled?: boolean; run: () => Promise<void> | void };
   accept?: () => Promise<void> | void;
   ignore?: () => Promise<void> | void;
-  useSuggestion?: (n: number) => void;
+  useSuggestion?: (n: number) => Promise<void> | void;
 }
 
 interface WorkspaceActionsState {

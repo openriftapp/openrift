@@ -1,4 +1,3 @@
-/* oxlint-disable import/no-nodejs-modules -- standalone script */
 /**
  * Boots the built SSR server the way the image runs it (no node_modules
  * beside `.output`) and checks it renders. The output is copied outside the

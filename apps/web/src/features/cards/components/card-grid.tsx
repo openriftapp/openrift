@@ -11,6 +11,7 @@ import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-colu
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import {
   BUTTON_PAD,
+  BUTTON_PAD_CLASS,
   CARD_ASPECT_INVERSE,
   FALLBACK_ROW_HEIGHT,
   HEADER_CONTENT_HEIGHT,
@@ -162,8 +163,7 @@ const CardRowContent = memo(function CardRowContent({
     return (
       <div style={gridStyle}>
         {row.items.map((item) => (
-          // ⚠ p-0.75 mirrors BUTTON_PAD in card-grid-constants — update both together
-          <div key={item.id} className="rounded-lg p-0.75">
+          <div key={item.id} className={cn("rounded-lg", BUTTON_PAD_CLASS)}>
             {addStripHeight > 0 && <div style={{ height: addStripHeight }} />}
             <div className="bg-muted aspect-card rounded-lg" />
             {labelHeight > 0 && <div style={{ height: labelHeight }} />}

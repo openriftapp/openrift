@@ -16,6 +16,8 @@ export function PageHero({
   lead,
   aside,
   compactTitle = false,
+  compactOnPhone = false,
+  phoneFacts = [],
   width = "capped",
   children,
 }: {
@@ -24,6 +26,8 @@ export function PageHero({
   lead?: ReactNode;
   aside?: ReactNode;
   compactTitle?: boolean;
+  compactOnPhone?: boolean;
+  phoneFacts?: readonly string[];
   width?: keyof typeof PAGE_WIDTH;
   children?: ReactNode;
 }) {
@@ -37,26 +41,45 @@ export function PageHero({
       <div
         className={cn(
           PAGE_WIDTH[width],
-          "px-safe relative flex items-center gap-12 pt-10 pb-8 sm:pt-12 sm:pb-10",
+          "px-safe relative flex items-center gap-12",
+          compactOnPhone ? "pt-5 pb-1 md:pt-12 md:pb-10" : "pt-10 pb-8 sm:pt-12 sm:pb-10",
         )}
       >
-        <div className="flex min-w-0 flex-1 flex-col items-start gap-3">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col items-start gap-3",
+            compactOnPhone && "max-md:gap-2",
+          )}
+        >
           {typeof eyebrow === "string" ? (
-            <span className={PAGE_HERO_EYEBROW_CLASS}>{eyebrow}</span>
+            <span className={cn(PAGE_HERO_EYEBROW_CLASS, compactOnPhone && "max-md:hidden")}>
+              {eyebrow}
+            </span>
           ) : (
             eyebrow
           )}
           <h1
             className={cn(
-              "font-heading text-4xl font-bold text-balance",
-              !compactTitle && "md:text-5xl",
+              "font-heading font-bold text-balance",
+              compactOnPhone ? "text-2xl" : "text-4xl",
+              compactTitle ? compactOnPhone && "md:text-4xl" : "md:text-5xl",
             )}
           >
             {title}
           </h1>
-          <OrnamentRule className="w-40" />
+          {compactOnPhone && phoneFacts.length > 0 && (
+            <p className="text-muted-foreground text-sm md:hidden">{phoneFacts.join(" · ")}</p>
+          )}
+          <OrnamentRule className={cn("w-40", compactOnPhone && "max-md:hidden")} />
           {lead !== undefined && (
-            <p className="text-muted-foreground max-w-lg text-pretty">{lead}</p>
+            <p
+              className={cn(
+                "text-muted-foreground max-w-lg text-pretty",
+                compactOnPhone && "max-md:hidden",
+              )}
+            >
+              {lead}
+            </p>
           )}
           {children}
         </div>
@@ -72,9 +95,15 @@ export interface PageHeroStat {
   value: ReactNode;
 }
 
-export function PageHeroStats({ stats }: { stats: readonly PageHeroStat[] }) {
+export function PageHeroStats({
+  stats,
+  className,
+}: {
+  stats: readonly PageHeroStat[];
+  className?: string;
+}) {
   return (
-    <dl className="mt-3 flex flex-wrap gap-x-9 gap-y-3">
+    <dl className={cn("mt-3 flex flex-wrap gap-x-9 gap-y-3", className)}>
       {stats.map((stat) => (
         <div key={stat.key} className="flex flex-col-reverse gap-0.5">
           <dt className="text-muted-foreground text-sm">{stat.label}</dt>

@@ -13,7 +13,6 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useDeckListFilters } from "./use-deck-list-filters";
 
 /** Applies the search updater the hook handed to `navigate`, giving the params that would land in the URL. */

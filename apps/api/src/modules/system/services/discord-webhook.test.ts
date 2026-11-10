@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { createLogger } from "@openrift/shared/logger";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EnrichedPrintingEvent } from "../../catalog/repositories/printing-events.js";
-import { buildNewPrintingPayloads } from "./discord-webhook.js";
+import { buildNewPrintingPayloads, flushPrintingEvents } from "./discord-webhook.js";
 
 const APP_BASE_URL = "https://openrift.app";
 
@@ -215,5 +216,26 @@ describe("buildNewPrintingPayloads", () => {
 
     expect(payloads[0]!.embeds[0]!.title).toContain("25 new printings added");
     expect(payloads[0]!.embeds[0]!.description).toContain("Origins");
+  });
+});
+
+describe("flushPrintingEvents", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("gives every webhook request a timeout", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await flushPrintingEvents(
+      [makeEvent()],
+      { newPrintings: "https://discord.example/webhook" },
+      APP_BASE_URL,
+      createLogger("test"),
+    );
+
+    expect(result.sentIds).toEqual(["evt-1"]);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
   });
 });

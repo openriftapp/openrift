@@ -31,7 +31,6 @@ app.use("*", async (c, next) => {
     catalog: mockCatalogRepo,
     distributionChannels: mockDistributionChannelsRepo,
     printingCitations: mockPrintingCitationsRepo,
-    // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   } as any);
   await next();
 });
@@ -267,7 +266,6 @@ describe("promos route registration", () => {
         catalog: mockCatalogRepo,
         distributionChannels: mockDistributionChannelsRepo,
         printingCitations: mockPrintingCitationsRepo,
-        // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
       } as any);
       await next();
     });

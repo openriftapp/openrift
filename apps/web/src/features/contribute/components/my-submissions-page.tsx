@@ -21,8 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
 import { useCardSubmissions } from "@/features/contribute/hooks/use-card-submissions";
 import {
-  submissionExplanation,
   submissionKindLabels,
+  submissionReasonSentence,
   submissionStatusBadgeVariant,
   submissionStatusHints,
   submissionStatusLabels,
@@ -31,7 +31,8 @@ import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function SubmissionRow({ submission }: { submission: CardSubmissionStatusResponse }) {
-  const explanation = submissionExplanation(submission.reason, submission.resolutionNote);
+  const reasonSentence = submissionReasonSentence(submission.reason, submission.resolutionNote);
+  const adminNote = submission.resolutionNote;
   const hint = submissionStatusHints()[submission.status];
   const cardLink = submission.cardSlug;
 
@@ -68,8 +69,11 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
           : ""}
       </p>
 
-      {explanation ? <p>{explanation}</p> : null}
-      {!explanation && hint ? <p className="text-muted-foreground">{hint}</p> : null}
+      {reasonSentence ? <p>{reasonSentence}</p> : null}
+      {adminNote ? <p>{adminNote}</p> : null}
+      {!reasonSentence && !adminNote && hint ? (
+        <p className="text-muted-foreground">{hint}</p>
+      ) : null}
 
       {submission.note ? (
         <Callout variant="inset" className="text-muted-foreground text-sm italic">

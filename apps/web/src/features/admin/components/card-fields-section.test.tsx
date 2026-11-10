@@ -31,7 +31,7 @@ vi.mock("@/features/admin/components/candidate-spreadsheet", () => ({
 
 const stubMutation = { mutate: vi.fn(), isPending: false };
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useAcceptCardField: () => ({ mutate: captured.acceptCardField, isPending: false }),
+  useAcceptCardField: () => ({ mutateAsync: captured.acceptCardField, isPending: false }),
   useCheckCandidateCard: () => stubMutation,
   useUncheckCandidateCard: () => stubMutation,
 }));
@@ -46,7 +46,6 @@ vi.mock("@/features/admin/hooks/use-admin-card-submissions", () => ({
   useSetSubmissionResolution: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardFieldsSection } from "./card-fields-section";
 
 const card = { id: "card-uuid", name: "Yasuo", errata: null } as unknown as AdminCardResponse;
@@ -118,10 +117,11 @@ describe("CardFieldsSection", () => {
     });
   });
 
-  it("offers the old value back after accepting one from a source", () => {
+  it("offers the old value back after accepting one from a source", async () => {
     renderSection({ sources: [stubSource()] });
 
     captured.spreadsheet?.onCellClick?.("name", "Jinx", "cc1");
+    await vi.waitFor(() => expect(captured.toastSuccess).toHaveBeenCalledOnce());
 
     const [message, options] = captured.toastSuccess.mock.calls[0] as [
       string,
@@ -136,6 +136,18 @@ describe("CardFieldsSection", () => {
       value: "Yasuo",
       source: "manual",
     });
+  });
+
+  it("shows no Undo toast when the accept fails", async () => {
+    captured.acceptCardField.mockRejectedValueOnce(new Error("conflict"));
+    renderSection({ sources: [stubSource()] });
+
+    captured.spreadsheet?.onCellClick?.("name", "Jinx", "cc1");
+    await vi.waitFor(() => expect(captured.acceptCardField).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(captured.toastSuccess).not.toHaveBeenCalled();
   });
 
   it("renders the grid, which the nav decides to show at all", () => {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 
 import { WellKnown } from "../well-known.js";
 import type { Currency } from "./api/trade-preferences.js";
@@ -11,12 +11,6 @@ export const marketplaceEnum = z.enum(ALL_MARKETPLACES);
 
 export type Marketplace = z.infer<typeof marketplaceEnum>;
 
-export const EUR_MARKETPLACES: ReadonlySet<Marketplace> = new Set([
-  "cardmarket",
-  "cardtrader",
-  "cardnexus",
-]);
-
 // Prices on the wire are integer cents with no currency of their own.
 export const MARKETPLACE_CURRENCY: Record<Marketplace, Currency> = {
   tcgplayer: "USD",
@@ -24,6 +18,10 @@ export const MARKETPLACE_CURRENCY: Record<Marketplace, Currency> = {
   cardtrader: "EUR",
   cardnexus: "EUR",
 };
+
+export const EUR_MARKETPLACES: ReadonlySet<Marketplace> = new Set(
+  ALL_MARKETPLACES.filter((marketplace) => MARKETPLACE_CURRENCY[marketplace] === "EUR"),
+);
 
 // TCGplayer is a US storefront carrying English stock only; its price guide is
 // language-aggregate, so a SKU must never bind to a non-English printing.
