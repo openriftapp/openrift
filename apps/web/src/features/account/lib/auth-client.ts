@@ -18,6 +18,7 @@ export const authClient = createAuthClient({
         profileShowRiotId: { type: "boolean", required: false },
         profileShowCollection: { type: "boolean", required: false },
         profileShowLastActive: { type: "boolean", required: false },
+        profileShowReferralTier: { type: "boolean", required: false },
       },
     }),
   ],

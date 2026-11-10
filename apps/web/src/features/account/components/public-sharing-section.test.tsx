@@ -14,6 +14,10 @@ const { shareStateMock } = vi.hoisted(() => ({
   ),
 }));
 
+vi.mock("@/features/account/hooks/use-referral", () => ({
+  useReferralUrl: (url: string | null) => url,
+}));
+
 vi.mock("@/features/groups/hooks/use-user-share", () => ({
   useUserShareState: shareStateMock,
   useEnableUserShare: () => ({ mutate: enableMutate, isPending: false }),

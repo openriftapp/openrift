@@ -4,6 +4,7 @@ import type { Database } from "../../db/tables.js";
 import { adminGrantsRepo } from "./repositories/admin-grants.js";
 import { adminsRepo } from "./repositories/admins.js";
 import { featureFlagsRepo } from "./repositories/feature-flags.js";
+import { referralsRepo } from "./repositories/referrals.js";
 import { userContactMethodsRepo } from "./repositories/user-contact-methods.js";
 import { userFeatureFlagsRepo } from "./repositories/user-feature-flags.js";
 import { userPreferencesRepo } from "./repositories/user-preferences.js";
@@ -14,6 +15,7 @@ export interface UsersRepos {
   admins: ReturnType<typeof adminsRepo>;
   adminGrants: ReturnType<typeof adminGrantsRepo>;
   featureFlags: ReturnType<typeof featureFlagsRepo>;
+  referrals: ReturnType<typeof referralsRepo>;
   userContactMethods: ReturnType<typeof userContactMethodsRepo>;
   userFeatureFlags: ReturnType<typeof userFeatureFlagsRepo>;
   userPreferences: ReturnType<typeof userPreferencesRepo>;
@@ -26,6 +28,7 @@ export function createUsersRepos(db: Kysely<Database>): UsersRepos {
     admins: adminsRepo(db),
     adminGrants: adminGrantsRepo(db),
     featureFlags: featureFlagsRepo(db),
+    referrals: referralsRepo(db),
     userContactMethods: userContactMethodsRepo(db),
     userFeatureFlags: userFeatureFlagsRepo(db),
     userPreferences: userPreferencesRepo(db),

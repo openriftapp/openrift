@@ -176,6 +176,8 @@
   "profile_public_toggle_collection_description": "只顯示你擁有幾張卡，絕不會顯示是哪些卡。",
   "profile_public_toggle_last_active_label": "顯示我上次活躍的時間",
   "profile_public_toggle_last_active_description": "只精確到今天、本週或本月。",
+  "profile_public_toggle_referral_tier_label": "顯示我的邀請徽章",
+  "profile_public_toggle_referral_tier_description": "只顯示你帶來了幾位朋友，絕不會顯示是誰。",
   "profile_public_save_error": "無法儲存，請再試一次。",
   "profile_public_bio_label": "簡介",
   "profile_public_bio_placeholder": "來自臺北的狂怒與渾沌玩家。正在收集完整的「起源」整套。",
@@ -258,6 +260,43 @@
   "profile_sharing_title": "分享連結",
   "profile_sharing_description": "一個指向頁面的連結，展示你的統計資料以及現有與未來的所有願望清單與交換清單。整理清單維持私人。",
   "profile_sharing_link_label": "個人檔案連結",
+  "referral_title": "邀請朋友",
+  "referral_description": "把這個連結傳給玩 Riftbound 的朋友。你分享的牌組、清單和個人檔案連結也帶有你的邀請。",
+  "referral_link_label": "邀請連結",
+  "referral_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已計入 {count} 位朋友。",
+        "countPlural=*": "已計入 {count} 位朋友。"
+      }
+    }
+  ],
+  "referral_not_yet_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "另有 {count} 人已註冊，但還沒有新增卡牌或牌組。",
+        "countPlural=*": "另有 {count} 人已註冊，但還沒有新增卡牌或牌組。"
+      }
+    }
+  ],
+  "referral_rules_next": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "朋友驗證電子郵件並新增一張卡牌或組一副牌組後即會計入。再邀請 {count} 位即可獲得 {threshold} 位朋友徽章。",
+        "countPlural=*": "朋友驗證電子郵件並新增一張卡牌或組一副牌組後即會計入。再邀請 {count} 位即可獲得 {threshold} 位朋友徽章。"
+      }
+    }
+  ],
+  "referral_rules_top": "朋友驗證電子郵件並新增一張卡牌或組一副牌組後即會計入。你已獲得最高徽章。",
+  "referral_tier_1": "帶來了 1 位朋友",
+  "referral_tier_2": "帶來了 5 位朋友",
+  "referral_tier_3": "帶來了 25 位朋友",
   "profile_sharing_link_exposes": "看到你的個人檔案、統計資料以及所有願望清單與交換清單",
   "profile_sharing_image_title": "你分享的清單",
   "profile_sharing_print_title": "我的清單",

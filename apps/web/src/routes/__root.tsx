@@ -24,8 +24,10 @@ import { RouteNotFoundFallback } from "@/components/error-message";
 // warnings; body is `if (DEV)` so it's stripped from production bundles.
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect tracer
 import "@/lib/debug/memo-cache-trace";
+import { useReferralCapture } from "@/features/account/hooks/use-referral";
 import { useBrowserLocale } from "@/hooks/use-browser-locale";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useUserId } from "@/hooks/use-session";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
@@ -250,6 +252,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { resolvedViewPrefs } = Route.useRouteContext();
   useBrowserLocale();
+  useReferralCapture(useUserId());
   const hydrated = useHydrated();
   return (
     <>

@@ -176,6 +176,8 @@
   "profile_public_toggle_collection_description": "Wie viele Karten du besitzt, nie welche.",
   "profile_public_toggle_last_active_label": "Zeigen, wann ich zuletzt aktiv war",
   "profile_public_toggle_last_active_description": "Gerundet auf heute, diese Woche oder diesen Monat.",
+  "profile_public_toggle_referral_tier_label": "Mein Einladungs-Abzeichen zeigen",
+  "profile_public_toggle_referral_tier_description": "Zeigt, wie viele Freunde du zu OpenRift gebracht hast, nie wer sie sind.",
   "profile_public_save_error": "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   "profile_public_bio_label": "Bio",
   "profile_public_bio_placeholder": "Fury- und Chaos-Spieler aus Frankfurt. Sammle ein komplettes Origins-Playset.",
@@ -258,6 +260,43 @@
   "profile_sharing_title": "Link zum Teilen",
   "profile_sharing_description": "Ein Link zu einer Seite mit deinen Statistiken und allen Wunsch- und Tauschlisten, jetzigen und zukünftigen. Organisationslisten bleiben privat.",
   "profile_sharing_link_label": "Profil-Link",
+  "referral_title": "Freunde einladen",
+  "referral_description": "Schick diesen Link an Freunde, die Riftbound spielen. Links zu Decks, Listen und deinem Profil, die du teilst, enthalten deine Einladung auch.",
+  "referral_link_label": "Einladungslink",
+  "referral_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Freund zählt.",
+        "countPlural=*": "{count} Freunde zählen."
+      }
+    }
+  ],
+  "referral_not_yet_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} weitere Person hat sich angemeldet, aber noch keine Karte und kein Deck angelegt.",
+        "countPlural=*": "{count} weitere Personen haben sich angemeldet, aber noch keine Karte und kein Deck angelegt."
+      }
+    }
+  ],
+  "referral_rules_next": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Ein Freund zählt, sobald er seine E-Mail bestätigt und eine Karte hinzufügt oder ein Deck baut. Noch {count} für das Abzeichen für {threshold} Freunde.",
+        "countPlural=*": "Ein Freund zählt, sobald er seine E-Mail bestätigt und eine Karte hinzufügt oder ein Deck baut. Noch {count} für das Abzeichen für {threshold} Freunde."
+      }
+    }
+  ],
+  "referral_rules_top": "Ein Freund zählt, sobald er seine E-Mail bestätigt und eine Karte hinzufügt oder ein Deck baut. Du hast das höchste Abzeichen.",
+  "referral_tier_1": "Hat einen Freund mitgebracht",
+  "referral_tier_2": "Hat 5 Freunde mitgebracht",
+  "referral_tier_3": "Hat 25 Freunde mitgebracht",
   "profile_sharing_link_exposes": "dein Profil, deine Statistiken und alle deine Wunsch- und Tauschlisten sehen",
   "profile_sharing_image_title": "deine geteilten Listen",
   "profile_sharing_print_title": "Meine Listen",

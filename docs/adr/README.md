@@ -63,6 +63,7 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-049](049-group-stage-with-fixed-top-cut.md)**: Group Stage with Fixed Top Cut
 - **[ADR-052](052-tournament-lists-to-meta-archive.md)**: Tournament Decklists into the Meta Archive via UVS Games
 - **[ADR-054](054-scryfall-style-search-syntax.md)**: Scryfall-Style Card Search Syntax
+- **[ADR-055](055-referral-attribution.md)**: Referral Attribution and Invite Badges
 
 ### Rejected
 

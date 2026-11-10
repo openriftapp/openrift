@@ -1,5 +1,6 @@
 import type { FriendGroupJoinPreviewResponse } from "@openrift/shared/types/api/friend-group";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +12,7 @@ interface PreviewState {
 
 let previewState: PreviewState;
 let viewerId: string | undefined;
+const joinMutateAsync = vi.fn(() => Promise.resolve());
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => previewState,
@@ -21,7 +23,11 @@ vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
 }));
 
 vi.mock("@/features/groups/hooks/use-friend-group-mutations", () => ({
-  useJoinFriendGroupByCode: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useJoinFriendGroupByCode: () => ({
+    mutateAsync: joinMutateAsync,
+    isPending: false,
+    isIdle: true,
+  }),
 }));
 
 vi.mock("@/hooks/use-session", () => ({
@@ -29,8 +35,16 @@ vi.mock("@/hooks/use-session", () => ({
 }));
 
 vi.mock("@/components/signed-out-cta", () => ({
-  SignedOutAuthButtons: ({ signInLabel }: { signInLabel?: string }) => (
-    <a href="/login">{signInLabel}</a>
+  SignedOutAuthButtons: ({
+    signInLabel,
+    onNavigate,
+  }: {
+    signInLabel?: string;
+    onNavigate?: () => void;
+  }) => (
+    <a href="/login" onClick={() => onNavigate?.()}>
+      {signInLabel}
+    </a>
   ),
 }));
 
@@ -41,6 +55,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 const { GroupsJoinPage } = await import("./groups-join-page");
+const { hasJoinIntent, rememberJoinIntent } = await import("@/features/groups/lib/join-intent");
 
 function preview(
   overrides: Partial<FriendGroupJoinPreviewResponse> = {},
@@ -60,6 +75,8 @@ describe("GroupsJoinPage", () => {
   beforeEach(() => {
     viewerId = "viewer-1";
     previewState = { data: undefined, isError: false, isLoading: false };
+    joinMutateAsync.mockClear();
+    sessionStorage.clear();
   });
 
   it("previews the group and offers to request a spot", () => {
@@ -110,6 +127,36 @@ describe("GroupsJoinPage", () => {
     expect(screen.getByText("Tuesday Night Crew")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in to request" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request to join" })).not.toBeInTheDocument();
+  });
+
+  it("files the request once the visitor who clicked sign-in is back", async () => {
+    viewerId = undefined;
+    previewState = { data: preview(), isError: false, isLoading: false };
+    const signedOut = render(<GroupsJoinPage code="abc123" />);
+    await userEvent.click(screen.getByRole("link", { name: "Sign in to request" }));
+    signedOut.unmount();
+
+    viewerId = "viewer-1";
+    render(<GroupsJoinPage code="abc123" />);
+
+    expect(joinMutateAsync).toHaveBeenCalledExactlyOnceWith("abc123");
+    expect(hasJoinIntent("abc123")).toBe(false);
+  });
+
+  it("files nothing for a signed-in visitor who never clicked sign-in", () => {
+    previewState = { data: preview(), isError: false, isLoading: false };
+    render(<GroupsJoinPage code="abc123" />);
+
+    expect(joinMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("drops the intent without a second request for a pending viewer", () => {
+    rememberJoinIntent("abc123");
+    previewState = { data: preview({ viewerStatus: "pending" }), isError: false, isLoading: false };
+    render(<GroupsJoinPage code="abc123" />);
+
+    expect(joinMutateAsync).not.toHaveBeenCalled();
+    expect(hasJoinIntent("abc123")).toBe(false);
   });
 
   it("shows an outstanding request instead of a second one", () => {

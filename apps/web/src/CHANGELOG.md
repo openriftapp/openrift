@@ -5,10 +5,12 @@
 ### Highlights
 
 - feat(App): **Include or exclude switch** — filter menus and rows now offer Exclude directly instead of a hidden second click.
+- feat(Account): **Invite friends** — friends who join through your invite or shared links earn you a badge on your profile.
 
 ### Other
 
 - fix(Decks): **Removing a format filter** — removing the only included format or domain from the deck list filters clears it and no longer excludes it.
+- feat(Groups): **Join requests after sign-in** — signing in or creating an account from a group invite link now sends the join request without a second click.
 
 ## 2026-11-09
 

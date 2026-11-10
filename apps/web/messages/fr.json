@@ -176,6 +176,8 @@
   "profile_public_toggle_collection_description": "Combien de cartes vous possédez, jamais lesquelles.",
   "profile_public_toggle_last_active_label": "Afficher ma dernière activité",
   "profile_public_toggle_last_active_description": "Arrondie à aujourd'hui, cette semaine ou ce mois.",
+  "profile_public_toggle_referral_tier_label": "Afficher mon badge d'invitation",
+  "profile_public_toggle_referral_tier_description": "Combien d'amis vous avez amenés sur OpenRift, jamais lesquels.",
   "profile_public_save_error": "Enregistrement impossible. Veuillez réessayer.",
   "profile_public_bio_label": "Bio",
   "profile_public_bio_placeholder": "Joueur Fureur et Chaos de Francfort. Je collectionne un playset complet d'Origins.",
@@ -258,6 +260,43 @@
   "profile_sharing_title": "Lien de partage",
   "profile_sharing_description": "Un lien vers une page avec vos statistiques et toutes vos listes de souhaits et d'échange, actuelles et futures. Les listes d'organisation restent privées.",
   "profile_sharing_link_label": "Lien du profil",
+  "referral_title": "Inviter des amis",
+  "referral_description": "Envoyez ce lien à des amis qui jouent à Riftbound. Les liens de decks, de listes et de profil que vous partagez portent aussi votre invitation.",
+  "referral_link_label": "Lien d'invitation",
+  "referral_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} ami compté.",
+        "countPlural=*": "{count} amis comptés."
+      }
+    }
+  ],
+  "referral_not_yet_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} autre personne s'est inscrite mais n'a encore ajouté ni carte ni deck.",
+        "countPlural=*": "{count} autres personnes se sont inscrites mais n'ont encore ajouté ni carte ni deck."
+      }
+    }
+  ],
+  "referral_rules_next": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Un ami compte dès qu'il confirme son e-mail et ajoute une carte ou construit un deck. Encore {count} pour le badge des {threshold} amis.",
+        "countPlural=*": "Un ami compte dès qu'il confirme son e-mail et ajoute une carte ou construit un deck. Encore {count} pour le badge des {threshold} amis."
+      }
+    }
+  ],
+  "referral_rules_top": "Un ami compte dès qu'il confirme son e-mail et ajoute une carte ou construit un deck. Vous avez le badge le plus élevé.",
+  "referral_tier_1": "A amené un ami",
+  "referral_tier_2": "A amené 5 amis",
+  "referral_tier_3": "A amené 25 amis",
   "profile_sharing_link_exposes": "voir votre profil, vos statistiques et toutes vos listes de souhaits et d'échange",
   "profile_sharing_image_title": "vos listes partagées",
   "profile_sharing_print_title": "Mes listes",

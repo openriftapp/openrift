@@ -3,6 +3,7 @@ import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-s
 import {
   CalendarIcon,
   ClockIcon,
+  HeartHandshakeIcon,
   LinkIcon,
   SparklesIcon,
   SwordsIcon,
@@ -15,6 +16,8 @@ import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
+import { useReferralUrl } from "@/features/account/hooks/use-referral";
+import { referralTierLabel } from "@/features/account/lib/referral-tier-label";
 import { ContactMethodChips } from "@/features/groups/components/contact-method-chips";
 import { UserProfileStats } from "@/features/groups/components/user-profile-stats";
 import { groupsInCommonLabel, lastActiveLabel } from "@/features/groups/lib/user-profile-copy";
@@ -45,6 +48,8 @@ export function UserProfileHeader({
 }) {
   const { owner, groupsInCommon, contactMethods } = data;
   const groupsLabel = groupsInCommonLabel(groupsInCommon.map((group) => group.name));
+  const referralLabel = referralTierLabel(owner.referralTier);
+  const ownShareUrl = useReferralUrl(shareUrl);
   return (
     <Card className="gap-4 p-4 sm:p-5">
       <div className="flex items-center gap-4">
@@ -61,6 +66,12 @@ export function UserProfileHeader({
               <Badge variant="subtle" className="gap-1">
                 <SparklesIcon />
                 {m.user_profile_contributor()}
+              </Badge>
+            ) : null}
+            {referralLabel ? (
+              <Badge variant="subtle" className="gap-1">
+                <HeartHandshakeIcon />
+                {referralLabel}
               </Badge>
             ) : null}
           </div>
@@ -94,7 +105,7 @@ export function UserProfileHeader({
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <UserProfileStats stats={data.stats} />
         <CopyTextButton
-          value={shareUrl}
+          value={owner.isViewer ? ownShareUrl : shareUrl}
           label={m.user_profile_copy_link()}
           icon={LinkIcon}
           normalizeLineBreaks={false}

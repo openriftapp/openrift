@@ -12,6 +12,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useReferralUrl } from "@/features/account/hooks/use-referral";
 import { DeleteListDialog } from "@/features/lists/components/delete-list-dialog";
 import { ListEditDialog } from "@/features/lists/components/list-edit-dialog";
 import { ListShareDialog } from "@/features/lists/components/list-share-dialog";
@@ -40,7 +41,7 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
   const deleteList = useDeleteList();
   const navigate = useNavigate();
 
-  const shareUrl = shareLinkUrl("list", list);
+  const shareUrl = useReferralUrl(shareLinkUrl("list", list));
 
   // The menu closes on click, so the hook's inline "Copied" state never shows;
   // the toast is the feedback here instead.

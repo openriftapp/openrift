@@ -1,4 +1,5 @@
 import { publicUserShareContract } from "@openrift/shared/contracts/public-user-share";
+import { referralTier } from "@openrift/shared/referral";
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
 import { implement } from "@orpc/server";
@@ -30,6 +31,7 @@ export const publicUserShareRouter = {
         canonicalPrintings,
         podTournaments,
         printingImages,
+        referrals,
       } = context.repos;
       const viewerUserId = context.user?.id ?? null;
 
@@ -51,6 +53,7 @@ export const publicUserShareRouter = {
         metaEvents,
         decks,
         tournaments,
+        referralCounts,
       ] = await Promise.all([
         userShares.listsForOwner(owner.userId, viewerUserId),
         viewerUserId
@@ -72,6 +75,7 @@ export const publicUserShareRouter = {
         userProfile.metaEventCredits(owner.userId),
         userProfile.deckSummary(owner.userId),
         tournamentHistoryForUser({ userProfile, podTournaments }, owner.userId),
+        owner.profileShowReferralTier ? referrals.counts(owner.userId) : Promise.resolve(null),
       ]);
 
       const listRefs = lists.map(({ list }) => ({
@@ -108,6 +112,7 @@ export const publicUserShareRouter = {
           memberSince: owner.createdAt.toISOString(),
           lastActive: lastActiveBucket(lastActiveAt, new Date()),
           isContributor: contributionsTotal > 0,
+          referralTier: referralCounts ? referralTier(referralCounts.counted) : 0,
         },
         groupsInCommon,
         contactMethods,

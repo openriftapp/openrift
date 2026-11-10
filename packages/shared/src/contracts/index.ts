@@ -106,6 +106,7 @@ export * from "./public-pod-tournaments.js";
 export * from "./public-tier-lists.js";
 export * from "./public-tournaments.js";
 export * from "./public-user-share.js";
+export * from "./referrals.js";
 export * from "./rules.js";
 export * from "./scan-reports.js";
 export * from "./scan.js";

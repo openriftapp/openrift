@@ -1,6 +1,7 @@
 import type { FriendGroupJoinPreviewResponse } from "@openrift/shared/types/api/friend-group";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import {
   PageDescription,
@@ -15,6 +16,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useJoinFriendGroupByCode } from "@/features/groups/hooks/use-friend-group-mutations";
 import { friendGroupJoinPreviewQueryOptions } from "@/features/groups/hooks/use-friend-groups";
+import {
+  forgetJoinIntent,
+  hasJoinIntent,
+  rememberJoinIntent,
+} from "@/features/groups/lib/join-intent";
 import { useUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -35,6 +41,7 @@ function JoinAction({
 }) {
   const navigate = useNavigate();
   const joinByCode = useJoinFriendGroupByCode();
+  const viewerStatus = preview?.viewerStatus;
 
   async function handleSubmit() {
     if (!code) {
@@ -56,6 +63,16 @@ function JoinAction({
       /* Reported by the global mutation error toast. */
     }
   }
+
+  useEffect(() => {
+    if (viewerStatus === undefined || !hasJoinIntent(code)) {
+      return;
+    }
+    forgetJoinIntent(code);
+    if (viewerStatus === "available") {
+      void handleSubmit();
+    }
+  });
 
   return (
     <div className="flex justify-between gap-3">
@@ -130,7 +147,11 @@ export function GroupsJoinPage({ code = "" }: GroupsJoinPageProps) {
         ) : preview.data ? (
           <div className="flex flex-col gap-3">
             <p className="text-muted-foreground text-sm">{m.groups_join_signed_out()}</p>
-            <SignedOutAuthButtons source="group-join" signInLabel={m.groups_join_sign_in_label()} />
+            <SignedOutAuthButtons
+              source="group-join"
+              signInLabel={m.groups_join_sign_in_label()}
+              onNavigate={() => rememberJoinIntent(code)}
+            />
           </div>
         ) : null}
       </div>

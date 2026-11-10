@@ -17,16 +17,24 @@ export function SignedOutAuthButtons({
   source,
   signInLabel,
   signUpLabel,
+  onNavigate,
 }: {
   source: string;
   signInLabel?: string;
   signUpLabel?: string;
+  onNavigate?: () => void;
 }) {
   const location = useLocation();
   const search = { redirect: location.href, email: undefined };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link rel="nofollow" to="/login" search={search} className={buttonVariants()}>
+      <Link
+        rel="nofollow"
+        to="/login"
+        search={search}
+        className={buttonVariants()}
+        onClick={() => onNavigate?.()}
+      >
         {signInLabel ?? m.common_sign_in()}
       </Link>
       <Link
@@ -34,7 +42,10 @@ export function SignedOutAuthButtons({
         to="/signup"
         search={search}
         className={buttonVariants({ variant: "ghost" })}
-        onClick={() => trackSignupCta(source)}
+        onClick={() => {
+          onNavigate?.();
+          trackSignupCta(source);
+        }}
       >
         {signUpLabel ?? m.auth_create_account()}
       </Link>

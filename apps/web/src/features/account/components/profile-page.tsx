@@ -22,6 +22,7 @@ import { MetaCreditSection } from "@/features/account/components/meta-credit-sec
 import { PasswordSection } from "@/features/account/components/password-section";
 import { PublicProfileSection } from "@/features/account/components/public-profile-section";
 import { PublicSharingSection } from "@/features/account/components/public-sharing-section";
+import { ReferralSection } from "@/features/account/components/referral-section";
 import { TradingSection } from "@/features/account/components/trading-section";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { MyDeckCheckKeysSection } from "@/features/tournaments/components/deck-check-keys-section";
@@ -107,8 +108,10 @@ export function ProfilePage() {
                 profileShowRiotId: user.profileShowRiotId ?? false,
                 profileShowCollection: user.profileShowCollection ?? false,
                 profileShowLastActive: user.profileShowLastActive ?? true,
+                profileShowReferralTier: user.profileShowReferralTier ?? true,
               }}
             />
+            <ReferralSection />
             {/* Renders nothing while the meta archive is unlaunched. */}
             <MetaCreditSection />
           </SettingsGroup>

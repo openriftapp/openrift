@@ -28,6 +28,9 @@ export interface UsersTable {
   profileShowRiotId: Generated<boolean>;
   profileShowCollection: Generated<boolean>;
   profileShowLastActive: Generated<boolean>;
+  profileShowReferralTier: Generated<boolean>;
+  referralCode: string | null;
+  referredBy: string | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

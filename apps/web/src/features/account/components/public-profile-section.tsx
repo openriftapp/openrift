@@ -21,6 +21,7 @@ export interface PublicProfileValues {
   profileShowRiotId: boolean;
   profileShowCollection: boolean;
   profileShowLastActive: boolean;
+  profileShowReferralTier: boolean;
 }
 
 type ProfileToggle = Exclude<keyof PublicProfileValues, "bio">;
@@ -41,6 +42,11 @@ function toggles(): { key: ProfileToggle; label: string; description: string }[]
       key: "profileShowLastActive",
       label: m.profile_public_toggle_last_active_label(),
       description: m.profile_public_toggle_last_active_description(),
+    },
+    {
+      key: "profileShowReferralTier",
+      label: m.profile_public_toggle_referral_tier_label(),
+      description: m.profile_public_toggle_referral_tier_description(),
     },
   ];
 }

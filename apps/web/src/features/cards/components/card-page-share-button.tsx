@@ -1,9 +1,11 @@
+import { withReferralCode } from "@openrift/shared/referral";
 import { Share2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { ShareDialog } from "@/components/share/share-dialog";
 import { Button } from "@/components/ui/button";
+import { useReferralCode } from "@/features/account/hooks/use-referral";
 import { cardShareImageUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
@@ -21,9 +23,11 @@ export function ShareCardButton({ cardName, cardSlug, printingSlug, url }: Share
   const canNativeShare =
     open && typeof navigator !== "undefined" && typeof navigator.share === "function";
 
+  const referralCode = useReferralCode();
+
   const nativeShare = async () => {
     try {
-      await navigator.share({ title: cardName, url });
+      await navigator.share({ title: cardName, url: withReferralCode(url, referralCode) });
     } catch {
       // Rejects when the viewer dismisses the sheet; the link stays copyable in the dialog.
     }

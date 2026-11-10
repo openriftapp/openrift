@@ -14,6 +14,7 @@ export interface BundleOwner {
   profileShowRiotId: boolean;
   profileShowCollection: boolean;
   profileShowLastActive: boolean;
+  profileShowReferralTier: boolean;
 }
 
 export interface BundleListSummary {
@@ -67,6 +68,7 @@ export function userSharesRepo(db: Kysely<Database>) {
           "profileShowRiotId",
           "profileShowCollection",
           "profileShowLastActive",
+          "profileShowReferralTier",
         ])
         .where("shareToken", "=", shareToken)
         .executeTakeFirst();

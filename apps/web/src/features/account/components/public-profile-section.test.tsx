@@ -24,6 +24,7 @@ function renderSection(
           profileShowRiotId: false,
           profileShowCollection: false,
           profileShowLastActive: true,
+          profileShowReferralTier: true,
           ...overrides,
         }}
       />
@@ -72,6 +73,7 @@ describe("PublicProfileSection", () => {
     expect(screen.getByRole("switch", { name: "Show my Riot ID" })).toBeChecked();
     expect(screen.getByRole("switch", { name: "Show my collection size" })).not.toBeChecked();
     expect(screen.getByRole("switch", { name: "Show when I was last active" })).toBeChecked();
+    expect(screen.getByRole("switch", { name: "Show my invite badge" })).toBeChecked();
 
     await user.click(screen.getByRole("switch", { name: "Show my collection size" }));
     await waitFor(() => expect(updateUser).toHaveBeenCalledWith({ profileShowCollection: true }));

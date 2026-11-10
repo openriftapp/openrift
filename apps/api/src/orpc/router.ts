@@ -125,6 +125,7 @@ import { adminUsersRouter } from "../modules/users/routes/admin-users.js";
 import { contactMethodsRouter } from "../modules/users/routes/authenticated-contact-methods.js";
 import { ownFeatureFlagsRouter } from "../modules/users/routes/authenticated-own-feature-flags.js";
 import { preferencesRouter } from "../modules/users/routes/authenticated-preferences.js";
+import { referralsRouter } from "../modules/users/routes/authenticated-referrals.js";
 import { featureFlagsRouter } from "../modules/users/routes/public-feature-flags.js";
 import { unsubscribeRouter } from "../modules/users/routes/public-unsubscribe.js";
 import { cacheControlInterceptor } from "./cache-control-interceptor.js";
@@ -214,6 +215,7 @@ const apiRouter = {
   organizationsRouter,
   overlayRouter,
   preferencesRouter,
+  referralsRouter,
   stagePresetsRouter,
   tierListsRouter,
   boardStatesRouter,

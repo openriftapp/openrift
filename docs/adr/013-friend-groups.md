@@ -71,7 +71,7 @@ Ownership transfer is a single endpoint that atomically demotes the outgoing own
 Both flows route through `friend_group_invites(id, group_id, user_id, direction, created_at)` where `direction ∈ {invite, request}`:
 
 - **Invite (group → user).** An admin or owner creates a row with `direction='invite'` targeting a specific user by username/email. The invitee sees a pending invite they accept (creates the membership row, deletes the invite row) or decline (deletes the row).
-- **Request (user → group).** A user enters the group code at `/groups/join` and a row with `direction='request'` is created. Admins/owner see it as a pending request to approve (creates the membership row, deletes the request) or deny (deletes the request).
+- **Request (user → group).** A user enters the group code at `/groups/join` and a row with `direction='request'` is created. Admins/owner see it as a pending request to approve (creates the membership row, deletes the request) or deny (deletes the request). A signed-out visitor who clicks sign-in on the join page gets the request filed when they return signed in. The intent lives in that tab's session storage, so a link alone never files one.
 
 `UNIQUE (group_id, user_id)` enforces "at most one pending invite or request per (group, user)": it both deduplicates clicks and prevents duplicate-row spam.
 

@@ -176,6 +176,8 @@
   "profile_public_toggle_collection_description": "How many cards you own, never which ones.",
   "profile_public_toggle_last_active_label": "Show when I was last active",
   "profile_public_toggle_last_active_description": "Rounded to today, this week or this month.",
+  "profile_public_toggle_referral_tier_label": "Show my invite badge",
+  "profile_public_toggle_referral_tier_description": "Shows how many friends you brought to OpenRift, never who they are.",
   "profile_public_save_error": "Could not save. Please try again.",
   "profile_public_bio_label": "Bio",
   "profile_public_bio_placeholder": "Fury and Chaos player from Frankfurt. Collecting a full Origins playset.",
@@ -258,6 +260,43 @@
   "profile_sharing_title": "Share link",
   "profile_sharing_description": "One link to a page with your stats and every wishlist and tradelist, current and future. Organize lists stay private.",
   "profile_sharing_link_label": "Profile link",
+  "referral_title": "Invite friends",
+  "referral_description": "Send this link to friends who play Riftbound. Deck, list and profile links you share carry your invite too.",
+  "referral_link_label": "Invite link",
+  "referral_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} friend counted.",
+        "countPlural=*": "{count} friends counted."
+      }
+    }
+  ],
+  "referral_not_yet_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} more signed up but hasn't added a card or deck yet.",
+        "countPlural=*": "{count} more signed up but haven't added a card or deck yet."
+      }
+    }
+  ],
+  "referral_rules_next": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "A friend counts once they verify their email and add a card or build a deck. {count} more for the {threshold}-friend badge.",
+        "countPlural=*": "A friend counts once they verify their email and add a card or build a deck. {count} more for the {threshold}-friend badge."
+      }
+    }
+  ],
+  "referral_rules_top": "A friend counts once they verify their email and add a card or build a deck. You have the top badge.",
+  "referral_tier_1": "Brought a friend",
+  "referral_tier_2": "Brought 5 friends",
+  "referral_tier_3": "Brought 25 friends",
   "profile_sharing_link_exposes": "see your profile, your stats and every wishlist and tradelist you have",
   "profile_sharing_image_title": "your shared lists",
   "profile_sharing_print_title": "My lists",

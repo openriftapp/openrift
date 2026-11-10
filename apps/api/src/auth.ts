@@ -150,6 +150,12 @@ export function createAuth(deps: {
           input: true,
           fieldName: "profile_show_last_active",
         },
+        profileShowReferralTier: {
+          type: "boolean",
+          required: false,
+          input: true,
+          fieldName: "profile_show_referral_tier",
+        },
       },
       fields: {
         emailVerified: "email_verified",

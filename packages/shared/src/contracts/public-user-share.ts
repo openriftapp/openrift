@@ -77,6 +77,7 @@ export const publicUserBundleResponseSchema = z.object({
     memberSince: z.string(),
     lastActive: profileLastActiveSchema.nullable(),
     isContributor: z.boolean(),
+    referralTier: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
   }),
   groupsInCommon: z.array(groupRefSchema),
   contactMethods: z.array(contactMethodSchema),

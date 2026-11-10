@@ -20,6 +20,7 @@ interface SessionUser {
   profileShowRiotId?: boolean;
   profileShowCollection?: boolean;
   profileShowLastActive?: boolean;
+  profileShowReferralTier?: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,7 +1,15 @@
+import { withReferralCode } from "@openrift/shared/referral";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SharePanel } from "./share-panel";
+let referralCode: string | null = null;
+
+vi.mock("@/features/account/hooks/use-referral", () => ({
+  useReferralUrl: (url: string | null) =>
+    url === null ? null : withReferralCode(url, referralCode),
+}));
+
+const { SharePanel } = await import("./share-panel");
 
 const URL = "https://openrift.app/users/share/AbCdEf123456";
 
@@ -21,6 +29,19 @@ function renderPanel(url: string | null) {
 }
 
 describe("SharePanel", () => {
+  beforeEach(() => {
+    referralCode = null;
+  });
+
+  it("carries the viewer's invite code on the shared link but not on their own Open link", () => {
+    referralCode = "Inv1te0Code9";
+    renderPanel(URL);
+    expect(screen.getByRole("textbox", { name: "Profile link" })).toHaveValue(
+      `${URL}#r=Inv1te0Code9`,
+    );
+    expect(screen.getByRole("link", { name: "Open" })).toHaveAttribute("href", URL);
+  });
+
   it("opens an active share link in a new tab", () => {
     renderPanel(URL);
     const open = screen.getByRole("link", { name: "Open" });

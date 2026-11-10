@@ -176,6 +176,8 @@
   "profile_public_toggle_collection_description": "只显示你拥有多少张卡，绝不显示是哪些。",
   "profile_public_toggle_last_active_label": "显示我最后活跃的时间",
   "profile_public_toggle_last_active_description": "精确到今天、本周或本月。",
+  "profile_public_toggle_referral_tier_label": "显示我的邀请徽章",
+  "profile_public_toggle_referral_tier_description": "只显示你带来了多少位朋友，绝不显示是谁。",
   "profile_public_save_error": "无法保存，请重试。",
   "profile_public_bio_label": "简介",
   "profile_public_bio_placeholder": "来自法兰克福的炽烈与混沌玩家。正在集齐整套 Origins。",
@@ -258,6 +260,43 @@
   "profile_sharing_title": "分享链接",
   "profile_sharing_description": "一个指向页面的链接，展示你的统计数据以及现在和以后的所有心愿单与交换清单。整理清单保持私密。",
   "profile_sharing_link_label": "个人资料链接",
+  "referral_title": "邀请朋友",
+  "referral_description": "把这个链接发给玩 Riftbound 的朋友。你分享的卡组、列表和个人资料链接也带有你的邀请。",
+  "referral_link_label": "邀请链接",
+  "referral_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已计入 {count} 位朋友。",
+        "countPlural=*": "已计入 {count} 位朋友。"
+      }
+    }
+  ],
+  "referral_not_yet_counted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "另有 {count} 人已注册，但还没有添加卡牌或卡组。",
+        "countPlural=*": "另有 {count} 人已注册，但还没有添加卡牌或卡组。"
+      }
+    }
+  ],
+  "referral_rules_next": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "朋友验证邮箱并添加一张卡牌或组建一副卡组后即被计入。再邀请 {count} 位即可获得 {threshold} 位朋友徽章。",
+        "countPlural=*": "朋友验证邮箱并添加一张卡牌或组建一副卡组后即被计入。再邀请 {count} 位即可获得 {threshold} 位朋友徽章。"
+      }
+    }
+  ],
+  "referral_rules_top": "朋友验证邮箱并添加一张卡牌或组建一副卡组后即被计入。你已获得最高徽章。",
+  "referral_tier_1": "带来了 1 位朋友",
+  "referral_tier_2": "带来了 5 位朋友",
+  "referral_tier_3": "带来了 25 位朋友",
   "profile_sharing_link_exposes": "查看你的个人资料、统计数据以及所有心愿单和交换清单",
   "profile_sharing_image_title": "你分享的清单",
   "profile_sharing_print_title": "我的清单",

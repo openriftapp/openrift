@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const shareMutate = vi.fn();
 const unshareMutate = vi.fn();
 
+vi.mock("@/features/account/hooks/use-referral", () => ({
+  useReferralUrl: (url: string | null) => url,
+}));
+
 vi.mock("@/features/collections/hooks/use-collections", () => ({
   useShareCollection: () => ({ mutate: shareMutate, isPending: false }),
   useUnshareCollection: () => ({ mutate: unshareMutate, isPending: false }),

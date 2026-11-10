@@ -20,6 +20,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useReferralUrl } from "@/features/account/hooks/use-referral";
 import {
   useDeleteCollection,
   useSetCollectionDeckbuilding,
@@ -50,7 +51,7 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
   const navigate = useNavigate();
 
   const { copy } = useCopyToClipboard();
-  const shareUrl = shareLinkUrl("collection", collection);
+  const shareUrl = useReferralUrl(shareLinkUrl("collection", collection));
 
   const handleCopyLink = async () => {
     if (!shareUrl) {

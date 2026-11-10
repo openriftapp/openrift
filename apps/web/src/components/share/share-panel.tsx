@@ -11,6 +11,7 @@ import { ShareLinkRow } from "@/components/share/share-link-row";
 import { ShareQrPanel } from "@/components/share/share-qr-panel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useReferralUrl } from "@/features/account/hooks/use-referral";
 import { BinderSheetPanel } from "@/features/groups/components/binder-sheet-panel";
 import { m } from "@/paraglide/messages.js";
 
@@ -110,7 +111,7 @@ export function SharePanel({
   const [tab, setTab] = useState<string | null>(null);
   const [confirmStopOpen, setConfirmStopOpen] = useState(false);
 
-  const url = link?.url ?? null;
+  const url = useReferralUrl(link?.url ?? null);
 
   const outputs: { value: string; label: string; body: ReactNode }[] = [];
   if (text) {
@@ -189,7 +190,7 @@ export function SharePanel({
                     {link.onStop === undefined ? null : (
                       <>
                         <a
-                          href={url}
+                          href={link.url ?? url}
                           target="_blank"
                           rel="noreferrer"
                           className={buttonVariants({ variant: "outline" })}

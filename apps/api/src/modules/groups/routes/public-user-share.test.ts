@@ -47,6 +47,10 @@ const mockPrintingImagesRepo = {
   landscapeImageIds: vi.fn(),
 };
 
+const mockReferralsRepo = {
+  counts: vi.fn(() => Promise.resolve({ signedUp: 6, counted: 5 })),
+};
+
 let currentUser: { id: string } | null = null;
 
 const app = new Hono<{ Variables: Variables }>();
@@ -62,6 +66,7 @@ app.use("*", async (c, next) => {
     canonicalPrintings: mockCanonicalPrintingsRepo,
     podTournaments: mockPodTournamentsRepo,
     printingImages: mockPrintingImagesRepo,
+    referrals: mockReferralsRepo,
   } as never);
   await next();
 });
@@ -84,6 +89,7 @@ const dbOwner = {
   profileShowRiotId: true,
   profileShowCollection: true,
   profileShowLastActive: true,
+  profileShowReferralTier: true,
 };
 
 const dbList = {
@@ -117,6 +123,7 @@ const dbEntry = {
 const cardEntry = (cardId: string) => ({ ...dbEntry, cardId });
 
 function resetProfileMocks() {
+  mockReferralsRepo.counts.mockResolvedValue({ signedUp: 6, counted: 5 });
   mockUserProfileRepo.lastActiveAt.mockResolvedValue(null);
   mockUserProfileRepo.collectionSummary.mockResolvedValue({ copies: 0, uniqueCards: 0 });
   mockUserProfileRepo.acceptedSubmissionCounts.mockResolvedValue({
@@ -185,6 +192,7 @@ describe("GET /api/v1/users/share/:token", () => {
       memberSince: JOINED.toISOString(),
       lastActive: "today",
       isContributor: true,
+      referralTier: 2,
     });
     expect(json.stats).toEqual({
       collection: { copies: 1284, uniqueCards: 312 },
@@ -244,19 +252,26 @@ describe("GET /api/v1/users/share/:token", () => {
     expect(mockListsRepo.entriesWithDetailsAnon).toHaveBeenCalledWith(ruledList.id, "card");
   });
 
-  it("hides the Riot ID, last active and collection size when the owner opted out", async () => {
+  it("hides the Riot ID, last active, collection size and invite badge when the owner opted out", async () => {
     mockUserSharesRepo.findOwnerByShareToken.mockResolvedValue({
       ...dbOwner,
       profileShowRiotId: false,
       profileShowCollection: false,
       profileShowLastActive: false,
+      profileShowReferralTier: false,
     });
     mockUserSharesRepo.listsForOwner.mockResolvedValue([]);
 
     const res = await app.request("/api/v1/users/share/tok-abc");
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json.owner).toMatchObject({ riotId: null, lastActive: null, isContributor: false });
+    expect(json.owner).toMatchObject({
+      riotId: null,
+      lastActive: null,
+      isContributor: false,
+      referralTier: 0,
+    });
+    expect(mockReferralsRepo.counts).not.toHaveBeenCalled();
     expect(json.stats.collection).toBeNull();
     expect(mockUserProfileRepo.lastActiveAt).not.toHaveBeenCalled();
     expect(mockUserProfileRepo.collectionSummary).not.toHaveBeenCalled();
