@@ -313,13 +313,21 @@ function setupBadgeHooks(filterStateOverrides: Partial<BadgeFilterState> = {}) {
   mockUseFilterValues.mockReturnValue({
     filterState: {
       sets: [],
+      setsEx: [],
       domains: [],
+      domainsEx: [],
       rarities: [],
+      raritiesEx: [],
       types: [],
+      typesEx: [],
       superTypes: [],
+      superTypesEx: [],
       artVariants: [],
+      artVariantsEx: [],
       finishes: [],
+      finishesEx: [],
       languages: [],
+      languagesEx: [],
       markers: [],
       channels: [],
       customTags: [],
@@ -454,7 +462,7 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
 
   it("keeps a selected value visible and toggleable when it drops out of options", async () => {
     const user = userEvent.setup();
-    const cycleArrayFilter = vi.fn();
+    const toggleSignedFilter = vi.fn();
     setupBadgeHooks({ sets: ["ORPHANED"] });
     mockUseFilterActions.mockReturnValue({
       toggleArrayFilter: vi.fn(),
@@ -464,7 +472,8 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
       toggleBanned: vi.fn(),
       toggleErrata: vi.fn(),
       toggleStandard: vi.fn(),
-      cycleArrayFilter,
+      toggleSignedFilter,
+      flipSignedFilter: vi.fn(),
     });
     const { getByText } = render(
       <FilterBadgeSections
@@ -476,7 +485,7 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
     const orphanedBadge = getByText("ORPHANED");
     expect(orphanedBadge).not.toBeNull();
     await user.click(orphanedBadge);
-    expect(cycleArrayFilter).toHaveBeenCalledWith("sets", "setsEx", "ORPHANED");
+    expect(toggleSignedFilter).toHaveBeenCalledWith("sets", "setsEx", "ORPHANED", "include");
   });
 
   it("folds supplemental sets behind a more chip that expands in place", async () => {

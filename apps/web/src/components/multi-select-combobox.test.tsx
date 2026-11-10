@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { dimensionSign } from "@/lib/filter-sign";
 
 import { MultiSelectCombobox } from "./multi-select-combobox";
 
@@ -67,7 +68,8 @@ const SET_OPTIONS = [
 ] as const;
 
 function renderIncludeExclude(include: string[], exclude: string[]) {
-  const onCycle = vi.fn();
+  const onSignedToggle = vi.fn();
+  const onSignFlip = vi.fn();
   render(
     <MultiSelectCombobox
       triggerStyle="button"
@@ -76,10 +78,12 @@ function renderIncludeExclude(include: string[], exclude: string[]) {
       options={SET_OPTIONS}
       selected={include}
       excluded={exclude}
-      onCycle={onCycle}
+      sign={dimensionSign(include, exclude)}
+      onSignedToggle={onSignedToggle}
+      onSignFlip={onSignFlip}
     />,
   );
-  return { onCycle };
+  return { onSignedToggle, onSignFlip };
 }
 
 describe("MultiSelectCombobox include/exclude summary", () => {
@@ -109,30 +113,67 @@ describe("MultiSelectCombobox include/exclude summary", () => {
   });
 });
 
-describe("MultiSelectCombobox cycling rows", () => {
-  it("routes a row click to onCycle with the option's value", async () => {
+describe("MultiSelectCombobox signed rows", () => {
+  it("routes a row click to onSignedToggle with the option's value and the include sign", async () => {
     const user = userEvent.setup();
-    const { onCycle } = renderIncludeExclude([], []);
+    const { onSignedToggle } = renderIncludeExclude([], []);
 
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Origins" }));
 
-    expect(onCycle).toHaveBeenCalledExactlyOnceWith("ogn");
+    expect(onSignedToggle).toHaveBeenCalledExactlyOnceWith("ogn", "include");
   });
 
-  it("cycles an already-included row on click (the parent flips it to exclude)", async () => {
+  it("toggles an already-included row on the include sign", async () => {
     const user = userEvent.setup();
-    const { onCycle } = renderIncludeExclude(["ogn"], []);
+    const { onSignedToggle } = renderIncludeExclude(["ogn"], []);
 
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Origins" }));
 
-    expect(onCycle).toHaveBeenCalledExactlyOnceWith("ogn");
+    expect(onSignedToggle).toHaveBeenCalledExactlyOnceWith("ogn", "include");
+  });
+
+  it("shows the dimension's sign in the switch", async () => {
+    const user = userEvent.setup();
+    renderIncludeExclude([], ["unl"]);
+
+    await user.click(screen.getByRole("combobox"));
+
+    const group = await screen.findByRole("group", { name: "Sets: include or exclude" });
+    expect(within(group).getByRole("button", { name: "Exclude" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("excludes the next pick after switching an empty dimension to Exclude", async () => {
+    const user = userEvent.setup();
+    const { onSignedToggle, onSignFlip } = renderIncludeExclude([], []);
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("button", { name: "Exclude" }));
+    await user.click(await screen.findByRole("option", { name: "Origins" }));
+
+    expect(onSignFlip).not.toHaveBeenCalled();
+    expect(onSignedToggle).toHaveBeenCalledExactlyOnceWith("ogn", "exclude");
+  });
+
+  it("flips a dimension with values through onSignFlip", async () => {
+    const user = userEvent.setup();
+    const { onSignedToggle, onSignFlip } = renderIncludeExclude(["ogn"], []);
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("button", { name: "Exclude" }));
+
+    expect(onSignFlip).toHaveBeenCalledOnce();
+    expect(onSignedToggle).not.toHaveBeenCalled();
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
   });
 
   it("keeps an excluded value with no backing option visible and cyclable", async () => {
     const user = userEvent.setup();
-    const onCycle = vi.fn();
+    const onSignedToggle = vi.fn();
     render(
       <MultiSelectCombobox
         triggerStyle="button"
@@ -141,14 +182,16 @@ describe("MultiSelectCombobox cycling rows", () => {
         options={[UNL_OPTION]}
         selected={[]}
         excluded={["ogn"]}
-        onCycle={onCycle}
+        sign="exclude"
+        onSignedToggle={onSignedToggle}
+        onSignFlip={vi.fn()}
       />,
     );
 
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "ogn" }));
 
-    expect(onCycle).toHaveBeenCalledExactlyOnceWith("ogn");
+    expect(onSignedToggle).toHaveBeenCalledExactlyOnceWith("ogn", "exclude");
   });
 });
 
@@ -156,7 +199,7 @@ function renderWithFlags(
   flags: { label: string; state: boolean | null; onToggle: () => void }[],
   flagPosition: "top" | "bottom" = "bottom",
 ) {
-  const onCycle = vi.fn();
+  const onSignedToggle = vi.fn();
   render(
     <MultiSelectCombobox
       triggerStyle="button"
@@ -164,12 +207,14 @@ function renderWithFlags(
       options={SET_OPTIONS}
       selected={[]}
       excluded={[]}
-      onCycle={onCycle}
+      sign={null}
+      onSignedToggle={onSignedToggle}
+      onSignFlip={vi.fn()}
       flags={flags}
       flagPosition={flagPosition}
     />,
   );
-  return { onCycle };
+  return { onSignedToggle };
 }
 
 describe("MultiSelectCombobox flag rows", () => {
@@ -177,7 +222,7 @@ describe("MultiSelectCombobox flag rows", () => {
     const user = userEvent.setup();
     const toggleOvernumbered = vi.fn();
     const toggleSigned = vi.fn();
-    const { onCycle } = renderWithFlags([
+    const { onSignedToggle } = renderWithFlags([
       { label: "Overnumbered", state: null, onToggle: toggleOvernumbered },
       { label: "Signed", state: null, onToggle: toggleSigned },
     ]);
@@ -187,7 +232,7 @@ describe("MultiSelectCombobox flag rows", () => {
 
     expect(toggleSigned).toHaveBeenCalledOnce();
     expect(toggleOvernumbered).not.toHaveBeenCalled();
-    expect(onCycle).not.toHaveBeenCalled();
+    expect(onSignedToggle).not.toHaveBeenCalled();
   });
 
   it("lists every flag after the options with one divider before the block", async () => {
@@ -261,7 +306,7 @@ function renderInMenu(
     options?: readonly { value: string; label: string }[];
   } = {},
 ) {
-  const onCycle = vi.fn();
+  const onSignedToggle = vi.fn();
   render(
     <DropdownMenu>
       <DropdownMenuTrigger>More</DropdownMenuTrigger>
@@ -274,13 +319,15 @@ function renderInMenu(
           options={overrides.options ?? MARKER_OPTIONS}
           selected={overrides.selected ?? []}
           excluded={overrides.excluded ?? []}
-          onCycle={onCycle}
+          sign={dimensionSign(overrides.selected ?? [], overrides.excluded ?? [])}
+          onSignedToggle={onSignedToggle}
+          onSignFlip={vi.fn()}
           anyCount={overrides.anyCount}
         />
       </DropdownMenuContent>
     </DropdownMenu>,
   );
-  return { onCycle };
+  return { onSignedToggle };
 }
 
 describe("MultiSelectCombobox inside a dropdown menu", () => {
@@ -293,7 +340,7 @@ describe("MultiSelectCombobox inside a dropdown menu", () => {
 
   it("drops the search field from a short menu picker and still picks with the keyboard", async () => {
     const user = userEvent.setup();
-    const { onCycle } = renderInMenu({ options: MARKER_OPTIONS.slice(0, 2) });
+    const { onSignedToggle } = renderInMenu({ options: MARKER_OPTIONS.slice(0, 2) });
 
     await user.click(screen.getByRole("button", { name: "More" }));
     await user.click(await screen.findByText("Markers"));
@@ -303,7 +350,7 @@ describe("MultiSelectCombobox inside a dropdown menu", () => {
       screen.getByPlaceholderText("Search markers…").closest("[data-slot=input-group]"),
     ).toHaveClass("sr-only");
     await user.keyboard("{ArrowDown}{Enter}");
-    expect(onCycle).toHaveBeenCalledExactlyOnceWith("promo");
+    expect(onSignedToggle).toHaveBeenCalledExactlyOnceWith("promo", "include");
   });
 
   it("shows the any-count next to the label while nothing is picked", async () => {
@@ -343,7 +390,7 @@ describe("MultiSelectCombobox inside a dropdown menu", () => {
 
   it("still navigates and picks a row with the keyboard", async () => {
     const user = userEvent.setup();
-    const { onCycle } = renderInMenu();
+    const { onSignedToggle } = renderInMenu();
 
     await user.click(screen.getByRole("button", { name: "More" }));
     await user.click(await screen.findByText("Markers"));
@@ -351,7 +398,7 @@ describe("MultiSelectCombobox inside a dropdown menu", () => {
 
     await user.keyboard("{ArrowDown}{Enter}");
 
-    expect(onCycle).toHaveBeenCalledExactlyOnceWith("promo");
+    expect(onSignedToggle).toHaveBeenCalledExactlyOnceWith("promo", "include");
   });
 });
 
@@ -567,7 +614,7 @@ describe("MultiSelectCombobox row decorations", () => {
   });
 });
 
-function renderGrouped(onChange = vi.fn(), onCycleGroup = vi.fn()) {
+function renderGrouped(onChange = vi.fn(), onToggleGroup = vi.fn()) {
   render(
     <MultiSelectCombobox
       triggerStyle="button"
@@ -589,12 +636,14 @@ function renderGrouped(onChange = vi.fn(), onCycleGroup = vi.fn()) {
           ],
           included: ["foil"],
           excluded: [],
-          onCycle: onCycleGroup,
+          sign: "include",
+          onSignedToggle: onToggleGroup,
+          onSignFlip: vi.fn(),
         },
       ]}
     />,
   );
-  return { onChange, onCycleGroup };
+  return { onChange, onToggleGroup };
 }
 
 describe("MultiSelectCombobox sections", () => {
@@ -625,18 +674,18 @@ describe("MultiSelectCombobox sections", () => {
 
   it("keeps equal values in different sections apart", async () => {
     const user = userEvent.setup();
-    const { onChange, onCycleGroup } = renderGrouped();
+    const { onChange, onToggleGroup } = renderGrouped();
 
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Nonfoil" }));
-    expect(onCycleGroup).toHaveBeenCalledExactlyOnceWith("normal");
+    expect(onToggleGroup).toHaveBeenCalledExactlyOnceWith("normal", "include");
     expect(onChange).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("option", { name: "Normal" }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith(["alt", "normal"]);
   });
 
-  it("marks included and excluded cycle rows", async () => {
+  it("marks included and excluded rows and strikes the excluded label", async () => {
     const user = userEvent.setup();
     renderIncludeExclude(["ogn"], ["unl"]);
 
@@ -644,9 +693,9 @@ describe("MultiSelectCombobox sections", () => {
 
     const origins = await screen.findByRole("option", { name: "Origins" });
     expect(origins.querySelector("svg.lucide-check")).not.toBeNull();
-    expect(
-      screen.getByRole("option", { name: "Unlimited" }).querySelector("svg.lucide-minus"),
-    ).not.toBeNull();
+    const unlimited = screen.getByRole("option", { name: "Unlimited" });
+    expect(unlimited.querySelector("svg.lucide-minus")).not.toBeNull();
+    expect(within(unlimited).getByText("Unlimited")).toHaveClass("line-through");
     const plain = screen.getByRole("option", { name: "Beyond the Rift" });
     expect(plain.querySelector("svg.lucide-check, svg.lucide-minus")).toBeNull();
   });
@@ -666,7 +715,9 @@ describe("MultiSelectCombobox sections", () => {
             options: [{ value: "foil", label: "Foil" }],
             included: [],
             excluded: ["foil"],
-            onCycle: vi.fn(),
+            sign: "exclude",
+            onSignedToggle: vi.fn(),
+            onSignFlip: vi.fn(),
           },
         ]}
       />,

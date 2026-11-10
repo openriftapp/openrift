@@ -66,11 +66,11 @@ export function DeckFilterControls({
     foldersExclude,
     showArchived,
     hasActiveFilters,
-    cycleFormat,
+    formatFilter,
     cycleValidity,
     cycleDrafts,
-    cycleDomain,
-    cycleFolder,
+    domainFilter,
+    folderFilter,
     setShowArchived,
     clearAllFilters,
   } = useDeckListFilters();
@@ -95,7 +95,7 @@ export function DeckFilterControls({
         options={availableDomains}
         included={domains}
         excluded={domainsExclude}
-        onCycle={cycleDomain}
+        {...domainFilter}
         iconPath={(value) => getFilterIconPath("domains", value)}
         displayLabel={(value) => formatDomainFilterLabel(value, enumLabels.domains)}
         counts={counts.domains}
@@ -118,7 +118,7 @@ export function DeckFilterControls({
           options={formatList.map((entry) => ({ value: entry.slug, label: entry.label }))}
           selected={formats}
           excluded={formatsExclude}
-          onCycle={cycleFormat}
+          {...formatFilter}
           counts={counts.formats}
         />
       )}
@@ -130,7 +130,7 @@ export function DeckFilterControls({
           options={folderList.map((folder) => ({ value: folder.id, label: folder.name }))}
           selected={folders}
           excluded={foldersExclude}
-          onCycle={cycleFolder}
+          {...folderFilter}
           counts={counts.folders}
         />
       )}

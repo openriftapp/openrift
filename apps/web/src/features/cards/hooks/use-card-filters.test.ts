@@ -173,67 +173,66 @@ describe("useCardFilters", () => {
     expect(result.current.hasActiveFilters).toBe(true);
   });
 
-  it("cycleArrayFilter moves an unset value into the include array", () => {
+  it("toggleSignedFilter adds a value to the include array", () => {
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("sets", "setsEx", "RB1"));
+    act(() => result.current.toggleSignedFilter("sets", "setsEx", "RB1", "include"));
 
     const search = lastNavigateSearch();
     expect(search).toMatchObject({ sets: ["RB1"] });
     expect(search).not.toHaveProperty("setsEx");
   });
 
-  it("cycleArrayFilter flips a sole included value into the exclude array", () => {
+  it("toggleSignedFilter removes a sole included value instead of excluding it", () => {
     mockSearch = { sets: ["RB1"] };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("sets", "setsEx", "RB1"));
+    act(() => result.current.toggleSignedFilter("sets", "setsEx", "RB1", "include"));
+
+    const search = lastNavigateSearch();
+    expect(search).not.toHaveProperty("sets");
+    expect(search).not.toHaveProperty("setsEx");
+  });
+
+  it("toggleSignedFilter excludes directly on an empty dimension", () => {
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+
+    act(() => result.current.toggleSignedFilter("sets", "setsEx", "RB1", "exclude"));
 
     const search = lastNavigateSearch();
     expect(search).not.toHaveProperty("sets");
     expect(search).toMatchObject({ setsEx: ["RB1"] });
   });
 
-  it("cycleArrayFilter clears a value out of the exclude array on the third click", () => {
+  it("toggleSignedFilter adds to the exclude array", () => {
     mockSearch = { setsEx: ["RB1"] };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("sets", "setsEx", "RB1"));
+    act(() => result.current.toggleSignedFilter("sets", "setsEx", "RB2", "exclude"));
 
-    const search = lastNavigateSearch();
-    expect(search).not.toHaveProperty("sets");
-    expect(search).not.toHaveProperty("setsEx");
+    expect(lastNavigateSearch()).toMatchObject({ setsEx: ["RB1", "RB2"] });
   });
 
-  it("cycleArrayFilter deselects (not excludes) one of several included values", () => {
+  it("flipSignedFilter moves every included value to the exclude array", () => {
     mockSearch = { sets: ["RB1", "RB2"] };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("sets", "setsEx", "RB1"));
-
-    const search = lastNavigateSearch();
-    expect(search).toMatchObject({ sets: ["RB2"] });
-    expect(search).not.toHaveProperty("setsEx");
-  });
-
-  it("cycleArrayFilter keeps building the exclude set while in exclude-mode", () => {
-    mockSearch = { setsEx: ["RB1"] };
-    const { result } = renderHook(() => useCardFilters(), { wrapper });
-
-    act(() => result.current.cycleArrayFilter("sets", "setsEx", "RB2"));
+    act(() => result.current.flipSignedFilter("sets", "setsEx"));
 
     const search = lastNavigateSearch();
     expect(search).not.toHaveProperty("sets");
     expect(search).toMatchObject({ setsEx: ["RB1", "RB2"] });
   });
 
-  it("cycleArrayFilter adds to the include set while in include-mode", () => {
-    mockSearch = { sets: ["RB1"] };
+  it("flipSignedFilter moves excluded values back to the include array", () => {
+    mockSearch = { setsEx: ["RB1"] };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("sets", "setsEx", "RB2"));
+    act(() => result.current.flipSignedFilter("sets", "setsEx"));
 
-    expect(lastNavigateSearch()).toMatchObject({ sets: ["RB1", "RB2"] });
+    const search = lastNavigateSearch();
+    expect(search).toMatchObject({ sets: ["RB1"] });
+    expect(search).not.toHaveProperty("setsEx");
   });
 
   it("clearStandard strips the standard key", () => {
@@ -490,11 +489,11 @@ describe("useCardFilters", () => {
     expect(search).not.toHaveProperty("markersEx");
   });
 
-  it("cycling a specific value clears a lingering 'none' presence for that dimension", () => {
+  it("picking a specific value clears a lingering 'none' presence for that dimension", () => {
     mockSearch = { markersPresence: "none" };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("markers", "markersEx", "top-8"));
+    act(() => result.current.toggleSignedFilter("markers", "markersEx", "top-8", "include"));
 
     const search = lastNavigateSearch();
     expect(search).toMatchObject({ markers: ["top-8"] });
@@ -556,11 +555,11 @@ describe("useCardFilters", () => {
     expect(search).not.toHaveProperty("tagsPresence");
   });
 
-  it("cycling a tag clears a lingering 'none' tags presence", () => {
+  it("picking a tag clears a lingering 'none' tags presence", () => {
     mockSearch = { tagsPresence: "none" };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
-    act(() => result.current.cycleArrayFilter("tags", "tagsEx", "Kha’Zix"));
+    act(() => result.current.toggleSignedFilter("tags", "tagsEx", "Kha’Zix", "include"));
 
     const search = lastNavigateSearch();
     expect(search).toMatchObject({ tags: ["Kha’Zix"] });
@@ -894,11 +893,11 @@ describe("query clauses shown on the filter buttons", () => {
     expect(result.current.filters.energy).toEqual({ min: null, max: null });
   });
 
-  it("moves the clause into the buttons before cycling a value", () => {
+  it("moves the clause into the buttons before flipping the sign", () => {
     mockSearch = { q: "jinx d:fury" };
     const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
 
-    act(() => result.current.cycleArrayFilter("domains", "domainsEx", "fury"));
+    act(() => result.current.flipSignedFilter("domains", "domainsEx"));
 
     const search = lastNavigateSearch();
     expect(search).toMatchObject({ q: "jinx", domainsEx: ["fury"] });
@@ -909,7 +908,7 @@ describe("query clauses shown on the filter buttons", () => {
     mockSearch = { q: "d:fury" };
     const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
 
-    act(() => result.current.cycleArrayFilter("domains", "domainsEx", "calm"));
+    act(() => result.current.toggleSignedFilter("domains", "domainsEx", "calm", "include"));
 
     const search = lastNavigateSearch();
     expect(search).toMatchObject({ domains: ["fury", "calm"] });

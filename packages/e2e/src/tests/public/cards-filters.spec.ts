@@ -43,8 +43,8 @@ function activeFilterChip(page: Page, label: RegExp): Locator {
 
 /**
  * Clicks a filter badge and waits for its effect to land on the URL. Only
- * clicks while the target URL state isn't reached yet — badges cycle
- * include → exclude → off, so a blind repeat click would over-cycle.
+ * clicks while the target URL state isn't reached yet — a badge toggles and a
+ * flag badge cycles, so a blind repeat click would undo the change.
  */
 async function toggleDrawerFilter(
   page: Page,

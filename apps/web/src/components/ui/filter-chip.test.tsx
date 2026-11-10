@@ -32,6 +32,7 @@ describe("FilterChip", () => {
     expect(chip).toHaveAttribute("data-excluded");
     expect(chip).toHaveClass("text-destructive", "border-destructive/40");
     expect(screen.getByText("Calm")).toHaveClass("line-through");
+    expect(chip?.querySelector("svg.lucide-minus")).toBeNull();
   });
 
   it("tints a warning or error tone", () => {

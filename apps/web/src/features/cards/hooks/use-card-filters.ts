@@ -22,7 +22,6 @@ import { useRouter } from "@tanstack/react-router";
 import { use, useEffect, useRef } from "react";
 
 import { useFilterSearch } from "@/features/cards/hooks/use-filter-search";
-import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 import { toFilterState } from "@/features/cards/lib/filter-dimensions";
 import { isPrintingsOnlyGrouping } from "@/features/cards/lib/group-by-field";
 import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
@@ -30,6 +29,8 @@ import { absorbQueryFilters, showQueryFilters } from "@/features/cards/lib/query
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
 import { useSurfaceViewDefaults, useViewPrefsWriter } from "@/hooks/use-view-prefs";
 import { trackEvent } from "@/lib/analytics";
+import type { FilterSign, SignedValues } from "@/lib/filter-sign";
+import { flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 import { useDisplayStore } from "@/stores/display-store";
 
 type ArrayKey =
@@ -420,8 +421,11 @@ export function useFilterActions() {
     updateSearch(patch);
   };
 
-  // Tri-state cycle shared with cycleIncludeExclude: off → include → exclude → off.
-  const cycleArrayFilter = (includeKey: ArrayKey, excludeKey: ArrayKey, value: string) => {
+  const editSignedFilter = (
+    includeKey: ArrayKey,
+    excludeKey: ArrayKey,
+    edit: (included: string[], excluded: string[]) => SignedValues,
+  ) => {
     trackEvent("filter-apply", { type: includeKey });
     void router.navigate({
       to: ".",
@@ -429,11 +433,7 @@ export function useFilterActions() {
         const prev = absorbQueryFilters(latest, [includeKey, excludeKey], queryFilterOptions);
         const include = (prev[includeKey as keyof typeof prev] as string[] | undefined) ?? [];
         const exclude = (prev[excludeKey as keyof typeof prev] as string[] | undefined) ?? [];
-        const { included: nextInclude, excluded: nextExclude } = cycleIncludeExclude(
-          include,
-          exclude,
-          value,
-        );
+        const { included: nextInclude, excluded: nextExclude } = edit(include, exclude);
         // Naming a value clears a lingering "none" presence for the dimension;
         // the two are contradictory.
         const presenceParam = ARRAY_KEY_PRESENCE_PARAM[includeKey];
@@ -454,6 +454,19 @@ export function useFilterActions() {
       },
     });
   };
+
+  const toggleSignedFilter = (
+    includeKey: ArrayKey,
+    excludeKey: ArrayKey,
+    value: string,
+    sign: FilterSign,
+  ) =>
+    editSignedFilter(includeKey, excludeKey, (included, excluded) =>
+      toggleSignedValue(included, excluded, value, sign),
+    );
+
+  const flipSignedFilter = (includeKey: ArrayKey, excludeKey: ArrayKey) =>
+    editSignedFilter(includeKey, excludeKey, flipSignedValues);
 
   const setRange = (key: RangeKey, min: number | null, max: number | null) => {
     trackEvent("filter-apply", { type: key });
@@ -578,7 +591,8 @@ export function useFilterActions() {
   return {
     setSearch,
     toggleArrayFilter,
-    cycleArrayFilter,
+    toggleSignedFilter,
+    flipSignedFilter,
     setArrayFilter,
     setArrayFilters,
     setRange,

@@ -6,6 +6,7 @@ import type { FilterPanelContentProps } from "@/features/cards/components/filter
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
+import { bindSignedFilter } from "@/lib/filter-sign";
 import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
@@ -23,7 +24,8 @@ export function FilterBadgeSections({
 }) {
   const { labels } = useEnumOrders();
   const { filterState } = useFilterValues();
-  const { cycleArrayFilter, toggleSigned, toggleOvernumbered } = useFilterActions();
+  const actions = useFilterActions();
+  const { toggleSigned, toggleOvernumbered } = actions;
   const languageLabels = useLanguageLabels();
   const showUnit = (unit: string) => units === undefined || units.has(unit);
   const signedApplicable = availableFilters.hasSigned && !hiddenSections?.has("signed");
@@ -72,7 +74,13 @@ export function FilterBadgeSections({
             options={availableLanguages}
             selected={filterState.languages}
             excluded={filterState.languagesEx}
-            onCycle={(v) => cycleArrayFilter("languages", "languagesEx", v)}
+            signed={bindSignedFilter(
+              actions,
+              "languages",
+              "languagesEx",
+              filterState.languages,
+              filterState.languagesEx,
+            )}
             displayLabel={(code) => enumLabel(languageLabels, code)}
             counts={filterCounts?.languages}
           />
@@ -83,7 +91,7 @@ export function FilterBadgeSections({
           options={availableFilters.sets}
           selected={filterState.sets}
           excluded={filterState.setsEx}
-          onCycle={(v) => cycleArrayFilter("sets", "setsEx", v)}
+          signed={bindSignedFilter(actions, "sets", "setsEx", filterState.sets, filterState.setsEx)}
           displayLabel={setDisplayLabel}
           secondaryOptions={availableFilters.supplementalSets}
           collapsible={availableFilters.supplementalSets}
@@ -97,7 +105,13 @@ export function FilterBadgeSections({
           options={availableFilters.domains}
           selected={selected("domains")}
           excluded={filterState.domainsEx}
-          onCycle={(v) => cycleArrayFilter("domains", "domainsEx", v)}
+          signed={bindSignedFilter(
+            actions,
+            "domains",
+            "domainsEx",
+            filterState.domains,
+            filterState.domainsEx,
+          )}
           iconPath={(v) => getFilterIconPath("domains", v)}
           displayLabel={(v) => formatDomainFilterLabel(v, labels.domains)}
           counts={filterCounts?.domains}
@@ -109,7 +123,13 @@ export function FilterBadgeSections({
           options={availableFilters.rarities}
           selected={filterState.rarities}
           excluded={filterState.raritiesEx}
-          onCycle={(v) => cycleArrayFilter("rarities", "raritiesEx", v)}
+          signed={bindSignedFilter(
+            actions,
+            "rarities",
+            "raritiesEx",
+            filterState.rarities,
+            filterState.raritiesEx,
+          )}
           iconPath={(v) => getFilterIconPath("rarities", v)}
           displayLabel={(v) => enumLabel(labels.rarities, v)}
           counts={filterCounts?.rarities}
@@ -121,7 +141,13 @@ export function FilterBadgeSections({
           options={availableFilters.types}
           selected={selected("types")}
           excluded={filterState.typesEx}
-          onCycle={(v) => cycleArrayFilter("types", "typesEx", v)}
+          signed={bindSignedFilter(
+            actions,
+            "types",
+            "typesEx",
+            filterState.types,
+            filterState.typesEx,
+          )}
           iconPath={(v) => getFilterIconPath("types", v)}
           displayLabel={(v) => enumLabel(labels.cardTypes, v)}
           counts={filterCounts?.types}
@@ -135,7 +161,13 @@ export function FilterBadgeSections({
             options={availableFilters.superTypes}
             selected={selected("superTypes")}
             excluded={filterState.superTypesEx}
-            onCycle={(v) => cycleArrayFilter("superTypes", "superTypesEx", v)}
+            signed={bindSignedFilter(
+              actions,
+              "superTypes",
+              "superTypesEx",
+              filterState.superTypes,
+              filterState.superTypesEx,
+            )}
             iconPath={(v) => getFilterIconPath("superTypes", v)}
             displayLabel={(v) => enumLabel(labels.superTypes, v)}
             counts={filterCounts?.superTypes}
@@ -147,7 +179,13 @@ export function FilterBadgeSections({
           options={availableFilters.artVariants}
           selected={filterState.artVariants}
           excluded={filterState.artVariantsEx}
-          onCycle={(v) => cycleArrayFilter("artVariants", "artVariantsEx", v)}
+          signed={bindSignedFilter(
+            actions,
+            "artVariants",
+            "artVariantsEx",
+            filterState.artVariants,
+            filterState.artVariantsEx,
+          )}
           displayLabel={(v) => enumLabel(labels.artVariants, v)}
           counts={filterCounts?.artVariants}
           trailing={artVariantFlags}
@@ -161,7 +199,13 @@ export function FilterBadgeSections({
             options={availableFilters.finishes}
             selected={filterState.finishes}
             excluded={filterState.finishesEx}
-            onCycle={(v) => cycleArrayFilter("finishes", "finishesEx", v)}
+            signed={bindSignedFilter(
+              actions,
+              "finishes",
+              "finishesEx",
+              filterState.finishes,
+              filterState.finishesEx,
+            )}
             displayLabel={(v) => enumLabel(labels.finishes, v)}
             counts={filterCounts?.finishes}
           />

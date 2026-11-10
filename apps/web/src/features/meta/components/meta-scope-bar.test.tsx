@@ -218,7 +218,7 @@ describe("MetaScopeBar", () => {
     const { setScope, user } = renderBar({ scope: { countries: ["br"] } });
     await user.click(facet("br"));
     await user.click(await option("br"));
-    expect(setScope).toHaveBeenCalledWith({ countries: [], countriesEx: ["br"] });
+    expect(setScope).toHaveBeenCalledWith({ countries: [], countriesEx: [] });
   });
 
   it("hides the date pickers outside a custom range", () => {
@@ -273,14 +273,21 @@ describe("MetaScopeBar", () => {
     expect(setScope).toHaveBeenCalledWith({ tiers: ["premier", "local"], tiersEx: [] });
   });
 
-  it("turns a sole pick into an exclusion on the second click", async () => {
+  it("removes a sole pick on the second click", async () => {
     const { setScope, user } = renderBar({ scope: { tiers: ["premier"] } });
     await user.click(facet("Premier"));
     await user.click(await option("Premier"));
+    expect(setScope).toHaveBeenCalledWith({ tiers: [], tiersEx: [] });
+  });
+
+  it("turns the picks into an exclusion through the Exclude switch", async () => {
+    const { setScope, user } = renderBar({ scope: { tiers: ["premier"] } });
+    await user.click(facet("Premier"));
+    await user.click(await screen.findByRole("button", { name: "Exclude" }));
     expect(setScope).toHaveBeenCalledWith({ tiers: [], tiersEx: ["premier"] });
   });
 
-  it("clears an exclusion on the third click", async () => {
+  it("clears an exclusion on a click", async () => {
     const { setScope, user } = renderBar({ scope: { tiersEx: ["premier"] } });
     await user.click(facet("−Premier"));
     await user.click(await option("Premier"));

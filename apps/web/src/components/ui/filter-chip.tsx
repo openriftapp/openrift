@@ -1,4 +1,3 @@
-import { MinusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +37,6 @@ function FilterChip({
         className,
       )}
     >
-      {excluded ? <MinusIcon className="shrink-0" /> : null}
       {icon}
       <span className={cn(excluded && "line-through", wrap && "min-w-0 break-words")}>{label}</span>
       <ChipRemoveButton aria-label={removeLabel} onClick={onRemove} className="shrink-0" />

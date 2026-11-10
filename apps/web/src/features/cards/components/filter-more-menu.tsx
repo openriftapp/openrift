@@ -33,6 +33,8 @@ import {
 } from "@/features/cards/lib/presence-filter";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
 import { useCustomTagList, useTagCategories } from "@/hooks/use-enums";
+import type { SignedFilterBinding } from "@/lib/filter-sign";
+import { bindSignedFilter } from "@/lib/filter-sign";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -100,7 +102,7 @@ function MoreDimension({
   included,
   onIncludeChange,
   excluded,
-  onCycle,
+  signed,
   searchPlaceholder,
   emptyText,
   flag,
@@ -111,7 +113,7 @@ function MoreDimension({
   included: string[];
   onIncludeChange?: (next: string[]) => void;
   excluded?: string[];
-  onCycle?: (value: string) => void;
+  signed?: SignedFilterBinding;
   searchPlaceholder: string;
   emptyText: string;
   flag?: { label: string; state: boolean | null; count?: number; onToggle: () => void };
@@ -124,7 +126,7 @@ function MoreDimension({
     options.flatMap((option) => (option.count === undefined ? [] : [[option.value, option.count]])),
   );
   const facetedCounts = counts.size > 0 ? counts : undefined;
-  const excludeCapable = excluded !== undefined && onCycle !== undefined;
+  const excludeCapable = excluded !== undefined && signed !== undefined;
   return (
     <MultiSelectCombobox
       triggerStyle="menu"
@@ -133,7 +135,7 @@ function MoreDimension({
       selected={included}
       onChange={excludeCapable ? undefined : onIncludeChange}
       excluded={excludeCapable ? excluded : undefined}
-      onCycle={excludeCapable ? onCycle : undefined}
+      {...(excludeCapable ? signed : undefined)}
       searchPlaceholder={searchPlaceholder}
       emptyText={emptyText}
       counts={facetedCounts}
@@ -189,9 +191,9 @@ export function FilterMoreMenu({
   topLevelUnits,
 }: FilterMoreMenuProps) {
   const { filterState } = useFilterValues();
+  const actions = useFilterActions();
   const {
     setArrayFilter,
-    cycleArrayFilter,
     toggleSigned,
     toggleOvernumbered,
     cyclePresence,
@@ -199,7 +201,7 @@ export function FilterMoreMenu({
     toggleErrata,
     toggleNoImage,
     toggleStandard,
-  } = useFilterActions();
+  } = actions;
   const visibleDimensions = useVisibleFilterDimensions({
     availableFilters,
     availableLanguages,
@@ -380,7 +382,13 @@ export function FilterMoreMenu({
             options={tagsInCategory.map((tag) => ({ value: tag.slug, label: tag.label }))}
             included={selectedInCategory}
             excluded={excludedInCategory}
-            onCycle={(value) => cycleArrayFilter("customTags", "customTagsEx", value)}
+            signed={bindSignedFilter(
+              actions,
+              "customTags",
+              "customTagsEx",
+              filterState.customTags,
+              filterState.customTagsEx,
+            )}
             searchPlaceholder={m.cards_filter_search_placeholder({
               label: categoryLabel.toLowerCase(),
             })}
@@ -406,7 +414,13 @@ export function FilterMoreMenu({
             }))}
             included={selectedInGroup}
             excluded={excludedInGroup}
-            onCycle={(value) => cycleArrayFilter("tags", "tagsEx", value)}
+            signed={bindSignedFilter(
+              actions,
+              "tags",
+              "tagsEx",
+              filterState.tags,
+              filterState.tagsEx,
+            )}
             searchPlaceholder={m.cards_filter_search_placeholder({
               label: group.label.toLowerCase(),
             })}

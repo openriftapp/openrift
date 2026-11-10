@@ -1,8 +1,11 @@
 import { CheckIcon, MinusIcon } from "lucide-react";
+import { useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import type { ComboboxPickerOption } from "@/components/combobox-picker";
 import { ComboboxPicker } from "@/components/combobox-picker";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { FilterSign } from "@/lib/filter-sign";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -17,7 +20,9 @@ interface MultiSelectGroup {
   options: readonly MultiSelectOption[];
   included: string[];
   excluded: string[];
-  onCycle: (value: string) => void;
+  sign: FilterSign | null;
+  onSignedToggle: (value: string, sign: FilterSign) => void;
+  onSignFlip: () => void;
   counts?: Map<string, number>;
 }
 
@@ -27,7 +32,9 @@ export interface MultiSelectComboboxProps {
   selected: string[];
   onChange?: (next: string[]) => void;
   excluded?: string[];
-  onCycle?: (value: string) => void;
+  sign?: FilterSign | null;
+  onSignedToggle?: (value: string, sign: FilterSign) => void;
+  onSignFlip?: () => void;
   searchPlaceholder?: string;
   emptyText?: string;
   triggerStyle?: "chip" | "button" | "menu";
@@ -72,7 +79,9 @@ interface Section {
   selected: string[];
   onChange?: (next: string[]) => void;
   excluded?: string[];
-  onCycle?: (value: string) => void;
+  sign?: FilterSign | null;
+  onSignedToggle?: (value: string, sign: FilterSign) => void;
+  onSignFlip?: () => void;
   counts?: Map<string, number>;
   icon?: (value: string) => string | undefined;
   iconAfterLabel?: boolean;
@@ -106,18 +115,18 @@ function stateMark(state: boolean | null) {
   return state ? <CheckIcon className="size-4" /> : <MinusIcon className="size-4" />;
 }
 
-function sectionRows(section: Section): ComboboxPickerOption[] {
+function sectionRows(section: Section, sign: FilterSign): ComboboxPickerOption[] {
   const known = new Set(section.options.map((option) => option.value));
   // A selection can outlive its option (e.g. a set filter after the last card
   // in it leaves the collection); keep it as an orphan row so it stays clearable.
   const orphans = [...section.selected, ...(section.excluded ?? [])]
     .filter((value) => !known.has(value))
     .map((value): MultiSelectOption => ({ value, label: value }));
-  const cycling = section.onCycle !== undefined;
+  const signed = section.onSignedToggle !== undefined;
   return [...section.options, ...orphans].map((option) => {
     const iconPath = section.icon?.(option.value);
-    const included = cycling && section.selected.includes(option.value);
-    const excluded = cycling && (section.excluded?.includes(option.value) ?? false);
+    const included = signed && section.selected.includes(option.value);
+    const excluded = signed && (section.excluded?.includes(option.value) ?? false);
     return {
       value: encodeId(section.index, option.value),
       label: option.label,
@@ -138,8 +147,9 @@ function sectionRows(section: Section): ComboboxPickerOption[] {
         !section.selected.includes(option.value),
       belowDivider: section.mutedOptions?.has(option.value),
       group: String(section.index),
-      indicator: cycling ? stateMark(included ? true : excluded ? false : null) : undefined,
-      onSelect: cycling ? () => section.onCycle?.(option.value) : undefined,
+      excluded,
+      indicator: signed ? stateMark(included ? true : excluded ? false : null) : undefined,
+      onSelect: signed ? () => section.onSignedToggle?.(option.value, sign) : undefined,
     };
   });
 }
@@ -150,7 +160,9 @@ export function MultiSelectCombobox({
   selected,
   onChange,
   excluded,
-  onCycle,
+  sign,
+  onSignedToggle,
+  onSignFlip,
   searchPlaceholder = m.cards_filter_search_generic(),
   emptyText = m.cards_filter_empty_generic(),
   triggerStyle = "chip",
@@ -177,7 +189,9 @@ export function MultiSelectCombobox({
       selected,
       onChange,
       excluded,
-      onCycle,
+      sign,
+      onSignedToggle,
+      onSignFlip,
       counts,
       icon,
       iconAfterLabel,
@@ -189,10 +203,25 @@ export function MultiSelectCombobox({
       options: group.options,
       selected: group.included,
       excluded: group.excluded,
-      onCycle: group.onCycle,
+      sign: group.sign,
+      onSignedToggle: group.onSignedToggle,
+      onSignFlip: group.onSignFlip,
       counts: group.counts,
     })),
   ];
+
+  const [pendingSigns, setPendingSigns] = useState<Readonly<Record<number, FilterSign>>>({});
+  const shownSign = (section: Section): FilterSign =>
+    section.sign ?? pendingSigns[section.index] ?? "include";
+  const chooseSign = (section: Section, next: FilterSign) => {
+    if (next === shownSign(section)) {
+      return;
+    }
+    setPendingSigns((current) => ({ ...current, [section.index]: next }));
+    if (section.sign !== null && section.sign !== undefined) {
+      section.onSignFlip?.();
+    }
+  };
 
   const optionTotal = sections.reduce((total, section) => total + section.options.length, 0);
   const searchable = triggerStyle !== "menu" || optionTotal > MENU_SEARCH_THRESHOLD;
@@ -206,7 +235,7 @@ export function MultiSelectCombobox({
     indicator: stateMark(entry.state),
     onSelect: entry.onToggle,
   }));
-  const sectionOptions = sections.flatMap((section) => sectionRows(section));
+  const sectionOptions = sections.flatMap((section) => sectionRows(section, shownSign(section)));
   const pickerOptions =
     flagPosition === "top" ? [...flagRows, ...sectionOptions] : [...sectionOptions, ...flagRows];
   const groupLabels = new Map(
@@ -215,17 +244,17 @@ export function MultiSelectCombobox({
     ),
   );
 
-  // Cycling sections stay out of the picker's value; their rows carry their own mark.
-  const cycleSections = sections.filter((section) => section.onCycle !== undefined);
+  // Signed sections stay out of the picker's value; their rows carry their own mark.
+  const signedSections = sections.filter((section) => section.onSignedToggle !== undefined);
   const selectedIds = sections
-    .filter((section) => section.onCycle === undefined)
+    .filter((section) => section.onSignedToggle === undefined)
     .flatMap((section) => section.selected.map((value) => encodeId(section.index, value)));
 
-  const includedCount = cycleSections.reduce(
+  const includedCount = signedSections.reduce(
     (total, section) => total + section.selected.length,
     0,
   );
-  const excludedCount = cycleSections.reduce(
+  const excludedCount = signedSections.reduce(
     (total, section) => total + (section.excluded?.length ?? 0),
     0,
   );
@@ -252,7 +281,7 @@ export function MultiSelectCombobox({
   const signedSummary = (): string => {
     const parts: string[] = [];
     for (const section of sections) {
-      if (section.onCycle !== undefined) {
+      if (section.onSignedToggle !== undefined) {
         if (section.selected.length > 0) {
           parts.push(`+${summarise(section, section.selected)}`);
         }
@@ -274,7 +303,7 @@ export function MultiSelectCombobox({
   };
   const singleId =
     selectedIds[0] ??
-    cycleSections.flatMap((section) =>
+    signedSections.flatMap((section) =>
       section.selected.map((value) => encodeId(section.index, value)),
     )[0] ??
     (firstActiveFlag === -1 ? "" : flagId(firstActiveFlag));
@@ -295,7 +324,7 @@ export function MultiSelectCombobox({
 
   const handleChange = (next: string[]) => {
     for (const section of sections) {
-      if (section.onCycle !== undefined) {
+      if (section.onSignedToggle !== undefined) {
         continue;
       }
       const subset = next
@@ -307,12 +336,57 @@ export function MultiSelectCombobox({
     }
   };
 
+  const signHeader =
+    signedSections.length > 0 ? (
+      <div className="flex flex-col gap-1.5 border-b p-1.5">
+        {signedSections.map((section) => {
+          const sectionLabel = section.label ?? label;
+          const current = shownSign(section);
+          return (
+            <div key={section.index} className="flex items-center gap-2">
+              {signedSections.length > 1 && (
+                <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+                  {sectionLabel}
+                </span>
+              )}
+              <ToggleGroup
+                aria-label={m.cards_filter_sign_label({ label: sectionLabel })}
+                value={[current]}
+                onValueChange={(next) => {
+                  const picked = next[0] as FilterSign | undefined;
+                  if (picked !== undefined) {
+                    chooseSign(section, picked);
+                  }
+                }}
+                size="sm"
+                spacing={0}
+                className={cn("grid grid-cols-2", signedSections.length > 1 ? "w-44" : "w-full")}
+              >
+                <ToggleGroupItem value="include">
+                  <CheckIcon />
+                  {m.cards_filter_sign_include()}
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="exclude"
+                  className="aria-pressed:bg-destructive/20 aria-pressed:text-destructive"
+                >
+                  <MinusIcon />
+                  {m.cards_filter_sign_exclude()}
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          );
+        })}
+      </div>
+    ) : undefined;
+
   return (
     <ComboboxPicker
       multiple
       options={pickerOptions}
       value={selectedIds}
       onChange={handleChange}
+      header={signHeader}
       groupLabels={groupLabels}
       wrapLabels
       containKeys

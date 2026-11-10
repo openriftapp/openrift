@@ -1,7 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
-import { CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
+import { ArrowLeftRightIcon, CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 
@@ -29,6 +29,8 @@ import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimen
 import { presenceFlagCount, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
+import { bindSignedFilter } from "@/lib/filter-sign";
+import type { FilterSign } from "@/lib/filter-sign";
 import { getFilterIconPath } from "@/lib/icons";
 import { rangeBadgeLabel } from "@/lib/range-label";
 import { cn } from "@/lib/utils";
@@ -56,7 +58,9 @@ export function FilterIconCluster({
   options,
   included,
   excluded,
-  onCycle,
+  sign,
+  onSignedToggle,
+  onSignFlip,
   iconPath,
   displayLabel,
   counts,
@@ -66,7 +70,9 @@ export function FilterIconCluster({
   options: string[];
   included: string[];
   excluded: string[];
-  onCycle: (value: string) => void;
+  sign: FilterSign | null;
+  onSignedToggle: (value: string, sign: FilterSign) => void;
+  onSignFlip: () => void;
   iconPath: (value: string) => string | undefined;
   displayLabel: (value: string) => string;
   counts?: Map<string, number>;
@@ -76,76 +82,96 @@ export function FilterIconCluster({
   if (options.length === 0) {
     return null;
   }
-  // ToggleGroup's `value` only tracks the include set, so a click is read by
-  // diffing the proposed value against `included`, not from `value` membership.
+  const activeSign = sign ?? "include";
+  const pressed = activeSign === "include" ? included : excluded;
   const onValueChange = (next: string[]) => {
-    const added = next.find((value) => !included.includes(value));
-    const removed = included.find((value) => !next.includes(value));
+    const added = next.find((value) => !pressed.includes(value));
+    const removed = pressed.find((value) => !next.includes(value));
     const clicked = added ?? removed;
     if (clicked !== undefined) {
-      onCycle(clicked);
+      onSignedToggle(clicked, activeSign);
     }
   };
+  const flipLabel =
+    activeSign === "include" ? m.cards_filter_flip_to_exclude() : m.cards_filter_flip_to_include();
   return (
-    <ToggleGroup
-      multiple
-      variant="control"
-      size="sm"
-      spacing={0}
-      value={included}
-      onValueChange={(next) => onValueChange(next as string[])}
-      aria-label={m.cards_filter_dimension_aria({ label })}
-      data-label-fit-cluster=""
-    >
-      {options.map((option) => {
-        const count = counts?.get(option);
-        const icon = iconPath(option);
-        const isIncluded = included.includes(option);
-        const isExcluded = excluded.includes(option);
-        const isZero = counts !== undefined && (count ?? 0) === 0;
-        const name = isExcluded
-          ? m.cards_filter_exclude_option({ label: displayLabel(option) })
-          : displayLabel(option);
-        const optionLabel = count === undefined ? name : `${name} (${count})`;
-        return (
-          <Tooltip key={option}>
-            <TooltipTrigger
-              render={
-                <ToggleGroupItem
-                  value={option}
-                  aria-label={optionLabel}
-                  className={cn(
-                    isExcluded &&
-                      "text-destructive bg-destructive/10 hover:bg-destructive/16 line-through",
-                    isZero && !isIncluded && !isExcluded && "opacity-40",
-                  )}
-                />
-              }
-            >
-              {icon ? (
-                <>
-                  <span className="relative inline-flex shrink-0 items-center justify-center">
-                    <CardIcon src={icon} className="size-4" />
-                    {isExcluded && <ExcludedSlash />}
-                  </span>
-                  {showLabels && (
-                    <span>
-                      {displayLabel(option)}
-                      {count !== undefined && (
-                        <span className="ml-1 tabular-nums opacity-60">{count}</span>
-                      )}
+    <div className="flex items-center gap-0.5" data-label-fit-cluster="">
+      <ToggleGroup
+        multiple
+        variant="control"
+        size="sm"
+        spacing={0}
+        value={pressed}
+        onValueChange={(next) => onValueChange(next as string[])}
+        aria-label={m.cards_filter_dimension_aria({ label })}
+      >
+        {options.map((option) => {
+          const count = counts?.get(option);
+          const icon = iconPath(option);
+          const isIncluded = included.includes(option);
+          const isExcluded = excluded.includes(option);
+          const isZero = counts !== undefined && (count ?? 0) === 0;
+          const name = isExcluded
+            ? m.cards_filter_exclude_option({ label: displayLabel(option) })
+            : displayLabel(option);
+          const optionLabel = count === undefined ? name : `${name} (${count})`;
+          return (
+            <Tooltip key={option}>
+              <TooltipTrigger
+                render={
+                  <ToggleGroupItem
+                    value={option}
+                    aria-label={optionLabel}
+                    className={cn(
+                      isExcluded &&
+                        "text-destructive bg-destructive/10 hover:bg-destructive/16 line-through",
+                      isZero && !isIncluded && !isExcluded && "opacity-40",
+                    )}
+                  />
+                }
+              >
+                {icon ? (
+                  <>
+                    <span className="relative inline-flex shrink-0 items-center justify-center">
+                      <CardIcon src={icon} className="size-4" />
+                      {isExcluded && <ExcludedSlash />}
                     </span>
-                  )}
-                </>
-              ) : (
-                displayLabel(option)
-              )}
-            </TooltipTrigger>
-            <TooltipContent>{optionLabel}</TooltipContent>
-          </Tooltip>
-        );
-      })}
-    </ToggleGroup>
+                    {showLabels && (
+                      <span>
+                        {displayLabel(option)}
+                        {count !== undefined && (
+                          <span className="ml-1 tabular-nums opacity-60">{count}</span>
+                        )}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  displayLabel(option)
+                )}
+              </TooltipTrigger>
+              <TooltipContent>{optionLabel}</TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </ToggleGroup>
+      {sign !== null && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`${label}: ${flipLabel}`}
+                onClick={onSignFlip}
+              />
+            }
+          >
+            <ArrowLeftRightIcon />
+          </TooltipTrigger>
+          <TooltipContent>{flipLabel}</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
   );
 }
 
@@ -430,7 +456,8 @@ export function CompactFilterBar({
 }: CompactFilterBarProps) {
   const { labels } = useEnumOrders();
   const { filterState, hasClearableFilters } = useFilterValues();
-  const { cycleArrayFilter, toggleStandard, cyclePresence, clearAllFilters } = useFilterActions();
+  const actions = useFilterActions();
+  const { toggleStandard, cyclePresence, clearAllFilters } = actions;
   const visibleDimensions = useVisibleFilterDimensions({
     availableFilters,
     availableLanguages,
@@ -456,7 +483,13 @@ export function CompactFilterBar({
         options={availableFilters.domains}
         included={filterState.domains}
         excluded={filterState.domainsEx}
-        onCycle={(value) => cycleArrayFilter("domains", "domainsEx", value)}
+        {...bindSignedFilter(
+          actions,
+          "domains",
+          "domainsEx",
+          filterState.domains,
+          filterState.domainsEx,
+        )}
         iconPath={(value) => getFilterIconPath("domains", value)}
         displayLabel={(value) => formatDomainFilterLabel(value, labels.domains)}
         counts={filterCounts?.domains}
@@ -470,7 +503,13 @@ export function CompactFilterBar({
         options={availableFilters.rarities}
         included={filterState.rarities}
         excluded={filterState.raritiesEx}
-        onCycle={(value) => cycleArrayFilter("rarities", "raritiesEx", value)}
+        {...bindSignedFilter(
+          actions,
+          "rarities",
+          "raritiesEx",
+          filterState.rarities,
+          filterState.raritiesEx,
+        )}
         iconPath={(value) => getFilterIconPath("rarities", value)}
         displayLabel={(value) => enumLabel(labels.rarities, value)}
         counts={filterCounts?.rarities}

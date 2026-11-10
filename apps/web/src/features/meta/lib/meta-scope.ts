@@ -7,7 +7,8 @@ import { earliestRelease } from "@openrift/shared/set-release";
 import type { MetaEventFilterQuery, MetaScopeQuery } from "@openrift/shared/types/api/meta";
 import { z } from "zod";
 
-import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
+import type { FilterSign } from "@/lib/filter-sign";
+import { flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 
 /** Must accept a bare string as a one-element list: old links used a scalar param. */
 const facetList = () =>
@@ -26,7 +27,7 @@ const facetList = () =>
  * The scope every archive page narrows by, in the URL. Each field `.catch`es
  * to undefined, so a stale bookmark drops the bad value without crashing the
  * route. The three value facets are include/exclude pairs; an axis is never
- * both, enforced by {@link cycleScopeFacet}.
+ * both, enforced by {@link toggleScopeFacet}.
  */
 export const metaScopeSearchSchema = z.object({
   era: z.string().optional().catch(undefined),
@@ -224,18 +225,25 @@ function facetPatch(
   }
 }
 
-/**
- * The patch for one click on a facet's value: off → include → exclude → off,
- * the same cycle the card browser's filters run.
- */
-export function cycleScopeFacet(
+export function toggleScopeFacet(
   scope: MetaScope,
   facet: MetaScopeFacet,
   value: string,
+  sign: FilterSign,
   defaults: ScopeFacetDefaults = {},
 ): Partial<MetaScope> {
   const { included, excluded } = scopeFacetValues(scope, facet, defaults);
-  const next = cycleIncludeExclude(included, excluded, value);
+  const next = toggleSignedValue(included, excluded, value, sign);
+  return facetPatch(facet, next.included, next.excluded);
+}
+
+export function flipScopeFacet(
+  scope: MetaScope,
+  facet: MetaScopeFacet,
+  defaults: ScopeFacetDefaults = {},
+): Partial<MetaScope> {
+  const { included, excluded } = scopeFacetValues(scope, facet, defaults);
+  const next = flipSignedValues(included, excluded);
   return facetPatch(facet, next.included, next.excluded);
 }
 

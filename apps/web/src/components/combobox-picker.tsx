@@ -30,6 +30,7 @@ export interface ComboboxPickerOption {
   muted?: boolean;
   group?: string;
   belowDivider?: boolean;
+  excluded?: boolean;
   indicator?: ReactNode;
   onSelect?: () => void;
 }
@@ -66,6 +67,7 @@ interface ComboboxPickerBaseProps {
   clearOnSelect?: boolean;
   renderOption?: (option: ComboboxPickerOption) => ReactNode;
   groupLabels?: ReadonlyMap<string, string>;
+  header?: ReactNode;
   selectedOptions?: readonly ComboboxPickerOption[];
   wrapLabels?: boolean;
   containKeys?: boolean;
@@ -183,6 +185,7 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
     clearOnSelect = false,
     renderOption,
     groupLabels,
+    header,
     selectedOptions = [],
     wrapLabels = false,
     containKeys = false,
@@ -391,6 +394,7 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
                       className={cn(
                         "min-w-0",
                         wrapLabels ? "flex-1 break-words whitespace-normal" : "truncate",
+                        option.excluded && "text-destructive line-through",
                       )}
                     >
                       {option.label}
@@ -414,7 +418,12 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
                   </>
                 )}
                 {option.indicator !== undefined && (
-                  <span className="absolute right-2 flex size-4 items-center justify-center">
+                  <span
+                    className={cn(
+                      "absolute right-2 flex size-4 items-center justify-center",
+                      option.excluded && "text-destructive",
+                    )}
+                  >
                     {option.indicator}
                   </span>
                 )}
@@ -477,6 +486,7 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
         className={cn("min-w-56", contentClassName)}
         onKeyDown={containKeys ? (event) => event.stopPropagation() : undefined}
       >
+        {header}
         {searchable !== false && (
           <ComboboxInput
             className={searchable === "hidden" ? "sr-only" : undefined}

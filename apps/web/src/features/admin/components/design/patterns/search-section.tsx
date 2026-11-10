@@ -13,6 +13,7 @@ import {
 import type { DesignGroup } from "@/features/admin/components/design/design-sections";
 import { SearchTermChips } from "@/features/cards/components/search-term-chips";
 import { describeSearchTerms } from "@/features/cards/lib/search-clause-labels";
+import { dimensionSign, flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 
 const GROUPS = {
   searchInput: { id: "search-search-input", title: "SearchInput" },
@@ -86,7 +87,7 @@ export function SearchSection() {
       </DemoGroup>
       <DemoGroup
         {...GROUPS.multiSelect}
-        hint="Card browser filters. A pick cycles include, exclude and off. Plain include-only multi-selects use ComboboxPicker (Components › Pickers)."
+        hint="Card browser filters. The Include / Exclude switch sets the sign; a pick adds or removes a value. Plain include-only multi-selects use ComboboxPicker (Components › Pickers)."
       >
         <SwatchRow label="Include / exclude">
           <Swatch label="chip">
@@ -95,15 +96,16 @@ export function SearchSection() {
               options={REGION_OPTIONS}
               selected={regions}
               excluded={excludedRegions}
-              onCycle={(value) => {
-                if (regions.includes(value)) {
-                  setRegions((prev) => prev.filter((v) => v !== value));
-                  setExcludedRegions((prev) => [...prev, value]);
-                } else if (excludedRegions.includes(value)) {
-                  setExcludedRegions((prev) => prev.filter((v) => v !== value));
-                } else {
-                  setRegions((prev) => [...prev, value]);
-                }
+              sign={dimensionSign(regions, excludedRegions)}
+              onSignedToggle={(value, sign) => {
+                const next = toggleSignedValue(regions, excludedRegions, value, sign);
+                setRegions(next.included);
+                setExcludedRegions(next.excluded);
+              }}
+              onSignFlip={() => {
+                const next = flipSignedValues(regions, excludedRegions);
+                setRegions(next.included);
+                setExcludedRegions(next.excluded);
               }}
               searchPlaceholder="Search regions…"
               triggerStyle="chip"

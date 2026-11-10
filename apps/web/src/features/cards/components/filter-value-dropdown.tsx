@@ -14,6 +14,7 @@ import {
 } from "@/features/cards/lib/presence-filter";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
+import { bindSignedFilter } from "@/lib/filter-sign";
 import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
@@ -57,7 +58,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.languages,
     excluded: ctx.filterState.languagesEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("languages", "languagesEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "languages",
+      "languagesEx",
+      ctx.filterState.languages,
+      ctx.filterState.languagesEx,
+    ),
     counts: ctx.filterCounts?.languages,
   }),
   sets: (ctx) => ({
@@ -70,7 +77,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     }),
     selected: ctx.filterState.sets,
     excluded: ctx.filterState.setsEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("sets", "setsEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "sets",
+      "setsEx",
+      ctx.filterState.sets,
+      ctx.filterState.setsEx,
+    ),
     counts: ctx.filterCounts?.sets,
     mutedOptions: ctx.availableFilters.supplementalSets,
   }),
@@ -84,7 +97,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.domains,
     excluded: ctx.filterState.domainsEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("domains", "domainsEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "domains",
+      "domainsEx",
+      ctx.filterState.domains,
+      ctx.filterState.domainsEx,
+    ),
     icon: (value) => getFilterIconPath("domains", value),
     counts: ctx.filterCounts?.domains,
   }),
@@ -98,7 +117,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.rarities,
     excluded: ctx.filterState.raritiesEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("rarities", "raritiesEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "rarities",
+      "raritiesEx",
+      ctx.filterState.rarities,
+      ctx.filterState.raritiesEx,
+    ),
     icon: (value) => getFilterIconPath("rarities", value),
     counts: ctx.filterCounts?.rarities,
   }),
@@ -112,7 +137,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.types,
     excluded: ctx.filterState.typesEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("types", "typesEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "types",
+      "typesEx",
+      ctx.filterState.types,
+      ctx.filterState.typesEx,
+    ),
     icon: (value) => getFilterIconPath("types", value),
     iconAfterLabel: true,
     counts: ctx.filterCounts?.types,
@@ -127,7 +158,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.superTypes,
     excluded: ctx.filterState.superTypesEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("superTypes", "superTypesEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "superTypes",
+      "superTypesEx",
+      ctx.filterState.superTypes,
+      ctx.filterState.superTypesEx,
+    ),
     icon: (value) => getFilterIconPath("superTypes", value),
     iconAfterLabel: true,
     counts: ctx.filterCounts?.superTypes,
@@ -143,7 +180,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.markers,
     excluded: ctx.filterState.markersEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("markers", "markersEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "markers",
+      "markersEx",
+      ctx.filterState.markers,
+      ctx.filterState.markersEx,
+    ),
     counts: ctx.filterCounts?.markers,
     anyCount: ctx.filterCounts?.presence.markers.any,
     flagPosition: "top",
@@ -159,7 +202,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.channels,
     excluded: ctx.filterState.channelsEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("channels", "channelsEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "channels",
+      "channelsEx",
+      ctx.filterState.channels,
+      ctx.filterState.channelsEx,
+    ),
     counts: ctx.filterCounts?.channels,
     anyCount: ctx.filterCounts?.presence.distributionChannels.any,
     flagPosition: "top",
@@ -175,7 +224,13 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     })),
     selected: ctx.filterState.keywords,
     excluded: ctx.filterState.keywordsEx,
-    onCycle: (value) => ctx.actions.cycleArrayFilter("keywords", "keywordsEx", value),
+    ...bindSignedFilter(
+      ctx.actions,
+      "keywords",
+      "keywordsEx",
+      ctx.filterState.keywords,
+      ctx.filterState.keywordsEx,
+    ),
     counts: ctx.filterCounts?.keywords,
     anyCount: ctx.filterCounts?.presence.keywords.any,
     flagPosition: "top",
@@ -206,7 +261,22 @@ export function FilterVariantDropdown({
 }) {
   const { labels } = useEnumOrders();
   const { filterState } = useFilterValues();
-  const { cycleArrayFilter, toggleSigned, toggleOvernumbered } = useFilterActions();
+  const actions = useFilterActions();
+  const { toggleSigned, toggleOvernumbered } = actions;
+  const finishBinding = bindSignedFilter(
+    actions,
+    "finishes",
+    "finishesEx",
+    filterState.finishes,
+    filterState.finishesEx,
+  );
+  const artVariantBinding = bindSignedFilter(
+    actions,
+    "artVariants",
+    "artVariantsEx",
+    filterState.artVariants,
+    filterState.artVariantsEx,
+  );
   const artVariantOptions = availableFilters.artVariants.map((value) => ({
     value,
     label: enumLabel(labels.artVariants, value),
@@ -224,7 +294,7 @@ export function FilterVariantDropdown({
           options: finishOptions,
           included: filterState.finishes,
           excluded: filterState.finishesEx,
-          onCycle: (value: string) => cycleArrayFilter("finishes", "finishesEx", value),
+          ...finishBinding,
           counts: filterCounts?.finishes,
         },
       ]
@@ -261,11 +331,7 @@ export function FilterVariantDropdown({
       options={primaryIsArt ? artVariantOptions : finishOptions}
       selected={primaryIsArt ? filterState.artVariants : filterState.finishes}
       excluded={primaryIsArt ? filterState.artVariantsEx : filterState.finishesEx}
-      onCycle={(value) =>
-        primaryIsArt
-          ? cycleArrayFilter("artVariants", "artVariantsEx", value)
-          : cycleArrayFilter("finishes", "finishesEx", value)
-      }
+      {...(primaryIsArt ? artVariantBinding : finishBinding)}
       counts={primaryIsArt ? filterCounts?.artVariants : filterCounts?.finishes}
       groups={groups}
       flags={flags}

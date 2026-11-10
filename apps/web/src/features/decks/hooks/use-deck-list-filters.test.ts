@@ -83,19 +83,29 @@ describe("useDeckListFilters", () => {
     expect(resultingSearch()).toEqual({ validity: "invalid" });
   });
 
-  it("cycles a format through include, exclude-only, and clear", () => {
+  it("includes a format, flips it to excluded, and toggles it off", () => {
     const { result } = renderHook(() => useDeckListFilters());
-    result.current.cycleFormat("freeform");
+    expect(result.current.formatFilter.sign).toBeNull();
+    result.current.formatFilter.onSignedToggle("freeform", "include");
     expect(resultingSearch()).toEqual({ formats: ["freeform"] });
 
     mockSearch = { formats: ["freeform"] };
     const { result: included } = renderHook(() => useDeckListFilters());
-    included.current.cycleFormat("freeform");
+    expect(included.current.formatFilter.sign).toBe("include");
+    included.current.formatFilter.onSignFlip();
     expect(resultingSearch()).toEqual({ formatsEx: ["freeform"] });
 
     mockSearch = { formatsEx: ["freeform"] };
     const { result: excluded } = renderHook(() => useDeckListFilters());
-    excluded.current.cycleFormat("freeform");
+    expect(excluded.current.formatFilter.sign).toBe("exclude");
+    excluded.current.formatFilter.onSignedToggle("freeform", "exclude");
+    expect(resultingSearch()).toEqual({});
+  });
+
+  it("removes an included format without excluding it", () => {
+    mockSearch = { formats: ["freeform"] };
+    const { result } = renderHook(() => useDeckListFilters());
+    result.current.removeFormat("freeform");
     expect(resultingSearch()).toEqual({});
   });
 
@@ -125,21 +135,21 @@ describe("useDeckListFilters", () => {
   it("adds a domain to an existing include set", () => {
     mockSearch = { domains: ["calm"] };
     const { result } = renderHook(() => useDeckListFilters());
-    result.current.cycleDomain("fury");
+    result.current.domainFilter.onSignedToggle("fury", "include");
     expect(resultingSearch()).toEqual({ domains: ["calm", "fury"] });
   });
 
-  it("deselects one of several includes rather than flipping the axis", () => {
+  it("deselects one of several includes", () => {
     mockSearch = { domains: ["fury", "calm"] };
     const { result } = renderHook(() => useDeckListFilters());
-    result.current.cycleDomain("fury");
+    result.current.domainFilter.onSignedToggle("fury", "include");
     expect(resultingSearch()).toEqual({ domains: ["calm"] });
   });
 
   it("drops the domains key once the axis empties", () => {
     mockSearch = { domainsEx: ["fury"], archived: true };
     const { result } = renderHook(() => useDeckListFilters());
-    result.current.cycleDomain("fury");
+    result.current.removeDomain("fury");
     expect(resultingSearch()).toEqual({ archived: true });
   });
 
@@ -172,30 +182,30 @@ describe("useDeckListFilters", () => {
       expect(result.current).toMatchObject({ folders: ["f1"], foldersExclude: ["f2"] });
     });
 
-    it("cycles a folder off → include", () => {
+    it("includes a folder", () => {
       const { result } = renderHook(() => useDeckListFilters());
-      result.current.cycleFolder("f1");
+      result.current.folderFilter.onSignedToggle("f1", "include");
       expect(resultingSearch()).toEqual({ folders: ["f1"] });
     });
 
-    it("flips the sole include to an exclude", () => {
+    it("flips the include set to an exclude set", () => {
       mockSearch = { folders: ["f1"] };
       const { result } = renderHook(() => useDeckListFilters());
-      result.current.cycleFolder("f1");
+      result.current.folderFilter.onSignFlip();
       expect(resultingSearch()).toEqual({ foldersEx: ["f1"] });
     });
 
     it("adds to an existing include set rather than replacing it", () => {
       mockSearch = { folders: ["f1"] };
       const { result } = renderHook(() => useDeckListFilters());
-      result.current.cycleFolder("f2");
+      result.current.folderFilter.onSignedToggle("f2", "include");
       expect(resultingSearch()).toEqual({ folders: ["f1", "f2"] });
     });
 
     it("drops the folders key once the axis empties", () => {
       mockSearch = { foldersEx: ["f1"], archived: true };
       const { result } = renderHook(() => useDeckListFilters());
-      result.current.cycleFolder("f1");
+      result.current.folderFilter.onSignedToggle("f1", "exclude");
       expect(resultingSearch()).toEqual({ archived: true });
     });
 

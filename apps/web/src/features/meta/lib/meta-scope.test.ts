@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import type { EraSet } from "./meta-scope";
 import {
   CLEARED_SCOPE,
-  cycleScopeFacet,
+  flipScopeFacet,
+  toggleScopeFacet,
   eraCounts,
   removeScopeFacetValue,
   deriveSetEras,
@@ -177,11 +178,26 @@ describe("scopeFacetValues", () => {
     });
   });
 
-  it("cycles off a defaulted value into an explicit selection", () => {
+  it("toggles off a defaulted value into an explicit selection", () => {
     const defaults = { tiers: ["premier", "competitive"] };
-    expect(cycleScopeFacet({}, "tiers", "premier", defaults)).toEqual({
+    expect(toggleScopeFacet({}, "tiers", "premier", "include", defaults)).toEqual({
       tiers: ["competitive"],
       tiersEx: [],
+    });
+  });
+
+  it("excludes a value directly on an empty facet", () => {
+    expect(toggleScopeFacet({ countries: [] }, "countries", "de", "exclude")).toEqual({
+      countries: [],
+      countriesEx: ["de"],
+    });
+  });
+
+  it("flips a defaulted facet into an explicit exclusion", () => {
+    const defaults = { tiers: ["premier", "competitive"] };
+    expect(flipScopeFacet({}, "tiers", defaults)).toEqual({
+      tiers: [],
+      tiersEx: ["premier", "competitive"],
     });
   });
 });

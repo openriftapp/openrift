@@ -37,10 +37,10 @@ import {
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 import { presenceLabel, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useCustomTagList, useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { cycleFlag, dimensionSign, flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -216,8 +216,14 @@ export function RuleFilterEditor({
             options={options}
             selected={value[includeKey]}
             excluded={value[excludeKey]}
-            onCycle={(toggled) => {
-              const next = cycleIncludeExclude(value[includeKey], value[excludeKey], toggled);
+            sign={dimensionSign(value[includeKey], value[excludeKey])}
+            onSignedToggle={(toggled, sign) => {
+              const next = toggleSignedValue(value[includeKey], value[excludeKey], toggled, sign);
+              pin(key);
+              patch({ [includeKey]: next.included, [excludeKey]: next.excluded });
+            }}
+            onSignFlip={() => {
+              const next = flipSignedValues(value[includeKey], value[excludeKey]);
               pin(key);
               patch({ [includeKey]: next.included, [excludeKey]: next.excluded });
             }}
@@ -229,19 +235,11 @@ export function RuleFilterEditor({
                       label: presenceLabel(presenceDimension),
                       state: presenceToFlagState(presenceState ?? null),
                       onToggle: () => {
-                        const cycled = cycleIncludeExclude(
-                          presenceState === "any" ? ["1"] : [],
-                          presenceState === "none" ? ["1"] : [],
-                          "1",
-                        );
+                        const next = cycleFlag(presenceToFlagState(presenceState ?? null));
                         pin(key);
                         patchPresence(
                           presenceDimension,
-                          cycled.included.length > 0
-                            ? "any"
-                            : cycled.excluded.length > 0
-                              ? "none"
-                              : undefined,
+                          next === null ? undefined : next ? "any" : "none",
                         );
                       },
                     },
@@ -288,16 +286,14 @@ export function RuleFilterEditor({
             options={options}
             selected={value[field] === true ? ["1"] : []}
             excluded={value[field] === false ? ["1"] : []}
-            onCycle={() => {
-              const next = cycleIncludeExclude(
-                value[field] === true ? ["1"] : [],
-                value[field] === false ? ["1"] : [],
-                "1",
-              );
+            sign={value[field] === null ? null : value[field] ? "include" : "exclude"}
+            onSignedToggle={(_toggled, sign) => {
               pin(key);
-              patch({
-                [field]: next.included.length > 0 ? true : next.excluded.length > 0 ? false : null,
-              });
+              patch({ [field]: value[field] === null ? sign === "include" : null });
+            }}
+            onSignFlip={() => {
+              pin(key);
+              patch({ [field]: value[field] === null ? null : !value[field] });
             }}
           />
         </FilterRow>

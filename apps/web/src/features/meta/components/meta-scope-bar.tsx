@@ -29,7 +29,8 @@ import type {
   ScopeFacetDefaults,
 } from "@/features/meta/lib/meta-scope";
 import {
-  cycleScopeFacet,
+  flipScopeFacet,
+  toggleScopeFacet,
   defaultEraId,
   ERA_ALL,
   ERA_CUSTOM,
@@ -41,6 +42,8 @@ import type { ScopeFacetCounts, ScopeFacetPresence } from "@/features/meta/lib/m
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useSmUp } from "@/hooks/use-sm-up";
 import { countryLabel, normalizeCountryCode } from "@/lib/country";
+import type { SignedFilterBinding } from "@/lib/filter-sign";
+import { dimensionSign } from "@/lib/filter-sign";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -459,6 +462,21 @@ function ScopeDrawer({
   );
 }
 
+function facetBinding(
+  view: FacetView,
+  scope: MetaScope,
+  setScope: (patch: Partial<MetaScope>) => void,
+  defaults?: ScopeFacetDefaults,
+): SignedFilterBinding {
+  const { included, excluded } = scopeFacetValues(scope, view.facet, defaults);
+  return {
+    sign: dimensionSign(included, excluded),
+    onSignedToggle: (value, sign) =>
+      setScope(toggleScopeFacet(scope, view.facet, value, sign, defaults)),
+    onSignFlip: () => setScope(flipScopeFacet(scope, view.facet, defaults)),
+  };
+}
+
 function FacetSection({
   view,
   scope,
@@ -478,7 +496,7 @@ function FacetSection({
       options={view.options.map((option) => option.value)}
       selected={[...included]}
       excluded={[...excluded]}
-      onCycle={(value) => setScope(cycleScopeFacet(scope, view.facet, value, defaults))}
+      signed={facetBinding(view, scope, setScope, defaults)}
       displayLabel={(value) => labels.get(value) ?? value}
       counts={view.counts}
     />
@@ -506,7 +524,7 @@ function FacetChip({
       selected={[...included]}
       excluded={[...excluded]}
       counts={view.counts}
-      onCycle={(value) => setScope(cycleScopeFacet(scope, view.facet, value, defaults))}
+      {...facetBinding(view, scope, setScope, defaults)}
       searchPlaceholder={m.meta_scope_search_label({ label: view.label.toLowerCase() })}
     />
   );

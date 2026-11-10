@@ -1,4 +1,4 @@
-import { MinusIcon } from "lucide-react";
+import { ArrowLeftRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
 import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { collapseFilterOptions } from "@/features/cards/lib/collapse-filter-options";
+import type { SignedFilterBinding } from "@/lib/filter-sign";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -16,7 +17,7 @@ export function FilterSection({
   selected,
   excluded,
   onToggle,
-  onCycle,
+  signed,
   iconPath,
   displayLabel,
   secondaryOptions,
@@ -32,7 +33,7 @@ export function FilterSection({
   selected?: string[];
   excluded?: string[];
   onToggle?: (value: string) => void;
-  onCycle?: (value: string) => void;
+  signed?: SignedFilterBinding;
   iconPath?: (value: string) => string | undefined;
   displayLabel?: (value: string) => string;
   secondaryOptions?: ReadonlySet<string>;
@@ -63,6 +64,19 @@ export function FilterSection({
         {collapsed ? m.cards_filter_show_more({ count: hiddenCount }) : m.common_show_less()}
       </Badge>
     ) : null;
+  const flipToggle =
+    signed && signed.sign !== null ? (
+      <Badge
+        variant="outline"
+        className="text-muted-foreground border-dashed"
+        render={<Pressable onClick={() => signed.onSignFlip()} />}
+      >
+        <ArrowLeftRightIcon />
+        {signed.sign === "include"
+          ? m.cards_filter_flip_to_exclude()
+          : m.cards_filter_flip_to_include()}
+      </Badge>
+    ) : null;
 
   return (
     <LabelledRow label={label} className={cn(wide && "lg:col-span-2")}>
@@ -74,7 +88,7 @@ export function FilterSection({
           selected={selected}
           excluded={excluded}
           onToggle={onToggle}
-          onCycle={onCycle}
+          signed={signed}
           iconPath={iconPath}
           displayLabel={displayLabel}
           secondaryOptions={secondaryOptions}
@@ -82,6 +96,7 @@ export function FilterSection({
           trailing={
             <>
               {trailing}
+              {flipToggle}
               {foldToggle}
             </>
           }
@@ -97,7 +112,7 @@ function FilterBadgeGrid({
   selected,
   excluded,
   onToggle,
-  onCycle,
+  signed,
   iconPath,
   displayLabel,
   secondaryOptions,
@@ -110,8 +125,7 @@ function FilterBadgeGrid({
   /** Values in this dimension's exclude (`*Ex`) array; rendered struck-out. */
   excluded?: string[];
   onToggle?: (value: string) => void;
-  /** Tri-state click handler (off → include → exclude → off); replaces `onToggle` when provided. */
-  onCycle?: (value: string) => void;
+  signed?: SignedFilterBinding;
   iconPath?: (value: string) => string | undefined;
   displayLabel?: (value: string) => string;
   secondaryOptions?: ReadonlySet<string>;
@@ -147,9 +161,10 @@ function FilterBadgeGrid({
               isSecondary && !isSelected && !isExcluded && "opacity-65",
               isZero && !isSelected && !isExcluded && "opacity-40",
             )}
-            onClick={() => (onCycle ? onCycle(option) : onToggle?.(option))}
+            onClick={() =>
+              signed ? signed.onSignedToggle(option, signed.sign ?? "include") : onToggle?.(option)
+            }
           >
-            {!icon && isExcluded && <MinusIcon className="size-3" />}
             {icon && <CardIcon src={icon} />}
             <span
               className={cn(

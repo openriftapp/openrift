@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-10
+
+### Highlights
+
+- feat(App): **Include or exclude switch** — filter menus and rows now offer Exclude directly instead of a hidden second click.
+
+### Other
+
+- fix(Decks): **Removing a format filter** — removing the only included format or domain from the deck list filters clears it and no longer excludes it.
+
 ## 2026-11-09
 
 ### Highlights

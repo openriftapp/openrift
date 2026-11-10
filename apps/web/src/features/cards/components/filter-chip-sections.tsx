@@ -17,6 +17,7 @@ import {
 } from "@/features/cards/lib/presence-filter";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
 import { useCustomTagList, useTagCategories } from "@/hooks/use-enums";
+import { bindSignedFilter } from "@/lib/filter-sign";
 import { m } from "@/paraglide/messages.js";
 
 export function FilterChipSections({
@@ -45,9 +46,9 @@ export function FilterChipSections({
     visibleCustomTagCategories,
   });
   const { filterState } = useFilterValues();
+  const actions = useFilterActions();
   const {
     setArrayFilter,
-    cycleArrayFilter,
     toggleSigned,
     toggleOvernumbered,
     cyclePresence,
@@ -55,7 +56,7 @@ export function FilterChipSections({
     toggleErrata,
     toggleNoImage,
     toggleStandard,
-  } = useFilterActions();
+  } = actions;
   const { byCategory: customTagsByCategory } = useCustomTagList();
   const visibleCategories = [...customTagsByCategory.entries()].filter(([category]) =>
     visibleCustomTagCategories === undefined ? true : visibleCustomTagCategories.has(category),
@@ -195,7 +196,13 @@ export function FilterChipSections({
                 options={tagOptions}
                 selected={selectedInCategory}
                 excluded={excludedInCategory}
-                onCycle={(value) => cycleArrayFilter("customTags", "customTagsEx", value)}
+                {...bindSignedFilter(
+                  actions,
+                  "customTags",
+                  "customTagsEx",
+                  filterState.customTags,
+                  filterState.customTagsEx,
+                )}
                 triggerStyle={triggerStyle}
               />
             );
@@ -236,7 +243,13 @@ export function FilterChipSections({
                 options={tagOptions}
                 selected={selectedInGroup}
                 excluded={excludedInGroup}
-                onCycle={(value) => cycleArrayFilter("tags", "tagsEx", value)}
+                {...bindSignedFilter(
+                  actions,
+                  "tags",
+                  "tagsEx",
+                  filterState.tags,
+                  filterState.tagsEx,
+                )}
                 counts={filterCounts?.tags}
                 triggerStyle={triggerStyle}
               />

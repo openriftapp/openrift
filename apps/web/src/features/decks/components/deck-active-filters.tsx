@@ -20,10 +20,10 @@ export function DeckActiveFilters() {
     domainsExclude,
     hasActiveFilters,
     setSearch,
-    cycleFormat,
+    removeFormat,
     setValidity,
     setDrafts,
-    cycleDomain,
+    removeDomain,
     clearAllFilters,
   } = useDeckListFilters();
   const { labels: formatLabels } = useDeckFormatList();
@@ -69,10 +69,10 @@ export function DeckActiveFilters() {
       )}
 
       {formats.map((slug) =>
-        chip(slug, enumLabel(formatLabels, slug), false, () => cycleFormat(slug)),
+        chip(slug, enumLabel(formatLabels, slug), false, () => removeFormat(slug)),
       )}
       {formatsExclude.map((slug) =>
-        chip(`ex-${slug}`, enumLabel(formatLabels, slug), true, () => cycleFormat(slug)),
+        chip(`ex-${slug}`, enumLabel(formatLabels, slug), true, () => removeFormat(slug)),
       )}
 
       {validity !== "all" &&
@@ -88,7 +88,7 @@ export function DeckActiveFilters() {
           domain,
           enumLabel(enumLabels.domains, domain),
           false,
-          () => cycleDomain(domain),
+          () => removeDomain(domain),
           domain,
         ),
       )}
@@ -97,7 +97,7 @@ export function DeckActiveFilters() {
           `ex-${domain}`,
           enumLabel(enumLabels.domains, domain),
           true,
-          () => cycleDomain(domain),
+          () => removeDomain(domain),
           domain,
         ),
       )}
