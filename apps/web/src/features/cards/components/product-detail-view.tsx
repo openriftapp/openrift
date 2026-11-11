@@ -30,7 +30,7 @@ import { StaticCountTableActions } from "@/features/cards/components/static-coun
 import { useCardData } from "@/features/cards/hooks/use-card-data";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCatalogOnDemand } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
@@ -38,15 +38,18 @@ import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import type { EnrichedProductDetail } from "@/features/cards/lib/products-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
+import { VariantSiblingsContext } from "@/features/cards/lib/variant-siblings-context";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
+import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { formatterForMarketplace } from "@/lib/format";
+import { captureHandledError } from "@/lib/report-error";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -106,46 +109,48 @@ export function ProductDetailView({ data, search }: ProductDetailViewProps) {
   ];
 
   return (
-    <FilterSearchProvider value={search}>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <PageHero
-          width="full"
-          eyebrow={
-            <Link to="/products" className={cn(PAGE_HERO_EYEBROW_CLASS, "hover:underline")}>
-              {m.products_title()}
-            </Link>
-          }
-          title={product.name}
-          compactTitle
-          aside={<PageHeroCardFan urls={fanUrls} />}
-        >
-          {hydrated ? (
-            <Suspense fallback={<PageHeroStats stats={baseStats} />}>
-              <ProductHeroStats baseStats={baseStats} contents={data.contents} />
-            </Suspense>
-          ) : (
-            <PageHeroStats stats={baseStats} />
-          )}
-          {isLoggedIn && (
-            <Button className="mt-3" onClick={() => setAddOpen(true)}>
-              {m.products_add_to_collection()}
-            </Button>
-          )}
-        </PageHero>
-        <ProductAddDialog
-          open={addOpen}
-          onOpenChange={setAddOpen}
-          productSlug={product.slug}
-          productName={product.name}
-        />
-        <div className={cn(PAGE_PADDING_NO_TOP, "flex min-w-0 flex-1 flex-col pt-3")}>
-          {product.description ? (
-            <MarkdownText text={product.description} className="text-muted-foreground py-3" />
-          ) : null}
-          <ProductDetailBody data={data} />
+    <VariantSiblingsContext value={data.variantSiblings}>
+      <FilterSearchProvider value={search}>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <PageHero
+            width="full"
+            eyebrow={
+              <Link to="/products" className={cn(PAGE_HERO_EYEBROW_CLASS, "hover:underline")}>
+                {m.products_title()}
+              </Link>
+            }
+            title={product.name}
+            compactTitle
+            aside={<PageHeroCardFan urls={fanUrls} />}
+          >
+            {hydrated ? (
+              <Suspense fallback={<PageHeroStats stats={baseStats} />}>
+                <ProductHeroStats baseStats={baseStats} contents={data.contents} />
+              </Suspense>
+            ) : (
+              <PageHeroStats stats={baseStats} />
+            )}
+            {isLoggedIn && (
+              <Button className="mt-3" onClick={() => setAddOpen(true)}>
+                {m.products_add_to_collection()}
+              </Button>
+            )}
+          </PageHero>
+          <ProductAddDialog
+            open={addOpen}
+            onOpenChange={setAddOpen}
+            productSlug={product.slug}
+            productName={product.name}
+          />
+          <div className={cn(PAGE_PADDING_NO_TOP, "flex min-w-0 flex-1 flex-col pt-3")}>
+            {product.description ? (
+              <MarkdownText text={product.description} className="text-muted-foreground py-3" />
+            ) : null}
+            <ProductDetailBody data={data} />
+          </div>
         </div>
-      </div>
-    </FilterSearchProvider>
+      </FilterSearchProvider>
+    </VariantSiblingsContext>
   );
 }
 
@@ -231,9 +236,6 @@ function ProductDetailBody({ data }: { data: EnrichedProductDetail }) {
 
 function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   const { sets } = data;
-  // The detail pane lists every printing of the clicked card from the global
-  // catalog, not just the ones in this product.
-  const { printingsByCardId: catalogAllPrintingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
@@ -291,8 +293,19 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
     channels,
   });
 
-  const detailPanePrintingsByCardId = filterPrintingsByLanguages(
-    catalogAllPrintingsByCardId,
+  const detailOpen = useSelectionStore((state) => state.detailOpen);
+  const [catalogWanted, setCatalogWanted] = useState(false);
+  if (detailOpen && !catalogWanted) {
+    setCatalogWanted(true);
+  }
+  const { catalog, error: catalogError } = useCatalogOnDemand(catalogWanted);
+  useScopeEffect(catalogError, (failure) => {
+    if (failure) {
+      captureHandledError(failure, { query: "catalog", surface: "product-detail" });
+    }
+  });
+  const detailPrintingsByCardId = filterPrintingsByLanguages(
+    catalog?.printingsByCardId ?? Map.groupBy(productPrintings, (printing) => printing.cardId),
     filters.languages,
   );
 
@@ -345,7 +358,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   const rightPane = isMobile ? undefined : (
     <SelectionDetailPane
       items={items}
-      printingsByCardId={detailPanePrintingsByCardId}
+      printingsByCardId={detailPrintingsByCardId}
       showImages={showImages}
       onSearchAndClose={handleSearchAndClose}
     />
@@ -380,7 +393,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
       >
         <SelectionDetailOverlays
           items={items}
-          printingsByCardId={detailPanePrintingsByCardId}
+          printingsByCardId={detailPrintingsByCardId}
           showImages={showImages}
           onSearchAndClose={handleSearchAndClose}
         />

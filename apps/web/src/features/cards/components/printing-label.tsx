@@ -1,4 +1,4 @@
-import type { VariantLabelPrinting } from "@openrift/shared/printing-label";
+import type { VariantLabelPrinting, VariantSiblings } from "@openrift/shared/printing-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
@@ -46,7 +46,7 @@ export function PrintingVariantLabel({
   className,
 }: {
   printing: VariantLabelPrinting;
-  siblings?: readonly VariantLabelPrinting[];
+  siblings?: VariantSiblings;
   code?: ReactNode;
   fallback?: string;
   hideLanguage?: boolean;

@@ -18,6 +18,29 @@ trap 'rm -f "$LOCKFILE"' EXIT
 # On signal (SSH disconnect, Ctrl-C, kill), kill all child processes first
 trap 'trap - INT TERM HUP; kill -- -$$ 2>/dev/null' INT TERM HUP
 
+version_at_least() {
+  [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
+}
+
+# The staged restart below and the healthcheck start_interval in
+# docker-compose.yml need Compose 2.20.2+ and Docker Engine 25+ (API 1.44).
+echo "==> Checking Docker and Compose versions..."
+compose_version="$(docker compose version --short)"
+compose_version="${compose_version#v}"
+engine_api="$(docker version --format '{{.Server.APIVersion}}')"
+if ! version_at_least "$compose_version" 2.20.2; then
+  echo "Docker Compose $compose_version is older than 2.20.2, aborting before anything is stopped."
+  exit 1
+fi
+if ! version_at_least "$engine_api" 1.44; then
+  echo "Docker Engine API $engine_api is older than 1.44 (Engine 25), aborting before anything is stopped."
+  exit 1
+fi
+if ! docker compose config --quiet; then
+  echo "docker-compose.yml does not validate, aborting before anything is stopped."
+  exit 1
+fi
+
 echo "==> Ensuring data directories exist..."
 mkdir -p data/postgres media/cards media/sets
 
@@ -36,10 +59,27 @@ for i in $(seq 1 "$pull_retries"); do
   sleep "$wait"
 done
 
-echo "==> Restarting services..."
-# --wait blocks until every service reports healthy, so the Cloudflare purge
-# below only fires once the new version is actually serving (otherwise the edge
-# could immediately re-cache the old SSR shell).
+# One service at a time, so the others keep serving while it restarts. A single
+# `up` stops api, web and proxy before it starts any of them. api goes first
+# because it runs the migrations; proxy before web so the new hashed chunks
+# exist before new HTML references them. Each --wait blocks until that service
+# is healthy, and a failure stops the script with the remaining services on the
+# old version. The final `up` starts whatever is left (the bot) and makes the
+# Cloudflare purge below wait until everything is healthy.
+restart_stage() {
+  echo "==> Restarting $1..."
+  if ! docker compose up -d --no-deps --wait "$1"; then
+    echo "ERROR: $1 did not become healthy; services after it still run the previous version."
+    docker compose ps
+    exit 1
+  fi
+}
+restart_stage db
+restart_stage api
+restart_stage proxy
+restart_stage web
+
+echo "==> Starting remaining services..."
 docker compose up -d --wait
 
 # Purge the Cloudflare edge cache — targeted, not purge_everything. Anonymous

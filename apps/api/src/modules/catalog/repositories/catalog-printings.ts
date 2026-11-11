@@ -95,7 +95,12 @@ type OtherSideRow = Omit<PrintingOtherSide, "markers"> & { markerSlugs: string[]
 /** Reads that return a subset of sides carry the other side's card, since its row may be missing. */
 type CatalogPrintingSubsetRow = CatalogPrintingRow & { otherSide: OtherSideRow | null };
 
-/** Only the card detail read carries the slug; the bulk read is one row per printing of every card. */
+export type VariantSiblingRow = Pick<
+  PrintingSidesOrderedView,
+  "cardId" | "shortCode" | "language" | "rarity" | "finish" | "isSigned" | "markerSlugs"
+> & { otherSide: { cardName: string; shortCode: string } | null };
+
+/** Only the card detail read carries the slug;the bulk read is one row per printing of every card. */
 type CatalogPrintingDetailRow = CatalogPrintingSubsetRow & { slug: string };
 
 const SIDE_COLUMNS = [
@@ -260,6 +265,33 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
         return Promise.resolve([]);
       }
       return selectSideSubset(db).where("s.cardId", "in", cardIds).execute();
+    },
+
+    variantSiblingRowsByCardIds(cardIds: string[]): Promise<VariantSiblingRow[]> {
+      if (cardIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("printingSidesOrdered as s")
+        .select([
+          "s.cardId",
+          "s.shortCode",
+          "s.language",
+          "s.rarity",
+          "s.finish",
+          "s.isSigned",
+          "s.markerSlugs",
+          sql<{ cardName: string; shortCode: string } | null>`(
+            SELECT json_build_object('cardName', oc.name, 'shortCode', ofc.short_code)
+            FROM printings op
+            JOIN faces ofc ON ofc.id = CASE WHEN s.position = 1 THEN op.face2_id ELSE op.face1_id END
+            JOIN cards oc ON oc.id = ofc.card_id
+            WHERE op.id = s.printing_id
+          )`.as("otherSide"),
+        ])
+        .where("s.cardId", "in", cardIds)
+        .orderBy("s.canonicalRank")
+        .execute();
     },
 
     printingImagesByCardIds(cardIds: string[]): Promise<CatalogPrintingImageRow[]> {

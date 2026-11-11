@@ -199,6 +199,7 @@ export function metaArchiveRepo(db: Kysely<Database>) {
           .where("d.shareToken", "is not", null)
           .where("me.tier", "in", SITEMAP_TIERS)
           .$narrowType<{ slug: string }>()
+          .orderBy("d.shareToken")
           .execute(),
         // Unlike events and decks: dropping store-tier finishes would leave a linked page uncrawled.
         db
@@ -224,6 +225,7 @@ export function metaArchiveRepo(db: Kysely<Database>) {
           .where("p.sourceIdentity", "is not", null)
           .where("me.tier", "in", SITEMAP_TIERS)
           .groupBy(foldedPlayerIdentity)
+          .orderBy(foldedPlayerIdentity)
           .execute(),
       ]);
       const toEntry = (row: { slug: string; updatedAt: Date }) => ({

@@ -1,9 +1,12 @@
+import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
 import type { SitemapDataResponse } from "@openrift/shared/types/api/catalog";
 import { describe, expect, it } from "vitest";
 
 import type { HelpArticle } from "./help-article";
 import type { SitemapInput } from "./sitemap";
 import {
+  latestChangelogDate,
+  latestErrataDate,
   parseSitemapPath,
   renderSitemapFile,
   renderSitemapIndex,
@@ -22,7 +25,8 @@ function entries(prefix: string, count: number): SitemapDataResponse["cards"] {
 function input(overrides: Partial<SitemapInput> = {}): SitemapInput {
   return {
     siteUrl: "https://example.test",
-    deployDate: "2026-09-04",
+    changelogDate: "2026-11-10",
+    errataDate: "2026-07-23",
     helpArticles: [
       { slug: "getting-started" },
       { slug: "flagged-article", featureFlag: "someFlag" },
@@ -115,22 +119,138 @@ describe("sitemapSectionFiles", () => {
     expect(file!.map((url) => url.path)).toContain("/developers");
   });
 
-  it("lists each language's latest rules version with its lang param", () => {
+  it("lists each language's latest rules version, dated by the version's published date", () => {
     const [file] = sitemapSectionFiles("site", input());
     const rules = file!.filter((url) => url.path === "/rules/core/2026-07-16");
     expect(rules.map((url) => [url.search, url.lastmod])).toEqual([
-      ["lang=en", "2026-07-17"],
-      ["lang=fr", "2026-10-02"],
+      ["lang=en", "2026-07-16"],
+      ["lang=fr", "2026-07-16"],
     ]);
+  });
+
+  it("dates pages by their content's own dates and leaves the rest undated", () => {
+    const [file] = sitemapSectionFiles("site", input());
+    const lastmods = Object.fromEntries(file!.map((url) => [url.path, url.lastmod]));
+    expect(lastmods["/changelog"]).toBe("2026-11-10");
+    expect(lastmods["/errata"]).toBe("2026-07-23");
+    expect(lastmods["/rules"]).toBe("2026-07-16");
+    expect(lastmods["/rules/core"]).toBe("2026-07-16");
+    expect(lastmods["/cards/card-0"]).toBe("2026-08-01");
+    for (const path of [
+      "/",
+      "/cards",
+      "/meta",
+      "/help",
+      "/help/getting-started",
+      "/legal-notice",
+    ]) {
+      expect(lastmods[path]).toBeUndefined();
+    }
+    expect("/rules/tournament" in lastmods).toBe(true);
+    expect(lastmods["/rules/tournament"]).toBeUndefined();
+  });
+
+  it("leaves a rules version that is not a date undated", () => {
+    const base = input();
+    const [file] = sitemapSectionFiles(
+      "site",
+      input({
+        data: {
+          ...base.data,
+          rules: [{ ...base.data.rules[0]!, version: "draft" }],
+        },
+      }),
+    );
+    expect(file!.find((url) => url.path === "/rules/core/draft")?.lastmod).toBeUndefined();
+  });
+});
+
+describe("latestChangelogDate", () => {
+  it("reads the newest dated heading", () => {
+    expect(
+      latestChangelogDate(
+        "# Changelog\n\n## 2026-11-03\n\n- a\n\n## 2026-11-10\n\n### Highlights\n",
+      ),
+    ).toBe("2026-11-10");
+  });
+
+  it("answers undefined without a dated heading", () => {
+    expect(latestChangelogDate("# Changelog\n\n## Unreleased\n")).toBeUndefined();
+  });
+});
+
+describe("latestErrataDate", () => {
+  it("takes the newest announcement or effective date", () => {
+    const errata = {
+      announcements: [{ id: "a", name: "Vendetta Errata", publishedOn: "2026-07-23", url: "" }],
+      sets: [],
+      entries: [{ effectiveDate: "2026-08-02" }, { effectiveDate: null }],
+    } as unknown as ErrataListResponse;
+    expect(latestErrataDate(errata)).toBe("2026-08-02");
+  });
+
+  it("answers undefined for an empty errata list", () => {
+    expect(latestErrataDate({ announcements: [], sets: [], entries: [] })).toBeUndefined();
+  });
+});
+
+describe("sitemap entry set", () => {
+  const allLocs = (value: SitemapInput) =>
+    (["site", "meta-events", "meta-decks", "meta-legends", "meta-players"] as const).flatMap(
+      (section) => locs(renderSitemapFile(section, 0, value) ?? ""),
+    );
+
+  it("lists exactly the URLs it listed before the lastmod and field changes", () => {
+    expect(allLocs(input())).toEqual([
+      "https://example.test/",
+      "https://example.test/cards",
+      "https://example.test/sets",
+      "https://example.test/products",
+      "https://example.test/promos/EN",
+      "https://example.test/errata",
+      "https://example.test/meta",
+      "https://example.test/meta/events",
+      "https://example.test/meta/decks",
+      "https://example.test/meta/legends",
+      "https://example.test/rules",
+      "https://example.test/help",
+      "https://example.test/changelog",
+      "https://example.test/developers",
+      "https://example.test/legal-notice",
+      "https://example.test/privacy-policy",
+      "https://example.test/help/getting-started",
+      "https://example.test/rules/core",
+      "https://example.test/rules/tournament",
+      "https://example.test/rules/core/2026-07-16?lang=en",
+      "https://example.test/rules/core/2026-07-16?lang=fr",
+      "https://example.test/cards/card-0",
+      "https://example.test/cards/card-1",
+      "https://example.test/sets/set-0",
+      "https://example.test/meta/events?era=origins",
+      "https://example.test/meta/rq-barcelona",
+      "https://example.test/meta/decks/aB3dE5gH7jK9",
+      "https://example.test/meta/legends/kennen-heart-of-the-tempest",
+      "https://example.test/meta/players/u364017",
+    ]);
+  });
+
+  it("renders byte-identical files from two loads of the same data", () => {
+    for (const section of ["site", "meta-events", "meta-players"] as const) {
+      expect(renderSitemapFile(section, 0, input())).toBe(renderSitemapFile(section, 0, input()));
+    }
+    expect(renderSitemapIndex(input())).toBe(renderSitemapIndex(input()));
   });
 });
 
 describe("renderSitemapFile", () => {
-  it("renders a section's urls with date-only lastmods", () => {
+  it("renders each url with only a loc and a date-only lastmod", () => {
     const xml = renderSitemapFile("meta-events", 0, input());
     expect(xml).toContain(
-      "<url><loc>https://example.test/meta/rq-barcelona</loc><lastmod>2026-08-26</lastmod>",
+      "<url><loc>https://example.test/meta/rq-barcelona</loc><lastmod>2026-08-26</lastmod></url>",
     );
+    expect(xml).toContain("<url><loc>https://example.test/meta/events?era=origins</loc></url>");
+    expect(xml).not.toContain("<changefreq>");
+    expect(xml).not.toContain("<priority>");
   });
 
   it("lists the older eras' index views beside the events", () => {

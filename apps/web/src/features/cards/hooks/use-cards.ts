@@ -1,5 +1,5 @@
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { use } from "react";
 
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
@@ -33,10 +33,25 @@ function useCatalog(subset: UseCardsResult | null): UseCardsResult {
   // containing a Map; `enrichCatalog` memoizes by input identity instead.
   const { data } = useSuspenseQuery(options);
   const userLanguages = useDisplayStore((state) => state.languages);
+  useCatalogTail(subset === null ? data : null);
+  return inLanguageOrder(subset ?? data, userLanguages);
+}
+
+export function useCatalogOnDemand(enabled: boolean): {
+  catalog: UseCardsResult | undefined;
+  error: Error | null;
+} {
+  const { data, error } = useQuery({ ...catalogQueryOptions, enabled });
+  const userLanguages = useDisplayStore((state) => state.languages);
+  useCatalogTail(data ?? null);
+  return { catalog: data && inLanguageOrder(data, userLanguages), error };
+}
+
+function useCatalogTail(fetched: UseCardsResult | null): void {
   const queryClient = useQueryClient();
 
   // requestIdleCallback is missing on iOS Safari, hence the timeout fallback.
-  useScopeEffect(subset === null ? data : null, (scope) => {
+  useScopeEffect(fetched, (scope) => {
     if (scope === null) {
       return;
     }
@@ -48,8 +63,12 @@ function useCatalog(subset: UseCardsResult | null): UseCardsResult {
     const timer = setTimeout(start, 1500);
     return () => clearTimeout(timer);
   });
+}
 
-  const catalog = subset ?? data;
+function inLanguageOrder(
+  catalog: UseCardsResult,
+  userLanguages: readonly string[],
+): UseCardsResult {
   if (userLanguages.length === 0) {
     return catalog;
   }

@@ -13,7 +13,7 @@ import {
   buildPrintingsResponse,
   loadPrintingDecorations,
 } from "../../catalog/lib/printing-presenters.js";
-import { toCoverCards, toProductSummary } from "../lib/product-presenters.js";
+import { toCoverCards, toProductSummary, toVariantSiblings } from "../lib/product-presenters.js";
 
 const os = implement(productsContract).$context<ApiContext>().use(requireUser);
 
@@ -45,12 +45,13 @@ export const productsRouter = {
       repos.catalog.printingImagesByPrintingIds(printingIds),
     ]);
     const cardIds = [...new Set(printingRows.map((row) => row.cardId))];
-    const [cardRows, banRows, errataRows, decorations, sets] = await Promise.all([
+    const [cardRows, banRows, errataRows, decorations, sets, siblingRows] = await Promise.all([
       repos.catalog.cardsByIds(cardIds),
       repos.catalog.cardBansByCardIds(cardIds),
       repos.catalog.cardErrataByCardIds(cardIds),
       loadPrintingDecorations(repos, printingIds),
       repos.catalog.sets(),
+      repos.catalog.variantSiblingRowsByCardIds(cardIds),
     ]);
 
     return {
@@ -59,6 +60,7 @@ export const productsRouter = {
       cards: buildCardsResponse(cardRows, banRows, errataRows),
       printings: buildPrintingsResponse(printingRows, imageRows, decorations),
       sets,
+      variantSiblings: toVariantSiblings(siblingRows, new Set(decorations.markerBySlug.keys())),
     };
   }),
 };

@@ -45,6 +45,7 @@ export interface EnrichedProductDetail {
   sets: ProductDetailResponse["sets"];
   printings: Printing[];
   printingsById: Record<string, Printing>;
+  variantSiblings: ProductDetailResponse["variantSiblings"];
 }
 
 // Joins against the inlined cards/sets, not the global catalog, so the
@@ -79,6 +80,7 @@ function enrichProductDetail(response: ProductDetailResponse): EnrichedProductDe
     sets: response.sets,
     printings,
     printingsById,
+    variantSiblings: response.variantSiblings,
   };
 }
 

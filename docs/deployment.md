@@ -44,14 +44,23 @@ Incomplete features can be pushed to `main` behind feature flags, tested on prev
 
 The `deploy.sh` on the VPS is minimal — no git operations, no building:
 
-1. Pulls pre-built images from GHCR (the `IMAGE_TAG` in `.env` controls which tag)
-2. Restarts services (migrations run automatically on api startup)
-3. Purges the Cloudflare edge cache **targeted**: the anonymous HTML shells (the allowlist in `apps/web/src/lib/page-cache.ts`, see ADR-016) and everything under `/api/` are purged by prefix + the root URL; hashed `/assets/` and `/media/` are deliberately left cached — they're content-addressed and can never be stale, and keeping them warm avoids a multi-second cold load for the first visitors after each release (and keeps lazy-loading working for tabs still on the previous bundle). Uses `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_HOST` from `.env`. The API purge matters on releases that change a response schema: without it the edge could serve old-shape payloads for up to the `stale-while-revalidate` window (24h for catalog/init).
-4. Cleans up old images (best-effort: prod and preview share the VPS and the Docker daemon allows only one prune at a time, so an overlapping deploy just leaves the old layers for the next run)
+1. Checks for Docker Compose 2.20.2+ and Docker Engine 25+ (API 1.44) and validates `docker-compose.yml`, exiting before anything is stopped if either fails
+2. Pulls pre-built images from GHCR (the `IMAGE_TAG` in `.env` controls which tag)
+3. Restarts services one at a time (see below)
+4. Purges the Cloudflare edge cache **targeted**: the anonymous HTML shells (the allowlist in `apps/web/src/lib/page-cache.ts`, see ADR-016) and everything under `/api/` are purged by prefix + the root URL; hashed `/assets/` and `/media/` are deliberately left cached — they're content-addressed and can never be stale, and keeping them warm avoids a multi-second cold load for the first visitors after each release (and keeps lazy-loading working for tabs still on the previous bundle). Uses `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_HOST` from `.env`. The API purge matters on releases that change a response schema: without it the edge could serve old-shape payloads for up to the `stale-while-revalidate` window (24h for catalog/init).
+5. Cleans up old images (best-effort: prod and preview share the VPS and the Docker daemon allows only one prune at a time, so an overlapping deploy just leaves the old layers for the next run)
 
 Purge prefixes are host-scoped, so prod (`CLOUDFLARE_PURGE_HOST=openrift.app`) and preview (`preview.openrift.app`) can purge independently despite sharing one Cloudflare zone. All purge types (URL, prefix, hostname, tag) are available on the Free plan — prefix/hostname purges are rate-limited to 5 requests/minute, far above deploy frequency. If `CLOUDFLARE_PURGE_HOST` is missing the script falls back to `purge_everything`; if the credentials are missing it skips purging entirely (preview ran without credentials until the host-scoped purge made it safe — without any purge, preview can serve a stale HTML shell for up to ~1h after a deploy).
 
 The full-cache nuke remains available as the admin UI's cache purge button (`purge_everything`).
+
+#### Staged restart
+
+A single `docker compose up -d --wait` stops api, web and proxy before it starts any of them, which took the site down for 7 to 14 s per release. `deploy.sh` instead runs `docker compose up -d --no-deps --wait <service>` for db, api, proxy and web in that order, then a plain `docker compose up -d --wait` for the rest (the bot). api goes first because it runs the migrations. proxy goes before web so the new hashed chunks exist before the new SSR HTML references them; for about a second the old HTML can ask the new proxy for an old chunk that only the Cloudflare edge still has. `--no-deps` drops the `depends_on` entries of the selected service, so each stage waits only on its own health check. The api, web and proxy health checks poll every second (`start_interval: 1s`) until they first pass, then every 10 s.
+
+A stage that does not become healthy stops the script with exit code 1, so the deploy job fails. The services after it keep running the previous version: a failed api leaves the old web and proxy in front of the unhealthy new API, a failed proxy leaves the old web behind it, and a failed web leaves the new proxy and API serving with the new web container unhealthy. The Cloudflare purge and the image prune do not run.
+
+During the API restart the SSR server's own GET and HEAD calls to the API retry connection failures (refused, reset before any response, unreachable, DNS failure) for up to 3 s, inside the 8 s API deadline (`apps/web/src/lib/server-fns/api-deadline.ts`). A request that got any response is never retried, and a request stuck connecting to a removed container's address fails at the 8 s deadline. Each request that needed a retry logs one `[API retry]` line in the web container log. The web service sets `BUN_CONFIG_DNS_TIME_TO_LIVE_SECONDS=2` because Bun caches DNS answers for 30 s and a recreated api container can get a new address.
 
 ### Startup Sequence
 
@@ -429,7 +438,7 @@ nginx -t && systemctl reload nginx
 
 **Security invariant — `X-Real-IP` must be overwritten here.** The API's
 sign-in/sign-up brute-force limiter and the proxy container's `limit_req`
-zone both key on `X-Real-IP`, and the proxy container _trusts_ the incoming
+zones both key on `X-Real-IP`, and the proxy container _trusts_ the incoming
 header (it can't know the real client address behind host nginx). The host
 configs in the repo do this correctly: the Cloudflare `real_ip` include maps
 `$remote_addr` to the visitor IP, and every `proxy_pass` block sets
@@ -438,6 +447,14 @@ client sent. After changing or re-copying a host nginx config, verify the
 deployed file still carries that line for every location that proxies to
 `:8080`/`:8081` — without it, clients can spoof `X-Real-IP` and bypass or
 poison the rate limits.
+
+**Rate limits in the proxy container (`nginx/web.conf`).** `/api/` allows
+30 requests per second per visitor with a burst of 60. Server-rendered page
+loads (`location /`) allow 3 per second with a burst of 60; server
+functions, `/health`, `robots.txt`, sitemaps and public files are not
+counted. Both answer `429`, pages with `Retry-After: 5`. The limits ship in
+the proxy image, so they reach preview with the next push to `main` and
+stable with the next release.
 
 ### 7. First deploy
 

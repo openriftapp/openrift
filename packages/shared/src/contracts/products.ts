@@ -2,6 +2,8 @@ import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
   catalogSetResponseSchema,
+  finishSchema,
+  raritySchema,
 } from "@openrift/shared/response-schemas";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
@@ -52,12 +54,39 @@ export const productContentSchema = z.object({
 
 export const productsListResponseSchema = z.object({ products: z.array(productSummarySchema) });
 
+export const variantSiblingSummarySchema = z.object({
+  languages: z.array(z.string()).meta({ examples: [["EN", "FR"]] }),
+  rarities: z.array(raritySchema).meta({ examples: [["Epic"]] }),
+  finishes: z.array(finishSchema).meta({ examples: [["normal", "foil"]] }),
+  markerSlugs: z
+    .array(z.array(z.string()))
+    .meta({ description: "Each distinct marker set, as slugs.", examples: [[[], ["promo"]]] }),
+  signed: z.array(z.boolean()).meta({ examples: [[false]] }),
+  otherSides: z
+    .array(
+      z.object({
+        shortCode: z.string().meta({ examples: ["OGN-271"] }),
+        cardName: z.string().meta({ examples: ["Recruit"] }),
+        otherShortCode: z.string().meta({ examples: ["OGN-272"] }),
+      }),
+    )
+    .meta({
+      description:
+        "Each double-sided printing's own short code with the other face's card name and short code.",
+      examples: [[]],
+    }),
+});
+
 export const productDetailResponseSchema = z.object({
   product: productSummarySchema,
   contents: z.array(productContentSchema),
   cards: z.record(z.string(), catalogCardResponseSchema),
   printings: z.array(catalogPrintingResponseSchema),
   sets: z.array(catalogSetResponseSchema),
+  variantSiblings: z.record(z.string(), variantSiblingSummarySchema).meta({
+    description:
+      "For each card in the product, keyed by card id, the distinct values across every printing of that card in the catalog, including printings outside this product. A printing's variant label names a value only when the card's printings differ in it.",
+  }),
 });
 
 export const productsContract = {

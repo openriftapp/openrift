@@ -1,5 +1,6 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/server-only";
+import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
 import type { SitemapDataResponse } from "@openrift/shared/types/api/catalog";
 
 import type { MetaEra } from "@/features/meta/lib/meta-scope";
@@ -12,42 +13,40 @@ export const SITEMAP_INDEX_PATH = "/sitemap.xml";
 
 const SECTION_PATH = /^\/sitemap-(?<section>[a-z-]+?)(?:-(?<index>\d+))?\.xml$/u;
 
-interface StaticPage {
-  path: string;
-  priority: string;
-  changefreq: string;
-}
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 
-const STATIC_PAGES: StaticPage[] = [
-  { path: "/", priority: "1.0", changefreq: "weekly" },
-  { path: "/cards", priority: "0.8", changefreq: "weekly" },
-  { path: "/sets", priority: "0.7", changefreq: "weekly" },
-  { path: "/products", priority: "0.7", changefreq: "weekly" },
-  { path: "/promos/EN", priority: "0.6", changefreq: "weekly" },
-  { path: "/errata", priority: "0.6", changefreq: "weekly" },
-  { path: "/meta", priority: "0.6", changefreq: "weekly" },
-  { path: "/meta/events", priority: "0.6", changefreq: "weekly" },
-  { path: "/meta/decks", priority: "0.5", changefreq: "weekly" },
-  { path: "/meta/legends", priority: "0.5", changefreq: "weekly" },
-  { path: "/rules", priority: "0.5", changefreq: "monthly" },
-  { path: "/help", priority: "0.4", changefreq: "monthly" },
-  { path: "/changelog", priority: "0.3", changefreq: "weekly" },
-  { path: "/developers", priority: "0.3", changefreq: "monthly" },
-  { path: "/legal-notice", priority: "0.1", changefreq: "yearly" },
-  { path: "/privacy-policy", priority: "0.1", changefreq: "yearly" },
+const CHANGELOG_DATE_HEADING = /^## (?<date>\d{4}-\d{2}-\d{2})\s*$/gmu;
+
+const STATIC_PATHS = [
+  "/",
+  "/cards",
+  "/sets",
+  "/products",
+  "/promos/EN",
+  "/errata",
+  "/meta",
+  "/meta/events",
+  "/meta/decks",
+  "/meta/legends",
+  "/rules",
+  "/help",
+  "/changelog",
+  "/developers",
+  "/legal-notice",
+  "/privacy-policy",
 ];
 
+/** `lastmod` is `YYYY-MM-DD`, absent where the page's content carries no date of its own. */
 export interface SitemapUrl {
   path: string;
   search?: string;
-  lastmod: string;
-  changefreq: string;
-  priority: string;
+  lastmod?: string;
 }
 
 export interface SitemapInput {
   siteUrl: string;
-  deployDate: string;
+  changelogDate?: string;
+  errataDate?: string;
   data: SitemapDataResponse;
   eras: readonly MetaEra[];
   helpArticles: readonly HelpArticle[];
@@ -61,119 +60,98 @@ function isSection(value: string): value is SitemapSection {
   return (SECTIONS as readonly string[]).includes(value);
 }
 
-function siteUrls({ deployDate, data, helpArticles }: SitemapInput): SitemapUrl[] {
-  const urls: SitemapUrl[] = [];
-  for (const page of STATIC_PAGES) {
-    urls.push({ ...page, lastmod: deployDate });
-  }
-  for (const article of helpArticles) {
-    if (article.featureFlag) {
-      continue;
+function newest(dates: readonly (string | null | undefined)[]): string | undefined {
+  let result: string | undefined;
+  for (const date of dates) {
+    if (date !== null && date !== undefined && (result === undefined || date > result)) {
+      result = date;
     }
-    urls.push({
-      path: `/help/${article.slug}`,
-      lastmod: deployDate,
-      changefreq: "monthly",
-      priority: "0.3",
-    });
   }
-  for (const kind of VALID_RULE_KINDS) {
-    urls.push({
-      path: `/rules/${kind}`,
-      lastmod: deployDate,
-      changefreq: "monthly",
-      priority: "0.5",
-    });
-  }
-  for (const entry of data.rules) {
-    urls.push({
-      path: `/rules/${entry.kind}/${entry.version}`,
-      search: `lang=${entry.language}`,
-      lastmod: entry.updatedAt.slice(0, 10),
-      changefreq: "monthly",
-      priority: "0.5",
-    });
-  }
-  for (const entry of data.cards) {
-    urls.push({
-      path: `/cards/${entry.slug}`,
-      lastmod: entry.updatedAt.slice(0, 10),
-      changefreq: "monthly",
-      priority: "0.7",
-    });
-  }
-  for (const entry of data.sets) {
-    urls.push({
-      path: `/sets/${entry.slug}`,
-      lastmod: entry.updatedAt.slice(0, 10),
-      changefreq: "monthly",
-      priority: "0.6",
-    });
-  }
-  for (const entry of data.products) {
-    urls.push({
-      path: `/products/${entry.slug}`,
-      lastmod: entry.updatedAt.slice(0, 10),
-      changefreq: "monthly",
-      priority: "0.6",
-    });
-  }
-  return urls;
+  return result;
 }
 
-function metaEventUrls({ data, eras, deployDate }: SitemapInput): SitemapUrl[] {
-  // Older eras are reachable only via ?era=; the current era is the index default.
-  const eraIndexes: SitemapUrl[] = eras.slice(1).map((era) => ({
-    path: "/meta/events",
-    search: `era=${era.id}`,
-    lastmod: deployDate,
-    changefreq: "monthly",
-    priority: "0.4",
+function rulesVersionDate(version: string): string | undefined {
+  return DATE_PATTERN.test(version) ? version : undefined;
+}
+
+export function latestChangelogDate(markdown: string): string | undefined {
+  return newest([...markdown.matchAll(CHANGELOG_DATE_HEADING)].map((match) => match.groups?.date));
+}
+
+export function latestErrataDate(errata: ErrataListResponse): string | undefined {
+  return newest([
+    ...errata.announcements.map((announcement) => announcement.publishedOn),
+    ...errata.entries.map((entry) => entry.effectiveDate),
+  ]);
+}
+
+function rulesDate(data: SitemapDataResponse, kind?: string): string | undefined {
+  return newest(
+    data.rules
+      .filter((entry) => kind === undefined || entry.kind === kind)
+      .map((entry) => rulesVersionDate(entry.version)),
+  );
+}
+
+function staticLastmod(path: string, input: SitemapInput): string | undefined {
+  switch (path) {
+    case "/changelog": {
+      return input.changelogDate;
+    }
+    case "/errata": {
+      return input.errataDate;
+    }
+    case "/rules": {
+      return rulesDate(input.data);
+    }
+    default: {
+      return undefined;
+    }
+  }
+}
+
+function entryUrls(prefix: string, entries: SitemapDataResponse["cards"]): SitemapUrl[] {
+  return entries.map((entry) => ({
+    path: `${prefix}/${entry.slug}`,
+    lastmod: entry.updatedAt.slice(0, 10),
   }));
+}
+
+function siteUrls(input: SitemapInput): SitemapUrl[] {
+  const { data, helpArticles } = input;
   return [
-    ...eraIndexes,
-    ...data.metaEvents.map((entry) => ({
-      path: `/meta/${entry.slug}`,
-      lastmod: entry.updatedAt.slice(0, 10),
-      changefreq: "monthly",
-      priority: "0.6",
+    ...STATIC_PATHS.map((path) => ({ path, lastmod: staticLastmod(path, input) })),
+    ...helpArticles
+      .filter((article) => !article.featureFlag)
+      .map((article) => ({ path: `/help/${article.slug}` })),
+    ...[...VALID_RULE_KINDS].map((kind) => ({
+      path: `/rules/${kind}`,
+      lastmod: rulesDate(data, kind),
     })),
+    ...data.rules.map((entry) => ({
+      path: `/rules/${entry.kind}/${entry.version}`,
+      search: `lang=${entry.language}`,
+      lastmod: rulesVersionDate(entry.version),
+    })),
+    ...entryUrls("/cards", data.cards),
+    ...entryUrls("/sets", data.sets),
+    ...entryUrls("/products", data.products),
   ];
 }
 
-function metaLegendUrls({ data }: SitemapInput): SitemapUrl[] {
-  return data.metaLegends.map((entry) => ({
-    path: `/meta/legends/${entry.slug}`,
-    lastmod: entry.updatedAt.slice(0, 10),
-    changefreq: "weekly",
-    priority: "0.5",
-  }));
-}
-
-function metaPlayerUrls({ data }: SitemapInput): SitemapUrl[] {
-  return data.metaPlayers.map((entry) => ({
-    path: `/meta/players/${entry.slug}`,
-    lastmod: entry.updatedAt.slice(0, 10),
-    changefreq: "monthly",
-    priority: "0.4",
-  }));
-}
-
-function metaDeckUrls({ data }: SitemapInput): SitemapUrl[] {
-  return data.metaDecks.map((entry) => ({
-    path: `/meta/decks/${entry.slug}`,
-    lastmod: entry.updatedAt.slice(0, 10),
-    changefreq: "monthly",
-    priority: "0.5",
-  }));
+function metaEventUrls({ data, eras }: SitemapInput): SitemapUrl[] {
+  const eraIndexes: SitemapUrl[] = eras
+    .slice(1)
+    .map((era) => ({ path: "/meta/events", search: `era=${era.id}` }));
+  return [...eraIndexes, ...entryUrls("/meta", data.metaEvents)];
 }
 
 const SECTION_URLS: Record<SitemapSection, (input: SitemapInput) => SitemapUrl[]> = {
   site: siteUrls,
   "meta-events": metaEventUrls,
-  "meta-decks": metaDeckUrls,
-  "meta-legends": metaLegendUrls,
-  "meta-players": metaPlayerUrls,
+  "meta-decks": ({ data }) => entryUrls("/meta/decks", data.metaDecks),
+  "meta-legends": ({ data }) => entryUrls("/meta/legends", data.metaLegends),
+  "meta-players": ({ data }) => entryUrls("/meta/players", data.metaPlayers),
 };
 
 export function sitemapSectionFiles(section: SitemapSection, input: SitemapInput): SitemapUrl[][] {
@@ -205,17 +183,18 @@ export function parseSitemapPath(
   return { section, index: number - 1 };
 }
 
+function lastmodTag(lastmod: string | undefined): string {
+  return lastmod === undefined ? "" : `<lastmod>${lastmod}</lastmod>`;
+}
+
 export function renderSitemapIndex(input: SitemapInput): string {
   const entries: string[] = [];
   for (const section of SECTIONS) {
     const files = sitemapSectionFiles(section, input);
     files.forEach((urls, index) => {
-      const lastmod = urls.reduce(
-        (latest, url) => (url.lastmod > latest ? url.lastmod : latest),
-        "",
-      );
+      const lastmod = newest(urls.map((url) => url.lastmod));
       entries.push(
-        `  <sitemap><loc>${input.siteUrl}${sitemapFilePath(section, index, files.length)}</loc><lastmod>${lastmod}</lastmod></sitemap>`,
+        `  <sitemap><loc>${input.siteUrl}${sitemapFilePath(section, index, files.length)}</loc>${lastmodTag(lastmod)}</sitemap>`,
       );
     });
   }
@@ -253,7 +232,7 @@ export function renderSitemapFile(
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...urls.map(
       (url) =>
-        `  <url><loc>${sitemapLoc(input.siteUrl, url)}</loc><lastmod>${url.lastmod}</lastmod><changefreq>${url.changefreq}</changefreq><priority>${url.priority}</priority></url>`,
+        `  <url><loc>${sitemapLoc(input.siteUrl, url)}</loc>${lastmodTag(url.lastmod)}</url>`,
     ),
     "</urlset>",
   ].join("\n");

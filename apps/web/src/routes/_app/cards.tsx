@@ -29,6 +29,13 @@ import { collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 
+// Only a stray sign-in `redirect` param gets a permanent redirect: browsers cache 301s,
+// and the other cleanups depend on data.
+function carriesOnlyRedirectParam(searchStr: string): boolean {
+  const keys = [...new URLSearchParams(searchStr).keys()];
+  return keys.length > 0 && keys.every((key) => key === "redirect");
+}
+
 const CARDS_DESCRIPTION =
   "Complete Riftbound TCG card database with marketplace price comparison. Filter by set, domain, rarity, cost, and keyword to browse every card and printing.";
 
@@ -37,7 +44,12 @@ export const Route = createFileRoute("/_app/cards")({
   beforeLoad: ({ search, location }) => {
     const cleaned = cleanedSearchForRedirect(cardsSearchSchema, search, location.searchStr);
     if (cleaned) {
-      throw redirect({ to: "/cards", search: cleaned, replace: true });
+      throw redirect({
+        to: "/cards",
+        search: cleaned,
+        replace: true,
+        ...(carriesOnlyRedirectParam(location.searchStr) && { statusCode: 301 }),
+      });
     }
   },
   // Must stay a stable empty object: loaderDeps feeds the match ID, and a

@@ -60,6 +60,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
+      start_interval: 1s
     logging:
       driver: json-file
       options:
@@ -91,6 +92,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 150s
+      start_interval: 1s
     environment:
       PORT: "3001"
       API_INTERNAL_URL: "http://api:3000"
@@ -110,6 +112,8 @@ services:
       # Unset leaves SSR tracing off. The name is explicit because .env names the api.
       OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT-}"
       OTEL_SERVICE_NAME: "openrift-web"
+      # Bun caches DNS for 30 s; a recreated api container gets a new address.
+      BUN_CONFIG_DNS_TIME_TO_LIVE_SECONDS: "2"
     logging:
       driver: json-file
       options:
@@ -158,6 +162,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 30s
+      start_interval: 1s
     volumes:
       - ./media:/srv/static/media:ro
     ports:

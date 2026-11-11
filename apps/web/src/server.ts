@@ -3,9 +3,11 @@
 import "./instrument.server.mjs";
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect instrumentation bootstrap
 import "./tracing.server";
+import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
 import type { SetListResponse, SitemapDataResponse } from "@openrift/shared/types/api/catalog";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
+import changelogMd from "./CHANGELOG.md?raw";
 import { helpArticleList } from "./features/marketing/components/articles";
 import { deriveSetEras } from "./features/meta/lib/meta-scope";
 import {
@@ -24,17 +26,13 @@ import {
 import { applyPageCacheControl } from "./lib/page-cache";
 import { fetchApiJson } from "./lib/server-fns/fetch-api";
 import type { SitemapInput } from "./lib/sitemap";
-import {
-  parseSitemapPath,
-  renderSitemapFile,
-  renderSitemapIndex,
-  SITEMAP_INDEX_PATH,
-} from "./lib/sitemap";
+import { latestChangelogDate, latestErrataDate } from "./lib/sitemap";
+import { createSitemapResponder } from "./lib/sitemap-response";
 import { paraglideMiddleware } from "./paraglide/server.js";
 
 const LOG_SSR_TIMINGS = process.env.LOG_SSR_TIMINGS === "true";
 
-const DEPLOY_DATE = new Date().toISOString().slice(0, 10);
+const CHANGELOG_DATE = latestChangelogDate(changelogMd);
 
 function getSiteUrl(): string {
   // Must stay in sync with runtime-config.ts.
@@ -42,44 +40,30 @@ function getSiteUrl(): string {
 }
 
 async function sitemapInput(): Promise<SitemapInput> {
-  const [data, sets] = await Promise.all([
+  const [data, sets, errata] = await Promise.all([
     fetchApiJson<SitemapDataResponse>({
       errorTitle: "Couldn't load sitemap data",
       path: "/api/v1/sitemap-data",
     }),
     fetchApiJson<SetListResponse>({ errorTitle: "Couldn't load sets", path: "/api/v1/sets" }),
+    fetchApiJson<ErrataListResponse>({
+      errorTitle: "Couldn't load errata",
+      path: "/api/v1/errata",
+    }),
   ]);
   return {
     siteUrl: getSiteUrl(),
-    deployDate: DEPLOY_DATE,
+    changelogDate: CHANGELOG_DATE,
+    errataDate: latestErrataDate(errata),
     data,
     eras: deriveSetEras(sets.sets),
     helpArticles: helpArticleList,
   };
 }
 
-function xmlResponse(xml: string): Response {
-  return new Response(xml, {
-    headers: {
-      "Content-Type": "application/xml",
-      "Cache-Control": "public, max-age=3600, stale-while-revalidate=7200",
-    },
-  });
-}
-
 // The archive alone holds more URLs than one sitemap may, so `/sitemap.xml` is
 // an index and each section its own file, split further past the per-file limit.
-async function sitemapResponse(pathname: string): Promise<Response | null> {
-  if (pathname === SITEMAP_INDEX_PATH) {
-    return xmlResponse(renderSitemapIndex(await sitemapInput()));
-  }
-  const file = parseSitemapPath(pathname);
-  if (file === null) {
-    return null;
-  }
-  const xml = renderSitemapFile(file.section, file.index, await sitemapInput());
-  return xml === null ? new Response("Not found", { status: 404 }) : xmlResponse(xml);
-}
+const sitemapResponse = createSitemapResponder({ load: sitemapInput });
 
 // Not wrapped in wrapFetchWithSentry: it injects <meta> tags into <head> outside
 // React's render tree, which our hydrateRoot(document) throws #418 on (prod-only).
@@ -98,18 +82,9 @@ export default createServerEntry({
         },
       });
     }
-    if (url.pathname === SITEMAP_INDEX_PATH || url.pathname.startsWith("/sitemap-")) {
-      if (!indexable) {
-        return new Response("Not found", { status: 404 });
-      }
-      try {
-        const sitemap = await sitemapResponse(url.pathname);
-        if (sitemap !== null) {
-          return sitemap;
-        }
-      } catch {
-        return new Response("Sitemap generation failed", { status: 500 });
-      }
+    const sitemap = await sitemapResponse(request);
+    if (sitemap !== null) {
+      return sitemap;
     }
     const botBlocked = botBlockedResponse(request);
     if (botBlocked !== null) {

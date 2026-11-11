@@ -2838,6 +2838,25 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(players.some((entry) => entry.slug === "mta-uncrawled")).toBe(false);
     });
 
+    it("returns players in slug order", async () => {
+      const eventId = await seedEvent(repo, "mta-sitemap-order", { tier: "premier" });
+      await seedListedPlayer(repo, eventId, {
+        playerName: "MTA Order B",
+        rank: 1,
+        sourceIdentity: "mta-order-b#1",
+      });
+      await seedListedPlayer(repo, eventId, {
+        playerName: "MTA Order A",
+        rank: 2,
+        sourceIdentity: "mta-order-a#1",
+      });
+
+      const { players } = await repo.sitemapEntries();
+      const playerSlugs = players.map((entry) => entry.slug);
+      expect(playerSlugs.indexOf("mta-order-a")).toBeGreaterThanOrEqual(0);
+      expect(playerSlugs.indexOf("mta-order-a")).toBeLessThan(playerSlugs.indexOf("mta-order-b"));
+    });
+
     it("omits a standings-only entry, which has no page to crawl", async () => {
       const eventId = await seedEvent(repo, "mta-sitemap-deckless");
       await seedDecklessPlayer(repo, eventId, { playerName: "MTA Uncrawled", rank: 1 });

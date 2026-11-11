@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { API_TIMEOUT_MS, fetchWithDeadline } from "./api-deadline";
+import { API_RETRY_BUDGET_MS, API_TIMEOUT_MS, fetchWithDeadline } from "./api-deadline";
 import { errorStatus, isApiError } from "./api-error";
 
 function hangingFetch() {
@@ -43,7 +43,7 @@ describe("fetchWithDeadline", () => {
     expect((error as { diagnostic: string }).diagnostic).toContain("GET http://api:3000/api/v1/x");
   });
 
-  it("times out an admin write at the same 15 s deadline", async () => {
+  it("times out an admin write at the same 8 s deadline", async () => {
     vi.stubGlobal("fetch", hangingFetch());
 
     const settled = fetchWithDeadline(
@@ -53,7 +53,7 @@ describe("fetchWithDeadline", () => {
     ).catch((error: unknown) => error);
     await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS);
 
-    expect(API_TIMEOUT_MS).toBe(15_000);
+    expect(API_TIMEOUT_MS).toBe(8000);
     expect(errorStatus(await settled)).toBe(504);
   });
 
@@ -98,5 +98,140 @@ describe("fetchWithDeadline", () => {
     await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS);
 
     expect(((await settled) as { diagnostic: string }).diagnostic).toContain("POST ");
+  });
+});
+
+function connectionError(code: string) {
+  return Object.assign(new TypeError(`${code}: Unable to connect`), { code });
+}
+
+describe("fetchWithDeadline retries", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it.each(["ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EHOSTUNREACH"])(
+    "retries a GET after %s and returns the next response",
+    async (code) => {
+      const response = new Response("{}");
+      const fetchMock = vi
+        .fn()
+        .mockRejectedValueOnce(connectionError(code))
+        .mockResolvedValueOnce(response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const pending = fetchWithDeadline("http://api:3000/api/v1/x", {}, "t");
+      await vi.advanceTimersByTimeAsync(100);
+
+      await expect(pending).resolves.toBe(response);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(console.warn).toHaveBeenCalledOnce();
+      expect(console.warn).toHaveBeenCalledWith(
+        "[API retry] GET http://api:3000/api/v1/x answered after 1 retries",
+      );
+    },
+  );
+
+  it("rethrows the last connection error once the retry budget is spent", async () => {
+    const error = connectionError("ECONNREFUSED");
+    const fetchMock = vi.fn().mockRejectedValue(error);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const settled = fetchWithDeadline("http://api:3000/api/v1/x", {}, "t").catch(
+      (error_: unknown) => error_,
+    );
+    await vi.advanceTimersByTimeAsync(API_RETRY_BUDGET_MS);
+
+    expect(await settled).toBe(error);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(console.warn).toHaveBeenCalledOnce();
+    expect(console.warn).toHaveBeenCalledWith(
+      "[API retry] GET http://api:3000/api/v1/x failed after 5 retries",
+    );
+  });
+
+  it("does not retry a POST", async () => {
+    const error = connectionError("ECONNREFUSED");
+    const fetchMock = vi.fn().mockRejectedValue(error);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchWithDeadline(new Request("http://api:3000/api/v1/x", { method: "POST" }), {}, "t"),
+    ).rejects.toBe(error);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("returns an HTTP 500 without retrying", async () => {
+    const response = new Response("oops", { status: 500 });
+    const fetchMock = vi.fn().mockResolvedValue(response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchWithDeadline("http://api:3000/api/v1/x", {}, "t")).resolves.toBe(response);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects with the caller's abort reason during a retry backoff", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(connectionError("ECONNREFUSED"));
+    vi.stubGlobal("fetch", fetchMock);
+    const caller = new AbortController();
+    const reason = new Error("navigated away");
+
+    const settled = fetchWithDeadline(
+      "http://api:3000/api/v1/x",
+      { signal: caller.signal },
+      "",
+    ).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(50);
+    caller.abort(reason);
+
+    expect(await settled).toBe(reason);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(console.warn).toHaveBeenCalledWith(
+      "[API retry] GET http://api:3000/api/v1/x failed after 1 retries",
+    );
+  });
+
+  it("sends a hung GET once and fails it as a 504 at the 8 s deadline", async () => {
+    const fetchMock = hangingFetch();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const settled = fetchWithDeadline("http://api:3000/api/v1/x", {}, "Couldn't load").catch(
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS);
+
+    expect(errorStatus(await settled)).toBe(504);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("fails at the 8 s deadline when a retry hangs", async () => {
+    const hang = hangingFetch();
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(connectionError("ECONNREFUSED"))
+      .mockImplementation(hang);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const settled = fetchWithDeadline("http://api:3000/api/v1/x", {}, "t").catch(
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS);
+
+    expect(errorStatus(await settled)).toBe(504);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(console.warn).toHaveBeenCalledWith(
+      "[API retry] GET http://api:3000/api/v1/x failed after 1 retries",
+    );
   });
 });

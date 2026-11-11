@@ -6,6 +6,7 @@ import {
   formatPrintingVariantLabel,
   formatPrintingVariantLabelParts,
   printingLabelParts,
+  summarizeVariantSiblings,
 } from "./printing-label.js";
 
 const TEST_LABELS: VariantLabelEnumLabels = {
@@ -329,6 +330,89 @@ describe("formatPrintingVariantLabelParts", () => {
 
   it("has no other side for a single-sided printing", () => {
     expect(formatPrintingVariantLabelParts(stub(), undefined, TEST_LABELS).otherSide).toBeNull();
+  });
+});
+
+describe("variant sibling summaries", () => {
+  const PROMO = { slug: "promo", label: "Promo" };
+  const JUDGE = { slug: "judge", label: "Judge" };
+  const JINX = [
+    stub({ shortCode: "OGN-001" }),
+    stub({ shortCode: "OGN-001", finish: "foil" }),
+    stub({ shortCode: "OGN-001", language: "FR" }),
+    stub({ shortCode: "OGN-001", language: "ZH", finish: "foil" }),
+    stub({ shortCode: "OGN-301", artVariant: "altart", finish: "foil" }),
+    stub({ shortCode: "OGN-302", isOvernumbered: true, finish: "foil" }),
+    stub({ shortCode: "OGN-302", isOvernumbered: true, finish: "foil", isSigned: true }),
+    stub({ shortCode: "OGN-001", markers: [PROMO], finish: "foil" }),
+    stub({ shortCode: "OGN-001", markers: [PROMO, JUDGE], finish: "foil" }),
+    stub({ shortCode: "OGN-001", size: "oversized" }),
+  ];
+  const RECRUIT = [
+    stub({ shortCode: "OGN-271", otherSide: { cardName: "Recruit", shortCode: "OGN-271" } }),
+    stub({ shortCode: "OGN-271", otherSide: { cardName: "Recruit", shortCode: "OGN-272" } }),
+    stub({ shortCode: "OGN-271", otherSide: { cardName: "Sprite", shortCode: "OGN-274" } }),
+    stub({
+      shortCode: "OGN-275",
+      cardId: "gold",
+      otherSide: { cardName: "Gold", shortCode: "OGN-275", cardId: "gold", finish: "foil" },
+    }),
+  ];
+  const SOLO = [stub({ shortCode: "SFD-010", finish: "foil", isSigned: true, markers: [PROMO] })];
+
+  const EXPECTED: Record<string, string[]> = {
+    jinx: [
+      "[EN]",
+      "[EN] · Foil",
+      "[FR]",
+      "[ZH] · Foil",
+      "[EN] · Alt Art · Foil",
+      "[EN] · Overnumbered · Foil",
+      "[EN] · Overnumbered · Foil · Signed",
+      "[EN] · Promo · Foil",
+      "[EN] · Promo + Judge · Foil",
+      "[EN] · Oversized",
+    ],
+    recruit: [
+      "with Recruit (OGN-271)",
+      "with Recruit (OGN-272)",
+      "with Sprite",
+      "Foil on one side · Gold on both sides",
+    ],
+    solo: ["Standard"],
+  };
+
+  for (const [name, siblings] of [
+    ["jinx", JINX],
+    ["recruit", RECRUIT],
+    ["solo", SOLO],
+  ] as const) {
+    it(`labels the ${name} fixtures the same from siblings and from their summary`, () => {
+      const fromSiblings = siblings.map((p) =>
+        formatPrintingVariantLabel(p, siblings, TEST_LABELS),
+      );
+      expect(fromSiblings).toEqual(EXPECTED[name]);
+      const summary = summarizeVariantSiblings(siblings);
+      const fromSummary = siblings.map((p) => formatPrintingVariantLabel(p, summary, TEST_LABELS));
+      expect(fromSummary).toEqual(EXPECTED[name]);
+    });
+  }
+
+  it("keeps each distinct value once and the rarities of siblings that carry one", () => {
+    const summary = summarizeVariantSiblings([
+      { ...stub({ shortCode: "OGN-001" }), rarity: "common" },
+      { ...stub({ shortCode: "OGN-001", language: "FR" }), rarity: "common" },
+      { ...stub({ shortCode: "OGN-301", markers: [PROMO, JUDGE] }), rarity: "epic" },
+      stub({ otherSide: { cardName: "Recruit", shortCode: "OGN-272" } }),
+    ]);
+    expect(summary).toEqual({
+      languages: ["EN", "FR"],
+      rarities: ["common", "epic"],
+      finishes: ["normal"],
+      markerSlugs: [[], ["promo", "judge"]],
+      signed: [false],
+      otherSides: [{ shortCode: undefined, cardName: "Recruit", otherShortCode: "OGN-272" }],
+    });
   });
 });
 

@@ -1,10 +1,14 @@
+import { toVariantSiblingSummary } from "@openrift/shared/printing-label";
+import type { VariantSiblingSummary } from "@openrift/shared/printing-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
+import { use } from "react";
 
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { VariantSiblingsContext } from "@/features/cards/lib/variant-siblings-context";
 import { formatCardId } from "@/lib/format";
 
 export function PrintingVariantLine({
@@ -15,18 +19,19 @@ export function PrintingVariantLine({
   className,
 }: {
   printing: Printing;
-  siblings?: readonly Printing[];
+  siblings?: readonly Printing[] | VariantSiblingSummary;
   hideLanguage?: boolean;
   publicCode?: boolean;
   className?: string;
 }) {
-  const hasMixedRarities = siblings ? new Set(siblings.map((p) => p.rarity)).size > 1 : false;
+  const summary = toVariantSiblingSummary(siblings);
+  const hasMixedRarities = summary ? summary.rarities.length > 1 : false;
   const code = publicCode ? printing.publicCode : formatCardId(printing);
 
   return (
     <PrintingVariantLabel
       printing={printing}
-      siblings={siblings}
+      siblings={summary}
       hideLanguage={hideLanguage}
       className={className}
       code={
@@ -42,6 +47,39 @@ export function PrintingVariantLine({
 }
 
 export function CatalogPrintingVariantLine({
+  printing,
+  hideLanguage,
+  publicCode,
+  className,
+}: {
+  printing: Printing;
+  hideLanguage?: boolean;
+  publicCode?: boolean;
+  className?: string;
+}) {
+  const summary = use(VariantSiblingsContext)?.[printing.cardId];
+  if (summary) {
+    return (
+      <PrintingVariantLine
+        printing={printing}
+        siblings={summary}
+        hideLanguage={hideLanguage}
+        publicCode={publicCode}
+        className={className}
+      />
+    );
+  }
+  return (
+    <CatalogSiblingsVariantLine
+      printing={printing}
+      hideLanguage={hideLanguage}
+      publicCode={publicCode}
+      className={className}
+    />
+  );
+}
+
+function CatalogSiblingsVariantLine({
   printing,
   hideLanguage,
   publicCode,
