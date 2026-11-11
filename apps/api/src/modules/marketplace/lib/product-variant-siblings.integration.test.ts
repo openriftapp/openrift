@@ -9,6 +9,7 @@ import {
   deletePrintingsByFace,
   insertCards,
   insertPrinting,
+  refreshCardAggregates,
 } from "../../../test/integration-context.js";
 import { catalogMutationsRepo } from "../../catalog/repositories/catalog-mutations.js";
 import { assembleCatalogResponse } from "../../catalog/services/catalog-assembly.js";
@@ -87,6 +88,7 @@ describe.skipIf(!ctx)("product variant siblings (integration)", () => {
     });
     await insertPrinting(db, { ...sideValues("Recruit", "PVS-T01", "FR"), comment: null });
     await catalogMutationsRepo(db).upsertPrinting(sideValues("Recruit", "PVS-T01"), spriteFace);
+    await refreshCardAggregates(db);
   });
 
   afterAll(async () => {

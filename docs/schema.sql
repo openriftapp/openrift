@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LBEQU8lsepkYPsbhJvgQdD55LOfeoqS117OpQXahPdaQYmm4UeDeaygbalDIBk5
+\restrict kgILL5lFHUdlq7YTZMEbeRZkahaxEmgX3n8CkpkCx8OHxQPK2cThofurXsKTOrD
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -4451,8 +4451,12 @@ CREATE TABLE public.users (
     profile_show_riot_id boolean DEFAULT false NOT NULL,
     profile_show_collection boolean DEFAULT false NOT NULL,
     profile_show_last_active boolean DEFAULT true NOT NULL,
+    referral_code text,
+    referred_by text,
+    profile_show_referral_tier boolean DEFAULT true NOT NULL,
     CONSTRAINT chk_users_bio CHECK (((bio IS NULL) OR ((bio <> ''::text) AND (char_length(bio) <= 200)))),
-    CONSTRAINT chk_users_meta_credit_visibility CHECK ((meta_credit_visibility = ANY (ARRAY['hidden'::text, 'name'::text, 'riot_id'::text])))
+    CONSTRAINT chk_users_meta_credit_visibility CHECK ((meta_credit_visibility = ANY (ARRAY['hidden'::text, 'name'::text, 'riot_id'::text]))),
+    CONSTRAINT chk_users_referred_by_not_self CHECK ((referred_by <> id))
 );
 
 
@@ -6435,6 +6439,14 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: users users_referral_code_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_referral_code_unique UNIQUE (referral_code);
+
+
+--
 -- Name: uvsgames_decklist_cards uvsgames_decklist_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7677,6 +7689,13 @@ CREATE INDEX idx_tournaments_host_user ON public.tournaments USING btree (host_u
 --
 
 CREATE INDEX idx_user_contact_methods_user ON public.user_contact_methods USING btree (user_id);
+
+
+--
+-- Name: idx_users_referred_by; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_users_referred_by ON public.users USING btree (referred_by) WHERE (referred_by IS NOT NULL);
 
 
 --
@@ -11022,6 +11041,14 @@ ALTER TABLE ONLY public.user_preferences
 
 
 --
+-- Name: users users_referred_by_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_referred_by_fk FOREIGN KEY (referred_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: uvsgames_decklist_cards uvsgames_decklist_cards_source_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11121,5 +11148,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LBEQU8lsepkYPsbhJvgQdD55LOfeoqS117OpQXahPdaQYmm4UeDeaygbalDIBk5
+\unrestrict kgILL5lFHUdlq7YTZMEbeRZkahaxEmgX3n8CkpkCx8OHxQPK2cThofurXsKTOrD
 
