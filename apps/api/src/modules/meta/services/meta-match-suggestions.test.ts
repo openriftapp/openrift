@@ -425,14 +425,18 @@ describe("suggestMetaEventMatches", () => {
   const CANDIDATE_ID = "3f7a1c2e-0000-7000-8000-0000000000ca";
 
   function repos(candidate: Record<string, unknown> | undefined, rows: MetaEventWithCounts[] = []) {
-    const listEvents = vi.fn().mockResolvedValue({ rows, total: rows.length });
+    const eventIdentitiesInWindow = vi.fn().mockResolvedValue(rows);
+    const eventsByIds = vi
+      .fn()
+      .mockImplementation((ids: string[]) => rows.filter((row) => ids.includes(row.id)));
     const eventById = vi.fn().mockResolvedValue(candidate);
     return {
       repos: {
-        meta: { listEvents },
+        meta: { eventIdentitiesInWindow, eventsByIds },
         metaOverlays: { eventOverlayById: eventById },
       } as unknown as Repos,
-      listEvents,
+      eventIdentitiesInWindow,
+      eventsByIds,
     };
   }
 
@@ -445,14 +449,26 @@ describe("suggestMetaEventMatches", () => {
   };
 
   it("reads only the events the date window could score, never the whole archive", async () => {
-    const { repos: r, listEvents } = repos(candidate);
+    const { repos: r, eventIdentitiesInWindow } = repos(candidate);
 
     await suggestMetaEventMatches(r, CANDIDATE_ID);
 
-    expect(listEvents).toHaveBeenCalledWith(
-      { dateFrom: "2026-07-29", dateTo: "2026-08-04" },
-      expect.objectContaining({ offset: 0 }),
+    expect(eventIdentitiesInWindow).toHaveBeenCalledWith("2026-07-29", "2026-08-04");
+  });
+
+  it("finds the match on a weekend with more events than any page holds", async () => {
+    const crowd = Array.from({ length: 2000 }, (_, index) =>
+      event({ id: `side-${index}`, name: `Nexus Night ${index}`, eventDate: "2026-08-03" }),
     );
+    const { repos: r, eventsByIds } = repos(candidate, [
+      ...crowd,
+      event({ id: "main", name: "Summoner Skirmish Berlin", eventDate: "2026-08-01" }),
+    ]);
+
+    const suggestions = await suggestMetaEventMatches(r, CANDIDATE_ID);
+
+    expect(suggestions[0]!.metaEventId).toBe("main");
+    expect(eventsByIds.mock.calls[0]![0].length).toBeLessThanOrEqual(5);
   });
 
   it("ranks only what the window returned, so an out-of-window twin cannot be offered", async () => {
@@ -477,10 +493,10 @@ describe("suggestMetaEventMatches", () => {
   });
 
   it("suggests nothing for a candidate id that resolves to no row", async () => {
-    const { repos: r, listEvents } = repos(undefined);
+    const { repos: r, eventIdentitiesInWindow } = repos(undefined);
 
     expect(await suggestMetaEventMatches(r, CANDIDATE_ID)).toEqual([]);
-    expect(listEvents).not.toHaveBeenCalled();
+    expect(eventIdentitiesInWindow).not.toHaveBeenCalled();
   });
 });
 

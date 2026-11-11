@@ -56,9 +56,6 @@ export const MAX_EVENT_MATCH_DAY_DELTA = 3;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-/** Cuts by the listing's newest-first order, not score; too small a cap can silently drop the correct event. */
-const MAX_WINDOW_EVENTS = 500;
-
 function shiftDay(day: string, days: number): string {
   return new Date(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY).toISOString().slice(0, 10);
 }
@@ -182,18 +179,30 @@ export async function suggestMetaEventMatches(
   if (candidate.eventDate === null || candidate.format === null || candidate.name === null) {
     return [];
   }
-  const { rows } = await repos.meta.listEvents(
-    {
-      dateFrom: shiftDay(candidate.eventDate, -MAX_EVENT_MATCH_DAY_DELTA),
-      dateTo: shiftDay(candidate.eventDate, MAX_EVENT_MATCH_DAY_DELTA),
-    },
-    { limit: MAX_WINDOW_EVENTS, offset: 0 },
+  const input = { name: candidate.name, eventDate: candidate.eventDate, format: candidate.format };
+  const window = await repos.meta.eventIdentitiesInWindow(
+    shiftDay(candidate.eventDate, -MAX_EVENT_MATCH_DAY_DELTA),
+    shiftDay(candidate.eventDate, MAX_EVENT_MATCH_DAY_DELTA),
   );
-  return rankEventMatches(
-    { name: candidate.name, eventDate: candidate.eventDate, format: candidate.format },
-    rows,
-    candidate.metaEventId,
-  );
+  const top = topEventMatches(input, window, candidate.metaEventId);
+  if (top.length === 0) {
+    return [];
+  }
+  const rows = await repos.meta.eventsByIds(top.map((row) => row.event.id));
+  return rankEventMatches(input, rows, candidate.metaEventId);
+}
+
+function topEventMatches<T extends { id: string; name: string; eventDate: string; format: string }>(
+  candidate: MetaEventMatchInput,
+  events: readonly T[],
+  currentMetaEventId: string | null,
+) {
+  return events
+    .filter((event) => event.id !== currentMetaEventId)
+    .map((event) => ({ event, ...scoreEventMatch(candidate, event) }))
+    .filter((row) => row.withinWindow && row.score >= MIN_EVENT_SCORE)
+    .toSorted((a, b) => b.score - a.score || a.event.name.localeCompare(b.event.name))
+    .slice(0, MAX_SUGGESTIONS);
 }
 
 export function rankEventMatches(
@@ -201,23 +210,17 @@ export function rankEventMatches(
   events: readonly MetaEventWithCounts[],
   currentMetaEventId: string | null = null,
 ): MetaEventMatchSuggestion[] {
-  return events
-    .filter((event) => event.id !== currentMetaEventId)
-    .map((event) => ({ event, ...scoreEventMatch(candidate, event) }))
-    .filter((row) => row.withinWindow && row.score >= MIN_EVENT_SCORE)
-    .toSorted((a, b) => b.score - a.score || a.event.name.localeCompare(b.event.name))
-    .slice(0, MAX_SUGGESTIONS)
-    .map((row) => ({
-      metaEventId: row.event.id,
-      slug: row.event.slug,
-      name: row.event.name,
-      eventDate: row.event.eventDate,
-      format: row.event.format,
-      playerRowCount: row.event.playerRowCount,
-      score: row.score,
-      reasons: row.reasons,
-      isExact: row.isExact,
-    }));
+  return topEventMatches(candidate, events, currentMetaEventId).map((row) => ({
+    metaEventId: row.event.id,
+    slug: row.event.slug,
+    name: row.event.name,
+    eventDate: row.event.eventDate,
+    format: row.event.format,
+    playerRowCount: row.event.playerRowCount,
+    score: row.score,
+    reasons: row.reasons,
+    isExact: row.isExact,
+  }));
 }
 
 export async function suggestMetaPlayerMatches(
