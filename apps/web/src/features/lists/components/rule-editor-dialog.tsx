@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-queries";
+import { catalogQueryOptions, ensureCatalogComplete } from "@/features/cards/lib/catalog-queries";
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { CardRuleEditor, CopyRuleEditor } from "@/features/lists/components/rule-editors";
@@ -61,7 +61,7 @@ export function RuleEditorDialog({
     load(currentRules, currentRuleCombine);
     void (async () => {
       await queryClient.query({ ...catalogQueryOptions, staleTime: "static" });
-      await loadCatalogTail(queryClient);
+      await ensureCatalogComplete(queryClient);
     })();
     void queryClient.query({ ...initQueryOptions, staleTime: "static" });
     void queryClient.query({ ...customTagsQueryOptions, staleTime: "static" });

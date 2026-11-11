@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { completeCatalogEntry } from "@/features/cards/lib/catalog-queries";
 import { productDetailQueryOptions } from "@/features/cards/lib/products-queries";
 import { useSelectionStore } from "@/stores/selection-store";
 import { stubPrinting } from "@/test/factories";
@@ -241,7 +242,7 @@ describe("ProductDetailView", () => {
     }
 
     it("loads the catalogue on the first opened card only, never before", async () => {
-      fetchCatalog.mockResolvedValue(catalogResponse());
+      fetchCatalog.mockResolvedValue(completeCatalogEntry(catalogResponse()));
       renderPage(new QueryClient());
 
       expect(screen.getByRole("list", { name: "grid" }).textContent).toBe("Jinx, Rebel");

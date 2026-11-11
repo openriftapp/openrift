@@ -19,7 +19,7 @@ vi.mock("@/features/collections/lib/collections-collection", () => ({
 
 vi.mock("@/features/cards/lib/catalog-queries", () => ({
   catalogQueryOptions: { queryKey: ["catalog"] },
-  loadCatalogTail: vi.fn(() => Promise.resolve()),
+  ensureCatalogComplete: vi.fn(() => Promise.resolve()),
 }));
 
 const { Route } = await import("./scan");

@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
 import { useStandardArtFallback } from "@/features/cards/hooks/use-standard-art-fallback";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
-import { buildCardsResult } from "@/features/cards/lib/catalog-queries";
+import { buildCardsResult, completeCatalogEntry } from "@/features/cards/lib/catalog-queries";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
 import { stubPrinting } from "@/test/factories";
@@ -47,7 +47,7 @@ function makeCatalog(printings: Printing[]): CatalogResponse {
 function setup(catalog?: CatalogResponse, subset?: UseCardsResult) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (catalog) {
-    client.setQueryData(catalogKeys.all, catalog);
+    client.setQueryData(catalogKeys.all, completeCatalogEntry(catalog));
   }
   function wrapper({ children }: PropsWithChildren) {
     return (

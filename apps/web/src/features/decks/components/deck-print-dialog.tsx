@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import type { CatalogEntry } from "@/features/cards/lib/catalog-queries";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useLocalDeckImageBody } from "@/features/decks/hooks/use-local-deck-image-body";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
@@ -302,7 +303,7 @@ function ProxyPrintPanel({
       return;
     }
 
-    const catalog = queryClient.getQueryData<CatalogResponse>(catalogKeys.all);
+    const catalog = queryClient.getQueryData<CatalogEntry>(catalogKeys.all)?.catalog;
     if (!catalog) {
       return;
     }

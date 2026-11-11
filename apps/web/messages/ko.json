@@ -890,6 +890,8 @@
   "card_detail_printings_title": "인쇄판",
   "card_detail_all_printings": "모든 인쇄판",
   "card_detail_lightbox_show_overview": "전체 보기",
+  "card_detail_lightbox_languages_loading": "다른 언어 불러오는 중…",
+  "card_detail_lightbox_languages_failed": "다른 언어를 불러오지 못했습니다.",
   "card_detail_printings_show_hidden": "필터 밖의 {count}개 보기",
   "card_detail_printings_hide_hidden": "필터 밖의 인쇄판 숨기기",
   "card_detail_printings_show_other_languages": "다른 언어 {count}개 보기",

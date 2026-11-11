@@ -20,6 +20,7 @@ import {
   PrintingLanguageMatrix,
 } from "@/features/cards/components/card-page-printings";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
+import { useCatalogTailStatus } from "@/features/cards/hooks/use-cards";
 import {
   closeOverlayHistoryEntry,
   useOverlayHistoryEntry,
@@ -125,6 +126,7 @@ export function PrintingsLightbox({
       showImages={showImages}
       onSelect={handleSelect}
       onClose={host ? close : undefined}
+      slides={host?.slides}
     />
   );
 
@@ -158,12 +160,14 @@ function LightboxContent({
   showImages,
   onSelect,
   onClose,
+  slides,
 }: {
   printing: Printing;
   printings: Printing[];
   showImages?: boolean;
   onSelect: (printing: Printing) => void;
   onClose?: () => void;
+  slides?: boolean;
 }) {
   const inline = onClose !== undefined;
   const rootRef = useRef<HTMLElement>(null);
@@ -293,7 +297,7 @@ function LightboxContent({
   const body = (
     <>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2 sm:px-6">
-        {onClose && (
+        {onClose && slides && (
           <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={m.common_back()}>
             <ChevronLeftIcon />
           </Button>
@@ -317,6 +321,11 @@ function LightboxContent({
             {m.card_detail_lightbox_show_overview()}
           </Button>
         )}
+        {onClose && !slides && (
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={m.common_close()}>
+            <XIcon />
+          </Button>
+        )}
         {!inline && (
           <DialogClose
             render={<Button variant="ghost" size="icon-sm" />}
@@ -326,12 +335,13 @@ function LightboxContent({
           </DialogClose>
         )}
       </div>
+      <CatalogTailNote />
       {showTiles ? null : (
         <div
           ref={scrollerRef}
-          className="@container min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-6 sm:px-6"
+          className="@container min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 sm:px-6"
         >
-          <div className="mx-auto w-full sm:w-fit sm:max-w-full">
+          <div className="mx-auto w-full pt-2 sm:w-fit sm:max-w-full">
             <PrintingLanguageMatrix
               printings={printings}
               stickyHeader
@@ -388,6 +398,27 @@ function LightboxContent({
     >
       {body}
     </DialogContent>
+  );
+}
+
+function CatalogTailNote() {
+  const { status, retry } = useCatalogTailStatus();
+  if (status === "complete") {
+    return null;
+  }
+  return (
+    <p role="status" className="text-muted-foreground px-4 pb-2 text-sm sm:px-6">
+      {status === "failed" ? (
+        <>
+          {m.card_detail_lightbox_languages_failed()}{" "}
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={retry}>
+            {m.common_retry()}
+          </Button>
+        </>
+      ) : (
+        m.card_detail_lightbox_languages_loading()
+      )}
+    </p>
   );
 }
 

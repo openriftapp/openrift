@@ -6,6 +6,10 @@ describe("catalogKeys", () => {
   it("all", () => {
     expect(catalogKeys.all).toEqual(["catalog"]);
   });
+
+  it("tail nests under all, keyed by version and languages", () => {
+    expect(catalogKeys.tail("v1", ["EN", "FR"])).toEqual(["catalog", "tail", "v1", "EN,FR"]);
+  });
 });
 
 describe("ownedCountKeys", () => {

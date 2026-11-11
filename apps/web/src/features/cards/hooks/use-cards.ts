@@ -2,10 +2,11 @@ import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { use } from "react";
 
-import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
+import type { CatalogEntry, UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import {
   catalogQueryOptions,
-  loadCatalogTail,
+  catalogTailQueryOptions,
+  ensureCatalogComplete,
   noCatalogQueryOptions,
 } from "@/features/cards/lib/catalog-queries";
 import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
@@ -55,7 +56,7 @@ function useCatalogTail(fetched: UseCardsResult | null): void {
     if (scope === null) {
       return;
     }
-    const start = () => void loadCatalogTail(queryClient);
+    const start = () => void ensureCatalogComplete(queryClient);
     if (typeof requestIdleCallback === "function") {
       const handle = requestIdleCallback(start, { timeout: 5000 });
       return () => cancelIdleCallback(handle);
@@ -63,6 +64,33 @@ function useCatalogTail(fetched: UseCardsResult | null): void {
     const timer = setTimeout(start, 1500);
     return () => clearTimeout(timer);
   });
+}
+
+type CatalogTailStatus = "complete" | "loading" | "failed";
+
+export function useCatalogTailStatus(): { status: CatalogTailStatus; retry: () => void } {
+  const queryClient = useQueryClient();
+  const { data: partial } = useQuery({
+    ...catalogQueryOptions,
+    enabled: false,
+    select: (entry: CatalogEntry) => (entry.partialLanguages === null ? null : entry),
+  });
+  const tail = useQuery({
+    ...catalogTailQueryOptions(partial?.version ?? null, partial?.partialLanguages ?? []),
+    enabled: false,
+  });
+  const retry = () => void ensureCatalogComplete(queryClient);
+
+  useScopeEffect(partial, (entry) => {
+    if (entry) {
+      retry();
+    }
+  });
+
+  if (!partial) {
+    return { status: "complete", retry };
+  }
+  return { status: tail.isError && !tail.isFetching ? "failed" : "loading", retry };
 }
 
 function inLanguageOrder(

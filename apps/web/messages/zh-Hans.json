@@ -890,6 +890,8 @@
   "card_detail_printings_title": "印刷版本",
   "card_detail_all_printings": "全部印刷版本",
   "card_detail_lightbox_show_overview": "显示总览",
+  "card_detail_lightbox_languages_loading": "正在加载其他语言…",
+  "card_detail_lightbox_languages_failed": "无法加载其他语言。",
   "card_detail_printings_show_hidden": "显示筛选之外的 {count} 个",
   "card_detail_printings_hide_hidden": "隐藏筛选之外的印刷版本",
   "card_detail_printings_show_other_languages": "显示其他语言的 {count} 个版本",

@@ -99,11 +99,12 @@ export function SelectionDetailPane({
           )}
         </PrintingsHostProvider>
       </div>
+      {/* The shadow covers the selected grid tile's glow, which reaches past the grid's left edge. */}
       <div
         ref={slotRef}
         style={{ width: expanded ? grownWidth : undefined }}
         className={cn(
-          "bg-background absolute top-3 right-0 z-40 flex h-[calc(100vh-var(--sticky-top)-0.75rem)] w-full flex-col transition-[width] duration-300 ease-out",
+          "bg-background absolute top-0 right-0 z-40 flex h-[calc(100vh-var(--sticky-top))] w-full flex-col pt-3 shadow-[-1.5rem_0_0_var(--background)] transition-[width] duration-300 ease-out",
           !expanded && "invisible",
         )}
       />

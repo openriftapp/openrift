@@ -34,8 +34,13 @@ vi.mock("@/hooks/use-effective-language-order", () => ({
   useEffectiveLanguageOrder: () => ["EN"],
 }));
 
+const catalogTail = vi.hoisted(() => ({
+  status: "complete" as "complete" | "loading" | "failed",
+  retry: vi.fn(),
+}));
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ printingsByCardId: new Map() }),
+  useCatalogTailStatus: () => catalogTail,
 }));
 
 vi.mock("./card-detail-art", () => ({
@@ -368,14 +373,41 @@ describe("PrintingsLightbox in a host surface", () => {
     expect(screen.queryByRole("region", { name: "Ahri, Inquisitive" })).toBeNull();
   });
 
-  it("shrinks back on the back button without a pick", async () => {
+  it("shrinks back on the close button without a pick and offers no Back", async () => {
     const onSelect = renderInHost();
 
     await userEvent.click(screen.getByRole("button", { name: "All printings" }));
-    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(onSelect).not.toHaveBeenCalled();
     expect(screen.getByTestId("slot")).toHaveAttribute("data-expanded", "false");
+  });
+
+  it.each([
+    ["loading", "Loading other languages…"],
+    ["failed", "Couldn't load the other languages."],
+  ] as const)("notes %s other languages", async (status, text) => {
+    catalogTail.status = status;
+    catalogTail.retry.mockClear();
+    renderInHost();
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent(text);
+    if (status === "failed") {
+      await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(catalogTail.retry).toHaveBeenCalledTimes(1);
+    }
+    catalogTail.status = "complete";
+  });
+
+  it("shows no note once every language is loaded", async () => {
+    renderInHost();
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("shrinks back on Escape without the key reaching the host", async () => {
@@ -407,7 +439,7 @@ describe("PrintingsLightbox in a host surface", () => {
   );
 
   it.each([
-    ["the back button", () => userEvent.click(screen.getByRole("button", { name: "Back" }))],
+    ["the close button", () => userEvent.click(screen.getByRole("button", { name: "Close" }))],
     [
       "a pick",
       async () => userEvent.click(await screen.findByRole("button", { name: /OGN-119a/u })),
@@ -423,9 +455,9 @@ describe("PrintingsLightbox in a host surface", () => {
 });
 
 describe.each([
-  ["dialog", CardDetailDialogShell],
-  ["drawer", CardDetailDrawerShell],
-])("PrintingsLightbox in the card detail %s", (_, Shell) => {
+  ["dialog", CardDetailDialogShell, "Close", "Back"],
+  ["drawer", CardDetailDrawerShell, "Back", "Close"],
+])("PrintingsLightbox in the card detail %s", (_, Shell, shrinkLabel, absentLabel) => {
   it("grows in place and shrinks on Escape without closing the shell", async () => {
     const onClose = vi.fn();
     render(
@@ -445,6 +477,28 @@ describe.each([
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
 
     await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("region", { name: "Ahri, Inquisitive" })).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it(`shrinks on ${shrinkLabel} without closing the shell`, async () => {
+    const onClose = vi.fn();
+    render(
+      <Shell onClose={onClose}>
+        <PrintingsLightbox
+          printing={normal}
+          printings={[normal, foil, alt]}
+          showImages
+          onSelect={vi.fn()}
+        />
+      </Shell>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+    const region = await screen.findByRole("region", { name: "Ahri, Inquisitive" });
+    expect(within(region).queryByRole("button", { name: absentLabel })).toBeNull();
+    await userEvent.click(within(region).getByRole("button", { name: shrinkLabel }));
 
     expect(screen.queryByRole("region", { name: "Ahri, Inquisitive" })).toBeNull();
     expect(onClose).not.toHaveBeenCalled();

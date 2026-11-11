@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CatalogSubsetProvider } from "@/features/cards/components/catalog-subset-provider";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { completeCatalogEntry } from "@/features/cards/lib/catalog-queries";
 import { DeckDescription } from "@/features/decks/components/deck-description";
 import { stubPrinting } from "@/test/factories";
 
@@ -66,7 +67,7 @@ function renderDescription(text: string, options?: { seedCatalog?: boolean }) {
   const catalogFetch = vi.fn();
   client.setQueryDefaults(catalogKeys.all, { queryFn: catalogFetch });
   if (options?.seedCatalog) {
-    client.setQueryData(catalogKeys.all, FULL_CATALOG);
+    client.setQueryData(catalogKeys.all, completeCatalogEntry(FULL_CATALOG));
   }
   const onCardClick = vi.fn();
   render(

@@ -95,7 +95,10 @@ export function CardDetailDrawerShell({
   after,
 }: CardDetailShellProps) {
   const detailRef = useRef<HTMLDivElement>(null);
-  const { expanded, host, slotRef } = usePrintingsHostState(detailRef);
+  const { expanded, host, slotRef } = usePrintingsHostState({
+    scrollerRef: detailRef,
+    slides: true,
+  });
   return (
     <Drawer
       open={open}

@@ -11,6 +11,7 @@
 
 - fix(Cards): **Shown printing marked again** — on a card page on desktop, the printing you are looking at is outlined again in the Printings table.
 - fix(App): **New-printing posts name the printing** — Discord posts about new printings now list every added printing with its code and variant, linked to its own page.
+- fix(Cards): **All printings shows every language** — the All printings view no longer gets stuck on your own languages after the card data updates while the page is open. It says when other languages are still loading or failed to load, with a way to retry. On larger screens a close button on the right replaces Back.
 
 ## 2026-11-10
 

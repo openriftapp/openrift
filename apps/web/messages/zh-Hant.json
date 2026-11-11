@@ -890,6 +890,8 @@
   "card_detail_printings_title": "印刷版本",
   "card_detail_all_printings": "全部印刷版本",
   "card_detail_lightbox_show_overview": "顯示總覽",
+  "card_detail_lightbox_languages_loading": "正在載入其他語言…",
+  "card_detail_lightbox_languages_failed": "無法載入其他語言。",
   "card_detail_printings_show_hidden": "顯示篩選之外的 {count} 個",
   "card_detail_printings_hide_hidden": "隱藏篩選之外的印刷版本",
   "card_detail_printings_show_other_languages": "顯示其他語言的 {count} 個版本",

@@ -9,11 +9,16 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { preferredCatalogLanguages } from "@/features/cards/lib/catalog-languages";
-import { consumeSeededCatalogVersion, versionFromEtag } from "@/features/cards/lib/catalog-version";
+import {
+  consumeSeededCatalogVersion,
+  seedCatalogVersion,
+  versionFromEtag,
+} from "@/features/cards/lib/catalog-version";
 import type { GroupInfo } from "@/lib/card-group-types";
 import { serverCacheKeys } from "@/lib/query-keys";
+import { captureHandledError } from "@/lib/report-error";
 import { serverCache } from "@/lib/server-cache";
-import { apiErrorFromResponse } from "@/lib/server-fns/api-error";
+import { apiErrorFromResponse, isRetryableError } from "@/lib/server-fns/api-error";
 import { apiRequestHeaders } from "@/lib/server-fns/api-request-headers";
 import { getApiUrl } from "@/lib/server-fns/api-url";
 
@@ -86,12 +91,19 @@ const fetchCatalogVersion = createServerFn({ method: "GET" }).handler((): Promis
   readCatalogVersionFromServerCache(),
 );
 
-const catalogPartsMeta = new WeakMap<
-  CatalogResponse,
-  { version: string | null; pendingTailLangs: readonly string[] | null }
->();
+/** The cached catalog: `partialLanguages` lists the only languages present until the tail merges. */
+export interface CatalogEntry {
+  catalog: CatalogResponse;
+  version: string | null;
+  partialLanguages: readonly string[] | null;
+}
 
-let lastCompleteCatalog: { version: string; data: CatalogResponse } | null = null;
+export function completeCatalogEntry(
+  catalog: CatalogResponse,
+  version: string | null = null,
+): CatalogEntry {
+  return { catalog, version, partialLanguages: null };
+}
 
 export function normalizeCatalogLangs(langs: readonly string[]): string[] {
   return [...new Set(langs.map((lang) => lang.toUpperCase()))].sort();
@@ -144,70 +156,91 @@ export function hasPrintingsOutside(catalog: CatalogResponse, langs: readonly st
 
 // Fetches /api/v1/catalog directly (bypasses the Start server) so Cloudflare edge-caches it.
 // `?v=<ETag>` must change with the catalog or max-age + stale-while-revalidate serves a stale body.
-async function fetchCatalogFromEdge(langs: string[] | null): Promise<CatalogResponse> {
+async function fetchCatalogFromEdge(
+  client: QueryClient,
+  langs: string[] | null,
+): Promise<CatalogEntry> {
   const version = consumeSeededCatalogVersion() ?? (await fetchCatalogVersion().catch(() => null));
-  // Returns the identical object on an unchanged version: the enrich memo depends on reference identity.
-  if (version !== null && lastCompleteCatalog?.version === version) {
-    return lastCompleteCatalog.data;
+  const current = client.getQueryData<CatalogEntry>(catalogKeys.all);
+  // The enrich memo depends on reference identity, so an unchanged complete catalog is kept.
+  if (version !== null && current?.version === version && current.partialLanguages === null) {
+    return current;
   }
   const url = catalogFetchUrl(globalThis.location.origin, version, langs ?? undefined);
   const res = await fetchCatalogResponse(url);
   const catalog = (await res.json()) as CatalogResponse;
-  const servedVersion = versionFromEtag(res.headers.get("etag")) ?? version;
-  const pendingTailLangs = langs !== null && !hasPrintingsOutside(catalog, langs) ? langs : null;
-  catalogPartsMeta.set(catalog, { version: servedVersion, pendingTailLangs });
-  if (servedVersion !== null && pendingTailLangs === null) {
-    lastCompleteCatalog = { version: servedVersion, data: catalog };
-  }
-  return catalog;
+  return {
+    catalog,
+    version: versionFromEtag(res.headers.get("etag")) ?? version,
+    partialLanguages: langs !== null && !hasPrintingsOutside(catalog, langs) ? langs : null,
+  };
 }
 
-let tailInFlight = false;
+class CatalogVersionSkewError extends Error {
+  readonly servedVersion: string;
 
-export async function loadCatalogTail(queryClient: QueryClient): Promise<void> {
-  const current = queryClient.getQueryData<CatalogResponse>(catalogKeys.all);
-  if (current === undefined) {
+  constructor(servedVersion: string) {
+    super("Catalog tail was served from another catalog version");
+    this.name = "CatalogVersionSkewError";
+    this.servedVersion = servedVersion;
+  }
+}
+
+export function catalogTailQueryOptions(version: string | null, exceptLangs: readonly string[]) {
+  return queryOptions({
+    queryKey: catalogKeys.tail(version, exceptLangs),
+    queryFn: async (): Promise<CatalogPrintingsResponse> => {
+      const res = await fetchCatalogResponse(
+        catalogPrintingsUrl(globalThis.location.origin, version, exceptLangs),
+      );
+      const servedVersion = versionFromEtag(res.headers.get("etag"));
+      if (servedVersion !== null && version !== null && servedVersion !== version) {
+        throw new CatalogVersionSkewError(servedVersion);
+      }
+      return (await res.json()) as CatalogPrintingsResponse;
+    },
+    staleTime: Infinity,
+    retry: (failureCount, error) =>
+      !(error instanceof CatalogVersionSkewError) && isRetryableError(error) && failureCount < 3,
+  });
+}
+
+export async function ensureCatalogComplete(queryClient: QueryClient): Promise<void> {
+  const entry = queryClient.getQueryData<CatalogEntry>(catalogKeys.all);
+  if (!entry?.partialLanguages) {
     return;
   }
-  const meta = catalogPartsMeta.get(current);
-  const pending = meta?.pendingTailLangs;
-  if (!meta || !pending || pending.length === 0 || tailInFlight) {
-    return;
-  }
-  tailInFlight = true;
+  let tail: CatalogPrintingsResponse;
   try {
-    const url = catalogPrintingsUrl(globalThis.location.origin, meta.version, pending);
-    const tailResponse = await fetchCatalogResponse(url);
-    const tail = (await tailResponse.json()) as CatalogPrintingsResponse;
-    // The catalog rolled under us (a refetch replaced the entry): the newer
-    // primary schedules its own tail, so this one just stands down.
-    if (queryClient.getQueryData<CatalogResponse>(catalogKeys.all) !== current) {
-      return;
+    tail = await queryClient.query(catalogTailQueryOptions(entry.version, entry.partialLanguages));
+  } catch (error) {
+    if (error instanceof CatalogVersionSkewError) {
+      // The server's version token lags a new catalog by up to its cache lifetime,
+      // so the refetch asks for the version the tail came from.
+      seedCatalogVersion(error.servedVersion);
+      await queryClient.invalidateQueries({ queryKey: catalogKeys.all, exact: true });
+    } else {
+      captureHandledError(error, { query: "catalog-tail" });
     }
-    // A tail from another catalog state would drop or duplicate printings. The refetched
-    // primary schedules a matching one.
-    const tailVersion = versionFromEtag(tailResponse.headers.get("etag"));
-    if (tailVersion !== null && meta.version !== null && tailVersion !== meta.version) {
-      await queryClient.invalidateQueries({ queryKey: catalogKeys.all });
-      return;
-    }
-    const merged: CatalogResponse = {
-      ...current,
-      printings: { ...current.printings, ...tail.printings },
-    };
-    catalogPartsMeta.set(merged, { version: meta.version, pendingTailLangs: null });
-    if (meta.version !== null) {
-      lastCompleteCatalog = { version: meta.version, data: merged };
-    }
-    queryClient.setQueryData(catalogKeys.all, merged);
-  } finally {
-    tailInFlight = false;
+    return;
   }
+  queryClient.setQueryData<CatalogEntry>(catalogKeys.all, (current) =>
+    current === entry
+      ? completeCatalogEntry(
+          { ...entry.catalog, printings: { ...entry.catalog.printings, ...tail.printings } },
+          entry.version,
+        )
+      : current,
+  );
 }
 
 // Memoized: the enriched result's `Map` (`printingsByCardId`) is not
 // serializable, defeating React Query's structural sharing across renders.
 const enrichCache = new WeakMap<CatalogResponse, UseCardsResult>();
+
+function selectCards(entry: CatalogEntry): UseCardsResult {
+  return enrichCatalog(entry.catalog);
+}
 
 export function enrichCatalog(catalog: CatalogResponse): UseCardsResult {
   const cached = enrichCache.get(catalog);
@@ -286,17 +319,15 @@ const NO_CATALOG: CatalogResponse = {
   tagCategoryMap: {},
 };
 
+const NO_CATALOG_ENTRY = completeCatalogEntry(NO_CATALOG);
+
 // A resolved stand-in so the unconditional useSuspenseQuery below never fetches or suspends.
-export const noCatalogQueryOptions: UseSuspenseQueryOptions<
-  CatalogResponse,
-  Error,
-  UseCardsResult
-> = {
+export const noCatalogQueryOptions: UseSuspenseQueryOptions<CatalogEntry, Error, UseCardsResult> = {
   queryKey: catalogKeys.none,
-  queryFn: () => NO_CATALOG,
-  initialData: NO_CATALOG,
+  queryFn: () => NO_CATALOG_ENTRY,
+  initialData: NO_CATALOG_ENTRY,
   staleTime: Infinity,
-  select: enrichCatalog,
+  select: selectCards,
 };
 
 // Exported for tests; not part of the module's real surface.
@@ -327,13 +358,15 @@ export function primaryCatalogLanguages(): string[] | null {
 
 export const catalogQueryOptions = queryOptions({
   queryKey: catalogKeys.all,
-  queryFn: () =>
+  queryFn: async ({ client }): Promise<CatalogEntry> =>
     globalThis.window === undefined
-      ? fetchCatalog()
-      : fetchCatalogFromEdge(primaryCatalogLanguages()),
+      ? completeCatalogEntry(await fetchCatalog())
+      : fetchCatalogFromEdge(client, primaryCatalogLanguages()),
   staleTime: 5 * 60 * 1000, // 5 minutes
   refetchOnWindowFocus: false,
-  select: enrichCatalog,
+  // Entry identity carries the enrich memo and the tail merge's staleness check.
+  structuralSharing: false,
+  select: selectCards,
   retry: 1,
   retryDelay: 500,
 });

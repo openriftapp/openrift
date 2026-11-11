@@ -40,7 +40,7 @@ describe("usePrintingsHostState", () => {
     HTMLElement.prototype.scrollTo = scrollTo;
     function WithScroller() {
       const scrollerRef = useRef<HTMLDivElement>(null);
-      const { host, slotRef } = usePrintingsHostState(scrollerRef);
+      const { host, slotRef } = usePrintingsHostState({ scrollerRef });
       return (
         <div>
           <div ref={scrollerRef} data-testid="scroller" />

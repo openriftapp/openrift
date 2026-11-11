@@ -28,7 +28,8 @@ vi.mock("@/lib/server-cache", async () => {
 
 // Must import after the mock so the mock is applied.
 const { serverCache } = await import("@/lib/server-cache");
-const { catalogQueryOptions } = await import("@/features/cards/lib/catalog-queries");
+const { catalogQueryOptions, completeCatalogEntry } =
+  await import("@/features/cards/lib/catalog-queries");
 
 const CARD_A_ID = "00000000-0000-0000-0000-000000000001";
 const CARD_B_ID = "00000000-0000-0000-0000-000000000002";
@@ -129,7 +130,7 @@ describe("useCards", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const raw = await queryClient.query({ ...catalogQueryOptions, select: undefined });
+    const { catalog: raw } = await queryClient.query({ ...catalogQueryOptions, select: undefined });
 
     expect(Object.keys(raw.printings)).toHaveLength(2);
     expect(raw.sets).toEqual([
@@ -145,7 +146,7 @@ describe("useCards", () => {
 
   it("enrichCatalog joins card data onto printings and restores ids", () => {
     const select = catalogQueryOptions.select!;
-    const enriched = select(CATALOG_RESPONSE);
+    const enriched = select(completeCatalogEntry(CATALOG_RESPONSE));
 
     expect(enriched.allPrintings).toHaveLength(2);
 

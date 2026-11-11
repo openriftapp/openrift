@@ -890,6 +890,8 @@
   "card_detail_printings_title": "Impressions",
   "card_detail_all_printings": "Toutes les impressions",
   "card_detail_lightbox_show_overview": "Afficher l'aperçu",
+  "card_detail_lightbox_languages_loading": "Chargement des autres langues…",
+  "card_detail_lightbox_languages_failed": "Impossible de charger les autres langues.",
   "card_detail_printings_show_hidden": "Afficher {count} hors de tes filtres",
   "card_detail_printings_hide_hidden": "Masquer les impressions hors de tes filtres",
   "card_detail_printings_show_other_languages": "Afficher {count} dans d’autres langues",

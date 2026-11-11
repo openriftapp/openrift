@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { CatalogSubsetProvider } from "@/features/cards/components/catalog-subset-provider";
 import { useCards, useFullCatalog } from "@/features/cards/hooks/use-cards";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
-import { enrichCatalogSubset } from "@/features/cards/lib/catalog-queries";
+import { completeCatalogEntry, enrichCatalogSubset } from "@/features/cards/lib/catalog-queries";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { initQueryOptions } from "@/lib/init-queries";
 import { stubDeckBuilderCard, stubPrinting } from "@/test/factories";
@@ -69,7 +69,10 @@ const OFF_DECK_PRINTING = stubPrinting({
 function setup(hook: () => ReturnType<typeof useCards>, options?: { seedCatalog?: boolean }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (options?.seedCatalog) {
-    client.setQueryData(catalogKeys.all, toCatalog([DECK_PRINTING, OFF_DECK_PRINTING]));
+    client.setQueryData(
+      catalogKeys.all,
+      completeCatalogEntry(toCatalog([DECK_PRINTING, OFF_DECK_PRINTING])),
+    );
   }
   function wrapper({ children }: PropsWithChildren) {
     return (
@@ -105,7 +108,10 @@ describe("CatalogSubsetProvider", () => {
 
   it("reads the catalogue query with no provider above", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(catalogKeys.all, toCatalog([DECK_PRINTING, OFF_DECK_PRINTING]));
+    client.setQueryData(
+      catalogKeys.all,
+      completeCatalogEntry(toCatalog([DECK_PRINTING, OFF_DECK_PRINTING])),
+    );
     const { result } = renderHook(() => useCards(), {
       wrapper: ({ children }: PropsWithChildren) => (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -146,7 +152,7 @@ describe("enrichCatalogSubset", () => {
     const { result } = renderHook(() => useCards(), {
       wrapper: ({ children }: PropsWithChildren) => {
         const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-        client.setQueryData(catalogKeys.all, toCatalog(printings));
+        client.setQueryData(catalogKeys.all, completeCatalogEntry(toCatalog(printings)));
         return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
       },
     });
