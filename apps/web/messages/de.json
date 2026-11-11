@@ -2665,6 +2665,8 @@
   "decks_dialog_variants_delete_description": "„{name}“ löschen? Das lässt sich nicht rückgängig machen. Die anderen Versionen bleiben.",
   "decks_dialog_variants_delete_title": "Version löschen",
   "decks_dialog_variants_description": "Verwalte Versionen dieses Decks, vergleiche und verknüpfe sie.",
+  "decks_dialog_variants_group_name_hint": "Wird in der Deckliste angezeigt. Leer lassen, um den Namen des Haupt-Decks zu zeigen.",
+  "decks_dialog_variants_group_name_label": "Gruppenname",
   "decks_dialog_variants_hide": "Varianten ausblenden",
   "decks_dialog_variants_link_deck": "Anderes Deck verknüpfen…",
   "decks_dialog_variants_link_description": "Holt ein Deck, das dir schon gehört, in diese Familie und behält dessen eigene Liste.",

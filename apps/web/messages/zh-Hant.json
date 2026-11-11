@@ -2665,6 +2665,8 @@
   "decks_dialog_variants_delete_description": "要刪除「{name}」嗎？此動作無法復原。其他版本會保留。",
   "decks_dialog_variants_delete_title": "刪除版本",
   "decks_dialog_variants_description": "管理這副牌組的各個版本，進行比較與連結。",
+  "decks_dialog_variants_group_name_hint": "顯示在牌組列表中。留空則顯示主要變體的名稱。",
+  "decks_dialog_variants_group_name_label": "群組名稱",
   "decks_dialog_variants_hide": "隱藏變體",
   "decks_dialog_variants_link_deck": "連結其他牌組…",
   "decks_dialog_variants_link_description": "將你已擁有的牌組納入這個家族，並保留它自己的牌組清單。",

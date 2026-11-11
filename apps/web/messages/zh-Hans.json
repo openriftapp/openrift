@@ -2665,6 +2665,8 @@
   "decks_dialog_variants_delete_description": "删除“{name}”？此操作无法撤销。其他版本会保留。",
   "decks_dialog_variants_delete_title": "删除版本",
   "decks_dialog_variants_description": "管理此卡组的各个版本，比较并关联它们。",
+  "decks_dialog_variants_group_name_hint": "显示在卡组列表中。留空则显示主要变体的名称。",
+  "decks_dialog_variants_group_name_label": "组名",
   "decks_dialog_variants_hide": "隐藏变体",
   "decks_dialog_variants_link_deck": "关联其他卡组…",
   "decks_dialog_variants_link_description": "把你已有的卡组并入这一系列，同时保留它自己的清单。",

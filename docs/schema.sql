@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict kgILL5lFHUdlq7YTZMEbeRZkahaxEmgX3n8CkpkCx8OHxQPK2cThofurXsKTOrD
+\restrict 3V95O9sltIEZTJyINAIwuPkQOqdZ1Iup1Gy9cbzB8CYBMFkqigpVPzx175nK1fm
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -530,6 +530,26 @@ CREATE FUNCTION public.resort_printings_on_face_code() RETURNS trigger
     RETURN NULL;
   END
   $$;
+
+
+--
+-- Name: set_deck_updated_stamps(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_deck_updated_stamps() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+      BEGIN
+        IF (to_jsonb(NEW) - 'updated_at' - 'updated_xid' - 'family_id' - 'is_primary' - 'predecessor_deck_id')
+           IS DISTINCT FROM (to_jsonb(OLD) - 'updated_at' - 'updated_xid' - 'family_id' - 'is_primary' - 'predecessor_deck_id') THEN
+          NEW.updated_at := now();
+        END IF;
+        IF (to_jsonb(NEW) - 'updated_xid') IS DISTINCT FROM (to_jsonb(OLD) - 'updated_xid') THEN
+          NEW.updated_xid := pg_current_xact_id();
+        END IF;
+        RETURN NEW;
+      END;
+      $$;
 
 
 --
@@ -1873,6 +1893,20 @@ CREATE TABLE public.deck_check_keys (
     host_org_id uuid,
     CONSTRAINT chk_deck_check_keys_host CHECK ((((host_type = 'user'::text) AND (host_user_id IS NOT NULL) AND (host_org_id IS NULL)) OR ((host_type = 'organization'::text) AND (host_org_id IS NOT NULL) AND (host_user_id IS NULL)))),
     CONSTRAINT chk_deck_check_keys_label CHECK (((label IS NULL) OR (length(label) <= 120)))
+);
+
+
+--
+-- Name: deck_families; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.deck_families (
+    id uuid NOT NULL,
+    user_id text NOT NULL,
+    name text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_deck_families_name_not_empty CHECK ((name <> ''::text))
 );
 
 
@@ -5103,6 +5137,14 @@ ALTER TABLE ONLY public.deck_check_keys
 
 
 --
+-- Name: deck_families deck_families_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_families
+    ADD CONSTRAINT deck_families_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: deck_folder_entries deck_folder_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6964,6 +7006,13 @@ CREATE INDEX idx_deck_check_keys_host_user ON public.deck_check_keys USING btree
 
 
 --
+-- Name: idx_deck_families_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_deck_families_user_id ON public.deck_families USING btree (user_id);
+
+
+--
 -- Name: idx_deck_folder_entries_deck; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8658,6 +8707,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_check_entries FOR
 
 
 --
+-- Name: deck_families trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_families FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: deck_folders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -9046,7 +9102,7 @@ CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.copies FOR EACH RO
 -- Name: decks trg_set_updated_stamps; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.decks FOR EACH ROW EXECUTE FUNCTION public.set_updated_stamps();
+CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.decks FOR EACH ROW EXECUTE FUNCTION public.set_deck_updated_stamps();
 
 
 --
@@ -9633,6 +9689,14 @@ ALTER TABLE ONLY public.deck_check_keys
 
 
 --
+-- Name: deck_families deck_families_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deck_families
+    ADD CONSTRAINT deck_families_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: deck_folders deck_folders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9726,6 +9790,14 @@ ALTER TABLE ONLY public.decks
 
 ALTER TABLE ONLY public.decks
     ADD CONSTRAINT decks_cover_face_id_fkey FOREIGN KEY (cover_face_id) REFERENCES public.faces(id) ON DELETE SET NULL;
+
+
+--
+-- Name: decks decks_family_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_family_id_fkey FOREIGN KEY (family_id) REFERENCES public.deck_families(id);
 
 
 --
@@ -11148,5 +11220,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict kgILL5lFHUdlq7YTZMEbeRZkahaxEmgX3n8CkpkCx8OHxQPK2cThofurXsKTOrD
+\unrestrict 3V95O9sltIEZTJyINAIwuPkQOqdZ1Iup1Gy9cbzB8CYBMFkqigpVPzx175nK1fm
 

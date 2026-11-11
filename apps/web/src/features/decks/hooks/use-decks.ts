@@ -141,6 +141,7 @@ function newDeckRow(input: {
     totalValueCents: null,
     missingCount: null,
     folderIds: [],
+    familyName: null,
   };
 }
 
@@ -493,6 +494,27 @@ export function useUnlinkDeckVariant() {
   // Leaving a family can promote a survivor and splice the predecessor chain.
   return useMutationWithInvalidation<DeckResponse, string>({
     mutationFn: (deckId) => unlinkDeckVariantFn({ data: deckId }),
+    invalidates: [decksKeys.syncedStore(userId)],
+  });
+}
+
+const setDeckFamilyNameFn = createServerFn({ method: "POST" })
+  .validator((input: { deckId: string; name: string | null }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<{ familyId: string; name: string | null }> =>
+    apiOrpcClient(decksContract, context.cookie).setFamilyName({
+      id: data.deckId,
+      name: data.name,
+    }),
+  );
+
+export function useSetDeckFamilyName() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<
+    { familyId: string; name: string | null },
+    { deckId: string; name: string | null }
+  >({
+    mutationFn: (input) => setDeckFamilyNameFn({ data: input }),
     invalidates: [decksKeys.syncedStore(userId)],
   });
 }

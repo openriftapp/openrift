@@ -1,4 +1,5 @@
 import type { Selectable } from "kysely";
+import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
 
 import type { DecksTable } from "../../../db/tables/decks.js";
@@ -437,6 +438,107 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(reloadedForeign.isPrimary).toBe(false);
       const reloadedCopy = await reload(foreignCopy.id);
       expect(reloadedCopy.isPrimary).toBe(true);
+    });
+  });
+
+  describe("updated_at", () => {
+    it("is left alone by promoting, relinking and unlinking", async () => {
+      const source = await makeDeck("DV Stamp Source");
+      const copy = await copyOf(source.id, {});
+      const outsider = await makeDeck("DV Stamp Outsider");
+      const before = await Promise.all([source.id, copy.id, outsider.id].map((id) => reload(id)));
+
+      await decks.promoteToPrimary(source.id, userId);
+      await decks.setPredecessor(copy.id, userId, null);
+      await linkOf(outsider.id, { otherDeckId: source.id });
+      await unlinkOf(outsider.id);
+
+      const after = await Promise.all([source.id, copy.id, outsider.id].map((id) => reload(id)));
+      expect(after.map((row) => row.updatedAt.toISOString())).toEqual(
+        before.map((row) => row.updatedAt.toISOString()),
+      );
+      expect(after.map((row) => row.updatedXid)).not.toEqual(before.map((row) => row.updatedXid));
+    });
+
+    it("still moves on a content edit", async () => {
+      const deck = await makeDeck("DV Stamp Edit");
+      await decks.update(deck.id, userId, { name: "DV Stamp Edit (renamed)" });
+      const moved = await db
+        .selectFrom("decks")
+        .select(sql<boolean>`updated_at > created_at`.as("moved"))
+        .where("id", "=", deck.id)
+        .executeTakeFirstOrThrow();
+      expect(moved.moved).toBe(true);
+    });
+  });
+
+  describe("family names", () => {
+    async function familyRow(familyId: string | null) {
+      if (familyId === null) {
+        return undefined;
+      }
+      return db
+        .selectFrom("deckFamilies")
+        .selectAll()
+        .where("id", "=", familyId)
+        .executeTakeFirst();
+    }
+
+    it("creates an unnamed family row on the first copy and names it", async () => {
+      const source = await makeDeck("DV Name Source");
+      const copy = await copyOf(source.id, {});
+      const unnamed = await familyRow(copy.familyId);
+      expect(unnamed?.name).toBeNull();
+
+      const result = await decks.setFamilyName(source.id, userId, "DV Orianna");
+      expect(result).toEqual({ familyId: copy.familyId, name: "DV Orianna" });
+      const names = await decks.familyNamesForUser(userId);
+      expect(names.get(copy.familyId as string)).toBe("DV Orianna");
+
+      await decks.setFamilyName(copy.id, userId, null);
+      const cleared = await familyRow(copy.familyId);
+      expect(cleared?.name).toBeNull();
+    });
+
+    it("reports no-family for a standalone deck and not-found for someone else's", async () => {
+      const standalone = await makeDeck("DV Name Standalone");
+      expect(await decks.setFamilyName(standalone.id, userId, "X")).toBe("no-family");
+
+      const foreign = await makeDeck("DV Name Foreign", { owner: otherUserId });
+      await copyOf(foreign.id, {}, otherUserId);
+      expect(await decks.setFamilyName(foreign.id, userId, "X")).toBe("not-found");
+    });
+
+    it("keeps the surviving name on a merge and drops the absorbed row", async () => {
+      const left = await makeDeck("DV Merge Left");
+      const leftCopy = await copyOf(left.id, {});
+      const right = await makeDeck("DV Merge Right");
+      const rightCopy = await copyOf(right.id, {});
+      await decks.setFamilyName(right.id, userId, "DV Right Group");
+
+      await linkOf(left.id, { otherDeckId: right.id });
+
+      const survivor = await familyRow(leftCopy.familyId);
+      expect(survivor?.name).toBe("DV Right Group");
+      expect(await familyRow(rightCopy.familyId)).toBeUndefined();
+      const rows = await Promise.all(
+        [left.id, right.id, leftCopy.id, rightCopy.id].map((id) => reload(id)),
+      );
+      expect(new Set(rows.map((row) => row.familyId))).toEqual(new Set([leftCopy.familyId]));
+    });
+
+    it("drops the family row when unlinking leaves one deck", async () => {
+      const source = await makeDeck("DV Name Unlink");
+      const copy = await copyOf(source.id, {});
+      await unlinkOf(copy.id);
+      expect(await familyRow(copy.familyId)).toBeUndefined();
+    });
+
+    it("drops the family row when deleting leaves one deck", async () => {
+      const source = await makeDeck("DV Name Delete");
+      const copy = await copyOf(source.id, {});
+      await decks.deleteByIdForUser(copy.id, userId);
+      expect(await familyRow(copy.familyId)).toBeUndefined();
     });
   });
 

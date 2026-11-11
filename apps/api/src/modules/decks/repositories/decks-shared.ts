@@ -29,3 +29,13 @@ export async function lockFamilies(
 export async function lockUserFamilies(trx: Kysely<Database>, userId: string): Promise<void> {
   await lockKey(trx, `deck-families:${userId}`);
 }
+
+export async function dropFamilyIfEmpty(trx: Kysely<Database>, familyId: string): Promise<void> {
+  await trx
+    .deleteFrom("deckFamilies")
+    .where("id", "=", familyId)
+    .where((eb) =>
+      eb.not(eb.exists(eb.selectFrom("decks").select("id").where("familyId", "=", familyId))),
+    )
+    .execute();
+}

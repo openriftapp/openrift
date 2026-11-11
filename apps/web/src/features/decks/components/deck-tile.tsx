@@ -12,6 +12,7 @@ import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-print
 import { useDeckSelectState } from "@/features/decks/hooks/use-deck-select-state";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
+import { familyFrontView } from "@/features/decks/lib/deck-family";
 import { resolveFormatTagSummary } from "@/features/decks/lib/format-tag-config";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
@@ -26,7 +27,7 @@ import { DeckFormatBadge } from "./deck-format-badge";
 import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
 import { DeckSelectMark } from "./deck-select-mark";
-import { DraftBadge, VariantCountToggle } from "./deck-variant-controls";
+import { DraftBadge, FamilyFrontLine, VariantCountToggle } from "./deck-variant-controls";
 import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
 
@@ -259,6 +260,7 @@ export function DeckTile({
     family && onToggleFamily && family.role === "front" && family.memberCount > 1 ? (
       <VariantCountToggle family={family} onToggle={onToggleFamily} />
     ) : null;
+  const { title, isNamedGroup, metaItem } = familyFrontView(item, family);
 
   return (
     <div
@@ -335,19 +337,20 @@ export function DeckTile({
             {selectMode && <DeckSelectMark deckId={deck.id} deckName={deck.name} />}
             <h3 className="min-w-0 truncate leading-tight font-semibold">
               {selectMode ? (
-                deck.name
+                title
               ) : (
                 <Link
                   to="/decks/$deckId"
                   params={{ deckId: deck.id }}
                   className="rounded-lg outline-none after:absolute after:inset-0"
                 >
-                  {deck.name}
+                  {title}
                 </Link>
               )}
             </h3>
             {deck.isDraft && <DraftBadge />}
           </div>
+          {isNamedGroup && <FamilyFrontLine deck={deck} className="mt-0.5" />}
           <DeckIdentityLine
             legendCard={legendCard}
             championCard={championCard}
@@ -398,7 +401,7 @@ export function DeckTile({
             requiredTotal={requiredTotal}
             isValid={isValid}
           />
-          <DeckMetaLine item={item} />
+          <DeckMetaLine item={metaItem} />
           {variantToggle && <span className="ml-auto">{variantToggle}</span>}
         </div>
 
@@ -413,7 +416,7 @@ export function DeckTile({
         )}
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-1 max-sm:hidden">
-          <DeckMetaLine item={item} className="min-w-0" />
+          <DeckMetaLine item={metaItem} className="min-w-0" />
           {variantToggle}
         </div>
       </div>

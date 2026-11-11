@@ -77,11 +77,19 @@ const ITEM: DeckListItemResponse = {
   totalValueCents: null,
   missingCount: null,
   folderIds: ["f1", "f2", "f3"],
+  familyName: null,
 };
 
 const FOLDER_LABELS = { f1: "Brews", f2: "Retired", f3: "Testing" };
 
-const FAMILY = { id: "fam-1", role: "front", memberCount: 3, expanded: false } as const;
+const FAMILY = {
+  id: "fam-1",
+  name: null,
+  updatedAt: "2026-08-02T00:00:00.000Z",
+  role: "front",
+  memberCount: 3,
+  expanded: false,
+} as const;
 
 // The HTML content model forbids any interactive descendant inside an `<a>`.
 function interactiveInsideAnchor(container: HTMLElement): string[] {
@@ -121,6 +129,21 @@ describe.each([
       "href",
       "/decks/deck-1",
     );
+  });
+
+  it("titles a named group with its group name and names the primary below", () => {
+    render(
+      <Row
+        item={ITEM}
+        folderLabels={FOLDER_LABELS}
+        family={{ ...FAMILY, name: "Jinx" }}
+        onToggleFamily={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Jinx" })).toHaveAttribute("href", "/decks/deck-1");
+    expect(screen.getByText("Jinx Fury Aggro")).toBeInTheDocument();
+    expect(screen.getByText("Primary")).toBeInTheDocument();
   });
 
   it("stretches that link across the row", () => {

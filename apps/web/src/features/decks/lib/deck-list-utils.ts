@@ -8,6 +8,8 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import { m } from "@/paraglide/messages.js";
 
+import { familyNameOf, familyUpdatedAt } from "./deck-family";
+
 export type DeckListValidity = "all" | "valid" | "invalid";
 
 export type DeckListDrafts = "all" | "hide" | "only";
@@ -77,7 +79,7 @@ function deckMatchesSearch(item: DeckListItemWithNames, query: string): boolean 
     return true;
   }
   // Names carry curly apostrophes ("Kai’Sa"), so both sides are folded.
-  const haystack = [item.deck.name, item.legendName, item.championName]
+  const haystack = [item.deck.name, item.familyName, item.legendName, item.championName]
     .filter((value): value is string => value !== null && value !== undefined)
     .join(" ");
   const folded = foldForSearch(query);
@@ -170,20 +172,56 @@ export function partitionByArchived(
   return showArchived ? items : items.filter((item) => item.deck.archivedAt === null);
 }
 
-function compareAscending(
-  left: DeckListItemWithNames,
-  right: DeckListItemWithNames,
-  field: DeckListSortField,
-): number {
+interface DeckSortKey {
+  updatedAt: string;
+  createdAt: string;
+  name: string;
+  totalValueCents: number | null;
+}
+
+function ownSortKey(item: DeckListItemWithNames): DeckSortKey {
+  return {
+    updatedAt: item.deck.updatedAt,
+    createdAt: item.deck.createdAt,
+    name: item.deck.name,
+    totalValueCents: item.totalValueCents,
+  };
+}
+
+function familySortKeys(items: readonly DeckListItemWithNames[]): Map<string, DeckSortKey> {
+  const families = Map.groupBy(
+    items.filter((item) => item.deck.familyId !== null),
+    (item) => item.deck.familyId as string,
+  );
+  const keys = new Map<string, DeckSortKey>();
+  for (const [familyId, members] of families) {
+    const front = members.find((member) => member.deck.isPrimary) ?? members[0];
+    if (!front) {
+      continue;
+    }
+    const createdAt = members
+      .map((member) => member.deck.createdAt)
+      .reduce((oldest, at) => (at < oldest ? at : oldest));
+    keys.set(familyId, {
+      updatedAt: familyUpdatedAt(members) ?? front.deck.updatedAt,
+      createdAt,
+      name: familyNameOf(members) ?? front.deck.name,
+      totalValueCents: front.totalValueCents,
+    });
+  }
+  return keys;
+}
+
+function compareAscending(left: DeckSortKey, right: DeckSortKey, field: DeckListSortField): number {
   switch (field) {
     case "updated": {
-      return left.deck.updatedAt.localeCompare(right.deck.updatedAt);
+      return left.updatedAt.localeCompare(right.updatedAt);
     }
     case "created": {
-      return left.deck.createdAt.localeCompare(right.deck.createdAt);
+      return left.createdAt.localeCompare(right.createdAt);
     }
     case "name": {
-      return left.deck.name.localeCompare(right.deck.name, undefined, { sensitivity: "base" });
+      return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
     }
     case "value": {
       return (left.totalValueCents ?? -1) - (right.totalValueCents ?? -1);
@@ -197,6 +235,10 @@ export function sortDecks(
   dir: SortDir,
 ): DeckListItemWithNames[] {
   const directionFactor = dir === "asc" ? 1 : -1;
+  const familyKeys = familySortKeys(items);
+  const keyOf = (item: DeckListItemWithNames): DeckSortKey =>
+    (item.deck.familyId === null ? undefined : familyKeys.get(item.deck.familyId)) ??
+    ownSortKey(item);
   return items.toSorted((left, right) => {
     const leftArchived = left.deck.archivedAt !== null;
     const rightArchived = right.deck.archivedAt !== null;
@@ -206,7 +248,7 @@ export function sortDecks(
     if (left.deck.isPinned !== right.deck.isPinned) {
       return left.deck.isPinned ? -1 : 1;
     }
-    return compareAscending(left, right, field) * directionFactor;
+    return compareAscending(keyOf(left), keyOf(right), field) * directionFactor;
   });
 }
 

@@ -3,19 +3,59 @@
  * per family, fronted by the primary variant, with the rest revealed on demand.
  */
 interface DeckFamilyItem {
-  deck: { id: string; familyId: string | null; isPrimary: boolean };
+  deck: { id: string; familyId: string | null; isPrimary: boolean; updatedAt: string };
+  familyName: string | null;
 }
 
 export interface DeckFamilyEntry {
   id: string;
+  name: string | null;
+  updatedAt: string;
   memberCount: number;
   expanded: boolean;
   role: "front" | "member";
 }
 
+/** Members carry the same `familyName`, but a row written before a refetch can still hold null. */
+export function familyNameOf(
+  members: readonly Pick<DeckFamilyItem, "familyName">[],
+): string | null {
+  return members.find((member) => member.familyName !== null)?.familyName ?? null;
+}
+
+export function familyUpdatedAt(
+  members: readonly { deck: { updatedAt: string } }[],
+): string | undefined {
+  let newest: string | undefined;
+  for (const member of members) {
+    if (newest === undefined || member.deck.updatedAt > newest) {
+      newest = member.deck.updatedAt;
+    }
+  }
+  return newest;
+}
+
 export interface CollapsedDeckEntry<T> {
   item: T;
   family?: DeckFamilyEntry;
+}
+
+export function familyFrontView<T extends { deck: { name: string; updatedAt: string } }>(
+  item: T,
+  family?: DeckFamilyEntry,
+): { title: string; isNamedGroup: boolean; metaItem: T } {
+  if (family?.role !== "front") {
+    return { title: item.deck.name, isNamedGroup: false, metaItem: item };
+  }
+  const metaItem =
+    family.updatedAt === item.deck.updatedAt
+      ? item
+      : { ...item, deck: { ...item.deck, updatedAt: family.updatedAt } };
+  return {
+    title: family.name ?? item.deck.name,
+    isNamedGroup: family.name !== null,
+    metaItem,
+  };
 }
 
 /** The front renders at its own sorted position, not the first member's. */
@@ -59,7 +99,13 @@ export function collapseFamilies<T extends DeckFamilyItem>(
     }
     const members = membersByFamily.get(familyId) ?? [];
     const expanded = expandedFamilies.has(familyId);
-    const family = { id: familyId, memberCount: members.length, expanded };
+    const family = {
+      id: familyId,
+      name: familyNameOf(members),
+      updatedAt: familyUpdatedAt(members) ?? item.deck.updatedAt,
+      memberCount: members.length,
+      expanded,
+    };
     entries.push({ item, family: { ...family, role: "front" } });
     if (!expanded) {
       continue;

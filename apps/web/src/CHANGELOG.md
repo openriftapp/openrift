@@ -4,12 +4,14 @@
 
 ### Highlights
 
+- feat(Decks): **Name your variant groups** — a deck with variants can now have a group name of its own, set at the top of the Variants dialog. The deck list shows it as the title, with the primary variant named below, and searching for it finds the whole group.
 - feat(Rules): **Search by rule number** — typing a rule number such as 359, rule 50 or 702.2.b in the rules search shows that rule and its sub-rules. Searching for a section heading like Silver Rule now shows the rules in that section, and the rules page has a button to scroll back to the top.
 - fix(Decks): **Missing cards go to your marketplace** — the missing cards and card prices lists now hand off to the marketplace you pick for prices. TCGplayer and CardNexus get the cards straight into the cart, and CardTrader gets a wishlist to paste, where before every deck offered Cardmarket.
 
 ### Other
 
 - fix(Decks): **Compare rows open the card** — tapping or clicking a card in the deck comparison now opens its card page.
+- fix(Decks): **Variant groups keep their place** — making a different variant the primary, linking or unlinking variants no longer counts as an update, so the group stays where it was in the deck list. Sorted by date, a group now goes by its most recently edited variant.
 - fix(Cards): **Shown printing marked again** — on a card page on desktop, the printing you are looking at is outlined again in the Printings table.
 - fix(App): **New-printing posts name the printing** — Discord posts about new printings now list every added printing with its code and variant, linked to its own page.
 - fix(Cards): **All printings shows every language** — the All printings view no longer gets stuck on your own languages after the card data updates while the page is open. It says when other languages are still loading or failed to load, with a way to retry. On larger screens a close button on the right replaces Back.

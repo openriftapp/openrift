@@ -10,6 +10,7 @@ import { useHomeCollection } from "@/features/collections/hooks/use-home-collect
 import { useDeckSelectState } from "@/features/decks/hooks/use-deck-select-state";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
+import { familyFrontView } from "@/features/decks/lib/deck-family";
 import { deckBoxPart } from "@/features/decks/lib/deck-meta";
 import { resolveFormatTagSummary } from "@/features/decks/lib/format-tag-config";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -24,7 +25,7 @@ import { DeckFormatText } from "./deck-format-badge";
 import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
 import { DeckSelectMark } from "./deck-select-mark";
-import { DraftBadge, VariantCountToggle } from "./deck-variant-controls";
+import { DraftBadge, FamilyFrontLine, VariantCountToggle } from "./deck-variant-controls";
 import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
 
@@ -76,6 +77,7 @@ export function DeckListRow({
     family && onToggleFamily && family.role === "front" && family.memberCount > 1 ? (
       <VariantCountToggle family={family} onToggle={onToggleFamily} />
     ) : null;
+  const { title, isNamedGroup, metaItem } = familyFrontView(item, family);
 
   // One element for both renderings, so the phone line and the columns can't
   // disagree about the deck's state.
@@ -135,14 +137,14 @@ export function DeckListRow({
             {/* The ::after is what makes the whole row clickable. It resolves
                 against the row root, the only positioned ancestor. */}
             {selectMode ? (
-              <span className="truncate font-medium">{deck.name}</span>
+              <span className="truncate font-medium">{title}</span>
             ) : (
               <Link
                 to="/decks/$deckId"
                 params={{ deckId: deck.id }}
                 className="truncate rounded-lg font-medium outline-none after:absolute after:inset-0"
               >
-                {deck.name}
+                {title}
               </Link>
             )}
             {showPrimary && deck.isPrimary && (
@@ -153,13 +155,14 @@ export function DeckListRow({
             {deck.isDraft && <DraftBadge />}
             {variantToggle}
           </div>
+          {isNamedGroup && <FamilyFrontLine deck={deck} />}
           <DeckIdentityLine
             legendCard={legendCard}
             championCard={championCard}
             tagSummary={tagSummary}
           />
           {/* Below md there's no width for both columns and a readable name. */}
-          <DeckMetaLine item={item} leading={formatText} className="mt-0.5 md:hidden" />
+          <DeckMetaLine item={metaItem} leading={formatText} className="mt-0.5 md:hidden" />
         </div>
       </div>
 
@@ -186,7 +189,7 @@ export function DeckListRow({
       {/* The format rides in the stat cluster as text, not as a badge: a chip
           here is shrink-0 chrome that costs the deck name its width. */}
       <DeckMetaLine
-        item={item}
+        item={metaItem}
         variant="columns"
         leading={formatText}
         className="hidden shrink-0 md:flex"

@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
@@ -29,9 +30,11 @@ import {
   useDeleteDeck,
   useLinkDeckVariant,
   usePromoteDeckPrimary,
+  useSetDeckFamilyName,
   useSetDeckPredecessor,
   useUnlinkDeckVariant,
 } from "@/features/decks/hooks/use-decks";
+import { familyNameOf } from "@/features/decks/lib/deck-family";
 import type { VariantGraphRow } from "@/features/decks/lib/deck-variant-graph";
 import { buildVariantGraph } from "@/features/decks/lib/deck-variant-graph";
 import { cn } from "@/lib/utils";
@@ -298,6 +301,49 @@ function LineageRow({
   );
 }
 
+function GroupNameField({
+  deckId,
+  savedName,
+  placeholder,
+}: {
+  deckId: string;
+  savedName: string | null;
+  placeholder: string;
+}) {
+  const setFamilyName = useSetDeckFamilyName();
+  const [draft, setDraft] = useState(savedName ?? "");
+
+  const commit = () => {
+    const name = draft.trim() === "" ? null : draft.trim();
+    if (name === savedName || setFamilyName.isPending) {
+      return;
+    }
+    // Errors are reported by the global mutation error toast.
+    setFamilyName.mutate({ deckId, name });
+  };
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <Label htmlFor="deck-variants-group-name">{m.decks_dialog_variants_group_name_label()}</Label>
+      <Input
+        id="deck-variants-group-name"
+        value={draft}
+        maxLength={200}
+        placeholder={placeholder}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            commit();
+          }
+        }}
+      />
+      <p className="text-muted-foreground text-sm">{m.decks_dialog_variants_group_name_hint()}</p>
+    </div>
+  );
+}
+
 function VariantsDialogBody({
   deckId,
   deckName,
@@ -324,9 +370,12 @@ function VariantsDialogBody({
 
   const current = items.find((item) => item.deck.id === deckId);
   const familyId = current?.deck.familyId ?? null;
-  const members = items
-    .filter((item) => (familyId ? item.deck.familyId === familyId : item.deck.id === deckId))
-    .map((item) => item.deck);
+  const familyItems = items.filter((item) =>
+    familyId ? item.deck.familyId === familyId : item.deck.id === deckId,
+  );
+  const members = familyItems.map((item) => item.deck);
+  const familyName = familyNameOf(familyItems);
+  const primaryName = members.find((member) => member.isPrimary)?.name ?? deckName;
 
   // Rows arrive oldest-first with every version above the ones it came from.
   // Repointing a version re-runs this, so the graph redraws itself.
@@ -389,6 +438,14 @@ function VariantsDialogBody({
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
+      {familyId !== null && (
+        <GroupNameField
+          key={`${familyId}:${familyName ?? ""}`}
+          deckId={deckId}
+          savedName={familyName}
+          placeholder={primaryName}
+        />
+      )}
       <ul className="flex min-w-0 flex-col">
         {graph.rows.map((row) => {
           const deck = membersById.get(row.id);

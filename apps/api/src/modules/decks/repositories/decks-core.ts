@@ -12,7 +12,7 @@ import {
   selectShareState,
   updateShareRow,
 } from "../../../repositories/query-helpers.js";
-import { lockFamilies, lockUserFamilies } from "./decks-shared.js";
+import { dropFamilyIfEmpty, lockFamilies, lockUserFamilies } from "./decks-shared.js";
 
 /**
  * The jsonb columns are required, not optional, so `"links" in updates`
@@ -188,10 +188,6 @@ export function decksCoreRepo(db: Kysely<Database>) {
           // The deck changed families between the peek and the lock.
           await lockFamilies(trx, userId, [target.familyId]);
         }
-        // Read the recency order before the delete, not after: the FK detaching
-        // the predecessor pointers is an UPDATE, and the updated_at trigger
-        // stamps every touched survivor with the same transaction timestamp.
-        // Ordering afterwards would therefore be a tie broken at random.
         const survivors = target.familyId
           ? await trx
               .selectFrom("decks")
@@ -221,6 +217,9 @@ export function decksCoreRepo(db: Kysely<Database>) {
               .where("id", "=", firstSurvivor.id)
               .execute();
           }
+        }
+        if (target.familyId) {
+          await dropFamilyIfEmpty(trx, target.familyId);
         }
         return true;
       });

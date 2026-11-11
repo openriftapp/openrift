@@ -2665,6 +2665,8 @@
   "decks_dialog_variants_delete_description": "Delete “{name}”? This cannot be undone. The other versions stay.",
   "decks_dialog_variants_delete_title": "Delete version",
   "decks_dialog_variants_description": "Manage versions of this deck, compare and link them.",
+  "decks_dialog_variants_group_name_hint": "Shown on the deck list. Leave empty to show the primary variant's name.",
+  "decks_dialog_variants_group_name_label": "Group name",
   "decks_dialog_variants_hide": "Hide variants",
   "decks_dialog_variants_link_deck": "Link another deck…",
   "decks_dialog_variants_link_description": "Pulls a deck you already own into this family, keeping its own list.",

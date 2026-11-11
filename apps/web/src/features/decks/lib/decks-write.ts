@@ -186,6 +186,7 @@ function listItemFor(deck: DeckResponse): DeckListItemResponse {
     totalValueCents: null,
     missingCount: null,
     folderIds: [],
+    familyName: null,
   };
 }
 

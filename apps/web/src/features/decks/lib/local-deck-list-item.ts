@@ -74,5 +74,6 @@ export function localDeckToListItem(
     // Folders are a server-side, per-user feature; a browser-local deck is
     // never filed in one.
     folderIds: [],
+    familyName: null,
   };
 }

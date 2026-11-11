@@ -76,6 +76,14 @@ export interface DeckMatchupSwapsTable {
   quantity: number;
 }
 
+export interface DeckFamiliesTable {
+  id: string;
+  userId: string;
+  name: string | null;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
 export interface DeckFoldersTable {
   id: Generated<string>;
   userId: string;

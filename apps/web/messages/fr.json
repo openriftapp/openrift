@@ -2665,6 +2665,8 @@
   "decks_dialog_variants_delete_description": "Supprimer « {name} » ? Cette action est irréversible. Les autres versions restent.",
   "decks_dialog_variants_delete_title": "Supprimer la version",
   "decks_dialog_variants_description": "Gérez les versions de ce deck, comparez-les et liez-les.",
+  "decks_dialog_variants_group_name_hint": "Affiché dans la liste des decks. Laissez vide pour afficher le nom de la variante principale.",
+  "decks_dialog_variants_group_name_label": "Nom du groupe",
   "decks_dialog_variants_hide": "Masquer les variantes",
   "decks_dialog_variants_link_deck": "Lier un autre deck…",
   "decks_dialog_variants_link_description": "Intègre un deck que vous possédez déjà à cette famille, en gardant sa propre liste.",

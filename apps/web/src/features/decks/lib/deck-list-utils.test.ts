@@ -33,6 +33,7 @@ interface DeckOverrides {
   legendDomains?: Domain[] | null;
   folderIds?: string[];
   familyId?: string | null;
+  familyName?: string | null;
   predecessorDeckId?: string | null;
   isPrimary?: boolean;
   isDraft?: boolean;
@@ -75,6 +76,7 @@ function makeItem(overrides: DeckOverrides = {}): DeckListItemWithNames {
     totalValueCents: overrides.totalValueCents ?? null,
     missingCount: overrides.missingCount ?? null,
     folderIds: overrides.folderIds ?? [],
+    familyName: overrides.familyName ?? null,
   };
   return enrichItem(base, {
     legendName: overrides.legendName ?? null,
@@ -108,6 +110,15 @@ describe("filterDecks", () => {
     expect(search("sett")).toEqual(["b"]);
     expect(search("AGGRO")).toEqual(["a"]);
     expect(search("")).toEqual(["a", "b", "c"]);
+  });
+
+  it("matches search against the variant group name", () => {
+    const items = [
+      makeItem({ id: "a", name: "RAD Heron", familyId: "fam", familyName: "Orianna" }),
+      makeItem({ id: "b", name: "Sett Brawl" }),
+    ];
+    const found = filterDecks(items, { ...NO_FILTERS, search: "orianna" });
+    expect(found.map((item) => item.deck.id)).toEqual(["a"]);
   });
 
   it("matches a legend name whose stored apostrophe is curly", () => {
@@ -356,6 +367,48 @@ describe("partitionByArchived", () => {
 });
 
 describe("sortDecks", () => {
+  const ids = (items: DeckListItemWithNames[]) => items.map((item) => item.deck.id);
+
+  it("dates a variant group by its newest member, not its primary", () => {
+    const items = [
+      makeItem({ id: "jinx", updatedAt: "2026-11-10T00:00:00.000Z" }),
+      makeItem({ id: "kaisa", updatedAt: "2026-11-06T00:00:00.000Z" }),
+      makeItem({
+        id: "primary",
+        familyId: "fam",
+        isPrimary: true,
+        updatedAt: "2026-11-05T00:00:00.000Z",
+      }),
+      makeItem({ id: "fresh", familyId: "fam", updatedAt: "2026-11-09T00:00:00.000Z" }),
+    ];
+    expect(ids(sortDecks(items, "updated", "desc"))).toEqual(["jinx", "primary", "fresh", "kaisa"]);
+  });
+
+  it("sorts a variant group by its group name, else its primary's name", () => {
+    const items = [
+      makeItem({ id: "m", name: "Mid" }),
+      makeItem({ id: "z", name: "Zed", familyId: "named", isPrimary: true, familyName: "Alpha" }),
+      makeItem({ id: "y", name: "Yasuo", familyId: "named" }),
+      makeItem({ id: "b", name: "Beta", familyId: "plain", isPrimary: true }),
+      makeItem({ id: "x", name: "Aardvark", familyId: "plain" }),
+    ];
+    expect(ids(sortDecks(items, "name", "asc"))).toEqual(["z", "y", "b", "x", "m"]);
+  });
+
+  it("dates a variant group's creation by its oldest member", () => {
+    const items = [
+      makeItem({ id: "solo", createdAt: "2026-05-01T00:00:00.000Z" }),
+      makeItem({
+        id: "primary",
+        familyId: "fam",
+        isPrimary: true,
+        createdAt: "2026-09-01T00:00:00.000Z",
+      }),
+      makeItem({ id: "origin", familyId: "fam", createdAt: "2026-02-01T00:00:00.000Z" }),
+    ];
+    expect(ids(sortDecks(items, "created", "asc"))[0]).toBe("primary");
+  });
+
   it("floats pinned decks above non-pinned regardless of sort field", () => {
     const items = [
       makeItem({ id: "a", name: "Aaa", isPinned: false }),

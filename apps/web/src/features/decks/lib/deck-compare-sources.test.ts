@@ -60,6 +60,7 @@ function serverDeck(overrides: {
     totalValueCents: null,
     missingCount: null,
     folderIds: [],
+    familyName: null,
   };
 }
 

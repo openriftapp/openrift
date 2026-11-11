@@ -163,15 +163,17 @@ export const decksRouter = {
     const homeCollectionIds = deckRows
       .map((row) => row.collectionId)
       .filter((id): id is string => id !== null);
-    const [deckValueMap, banRows, homeExtrasByCollection, folderIdsByDeck] = await Promise.all([
-      marketplace.deckValues(userId, favMarketplace, preferredLanguages),
-      catalog.cardBansByCardIds([...new Set(allCards.map((card) => card.cardId))]),
-      copies.buildableCountByCardForCollections(userId, homeCollectionIds),
-      deckFolders.folderIdsByDeckIds(
-        deckRows.map((row) => row.id),
-        userId,
-      ),
-    ]);
+    const [deckValueMap, banRows, homeExtrasByCollection, folderIdsByDeck, familyNames] =
+      await Promise.all([
+        marketplace.deckValues(userId, favMarketplace, preferredLanguages),
+        catalog.cardBansByCardIds([...new Set(allCards.map((card) => card.cardId))]),
+        copies.buildableCountByCardForCollections(userId, homeCollectionIds),
+        deckFolders.folderIdsByDeckIds(
+          deckRows.map((row) => row.id),
+          userId,
+        ),
+        decks.familyNamesForUser(userId),
+      ]);
     const bannedCardIds = new Set(
       banRows
         .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
@@ -259,6 +261,7 @@ export const decksRouter = {
         totalValueCents: deckValueMap.get(row.id) ?? null,
         missingCount,
         folderIds: folderIdsByDeck.get(row.id) ?? [],
+        familyName: row.familyId === null ? null : (familyNames.get(row.familyId) ?? null),
       };
     });
 
@@ -545,6 +548,18 @@ export const decksRouter = {
       throw errors.BAD_REQUEST({ message: "Decks cannot be linked" });
     }
     return toDeck(result);
+  }),
+
+  setFamilyName: os.setFamilyName.handler(async ({ input, context, errors }) => {
+    const { decks } = context.repos;
+    const result = await decks.setFamilyName(input.id, context.userId, input.name);
+    if (result === "not-found") {
+      throw errors.NOT_FOUND({ message: "Not found" });
+    }
+    if (result === "no-family") {
+      throw errors.BAD_REQUEST({ message: "Deck has no variants" });
+    }
+    return result;
   }),
 
   promotePrimary: os.promotePrimary.handler(async ({ input, context, errors }) => {

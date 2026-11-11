@@ -61,6 +61,7 @@ function deckRow(id: string, name: string): DeckListItemResponse {
     totalValueCents: null,
     missingCount: null,
     folderIds: [],
+    familyName: null,
   };
 }
 

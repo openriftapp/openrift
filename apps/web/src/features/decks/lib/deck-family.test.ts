@@ -1,13 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { collapseFamilies, withVariantPanels } from "./deck-family";
+import type { DeckFamilyEntry } from "./deck-family";
+import { collapseFamilies, familyFrontView, withVariantPanels } from "./deck-family";
 
 interface TestItem {
-  deck: { id: string; familyId: string | null; isPrimary: boolean };
+  deck: { id: string; familyId: string | null; isPrimary: boolean; updatedAt: string };
+  familyName: string | null;
 }
 
-function makeItem(id: string, familyId: string | null = null, isPrimary = false): TestItem {
-  return { deck: { id, familyId, isPrimary } };
+const DAY = "2026-01-01T00:00:00.000Z";
+
+function makeItem(
+  id: string,
+  familyId: string | null = null,
+  isPrimary = false,
+  extra: { updatedAt?: string; familyName?: string | null } = {},
+): TestItem {
+  return {
+    deck: { id, familyId, isPrimary, updatedAt: extra.updatedAt ?? DAY },
+    familyName: extra.familyName ?? null,
+  };
 }
 
 /** Ids in render order, with a "+" marking entries that carry family info. */
@@ -37,6 +49,8 @@ describe("collapseFamilies", () => {
     expect(render(entries)).toEqual(["solo", "main+"]);
     expect(entries[1]?.family).toEqual({
       id: "fam",
+      name: null,
+      updatedAt: DAY,
       memberCount: 3,
       expanded: false,
       role: "front",
@@ -72,10 +86,26 @@ describe("collapseFamilies", () => {
     const entries = collapseFamilies([makeItem("main", "fam", true)], new Set());
     expect(entries[0]?.family).toEqual({
       id: "fam",
+      name: null,
+      updatedAt: DAY,
       memberCount: 1,
       expanded: false,
       role: "front",
     });
+  });
+
+  it("names the group and dates it by its newest member", () => {
+    const items = [
+      makeItem("main", "fam", true, { updatedAt: "2026-11-05T00:00:00.000Z" }),
+      makeItem("fresh", "fam", false, {
+        updatedAt: "2026-11-09T00:00:00.000Z",
+        familyName: "Orianna",
+      }),
+    ];
+    const [front] = collapseFamilies(items, new Set());
+    expect(front?.item.deck.id).toBe("main");
+    expect(front?.family?.name).toBe("Orianna");
+    expect(front?.family?.updatedAt).toBe("2026-11-09T00:00:00.000Z");
   });
 
   it("keeps several families independent", () => {
@@ -135,5 +165,42 @@ describe("withVariantPanels", () => {
 
   it("opens no panel for an expanded family with a single deck left in the list", () => {
     expect(grid([makeItem("main", "fam", true)], ["fam"])).toEqual(["main"]);
+  });
+});
+
+describe("familyFrontView", () => {
+  const item = { deck: { name: "RAD Heron", updatedAt: "2026-11-05T00:00:00.000Z" } };
+  const front: DeckFamilyEntry = {
+    id: "fam",
+    name: "Orianna",
+    updatedAt: "2026-11-09T00:00:00.000Z",
+    memberCount: 2,
+    expanded: false,
+    role: "front",
+  };
+
+  it("leaves a standalone deck as it is", () => {
+    expect(familyFrontView(item)).toEqual({
+      title: "RAD Heron",
+      isNamedGroup: false,
+      metaItem: item,
+    });
+  });
+
+  it("titles a named front with the group name and dates it by the group", () => {
+    const view = familyFrontView(item, front);
+    expect(view.title).toBe("Orianna");
+    expect(view.isNamedGroup).toBe(true);
+    expect(view.metaItem.deck.updatedAt).toBe("2026-11-09T00:00:00.000Z");
+  });
+
+  it("keeps the deck name on an unnamed front", () => {
+    const view = familyFrontView(item, { ...front, name: null });
+    expect(view.title).toBe("RAD Heron");
+    expect(view.isNamedGroup).toBe(false);
+  });
+
+  it("changes nothing on a revealed member", () => {
+    expect(familyFrontView(item, { ...front, role: "member" }).title).toBe("RAD Heron");
   });
 });

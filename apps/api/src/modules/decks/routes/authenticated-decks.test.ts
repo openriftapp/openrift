@@ -30,6 +30,8 @@ const mockRepo = {
   getByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   cloneFromShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   setArchivedMany: vi.fn(() => Promise.resolve([] as object[])),
+  familyNamesForUser: vi.fn(() => Promise.resolve(new Map<string, string>())),
+  setFamilyName: vi.fn(() => Promise.resolve("not-found" as unknown)),
 };
 
 const mockMarketplace = {
@@ -227,6 +229,20 @@ describe("GET /api/v1/decks", () => {
     expect(json.items[0].isValid).toBe(false);
     expect(json.items[0].requiredProgress).toBe(4);
     expect(json.items[0].requiredTotal).toBe(56);
+  });
+
+  it("carries each variant group's name on its members", async () => {
+    const familyId = "f0000000-0001-4000-a000-000000000001";
+    mockRepo.listForUser.mockResolvedValue([dbDeck, { ...dbDeck, id: "other", familyId }]);
+    mockRepo.allCardsForUser.mockResolvedValue([]);
+    mockRepo.familyNamesForUser.mockResolvedValueOnce(new Map([[familyId, "Orianna"]]));
+    const res = await app.request("/api/v1/decks");
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.items.map((item: { familyName: string | null }) => item.familyName)).toEqual([
+      null,
+      "Orianna",
+    ]);
   });
 
   it("counts only the required zones in the build figure", async () => {
@@ -652,6 +668,55 @@ describe("DELETE /api/v1/decks/:id", () => {
   it("returns 404 when not found", async () => {
     mockRepo.deleteByIdForUser.mockResolvedValue(false);
     const res = await app.request(`/api/v1/decks/${DECK_ID}`, { method: "DELETE" });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("PUT /api/v1/decks/:id/family-name", () => {
+  const FAMILY_ID = "f0000000-0001-4000-a000-000000000001";
+
+  function putName(name: unknown) {
+    return app.request(`/api/v1/decks/${DECK_ID}/family-name`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  beforeEach(() => {
+    mockRepo.setFamilyName.mockReset();
+  });
+
+  it("names the deck's variant group, trimmed", async () => {
+    mockRepo.setFamilyName.mockResolvedValue({ familyId: FAMILY_ID, name: "Orianna" });
+    const res = await putName("  Orianna ");
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ familyId: FAMILY_ID, name: "Orianna" });
+    expect(mockRepo.setFamilyName).toHaveBeenCalledWith(DECK_ID, USER_ID, "Orianna");
+  });
+
+  it("clears the name with null", async () => {
+    mockRepo.setFamilyName.mockResolvedValue({ familyId: FAMILY_ID, name: null });
+    const res = await putName(null);
+    expect(res.status).toBe(200);
+    expect(mockRepo.setFamilyName).toHaveBeenCalledWith(DECK_ID, USER_ID, null);
+  });
+
+  it("rejects a blank name", async () => {
+    const res = await putName("   ");
+    expect(res.status).toBe(400);
+    expect(mockRepo.setFamilyName).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for a deck without variants", async () => {
+    mockRepo.setFamilyName.mockResolvedValue("no-family");
+    const res = await putName("Orianna");
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when the deck is not found", async () => {
+    mockRepo.setFamilyName.mockResolvedValue("not-found");
+    const res = await putName("Orianna");
     expect(res.status).toBe(404);
   });
 });

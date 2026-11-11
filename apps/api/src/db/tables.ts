@@ -62,6 +62,7 @@ import type {
 } from "./tables/collections.js";
 import type {
   DeckCardsTable,
+  DeckFamiliesTable,
   DeckFolderEntriesTable,
   DeckFoldersTable,
   DeckMatchupPlansTable,
@@ -241,6 +242,7 @@ export interface Database {
   deckPlans: DeckPlansTable;
   deckMatchupPlans: DeckMatchupPlansTable;
   deckMatchupSwaps: DeckMatchupSwapsTable;
+  deckFamilies: DeckFamiliesTable;
 
   deckFolders: DeckFoldersTable;
   deckFolderEntries: DeckFolderEntriesTable;

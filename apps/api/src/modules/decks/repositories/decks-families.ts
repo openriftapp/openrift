@@ -4,7 +4,7 @@ import type { Database } from "../../../db/tables.js";
 import type { DecksTable } from "../../../db/tables/decks.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 import { createsCycle } from "./deck-lineage.js";
-import { lockFamilies, lockUserFamilies } from "./decks-shared.js";
+import { dropFamilyIfEmpty, lockFamilies, lockUserFamilies } from "./decks-shared.js";
 
 export function decksFamiliesRepo(db: Kysely<Database>) {
   return {
@@ -35,6 +35,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
         let familyId = source.familyId;
         if (familyId === null) {
           familyId = crypto.randomUUID();
+          await trx.insertInto("deckFamilies").values({ id: familyId, userId }).execute();
           await trx.updateTable("decks").set({ familyId }).where("id", "=", id).execute();
         } else {
           await lockFamilies(trx, userId, [familyId]);
@@ -197,6 +198,9 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
         }
 
         const familyId = current.familyId ?? other.familyId ?? crypto.randomUUID();
+        if (current.familyId === null && other.familyId === null) {
+          await trx.insertInto("deckFamilies").values({ id: familyId, userId }).execute();
+        }
         const absorbedFamilyIds = [current.familyId, other.familyId].filter(
           (candidate): candidate is string => candidate !== null && candidate !== familyId,
         );
@@ -232,6 +236,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
             .where("familyId", "in", absorbedFamilyIds)
             .where("userId", "=", userId)
             .execute();
+          await mergeFamilyNames(trx, familyId, absorbedFamilyIds);
         }
         if (standaloneIds.length > 0) {
           await trx
@@ -294,8 +299,6 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
         // family before reading survivors.
         await lockFamilies(trx, userId, [departing.familyId]);
 
-        // Read survivor order before the splice below writes: the updated_at
-        // trigger stamps every touched row with the same timestamp.
         const survivors = await trx
           .selectFrom("decks")
           .select(["id", "isPrimary"])
@@ -337,6 +340,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
             .where("id", "=", newest.id)
             .execute();
         }
+        await dropFamilyIfEmpty(trx, departing.familyId);
 
         const row = await trx
           .selectFrom("decks")
@@ -403,6 +407,44 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       });
     },
 
+    async setFamilyName(
+      id: string,
+      userId: string,
+      name: string | null,
+    ): Promise<{ familyId: string; name: string | null } | "not-found" | "no-family"> {
+      const deck = await db
+        .selectFrom("decks")
+        .select("familyId")
+        .where("id", "=", id)
+        .where("userId", "=", userId)
+        .executeTakeFirst();
+      if (!deck) {
+        return "not-found";
+      }
+      if (deck.familyId === null) {
+        return "no-family";
+      }
+      const row = await db
+        .updateTable("deckFamilies")
+        .set({ name })
+        .where("id", "=", deck.familyId)
+        .where("userId", "=", userId)
+        .returning(["id", "name"])
+        .executeTakeFirst();
+      return row ? { familyId: row.id, name: row.name } : "no-family";
+    },
+
+    async familyNamesForUser(userId: string): Promise<Map<string, string>> {
+      const rows = await db
+        .selectFrom("deckFamilies")
+        .select(["id", "name"])
+        .where("userId", "=", userId)
+        .where("name", "is not", null)
+        .$narrowType<{ name: string }>()
+        .execute();
+      return new Map(rows.map((row) => [row.id, row.name]));
+    },
+
     /**
      * Demotes the current primary in the same transaction. The partial unique
      * index `uq_decks_family_primary` backstops the one-primary invariant.
@@ -444,4 +486,26 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       });
     },
   };
+}
+
+async function mergeFamilyNames(
+  trx: Kysely<Database>,
+  familyId: string,
+  absorbedFamilyIds: string[],
+): Promise<void> {
+  const families = await trx
+    .selectFrom("deckFamilies")
+    .select(["id", "name"])
+    .where("id", "in", [familyId, ...absorbedFamilyIds])
+    .execute();
+  const keeper = families.find((family) => family.id === familyId);
+  const inherited = families.find((family) => family.id !== familyId && family.name !== null);
+  if (keeper?.name === null && inherited) {
+    await trx
+      .updateTable("deckFamilies")
+      .set({ name: inherited.name })
+      .where("id", "=", familyId)
+      .execute();
+  }
+  await trx.deleteFrom("deckFamilies").where("id", "in", absorbedFamilyIds).execute();
 }

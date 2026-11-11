@@ -200,6 +200,7 @@ export const deckListItemResponseSchema = z.object({
   totalValueCents: z.number().int().nullable(),
   missingCount: z.number().int().nullable(),
   folderIds: z.array(z.string()),
+  familyName: z.string().nullable(),
 });
 
 export const deckListResponseSchema = z.object({ items: z.array(deckListItemResponseSchema) });
@@ -259,6 +260,15 @@ export const linkDeckVariantSchema = z.object({
 
 export const setDeckPredecessorSchema = z.object({
   predecessorDeckId: z.uuid().nullable(),
+});
+
+export const setDeckFamilyNameSchema = z.object({
+  name: deckFieldRules.name.nullable(),
+});
+
+export const deckFamilyNameResponseSchema = z.object({
+  familyId: z.string(),
+  name: z.string().nullable(),
 });
 
 const shareTokenParamSchema = z.object({ token: z.string().min(1) });
@@ -372,6 +382,14 @@ export const decksContract = {
       BAD_REQUEST: { message: "Decks cannot be linked" },
     })
     .output(deckResponseSchema),
+  setFamilyName: authedRoute
+    .route({ method: "PUT", path: "/api/v1/decks/{id}/family-name", tags: [TAG] })
+    .input(withParams(idParamSchema, setDeckFamilyNameSchema))
+    .errors({
+      NOT_FOUND: { message: "Deck not found" },
+      BAD_REQUEST: { message: "Deck has no variants" },
+    })
+    .output(deckFamilyNameResponseSchema),
   promotePrimary: authedRoute
     .route({ method: "POST", path: "/api/v1/decks/{id}/promote", tags: [TAG] })
     .input(idParamSchema)

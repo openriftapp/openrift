@@ -34,6 +34,25 @@ export function VariantCountToggle({
   );
 }
 
+export function FamilyFrontLine({
+  deck,
+  className,
+}: {
+  deck: { name: string; isPrimary: boolean };
+  className?: string;
+}) {
+  return (
+    <p className={cn("flex min-w-0 items-center gap-1.5 text-xs", className)}>
+      {deck.isPrimary && (
+        <Badge variant="secondary" className="shrink-0">
+          {m.decks_dialog_variants_badge_primary()}
+        </Badge>
+      )}
+      <span className="truncate">{deck.name}</span>
+    </p>
+  );
+}
+
 // Renders as a span, like `LocalDeckBadge`, so it adds no tab stop to a row
 // that already has one for the deck itself.
 export function DraftBadge({ className }: { className?: string }) {

@@ -2665,6 +2665,8 @@
   "decks_dialog_variants_delete_description": "“{name}”을(를) 삭제할까요? 되돌릴 수 없습니다. 다른 버전은 그대로 남습니다.",
   "decks_dialog_variants_delete_title": "버전 삭제",
   "decks_dialog_variants_description": "이 덱의 버전을 관리하고, 비교하고, 연결하세요.",
+  "decks_dialog_variants_group_name_hint": "덱 목록에 표시됩니다. 비워 두면 대표 변형의 이름이 표시됩니다.",
+  "decks_dialog_variants_group_name_label": "그룹 이름",
   "decks_dialog_variants_hide": "변형 숨기기",
   "decks_dialog_variants_link_deck": "다른 덱 연결…",
   "decks_dialog_variants_link_description": "이미 가지고 있는 덱을 목록은 그대로 둔 채 이 계열로 가져옵니다.",

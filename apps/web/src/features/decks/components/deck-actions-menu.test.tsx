@@ -130,6 +130,7 @@ const ITEM = {
   totalValueCents: null,
   missingCount: null,
   folderIds: [],
+  familyName: null,
 } satisfies DeckListItemResponse;
 
 describe("DeckActionsMenu", () => {
