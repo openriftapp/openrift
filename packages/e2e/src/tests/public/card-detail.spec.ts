@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 import { dockDetailPane } from "../../helpers/detail-pane.js";
 import { waitForHydrated } from "../../helpers/hydration.js";
+import { isServerFn } from "../../helpers/server-fn.js";
 
 const SEED_CARD_SLUG = "annie-fiery";
 const SEED_CARD_NAME = "Annie, Fiery";
@@ -178,21 +179,6 @@ function buildExpectedDescription(detail: CardDetailFixture, priceLine: string |
   return parts.join(" ");
 }
 
-// TanStack Start encodes the server fn id as base64url(JSON) referencing the
-// source file + export name; decode it to match against the target fn.
-function isCardDetailServerFn(url: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes("fetchCardDetail");
-  } catch {
-    return false;
-  }
-}
-
 async function readJsonLdScripts(page: Page) {
   const texts = await page.locator('script[type="application/ld+json"]').allInnerTexts();
   return texts.map((t) => JSON.parse(t));
@@ -270,7 +256,7 @@ test.describe("card detail route — essentials", () => {
     await expect(pane).toBeVisible({ timeout: 15_000 });
 
     await page.route("**/_serverFn/**", async (route) => {
-      if (isCardDetailServerFn(route.request().url())) {
+      if (isServerFn(route.request().url(), "fetchCardDetail")) {
         await route.fulfill({
           status: 500,
           contentType: "application/json",
@@ -298,7 +284,7 @@ test.describe("card detail route — essentials", () => {
 
     const { promise: released, resolve: release } = Promise.withResolvers<void>();
     await page.route("**/_serverFn/**", async (route) => {
-      if (isCardDetailServerFn(route.request().url())) {
+      if (isServerFn(route.request().url(), "fetchCardDetail")) {
         await released;
       }
       await route.continue();
@@ -509,14 +495,9 @@ test.describe("card detail route — info panel", () => {
     const promoButton = page.locator(`button[data-printing-id="${promoPrinting.id}"]`);
 
     await waitForHydrated(promoButton);
-    await expect(promoButton).toHaveAttribute("aria-pressed", "false");
-
-    // Retry via aria-pressed: a pre-hydration click leaves it unchanged; once
-    // React attaches, clicking flips it to true.
-    await expect(async () => {
-      await promoButton.click();
-      await expect(promoButton).toHaveAttribute("aria-pressed", "true", { timeout: 1000 });
-    }).toPass({ timeout: 15_000 });
+    await promoButton.click();
+    await expect(infoRow(page, "Finish").first()).toContainText("Foil");
+    await expect(promoButton).toHaveAttribute("aria-pressed", "true");
 
     // Scope to this row; the marker label also appears in printing-button
     // badges and the price-history heading.
@@ -724,8 +705,8 @@ test.describe("card detail route — printings list", () => {
     const row = page
       .getByRole("listitem")
       .filter({ has: page.locator(`button[data-printing-id="${foilPromo.id}"]`) });
-    await expect(row.getByText("Foil", { exact: true })).toBeVisible();
-    await expect(row.getByText(foilMarker.label)).toBeVisible();
+    await expect(row).toContainText("Foil");
+    await expect(row).toContainText(foilMarker.label);
   });
 
   test("default-selected printing matches the EN language preference", async ({ page }) => {
@@ -752,14 +733,14 @@ test.describe("card detail route — price history", () => {
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    const heading = page.getByRole("heading", { name: /^Price history · /u });
+    const heading = page.getByRole("heading", { name: /^Prices · /u });
     await expect(heading).toBeVisible({ timeout: 10_000 });
   });
 
   test("the time-range button group hides ranges longer than the data span", async ({ page }) => {
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    await expect(page.getByRole("heading", { name: /^Price history · /u })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Prices · /u })).toBeVisible({
       timeout: 10_000,
     });
 
@@ -771,25 +752,21 @@ test.describe("card detail route — price history", () => {
     await allButton.click();
   });
 
-  test("the source button group disables marketplaces with no data and toggles selection on click", async ({
+  test("clicking a marketplace row in the price table selects it as the chart source", async ({
     page,
   }) => {
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    await expect(page.getByRole("heading", { name: /^Price history · /u })).toBeVisible({
-      timeout: 10_000,
-    });
+    const heading = page.getByRole("heading", { name: /^Prices · /u });
+    await expect(heading).toBeVisible({ timeout: 10_000 });
 
-    const sourceGroup = page.getByRole("group", { name: /price source/iu });
-    await expect(sourceGroup).toBeVisible();
-
-    const enabledButtons = sourceGroup.getByRole("button", { disabled: false });
-    const enabledCount = await enabledButtons.count();
-    expect(enabledCount, "at least one marketplace should be available").toBeGreaterThan(0);
-
-    if (enabledCount >= 2) {
-      await enabledButtons.nth(1).click();
-    }
+    const rows = page.locator("section", { has: heading }).locator("button[aria-pressed]");
+    await expect(rows.first()).toHaveAttribute("aria-pressed", "true");
+    const second = rows.nth(1);
+    await waitForHydrated(second);
+    await second.click();
+    await expect(second).toHaveAttribute("aria-pressed", "true");
+    await expect(rows.first()).toHaveAttribute("aria-pressed", "false");
   });
 
   // visx renders the chart via SVG mouse events that don't reproduce reliably

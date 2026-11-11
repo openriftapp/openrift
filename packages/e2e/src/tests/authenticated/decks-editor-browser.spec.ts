@@ -202,8 +202,7 @@ test.describe("deck editor card browser", () => {
       });
       await expect(page.getByRole("img", { name: "Garen, Rugged" })).toBeHidden();
 
-      // The "Search:" label is responsively hidden (hidden sm:inline); check attached, not visible.
-      await expect(page.getByText("Search:", { exact: true })).toBeAttached();
+      await expect(page.locator('[data-slot="badge"]', { hasText: "Annie" })).toHaveCount(0);
     });
 
     test("applying and clearing a type filter narrows then restores the grid", async ({ page }) => {

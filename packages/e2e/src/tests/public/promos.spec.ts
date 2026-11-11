@@ -2,6 +2,8 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
+import { isServerFn } from "../../helpers/server-fn.js";
 
 const PROMOS_TITLE = "Riftbound Promo Cards in English - OpenRift";
 const PROMOS_DESCRIPTION =
@@ -37,21 +39,6 @@ async function fetchPromoList(language = "EN"): Promise<PromoFixture> {
     throw new Error(`/api/v1/promos fetch failed: ${res.status}`);
   }
   return (await res.json()) as PromoFixture;
-}
-
-// TanStack Start encodes the server fn id as base64url-encoded JSON containing
-// the source file + export.
-function isPromoListServerFn(url: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes("fetchPromoList");
-  } catch {
-    return false;
-  }
 }
 
 // SSR resolves the loader server-side and bypasses page.route intercepts, so
@@ -153,7 +140,7 @@ test.describe("promos", () => {
   test.describe("empty state", () => {
     test("renders 'No promos yet.' when there are no printings", async ({ page }) => {
       await page.route("**/_serverFn/**", async (route) => {
-        if (isPromoListServerFn(route.request().url())) {
+        if (isServerFn(route.request().url(), "fetchPromoList")) {
           // Plain JSON skips the seroval deserializer; still needs the `{result}`
           // envelope createServerFn's client middleware unwraps.
           await route.fulfill({
@@ -221,14 +208,12 @@ test.describe("promos", () => {
       // also <img>-bearing buttons, and imageless cards overlay a "suggest image" link.
       const firstCard = page.getByRole("img", { name: /^Master Yi, Wuju Bladesman$/u }).first();
       await expect(firstCard).toBeVisible();
+      // A click before hydration follows the tile's link to the card page.
+      await waitForHydrated(firstCard);
 
       // Modal or docked pane depending on preference; both close controls share a name.
-      await expect(async () => {
-        await firstCard.click();
-        await expect(page.getByRole("button", { name: /close card details/iu })).toBeVisible({
-          timeout: 2000,
-        });
-      }).toPass({ timeout: 15_000 });
+      await firstCard.click();
+      await expect(page.getByRole("button", { name: /close card details/iu })).toBeVisible();
       await expect(page).toHaveURL(/\/promos\/EN$/u);
     });
 
@@ -260,7 +245,7 @@ test.describe("promos", () => {
   test.describe("error", () => {
     test("renders the route error fallback when the promo list fetch 500s", async ({ page }) => {
       await page.route("**/_serverFn/**", async (route) => {
-        if (isPromoListServerFn(route.request().url())) {
+        if (isServerFn(route.request().url(), "fetchPromoList")) {
           await route.fulfill({
             status: 500,
             contentType: "application/json",

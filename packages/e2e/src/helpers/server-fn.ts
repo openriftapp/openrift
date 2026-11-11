@@ -68,3 +68,17 @@ export function decodeServerFnData<T = unknown>(rawBody: unknown): T {
   }
   return {} as T;
 }
+
+// Server fn ids are base64url(JSON) of source file + export name. Dev servers do
+// this natively; production builds only with E2E_READABLE_SERVER_FN_IDS=1.
+export function isServerFn(url: string, fnName: string): boolean {
+  const encoded = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url)?.groups?.encoded;
+  if (encoded === undefined) {
+    return false;
+  }
+  try {
+    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
+  } catch {
+    return false;
+  }
+}

@@ -3,6 +3,7 @@ import type { APIRequestContext, Download, Page } from "@playwright/test";
 import { expect, test } from "../../fixtures/test.js";
 import { isApiPath } from "../../helpers/api-endpoint.js";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
+import { isServerFn } from "../../helpers/server-fn.js";
 
 const ANNIE_CARD_ID = "019cfc3b-038a-7c0c-a76c-e0a5e2f46b18";
 
@@ -35,21 +36,6 @@ async function setDeckCardsViaApi(
     data: { cards },
   });
   expect(response.ok()).toBeTruthy();
-}
-
-// TanStack Start encodes each server fn id as base64url(JSON); decoding lets us
-// match a specific server fn (exportDeckFn) without colliding.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
 }
 
 async function grantClipboard(page: Page) {

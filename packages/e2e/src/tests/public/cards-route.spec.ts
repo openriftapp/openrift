@@ -1,25 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 import { WEB_BASE_URL } from "../../helpers/constants.js";
+import { isServerFn } from "../../helpers/server-fn.js";
 
 const CARDS_DESCRIPTION =
   "Complete Riftbound TCG card database with marketplace price comparison. Filter by set, domain, rarity, cost, and keyword to browse every card and printing.";
-
-// TanStack Start encodes the server fn id as base64url-encoded JSON containing
-// the source file + export.
-function isCatalogServerFn(url: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    const decoded = Buffer.from(encoded, "base64url").toString("utf-8");
-    return decoded.includes("fetchCatalog");
-  } catch {
-    return false;
-  }
-}
 
 test.describe("/cards route essentials", () => {
   test("sets SEO meta and canonical tags", async ({ page }) => {
@@ -79,7 +64,7 @@ test.describe("/cards route essentials", () => {
       });
     });
     await page.route("**/_serverFn/**", async (route) => {
-      if (isCatalogServerFn(route.request().url())) {
+      if (isServerFn(route.request().url(), "fetchCatalog")) {
         await route.fulfill({
           status: 500,
           contentType: "application/json",

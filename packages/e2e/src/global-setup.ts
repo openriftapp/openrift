@@ -143,14 +143,9 @@ export default async function globalSetup(_config: FullConfig) {
   const sql = connectToDb(tempDbUrl);
   await sql.unsafe(seedSql);
 
-  // Migrations create the materialized views before seed data loads, so they
-  // start empty and need a refresh.
   console.log("[e2e] Refreshing materialized views...");
-  await sql`REFRESH MATERIALIZED VIEW mv_card_aggregates`;
-  // mv_latest_printing_prices is defined over mv_daily_printing_prices;
-  // refreshing out of order would publish an empty result.
-  await sql`REFRESH MATERIALIZED VIEW mv_daily_printing_prices`;
-  await sql`REFRESH MATERIALIZED VIEW mv_latest_printing_prices`;
+  const { refreshSeedMaterializedViews } = await import(`${apiRoot}/test/seed-views.js`);
+  await refreshSeedMaterializedViews(sql);
   await sql.end();
 
   console.log("[e2e] Starting API server on port", API_PORT, "...");

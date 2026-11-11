@@ -112,7 +112,9 @@ test.describe("sets", () => {
       await page.goto("/sets");
 
       const link = page.getByRole("link", { name: knownSet.name }).first();
-      await expect(link).toContainText(/\d+ cards?, \d+ printings?/u);
+      const card = page.locator('[data-slot="card"]').filter({ has: link });
+      await expect(card).toContainText(/\d+ cards?/u);
+      await expect(card).toContainText(/\d+ printings?/u);
     });
 
     test("Supplemental Sets section mirrors the API's supplemental set presence", async ({

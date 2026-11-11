@@ -46,9 +46,9 @@ async function createAndLogin(page: Page): Promise<string> {
   return email;
 }
 
-// A tile keeps the first printing in sort order; for OGS-001 "Annie, Fiery"
-// that's the foil, so seeding the normal printing reads zero on the tile.
-const ANNIE_FIERY_TILE_PRINTING = "019d17a1-2723-733a-a21e-4630e4370046";
+// A tile shows the canonically first printing; for "Annie, Fiery" that's the
+// standard one, so seeding the promo foil would read zero on the tile.
+const ANNIE_FIERY_TILE_PRINTING = "019cfc3b-03d6-74cf-adec-1dce41f631eb";
 
 async function seedInboxCopy(email: string, printingId: string): Promise<void> {
   const sql = loadDb();

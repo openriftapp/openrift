@@ -292,7 +292,7 @@ test.describe("decks list", () => {
       await expect(page.getByRole("heading", { level: 3, name: deckName })).toBeVisible();
       // The card count rides on the format badge; an empty deck shows the bare
       // format with no figure, so there is no "0 cards" text.
-      await expect(page.getByText("Freeform")).toBeVisible();
+      await expect(page.getByText("Freeform").filter({ visible: true })).toHaveCount(1);
       await expect(page.getByText(/\d+ cards/u)).toHaveCount(0);
 
       await expect(page.getByRole("button", { name: "Deck actions" })).toBeVisible();

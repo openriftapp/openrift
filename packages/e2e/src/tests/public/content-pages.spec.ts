@@ -3,14 +3,29 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "@playwright/test";
 
+import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
+
 // /rules is included because the e2e seed sets its feature flag to TRUE.
+const LEGAL_PATHS = ["/legal-notice", "/privacy-policy"] as const;
 const CONTENT_PATHS = [
-  "/legal-notice",
-  "/privacy-policy",
+  ...(IS_PRODUCTION_BUILD ? [] : LEGAL_PATHS),
   "/support",
   "/rules",
   "/changelog",
 ] as const;
+
+// A production build only counts openrift.app as the official instance, so
+// localhost serves the legal pages as 404s, as any self-hosted instance does.
+test.describe("legal pages on a non-official host", () => {
+  test.skip(!IS_PRODUCTION_BUILD, "the dev server counts as the official instance");
+
+  for (const path of LEGAL_PATHS) {
+    test(`${path} is not found`, async ({ page }) => {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+    });
+  }
+});
 
 test.describe("public content pages — smoke", () => {
   for (const path of CONTENT_PATHS) {
@@ -25,6 +40,8 @@ test.describe("public content pages — smoke", () => {
 });
 
 test.describe("/legal-notice", () => {
+  test.skip(IS_PRODUCTION_BUILD, "official instance only");
+
   test("renders the page heading", async ({ page }) => {
     await page.goto("/legal-notice");
     await expect(page.getByRole("heading", { name: "Legal Notice", level: 1 })).toBeVisible();
@@ -45,6 +62,8 @@ test.describe("/legal-notice", () => {
 });
 
 test.describe("/privacy-policy", () => {
+  test.skip(IS_PRODUCTION_BUILD, "official instance only");
+
   test("renders the page heading", async ({ page }) => {
     await page.goto("/privacy-policy");
     await expect(page.getByRole("heading", { name: "Privacy Policy", level: 1 })).toBeVisible();

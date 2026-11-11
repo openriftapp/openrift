@@ -8,6 +8,7 @@ import postgres from "postgres";
 import { createDb } from "../db/connect.js";
 import { migrate } from "../db/migrate.js";
 import type { Database } from "../db/tables.js";
+import { refreshSeedMaterializedViews } from "./seed-views.js";
 
 // oxlint-disable-next-line no-empty-function -- noop for postgres notice handler and logger
 export const noop = () => {};
@@ -243,18 +244,8 @@ export async function bootstrapSeededTestDb(
     const sql = postgres(testUrl, { onnotice: noop });
     await sql.unsafe(seedSql);
     if (options?.refreshMaterializedViews) {
-      // Migrations create the views before the seed data exists.
       console.log("Refreshing materialized views...");
-      await sql`REFRESH MATERIALIZED VIEW mv_card_aggregates`;
-      // Daily before latest: the latest view is defined over the daily one,
-      // so refreshing it first would publish an empty result.
-      await sql`REFRESH MATERIALIZED VIEW mv_daily_printing_prices`;
-      await sql`REFRESH MATERIALIZED VIEW mv_latest_printing_prices`;
-      // Without this every seeded printing falls back to the sentinel rank
-      // and `printing_sides_ordered` returns them in arbitrary order.
-      await sql`REFRESH MATERIALIZED VIEW mv_printing_sides_canonical_rank`;
-      // Without this, printings look like they have no foil twin.
-      await sql`REFRESH MATERIALIZED VIEW mv_printing_foil_twins`;
+      await refreshSeedMaterializedViews(sql);
     }
     await sql.end();
 

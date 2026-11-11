@@ -71,12 +71,12 @@ test.describe("card detail pane", () => {
     await expect(inactive).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("detail pane renders marketplace price chips when prices exist", async ({ page }) => {
+  test("detail pane renders marketplace buy links when prices exist", async ({ page }) => {
     const pane = await openPaneViaDeepLink(page);
 
-    await expect(pane.getByAltText(/TCGplayer|Cardmarket|CardTrader/u).first()).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(
+      pane.getByLabel(/^Buy on (?:TCGplayer|Cardmarket|CardTrader)$/u).first(),
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test("clicking 'Open card page' navigates to /cards/:slug", async ({ page }) => {
@@ -84,7 +84,9 @@ test.describe("card detail pane", () => {
 
     await pane.getByRole("link", { name: /open card page/iu }).click();
 
-    await expect(page).toHaveURL(/\/cards\/annie-fiery$/u);
+    await expect(page).toHaveURL(
+      new RegExp(`/cards/annie-fiery\\?printingId=${ANNIE_PRINTING_ID}$`, "u"),
+    );
     await expect(page.getByRole("heading", { level: 1, name: new RegExp(ANNIE, "u") })).toBeVisible(
       { timeout: 5000 },
     );

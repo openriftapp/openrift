@@ -337,6 +337,9 @@ test.describe("deck editor zones + drag-drop", () => {
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
+      // At 720px the sidebar's lower zones sit at the viewport edge, where the
+      // drag auto-scrolls the sidebar and the drop lands on the next zone down.
+      await page.setViewportSize({ width: 1280, height: 1000 });
       const unit = await pickCardByType("unit");
 
       const deckA = await createDeckViaApi(page.request, {

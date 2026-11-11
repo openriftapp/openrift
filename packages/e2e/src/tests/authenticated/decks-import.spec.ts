@@ -240,7 +240,7 @@ test.describe("deck import", () => {
       await expect(page.getByRole("heading", { name: "Import Preview" })).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByText(/\d+ cards? parsed/u)).toBeVisible();
+      await expect(page.getByText(/^\d+ entr(?:y|ies) · \d+ cards?$/u)).toBeVisible();
 
       await expect(page.getByText(/\d+ ready/u)).toBeVisible();
 

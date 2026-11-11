@@ -6,7 +6,8 @@ import { expect, test } from "@playwright/test";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
-import { decodeServerFnData } from "../../helpers/server-fn.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
+import { decodeServerFnData, isServerFn } from "../../helpers/server-fn.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -45,35 +46,12 @@ async function createAndLogin(page: Page): Promise<string> {
   return email;
 }
 
-// The server fn id is base64url(JSON) of the source file + export name;
-// decode it to target a single server fn out of the bundle.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
-}
-
+// The /profile loader fetches preferences during SSR, so no client GET follows.
 async function gotoProfile(page: Page) {
-  // usePreferencesSync writes the server's theme back to the store on GET
-  // resolution; if that lands after a user interaction it clobbers the choice.
-  const prefsResponse = page.waitForResponse(
-    (res) =>
-      res.request().method() === "GET" && isServerFn(res.request().url(), "fetchPreferencesFn"),
-    { timeout: 15_000 },
-  );
   await page.goto("/profile");
-  // CardTitle renders as a div; wait on a reliable interactive element instead.
-  await expect(page.getByRole("radio", { name: "Auto", exact: true })).toBeVisible({
-    timeout: 15_000,
-  });
-  await prefsResponse;
+  const autoButton = page.getByRole("radio", { name: "Auto", exact: true });
+  await expect(autoButton).toBeVisible({ timeout: 15_000 });
+  await waitForHydrated(autoButton);
 }
 
 test.describe("profile preferences", () => {

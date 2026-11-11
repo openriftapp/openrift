@@ -254,7 +254,7 @@ test.describe("collections grid", () => {
         await page.goto("/collections?view=cards");
 
         await expect(page.getByText("Annie, Fiery")).toHaveCount(1, { timeout: 15_000 });
-        await expect(page.getByText(/\b1 cards\b/u)).toBeVisible();
+        await expect(page.getByText(/\b1 card\b/u)).toBeVisible();
       });
     });
 
@@ -289,7 +289,7 @@ test.describe("collections grid", () => {
         const page = await context.newPage();
         await page.goto("/collections");
         await expect(page.getByText("Annie, Fiery").first()).toBeVisible({ timeout: 15_000 });
-        await expect(page.getByText(/\b1 cards\b/u)).toBeVisible();
+        await expect(page.getByText(/\b1 card\b/u)).toBeVisible();
 
         const viewGroup = page.getByRole("group", { name: "View mode" });
         // setView only writes a `view` param when it differs from the user's

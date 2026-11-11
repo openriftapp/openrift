@@ -5,6 +5,7 @@
       "dependsOn": ["topo"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".output/**"],
+      "env": ["E2E_READABLE_SERVER_FN_IDS"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT"]
     },
     "typecheck": {

@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb, deleteUser } from "../../helpers/db.js";
+import { isServerFn } from "../../helpers/server-fn.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -188,21 +189,6 @@ async function setupBlock(browser: Browser, blockLabel: string): Promise<BlockSt
     }
     return { user, inboxId: inbox.id };
   });
-}
-
-// TanStack Start encodes the server fn id as base64url(JSON); decode to target
-// a specific server fn out of the bundle during a route transition.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
 }
 
 test.describe("collection activity", () => {
@@ -640,11 +626,13 @@ test.describe("collection activity", () => {
 
         const eventLink = page.getByRole("link", { name: /Annie, Fiery/u });
         await expect(eventLink).toBeVisible({ timeout: 15_000 });
+        await expect(eventLink).toHaveAttribute(
+          "href",
+          new RegExp(`^/cards\\?printingId=${ANNIE_FIERY_NORMAL}`, "u"),
+        );
         await eventLink.click();
-
-        await expect(page).toHaveURL(new RegExp(`printingId=${ANNIE_FIERY_NORMAL}`, "u"), {
-          timeout: 15_000,
-        });
+        // The card browser strips printingId from the URL once it opens the card.
+        await expect(page).toHaveURL(/\/cards(?:\?|$)/u, { timeout: 15_000 });
 
         // The docked pane is opt-in (the `paneDocked` display preference,
         // off by default), so a card click opens the detail dialog instead.

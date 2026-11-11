@@ -28,6 +28,7 @@ import { m } from "@/paraglide/messages.js";
 interface MatrixProps {
   languages: string[];
   designs: PrintingDesign[];
+  selectedSideKey?: string;
   onSelect: (printing: Printing) => void;
   highlightSideKey?: string | null;
   onHighlightEnd?: () => void;
@@ -130,6 +131,7 @@ const CELL_GRID =
 function PrintingMatrix({
   languages,
   designs,
+  selectedSideKey,
   onSelect,
   highlightSideKey,
   onHighlightEnd,
@@ -218,6 +220,11 @@ function PrintingMatrix({
                     key={language}
                     printing={printing}
                     languageLabel={enumLabel(languageLabels, language)}
+                    selected={
+                      selectedSideKey === undefined
+                        ? undefined
+                        : isSelectedSide(printing, selectedSideKey)
+                    }
                     highlighted={
                       highlightSideKey !== undefined &&
                       highlightSideKey !== null &&
@@ -242,6 +249,7 @@ function PrintingMatrix({
 function PrintingCell({
   printing,
   languageLabel,
+  selected,
   highlighted,
   onHighlightEnd,
   onSelect,
@@ -251,6 +259,7 @@ function PrintingCell({
 }: {
   printing: Printing;
   languageLabel: string;
+  selected?: boolean;
   highlighted: boolean;
   onHighlightEnd?: () => void;
   onSelect: () => void;
@@ -280,6 +289,7 @@ function PrintingCell({
               data-printing-id={printing.printingId}
               data-highlighted={highlighted || undefined}
               data-lightbox-tile=""
+              aria-pressed={selected}
               aria-label={`${distinctPrintingCode(printing)}, ${languageLabel}`}
               onAnimationEnd={(event) => {
                 if (highlighted && event.target === event.currentTarget) {
@@ -287,11 +297,17 @@ function PrintingCell({
                 }
               }}
               className={cn(
-                "hover:bg-muted/50 block w-full rounded-md px-1 py-1 transition-colors",
+                "block w-full rounded-md px-1 py-1 transition-colors",
+                selected ? "bg-primary/10" : "hover:bg-muted/50",
                 highlighted && "animate-printing-picked",
               )}
             >
-              <span className="relative block w-full rounded-[5%/3.6%]">
+              <span
+                className={cn(
+                  "relative block w-full rounded-[5%/3.6%]",
+                  selected && "ring-primary ring-offset-card ring-2 ring-offset-2",
+                )}
+              >
                 {art}
                 <OwnedPill floating count={stats?.owned?.[printing.printingId]} />
               </span>

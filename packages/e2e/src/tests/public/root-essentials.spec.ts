@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
+
 test.describe("root essentials", () => {
   test.describe("404 / unknown route", () => {
     test("renders header, not-found heading, Go home link, and footer", async ({ page }) => {
@@ -16,7 +18,10 @@ test.describe("root essentials", () => {
       await expect(goHome).toBeVisible();
       await expect(goHome).toHaveAttribute("href", "/");
 
-      await expect(page.getByRole("link", { name: "Legal Notice" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Legal Notice" })).toHaveCount(
+        IS_PRODUCTION_BUILD ? 0 : 1,
+      );
+      await expect(page.locator("footer")).toBeVisible();
 
       await goHome.click();
       await expect(page).toHaveURL("/");
@@ -93,7 +98,7 @@ test.describe("root essentials", () => {
     test("inlines a matchMedia/theme-preference script in the document", async ({ page }) => {
       await page.goto("/");
       const html = await page.content();
-      expect(html).toContain("prefers-color-scheme:dark");
+      expect(html).toContain("(prefers-color-scheme: dark)");
       expect(html).toContain("matchMedia");
     });
   });

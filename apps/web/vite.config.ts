@@ -322,6 +322,20 @@ export default defineConfig(({ mode, command }) => {
       // job's `tsr generate` read the same routeFileIgnorePattern.
       tanstackStart({
         router: { codeSplittingOptions: { splitBehavior: adminRouteSplitBehavior } },
+        // E2E builds use dev-style ids so specs can match a server fn by its export name.
+        ...(process.env.E2E_READABLE_SERVER_FN_IDS
+          ? {
+              serverFns: {
+                generateFunctionId: ({ filename, functionName }) =>
+                  Buffer.from(
+                    JSON.stringify({
+                      file: path.relative(repoRoot, filename),
+                      export: functionName,
+                    }),
+                  ).toString("base64url"),
+              },
+            }
+          : {}),
       }),
       // Build only: in dev, Nitro caches stale SSR HTML after HMR, causing
       // hydration mismatches. https://github.com/TanStack/router/issues/6556

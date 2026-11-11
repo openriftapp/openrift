@@ -54,7 +54,7 @@ test.describe("card detail modal scroll", () => {
     await expect(position).toBeVisible();
     const openedAt = await position.textContent();
     for (let step = 0; step < 4; step++) {
-      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("ArrowRight");
     }
     await expect(position).not.toHaveText(openedAt ?? "");
     await page.waitForTimeout(500);

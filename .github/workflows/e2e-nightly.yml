@@ -60,6 +60,8 @@ jobs:
 
       - name: Build
         run: bun run build
+        env:
+          E2E_READABLE_SERVER_FN_IDS: "1"
 
       - name: Install Chromium
         working-directory: packages/e2e

@@ -1,4 +1,5 @@
 import { expect, test } from "../../fixtures/test.js";
+import { IS_PRODUCTION_BUILD } from "../../helpers/constants.js";
 
 test.describe("landing page", () => {
   test("renders the homepage with title and navigation", async ({ page }) => {
@@ -128,13 +129,20 @@ test.describe("landing page", () => {
   });
 
   test("footer internal links navigate to their pages", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: "Legal Notice" }).click();
-    await expect(page).toHaveURL("/legal-notice");
+    if (IS_PRODUCTION_BUILD) {
+      await page.goto("/");
+      await expect(page.locator("footer").getByRole("link", { name: "Legal Notice" })).toHaveCount(
+        0,
+      );
+    } else {
+      await page.goto("/");
+      await page.getByRole("link", { name: "Legal Notice" }).click();
+      await expect(page).toHaveURL("/legal-notice");
 
-    await page.goto("/");
-    await page.getByRole("link", { name: "Privacy Policy" }).click();
-    await expect(page).toHaveURL("/privacy-policy");
+      await page.goto("/");
+      await page.getByRole("link", { name: "Privacy Policy" }).click();
+      await expect(page).toHaveURL("/privacy-policy");
+    }
 
     await page.goto("/");
     await page.getByRole("link", { name: "Support Us" }).click();

@@ -6,12 +6,21 @@ import { useSessionExpiredRedirect } from "./use-session-expired-redirect";
 const { navigateMock, sessionState, locationState } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   sessionState: { data: undefined as unknown },
-  locationState: { href: "/decks/abc" },
+  locationState: { href: "/decks/abc", pathname: "/decks/abc" },
 }));
+
+const PUBLIC_PATHS = new Set(["/cards"]);
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
-  useLocation: () => ({ href: locationState.href }),
+  useLocation: () => ({ href: locationState.href, pathname: locationState.pathname }),
+  useRouter: () => ({
+    getMatchedRoutes: (pathname: string) => [
+      PUBLIC_PATHS.has(pathname)
+        ? [{ id: "__root__" }, { id: "/_app" }, { id: "/_app/cards" }]
+        : [{ id: "__root__" }, { id: "/_app" }, { id: "/_app/_authenticated" }],
+    ],
+  }),
 }));
 
 vi.mock("@/hooks/use-session", () => ({
@@ -23,6 +32,7 @@ describe("useSessionExpiredRedirect", () => {
     navigateMock.mockClear();
     sessionState.data = undefined;
     locationState.href = "/decks/abc";
+    locationState.pathname = "/decks/abc";
   });
 
   it("does nothing while the session query has not resolved (undefined)", () => {
@@ -106,5 +116,18 @@ describe("useSessionExpiredRedirect", () => {
       to: "/login",
       search: { redirect: undefined, email: undefined },
     });
+  });
+
+  it("does not redirect while the router is already leaving for a public page", () => {
+    sessionState.data = { user: { id: "user-1" } };
+    const { result, rerender } = renderHook(() => useSessionExpiredRedirect());
+
+    locationState.href = "/cards";
+    locationState.pathname = "/cards";
+    sessionState.data = null;
+    rerender();
+
+    expect(result.current).toBe(true);
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });

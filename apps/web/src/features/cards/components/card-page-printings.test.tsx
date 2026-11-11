@@ -181,7 +181,7 @@ describe("CardPagePrintings", () => {
     expect(onLanguageSelect).toHaveBeenCalledWith("FR");
   });
 
-  it("leaves the shown printing unmarked in the large table", () => {
+  it("marks the shown printing in the large table", () => {
     const english = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "EN" });
     const french = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "FR" });
     const { container } = render(
@@ -192,7 +192,19 @@ describe("CardPagePrintings", () => {
       />,
     );
 
-    const cell = container.querySelector(`.md\\:block [data-printing-id="${french.printingId}"]`);
+    const cell = (printingId: string) =>
+      container.querySelector(`.md\\:block [data-printing-id="${printingId}"]`);
+    expect(cell(french.printingId)).toHaveAttribute("aria-pressed", "true");
+    expect(cell(english.printingId)).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("leaves every cell unmarked when no printing is shown", () => {
+    const english = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "EN" });
+    const { container } = render(
+      <PrintingLanguageMatrix printings={[english]} onSelect={vi.fn()} />,
+    );
+
+    const cell = container.querySelector(`[data-printing-id="${english.printingId}"]`);
     expect(cell).not.toBeNull();
     expect(cell).not.toHaveAttribute("aria-pressed");
   });

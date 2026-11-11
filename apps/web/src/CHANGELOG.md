@@ -7,6 +7,10 @@
 - feat(Rules): **Search by rule number** — typing a rule number such as 359, rule 50 or 702.2.b in the rules search shows that rule and its sub-rules. Searching for a section heading like Silver Rule now shows the rules in that section, and the rules page has a button to scroll back to the top.
 - fix(Decks): **Missing cards go to your marketplace** — the missing cards and card prices lists now hand off to the marketplace you pick for prices. TCGplayer and CardNexus get the cards straight into the cart, and CardTrader gets a wishlist to paste, where before every deck offered Cardmarket.
 
+### Other
+
+- fix(Cards): **Shown printing marked again** — on a card page on desktop, the printing you are looking at is outlined again in the Printings table.
+
 ## 2026-11-10
 
 ### Highlights

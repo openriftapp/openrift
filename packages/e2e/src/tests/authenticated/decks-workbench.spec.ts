@@ -145,9 +145,16 @@ test.describe("deck builder beta", () => {
     await expect(deckColumn(page)).toBeVisible();
     await expect(page.getByText("Adding to")).toBeHidden();
 
-    await detail.getByRole("button", { name: "Add to Main Deck" }).click();
+    await detail
+      .getByRole("button", { name: /^Add one copy of Annie, Fiery/u })
+      .first()
+      .click();
     await expect(deckColumn(page).getByText("Annie, Fiery")).toBeVisible();
-    await expect(detail.getByText("1 in deck")).toBeVisible();
+    await expect(
+      detail
+        .getByRole("group", { name: "Zone to edit" })
+        .getByRole("button", { name: "Main Deck · 1" }),
+    ).toBeVisible();
 
     await page.keyboard.press("Escape");
     await expect(detail).toBeHidden();
@@ -177,8 +184,8 @@ test.describe("deck builder beta", () => {
       );
     await annie.getByRole("button", { name: "Add to deck" }).click({ timeout: 15_000 });
     const row = deckColumn(page)
-      .getByRole("button", { name: /^Energy 5 Annie, Fiery/u })
-      .last();
+      .locator('[data-deck-card-id][role="button"]')
+      .filter({ hasText: "Annie, Fiery" });
     await row.focus();
     await page.keyboard.press("Shift+F10");
     await expect(page.getByRole("menuitem", { name: "Remove from deck" })).toBeVisible();
@@ -187,7 +194,7 @@ test.describe("deck builder beta", () => {
     await page.context().close();
   });
 
-  test("Back leaves the editor in one press after a trip to Deck mode", async ({ browser }) => {
+  test("Back leaves the editor in one press after a trip to View mode", async ({ browser }) => {
     const page = await signUpFreshUser(browser);
     const deckId = await createDeck(page, "Beta History Deck");
     await optIn(page);
@@ -196,9 +203,9 @@ test.describe("deck builder beta", () => {
     await page.goto(`/decks/${deckId}`);
     await expect(deckColumn(page)).toBeVisible({ timeout: 15_000 });
     const modes = page.getByRole("group", { name: "Editor mode" });
-    await modes.getByRole("button", { name: "Deck", exact: true }).click();
+    await modes.getByRole("button", { name: "View", exact: true }).click();
     await expect(deckColumn(page)).toBeHidden();
-    await modes.getByRole("button", { name: "Build", exact: true }).click();
+    await modes.getByRole("button", { name: "Edit", exact: true }).click();
     await expect(deckColumn(page)).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(/\/decks$/u, { timeout: 15_000 });
