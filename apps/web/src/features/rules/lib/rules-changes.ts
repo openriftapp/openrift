@@ -297,12 +297,46 @@ export function parseSearchTerms(query: string): string[] {
   return query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
 }
 
+const RULE_NUMBER_QUERY =
+  /^(?:(?:rules?|r|règle|regle|규칙|规则)\s*)?#?\s*(?<number>\d+(?:\.[\da-z]+)*)\.?$/iu;
+
+function normalizeRuleNumber(ruleNumber: string): string {
+  return ruleNumber
+    .toLowerCase()
+    .replace(/\.$/u, "")
+    .replace(/^0+(?=\d)/u, "");
+}
+
+export function parseRuleNumberQuery(query: string): string | null {
+  const match = RULE_NUMBER_QUERY.exec(query.trim());
+  const number = match?.groups?.number;
+  return number === undefined ? null : normalizeRuleNumber(number);
+}
+
+function ruleNumberMatches(rule: RuleEntry, number: string): boolean {
+  const normalized = normalizeRuleNumber(rule.ruleNumber);
+  return normalized === number || normalized.startsWith(`${number}.`);
+}
+
 function ruleMatches(rule: RuleEntry, terms: string[]): boolean {
   if (terms.length === 0) {
     return false;
   }
   const text = ruleSearchText(rule);
   return terms.every((term) => text.includes(term));
+}
+
+function headingSectionIndices(rules: RuleEntry[], headingIndex: number): number[] {
+  const heading = rules[headingIndex];
+  const indices: number[] = [];
+  for (let index = headingIndex + 1; index < rules.length; index++) {
+    const ruleType = rules[index]?.ruleType;
+    if (ruleType === "title" || (heading?.ruleType === "subtitle" && ruleType === "subtitle")) {
+      break;
+    }
+    indices.push(index);
+  }
+  return indices;
 }
 
 function findAncestorIndices(
@@ -341,9 +375,11 @@ export interface SearchResult {
   ancestorSet: Set<number>;
 }
 
-export function computeSearchResult(rules: RuleEntry[], terms: string[]): SearchResult {
+export function computeSearchResult(rules: RuleEntry[], query: string): SearchResult {
   const matchSet = new Set<number>();
   const ancestorSet = new Set<number>();
+  const sectionSet = new Set<number>();
+  const terms = parseSearchTerms(query);
   if (terms.length === 0) {
     return { visibleIndices: [], matchSet, ancestorSet };
   }
@@ -351,15 +387,31 @@ export function computeSearchResult(rules: RuleEntry[], terms: string[]): Search
   for (const [index, rule] of rules.entries()) {
     rulesByNumber.set(rule.ruleNumber.replace(/\.$/u, ""), index);
   }
+  const parsedNumber = parseRuleNumberQuery(query);
+  const ruleNumber =
+    parsedNumber !== null && rules.some((rule) => ruleNumberMatches(rule, parsedNumber))
+      ? parsedNumber
+      : null;
   for (const [index, rule] of rules.entries()) {
-    if (ruleMatches(rule, terms)) {
-      matchSet.add(index);
-      for (const ancestorIndex of findAncestorIndices(rules, rule, index, rulesByNumber)) {
-        ancestorSet.add(ancestorIndex);
+    const matches =
+      ruleNumber === null ? ruleMatches(rule, terms) : ruleNumberMatches(rule, ruleNumber);
+    if (!matches) {
+      continue;
+    }
+    matchSet.add(index);
+    for (const ancestorIndex of findAncestorIndices(rules, rule, index, rulesByNumber)) {
+      ancestorSet.add(ancestorIndex);
+    }
+    if (rule.ruleType === "title" || rule.ruleType === "subtitle") {
+      for (const sectionIndex of headingSectionIndices(rules, index)) {
+        sectionSet.add(sectionIndex);
       }
     }
   }
-  const combined = new Set<number>([...matchSet, ...ancestorSet]);
+  for (const sectionIndex of sectionSet) {
+    ancestorSet.delete(sectionIndex);
+  }
+  const combined = new Set<number>([...matchSet, ...ancestorSet, ...sectionSet]);
   const visibleIndices = [...combined].toSorted((a, b) => a - b);
   return { visibleIndices, matchSet, ancestorSet };
 }

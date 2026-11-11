@@ -406,6 +406,7 @@
   "common_cancel": "取消",
   "common_confirm_phrase_placeholder": "請輸入 \"{phrase}\" 以確認",
   "common_dismiss": "關閉",
+  "common_scroll_to_top": "回到頂部",
   "common_copy": "複製",
   "common_copied": "已複製",
   "common_copy_share_link": "複製分享連結",

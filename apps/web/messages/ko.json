@@ -406,6 +406,7 @@
   "common_cancel": "취소",
   "common_confirm_phrase_placeholder": "확인하려면 \"{phrase}\" 입력",
   "common_dismiss": "닫기",
+  "common_scroll_to_top": "맨 위로 스크롤",
   "common_copy": "복사",
   "common_copied": "복사됨",
   "common_copy_share_link": "공유 링크 복사",

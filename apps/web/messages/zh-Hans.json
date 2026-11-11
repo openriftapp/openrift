@@ -406,6 +406,7 @@
   "common_cancel": "取消",
   "common_confirm_phrase_placeholder": "输入 \"{phrase}\" 以确认",
   "common_dismiss": "关闭",
+  "common_scroll_to_top": "回到顶部",
   "common_copy": "复制",
   "common_copied": "已复制",
   "common_copy_share_link": "复制分享链接",

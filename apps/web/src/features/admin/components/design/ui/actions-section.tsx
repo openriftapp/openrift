@@ -23,6 +23,7 @@ import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CountPillButton } from "@/components/ui/count-pill";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Pressable } from "@/components/ui/pressable";
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import {
   DemoGroup,
   DemoRow,
@@ -183,6 +184,12 @@ export function ActionsSection() {
                 <div className="text-muted-foreground text-xs">OGN-042 · Epic</div>
               </div>
             </Pressable>
+          </DemoRow>
+          <DemoRow
+            label="ScrollToTopButton"
+            hint="Pinned bottom-right on long pages. It fades in once the page is scrolled past `threshold` (800px by default)."
+          >
+            <ScrollToTopButton threshold={-1} className="static" />
           </DemoRow>
           <DemoRow label="ExpandToggle (labeled)">
             <div className="w-full max-w-sm space-y-2">

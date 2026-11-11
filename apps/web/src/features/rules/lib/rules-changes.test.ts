@@ -8,6 +8,7 @@ import {
   detectMoves,
   detectSilentChanges,
   mergeTombstones,
+  parseRuleNumberQuery,
   parseSearchTerms,
   withSourceContent,
 } from "./rules-changes";
@@ -634,7 +635,7 @@ describe("computeSearchResult", () => {
   ];
 
   it("returns nothing for an empty term list", () => {
-    const result = computeSearchResult(rules, []);
+    const result = computeSearchResult(rules, "");
 
     expect(result.visibleIndices).toEqual([]);
     expect(result.matchSet.size).toBe(0);
@@ -642,7 +643,7 @@ describe("computeSearchResult", () => {
   });
 
   it("pulls in the enclosing title, subtitle and dot-nested parents of a match", () => {
-    const result = computeSearchResult(rules, ["coin"]);
+    const result = computeSearchResult(rules, "coin");
 
     expect([...result.matchSet]).toEqual([4]);
     expect([...result.ancestorSet].toSorted((a, b) => a - b)).toEqual([0, 1, 2, 3]);
@@ -650,25 +651,106 @@ describe("computeSearchResult", () => {
   });
 
   it("stops at the nearest title and does not reach into an earlier section", () => {
-    const result = computeSearchResult(rules, ["damage"]);
+    const result = computeSearchResult(rules, "damage");
 
     expect([...result.matchSet]).toEqual([6]);
     expect([...result.ancestorSet]).toEqual([5]);
   });
 
   it("requires every term to appear in the same rule", () => {
-    expect(computeSearchResult(rules, ["shuffles", "damage"]).matchSet.size).toBe(0);
-    expect([...computeSearchResult(rules, ["shuffles", "deck"]).matchSet]).toEqual([2]);
+    expect(computeSearchResult(rules, "shuffles damage").matchSet.size).toBe(0);
+    expect([...computeSearchResult(rules, "shuffles deck").matchSet]).toEqual([2]);
   });
 
   it("matches case-insensitively against the rule content", () => {
-    expect([...computeSearchResult(rules, parseSearchTerms("COMBAT")).matchSet]).toEqual([5]);
+    expect([...computeSearchResult(rules, "COMBAT").matchSet]).toEqual([5]);
   });
 
   it("returns visible indices in ascending order across several matches", () => {
-    const result = computeSearchResult(rules, ["player"]);
+    const result = computeSearchResult(rules, "player");
 
     expect(result.visibleIndices).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("parseRuleNumberQuery", () => {
+  it("reads a bare number, a prefixed number and a nested number", () => {
+    expect(parseRuleNumberQuery("359")).toBe("359");
+    expect(parseRuleNumberQuery("Rule 359")).toBe("359");
+    expect(parseRuleNumberQuery("r359")).toBe("359");
+    expect(parseRuleNumberQuery("#702.2.B")).toBe("702.2.b");
+    expect(parseRuleNumberQuery("règle 50.")).toBe("50");
+  });
+
+  it("drops leading zeros so 50 finds rule 050", () => {
+    expect(parseRuleNumberQuery("050")).toBe("50");
+    expect(parseRuleNumberQuery("000")).toBe("0");
+  });
+
+  it("rejects queries that are not a rule number", () => {
+    expect(parseRuleNumberQuery("draw 2")).toBeNull();
+    expect(parseRuleNumberQuery("buffs")).toBeNull();
+    expect(parseRuleNumberQuery("rule")).toBeNull();
+    expect(parseRuleNumberQuery("")).toBeNull();
+  });
+});
+
+describe("computeSearchResult by rule number", () => {
+  const rules = [
+    rule({ ruleNumber: "000", ruleType: "title", content: "Golden and Silver Rules" }),
+    rule({ ruleNumber: "050", ruleType: "subtitle", content: "Silver Rule" }),
+    rule({ ruleNumber: "051", content: "Card text uses different terminology." }),
+    rule({ ruleNumber: "300", ruleType: "title", content: "Playing Cards" }),
+    rule({ ruleNumber: "358", content: "Pay the costs." }),
+    rule({ ruleNumber: "359", content: "Finish finalizing this card. See rule 52." }),
+    rule({ ruleNumber: "359.1", content: "A note on finalizing." }),
+    rule({ ruleNumber: "3590", content: "An unrelated rule." }),
+  ];
+
+  it("shows the numbered rule with its sub-rules and headings, not rules that mention it", () => {
+    const result = computeSearchResult(rules, "rule 359");
+
+    expect([...result.matchSet]).toEqual([5, 6]);
+    expect(result.visibleIndices).toEqual([3, 5, 6]);
+  });
+
+  it("finds a zero-padded heading and shows its section", () => {
+    const result = computeSearchResult(rules, "50");
+
+    expect([...result.matchSet]).toEqual([1]);
+    expect(result.visibleIndices).toEqual([0, 1, 2]);
+  });
+
+  it("falls back to a text search when no rule has that number", () => {
+    expect([...computeSearchResult(rules, "rule 52").matchSet]).toEqual([5]);
+    expect([...computeSearchResult(rules, "999").matchSet]).toEqual([]);
+  });
+});
+
+describe("computeSearchResult on headings", () => {
+  const rules = [
+    rule({ ruleNumber: "000", ruleType: "title", content: "Golden and Silver Rules" }),
+    rule({ ruleNumber: "001", ruleType: "subtitle", content: "Golden Rule" }),
+    rule({ ruleNumber: "002", content: "Card text supersedes rules text." }),
+    rule({ ruleNumber: "050", ruleType: "subtitle", content: "Silver Rule" }),
+    rule({ ruleNumber: "051", content: "Card text uses different terminology." }),
+    rule({ ruleNumber: "051.1", content: "A clarification." }),
+    rule({ ruleNumber: "100", ruleType: "title", content: "Game Concepts" }),
+    rule({ ruleNumber: "101", content: "Unrelated." }),
+  ];
+
+  it("shows the whole section under a matching subtitle, undimmed", () => {
+    const result = computeSearchResult(rules, "silver rule");
+
+    expect([...result.matchSet]).toEqual([0, 3]);
+    expect(result.visibleIndices).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(result.ancestorSet).toEqual(new Set([0]));
+  });
+
+  it("stops a subtitle's section at the next subtitle", () => {
+    expect(computeSearchResult(rules, "golden rule").visibleIndices).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(computeSearchResult(rules, "golden rule").matchSet).toEqual(new Set([0, 1]));
+    expect(computeSearchResult(rules.slice(1), "golden rule").visibleIndices).toEqual([0, 1]);
   });
 });
 
@@ -687,7 +769,7 @@ describe("computeSearchResult on rendered HTML", () => {
     const rules = [
       rule({ ruleNumber: "100", contentHtml: 'See <a href="#rule-540">rule 540</a> &amp; more.' }),
     ];
-    expect(computeSearchResult(rules, ["rule", "540", "&"]).matchSet).toEqual(new Set([0]));
-    expect(computeSearchResult(rules, ["href"]).matchSet).toEqual(new Set());
+    expect(computeSearchResult(rules, "rule 540 &").matchSet).toEqual(new Set([0]));
+    expect(computeSearchResult(rules, "href").matchSet).toEqual(new Set());
   });
 });

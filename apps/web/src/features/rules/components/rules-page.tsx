@@ -13,6 +13,7 @@ import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { PAGE_TOP_BAR_GEOMETRY } from "@/components/layout/page-top-bar";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import { featuredBoardStatesQueryOptions } from "@/features/board-states/lib/board-states-queries";
 import { useRuleVersions, useRulesAtVersion } from "@/features/rules/hooks/use-rules";
 import { buildRuleExamplesMap } from "@/features/rules/lib/rule-examples";
@@ -33,6 +34,7 @@ import {
   EMPTY_STRING_MAP,
   EMPTY_STRING_SET,
   mergeTombstones,
+  parseRuleNumberQuery,
   parseSearchTerms,
   withSourceContent,
 } from "@/features/rules/lib/rules-changes";
@@ -215,8 +217,10 @@ function RulesContent({
     .toReversed()
     .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
 
-  const searchTerms = parseSearchTerms(debouncedSearchQuery);
-  const isSearching = searchTerms.length > 0 && debouncedSearchQuery.trim().length >= 2;
+  const isSearching =
+    parseSearchTerms(debouncedSearchQuery).length > 0 &&
+    (debouncedSearchQuery.trim().length >= 2 ||
+      parseRuleNumberQuery(debouncedSearchQuery) !== null);
   const isEmpty = rulesData.rules.length === 0;
 
   const changesView = useRulesChangesViewStore((state) => state.byKind[kind]);
@@ -260,7 +264,7 @@ function RulesContent({
 
   const foldGroups = computeFoldGroups(rules);
   const ancestorsByRule = computeAncestorsByRule(rules, foldGroups);
-  const searchResult = isSearching ? computeSearchResult(rules, searchTerms) : null;
+  const searchResult = isSearching ? computeSearchResult(rules, debouncedSearchQuery) : null;
   const noSearchResults =
     isSearching && searchResult !== null && searchResult.visibleIndices.length === 0;
   const tocItems = buildRulesTocItems(rules);
@@ -433,6 +437,7 @@ function RulesContent({
           </div>
         )}
       </div>
+      <ScrollToTopButton />
     </>
   );
 }

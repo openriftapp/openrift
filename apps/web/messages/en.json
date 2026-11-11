@@ -406,6 +406,7 @@
   "common_cancel": "Cancel",
   "common_confirm_phrase_placeholder": "Type \"{phrase}\" to confirm",
   "common_dismiss": "Dismiss",
+  "common_scroll_to_top": "Scroll to top",
   "common_copy": "Copy",
   "common_copied": "Copied",
   "common_copy_share_link": "Copy share link",
