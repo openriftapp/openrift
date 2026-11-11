@@ -136,12 +136,13 @@ export function OverlayCardLines({ overlay }: { overlay: MetaOverlayQueueRow }) 
   if (overlay.cards.length === 0) {
     return null;
   }
+  const copies = overlay.cards.reduce((sum, card) => sum + card.quantity, 0);
   return (
     <div className="space-y-3">
       <div className="flex items-baseline gap-2">
         <span className="font-medium">Decklist</span>
         <span className="text-muted-foreground text-sm">
-          {overlay.cards.length} {pluralize(overlay.cards.length, "line")}
+          {copies} {pluralize(copies, "card")}
           {overlay.unresolvedNames.length === 0 && " · every name resolved"}
         </span>
       </div>

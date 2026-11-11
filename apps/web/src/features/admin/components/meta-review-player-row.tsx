@@ -107,10 +107,11 @@ function CardsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
   if (overlay.cards.length === 0) {
     return <span className="text-muted-foreground">No decklist</span>;
   }
+  const copies = overlay.cards.reduce((sum, card) => sum + card.quantity, 0);
   return (
     <span className="flex items-center gap-1.5">
       <CheckIcon className="text-success size-3.5" />
-      {overlay.cards.length} {pluralize(overlay.cards.length, "line")}
+      {copies} {pluralize(copies, "card")}
     </span>
   );
 }
