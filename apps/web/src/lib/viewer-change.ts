@@ -4,7 +4,7 @@ import { sessionQueryOptions } from "./auth-session";
 import { featureFlagsQueryOptions } from "./feature-flags";
 
 /** Route guards read flags with `staleTime: "static"`, which ignores invalidation, so this fetches. */
-export async function refetchFeatureFlags(queryClient: QueryClient): Promise<void> {
+async function refetchFeatureFlags(queryClient: QueryClient): Promise<void> {
   try {
     await queryClient.query({ ...featureFlagsQueryOptions, staleTime: 0 });
   } catch {

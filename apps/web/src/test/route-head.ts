@@ -17,7 +17,7 @@ type LoaderFn = (ctx: unknown) => Promise<unknown>;
 type HeadFn = (ctx: { loaderData: unknown; params: Record<string, string> }) => HeadOutput;
 
 /** Answers the route's own query with `payload`; flags and the set list get the values every loader needs. */
-export function stubQueryClient(payload: unknown) {
+function stubQueryClient(payload: unknown) {
   const flagsKey = JSON.stringify(featureFlagsQueryOptions.queryKey);
   const setsKey = JSON.stringify(publicSetListQueryOptions.queryKey);
   return {
