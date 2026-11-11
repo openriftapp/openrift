@@ -738,6 +738,8 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(await decks.setPredecessor(older.id, userId, null)).not.toBe("invalid");
       expect(await decks.setPredecessor(newer.id, userId, older.id)).not.toBe("invalid");
       expect(await decks.setPredecessor(live.id, userId, newer.id)).not.toBe("invalid");
+      // Pin the recency order explicitly: relinking no longer stamps updated_at.
+      await decks.update(live.id, userId, { name: "DV Unlink Chain (edited)" });
 
       const departed = await unlinkOf(newer.id);
       expect(departed.familyId).toBeNull();
