@@ -172,6 +172,9 @@ export const META_EVENT_SORTS = [
   "organizer",
 ] as const;
 
+/** A {@link META_EVENT_SORTS} column, or `relevance` for a typed search. */
+export const META_EVENT_LIST_SORTS = [...META_EVENT_SORTS, "relevance"] as const;
+
 /** Which way a {@link META_EVENT_SORTS} column runs. */
 export const META_EVENT_SORT_DIRECTIONS = ["asc", "desc"] as const;
 

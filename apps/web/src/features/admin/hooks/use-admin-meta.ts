@@ -10,7 +10,6 @@ import {
   adminMetaEventPlayersQueryOptions,
   adminMetaEventQueryOptions,
   adminMetaEventsQueryOptions,
-  META_EVENT_SORT_FALLBACK,
 } from "@/features/admin/lib/admin-meta-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
@@ -44,12 +43,9 @@ const searchMetaEvents = createServerFn({ method: "GET" })
   .validator((search: string) => search)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<AdminMetaEventList> =>
-    apiOrpcClient(adminMetaContract, context.cookie).listEvents({
-      search: data === "" ? undefined : data,
-      limit: 8,
-      sort: META_EVENT_SORT_FALLBACK.sort,
-      direction: META_EVENT_SORT_FALLBACK.direction,
-    }),
+    apiOrpcClient(adminMetaContract, context.cookie).listEvents(
+      data.trim() === "" ? { limit: 15 } : { search: data, limit: 15, sort: "relevance" },
+    ),
   );
 
 export function useMetaEventSearch(search: string) {

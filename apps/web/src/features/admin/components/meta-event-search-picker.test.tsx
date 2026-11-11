@@ -48,6 +48,16 @@ describe("MetaEventSearchPicker", () => {
     expect(screen.getByRole("option", { name: /Piltover Open/u })).toBeVisible();
   });
 
+  it("leads each option with its date", async () => {
+    captured.events = [event()];
+
+    render(<MetaEventSearchPicker onPick={vi.fn()} />);
+    await userEvent.type(screen.getByRole("combobox"), "sum");
+
+    const option = await screen.findByRole("option", { name: /Summoner Skirmish/u });
+    expect(option.textContent).toMatch(/^\S*2026\S*\s*Summoner Skirmish/u);
+  });
+
   it("picks the event that is selected", async () => {
     captured.events = [event()];
     const onPick = vi.fn();

@@ -1,5 +1,6 @@
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 import type {
+  META_EVENT_LIST_SORTS,
   META_EVENT_SORTS,
   MetaEventSourceFilter,
   MetaEventStatus,
@@ -126,7 +127,7 @@ const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<boolean>> = {
 
 /** How one page of the live event list is ordered. Defaults to newest first. */
 export interface MetaEventOrder {
-  sort?: (typeof META_EVENT_SORTS)[number];
+  sort?: (typeof META_EVENT_LIST_SORTS)[number];
   direction?: "asc" | "desc";
 }
 
@@ -144,8 +145,20 @@ const EVENT_ORDER_COLUMNS: Record<(typeof META_EVENT_SORTS)[number], RawBuilder<
  * not the answer to "who ran the earliest event", in either direction.
  */
 function eventOrderBy(order: MetaEventOrder) {
-  const column = EVENT_ORDER_COLUMNS[order.sort ?? "eventDate"];
+  const sort = order.sort === undefined || order.sort === "relevance" ? "eventDate" : order.sort;
+  const column = EVENT_ORDER_COLUMNS[sort];
   return order.direction === "asc" ? sql`${column} asc nulls last` : sql`${column} desc nulls last`;
+}
+
+/**
+ * Exact name first, then by how early the term appears in the name, newest
+ * first within a tie. Organizer-only hits go last.
+ */
+function relevanceOrderBy(search: string) {
+  const term = search.trim().toLowerCase();
+  return sql`lower(meta_events.name) = ${term} desc,
+    nullif(strpos(lower(meta_events.name), ${term}), 0) asc nulls last,
+    meta_events.event_date desc`;
 }
 
 /**
@@ -286,8 +299,13 @@ export function metaEventsRepo<R = never>(
       page: { limit: number; offset: number },
       order: MetaEventOrder = {},
     ): Promise<{ rows: MetaEventWithCounts[]; total: number }> {
+      const search = filters.search?.trim() ?? "";
       let query = eventQuery()
-        .orderBy(eventOrderBy(order))
+        .orderBy(
+          order.sort === "relevance" && search !== ""
+            ? relevanceOrderBy(search)
+            : eventOrderBy(order),
+        )
         // Whole days collide constantly on the date column, so the slug breaks
         // ties and keeps a page boundary from repeating or skipping a row.
         .orderBy("metaEvents.slug", "asc");
@@ -476,6 +494,19 @@ export function metaEventsRepo<R = never>(
       return rows
         .toSorted((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime())
         .slice(0, limit);
+    },
+
+    /** Every event in a date window, identity fields only, so a busy weekend is never truncated. */
+    eventIdentitiesInWindow(
+      dateFrom: string,
+      dateTo: string,
+    ): Promise<Pick<MetaEventRow, "id" | "name" | "eventDate" | "format">[]> {
+      return db
+        .selectFrom("metaEvents")
+        .select(["id", "name", "eventDate", "format"])
+        .where("eventDate", ">=", dateFrom)
+        .where("eventDate", "<=", dateTo)
+        .execute();
     },
 
     /** A batch of full event rows, for list surfaces that would otherwise loop {@link eventById}. */

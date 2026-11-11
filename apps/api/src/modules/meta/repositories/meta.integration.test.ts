@@ -619,6 +619,40 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(byOrganizer.rows.map((row) => row.id)).toContain(early);
     });
 
+    it("ranks by relevance: exact name, then earliest hit in the name, organizer-only last", async () => {
+      const term = "MTA Rel Championship";
+      const organizerOnly = await seedEvent(repo, "mta-rel-org", {
+        eventDate: "2026-11-09",
+        name: "MTA Rel Side Night",
+        organizer: `${term} Org`,
+      });
+      const sideEvent = await seedEvent(repo, "mta-rel-side", {
+        eventDate: "2026-11-08",
+        name: `MTA Rel Sunday Draft - ${term}`,
+      });
+      const main = await seedEvent(repo, "mta-rel-main", {
+        eventDate: "2026-11-06",
+        name: `Riftbound ${term}`,
+      });
+      const exact = await seedEvent(repo, "mta-rel-exact", {
+        eventDate: "2026-11-01",
+        name: term,
+      });
+
+      const { rows } = await repo.listEvents({ search: term }, PAGE, { sort: "relevance" });
+
+      expect(rows.map((row) => row.id)).toEqual([exact, main, sideEvent, organizerOnly]);
+    });
+
+    it("lists every event in a match window by identity alone", async () => {
+      const inside = await seedEvent(repo, "mta-window-in", { eventDate: "2032-04-02" });
+      const outside = await seedEvent(repo, "mta-window-out", { eventDate: "2032-04-09" });
+
+      const rows = await repo.eventIdentitiesInWindow("2032-04-01", "2032-04-03");
+
+      expect(ours(rows, [inside, outside])).toEqual([inside]);
+    });
+
     it("narrows to a date range", async () => {
       const { early, late } = await seedPagingSet();
 

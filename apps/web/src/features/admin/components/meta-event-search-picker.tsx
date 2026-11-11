@@ -9,10 +9,10 @@ import { CatalogSearchCombobox } from "@/features/cards/components/card-search-d
 function EventRow({ event }: { event: AdminMetaEvent }) {
   return (
     <>
-      <span className="min-w-0 flex-1 truncate font-medium">{event.name}</span>
       <span className="text-muted-foreground shrink-0 tabular-nums">
         {formatDay(event.eventDate)}
       </span>
+      <span className="min-w-0 flex-1 truncate font-medium">{event.name}</span>
       <Badge variant="outline">{event.format}</Badge>
     </>
   );

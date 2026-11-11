@@ -4,8 +4,8 @@ import { z } from "zod";
 
 import { META_RESULTS_STATES } from "../../meta-results.js";
 import {
+  META_EVENT_LIST_SORTS,
   META_EVENT_SORT_DIRECTIONS,
-  META_EVENT_SORTS,
   META_EVENT_SOURCE_FILTERS,
 } from "../../types/enums.js";
 
@@ -73,21 +73,28 @@ export const adminMetaEventSchema = z.object({
   ),
 });
 
-export const adminMetaEventListQuerySchema = z.object({
-  search: z.string().optional(),
-  format: z.string().optional(),
-  source: z.enum(META_EVENT_SOURCE_FILTERS).optional(),
-  dateFrom: isoDate.optional(),
-  dateTo: isoDate.optional(),
-  tier: metaEventTierSchema.optional(),
-  results: z.enum(META_RESULTS_STATES).optional(),
-  incompleteStandings: z.coerce.boolean().optional(),
-  hasDecks: z.coerce.boolean().optional(),
-  sort: z.enum(META_EVENT_SORTS).optional(),
-  direction: z.enum(META_EVENT_SORT_DIRECTIONS).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-});
+export const adminMetaEventListQuerySchema = z
+  .object({
+    search: z.string().optional(),
+    format: z.string().optional(),
+    source: z.enum(META_EVENT_SOURCE_FILTERS).optional(),
+    dateFrom: isoDate.optional(),
+    dateTo: isoDate.optional(),
+    tier: metaEventTierSchema.optional(),
+    results: z.enum(META_RESULTS_STATES).optional(),
+    incompleteStandings: z.coerce.boolean().optional(),
+    hasDecks: z.coerce.boolean().optional(),
+    sort: z.enum(META_EVENT_LIST_SORTS).optional(),
+    direction: z.enum(META_EVENT_SORT_DIRECTIONS).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  })
+  .refine(
+    (query) =>
+      query.sort !== "relevance" ||
+      (query.direction === undefined && (query.search?.trim() ?? "") !== ""),
+    { message: "Relevance needs a search term and takes no direction", path: ["sort"] },
+  );
 
 const listCount = z.number().int().nonnegative();
 
