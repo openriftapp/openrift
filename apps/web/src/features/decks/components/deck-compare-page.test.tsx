@@ -84,7 +84,9 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: ReactNode }) => <a href="/decks">{children}</a>,
+  Link: ({ children, params }: { children: ReactNode; params?: { cardSlug?: string } }) => (
+    <a href={params?.cardSlug ? `/cards/${params.cardSlug}` : "/decks"}>{children}</a>
+  ),
   useNavigate: () => vi.fn(),
 }));
 
@@ -163,5 +165,17 @@ describe("DeckComparePage", () => {
     expect(screen.getAllByText("Yasuo")).toHaveLength(2);
     expect(screen.getByText("Ahri")).toBeInTheDocument();
     expect(screen.queryByText("Braum")).toBeNull();
+  });
+
+  it("links each row to its card page", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <DeckComparePage fromId="deck-a" toId="deck-b" />
+      </QueryClientProvider>,
+    );
+
+    const ahri = await screen.findByText("Ahri");
+    expect(ahri.closest("a")).toHaveAttribute("href", "/cards/card-2");
   });
 });

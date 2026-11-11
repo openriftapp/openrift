@@ -157,12 +157,10 @@ function ChangesRow({
   onHover: (cardId: string | null) => void;
 }) {
   const styles = CELL_STYLES[row.kind];
-  return (
-    <div
-      className="hover:bg-muted/50 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-md text-sm"
-      onMouseEnter={() => onHover(row.cardId)}
-      onMouseLeave={() => onHover(null)}
-    >
+  const className =
+    "hover:bg-muted/50 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-md text-sm";
+  const cells = (
+    <>
       <SideCell
         count={row.from}
         row={row}
@@ -184,7 +182,21 @@ function ChangesRow({
         display={display}
         className={styles.to}
       />
-    </div>
+    </>
+  );
+  if (!catalog.card) {
+    return <div className={className}>{cells}</div>;
+  }
+  return (
+    <Link
+      to="/cards/$cardSlug/{-$printingSlug}"
+      params={{ cardSlug: catalog.card.slug }}
+      className={className}
+      onMouseEnter={() => onHover(row.cardId)}
+      onMouseLeave={() => onHover(null)}
+    >
+      {cells}
+    </Link>
   );
 }
 
