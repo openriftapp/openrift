@@ -59,6 +59,10 @@ describe("suggestTierForTemplateName", () => {
     expect(suggestTierForTemplateName("Riftbound Regional Qualifier")).toBe("premier");
   });
 
+  it("suggests premier for the Regional Championship template", () => {
+    expect(suggestTierForTemplateName("Riftbound Regional Championship")).toBe("premier");
+  });
+
   it("suggests competitive for the RQ side-event templates despite their needle words", () => {
     expect(suggestTierForTemplateName("Pre-RQ Challenge")).toBe("competitive");
     expect(suggestTierForTemplateName("Regional Rebound")).toBe("competitive");

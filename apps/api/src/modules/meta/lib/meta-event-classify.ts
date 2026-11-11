@@ -8,7 +8,10 @@ import type { MetaEventTier } from "@openrift/shared/types/enums";
 /** Order matters: side-event patterns (Pre-RQ, Regional Rebound) must claim their names before the premier/local needles do. */
 const SUGGESTION_RULES: readonly { pattern: RegExp; tier: MetaEventTier }[] = [
   { pattern: /pre-?regional|pre-?rq|regional rebound|super nexus night/u, tier: "competitive" },
-  { pattern: /regional qualifier|national championship|world championship/u, tier: "premier" },
+  {
+    pattern: /regional (?:qualifier|championship)|national championship|world championship/u,
+    tier: "premier",
+  },
   { pattern: /showdown|city challenge|\b10k\b|invitational/u, tier: "competitive" },
   {
     pattern: /skirmish|nexus night|open play|learn[ -]?to[ -]?play|league night/u,
