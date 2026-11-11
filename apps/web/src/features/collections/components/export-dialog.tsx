@@ -6,9 +6,8 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
-import { CardtraderWishlistLink } from "@/components/cardtrader-wishlist-link";
 import { CopyTextPanel } from "@/components/copy-text-panel";
+import { MarketplacePasteLink } from "@/components/marketplace-paste-link";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
@@ -220,13 +219,13 @@ export function ExportDialog({
             {format === "cardmarket" && (
               <MarketplaceHint
                 description={m.collections_export_wants_description()}
-                link={<CardmarketWantsLink />}
+                link={<MarketplacePasteLink marketplace="cardmarket" />}
               />
             )}
             {format === "cardtrader" && (
               <MarketplaceHint
                 description={m.collections_export_cardtrader_description()}
-                link={<CardtraderWishlistLink />}
+                link={<MarketplacePasteLink marketplace="cardtrader" />}
               />
             )}
 

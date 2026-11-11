@@ -1,7 +1,4 @@
-import type { CartWizardLine, MassEntryLine } from "@openrift/shared/marketplace";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
-
-import type { CardLine } from "@/lib/export-text";
 
 import type { WantedCard, WishDecrement } from "./wanted-cards";
 import { wishDecrements } from "./wanted-cards";
@@ -60,54 +57,6 @@ export function cartPurchaseItems(items: readonly BuyCartItem[]): BuyCartItem[] 
 
 export function cartCopyCount(items: readonly BuyCartItem[]): number {
   return cartPurchaseItems(items).reduce((sum, item) => sum + item.quantity, 0);
-}
-
-export function cartCardLines(
-  items: readonly BuyCartItem[],
-  nameOf: (item: BuyCartItem) => string,
-): CardLine[] {
-  return cartPurchaseItems(items).map((item) => ({ name: nameOf(item), quantity: item.quantity }));
-}
-
-export function massEntryLines(
-  items: readonly BuyCartItem[],
-  productIdOf: (printingId: string) => number | null | undefined,
-): { lines: MassEntryLine[]; unlisted: BuyCartItem[] } {
-  const lines: MassEntryLine[] = [];
-  const unlisted: BuyCartItem[] = [];
-  for (const item of cartPurchaseItems(items)) {
-    const productId = productIdOf(item.printingId);
-    if (productId === null || productId === undefined) {
-      unlisted.push(item);
-    } else {
-      lines.push({ productId, quantity: item.quantity });
-    }
-  }
-  return { lines, unlisted };
-}
-
-export function cartWizardLines(
-  items: readonly BuyCartItem[],
-  productIdOf: (printingId: string) => number | null | undefined,
-  printingOf: (printingId: string) => { language: string; finish: string } | undefined,
-): { lines: CartWizardLine[]; unlisted: BuyCartItem[] } {
-  const lines: CartWizardLine[] = [];
-  const unlisted: BuyCartItem[] = [];
-  for (const item of cartPurchaseItems(items)) {
-    const productId = productIdOf(item.printingId);
-    if (productId === null || productId === undefined) {
-      unlisted.push(item);
-    } else {
-      const printing = printingOf(item.printingId);
-      lines.push({
-        productId,
-        quantity: item.quantity,
-        language: printing?.language,
-        finish: printing?.finish,
-      });
-    }
-  }
-  return { lines, unlisted };
 }
 
 export function cartTotal(

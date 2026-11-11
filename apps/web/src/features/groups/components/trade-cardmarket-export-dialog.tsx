@@ -1,8 +1,8 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
-import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
 import { CopyTextButton } from "@/components/copy-text-button";
+import { MarketplacePasteLink } from "@/components/marketplace-paste-link";
 import {
   Dialog,
   DialogContent,
@@ -91,7 +91,7 @@ export function TradeCardmarketExportDialog({
         </div>
 
         <DialogFooter>
-          <CardmarketWantsLink />
+          <MarketplacePasteLink marketplace="cardmarket" />
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -2,21 +2,22 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubCardOwnership } from "@/test/factories";
 
-import { missingCardsToListEntries, missingCardsToWants } from "./deck-missing-export";
+import { missingCardsToHandoffItems, missingCardsToListEntries } from "./deck-missing-export";
 
 beforeEach(() => {
   resetIdCounter();
 });
 
-describe("missingCardsToWants", () => {
-  it("maps each missing row to a want with the shortfall as quantity", () => {
+describe("missingCardsToHandoffItems", () => {
+  it("maps each missing row to its completion printing with the shortfall as quantity", () => {
+    const cheapest = stubCardOwnership().displayPrinting;
     const cards = [
-      stubCardOwnership({ cardName: "Cleave", shortfall: 3 }),
-      stubCardOwnership({ cardName: "Rally", shortfall: 1 }),
+      stubCardOwnership({ cardName: "Cleave", shortfall: 3, cheapestPrinting: cheapest }),
+      stubCardOwnership({ cardName: "Rally", shortfall: 1, displayPrinting: undefined }),
     ];
-    expect(missingCardsToWants(cards)).toEqual([
-      { name: "Cleave", quantity: 3 },
-      { name: "Rally", quantity: 1 },
+    expect(missingCardsToHandoffItems(cards)).toEqual([
+      { printingId: cheapest?.id, quantity: 3, name: "Cleave", language: "EN" },
+      { printingId: undefined, quantity: 1, name: "Rally", language: undefined },
     ]);
   });
 
@@ -25,19 +26,16 @@ describe("missingCardsToWants", () => {
       stubCardOwnership({ cardName: "Cleave", zone: "main", shortfall: 2 }),
       stubCardOwnership({ cardName: "Cleave", zone: "sideboard", shortfall: 1 }),
     ];
-    expect(missingCardsToWants(cards)).toEqual([
-      { name: "Cleave", quantity: 2 },
-      { name: "Cleave", quantity: 1 },
-    ]);
+    expect(missingCardsToHandoffItems(cards).map((item) => item.quantity)).toEqual([2, 1]);
   });
 
   it("drops rows without a shortfall", () => {
     const cards = [stubCardOwnership({ cardName: "Owned Card", shortfall: 0 })];
-    expect(missingCardsToWants(cards)).toEqual([]);
+    expect(missingCardsToHandoffItems(cards)).toEqual([]);
   });
 
   it("returns an empty array for no rows", () => {
-    expect(missingCardsToWants([])).toEqual([]);
+    expect(missingCardsToHandoffItems([])).toEqual([]);
   });
 });
 

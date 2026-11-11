@@ -6,11 +6,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowDownLeftIcon, HeartIcon, LockIcon, ShoppingCartIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
-import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
 import { CopyTextButton } from "@/components/copy-text-button";
 import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { MarketplaceLink } from "@/components/marketplace-link";
-import { Button } from "@/components/ui/button";
+import { MarketplacePasteLink } from "@/components/marketplace-paste-link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +30,18 @@ import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
 import {
+  missingCardsToHandoffItems,
   missingCardsToListEntries,
-  missingCardsToWants,
 } from "@/features/decks/lib/deck-missing-export";
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
 import { AddToWishlistDialog } from "@/features/lists/components/add-to-wishlist-dialog";
 import { CreateListDialog } from "@/features/lists/components/create-list-dialog";
-import { formatCardmarketWants } from "@/lib/export-text";
 import { formatterForMarketplace } from "@/lib/format";
+import {
+  marketplaceCartLabel,
+  marketplaceHandoff,
+  marketplaceUnlistedNote,
+} from "@/lib/marketplace-handoff";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -63,29 +67,28 @@ function CardIdentity({
   printing: CardOwnership["displayPrinting"];
   onOpenDetail: (printingId: string) => void;
 }) {
-  const content = (
+  const label = (
     <>
-      {printing && <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />}
       <span className="text-muted-foreground font-mono">
         {printing ? distinctPrintingCode(printing) : "--"}
-      </span>
-      <span>{card.displayName}</span>
+      </span>{" "}
+      {card.displayName}
     </>
   );
 
   if (printing === undefined) {
-    return <span className="inline-flex items-center gap-1.5">{content}</span>;
+    return <span>{label}</span>;
   }
 
   return (
     <Pressable
       onClick={() => onOpenDetail(printing.sideKey)}
-      className={cn(
-        textLinkVariants({ variant: "muted" }),
-        "inline-flex items-center gap-1.5 rounded-sm",
-      )}
+      className="group inline-flex items-center gap-1.5 rounded-sm"
     >
-      {content}
+      <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />
+      <span className={cn(textLinkVariants({ variant: "muted" }), "group-hover:text-foreground")}>
+        {label}
+      </span>
     </Pressable>
   );
 }
@@ -165,10 +168,13 @@ function MissingCardsDialogBody({
       })
       .join("\n");
 
-  // Cardmarket's wants import matches by card name; short codes or prices break it.
-  const cardmarketText = () => formatCardmarketWants(missingCardsToWants(sorted));
-
   const totalMissing = sorted.reduce((sum, card) => sum + card.shortfall, 0);
+
+  const handoff = marketplaceHandoff(
+    marketplace,
+    missingCardsToHandoffItems(sorted),
+    (printingId) => marketplaceInfo?.links[printingId]?.[marketplace].productId,
+  );
 
   const buildWishlistEntries = (kind: ListKind) => missingCardsToListEntries(sorted, kind);
 
@@ -296,6 +302,12 @@ function MissingCardsDialogBody({
           </div>
         )}
 
+        {handoff.kind === "cart" && marketplaceInfo !== undefined && handoff.unlisted > 0 && (
+          <p className="text-muted-foreground px-2 text-sm">
+            {marketplaceUnlistedNote(handoff.marketplace, handoff.unlisted)}
+          </p>
+        )}
+
         <DialogFooter>
           {showWishlistButton && (
             <Button variant="outline" size="sm" onClick={() => setWishlistPickerOpen(true)}>
@@ -303,12 +315,30 @@ function MissingCardsDialogBody({
               {m.decks_overview_missing_add_wishlist()}
             </Button>
           )}
-          <CardmarketWantsLink />
-          <CopyTextButton
-            label={m.decks_overview_missing_copy_cardmarket()}
-            getText={cardmarketText}
-            size="sm"
-          />
+          {handoff.kind === "paste" ? (
+            <>
+              <MarketplacePasteLink marketplace={handoff.marketplace} />
+              <CopyTextButton
+                label={m.decks_overview_missing_copy_for({ marketplace: meta.label })}
+                value={handoff.text}
+                size="sm"
+              />
+            </>
+          ) : marketplaceInfo === undefined || handoff.sent === 0 ? (
+            <Button variant="outline" size="sm" disabled>
+              <ShoppingCartIcon className="size-3.5" />
+              {marketplaceCartLabel(handoff.marketplace, totalMissing)}
+            </Button>
+          ) : (
+            <MarketplaceLink
+              marketplace={handoff.marketplace}
+              href={handoff.href}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <ShoppingCartIcon className="size-3.5" />
+              {marketplaceCartLabel(handoff.marketplace, handoff.sent)}
+            </MarketplaceLink>
+          )}
           <CopyTextButton
             label={m.decks_overview_missing_copy_list()}
             getText={listText}

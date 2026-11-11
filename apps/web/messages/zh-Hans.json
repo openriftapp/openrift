@@ -3389,7 +3389,7 @@
   "decks_overview_main_deck": "主牌堆",
   "decks_overview_marketplace_prices": "{marketplace}价格",
   "decks_overview_missing_add_wishlist": "加入心愿单",
-  "decks_overview_missing_copy_cardmarket": "复制为 Cardmarket 格式",
+  "decks_overview_missing_copy_for": "复制为 {marketplace} 格式",
   "decks_overview_missing_copy_list": "复制清单",
   "decks_overview_missing_list_description": "选择任意印刷版本都可以，还是只要指定的那一个印刷版本。",
   "decks_overview_missing_list_hint_card": "每张牌的任何印刷版本都算。只想把卡组打起来就选这个。",
@@ -10138,7 +10138,7 @@
   "trades_buy_how_tcgplayer": "把这些版本直接放进你的购物车",
   "trades_buy_cta_cardtrader": "复制清单并打开 CardTrader",
   "trades_buy_cta_cardmarket": "复制清单并打开 Cardmarket",
-  "trades_buy_cta_tcgplayer": [
+  "shared_marketplace_cart_tcgplayer": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10154,7 +10154,7 @@
   "trades_buy_copy_again": "再次复制",
   "trades_buy_list_copied": "清单已复制",
   "trades_buy_copy_failed": "无法复制清单",
-  "trades_buy_tcgplayer_unlisted": [
+  "shared_marketplace_unlisted_tcgplayer": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10166,7 +10166,7 @@
   ],
   "trades_buy_market_cardnexus": "CardNexus",
   "trades_buy_how_cardnexus": "用这些版本打开 Cart Wizard",
-  "trades_buy_cta_cardnexus": [
+  "shared_marketplace_cart_cardnexus": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10177,7 +10177,7 @@
     }
   ],
   "trades_buy_note_cardnexus": "Cart Wizard 会比较卖家、运费和手续费，组合出最便宜的购物车。",
-  "trades_buy_cardnexus_unlisted": [
+  "shared_marketplace_unlisted_cardnexus": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],

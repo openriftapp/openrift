@@ -1,10 +1,4 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import {
-  CARDMARKET_WANTS_URL,
-  CARDTRADER_WISHLIST_URL,
-  cardnexusCartWizardUrl,
-  tcgplayerMassEntryUrl,
-} from "@openrift/shared/marketplace";
 import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
@@ -27,20 +21,17 @@ import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-vari
 import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
-import {
-  cartCardLines,
-  cartCopyCount,
-  cartPurchaseItems,
-  cartTotal,
-  cartWizardLines,
-  massEntryLines,
-} from "@/features/groups/lib/buy-cart";
+import { cartCopyCount, cartPurchaseItems, cartTotal } from "@/features/groups/lib/buy-cart";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { BUY_CART_MARKETPLACES, useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { formatCardmarketWants, formatCardtraderWishlist } from "@/lib/export-text";
 import { formatterForMarketplace } from "@/lib/format";
+import {
+  marketplaceCartLabel,
+  marketplaceHandoff,
+  marketplaceUnlistedNote,
+} from "@/lib/marketplace-handoff";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -164,41 +155,28 @@ function HandoffButton({
   const { data: marketplaceInfo } = useMarketplaceLinks(
     directCart ? items.map((item) => item.printingId) : [],
   );
-  const lines = cartCardLines(items, nameOf);
+  const handoff = marketplaceHandoff(
+    marketplace,
+    cartPurchaseItems(items).map((item) => ({
+      printingId: item.printingId,
+      quantity: item.quantity,
+      name: nameOf(item),
+      language: printingsById[item.printingId]?.language,
+      finish: printingsById[item.printingId]?.finish,
+    })),
+    (printingId) => marketplaceInfo?.links[printingId]?.[marketplace].productId,
+  );
   const className = cn(buttonVariants(), "w-full");
 
-  if (directCart) {
-    const productIdOf = (printingId: string) =>
-      marketplaceInfo?.links[printingId]?.[marketplace].productId;
-    let href: string;
-    let sendLines: readonly { quantity: number }[];
-    let unlisted: readonly BuyCartItem[];
-    if (marketplace === "tcgplayer") {
-      const massEntry = massEntryLines(items, productIdOf);
-      href = tcgplayerMassEntryUrl(massEntry.lines);
-      sendLines = massEntry.lines;
-      unlisted = massEntry.unlisted;
-    } else {
-      const wizard = cartWizardLines(items, productIdOf, (printingId) => printingsById[printingId]);
-      href = cardnexusCartWizardUrl(wizard.lines);
-      sendLines = wizard.lines;
-      unlisted = wizard.unlisted;
-    }
-    const cta = (count: number) =>
-      marketplace === "tcgplayer"
-        ? m.trades_buy_cta_tcgplayer({ count })
-        : m.trades_buy_cta_cardnexus({ count });
-    const unlistedNote =
-      marketplace === "tcgplayer"
-        ? m.trades_buy_tcgplayer_unlisted({ count: unlisted.length })
-        : m.trades_buy_cardnexus_unlisted({ count: unlisted.length });
-    const sendCount = sendLines.reduce((sum, line) => sum + line.quantity, 0);
-    if (marketplaceInfo === undefined || sendLines.length === 0) {
+  if (handoff.kind === "cart") {
+    const cta = marketplaceCartLabel(handoff.marketplace, handoff.sent);
+    const unlistedNote = marketplaceUnlistedNote(handoff.marketplace, handoff.unlisted);
+    if (marketplaceInfo === undefined || handoff.sent === 0) {
       return (
         <>
           <Button className="w-full" disabled>
             <ShoppingCartIcon />
-            {cta(cartCopyCount(items))}
+            {marketplaceCartLabel(handoff.marketplace, cartCopyCount(items))}
           </Button>
           {marketplaceInfo === undefined ? null : (
             <p className="text-muted-foreground text-sm">{unlistedNote}</p>
@@ -208,26 +186,24 @@ function HandoffButton({
     }
     return (
       <>
-        <MarketplaceLink marketplace={marketplace} href={href} className={className}>
+        <MarketplaceLink marketplace={marketplace} href={handoff.href} className={className}>
           <ShoppingCartIcon />
-          {cta(sendCount)}
+          {cta}
         </MarketplaceLink>
         <p className="text-muted-foreground text-sm">
-          {marketplace === "tcgplayer"
+          {handoff.marketplace === "tcgplayer"
             ? m.trades_buy_note_tcgplayer()
             : m.trades_buy_note_cardnexus()}
         </p>
-        {unlisted.length > 0 ? (
+        {handoff.unlisted > 0 ? (
           <p className="text-muted-foreground text-sm">{unlistedNote}</p>
         ) : null}
       </>
     );
   }
 
-  const text =
-    marketplace === "cardmarket" ? formatCardmarketWants(lines) : formatCardtraderWishlist(lines);
   const copyList = async () => {
-    const copied = await copy(text);
+    const copied = await copy(handoff.text);
     if (copied) {
       toast.success(m.trades_buy_list_copied());
     } else {
@@ -238,17 +214,17 @@ function HandoffButton({
     <>
       <MarketplaceLink
         marketplace={marketplace}
-        href={marketplace === "cardmarket" ? CARDMARKET_WANTS_URL : CARDTRADER_WISHLIST_URL}
+        href={handoff.href}
         className={className}
         onClick={() => void copyList()}
       >
         <ShoppingCartIcon />
-        {marketplace === "cardmarket"
+        {handoff.marketplace === "cardmarket"
           ? m.trades_buy_cta_cardmarket()
           : m.trades_buy_cta_cardtrader()}
       </MarketplaceLink>
       <p className="text-muted-foreground text-sm">
-        {marketplace === "cardmarket"
+        {handoff.marketplace === "cardmarket"
           ? m.trades_buy_note_cardmarket()
           : m.trades_buy_note_cardtrader()}{" "}
         <Button

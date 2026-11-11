@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { BuyCartItem } from "./buy-cart";
 import {
-  cartCardLines,
   cartFor,
   cartCopyCount,
   cartItemForWanted,
@@ -11,8 +10,6 @@ import {
   cartTotal,
   fileOrder,
   findOrderedCollection,
-  cartWizardLines,
-  massEntryLines,
   withPrinting,
 } from "./buy-cart";
 import type { WantedCard } from "./wanted-cards";
@@ -93,41 +90,6 @@ describe("cartPurchaseItems", () => {
       { printingId: "pair", collectionId: "col" },
       { printingId: "pair", collectionId: "col" },
     ]);
-  });
-});
-
-describe("cartCardLines", () => {
-  it("names each item with its quantity", () => {
-    expect(cartCardLines([JINX, STAR], (item) => item.cardId)).toEqual([
-      { name: "c-1", quantity: 1 },
-      { name: "c-2", quantity: 2 },
-    ]);
-  });
-});
-
-describe("massEntryLines", () => {
-  it("maps items to product lines and sets aside printings TCGplayer doesn't list", () => {
-    const productIds: Record<string, number | null> = { "p-1": 652_993, "p-2": null };
-    expect(massEntryLines([JINX, STAR], (printingId) => productIds[printingId])).toEqual({
-      lines: [{ productId: 652_993, quantity: 1 }],
-      unlisted: [STAR],
-    });
-  });
-});
-
-describe("cartWizardLines", () => {
-  it("carries each printing's language and finish and sets aside printings CardNexus doesn't list", () => {
-    const productIds: Record<string, number | null> = { "p-1": 151_339, "p-2": null };
-    expect(
-      cartWizardLines(
-        [JINX, STAR],
-        (printingId) => productIds[printingId],
-        () => ({ language: "FR", finish: "foil" }),
-      ),
-    ).toEqual({
-      lines: [{ productId: 151_339, quantity: 1, language: "FR", finish: "foil" }],
-      unlisted: [STAR],
-    });
   });
 });
 

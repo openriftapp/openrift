@@ -2,12 +2,20 @@ import type { ListKind } from "@openrift/shared/types/api/list";
 
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
-import type { CardLine } from "@/lib/export-text";
+import type { HandoffItem } from "@/lib/marketplace-handoff";
 
-export function missingCardsToWants(cards: readonly CardOwnership[]): CardLine[] {
+export function missingCardsToHandoffItems(cards: readonly CardOwnership[]): HandoffItem[] {
   return cards
     .filter((card) => card.shortfall > 0)
-    .map((card) => ({ name: card.displayName, quantity: card.shortfall }));
+    .map((card) => {
+      const printing = card.cheapestPrinting ?? card.displayPrinting;
+      return {
+        printingId: printing?.id,
+        quantity: card.shortfall,
+        name: card.displayName,
+        language: printing?.language,
+      };
+    });
 }
 
 export function missingCardsToListEntries(

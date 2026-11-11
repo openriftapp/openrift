@@ -3390,7 +3390,7 @@
   "decks_overview_main_deck": "Main deck",
   "decks_overview_marketplace_prices": "{marketplace} prices",
   "decks_overview_missing_add_wishlist": "Add to wishlist",
-  "decks_overview_missing_copy_cardmarket": "Copy for Cardmarket",
+  "decks_overview_missing_copy_for": "Copy for {marketplace}",
   "decks_overview_missing_copy_list": "Copy list",
   "decks_overview_missing_list_description": "Pick whether any version of the card works, or you want a specific one.",
   "decks_overview_missing_list_hint_card": "Any printing of each card counts. Pick this if you just want to play the deck.",
@@ -10142,7 +10142,7 @@
   "trades_buy_how_tcgplayer": "Puts the exact printings in your cart",
   "trades_buy_cta_cardtrader": "Copy list and open CardTrader",
   "trades_buy_cta_cardmarket": "Copy list and open Cardmarket",
-  "trades_buy_cta_tcgplayer": [
+  "shared_marketplace_cart_tcgplayer": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10158,7 +10158,7 @@
   "trades_buy_copy_again": "Copy again",
   "trades_buy_list_copied": "List copied",
   "trades_buy_copy_failed": "Couldn't copy the list",
-  "trades_buy_tcgplayer_unlisted": [
+  "shared_marketplace_unlisted_tcgplayer": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10170,7 +10170,7 @@
   ],
   "trades_buy_market_cardnexus": "CardNexus",
   "trades_buy_how_cardnexus": "Opens the Cart Wizard with the exact printings",
-  "trades_buy_cta_cardnexus": [
+  "shared_marketplace_cart_cardnexus": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10181,7 +10181,7 @@
     }
   ],
   "trades_buy_note_cardnexus": "The Cart Wizard compares sellers, shipping and fees and builds the cheapest cart.",
-  "trades_buy_cardnexus_unlisted": [
+  "shared_marketplace_unlisted_cardnexus": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],

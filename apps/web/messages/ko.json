@@ -3389,7 +3389,7 @@
   "decks_overview_main_deck": "주 덱",
   "decks_overview_marketplace_prices": "{marketplace} 가격",
   "decks_overview_missing_add_wishlist": "위시리스트에 추가",
-  "decks_overview_missing_copy_cardmarket": "Cardmarket용으로 복사",
+  "decks_overview_missing_copy_for": "{marketplace}용으로 복사",
   "decks_overview_missing_copy_list": "목록 복사",
   "decks_overview_missing_list_description": "카드의 어떤 버전이든 괜찮은지, 특정 버전이 필요한지 고르세요.",
   "decks_overview_missing_list_hint_card": "각 카드의 어떤 인쇄판이든 인정됩니다. 그냥 덱을 플레이하고 싶다면 이 옵션을 고르세요.",
@@ -10138,7 +10138,7 @@
   "trades_buy_how_tcgplayer": "정확한 인쇄본을 장바구니에 담습니다",
   "trades_buy_cta_cardtrader": "목록 복사 후 CardTrader 열기",
   "trades_buy_cta_cardmarket": "목록 복사 후 Cardmarket 열기",
-  "trades_buy_cta_tcgplayer": [
+  "shared_marketplace_cart_tcgplayer": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10154,7 +10154,7 @@
   "trades_buy_copy_again": "다시 복사",
   "trades_buy_list_copied": "목록을 복사했습니다",
   "trades_buy_copy_failed": "목록을 복사하지 못했습니다",
-  "trades_buy_tcgplayer_unlisted": [
+  "shared_marketplace_unlisted_tcgplayer": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10166,7 +10166,7 @@
   ],
   "trades_buy_market_cardnexus": "CardNexus",
   "trades_buy_how_cardnexus": "정확한 인쇄본으로 Cart Wizard를 엽니다",
-  "trades_buy_cta_cardnexus": [
+  "shared_marketplace_cart_cardnexus": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -10177,7 +10177,7 @@
     }
   ],
   "trades_buy_note_cardnexus": "Cart Wizard가 판매자, 배송비, 수수료를 비교해 가장 저렴한 장바구니를 구성합니다.",
-  "trades_buy_cardnexus_unlisted": [
+  "shared_marketplace_unlisted_cardnexus": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
