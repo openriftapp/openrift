@@ -1,10 +1,13 @@
+import { labelMap } from "@openrift/shared/collections";
 import type { Logger } from "@openrift/shared/logger";
 
-import type { WebhookFailure } from "../../system/services/discord-webhook.js";
+import type { PrintingLabels, WebhookFailure } from "../../system/services/discord-webhook.js";
 import { flushPrintingEvents } from "../../system/services/discord-webhook.js";
+import type { enumsRepo } from "../repositories/enums.js";
 import type { printingEventsRepo } from "../repositories/printing-events.js";
 
 type PrintingEventsRepo = ReturnType<typeof printingEventsRepo>;
+type EnumsRepo = ReturnType<typeof enumsRepo>;
 
 interface DiscordWebhookUrls {
   newPrintings: string | null;
@@ -35,7 +38,7 @@ function describeFailures(failures: WebhookFailure[]): string {
  * row records a real error_message; partial failures return normally.
  */
 export async function flushPendingPrintingEvents(
-  repos: { printingEvents: PrintingEventsRepo },
+  repos: { printingEvents: PrintingEventsRepo; enums: Pick<EnumsRepo, "all"> },
   webhookUrls: DiscordWebhookUrls,
   appBaseUrl: string,
   log: Logger,
@@ -45,14 +48,23 @@ export async function flushPendingPrintingEvents(
     return { sent: 0, failed: 0 };
   }
 
-  const { sentIds, failedIds, failures } = await flushPrintingEvents(
-    events,
-    webhookUrls,
+  const enums = await repos.enums.all();
+  const labels: PrintingLabels = {
+    rarities: labelMap(enums.rarities),
+    finishes: labelMap(enums.finishes),
+    artVariants: labelMap(enums.artVariants),
+    cardSizes: labelMap(enums.cardSizes),
+    languages: labelMap(enums.languages),
+    markers: labelMap(enums.markers),
+  };
+  const { sentIds, failedIds, failures } = await flushPrintingEvents(events, {
+    webhookUrl: webhookUrls.newPrintings,
     appBaseUrl,
+    labels,
     log,
-  );
+    onSent: (ids) => repos.printingEvents.markSent(ids),
+  });
 
-  await repos.printingEvents.markSent(sentIds);
   await repos.printingEvents.markRetry(failedIds);
 
   log.info(

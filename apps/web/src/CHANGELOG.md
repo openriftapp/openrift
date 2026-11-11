@@ -10,6 +10,7 @@
 ### Other
 
 - fix(Cards): **Shown printing marked again** — on a card page on desktop, the printing you are looking at is outlined again in the Printings table.
+- fix(App): **New-printing posts name the printing** — Discord posts about new printings now list every added printing with its code and variant, linked to its own page.
 
 ## 2026-11-10
 

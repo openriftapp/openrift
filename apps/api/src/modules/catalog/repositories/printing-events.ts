@@ -16,12 +16,17 @@ export interface EnrichedPrintingEvent {
   createdAt: Date;
   cardName: string | null;
   cardSlug: string | null;
+  printingSlug: string;
   setName: string | null;
   shortCode: string | null;
   rarity: string | null;
-  rarityLabel: string | null;
   finish: string | null;
   finishLabel: string | null;
+  artVariant: string;
+  size: string;
+  isSigned: boolean;
+  isOvernumbered: boolean;
+  markerSlugs: string[];
   artist: string | null;
   language: string | null;
   languageName: string | null;
@@ -36,6 +41,39 @@ interface AdminPrintingEvent extends EnrichedPrintingEvent {
 }
 
 export function printingEventsRepo(db: Kysely<Database>) {
+  const selectEnriched = () =>
+    joinFaceImage(
+      withFace1(
+        db.selectFrom("printingEvents as pe").innerJoin("printings as p", "p.id", "pe.printingId"),
+      )
+        .innerJoin("cards as c", "c.id", "pf.cardId")
+        .innerJoin("sets as s", "s.id", "pf.setId")
+        .leftJoin("finishes as fi", "fi.slug", "pf.finish")
+        .leftJoin("languages as lng", "lng.code", "pf.language"),
+      "pf.id",
+    ).select([
+      "pe.id",
+      "pe.printingId",
+      "pe.createdAt",
+      pairedCardNameSql("c.name").as("cardName"),
+      "c.slug as cardSlug",
+      "p.slug as printingSlug",
+      "s.name as setName",
+      "pf.shortCode",
+      "pf.rarity",
+      "pf.finish",
+      "fi.label as finishLabel",
+      "pf.artVariant",
+      "p.size",
+      "pf.isSigned",
+      "pf.isOvernumbered",
+      "pf.markerSlugs",
+      "pf.artist",
+      "pf.language",
+      "lng.name as languageName",
+      imageId("imgf").as("frontImageId"),
+    ]);
+
   return {
     async recordNew(printingId: string): Promise<void> {
       await db
@@ -45,36 +83,7 @@ export function printingEventsRepo(db: Kysely<Database>) {
     },
 
     async listPending(): Promise<EnrichedPrintingEvent[]> {
-      return await joinFaceImage(
-        withFace1(
-          db
-            .selectFrom("printingEvents as pe")
-            .innerJoin("printings as p", "p.id", "pe.printingId"),
-        )
-          .innerJoin("cards as c", "c.id", "pf.cardId")
-          .innerJoin("sets as s", "s.id", "pf.setId")
-          .leftJoin("finishes as fi", "fi.slug", "pf.finish")
-          .leftJoin("rarities as r", "r.slug", "pf.rarity")
-          .leftJoin("languages as lng", "lng.code", "pf.language"),
-        "pf.id",
-      )
-        .select([
-          "pe.id",
-          "pe.printingId",
-          "pe.createdAt",
-          pairedCardNameSql("c.name").as("cardName"),
-          "c.slug as cardSlug",
-          "s.name as setName",
-          "pf.shortCode",
-          "pf.rarity",
-          "r.label as rarityLabel",
-          "pf.finish",
-          "fi.label as finishLabel",
-          "pf.artist",
-          "pf.language",
-          "lng.name as languageName",
-          imageId("imgf").as("frontImageId"),
-        ])
+      return await selectEnriched()
         .where("pe.status", "=", "pending")
         .orderBy("pe.createdAt", "asc")
         .execute();
@@ -84,38 +93,8 @@ export function printingEventsRepo(db: Kysely<Database>) {
       if (statuses.length === 0) {
         return [];
       }
-      return await joinFaceImage(
-        withFace1(
-          db
-            .selectFrom("printingEvents as pe")
-            .innerJoin("printings as p", "p.id", "pe.printingId"),
-        )
-          .innerJoin("cards as c", "c.id", "pf.cardId")
-          .innerJoin("sets as s", "s.id", "pf.setId")
-          .leftJoin("finishes as fi", "fi.slug", "pf.finish")
-          .leftJoin("rarities as r", "r.slug", "pf.rarity")
-          .leftJoin("languages as lng", "lng.code", "pf.language"),
-        "pf.id",
-      )
-        .select([
-          "pe.id",
-          "pe.printingId",
-          "pe.createdAt",
-          "pe.status",
-          "pe.retryCount",
-          pairedCardNameSql("c.name").as("cardName"),
-          "c.slug as cardSlug",
-          "s.name as setName",
-          "pf.shortCode",
-          "pf.rarity",
-          "r.label as rarityLabel",
-          "pf.finish",
-          "fi.label as finishLabel",
-          "pf.artist",
-          "pf.language",
-          "lng.name as languageName",
-          imageId("imgf").as("frontImageId"),
-        ])
+      return await selectEnriched()
+        .select(["pe.status", "pe.retryCount"])
         .where("pe.status", "in", statuses)
         .orderBy("pe.createdAt", "desc")
         .execute();

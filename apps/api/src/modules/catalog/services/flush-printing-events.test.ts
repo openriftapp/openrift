@@ -31,6 +31,16 @@ describe("flushPendingPrintingEvents", () => {
         markSent: vi.fn(async () => {}),
         markRetry: vi.fn(async () => {}),
       },
+      enums: {
+        all: vi.fn(async () => ({
+          rarities: [{ slug: "rare", label: "Rare" }],
+          finishes: [{ slug: "foil", label: "Foil" }],
+          artVariants: [],
+          cardSizes: [],
+          languages: [{ slug: "FR", label: "French" }],
+          markers: [{ slug: "promo", label: "Promo" }],
+        })),
+      },
     };
   }
 
@@ -69,9 +79,32 @@ describe("flushPendingPrintingEvents", () => {
       mockLog(),
     );
 
-    expect(mockFlush).toHaveBeenCalledWith(events, WEBHOOKS, APP_BASE_URL, expect.anything());
-    expect(repos.printingEvents.markSent).toHaveBeenCalledWith(["evt-1"]);
+    expect(mockFlush).toHaveBeenCalledWith(
+      events,
+      expect.objectContaining({
+        webhookUrl: WEBHOOKS.newPrintings,
+        appBaseUrl: APP_BASE_URL,
+        labels: expect.objectContaining({
+          rarities: { rare: "Rare" },
+          languages: { FR: "French" },
+          markers: { promo: "Promo" },
+        }),
+      }),
+    );
     expect(result).toEqual({ sent: 1, failed: 0 });
+  });
+
+  it("marks each delivered message's events sent through the sender's callback", async () => {
+    const repos = makeRepos([{ id: "evt-1" }, { id: "evt-2" }]);
+    mockFlush.mockImplementation(async (_events, { onSent }) => {
+      await onSent(["evt-1"]);
+      return { sentIds: ["evt-1"], failedIds: ["evt-2"], failures: [] };
+    });
+
+    await flushPendingPrintingEvents(repos as any, WEBHOOKS, APP_BASE_URL, mockLog());
+
+    expect(repos.printingEvents.markSent).toHaveBeenCalledExactlyOnceWith(["evt-1"]);
+    expect(repos.printingEvents.markRetry).toHaveBeenCalledWith(["evt-2"]);
   });
 
   it("marks failed events for retry on partial failure and includes failure detail", async () => {
@@ -105,7 +138,6 @@ describe("flushPendingPrintingEvents", () => {
       mockLog(),
     );
 
-    expect(repos.printingEvents.markSent).toHaveBeenCalledWith(["evt-1"]);
     expect(repos.printingEvents.markRetry).toHaveBeenCalledWith(["evt-2"]);
     expect(result.sent).toBe(1);
     expect(result.failed).toBe(1);
