@@ -2,12 +2,12 @@ import { dirname, join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { straightenedSize, unwarpQuad } from "@openrift/shared/scan/unwarp";
 
 import { AppError } from "../../../../errors.js";
 import type { Io } from "../../../../io.js";
-import { fetchOriginalImage } from "./original-source.js";
-import { CARD_MEDIA_DIR, imageRehostedUrl } from "./paths.js";
+import { CARD_MEDIA_DIR } from "./paths.js";
 import { computeScanCropBox, computeScanLevels } from "./scan-analysis.js";
 
 const SIZES = [
@@ -259,35 +259,35 @@ export async function deleteRehostFiles(io: Io, rehostedUrl: string): Promise<vo
   }
 }
 
-/** Used by the rotate endpoint to rebuild variants after changing rotation. */
+export async function origFileOnDisk(io: Io, imageFileId: string): Promise<string | undefined> {
+  let files: string[] = [];
+  try {
+    files = await io.fs.readdir(join(CARD_MEDIA_DIR, imageFileId.slice(-2)));
+  } catch {
+    return undefined;
+  }
+  return files.find((f) => f.startsWith(`${imageFileId}-orig.`));
+}
+
+async function requireOrigFile(io: Io, imageFileId: string, message: string): Promise<string> {
+  const origFile = await origFileOnDisk(io, imageFileId);
+  if (origFile === undefined) {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, message);
+  }
+  return origFile;
+}
+
 export async function regenerateFromOrig(
   io: Io,
   imageFileId: string,
   rotation: number,
   needsTrim: boolean,
   quad: ImageQuad | null,
-  originalUrl: string | null,
 ): Promise<void> {
   const outputDir = join(CARD_MEDIA_DIR, imageFileId.slice(-2));
-  let files: string[] = [];
-  try {
-    files = await io.fs.readdir(outputDir);
-  } catch {
-    // directory doesn't exist yet
-  }
-
-  const origFile = files.find((f) => f.startsWith(`${imageFileId}-orig.`));
-  if (origFile) {
-    const buffer = await io.fs.readFile(join(outputDir, origFile));
-    await generateWebpVariants(io, buffer, outputDir, imageFileId, rotation, needsTrim, quad);
-    return;
-  }
-
-  if (!originalUrl) {
-    throw new Error(`No orig file on disk and no originalUrl for image ${imageFileId}`);
-  }
-  const { buffer, ext } = await fetchOriginalImage(io, originalUrl);
-  await processAndSave(io, buffer, ext, outputDir, imageFileId, rotation, needsTrim, quad, true);
+  const origFile = await requireOrigFile(io, imageFileId, "Image has no rehosted original");
+  const buffer = await io.fs.readFile(join(outputDir, origFile));
+  await generateWebpVariants(io, buffer, outputDir, imageFileId, rotation, needsTrim, quad);
 }
 
 export interface OriginalOnDisk {
@@ -297,32 +297,9 @@ export interface OriginalOnDisk {
 }
 
 // Dimensions come from the un-oriented decode: the straighten UI reads the file with EXIF ignored.
-export async function ensureOriginalOnDisk(
-  io: Io,
-  imageFileId: string,
-  rotation: number,
-  needsTrim: boolean,
-  quad: ImageQuad | null,
-  originalUrl: string | null,
-): Promise<OriginalOnDisk> {
+export async function ensureOriginalOnDisk(io: Io, imageFileId: string): Promise<OriginalOnDisk> {
   const outputDir = join(CARD_MEDIA_DIR, imageFileId.slice(-2));
-  let files: string[] = [];
-  try {
-    files = await io.fs.readdir(outputDir);
-  } catch {
-    // directory doesn't exist yet
-  }
-
-  let origFile = files.find((f) => f.startsWith(`${imageFileId}-orig.`));
-  if (!origFile) {
-    if (!originalUrl) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image has no original to straighten");
-    }
-    const { buffer, ext } = await fetchOriginalImage(io, originalUrl);
-    await processAndSave(io, buffer, ext, outputDir, imageFileId, rotation, needsTrim, quad, true);
-    origFile = `${imageFileId}-orig${ext}`;
-  }
-
+  const origFile = await requireOrigFile(io, imageFileId, "Image has no original to straighten");
   const buffer = await io.fs.readFile(join(outputDir, origFile));
   const meta = await io.sharp(buffer).metadata();
   if (!meta.width || !meta.height) {

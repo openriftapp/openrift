@@ -12,6 +12,7 @@ import {
   createDbContext,
   deletePrintingsById,
   insertCard,
+  insertImageFile,
   insertPrinting,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -890,19 +891,20 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
     if (image === "none") {
       return { printingId: printing.id, imageId: null };
     }
-    const imageFile = await db
-      .insertInto("imageFiles")
-      .values({
-        rehostedUrl:
-          image === "rehosted" ? `https://images.example.com/cover-itest-${counter}.webp` : null,
-        originalUrl: `https://images.example.com/cover-itest-orig-${counter}.webp`,
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const rehosted = image === "rehosted";
+    const imageFile = await insertImageFile(db, {
+      rehosted,
+      originalUrl: `https://images.example.com/cover-itest-orig-${counter}.webp`,
+    });
     imageFileIds.push(imageFile.id);
     await db
       .insertInto("faceImages")
-      .values({ faceId: printing.id, imageFileId: imageFile.id, isActive: true })
+      .values({
+        faceId: printing.id,
+        imageFileId: imageFile.id,
+        isActive: rehosted,
+        activateWhenRehosted: !rehosted,
+      })
       .execute();
     return { printingId: printing.id, imageId: image === "rehosted" ? imageFile.id : null };
   }

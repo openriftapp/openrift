@@ -9,7 +9,7 @@ import type { Database } from "../../../db/tables.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import {
   imageUrlWithOriginal,
-  joinFaceImage,
+  joinAdminFaceImage,
   keysetCursorPredicate,
 } from "../../../repositories/query-helpers.js";
 
@@ -208,7 +208,7 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       if (query.filter !== undefined) {
         base = base.where(printingFilterPredicate(query.filter, query.mineIds ?? []));
       }
-      let page = joinFaceImage(base, "f.id")
+      let page = joinAdminFaceImage(base, "f.id")
         .innerJoin("sets as s", "s.id", "f.setId")
         .select([
           "p.id",
@@ -266,7 +266,7 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       if (query.filter !== undefined) {
         base = base.where(faceFilterPredicate(query.filter));
       }
-      let page = joinFaceImage(base, "f.id")
+      let page = joinAdminFaceImage(base, "f.id")
         .innerJoin("sets as s", "s.id", "f.setId")
         .select([
           "f.id",

@@ -21,9 +21,9 @@ export const cleanupResultSchema = z.object({
   errors: z.array(z.string()),
 });
 
-export const unrehostResultSchema = z.object({
+export const refetchResultSchema = z.object({
   total: z.number(),
-  unrehosted: z.number(),
+  refetched: z.number(),
   failed: z.number(),
   errors: z.array(z.string()),
 });
@@ -32,6 +32,8 @@ export const rehostStatusSchema = z.object({
   total: z.number(),
   rehosted: z.number(),
   external: z.number(),
+  failedRetrying: z.number(),
+  failedManual: z.number(),
   orphanedFiles: z.number(),
   sets: z.array(
     z.object({
@@ -61,8 +63,6 @@ export const brokenImageSchema = z.object({
   setSlug: z.string(),
 });
 
-export const clearRehostedResponseSchema = z.object({ cleared: z.number() });
-
 export const brokenImagesResponseSchema = z.object({
   total: z.number(),
   broken: z.array(brokenImageSchema),
@@ -78,7 +78,7 @@ export const lowResImagesResponseSchema = z.object({
   lowRes: z.array(lowResImageEntrySchema),
 });
 
-export const unrehostImagesInputSchema = z.object({ imageIds: z.array(z.uuid()).min(1).max(1000) });
+export const refetchImagesInputSchema = z.object({ imageIds: z.array(z.uuid()).min(1).max(1000) });
 
 export const missingImageCardSchema = z.object({
   cardId: z.string(),
@@ -146,13 +146,10 @@ export const adminImagesContract = {
   cleanupOrphaned: authedRoute
     .route({ method: "POST", path: `${BASE}/cleanup-orphaned`, tags: [TAG] })
     .output(cleanupResultSchema),
-  unrehost: authedRoute
-    .route({ method: "POST", path: `${BASE}/unrehost-images`, tags: [TAG] })
-    .input(unrehostImagesInputSchema)
-    .output(unrehostResultSchema),
-  clearRehosted: authedRoute
-    .route({ method: "POST", path: `${BASE}/clear-rehosted`, tags: [TAG] })
-    .output(clearRehostedResponseSchema),
+  refetch: authedRoute
+    .route({ method: "POST", path: `${BASE}/refetch-images`, tags: [TAG] })
+    .input(refetchImagesInputSchema)
+    .output(refetchResultSchema),
   rehostStatus: authedRoute
     .route({ method: "GET", path: `${BASE}/rehost-status`, tags: [TAG] })
     .output(rehostStatusSchema),

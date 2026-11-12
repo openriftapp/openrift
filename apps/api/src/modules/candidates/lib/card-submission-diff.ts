@@ -154,8 +154,6 @@ export function computeProposedDiff(
     ) {
       diff.push(`printing.${key}.isOvernumbered`);
     }
-    // Artwork proposed for a printing that already has some cannot be verified
-    // by comparison; whether it was used is settled from image_files instead.
     if (!isEmpty(printing.imageUrl) && !livePrinting.hasImage) {
       diff.push(`printing.${key}.image`);
     }

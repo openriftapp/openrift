@@ -113,7 +113,6 @@ describe("sectionAllowsRequest", () => {
     it.each([
       "/api/admin/v1/catalog/submissions/some-id/accept",
       "/api/admin/v1/catalog/submissions/some-id/reject",
-      "/api/admin/v1/catalog/candidates/some-id/create-card",
     ])("allows the review verbs at %s for POST only", (path) => {
       expect(sectionAllowsRequest("card-review", "POST", path)).toBe(true);
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);
@@ -127,6 +126,7 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/catalog/cards/some-slug",
       "/api/admin/v1/catalog/submissions/some-id/delete",
       "/api/admin/v1/catalog/submissions/some-id/create-card",
+      "/api/admin/v1/catalog/candidates/some-id/create-card",
       "/api/admin/v1/catalog/candidates/some-id/accept",
     ])("rejects unmapped catalog paths at %s", (path) => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);

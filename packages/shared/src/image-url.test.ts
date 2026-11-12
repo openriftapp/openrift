@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { imageShardDir, imageUrl } from "./image-url.js";
+import { imageRehostedUrl, imageShardDir, imageUrl } from "./image-url.js";
 
 describe("imageUrl", () => {
   it("names the file by id and variant with no shard directory", () => {
@@ -24,5 +24,13 @@ describe("imageShardDir", () => {
 
   it("is the whole id when it is shorter than two characters", () => {
     expect(imageShardDir("a")).toBe("a");
+  });
+});
+
+describe("imageRehostedUrl", () => {
+  it("places the id under its shard directory", () => {
+    expect(imageRehostedUrl("00594247-a18a-4efd-8998-105449a4cf40")).toBe(
+      "/media/cards/40/00594247-a18a-4efd-8998-105449a4cf40",
+    );
   });
 });

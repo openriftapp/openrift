@@ -36,6 +36,11 @@ export interface MvCardAggregatesView {
   tokenCardIds: string[];
 }
 
+export interface PublicImageFilesView {
+  id: string;
+  credit: string | null;
+}
+
 export interface PrintingSidesOrderedView {
   printingId: string;
   position: 1 | 2;

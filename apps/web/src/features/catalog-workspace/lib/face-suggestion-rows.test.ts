@@ -34,6 +34,8 @@ function image(overrides: Partial<AdminPrintingImageResponse> = {}): AdminPrinti
     needsTrim: false,
     quad: null,
     isActive: true,
+    activateWhenRehosted: false,
+    rehostFailure: null,
     ...overrides,
   };
 }

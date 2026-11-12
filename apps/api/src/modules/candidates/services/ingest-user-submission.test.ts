@@ -123,6 +123,16 @@ describe("buildUserSubmissionCard", () => {
     expect(card.printings[0]!.language).toBeNull();
   });
 
+  it("uses the finish inferred from the rarity in the external_id", () => {
+    const card = buildUserSubmissionCard(
+      submission({ printings: [{ public_code: "OGN-066/298", rarity: "epic" }] }),
+      USER_ID,
+      STAMP,
+    );
+    expect(card.printings[0]!.external_id).toContain(":foil:en");
+    expect(card.printings[0]!.finish).toBeNull();
+  });
+
   it("keeps multiple printings distinct", () => {
     const card = buildUserSubmissionCard(
       submission({
@@ -226,8 +236,22 @@ describe("ingestUserSubmission printing links", () => {
 
   // The payload below carries no markers, so the composite key alone lands on the base.
   const keyedPrintings = [
-    { id: BASE_ID, shortCode: "OGN-066", finish: "foil", markerSlugs: [], language: "EN" },
-    { id: PROMO_ID, shortCode: "OGN-066", finish: "foil", markerSlugs: ["promo"], language: "EN" },
+    {
+      id: BASE_ID,
+      cardId: CARD_ID,
+      shortCode: "OGN-066",
+      finish: "foil",
+      markerSlugs: [],
+      language: "EN",
+    },
+    {
+      id: PROMO_ID,
+      cardId: CARD_ID,
+      shortCode: "OGN-066",
+      finish: "foil",
+      markerSlugs: ["promo"],
+      language: "EN",
+    },
   ];
 
   const sideCards = [
@@ -323,5 +347,42 @@ describe("ingestUserSubmission printing links", () => {
     const { result, linked } = await ingest({});
     expect(result.status).toBe("ok");
     expect(linked).toEqual([BASE_ID]);
+  });
+});
+
+describe("ingestUserSubmission duplicate printings", () => {
+  it("refuses two printings that collapse onto one code, finish and language", async () => {
+    const insertCandidateCard = vi.fn();
+    const repos = {
+      ingest: {
+        lockUserSubmissions: vi.fn().mockResolvedValue(undefined),
+        insertCandidateCard,
+      },
+      cardSubmissions: { countRecentByUser: vi.fn().mockResolvedValue(0) },
+    };
+    const transact = ((fn: (r: unknown) => Promise<unknown>) => fn(repos)) as Transact;
+    const card = buildUserSubmissionCard(
+      submission({
+        printings: [
+          { public_code: "OGN-066/298", rarity: "epic" },
+          { public_code: "OGN-066/298", rarity: "epic", finish: "foil" },
+        ],
+      }),
+      USER_ID,
+      STAMP,
+    );
+
+    const result = await ingestUserSubmission(transact, {
+      userId: USER_ID,
+      submissionNote: null,
+      card,
+      now: new Date("2026-07-02T09:00:00.000Z"),
+    });
+
+    expect(result).toEqual({
+      status: "invalid",
+      errors: ["printings: two printings have the same code, finish and language"],
+    });
+    expect(insertCandidateCard).not.toHaveBeenCalled();
   });
 });

@@ -66,7 +66,10 @@ export const adminCardImagesContract = {
       tags: [TAG],
       successStatus: 204,
     })
-    .errors({ NOT_FOUND: { message: "Printing image not found" } })
+    .errors({
+      NOT_FOUND: { message: "Printing image not found" },
+      BAD_REQUEST: { message: "Image could not be rehosted" },
+    })
     .input(imageIdParam.extend({ active: z.boolean() })),
   unrehostImage: authedRoute
     .route({
@@ -78,6 +81,7 @@ export const adminCardImagesContract = {
     .errors({
       NOT_FOUND: { message: "Printing image not found" },
       BAD_REQUEST: { message: "Image cannot be un-rehosted" },
+      CONFLICT: { message: "Deactivate the image first" },
     })
     .input(imageIdParam),
   rehostImage: authedRoute

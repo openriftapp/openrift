@@ -1,4 +1,4 @@
-import { imageShardDir } from "@openrift/shared/image-url";
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import type { CatalogPrintingSideValue, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { MarketplaceLinksResponse, PricesResponse } from "@openrift/shared/types/api/pricing";
@@ -74,11 +74,6 @@ function errataList(
     return [];
   }
   return Array.isArray(errata) ? errata : [{ ...errata, language: WellKnown.language.EN }];
-}
-
-/** The stored form is the on-disk layout, which `imageRehostedUrl` in the images service also emits. */
-function rehostedUrl(imageId: string): string {
-  return `/media/cards/${imageShardDir(imageId)}/${imageId}`;
 }
 
 function parentsFirst<T extends { id: string; parentId: string | null }>(items: T[]): T[] {
@@ -160,7 +155,7 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
   const imageFiles = new Map<string, Row<"imageFiles">>();
   const addImageFile = (id: string, credit?: string) => {
     if (!imageFiles.has(id)) {
-      imageFiles.set(id, { id, rehostedUrl: rehostedUrl(id), credit: credit ?? null });
+      imageFiles.set(id, { id, rehostedUrl: imageRehostedUrl(id), credit: credit ?? null });
     }
   };
   for (const face of sides) {

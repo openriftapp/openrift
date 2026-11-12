@@ -13,7 +13,10 @@ import {
 } from "../../candidates/lib/card-review-scope.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
 import { ingestCandidates } from "../../candidates/services/ingest-candidates.js";
-import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
+import {
+  relinkCandidatePrintings,
+  reresolveEditedCandidateLink,
+} from "../../candidates/services/relink-candidates.js";
 import { requireScheduler } from "../../system/services/job-scheduler.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
@@ -127,8 +130,13 @@ export const adminCardMutationsCandidatesRouter = {
 
       const before = await candidateCards.getCandidatePrintingById(id);
 
-      const result = await candidateCards.patchCandidatePrinting(id, updates);
-      assertUpdated(result, "Candidate printing not found");
+      await context.transact(async (trx) => {
+        const result = await trx.candidateCards.patchCandidatePrinting(id, updates);
+        assertUpdated(result, "Candidate printing not found");
+        if (before) {
+          await reresolveEditedCandidateLink(trx, id, before);
+        }
+      });
 
       await recordAdminEvent(context.repos, context.userId, {
         action: "candidate-printing.patch",

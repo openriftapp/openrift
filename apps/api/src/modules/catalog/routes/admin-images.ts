@@ -9,13 +9,12 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { runJobAsync } from "../../system/services/run-job.js";
 import {
   REGENERATE_IMAGES_KIND,
+  refetchImages,
   rehostImages,
   runRegenerateImagesJob,
-  unrehostImages,
 } from "../services/images/jobs.js";
 import {
   cleanupOrphanedFiles,
-  clearAllRehosted,
   findBrokenImages,
   findLowResImages,
   getRehostStatus,
@@ -88,14 +87,9 @@ export const adminImagesRouter = {
     return await cleanupOrphanedFiles(context.io, printingImages);
   }),
 
-  unrehost: os.unrehost.handler(async ({ input, context }) => {
+  refetch: os.refetch.handler(async ({ input, context }) => {
     const { printingImages } = context.repos;
-    return await unrehostImages(context.io, printingImages, input.imageIds);
-  }),
-
-  clearRehosted: os.clearRehosted.handler(async ({ context }) => {
-    const { printingImages } = context.repos;
-    return await clearAllRehosted(context.io, printingImages);
+    return await refetchImages(context.io, printingImages, input.imageIds);
   }),
 
   rehostStatus: os.rehostStatus.handler(async ({ context }) => {

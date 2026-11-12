@@ -152,11 +152,6 @@ describe("printingImagesRepo", () => {
     );
   });
 
-  it("clearAllRehostedUrls returns count", async () => {
-    const db = createMockDb([{ numUpdatedRows: 3n }]);
-    expect(await printingImagesRepo(db).clearAllRehostedUrls()).toBe(3);
-  });
-
   it("listUnrehosted returns images needing rehosting", async () => {
     const db = createMockDb([{ imageId: "pi-1" }]);
     expect(await printingImagesRepo(db).listUnrehosted(10)).toHaveLength(1);

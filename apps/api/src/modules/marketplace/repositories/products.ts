@@ -6,7 +6,7 @@ import { sql } from "kysely";
 import { cardHasType, primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { ProductsTable } from "../../../db/tables/marketplace.js";
-import { imageId, requireFaceImage } from "../../../repositories/query-helpers.js";
+import { joinPublicFaceImage } from "../../../repositories/query-helpers.js";
 
 export interface ProductWithCounts extends Selectable<ProductsTable> {
   printingCount: number;
@@ -125,19 +125,20 @@ export function productsRepo(db: Kysely<Database>) {
       }
       // One row per (product, card): the best printing per card, so
       // variant-heavy cards can't fill the whole fan with the same art.
-      const bestPerCard = requireFaceImage(
+      const bestPerCard = joinPublicFaceImage(
         db
           .selectFrom("productPrintings as pp")
           .innerJoin("printingSidesOrdered as pr", "pr.printingId", "pp.printingId")
           .innerJoin("cards as c", "c.id", "pr.cardId"),
         "pr.faceId",
+        { required: true },
       )
         .leftJoin("cardTypes as ct", (join) => join.onRef("ct.slug", "=", primaryCardType("c.id")))
         .leftJoin("rarities as r", "r.slug", "pr.rarity")
         .select([
           "pp.productId",
           "pp.printingId",
-          imageId("imgf").as("imageId"),
+          "pimg.id as imageId",
           "c.name",
           sql<number>`coalesce(ct.sort_order, 32767)`.as("typeOrder"),
           sql<number>`coalesce(r.sort_order, -1)`.as("rarityOrder"),
@@ -148,7 +149,6 @@ export function productsRepo(db: Kysely<Database>) {
           ))::int`.as("printingRank"),
         ])
         .where("pp.productId", "in", productIds)
-        .where(sql`${imageId("imgf")}`, "is not", null)
         .where((eb) => eb.not(cardHasType("c.id", WellKnown.cardType.BATTLEFIELD)));
 
       const rankedPerProduct = db
@@ -172,9 +172,7 @@ export function productsRepo(db: Kysely<Database>) {
         .orderBy("ranked.productId")
         .orderBy("ranked.coverRank")
         .execute();
-      // imageId() is nullable in the row type but the IS NOT NULL filter
-      // guarantees it here.
-      return rows as ProductCoverRow[];
+      return rows;
     },
 
     /** Unordered: display order is a client concern. */

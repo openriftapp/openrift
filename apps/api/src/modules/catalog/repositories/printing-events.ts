@@ -2,8 +2,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import {
-  imageId,
-  joinFaceImage,
+  joinPublicFaceImage,
   pairedCardNameSql,
   withFace1,
 } from "../../../repositories/query-helpers.js";
@@ -42,7 +41,7 @@ interface AdminPrintingEvent extends EnrichedPrintingEvent {
 
 export function printingEventsRepo(db: Kysely<Database>) {
   const selectEnriched = () =>
-    joinFaceImage(
+    joinPublicFaceImage(
       withFace1(
         db.selectFrom("printingEvents as pe").innerJoin("printings as p", "p.id", "pe.printingId"),
       )
@@ -71,7 +70,7 @@ export function printingEventsRepo(db: Kysely<Database>) {
       "pf.artist",
       "pf.language",
       "lng.name as languageName",
-      imageId("imgf").as("frontImageId"),
+      "pimg.id as frontImageId",
     ]);
 
   return {

@@ -175,6 +175,19 @@ describe("buildPrintingDeskCsv", () => {
   });
 });
 
+describe("buildPrintingDeskCsv active image", () => {
+  it("links a rehosted image on the site", () => {
+    const csv = buildPrintingDeskCsv([row({ activeImageUrl: "/media/cards/ab/img-1ab" })], {
+      channelPaths,
+      siteUrl: "https://openrift.app",
+    });
+
+    expect(parseFirstDataRow(csv)[17]).toBe(
+      "https://openrift.app/media/cards/ab/img-1ab-full.webp",
+    );
+  });
+});
+
 describe("printingDeskCardUrl", () => {
   it("is site-relative without a site URL", () => {
     expect(

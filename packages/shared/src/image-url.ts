@@ -13,3 +13,8 @@ export function imageUrl(imageId: string, variant: ImageVariant): string {
 export function imageShardDir(imageId: string): string {
   return imageId.slice(-2);
 }
+
+/** The stored `image_files.rehosted_url`; `chk_image_files_rehosted_url` pins this exact shape. */
+export function imageRehostedUrl(imageId: string): string {
+  return `/media/cards/${imageShardDir(imageId)}/${imageId}`;
+}

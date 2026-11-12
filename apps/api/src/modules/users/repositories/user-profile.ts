@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { cardTypesColumn, imageId, joinFaceImage } from "../../../repositories/query-helpers.js";
+import { cardTypesColumn, joinPublicFaceImage } from "../../../repositories/query-helpers.js";
 import type { Tournament } from "../../tournaments/repositories/tournaments-shared.js";
 
 export interface CollectionSummary {
@@ -144,19 +144,17 @@ export function userProfileRepo(db: Kysely<Database>) {
     ): Promise<Map<string, string[]>> {
       const previews = await Promise.all(
         collectionIds.map(async (collectionId) => {
-          const rows = await joinFaceImage(
+          const rows = await joinPublicFaceImage(
             db.selectFrom("copies as c").innerJoin("printings as p", "p.id", "c.printingId"),
             "p.face1Id",
+            { required: true },
           )
-            .select(imageId("imgf").as("imageId"))
+            .select("pimg.id as imageId")
             .where("c.collectionId", "=", collectionId)
-            .where("imgf.rehostedUrl", "is not", null)
             .orderBy("c.createdAt", "desc")
             .limit(limit * 3)
             .execute();
-          const distinct = [
-            ...new Set(rows.flatMap((row) => (row.imageId === null ? [] : [row.imageId]))),
-          ];
+          const distinct = [...new Set(rows.map((row) => row.imageId))];
           return [collectionId, distinct.slice(0, limit)] as const;
         }),
       );

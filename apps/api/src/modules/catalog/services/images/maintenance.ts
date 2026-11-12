@@ -4,7 +4,6 @@ import { errorMessage } from "@openrift/shared/strings";
 import type {
   BrokenImagesResponse,
   CleanupOrphanedResponse,
-  ClearRehostedResponse,
   LowResImagesResponse,
   RehostStatusDiskStats,
   RehostStatusResponse,
@@ -18,31 +17,6 @@ import { isValidVariantSuffix, rehostFilesComplete } from "./variants.js";
 type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
 
 const ORIG_FILE_RE = /^(?<base>.+)-orig\.[^.]+$/u;
-
-export async function clearAllRehosted(
-  io: Io,
-  repo: PrintingImagesRepo,
-): Promise<ClearRehostedResponse> {
-  const cleared = await repo.clearAllRehostedUrls();
-
-  try {
-    const entries = await io.fs.readdir(CARD_MEDIA_DIR, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      const prefixDir = join(CARD_MEDIA_DIR, entry.name);
-      const files = await io.fs.readdir(prefixDir);
-      for (const file of files) {
-        await io.fs.unlink(join(prefixDir, file));
-      }
-    }
-  } catch {
-    // directory doesn't exist
-  }
-
-  return { cleared };
-}
 
 function diskFileToPrefix(dirPrefix: string, file: string): string {
   // `[^-.]+` matches only the last dash-suffix, so `img-1-300w.webp` becomes `img-1`, not `img`.
@@ -108,10 +82,11 @@ export async function getRehostStatus(
   io: Io,
   repo: PrintingImagesRepo,
 ): Promise<RehostStatusResponse> {
-  const [perSet, { stats: disk, filesByPrefix }, knownUrls] = await Promise.all([
+  const [perSet, { stats: disk, filesByPrefix }, knownUrls, failures] = await Promise.all([
     repo.rehostStatusBySet(),
     scanDisk(io),
     repo.allRehostedUrls(),
+    repo.countRehostFailures(),
   ]);
 
   let total = 0;
@@ -146,7 +121,16 @@ export async function getRehostStatus(
     }
   }
 
-  return { total, rehosted, external: total - rehosted, orphanedFiles, sets, disk };
+  return {
+    total,
+    rehosted,
+    external: total - rehosted,
+    failedRetrying: failures.retrying,
+    failedManual: failures.manual,
+    orphanedFiles,
+    sets,
+    disk,
+  };
 }
 
 /** Returns stale duplicate `-orig.*` archives per base, keeping only the newest by mtime. */

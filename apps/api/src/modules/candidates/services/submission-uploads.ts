@@ -78,7 +78,6 @@ export async function deleteSubmissionUpload(io: Io, url: string): Promise<void>
   await store.remove(io, url);
 }
 
-// An upload an admin already attached stays: `image_files.original_url` still points at it.
 export async function discardSubmissionUploads(
   io: Io,
   repos: Repos,

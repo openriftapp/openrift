@@ -7,6 +7,7 @@ import {
   createDbContext,
   deletePrintingsById,
   insertCard,
+  insertImageFile,
   insertPrinting,
 } from "../../../test/integration-context.js";
 
@@ -152,18 +153,19 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
     { rehosted = true, active = true } = {},
   ): Promise<string> {
     counter += 1;
-    const imageFile = await db
-      .insertInto("imageFiles")
-      .values({
-        rehostedUrl: rehosted ? `https://images.example.com/cover-itest-${counter}.webp` : null,
-        originalUrl: rehosted ? null : `https://images.example.com/cover-itest-${counter}.png`,
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const imageFile = await insertImageFile(db, {
+      rehosted,
+      originalUrl: rehosted ? null : `https://images.example.com/cover-itest-${counter}.png`,
+    });
     imageFileIds.push(imageFile.id);
     await db
       .insertInto("faceImages")
-      .values({ faceId: printingId, imageFileId: imageFile.id, isActive: active })
+      .values({
+        faceId: printingId,
+        imageFileId: imageFile.id,
+        isActive: active && rehosted,
+        activateWhenRehosted: active && !rehosted,
+      })
       .execute();
     return imageFile.id;
   }

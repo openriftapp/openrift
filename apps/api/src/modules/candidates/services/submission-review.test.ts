@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
-import {
-  acceptSubmission,
-  createCardFromCandidate,
-  moveSubmission,
-  rejectSubmission,
-} from "./submission-review.js";
+import { acceptSubmission, moveSubmission, rejectSubmission } from "./submission-review.js";
 
 const ADMIN_ID = "a0000000-0001-4000-a000-000000000001";
 const NOW = new Date("2026-09-10T12:00:00Z");
@@ -291,6 +286,7 @@ describe("acceptSubmission", () => {
         allPrintingKeys: vi.fn().mockResolvedValue([
           {
             id: "p-live",
+            cardId: "card-1",
             shortCode: "OGN-027",
             finish: "normal",
             markerSlugs: [],
@@ -404,6 +400,62 @@ describe("acceptSubmission", () => {
     ).rejects.toThrow("another picked printing has the same short code");
     expect(repos.catalogMutations.findPrintingIdByIdentity).toHaveBeenCalledTimes(1);
     expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
+  });
+
+  it("skips a new size whose existing side has different printed values and applies the rest", async () => {
+    const repos = createRepos({
+      sets: { getPrintedTotal: vi.fn().mockResolvedValue(null) },
+    } as never);
+    Object.assign(repos.catalogMutations, {
+      getPrintingCardIdByComposite: vi.fn().mockResolvedValue(null),
+      findPrintingIdByIdentity: vi.fn().mockResolvedValue(null),
+      findFaceIdByIdentity: vi.fn().mockResolvedValue({ id: "face-1" }),
+      getSetIdBySlug: vi.fn().mockResolvedValue({ id: "set-uuid" }),
+      getFacePrintedFields: vi.fn().mockResolvedValue({
+        setId: "set-uuid",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        isOvernumbered: false,
+        artist: "Old Artist",
+        publicCode: "OGN-027",
+        printedRulesText: null,
+        printedEffectText: null,
+        flavorText: null,
+        printedName: null,
+        printedYear: null,
+      }),
+    });
+
+    const result = await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      cardFields: [{ field: "energy", value: 3 }],
+      newPrintings: [
+        {
+          candidatePrintingId: "cp-1",
+          printingFields: {
+            shortCode: "OGN-027",
+            setId: "ogn",
+            artist: "New Artist",
+            rarity: "common",
+            publicCode: "OGN-027",
+            size: "standard",
+            markerSlugs: [],
+            distributionChannelSlugs: [],
+          },
+        },
+      ],
+    });
+
+    expect(result.skipped).toEqual([
+      {
+        candidatePrintingId: "cp-1",
+        reason:
+          "The existing OGN-027 normal EN side differs in artist. Edit that side or the source first.",
+      },
+    ]);
+    expect(result.applied).toBe(1);
   });
 
   it("resolves as not_applied when every pick was unticked", async () => {
@@ -781,153 +833,5 @@ describe("rejectSubmission", () => {
       }),
     ).rejects.toBeInstanceOf(AppError);
     expect(repos.ignoredCandidates.ignoreCard).not.toHaveBeenCalled();
-  });
-});
-
-describe("createCardFromCandidate", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  const cardFields = {
-    id: "ekko",
-    name: "Ekko",
-    types: ["unit"],
-    domains: ["body"],
-  } as never;
-
-  it("creates the card and resolves the ledger as accepted", async () => {
-    const repos = createRepos({
-      cardSubmissions: {
-        getByCandidateCardId: vi.fn().mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
-        liveCardByNormName: vi.fn().mockResolvedValue(null),
-        resolve: vi.fn(),
-        candidatePrintingImageUrls: vi.fn().mockResolvedValue([]),
-      },
-    });
-
-    const result = await createCardFromCandidate(transactOn(repos), repos, io, {
-      ...baseArgs,
-      cardFields,
-      printings: [],
-      images: [],
-    });
-
-    expect(result).toEqual({ cardSlug: "ekko", printingsCreated: 0 });
-    expect(repos.catalogMutations.acceptNewCardFromSources).toHaveBeenCalledWith(
-      cardFields,
-      "jinx",
-    );
-    expect(repos.cardSubmissions.resolve).toHaveBeenCalledWith("sub-1", {
-      status: "accepted",
-      resolvedAt: NOW,
-      resolvedByUserId: ADMIN_ID,
-      acceptedCardId: "card-9",
-    });
-  });
-
-  it("conflicts when a live card already holds the name", async () => {
-    const repos = createRepos({
-      cardSubmissions: {
-        getByCandidateCardId: vi.fn().mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
-        liveCardByNormName: vi.fn().mockResolvedValue({ id: "card-1", slug: "jinx" }),
-      },
-    });
-
-    await expect(
-      createCardFromCandidate(transactOn(repos), repos, io, {
-        ...baseArgs,
-        cardFields,
-        printings: [],
-        images: [],
-      }),
-    ).rejects.toMatchObject({ status: 409 });
-    expect(repos.catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
-  });
-
-  it("409s two picks of one printing identity before creating anything", async () => {
-    const repos = createRepos({
-      cardSubmissions: {
-        getByCandidateCardId: vi.fn().mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
-        liveCardByNormName: vi.fn().mockResolvedValue(null),
-        resolve: vi.fn(),
-      },
-    });
-    const printingFields = {
-      shortCode: "OGN-027",
-      artist: "A",
-      rarity: "common",
-      publicCode: "OGN-027",
-      markerSlugs: [],
-      distributionChannelSlugs: [],
-    };
-
-    await expect(
-      createCardFromCandidate(transactOn(repos), repos, io, {
-        ...baseArgs,
-        cardFields,
-        printings: [
-          { candidatePrintingId: "cp-1", printingFields },
-          { candidatePrintingId: "cp-2", printingFields: { ...printingFields, finish: "normal" } },
-        ],
-        images: [],
-      }),
-    ).rejects.toMatchObject({ status: 409 });
-    expect(repos.catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
-  });
-
-  it("400s when the pending row is not a new-card proposal", async () => {
-    const repos = createRepos();
-    (repos.cardSubmissions.liveCardByNormName as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-    await expect(
-      createCardFromCandidate(transactOn(repos), repos, io, {
-        ...baseArgs,
-        cardFields,
-        printings: [],
-        images: [],
-      }),
-    ).rejects.toMatchObject({ status: 400 });
-  });
-
-  it("creates a scrape's new-card group with no ledger row to settle", async () => {
-    const repos = createRepos({
-      cardSubmissions: {
-        getByCandidateCardId: vi.fn().mockResolvedValue(null),
-        liveCardByNormName: vi.fn().mockResolvedValue(null),
-        resolve: vi.fn(),
-      },
-    });
-    (repos.candidateCards.candidateCardById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...candidate,
-      provider: "playloltcg",
-      externalId: "plc-42",
-    });
-
-    const result = await createCardFromCandidate(transactOn(repos), repos, io, {
-      ...baseArgs,
-      cardFields,
-      printings: [],
-      images: [],
-    });
-
-    expect(result).toEqual({ cardSlug: "ekko", printingsCreated: 0 });
-    expect(repos.candidateCards.checkCandidateCard).toHaveBeenCalledWith("cc-1");
-    expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
-  });
-
-  it("forbids a candidate outside the granted providers", async () => {
-    const repos = createRepos();
-
-    await expect(
-      createCardFromCandidate(transactOn(repos), repos, io, {
-        ...baseArgs,
-        scope: new Set(["gallery"]),
-        cardFields,
-        printings: [],
-        images: [],
-      }),
-    ).rejects.toMatchObject({ status: 403 });
-    expect(repos.catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
   });
 });

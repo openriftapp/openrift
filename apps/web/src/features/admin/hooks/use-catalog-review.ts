@@ -2,8 +2,6 @@ import { adminCatalogReviewContract } from "@openrift/shared/contracts/admin/cat
 import type {
   AcceptSubmissionInput,
   AcceptSubmissionResponse,
-  CreateCardFromCandidateInput,
-  CreateCardFromCandidateResponse,
   MoveSubmissionInput,
   MoveSubmissionResponse,
   RejectSubmissionInput,
@@ -45,13 +43,6 @@ const moveSubmissionFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context, data }): Promise<MoveSubmissionResponse> =>
     apiOrpcClient(adminCatalogReviewContract, context.cookie).moveSubmission(data),
-  );
-
-const createCardFromCandidateFn = createServerFn({ method: "POST" })
-  .validator((input: CreateCardFromCandidateInput) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<CreateCardFromCandidateResponse> =>
-    apiOrpcClient(adminCatalogReviewContract, context.cookie).createCardFromCandidate(data),
   );
 
 export interface SettleScope {
@@ -100,16 +91,6 @@ export function useMoveSubmission(scope: SettleScope = {}) {
     invalidates: (input, data) => [
       ...settleKeys(input.candidateCardId, { ...scope, cardSlug: data.cardSlug }),
       ...(scope.cardSlug ? [adminKeys.cards.detail(scope.cardSlug)] : []),
-    ],
-  });
-}
-
-export function useCreateCardFromCandidate(scope: SettleScope = {}) {
-  return useMutationWithInvalidation({
-    mutationFn: (input: CreateCardFromCandidateInput) => createCardFromCandidateFn({ data: input }),
-    invalidates: (input, data) => [
-      ...settleKeys(input.candidateCardId, { ...scope, cardSlug: data.cardSlug }),
-      adminKeys.cards.allCards,
     ],
   });
 }

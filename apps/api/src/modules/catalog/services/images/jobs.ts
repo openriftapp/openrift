@@ -2,12 +2,13 @@ import { join } from "node:path";
 
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
 import { errorMessage } from "@openrift/shared/strings";
 import type {
   RegenerateImagesCheckpoint,
   RehostImageResponse,
-  UnrehostImagesResponse,
+  RefetchImagesResponse,
 } from "@openrift/shared/types/api/admin";
 
 import { AppError } from "../../../../errors.js";
@@ -16,41 +17,138 @@ import { assertFound } from "../../../../lib/assertions.js";
 import type { jobRunsRepo } from "../../../system/repositories/job-runs.js";
 import type { printingImagesRepo } from "../../repositories/printing-images.js";
 import { fetchOriginalImage } from "./original-source.js";
-import { CARD_MEDIA_DIR, imageRehostedUrl } from "./paths.js";
-import { deleteRehostFiles, generateWebpVariants, processAndSave } from "./variants.js";
+import { CARD_MEDIA_DIR } from "./paths.js";
+import { rehostFailureReason } from "./rehost-error.js";
+import {
+  deleteRehostFiles,
+  generateWebpVariants,
+  origFileOnDisk,
+  processAndSave,
+} from "./variants.js";
 
 type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
 type JobRunsRepo = ReturnType<typeof jobRunsRepo>;
 
 export const REGENERATE_IMAGES_KIND = "images.regenerate";
 
-/**
- * Rehost a single image by its printing_image ID. Updates the shared
- * image_files row, so every printing sharing the image benefits. Best-effort:
- * errors are swallowed.
- */
-export async function rehostSingleImage(
-  io: Io,
-  repo: PrintingImagesRepo,
-  imageId: string,
-): Promise<void> {
-  const image = await repo.getForRehost(imageId);
-  if (!image) {
-    return;
-  }
-  await rehostImageFile(io, repo, image.imageFileId);
+export interface RehostOutcome {
+  status: "rehosted" | "already-rehosted" | "skipped" | "failed";
+  error?: string;
 }
 
-async function rehostAndLogFailure(
+export async function rehostImageFile(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageFileId: string,
+  options: { overwrite?: boolean } = {},
+): Promise<RehostOutcome> {
+  const file = await repo.getImageFileForRehost(imageFileId);
+  if (!file) {
+    return { status: "skipped" };
+  }
+  if (file.rehostedUrl !== null && !options.overwrite) {
+    await repo.promoteRehosted(file.id);
+    return { status: "already-rehosted" };
+  }
+  if (!file.originalUrl) {
+    return { status: "skipped" };
+  }
+
+  const rehostedUrl = imageRehostedUrl(file.id);
+  let mayHaveWritten = false;
+  try {
+    const { buffer, ext } = await fetchOriginalImage(io, file.originalUrl);
+    mayHaveWritten = true;
+    await processAndSave(
+      io,
+      buffer,
+      ext,
+      join(CARD_MEDIA_DIR, file.id.slice(-2)),
+      file.id,
+      file.rotation,
+      file.needsTrim,
+      file.quad,
+      true,
+    );
+    if (!(await repo.completeRehost(file.id, rehostedUrl))) {
+      await deleteRehostFiles(io, rehostedUrl);
+      return { status: "skipped" };
+    }
+    return { status: "rehosted" };
+  } catch (error) {
+    console.error(`[rehost] Rehost failed for image file ${imageFileId}:`, errorMessage(error));
+    const message = rehostFailureReason(error);
+    if (mayHaveWritten && file.rehostedUrl === null) {
+      await deleteRehostFiles(io, rehostedUrl);
+    }
+    await repo.recordRehostFailure(file.id, message);
+    return { status: "failed", error: message };
+  }
+}
+
+async function settleRehosts(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageFileIds: readonly string[],
+  options: { overwrite?: boolean } = {},
+): Promise<RehostOutcome[]> {
+  const settled = await Promise.allSettled(
+    imageFileIds.map((imageFileId) => rehostImageFile(io, repo, imageFileId, options)),
+  );
+  return settled.map((result) =>
+    result.status === "fulfilled"
+      ? result.value
+      : { status: "failed", error: errorMessage(result.reason) },
+  );
+}
+
+export async function rehostImageFileOrThrow(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageFileId: string,
+  options: { overwrite?: boolean } = {},
+): Promise<void> {
+  const outcome = await rehostImageFile(io, repo, imageFileId, options);
+  if (outcome.status === "failed") {
+    throw new AppError(
+      400,
+      ERROR_CODES.BAD_REQUEST,
+      `Could not rehost the image: ${outcome.error ?? "unknown error"}`,
+    );
+  }
+  if (outcome.status === "skipped") {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image has no original URL to rehost");
+  }
+}
+
+export async function rehostFaceImage(
   io: Io,
   repo: PrintingImagesRepo,
   imageId: string,
-): Promise<void> {
+): Promise<RehostOutcome> {
   try {
-    await rehostSingleImage(io, repo, imageId);
+    const imageFileId = await repo.getImageFileId(imageId);
+    return imageFileId === undefined
+      ? { status: "skipped" }
+      : await rehostImageFile(io, repo, imageFileId);
   } catch (error) {
-    console.error(`[rehost] Auto-rehost failed for image ${imageId}:`, errorMessage(error));
+    const message = errorMessage(error);
+    console.error(`[rehost] Rehost failed for image ${imageId}:`, message);
+    return { status: "failed", error: message };
   }
+}
+
+export async function ensureRehostedOriginal(
+  io: Io,
+  repo: PrintingImagesRepo,
+  file: { imageFileId: string; rehostedUrl: string | null },
+): Promise<void> {
+  if (file.rehostedUrl !== null && (await origFileOnDisk(io, file.imageFileId)) !== undefined) {
+    return;
+  }
+  await rehostImageFileOrThrow(io, repo, file.imageFileId, {
+    overwrite: file.rehostedUrl !== null,
+  });
 }
 
 export function rehostImagesInBackground(
@@ -59,43 +157,7 @@ export function rehostImagesInBackground(
   imageIds: readonly string[],
 ): void {
   for (const imageId of imageIds) {
-    void rehostAndLogFailure(io, repo, imageId);
-  }
-}
-
-/**
- * Keyed by `image_files` ID, not printing image: substitute art pinned from a
- * URL has no printing image to key by. Best-effort; a failed rehost leaves the file un-servable, not an error.
- */
-export async function rehostImageFile(
-  io: Io,
-  repo: PrintingImagesRepo,
-  imageFileId: string,
-): Promise<void> {
-  const file = await repo.getImageFileForRehost(imageFileId);
-  if (!file?.originalUrl) {
-    return;
-  }
-
-  try {
-    const { buffer, ext } = await fetchOriginalImage(io, file.originalUrl);
-    const rehostedUrl = imageRehostedUrl(file.id);
-    const outputDir = join(CARD_MEDIA_DIR, file.id.slice(-2));
-    await processAndSave(
-      io,
-      buffer,
-      ext,
-      outputDir,
-      file.id,
-      file.rotation,
-      file.needsTrim,
-      file.quad,
-      true,
-    );
-    await repo.updateRehostedUrl(file.id, rehostedUrl);
-  } catch (error) {
-    const message = errorMessage(error);
-    console.error(`[rehost] Auto-rehost failed for image file ${imageFileId}:`, message);
+    void rehostFaceImage(io, repo, imageId);
   }
 }
 
@@ -114,6 +176,11 @@ export async function rehostImages(
   limit = BATCH_SIZE,
 ): Promise<RehostImageResponse> {
   const images = await repo.listUnrehosted(limit);
+  const outcomes = await settleRehosts(
+    io,
+    repo,
+    images.map((img) => img.imageId),
+  );
 
   const progress: RehostImageResponse = {
     total: images.length,
@@ -122,52 +189,64 @@ export async function rehostImages(
     failed: 0,
     errors: [],
   };
-
-  const results = await Promise.allSettled(
-    images.map(async (img) => {
-      if (!img.originalUrl) {
-        return "skipped" as const;
-      }
-
-      const { buffer, ext } = await fetchOriginalImage(io, img.originalUrl);
-      const selfHostedPath = imageRehostedUrl(img.imageId);
-      const outputDir = join(CARD_MEDIA_DIR, img.imageId.slice(-2));
-      await processAndSave(
-        io,
-        buffer,
-        ext,
-        outputDir,
-        img.imageId,
-        img.rotation,
-        img.needsTrim,
-        img.quad,
-        true,
-      );
-      await repo.updateRehostedUrl(img.imageId, selfHostedPath);
-      return "rehosted" as const;
-    }),
-  );
-
   for (const [idx, img] of images.entries()) {
-    const result = results[idx];
-    if (!result) {
-      continue;
-    }
-    if (result.status === "fulfilled") {
-      if (result.value === "skipped") {
-        progress.skipped++;
-      } else {
-        progress.rehosted++;
-      }
-    } else {
+    const outcome = outcomes[idx];
+    if (outcome?.status === "failed") {
       progress.failed++;
-      const message = errorMessage(result.reason);
-      progress.errors.push(`${img.imageId}: ${message}`);
-      console.error(`[rehost] Failed for ${img.imageId}:`, message);
+      progress.errors.push(`${img.imageId}: ${outcome.error ?? "unknown error"}`);
+    } else if (outcome?.status === "rehosted" || outcome?.status === "already-rehosted") {
+      progress.rehosted++;
+    } else {
+      progress.skipped++;
     }
   }
-
   return progress;
+}
+
+export const REHOST_RETRY_KIND = "images.rehost_retry";
+
+const REHOST_RETRY_LIMIT = 20;
+
+export interface RehostRetryResult {
+  attempted: number;
+  rehosted: number;
+  promoted: number;
+  skipped: number;
+  failed: number;
+}
+
+export function isRehostRetryNoop(result: RehostRetryResult): boolean {
+  return result.attempted === 0;
+}
+
+export async function retryDueRehosts(
+  io: Io,
+  repo: PrintingImagesRepo,
+  limit = REHOST_RETRY_LIMIT,
+): Promise<RehostRetryResult> {
+  const imageFileIds = await repo.listDueRehosts(limit);
+  const result: RehostRetryResult = {
+    attempted: imageFileIds.length,
+    rehosted: 0,
+    promoted: 0,
+    skipped: 0,
+    failed: 0,
+  };
+  for (let start = 0; start < imageFileIds.length; start += BATCH_SIZE) {
+    const outcomes = await settleRehosts(io, repo, imageFileIds.slice(start, start + BATCH_SIZE));
+    for (const outcome of outcomes) {
+      if (outcome.status === "rehosted") {
+        result.rehosted++;
+      } else if (outcome.status === "already-rehosted") {
+        result.promoted++;
+      } else if (outcome.status === "skipped") {
+        result.skipped++;
+      } else {
+        result.failed++;
+      }
+    }
+  }
+  return result;
 }
 
 /** Cap on the number of error strings retained in a checkpoint, to keep the
@@ -178,6 +257,20 @@ interface RegenerateBatchResult {
   regenerated: number;
   failed: number;
   errors: string[];
+}
+
+async function refetchMissingOriginal(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageFileId: string,
+): Promise<void> {
+  const outcome = await rehostImageFile(io, repo, imageFileId, { overwrite: true });
+  if (outcome.status === "skipped") {
+    throw new Error("no -orig file on disk and no originalUrl to re-fetch (uploaded image)");
+  }
+  if (outcome.status === "failed") {
+    throw new Error(`no -orig file on disk; re-fetch failed: ${outcome.error ?? "unknown error"}`);
+  }
 }
 
 export async function regenerateImagesBatch(
@@ -196,41 +289,10 @@ export async function regenerateImagesBatch(
   const results = await Promise.allSettled(
     batch.map(async (img) => {
       const prefixDir = join(CARD_MEDIA_DIR, img.imageId.slice(-2));
-      let files: string[];
-      try {
-        files = await io.fs.readdir(prefixDir);
-      } catch {
-        // Prefix dir is gone entirely — the DB still thinks this image is
-        // rehosted. Clean up the stale DB entry so a future rehost-images
-        // run can re-fetch it fresh. Uploaded images (no originalUrl) can't
-        // be re-fetched, and clearing rehostedUrl on them would violate
-        // `chk_image_files_has_url` — surface a clear error instead.
-        const file = await repo.getImageFileById(img.imageId);
-        if (!file?.originalUrl) {
-          throw new Error(
-            `prefix dir missing and no originalUrl to re-fetch (uploaded image); leaving DB unchanged`,
-          );
-        }
-        await repo.updateRehostedUrl(img.imageId, null);
-        throw new Error(`prefix dir missing; cleared stale rehostedUrl`);
-      }
-      const origFile = files.find((f) => f.startsWith(`${img.imageId}-orig.`));
-      if (!origFile) {
-        // Variants exist but the -orig archive is gone — we can't regenerate
-        // from local files, and regenerate is a local-only operation. The
-        // next rehost-images run will re-download and rebuild everything,
-        // but only if there's an originalUrl to re-fetch from. Uploaded
-        // images (no originalUrl) can't be recovered, and clearing
-        // rehostedUrl on them violates `chk_image_files_has_url`.
-        const file = await repo.getImageFileById(img.imageId);
-        if (!file?.originalUrl) {
-          throw new Error(
-            `no -orig file on disk and no originalUrl to re-fetch (uploaded image); leaving DB unchanged`,
-          );
-        }
-        await deleteRehostFiles(io, img.rehostedUrl);
-        await repo.updateRehostedUrl(img.imageId, null);
-        throw new Error(`no -orig file on disk; cleared stale rehostedUrl and removed variants`);
+      const origFile = await origFileOnDisk(io, img.imageId);
+      if (origFile === undefined) {
+        await refetchMissingOriginal(io, repo, img.imageId);
+        return;
       }
       const buffer = await io.fs.readFile(join(prefixDir, origFile));
       const setting = settings.get(img.imageId);
@@ -244,6 +306,7 @@ export async function regenerateImagesBatch(
         setting?.quad ?? null,
         options.skipExisting,
       );
+      await repo.clearRehostFailure(img.imageId);
     }),
   );
 
@@ -385,6 +448,12 @@ export async function unrehostImageFile(
   if (!image.rehostedUrl) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image is not rehosted");
   }
+  if (await repo.isActiveImageFile(imageFileId)) {
+    throw new AppError(409, ERROR_CODES.CONFLICT, "Deactivate the image first");
+  }
+  if (await repo.isPinnedFallbackFile(imageFileId)) {
+    throw new AppError(409, ERROR_CODES.CONFLICT, "Unpin the fallback art first");
+  }
   // image_files requires original_url or rehosted_url, and an upload has no
   // original to fall back to.
   if (!image.originalUrl) {
@@ -394,46 +463,40 @@ export async function unrehostImageFile(
       "Cannot un-rehost: image has no original URL to fall back to",
     );
   }
+  await repo.clearPendingForFile(imageFileId);
+  await repo.clearRehostFailure(imageFileId);
   await deleteRehostFiles(io, image.rehostedUrl);
   await repo.updateRehostedUrl(imageFileId, null);
   return image.rehostedUrl;
 }
 
-/**
- * Un-rehost a batch of images by image_file IDs: clear `rehostedUrl` and
- * delete the associated disk files. The IDs match `findBrokenImages` and the
- * rest of the rehost pipeline (`listAllRehosted*` all return `image_files.id`
- * as `imageId`), and `rehostedUrl` lives on `image_files` — so un-rehost is
- * inherently per-image_file, not per-printing_image. Disk deletion is
- * idempotent, so broken entries (the primary caller) don't fail the pass.
- */
-export async function unrehostImages(
+export async function refetchImages(
   io: Io,
   repo: PrintingImagesRepo,
   imageFileIds: string[],
-): Promise<UnrehostImagesResponse> {
-  const progress: UnrehostImagesResponse = {
+): Promise<RefetchImagesResponse> {
+  const progress: RefetchImagesResponse = {
     total: imageFileIds.length,
-    unrehosted: 0,
+    refetched: 0,
     failed: 0,
     errors: [],
   };
 
-  const results = await Promise.allSettled(
-    imageFileIds.map((imageFileId) => unrehostImageFile(io, repo, imageFileId)),
-  );
-
-  for (const [idx, imageFileId] of imageFileIds.entries()) {
-    const result = results[idx];
-    if (!result) {
-      continue;
-    }
-    if (result.status === "fulfilled") {
-      progress.unrehosted++;
-    } else {
+  for (let start = 0; start < imageFileIds.length; start += BATCH_SIZE) {
+    const batch = imageFileIds.slice(start, start + BATCH_SIZE);
+    const outcomes = await settleRehosts(io, repo, batch, { overwrite: true });
+    for (const [idx, imageFileId] of batch.entries()) {
+      const outcome = outcomes[idx];
+      if (outcome?.status === "rehosted") {
+        progress.refetched++;
+        continue;
+      }
       progress.failed++;
-      const message = errorMessage(result.reason);
-      progress.errors.push(`${imageFileId}: ${message}`);
+      const reason =
+        outcome?.status === "failed"
+          ? (outcome.error ?? "unknown error")
+          : "no original URL to re-fetch (uploaded image)";
+      progress.errors.push(`${imageFileId}: ${reason}`);
     }
   }
 

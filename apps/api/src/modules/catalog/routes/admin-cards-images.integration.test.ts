@@ -1,3 +1,4 @@
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { describe, expect, it } from "vitest";
 
 import type { Io } from "../../../io.js";
@@ -5,6 +6,7 @@ import {
   adminReq,
   createTestContext,
   insertCards,
+  insertImageFile,
   insertPrintings,
   refreshCardAggregates,
 } from "../../../test/integration-context.js";
@@ -413,40 +415,23 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
   });
 
   describe("POST /admin/cards/printing-images/:imageId/activate (rehosted)", () => {
-    it("does not change rehostedUrls when swapping active images", async () => {
-      const mainCardImageId = await db
+    async function imageState(imageId: string) {
+      return db
         .selectFrom("faceImages")
-        .select("imageFileId")
-        .where("id", "=", mainImageId)
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .select(["faceImages.isActive", "faceImages.activateWhenRehosted", "ci.rehostedUrl"])
+        .where("faceImages.id", "=", imageId)
         .executeTakeFirstOrThrow();
-      const additionalCardImageId = await db
-        .selectFrom("faceImages")
-        .select("imageFileId")
-        .where("id", "=", additionalImageId)
-        .executeTakeFirstOrThrow();
+    }
 
-      const mainUrl = `/media/cards/CSI/${mainImageId}`;
-      const additionalUrl = `/media/cards/CSI/${additionalImageId}`;
-      await db
-        .updateTable("imageFiles")
-        .set({ rehostedUrl: mainUrl })
-        .where("id", "=", mainCardImageId.imageFileId)
-        .execute();
-      await db
-        .updateTable("faceImages")
-        .set({ isActive: true })
-        .where("id", "=", mainImageId)
-        .execute();
-      await db
-        .updateTable("imageFiles")
-        .set({ rehostedUrl: additionalUrl })
-        .where("id", "=", additionalCardImageId.imageFileId)
-        .execute();
-      await db
-        .updateTable("faceImages")
-        .set({ isActive: false })
-        .where("id", "=", additionalImageId)
-        .execute();
+    it("does not change rehostedUrls when swapping active images", async () => {
+      await app.fetch(
+        adminReq("POST", `/cards/printing-images/${mainImageId}/activate`, { active: true }),
+      );
+      const { rehostedUrl: mainUrl } = await imageState(mainImageId);
+      const { rehostedUrl: additionalUrl } = await imageState(additionalImageId);
+      expect(mainUrl).toBeTypeOf("string");
+      expect(additionalUrl).toBeTypeOf("string");
 
       const res = await app.fetch(
         adminReq("POST", `/cards/printing-images/${additionalImageId}/activate`, {
@@ -455,28 +440,18 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       );
       expect(res.status).toBe(204);
 
-      const newActive = await db
-        .selectFrom("faceImages")
-        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
-        .select(["faceImages.isActive", "ci.rehostedUrl"])
-        .where("faceImages.id", "=", additionalImageId)
-        .executeTakeFirst();
-      expect(newActive!.isActive).toBe(true);
-      expect(newActive!.rehostedUrl).toBe(additionalUrl);
-
-      const demoted = await db
-        .selectFrom("faceImages")
-        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
-        .select(["faceImages.isActive", "ci.rehostedUrl"])
-        .where("faceImages.id", "=", mainImageId)
-        .executeTakeFirst();
-      expect(demoted!.isActive).toBe(false);
-      expect(demoted!.rehostedUrl).toBe(mainUrl);
+      expect(await imageState(additionalImageId)).toMatchObject({
+        isActive: true,
+        rehostedUrl: additionalUrl,
+      });
+      expect(await imageState(mainImageId)).toMatchObject({
+        isActive: false,
+        rehostedUrl: mainUrl,
+      });
     });
 
     it("does not change rehostedUrl when deactivating an image", async () => {
-      const additionalUrl = `/media/cards/CSI/${additionalImageId}`;
-      // additionalImageId is currently active from the previous test
+      const { rehostedUrl: additionalUrl } = await imageState(additionalImageId);
       const res = await app.fetch(
         adminReq("POST", `/cards/printing-images/${additionalImageId}/activate`, {
           active: false,
@@ -484,49 +459,36 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       );
       expect(res.status).toBe(204);
 
-      const image = await db
-        .selectFrom("faceImages")
-        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
-        .select(["faceImages.isActive", "ci.rehostedUrl"])
-        .where("faceImages.id", "=", additionalImageId)
-        .executeTakeFirst();
-      expect(image!.isActive).toBe(false);
-      expect(image!.rehostedUrl).toBe(additionalUrl);
+      expect(await imageState(additionalImageId)).toMatchObject({
+        isActive: false,
+        rehostedUrl: additionalUrl,
+      });
     });
 
-    it("activates an image without rehostedUrl", async () => {
-      const mainCardImageId = await db
-        .selectFrom("faceImages")
-        .select("imageFileId")
-        .where("id", "=", mainImageId)
+    it("rehosts an image before activating it", async () => {
+      const file = await insertImageFile(db, {
+        rehosted: false,
+        originalUrl: "https://example.com/csi-activate-unrehosted.png",
+      });
+      const image = await db
+        .insertInto("faceImages")
+        .values({ faceId: printingId, imageFileId: file.id, isActive: false })
+        .returning("id")
         .executeTakeFirstOrThrow();
-      await db
-        .updateTable("imageFiles")
-        .set({ rehostedUrl: null })
-        .where("id", "=", mainCardImageId.imageFileId)
-        .execute();
-
-      await db
-        .updateTable("faceImages")
-        .set({ isActive: false })
-        .where("faceId", "=", printingId)
-        .execute();
 
       const res = await app.fetch(
-        adminReq("POST", `/cards/printing-images/${mainImageId}/activate`, {
-          active: true,
-        }),
+        adminReq("POST", `/cards/printing-images/${image.id}/activate`, { active: true }),
       );
       expect(res.status).toBe(204);
 
-      const image = await db
-        .selectFrom("faceImages")
-        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
-        .select(["faceImages.isActive", "ci.rehostedUrl"])
-        .where("faceImages.id", "=", mainImageId)
-        .executeTakeFirst();
-      expect(image!.isActive).toBe(true);
-      expect(image!.rehostedUrl).toBeNull();
+      expect(await imageState(image.id)).toEqual({
+        isActive: true,
+        activateWhenRehosted: false,
+        rehostedUrl: imageRehostedUrl(file.id),
+      });
+
+      await db.deleteFrom("faceImages").where("id", "=", image.id).execute();
+      await db.deleteFrom("imageFiles").where("id", "=", file.id).execute();
     });
   });
 
@@ -548,17 +510,12 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
     });
 
     it("returns 400 when image has no originalUrl", async () => {
-      // A card_image with no originalUrl (rehostedUrl satisfies the DB constraint).
-      const [noUrlCardImage] = await db
-        .insertInto("imageFiles")
-        .values({ rehostedUrl: "/media/cards/CSI/placeholder" })
-        .returning("id")
-        .execute();
+      const noUrlCardImage = await insertImageFile(db);
       const [noUrlImage] = await db
         .insertInto("faceImages")
         .values({
           faceId: printingId,
-          imageFileId: noUrlCardImage!.id,
+          imageFileId: noUrlCardImage.id,
           isActive: false,
         })
         .returning("id")
@@ -642,16 +599,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
 
     it("deletes a printing image that has a rehostedUrl", async () => {
       // A rehostedUrl on the card_image exercises the deleteRehostFiles path.
-      const mainCardImageRow = await db
-        .selectFrom("faceImages")
-        .select("imageFileId")
-        .where("id", "=", mainImageId)
-        .executeTakeFirstOrThrow();
-      await db
-        .updateTable("imageFiles")
-        .set({ rehostedUrl: "/media/cards/CSI/csi-test-rehosted" })
-        .where("id", "=", mainCardImageRow.imageFileId)
-        .execute();
+      await app.fetch(adminReq("POST", `/cards/printing-images/${mainImageId}/rehost`));
 
       const res = await app.fetch(adminReq("DELETE", `/cards/printing-images/${mainImageId}`));
       expect(res.status).toBe(204);

@@ -5,6 +5,7 @@ import {
   createDbContext,
   deletePrintingsById,
   insertCards,
+  insertImageFile,
   insertPrintings,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -62,11 +63,7 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
   }
 
   async function activeImage(printingId: string, isActive: boolean) {
-    const file = await db
-      .insertInto("imageFiles")
-      .values({ rehostedUrl: `/media/cards/aa/${crypto.randomUUID()}` })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const file = await insertImageFile(db);
     imageFileIds.push(file.id);
     await db
       .insertInto("faceImages")

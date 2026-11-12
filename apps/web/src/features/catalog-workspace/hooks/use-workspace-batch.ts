@@ -18,15 +18,22 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export type BatchKind = "trusted-cards" | "trusted-printings" | "suggested-listings";
 
+export interface BatchReason {
+  key: string;
+  label: string;
+  reason: string;
+}
+
 export interface BatchPreview {
   count: number;
   names: string[];
   keys: string[];
+  ineligible: BatchReason[];
 }
 
 export interface BatchOutcome {
   done: number;
-  skipped: { label: string; reason: string }[];
+  skipped: BatchReason[];
 }
 
 type RunResponse =
@@ -87,7 +94,12 @@ const assignSuggestedListingsFn = createServerFn({ method: "POST" })
   );
 
 export function trustedCardsPreview(response: WorkspaceTrustedCardsPreview): BatchPreview {
-  return { count: response.count, names: response.names, keys: response.names };
+  return {
+    count: response.count,
+    names: response.names,
+    keys: response.names,
+    ineligible: response.ineligible.map(({ name, reason }) => ({ key: name, label: name, reason })),
+  };
 }
 
 export function trustedPrintingsPreview(response: WorkspaceTrustedPrintingsPreview): BatchPreview {
@@ -95,6 +107,11 @@ export function trustedPrintingsPreview(response: WorkspaceTrustedPrintingsPrevi
     count: response.count,
     names: response.items.map((item) => item.label),
     keys: response.items.map((item) => item.candidatePrintingId),
+    ineligible: response.ineligible.map(({ candidatePrintingId, label, reason }) => ({
+      key: candidatePrintingId,
+      label,
+      reason,
+    })),
   };
 }
 
@@ -105,6 +122,7 @@ export function suggestedListingsPreview(
     count: response.count,
     names: response.items.map((item) => item.label),
     keys: response.items.map((item) => item.listingKey),
+    ineligible: [],
   };
 }
 
@@ -124,10 +142,10 @@ export function toBatchOutcome(response: RunResponse): BatchOutcome {
   }
   return {
     done: response.accepted,
-    skipped: response.skipped.map((entry) => ({
-      label: "name" in entry ? entry.name : entry.label,
-      reason: entry.reason,
-    })),
+    skipped: response.skipped.map((entry, index) => {
+      const label = "name" in entry ? entry.name : entry.label;
+      return { key: `${index}:${label}`, label, reason: entry.reason };
+    }),
   };
 }
 

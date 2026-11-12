@@ -6,7 +6,7 @@ import type {
   RegenerateImagesKickoffResponse,
   RehostImageResponse,
   RehostStatusResponse,
-  UnrehostImagesResponse,
+  RefetchImagesResponse,
 } from "@openrift/shared/types/api/admin";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -69,18 +69,12 @@ const cancelRegenerateImagesFn = createServerFn({ method: "POST" })
     apiOrpcClient(adminImagesContract, context.cookie).cancelRegenerate(),
   );
 
-const unrehostImagesFn = createServerFn({ method: "POST" })
+const refetchImagesFn = createServerFn({ method: "POST" })
   .validator((input: { imageIds: string[] }) => input)
   .middleware([withCookies])
-  .handler(({ context, data }): Promise<UnrehostImagesResponse> =>
-    apiOrpcClient(adminImagesContract, context.cookie).unrehost({ imageIds: data.imageIds }),
+  .handler(({ context, data }): Promise<RefetchImagesResponse> =>
+    apiOrpcClient(adminImagesContract, context.cookie).refetch({ imageIds: data.imageIds }),
   );
-
-const clearRehostedFn = createServerFn({ method: "POST" })
-  .middleware([withCookies])
-  .handler(async ({ context }) => {
-    await apiOrpcClient(adminImagesContract, context.cookie).clearRehosted();
-  });
 
 const cleanupOrphanedFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
@@ -165,9 +159,9 @@ export function useRehostImages(onBatchComplete?: () => void) {
   });
 }
 
-export function useUnrehostImages() {
+export function useRefetchImages() {
   return useMutationWithInvalidation({
-    mutationFn: (imageIds: string[]) => unrehostImagesFn({ data: { imageIds } }),
+    mutationFn: (imageIds: string[]) => refetchImagesFn({ data: { imageIds } }),
     invalidates: [adminKeys.rehostStatus, adminKeys.brokenImages],
   });
 }
@@ -185,13 +179,6 @@ export function useCancelRegenerateImages() {
   return useMutationWithInvalidation({
     mutationFn: () => cancelRegenerateImagesFn(),
     invalidates: REGENERATE_INVALIDATES,
-  });
-}
-
-export function useClearRehosted() {
-  return useMutationWithInvalidation({
-    mutationFn: () => clearRehostedFn(),
-    invalidates: [adminKeys.rehostStatus],
   });
 }
 

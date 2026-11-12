@@ -4,6 +4,7 @@ import { CARD_FURY_UNIT, OGS_SET, PRINTING_1 } from "../../../test/fixtures/cons
 import {
   createTestContext,
   deletePrintingsById,
+  insertImageFile,
   insertPrintings,
   req,
 } from "../../../test/integration-context.js";
@@ -47,15 +48,9 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
     imagePrintingId = imagePrinting!.id;
 
     // The public catalog only surfaces images with a non-null rehosted_url.
-    const [imageFile] = await db
-      .insertInto("imageFiles")
-      .values({
-        originalUrl: "https://example.com/cat-img-front.png",
-        rehostedUrl: "/media/cat-img/cat-img-front.png",
-      })
-      .returning("id")
-      .execute();
-    imageFileId = imageFile!.id;
+    ({ id: imageFileId } = await insertImageFile(db, {
+      originalUrl: "https://example.com/cat-img-front.png",
+    }));
 
     await db
       .insertInto("faceImages")

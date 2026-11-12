@@ -3,10 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Io } from "../../../../io.js";
 
 vi.mock("./variants.js", () => ({ processAndSave: vi.fn() }));
-vi.mock("./paths.js", () => ({
-  CARD_MEDIA_DIR: "/media/cards",
-  imageRehostedUrl: (id: string) => `/media/cards/${id.slice(-2)}/${id}`,
-}));
+vi.mock("./paths.js", () => ({ CARD_MEDIA_DIR: "/media/cards" }));
 vi.mock("uuid", () => ({ v7: () => "0190-file-ab" }));
 
 import { saveUploadedImage } from "./upload.js";

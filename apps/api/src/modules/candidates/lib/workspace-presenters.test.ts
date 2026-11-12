@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  ComparablePrintingValues,
-  WorkspaceLinkedPrintingRow,
-} from "../repositories/workspace-queue.js";
+import type { ComparablePrintingValues } from "../repositories/candidate-comparison-sql.js";
+import type { WorkspaceLinkedPrintingRow } from "../repositories/workspace-queue.js";
 import type { WorkspaceQueueSources } from "./workspace-presenters.js";
 import {
   buildWorkspaceQueueEntries,
@@ -330,6 +328,7 @@ describe("buildWorkspaceQueueEntries", () => {
             finish: "normal",
             rarity: "rare",
             language: "FR",
+            size: null,
           },
         ],
       }),
@@ -358,6 +357,7 @@ describe("buildWorkspaceQueueEntries", () => {
             finish: null,
             rarity: "epic",
             language: null,
+            size: null,
           },
         ],
       }),
@@ -370,7 +370,8 @@ describe("buildWorkspaceQueueEntries", () => {
       sources({
         inactiveImages: [
           {
-            imageId: "img-1",
+            faceImageId: "img-1",
+            imageFileId: "file-1",
             faceId: "face-3",
             createdAt: T1,
             cardSlug: "teemo-swift-scout",
@@ -378,6 +379,7 @@ describe("buildWorkspaceQueueEntries", () => {
             shortCode: "OGN-112",
             printingIds: ["printing-3", "printing-4"],
             isBack: false,
+            rehostFailed: false,
           },
         ],
       }),
@@ -393,6 +395,59 @@ describe("buildWorkspaceQueueEntries", () => {
         printingIds: ["printing-3", "printing-4"],
       },
     ]);
+  });
+
+  it("files an image whose rehost failed under its own reason", () => {
+    const entries = buildWorkspaceQueueEntries(
+      sources({
+        inactiveImages: [
+          {
+            faceImageId: "img-1",
+            imageFileId: "file-1",
+            faceId: "face-3",
+            createdAt: T1,
+            cardSlug: "teemo-swift-scout",
+            cardName: "Teemo, Swift Scout",
+            shortCode: "OGN-112",
+            printingIds: ["printing-3"],
+            isBack: false,
+            rehostFailed: true,
+          },
+        ],
+      }),
+    );
+    expect(entries[0]?.item).toMatchObject({
+      id: "face:image-rehost-failed:face-3:img-1",
+      reason: "image-rehost-failed",
+      isContributor: false,
+    });
+  });
+
+  it("files a failed pinned substitute under the face, keyed apart from face images", () => {
+    const entries = buildWorkspaceQueueEntries(
+      sources({
+        inactiveImages: [
+          {
+            faceImageId: null,
+            imageFileId: "file-9",
+            faceId: "face-3",
+            createdAt: T1,
+            cardSlug: "teemo-swift-scout",
+            cardName: "Teemo, Swift Scout",
+            shortCode: "OGN-112",
+            printingIds: ["printing-3"],
+            isBack: false,
+            rehostFailed: true,
+          },
+        ],
+      }),
+    );
+    expect(entries[0]?.item).toMatchObject({
+      id: "face:image-rehost-failed:face-3:substitute-file-9",
+      ownerId: "face-3",
+      label: "OGN-112 substitute art",
+      isContributor: false,
+    });
   });
 
   describe("contributor submissions", () => {

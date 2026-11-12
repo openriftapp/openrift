@@ -2,6 +2,7 @@ import type { ExpressionBuilder, Kysely, UpdateResult } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
 
 /**
@@ -138,15 +139,7 @@ export function candidateReviewRepo(db: Kysely<Database>) {
       const rows = await sql<{ normName: string; slug: string | null }>`
         select
           n.norm_name as "normName",
-          coalesce(
-            (select c.slug from cards c where c.norm_name = n.norm_name),
-            (
-              select c.slug from card_name_aliases a
-              join cards c on c.id = a.card_id
-              where a.norm_name = n.norm_name
-              limit 1
-            )
-          ) as slug
+          (select live_card.slug from (${liveCardForNorm(sql.ref("n.norm_name"))}) live_card) as slug
         from unnest(${normNames}::text[]) as n(norm_name)
       `.execute(db);
       return rows.rows.filter(

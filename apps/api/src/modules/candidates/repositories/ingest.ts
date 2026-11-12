@@ -64,6 +64,7 @@ export function ingestRepo(db: Db) {
     allPrintingKeys(): Promise<
       {
         id: string;
+        cardId: string;
         shortCode: string;
         finish: string;
         markerSlugs: string[];
@@ -73,7 +74,15 @@ export function ingestRepo(db: Db) {
     > {
       return db
         .selectFrom("printingSidesOrdered")
-        .select(["printingId as id", "shortCode", "finish", "markerSlugs", "language", "size"])
+        .select([
+          "printingId as id",
+          "cardId",
+          "shortCode",
+          "finish",
+          "markerSlugs",
+          "language",
+          "size",
+        ])
         .execute();
     },
 
@@ -97,6 +106,118 @@ export function ingestRepo(db: Db) {
         .where("candidateCardId", "in", candidateCardIds)
         .execute();
       return rows;
+    },
+
+    allLinkedCandidatePrintings(): Promise<
+      {
+        id: string;
+        printingId: string;
+        shortCode: string;
+        finish: string | null;
+        rarity: string | null;
+        markerSlugs: string[];
+        language: string | null;
+        externalId: string;
+        size: string | null;
+        cardName: string;
+        provider: string;
+      }[]
+    > {
+      return db
+        .selectFrom("candidatePrintings as cp")
+        .innerJoin("candidateCards as cc", "cc.id", "cp.candidateCardId")
+        .select([
+          "cp.id",
+          "cp.printingId",
+          "cp.shortCode",
+          "cp.finish",
+          "cp.rarity",
+          "cp.markerSlugs",
+          "cp.language",
+          "cp.size",
+          "cp.externalId",
+          "cc.name as cardName",
+          "cc.provider",
+        ])
+        .where("cp.printingId", "is not", null)
+        .$narrowType<{ printingId: string }>()
+        .orderBy("cc.provider")
+        .orderBy("cc.name")
+        .orderBy("cp.shortCode")
+        .execute();
+    },
+
+    async movePrintingLinkPin(pin: {
+      provider: string;
+      externalId: string;
+      fromFinish: string | null;
+      toFinish: string | null;
+    }): Promise<void> {
+      const from = pin.fromFinish ?? "";
+      const to = pin.toFinish ?? "";
+      if (from === to) {
+        return;
+      }
+      const byKey = (finish: string) =>
+        db
+          .selectFrom("printingLinkOverrides")
+          .select("printingId")
+          .where("provider", "=", pin.provider)
+          .where("externalId", "=", pin.externalId)
+          .where("finish", "=", finish);
+      const target = await byKey(to).executeTakeFirst();
+      if (target) {
+        await db
+          .deleteFrom("printingLinkOverrides")
+          .where("provider", "=", pin.provider)
+          .where("externalId", "=", pin.externalId)
+          .where("finish", "=", from)
+          .execute();
+        return;
+      }
+      await db
+        .updateTable("printingLinkOverrides")
+        .set({ finish: to })
+        .where("provider", "=", pin.provider)
+        .where("externalId", "=", pin.externalId)
+        .where("finish", "=", from)
+        .execute();
+    },
+
+    candidatePrintingForRelink(id: string): Promise<
+      | {
+          id: string;
+          printingId: string | null;
+          shortCode: string;
+          finish: string | null;
+          rarity: string | null;
+          markerSlugs: string[];
+          language: string | null;
+          externalId: string;
+          size: string | null;
+          cardName: string;
+          provider: string;
+        }
+      | undefined
+    > {
+      return db
+        .selectFrom("candidatePrintings as cp")
+        .innerJoin("candidateCards as cc", "cc.id", "cp.candidateCardId")
+        .select([
+          "cp.id",
+          "cp.printingId",
+          "cp.shortCode",
+          "cp.finish",
+          "cp.rarity",
+          "cp.markerSlugs",
+          "cp.language",
+          "cp.size",
+          "cp.externalId",
+          "cc.name as cardName",
+          "cc.provider",
+        ])
+        .where("cp.id", "=", id)
+        .executeTakeFirst();
     },
 
     // Joined with the candidate card's name so the relink pass can resolve

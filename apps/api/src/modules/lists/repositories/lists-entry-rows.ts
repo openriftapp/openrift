@@ -8,8 +8,7 @@ import type { Database } from "../../../db/tables.js";
 import type { PrintingDetail } from "../../../repositories/query-helpers.js";
 import {
   cardTypesColumn,
-  imageId,
-  joinFaceImage,
+  joinPublicFaceImage,
   printingDetailsByIds,
   pairedCardName,
   secondSideCardName,
@@ -184,7 +183,7 @@ async function copyDetailsByIds(
       "pf.finish",
       "pf.shortCode",
       "pf.language",
-      imageId("imgf").as("imageId"),
+      "pimg.id as imageId",
       "ctc.copyId as reservedByTradeCopyId",
       "lc.copyId as pinnedByLoanCopyId",
     ])
@@ -253,7 +252,7 @@ async function printingEntryQuery(
   db: Kysely<Database>,
   scope: { listId: string; userId?: string },
 ): Promise<ListEntryRow[]> {
-  let q = joinFaceImage(
+  let q = joinPublicFaceImage(
     withFace1(
       db.selectFrom("listEntries as le").innerJoin("printings as p", "p.id", "le.printingId"),
     )
@@ -282,7 +281,7 @@ async function printingEntryQuery(
       "pf.finish",
       "pf.shortCode",
       "pf.language",
-      imageId("imgf").as("imageId"),
+      "pimg.id as imageId",
     ])
     .execute();
   return rows.map((row) => ({
@@ -308,7 +307,7 @@ async function copyEntryQuery(
   db: Kysely<Database>,
   scope: { listId: string; userId?: string },
 ): Promise<ListEntryRow[]> {
-  let q = joinFaceImage(
+  let q = joinPublicFaceImage(
     withFace1(
       db
         .selectFrom("listEntries as le")
@@ -345,7 +344,7 @@ async function copyEntryQuery(
       "pf.finish",
       "pf.shortCode",
       "pf.language",
-      imageId("imgf").as("imageId"),
+      "pimg.id as imageId",
       "cp.collectionId",
       "cp.printingId",
       "ctc.copyId as reservedByTradeCopyId",

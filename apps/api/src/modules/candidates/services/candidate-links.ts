@@ -8,6 +8,7 @@ import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 
 import { buildPrintingLinkKey, buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
+import { candidateAcceptKey } from "../lib/candidate-printing-accept.js";
 import type { ingestRepo } from "../repositories/ingest.js";
 
 /** The live-catalog lookups that resolve a card *name* to a card id. */
@@ -20,7 +21,6 @@ export interface CardNameIndex {
 
 /** Live catalog lookups the candidate link resolution reads. */
 export interface CandidateLinkIndex extends CardNameIndex {
-  /** {@link buildPrintingLinkKey} output to live printing id. */
   printingIdByKey: Map<string, string>;
   printingIdBySizedKey: Map<string, string>;
   /**
@@ -37,6 +37,7 @@ interface CardNameSources {
 interface CandidateLinkSources extends CardNameSources {
   printings: readonly {
     id: string;
+    cardId: string;
     shortCode: string;
     finish: string;
     markerSlugs: string[];
@@ -66,6 +67,10 @@ function buildCardNameIndex(sources: CardNameSources): CardNameIndex {
   };
 }
 
+function cardScoped(cardId: string, key: string): string {
+  return `${cardId}|${key}`;
+}
+
 /** A side shared by several printings leaves its key unlinked: the candidate could be any of them. */
 function printingIdsByUniqueKey(
   printings: CandidateLinkSources["printings"],
@@ -82,12 +87,25 @@ function printingIdsByUniqueKey(
   return unique;
 }
 
+function sidesUnderEveryCard(
+  printings: CandidateLinkSources["printings"],
+): CandidateLinkSources["printings"] {
+  return [...Map.groupBy(printings, (side) => side.id).values()].flatMap((sides) =>
+    [...new Set(sides.map((side) => side.cardId))].flatMap((cardId) =>
+      sides.map((side) => ({ ...side, cardId })),
+    ),
+  );
+}
+
 export function buildCandidateLinkIndex(sources: CandidateLinkSources): CandidateLinkIndex {
+  const sides = sidesUnderEveryCard(sources.printings);
   return {
     ...buildCardNameIndex(sources),
-    printingIdByKey: printingIdsByUniqueKey(sources.printings, (p) => buildPrintingLinkKey(p)),
-    printingIdBySizedKey: printingIdsByUniqueKey(sources.printings, (p) =>
-      buildSizedPrintingLinkKey(p),
+    printingIdByKey: printingIdsByUniqueKey(sides, (p) =>
+      cardScoped(p.cardId, buildPrintingLinkKey(p)),
+    ),
+    printingIdBySizedKey: printingIdsByUniqueKey(sides, (p) =>
+      cardScoped(p.cardId, buildSizedPrintingLinkKey(p)),
     ),
     printingIdByOverrideKey: new Map(
       sources.linkOverrides.map((r) => [`${r.provider}:${r.externalId}:${r.finish}`, r.printingId]),
@@ -133,8 +151,7 @@ export function resolvePrintingLink(
     markerSlugs: readonly string[];
     language: string | null;
     size?: string | null;
-    /** Whether the owning candidate card resolved to a live card. */
-    cardLinked: boolean;
+    cardId: string | null;
     /** Trusted as-is: the caller must verify it belongs to the linked card. */
     claimedPrintingId?: string | null;
   },
@@ -149,7 +166,7 @@ export function resolvePrintingLink(
     return candidate.claimedPrintingId;
   }
   const finish = resolveFinish(candidate.finish, candidate.rarity);
-  if (!candidate.cardLinked || !finish) {
+  if (candidate.cardId === null || !finish) {
     return null;
   }
   const identity = {
@@ -159,9 +176,28 @@ export function resolvePrintingLink(
     language: candidate.language,
     size: candidate.size ?? null,
   };
-  return (
-    index.printingIdBySizedKey.get(buildSizedPrintingLinkKey(identity)) ??
-    index.printingIdByKey.get(buildPrintingLinkKey(identity)) ??
-    null
+  const sized = index.printingIdBySizedKey.get(
+    cardScoped(candidate.cardId, buildSizedPrintingLinkKey(identity)),
   );
+  if (sized !== undefined || identity.size !== null) {
+    return sized ?? null;
+  }
+  return (
+    index.printingIdByKey.get(cardScoped(candidate.cardId, buildPrintingLinkKey(identity))) ?? null
+  );
+}
+
+export function isPinnedLink(
+  index: CandidateLinkIndex,
+  candidate: { provider: string; externalId: string; finish: string | null },
+): boolean {
+  return index.printingIdByOverrideKey.has(
+    `${candidate.provider}:${candidate.externalId}:${candidate.finish ?? ""}`,
+  );
+}
+
+export type LinkIdentity = Parameters<typeof candidateAcceptKey>[0];
+
+export function linkIdentityChanged(before: LinkIdentity, after: LinkIdentity): boolean {
+  return candidateAcceptKey(before) !== candidateAcceptKey(after);
 }

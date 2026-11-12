@@ -16,6 +16,7 @@ import {
   ScissorsIcon,
   Trash2Icon,
   UploadIcon,
+  XIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -34,6 +35,7 @@ import { findDerivedArtPrinting } from "@/features/admin/components/card-detail-
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import type { SiblingImage } from "@/features/admin/components/printing-image-switcher";
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
+import { RehostStatusBadge } from "@/features/admin/components/rehost-status-badge";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import {
   useActivatePrintingImage,
@@ -354,7 +356,7 @@ function InactiveImageRow({
       />
       <span className="min-w-0 flex-1 space-y-1">
         <Badge variant="secondary">Not active</Badge>
-        {image.rehostedUrl === null && <Badge variant="destructive">Not rehosted</Badge>}
+        <RehostStatusBadge image={image} />
       </span>
       {isAdmin && (
         <Button
@@ -385,6 +387,12 @@ function InactiveImageRow({
             <DropdownMenuItem onClick={() => rehost.mutate(image.id)}>
               <DownloadIcon />
               Rehost
+            </DropdownMenuItem>
+          )}
+          {image.activateWhenRehosted && (
+            <DropdownMenuItem onClick={() => activate.mutate({ imageId: image.id, active: false })}>
+              <XIcon />
+              Cancel going live
             </DropdownMenuItem>
           )}
           {image.rehostedUrl !== null && (

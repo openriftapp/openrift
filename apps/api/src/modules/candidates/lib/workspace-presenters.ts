@@ -272,13 +272,16 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
   }
 
   for (const row of sources.inactiveImages) {
+    const reason = row.rehostFailed ? "image-rehost-failed" : "new-image";
+    const key = row.faceImageId ?? `substitute-${row.imageFileId}`;
+    const label = faceLabel(row.shortCode, row.isBack);
     collector.add(
-      itemBase("face", "open", "new-image", row.faceId, row.imageId, {
+      itemBase("face", "open", reason, row.faceId, key, {
         cardSlug: row.cardSlug,
         cardName: row.cardName,
-        label: faceLabel(row.shortCode, row.isBack),
+        label: row.faceImageId === null ? `${label} substitute art` : label,
         provider: null,
-        isContributor: true,
+        isContributor: !row.rehostFailed,
       }),
       [],
       row.createdAt,

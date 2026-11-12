@@ -197,7 +197,6 @@ const dbDeckCardFull = {
   energy: 5,
   might: 4,
   power: 6,
-  imageUrl: null,
 };
 
 describe("GET /api/v1/decks", () => {

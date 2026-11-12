@@ -1,12 +1,13 @@
 import { join } from "node:path";
 
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { v7 as uuidv7 } from "uuid";
 
 import { AppError } from "../../../../errors.js";
 import type { Io } from "../../../../io.js";
 import { MAX_IMAGE_BYTES } from "./download.js";
-import { CARD_MEDIA_DIR, imageRehostedUrl } from "./paths.js";
+import { CARD_MEDIA_DIR } from "./paths.js";
 import { processAndSave } from "./variants.js";
 
 export async function saveUploadedImage(

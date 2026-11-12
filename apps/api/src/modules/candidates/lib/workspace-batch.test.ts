@@ -35,26 +35,35 @@ describe("nameHead", () => {
 
 describe("eligibleTrustedCards", () => {
   it("returns a complete draft without a similar live card", () => {
-    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1")], LIVE)).toEqual([
-      { normName: "poroherder", name: "Poro Herder" },
-    ]);
+    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1")], LIVE)).toEqual({
+      eligible: [{ normName: "poroherder", name: "Poro Herder" }],
+      ineligible: [],
+    });
   });
 
-  it("drops a draft whose name head matches a live card", () => {
+  it("holds back a draft whose name head matches a live card and names the match", () => {
     const jinx = draft("cc-1", { normName: "jinxrebel", name: "Jinx, Rebel" });
-    expect(eligibleTrustedCards([jinx], [cp("p1")], LIVE)).toEqual([]);
+    expect(eligibleTrustedCards([jinx], [cp("p1")], LIVE)).toEqual({
+      eligible: [],
+      ineligible: [{ name: "Jinx, Rebel", reason: "a similar card exists: Jinx, Loose Cannon" }],
+    });
   });
 
-  it("drops a draft without types", () => {
-    expect(eligibleTrustedCards([draft("cc-1", { types: [] })], [cp("p1")], LIVE)).toEqual([]);
+  it("holds back a draft without types", () => {
+    expect(
+      eligibleTrustedCards([draft("cc-1", { types: [] })], [cp("p1")], LIVE).ineligible,
+    ).toEqual([{ name: "Poro Herder", reason: "no card type" }]);
   });
 
-  it("drops a draft without a complete printing", () => {
-    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1", { rarity: null })], LIVE)).toEqual([]);
-    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1", { publicCode: null })], LIVE)).toEqual(
-      [],
-    );
-    expect(eligibleTrustedCards([draft("cc-1")], [], LIVE)).toEqual([]);
+  it("holds back a draft without a complete printing", () => {
+    const incomplete = [{ name: "Poro Herder", reason: "no printing has every required field" }];
+    expect(
+      eligibleTrustedCards([draft("cc-1")], [cp("p1", { rarity: null })], LIVE).ineligible,
+    ).toEqual(incomplete);
+    expect(
+      eligibleTrustedCards([draft("cc-1")], [cp("p1", { publicCode: null })], LIVE).ineligible,
+    ).toEqual(incomplete);
+    expect(eligibleTrustedCards([draft("cc-1")], [], LIVE).ineligible).toEqual(incomplete);
   });
 
   it("judges types on the first provider and printings across all trusted sources", () => {
@@ -62,13 +71,13 @@ describe("eligibleTrustedCards", () => {
       draft("cc-2", { provider: "zeta", types: [] }),
       draft("cc-1", { provider: "alpha" }),
     ];
-    expect(eligibleTrustedCards(rows, [cp("p1", { candidateCardId: "cc-2" })], LIVE)).toHaveLength(
-      1,
-    );
+    expect(
+      eligibleTrustedCards(rows, [cp("p1", { candidateCardId: "cc-2" })], LIVE).eligible,
+    ).toHaveLength(1);
     const typeless = [draft("cc-1", { provider: "alpha", types: [] }), draft("cc-2")];
-    expect(eligibleTrustedCards(typeless, [cp("p1", { candidateCardId: "cc-2" })], LIVE)).toEqual(
-      [],
-    );
+    expect(
+      eligibleTrustedCards(typeless, [cp("p1", { candidateCardId: "cc-2" })], LIVE).eligible,
+    ).toEqual([]);
   });
 
   it("returns one entry per name, sorted", () => {
@@ -78,10 +87,9 @@ describe("eligibleTrustedCards", () => {
       draft("cc-3", { normName: "blastcone", name: "Blast Cone" }),
     ];
     const printings = [cp("p1"), cp("p3", { candidateCardId: "cc-3" })];
-    expect(eligibleTrustedCards(rows, printings, LIVE).map((entry) => entry.name)).toEqual([
-      "Blast Cone",
-      "Poro Herder",
-    ]);
+    expect(eligibleTrustedCards(rows, printings, LIVE).eligible.map((entry) => entry.name)).toEqual(
+      ["Blast Cone", "Poro Herder"],
+    );
   });
 });
 
@@ -139,6 +147,7 @@ function probe(over: Partial<PrintingProbeRow> = {}): PrintingProbeRow {
     cardId: "card-1",
     shortCode: "OGN-027",
     language: "EN",
+    size: "standard",
     distributionChannelSlugs: [],
     ...over,
   };
@@ -165,5 +174,16 @@ describe("findDuplicatePrinting", () => {
         probe({ shortCode: "OGN-028", distributionChannelSlugs: ["store-event"] }),
       ]),
     ).toBeUndefined();
+  });
+
+  it("misses a printing of another size, which a new size may share a face with", () => {
+    const [oversized] = trustedPrintingGroups(
+      [newRow("p1")],
+      [cp("p1", { shortCode: "OGN-027", size: "oversized" })],
+    );
+    expect(findDuplicatePrinting(oversized!, [probe()])).toBeUndefined();
+    expect(findDuplicatePrinting(oversized!, [probe({ size: "oversized" })])).toMatchObject({
+      printingId: "pr-1",
+    });
   });
 });

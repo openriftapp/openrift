@@ -13,6 +13,8 @@ import {
 import type {
   BatchKind,
   BatchOutcome,
+  BatchPreview,
+  BatchReason,
 } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import {
   batchButtonLabel,
@@ -34,19 +36,33 @@ const CONFIRM_DESCRIPTIONS: Record<BatchKind, string> = {
   "suggested-listings": "Each listing is assigned to the printing its strong suggestion names.",
 };
 
+function BatchReasonList({ entries }: { entries: BatchReason[] }) {
+  return (
+    <ul className="max-h-72 space-y-1 overflow-y-auto text-sm">
+      {entries.map((entry) => (
+        <li key={entry.key}>
+          <span className="font-medium">{entry.label}</span>{" "}
+          <span className="text-muted-foreground">{entry.reason}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const EMPTY_PREVIEW: BatchPreview = { count: 0, names: [], keys: [], ineligible: [] };
+
 function BatchDialog({
   kind,
   open,
-  names,
-  keys,
+  preview,
   onOpenChange,
 }: {
   kind: BatchKind;
   open: boolean;
-  names: string[];
-  keys: string[];
+  preview: BatchPreview;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { names, keys, ineligible } = preview;
   const { run } = useWorkspaceBatch(kind, false);
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null);
 
@@ -72,22 +88,23 @@ function BatchDialog({
           </DialogDescription>
         </DialogHeader>
         {outcome === null ? (
-          <ul className="max-h-72 space-y-1 overflow-y-auto text-sm">
-            {names.map((name, index) => (
-              <li key={keys[index] ?? name}>{name}</li>
-            ))}
-          </ul>
-        ) : (
-          outcome.skipped.length > 0 && (
+          <>
             <ul className="max-h-72 space-y-1 overflow-y-auto text-sm">
-              {outcome.skipped.map((entry) => (
-                <li key={entry.label}>
-                  <span className="font-medium">{entry.label}</span>{" "}
-                  <span className="text-muted-foreground">{entry.reason}</span>
-                </li>
+              {names.map((name, index) => (
+                <li key={keys[index] ?? name}>{name}</li>
               ))}
             </ul>
-          )
+            {ineligible.length > 0 && (
+              <>
+                <p className="text-muted-foreground text-sm">
+                  {ineligible.length} will be skipped and stay in New:
+                </p>
+                <BatchReasonList entries={ineligible} />
+              </>
+            )}
+          </>
+        ) : (
+          outcome.skipped.length > 0 && <BatchReasonList entries={outcome.skipped} />
         )}
         {run.error !== null && (
           <p role="alert" className="text-destructive text-sm">
@@ -114,10 +131,10 @@ function BatchDialog({
 export function BatchButton({ kind }: { kind: BatchKind }) {
   const { preview } = useWorkspaceBatch(kind, true);
   const [open, setOpen] = useState(false);
-  const [snapshot, setSnapshot] = useState<{ names: string[]; keys: string[] } | null>(null);
+  const [snapshot, setSnapshot] = useState<BatchPreview | null>(null);
 
   const count = preview?.count ?? 0;
-  if (count === 0 && !open) {
+  if (count === 0 && (preview?.ineligible.length ?? 0) === 0 && !open) {
     return null;
   }
   return (
@@ -126,7 +143,7 @@ export function BatchButton({ kind }: { kind: BatchKind }) {
         variant="outline"
         size="sm"
         onClick={() => {
-          setSnapshot(preview ? { names: preview.names, keys: preview.keys } : null);
+          setSnapshot(preview ?? null);
           setOpen(true);
         }}
       >
@@ -135,8 +152,7 @@ export function BatchButton({ kind }: { kind: BatchKind }) {
       <BatchDialog
         kind={kind}
         open={open}
-        names={snapshot?.names ?? []}
-        keys={snapshot?.keys ?? []}
+        preview={snapshot ?? EMPTY_PREVIEW}
         onOpenChange={setOpen}
       />
     </>

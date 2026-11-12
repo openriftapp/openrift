@@ -141,8 +141,16 @@ export interface FaceImagesTable {
   faceId: string;
   imageFileId: string;
   isActive: Generated<boolean>;
+  activateWhenRehosted: Generated<boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
+}
+
+export interface ImageRehostFailuresTable {
+  imageFileId: string;
+  attempts: number;
+  lastError: string;
+  lastAttemptAt: Generated<Date>;
 }
 
 export interface CardNameAliasesTable {

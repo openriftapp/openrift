@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId } from "../../../repositories/query-helpers.js";
+import { joinPublicFaceImage } from "../../../repositories/query-helpers.js";
 
 function canonicalSideOf(column: "face_id" | "printing_id") {
   return sql<string>`(
@@ -15,15 +15,13 @@ function canonicalSideOf(column: "face_id" | "printing_id") {
 }
 
 function withResolvedCardImage(db: Kysely<Database>) {
-  return db
-    .selectFrom("deckCheckEntries as en")
-    .innerJoin("deckCheckEntryCards as c", "c.entryId", "en.id")
-    .innerJoin("faceImages as pim", (join) =>
-      join
-        .on(sql<boolean>`pim.face_id = ${canonicalSideOf("face_id")}`)
-        .on("pim.isActive", "=", true),
-    )
-    .innerJoin("imageFiles as imgf", "imgf.id", "pim.imageFileId");
+  return joinPublicFaceImage(
+    db
+      .selectFrom("deckCheckEntries as en")
+      .innerJoin("deckCheckEntryCards as c", "c.entryId", "en.id"),
+    canonicalSideOf("face_id"),
+    { required: true },
+  );
 }
 
 export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
@@ -41,7 +39,7 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
         .select([
           "en.tournamentId",
           canonicalSideOf("printing_id").as("printingId"),
-          imageId("imgf").as("imageId"),
+          "pimg.id as imageId",
           "en.submittedAt",
           "en.createdAt",
           "c.sortOrder",
@@ -53,8 +51,7 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
         .where("en.tournamentId", "in", tournamentIds)
         .where("en.allowDeckPublishing", "=", true)
         .where("en.withdrawnAt", "is", null)
-        .where("c.zone", "=", WellKnown.deckZone.LEGEND)
-        .where(sql`${imageId("imgf")}`, "is not", null);
+        .where("c.zone", "=", WellKnown.deckZone.LEGEND);
       // Fan slots are ranked over the deduped rows only, so a repeat legend
       // never burns a slot that a distinct one should get.
       const rankedPerTournament = db
@@ -76,8 +73,7 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
         .orderBy("ranked.tournamentId")
         .orderBy("ranked.coverRank")
         .execute();
-      // The IS NOT NULL filters guarantee printingId/imageId here.
-      return rows as { tournamentId: string; printingId: string; imageId: string }[];
+      return rows;
     },
 
     async legendImagesForParticipants(participantIds: string[]): Promise<Map<string, string>> {
@@ -87,7 +83,7 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
       const rows = await withResolvedCardImage(db)
         .select([
           "en.participantId",
-          imageId("imgf").as("imageId"),
+          "pimg.id as imageId",
           sql<number>`(row_number() over (
             partition by en.participant_id
             order by en.submitted_at nulls last, en.created_at, c.sort_order
@@ -97,7 +93,6 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
         .where("en.allowDeckPublishing", "=", true)
         .where("en.withdrawnAt", "is", null)
         .where("c.zone", "=", WellKnown.deckZone.LEGEND)
-        .where(sql`${imageId("imgf")}`, "is not", null)
         .execute();
       const images = new Map<string, string>();
       for (const row of rows) {

@@ -2,10 +2,12 @@
  * Assumes the shared integration DB has already been created by run-integration.ts.
  */
 
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { createLogger } from "@openrift/shared/logger";
 import type { CardType } from "@openrift/shared/types/enums";
 import type { Insertable, Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
+import { v7 as uuidv7 } from "uuid";
 
 import { createApp } from "../app.js";
 import { createDb } from "../db/connect.js";
@@ -252,6 +254,31 @@ export async function insertPrinting(
     throw new Error("printing insert returned no row");
   }
   return inserted;
+}
+
+/** `chk_image_files_rehosted_url` ties the rehosted URL to the row id, so fixtures must derive it. */
+export async function insertImageFile(
+  db: Db,
+  values: {
+    rehosted?: boolean;
+    originalUrl?: string | null;
+    credit?: string | null;
+    fingerprint?: string | null;
+  } = {},
+): Promise<{ id: string; rehostedUrl: string | null }> {
+  const id = uuidv7();
+  const rehostedUrl = (values.rehosted ?? true) ? imageRehostedUrl(id) : null;
+  await db
+    .insertInto("imageFiles")
+    .values({
+      id,
+      rehostedUrl,
+      originalUrl: values.originalUrl ?? null,
+      credit: values.credit ?? null,
+      fingerprint: values.fingerprint ?? null,
+    })
+    .execute();
+  return { id, rehostedUrl };
 }
 
 export async function deletePrintingsById(db: Db, ids: string | readonly string[]): Promise<void> {

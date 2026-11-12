@@ -10,7 +10,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import { imageId } from "../../../repositories/query-helpers.js";
+import { joinPublicFaceImage } from "../../../repositories/query-helpers.js";
 
 const PRINTING_LANGUAGE: Record<Exclude<RuleLanguage, "en">, string> = {
   fr: "FR",
@@ -179,15 +179,11 @@ export function rulesRepo(db: Kysely<Database>) {
         .innerJoin("mvCardAggregates as mca", "mca.cardId", "cards.id")
         .innerJoinLateral(
           (eb) =>
-            eb
-              .selectFrom("printingSidesOrdered as po")
-              .innerJoin("faceImages as pi", (join) =>
-                join.onRef("pi.faceId", "=", "po.faceId").on("pi.isActive", "=", true),
-              )
-              .innerJoin("imageFiles as ci", "ci.id", "pi.imageFileId")
-              .select(imageId("ci").as("imageId"))
+            joinPublicFaceImage(eb.selectFrom("printingSidesOrdered as po"), "po.faceId", {
+              required: true,
+            })
+              .select("pimg.id as imageId")
               .whereRef("po.cardId", "=", "cards.id")
-              .where("ci.rehostedUrl", "is not", null)
               .where("po.language", "in", [printingLanguage, "EN"])
               .orderBy(sql`po.language = ${printingLanguage}`, "desc")
               .orderBy("po.canonicalRank")

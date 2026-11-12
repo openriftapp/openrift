@@ -2,6 +2,7 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
 import type { RequiredAcceptPrintingField } from "@openrift/shared/printing-accept";
 import { REQUIRED_ACCEPT_PRINTING_FIELDS, resolveFinish } from "@openrift/shared/printing-accept";
+import { trimToNull } from "@openrift/shared/strings";
 import type { ArtVariant, CardSize, Finish, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -10,6 +11,7 @@ import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isForeignKeyViolation, isUniqueViolationOn } from "../../../lib/pg-errors.js";
+import { candidateAcceptKey } from "../../candidates/lib/candidate-printing-accept.js";
 import type { candidateCardsRepo } from "../../candidates/repositories/candidate-cards.js";
 import { faceForNewImage } from "../lib/image-face.js";
 import {
@@ -22,7 +24,11 @@ import type {
   catalogDeleteGuardsRepo,
   PrintingDeleteBlockers,
 } from "../repositories/catalog-delete-guards.js";
-import type { catalogMutationsRepo, PrintingIdentity } from "../repositories/catalog-mutations.js";
+import type {
+  catalogMutationsRepo,
+  FacePrintedFields,
+  PrintingIdentity,
+} from "../repositories/catalog-mutations.js";
 import type { distributionChannelsRepo } from "../repositories/distribution-channels.js";
 import { deleteRehostFiles } from "./images/variants.js";
 
@@ -244,6 +250,114 @@ export function newPrintingIdentity(cardId: string, fields: NewPrintingFields): 
   };
 }
 
+type FaceCheckRepos = Pick<Repos, "catalogMutations" | "sets" | "keywords">;
+
+async function printedFaceValues(
+  repos: FaceCheckRepos,
+  printingFields: NewPrintingFields,
+  rarity: string,
+  artist: string,
+): Promise<Omit<FacePrintedFields, "setId"> & { setId: string }> {
+  const setRow = printingFields.setId
+    ? await repos.catalogMutations.getSetIdBySlug(printingFields.setId)
+    : undefined;
+  const setId = setRow?.id ?? "";
+  const setTotalRow = setId ? await repos.sets.getPrintedTotal(setId) : null;
+  const costKeywords = await repos.keywords.listCostKeywords();
+  return {
+    setId,
+    rarity: rarity as Rarity,
+    artVariant: (printingFields.artVariant ?? WellKnown.artVariant.NORMAL) as ArtVariant,
+    isSigned: printingFields.isSigned ?? false,
+    isOvernumbered: printingFields.isOvernumbered ?? false,
+    artist,
+    publicCode: appendSetTotal(printingFields.publicCode, setTotalRow?.printedTotal ?? null),
+    printedRulesText: fixTypography(trimToNull(printingFields.printedRulesText), {
+      costKeywords,
+    }),
+    printedEffectText: fixTypography(trimToNull(printingFields.printedEffectText), {
+      costKeywords,
+    }),
+    flavorText: fixTypography(trimToNull(printingFields.flavorText), {
+      italicParens: false,
+      keywordGlyphs: false,
+    }),
+    printedName: trimToNull(printingFields.printedName),
+    printedYear: printingFields.printedYear ?? null,
+  };
+}
+
+// Art variant, signed and overnumbered fall back to their defaults upstream, so a
+// default value is "not stated" and never conflicts; neither does a missing text.
+const PRINTED_FACE_FIELD_CHECKS: {
+  label: string;
+  differs: (stored: FacePrintedFields, incoming: FacePrintedFields) => boolean;
+}[] = [
+  { label: "set", differs: (a, b) => a.setId !== b.setId },
+  { label: "rarity", differs: (a, b) => a.rarity.toLowerCase() !== b.rarity.toLowerCase() },
+  {
+    label: "art variant",
+    differs: (a, b) =>
+      b.artVariant !== WellKnown.artVariant.NORMAL && a.artVariant !== b.artVariant,
+  },
+  { label: "signed", differs: (a, b) => b.isSigned && !a.isSigned },
+  { label: "overnumbered", differs: (a, b) => b.isOvernumbered && !a.isOvernumbered },
+  { label: "artist", differs: (a, b) => a.artist !== b.artist },
+  { label: "public code", differs: (a, b) => a.publicCode !== b.publicCode },
+  ...(
+    [
+      ["rules text", "printedRulesText"],
+      ["effect text", "printedEffectText"],
+      ["flavor text", "flavorText"],
+      ["printed name", "printedName"],
+      ["printed year", "printedYear"],
+    ] as const
+  ).map(([label, field]) => ({
+    label,
+    differs: (a: FacePrintedFields, b: FacePrintedFields) =>
+      b[field] !== null && a[field] !== b[field],
+  })),
+];
+
+export async function facePrintedFieldConflict(
+  repos: FaceCheckRepos,
+  cardId: string,
+  printingFields: NewPrintingFields,
+): Promise<string | null> {
+  const { size: _size, ...faceIdentity } = newPrintingIdentity(cardId, printingFields);
+  const face = await repos.catalogMutations.findFaceIdByIdentity(faceIdentity);
+  if (!face) {
+    return null;
+  }
+  const stored = await repos.catalogMutations.getFacePrintedFields(face.id);
+  if (!stored) {
+    return null;
+  }
+  const incoming = await printedFaceValues(
+    repos,
+    printingFields,
+    printingFields.rarity,
+    trimToNull(printingFields.artist) ?? "",
+  );
+  const trimmedStored: FacePrintedFields = {
+    ...stored,
+    artist: stored.artist.trim(),
+    publicCode: stored.publicCode.trim(),
+    printedRulesText: trimToNull(stored.printedRulesText),
+    printedEffectText: trimToNull(stored.printedEffectText),
+    flavorText: trimToNull(stored.flavorText),
+    printedName: trimToNull(stored.printedName),
+  };
+  const differing = PRINTED_FACE_FIELD_CHECKS.filter((check) =>
+    check.differs(trimmedStored, incoming),
+  );
+  if (differing.length === 0) {
+    return null;
+  }
+  const { shortCode, finish, language } = faceIdentity;
+  return `The existing ${shortCode} ${finish} ${language} side differs in ${differing.map((check) => check.label).join(", ")}. Edit that side or the source first.`;
+}
+
 export async function newPrintingConflict(
   repos: Pick<Repos, "catalogMutations">,
   identity: PrintingIdentity,
@@ -314,6 +428,26 @@ export async function createNewPrinting(
   }
 }
 
+async function pinEditedCandidateLinks(
+  trx: Pick<Repos, "candidateCards">,
+  candidatePrintingIds: readonly string[],
+  printingId: string,
+  created: Parameters<typeof candidateAcceptKey>[0] & { cardId: string },
+): Promise<void> {
+  const createdKey = candidateAcceptKey(created);
+  const candidates =
+    await trx.candidateCards.linkIdentitiesForCandidatePrintings(candidatePrintingIds);
+  const edited = candidates
+    .filter(
+      (candidate) =>
+        candidate.liveCardId !== created.cardId || candidateAcceptKey(candidate) !== createdKey,
+    )
+    .map((candidate) => candidate.id);
+  if (edited.length > 0) {
+    await trx.candidateCards.upsertPrintingLinkOverrides(edited, printingId);
+  }
+}
+
 export async function insertNewPrinting(
   trx: NewPrintingRepos,
   cardId: string,
@@ -322,17 +456,18 @@ export async function insertNewPrinting(
   options: { secondFaceId?: string | null } = {},
 ): Promise<NewPrinting> {
   const secondFaceId = options.secondFaceId ?? null;
+  const artist = trimToNull(printingFields.artist);
   const required: Record<RequiredAcceptPrintingField, string | null | undefined> = {
     shortCode: printingFields.shortCode,
     setId: printingFields.setId,
     rarity: printingFields.rarity,
     finish: resolveFinish(printingFields.finish, printingFields.rarity),
-    artist: printingFields.artist,
+    artist,
     publicCode: printingFields.publicCode,
   };
   const missingFields = REQUIRED_ACCEPT_PRINTING_FIELDS.filter((field) => !required[field]);
   const { setId } = printingFields;
-  if (missingFields.length > 0 || !setId) {
+  if (missingFields.length > 0 || !setId || !artist) {
     throw new AppError(
       400,
       ERROR_CODES.BAD_REQUEST,
@@ -374,38 +509,26 @@ export async function insertNewPrinting(
   }
 
   await trx.sets.upsert(setId, printingFields.setName ?? setId);
-  const setRow = await mut.getSetIdBySlug(setId);
-  const setUuid = setRow?.id ?? "";
-  const setTotalRow = setUuid ? await trx.sets.getPrintedTotal(setUuid) : null;
-  const setPrintedTotal = setTotalRow?.printedTotal ?? null;
-
-  const costKeywords = await trx.keywords.listCostKeywords();
+  const faceConflict = await facePrintedFieldConflict(trx, cardId, {
+    ...printingFields,
+    rarity: normalizedRarity,
+  });
+  if (faceConflict) {
+    throw new AppError(409, ERROR_CODES.CONFLICT, faceConflict);
+  }
+  const printed = await printedFaceValues(trx, printingFields, normalizedRarity, artist);
 
   const printingId = await mut.insertPrinting(
     {
-      cardId,
-      setId: setUuid,
-      shortCode: printingFields.shortCode,
+      ...printed,
       rarity: normalizedRarity,
-      artVariant: (printingFields.artVariant ?? WellKnown.artVariant.NORMAL) as ArtVariant,
-      isSigned: printingFields.isSigned ?? false,
-      isOvernumbered: printingFields.isOvernumbered ?? false,
+      cardId,
+      shortCode: printingFields.shortCode,
       markerSlugs,
       finish,
       size,
-      artist: printingFields.artist,
-      publicCode: appendSetTotal(printingFields.publicCode, setPrintedTotal),
-      printedRulesText: fixTypography(printingFields.printedRulesText ?? null, { costKeywords }),
-      printedEffectText: fixTypography(printingFields.printedEffectText ?? null, {
-        costKeywords,
-      }),
-      flavorText: fixTypography(printingFields.flavorText ?? null, {
-        italicParens: false,
-        keywordGlyphs: false,
-      }),
+      artist,
       language,
-      printedName: printingFields.printedName ?? null,
-      printedYear: printingFields.printedYear ?? null,
     },
     secondFaceId,
   );
@@ -434,6 +557,15 @@ export async function insertNewPrinting(
 
   if (candidatePrintingIds.length > 0) {
     await trx.candidateCards.linkAndCheckCandidatePrintings([...candidatePrintingIds], printingId);
+    await pinEditedCandidateLinks(trx, candidatePrintingIds, printingId, {
+      cardId,
+      shortCode: printingFields.shortCode,
+      finish,
+      rarity: normalizedRarity,
+      markerSlugs,
+      language,
+      size,
+    });
   }
 
   return { printingId, imageIds };

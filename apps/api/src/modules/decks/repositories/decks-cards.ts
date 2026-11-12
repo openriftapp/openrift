@@ -1,5 +1,4 @@
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
-import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -30,7 +29,6 @@ type DeckCardDetailRow = Pick<
     superTypes: SuperType[];
     tags: string[];
     keywords: string[];
-    imageUrl: string | null;
   };
 
 export function decksCardsRepo(db: Kysely<Database>) {
@@ -70,22 +68,6 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "c.additionalLegendCount",
           "mca.domains",
           "mca.superTypes",
-          sql<string | null>`(
-            SELECT COALESCE(ci.rehosted_url, ci.original_url)
-            FROM printing_sides_ordered p
-            JOIN sets s ON s.id = p.set_id
-            JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active = true
-            JOIN image_files ci ON ci.id = pi.image_file_id
-            WHERE p.card_id = dc.card_id
-            ORDER BY
-              (p.art_variant = ${WellKnown.artVariant.NORMAL})::int DESC,
-              (cardinality(p.marker_slugs) = 0)::int DESC,
-              (p.is_signed = false)::int DESC,
-              (p.finish = ${WellKnown.finish.NORMAL})::int DESC,
-              s.sort_order ASC,
-              p.short_code ASC
-            LIMIT 1
-          )`.as("imageUrl"),
         ])
         .where("dc.deckId", "=", deckId)
         .where("d.userId", "=", userId)
@@ -174,7 +156,6 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "c.power",
           "c.maxCopiesOverride",
           "c.additionalLegendCount",
-          sql<string | null>`null`.as("imageUrl"),
         ])
         .where("d.userId", "=", userId)
         .orderBy("dc.deckId")

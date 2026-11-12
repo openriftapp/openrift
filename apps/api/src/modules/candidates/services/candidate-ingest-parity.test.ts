@@ -13,6 +13,7 @@ const LIVE_PRINTING_ID = "printing-uuid";
 
 const LIVE_PRINTING = {
   id: LIVE_PRINTING_ID,
+  cardId: "card-uuid",
   shortCode: "OGN-066",
   finish: "foil",
   markerSlugs: [],

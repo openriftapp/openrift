@@ -1,6 +1,8 @@
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import { pairedCardNameSql } from "../../../repositories/query-helpers.js";
 
 async function deletePins(
@@ -48,6 +50,47 @@ export function candidatePrintingLinksRepo(db: Kysely<Database>) {
         .set({ printingId: printingUuid, checkedAt: new Date() })
         .where("id", "in", candidatePrintingIds)
         .execute();
+    },
+
+    async linkIdentitiesForCandidatePrintings(ids: readonly string[]): Promise<
+      {
+        id: string;
+        shortCode: string;
+        finish: string | null;
+        rarity: string | null;
+        markerSlugs: string[];
+        language: string | null;
+        size: string | null;
+        liveCardId: string | null;
+      }[]
+    > {
+      if (ids.length === 0) {
+        return [];
+      }
+      const rows = await sql<{
+        id: string;
+        shortCode: string;
+        finish: string | null;
+        rarity: string | null;
+        markerSlugs: string[];
+        language: string | null;
+        size: string | null;
+        liveCardId: string | null;
+      }>`
+        select
+          cp.id,
+          cp.short_code as "shortCode",
+          cp.finish,
+          cp.rarity,
+          cp.marker_slugs as "markerSlugs",
+          cp.language,
+          cp.size,
+          (select live_card.id from (${liveCardForNorm(sql.ref("cc.norm_name"))}) live_card) as "liveCardId"
+        from candidate_printings cp
+        join candidate_cards cc on cc.id = cp.candidate_card_id
+        where cp.id in (${sql.join([...ids])})
+      `.execute(db);
+      return rows.rows;
     },
 
     async unlinkCandidatePrintingsByPrintingId(printingId: string): Promise<void> {

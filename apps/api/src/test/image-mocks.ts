@@ -116,7 +116,6 @@ export const mockIo: Io = {
 export function makeMockRepo(
   opts: {
     selectResult?: any;
-    updateResult?: any;
     rehosted?: { imageId: string }[];
     /** When set, getImageFileById returns this row regardless of id. Default
      *  returns a row with both URLs set so existing tests keep their
@@ -126,13 +125,29 @@ export function makeMockRepo(
 ) {
   const updateRehostedUrlFn = vi.fn(() => Promise.resolve());
   const defaultFile = { id: "default", originalUrl: "https://x.test/a.png", rehostedUrl: null };
+  const listed = (opts.selectResult ?? []) as { imageId?: string; originalUrl?: string | null }[];
   return {
     listUnrehosted: vi.fn(() => Promise.resolve(opts.selectResult ?? [])),
-    updateRehostedUrl: updateRehostedUrlFn,
-    clearAllRehostedUrls: vi.fn(() => {
-      const rows = opts.updateResult ?? [{ numUpdatedRows: 0n }];
-      return Promise.resolve(Number(rows[0].numUpdatedRows));
+    getImageFileForRehost: vi.fn((id: string) => {
+      const settings = { rotation: 0, needsTrim: false, quad: null };
+      if (opts.imageFile !== undefined) {
+        return Promise.resolve(
+          opts.imageFile === null ? undefined : { ...opts.imageFile, ...settings },
+        );
+      }
+      const row = Array.isArray(listed) ? listed.find((entry) => entry.imageId === id) : undefined;
+      return Promise.resolve(
+        row === undefined
+          ? undefined
+          : { id, originalUrl: row.originalUrl ?? null, rehostedUrl: null, ...settings },
+      );
     }),
+    completeRehost: vi.fn(() => Promise.resolve(true)),
+    countRehostFailures: vi.fn(() => Promise.resolve({ retrying: 0, manual: 0 })),
+    recordRehostFailure: vi.fn(() => Promise.resolve()),
+    clearRehostFailure: vi.fn(() => Promise.resolve()),
+    updateRehostedUrl: updateRehostedUrlFn,
+    isActiveImageFile: vi.fn(() => Promise.resolve(false)),
     rehostStatusBySet: vi.fn(() => Promise.resolve(opts.selectResult ?? [])),
     allRehostedUrls: vi.fn(() => Promise.resolve([])),
     getVariantSettingsByIds: vi.fn(() => Promise.resolve(new Map())),

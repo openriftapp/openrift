@@ -20,6 +20,7 @@ function createMockIngestRepo(overrides: Record<string, unknown> = {}) {
     insertCandidateCard: vi.fn().mockResolvedValue("new-cc-id"),
     updateCandidateCard: vi.fn().mockResolvedValue(undefined),
     insertCandidatePrinting: vi.fn().mockResolvedValue("new-cp-id"),
+    movePrintingLinkPin: vi.fn().mockResolvedValue(undefined),
     updateCandidatePrinting: vi.fn().mockResolvedValue(undefined),
     deleteCandidateCards: vi.fn().mockResolvedValue(undefined),
     deleteCandidatePrintings: vi.fn().mockResolvedValue(undefined),
@@ -304,6 +305,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -328,6 +330,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -352,6 +355,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "VEN-SP3",
           finish: "foil",
           markerSlugs: [],
@@ -371,11 +375,12 @@ describe("ingestCandidates", () => {
     expect(insertCall.printingId).toBe("printing-uuid");
   });
 
-  it("does not resolve a card when the name normalizes to nothing", async () => {
+  it("reports a card whose name normalizes to nothing as a row error and keeps the rest", async () => {
     const repos = createMockRepos({
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "", id: "unrelated-card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -389,11 +394,14 @@ describe("ingestCandidates", () => {
       name: "!?!",
       printings: [makePrinting({ rarity: "common", finish: "normal" })],
     });
-    const result = await ingestCandidates(transact, "gallery", [card]);
+    const result = await ingestCandidates(transact, "gallery", [
+      card,
+      makeCard({ external_id: "ext-2", printings: [] }),
+    ]);
 
-    expect(result.newPrintings).toBe(1);
-    const insertCall = (repos.ingest as any).insertCandidatePrinting.mock.calls[0][0];
-    expect(insertCall.printingId).toBeNull();
+    expect(result.errors).toEqual(['Card "!?!": name: needs at least one letter or digit']);
+    expect(result.newCards).toBe(1);
+    expect((repos.ingest as any).insertCandidatePrinting).not.toHaveBeenCalled();
   });
 
   it("resolves a card whose name is written in a non-Latin script", async () => {
@@ -401,6 +409,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "影流之主", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -428,6 +437,7 @@ describe("ingestCandidates", () => {
         .mockResolvedValue([{ normName: "fireball", cardId: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -704,6 +714,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -792,6 +803,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -859,6 +871,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -1091,6 +1104,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: ["promo"],
@@ -1250,6 +1264,7 @@ describe("ingestCandidates", () => {
       allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
       allPrintingKeys: vi.fn().mockResolvedValue([
         {
+          cardId: "card-uuid",
           shortCode: "OGN-001",
           finish: "normal",
           markerSlugs: [],
@@ -1533,5 +1548,185 @@ describe("ingestCandidates", () => {
       expect((repos.ingest as any).deleteCandidatePrintings).toHaveBeenCalledWith(["cp-1"]);
       expect(result.removedPrintings).toBe(1);
     });
+  });
+});
+
+describe("ingestCandidates link on an identity change", () => {
+  const liveKeys = [
+    { id: "normal-uuid", cardId: "card-uuid", shortCode: "OGN-001", finish: "normal" },
+    { id: "foil-uuid", cardId: "card-uuid", shortCode: "OGN-001", finish: "foil" },
+  ].map((key) => ({ ...key, markerSlugs: [], language: "EN", size: "standard" }));
+
+  function reposWithLinkedRow(overrides: Record<string, unknown> = {}) {
+    return createMockRepos({
+      allCandidateCardsForProvider: vi.fn().mockResolvedValue([
+        {
+          id: "cc-1",
+          externalId: "ext-card-1",
+          name: "Fireball",
+          types: ["spell"],
+          superTypes: [],
+          domains: ["fury"],
+          tags: [],
+        },
+      ]),
+      candidatePrintingsByCandidateCardIds: vi.fn().mockResolvedValue([
+        {
+          id: "cp-1",
+          candidateCardId: "cc-1",
+          externalId: "ext-print-1",
+          shortCode: "OGN-001",
+          rarity: "common",
+          markerSlugs: [],
+          finish: "normal",
+          language: null,
+          size: null,
+          printingId: "normal-uuid",
+        },
+      ]),
+      allCardNorms: vi.fn().mockResolvedValue([{ normName: "fireball", id: "card-uuid" }]),
+      allPrintingKeys: vi.fn().mockResolvedValue(liveKeys),
+      ...overrides,
+    });
+  }
+
+  async function upload(repos: Repos, printing: Record<string, unknown>) {
+    await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ printings: [makePrinting(printing)] }),
+    ]);
+    return (repos.ingest as any).updateCandidatePrinting.mock.calls[0][1];
+  }
+
+  it("moves the link to the printing the new finish names", async () => {
+    const update = await upload(reposWithLinkedRow(), { finish: "foil" });
+    expect(update.printingId).toBe("foil-uuid");
+  });
+
+  it("unlinks when the new code matches no printing", async () => {
+    const update = await upload(reposWithLinkedRow(), { short_code: "OGN-999" });
+    expect(update.printingId).toBeNull();
+  });
+
+  it("keeps the link when only a non-identity field changed", async () => {
+    expect(await upload(reposWithLinkedRow(), { artist: "New Artist" })).not.toHaveProperty(
+      "printingId",
+    );
+  });
+
+  it("keeps a pinned link through an identity change", async () => {
+    const repos = reposWithLinkedRow({
+      allPrintingLinkOverrides: vi.fn().mockResolvedValue([
+        {
+          provider: "gallery",
+          externalId: "ext-print-1",
+          finish: "normal",
+          printingId: "normal-uuid",
+        },
+      ]),
+    });
+    expect(await upload(repos, { finish: "foil" })).not.toHaveProperty("printingId");
+    expect((repos.ingest as any).movePrintingLinkPin).toHaveBeenCalledWith({
+      provider: "gallery",
+      externalId: "ext-print-1",
+      fromFinish: "normal",
+      toFinish: "foil",
+    });
+  });
+
+  it("leaves an unpinned row's pins alone when its finish changes", async () => {
+    const repos = reposWithLinkedRow();
+    await upload(repos, { finish: "foil" });
+    expect((repos.ingest as any).movePrintingLinkPin).not.toHaveBeenCalled();
+  });
+});
+
+describe("ingestCandidates code-less cards sharing a name", () => {
+  it("keeps the first of two code-less cards with one name and reports the second", async () => {
+    const repos = createMockRepos();
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ short_code: null, external_id: "a" }),
+      makeCard({ short_code: null, external_id: "b" }),
+      makeCard({ name: "Frostbite", short_code: null, external_id: "c" }),
+    ]);
+
+    expect(result.errors).toEqual([
+      'Card "Fireball" (external_id "b"): another card in this upload has the same name and no short code — dropped, keeping the first',
+    ]);
+    expect(result.newCards).toBe(2);
+    expect((repos.ingest as any).insertCandidateCard).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps two cards with one name when each has a short code", async () => {
+    const repos = createMockRepos();
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ short_code: "OGN-001", external_id: "a" }),
+      makeCard({ short_code: "OGN-001a", external_id: "b" }),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.newCards).toBe(2);
+  });
+
+  it("ingests a re-keyed code-less card after removing the earlier card that held its name", async () => {
+    const order: string[] = [];
+    const repos = createMockRepos({
+      allCandidateCardsForProvider: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "cc-old", externalId: "a", name: "Fireball", shortCode: null, types: ["spell"] },
+        ]),
+      deleteCandidateCards: vi.fn(async () => {
+        order.push("delete");
+      }),
+      insertCandidateCard: vi.fn(async () => {
+        order.push("insert");
+        return "cc-new";
+      }),
+    });
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ short_code: null, external_id: "b" }),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.removedCards).toBe(1);
+    expect(result.newCards).toBe(1);
+    expect((repos.ingest as any).deleteCandidateCards).toHaveBeenCalledWith(["cc-old"]);
+    expect(order).toEqual(["delete", "insert"]);
+  });
+
+  it("skips a new code-less card whose name a card kept by this upload still holds", async () => {
+    const repos = createMockRepos({
+      allCandidateCardsForProvider: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "cc-old", externalId: "a", name: "Fireball", shortCode: null, types: ["spell"] },
+        ]),
+    });
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ name: "Fireball", short_code: null, external_id: "b" }),
+      makeCard({ name: "Fireball", short_code: "OGN-001", external_id: "a" }),
+    ]);
+
+    expect(result.errors).toEqual([
+      'Card "Fireball" (external_id "b"): this source already has a card with that name and no short code (external_id "a") — skipped',
+    ]);
+    expect((repos.ingest as any).insertCandidateCard).not.toHaveBeenCalled();
+  });
+
+  it("frees the name once a kept card gains a short code earlier in the upload", async () => {
+    const repos = createMockRepos({
+      allCandidateCardsForProvider: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "cc-old", externalId: "a", name: "Fireball", shortCode: null, types: ["spell"] },
+        ]),
+    });
+    const result = await ingestCandidates(mockTransact(repos), "gallery", [
+      makeCard({ name: "Fireball", short_code: "OGN-001", external_id: "a" }),
+      makeCard({ name: "Fireball", short_code: null, external_id: "b" }),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect((repos.ingest as any).insertCandidateCard).toHaveBeenCalledOnce();
   });
 });

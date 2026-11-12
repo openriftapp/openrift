@@ -5,6 +5,7 @@ import {
   createDbContext,
   deletePrintingsByFace,
   insertCards,
+  insertImageFile,
   insertPrinting,
   refreshCardAggregates,
   seedTestUser,
@@ -459,11 +460,10 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       [printing.face1Id, "brush"],
       [printing.face2Id!, "gold"],
     ] as const) {
-      const file = await db
-        .insertInto("imageFiles")
-        .values({ originalUrl: `https://dst.test/${name}.png`, fingerprint: `fp-${name}` })
-        .returning("id")
-        .executeTakeFirstOrThrow();
+      const file = await insertImageFile(db, {
+        originalUrl: `https://dst.test/${name}.png`,
+        fingerprint: `fp-${name}`,
+      });
       await db
         .insertInto("faceImages")
         .values({ faceId, imageFileId: file.id, isActive: true })
@@ -536,11 +536,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       .select(["face1Id", "face2Id"])
       .where("id", "=", printingId)
       .executeTakeFirstOrThrow();
-    const goldFile = await db
-      .insertInto("imageFiles")
-      .values({ originalUrl: "https://dst.test/post-gold.png" })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const goldFile = await insertImageFile(db, { originalUrl: "https://dst.test/post-gold.png" });
     await db
       .insertInto("faceImages")
       .values({ faceId: printing.face2Id!, imageFileId: goldFile.id, isActive: true })

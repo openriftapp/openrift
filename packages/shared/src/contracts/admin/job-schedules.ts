@@ -20,6 +20,7 @@ export const SCHEDULED_JOB_KINDS = [
   "submission_uploads.sweep",
   "copy_deletions.sweep",
   "images.fingerprint",
+  "images.rehost_retry",
   "candidates.check_matching",
   "card_trades.expire_pending",
   "email.trade_match_digest",

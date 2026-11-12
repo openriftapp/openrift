@@ -61,7 +61,8 @@ function makeRepos() {
       newCandidatePrintings: vi.fn().mockResolvedValue([]),
       inactiveFaceImages: vi.fn().mockResolvedValue([
         {
-          imageId: "img-1",
+          faceImageId: "img-1",
+          imageFileId: "file-1",
           faceId: "face-promo",
           createdAt: T1,
           cardSlug: "jinx-loose-cannon",
@@ -69,9 +70,11 @@ function makeRepos() {
           shortCode: "OGN-030",
           printingIds: ["promo"],
           isBack: false,
+          rehostFailed: false,
         },
         {
-          imageId: "img-2",
+          faceImageId: "img-2",
+          imageFileId: "file-2",
           faceId: "face-base",
           createdAt: T1,
           cardSlug: "jinx-loose-cannon",
@@ -79,6 +82,7 @@ function makeRepos() {
           shortCode: "OGN-030",
           printingIds: ["base"],
           isBack: false,
+          rehostFailed: true,
         },
       ]),
       countAdminEventsSince: vi.fn().mockResolvedValue(3),
@@ -111,7 +115,7 @@ describe("buildWorkspaceQueue", () => {
       now: NOW,
     });
     expect(ids(response)).toEqual([
-      "face:new-image:face-base:img-2",
+      "face:image-rehost-failed:face-base:img-2",
       "face:new-image:face-promo:img-1",
       "face:source-difference:face-promo:provider-a",
       "printing:source-difference:base:provider-a",
@@ -136,7 +140,7 @@ describe("buildWorkspaceQueue", () => {
     expect(ids(response)).toContain("face:source-difference:face-promo:provider-a");
   });
 
-  it("limits a desk holder to printing items and uploads on promo or own printings", async () => {
+  it("limits a desk holder to printing items, uploads and failed rehosts on promo or own printings", async () => {
     const repos = makeRepos();
     repos.adminEvents.printingIdsCreatedBy.mockResolvedValue(["base"]);
     repos.printingDesk.listDeskPrintings.mockResolvedValue([{ printingId: "promo" }]);
@@ -146,7 +150,7 @@ describe("buildWorkspaceQueue", () => {
       now: NOW,
     });
     expect(ids(response)).toEqual([
-      "face:new-image:face-base:img-2",
+      "face:image-rehost-failed:face-base:img-2",
       "face:new-image:face-promo:img-1",
       "printing:source-difference:base:provider-a",
       "printing:source-difference:promo:provider-a",

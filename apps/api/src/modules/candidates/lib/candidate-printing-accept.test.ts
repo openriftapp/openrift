@@ -88,4 +88,11 @@ describe("candidatePrintingLabel", () => {
   it("leaves out a finish nothing can supply", () => {
     expect(candidatePrintingLabel(cp("a", { finish: null, rarity: null }))).toBe("OGN-027 EN");
   });
+
+  it("names a non-standard size and leaves the standard one out", () => {
+    expect(candidatePrintingLabel(cp("a", { size: "oversized" }))).toBe(
+      "OGN-027 normal EN oversized",
+    );
+    expect(candidatePrintingLabel(cp("a", { size: "standard" }))).toBe("OGN-027 normal EN");
+  });
 });

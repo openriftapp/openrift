@@ -3,43 +3,20 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { isNewCardName, liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
-
-interface ComparableCardValues {
-  name: string;
-  types: string[];
-  superTypes: string[];
-  domains: string[];
-  might: number | null;
-  energy: number | null;
-  power: number | null;
-  mightBonus: number | null;
-  tags: string[];
-}
-
-export interface ComparablePrintingValues {
-  shortCode: string;
-  setId: string | null;
-  rarity: string | null;
-  artVariant: string | null;
-  isSigned: boolean | null;
-  isOvernumbered: boolean | null;
-  markerSlugs: string[];
-  distributionChannelSlugs: string[];
-  finish: string | null;
-  size: string | null;
-  artist: string | null;
-  publicCode: string | null;
-  printedRulesText: string | null;
-  printedEffectText: string | null;
-  flavorText: string | null;
-  language: string | null;
-  printedName: string | null;
-  printedYear: number | null;
-  releasedAt: string | null;
-  releasePrecision: string | null;
-  announcedAt: string | null;
-}
+import type {
+  CandidatePrintingComparison,
+  ComparableCardValues,
+  LivePrintingComparison,
+} from "./candidate-comparison-sql.js";
+import {
+  candidateCardValues,
+  candidatePrintingValues,
+  candidateSideOfPrinting,
+  liveCardValues,
+  livePrintingValues,
+} from "./candidate-comparison-sql.js";
 
 export interface WorkspaceCardDifferenceRow {
   id: string;
@@ -72,11 +49,8 @@ export interface WorkspaceLinkedPrintingRow {
   cardName: string;
   printingLabel: string;
   faceShortCode: string;
-  candidate: ComparablePrintingValues & {
-    imageUrl: string | null;
-    imageFingerprint: string | null;
-  };
-  live: ComparablePrintingValues & { imageUrls: string[]; imageFingerprints: (string | null)[] };
+  candidate: CandidatePrintingComparison;
+  live: LivePrintingComparison;
 }
 
 export interface WorkspaceNewPrintingRow {
@@ -90,10 +64,12 @@ export interface WorkspaceNewPrintingRow {
   finish: string | null;
   rarity: string | null;
   language: string | null;
+  size: string | null;
 }
 
 export interface WorkspaceInactiveImageRow {
-  imageId: string;
+  faceImageId: string | null;
+  imageFileId: string;
   faceId: string;
   createdAt: Date;
   cardSlug: string;
@@ -101,6 +77,7 @@ export interface WorkspaceInactiveImageRow {
   shortCode: string;
   printingIds: string[];
   isBack: boolean;
+  rehostFailed: boolean;
 }
 
 const reviewableProvider = sql<boolean>`(
@@ -111,13 +88,7 @@ const reviewableProvider = sql<boolean>`(
   )
 )`;
 
-const cardForCandidate = sql`
-  select c.id, c.slug, c.name from cards c
-  where c.norm_name = cc.norm_name
-    or c.id in (select a.card_id from card_name_aliases a where a.norm_name = cc.norm_name)
-  order by c.norm_name = cc.norm_name desc
-  limit 1
-`;
+const cardForCandidate = liveCardForNorm(sql.ref("cc.norm_name"));
 
 export function workspaceQueueRepo(db: Kysely<Database>) {
   return {
@@ -129,16 +100,8 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           cc.created_at as "createdAt",
           live_card.slug as "cardSlug",
           live_card.name as "cardName",
-          jsonb_build_object(
-            'name', cc.name, 'types', cc.types, 'superTypes', cc.super_types,
-            'domains', cc.domains, 'might', cc.might, 'energy', cc.energy,
-            'power', cc.power, 'mightBonus', cc.might_bonus, 'tags', cc.tags
-          ) as candidate,
-          jsonb_build_object(
-            'name', c.name, 'types', mca.types, 'superTypes', mca.super_types,
-            'domains', mca.domains, 'might', c.might, 'energy', c.energy,
-            'power', c.power, 'mightBonus', c.might_bonus, 'tags', c.tags
-          ) as live
+          ${candidateCardValues} as candidate,
+          ${liveCardValues} as live
         from candidate_cards cc
         join lateral (${cardForCandidate}) live_card on true
         join cards c on c.id = live_card.id
@@ -155,8 +118,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
       const rows = await sql<WorkspaceDraftRow>`
         select cc.id, cc.provider, cc.norm_name as "normName", cc.name, cc.created_at as "createdAt"
         from candidate_cards cc
-        where not exists (select 1 from cards c where c.norm_name = cc.norm_name)
-          and not exists (select 1 from card_name_aliases a where a.norm_name = cc.norm_name)
+        where ${isNewCardName(sql.ref("cc.norm_name"))}
           and ${reviewableProvider}
           and ${notIgnoredCard("cc")}
           and ${notHiddenSource("cc")}
@@ -179,66 +141,13 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           fc.name as "cardName",
           concat_ws(' ', f1.short_code, f1.finish, f1.language) as "printingLabel",
           p.short_code as "faceShortCode",
-          jsonb_build_object(
-            'shortCode', cp.short_code, 'setId', cp.set_id, 'rarity', cp.rarity,
-            'artVariant', cp.art_variant, 'isSigned', cp.is_signed,
-            'isOvernumbered', cp.is_overnumbered, 'markerSlugs', cp.marker_slugs,
-            'distributionChannelSlugs', cp.distribution_channel_slugs,
-            'finish', cp.finish, 'size', cp.size, 'artist', cp.artist,
-            'publicCode', cp.public_code, 'printedRulesText', cp.printed_rules_text,
-            'printedEffectText', cp.printed_effect_text, 'flavorText', cp.flavor_text,
-            'language', cp.language, 'printedName', cp.printed_name,
-            'printedYear', cp.printed_year, 'releasedAt', cp.released_at,
-            'releasePrecision', cp.release_precision, 'announcedAt', cp.announced_at,
-            'imageUrl', cp.image_url,
-            'imageFingerprint', cp.image_fingerprint
-          ) as candidate,
-          jsonb_build_object(
-            'shortCode', p.short_code, 'setId', s.slug, 'rarity', p.rarity,
-            'artVariant', p.art_variant, 'isSigned', p.is_signed,
-            'isOvernumbered', p.is_overnumbered, 'markerSlugs', p.marker_slugs,
-            'distributionChannelSlugs', coalesce((
-              select array_agg(dc.slug)
-              from printing_distribution_channels pdc
-              join distribution_channels dc on dc.id = pdc.channel_id
-              where pdc.printing_id = pr.id
-            ), '{}'::text[]),
-            'finish', p.finish, 'size', pr.size, 'artist', p.artist,
-            'publicCode', p.public_code, 'printedRulesText', p.printed_rules_text,
-            'printedEffectText', p.printed_effect_text, 'flavorText', p.flavor_text,
-            'language', p.language, 'printedName', p.printed_name,
-            'printedYear', p.printed_year, 'releasedAt', pr.released_at,
-            'releasePrecision', pr.release_precision, 'announcedAt', pr.announced_at,
-            'imageUrls', coalesce((
-              select array_remove(array_agg(u), null)
-              from face_images pi
-              join image_files imgf on imgf.id = pi.image_file_id
-              cross join lateral unnest(array[imgf.original_url, imgf.rehosted_url]) as u
-              where pi.face_id = p.id and pi.is_active
-            ), '{}'::text[]),
-            'imageFingerprints', coalesce((
-              select array_agg(imgf.fingerprint)
-              from face_images pi
-              join image_files imgf on imgf.id = pi.image_file_id
-              where pi.face_id = p.id and pi.is_active
-            ), '{}'::text[])
-          ) as live
+          ${candidatePrintingValues} as candidate,
+          ${livePrintingValues} as live
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join printings pr on pr.id = cp.printing_id
         join faces f1 on f1.id = pr.face1_id
-        join lateral (
-          select f.* from faces f
-          where f.id in (pr.face1_id, pr.face2_id)
-          order by
-            exists (
-              select 1 from card_name_aliases a
-              where a.card_id = f.card_id and a.norm_name = cc.norm_name
-            ) desc,
-            upper(f.short_code) = upper(cp.short_code) desc,
-            f.id = pr.face1_id desc
-          limit 1
-        ) p on true
+        ${candidateSideOfPrinting}
         join cards fc on fc.id = p.card_id
         join sets s on s.id = p.set_id
         where cp.checked_at is null
@@ -262,7 +171,8 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           cp.short_code as "shortCode",
           cp.finish,
           cp.rarity,
-          cp.language
+          cp.language,
+          cp.size
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join lateral (${cardForCandidate}) live_card on true
@@ -278,20 +188,46 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
     async inactiveFaceImages(): Promise<WorkspaceInactiveImageRow[]> {
       const rows = await sql<WorkspaceInactiveImageRow>`
         select
-          fi.id as "imageId",
+          fi.id as "faceImageId",
+          fi.image_file_id as "imageFileId",
           f.id as "faceId",
           fi.created_at as "createdAt",
           c.slug as "cardSlug",
           c.name as "cardName",
           f.short_code as "shortCode",
           array_agg(pr.id order by pr.id) as "printingIds",
-          coalesce(bool_and(pr.face2_id = f.id), false) as "isBack"
+          coalesce(bool_and(pr.face2_id = f.id), false) as "isBack",
+          fi.activate_when_rehosted as "rehostFailed"
         from face_images fi
         join faces f on f.id = fi.face_id
         join cards c on c.id = f.card_id
         join printings pr on f.id in (pr.face1_id, pr.face2_id)
         where not fi.is_active
+          and (
+            not fi.activate_when_rehosted
+            or exists (
+              select 1 from image_rehost_failures rf where rf.image_file_id = fi.image_file_id
+            )
+          )
         group by fi.id, f.id, c.slug, c.name
+        union all
+        select
+          null::uuid as "faceImageId",
+          rf.image_file_id as "imageFileId",
+          f.id as "faceId",
+          rf.last_attempt_at as "createdAt",
+          c.slug as "cardSlug",
+          c.name as "cardName",
+          f.short_code as "shortCode",
+          array_agg(pr.id order by pr.id) as "printingIds",
+          coalesce(bool_and(pr.face2_id = f.id), false) as "isBack",
+          true as "rehostFailed"
+        from faces f
+        join image_rehost_failures rf on rf.image_file_id = f.fallback_image_file_id
+        join cards c on c.id = f.card_id
+        join printings pr on f.id in (pr.face1_id, pr.face2_id)
+        where not exists (select 1 from public_image_files pif where pif.id = rf.image_file_id)
+        group by rf.image_file_id, rf.last_attempt_at, f.id, c.slug, c.name
       `.execute(db);
       return rows.rows;
     },

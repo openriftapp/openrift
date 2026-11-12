@@ -47,6 +47,13 @@ export function printingDeskCardUrl(
   return `${siteUrl}/cards/${row.cardSlug}/${row.slug}`;
 }
 
+function siteAbsolute(path: string | null, siteUrl = ""): string {
+  if (path === null) {
+    return "";
+  }
+  return path.startsWith("/") ? `${siteUrl}${path}` : path;
+}
+
 export function buildPrintingDeskCsv(
   rows: readonly DeskPrintingRow[],
   options: PrintingDeskCsvOptions,
@@ -73,7 +80,7 @@ export function buildPrintingDeskCsv(
       row.artist,
       row.comment ?? "",
       String(row.imageCount),
-      deskImageSrc(row.activeImageUrl, "full") ?? "",
+      siteAbsolute(deskImageSrc(row.activeImageUrl, "full"), options.siteUrl),
       printingDeskCardUrl(row, options.siteUrl),
       row.createdAt,
       row.updatedAt,

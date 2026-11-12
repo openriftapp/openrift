@@ -1,6 +1,5 @@
-import { join } from "node:path";
-
 import { adminCardImagesContract } from "@openrift/shared/contracts/admin/card-images";
+import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { implement } from "@orpc/server";
 
 import { assertFound } from "../../../lib/assertions.js";
@@ -11,15 +10,15 @@ import {
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { rehostImageFile, rehostSingleImage, unrehostImageFile } from "../services/images/jobs.js";
-import { fetchOriginalImage } from "../services/images/original-source.js";
-import { CARD_MEDIA_DIR, imageRehostedUrl } from "../services/images/paths.js";
-import { saveUploadedImage } from "../services/images/upload.js";
 import {
-  ensureOriginalOnDisk,
-  processAndSave,
-  regenerateFromOrig,
-} from "../services/images/variants.js";
+  ensureRehostedOriginal,
+  rehostFaceImage,
+  rehostImageFile,
+  rehostImageFileOrThrow,
+  unrehostImageFile,
+} from "../services/images/jobs.js";
+import { saveUploadedImage } from "../services/images/upload.js";
+import { ensureOriginalOnDisk, regenerateFromOrig } from "../services/images/variants.js";
 import { cleanupOrphanedImageFiles } from "../services/printing-admin.js";
 import {
   assertDeskPrintingScope,
@@ -61,8 +60,8 @@ export const adminCardImagesRouter = {
       trxRepos.printingImages.insertImage(ps.printingId as string, ps.imageUrl, mode, face),
     );
 
-    if (imageId) {
-      await rehostSingleImage(context.io, printingImages, imageId);
+    if (imageId && mode === "main") {
+      await rehostFaceImage(context.io, printingImages, imageId);
     }
 
     await recordAdminEvent(context.repos, context.userId, {
@@ -107,7 +106,7 @@ export const adminCardImagesRouter = {
     });
   }),
 
-  activateImage: os.activateImage.handler(async ({ input, context }): Promise<void> => {
+  activateImage: os.activateImage.handler(async ({ input, context, errors }): Promise<void> => {
     const transact = context.transact;
     const { printingImages } = context.repos;
     const { imageId, active } = input;
@@ -119,13 +118,22 @@ export const adminCardImagesRouter = {
       printingId: image.printingId,
     });
 
-    await transact(async (trxRepos) => {
-      if (active) {
-        await trxRepos.printingImages.deactivateActiveFace(image.printingId, image.face);
+    if (active && image.rehostedUrl === null) {
+      await transact((trxRepos) => trxRepos.printingImages.markPending(imageId));
+      const outcome = await rehostImageFile(context.io, printingImages, image.imageFileId);
+      if (outcome.status === "failed") {
+        throw errors.BAD_REQUEST({
+          message: `Could not rehost the image: ${outcome.error ?? "unknown error"}. It stays queued and goes live once a retry succeeds.`,
+        });
       }
-
-      await trxRepos.printingImages.setActive(imageId, active);
-    });
+    } else {
+      await transact(async (trxRepos) => {
+        await (active
+          ? trxRepos.printingImages.deactivateActiveFace(image.printingId, image.face)
+          : trxRepos.printingImages.clearPending(imageId));
+        await trxRepos.printingImages.setActive(imageId, active);
+      });
+    }
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.activate",
@@ -167,25 +175,10 @@ export const adminCardImagesRouter = {
       throw errors.BAD_REQUEST({ message: "Image has no original URL to rehost" });
     }
 
-    const { buffer, ext } = await fetchOriginalImage(context.io, image.originalUrl);
+    await rehostImageFileOrThrow(context.io, printingImages, image.imageFileId, {
+      overwrite: true,
+    });
     const rehostedUrl = imageRehostedUrl(image.imageFileId);
-    const outputDir = join(CARD_MEDIA_DIR, image.imageFileId.slice(-2));
-
-    // allowOverwrite=true: accepting a printing auto-rehosts in the background, so files usually
-    // already exist by the time an admin clicks Rehost.
-    await processAndSave(
-      context.io,
-      buffer,
-      ext,
-      outputDir,
-      image.imageFileId,
-      image.rotation,
-      image.needsTrim,
-      image.quad,
-      true,
-    );
-
-    await printingImages.updateRehostedUrl(image.imageFileId, rehostedUrl);
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.rehost",
@@ -208,15 +201,9 @@ export const adminCardImagesRouter = {
       printingId: image.printingId,
     });
 
+    await ensureRehostedOriginal(context.io, printingImages, image);
+    await regenerateFromOrig(context.io, image.imageFileId, rotation, image.needsTrim, image.quad);
     await printingImages.setRotation(image.imageFileId, rotation);
-    await regenerateFromOrig(
-      context.io,
-      image.imageFileId,
-      rotation,
-      image.needsTrim,
-      image.quad,
-      image.originalUrl,
-    );
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.rotate",
@@ -238,15 +225,9 @@ export const adminCardImagesRouter = {
       printingId: image.printingId,
     });
 
+    await ensureRehostedOriginal(context.io, printingImages, image);
+    await regenerateFromOrig(context.io, image.imageFileId, image.rotation, needsTrim, image.quad);
     await printingImages.setNeedsTrim(image.imageFileId, needsTrim);
-    await regenerateFromOrig(
-      context.io,
-      image.imageFileId,
-      image.rotation,
-      needsTrim,
-      image.quad,
-      image.originalUrl,
-    );
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.set-needs-trim",
@@ -273,14 +254,8 @@ export const adminCardImagesRouter = {
 
     // Stored only once the pipeline accepted the corners, so a rejected quad
     // leaves the variants and the row agreeing with each other.
-    await regenerateFromOrig(
-      context.io,
-      image.imageFileId,
-      image.rotation,
-      image.needsTrim,
-      quad,
-      image.originalUrl,
-    );
+    await ensureRehostedOriginal(context.io, printingImages, image);
+    await regenerateFromOrig(context.io, image.imageFileId, image.rotation, image.needsTrim, quad);
     await printingImages.setQuad(image.imageFileId, quad);
 
     await recordAdminEvent(context.repos, context.userId, {
@@ -306,14 +281,8 @@ export const adminCardImagesRouter = {
     );
     await assertImageScope(context.repos, context.adminAccess, context.userId, imageId);
 
-    return ensureOriginalOnDisk(
-      context.io,
-      image.imageFileId,
-      image.rotation,
-      image.needsTrim,
-      image.quad,
-      image.originalUrl,
-    );
+    await ensureRehostedOriginal(context.io, printingImages, image);
+    return ensureOriginalOnDisk(context.io, image.imageFileId);
   }),
 
   addImageUrl: os.addImageUrl.handler(async ({ input, context, errors }): Promise<void> => {
@@ -337,9 +306,12 @@ export const adminCardImagesRouter = {
     const mode = rawMode ?? "main";
     const url = rawUrl.trim();
 
-    await context.transact(async (trxRepos) => {
-      await trxRepos.printingImages.insertImage(printing.id, url, mode, face);
-    });
+    const imageId = await context.transact((trxRepos) =>
+      trxRepos.printingImages.insertImage(printing.id, url, mode, face),
+    );
+    if (imageId && mode === "main") {
+      await rehostFaceImage(context.io, context.repos.printingImages, imageId);
+    }
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.add-url",
@@ -441,7 +413,6 @@ export const adminCardImagesRouter = {
       const imageFileId = await printingImages.imageFileForUrl(url);
       await printingImages.setFallbackArt(printingId, "pinned", imageFileId, face);
 
-      // Best-effort: the catalog reports fallbackArtMode "auto" until the retry lands if this fails.
       await rehostImageFile(context.io, printingImages, imageFileId);
 
       await recordAdminEvent(context.repos, context.userId, {

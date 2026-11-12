@@ -4,6 +4,7 @@ import {
   adminReq,
   createTestContext,
   insertCards,
+  insertImageFile,
   insertPrintings,
   refreshCardAggregates,
 } from "../../../test/integration-context.js";
@@ -135,16 +136,14 @@ if (ctx) {
   });
   printing2Id = printing2!.id;
 
-  const [csqImageFile] = await db
-    .insertInto("imageFiles")
-    .values({ originalUrl: "https://example.com/csq-001-front.png" })
-    .returning("id")
-    .execute();
+  const csqImageFile = await insertImageFile(db, {
+    originalUrl: "https://example.com/csq-001-front.png",
+  });
   await db
     .insertInto("faceImages")
     .values({
       faceId: printing1Id,
-      imageFileId: csqImageFile!.id,
+      imageFileId: csqImageFile.id,
       isActive: true,
     })
     .execute();

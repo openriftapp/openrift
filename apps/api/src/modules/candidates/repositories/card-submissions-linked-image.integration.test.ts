@@ -5,10 +5,11 @@ import {
   createDbContext,
   deletePrintingsById,
   insertCards,
+  insertImageFile,
   insertPrintings,
   seedTestUser,
 } from "../../../test/integration-context.js";
-import { cardSubmissionsRepo } from "./card-submissions.js";
+import { printingImagesRepo } from "../../catalog/repositories/printing-images.js";
 
 const userId = crypto.randomUUID();
 const setId = crypto.randomUUID();
@@ -21,16 +22,12 @@ const ctx = createDbContext(userId);
 
 describe.skipIf(!ctx)("linkedImageAttached (integration)", () => {
   const { db } = ctx!;
-  const repo = cardSubmissionsRepo(db);
+  const repo = printingImagesRepo(db);
   const imageFileIds: string[] = [];
   const candidateCardIds: string[] = [];
 
   async function attach(originalUrl: string, isActive: boolean, createdAt?: Date) {
-    const file = await db
-      .insertInto("imageFiles")
-      .values({ originalUrl })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const file = await insertImageFile(db, { originalUrl, rehosted: isActive });
     imageFileIds.push(file.id);
     await db
       .insertInto("faceImages")

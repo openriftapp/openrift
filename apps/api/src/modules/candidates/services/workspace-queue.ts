@@ -50,7 +50,11 @@ function deskVisible(entry: WorkspaceQueueEntry, allowed: ReadonlySet<string>): 
   if (item.owner === "printing") {
     return item.segment === "open" && touchesAllowed;
   }
-  return item.owner === "face" && item.reason === "new-image" && touchesAllowed;
+  return (
+    item.owner === "face" &&
+    (item.reason === "new-image" || item.reason === "image-rehost-failed") &&
+    touchesAllowed
+  );
 }
 
 export async function buildWorkspaceQueue(

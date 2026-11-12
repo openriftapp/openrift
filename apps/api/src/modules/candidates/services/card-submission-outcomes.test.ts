@@ -57,10 +57,10 @@ function stubRepos(options: StubOptions = {}) {
       resolve,
       reopen,
       candidatePrintingImageUrls: vi.fn(async () => options.candidateImageUrls ?? []),
-      linkedImageAttached: vi.fn(async () => options.linkedImageAttached ?? false),
     },
     printingImages: {
       originalUrlsInUse: vi.fn(async () => new Set(options.urlsInUse)),
+      linkedImageAttached: vi.fn(async () => options.linkedImageAttached ?? false),
     },
     candidateCards: {
       reviewStateForCandidates: vi.fn(

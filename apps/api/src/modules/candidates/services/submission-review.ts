@@ -2,11 +2,9 @@ import type {
   AcceptCardField,
   AcceptPrintingBody,
   AcceptPrintingField,
-  CreateCardBody,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { resolveFinish } from "@openrift/shared/printing-accept";
-import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 
 import type { CardSubmissionReason, CardSubmissionStatus } from "../../../db/tables/candidates.js";
 import type { Repos, Transact } from "../../../deps.js";
@@ -17,6 +15,7 @@ import { buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import { faceForNewImage } from "../../catalog/lib/image-face.js";
 import {
   describeUnknownRefs,
+  knownRarity,
   loadKnownPrintingRefs,
   unknownPrintingRefs,
 } from "../../catalog/lib/printing-refs.js";
@@ -27,6 +26,7 @@ import {
 import { rehostImagesInBackground } from "../../catalog/services/images/jobs.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
 import {
+  facePrintedFieldConflict,
   insertNewPrinting,
   newPrintingConflict,
   newPrintingIdentity,
@@ -117,12 +117,6 @@ export interface MoveSubmissionResult {
   cardSlug: string;
 }
 
-export interface CreateCardFromCandidateArgs extends ReviewerArgs {
-  cardFields: CreateCardBody;
-  printings: NewPrintingPick[];
-  images: { candidatePrintingId: string }[];
-}
-
 interface CandidateRow {
   id: string;
   provider: string;
@@ -205,6 +199,14 @@ async function partitionNewPrintings(
     if (conflict) {
       collided = true;
       skipped.push({ candidatePrintingId: pick.candidatePrintingId, reason: conflict });
+      continue;
+    }
+    const faceConflict = await facePrintedFieldConflict(repos, cardId, {
+      ...printingFields,
+      rarity: knownRarity(known, printingFields.rarity) ?? printingFields.rarity,
+    });
+    if (faceConflict) {
+      skipped.push({ candidatePrintingId: pick.candidatePrintingId, reason: faceConflict });
       continue;
     }
     usable.push(pick);
@@ -439,107 +441,4 @@ export async function moveSubmission(
   });
 
   return { cardSlug: card.slug };
-}
-
-/**
- * Also serves a scraped provider's new-card group, which has no ledger row: the
- * card is created and the candidate checked, and nothing is settled.
- */
-export async function createCardFromCandidate(
-  transact: Transact,
-  repos: Repos,
-  io: Io,
-  args: CreateCardFromCandidateArgs,
-): Promise<{ cardSlug: string; printingsCreated: number }> {
-  const { candidateCardId, adminUserId, now, cardFields, printings, images } = args;
-  const candidate = await loadCandidate(repos, args);
-  const submission = await loadOpenSubmission(repos, candidateCardId);
-  if (submission && submission.kind !== "new_card") {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Submission is not a new-card proposal");
-  }
-
-  const existing = await repos.cardSubmissions.liveCardByNormName(candidate.normName);
-  if (existing) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, `Card already exists: ${existing.slug}`);
-  }
-
-  const pickKeys = printings.map((pick) =>
-    buildSizedPrintingLinkKey(newPrintingIdentity(cardFields.id, pick.printingFields)),
-  );
-  if (new Set(pickKeys).size !== pickKeys.length) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "Two picked printings have the same short code, finish, size, language and markers",
-    );
-  }
-
-  const created: NewPrinting[] = [];
-  const imageIds: string[] = [];
-
-  await withPrintingIdentityConflicts(transact)(async (trx) => {
-    await trx.catalogMutations.acceptNewCardFromSources(
-      cardFields as CreateCardBody & {
-        types: CardType[];
-        domains: Domain[];
-        superTypes?: SuperType[];
-      },
-      candidate.normName,
-    );
-
-    const card = await trx.catalogMutations.getCardBySlug(cardFields.id);
-    assertFound(card, "Created card not found");
-
-    for (const pick of printings) {
-      created.push(
-        await insertNewPrinting(trx, card.id, pick.printingFields, [pick.candidatePrintingId]),
-      );
-    }
-
-    for (const pick of images) {
-      const candidatePrinting = await trx.printingImages.getCandidatePrintingById(
-        pick.candidatePrintingId,
-      );
-      assertFound(candidatePrinting, "Candidate printing not found");
-      if (!candidatePrinting.printingId) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "Candidate printing is not linked to a printing",
-        );
-      }
-      imageIds.push(
-        await attachCandidateImage(trx, {
-          candidatePrintingId: pick.candidatePrintingId,
-          printingId: candidatePrinting.printingId,
-        }),
-      );
-    }
-
-    await trx.candidateCards.checkCandidateCard(candidateCardId);
-    await trx.candidateCards.checkCandidatePrintingsForCard(candidateCardId);
-
-    if (submission) {
-      await trx.cardSubmissions.resolve(submission.id, {
-        status: "accepted",
-        resolvedAt: now,
-        resolvedByUserId: adminUserId,
-        acceptedCardId: card.id,
-      });
-    }
-  });
-
-  await finishPrintingAccepts(repos, io, created, { catalogChanged: true });
-  rehostImagesInBackground(io, repos.printingImages, imageIds);
-
-  await recordAdminEvent(repos, adminUserId, {
-    action: "card-submission.create-card",
-    entityType: "card",
-    entityId: cardFields.id,
-    entityLabel: cardFields.name,
-    cardSlug: cardFields.id,
-    newValues: { candidateCardId, printingsCreated: printings.length, images: images.length },
-  });
-
-  return { cardSlug: cardFields.id, printingsCreated: printings.length };
 }

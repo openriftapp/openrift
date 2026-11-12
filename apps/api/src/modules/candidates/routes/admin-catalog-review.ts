@@ -8,14 +8,12 @@ import { buildCatalogSources } from "../lib/catalog-sources.js";
 import { buildReviewQueue } from "../services/review-queue.js";
 import {
   acceptSubmission,
-  createCardFromCandidate,
   moveSubmission,
   rejectSubmission,
 } from "../services/submission-review.js";
 
 const os = implement(adminCatalogReviewContract).$context<ApiContext>().use(requireAuthedUser);
 
-// Both accept verbs refuse a settled submission, so an accepted row here was pending before the call.
 async function thankIfAccepted(context: ApiContext, candidateCardId: string): Promise<void> {
   const submission = await context.repos.cardSubmissions.getByCandidateCardId(candidateCardId);
   if (submission?.status === "accepted") {
@@ -82,23 +80,5 @@ export const adminCatalogReviewRouter = {
       scope,
       now: new Date(),
     });
-  }),
-
-  createCardFromCandidate: os.createCardFromCandidate.handler(async ({ input, context }) => {
-    const scope = await reviewableProviderScope(
-      context.adminAccess,
-      context.repos.providerSettings,
-    );
-    const result = await createCardFromCandidate(context.transact, context.repos, context.io, {
-      candidateCardId: input.candidateCardId,
-      cardFields: input.cardFields,
-      printings: input.printings,
-      images: input.images,
-      adminUserId: context.userId,
-      scope,
-      now: new Date(),
-    });
-    await thankIfAccepted(context, input.candidateCardId);
-    return result;
   }),
 };

@@ -12,7 +12,7 @@ import {
   keysetCursorPredicate,
   notPinnedToLoan,
   notReservedByTrade,
-  requireFaceImage,
+  joinPublicFaceImage,
   pairedCardName,
   secondSideCardName,
   selectCopyWithCard,
@@ -712,20 +712,11 @@ export function copiesRepo(db: Kysely<Database>) {
           cardTypesColumn(),
           "c.tags as tags",
           secondSideCardName(),
-          "imgf.id as imageFileId",
-          "imgf.rehostedUrl as rehostedUrl",
+          "pimg.id as imageId",
           eb.cast<number>(eb.fn.countAll(), "integer").as("quantity"),
         ])
         .where("cp.collectionId", "=", collectionId)
-        .groupBy([
-          "cp.printingId",
-          "p.face2Id",
-          "c.name",
-          "mca.types",
-          "c.tags",
-          "imgf.id",
-          "imgf.rehostedUrl",
-        ])
+        .groupBy(["cp.printingId", "p.face2Id", "c.name", "mca.types", "c.tags", "pimg.id"])
         .orderBy((eb) => eb.fn.countAll(), "desc")
         .orderBy("c.name")
         .limit(cap)
@@ -738,13 +729,10 @@ export function copiesRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
 
       return {
-        // The renderer reads rehosted (self-hosted) WebP off disk; a printing
-        // with no rehosted image gets a name-only tile, matching imageId() in
-        // query-helpers. So null out the id unless the image was rehosted.
         cards: rows.map((row) => ({
           cardName: pairedCardName(row),
           quantity: row.quantity,
-          imageId: row.rehostedUrl ? row.imageFileId : null,
+          imageId: row.imageId,
         })),
         totalDistinct: distinct.count,
       };
@@ -763,20 +751,20 @@ export function copiesRepo(db: Kysely<Database>) {
       }
       // One row per (collection, printing) with its copy count; the image
       // joins are inner so imageless printings don't burn a cover slot.
-      const perPrinting = requireFaceImage(
+      const perPrinting = joinPublicFaceImage(
         db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"),
         "p.face1Id",
+        { required: true },
       )
         .select([
           "cp.collectionId",
           "cp.printingId",
-          "imgf.id as imageId",
+          "pimg.id as imageId",
           sql<number>`count(*)::int`.as("copyCount"),
           sql<Date>`max(cp.created_at)`.as("newestAt"),
         ])
         .where("cp.collectionId", "in", collectionIds)
-        .where("imgf.rehostedUrl", "is not", null)
-        .groupBy(["cp.collectionId", "cp.printingId", "imgf.id"]);
+        .groupBy(["cp.collectionId", "cp.printingId", "pimg.id"]);
       const ranked = db.selectFrom(perPrinting.as("per")).select([
         "per.collectionId",
         "per.printingId",

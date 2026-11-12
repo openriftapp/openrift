@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, joinFaceImage } from "../../../repositories/query-helpers.js";
+import { joinPublicFaceImage } from "../../../repositories/query-helpers.js";
 
 const ERRATA_COLUMNS = [
   "announcementId",
@@ -117,7 +117,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
         .innerJoin("mvCardAggregates as mca", "mca.cardId", "cards.id")
         .leftJoinLateral(
           (eb) =>
-            joinFaceImage(
+            joinPublicFaceImage(
               eb.selectFrom("printingSidesOrdered as po").innerJoin("sets", "sets.id", "po.setId"),
               "po.faceId",
             )
@@ -128,7 +128,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
                 "sets.slug as setSlug",
                 "sets.name as setName",
                 "sets.sortOrder as setSortOrder",
-                imageId("imgf").as("imageId"),
+                "pimg.id as imageId",
               ])
               .whereRef("po.cardId", "=", "cards.id")
               .whereRef("po.language", "=", "cardErrata.language")

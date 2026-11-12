@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { candidateSideOrder } from "../../../repositories/candidate-card-sql.js";
 
 export interface CandidatePrintingToFingerprint {
   id: string;
@@ -27,14 +28,18 @@ export function candidateFingerprintsRepo(db: Kysely<Database>) {
             .where("pi.isActive", "=", true)
             .where("imgf.fingerprint", "is not", null)
             .orderBy(
-              sql`EXISTS (
-                SELECT 1 FROM card_name_aliases a
-                JOIN candidate_cards cc ON cc.norm_name = a.norm_name
-                WHERE a.card_id = s.card_id AND cc.id = cp.candidate_card_id
-              ) DESC`,
+              candidateSideOrder(
+                {
+                  cardId: sql.ref("s.cardId"),
+                  shortCode: sql.ref("s.shortCode"),
+                  isFirst: sql`${sql.ref("s.position")} = 1`,
+                },
+                {
+                  normName: sql`(select cc.norm_name from candidate_cards cc where cc.id = ${sql.ref("cp.candidateCardId")})`,
+                  shortCode: sql.ref("cp.shortCode"),
+                },
+              ),
             )
-            .orderBy(sql`upper(s.short_code) = upper(cp.short_code) DESC`)
-            .orderBy("s.position")
             .limit(1)
             .as("liveFingerprint"),
         ])

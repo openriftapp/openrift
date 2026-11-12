@@ -35,6 +35,7 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sortByProviderOrder } from "@/features/admin/components/card-detail-shared";
 import { ImagePreview } from "@/features/admin/components/image-preview";
+import { RehostStatusBadge } from "@/features/admin/components/rehost-status-badge";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import {
   useActivatePrintingImage,
@@ -51,6 +52,7 @@ import {
 } from "@/features/admin/hooks/use-admin-image-mutations";
 import { hostnameFromUrl, hostSlugFromUrl } from "@/features/admin/lib/host-slug";
 import { printingImageDisplayUrl as getDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { rehostStatusTitle } from "@/features/admin/lib/rehost-status";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { cn } from "@/lib/utils";
 
@@ -154,12 +156,7 @@ export function PrintingImageSwitcher({
               {effectiveImage.isActive ? "Active" : "Inactive"}
             </Badge>
           )}
-          {effectiveImage && !effectiveImage.rehostedUrl && (
-            <Badge variant="destructive" title="Still served from the source's own host">
-              <TriangleAlertIcon />
-              Not rehosted
-            </Badge>
-          )}
+          {effectiveImage && <RehostStatusBadge image={effectiveImage} />}
           {effectiveImage && imageQuadOf(effectiveImage) !== null && (
             <Badge variant="outline">Straightened</Badge>
           )}
@@ -191,6 +188,17 @@ export function PrintingImageSwitcher({
                     >
                       <DownloadIcon className="size-3.5" />
                       Rehost
+                    </DropdownMenuItem>
+                  )}
+                  {effectiveImage.activateWhenRehosted && (
+                    <DropdownMenuItem
+                      disabled={activatePrintingImage.isPending}
+                      onClick={() =>
+                        activatePrintingImage.mutate({ imageId: effectiveImage.id, active: false })
+                      }
+                    >
+                      <XIcon className="size-3.5" />
+                      Cancel going live
                     </DropdownMenuItem>
                   )}
                   {effectiveImage.rehostedUrl && (
@@ -321,7 +329,7 @@ export function PrintingImageSwitcher({
             <ToggleGroupItem key={img.id} value={img.id}>
               {imageLabel(img)} ({img.face})
               {!img.rehostedUrl && (
-                <span title="Not rehosted" className="inline-flex">
+                <span title={rehostStatusTitle(img)} className="inline-flex">
                   <TriangleAlertIcon className="text-destructive" />
                 </span>
               )}

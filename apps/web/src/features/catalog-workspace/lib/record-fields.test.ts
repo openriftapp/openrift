@@ -29,6 +29,8 @@ function image(overrides: Partial<AdminPrintingImageResponse>): AdminPrintingIma
     rotation: 0,
     needsTrim: false,
     isActive: true,
+    activateWhenRehosted: false,
+    rehostFailure: null,
     ...overrides,
   };
 }

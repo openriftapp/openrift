@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { relinkCandidatePrintings } from "./relink-candidates.js";
+import { relinkCandidatePrintings, reresolveEditedCandidateLink } from "./relink-candidates.js";
 
 function makeRepos({
   unlinked = [] as unknown[],
@@ -42,6 +42,7 @@ function makeUnlinked(overrides: Record<string, unknown> = {}) {
 
 const fireballKey = {
   id: "printing-uuid",
+  cardId: "card-uuid",
   shortCode: "OGN-001",
   finish: "normal",
   markerSlugs: [],
@@ -63,6 +64,16 @@ describe("relinkCandidatePrintings", () => {
     });
     expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
     expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
+  });
+
+  it("leaves a row unlinked when the matching printing belongs to another card", async () => {
+    const { repos, linkCandidatePrintings } = makeRepos({
+      unlinked: [makeUnlinked()],
+      cardNorms: [{ id: "card-uuid", normName: "fireball" }],
+      printingKeys: [{ ...fireballKey, cardId: "other-card-uuid" }],
+    });
+    expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 0 });
+    expect(linkCandidatePrintings).not.toHaveBeenCalled();
   });
 
   it("matches short codes case-insensitively and defaults language to EN", async () => {
@@ -148,5 +159,91 @@ describe("relinkCandidatePrintings", () => {
     });
     expect(await relinkCandidatePrintings(repos)).toEqual({ examined: 1, linked: 1 });
     expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "printing-uuid");
+  });
+});
+
+describe("reresolveEditedCandidateLink", () => {
+  const foilKey = { ...fireballKey, id: "foil-uuid", finish: "foil" };
+  const before = {
+    shortCode: "OGN-001",
+    finish: "normal",
+    rarity: null,
+    markerSlugs: [],
+    language: "EN",
+    size: null,
+  };
+
+  function editedRepos(row: Record<string, unknown>, overrides: unknown[] = []) {
+    const linkCandidatePrintings = vi.fn().mockResolvedValue(undefined);
+    const movePrintingLinkPin = vi.fn().mockResolvedValue(undefined);
+    const repos = {
+      ingest: {
+        candidatePrintingForRelink: vi.fn().mockResolvedValue({
+          ...makeUnlinked(),
+          ...before,
+          provider: "gallery",
+          printingId: "printing-uuid",
+          ...row,
+        }),
+        allCardNorms: vi.fn().mockResolvedValue([{ id: "card-uuid", normName: "fireball" }]),
+        allCardNameAliases: vi.fn().mockResolvedValue([]),
+        allPrintingKeys: vi.fn().mockResolvedValue([fireballKey, foilKey]),
+        allPrintingLinkOverrides: vi.fn().mockResolvedValue(overrides),
+        movePrintingLinkPin,
+      },
+      candidateCards: { linkCandidatePrintings },
+    } as never;
+    return { repos, linkCandidatePrintings, movePrintingLinkPin };
+  }
+
+  it("moves the link when an edit changes the finish", async () => {
+    const { repos, linkCandidatePrintings } = editedRepos({ finish: "foil" });
+    await reresolveEditedCandidateLink(repos, "cp-1", before);
+    expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "foil-uuid");
+  });
+
+  it("unlinks when the edited code matches no printing", async () => {
+    const { repos, linkCandidatePrintings } = editedRepos({ shortCode: "OGN-999" });
+    await reresolveEditedCandidateLink(repos, "cp-1", before);
+    expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], null);
+  });
+
+  it("leaves the link alone when the edit did not touch the identity", async () => {
+    const { repos, linkCandidatePrintings } = editedRepos({ shortCode: "ogn-001" });
+    await reresolveEditedCandidateLink(repos, "cp-1", before);
+    expect(linkCandidatePrintings).not.toHaveBeenCalled();
+  });
+
+  it("keeps a pinned link and moves its pin to the new finish", async () => {
+    const { repos, linkCandidatePrintings, movePrintingLinkPin } = editedRepos({ finish: "foil" }, [
+      { provider: "gallery", externalId: "ext-1", finish: "normal", printingId: "printing-uuid" },
+    ]);
+    await reresolveEditedCandidateLink(repos, "cp-1", before);
+    expect(linkCandidatePrintings).not.toHaveBeenCalled();
+    expect(movePrintingLinkPin).toHaveBeenCalledWith({
+      provider: "gallery",
+      externalId: "ext-1",
+      fromFinish: "normal",
+      toFinish: "foil",
+    });
+  });
+
+  it("moves a pin when only the raw finish changes and the resolved finish stays", async () => {
+    const { repos, movePrintingLinkPin } = editedRepos({ finish: null, rarity: "common" }, [
+      { provider: "gallery", externalId: "ext-1", finish: "normal", printingId: "printing-uuid" },
+    ]);
+    await reresolveEditedCandidateLink(repos, "cp-1", { ...before, rarity: "common" });
+    expect(movePrintingLinkPin).toHaveBeenCalledWith(
+      expect.objectContaining({ fromFinish: "normal", toFinish: null }),
+    );
+  });
+
+  it("leaves a contributor's claimed link alone", async () => {
+    const { repos, linkCandidatePrintings } = editedRepos({
+      finish: "foil",
+      provider: "usersubmission",
+    });
+    await reresolveEditedCandidateLink(repos, "cp-1", before);
+    expect(linkCandidatePrintings).not.toHaveBeenCalled();
   });
 });

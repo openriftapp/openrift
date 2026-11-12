@@ -16,6 +16,8 @@ import {
   candidatePrintingValidatorInput,
 } from "../lib/candidate-fields.js";
 import {
+  isPinnedLink,
+  linkIdentityChanged,
   loadCandidateLinkIndex,
   resolveCardIdByName,
   resolvePrintingLink,
@@ -160,6 +162,7 @@ export async function ingestCandidates(
   // flipping non-deterministically on re-upload; drop later duplicates, first wins.
   const seenCardExternalIds = new Set<string>();
   const seenPrintingExternalIds = new Set<string>();
+  const seenCodelessNames = new Set<string>();
   const dedupedCards: IngestCard[] = [];
   for (const card of cards) {
     if (seenCardExternalIds.has(card.external_id)) {
@@ -169,6 +172,15 @@ export async function ingestCandidates(
       continue;
     }
     seenCardExternalIds.add(card.external_id);
+    if (!card.short_code) {
+      if (seenCodelessNames.has(card.name)) {
+        errors.push(
+          `Card "${card.name}" (external_id "${card.external_id}"): another card in this upload has the same name and no short code — dropped, keeping the first`,
+        );
+        continue;
+      }
+      seenCodelessNames.add(card.name);
+    }
 
     const printings: IngestCard["printings"] = [];
     for (const p of card.printings) {
@@ -202,13 +214,6 @@ export async function ingestCandidates(
       existingCPRows = await repo.candidatePrintingsByCandidateCardIds([...existingCCIds]);
     }
 
-    const cpByExternalId = new Map<string, (typeof existingCPRows)[number]>();
-    for (const cp of existingCPRows) {
-      if (cp.externalId) {
-        cpByExternalId.set(cp.externalId, cp);
-      }
-    }
-
     const ignoredCardRows = await repo.ignoredCandidateCards(provider);
     const ignoredCards = new Set(ignoredCardRows.map((r) => r.externalId));
 
@@ -236,6 +241,35 @@ export async function ingestCandidates(
         if (!isIgnoredPrinting(p)) {
           uploadedPrintingExternalIds.add(p.external_id);
         }
+      }
+    }
+
+    // Cards this upload drops go first: a re-keyed code-less card may reuse the
+    // name, and idx_candidate_cards_provider_name_no_sid allows one per name.
+    const ccIdToName = new Map(existingCCRows.map((cc) => [cc.id, cc.name]));
+    const ccsToRemove = existingCCRows.filter((cc) => !uploadedCardExternalIds.has(cc.externalId));
+    const removedCCIds = new Set(ccsToRemove.map((cc) => cc.id));
+    const removedCardPrintings = existingCPRows.filter((cp) =>
+      removedCCIds.has(cp.candidateCardId),
+    );
+    if (removedCardPrintings.length > 0) {
+      await repo.deleteCandidatePrintings(removedCardPrintings.map((cp) => cp.id));
+    }
+    if (ccsToRemove.length > 0) {
+      await repo.deleteCandidateCards(ccsToRemove.map((cc) => cc.id));
+    }
+    const keptCPRows = existingCPRows.filter((cp) => !removedCCIds.has(cp.candidateCardId));
+
+    const codelessExternalIdByName = new Map(
+      existingCCRows
+        .filter((row) => row.shortCode === null && !removedCCIds.has(row.id))
+        .map((row) => [row.name, row.externalId]),
+    );
+
+    const cpByExternalId = new Map<string, (typeof existingCPRows)[number]>();
+    for (const cp of keptCPRows) {
+      if (cp.externalId) {
+        cpByExternalId.set(cp.externalId, cp);
       }
     }
 
@@ -284,9 +318,22 @@ export async function ingestCandidates(
         } else {
           unchanged++;
         }
+        if (
+          card.short_code &&
+          codelessExternalIdByName.get(existingCandidateCard.name) === card.external_id
+        ) {
+          codelessExternalIdByName.delete(existingCandidateCard.name);
+        }
         candidateCardId = existingCandidateCard.id;
         seenCCIds.add(candidateCardId);
       } else {
+        const takenBy = card.short_code ? undefined : codelessExternalIdByName.get(card.name);
+        if (takenBy !== undefined) {
+          errors.push(
+            `Card "${card.name}" (external_id "${card.external_id}"): this source already has a card with that name and no short code (external_id "${takenBy}") — skipped`,
+          );
+          continue;
+        }
         const cardInsert: Insertable<CandidateCardsTable> = {
           provider,
           ...buildCandidateCardFields(card),
@@ -297,7 +344,7 @@ export async function ingestCandidates(
         newCards++;
       }
 
-      const cardLinked = resolveCardIdByName(linkIndex, card.name) !== null;
+      const liveCardId = resolveCardIdByName(linkIndex, card.name);
 
       for (const p of card.printings) {
         const printingValidation = candidatePrintingValidator.safeParse(
@@ -323,7 +370,7 @@ export async function ingestCandidates(
           markerSlugs: p.marker_slugs,
           language: p.language,
           size: p.size,
-          cardLinked,
+          cardId: liveCardId,
         });
 
         const existingCP = cpByExternalId.get(p.external_id);
@@ -350,7 +397,33 @@ export async function ingestCandidates(
               checkedAt: null,
               uploadedAt: new Date(),
             };
+            const pinned = isPinnedLink(linkIndex, {
+              provider,
+              externalId: existingCP.externalId,
+              finish: existingCP.finish,
+            });
+            if (pinned && existingCP.finish !== p.finish) {
+              await repo.movePrintingLinkPin({
+                provider,
+                externalId: existingCP.externalId,
+                fromFinish: existingCP.finish,
+                toFinish: p.finish,
+              });
+            }
             if (!existingCP.printingId && resolvedPrintingId) {
+              cpUpdate.printingId = resolvedPrintingId;
+            } else if (
+              existingCP.printingId &&
+              !pinned &&
+              linkIdentityChanged(existingCP, {
+                shortCode: p.short_code,
+                finish: p.finish,
+                rarity: p.rarity,
+                markerSlugs: p.marker_slugs,
+                language: p.language,
+                size: p.size,
+              })
+            ) {
               cpUpdate.printingId = resolvedPrintingId;
             }
             await repo.updateCandidatePrinting(existingCP.id, cpUpdate);
@@ -374,37 +447,25 @@ export async function ingestCandidates(
       }
     }
 
-    const ccIdToName = new Map(existingCCRows.map((cc) => [cc.id, cc.name]));
-
-    const ccsToRemove = existingCCRows.filter(
-      (cc) => !seenCCIds.has(cc.id) && !uploadedCardExternalIds.has(cc.externalId),
-    );
-    const removedCCIds = new Set(ccsToRemove.map((cc) => cc.id));
-
-    const cpsToRemove = existingCPRows.filter(
+    const cpsToRemove = keptCPRows.filter(
       (cp) =>
         !seenCPIds.has(cp.id) &&
-        (removedCCIds.has(cp.candidateCardId) ||
-          !cp.externalId ||
-          !uploadedPrintingExternalIds.has(cp.externalId)),
+        (!cp.externalId || !uploadedPrintingExternalIds.has(cp.externalId)),
     );
     if (cpsToRemove.length > 0) {
       await repo.deleteCandidatePrintings(cpsToRemove.map((cp) => cp.id));
-      removedPrintings = cpsToRemove.length;
-      for (const cp of cpsToRemove) {
-        removedPrintingDetails.push({
-          name: ccIdToName.get(cp.candidateCardId) ?? "unknown",
-          shortCode: cp.shortCode ?? null,
-        });
-      }
+    }
+    removedPrintings = removedCardPrintings.length + cpsToRemove.length;
+    for (const cp of [...removedCardPrintings, ...cpsToRemove]) {
+      removedPrintingDetails.push({
+        name: ccIdToName.get(cp.candidateCardId) ?? "unknown",
+        shortCode: cp.shortCode ?? null,
+      });
     }
 
-    if (ccsToRemove.length > 0) {
-      await repo.deleteCandidateCards(ccsToRemove.map((cc) => cc.id));
-      removedCards = ccsToRemove.length;
-      for (const cc of ccsToRemove) {
-        removedCardDetails.push({ name: cc.name, shortCode: cc.shortCode ?? null });
-      }
+    removedCards = ccsToRemove.length;
+    for (const cc of ccsToRemove) {
+      removedCardDetails.push({ name: cc.name, shortCode: cc.shortCode ?? null });
     }
   });
 

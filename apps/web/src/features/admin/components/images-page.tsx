@@ -23,14 +23,13 @@ import {
   useBrokenImages,
   useCancelRegenerateImages,
   useCleanupOrphaned,
-  useClearRehosted,
   useLowResImages,
   useMigrateDirectories,
   useMissingImages,
   useRegenerateImages,
   useRehostImages,
   useRehostStatus,
-  useUnrehostImages,
+  useRefetchImages,
 } from "@/features/admin/hooks/use-rehost";
 import {
   filterMissingImagesByLanguage,
@@ -184,7 +183,6 @@ function ManageSection() {
   const rehostMutation = useRehostImages(() => void refetch());
   const regenMutation = useRegenerateImages();
   const cancelRegenMutation = useCancelRegenerateImages();
-  const clearMutation = useClearRehosted();
   const cleanupMutation = useCleanupOrphaned();
   const migrateMutation = useMigrateDirectories();
 
@@ -209,7 +207,6 @@ function ManageSection() {
     rehostMutation.isPending ||
     regenMutation.isPending ||
     cancelRegenMutation.isPending ||
-    clearMutation.isPending ||
     cleanupMutation.isPending ||
     migrateMutation.isPending ||
     regenRunning;
@@ -230,6 +227,10 @@ function ManageSection() {
                 .join(", ")}
             </>
           )}
+          {status.failedRetrying > 0 &&
+            ` · ${status.failedRetrying} failed, retried by the image rehost job`}
+          {status.failedManual > 0 &&
+            ` · ${status.failedManual} failed, need a manual Rehost or Re-fetch`}
           {status.orphanedFiles > 0 && ` · ${status.orphanedFiles} orphaned`}
         </>
       }
@@ -302,16 +303,6 @@ function ManageSection() {
         >
           Delete orphaned
         </Button>
-        <ConfirmActionButton
-          title="Delete all rehosted images?"
-          description="This will delete all locally cached images. They can be re-fetched by running rehost again."
-          confirmLabel="Clear"
-          onConfirm={() => clearMutation.mutateAsync()}
-          disabled={anyPending || !status.rehosted}
-          trigger={<Button variant="destructive" />}
-        >
-          Clear
-        </ConfirmActionButton>
       </div>
 
       {latestRegenRun && <RegenerateJobStatus run={latestRegenRun} />}
@@ -463,7 +454,7 @@ function BySetList<T extends { imageId: string }>({
 function BrokenImagesSection() {
   const [enabled, setEnabled] = useState(false);
   const { data, isLoading } = useBrokenImages(enabled);
-  const unrehostMutation = useUnrehostImages();
+  const refetchMutation = useRefetchImages();
 
   if (!enabled) {
     return (
@@ -507,29 +498,29 @@ function BrokenImagesSection() {
       }
       action={
         <ConfirmActionButton
-          title={`Un-rehost ${data.broken.length} broken ${pluralize(data.broken.length, "image")}?`}
-          description="Clears the rehosted URL on each image so the next Rehost missing run re-downloads and regenerates them from the original source."
-          confirmLabel="Un-rehost all"
-          onConfirm={() => unrehostMutation.mutateAsync(imageIds)}
-          trigger={<Button variant="destructive" />}
+          title={`Re-fetch ${data.broken.length} broken ${pluralize(data.broken.length, "image")}?`}
+          description="Downloads each original again and rebuilds its files. The images stay live while this runs; uploads have no original and are reported as failed."
+          confirmLabel="Re-fetch all"
+          onConfirm={() => refetchMutation.mutateAsync(imageIds)}
+          trigger={<Button variant="outline" />}
         >
-          Un-rehost all
+          Re-fetch all
         </ConfirmActionButton>
       }
     >
-      {unrehostMutation.isSuccess && unrehostMutation.data && (
+      {refetchMutation.isSuccess && refetchMutation.data && (
         <div>
           <p className="text-muted-foreground flex items-center gap-1 text-sm">
             <CheckIcon className="text-success size-4 shrink-0" />
-            Un-rehosted {unrehostMutation.data.unrehosted} / {unrehostMutation.data.total} images
+            Re-fetched {refetchMutation.data.refetched} / {refetchMutation.data.total} images
           </p>
-          <ErrorsList errors={unrehostMutation.data.errors} />
+          <ErrorsList errors={refetchMutation.data.errors} />
         </div>
       )}
-      {unrehostMutation.isError && (
+      {refetchMutation.isError && (
         <p className="text-muted-foreground flex items-center gap-1 text-sm">
           <XIcon className="text-destructive size-4 shrink-0" />
-          {unrehostMutation.error?.message}
+          {refetchMutation.error?.message}
         </p>
       )}
       <BySetList

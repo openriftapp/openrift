@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3V95O9sltIEZTJyINAIwuPkQOqdZ1Iup1Gy9cbzB8CYBMFkqigpVPzx175nK1fm
+\restrict woVxjDHK0teI10QXY1alrveSz3KkNPTEYNMJmdaRtXQshi569qYA6TEmAi6aVqu
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -263,6 +263,29 @@ CREATE FUNCTION public.check_printing_pair_language() RETURNS trigger
 
 
 --
+-- Name: face_images_require_rehosted(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.face_images_require_rehosted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW.is_active THEN
+        PERFORM 1 FROM image_files
+          WHERE id = NEW.image_file_id AND rehosted_url IS NOT NULL
+          FOR SHARE;
+        IF NOT FOUND THEN
+          RAISE EXCEPTION 'face image % cannot be active: image file % is not rehosted',
+            NEW.id, NEW.image_file_id
+            USING ERRCODE = 'check_violation';
+        END IF;
+      END IF;
+      RETURN NEW;
+    END
+    $$;
+
+
+--
 -- Name: fold_deck_cards_off_deleted_printing(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -286,6 +309,23 @@ CREATE FUNCTION public.fold_deck_cards_off_deleted_printing() RETURNS trigger
     RETURN OLD;
   END
   $$;
+
+
+--
+-- Name: image_files_keep_active_rehosted(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.image_files_keep_active_rehosted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM face_images WHERE image_file_id = NEW.id AND is_active) THEN
+        RAISE EXCEPTION 'image file % backs an active face image and must stay rehosted', NEW.id
+          USING ERRCODE = 'check_violation';
+      END IF;
+      RETURN NEW;
+    END
+    $$;
 
 
 --
@@ -2127,7 +2167,9 @@ CREATE TABLE public.face_images (
     image_file_id uuid NOT NULL,
     is_active boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    activate_when_rehosted boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_face_images_pending_inactive CHECK ((NOT (is_active AND activate_when_rehosted)))
 );
 
 
@@ -2453,8 +2495,22 @@ CREATE TABLE public.image_files (
     CONSTRAINT chk_image_files_has_url CHECK (((original_url IS NOT NULL) OR (rehosted_url IS NOT NULL))),
     CONSTRAINT chk_image_files_original_url CHECK ((original_url <> ''::text)),
     CONSTRAINT chk_image_files_quad_shape CHECK (((quad IS NULL) OR (jsonb_typeof(quad) = 'array'::text))),
-    CONSTRAINT chk_image_files_rehosted_url CHECK ((rehosted_url <> ''::text)),
+    CONSTRAINT chk_image_files_rehosted_url CHECK ((rehosted_url = ((('/media/cards/'::text || "right"((id)::text, 2)) || '/'::text) || (id)::text))),
     CONSTRAINT chk_image_files_rotation CHECK ((rotation = ANY (ARRAY[0, 90, 180, 270])))
+);
+
+
+--
+-- Name: image_rehost_failures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.image_rehost_failures (
+    image_file_id uuid NOT NULL,
+    attempts integer NOT NULL,
+    last_error text NOT NULL,
+    last_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_image_rehost_failures_attempts CHECK ((attempts > 0)),
+    CONSTRAINT chk_image_rehost_failures_last_error CHECK ((last_error <> ''::text))
 );
 
 
@@ -3951,6 +4007,17 @@ CREATE TABLE public.provider_settings (
 
 
 --
+-- Name: public_image_files; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.public_image_files AS
+ SELECT id,
+    credit
+   FROM public.image_files
+  WHERE (rehosted_url IS NOT NULL);
+
+
+--
 -- Name: rarities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5438,6 +5505,14 @@ ALTER TABLE ONLY public.ignored_meta_source_players
 
 ALTER TABLE ONLY public.image_files
     ADD CONSTRAINT image_files_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: image_rehost_failures image_rehost_failures_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.image_rehost_failures
+    ADD CONSTRAINT image_rehost_failures_pkey PRIMARY KEY (image_file_id);
 
 
 --
@@ -7090,6 +7165,13 @@ CREATE INDEX idx_face_images_image_file ON public.face_images USING btree (image
 
 
 --
+-- Name: idx_face_images_pending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_face_images_pending ON public.face_images USING btree (face_id) WHERE activate_when_rehosted;
+
+
+--
 -- Name: idx_faces_card_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8427,6 +8509,13 @@ CREATE CONSTRAINT TRIGGER trg_face_images_catalog_version AFTER INSERT OR DELETE
 
 
 --
+-- Name: face_images trg_face_images_require_rehosted; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_face_images_require_rehosted BEFORE INSERT OR UPDATE OF is_active, image_file_id ON public.face_images FOR EACH ROW EXECUTE FUNCTION public.face_images_require_rehosted();
+
+
+--
 -- Name: faces trg_faces_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8480,6 +8569,13 @@ CREATE TRIGGER trg_graders_protect_well_known BEFORE DELETE OR UPDATE ON public.
 --
 
 CREATE CONSTRAINT TRIGGER trg_image_files_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.image_files DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
+
+
+--
+-- Name: image_files trg_image_files_keep_active_rehosted; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_image_files_keep_active_rehosted BEFORE UPDATE OF rehosted_url ON public.image_files FOR EACH ROW WHEN (((old.rehosted_url IS NOT NULL) AND (new.rehosted_url IS NULL))) EXECUTE FUNCTION public.image_files_keep_active_rehosted();
 
 
 --
@@ -10185,6 +10281,14 @@ ALTER TABLE ONLY public.friend_groups
 
 
 --
+-- Name: image_rehost_failures image_rehost_failures_image_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.image_rehost_failures
+    ADD CONSTRAINT image_rehost_failures_image_file_id_fkey FOREIGN KEY (image_file_id) REFERENCES public.image_files(id) ON DELETE CASCADE;
+
+
+--
 -- Name: keyword_translations keyword_translations_keyword_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11220,5 +11324,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3V95O9sltIEZTJyINAIwuPkQOqdZ1Iup1Gy9cbzB8CYBMFkqigpVPzx175nK1fm
+\unrestrict woVxjDHK0teI10QXY1alrveSz3KkNPTEYNMJmdaRtXQshi569qYA6TEmAi6aVqu
 

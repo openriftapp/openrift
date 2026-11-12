@@ -4,7 +4,7 @@ import type { Kysely, Selectable } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable } from "../../../db/tables/catalog.js";
 import type { PrintingSidesOrderedView } from "../../../db/tables/views.js";
-import { joinFaceImage } from "../../../repositories/query-helpers.js";
+import { joinAdminFaceImage } from "../../../repositories/query-helpers.js";
 
 export interface ExportPrintingRow extends PrintingSidesOrderedView {
   id: string;
@@ -40,7 +40,7 @@ export function candidateExportRepo(db: Kysely<Database>) {
     },
 
     exportPrintings(): Promise<ExportPrintingRow[]> {
-      return joinFaceImage(
+      return joinAdminFaceImage(
         db.selectFrom("printingSidesOrdered as p").innerJoin("sets", "sets.id", "p.setId"),
         "p.faceId",
       )

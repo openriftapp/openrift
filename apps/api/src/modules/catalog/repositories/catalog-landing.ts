@@ -1,10 +1,13 @@
 import { WellKnown } from "@openrift/shared/well-known";
-import type { Kysely, NotNull } from "kysely";
+import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import { cardHasType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
-import { imageId } from "../../../repositories/query-helpers.js";
+import {
+  joinPublicFaceImage,
+  publicFaceImageJoinSql,
+} from "../../../repositories/query-helpers.js";
 
 const PRICE_MARKETPLACE = "cardmarket";
 
@@ -65,10 +68,9 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           .selectFrom("copies")
           .select(sql<string>`COUNT(*)`.as("count"))
           .executeTakeFirstOrThrow(),
-        db
-          .selectFrom("faceImages as fi")
-          .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
-          .innerJoin("printingSidesOrdered as s", "s.faceId", "fi.faceId")
+        joinPublicFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId", {
+          required: true,
+        })
           .innerJoin("cards", "cards.id", "s.cardId")
           .leftJoin("finishes as fin", "fin.slug", "s.finish")
           .leftJoin("artVariants as av", "av.slug", "s.artVariant")
@@ -78,7 +80,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
               .on("pr.marketplace", "=", PRICE_MARKETPLACE),
           )
           .select([
-            imageId("ci").as("imageId"),
+            "pimg.id as imageId",
             "s.rarity as rarity",
             "cards.name as name",
             "s.shortCode as shortCode",
@@ -98,8 +100,6 @@ export function catalogLandingRepo(db: Kysely<Database>) {
               ''
             )`.as("variantLabel"),
           ])
-          .where("fi.isActive", "=", true)
-          .where(sql`${imageId("ci")}`, "is not", null)
           .where((eb) => eb.not(cardHasType("cards.id", WellKnown.cardType.BATTLEFIELD)))
           // EN only: the landing hero shows these large, and mixed-language
           // card faces read as noise to first-time visitors.
@@ -109,7 +109,6 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           )
           .orderBy(sql`md5(s.printing_id::text || s.position::text || current_date::text)`)
           .limit(sampleSize)
-          .$narrowType<{ imageId: NotNull }>()
           .execute(),
       ]);
       return {
@@ -138,14 +137,11 @@ export function catalogLandingRepo(db: Kysely<Database>) {
      * @returns Image ids, at most `sampleSize` of them.
      */
     async landingLegendThumbnails(sampleSize: number): Promise<string[]> {
-      const rows = await db
-        .selectFrom("faceImages as fi")
-        .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
-        .innerJoin("faces as f", "f.id", "fi.faceId")
+      const rows = await joinPublicFaceImage(db.selectFrom("faces as f"), "f.id", {
+        required: true,
+      })
         .innerJoin("cards", "cards.id", "f.cardId")
-        .select([imageId("ci").as("imageId"), "cards.id as cardId"])
-        .where("fi.isActive", "=", true)
-        .where(sql`${imageId("ci")}`, "is not", null)
+        .select(["pimg.id as imageId", "cards.id as cardId"])
         .where(cardHasType("cards.id", WellKnown.cardType.LEGEND))
         // EN only, for the same reason the general sample is EN only: mixed
         // language faces read as noise in a miniature.
@@ -155,7 +151,6 @@ export function catalogLandingRepo(db: Kysely<Database>) {
         .distinctOn("cards.id")
         .orderBy("cards.id")
         .orderBy(sql`md5(f.id::text || current_date::text)`)
-        .$narrowType<{ imageId: NotNull }>()
         .execute();
       // Which legends the sample lands on is therefore a JS step: rotate the
       // id-ordered list by the day so the board is stable within a day and
@@ -202,8 +197,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           FROM printing_distribution_channels pdc
           JOIN printing_sides_ordered p ON p.printing_id = pdc.printing_id
           JOIN cards c ON c.id = p.card_id
-          JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active
-          JOIN image_files f ON f.id = pi.image_file_id AND f.rehosted_url IS NOT NULL
+          ${publicFaceImageJoinSql("p.face_id", "f", "inner")}
           WHERE p.language = ${WellKnown.language.EN}
             AND NOT EXISTS (
               SELECT 1 FROM card_card_types cct

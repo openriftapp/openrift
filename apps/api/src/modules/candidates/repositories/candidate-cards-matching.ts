@@ -2,18 +2,19 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-
-interface ComparableCardValues {
-  name: string;
-  types: string[];
-  superTypes: string[];
-  domains: string[];
-  might: number | null;
-  energy: number | null;
-  power: number | null;
-  mightBonus: number | null;
-  tags: string[];
-}
+import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
+import type {
+  CandidatePrintingComparison,
+  ComparableCardValues,
+  LivePrintingComparison,
+} from "./candidate-comparison-sql.js";
+import {
+  candidateCardValues,
+  candidatePrintingValues,
+  candidateSideOfPrinting,
+  liveCardValues,
+  livePrintingValues,
+} from "./candidate-comparison-sql.js";
 
 export interface UncheckedCandidateCardWithLive {
   id: string;
@@ -21,43 +22,15 @@ export interface UncheckedCandidateCardWithLive {
   live: ComparableCardValues | null;
 }
 
-interface ComparablePrintingValues {
-  shortCode: string;
-  setId: string | null;
-  rarity: string | null;
-  artVariant: string | null;
-  isSigned: boolean | null;
-  isOvernumbered: boolean | null;
-  markerSlugs: string[];
-  distributionChannelSlugs: string[];
-  finish: string | null;
-  size: string | null;
-  artist: string | null;
-  publicCode: string | null;
-  printedRulesText: string | null;
-  printedEffectText: string | null;
-  flavorText: string | null;
-  language: string | null;
-  printedName: string | null;
-  printedYear: number | null;
-  releasedAt: string | null;
-  releasePrecision: string | null;
-  announcedAt: string | null;
-}
-
 export interface UncheckedCandidatePrintingWithLive {
   id: string;
   printedTotal: number | null;
-  candidate: ComparablePrintingValues & {
-    imageUrl: string | null;
-    imageFingerprint: string | null;
-  };
-  live: ComparablePrintingValues & { imageUrls: string[]; imageFingerprints: (string | null)[] };
+  candidate: CandidatePrintingComparison;
+  live: LivePrintingComparison;
 }
 
 export function candidateMatchingRepo(db: Kysely<Database>) {
   return {
-    /** Live values come from the card sharing the candidate's normalized name, or an alias of it. */
     async listUncheckedCandidateCardsWithLive(
       excludeProvider: string,
       afterId: string | null,
@@ -66,23 +39,12 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
       const rows = await sql<UncheckedCandidateCardWithLive>`
         select
           cc.id,
-          jsonb_build_object(
-            'name', cc.name, 'types', cc.types, 'superTypes', cc.super_types,
-            'domains', cc.domains, 'might', cc.might, 'energy', cc.energy,
-            'power', cc.power, 'mightBonus', cc.might_bonus, 'tags', cc.tags
-          ) as candidate,
+          ${candidateCardValues} as candidate,
           (
-            select jsonb_build_object(
-              'name', c.name, 'types', mca.types, 'superTypes', mca.super_types,
-              'domains', mca.domains, 'might', c.might, 'energy', c.energy,
-              'power', c.power, 'mightBonus', c.might_bonus, 'tags', c.tags
-            )
-            from cards c
+            select ${liveCardValues}
+            from (${liveCardForNorm(sql.ref("cc.norm_name"))}) live_card
+            join cards c on c.id = live_card.id
             join mv_card_aggregates mca on mca.card_id = c.id
-            where c.norm_name = cc.norm_name
-              or c.id in (select a.card_id from card_name_aliases a where a.norm_name = cc.norm_name)
-            order by c.norm_name = cc.norm_name desc
-            limit 1
           ) as live
         from candidate_cards cc
         where cc.checked_at is null
@@ -104,66 +66,12 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
         select
           cp.id,
           s.printed_total as "printedTotal",
-          jsonb_build_object(
-            'shortCode', cp.short_code, 'setId', cp.set_id, 'rarity', cp.rarity,
-            'artVariant', cp.art_variant, 'isSigned', cp.is_signed,
-            'isOvernumbered', cp.is_overnumbered, 'markerSlugs', cp.marker_slugs,
-            'distributionChannelSlugs', cp.distribution_channel_slugs,
-            'finish', cp.finish, 'size', cp.size, 'artist', cp.artist,
-            'publicCode', cp.public_code, 'printedRulesText', cp.printed_rules_text,
-            'printedEffectText', cp.printed_effect_text, 'flavorText', cp.flavor_text,
-            'language', cp.language, 'printedName', cp.printed_name,
-            'printedYear', cp.printed_year, 'releasedAt', cp.released_at,
-            'releasePrecision', cp.release_precision, 'announcedAt', cp.announced_at,
-            'imageUrl', cp.image_url,
-            'imageFingerprint', cp.image_fingerprint
-          ) as candidate,
-          jsonb_build_object(
-            'shortCode', p.short_code, 'setId', s.slug, 'rarity', p.rarity,
-            'artVariant', p.art_variant, 'isSigned', p.is_signed,
-            'isOvernumbered', p.is_overnumbered, 'markerSlugs', p.marker_slugs,
-            'distributionChannelSlugs', coalesce((
-              select array_agg(dc.slug)
-              from printing_distribution_channels pdc
-              join distribution_channels dc on dc.id = pdc.channel_id
-              where pdc.printing_id = pr.id
-            ), '{}'::text[]),
-            'finish', p.finish, 'size', pr.size, 'artist', p.artist,
-            'publicCode', p.public_code, 'printedRulesText', p.printed_rules_text,
-            'printedEffectText', p.printed_effect_text, 'flavorText', p.flavor_text,
-            'language', p.language, 'printedName', p.printed_name,
-            'printedYear', p.printed_year, 'releasedAt', pr.released_at,
-            'releasePrecision', pr.release_precision, 'announcedAt', pr.announced_at,
-            'imageUrls', coalesce((
-              select array_remove(array_agg(u), null)
-              from face_images pi
-              join image_files imgf on imgf.id = pi.image_file_id
-              cross join lateral unnest(array[imgf.original_url, imgf.rehosted_url]) as u
-              where pi.face_id = p.id and pi.is_active
-            ), '{}'::text[]),
-            'imageFingerprints', coalesce((
-              select array_agg(imgf.fingerprint)
-              from face_images pi
-              join image_files imgf on imgf.id = pi.image_file_id
-              where pi.face_id = p.id and pi.is_active
-            ), '{}'::text[])
-          ) as live
+          ${candidatePrintingValues} as candidate,
+          ${livePrintingValues} as live
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join printings pr on pr.id = cp.printing_id
-        -- The side whose card the candidate names; side 1 when neither does.
-        join lateral (
-          select f.* from faces f
-          where f.id in (pr.face1_id, pr.face2_id)
-          order by
-            exists (
-              select 1 from card_name_aliases a
-              where a.card_id = f.card_id and a.norm_name = cc.norm_name
-            ) desc,
-            upper(f.short_code) = upper(cp.short_code) desc,
-            f.id = pr.face1_id desc
-          limit 1
-        ) p on true
+        ${candidateSideOfPrinting}
         join sets s on s.id = p.set_id
         where cp.checked_at is null
           and cc.provider <> ${excludeProvider}

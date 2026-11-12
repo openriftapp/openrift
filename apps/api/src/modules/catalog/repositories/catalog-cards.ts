@@ -5,7 +5,10 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CardBansTable, CardErrataTable, CardsTable } from "../../../db/tables/catalog.js";
-import { printingDetailsByIds } from "../../../repositories/query-helpers.js";
+import {
+  printingDetailsByIds,
+  publicFaceImageJoinSql,
+} from "../../../repositories/query-helpers.js";
 
 export type CatalogCardRow = Omit<
   Selectable<CardsTable>,
@@ -271,14 +274,13 @@ export function catalogCardsRepo(db: Kysely<Database>) {
         LEFT JOIN LATERAL (
           SELECT
             p.rarity,
-            CASE WHEN imgf.rehosted_url IS NOT NULL THEN imgf.id ELSE NULL END AS image_id
+            imgf.id AS image_id
           FROM printing_sides_ordered p
           JOIN languages l ON l.code = p.language
           JOIN sets s ON s.id = p.set_id
-          LEFT JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active
-          LEFT JOIN image_files imgf ON imgf.id = pi.image_file_id
+          ${publicFaceImageJoinSql("p.face_id", "imgf")}
           WHERE p.card_id = top_cards.id
-          ORDER BY (imgf.rehosted_url IS NOT NULL) DESC, l.sort_order, s.sort_order, p.short_code
+          ORDER BY (imgf.id IS NOT NULL) DESC, l.sort_order, s.sort_order, p.short_code
           LIMIT 1
         ) art ON TRUE
         ORDER BY top_cards.score DESC, top_cards.name

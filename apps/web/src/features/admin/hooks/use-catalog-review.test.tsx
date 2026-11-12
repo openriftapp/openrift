@@ -23,13 +23,8 @@ vi.mock("@/lib/server-fns/middleware", () => ({
   withCookies: () => {},
 }));
 
-const {
-  settleKeys,
-  useAcceptSubmission,
-  useCreateCardFromCandidate,
-  useMoveSubmission,
-  useRejectSubmission,
-} = await import("./use-catalog-review");
+const { settleKeys, useAcceptSubmission, useMoveSubmission, useRejectSubmission } =
+  await import("./use-catalog-review");
 
 const CANDIDATE = "019cfc3b-0388-743b-8b2e-7e64f56850c3";
 
@@ -134,27 +129,5 @@ describe("useMoveSubmission", () => {
     const keys = invalidatedKeys(client);
     expect(keys).toContainEqual(["admin", "cards", "detail", "sprite"]);
     expect(keys).toContainEqual(["admin", "cards", "detail", "OGN-042"]);
-  });
-});
-
-describe("useCreateCardFromCandidate", () => {
-  it("invalidates the created card's detail and the all-cards list", async () => {
-    const { client } = makeClient();
-    const { result } = renderHook(
-      () => useCreateCardFromCandidate({ draftName: "jinx-loose-cannon" }),
-      { wrapper: wrap(client) },
-    );
-
-    await act(async () => {
-      await result.current.mutateAsync({
-        candidateCardId: CANDIDATE,
-        cardFields: { id: "OGN-042", name: "Jinx", types: ["unit"], domains: ["chaos"] },
-      });
-    });
-
-    const keys = invalidatedKeys(client);
-    expect(keys).toContainEqual(["admin", "cards", "detail", "OGN-042"]);
-    expect(keys).toContainEqual(["admin", "cards", "unmatched", "jinx-loose-cannon"]);
-    expect(keys).toContainEqual(["admin", "cards", "all-cards"]);
   });
 });

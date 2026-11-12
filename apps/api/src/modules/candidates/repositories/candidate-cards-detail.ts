@@ -275,6 +275,10 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         needsTrim: boolean;
         quad: ImageQuad | null;
         isActive: boolean;
+        activateWhenRehosted: boolean;
+        rehostAttempts: number | null;
+        rehostError: string | null;
+        rehostAttemptedAt: Date | null;
         fingerprint: string | null;
       }[]
     > {
@@ -285,6 +289,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         .selectFrom("printingSidesOrdered as s")
         .innerJoin("faceImages as fi", "fi.faceId", "s.faceId")
         .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
+        .leftJoin("imageRehostFailures as rf", "rf.imageFileId", "ci.id")
         .select([
           "fi.id",
           "s.printingId",
@@ -297,6 +302,10 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ci.quad",
           "ci.fingerprint",
           "fi.isActive",
+          "fi.activateWhenRehosted",
+          "rf.attempts as rehostAttempts",
+          "rf.lastError as rehostError",
+          "rf.lastAttemptAt as rehostAttemptedAt",
         ])
         .where("s.printingId", "in", printingIds)
         .orderBy("fi.createdAt", "asc")

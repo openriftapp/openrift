@@ -11,7 +11,6 @@ import {
   ACCEPT_CARD_FIELDS,
   ACCEPT_PRINTING_FIELDS,
   acceptPrintingFieldsSchema,
-  cardFieldsSchema,
 } from "./card-mutations.js";
 
 const TAG = "Admin - Catalog Review";
@@ -99,17 +98,6 @@ export const moveSubmissionResponseSchema = z.object({
   cardSlug: z.string(),
 });
 
-export const createCardFromCandidateInputSchema = candidateCardIdParam.extend({
-  cardFields: cardFieldsSchema,
-  printings: z.array(newPrintingPickSchema).default([]),
-  images: z.array(z.object({ candidatePrintingId: z.string().min(1) })).default([]),
-});
-
-export const createCardFromCandidateResponseSchema = z.object({
-  cardSlug: z.string(),
-  printingsCreated: z.number().int().min(0),
-});
-
 export const catalogSourceKindSchema = z.enum(["contributors", "upload"]);
 
 export const catalogSourceSchema = z.object({
@@ -168,19 +156,6 @@ export const adminCatalogReviewContract = {
   catalogSources: authedRoute
     .route({ method: "GET", path: `${CATALOG}/sources`, tags: [TAG] })
     .output(catalogSourcesResponseSchema),
-  createCardFromCandidate: authedRoute
-    .route({
-      method: "POST",
-      path: `${CATALOG}/candidates/{candidateCardId}/create-card`,
-      tags: [TAG],
-    })
-    .errors({
-      NOT_FOUND: { message: "Candidate not found" },
-      BAD_REQUEST: { message: "Candidate cannot become a new card" },
-      CONFLICT: { message: "Card already exists" },
-    })
-    .input(createCardFromCandidateInputSchema)
-    .output(createCardFromCandidateResponseSchema),
 };
 
 export type AdminCatalogReviewContract = typeof adminCatalogReviewContract;
@@ -192,7 +167,5 @@ export type AcceptSubmissionResponse = z.infer<typeof acceptSubmissionResponseSc
 export type RejectSubmissionInput = z.input<typeof rejectSubmissionInputSchema>;
 export type MoveSubmissionInput = z.input<typeof moveSubmissionInputSchema>;
 export type MoveSubmissionResponse = z.infer<typeof moveSubmissionResponseSchema>;
-export type CreateCardFromCandidateInput = z.input<typeof createCardFromCandidateInputSchema>;
-export type CreateCardFromCandidateResponse = z.infer<typeof createCardFromCandidateResponseSchema>;
 export type CatalogSource = z.infer<typeof catalogSourceSchema>;
 export type CatalogSourcesResponse = z.infer<typeof catalogSourcesResponseSchema>;

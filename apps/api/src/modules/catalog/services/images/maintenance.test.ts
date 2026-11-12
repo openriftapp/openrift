@@ -12,7 +12,6 @@ import {
 } from "../../../../test/image-mocks.js";
 import {
   cleanupOrphanedFiles,
-  clearAllRehosted,
   findBrokenImages,
   findLowResImages,
   getRehostStatus,
@@ -27,45 +26,6 @@ beforeEach(() => {
 
 afterEach(() => {
   consoleErrorSpy.mockRestore();
-});
-
-describe("clearAllRehosted", () => {
-  it("clears DB and deletes files", async () => {
-    const repo = makeMockRepo({ updateResult: [{ numUpdatedRows: 5n }] });
-    mockReaddir.mockImplementation(async (_dir: any, opts?: any) => {
-      if (opts?.withFileTypes) {
-        return [dirent("set1", true), dirent(".gitkeep", false)];
-      }
-      return ["card-orig.png", "card-300w.webp"];
-    });
-
-    const result = await clearAllRehosted(mockIo, repo);
-    expect(result).toEqual({ cleared: 5 });
-    expect(mockUnlink).toHaveBeenCalledTimes(2);
-  });
-
-  it("handles missing media/cards directory", async () => {
-    const repo = makeMockRepo({ updateResult: [{ numUpdatedRows: 3n }] });
-    mockReaddir.mockRejectedValue(new Error("ENOENT"));
-    const result = await clearAllRehosted(mockIo, repo);
-    expect(result).toEqual({ cleared: 3 });
-  });
-
-  it("deletes across multiple set directories", async () => {
-    const repo = makeMockRepo({ updateResult: [{ numUpdatedRows: 10n }] });
-    let setCall = 0;
-    mockReaddir.mockImplementation(async (_dir: any, opts?: any) => {
-      if (opts?.withFileTypes) {
-        return [dirent("set1", true), dirent("set2", true)];
-      }
-      setCall++;
-      return setCall === 1 ? ["f1.webp", "f2.webp"] : ["f3.webp"];
-    });
-
-    const result = await clearAllRehosted(mockIo, repo);
-    expect(result).toEqual({ cleared: 10 });
-    expect(mockUnlink).toHaveBeenCalledTimes(3);
-  });
 });
 
 describe("getRehostStatus", () => {
@@ -101,10 +61,20 @@ describe("getRehostStatus", () => {
       total: 0,
       rehosted: 0,
       external: 0,
+      failedRetrying: 0,
+      failedManual: 0,
       orphanedFiles: 0,
       sets: [],
       disk: { totalBytes: 0, byResolution: [], sets: [] },
     });
+  });
+
+  it("splits failed rehosts into those the retry job picks up and those that need an admin", async () => {
+    const repo = makeMockRepo();
+    repo.countRehostFailures.mockResolvedValue({ retrying: 3, manual: 2 });
+    mockReaddir.mockRejectedValue(new Error("ENOENT"));
+    const status = await getRehostStatus(mockIo, repo);
+    expect(status).toMatchObject({ failedRetrying: 3, failedManual: 2 });
   });
 
   it("skips non-directory entries in disk scan", async () => {

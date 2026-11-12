@@ -11,7 +11,10 @@ import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
 import { importErrata } from "../../candidates/services/import-errata.js";
 import { ingestCandidates } from "../../candidates/services/ingest-candidates.js";
-import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
+import {
+  relinkCandidatePrintings,
+  reresolveEditedCandidateLink,
+} from "../../candidates/services/relink-candidates.js";
 import {
   deletePrinting,
   createNewPrinting,
@@ -37,6 +40,7 @@ vi.mock("../../candidates/services/accept-favorite-printings.js", () => ({
 }));
 vi.mock("../../candidates/services/relink-candidates.js", () => ({
   relinkCandidatePrintings: vi.fn(),
+  reresolveEditedCandidateLink: vi.fn(),
 }));
 vi.mock("../../candidates/services/card-submission-outcomes.js", () => ({
   resolveCheckedSubmissions: vi.fn(async () => []),
@@ -434,6 +438,26 @@ describe("PATCH /cards/candidate-printings/:id", () => {
       artVariant: "alternate",
       finish: "foil",
     });
+  });
+
+  it("re-resolves the edited row's link inside the patch transaction", async () => {
+    const before = { id: CP_ID, shortCode: "OGN-001", finish: "normal" };
+    mockCandidateCards.getCandidatePrintingById.mockResolvedValue(before);
+    mockCandidateCards.patchCandidatePrinting.mockResolvedValue({ numUpdatedRows: 1n });
+
+    const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ finish: "foil" }),
+    });
+
+    expect(res.status).toBe(204);
+    expect(mockTransact).toHaveBeenCalledOnce();
+    expect(vi.mocked(reresolveEditedCandidateLink)).toHaveBeenCalledWith(
+      expect.objectContaining({ candidateCards: mockCandidateCards }),
+      CP_ID,
+      before,
+    );
   });
 
   it("returns 400 when no valid fields provided", async () => {

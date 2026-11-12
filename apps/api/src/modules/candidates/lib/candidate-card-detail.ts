@@ -301,10 +301,26 @@ async function buildDetailResponse(
     candidatePrintingGroups: filteredGroups,
     expectedCardId: deriveExpectedCardId(displayName, card?.slug),
     // `rotation` is stored as smallint; the response schema runtime-validates the narrowed literal, so a stray value 500s.
-    printingImages: printingImages.map(({ fingerprint: _fingerprint, ...image }) => ({
-      ...image,
-      rotation: image.rotation as 0 | 90 | 180 | 270,
-    })),
+    printingImages: printingImages.map(
+      ({
+        fingerprint: _fingerprint,
+        rehostAttempts,
+        rehostError,
+        rehostAttemptedAt,
+        ...image
+      }) => ({
+        ...image,
+        rotation: image.rotation as 0 | 90 | 180 | 270,
+        rehostFailure:
+          rehostAttempts === null || rehostError === null || rehostAttemptedAt === null
+            ? null
+            : {
+                attempts: rehostAttempts,
+                error: rehostError,
+                lastAttemptAt: rehostAttemptedAt.toISOString(),
+              },
+      }),
+    ),
     setTotals,
     marketplaceMappings,
   };

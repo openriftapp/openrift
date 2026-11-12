@@ -9,11 +9,10 @@ import {
   REGENERATE_IMAGES_KIND,
   rehostImages,
   runRegenerateImagesJob,
-  unrehostImages,
+  refetchImages,
 } from "../services/images/jobs.js";
 import {
   cleanupOrphanedFiles,
-  clearAllRehosted,
   findBrokenImages,
   findLowResImages,
   getRehostStatus,
@@ -30,7 +29,7 @@ vi.mock("../services/images/jobs.js", async (importActual) => {
     ...actual,
     rehostImages: vi.fn(),
     runRegenerateImagesJob: vi.fn(),
-    unrehostImages: vi.fn(),
+    refetchImages: vi.fn(),
   };
 });
 
@@ -39,7 +38,6 @@ vi.mock("../services/images/maintenance.js", async (importActual) => {
   return {
     ...actual,
     cleanupOrphanedFiles: vi.fn(),
-    clearAllRehosted: vi.fn(),
     getRehostStatus: vi.fn(),
     findBrokenImages: vi.fn(),
     findLowResImages: vi.fn(),
@@ -49,11 +47,10 @@ vi.mock("../services/images/maintenance.js", async (importActual) => {
 const mockRehostImages = vi.mocked(rehostImages);
 const mockRunRegenerateImagesJob = vi.mocked(runRegenerateImagesJob);
 const mockCleanupOrphanedFiles = vi.mocked(cleanupOrphanedFiles);
-const mockClearAllRehosted = vi.mocked(clearAllRehosted);
 const mockGetRehostStatus = vi.mocked(getRehostStatus);
 const mockFindBrokenImages = vi.mocked(findBrokenImages);
 const mockFindLowResImages = vi.mocked(findLowResImages);
-const mockUnrehostImages = vi.mocked(unrehostImages);
+const mockRefetchImages = vi.mocked(refetchImages);
 
 const mockPrintingImages = {};
 
@@ -242,23 +239,7 @@ describe("POST /api/admin/v1/cleanup-orphaned", () => {
   });
 });
 
-describe("POST /api/admin/v1/clear-rehosted", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("returns 200 with cleared count", async () => {
-    mockClearAllRehosted.mockResolvedValue({ cleared: 42 });
-
-    const res = await app.request("/api/admin/v1/clear-rehosted", { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ cleared: 42 });
-    expect(mockClearAllRehosted).toHaveBeenCalledWith(mockIo, mockPrintingImages);
-  });
-});
-
-describe("POST /api/admin/v1/unrehost-images", () => {
+describe("POST /api/admin/v1/refetch-images", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -266,11 +247,11 @@ describe("POST /api/admin/v1/unrehost-images", () => {
   const validUuid1 = "a0000000-0001-4000-a000-000000000001";
   const validUuid2 = "a0000000-0001-4000-a000-000000000002";
 
-  it("returns 200 with unrehost result for valid ids", async () => {
-    const result = { total: 2, unrehosted: 2, failed: 0, errors: [] };
-    mockUnrehostImages.mockResolvedValue(result);
+  it("returns 200 with the re-fetch result for valid ids", async () => {
+    const result = { total: 2, refetched: 2, failed: 0, errors: [] };
+    mockRefetchImages.mockResolvedValue(result);
 
-    const res = await app.request("/api/admin/v1/unrehost-images", {
+    const res = await app.request("/api/admin/v1/refetch-images", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageIds: [validUuid1, validUuid2] }),
@@ -278,37 +259,37 @@ describe("POST /api/admin/v1/unrehost-images", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual(result);
-    expect(mockUnrehostImages).toHaveBeenCalledWith(mockIo, mockPrintingImages, [
+    expect(mockRefetchImages).toHaveBeenCalledWith(mockIo, mockPrintingImages, [
       validUuid1,
       validUuid2,
     ]);
   });
 
   it("rejects an empty imageIds array", async () => {
-    const res = await app.request("/api/admin/v1/unrehost-images", {
+    const res = await app.request("/api/admin/v1/refetch-images", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageIds: [] }),
     });
     expect(res.status).toBe(400);
-    expect(mockUnrehostImages).not.toHaveBeenCalled();
+    expect(mockRefetchImages).not.toHaveBeenCalled();
   });
 
   it("rejects non-uuid ids", async () => {
-    const res = await app.request("/api/admin/v1/unrehost-images", {
+    const res = await app.request("/api/admin/v1/refetch-images", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageIds: ["not-a-uuid"] }),
     });
     expect(res.status).toBe(400);
-    expect(mockUnrehostImages).not.toHaveBeenCalled();
+    expect(mockRefetchImages).not.toHaveBeenCalled();
   });
 
   it("surfaces partial failures in the response", async () => {
-    const result = { total: 2, unrehosted: 1, failed: 1, errors: [`${validUuid2}: not rehosted`] };
-    mockUnrehostImages.mockResolvedValue(result);
+    const result = { total: 2, refetched: 1, failed: 1, errors: [`${validUuid2}: HTTP 404`] };
+    mockRefetchImages.mockResolvedValue(result);
 
-    const res = await app.request("/api/admin/v1/unrehost-images", {
+    const res = await app.request("/api/admin/v1/refetch-images", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageIds: [validUuid1, validUuid2] }),
@@ -329,6 +310,8 @@ describe("GET /api/admin/v1/rehost-status", () => {
       total: 500,
       rehosted: 400,
       external: 100,
+      failedRetrying: 2,
+      failedManual: 1,
       orphanedFiles: 5,
       sets: [
         {

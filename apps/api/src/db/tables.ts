@@ -34,6 +34,7 @@ import type {
   DistributionChannelsTable,
   FormatsTable,
   ImageFilesTable,
+  ImageRehostFailuresTable,
   KeywordTranslationsTable,
   KeywordsTable,
   LanguagesTable,
@@ -199,6 +200,7 @@ import type {
   MvLatestPrintingPricesView,
   MvPrintingFoilTwinsView,
   PrintingSidesOrderedView,
+  PublicImageFilesView,
 } from "./tables/views.js";
 
 export interface Database {
@@ -357,6 +359,8 @@ export interface Database {
 
   imageFiles: ImageFilesTable;
   faceImages: FaceImagesTable;
+  imageRehostFailures: ImageRehostFailuresTable;
+  publicImageFiles: PublicImageFilesView;
 
   languages: LanguagesTable;
 

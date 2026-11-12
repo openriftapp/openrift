@@ -6,9 +6,13 @@ import { AppError } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
-import { downloadImage } from "../services/images/download.js";
-import { rehostImageFile, rehostSingleImage, unrehostImageFile } from "../services/images/jobs.js";
-import { imageRehostedUrl } from "../services/images/paths.js";
+import {
+  ensureRehostedOriginal,
+  rehostFaceImage,
+  rehostImageFile,
+  rehostImageFileOrThrow,
+  unrehostImageFile,
+} from "../services/images/jobs.js";
 import {
   ensureOriginalOnDisk,
   processAndSave,
@@ -19,12 +23,13 @@ import { adminCardImagesRouter } from "./admin-cards-images";
 
 vi.mock("../services/images/paths.js", () => ({
   CARD_MEDIA_DIR: "/mock/media/cards",
-  imageRehostedUrl: vi.fn(),
 }));
 
 vi.mock("../services/images/jobs.js", () => ({
-  rehostSingleImage: vi.fn(),
+  ensureRehostedOriginal: vi.fn(),
+  rehostFaceImage: vi.fn(),
   rehostImageFile: vi.fn(),
+  rehostImageFileOrThrow: vi.fn(),
   unrehostImageFile: vi.fn(),
 }));
 
@@ -47,15 +52,15 @@ vi.mock("uuid", () => ({
   v7: vi.fn(() => "mock-uuid-v7"),
 }));
 
-const mockRehostSingleImage = vi.mocked(rehostSingleImage);
+const mockRehostFaceImage = vi.mocked(rehostFaceImage);
 const mockRehostImageFile = vi.mocked(rehostImageFile);
+const mockRehostImageFileOrThrow = vi.mocked(rehostImageFileOrThrow);
+const mockEnsureRehostedOriginal = vi.mocked(ensureRehostedOriginal);
 const mockUnrehostImageFile = vi.mocked(unrehostImageFile);
 const mockCleanupOrphanedImageFiles = vi.mocked(cleanupOrphanedImageFiles);
-const mockDownloadImage = vi.mocked(downloadImage);
 const mockProcessAndSave = vi.mocked(processAndSave);
 const mockRegenerateFromOrig = vi.mocked(regenerateFromOrig);
 const mockEnsureOriginalOnDisk = vi.mocked(ensureOriginalOnDisk);
-const mockImageRehostedUrl = vi.mocked(imageRehostedUrl);
 
 const mockPrintingImages = {
   faceIdOfImage: vi.fn(),
@@ -84,6 +89,8 @@ const mockTrxPrintingImages = {
   insertImage: vi.fn(),
   deactivateActiveFace: vi.fn(),
   setActive: vi.fn(),
+  markPending: vi.fn(),
+  clearPending: vi.fn(),
   insertUploadedImage: vi.fn(),
   insertUnattachedImageFile: vi.fn(),
   setFallbackArt: vi.fn(),
@@ -150,7 +157,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       candidateCardId: "cc-1",
     });
     mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
-    mockRehostSingleImage.mockResolvedValue(undefined);
+    mockRehostFaceImage.mockResolvedValue({ status: "rehosted" });
 
     const res = await app.request(SET_IMAGE, {
       method: "POST",
@@ -164,7 +171,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       "main",
       "back",
     );
-    expect(mockRehostSingleImage).toHaveBeenCalledWith(mockIo, mockPrintingImages, "image-id-1");
+    expect(mockRehostFaceImage).toHaveBeenCalledWith(mockIo, mockPrintingImages, "image-id-1");
   });
 
   it("inserts in additional mode", async () => {
@@ -174,7 +181,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       candidateCardId: "cc-1",
     });
     mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
-    mockRehostSingleImage.mockResolvedValue(undefined);
+    mockRehostFaceImage.mockResolvedValue({ status: "rehosted" });
 
     const res = await app.request(SET_IMAGE, {
       method: "POST",
@@ -188,6 +195,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       "additional",
       "back",
     );
+    expect(mockRehostFaceImage).not.toHaveBeenCalled();
   });
 
   it("skips rehost when insertImage returns null", async () => {
@@ -204,7 +212,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       body: JSON.stringify({ mode: "main" }),
     });
     expect(res.status).toBe(204);
-    expect(mockRehostSingleImage).not.toHaveBeenCalled();
+    expect(mockRehostFaceImage).not.toHaveBeenCalled();
   });
 
   it("returns 404 when candidate printing not found", async () => {
@@ -315,6 +323,8 @@ describe("POST /printing-images/:imageId/activate", () => {
     mockPrintingImages.getForActivate.mockResolvedValue({
       printingId: "printing-1",
       face: "front",
+      imageFileId: "file-1",
+      rehostedUrl: "/media/cards/-1/file-1",
     });
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/activate`, {
@@ -328,7 +338,12 @@ describe("POST /printing-images/:imageId/activate", () => {
   });
 
   it("activating a back image leaves the active front alone", async () => {
-    mockPrintingImages.getForActivate.mockResolvedValue({ printingId: "printing-1", face: "back" });
+    mockPrintingImages.getForActivate.mockResolvedValue({
+      printingId: "printing-1",
+      face: "back",
+      imageFileId: "file-1",
+      rehostedUrl: "/media/cards/-1/file-1",
+    });
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/activate`, {
       method: "POST",
@@ -352,7 +367,54 @@ describe("POST /printing-images/:imageId/activate", () => {
     });
     expect(res.status).toBe(204);
     expect(mockTrxPrintingImages.deactivateActiveFace).not.toHaveBeenCalled();
+    expect(mockTrxPrintingImages.clearPending).toHaveBeenCalledWith(IMAGE_ID);
     expect(mockTrxPrintingImages.setActive).toHaveBeenCalledWith(IMAGE_ID, false);
+  });
+
+  it("rehosts a not-yet-rehosted image before it becomes active", async () => {
+    mockRehostImageFile.mockResolvedValue({ status: "rehosted" });
+    mockPrintingImages.getForActivate.mockResolvedValue({
+      printingId: "printing-1",
+      face: "front",
+      imageFileId: "file-1",
+      rehostedUrl: null,
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/activate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: true }),
+    });
+
+    expect(res.status).toBe(204);
+    expect(mockTrxPrintingImages.markPending).toHaveBeenCalledWith(IMAGE_ID);
+    expect(mockRehostImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, "file-1");
+    expect(mockTrxPrintingImages.setActive).not.toHaveBeenCalled();
+    expect(mockTrxPrintingImages.deactivateActiveFace).not.toHaveBeenCalled();
+  });
+
+  it("keeps the current image, and says the new one stays queued, when that rehost fails", async () => {
+    mockPrintingImages.getForActivate.mockResolvedValue({
+      printingId: "printing-1",
+      face: "front",
+      imageFileId: "file-1",
+      rehostedUrl: null,
+    });
+    mockRehostImageFile.mockResolvedValue({ status: "failed", error: "HTTP 404" });
+
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/activate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: true }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await readJson(res);
+    expect(body.message).toBe(
+      "Could not rehost the image: HTTP 404. It stays queued and goes live once a retry succeeds.",
+    );
+    expect(mockTrxPrintingImages.setActive).not.toHaveBeenCalled();
+    expect(mockTrxPrintingImages.deactivateActiveFace).not.toHaveBeenCalled();
   });
 
   it("returns 404 when image not found", async () => {
@@ -427,7 +489,7 @@ describe("POST /printing-images/:imageId/rehost", () => {
     adminAccess = FULL_ADMIN;
   });
 
-  it("returns 200 with rehosted url on success", async () => {
+  it("rehosts through the shared path, overwriting files a background rehost wrote", async () => {
     mockPrintingImages.getForRehost.mockResolvedValue({
       originalUrl: "https://example.com/img.png",
       imageFileId: "00594247-a18a-4efd-8998-105449a4c1ab",
@@ -435,55 +497,20 @@ describe("POST /printing-images/:imageId/rehost", () => {
       needsTrim: false,
       quad: null,
     });
-    mockDownloadImage.mockResolvedValue({ buffer: Buffer.from("image"), ext: ".png" });
-    mockProcessAndSave.mockResolvedValue(undefined);
-    mockImageRehostedUrl.mockReturnValue("/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab");
-    mockPrintingImages.updateRehostedUrl.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rehost`, {
       method: "POST",
     });
     expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json).toEqual({ rehostedUrl: "/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab" });
-    expect(mockDownloadImage).toHaveBeenCalledWith(mockIo, "https://example.com/img.png");
-    expect(mockProcessAndSave).toHaveBeenCalledWith(
+    expect(await readJson(res)).toEqual({
+      rehostedUrl: "/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab",
+    });
+    expect(mockRehostImageFileOrThrow).toHaveBeenCalledWith(
       mockIo,
-      expect.any(Buffer),
-      ".png",
-      "/mock/media/cards/ab",
+      mockPrintingImages,
       "00594247-a18a-4efd-8998-105449a4c1ab",
-      0,
-      false,
-      null,
-      // allowOverwrite=true: the background auto-rehost already wrote these files on accept.
-      true,
+      { overwrite: true },
     );
-    expect(mockPrintingImages.updateRehostedUrl).toHaveBeenCalledWith(
-      "00594247-a18a-4efd-8998-105449a4c1ab",
-      "/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab",
-    );
-  });
-
-  it("passes allowOverwrite=true so re-hosting already-rehosted images succeeds", async () => {
-    mockPrintingImages.getForRehost.mockResolvedValue({
-      originalUrl: "https://example.com/img.png",
-      imageFileId: "00594247-a18a-4efd-8998-105449a4c1ab",
-      rotation: 0,
-      needsTrim: false,
-      quad: null,
-    });
-    mockDownloadImage.mockResolvedValue({ buffer: Buffer.from("image"), ext: ".png" });
-    mockProcessAndSave.mockResolvedValue(undefined);
-    mockImageRehostedUrl.mockReturnValue("/media/cards/ab/00594247-a18a-4efd-8998-105449a4c1ab");
-    mockPrintingImages.updateRehostedUrl.mockResolvedValue(undefined);
-
-    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rehost`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(200);
-    const allowOverwrite = mockProcessAndSave.mock.calls[0]?.at(-1);
-    expect(allowOverwrite).toBe(true);
   });
 
   it("returns 404 when image not found", async () => {
@@ -532,14 +559,35 @@ describe("POST /printing-images/:imageId/rotate", () => {
     });
     expect(res.status).toBe(204);
     expect(mockPrintingImages.setRotation).toHaveBeenCalledWith("ci-1", 90);
-    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(
+    expect(mockEnsureRehostedOriginal).toHaveBeenCalledWith(
       mockIo,
-      "ci-1",
-      90,
-      true,
-      null,
-      "https://example.com/img.png",
+      mockPrintingImages,
+      expect.objectContaining({ imageFileId: "ci-1" }),
     );
+    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(mockIo, "ci-1", 90, true, null);
+  });
+
+  it("keeps the stored rotation when the image cannot be rehosted first", async () => {
+    mockPrintingImages.getForRehost.mockResolvedValue({
+      imageFileId: "ci-1",
+      rotation: 0,
+      needsTrim: false,
+      quad: null,
+      originalUrl: "https://example.com/img.png",
+      rehostedUrl: null,
+    });
+    mockEnsureRehostedOriginal.mockRejectedValue(
+      new AppError(400, ERROR_CODES.BAD_REQUEST, "Could not rehost the image: HTTP 404"),
+    );
+
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/rotate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rotation: 90 }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockPrintingImages.setRotation).not.toHaveBeenCalled();
   });
 
   it("returns 404 when image not found", async () => {
@@ -591,14 +639,7 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
     );
     expect(res.status).toBe(204);
     expect(mockPrintingImages.setNeedsTrim).toHaveBeenCalledWith("ci-1", true);
-    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(
-      mockIo,
-      "ci-1",
-      90,
-      true,
-      null,
-      "https://example.com/img.png",
-    );
+    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(mockIo, "ci-1", 90, true, null);
   });
 
   it("returns 404 when image not found", async () => {
@@ -613,6 +654,39 @@ describe("POST /printing-images/:imageId/set-needs-trim", () => {
       },
     );
     expect(res.status).toBe(404);
+  });
+});
+
+describe("POST /printing-images/:imageId/set-needs-trim when the rehost fails", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    adminAccess = FULL_ADMIN;
+  });
+
+  it("keeps the stored needs-trim value", async () => {
+    mockPrintingImages.getForRehost.mockResolvedValue({
+      imageFileId: "ci-1",
+      rotation: 0,
+      needsTrim: false,
+      quad: null,
+      originalUrl: "https://example.com/img.png",
+      rehostedUrl: null,
+    });
+    mockEnsureRehostedOriginal.mockRejectedValue(
+      new AppError(400, ERROR_CODES.BAD_REQUEST, "Could not rehost the image: HTTP 404"),
+    );
+
+    const res = await app.request(
+      `/api/admin/v1/cards/printing-images/${IMAGE_ID}/set-needs-trim`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ needsTrim: true }),
+      },
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockPrintingImages.setNeedsTrim).not.toHaveBeenCalled();
   });
 });
 
@@ -644,14 +718,7 @@ describe("POST /printing-images/:imageId/quad", () => {
     });
 
     expect(res.status).toBe(204);
-    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(
-      mockIo,
-      "ci-1",
-      90,
-      true,
-      QUAD,
-      "https://example.com/img.png",
-    );
+    expect(mockRegenerateFromOrig).toHaveBeenCalledWith(mockIo, "ci-1", 90, true, QUAD);
     expect(mockPrintingImages.setQuad).toHaveBeenCalledWith("ci-1", QUAD);
   });
 
@@ -743,13 +810,14 @@ describe("POST /printing-images/:imageId/original", () => {
       width: 1200,
       height: 1600,
     });
+    expect(mockEnsureRehostedOriginal).toHaveBeenCalledWith(
+      mockIo,
+      mockPrintingImages,
+      expect.objectContaining({ imageFileId: "00594247-a18a-4efd-8998-105449a4c1ab" }),
+    );
     expect(mockEnsureOriginalOnDisk).toHaveBeenCalledWith(
       mockIo,
       "00594247-a18a-4efd-8998-105449a4c1ab",
-      90,
-      false,
-      null,
-      "https://example.com/img.png",
     );
   });
 
@@ -810,6 +878,20 @@ describe("POST /printing/:printingId/add-image-url", () => {
     );
   });
 
+  it("rehosts the new image right away", async () => {
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/add-image-url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://example.com/img.png" }),
+    });
+
+    expect(res.status).toBe(204);
+    expect(mockRehostFaceImage).toHaveBeenCalledWith(mockIo, mockPrintingImages, "image-id-1");
+  });
+
   it("respects explicit mode", async () => {
     mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
 
@@ -819,6 +901,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
       body: JSON.stringify({ url: "https://images.tcgplayer.com/img.png", mode: "additional" }),
     });
     expect(res.status).toBe(204);
+    expect(mockRehostFaceImage).not.toHaveBeenCalled();
     expect(mockTrxPrintingImages.insertImage).toHaveBeenCalledWith(
       "printing-1",
       "https://images.tcgplayer.com/img.png",
@@ -880,7 +963,6 @@ describe("POST /printing/:printingId/upload-image", () => {
   it("returns 200 with rehosted url on success", async () => {
     mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
     mockProcessAndSave.mockResolvedValue(undefined);
-    mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
     mockTrxPrintingImages.insertUploadedImage.mockResolvedValue(undefined);
 
     const formData = new FormData();
@@ -906,7 +988,6 @@ describe("POST /printing/:printingId/upload-image", () => {
   it("stores a back face with the image credit", async () => {
     mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
     mockProcessAndSave.mockResolvedValue(undefined);
-    mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
     mockTrxPrintingImages.insertUploadedImage.mockResolvedValue(undefined);
 
     const formData = new FormData();
@@ -927,7 +1008,6 @@ describe("POST /printing/:printingId/upload-image", () => {
   it("respects explicit mode", async () => {
     mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
     mockProcessAndSave.mockResolvedValue(undefined);
-    mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
     mockTrxPrintingImages.insertUploadedImage.mockResolvedValue(undefined);
 
     const formData = new FormData();
@@ -976,7 +1056,7 @@ describe("audit events", () => {
       shortCode: "OGN-001",
     });
     mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
-    mockRehostSingleImage.mockResolvedValue(undefined);
+    mockRehostFaceImage.mockResolvedValue({ status: "rehosted" });
 
     const res = await app.request(SET_IMAGE, {
       method: "POST",
@@ -1144,7 +1224,7 @@ describe("POST /printing/:printingId/fallback-art/from-url", () => {
 
   it("ingests the URL, pins it, and rehosts the file", async () => {
     mockPrintingImages.imageFileForUrl.mockResolvedValue(IMAGE_FILE_ID);
-    mockRehostImageFile.mockResolvedValue(undefined);
+    mockRehostImageFile.mockResolvedValue({ status: "rehosted" });
 
     const res = await app.request(`${FALLBACK_ART}/from-url`, {
       method: "POST",
@@ -1185,7 +1265,6 @@ describe("POST /printing/:printingId/fallback-art/upload", () => {
 
   it("stores the file without attaching it as a printing image", async () => {
     mockProcessAndSave.mockResolvedValue(undefined);
-    mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
 
     const formData = new FormData();
     formData.append("file", new File(["art-data"], "art.png", { type: "image/png" }));
@@ -1274,7 +1353,6 @@ describe("grant holder scope", () => {
 
   it("stores an upload to a promo as additional, so it never takes over the live art", async () => {
     mockCatalog.getPrintingById.mockResolvedValue({ id: PROMO_ID });
-    mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
 
     const res = await uploadTo(PROMO_ID, "main");
 
@@ -1373,7 +1451,7 @@ describe("image edit scope", () => {
   const endpoints = [
     { name: "activate", body: { active: true }, effect: () => mockTrxPrintingImages.setActive },
     { name: "rotate", body: { rotation: 90 }, effect: () => mockPrintingImages.setRotation },
-    { name: "rehost", body: undefined, effect: () => mockPrintingImages.updateRehostedUrl },
+    { name: "rehost", body: undefined, effect: () => mockRehostImageFileOrThrow },
     {
       name: "set-needs-trim",
       body: { needsTrim: true },
@@ -1404,6 +1482,7 @@ describe("image edit scope", () => {
       face: "front",
       imageFileId: "if-1",
       originalUrl: "https://example.com/img.png",
+      rehostedUrl: "/media/cards/-1/if-1",
       rotation: 0,
       needsTrim: false,
       quad: null,
@@ -1430,8 +1509,6 @@ describe("image edit scope", () => {
     mockAdminEvents.wasPrintingCreatedBy.mockImplementation((id: string) =>
       Promise.resolve(id === OWN_ID),
     );
-    mockDownloadImage.mockResolvedValue({ buffer: Buffer.from("image"), ext: ".png" });
-    mockImageRehostedUrl.mockReturnValue("/media/cards/f1/if-1");
   });
 
   const matrix = endpoints.flatMap((endpoint) =>

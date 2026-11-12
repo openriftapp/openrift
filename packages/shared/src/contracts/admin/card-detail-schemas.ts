@@ -1,6 +1,6 @@
 import { imageQuadSchema } from "@openrift/shared/contracts/admin/card-images";
 import { cardFaceSchema, printingSideSchema } from "@openrift/shared/response-schemas";
-import { marketplaceEnum } from "@openrift/shared/schemas";
+import { isoDateTime, marketplaceEnum } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 /**
@@ -119,6 +119,10 @@ export const adminPrintingImageResponseSchema = z.object({
   needsTrim: z.boolean(),
   quad: imageQuadSchema.nullable().optional(),
   isActive: z.boolean(),
+  activateWhenRehosted: z.boolean(),
+  rehostFailure: z
+    .object({ attempts: z.number().int().min(1), error: z.string(), lastAttemptAt: isoDateTime })
+    .nullable(),
 });
 
 export const adminPrintingDistributionChannelResponseSchema = z.object({

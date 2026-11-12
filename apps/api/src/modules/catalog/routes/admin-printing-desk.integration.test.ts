@@ -5,6 +5,7 @@ import {
   createTestContext,
   deletePrintingsById,
   insertCard,
+  insertImageFile,
   insertPrinting,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -157,11 +158,7 @@ async function faceOf(db: NonNullable<typeof adminCtx>["db"], printingId: string
 }
 
 async function seedImage(db: NonNullable<typeof adminCtx>["db"], printingId: string) {
-  const file = await db
-    .insertInto("imageFiles")
-    .values({ rehostedUrl: `/media/cards/pdk/${printingId.slice(-6)}` })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  const file = await insertImageFile(db);
   const image = await db
     .insertInto("faceImages")
     .values({ faceId: await faceOf(db, printingId), imageFileId: file.id, isActive: true })
@@ -171,11 +168,7 @@ async function seedImage(db: NonNullable<typeof adminCtx>["db"], printingId: str
 }
 
 async function seedInactiveImage(db: NonNullable<typeof adminCtx>["db"], printingId: string) {
-  const file = await db
-    .insertInto("imageFiles")
-    .values({ rehostedUrl: `/media/cards/pdk/${printingId.slice(-6)}-extra` })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  const file = await insertImageFile(db);
   const image = await db
     .insertInto("faceImages")
     .values({ faceId: await faceOf(db, printingId), imageFileId: file.id, isActive: false })

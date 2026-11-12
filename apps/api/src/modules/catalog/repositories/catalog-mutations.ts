@@ -24,6 +24,22 @@ export interface PrintingIdentity {
   language: string;
 }
 
+export type FacePrintedFields = Pick<
+  Selectable<FacesTable>,
+  | "setId"
+  | "rarity"
+  | "artVariant"
+  | "isSigned"
+  | "isOvernumbered"
+  | "artist"
+  | "publicCode"
+  | "printedRulesText"
+  | "printedEffectText"
+  | "flavorText"
+  | "printedName"
+  | "printedYear"
+>;
+
 /** A side never changes card: printings, deck slots and copies all assume it. */
 type FaceFields = Omit<
   Updateable<FacesTable>,
@@ -230,6 +246,27 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
 
     findFaceById(id: string): Promise<{ id: string } | undefined> {
       return db.selectFrom("faces").select("id").where("id", "=", id).executeTakeFirst();
+    },
+
+    getFacePrintedFields(id: string): Promise<FacePrintedFields | undefined> {
+      return db
+        .selectFrom("faces")
+        .select([
+          "setId",
+          "rarity",
+          "artVariant",
+          "isSigned",
+          "isOvernumbered",
+          "artist",
+          "publicCode",
+          "printedRulesText",
+          "printedEffectText",
+          "flavorText",
+          "printedName",
+          "printedYear",
+        ])
+        .where("id", "=", id)
+        .executeTakeFirst();
     },
 
     /** The side whose short code is `shortCode`; side 1 when neither matches. */

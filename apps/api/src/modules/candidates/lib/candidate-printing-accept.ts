@@ -95,9 +95,14 @@ export function groupCandidatePrintings<T extends KeyedCandidate>(candidates: re
 }
 
 export function candidatePrintingLabel(
-  cp: Pick<CandidatePrintingRow, "shortCode" | "finish" | "rarity" | "language">,
+  cp: Pick<CandidatePrintingRow, "shortCode" | "finish" | "rarity" | "language" | "size">,
 ): string {
-  return [cp.shortCode, resolveFinish(cp.finish, cp.rarity), cp.language ?? WellKnown.language.EN]
+  return [
+    cp.shortCode,
+    resolveFinish(cp.finish, cp.rarity),
+    cp.language ?? WellKnown.language.EN,
+    cp.size === WellKnown.cardSize.STANDARD ? null : cp.size,
+  ]
     .filter((part) => part !== null && part !== "")
     .join(" ");
 }

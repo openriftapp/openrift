@@ -11,11 +11,18 @@ import {
 } from "./use-workspace-batch";
 
 describe("batch previews", () => {
-  it("keys trusted cards by name", () => {
-    expect(trustedCardsPreview({ count: 2, names: ["Bird", "Brush"] })).toEqual({
+  it("keys trusted cards by name and lists the held-back ones with their reason", () => {
+    expect(
+      trustedCardsPreview({
+        count: 2,
+        names: ["Bird", "Brush"],
+        ineligible: [{ name: "Gold", reason: "no card type" }],
+      }),
+    ).toEqual({
       count: 2,
       names: ["Bird", "Brush"],
       keys: ["Bird", "Brush"],
+      ineligible: [{ key: "Gold", label: "Gold", reason: "no card type" }],
     });
   });
 
@@ -24,8 +31,16 @@ describe("batch previews", () => {
       trustedPrintingsPreview({
         count: 1,
         items: [{ candidatePrintingId: "cp1", cardSlug: "ahri", label: "Ahri OGN-066p FR" }],
+        ineligible: [
+          { candidatePrintingId: "cp2", label: "ahri OGN-067 foil EN", reason: "missing: rarity" },
+        ],
       }),
-    ).toEqual({ count: 1, names: ["Ahri OGN-066p FR"], keys: ["cp1"] });
+    ).toEqual({
+      count: 1,
+      names: ["Ahri OGN-066p FR"],
+      keys: ["cp1"],
+      ineligible: [{ key: "cp2", label: "ahri OGN-067 foil EN", reason: "missing: rarity" }],
+    });
   });
 
   it("keys suggested listings by listing", () => {
@@ -36,7 +51,7 @@ describe("batch previews", () => {
           { listingKey: "l1", printingId: "p1", label: "Gold Token Foil", strength: "strong" },
         ],
       }),
-    ).toEqual({ count: 1, names: ["Gold Token Foil"], keys: ["l1"] });
+    ).toEqual({ count: 1, names: ["Gold Token Foil"], keys: ["l1"], ineligible: [] });
   });
 
   it("caches previews under the workspace prefix", () => {
@@ -52,7 +67,7 @@ describe("batch outcomes", () => {
     });
     expect(outcome).toEqual({
       done: 2,
-      skipped: [{ label: "Viktor, Herald", reason: "Might is missing" }],
+      skipped: [{ key: "0:Viktor, Herald", label: "Viktor, Herald", reason: "Might is missing" }],
     });
     expect(batchOutcomeText("trusted-cards", outcome)).toBe("Accepted 2 cards. 1 skipped.");
   });
@@ -62,7 +77,9 @@ describe("batch outcomes", () => {
       accepted: 1,
       skipped: [{ label: "OGN-066p FR", reason: "Duplicate" }],
     });
-    expect(outcome.skipped).toEqual([{ label: "OGN-066p FR", reason: "Duplicate" }]);
+    expect(outcome.skipped).toEqual([
+      { key: "0:OGN-066p FR", label: "OGN-066p FR", reason: "Duplicate" },
+    ]);
     expect(batchOutcomeText("trusted-printings", outcome)).toBe("Accepted 1 printing. 1 skipped.");
   });
 

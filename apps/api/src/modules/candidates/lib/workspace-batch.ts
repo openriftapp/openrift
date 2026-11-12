@@ -40,36 +40,55 @@ export function nameHead(name: string): string {
 }
 
 /** Must match the new-card record's "Already in the catalog?" suggestion. */
-function hasMergeCandidate(index: CardSearchIndex<SearchableCard>, name: string): boolean {
+function mergeCandidateName(index: CardSearchIndex<SearchableCard>, name: string): string | null {
   const head = nameHead(name);
-  return head.length >= CARD_SEARCH_MIN_QUERY_LENGTH && searchCards(index, head, 1).length > 0;
+  if (head.length < CARD_SEARCH_MIN_QUERY_LENGTH) {
+    return null;
+  }
+  return searchCards(index, head, 1)[0]?.name ?? null;
+}
+
+export interface IneligibleTrustedCard {
+  name: string;
+  reason: string;
 }
 
 export function eligibleTrustedCards(
   drafts: readonly TrustedDraftRow[],
   printings: readonly CandidatePrintingRow[],
   liveCards: readonly SearchableCard[],
-): TrustedCardDraft[] {
+): { eligible: TrustedCardDraft[]; ineligible: IneligibleTrustedCard[] } {
   const index = buildCardIndex(liveCards, new Map());
   const completePrintingCardIds = new Set(
     printings
       .filter((cp) => acceptFieldsFromCandidate(cp).fields !== undefined)
       .map((cp) => cp.candidateCardId),
   );
-  const out: TrustedCardDraft[] = [];
+  const eligible: TrustedCardDraft[] = [];
+  const ineligible: IneligibleTrustedCard[] = [];
   for (const group of Map.groupBy(drafts, (draft) => draft.normName).values()) {
     const primary = group.toSorted((a, b) => a.provider.localeCompare(b.provider))[0];
-    if (
-      !primary ||
-      primary.types.length === 0 ||
-      !group.some((draft) => completePrintingCardIds.has(draft.id)) ||
-      hasMergeCandidate(index, primary.name)
-    ) {
+    if (!primary) {
       continue;
     }
-    out.push({ normName: primary.normName, name: primary.name });
+    const { name } = primary;
+    if (primary.types.length === 0) {
+      ineligible.push({ name, reason: "no card type" });
+      continue;
+    }
+    if (!group.some((draft) => completePrintingCardIds.has(draft.id))) {
+      ineligible.push({ name, reason: "no printing has every required field" });
+      continue;
+    }
+    const similar = mergeCandidateName(index, name);
+    if (similar !== null) {
+      ineligible.push({ name, reason: `a similar card exists: ${similar}` });
+      continue;
+    }
+    eligible.push({ normName: primary.normName, name });
   }
-  return out.toSorted((a, b) => a.name.localeCompare(b.name));
+  const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+  return { eligible: eligible.toSorted(byName), ineligible: ineligible.toSorted(byName) };
 }
 
 export function trustedPrintingGroups(
@@ -115,6 +134,7 @@ export function findDuplicatePrinting(
 ): PrintingProbeRow | undefined {
   const stem = codeStem(group.first.shortCode);
   const language = group.first.language ?? WellKnown.language.EN;
+  const size = group.first.size ?? WellKnown.cardSize.STANDARD;
   if (stem.length === 0) {
     return undefined;
   }
@@ -122,6 +142,7 @@ export function findDuplicatePrinting(
     (probe) =>
       probe.cardId === group.cardId &&
       probe.language === language &&
+      probe.size === size &&
       codeStem(probe.shortCode) === stem &&
       sameSlugSet(probe.distributionChannelSlugs, group.first.distributionChannelSlugs),
   );

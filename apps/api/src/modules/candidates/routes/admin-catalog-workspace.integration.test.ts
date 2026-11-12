@@ -5,6 +5,7 @@ import {
   createTestContext,
   deletePrintingsById,
   insertCard,
+  insertImageFile,
   insertPrinting,
   refreshCardAggregates,
   seedTestUser,
@@ -136,11 +137,7 @@ if (adminCtx) {
   promoPrintingId = promo.id;
   promoFaceId = promo.faceId;
 
-  const file = await db
-    .insertInto("imageFiles")
-    .values({ rehostedUrl: "/media/cards/wsq/upload" })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  const file = await insertImageFile(db);
   imageFileId = file.id;
   const image = await db
     .insertInto("faceImages")

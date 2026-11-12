@@ -12,6 +12,7 @@ import type {
  * Payload mapping and link resolution are shared with candidate-fields.ts / candidate-links.ts.
  */
 import { formatCompactUtcStamp } from "@openrift/shared/format-date";
+import { resolveFinish } from "@openrift/shared/printing-accept";
 import { shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Insertable } from "kysely";
@@ -70,7 +71,7 @@ export function buildUserSubmissionCard(
 
   const printings: UserSubmissionPrinting[] = input.printings.map((printing, index) => {
     const shortCode = shortCodeFromPublicCode(printing.public_code) ?? printing.public_code;
-    const finishForId = printing.finish ?? WellKnown.finish.NORMAL;
+    const finishForId = resolveFinish(printing.finish, printing.rarity) ?? WellKnown.finish.NORMAL;
     const languageForId = (printing.language ?? WellKnown.language.EN).toLowerCase();
     // Printings sharing a public code (marker variants, two-sided pairs) stay apart by printing id.
     const disambiguator =
@@ -235,6 +236,10 @@ export function ingestUserSubmission(
         );
       }
     }
+    const externalIds = card.printings.map((printing) => printing.external_id);
+    if (new Set(externalIds).size !== externalIds.length) {
+      errors.push("printings: two printings have the same code, finish and language");
+    }
     if (errors.length > 0) {
       return { status: "invalid", errors };
     }
@@ -267,7 +272,7 @@ export function ingestUserSubmission(
         markerSlugs: printing.marker_slugs,
         language: printing.language,
         size: printing.size,
-        cardLinked,
+        cardId: liveCardId,
         claimedPrintingId:
           printing.printing_id !== null && ownedClaims.has(printing.printing_id)
             ? printing.printing_id

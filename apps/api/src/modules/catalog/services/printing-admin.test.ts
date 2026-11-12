@@ -283,11 +283,18 @@ describe("insertNewPrinting", () => {
           id: "face-1",
         })),
         findFaceById: vi.fn(async (): Promise<{ id: string } | undefined> => ({ id: "face-x" })),
+        getFacePrintedFields: vi.fn(
+          async (): Promise<Record<string, unknown> | undefined> => undefined,
+        ),
         getSetIdBySlug: vi.fn(async () => ({ id: "set-uuid" })),
         sideOfFace: vi.fn(async () => 1),
       },
       candidateCards: {
         linkAndCheckCandidatePrintings: vi.fn(async () => {}),
+        linkIdentitiesForCandidatePrintings: vi.fn(
+          async (): Promise<Record<string, unknown>[]> => [],
+        ),
+        upsertPrintingLinkOverrides: vi.fn(async () => {}),
       },
       printingImages: {
         insertImage: vi.fn(async () => "pi-1"),
@@ -365,6 +372,129 @@ describe("insertNewPrinting", () => {
       status: 400,
       message: expect.stringContaining("artist, publicCode"),
     });
+  });
+
+  const STORED_FACE = {
+    setId: "set-uuid",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    isOvernumbered: false,
+    artist: "A",
+    publicCode: "001",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: "Quiet.",
+    printedName: null,
+    printedYear: 2025,
+  };
+
+  function reusedFaceRepos(stored: Record<string, unknown> = {}) {
+    return trxRepos({
+      catalogMutations: {
+        getFacePrintedFields: vi.fn(async () => ({ ...STORED_FACE, ...stored })),
+      },
+    });
+  }
+
+  it("409s a new size of an existing side whose printed values differ, naming the fields", async () => {
+    const repos = reusedFaceRepos();
+
+    await expect(
+      insertNewPrinting(
+        repos as any,
+        "card-uuid",
+        { ...FIELDS, size: "oversized", artist: "B", flavorText: "Loud." },
+        [],
+      ),
+    ).rejects.toMatchObject({
+      status: 409,
+      message:
+        "The existing OGN-001 normal EN side differs in artist, flavor text. Edit that side or the source first.",
+    });
+    expect(repos.catalogMutations!.insertPrinting).not.toHaveBeenCalled();
+  });
+
+  it("reuses an existing side when every stated value matches it", async () => {
+    const repos = reusedFaceRepos();
+
+    await insertNewPrinting(repos as any, "card-uuid", { ...FIELDS, size: "oversized" }, []);
+
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledOnce();
+  });
+
+  it("does not count unstated text or default flags as a difference", async () => {
+    const repos = reusedFaceRepos({ artVariant: "altart", isSigned: true });
+
+    await insertNewPrinting(
+      repos as any,
+      "card-uuid",
+      { ...FIELDS, size: "oversized", flavorText: null, printedYear: null },
+      [],
+    );
+
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledOnce();
+  });
+
+  it("ignores surrounding whitespace in the stored side's values", async () => {
+    const repos = reusedFaceRepos({ artist: " A ", flavorText: "Quiet.\n" });
+
+    await insertNewPrinting(
+      repos as any,
+      "card-uuid",
+      { ...FIELDS, size: "oversized", flavorText: "Quiet." },
+      [],
+    );
+
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledOnce();
+  });
+
+  it("compares text after the same typography fixes it would write", async () => {
+    const repos = reusedFaceRepos({ flavorText: "It’s quiet." });
+
+    await insertNewPrinting(
+      repos as any,
+      "card-uuid",
+      { ...FIELDS, size: "oversized", flavorText: " It's quiet. " },
+      [],
+    );
+
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledOnce();
+  });
+
+  it("400s a whitespace-only artist", async () => {
+    await expect(
+      insertNewPrinting(trxRepos() as any, "card-uuid", { ...FIELDS, artist: "   " }, []),
+    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("artist") });
+  });
+
+  it("trims printed text and stores whitespace-only text as null", async () => {
+    const repos = trxRepos();
+
+    await insertNewPrinting(
+      repos as any,
+      "card-uuid",
+      {
+        ...FIELDS,
+        artist: " Riot Games ",
+        printedRulesText: "  ",
+        printedEffectText: "\n",
+        flavorText: " A quiet line. ",
+        printedName: " ",
+      },
+      [],
+    );
+
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artist: "Riot Games",
+        printedRulesText: null,
+        printedEffectText: null,
+        flavorText: "A quiet line.",
+        printedName: null,
+      }),
+      null,
+    );
   });
 
   it("keeps a stated finish over the one the rarity implies", async () => {
@@ -563,6 +693,59 @@ describe("insertNewPrinting", () => {
       ["cp-1"],
       "p-uuid",
     );
+  });
+
+  function linkedCandidate(overrides: Record<string, unknown>) {
+    return {
+      id: "cp-1",
+      shortCode: "OGN-001",
+      finish: null,
+      rarity: "common",
+      markerSlugs: [],
+      language: null,
+      size: null,
+      liveCardId: "card-uuid",
+      ...overrides,
+    };
+  }
+
+  function reposWithLinked(overrides: Record<string, unknown>) {
+    return trxRepos({
+      candidateCards: {
+        linkIdentitiesForCandidatePrintings: vi.fn(async () => [linkedCandidate(overrides)]),
+      },
+    });
+  }
+
+  it("pins a candidate accepted with an edited finish so later uploads keep the link", async () => {
+    const repos = reposWithLinked({ finish: "foil" });
+
+    await insertNewPrinting(repos as any, "card-uuid", { ...FIELDS, finish: "normal" }, ["cp-1"]);
+
+    expect(repos.candidateCards!.upsertPrintingLinkOverrides).toHaveBeenCalledWith(
+      ["cp-1"],
+      "p-uuid",
+    );
+  });
+
+  it("pins a candidate accepted onto another card than its name resolves to", async () => {
+    const repos = reposWithLinked({ liveCardId: "other-card-uuid" });
+
+    await insertNewPrinting(repos as any, "card-uuid", FIELDS, ["cp-1"]);
+
+    expect(repos.candidateCards!.upsertPrintingLinkOverrides).toHaveBeenCalledWith(
+      ["cp-1"],
+      "p-uuid",
+    );
+  });
+
+  it("does not pin a candidate whose own values resolve to the created printing", async () => {
+    const repos = reposWithLinked({ shortCode: "ogn-001" });
+
+    await insertNewPrinting(repos as any, "card-uuid", FIELDS, ["cp-1"]);
+
+    expect(repos.candidateCards!.linkAndCheckCandidatePrintings).toHaveBeenCalledOnce();
+    expect(repos.candidateCards!.upsertPrintingLinkOverrides).not.toHaveBeenCalled();
   });
 
   it("links nothing for a manual entry", async () => {

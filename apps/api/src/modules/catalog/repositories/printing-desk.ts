@@ -10,7 +10,7 @@ import { sql } from "kysely";
 
 import { cardTypes, primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
-import { imageUrlWithOriginal, joinFaceImage } from "../../../repositories/query-helpers.js";
+import { imageUrlWithOriginal, joinAdminFaceImage } from "../../../repositories/query-helpers.js";
 import type { FullPrintingRow, PrintingUpdate } from "./catalog-mutations.js";
 import { selectFullPrintings, updatePrintingAndFace } from "./catalog-mutations.js";
 
@@ -140,7 +140,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
   function rowQuery(side: 1 | 2 = 1) {
     const ownColumn = side === 1 ? "face1_id" : "face2_id";
     const otherColumn = side === 1 ? "face2_id" : "face1_id";
-    return joinFaceImage(
+    return joinAdminFaceImage(
       db
         .selectFrom("printings as p")
         .innerJoin("faces as pf", "pf.id", side === 1 ? "p.face1Id" : "p.face2Id"),
@@ -435,7 +435,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
       printingId: string,
       imageFileId?: string,
     ): Promise<DeskPostImageRow | undefined> {
-      return joinFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId")
+      return joinAdminFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId")
         .innerJoin("cards as c", "c.id", "s.cardId")
         .select([
           "s.printingId",

@@ -5,6 +5,7 @@ import {
   createTestContext,
   deletePrintingsById,
   insertCards,
+  insertImageFile,
   insertPrintings,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
@@ -1594,16 +1595,14 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         language: "EN",
       });
 
-      const [cardImage] = await db
-        .insertInto("imageFiles")
-        .values({ originalUrl: "https://example.com/delete-test.png" })
-        .returning("id")
-        .execute();
+      const cardImage = await insertImageFile(db, {
+        originalUrl: "https://example.com/delete-test.png",
+      });
       await db
         .insertInto("faceImages")
         .values({
           faceId: disposablePrinting!.id,
-          imageFileId: cardImage!.id,
+          imageFileId: cardImage.id,
           isActive: true,
         })
         .execute();

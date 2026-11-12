@@ -25,12 +25,6 @@ export function outcomeForCheckedSubmission(
   return "not_applied";
 }
 
-/**
- * A photo cannot be compared against the catalogue the way a field can, so the
- * evidence that a submitted one was used is an `image_files` row pointing at
- * it: anywhere for an upload (its URL is unique to this candidate), on the
- * linked printing for a pasted URL.
- */
 async function submittedImageAttached(repos: Repos, candidateCardId: string): Promise<boolean> {
   const candidateUrls = await repos.cardSubmissions.candidatePrintingImageUrls(candidateCardId);
   const urls = candidateUrls.filter((url) => isSubmissionUploadUrl(url));
@@ -41,7 +35,7 @@ async function submittedImageAttached(repos: Repos, candidateCardId: string): Pr
     }
   }
   return candidateUrls.length > urls.length
-    ? repos.cardSubmissions.linkedImageAttached(candidateCardId)
+    ? repos.printingImages.linkedImageAttached(candidateCardId)
     : false;
 }
 

@@ -3,13 +3,14 @@
  * rows. Both ingest entry points map the same payload to the same columns, so
  * the mapping lives here once.
  */
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { IngestCard, IngestPrinting } from "@openrift/shared/contracts/admin/card-mutations";
 import {
   candidateCardFieldRules,
   candidatePrintingFieldRules,
 } from "@openrift/shared/db-field-rules";
 import { parseReleaseInput } from "@openrift/shared/set-release";
-import { emptyToNull } from "@openrift/shared/strings";
+import { trimToNull } from "@openrift/shared/strings";
 import type { Insertable } from "kysely";
 import { z } from "zod";
 
@@ -19,7 +20,9 @@ import type {
 } from "../../../db/tables/candidates.js";
 
 export const candidateCardValidator = z.object({
-  name: candidateCardFieldRules.name,
+  name: candidateCardFieldRules.name.refine((name) => normalizeNameForIdentity(name) !== "", {
+    message: "needs at least one letter or digit",
+  }),
   types: candidateCardFieldRules.types,
   might: candidateCardFieldRules.might,
   energy: candidateCardFieldRules.energy,
@@ -48,7 +51,6 @@ export const candidatePrintingValidator = z.object({
   external_id: candidatePrintingFieldRules.externalId,
 });
 
-/** Applies the same empty-to-null coercion as {@link buildCandidateCardFields}. */
 export function candidateCardValidatorInput(card: IngestCard): Record<string, unknown> {
   return {
     name: card.name,
@@ -57,14 +59,13 @@ export function candidateCardValidatorInput(card: IngestCard): Record<string, un
     energy: card.energy,
     power: card.power,
     might_bonus: card.might_bonus,
-    rules_text: emptyToNull(card.rules_text),
-    effect_text: emptyToNull(card.effect_text),
+    rules_text: trimToNull(card.rules_text),
+    effect_text: trimToNull(card.effect_text),
     short_code: card.short_code ?? null,
     external_id: card.external_id,
   };
 }
 
-/** Applies the same empty-to-null coercion as {@link buildCandidatePrintingFields}. */
 export function candidatePrintingValidatorInput(printing: IngestPrinting): Record<string, unknown> {
   return {
     short_code: printing.short_code,
@@ -74,12 +75,12 @@ export function candidatePrintingValidatorInput(printing: IngestPrinting): Recor
     art_variant: printing.art_variant,
     finish: printing.finish,
     size: printing.size,
-    artist: printing.artist,
+    artist: trimToNull(printing.artist),
     public_code: printing.public_code,
-    printed_rules_text: emptyToNull(printing.printed_rules_text),
-    printed_effect_text: emptyToNull(printing.printed_effect_text),
+    printed_rules_text: trimToNull(printing.printed_rules_text),
+    printed_effect_text: trimToNull(printing.printed_effect_text),
     image_url: printing.image_url,
-    flavor_text: printing.flavor_text,
+    flavor_text: trimToNull(printing.flavor_text),
     external_id: printing.external_id,
   };
 }
@@ -113,8 +114,8 @@ export function buildCandidateCardFields(card: IngestCard): CandidateCardFields 
     energy: card.energy,
     power: card.power,
     mightBonus: card.might_bonus,
-    rulesText: emptyToNull(card.rules_text),
-    effectText: emptyToNull(card.effect_text),
+    rulesText: trimToNull(card.rules_text),
+    effectText: trimToNull(card.effect_text),
     tags: card.tags,
     externalId: card.external_id,
     shortCode: card.short_code ?? null,
@@ -147,14 +148,14 @@ export function buildCandidatePrintingFields(printing: IngestPrinting): Candidat
     distributionChannelSlugs: printing.distribution_channel_slugs,
     finish: printing.finish,
     size: printing.size,
-    artist: printing.artist,
+    artist: trimToNull(printing.artist),
     publicCode: printing.public_code,
-    printedRulesText: emptyToNull(printing.printed_rules_text),
-    printedEffectText: emptyToNull(printing.printed_effect_text),
+    printedRulesText: trimToNull(printing.printed_rules_text),
+    printedEffectText: trimToNull(printing.printed_effect_text),
     imageUrl: printing.image_url,
-    flavorText: printing.flavor_text,
+    flavorText: trimToNull(printing.flavor_text),
     language: printing.language,
-    printedName: printing.printed_name,
+    printedName: trimToNull(printing.printed_name),
     printedYear: printing.printed_year,
     ...releaseFields(printing),
     externalId: printing.external_id,

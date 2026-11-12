@@ -5,7 +5,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import {
   imageUrlWithOriginal,
-  joinFaceImage,
+  joinAdminFaceImage,
   withFace1,
 } from "../../../repositories/query-helpers.js";
 
@@ -15,7 +15,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
   return {
     allCardsWithPrintings(marketplace: Marketplace) {
       return (
-        joinFaceImage(
+        joinAdminFaceImage(
           db
             .selectFrom("cards as c")
             .innerJoin("printingSidesOrdered as p", "p.cardId", "c.id")
@@ -87,7 +87,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
       if (Array.isArray(cardIdentifier) && cardIdentifier.length === 0) {
         return Promise.resolve([]);
       }
-      let query = joinFaceImage(
+      let query = joinAdminFaceImage(
         db
           .selectFrom("cards as c")
           .innerJoin("printingSidesOrdered as p", "p.cardId", "c.id")

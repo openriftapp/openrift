@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-12
+
+### Other
+
+- fix(Cards): **Card art stays up while new art loads** — when a card's picture is replaced, the old one now stays visible until the new one is ready. Before, the card could show no art for a moment, or for good when the new picture failed to load.
+
 ## 2026-11-11
 
 ### Highlights

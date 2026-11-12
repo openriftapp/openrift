@@ -1,6 +1,11 @@
+import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
 import type { ingestRepo } from "../repositories/ingest.js";
+import type { LinkIdentity } from "./candidate-links.js";
 import {
+  isPinnedLink,
+  linkIdentityChanged,
   loadCandidateLinkIndex,
   resolveCardIdByName,
   resolvePrintingLink,
@@ -33,7 +38,7 @@ export async function relinkCandidatePrintings(repos: {
       markerSlugs: cp.markerSlugs,
       language: cp.language,
       size: cp.size,
-      cardLinked: resolveCardIdByName(linkIndex, cp.cardName) !== null,
+      cardId: resolveCardIdByName(linkIndex, cp.cardName),
     });
 
     if (resolvedId) {
@@ -53,4 +58,46 @@ export async function relinkCandidatePrintings(repos: {
   }
 
   return { examined: unlinked.length, linked };
+}
+
+/**
+ * A claimed printing is stored as a plain link, so a contributor's row is never
+ * re-resolved here: the claim would be lost.
+ */
+export async function reresolveEditedCandidateLink(
+  repos: { ingest: IngestRepo; candidateCards: CandidateCardsRepo },
+  candidatePrintingId: string,
+  before: LinkIdentity,
+): Promise<void> {
+  const row = await repos.ingest.candidatePrintingForRelink(candidatePrintingId);
+  if (!row) {
+    return;
+  }
+  const finishChanged = (before.finish ?? "") !== (row.finish ?? "");
+  const identityChanged = linkIdentityChanged(before, row);
+  if (!finishChanged && !identityChanged) {
+    return;
+  }
+  const linkIndex = await loadCandidateLinkIndex(repos.ingest);
+  if (isPinnedLink(linkIndex, { ...row, finish: before.finish })) {
+    if (finishChanged) {
+      await repos.ingest.movePrintingLinkPin({
+        provider: row.provider,
+        externalId: row.externalId,
+        fromFinish: before.finish,
+        toFinish: row.finish,
+      });
+    }
+    return;
+  }
+  if (!row.printingId || row.provider === USER_SUBMISSION_PROVIDER || !identityChanged) {
+    return;
+  }
+  const resolvedId = resolvePrintingLink(linkIndex, {
+    ...row,
+    cardId: resolveCardIdByName(linkIndex, row.cardName),
+  });
+  if (resolvedId !== row.printingId) {
+    await repos.candidateCards.linkCandidatePrintings([row.id], resolvedId);
+  }
 }

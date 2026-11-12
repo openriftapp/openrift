@@ -87,6 +87,7 @@ export const REASON_LABELS: Record<WorkspaceReason, string> = {
   "new-card": "New card",
   "new-printing": "New printing",
   "new-image": "New image",
+  "image-rehost-failed": "Rehost failed",
   listing: "Listing",
 };
 

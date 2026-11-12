@@ -1,5 +1,6 @@
 import type { Expression, SqlBool } from "kysely";
 import {
+  sql as raw,
   CamelCasePlugin,
   DummyDriver,
   expressionBuilder,
@@ -16,15 +17,17 @@ import { buildKeysetCursor } from "../lib/keyset-cursor.js";
 import { createRecordingDb, onlyStatement } from "../test/recording-db.js";
 import {
   currentSafeXid,
-  imageId,
   imageUrlWithOriginal,
   inTransaction,
-  joinFaceImage,
+  joinAdminFaceImage,
+  hasActiveFaceImage,
+  joinPublicFaceImage,
   keysetCursorPredicate,
   offsetPage,
   pairedCardName,
+  publicFaceImageJoinSql,
+  publicFallbackImageId,
   reorderBySortOrder,
-  requireFaceImage,
   selectCopyWithCard,
   withFace1,
 } from "./query-helpers.js";
@@ -49,13 +52,6 @@ function compileWhere(predicate: Expression<SqlBool>) {
     parameters: compiled.parameters,
   };
 }
-
-describe("imageId", () => {
-  it("returns a raw builder expression", () => {
-    const result = imageId("pi");
-    expect(result).toBeDefined();
-  });
-});
 
 describe("imageUrlWithOriginal", () => {
   it("returns a raw builder expression", () => {
@@ -82,10 +78,113 @@ describe("withFace1", () => {
   });
 });
 
-describe("joinFaceImage", () => {
-  it("left-joins the active image of the referenced face", () => {
-    const { sql, parameters } = joinFaceImage(compileDb.selectFrom("faces as f"), "f.id")
-      .select(["f.id", imageId("imgf").as("imageId")])
+describe("joinPublicFaceImage", () => {
+  it("left-joins the active face image to the rehosted-only view", () => {
+    const { sql, parameters } = joinPublicFaceImage(compileDb.selectFrom("faces as f"), "f.id")
+      .select(["f.id", "pimg.id as imageId", "pimg.credit"])
+      .compile();
+
+    expect(sql).toContain(
+      'left join "face_images" as "pfi" on "pfi"."face_id" = "f"."id" and "pfi"."is_active" = $1',
+    );
+    expect(sql).toContain(
+      'left join "public_image_files" as "pimg" on "pimg"."id" = "pfi"."image_file_id"',
+    );
+    expect(sql).not.toContain('"image_files"');
+    expect(parameters).toEqual([true]);
+  });
+
+  it("inner-joins both tables when an image is required", () => {
+    const { sql } = joinPublicFaceImage(compileDb.selectFrom("printings as p"), "p.face1Id", {
+      required: true,
+    })
+      .select(["p.id", "pimg.id as imageId"])
+      .compile();
+
+    expect(sql).toContain('inner join "face_images" as "pfi" on "pfi"."face_id" = "p"."face1_id"');
+    expect(sql).toContain('inner join "public_image_files" as "pimg"');
+    expect(sql).not.toContain("left join");
+  });
+
+  it("exposes no upstream URL column", () => {
+    const query = joinPublicFaceImage(compileDb.selectFrom("faces as f"), "f.id");
+    const upstreamSelects = [
+      // @ts-expect-error public_image_files carries only id and credit
+      () => query.select("pimg.originalUrl"),
+      // @ts-expect-error public_image_files carries only id and credit
+      () => query.select("pimg.rehostedUrl"),
+    ];
+
+    expect(upstreamSelects).toHaveLength(2);
+  });
+});
+
+describe("publicFaceImageJoinSql", () => {
+  it("joins the active image through the rehosted-only view under the given alias", () => {
+    const fragment =
+      raw`SELECT img.id FROM faces f ${publicFaceImageJoinSql("f.id", "img", "inner")}`.compile(
+        compileDb,
+      ).sql;
+
+    expect(fragment).toContain('JOIN face_images "img_fi"');
+    expect(fragment).toContain('"img_fi".face_id = "f"."id" AND "img_fi".is_active');
+    expect(fragment).toContain(
+      'JOIN public_image_files "img" ON "img".id = "img_fi".image_file_id',
+    );
+    expect(fragment).not.toContain("LEFT JOIN");
+    expect(fragment).not.toContain(" image_files");
+  });
+
+  it("left-joins by default", () => {
+    const fragment = raw`${publicFaceImageJoinSql("p.face_id", "imgf")}`.compile(compileDb).sql;
+
+    expect(fragment.match(/LEFT JOIN/gu)).toHaveLength(2);
+  });
+});
+
+describe("hasActiveFaceImage", () => {
+  it("tests for an active face image row of the referenced face", () => {
+    const { sql: text } = compileDb
+      .selectFrom("printingSidesOrdered as p")
+      .select("p.faceId")
+      .where((eb) => eb.not(hasActiveFaceImage("p.faceId")))
+      .compile();
+
+    expect(text).toContain('hafi.face_id = "p"."face_id" AND hafi.is_active');
+  });
+});
+
+describe("joinPublicFaceImage with a computed face id", () => {
+  it("joins on the expression", () => {
+    const { sql: text } = joinPublicFaceImage(
+      compileDb.selectFrom("printings as p"),
+      raw<string>`p.face2_id`,
+      { required: true },
+    )
+      .select("pimg.id")
+      .compile();
+
+    expect(text).toContain('"pfi"."face_id" = p.face2_id');
+  });
+});
+
+describe("publicFallbackImageId", () => {
+  it("reads the pinned fallback through the rehosted-only view", () => {
+    const { sql } = compileDb
+      .selectFrom("printingSidesOrdered as s")
+      .select(publicFallbackImageId("s"))
+      .compile();
+
+    expect(sql).toContain("FROM public_image_files pif");
+    expect(sql).toContain('"s"."fallback_image_file_id"');
+    expect(sql).not.toContain("image_files fbf");
+  });
+});
+
+describe("joinAdminFaceImage", () => {
+  it("left-joins the full image_files row of the active image", () => {
+    const { sql, parameters } = joinAdminFaceImage(compileDb.selectFrom("faces as f"), "f.id")
+      .select(["f.id", "imgf.originalUrl"])
       .compile();
 
     expect(sql).toContain(
@@ -96,64 +195,20 @@ describe("joinFaceImage", () => {
     );
     expect(parameters).toEqual([true]);
   });
-
-  it("keeps rows whose face has no image (left, not inner)", () => {
-    const { sql } = joinFaceImage(compileDb.selectFrom("faces as f"), "f.id")
-      .select("f.id")
-      .compile();
-
-    expect(sql).not.toContain("inner join");
-  });
-
-  it("resolves a face reference on the per-side view", () => {
-    const { sql } = joinFaceImage(compileDb.selectFrom("printingSidesOrdered as s"), "s.faceId")
-      .select("s.printingId")
-      .compile();
-
-    expect(sql).toContain('from "printing_sides_ordered" as "s"');
-    expect(sql).toContain('"pi"."face_id" = "s"."face_id"');
-  });
-});
-
-describe("requireFaceImage", () => {
-  it("inner-joins the active image off the given face reference", () => {
-    const { sql, parameters } = requireFaceImage(
-      compileDb.selectFrom("printings as p"),
-      "p.face1Id",
-    )
-      .select(["p.id", "imgf.id as imageId"])
-      .compile();
-
-    expect(sql).toContain(
-      'inner join "face_images" as "pim" on "pim"."face_id" = "p"."face1_id" and "pim"."is_active" = $1',
-    );
-    expect(sql).toContain(
-      'inner join "image_files" as "imgf" on "imgf"."id" = "pim"."image_file_id"',
-    );
-    expect(parameters).toEqual([true]);
-  });
-
-  it("drops rows whose face has no image (inner, not left)", () => {
-    const { sql } = requireFaceImage(compileDb.selectFrom("printings as p"), "p.face1Id")
-      .select("p.id")
-      .compile();
-
-    expect(sql).not.toContain("left join");
-  });
 });
 
 describe("selectCopyWithCard", () => {
-  it("joins copies through printings and cards to the front image", () => {
+  it("joins copies through printings and cards to the public front image", () => {
     const { sql } = selectCopyWithCard(compileDb)
-      .select(["cp.id", "c.name", imageId("imgf").as("imageId")])
+      .select(["cp.id", "c.name", "pimg.id as imageId"])
       .compile();
 
     expect(sql).toContain('from "copies" as "cp"');
     expect(sql).toContain('inner join "printings" as "p" on "p"."id" = "cp"."printing_id"');
     expect(sql).toContain('inner join "faces" as "pf" on "pf"."id" = "p"."face1_id"');
     expect(sql).toContain('inner join "cards" as "c" on "c"."id" = "pf"."card_id"');
-    expect(sql).toContain('left join "face_images" as "pi"');
-    expect(sql).toContain('left join "image_files" as "imgf"');
+    expect(sql).toContain('left join "face_images" as "pfi"');
+    expect(sql).toContain('left join "public_image_files" as "pimg"');
   });
 });
 

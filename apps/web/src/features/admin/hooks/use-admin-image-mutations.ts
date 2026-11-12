@@ -5,10 +5,13 @@ import type {
   UploadCandidatesBody,
   UploadCandidatesResponse,
 } from "@openrift/shared/contracts/admin/card-mutations";
+import type { QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { reportMutationError } from "@/lib/query-client";
 import { getApiUrl } from "@/lib/server-fns/api-url";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -180,6 +183,12 @@ const uploadCandidatesFn = createServerFn({ method: "POST" })
 type Scope = readonly (readonly unknown[])[];
 const defaultScope: Scope = [adminKeys.cards.all, adminKeys.workspace];
 
+function refetchScope(queryClient: QueryClient, scope: Scope) {
+  for (const key of scope) {
+    void queryClient.invalidateQueries({ queryKey: [...key] });
+  }
+}
+
 export function useDeletePrintingImage(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
     mutationFn: async (imageId: string) => {
@@ -190,18 +199,28 @@ export function useDeletePrintingImage(invalidates: Scope = defaultScope) {
 }
 
 export function useActivatePrintingImage(invalidates: Scope = defaultScope) {
+  const queryClient = useQueryClient();
   return useMutationWithInvalidation({
     mutationFn: async ({ imageId, active }: { imageId: string; active: boolean }) => {
       await activatePrintingImageFn({ data: { imageId, active } });
+    },
+    onError: (error) => {
+      refetchScope(queryClient, invalidates);
+      reportMutationError(error, queryClient);
     },
     invalidates,
   });
 }
 
 export function useRehostPrintingImage(invalidates: Scope = defaultScope) {
+  const queryClient = useQueryClient();
   return useMutationWithInvalidation({
     mutationFn: async (imageId: string) => {
       await rehostPrintingImageFn({ data: { imageId } });
+    },
+    onError: (error) => {
+      refetchScope(queryClient, invalidates);
+      reportMutationError(error, queryClient);
     },
     invalidates,
   });

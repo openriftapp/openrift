@@ -6,7 +6,17 @@ import {
   resolvePrintingLink,
 } from "./candidate-links.js";
 
-const FIREBALL_PRINTING = {
+interface TestPrinting {
+  id: string;
+  cardId?: string;
+  shortCode: string;
+  finish: string;
+  markerSlugs: string[];
+  language: string;
+  size: string;
+}
+
+const FIREBALL_PRINTING: TestPrinting = {
   id: "printing-uuid",
   shortCode: "OGN-001",
   finish: "normal",
@@ -18,7 +28,7 @@ const FIREBALL_PRINTING = {
 function makeIndex({
   cardNorms = [{ id: "card-uuid", normName: "fireball" }],
   aliases = [] as { cardId: string; normName: string }[],
-  printings = [FIREBALL_PRINTING],
+  printings = [FIREBALL_PRINTING] as TestPrinting[],
   linkOverrides = [] as {
     externalId: string;
     finish: string;
@@ -26,7 +36,15 @@ function makeIndex({
     printingId: string;
   }[],
 } = {}) {
-  return buildCandidateLinkIndex({ cardNorms, aliases, printings, linkOverrides });
+  return buildCandidateLinkIndex({
+    cardNorms,
+    aliases,
+    printings: printings.map((printing) => ({
+      ...printing,
+      cardId: printing.cardId ?? "card-uuid",
+    })),
+    linkOverrides,
+  });
 }
 
 function candidate(overrides: Record<string, unknown> = {}) {
@@ -38,7 +56,7 @@ function candidate(overrides: Record<string, unknown> = {}) {
     rarity: null as string | null,
     markerSlugs: [] as string[],
     language: "EN" as string | null,
-    cardLinked: true,
+    cardId: "card-uuid" as string | null,
     ...overrides,
   };
 }
@@ -105,6 +123,67 @@ describe("resolvePrintingLink", () => {
     expect(resolvePrintingLink(index, candidate({ shortCode: "OGN-279" }))).toBe("standard");
   });
 
+  it("does not link a sized candidate to a printing of another size", () => {
+    const index = makeIndex({
+      printings: [{ ...FIREBALL_PRINTING, id: "standard", size: "standard" }],
+    });
+    expect(resolvePrintingLink(index, candidate({ size: "oversized" }))).toBeNull();
+  });
+
+  it("links a size-less candidate to the only printing of its side", () => {
+    const index = makeIndex({
+      printings: [{ ...FIREBALL_PRINTING, id: "oversized", size: "oversized" }],
+    });
+    expect(resolvePrintingLink(index, candidate())).toBe("oversized");
+  });
+
+  it("does not link to another card's printing with the same key", () => {
+    const index = makeIndex({
+      printings: [{ ...FIREBALL_PRINTING, id: "other-card-printing", cardId: "other-uuid" }],
+    });
+    expect(resolvePrintingLink(index, candidate())).toBeNull();
+  });
+
+  it("links each card's candidate to its own side of a shared key", () => {
+    const index = makeIndex({
+      printings: [
+        { ...FIREBALL_PRINTING, id: "own" },
+        { ...FIREBALL_PRINTING, id: "other", cardId: "other-uuid" },
+      ],
+    });
+    expect(resolvePrintingLink(index, candidate())).toBe("own");
+    expect(resolvePrintingLink(index, candidate({ cardId: "other-uuid" }))).toBe("other");
+  });
+
+  it("links a pair printing from the card on either side", () => {
+    const index = makeIndex({
+      printings: [
+        { ...FIREBALL_PRINTING, id: "pair", shortCode: "UNL-T02" },
+        { ...FIREBALL_PRINTING, id: "pair", shortCode: "UNL-T05", cardId: "gold-uuid" },
+      ],
+    });
+    expect(resolvePrintingLink(index, candidate({ shortCode: "UNL-T02" }))).toBe("pair");
+    expect(
+      resolvePrintingLink(index, candidate({ shortCode: "UNL-T05", cardId: "gold-uuid" })),
+    ).toBe("pair");
+  });
+
+  it("links a pair printing listed under one side's card with the other side's code", () => {
+    const index = makeIndex({
+      printings: [
+        { ...FIREBALL_PRINTING, id: "pair", shortCode: "OGN" },
+        { ...FIREBALL_PRINTING, id: "pair", shortCode: "OGN-271a", cardId: "recruit-uuid" },
+        { ...FIREBALL_PRINTING, id: "other-pair", shortCode: "OGN" },
+        { ...FIREBALL_PRINTING, id: "other-pair", shortCode: "OGN-272", cardId: "sprite-uuid" },
+      ],
+    });
+    expect(resolvePrintingLink(index, candidate({ shortCode: "OGN-271A" }))).toBe("pair");
+    expect(resolvePrintingLink(index, candidate({ shortCode: "OGN" }))).toBeNull();
+    expect(
+      resolvePrintingLink(index, candidate({ shortCode: "OGN-271a", cardId: "other-uuid" })),
+    ).toBeNull();
+  });
+
   it("leaves a side shared by several printings unlinked", () => {
     const side = {
       shortCode: "OGN",
@@ -137,7 +216,7 @@ describe("resolvePrintingLink", () => {
   });
 
   it("does not link when the card did not resolve", () => {
-    expect(resolvePrintingLink(makeIndex(), candidate({ cardLinked: false }))).toBeNull();
+    expect(resolvePrintingLink(makeIndex(), candidate({ cardId: null }))).toBeNull();
   });
 
   it("infers a missing finish from the rarity", () => {
@@ -179,7 +258,7 @@ describe("resolvePrintingLink", () => {
         { externalId: "ext-1", finish: "", provider: "test-provider", printingId: "override-uuid" },
       ],
     });
-    expect(resolvePrintingLink(index, candidate({ finish: null, cardLinked: false }))).toBe(
+    expect(resolvePrintingLink(index, candidate({ finish: null, cardId: null }))).toBe(
       "override-uuid",
     );
   });

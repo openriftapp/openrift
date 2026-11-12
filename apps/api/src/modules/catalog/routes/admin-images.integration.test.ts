@@ -1,4 +1,3 @@
-import { sql } from "kysely";
 import { describe, expect, it } from "vitest";
 
 import type { Io } from "../../../io.js";
@@ -43,7 +42,7 @@ if (ctx) {
 }
 
 describe.skipIf(!ctx)("Admin image routes (integration)", () => {
-  const { app, db } = ctx!;
+  const { app } = ctx!;
 
   describe("POST /admin/rehost-images", () => {
     it("returns 200 with rehost result shape", async () => {
@@ -86,25 +85,6 @@ describe.skipIf(!ctx)("Admin image routes (integration)", () => {
 
       const json = await readJson(res);
       expect(typeof json.runId).toBe("string");
-    });
-  });
-
-  describe("POST /admin/clear-rehosted", () => {
-    it("returns 200 with cleared count", async () => {
-      // chk_image_files_has_url forbids rehostedUrl without originalUrl, and
-      // idx_image_files_original_url requires it unique, so derive it from the row id.
-      await db
-        .updateTable("imageFiles")
-        .set({ originalUrl: sql<string>`'https://example.com/placeholder-' || id || '.png'` })
-        .where("rehostedUrl", "is not", null)
-        .where("originalUrl", "is", null)
-        .execute();
-
-      const res = await app.fetch(adminReq("POST", "/clear-rehosted"));
-      expect(res.status).toBe(200);
-
-      const json = await readJson(res);
-      expect(typeof json.cleared).toBe("number");
     });
   });
 

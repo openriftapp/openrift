@@ -3,6 +3,7 @@ import type { CardType, Finish, Rarity } from "@openrift/shared/types/enums";
 import type {
   Expression,
   ExpressionBuilder,
+  JoinBuilder,
   Kysely,
   RawBuilder,
   Selectable,
@@ -20,32 +21,16 @@ import type {
   PrintingsTable,
 } from "../db/tables/catalog.js";
 import type { CopiesTable } from "../db/tables/collections.js";
+import type { PublicImageFilesView } from "../db/tables/views.js";
 import { parseKeysetCursor } from "../lib/keyset-cursor.js";
 
-/**
- * Resolves the image_files.id for a self-hosted image. NULL when the row
- * hasn't been rehosted yet, so callers can filter `IS NOT NULL` to exclude
- * external-only entries from public pages. The client constructs variant URLs
- * from this ID via `imageUrl()` in shared.
- */
-export function imageId(alias: string): RawBuilder<string | null> {
-  return sql<
-    string | null
-  >`CASE WHEN ${sql.ref(`${alias}.rehostedUrl`)} IS NOT NULL THEN ${sql.ref(`${alias}.id`)} ELSE NULL END`;
-}
-
-export function fallbackImageId(alias: string) {
+export function publicFallbackImageId(alias: string) {
   return sql<string | null>`(
-    SELECT fbf.id FROM image_files fbf
-    WHERE fbf.id = ${sql.ref(`${alias}.fallbackImageFileId`)}
-      AND fbf.rehosted_url IS NOT NULL
+    SELECT pif.id FROM public_image_files pif
+    WHERE pif.id = ${sql.ref(`${alias}.fallbackImageFileId`)}
   )`.as("fallbackImageId");
 }
 
-/**
- * Falls back to the original provider URL. Use this only in admin contexts
- * where showing external images is acceptable.
- */
 export function imageUrlWithOriginal(alias: string): RawBuilder<string | null> {
   return sql<
     string | null
@@ -229,13 +214,67 @@ export function withFace1<
   ) as unknown as SelectQueryBuilder<DB & Record<FaceAlias, FacesTable>, TB | FaceAlias, O>;
 }
 
+interface PublicFaceImageTables {
+  pfi: FaceImagesTable;
+  pimg: PublicImageFilesView;
+}
+
+/** Joins aliases `pfi` and `pimg`; the query must not already use them. */
+export function joinPublicFaceImage<DB extends Database, TB extends keyof DB, O>(
+  qb: SelectQueryBuilder<DB, TB, O>,
+  faceIdRef: StringReference<DB, TB> | Expression<string>,
+  options: { required?: boolean } = {},
+): SelectQueryBuilder<DB & PublicFaceImageTables, TB | "pfi" | "pimg", O> {
+  const source = qb as unknown as SelectQueryBuilder<
+    Database & { src: { faceId: string } },
+    "src",
+    O
+  >;
+  type Joined = Database & { src: { faceId: string }; pfi: FaceImagesTable };
+  const onActive = (join: JoinBuilder<Joined, "src" | "pfi">) =>
+    (typeof faceIdRef === "string"
+      ? join.onRef("pfi.faceId", "=", faceIdRef as never)
+      : join.on(sql<SqlBool>`${sql.ref("pfi.faceId")} = ${faceIdRef}`)
+    ).on("pfi.isActive", "=", true);
+  const joined = options.required
+    ? source
+        .innerJoin("faceImages as pfi", onActive)
+        .innerJoin("publicImageFiles as pimg", "pimg.id", "pfi.imageFileId")
+    : source
+        .leftJoin("faceImages as pfi", onActive)
+        .leftJoin("publicImageFiles as pimg", "pimg.id", "pfi.imageFileId");
+  return joined as unknown as SelectQueryBuilder<
+    DB & PublicFaceImageTables,
+    TB | "pfi" | "pimg",
+    O
+  >;
+}
+
+export function publicFaceImageJoinSql(
+  faceRef: string,
+  alias: string,
+  kind: "left" | "inner" = "left",
+): RawBuilder<unknown> {
+  const join = sql.raw(kind === "left" ? "LEFT JOIN" : "JOIN");
+  const faceImage = sql.id(`${alias}_fi`);
+  const file = sql.id(alias);
+  return sql`${join} face_images ${faceImage}
+    ON ${faceImage}.face_id = ${sql.ref(faceRef)} AND ${faceImage}.is_active
+    ${join} public_image_files ${file} ON ${file}.id = ${faceImage}.image_file_id`;
+}
+
+export function hasActiveFaceImage(faceRef: string): RawBuilder<SqlBool> {
+  return sql<SqlBool>`EXISTS (
+    SELECT 1 FROM face_images hafi WHERE hafi.face_id = ${sql.ref(faceRef)} AND hafi.is_active
+  )`;
+}
+
 interface FaceImageTables {
   pi: FaceImagesTable;
   imgf: ImageFilesTable;
 }
 
-/** Left-joins the face's active image as `pi` and `imgf`; the query must not already use those aliases. */
-export function joinFaceImage<DB extends Database, TB extends keyof DB, O>(
+export function joinAdminFaceImage<DB extends Database, TB extends keyof DB, O>(
   qb: SelectQueryBuilder<DB, TB, O>,
   faceIdRef: StringReference<DB, TB>,
 ): SelectQueryBuilder<DB & FaceImageTables, TB | "pi" | "imgf", O> {
@@ -246,27 +285,6 @@ export function joinFaceImage<DB extends Database, TB extends keyof DB, O>(
     .leftJoin("imageFiles as imgf", "imgf.id", "pi.imageFileId") as unknown as SelectQueryBuilder<
     DB & FaceImageTables,
     TB | "pi" | "imgf",
-    O
-  >;
-}
-
-interface RequiredFaceImageTables {
-  pim: FaceImagesTable;
-  imgf: ImageFilesTable;
-}
-
-/** Inner variant of {@link joinFaceImage}, exposing `pim` and `imgf`; never combine the two. */
-export function requireFaceImage<DB extends Database, TB extends keyof DB, O>(
-  qb: SelectQueryBuilder<DB, TB, O>,
-  faceIdRef: StringReference<DB, TB>,
-): SelectQueryBuilder<DB & RequiredFaceImageTables, TB | "pim" | "imgf", O> {
-  return (qb as unknown as SelectQueryBuilder<Database & { src: { faceId: string } }, "src", O>)
-    .innerJoin("faceImages as pim", (join) =>
-      join.onRef("pim.faceId", "=", faceIdRef as never).on("pim.isActive", "=", true),
-    )
-    .innerJoin("imageFiles as imgf", "imgf.id", "pim.imageFileId") as unknown as SelectQueryBuilder<
-    DB & RequiredFaceImageTables,
-    TB | "pim" | "imgf",
     O
   >;
 }
@@ -306,7 +324,7 @@ export function pairedCardName(
 }
 
 export function selectCopyWithCard(db: Kysely<Database>) {
-  return joinFaceImage(
+  return joinPublicFaceImage(
     withFace1(db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"))
       .innerJoin("cards as c", "c.id", "pf.cardId")
       .leftJoin("mvCardAggregates as mca", "mca.cardId", "c.id"),
@@ -331,7 +349,7 @@ export async function printingDetailsByIds(
   if (ids.length === 0) {
     return new Map();
   }
-  const rows = await joinFaceImage(
+  const rows = await joinPublicFaceImage(
     withFace1(db.selectFrom("printings as p"))
       .innerJoin("cards as card", "card.id", "pf.cardId")
       .leftJoin("mvCardAggregates as mca", "mca.cardId", "card.id"),
@@ -348,7 +366,7 @@ export async function printingDetailsByIds(
       "pf.finish",
       "pf.shortCode",
       "pf.language",
-      imageId("imgf").as("imageId"),
+      "pimg.id as imageId",
     ])
     .where("p.id", "in", ids)
     .execute();
@@ -526,7 +544,7 @@ export async function printingSideDetailsByIds(
   if (ids.length === 0) {
     return new Map();
   }
-  const rows = await joinFaceImage(
+  const rows = await joinPublicFaceImage(
     db
       .selectFrom("printingSidesOrdered as s")
       .innerJoin("cards as card", "card.id", "s.cardId")
@@ -544,7 +562,7 @@ export async function printingSideDetailsByIds(
       "s.finish",
       "s.shortCode",
       "s.language",
-      imageId("imgf").as("imageId"),
+      "pimg.id as imageId",
     ])
     .where("s.printingId", "in", ids)
     .orderBy("s.position")

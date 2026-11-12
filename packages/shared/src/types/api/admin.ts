@@ -38,14 +38,12 @@ import type {
   brokenImageSchema,
   brokenImagesResponseSchema,
   cleanupResultSchema,
-  clearRehostedResponseSchema,
   lowResImageEntrySchema,
   lowResImagesResponseSchema,
   missingImageCardSchema,
   rehostResultSchema,
   rehostStatusSchema,
-  unrehostImagesInputSchema,
-  unrehostResultSchema,
+  refetchResultSchema,
 } from "../../contracts/admin/images.js";
 import type {
   priceRefreshResponseSchema,
@@ -166,9 +164,7 @@ export type IgnoredProductResponse = z.infer<typeof ignoredProductSchema>;
 
 export type RehostImageResponse = z.infer<typeof rehostResultSchema>;
 
-export type UnrehostImagesRequest = z.input<typeof unrehostImagesInputSchema>;
-
-export type UnrehostImagesResponse = z.infer<typeof unrehostResultSchema>;
+export type RefetchImagesResponse = z.infer<typeof refetchResultSchema>;
 
 /** Progress is tracked on the `job_runs` row's `result` JSONB; clients poll that row. */
 export type RegenerateImagesKickoffResponse = z.infer<typeof jobStartedResponseSchema>;
@@ -178,8 +174,6 @@ export type RegenerateImagesKickoffResponse = z.infer<typeof jobStartedResponseS
  * even if images were added or removed in the meantime.
  */
 export type RegenerateImagesCheckpoint = z.infer<typeof regenerateImagesCheckpointSchema>;
-
-export type ClearRehostedResponse = z.infer<typeof clearRehostedResponseSchema>;
 
 export type CleanupOrphanedResponse = z.infer<typeof cleanupResultSchema>;
 

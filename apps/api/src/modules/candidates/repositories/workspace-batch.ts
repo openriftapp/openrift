@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { isNewCardName, liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import {
   acceptableCandidatePrinting,
   notHiddenSource,
@@ -29,6 +30,7 @@ export interface PrintingProbeRow {
   cardId: string;
   shortCode: string;
   language: string;
+  size: string;
   distributionChannelSlugs: string[];
 }
 
@@ -42,9 +44,7 @@ export function workspaceBatchRepo(db: Kysely<Database>) {
         select cc.id, cc.provider, cc.norm_name as "normName", cc.name, cc.types
         from candidate_cards cc
         where cc.provider in (${sql.join(providers)})
-          and cc.norm_name <> ''
-          and not exists (select 1 from cards c where c.norm_name = cc.norm_name)
-          and not exists (select 1 from card_name_aliases a where a.norm_name = cc.norm_name)
+          and ${isNewCardName(sql.ref("cc.norm_name"))}
           and ${notIgnoredCard("cc")}
           and ${notHiddenSource("cc")}
         order by cc.norm_name, cc.provider
@@ -65,13 +65,7 @@ export function workspaceBatchRepo(db: Kysely<Database>) {
           live_card.slug as "cardSlug"
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
-        join lateral (
-          select c.id, c.slug from cards c
-          where c.norm_name = cc.norm_name
-            or c.id in (select a.card_id from card_name_aliases a where a.norm_name = cc.norm_name)
-          order by c.norm_name = cc.norm_name desc
-          limit 1
-        ) live_card on true
+        join lateral (${liveCardForNorm(sql.ref("cc.norm_name"))}) live_card on true
         where cc.provider in (${sql.join(providers)})
           and ${acceptableCandidatePrinting("cp", "cc")}
         order by live_card.slug, cp.short_code, cp.id
@@ -89,6 +83,7 @@ export function workspaceBatchRepo(db: Kysely<Database>) {
           f.card_id as "cardId",
           f.short_code as "shortCode",
           f.language,
+          pr.size,
           coalesce((
             select array_agg(dc.slug order by dc.slug)
             from printing_distribution_channels pdc

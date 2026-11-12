@@ -4,6 +4,7 @@ export const WORKSPACE_REASONS = [
   "new-card",
   "new-printing",
   "new-image",
+  "image-rehost-failed",
   "listing",
 ] as const;
 

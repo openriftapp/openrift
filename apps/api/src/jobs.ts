@@ -17,6 +17,11 @@ import {
   isFingerprintSweepNoop,
   sweepImageFingerprints,
 } from "./modules/catalog/services/images/fingerprint-sweep.js";
+import {
+  isRehostRetryNoop,
+  REHOST_RETRY_KIND,
+  retryDueRehosts,
+} from "./modules/catalog/services/images/jobs.js";
 import { COPY_DELETION_RETENTION_MS } from "./modules/collections/lib/copy-deletion-retention.js";
 import {
   extractDigestWatermark,
@@ -237,6 +242,15 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       suggestedSchedule: "*/5 * * * *",
       execute: (_runId, jobLog) => sweepImageFingerprints(defaultIo, repos, jobLog),
       classifyNoop: isFingerprintSweepNoop,
+    }),
+    defineJob(log, {
+      kind: REHOST_RETRY_KIND,
+      title: "Image rehost retry",
+      description:
+        "Copies images that are waiting to go live to our server, retrying failed copies with a growing delay.",
+      suggestedSchedule: "*/15 * * * *",
+      execute: () => retryDueRehosts(defaultIo, repos.printingImages),
+      classifyNoop: isRehostRetryNoop,
     }),
     defineJob(log, {
       kind: "candidates.check_matching",

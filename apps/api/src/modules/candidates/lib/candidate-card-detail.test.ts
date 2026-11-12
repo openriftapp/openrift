@@ -862,6 +862,10 @@ describe("buildCardDetail", () => {
       needsTrim: false,
       quad: null,
       isActive: true,
+      activateWhenRehosted: false,
+      rehostAttempts: null,
+      rehostError: null,
+      rehostAttemptedAt: null,
       fingerprint: fingerprint(seed),
     });
     const repo = createMockRepo({
@@ -891,6 +895,50 @@ describe("buildCardDetail", () => {
     const result = await buildCardDetail(repo, mpRepo(), "x");
 
     expect(result.candidatePrintings[0]?.imageMatch).toBe("same");
+  });
+
+  it("reports a pending image's failed rehost and drops the fingerprint", async () => {
+    const repo = createMockRepo({
+      cardForDetailBySlug: vi.fn().mockResolvedValue(matchedCard),
+      cardNameAliases: vi.fn().mockResolvedValue([{ normName: "x" }]),
+      printingsForDetail: vi
+        .fn()
+        .mockResolvedValue([{ id: "p1", side: 1, setId: "s1", markerSlugs: [], canonicalRank: 1 }]),
+      printingImagesForDetail: vi.fn().mockResolvedValue([
+        {
+          id: "img-1",
+          printingId: "p1",
+          imageFileId: "file-1",
+          face: "front",
+          originalUrl: "https://example.com/card.png",
+          rehostedUrl: null,
+          rotation: 0,
+          needsTrim: false,
+          quad: null,
+          isActive: false,
+          activateWhenRehosted: true,
+          rehostAttempts: 2,
+          rehostError: "HTTP 404",
+          rehostAttemptedAt: new Date("2026-11-12T10:00:00.000Z"),
+          fingerprint: "fp",
+        },
+      ]),
+    });
+
+    const result = await buildCardDetail(repo, mpRepo(), "x");
+
+    expect(result.printingImages).toEqual([
+      expect.objectContaining({
+        id: "img-1",
+        activateWhenRehosted: true,
+        rehostFailure: {
+          attempts: 2,
+          error: "HTTP 404",
+          lastAttemptAt: "2026-11-12T10:00:00.000Z",
+        },
+      }),
+    ]);
+    expect(result.printingImages[0]).not.toHaveProperty("fingerprint");
   });
 
   it("resolves finish from rarity when finish is null", async () => {

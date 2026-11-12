@@ -6,8 +6,7 @@ import type { FacesTable } from "../../../db/tables/catalog.js";
 import type { CollectionEventsTable } from "../../../db/tables/collections.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
 import {
-  imageId,
-  joinFaceImage,
+  joinPublicFaceImage,
   keysetCursorPredicate,
   pairedCardNameSql,
   withFace1,
@@ -36,7 +35,7 @@ type CollectionEventRow = Pick<
 export function collectionEventsRepo(db: Kysely<Database>) {
   return {
     listForUser(userId: string, limit: number, cursor?: string): Promise<CollectionEventRow[]> {
-      let query = joinFaceImage(
+      let query = joinPublicFaceImage(
         withFace1(
           db
             .selectFrom("collectionEvents as ce")
@@ -56,7 +55,7 @@ export function collectionEventsRepo(db: Kysely<Database>) {
           "ce.toCollectionId",
           "ce.toCollectionName",
           "ce.createdAt",
-          imageId("imgf").as("imageId"),
+          "pimg.id as imageId",
           "pf.shortCode",
           "pf.rarity",
           pairedCardNameSql("card.name").as("cardName"),

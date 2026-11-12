@@ -6,6 +6,7 @@ import { sql } from "kysely";
 
 import { cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
+import { candidateSideOrder } from "../../../repositories/candidate-card-sql.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 
 function printingFaceId(printingId: string, face: CardFace): RawBuilder<string | null> {
@@ -41,14 +42,37 @@ export function printingImagesRepo(db: Kysely<Database>) {
     return row.faceId;
   }
 
-  async function deactivateFace(conn: Kysely<Database>, faceId: string): Promise<void> {
+  async function lockFace(conn: Kysely<Database>, faceId: string): Promise<void> {
     await conn.selectFrom("faces").select("id").where("id", "=", faceId).forUpdate().execute();
+  }
+
+  async function clearPendingOnFace(conn: Kysely<Database>, faceId: string): Promise<void> {
+    await conn
+      .updateTable("faceImages")
+      .set({ activateWhenRehosted: false })
+      .where("faceId", "=", faceId)
+      .where("activateWhenRehosted", "=", true)
+      .execute();
+  }
+
+  async function deactivateFace(conn: Kysely<Database>, faceId: string): Promise<void> {
+    await lockFace(conn, faceId);
+    await clearPendingOnFace(conn, faceId);
     await conn
       .updateTable("faceImages")
       .set({ isActive: false })
       .where("faceId", "=", faceId)
       .where("isActive", "=", true)
       .execute();
+  }
+
+  async function requireImageFaceId(imageId: string): Promise<string> {
+    const row = await db
+      .selectFrom("faceImages")
+      .select("faceId")
+      .where("id", "=", imageId)
+      .executeTakeFirstOrThrow();
+    return row.faceId;
   }
 
   /** `ON CONFLICT`'s `where` must match `idx_image_files_original_url`'s partial predicate. */
@@ -103,7 +127,14 @@ export function printingImagesRepo(db: Kysely<Database>) {
     getForActivate(imageId: string) {
       return db
         .selectFrom("faceImages as fi")
-        .select(["fi.id", IMAGE_PRINTING_ID.as("printingId"), IMAGE_FACE.as("face")])
+        .innerJoin("imageFiles as imgf", "imgf.id", "fi.imageFileId")
+        .select([
+          "fi.id",
+          "fi.imageFileId",
+          IMAGE_PRINTING_ID.as("printingId"),
+          IMAGE_FACE.as("face"),
+          "imgf.rehostedUrl",
+        ])
         .where("fi.id", "=", imageId)
         .executeTakeFirst();
     },
@@ -117,6 +148,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
           IMAGE_PRINTING_ID.as("printingId"),
           "fi.imageFileId",
           "imgf.originalUrl",
+          "imgf.rehostedUrl",
           "imgf.rotation",
           "imgf.needsTrim",
           "imgf.quad",
@@ -166,7 +198,18 @@ export function printingImagesRepo(db: Kysely<Database>) {
     },
 
     async deleteById(imageId: string): Promise<void> {
-      await db.deleteFrom("faceImages").where("id", "=", imageId).execute();
+      await inTransaction(db, async (trx) => {
+        const row = await trx
+          .selectFrom("faceImages")
+          .select("faceId")
+          .where("id", "=", imageId)
+          .executeTakeFirst();
+        if (!row) {
+          return;
+        }
+        await lockFace(trx, row.faceId);
+        await trx.deleteFrom("faceImages").where("id", "=", imageId).execute();
+      });
     },
 
     async getImageFileId(imageId: string): Promise<string | undefined> {
@@ -266,6 +309,12 @@ export function printingImagesRepo(db: Kysely<Database>) {
               AND other.is_active
               AND other.id <> face_images.id
           )`,
+          activateWhenRehosted: sql<boolean>`activate_when_rehosted AND NOT EXISTS (
+            SELECT 1 FROM face_images other
+            WHERE other.face_id = ${targetFaceId}
+              AND other.activate_when_rehosted
+              AND other.id <> face_images.id
+          )`,
         })
         .where("id", "=", imageId)
         .execute();
@@ -284,13 +333,14 @@ export function printingImagesRepo(db: Kysely<Database>) {
         JOIN candidate_cards cc ON cc.id = cp.candidate_card_id
         JOIN printing_sides_ordered s ON s.printing_id = cp.printing_id
         WHERE cp.id = ${candidatePrintingId}
-        ORDER BY
-          EXISTS (
-            SELECT 1 FROM card_name_aliases a
-            WHERE a.card_id = s.card_id AND a.norm_name = cc.norm_name
-          ) DESC,
-          upper(s.short_code) = upper(cp.short_code) DESC,
-          s.position
+        ORDER BY ${candidateSideOrder(
+          {
+            cardId: sql.ref("s.card_id"),
+            shortCode: sql.ref("s.short_code"),
+            isFirst: sql`s.position = 1`,
+          },
+          { normName: sql.ref("cc.norm_name"), shortCode: sql.ref("cp.short_code") },
+        )}
         LIMIT 1
       `.execute(db);
       return rows[0]?.face ?? "front";
@@ -310,16 +360,169 @@ export function printingImagesRepo(db: Kysely<Database>) {
       const faceId = await requireFaceId(printingId, face);
 
       return inTransaction(db, async (trx) => {
-        if (mode === "main") {
+        const file = await trx
+          .selectFrom("imageFiles")
+          .select("rehostedUrl")
+          .where("id", "=", imageFileId)
+          .forShare()
+          .executeTakeFirstOrThrow();
+        const activateNow = mode === "main" && file.rehostedUrl !== null;
+        const pending = mode === "main" && file.rehostedUrl === null;
+        if (activateNow) {
           await deactivateFace(trx, faceId);
+        } else if (pending) {
+          await lockFace(trx, faceId);
+          await clearPendingOnFace(trx, faceId);
         }
         const row = await trx
           .insertInto("faceImages")
-          .values({ faceId, imageFileId, isActive: mode === "main" })
+          .values({ faceId, imageFileId, isActive: activateNow, activateWhenRehosted: pending })
           .returning("id")
           .executeTakeFirstOrThrow();
         return row.id;
       });
+    },
+
+    /** Call inside a transaction. */
+    async markPending(imageId: string): Promise<void> {
+      const faceId = await requireImageFaceId(imageId);
+      await lockFace(db, faceId);
+      await clearPendingOnFace(db, faceId);
+      await db
+        .updateTable("faceImages")
+        .set({ activateWhenRehosted: true })
+        .where("id", "=", imageId)
+        .where("isActive", "=", false)
+        .execute();
+    },
+
+    async clearPending(imageId: string): Promise<void> {
+      await db
+        .updateTable("faceImages")
+        .set({ activateWhenRehosted: false })
+        .where("id", "=", imageId)
+        .execute();
+    },
+
+    async promotePending(imageFileId: string): Promise<void> {
+      const faces = await db
+        .selectFrom("faceImages")
+        .select("faceId")
+        .where("imageFileId", "=", imageFileId)
+        .where("activateWhenRehosted", "=", true)
+        .distinct()
+        .orderBy("faceId")
+        .execute();
+      for (const { faceId } of faces) {
+        await lockFace(db, faceId);
+        const claimed = await db
+          .updateTable("faceImages")
+          .set({ activateWhenRehosted: false })
+          .where("faceId", "=", faceId)
+          .where("imageFileId", "=", imageFileId)
+          .where("activateWhenRehosted", "=", true)
+          .returning("id")
+          .executeTakeFirst();
+        if (!claimed) {
+          continue;
+        }
+        await db
+          .updateTable("faceImages")
+          .set({ isActive: false })
+          .where("faceId", "=", faceId)
+          .where("isActive", "=", true)
+          .execute();
+        await db
+          .updateTable("faceImages")
+          .set({ isActive: true })
+          .where("id", "=", claimed.id)
+          .execute();
+      }
+    },
+
+    completeRehost(imageFileId: string, rehostedUrl: string): Promise<boolean> {
+      return inTransaction(db, async (trx) => {
+        const updated = await trx
+          .updateTable("imageFiles")
+          .set({ rehostedUrl, fingerprint: null })
+          .where("id", "=", imageFileId)
+          .executeTakeFirst();
+        if (updated.numUpdatedRows === 0n) {
+          return false;
+        }
+        const repo = printingImagesRepo(trx);
+        await repo.promotePending(imageFileId);
+        await repo.clearRehostFailure(imageFileId);
+        return true;
+      });
+    },
+
+    async promoteRehosted(imageFileId: string): Promise<void> {
+      await inTransaction(db, async (trx) => {
+        const repo = printingImagesRepo(trx);
+        await repo.promotePending(imageFileId);
+        await repo.clearRehostFailure(imageFileId);
+      });
+    },
+
+    async clearPendingForFile(imageFileId: string): Promise<void> {
+      await db
+        .updateTable("faceImages")
+        .set({ activateWhenRehosted: false })
+        .where("imageFileId", "=", imageFileId)
+        .where("activateWhenRehosted", "=", true)
+        .execute();
+    },
+
+    async isPinnedFallbackFile(imageFileId: string): Promise<boolean> {
+      const row = await db
+        .selectFrom("faces")
+        .select("id")
+        .where("fallbackImageFileId", "=", imageFileId)
+        .limit(1)
+        .executeTakeFirst();
+      return row !== undefined;
+    },
+
+    async recordRehostFailure(imageFileId: string, error: string): Promise<void> {
+      await db
+        .insertInto("imageRehostFailures")
+        .values({ imageFileId, attempts: 1, lastError: error })
+        .onConflict((oc) =>
+          oc.column("imageFileId").doUpdateSet({
+            attempts: sql<number>`image_rehost_failures.attempts + 1`,
+            lastError: error,
+            lastAttemptAt: sql<Date>`now()`,
+          }),
+        )
+        .execute();
+    },
+
+    async countRehostFailures(): Promise<{ retrying: number; manual: number }> {
+      const { rows } = await sql<{ retrying: number; manual: number }>`
+        WITH classified AS (
+          SELECT
+            f.rehosted_url IS NULL
+              AND (
+                EXISTS (
+                  SELECT 1 FROM face_images fi
+                  WHERE fi.image_file_id = f.id AND fi.activate_when_rehosted
+                )
+                OR EXISTS (SELECT 1 FROM faces fc WHERE fc.fallback_image_file_id = f.id)
+              ) AS retrying
+          FROM image_rehost_failures rf
+          JOIN image_files f ON f.id = rf.image_file_id
+        )
+        SELECT
+          count(*) FILTER (WHERE retrying)::int AS retrying,
+          count(*) FILTER (WHERE NOT retrying)::int AS manual
+        FROM classified
+      `.execute(db);
+      return rows[0] ?? { retrying: 0, manual: 0 };
+    },
+
+    async clearRehostFailure(imageFileId: string): Promise<void> {
+      await db.deleteFrom("imageRehostFailures").where("imageFileId", "=", imageFileId).execute();
     },
 
     async insertUploadedImage(values: {
@@ -359,14 +562,51 @@ export function printingImagesRepo(db: Kysely<Database>) {
       });
     },
 
-    async clearAllRehostedUrls(): Promise<number> {
-      const result = await db
-        .updateTable("imageFiles")
-        .set({ rehostedUrl: null })
-        .where("rehostedUrl", "is not", null)
-        .where("originalUrl", "is not", null)
-        .executeTakeFirstOrThrow();
-      return Number(result.numUpdatedRows);
+    async isActiveImageFile(imageFileId: string): Promise<boolean> {
+      const row = await db
+        .selectFrom("faceImages")
+        .select("id")
+        .where("imageFileId", "=", imageFileId)
+        .where("isActive", "=", true)
+        .limit(1)
+        .executeTakeFirst();
+      return row !== undefined;
+    },
+
+    async listDueRehosts(limit: number): Promise<string[]> {
+      const { rows } = await sql<{ id: string }>`
+        SELECT f.id
+        FROM image_files f
+        LEFT JOIN image_rehost_failures rf ON rf.image_file_id = f.id
+        WHERE (
+            f.rehosted_url IS NOT NULL
+            AND EXISTS (
+              SELECT 1 FROM face_images fi
+              WHERE fi.image_file_id = f.id AND fi.activate_when_rehosted
+            )
+          )
+          OR (
+            f.rehosted_url IS NULL
+            AND f.original_url IS NOT NULL
+            AND (
+              EXISTS (
+                SELECT 1 FROM face_images fi
+                WHERE fi.image_file_id = f.id AND fi.activate_when_rehosted
+              )
+              OR EXISTS (SELECT 1 FROM faces fc WHERE fc.fallback_image_file_id = f.id)
+            )
+            AND (
+              rf.image_file_id IS NULL
+              OR date_trunc('milliseconds', rf.last_attempt_at) < now() - least(
+                interval '1 hour' * power(2, least(rf.attempts - 1, 10)),
+                interval '1 day'
+              )
+            )
+          )
+        ORDER BY rf.last_attempt_at ASC NULLS FIRST, f.id
+        LIMIT ${limit}
+      `.execute(db);
+      return rows.map((row) => row.id);
     },
 
     listUnrehosted(limit: number) {
@@ -510,6 +750,28 @@ export function printingImagesRepo(db: Kysely<Database>) {
       return row?.backShortCode?.toUpperCase() === code && row.frontShortCode.toUpperCase() !== code
         ? "back"
         : "front";
+    },
+
+    async linkedImageAttached(candidateCardId: string): Promise<boolean> {
+      const row = await db
+        .selectFrom("candidatePrintings as cp")
+        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("faceImages as fi", (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb("fi.faceId", "=", eb.ref("p.face1Id")),
+              eb("fi.faceId", "=", eb.ref("p.face2Id")),
+            ]),
+          ),
+        )
+        .innerJoin("imageFiles as imgf", "imgf.id", "fi.imageFileId")
+        .select("cp.id")
+        .where("cp.candidateCardId", "=", candidateCardId)
+        .whereRef("imgf.originalUrl", "=", "cp.imageUrl")
+        .whereRef("fi.createdAt", ">=", "cp.createdAt")
+        .limit(1)
+        .executeTakeFirst();
+      return row !== undefined;
     },
 
     getCandidatePrintingById(id: string) {

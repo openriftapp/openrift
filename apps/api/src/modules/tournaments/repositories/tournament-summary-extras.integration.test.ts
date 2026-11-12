@@ -6,6 +6,7 @@ import {
   createDbContext,
   deletePrintingsById,
   insertCard,
+  insertImageFile,
   insertPrinting,
 } from "../../../test/integration-context.js";
 
@@ -129,14 +130,7 @@ describe.skipIf(!ctx)("tournament summary extras (integration)", () => {
       language: "EN",
     });
     printingIds.push(printing.id);
-    const imageFile = await db
-      .insertInto("imageFiles")
-      .values({
-        rehostedUrl: `https://images.example.com/extras-itest-${counter}.webp`,
-        originalUrl: null,
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const imageFile = await insertImageFile(db);
     imageFileIds.push(imageFile.id);
     await db
       .insertInto("faceImages")

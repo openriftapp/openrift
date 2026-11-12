@@ -11,7 +11,12 @@ import type {
   CardSubmissionsTable,
 } from "../../../db/tables/candidates.js";
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
-import { joinFaceImage, listOwnedByUser } from "../../../repositories/query-helpers.js";
+import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
+import {
+  hasActiveFaceImage,
+  joinPublicFaceImage,
+  listOwnedByUser,
+} from "../../../repositories/query-helpers.js";
 import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
 
 export type CardSubmissionRow = Selectable<CardSubmissionsTable>;
@@ -302,26 +307,11 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    /**
-     * Checked live at review time, not the slug stored at submission (a new-card submission may now have a card).
-     * Same two-step lookup as `resolveCardIdByName` in candidate-links.ts: `cards.normName` first, then `card_name_aliases`.
-     */
     async liveCardByNormName(normName: string): Promise<{ id: string; slug: string } | null> {
-      const direct = await db
-        .selectFrom("cards")
-        .select(["id", "slug"])
-        .where("normName", "=", normName)
-        .executeTakeFirst();
-      if (direct) {
-        return direct;
-      }
-      const aliased = await db
-        .selectFrom("cardNameAliases as a")
-        .innerJoin("cards as c", "c.id", "a.cardId")
-        .select(["c.id", "c.slug"])
-        .where("a.normName", "=", normName)
-        .executeTakeFirst();
-      return aliased ?? null;
+      const result = await sql<{ id: string; slug: string }>`
+        select live_card.id, live_card.slug from (${liveCardForNorm(sql.val(normName))}) live_card
+      `.execute(db);
+      return result.rows[0] ?? null;
     },
 
     /**
@@ -362,7 +352,10 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
       const { shortCodes, printingIds } = lookup;
       if (shortCodes.length > 0 || printingIds.length > 0) {
         const upperCodes = shortCodes.map((code) => code.toUpperCase());
-        const rows = await joinFaceImage(db.selectFrom("printingSidesOrdered as p"), "p.faceId")
+        const rows = await joinPublicFaceImage(
+          db.selectFrom("printingSidesOrdered as p"),
+          "p.faceId",
+        )
           .select([
             "p.printingId",
             "p.shortCode",
@@ -379,13 +372,15 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
             "p.printedEffectText",
             "p.printedName",
             "p.language",
-            "imgf.rehostedUrl",
+            "pimg.id as imageId",
           ])
           .where((eb) =>
             eb.or([
               // Compared case-insensitively on both sides: source casing drifts
               // ("VEN-sp3" vs "VEN-SP3") and the link key already uppercases.
-              sql<boolean>`upper(p.short_code) = ANY(${upperCodes})`,
+              cardId === null
+                ? sql<boolean>`upper(p.short_code) = ANY(${upperCodes})`
+                : sql<boolean>`(upper(p.short_code) = ANY(${upperCodes}) and p.card_id = ${cardId})`,
               ...(printingIds.length > 0 ? [eb("p.printingId", "in", printingIds)] : []),
             ]),
           )
@@ -420,7 +415,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
             language: row.language,
             // "Has artwork the site can actually show", which is the thing an
             // image suggestion is offering to fix.
-            hasImage: row.rehostedUrl !== null,
+            hasImage: row.imageId !== null,
           };
           printings.set(key, side);
           if (requestedIds.has(row.printingId)) {
@@ -455,17 +450,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
           eb.fn.countAll<string>().as("copies"),
         ])
         .where("col.userId", "=", userId)
-        .where((eb) =>
-          eb.not(
-            eb.exists(
-              eb
-                .selectFrom("faceImages as pi")
-                .select("pi.id")
-                .whereRef("pi.faceId", "=", "p.faceId")
-                .where("pi.isActive", "=", true),
-            ),
-          ),
-        )
+        .where((eb) => eb.not(hasActiveFaceImage("p.faceId")))
         .where((eb) =>
           eb.not(
             eb.exists(
@@ -524,29 +509,6 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .where("imageUrl", "is not", null)
         .execute();
       return rows.map((row) => row.imageUrl as string);
-    },
-
-    /** Counts only face images created after the candidate, so a URL that was already live is not a match. */
-    async linkedImageAttached(candidateCardId: string): Promise<boolean> {
-      const row = await db
-        .selectFrom("candidatePrintings as cp")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
-        .innerJoin("faceImages as fi", (join) =>
-          join.on((eb) =>
-            eb.or([
-              eb("fi.faceId", "=", eb.ref("p.face1Id")),
-              eb("fi.faceId", "=", eb.ref("p.face2Id")),
-            ]),
-          ),
-        )
-        .innerJoin("imageFiles as imgf", "imgf.id", "fi.imageFileId")
-        .select("cp.id")
-        .where("cp.candidateCardId", "=", candidateCardId)
-        .whereRef("imgf.originalUrl", "=", "cp.imageUrl")
-        .whereRef("fi.createdAt", ">=", "cp.createdAt")
-        .limit(1)
-        .executeTakeFirst();
-      return row !== undefined;
     },
 
     async candidateImageUrlsInUse(imageUrls: string[]): Promise<Set<string>> {

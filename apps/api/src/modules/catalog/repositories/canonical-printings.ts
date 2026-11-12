@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, joinFaceImage } from "../../../repositories/query-helpers.js";
+import { joinPublicFaceImage } from "../../../repositories/query-helpers.js";
 
 interface DeckRowForShortCode {
   cardId: string;
@@ -132,8 +132,8 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
     },
 
     async faceImageId(faceId: string): Promise<string | null> {
-      const row = await joinFaceImage(db.selectFrom("faces as f"), "f.id")
-        .select(imageId("imgf").as("imageId"))
+      const row = await joinPublicFaceImage(db.selectFrom("faces as f"), "f.id")
+        .select("pimg.id as imageId")
         .where("f.id", "=", faceId)
         .executeTakeFirst();
       return row?.imageId ?? null;
@@ -157,11 +157,11 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
       ];
       const preferredMap = new Map<string, PrintingMetaRow>();
       if (preferredIds.length > 0) {
-        const preferredRows = await joinFaceImage(
+        const preferredRows = await joinPublicFaceImage(
           db.selectFrom("printingSidesOrdered as p"),
           "p.faceId",
         )
-          .select(["p.printingId", "p.cardId", "p.shortCode", imageId("imgf").as("imageId")])
+          .select(["p.printingId", "p.cardId", "p.shortCode", "pimg.id as imageId"])
           .where("p.printingId", "in", preferredIds)
           .execute();
         for (const row of preferredRows) {
@@ -185,11 +185,11 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
         // Ordered by the view's precomputed canonicalRank instead of
         // appendCanonicalOrder so the left-joined image tables don't break
         // appendCanonicalOrder's generic constraint on the query shape.
-        const canonicalRows = await joinFaceImage(
+        const canonicalRows = await joinPublicFaceImage(
           db.selectFrom("printingSidesOrdered as p"),
           "p.faceId",
         )
-          .select(["p.cardId", "p.printingId", "p.shortCode", imageId("imgf").as("imageId")])
+          .select(["p.cardId", "p.printingId", "p.shortCode", "pimg.id as imageId"])
           .where("p.cardId", "in", cardIdsNeedingCanonical)
           .distinctOn("p.cardId")
           .orderBy("p.cardId")

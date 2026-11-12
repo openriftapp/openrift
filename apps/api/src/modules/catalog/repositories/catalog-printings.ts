@@ -1,13 +1,17 @@
 import type { PrintingOtherSide, PrintingSide } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
-import type { Kysely, NotNull, Selectable } from "kysely";
+import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
 import type { PrintingSidesOrderedView } from "../../../db/tables/views.js";
-import { fallbackImageId, imageId } from "../../../repositories/query-helpers.js";
+import {
+  joinPublicFaceImage,
+  publicFaceImageJoinSql,
+  publicFallbackImageId,
+} from "../../../repositories/query-helpers.js";
 
 type PrintingCodeRow = Pick<Selectable<FacesTable>, "cardId" | "shortCode" | "publicCode">;
 
@@ -81,12 +85,6 @@ type CatalogPrintingRow = Pick<
   printingId: string;
   side: PrintingSide;
   faceId: string;
-  /**
-   * The pinned substitute's *servable* image id: the raw
-   * `fallback_image_file_id` resolved through the same rehosted-or-nothing rule
-   * as every other image id (see {@link fallbackImageId}). Null both when
-   * nothing is pinned and when the pinned file has no rehosted copy yet.
-   */
   fallbackImageId: string | null;
 };
 
@@ -129,7 +127,7 @@ const SIDE_COLUMNS = [
   "s.canonicalRank",
   "s.hasFoilTwin",
   "s.fallbackArtMode",
-  fallbackImageId("s"),
+  publicFallbackImageId("s"),
 ] as const;
 
 // `idx_face_images_active` allows one active image per face, so `imageId` equals the
@@ -141,7 +139,7 @@ const OTHER_SIDE = sql<OtherSideRow | null>`(
     'cardName', oc.name,
     'cardSlug', oc.slug,
     'shortCode', ofc.short_code,
-    'imageId', CASE WHEN oif.rehosted_url IS NOT NULL THEN oif.id END,
+    'imageId', oif.id,
     'finish', ofc.finish,
     'artVariant', ofc.art_variant,
     'isSigned', ofc.is_signed,
@@ -151,8 +149,7 @@ const OTHER_SIDE = sql<OtherSideRow | null>`(
   FROM printings op
   JOIN faces ofc ON ofc.id = CASE WHEN s.position = 1 THEN op.face2_id ELSE op.face1_id END
   JOIN cards oc ON oc.id = ofc.card_id
-  LEFT JOIN face_images ofi ON ofi.face_id = ofc.id AND ofi.is_active
-  LEFT JOIN image_files oif ON oif.id = ofi.image_file_id
+  ${publicFaceImageJoinSql("ofc.id", "oif")}
   WHERE op.id = s.printing_id
 )`.as("otherSide");
 
@@ -165,21 +162,17 @@ function selectSideSubset(db: Kysely<Database>) {
 }
 
 function selectPrintingImages(db: Kysely<Database>) {
-  return db
-    .selectFrom("printingSidesOrdered as s")
-    .innerJoin("faceImages as fi", "fi.faceId", "s.faceId")
-    .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
+  return joinPublicFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId", {
+    required: true,
+  })
     .select([
       "s.printingId",
       sql<PrintingSide>`s.position`.as("side"),
-      imageId("ci").as("imageId"),
-      "ci.credit",
+      "pimg.id as imageId",
+      "pimg.credit",
     ])
-    .where("fi.isActive", "=", true)
-    .where(sql`${imageId("ci")}`, "is not", null)
     .orderBy("s.printingId")
-    .orderBy("s.position")
-    .$narrowType<{ imageId: NotNull }>();
+    .orderBy("s.position");
 }
 
 export function catalogPrintingsRepo(db: Kysely<Database>) {
@@ -320,14 +313,13 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
      */
     scanReferences(): Promise<ScanReferenceRow[]> {
       return (
-        db
-          .selectFrom("faceImages as fi")
-          .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
-          .innerJoin("printingSidesOrdered as s", "s.faceId", "fi.faceId")
+        joinPublicFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId", {
+          required: true,
+        })
           .innerJoin("cards", "cards.id", "s.cardId")
           .innerJoin("sets", "sets.id", "s.setId")
           .select([
-            imageId("ci").as("imageId"),
+            "pimg.id as imageId",
             "cards.name",
             "sets.slug as setSlug",
             "s.publicCode",
@@ -335,43 +327,36 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
             primaryCardType("cards.id").as("cardType"),
             "s.artVariant",
             "s.isOvernumbered",
-            "fi.createdAt",
+            "pfi.createdAt",
             // Window aggregates run before distinctOn collapses the shared
             // images, so min/max span every side sharing the render;
             // equal min and max means the image's marker set is unanimous.
-            sql<string>`min(array_to_string(s.marker_slugs, '+')) over (partition by ${imageId("ci")})`.as(
+            sql<string>`min(array_to_string(s.marker_slugs, '+')) over (partition by pimg.id)`.as(
               "markersMin",
             ),
-            sql<string>`max(array_to_string(s.marker_slugs, '+')) over (partition by ${imageId("ci")})`.as(
+            sql<string>`max(array_to_string(s.marker_slugs, '+')) over (partition by pimg.id)`.as(
               "markersMax",
             ),
           ])
-          .where("fi.isActive", "=", true)
-          .where(sql`${imageId("ci")}`, "is not", null)
           // Faces can share one image file; the bank must carry each render
           // exactly once (duplicate keys would crowd the verification
           // shortlist). The printing id breaks ties deterministically.
-          .distinctOn(imageId("ci"))
-          .orderBy(imageId("ci"))
+          .distinctOn("pimg.id")
+          .orderBy("pimg.id")
           .orderBy("s.printingId")
-          .$narrowType<{ imageId: NotNull }>()
           .execute()
       );
     },
 
     async setCoverImageIds(): Promise<Map<string, string>> {
-      const rows = await db
-        .selectFrom("faces as f")
-        .innerJoin("faceImages as fi", "fi.faceId", "f.id")
-        .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
-        .select(["f.setId", imageId("ci").as("imageId")])
-        .where("fi.isActive", "=", true)
-        .where(sql`${imageId("ci")}`, "is not", null)
+      const rows = await joinPublicFaceImage(db.selectFrom("faces as f"), "f.id", {
+        required: true,
+      })
+        .select(["f.setId", "pimg.id as imageId"])
         .distinctOn("f.setId")
         .orderBy("f.setId")
         .orderBy(sql`(f.language = ${WellKnown.language.EN}) DESC`)
         .orderBy("f.shortCode")
-        .$narrowType<{ imageId: NotNull }>()
         .execute();
       return new Map(rows.map((r) => [r.setId, r.imageId]));
     },

@@ -22,6 +22,7 @@ import {
   unknownPrintingRefs,
 } from "../../catalog/lib/printing-refs.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
+import { facePrintedFieldConflict } from "../../catalog/services/printing-admin.js";
 import type { MarketplaceConfigs } from "../../marketplace/lib/marketplace-configs.js";
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
@@ -32,7 +33,11 @@ import {
   findDuplicatePrinting,
   trustedPrintingGroups,
 } from "../lib/workspace-batch.js";
-import type { TrustedCardDraft, TrustedPrintingGroup } from "../lib/workspace-batch.js";
+import type {
+  IneligibleTrustedCard,
+  TrustedCardDraft,
+  TrustedPrintingGroup,
+} from "../lib/workspace-batch.js";
 import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "./accept-gallery.js";
 
@@ -49,6 +54,8 @@ type BatchRepos = Pick<
   | "catalog"
   | "adminEvents"
   | "ingest"
+  | "sets"
+  | "keywords"
 >;
 
 interface MutationContext {
@@ -64,7 +71,9 @@ function assertAdmin(access: AdminAccess | null): void {
   }
 }
 
-async function loadTrustedCards(repos: BatchRepos): Promise<TrustedCardDraft[]> {
+async function loadTrustedCards(
+  repos: BatchRepos,
+): Promise<{ eligible: TrustedCardDraft[]; ineligible: IneligibleTrustedCard[] }> {
   const providers = [...(await repos.providerSettings.favoriteProviders())];
   const [drafts, liveCards] = await Promise.all([
     repos.workspaceBatch.trustedNewCardDrafts(providers),
@@ -81,8 +90,8 @@ export async function previewTrustedCards(
   access: AdminAccess | null,
 ): Promise<WorkspaceTrustedCardsPreview> {
   assertAdmin(access);
-  const drafts = await loadTrustedCards(repos);
-  return { count: drafts.length, names: drafts.map((draft) => draft.name) };
+  const { eligible, ineligible } = await loadTrustedCards(repos);
+  return { count: eligible.length, names: eligible.map((draft) => draft.name), ineligible };
 }
 
 export async function acceptTrustedCards(
@@ -90,10 +99,10 @@ export async function acceptTrustedCards(
   context: MutationContext,
 ): Promise<WorkspaceAcceptTrustedCardsResponse> {
   assertAdmin(context.access);
-  const drafts = await loadTrustedCards(repos);
+  const { eligible: drafts, ineligible } = await loadTrustedCards(repos);
   const favoriteProviders = await repos.providerSettings.favoriteProviders();
   let accepted = 0;
-  const skipped: WorkspaceAcceptTrustedCardsResponse["skipped"] = [];
+  const skipped: WorkspaceAcceptTrustedCardsResponse["skipped"] = [...ineligible];
   const created: NewPrinting[] = [];
 
   for (const draft of drafts) {
@@ -127,9 +136,15 @@ export async function acceptTrustedCards(
   return { accepted, skipped };
 }
 
+interface IneligibleTrustedPrinting {
+  candidatePrintingId: string;
+  label: string;
+  reason: string;
+}
+
 async function loadTrustedPrintings(repos: BatchRepos): Promise<{
   eligible: TrustedPrintingGroup[];
-  ineligible: { label: string; reason: string }[];
+  ineligible: IneligibleTrustedPrinting[];
 }> {
   const providers = [...(await repos.providerSettings.favoriteProviders())];
   const rows = await repos.workspaceBatch.trustedNewPrintings(providers);
@@ -145,22 +160,36 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
     groups.flatMap((group) => group.first.distributionChannelSlugs),
   );
   const eligible: TrustedPrintingGroup[] = [];
-  const ineligible: { label: string; reason: string }[] = [];
+  const ineligible: IneligibleTrustedPrinting[] = [];
   for (const group of groups) {
     const label = `${group.cardSlug} ${group.label}`;
+    const candidatePrintingId = group.first.id;
     const accepted = acceptFieldsFromCandidate(group.first);
     if (accepted.missing) {
-      ineligible.push({ label, reason: `missing: ${accepted.missing.join(", ")}` });
+      ineligible.push({
+        candidatePrintingId,
+        label,
+        reason: `missing: ${accepted.missing.join(", ")}`,
+      });
       continue;
     }
     const unknown = unknownPrintingRefs(accepted.fields, known);
     if (unknown.length > 0) {
-      ineligible.push({ label, reason: describeUnknownRefs(unknown) });
+      ineligible.push({ candidatePrintingId, label, reason: describeUnknownRefs(unknown) });
       continue;
     }
     const duplicate = findDuplicatePrinting(group, probes);
     if (duplicate) {
-      ineligible.push({ label, reason: `possible duplicate of ${duplicate.shortCode}` });
+      ineligible.push({
+        candidatePrintingId,
+        label,
+        reason: `possible duplicate of ${duplicate.shortCode}`,
+      });
+      continue;
+    }
+    const faceConflict = await facePrintedFieldConflict(repos, group.cardId, accepted.fields);
+    if (faceConflict) {
+      ineligible.push({ candidatePrintingId, label, reason: faceConflict });
       continue;
     }
     eligible.push(group);
@@ -173,7 +202,7 @@ export async function previewTrustedPrintings(
   access: AdminAccess | null,
 ): Promise<WorkspaceTrustedPrintingsPreview> {
   assertAdmin(access);
-  const { eligible } = await loadTrustedPrintings(repos);
+  const { eligible, ineligible } = await loadTrustedPrintings(repos);
   return {
     count: eligible.length,
     items: eligible.map((group) => ({
@@ -181,6 +210,7 @@ export async function previewTrustedPrintings(
       cardSlug: group.cardSlug,
       label: group.label,
     })),
+    ineligible,
   };
 }
 
@@ -190,7 +220,9 @@ export async function acceptTrustedPrintings(
 ): Promise<WorkspaceAcceptTrustedPrintingsResponse> {
   assertAdmin(context.access);
   const { eligible, ineligible } = await loadTrustedPrintings(repos);
-  const skipped: WorkspaceAcceptTrustedPrintingsResponse["skipped"] = [...ineligible];
+  const skipped: WorkspaceAcceptTrustedPrintingsResponse["skipped"] = ineligible.map(
+    ({ label, reason }) => ({ label, reason }),
+  );
   const created: NewPrinting[] = [];
 
   for (const group of eligible) {
