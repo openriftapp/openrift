@@ -46,7 +46,11 @@ const HEADER_TO_ZONE: Record<string, DeckZone> = Object.fromEntries(
 );
 
 /** Callers that only have names (e.g. an extension extracting a decklist) can encode without the resolved-card fields. */
-export type TextEncodableCard = Pick<DeckCodecCard, "cardName" | "quantity" | "zone">;
+export type TextEncodableCard = Pick<DeckCodecCard, "cardName" | "quantity" | "zone" | "inferred">;
+
+export const TEXT_INFERRED_COMMENT = "// inferred, not on the published list";
+
+const COMMENT_PREFIX = "//";
 
 export function encodeText(cards: TextEncodableCard[]): EncodeResult {
   const warnings: string[] = [];
@@ -64,6 +68,9 @@ export function encodeText(cards: TextEncodableCard[]): EncodeResult {
     }
     lines.push(`${ZONE_HEADERS[zone]}:`);
     for (const card of zoneCards) {
+      if (card.inferred === true) {
+        lines.push(TEXT_INFERRED_COMMENT);
+      }
       lines.push(`${card.quantity} ${straightenApostrophes(card.cardName)}`);
     }
   }
@@ -117,7 +124,7 @@ export function parseTextFormat(code: string): DeckCodeParseResult {
       continue;
     }
 
-    if (URL_LINE.test(line)) {
+    if (URL_LINE.test(line) || line.startsWith(COMMENT_PREFIX)) {
       continue;
     }
 

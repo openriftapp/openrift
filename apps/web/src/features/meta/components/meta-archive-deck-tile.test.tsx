@@ -2,6 +2,19 @@ import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+// jsdom reports every image as broken, which would always swap in the fallback.
+vi.mock("@/components/ui/img-with-fallback", () => ({
+  ImgWithFallback: ({
+    fallback: _fallback,
+    alt,
+    ...props
+  }: {
+    fallback: unknown;
+    alt: string;
+    className?: string;
+  }) => <img alt={alt} {...props} />,
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     children,
@@ -49,6 +62,9 @@ const DECK: MetaDeckSummary = {
   championCardId: null,
   championName: null,
   championImageId: null,
+  inferredChampionNames: [],
+  inferredChampionImageId: null,
+  listShape: null,
   playerName: "Nova",
   playerKey: "u2001",
   rank: 1,
@@ -162,5 +178,22 @@ describe("MetaArchiveDeckTile", () => {
     render(tile({ deck: { ...DECK, championImageId: null } }));
 
     expect(screen.queryByText("Champion")).not.toBeInTheDocument();
+  });
+
+  it("draws a guessed champion as a guess", () => {
+    render(
+      tile({
+        deck: {
+          ...DECK,
+          championImageId: null,
+          inferredChampionNames: ["Master Yi, Honed"],
+          inferredChampionImageId: "img-yi",
+        },
+      }),
+    );
+
+    expect(
+      screen.getByRole("img", { name: "Likely champion: Master Yi, Honed (inferred)" }),
+    ).toHaveClass("outline-dashed");
   });
 });

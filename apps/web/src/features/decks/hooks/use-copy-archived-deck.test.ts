@@ -126,6 +126,53 @@ describe("useCopyArchivedDeck", () => {
     expect(storedDecks()).toHaveLength(0);
   });
 
+  it("adds the guessed cards to a local copy after the archived ones", async () => {
+    const extraCards = [
+      { zone: "champion", cardId: "card-yi", quantity: 1, preferredPrintingId: null },
+    ] as unknown as MetaDeckDetailResponse["cards"];
+    const { result } = renderHook(() => useCopyArchivedDeck());
+
+    await result.current.copy({
+      token: TOKEN,
+      deck,
+      cards,
+      extraCards,
+      name: NAME,
+      description: DESCRIPTION,
+    });
+
+    expect(storedDecks()[0]?.cards.map((card) => card.cardId)).toEqual([
+      "card-legend",
+      "card-a",
+      "card-yi",
+    ]);
+  });
+
+  it("sends the guessed cards with a server-side clone", async () => {
+    userId = "user-1";
+    cloneMutateAsync.mockResolvedValue({ deckId: "deck-9" });
+    const extraCards = [
+      { zone: "battlefield", cardId: "card-bf", quantity: 1, preferredPrintingId: null },
+    ] as unknown as MetaDeckDetailResponse["cards"];
+    const { result } = renderHook(() => useCopyArchivedDeck());
+
+    await result.current.copy({
+      token: TOKEN,
+      deck,
+      cards,
+      extraCards,
+      name: NAME,
+      description: DESCRIPTION,
+    });
+
+    expect(cloneMutateAsync).toHaveBeenCalledWith({
+      token: TOKEN,
+      name: NAME,
+      description: DESCRIPTION,
+      extraCards: [{ cardId: "card-bf", zone: "battlefield", quantity: 1 }],
+    });
+  });
+
   it("swallows a rejected clone and navigates nowhere", async () => {
     userId = "user-1";
     cloneMutateAsync.mockRejectedValue(new Error("Deck not found"));

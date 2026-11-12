@@ -636,6 +636,7 @@ export interface CloneSharedDeckInput {
   token: string;
   name?: string;
   description?: string;
+  extraCards?: { cardId: string; zone: DeckZone; quantity: number }[];
 }
 
 const cloneSharedDeckFn = createServerFn({ method: "POST" })

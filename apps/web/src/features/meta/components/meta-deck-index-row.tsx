@@ -9,11 +9,13 @@ import { DateLeaf } from "@/components/ui/date-leaf";
 import { RankBand } from "@/components/ui/rank-band";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
+import { MetaListShapeBar } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { formatRank } from "@/features/meta/lib/meta-format";
+import { eitherName } from "@/features/meta/lib/meta-inferred";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -43,22 +45,32 @@ function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number 
 }
 
 function Art({ deck }: { deck: MetaDeckSummary }) {
+  const guessed = deck.championImageId === null ? deck.inferredChampionImageId : null;
+  const guessedName = eitherName(deck.inferredChampionNames);
+  const second = deck.championImageId ?? guessed;
   return (
-    <span aria-hidden className="relative block h-10 w-11">
+    <span className="relative block h-10 w-11">
       <CardArtThumb
         imageId={deck.legendImageId}
         variant="120w"
         className={cn(
           "absolute top-0 left-0 w-6.5 -rotate-6 rounded-xs shadow-sm",
-          deck.championImageId === null && "left-2 -rotate-3",
+          second === null && "left-2 -rotate-3",
         )}
       />
-      {deck.championImageId !== null && (
+      {second !== null && (
         <CardArtThumb
-          imageId={deck.championImageId}
+          imageId={second}
           variant="120w"
-          className="absolute top-0.5 left-4 w-6.5 rotate-6 rounded-xs shadow-sm"
+          className={cn(
+            "absolute top-0.5 left-4 w-6.5 rotate-6 rounded-xs shadow-sm",
+            guessed !== null &&
+              "outline-primary opacity-70 outline-[1.5px] -outline-offset-[1.5px] outline-dashed",
+          )}
         />
+      )}
+      {guessed !== null && guessedName !== null && (
+        <span className="sr-only">{m.meta_inferred_champion_title({ name: guessedName })}</span>
       )}
     </span>
   );
@@ -167,8 +179,13 @@ export function MetaDeckIndexRow({
             />
             <MetaListStatusBadge listStatus={deck.listStatus} />
           </span>
-          {record !== null && (
-            <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
+          {(record !== null || deck.listShape !== null) && (
+            <span className="flex items-center gap-2">
+              {record !== null && (
+                <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
+              )}
+              {deck.listShape !== null && <MetaListShapeBar shape={deck.listShape} />}
+            </span>
           )}
         </div>
         {!grouped && (
@@ -193,7 +210,25 @@ export function MetaDeckIndexRow({
 
       <div className="flex items-start gap-2.5 sm:hidden">
         <Finish deck={deck} fieldSize={grouped ? null : fieldSize} />
-        <CardArtThumb imageId={deck.legendImageId} variant="120w" className="w-7.5 rounded-xs" />
+        <span className="relative shrink-0">
+          <CardArtThumb imageId={deck.legendImageId} variant="120w" className="w-7.5 rounded-xs" />
+          {deck.championImageId === null && deck.inferredChampionImageId !== null && (
+            <>
+              <CardArtThumb
+                imageId={deck.inferredChampionImageId}
+                variant="120w"
+                className="outline-primary absolute -right-1.5 -bottom-1 w-4 rounded-xs opacity-80 outline-[1.5px] -outline-offset-[1.5px] outline-dashed"
+              />
+              {eitherName(deck.inferredChampionNames) !== null && (
+                <span className="sr-only">
+                  {m.meta_inferred_champion_title({
+                    name: eitherName(deck.inferredChampionNames) ?? "",
+                  })}
+                </span>
+              )}
+            </>
+          )}
+        </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <MetaIdentity
             legend={{ character: deck.legendCharacter, epithet: deck.legendEpithet }}

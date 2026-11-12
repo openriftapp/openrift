@@ -106,9 +106,11 @@ export function FannedPreview({
   coverPosition,
   gradientStyle,
   soloLegend = false,
+  championGuess,
 }: {
   legendImage?: PrintingImage | null;
   championImage?: PrintingImage | null;
+  championGuess?: string;
   coverImage?: PrintingImage | null;
   coverPosition?: number | null;
   gradientStyle?: React.CSSProperties;
@@ -189,9 +191,13 @@ export function FannedPreview({
       {championImage ? (
         <CardPreviewImage
           image={championImage}
-          alt={m.decks_list_placeholder_champion()}
+          alt={championGuess ?? m.decks_list_placeholder_champion()}
           sizes="160px"
-          className="absolute h-[85%] rounded-lg object-cover shadow-md transition-[scale] duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          className={cn(
+            "absolute h-[85%] rounded-lg object-cover shadow-md transition-[scale] duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+            championGuess !== undefined &&
+              "outline-primary opacity-70 outline-2 -outline-offset-2 outline-dashed",
+          )}
           style={{ right: "12%", transform: "rotate(6deg)" }}
           fallback={championPlaceholder}
         />

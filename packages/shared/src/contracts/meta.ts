@@ -17,7 +17,7 @@ import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { publicDeckDetailResponseSchema } from "./public-decks.js";
+import { publicDeckCardResponseSchema, publicDeckDetailResponseSchema } from "./public-decks.js";
 
 const TAG = "Meta archive";
 const BASE = "/api/v1/meta";
@@ -31,6 +31,17 @@ export const metaCardRefSchema = z.object({
   imageId: z.string().nullable(),
   domains: z.array(z.string()),
   archiveSlug: z.string().nullable(),
+});
+
+export const metaListShapeSchema = z.object({
+  format: deckFormatSchema,
+  legend: z.number().int(),
+  champion: z.number().int(),
+  battlefield: z.number().int(),
+  main: z.number().int(),
+  runes: z.number().int(),
+  inferredChampion: z.boolean(),
+  inferredBattlefield: z.boolean(),
 });
 
 export const metaEventFinishSchema = z.object({
@@ -106,6 +117,7 @@ export const metaEventPlayerSchema = z.object({
   deckName: z.string().nullable(),
   shareToken: z.string().nullable(),
   listStatus: metaListStatusSchema,
+  listShape: metaListShapeSchema.nullable(),
 });
 
 export const metaRunOutcomeSchema = z.enum(["win", "loss", "draw", "bye", "unknown"]);
@@ -177,6 +189,9 @@ export const metaDeckSummarySchema = z.object({
   championCardId: z.string().nullable(),
   championName: z.string().nullable(),
   championImageId: z.string().nullable(),
+  inferredChampionNames: z.array(z.string()),
+  inferredChampionImageId: z.string().nullable(),
+  listShape: metaListShapeSchema.nullable(),
   playerName: z.string(),
   playerKey: z.string().nullable(),
   rank: z.number().int(),
@@ -342,6 +357,32 @@ export const metaDeckCardIndexResponseSchema = z.object({
   ),
 });
 
+export const metaInferenceNeighbourSchema = z.object({
+  shareToken: z.string(),
+  playerName: z.string(),
+  eventName: z.string(),
+  rank: z.number().int(),
+  rankIsTier: z.boolean(),
+  wins: z.number().int().nullable(),
+  losses: z.number().int().nullable(),
+  draws: z.number().int().nullable(),
+  shared: z.number().int(),
+  championCardId: z.string().nullable(),
+  championName: z.string().nullable(),
+  battlefieldNames: z.array(z.string()),
+});
+
+export const metaDeckInferenceSchema = z.object({
+  champions: z.array(publicDeckCardResponseSchema),
+  championUnsure: z.boolean(),
+  battlefield: publicDeckCardResponseSchema.nullable(),
+  alsoSeenBattlefields: z.array(
+    z.object({ cardId: z.string(), name: z.string(), slug: z.string() }),
+  ),
+  championNeighbours: z.array(metaInferenceNeighbourSchema),
+  battlefieldNeighbours: z.array(metaInferenceNeighbourSchema),
+});
+
 /**
  * Same shape as `/decks/share/{token}`'s response; the share page's renderer
  * depends on this.
@@ -359,6 +400,7 @@ export const metaDeckDetailResponseSchema = publicDeckDetailResponseSchema.exten
     draws: z.number().int().nullable(),
     contributors: z.array(z.string()),
   }),
+  inferred: metaDeckInferenceSchema.nullable(),
 });
 
 const metaEventTierCountsSchema = z.object({

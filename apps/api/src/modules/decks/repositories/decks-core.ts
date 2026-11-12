@@ -1,6 +1,6 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
 import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck";
-import type { DeckFormat } from "@openrift/shared/types/enums";
+import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Kysely, Selectable, Updateable } from "kysely";
 import { sql } from "kysely";
 
@@ -354,7 +354,11 @@ export function decksCoreRepo(db: Kysely<Database>) {
     async cloneFromShareToken(
       shareToken: string,
       userId: string,
-      overrides?: { name?: string; description?: string },
+      overrides?: {
+        name?: string;
+        description?: string;
+        extraCards?: readonly { cardId: string; zone: DeckZone; quantity: number }[];
+      },
     ): Promise<Selectable<DecksTable> | undefined> {
       const source = await db
         .selectFrom("decks")
@@ -388,10 +392,23 @@ export function decksCoreRepo(db: Kysely<Database>) {
           .where("deckId", "=", source.id)
           .execute();
 
-        if (sourceCards.length > 0) {
+        const extras = (overrides?.extraCards ?? []).filter(
+          (extra) =>
+            !sourceCards.some(
+              (card) =>
+                card.cardId === extra.cardId &&
+                card.zone === extra.zone &&
+                card.preferredPrintingId === null,
+            ),
+        );
+        const rows = [
+          ...sourceCards,
+          ...extras.map((extra) => ({ ...extra, preferredPrintingId: null })),
+        ];
+        if (rows.length > 0) {
           await trx
             .insertInto("deckCards")
-            .values(sourceCards.map((card) => ({ deckId: newDeck.id, ...card })))
+            .values(rows.map((card) => ({ deckId: newDeck.id, ...card })))
             .execute();
         }
 

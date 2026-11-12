@@ -40,6 +40,7 @@ import { refreshCardmarketPrices } from "./modules/marketplace/services/price-re
 import { refreshCardnexusPrices } from "./modules/marketplace/services/price-refresh/cardnexus.js";
 import { refreshCardtraderPrices } from "./modules/marketplace/services/price-refresh/cardtrader.js";
 import { refreshTcgplayerPrices } from "./modules/marketplace/services/price-refresh/tcgplayer.js";
+import { inferMetaDeckSlots, isInferSlotsNoop } from "./modules/meta/services/meta-infer-slots.js";
 import {
   createMetaSyncDeps,
   createPlayloltcgSyncDeps,
@@ -384,6 +385,15 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
           rearm: isFirstTickOfHour(new Date()),
         }),
       classifyNoop: isPlayriftboundRecheckNoop,
+    }),
+    defineJob(log, {
+      kind: "meta.infer_slots",
+      title: "Meta archive: guess missing champions and battlefields",
+      description:
+        "Recomputes the likely chosen champion and one battlefield of every partial list from the complete lists of the same legend.",
+      suggestedSchedule: "30 7 * * *",
+      execute: () => inferMetaDeckSlots(repos),
+      classifyNoop: isInferSlotsNoop,
     }),
     defineJob(log, {
       kind: REBUILD_SCAN_BANK_KIND,

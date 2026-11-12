@@ -1,11 +1,21 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
-import { CopyIcon, InfoIcon } from "lucide-react";
+import { ChevronDownIcon, CopyIcon, InfoIcon } from "lucide-react";
 
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TextLink } from "@/components/ui/text-link";
 import { PublicDeckActionsMenu } from "@/features/decks/components/public-deck-actions-menu";
 import { PublicDeckSurface } from "@/features/decks/components/public-deck-surface";
@@ -13,10 +23,12 @@ import { useCopyArchivedDeck } from "@/features/decks/hooks/use-copy-archived-de
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
 import { MetaDeckArchiveBar } from "@/features/meta/components/meta-deck-archive-bar";
 import { MetaDeckFinish, MetaDeckHeading } from "@/features/meta/components/meta-deck-hero";
+import { metaInferredZoneSlots } from "@/features/meta/components/meta-inferred-slots";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
 import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/meta-deck-archive";
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { archivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
+import { inferredCopyOptions } from "@/features/meta/lib/meta-inferred";
 import type { MetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { m } from "@/paraglide/messages.js";
@@ -26,12 +38,14 @@ function MetaDeckNotice({
   format,
   unknown,
   isLoggedIn,
+  hasInferred,
   search,
 }: {
   eventSlug: string;
   format: DeckFormat;
   unknown: ReadonlyMap<DeckZone, number>;
   isLoggedIn: boolean;
+  hasInferred: boolean;
   search: MetaSubmitSearch;
 }) {
   const missing = describeIncompleteList(format, unknown);
@@ -48,6 +62,16 @@ function MetaDeckNotice({
           {/* The hero chip counts the deck the archive holds, not the deck as played. */}
           {isLoggedIn && ` ${m.meta_deck_incomplete_collection_note()}`}
         </span>
+        {hasInferred && (
+          <span>
+            <ParaglideMessage
+              message={m.meta_inferred_notice}
+              markup={{
+                badge: ({ children }) => <Badge className="align-text-bottom">{children}</Badge>,
+              }}
+            />
+          </span>
+        )}
         <Link
           rel="nofollow"
           to="/meta/$slug/submit"
@@ -70,14 +94,77 @@ export function MetaDeckPage({ token }: { token: string }) {
     isLoggedIn,
     label: copyLabel,
   } = useCopyArchivedDeck();
-  const handleCopyToMyDecks = () => {
+  const copyOptions = inferredCopyOptions(data.inferred);
+  const handleCopyToMyDecks = (extraCards: PublicDeckCardResponse[]) => {
     void copyToMyDecks({
       token,
       deck: data.deck,
       cards: data.cards,
+      extraCards,
       ...metaDeckCopyFields(data, token),
     });
   };
+  const copyButtonContent = (
+    <>
+      <CopyIcon />
+      <span className="hidden sm:inline">{copyPending ? m.meta_deck_copying() : copyLabel}</span>
+      <span className="sm:hidden">{copyPending ? m.meta_deck_copying() : m.common_copy()}</span>
+    </>
+  );
+  const copyButton =
+    copyOptions.length === 0 ? (
+      <PageTopBarPrimaryButton
+        onClick={() => handleCopyToMyDecks([])}
+        disabled={copyPending}
+        aria-label={copyPending ? m.meta_deck_copying() : copyLabel}
+      >
+        {copyButtonContent}
+      </PageTopBarPrimaryButton>
+    ) : (
+      <ButtonGroup>
+        <PageTopBarPrimaryButton
+          onClick={() => handleCopyToMyDecks([])}
+          disabled={copyPending}
+          aria-label={copyPending ? m.meta_deck_copying() : copyLabel}
+        >
+          {copyButtonContent}
+        </PageTopBarPrimaryButton>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="default"
+                size="icon"
+                disabled={copyPending}
+                aria-label={m.meta_copy_options()}
+                className="border-primary-foreground/25 border-l"
+              />
+            }
+          >
+            <ChevronDownIcon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuItem
+              onClick={() => handleCopyToMyDecks([])}
+              className="flex-col items-start gap-0.5"
+            >
+              <span className="font-medium">{m.meta_copy_as_listed()}</span>
+              <span className="text-muted-foreground text-xs">{m.meta_copy_as_listed_desc()}</span>
+            </DropdownMenuItem>
+            {copyOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.label}
+                onClick={() => handleCopyToMyDecks(option.cards)}
+                className="flex-col items-start gap-0.5"
+              >
+                <span className="font-medium">{option.label}</span>
+                <span className="text-muted-foreground text-xs">{option.description}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </ButtonGroup>
+    );
 
   const unknown = unknownZoneCounts(data.cards, data.deck.format, data.meta.listStatus);
 
@@ -110,19 +197,7 @@ export function MetaDeckPage({ token }: { token: string }) {
           listStatus={data.meta.listStatus}
           actions={
             <>
-              <PageTopBarPrimaryButton
-                onClick={handleCopyToMyDecks}
-                disabled={copyPending}
-                aria-label={copyPending ? m.meta_deck_copying() : copyLabel}
-              >
-                <CopyIcon />
-                <span className="hidden sm:inline">
-                  {copyPending ? m.meta_deck_copying() : copyLabel}
-                </span>
-                <span className="sm:hidden">
-                  {copyPending ? m.meta_deck_copying() : m.common_copy()}
-                </span>
-              </PageTopBarPrimaryButton>
+              {copyButton}
               <PublicDeckActionsMenu
                 deckId={data.deck.id}
                 deckName={data.deck.name}
@@ -130,6 +205,7 @@ export function MetaDeckPage({ token }: { token: string }) {
                 linkKind="meta"
                 updatedAt={data.deck.updatedAt}
                 cards={data.cards}
+                extraOptions={copyOptions}
                 inTopBar
               />
             </>
@@ -139,6 +215,12 @@ export function MetaDeckPage({ token }: { token: string }) {
       // Empty side zones on a partial list are holes in the record, not zones
       // the player left empty, so they keep their slots and say so.
       unknownZoneCounts={unknown}
+      inferredZoneSlots={metaInferredZoneSlots(
+        data.inferred,
+        data.cards
+          .filter((card) => card.zone === WellKnown.deckZone.MAIN)
+          .reduce((sum, card) => sum + card.quantity, 0),
+      )}
       hideDeckValue={data.meta.listStatus === "partial"}
       notice={
         <MetaDeckNotice
@@ -146,6 +228,7 @@ export function MetaDeckPage({ token }: { token: string }) {
           format={data.deck.format}
           unknown={unknown}
           isLoggedIn={isLoggedIn}
+          hasInferred={data.inferred !== null}
           search={metaSubmitSearchForPlayer(entry, "completion")}
         />
       }

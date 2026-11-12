@@ -2,6 +2,10 @@
 
 ## 2026-11-12
 
+### Highlights
+
+- feat(Meta): **Likely champion on partial lists** — partial lists show a guessed champion and battlefield, marked as such, plus a bar for what is known.
+
 ### Other
 
 - fix(Cards): **Card art stays up while new art loads** — when a card's picture is replaced, the old one now stays visible until the new one is ready. Before, the card could show no art for a moment, or for good when the new picture failed to load.

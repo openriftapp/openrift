@@ -7,6 +7,7 @@ import { CopyIcon, EllipsisVerticalIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ import { metaCardOwnershipBand } from "@/features/meta/lib/meta-deck-collection"
 import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-composition";
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { deckCardDetailKeys } from "@/features/meta/lib/meta-deck-side-keys";
+import { inferredCards, inferredSummary } from "@/features/meta/lib/meta-inferred";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
@@ -71,17 +73,20 @@ function StripCard({
   detailKey,
   sequence,
   sideboard,
+  inferred,
   band,
 }: {
   card: PublicDeckCardResponse;
   detailKey: string | null;
   sequence: string[];
   sideboard?: boolean;
+  inferred?: boolean;
   band?: OwnershipBandSegments;
 }) {
   const openCardDetail = useOpenCardDetail();
   const printingId = detailKey;
-  const label = card.quantity > 1 ? `${card.quantity}× ${card.cardName}` : card.cardName;
+  const name = inferred ? m.meta_inferred_card_label({ name: card.cardName }) : card.cardName;
+  const label = card.quantity > 1 ? `${card.quantity}× ${name}` : name;
   const art = (
     <>
       <CardArtThumb
@@ -104,11 +109,16 @@ function StripCard({
       {band && <OwnershipBand quantity={card.quantity} band={band} />}
     </>
   );
-  const className = cn("relative inline-block", sideboard && "opacity-55");
+  const className = cn(
+    "relative inline-block",
+    sideboard && "opacity-55",
+    inferred &&
+      "outline-primary rounded-xs opacity-70 outline-[1.5px] -outline-offset-[1.5px] outline-dashed",
+  );
 
   if (!openCardDetail || printingId === null) {
     return (
-      <span className={className} title={card.cardName}>
+      <span className={className} title={name}>
         {art}
       </span>
     );
@@ -117,7 +127,7 @@ function StripCard({
     <Pressable
       className={className}
       aria-label={label}
-      title={card.cardName}
+      title={name}
       onClick={() => openCardDetail({ printingId, sequence })}
     >
       {art}
@@ -144,17 +154,28 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
           owned.printingsByCardId,
         );
 
+  const guessed = inferredCards(data.inferred);
+  const guessedIds = new Set(guessed.map((card) => `${card.zone}:${card.cardId}`));
+  const isGuessed = (card: PublicDeckCardResponse) => guessedIds.has(`${card.zone}:${card.cardId}`);
   const lead = [
     ...zoneCards(data.cards, WellKnown.deckZone.CHAMPION),
+    ...zoneCards(guessed, WellKnown.deckZone.CHAMPION),
     ...zoneCards(data.cards, WellKnown.deckZone.BATTLEFIELD),
+    ...zoneCards(guessed, WellKnown.deckZone.BATTLEFIELD),
   ];
   const main = zoneCards(data.cards, WellKnown.deckZone.MAIN).toSorted(byEnergyThenName);
   const sideboard = zoneCards(data.cards, WellKnown.deckZone.SIDEBOARD).toSorted(byEnergyThenName);
+  const unknown = unknownZoneCounts(data.cards, data.deck.format, data.meta.listStatus);
+  const openChampion =
+    (unknown.get(WellKnown.deckZone.CHAMPION) ?? 0) - (data.inferred?.champions.length ? 1 : 0);
+  const openBattlefields =
+    (unknown.get(WellKnown.deckZone.BATTLEFIELD) ?? 0) - (data.inferred?.battlefield ? 1 : 0);
+  const unknownSlots = Math.max(0, openChampion) + Math.max(0, openBattlefields);
   const groups = [
-    { key: "lead", cards: lead, sideboard: false },
-    { key: "main", cards: main, sideboard: false },
-    { key: "sideboard", cards: sideboard, sideboard: true },
-  ].filter((group) => group.cards.length > 0);
+    { key: "lead", cards: lead, sideboard: false, unknownSlots },
+    { key: "main", cards: main, sideboard: false, unknownSlots: 0 },
+    { key: "sideboard", cards: sideboard, sideboard: true, unknownSlots: 0 },
+  ].filter((group) => group.cards.length > 0 || group.unknownSlots > 0);
   const detailKeyOf = deckCardDetailKeys(data.catalog.printings);
   const detailKeyFor = (card: PublicDeckCardResponse) =>
     detailKeyOf({ cardId: card.cardId, printingId: printingIdOf(card) });
@@ -165,10 +186,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const types = deckTypeSplit(data.cards);
   const runes = deckRuneSplit(data.cards);
   const sideboardCount = sideboard.reduce((sum, card) => sum + card.quantity, 0);
-  const missing = describeIncompleteList(
-    data.deck.format,
-    unknownZoneCounts(data.cards, data.deck.format, data.meta.listStatus),
-  );
+  const missing = describeIncompleteList(data.deck.format, unknown);
 
   const encodeCards = toEncodeDeckCards(data.cards);
   const handleCopyCode = async () => {
@@ -202,7 +220,16 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 detailKey={detailKeyFor(card)}
                 sequence={sequence}
                 sideboard={group.sideboard}
-                band={bandFor(card)}
+                inferred={group.key === "lead" && isGuessed(card)}
+                band={group.key === "lead" && isGuessed(card) ? undefined : bandFor(card)}
+              />
+            ))}
+            {Array.from({ length: group.unknownSlots }, (_, index) => (
+              <span
+                key={`unknown-${index}`}
+                aria-hidden
+                data-unknown-slot
+                className="aspect-card border-muted-foreground/40 inline-block w-9 rounded-xs border border-dashed"
               />
             ))}
           </div>
@@ -231,6 +258,12 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
           </span>
         )}
         {missing !== null && <span>{missing}</span>}
+        {guessed.length > 0 && (
+          <span className="flex items-center gap-1.5">
+            <Badge>{m.meta_inferred_badge()}</Badge>
+            {inferredSummary(data.inferred)}
+          </span>
+        )}
         <MetaContributors contributors={data.meta.contributors} className="text-xs" />
         {!copyToMyDecks.isLoggedIn && (
           <TextLink render={<Link rel="nofollow" {...signIn} />}>

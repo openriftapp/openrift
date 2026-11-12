@@ -57,6 +57,12 @@ function UnknownSlots({ count, isLandscape }: { count: number; isLandscape: bool
   ));
 }
 
+export interface InferredZoneSlots {
+  node: React.ReactNode;
+  count: number;
+  footer?: React.ReactNode;
+}
+
 export interface ZoneTileProps {
   deckId: string;
   bandByCardKey: ReadonlyMap<string, OwnershipBandSegments>;
@@ -79,6 +85,7 @@ export interface ZoneTileProps {
   expected: number | undefined;
   emptyHint: string;
   unknownCount?: number;
+  inferredSlots?: InferredZoneSlots;
   collapsedZones: ReadonlySet<CollapsibleDeckSection>;
   onToggleCollapsed: (zone: DeckZone) => void;
   zoneViolations: DeckViolation[];
@@ -115,6 +122,7 @@ export function ZoneTile({
   expected,
   emptyHint,
   unknownCount = 0,
+  inferredSlots,
   collapsedZones,
   onToggleCollapsed,
   zoneViolations,
@@ -137,8 +145,14 @@ export function ZoneTile({
   const isLandscape = LANDSCAPE_ZONES.has(zone);
 
   const groups = GROUPED_ZONES.has(zone) ? groupCards(cards) : null;
+  const openUnknown = unknownCount - (inferredSlots?.count ?? 0);
   const unknownSlots =
-    unknownCount > 0 ? <UnknownSlots count={unknownCount} isLandscape={isLandscape} /> : null;
+    inferredSlots !== undefined || openUnknown > 0 ? (
+      <>
+        {inferredSlots?.node}
+        {openUnknown > 0 && <UnknownSlots count={openUnknown} isLandscape={isLandscape} />}
+      </>
+    ) : null;
 
   const canAdd = !readOnly && onClick !== undefined;
   const emptyStrip = canAdd ? (
@@ -338,6 +352,7 @@ export function ZoneTile({
         </div>
       )}
       {!collapsed && !groups && addStrip}
+      {!collapsed && inferredSlots?.footer}
     </div>
   );
 }

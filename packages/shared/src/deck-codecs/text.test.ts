@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { encodeText, parseTextFormat } from "./text.js";
+import { encodeText, parseTextFormat, TEXT_INFERRED_COMMENT } from "./text.js";
 import type { DeckCodecCard } from "./types.js";
 
 function card(overrides: Partial<DeckCodecCard> & { cardName: string }): DeckCodecCard {
@@ -37,6 +37,17 @@ describe("encodeText", () => {
     ]);
 
     expect(code).toBe("Legend:\n1 Garen\n\nMainDeck:\n1 Bolt\n\nSideboard:\n1 Fireball");
+  });
+
+  it("puts a comment line above each inferred card", () => {
+    const { code } = encodeText([
+      card({ cardName: "Wuju Bladesman", zone: "legend" }),
+      card({ cardName: "Master Yi, Honed", zone: "champion", inferred: true }),
+    ]);
+
+    expect(code).toBe(
+      `Legend:\n1 Wuju Bladesman\n\nChampion:\n${TEXT_INFERRED_COMMENT}\n1 Master Yi, Honed`,
+    );
   });
 
   it("never writes the overflow zone", () => {
@@ -234,5 +245,20 @@ describe("parseTextFormat", () => {
 
     expect(entries).toHaveLength(1);
     expect(entries[0]!.cardName).toBe("Pouty Poro");
+  });
+
+  it("skips comment lines, so an export with inferred cards reads back without them as cards", () => {
+    const { code } = encodeText([
+      card({ cardName: "Master Yi, Honed", zone: "champion", inferred: true }),
+      card({ cardName: "Charm", zone: "main", quantity: 3 }),
+    ]);
+
+    const { entries, warnings } = parseTextFormat(code);
+
+    expect(entries.map((entry) => [entry.cardName, entry.quantity])).toEqual([
+      ["Master Yi, Honed", 1],
+      ["Charm", 3],
+    ]);
+    expect(warnings).toEqual([]);
   });
 });

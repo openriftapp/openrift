@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
@@ -15,7 +16,9 @@ const captured = vi.hoisted(() => ({
   userId: null as string | null,
   cards: [] as Record<string, unknown>[],
   unknownZoneCounts: null as ReadonlyMap<string, number> | null,
+  inferredZones: [] as string[],
   hideDeckValue: undefined as boolean | undefined,
+  inferred: null as Record<string, unknown> | null,
 }));
 
 // Stubs the public share renderer's slots; these tests are about what the archive hands it.
@@ -27,6 +30,7 @@ vi.mock("@/features/decks/components/public-deck-surface", () => ({
     heroHeading,
     heroLead,
     unknownZoneCounts,
+    inferredZoneSlots,
     hideDeckValue,
   }: {
     topBar?: React.ReactNode;
@@ -35,9 +39,11 @@ vi.mock("@/features/decks/components/public-deck-surface", () => ({
     heroHeading?: React.ReactNode;
     heroLead?: React.ReactNode;
     unknownZoneCounts?: ReadonlyMap<string, number>;
+    inferredZoneSlots?: ReadonlyMap<string, unknown>;
     hideDeckValue?: boolean;
   }) => {
     captured.unknownZoneCounts = unknownZoneCounts ?? null;
+    captured.inferredZones = [...(inferredZoneSlots?.keys() ?? [])];
     captured.hideDeckValue = hideDeckValue;
     return (
       <div>
@@ -70,6 +76,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
     data: {
       deck: { format: "constructed", name: "Azir Control", formatConfig: null, links: [] },
       cards: captured.cards,
+      inferred: captured.inferred,
       meta: {
         playerName: "Nova",
         playerKey: "u2001",
@@ -153,6 +160,7 @@ function renderDeck(
   cards: { zone: string; quantity: number }[] = [],
 ): void {
   captured.meta = { listStatus: "full", contributors: [], ...meta };
+  captured.inferred = null;
   captured.cards = cards.map((card) => deckCard(card.zone, card.quantity));
   render(<MetaDeckPage token="aB3dE5gH7jK9" />);
 }
@@ -267,6 +275,51 @@ describe("MetaDeckPage archive frame", () => {
   it("marks the zones a partial list never published as unknown", () => {
     renderDeck({ listStatus: "partial" });
     expect(captured.unknownZoneCounts?.get("battlefield")).toBe(3);
+  });
+
+  it("hands the guessed champion and battlefield to the overview and says they are guesses", () => {
+    captured.meta = { listStatus: "partial", contributors: [] };
+    captured.cards = [];
+    captured.inferred = {
+      champions: [{ ...deckCard("champion", 1), cardName: "Master Yi, Honed", imageId: null }],
+      battlefield: { ...deckCard("battlefield", 1), cardName: "Seat of Power", imageId: null },
+      alsoSeenBattlefields: [],
+      championNeighbours: [],
+      battlefieldNeighbours: [],
+    };
+    render(<MetaDeckPage token="aB3dE5gH7jK9" />);
+
+    expect(captured.inferredZones).toEqual(["champion", "battlefield"]);
+    expect(screen.getByText(/our best guess from complete lists/u)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy options" })).toBeInTheDocument();
+  });
+
+  it("asks which champion to copy when the guess is unsure", async () => {
+    captured.meta = { listStatus: "partial", contributors: [] };
+    captured.cards = [];
+    captured.inferred = {
+      champions: [
+        { ...deckCard("champion", 1), cardId: "yi-1", cardName: "Master Yi, Honed" },
+        { ...deckCard("champion", 1), cardId: "yi-2", cardName: "Master Yi, Tempered" },
+      ],
+      battlefield: null,
+      alsoSeenBattlefields: [],
+      championNeighbours: [],
+      battlefieldNeighbours: [],
+    };
+    render(<MetaDeckPage token="aB3dE5gH7jK9" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Copy options" }));
+
+    expect(await screen.findByText("Adds Master Yi, Honed.")).toBeInTheDocument();
+    expect(screen.getByText("Adds Master Yi, Tempered.")).toBeInTheDocument();
+  });
+
+  it("keeps a single copy button when nothing is guessed", () => {
+    renderDeck({ listStatus: "partial" });
+
+    expect(captured.inferredZones).toEqual([]);
+    expect(screen.queryByRole("button", { name: "Copy options" })).toBeNull();
   });
 
   it("prices no deck value on a partial list", () => {

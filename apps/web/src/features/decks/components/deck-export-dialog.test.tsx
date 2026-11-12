@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { stubDeckBuilderCard } from "@/test/factories";
@@ -74,6 +75,59 @@ describe("DeckExportDialog", () => {
       },
       expect.anything(),
     );
+  });
+
+  it("adds the chosen inferred cards, marked as guesses, only once the reader picks them", async () => {
+    const inferredCards = [
+      stubDeckBuilderCard({ cardId: "card-yi", cardName: "Master Yi", zone: "champion" }),
+    ];
+    render(
+      <DeckExportDialog
+        deckId="deck-1"
+        isDirty={false}
+        open
+        onOpenChange={vi.fn()}
+        cards={cards}
+        extraOptions={[
+          { label: "With inferred champion", description: "Adds Master Yi.", cards: inferredCards },
+        ]}
+        publicSource={{ shareToken: "tok123", imageVersion: 42 }}
+      />,
+    );
+    await screen.findByRole("dialog");
+    expect(encodeMock).toHaveBeenLastCalledWith(
+      { format: "text", cards: [expect.objectContaining({ cardId: "card-1" })] },
+      expect.anything(),
+    );
+
+    await userEvent.click(screen.getByRole("radio", { name: /With inferred champion/u }));
+
+    expect(encodeMock).toHaveBeenLastCalledWith(
+      {
+        format: "text",
+        cards: [
+          expect.objectContaining({ cardId: "card-1" }),
+          expect.objectContaining({ cardId: "card-yi", inferred: true }),
+        ],
+      },
+      expect.anything(),
+    );
+  });
+
+  it("offers no inferred option on a deck without guesses", async () => {
+    render(
+      <DeckExportDialog
+        deckId="deck-1"
+        isDirty={false}
+        open
+        onOpenChange={vi.fn()}
+        cards={cards}
+        publicSource={{ shareToken: "tok123", imageVersion: 42 }}
+      />,
+    );
+    await screen.findByRole("dialog");
+
+    expect(screen.queryByRole("radio")).toBeNull();
   });
 
   it("says the deck has nothing to export when the code comes back empty", async () => {

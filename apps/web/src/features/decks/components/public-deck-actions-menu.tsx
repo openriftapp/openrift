@@ -56,6 +56,7 @@ interface PublicDeckActionsMenuProps {
   linkKind: DeckLinkKind;
   updatedAt: string;
   cards: PublicDeckCardResponse[];
+  extraOptions?: { label: string; description: string; cards: PublicDeckCardResponse[] }[];
   inTopBar?: boolean;
 }
 
@@ -70,6 +71,7 @@ export function PublicDeckActionsMenu({
   linkKind,
   updatedAt,
   cards,
+  extraOptions = [],
   inTopBar = false,
 }: PublicDeckActionsMenuProps) {
   const [imageOpen, setImageOpen] = useState(false);
@@ -181,6 +183,10 @@ export function PublicDeckActionsMenu({
         deckId={deckId}
         isDirty={false}
         cards={builderCards}
+        extraOptions={extraOptions.map((option) => ({
+          ...option,
+          cards: option.cards.map((card) => toBuilderCardFromPublic(card)),
+        }))}
         publicSource={publicSource}
         open={exportOpen}
         onOpenChange={setExportOpen}

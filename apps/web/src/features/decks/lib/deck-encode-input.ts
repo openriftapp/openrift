@@ -12,9 +12,13 @@ export interface EncodeDeckCardInput {
   cardType: CardType;
   superTypes: SuperType[];
   domains: Domain[];
+  inferred?: boolean;
 }
 
-export function toEncodeDeckCards(cards: DeckBuilderCard[]): EncodeDeckCardInput[] {
+export function toEncodeDeckCards(
+  cards: DeckBuilderCard[],
+  inferred?: boolean,
+): EncodeDeckCardInput[] {
   return cards.map((card) => ({
     cardId: card.cardId,
     zone: card.zone,
@@ -24,5 +28,6 @@ export function toEncodeDeckCards(cards: DeckBuilderCard[]): EncodeDeckCardInput
     cardType: card.cardType,
     superTypes: card.superTypes,
     domains: card.domains,
+    ...(inferred === true && { inferred }),
   }));
 }

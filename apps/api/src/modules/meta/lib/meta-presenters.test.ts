@@ -478,6 +478,7 @@ describe("toMetaEventPlayer", () => {
       deckName: "Jinx Aggro",
       shareToken: "aB3dE5gH7jK9",
       listStatus: "full",
+      listShape: null,
     });
   });
 

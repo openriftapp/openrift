@@ -26,6 +26,7 @@ const encodeDeckCardSchema = z.object({
   cardType: cardTypeSchema,
   superTypes: z.array(superTypeSchema),
   domains: z.array(domainSchema),
+  inferred: z.boolean().optional(),
 });
 
 const encodeDeckInputSchema = z.object({

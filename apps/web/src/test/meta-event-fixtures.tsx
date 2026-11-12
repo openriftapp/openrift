@@ -42,6 +42,7 @@ export function metaPlayer(overrides: Partial<MetaEventPlayer> = {}): MetaEventP
     deckName: null,
     shareToken: null,
     listStatus: "none",
+    listShape: null,
     ...overrides,
   };
 }

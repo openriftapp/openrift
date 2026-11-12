@@ -113,6 +113,8 @@ const mockCanonicalPrintings = { resolvePrintingMetaForRows: vi.fn() };
 
 const mockMetaSubmissions = { pendingForEvent: vi.fn() };
 
+const mockMetaInferences = { listShapes: vi.fn(), inferenceForDeck: vi.fn() };
+
 let viewer: { id: string } | null = null;
 
 const EVENT_ID = "b0000000-0001-4000-a000-000000000001";
@@ -125,6 +127,7 @@ app.use("*", async (c, next) => {
     meta: mockMeta,
     canonicalPrintings: mockCanonicalPrintings,
     metaSubmissions: mockMetaSubmissions,
+    metaInferences: mockMetaInferences,
   } as never);
   c.set("user", viewer as never);
   await next();
@@ -197,6 +200,8 @@ function sourceRow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockMetaInferences.listShapes.mockResolvedValue([]);
+  mockMetaInferences.inferenceForDeck.mockResolvedValue(undefined);
   mockMeta.topFinishesForEvents.mockResolvedValue([]);
   mockMeta.recentActivity.mockResolvedValue([]);
   mockMeta.standingsPage.mockResolvedValue({ rows: [], total: 0 });
@@ -626,6 +631,55 @@ describe("GET /meta/events/{slug}/standings", () => {
       { q: undefined, withList: false, legend: undefined },
       { limit: 200, offset: 200 },
     );
+  });
+
+  it("shapes only the partial lists, flagging a guess whose zone is still open", async () => {
+    const partial = playerRow({
+      deckId: "d0000000-0001-4000-a000-000000000001",
+      shareToken: "partialTok",
+      listStatus: "partial",
+    });
+    const full = playerRow({
+      id: "p0000000-0001-4000-a000-000000000002",
+      deckId: "d0000000-0001-4000-a000-000000000002",
+      shareToken: "fullTok",
+      listStatus: "full",
+    });
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsPage.mockResolvedValue(standingsPage([partial, full]));
+    mockMetaInferences.listShapes.mockResolvedValue([
+      {
+        deckId: partial.deckId,
+        format: "constructed",
+        legend: 1,
+        champion: 0,
+        battlefield: 0,
+        main: 39,
+        runes: 12,
+        battlefieldCardIds: [],
+        guessedChampionCardId: CHAMPION_ID,
+        guessedChampionName: "Master Yi, Honed",
+        guessedChampionAltName: null,
+        guessedBattlefieldCardId: null,
+      },
+    ]);
+
+    const json = await readJson(
+      await app.request("/api/v1/meta/events/summoner-skirmish-2026/standings"),
+    );
+
+    expect(mockMetaInferences.listShapes).toHaveBeenCalledWith([partial.deckId]);
+    expect(json.players[0].listShape).toEqual({
+      format: "constructed",
+      legend: 1,
+      champion: 0,
+      battlefield: 0,
+      main: 39,
+      runes: 12,
+      inferredChampion: true,
+      inferredBattlefield: false,
+    });
+    expect(json.players[1].listShape).toBeNull();
   });
 
   it("forwards the page's own narrowing", async () => {

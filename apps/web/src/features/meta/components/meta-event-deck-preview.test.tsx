@@ -211,6 +211,7 @@ function metaDeck(
       contributors: [],
       ...meta,
     },
+    inferred: null,
   } as unknown as MetaDeckDetailResponse;
 }
 
@@ -298,6 +299,37 @@ describe("MetaEventDeckPreview", () => {
     renderPreview();
 
     expect(screen.getByText(/the battlefields are not/u)).toBeInTheDocument();
+  });
+
+  it("leads with the guessed cards of a partial list, marked and named as guesses", () => {
+    const partial = CARDS.filter(
+      (entry) => entry.zone !== "battlefield" && entry.zone !== "champion",
+    );
+    state.deck = {
+      ...metaDeck({ listStatus: "partial" }, partial),
+      inferred: {
+        champions: [
+          card({ cardId: "card-yi", zone: "champion", cardName: "Master Yi, Honed" }),
+          card({ cardId: "card-yi-2", zone: "champion", cardName: "Master Yi, Tempered" }),
+        ],
+        championUnsure: true,
+        battlefield: card({ cardId: "card-seat", zone: "battlefield", cardName: "Seat of Power" }),
+        alsoSeenBattlefields: [],
+        championNeighbours: [],
+        battlefieldNeighbours: [],
+      },
+    };
+    const container = renderPreview();
+
+    expect(stripNames(container).slice(0, 3)).toEqual([
+      "Master Yi, Honed (inferred)",
+      "Master Yi, Tempered (inferred)",
+      "Seat of Power (inferred)",
+    ]);
+    expect(
+      screen.getByText("Master Yi, Honed or Master Yi, Tempered and Seat of Power"),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll("[data-unknown-slot]")).toHaveLength(2);
   });
 
   it("says nothing about missing zones on a full list", () => {

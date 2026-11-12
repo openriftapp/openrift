@@ -28,6 +28,7 @@ import {
   DesktopStandings,
   PhoneStandings,
 } from "@/features/meta/components/meta-event-standings-body";
+import { MetaListShapeKey } from "@/features/meta/components/meta-list-shape-bar";
 import { useMetaStandings } from "@/features/meta/hooks/use-meta";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
@@ -320,6 +321,9 @@ export function MetaEventStandings({
               <>
                 <DesktopStandings {...body} />
                 <PhoneStandings {...body} />
+                {matching.some((player) => player.listShape !== null) && (
+                  <MetaListShapeKey className="px-3 py-2" />
+                )}
               </>
             )}
           </div>

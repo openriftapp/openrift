@@ -6,6 +6,7 @@ export interface ChampionFacts {
   tags: readonly string[];
   isChampion: boolean;
   maxCopiesOverride: number | null;
+  keywords?: readonly string[];
 }
 
 /** Returns null unless exactly one main-deck card shares a tag with the Legend and has room under its copy limit. */

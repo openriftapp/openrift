@@ -6,11 +6,13 @@ import { Medal } from "@/components/ui/podium";
 import { FannedPreview } from "@/features/decks/components/deck-tile";
 import { MetaDeckFrame, metaFrontImage } from "@/features/meta/components/meta-deck-card";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
+import { MetaListShapeBar } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { formatRank, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import { eitherName } from "@/features/meta/lib/meta-inferred";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -117,7 +119,14 @@ export function MetaArchiveDeckTile({
       <div className="relative">
         <FannedPreview
           legendImage={metaFrontImage(deck.legendImageId)}
-          championImage={metaFrontImage(deck.championImageId)}
+          championImage={metaFrontImage(deck.championImageId ?? deck.inferredChampionImageId)}
+          championGuess={
+            deck.championImageId === null && eitherName(deck.inferredChampionNames) !== null
+              ? m.meta_inferred_champion_title({
+                  name: eitherName(deck.inferredChampionNames) ?? "",
+                })
+              : undefined
+          }
           soloLegend
         />
         <PlacementPlate deck={deck} fieldSize={fieldSize} />
@@ -146,6 +155,7 @@ export function MetaArchiveDeckTile({
             <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
           )}
           <MetaListStatusBadge listStatus={deck.listStatus} />
+          {deck.listShape !== null && <MetaListShapeBar shape={deck.listShape} />}
         </p>
 
         {showEvent && (

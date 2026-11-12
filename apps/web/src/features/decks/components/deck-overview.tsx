@@ -48,6 +48,7 @@ import {
   DeckOverviewViewControls,
 } from "@/features/decks/components/deck-overview-view-controls";
 import { ZoneTile } from "@/features/decks/components/deck-overview-zone-tile";
+import type { InferredZoneSlots } from "@/features/decks/components/deck-overview-zone-tile";
 import { OwnershipBandSourcesBridge } from "@/features/decks/components/deck-ownership-bridge";
 import { DeckTestBench } from "@/features/decks/components/deck-test-bench";
 import { DeckTokensSection } from "@/features/decks/components/deck-tokens-section";
@@ -139,6 +140,7 @@ interface DeckOverviewProps {
   heroActions?: React.ReactNode;
   notice?: React.ReactNode;
   unknownZoneCounts?: ReadonlyMap<DeckZone, number>;
+  inferredZoneSlots?: ReadonlyMap<DeckZone, InferredZoneSlots>;
   hideDeckValue?: boolean;
   oddsConfig?: DeckOddsConfig | null;
   onSaveOddsConfig?: (config: DeckOddsConfig) => void;
@@ -170,6 +172,7 @@ export function DeckOverview({
   heroActions,
   notice,
   unknownZoneCounts,
+  inferredZoneSlots,
   hideDeckValue,
   oddsConfig,
   onSaveOddsConfig,
@@ -504,6 +507,7 @@ export function DeckOverview({
       expected={zoneExpected(zone, deck.format, cards)}
       emptyHint={zoneEmptyHint(zone, deck.format)}
       unknownCount={unknownZoneCounts?.get(zone) ?? 0}
+      inferredSlots={inferredZoneSlots?.get(zone)}
       format={deck.format}
       zoneViolations={violations.filter(
         (violation) => violation.zone === zone && !violation.cardId,

@@ -14,6 +14,7 @@ import type {
   MetaEventStandingsResponse,
   MetaEventListResponse,
   MetaCountsResponse,
+  MetaListShape,
   MetaLegendDetailResponse,
   MetaLegendListResponse,
   MetaPendingSubmissionsResponse,
@@ -24,7 +25,12 @@ import { implement } from "@orpc/server";
 import type { Repos } from "../../../deps.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { buildPublicDeckDetail } from "../../decks/lib/public-deck-payload.js";
+import { buildPublicDeckDetailWithExtras } from "../../decks/lib/public-deck-payload.js";
+import {
+  guessedCardRows,
+  toMetaDeckInference,
+  toMetaListShape,
+} from "../lib/meta-inference-presenters.js";
 import {
   archiveLegendSlug,
   toMetaDeckCardIndex,
@@ -76,6 +82,17 @@ async function imageIdsForCards(
     unique.map((cardId) => ({ cardId, preferredPrintingId: null })),
   );
   return new Map(unique.map((cardId, index) => [cardId, metas[index]?.imageId ?? null]));
+}
+
+async function listShapesFor(
+  repos: Repos,
+  rows: readonly { deckId: string | null; listStatus: string }[],
+): Promise<Map<string, MetaListShape>> {
+  const deckIds = rows.flatMap((row) =>
+    row.deckId !== null && row.listStatus === "partial" ? [row.deckId] : [],
+  );
+  const shapes = await repos.metaInferences.listShapes(deckIds);
+  return new Map(shapes.map((shape) => [shape.deckId, toMetaListShape(shape)]));
 }
 
 function referencedCardIds(
@@ -157,7 +174,7 @@ export const metaRouter = {
     const cutPhases = cutPhaseOrders(phases);
     const cutSize = cutSizeOf(phases);
     const shown = [...standings.rows, ...bestPerLegend];
-    const [images, matches, cutMatches, cutLine] = await Promise.all([
+    const [images, matches, cutMatches, cutLine, shapes] = await Promise.all([
       imageIdsForCards(canonicalPrintings, referencedCardIds(shown)),
       meta.matchesForPlayers(
         event.id,
@@ -165,10 +182,11 @@ export const metaRouter = {
       ),
       meta.matchesInPhases(event.id, [...cutPhases]),
       cutSize === null ? undefined : meta.cutLineRowForEvent(event.id, cutSize),
+      listShapesFor(context.repos, shown),
     ]);
     const rounds = toStandingsRounds(matches, cutPhases);
     const row = (player: MetaEventPlayerRow) =>
-      toMetaStandingsRow(player, images, rounds.get(player.id));
+      toMetaStandingsRow(player, images, rounds.get(player.id), shapes);
     const topFinishes = standings.rows
       .filter((player) => player.rank <= 3)
       .map((player) => toMetaEventFinish(player, images));
@@ -198,17 +216,20 @@ export const metaRouter = {
         { limit: input.limit ?? STANDINGS_PAGE_SIZE, offset: input.offset ?? 0 },
       );
       const phases = await meta.phasesForEvent(event.id);
-      const [images, matches] = await Promise.all([
+      const [images, matches, shapes] = await Promise.all([
         imageIdsForCards(canonicalPrintings, referencedCardIds(rows)),
         meta.matchesForPlayers(
           event.id,
           rows.map((player) => player.id),
         ),
+        listShapesFor(context.repos, rows),
       ]);
       const rounds = toStandingsRounds(matches, cutPhaseOrders(phases));
 
       return {
-        players: rows.map((player) => toMetaStandingsRow(player, images, rounds.get(player.id))),
+        players: rows.map((player) =>
+          toMetaStandingsRow(player, images, rounds.get(player.id), shapes),
+        ),
         total,
       };
     },
@@ -282,16 +303,27 @@ export const metaRouter = {
   ),
 
   decks: os.decks.handler(async ({ input, context }): Promise<MetaDeckListResponse> => {
-    const { meta, canonicalPrintings } = context.repos;
+    const { meta, metaInferences, canonicalPrintings } = context.repos;
 
     const { rows, total, eventCount, archiveTotal } = await meta.allDeckSummaries(input);
-    const [images, events] = await Promise.all([
-      imageIdsForCards(canonicalPrintings, referencedCardIds(rows)),
+    const partialDeckIds = rows
+      .filter((row) => row.listStatus === "partial")
+      .map((row) => row.deckId);
+    const [events, shapeRows] = await Promise.all([
       meta.eventsBySlugs([...new Set(rows.map((row) => row.eventSlug))]),
+      metaInferences.listShapes(partialDeckIds),
     ]);
+    const guessedChampionIds = shapeRows.flatMap((shape) =>
+      shape.guessedChampionCardId === null ? [] : [shape.guessedChampionCardId],
+    );
+    const images = await imageIdsForCards(canonicalPrintings, [
+      ...referencedCardIds(rows),
+      ...guessedChampionIds,
+    ]);
+    const shapeByDeck = new Map(shapeRows.map((shape) => [shape.deckId, shape]));
 
     return {
-      decks: rows.map((row) => toMetaDeckSummary(row, images)),
+      decks: rows.map((row) => toMetaDeckSummary(row, images, shapeByDeck.get(row.deckId))),
       events: events.map((event) => toMetaEventSummary(event)),
       total,
       eventCount,
@@ -312,7 +344,7 @@ export const metaRouter = {
   ),
 
   deck: os.deck.handler(async ({ input, context, errors }): Promise<MetaDeckDetailResponse> => {
-    const { decks, meta } = context.repos;
+    const { decks, meta, metaInferences, catalog } = context.repos;
 
     const found = await decks.getByShareToken(input.token);
     if (!found) {
@@ -324,11 +356,35 @@ export const metaRouter = {
       throw errors.NOT_FOUND({ message: "Deck not found" });
     }
 
-    const [payload, contributors] = await Promise.all([
-      buildPublicDeckDetail(context.repos, found),
+    const inference =
+      metaContext.listStatus === "partial"
+        ? await metaInferences.inferenceForDeck(found.deck.id)
+        : undefined;
+    const [{ payload, extraCards }, contributors, alsoSeen] = await Promise.all([
+      buildPublicDeckDetailWithExtras(
+        context.repos,
+        found,
+        inference === undefined ? [] : guessedCardRows(inference),
+      ),
       meta.contributorsForPlayer(metaContext.playerId),
+      inference === undefined || inference.battlefieldAlsoCardIds.length === 0
+        ? []
+        : catalog.cardsByIds(inference.battlefieldAlsoCardIds),
     ]);
-    return { ...payload, meta: toMetaDeckContext(metaContext, contributors) };
+    return {
+      ...payload,
+      meta: toMetaDeckContext(metaContext, contributors),
+      inferred:
+        inference === undefined
+          ? null
+          : toMetaDeckInference(
+              inference,
+              payload.cards,
+              extraCards,
+              alsoSeen.map((card) => ({ cardId: card.id, name: card.name, slug: card.slug })),
+              payload.deck.format,
+            ),
+    };
   }),
 
   legends: os.legends.handler(async ({ input, context }): Promise<MetaLegendListResponse> => {

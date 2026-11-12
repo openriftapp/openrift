@@ -12,6 +12,7 @@ import {
   MetaEventDeckPreviewSkeleton,
 } from "@/features/meta/components/meta-event-deck-preview";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
+import { MetaListShapeBar } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
@@ -169,7 +170,7 @@ export function DeckCell({
     return (
       <span
         className={cn(
-          "text-muted-foreground inline-flex items-center gap-1 whitespace-nowrap",
+          "text-muted-foreground inline-flex flex-wrap items-center justify-end gap-x-1 whitespace-nowrap",
           className,
         )}
       >
@@ -190,6 +191,9 @@ export function DeckCell({
         <ChevronRightIcon
           className={cn("size-4 shrink-0 transition-transform", expanded && "rotate-90")}
         />
+        {player.listShape !== null && (
+          <MetaListShapeBar shape={player.listShape} className="mr-5 basis-full justify-end" />
+        )}
       </span>
     );
   }

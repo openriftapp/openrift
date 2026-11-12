@@ -19,6 +19,7 @@ export interface EncodeDeckRow {
   cardType: CardType;
   superTypes: SuperType[];
   domains: Domain[];
+  inferred?: boolean;
 }
 
 type ShortCodeResolver = Pick<ReturnType<typeof canonicalPrintingsRepo>, "shortCodesForRows">;
@@ -54,6 +55,7 @@ export async function encodeDeck(
       domains: row.domains,
       cardName: row.cardName,
       preferredPrintingId: row.preferredPrintingId,
+      inferred: row.inferred,
     });
   }
 

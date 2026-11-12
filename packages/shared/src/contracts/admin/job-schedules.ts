@@ -33,6 +33,7 @@ export const SCHEDULED_JOB_KINDS = [
   "meta.topdeck_sync",
   "meta.playriftbound_sync",
   "meta.playriftbound_recheck",
+  "meta.infer_slots",
   "scan.rebuild_bank",
 ] as const;
 

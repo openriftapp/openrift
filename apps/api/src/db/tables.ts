@@ -132,6 +132,8 @@ import type {
 } from "./tables/meta-sources.js";
 import type {
   MetaCreditsTable,
+  MetaDeckInferenceNeighboursTable,
+  MetaDeckInferencesTable,
   MetaEventMatchesTable,
   MetaEventOverlayMatchesTable,
   MetaEventOverlayPhasesTable,
@@ -293,6 +295,8 @@ export interface Database {
   metaPlayerLinks: MetaPlayerLinksTable;
   metaCredits: MetaCreditsTable;
   metaSubmissions: MetaSubmissionsTable;
+  metaDeckInferences: MetaDeckInferencesTable;
+  metaDeckInferenceNeighbours: MetaDeckInferenceNeighboursTable;
 
   tierLists: TierListsTable;
 

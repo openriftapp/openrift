@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TextLink } from "@/components/ui/text-link";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
@@ -82,6 +84,16 @@ function formatDescriptions(): Record<ExportFormat, React.ReactNode> {
   };
 }
 
+export interface ExportExtraOption {
+  label: string;
+  description: string;
+  cards: DeckBuilderCard[];
+}
+
+function exportCacheKey(format: string | undefined, extraCardIds: readonly string[]): string {
+  return `${format ?? "piltover"}:${extraCardIds.toSorted().join(",")}`;
+}
+
 function exportEmptyNote(failed: boolean, data?: DeckExportResponse): string | undefined {
   if (failed) {
     return m.decks_dialog_export_failed();
@@ -95,6 +107,7 @@ interface DeckExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cards?: DeckBuilderCard[];
+  extraOptions?: ExportExtraOption[];
   publicSource?: PublicDeckSource;
 }
 
@@ -108,6 +121,7 @@ export function DeckExportDialog({
   open,
   onOpenChange,
   cards: cardsProp,
+  extraOptions = [],
   publicSource,
 }: DeckExportDialogProps) {
   const exportDeck = useExportDeck();
@@ -120,7 +134,9 @@ export function DeckExportDialog({
   // else's deck, and a caller bringing its own cards never reads it anyway.
   const liveCards = useDeckCards(cardsProp === undefined ? deckId : "");
   const [tab, setTab] = useState<ExportFormat>("text");
-  const [formats, setFormats] = useState<Partial<Record<ExportFormat, DeckExportResponse>>>({});
+  const [formats, setFormats] = useState<Partial<Record<string, DeckExportResponse>>>({});
+  const [extraIndex, setExtraIndex] = useState(-1);
+  const extraCards = extraOptions[extraIndex]?.cards ?? [];
 
   // Closing discards everything the dialog built up. The local drafts reset
   // during render; the two mutations are external and reset in the effect.
@@ -130,6 +146,7 @@ export function DeckExportDialog({
     if (!open) {
       setTab("text");
       setFormats({});
+      setExtraIndex(-1);
     }
   }
   const discardMutations = useEffectEvent(() => {
@@ -146,22 +163,37 @@ export function DeckExportDialog({
   // In-flight/failed state is read off the mutation, not `formats`, which
   // only caches the code each format came back with.
   const exportMutation = fromCards ? encodeDeck : exportDeck;
+  const pending = exportMutation.variables;
+  const pendingKey =
+    pending === undefined
+      ? undefined
+      : exportCacheKey(
+          pending.format,
+          "cards" in pending
+            ? pending.cards.filter((card) => card.inferred === true).map((card) => card.cardId)
+            : [],
+        );
 
   // Reads the deck as it stands when a format is first opened, not
   // reactively, or an edit behind the dialog refetches mid-copy.
-  const fetchFormat = useEffectEvent((format: ExportFormat) => {
-    if (
-      formats[format] ||
-      (exportMutation.isPending && exportMutation.variables?.format === format)
-    ) {
+  const fetchFormat = useEffectEvent((format: ExportFormat, index: number) => {
+    const extras = extraOptions[index]?.cards ?? [];
+    const key = exportCacheKey(
+      format,
+      extras.map((card) => card.cardId),
+    );
+    if (formats[key] || (exportMutation.isPending && pendingKey === key)) {
       return;
     }
     const onSuccess = (data: DeckExportResponse) => {
-      setFormats((prev) => ({ ...prev, [format]: data }));
+      setFormats((prev) => ({ ...prev, [key]: data }));
     };
     if (fromCards) {
       encodeDeck.mutate(
-        { format, cards: toEncodeDeckCards(cardsProp ?? liveCards) },
+        {
+          format,
+          cards: [...toEncodeDeckCards(cardsProp ?? liveCards), ...toEncodeDeckCards(extras, true)],
+        },
         { onSuccess },
       );
     } else {
@@ -172,11 +204,15 @@ export function DeckExportDialog({
     if (!open) {
       return;
     }
-    fetchFormat(tab);
-  }, [open, tab]);
+    fetchFormat(tab, extraIndex);
+  }, [open, tab, extraIndex]);
 
-  const currentData = formats[tab];
-  const isCurrentTab = exportMutation.variables?.format === tab;
+  const currentKey = exportCacheKey(
+    tab,
+    extraCards.map((card) => card.cardId),
+  );
+  const currentData = formats[currentKey];
+  const isCurrentTab = pendingKey === currentKey;
   const currentLoading = exportMutation.isPending && isCurrentTab;
   const currentError = exportMutation.isError && isCurrentTab;
 
@@ -204,6 +240,34 @@ export function DeckExportDialog({
 
           <TabsContent value={tab}>
             <div className="flex min-w-0 flex-col gap-3">
+              {extraOptions.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <RadioGroup
+                    value={String(extraIndex)}
+                    onValueChange={(value) => setExtraIndex(Number(value))}
+                    className="flex flex-col gap-2"
+                  >
+                    <RadioOptionRow
+                      value="-1"
+                      title={m.decks_dialog_export_as_listed()}
+                      description={m.decks_dialog_export_as_listed_desc()}
+                    />
+                    {extraOptions.map((option, index) => (
+                      <RadioOptionRow
+                        key={option.label}
+                        value={String(index)}
+                        title={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
+                  {extraCards.length > 0 && tab !== "text" && (
+                    <p className="text-muted-foreground text-sm">
+                      {m.decks_dialog_export_inferred_unmarked()}
+                    </p>
+                  )}
+                </div>
+              )}
               <CopyTextPanel
                 key={tab}
                 text={currentData?.code ?? ""}

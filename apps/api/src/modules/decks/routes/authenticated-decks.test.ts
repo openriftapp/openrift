@@ -61,6 +61,7 @@ const mockCatalog = {
   cardBansByCardIds: vi.fn(() =>
     Promise.resolve([] as { cardId: string; formatId: string; bannedAt: string }[]),
   ),
+  cardsByIds: vi.fn((ids: string[]) => Promise.resolve(ids.map((id) => ({ id })))),
 };
 
 const mockUserPreferences = {
@@ -1172,6 +1173,7 @@ describe("POST /api/v1/decks/share/:token/clone", () => {
     expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID, {
       name: undefined,
       description: undefined,
+      extraCards: undefined,
     });
   });
 
@@ -1189,7 +1191,71 @@ describe("POST /api/v1/decks/share/:token/clone", () => {
     expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID, {
       name: "Vex, Gloomist (Ezreal Main)",
       description: "From the archive",
+      extraCards: undefined,
     });
+  });
+
+  it("passes the extra cards a copy gains through to the repo", async () => {
+    mockRepo.cloneFromShareToken.mockResolvedValue({ ...dbDeck });
+    const extraCards = [
+      { cardId: "a0000000-0001-4000-a000-0000000000c1", zone: "champion", quantity: 1 },
+    ];
+    const res = await app.request("/api/v1/decks/share/abc123/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraCards }),
+    });
+    expect(res.status).toBe(201);
+    expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID, {
+      name: undefined,
+      description: undefined,
+      extraCards,
+    });
+  });
+
+  it("rejects an extra card the catalog does not know", async () => {
+    mockCatalog.cardsByIds.mockResolvedValueOnce([]);
+    const res = await app.request("/api/v1/decks/share/abc123/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        extraCards: [
+          { cardId: "a0000000-0001-4000-a000-0000000000c1", zone: "champion", quantity: 1 },
+        ],
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockRepo.cloneFromShareToken).not.toHaveBeenCalled();
+  });
+
+  it("rejects the same extra card twice in one zone", async () => {
+    const extra = {
+      cardId: "a0000000-0001-4000-a000-0000000000c1",
+      zone: "champion",
+      quantity: 1,
+    };
+    const res = await app.request("/api/v1/decks/share/abc123/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraCards: [extra, extra] }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockRepo.cloneFromShareToken).not.toHaveBeenCalled();
+  });
+
+  it("rejects more extra cards than a list's open slots", async () => {
+    const extraCards = Array.from({ length: 5 }, (_, index) => ({
+      cardId: `a0000000-0001-4000-a000-0000000000c${index}`,
+      zone: "battlefield",
+      quantity: 1,
+    }));
+    const res = await app.request("/api/v1/decks/share/abc123/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraCards }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockRepo.cloneFromShareToken).not.toHaveBeenCalled();
   });
 
   it("rejects an empty name override", async () => {

@@ -240,3 +240,23 @@ export interface MetaSubmissionsTable {
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
+
+export interface MetaDeckInferencesTable {
+  deckId: string;
+  championCardId: string | null;
+  championAltCardId: string | null;
+  championUnsure: Generated<boolean>;
+  battlefieldCardId: string | null;
+  battlefieldAlsoCardIds: Generated<string[]>;
+  computedAt: CreatedAt;
+}
+
+export interface MetaDeckInferenceNeighboursTable {
+  deckId: string;
+  zone: MetaInferredZone;
+  position: number;
+  neighbourDeckId: string;
+  shared: number;
+}
+
+export type MetaInferredZone = "champion" | "battlefield";

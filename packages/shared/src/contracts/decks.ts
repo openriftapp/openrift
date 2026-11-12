@@ -277,6 +277,20 @@ const shareTokenParamSchema = z.object({ token: z.string().min(1) });
 export const cloneSharedDeckSchema = shareTokenParamSchema.extend({
   name: deckFieldRules.name.optional(),
   description: z.string().max(8000).optional(),
+  extraCards: z
+    .array(
+      z.object({
+        cardId: z.uuid(),
+        zone: deckZoneSchema,
+        quantity: z.number().int().min(1).max(3),
+      }),
+    )
+    .max(4)
+    .refine(
+      (cards) => new Set(cards.map((card) => `${card.zone}:${card.cardId}`)).size === cards.length,
+      { message: "Each card may appear once per zone" },
+    )
+    .optional(),
 });
 const pinDeckBodySchema = z.object({ isPinned: z.boolean() });
 const archiveDeckBodySchema = z.object({ archived: z.boolean() });

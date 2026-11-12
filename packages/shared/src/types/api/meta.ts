@@ -43,7 +43,10 @@ import type {
   metaDeckFacetsResponseSchema,
   metaDeckQuerySchema,
   metaDeckDetailResponseSchema,
+  metaDeckInferenceSchema,
   metaDeckListResponseSchema,
+  metaInferenceNeighbourSchema,
+  metaListShapeSchema,
   metaDeckSummarySchema,
   metaEventDetailResponseSchema,
   metaEventFieldSchema,
@@ -142,6 +145,12 @@ export type MetaDeckFacetsQuery = z.infer<typeof metaDeckFacetsQuerySchema>;
 export type MetaDeckFacetsResponse = z.infer<typeof metaDeckFacetsResponseSchema>;
 
 export type MetaDeckDetailResponse = z.infer<typeof metaDeckDetailResponseSchema>;
+
+export type MetaDeckInference = z.infer<typeof metaDeckInferenceSchema>;
+
+export type MetaInferenceNeighbour = z.infer<typeof metaInferenceNeighbourSchema>;
+
+export type MetaListShape = z.infer<typeof metaListShapeSchema>;
 
 export type MetaCountsResponse = z.infer<typeof metaCountsResponseSchema>;
 

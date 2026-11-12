@@ -19,6 +19,7 @@ import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions"
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
 import { DeckOverview } from "@/features/decks/components/deck-overview";
+import type { InferredZoneSlots } from "@/features/decks/components/deck-overview-zone-tile";
 import { DeckOwnershipBridge } from "@/features/decks/components/deck-ownership-bridge";
 import { DeckPlanView } from "@/features/decks/components/deck-plan-view";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
@@ -52,6 +53,7 @@ interface PublicDeckSurfaceProps {
   notice?: React.ReactNode;
   footer?: React.ReactNode;
   unknownZoneCounts?: ReadonlyMap<DeckZone, number>;
+  inferredZoneSlots?: ReadonlyMap<DeckZone, InferredZoneSlots>;
   hideDeckValue?: boolean;
 }
 
@@ -84,6 +86,7 @@ function PublicDeckContent({
   notice,
   footer,
   unknownZoneCounts,
+  inferredZoneSlots,
   hideDeckValue,
   topBarHeight,
 }: PublicDeckSurfaceProps & { topBarHeight: number }) {
@@ -215,6 +218,7 @@ function PublicDeckContent({
             }
             notice={notice}
             unknownZoneCounts={unknownZoneCounts}
+            inferredZoneSlots={inferredZoneSlots}
             hideDeckValue={hideDeckValue}
             heroByline={heroByline}
             heroHeading={heroHeading}

@@ -4,6 +4,7 @@ import type { Database } from "../../db/tables.js";
 import type { Repos } from "../../deps.js";
 import { bindEmailDeps } from "../../email.js";
 import type { EmailDeps } from "../../email.js";
+import { metaInferencesRepo } from "./repositories/meta-inferences.js";
 import { metaOverlaysRepo } from "./repositories/meta-overlays.js";
 import { metaPlayerLinksRepo } from "./repositories/meta-player-links.js";
 import { metaSubmissionsRepo } from "./repositories/meta-submissions.js";
@@ -50,6 +51,7 @@ export interface MetaRepos {
   playriftboundEvents: ReturnType<typeof playriftboundEventsRepo>;
   playriftboundResults: ReturnType<typeof playriftboundResultsRepo>;
   metaSubmissions: ReturnType<typeof metaSubmissionsRepo>;
+  metaInferences: ReturnType<typeof metaInferencesRepo>;
 }
 
 export interface MetaServices {
@@ -91,6 +93,7 @@ export function createMetaRepos(
     playriftboundEvents: playriftboundEventsRepo(db),
     playriftboundResults: playriftboundResultsRepo(db),
     metaSubmissions: metaSubmissionsRepo(db),
+    metaInferences: metaInferencesRepo(db),
   };
 }
 

@@ -2,6 +2,7 @@ import { isBanInEffect } from "@openrift/shared/card-ban";
 import type {
   DeckCatalogSubset,
   DeckPlanCardMetaResponse,
+  PublicDeckCardResponse,
   PublicDeckDetailResponse,
 } from "@openrift/shared/types/api/deck";
 import { isBaseBanFormat } from "@openrift/shared/well-known";
@@ -41,6 +42,13 @@ async function catalogSubsetForCards(
   };
 }
 
+export interface PublicDeckCardRowInput {
+  cardId: string;
+  zone: string;
+  quantity: number;
+  preferredPrintingId: string | null;
+}
+
 export interface SharedDeckRow {
   deck: Selectable<DecksTable>;
   ownerName: string | null;
@@ -52,9 +60,19 @@ export async function buildPublicDeckDetail(
   repos: Repos,
   found: SharedDeckRow,
 ): Promise<PublicDeckDetailResponse> {
+  const { payload } = await buildPublicDeckDetailWithExtras(repos, found, []);
+  return payload;
+}
+
+export async function buildPublicDeckDetailWithExtras(
+  repos: Repos,
+  found: SharedDeckRow,
+  extraRows: readonly PublicDeckCardRowInput[],
+): Promise<{ payload: PublicDeckDetailResponse; extraCards: PublicDeckCardResponse[] }> {
   const { decks, deckPlans, catalog, canonicalPrintings, customTags } = repos;
 
-  const cards = await decks.cardsForDeck(found.deck.id, found.deck.userId);
+  const deckCards = await decks.cardsForDeck(found.deck.id, found.deck.userId);
+  const cards = [...deckCards, ...extraRows];
   const planData = await deckPlans.getForDeck(found.deck.id);
   const plan = toDeckPlan(planData);
 
@@ -122,22 +140,25 @@ export async function buildPublicDeckDetail(
     });
   }
 
-  return {
+  const enriched = cards.map((row, index) => {
+    const cardMeta = cardMetaById.get(row.cardId);
+    const printingMeta = printingMetas[index];
+    if (!cardMeta || !printingMeta) {
+      // FK constraint guarantees the card exists; printingMetas is built
+      // in input order. Either being missing means an invariant broke.
+      throw new Error(`Missing enrichment for deck card ${row.cardId}`);
+    }
+    return toPublicDeckCard(row, cardMeta, printingMeta, bannedCardIds.has(row.cardId));
+  });
+
+  const payload: PublicDeckDetailResponse = {
     deck: toPublicDeck(found.deck),
-    cards: cards.map((row, index) => {
-      const cardMeta = cardMetaById.get(row.cardId);
-      const printingMeta = printingMetas[index];
-      if (!cardMeta || !printingMeta) {
-        // FK constraint guarantees the card exists; printingMetas is built
-        // in input order. Either being missing means an invariant broke.
-        throw new Error(`Missing enrichment for deck card ${row.cardId}`);
-      }
-      return toPublicDeckCard(row, cardMeta, printingMeta, bannedCardIds.has(row.cardId));
-    }),
+    cards: enriched.slice(0, deckCards.length),
     owner: toShareOwner({ displayName: found.ownerName, email: found.ownerEmail }),
     plan: visiblePlan,
     planCardMeta,
     customTagAssignments: Object.fromEntries(customTagAssignmentsMap),
     catalog: catalogSubset,
   };
+  return { payload, extraCards: enriched.slice(deckCards.length) };
 }

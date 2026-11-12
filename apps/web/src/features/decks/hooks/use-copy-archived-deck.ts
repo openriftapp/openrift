@@ -1,6 +1,7 @@
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { useNavigate } from "@tanstack/react-router";
 
+import type { CloneSharedDeckInput } from "@/features/decks/hooks/use-decks";
 import { useCloneSharedDeck } from "@/features/decks/hooks/use-decks";
 import {
   createLocalDeck,
@@ -14,8 +15,26 @@ interface CopyArchivedDeckInput {
   token: string;
   deck: MetaDeckDetailResponse["deck"];
   cards: MetaDeckDetailResponse["cards"];
+  extraCards?: MetaDeckDetailResponse["cards"];
   name: string;
   description: string;
+}
+
+function cloneInput(
+  base: { token: string; name: string; description: string },
+  extraCards: CopyArchivedDeckInput["extraCards"] = [],
+): CloneSharedDeckInput {
+  if (extraCards.length === 0) {
+    return base;
+  }
+  return {
+    ...base,
+    extraCards: extraCards.map((card) => ({
+      cardId: card.cardId,
+      zone: card.zone,
+      quantity: card.quantity,
+    })),
+  };
 }
 
 export interface CopyArchivedDeck {
@@ -36,7 +55,14 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
   const cloneMutation = useCloneSharedDeck();
   const navigate = useNavigate();
 
-  const copy = async ({ token, deck, cards, name, description }: CopyArchivedDeckInput) => {
+  const copy = async ({
+    token,
+    deck,
+    cards,
+    extraCards = [],
+    name,
+    description,
+  }: CopyArchivedDeckInput) => {
     if (!isLoggedIn) {
       const localId = createLocalDeck(deck.format, name);
       // createLocalDeck starts with formatConfig null, so a Custom-Region copy would lose its regions.
@@ -47,7 +73,7 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
       });
       setLocalDeckCards(
         localId,
-        cards.map((card) => ({
+        [...cards, ...extraCards].map((card) => ({
           zone: card.zone,
           cardId: card.cardId,
           quantity: card.quantity,
@@ -57,8 +83,9 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
       void navigate({ to: "/decks/$deckId", params: { deckId: localId } });
       return;
     }
+    const input = cloneInput({ token, name, description }, extraCards);
     try {
-      const result = await cloneMutation.mutateAsync({ token, name, description });
+      const result = await cloneMutation.mutateAsync(input);
       void navigate({ to: "/decks/$deckId", params: { deckId: result.deckId } });
     } catch {
       /* Reported by the global mutation error toast. */

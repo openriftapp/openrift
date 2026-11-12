@@ -22,6 +22,7 @@ import type {
   MetaEventPhase,
   MetaEventPlayer,
   MetaEventSummary,
+  MetaListShape,
   MetaActivityItem,
   MetaEventFinish,
   MetaLegendFinish,
@@ -46,6 +47,7 @@ import type {
   MetaEventRow,
   MetaEventWithCounts,
 } from "../repositories/meta-events.js";
+import type { ListShapeRow } from "../repositories/meta-inferences.js";
 import type {
   MetaArchiveLegendRow,
   MetaLegendFinishRow,
@@ -63,6 +65,7 @@ import type {
   MetaPendingSubmissionRow,
   MetaSubmissionRow,
 } from "../repositories/meta-submissions.js";
+import { toMetaListShape } from "./meta-inference-presenters.js";
 
 /**
  * One citation as a page prints it. `provider` and `externalId` are null
@@ -277,7 +280,11 @@ export function toMetaEventDetail(
   };
 }
 
-export function toMetaEventPlayer(row: MetaEventPlayerRow, images: ImageIds): MetaEventPlayer {
+export function toMetaEventPlayer(
+  row: MetaEventPlayerRow,
+  images: ImageIds,
+  shapes?: ReadonlyMap<string, MetaListShape>,
+): MetaEventPlayer {
   return {
     id: row.id,
     rank: row.rank,
@@ -312,6 +319,7 @@ export function toMetaEventPlayer(row: MetaEventPlayerRow, images: ImageIds): Me
     deckName: row.deckName,
     shareToken: row.shareToken,
     listStatus: row.listStatus,
+    listShape: (row.deckId === null ? undefined : shapes?.get(row.deckId)) ?? null,
   };
 }
 
@@ -422,8 +430,9 @@ export function toMetaStandingsRow(
   row: MetaEventPlayerRow,
   images: ImageIds,
   rounds: readonly MetaStandingsRound[] = [],
+  shapes?: ReadonlyMap<string, MetaListShape>,
 ): MetaStandingsRow {
-  return { ...toMetaEventPlayer(row, images), rounds: [...rounds] };
+  return { ...toMetaEventPlayer(row, images, shapes), rounds: [...rounds] };
 }
 
 export function toMetaRunRound(
@@ -445,7 +454,14 @@ export function toMetaRunRound(
 }
 
 /** Composes one archived-deck tile for the cross-event browser. */
-export function toMetaDeckSummary(row: MetaDeckSummaryRow, images: ImageIds): MetaDeckSummary {
+export function toMetaDeckSummary(
+  row: MetaDeckSummaryRow,
+  images: ImageIds,
+  shape?: ListShapeRow,
+): MetaDeckSummary {
+  const listShape = shape === undefined ? null : toMetaListShape(shape);
+  const inferredChampionId =
+    listShape?.inferredChampion === true ? (shape?.guessedChampionCardId ?? null) : null;
   return {
     playerId: row.playerId,
     deckId: row.deckId,
@@ -462,6 +478,15 @@ export function toMetaDeckSummary(row: MetaDeckSummaryRow, images: ImageIds): Me
     championCardId: row.championCardId,
     championName: row.championName,
     championImageId: row.championCardId === null ? null : (images.get(row.championCardId) ?? null),
+    inferredChampionNames:
+      inferredChampionId === null
+        ? []
+        : [shape?.guessedChampionName, shape?.guessedChampionAltName].filter(
+            (name): name is string => typeof name === "string",
+          ),
+    inferredChampionImageId:
+      inferredChampionId === null ? null : (images.get(inferredChampionId) ?? null),
+    listShape,
     playerName: row.playerName,
     playerKey: metaPlayerKey(row.sourceIdentity),
     rank: row.rank,

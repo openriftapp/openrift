@@ -652,12 +652,21 @@ export const decksRouter = {
   }),
 
   cloneShared: os.cloneShared.handler(async ({ input, context }) => {
-    const { decks } = context.repos;
+    const { decks, catalog } = context.repos;
     const userId = context.userId;
+
+    const extraIds = [...new Set((input.extraCards ?? []).map((card) => card.cardId))];
+    if (extraIds.length > 0) {
+      const known = await catalog.cardsByIds(extraIds);
+      if (known.length !== extraIds.length) {
+        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Unknown card in extraCards");
+      }
+    }
 
     const newDeck = await decks.cloneFromShareToken(input.token, userId, {
       name: input.name,
       description: input.description,
+      extraCards: input.extraCards,
     });
     assertFound(newDeck, "Not found");
     return { deckId: newDeck.id };

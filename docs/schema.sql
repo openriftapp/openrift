@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict woVxjDHK0teI10QXY1alrveSz3KkNPTEYNMJmdaRtXQshi569qYA6TEmAi6aVqu
+\restrict 6XtWdu7YLHY2JRMpsi4WPmdddmk97suyDqdJvp0CRDfRbMx5C2VqQds65DYmzMI
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2880,6 +2880,41 @@ CREATE TABLE public.meta_credits (
 
 
 --
+-- Name: meta_deck_inference_neighbours; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_deck_inference_neighbours (
+    deck_id uuid NOT NULL,
+    zone text NOT NULL,
+    "position" smallint NOT NULL,
+    neighbour_deck_id uuid NOT NULL,
+    shared smallint NOT NULL,
+    CONSTRAINT chk_meta_deck_inference_neighbours_position CHECK (("position" >= 0)),
+    CONSTRAINT chk_meta_deck_inference_neighbours_shared CHECK ((shared > 0)),
+    CONSTRAINT chk_meta_deck_inference_neighbours_zone CHECK ((zone = ANY (ARRAY['champion'::text, 'battlefield'::text])))
+);
+
+
+--
+-- Name: meta_deck_inferences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_deck_inferences (
+    deck_id uuid NOT NULL,
+    champion_card_id uuid,
+    champion_alt_card_id uuid,
+    champion_unsure boolean DEFAULT false NOT NULL,
+    battlefield_card_id uuid,
+    battlefield_also_card_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_meta_deck_inferences_also_needs_battlefield CHECK (((cardinality(battlefield_also_card_ids) = 0) OR (battlefield_card_id IS NOT NULL))),
+    CONSTRAINT chk_meta_deck_inferences_alt_needs_champion CHECK (((champion_alt_card_id IS NULL) OR ((champion_card_id IS NOT NULL) AND (champion_alt_card_id <> champion_card_id)))),
+    CONSTRAINT chk_meta_deck_inferences_some_guess CHECK (((champion_card_id IS NOT NULL) OR (battlefield_card_id IS NOT NULL))),
+    CONSTRAINT chk_meta_deck_inferences_unsure_needs_champion CHECK (((NOT champion_unsure) OR (champion_card_id IS NOT NULL)))
+);
+
+
+--
 -- Name: meta_event_matches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5700,6 +5735,22 @@ ALTER TABLE ONLY public.meta_credits
 
 
 --
+-- Name: meta_deck_inference_neighbours meta_deck_inference_neighbours_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inference_neighbours
+    ADD CONSTRAINT meta_deck_inference_neighbours_pkey PRIMARY KEY (deck_id, zone, "position");
+
+
+--
+-- Name: meta_deck_inferences meta_deck_inferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT meta_deck_inferences_pkey PRIMARY KEY (deck_id);
+
+
+--
 -- Name: meta_event_matches meta_event_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7365,6 +7416,13 @@ CREATE INDEX idx_meta_credits_event ON public.meta_credits USING btree (meta_eve
 --
 
 CREATE INDEX idx_meta_credits_user ON public.meta_credits USING btree (user_id);
+
+
+--
+-- Name: idx_meta_deck_inference_neighbours_neighbour; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_deck_inference_neighbours_neighbour ON public.meta_deck_inference_neighbours USING btree (neighbour_deck_id);
 
 
 --
@@ -10457,6 +10515,54 @@ ALTER TABLE ONLY public.meta_credits
 
 
 --
+-- Name: meta_deck_inference_neighbours meta_deck_inference_neighbours_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inference_neighbours
+    ADD CONSTRAINT meta_deck_inference_neighbours_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.meta_deck_inferences(deck_id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inference_neighbours meta_deck_inference_neighbours_neighbour_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inference_neighbours
+    ADD CONSTRAINT meta_deck_inference_neighbours_neighbour_deck_id_fkey FOREIGN KEY (neighbour_deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences meta_deck_inferences_battlefield_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT meta_deck_inferences_battlefield_card_id_fkey FOREIGN KEY (battlefield_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences meta_deck_inferences_champion_alt_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT meta_deck_inferences_champion_alt_card_id_fkey FOREIGN KEY (champion_alt_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences meta_deck_inferences_champion_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT meta_deck_inferences_champion_card_id_fkey FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_deck_inferences meta_deck_inferences_deck_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_deck_inferences
+    ADD CONSTRAINT meta_deck_inferences_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_event_matches meta_event_matches_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11324,5 +11430,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict woVxjDHK0teI10QXY1alrveSz3KkNPTEYNMJmdaRtXQshi569qYA6TEmAi6aVqu
+\unrestrict 6XtWdu7YLHY2JRMpsi4WPmdddmk97suyDqdJvp0CRDfRbMx5C2VqQds65DYmzMI
 

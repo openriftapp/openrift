@@ -12,6 +12,7 @@ export interface DeckCodecCard {
   superTypes: SuperType[];
   domains: Domain[];
   preferredPrintingId: string | null;
+  inferred?: boolean;
 }
 
 export interface EncodeResult {
