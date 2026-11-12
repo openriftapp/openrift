@@ -5,6 +5,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaInferredZone } from "../../../db/tables/meta.js";
+import { META_INFERRED_ZONES } from "../../../db/tables/meta.js";
 import { resolvedPlayerName } from "./meta-shared.js";
 
 const WRITE_CHUNK = 500;
@@ -191,7 +192,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
             )
             .execute();
           const neighbours = chunk.flatMap((row) =>
-            ["champion", "battlefield"].flatMap((zone) =>
+            META_INFERRED_ZONES.flatMap((zone) =>
               row.neighbours
                 .filter((neighbour) => neighbour.zone === zone)
                 .map((neighbour, position) => ({

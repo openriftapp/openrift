@@ -22,7 +22,7 @@ export function cooldownUntil(now: Date): string {
   return new Date(now.getTime() + BLOCK_MS).toISOString();
 }
 
-export function pauseUntil(now: Date): string {
+function pauseUntil(now: Date): string {
   return new Date(now.getTime() + PAUSE_MS).toISOString();
 }
 

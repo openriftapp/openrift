@@ -84,7 +84,7 @@ function formatDescriptions(): Record<ExportFormat, React.ReactNode> {
   };
 }
 
-export interface ExportExtraOption {
+interface ExportExtraOption {
   label: string;
   description: string;
   cards: DeckBuilderCard[];

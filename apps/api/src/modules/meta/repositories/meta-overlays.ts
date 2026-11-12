@@ -28,7 +28,7 @@ export type MetaPushEventOverlayRow = MetaEventOverlayRow & {
   externalId: string;
 };
 export type MetaOverlayCardRow = Selectable<MetaEventPlayerOverlayCardsTable>;
-export type MetaOverlayPhaseRow = Selectable<MetaEventOverlayPhasesTable>;
+type MetaOverlayPhaseRow = Selectable<MetaEventOverlayPhasesTable>;
 export type MetaOverlayMatchRow = Selectable<MetaEventOverlayMatchesTable>;
 export type MetaOverlayPhaseInput = Omit<Insertable<MetaEventOverlayPhasesTable>, "eventOverlayId">;
 export type MetaOverlayMatchInput = Omit<

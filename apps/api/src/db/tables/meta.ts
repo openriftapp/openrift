@@ -259,4 +259,5 @@ export interface MetaDeckInferenceNeighboursTable {
   shared: number;
 }
 
-export type MetaInferredZone = "champion" | "battlefield";
+export const META_INFERRED_ZONES = ["champion", "battlefield"] as const;
+export type MetaInferredZone = (typeof META_INFERRED_ZONES)[number];

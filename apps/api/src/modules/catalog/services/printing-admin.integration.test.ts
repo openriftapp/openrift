@@ -251,9 +251,29 @@ describe.skipIf(!ctx)("insertNewPrinting (integration)", () => {
     expect(created.finish).toBe("foil");
   });
 
-  it("shares the existing face for another size and leaves its printed fields alone", async () => {
+  it("refuses another size whose printed fields differ from the shared face", async () => {
+    await expect(
+      transact((trx) =>
+        insertNewPrinting(
+          trx,
+          cardId,
+          { ...fields, size: "oversized", artist: "Other Artist" },
+          [],
+        ),
+      ),
+    ).rejects.toThrow(`The existing ${SHORT_CODE} normal EN side differs in artist.`);
+
+    const unchanged = await db
+      .selectFrom("faces")
+      .select("artist")
+      .where("id", "=", printingId)
+      .executeTakeFirstOrThrow();
+    expect(unchanged.artist).toBe("Original Artist");
+  });
+
+  it("shares the existing face for another size with matching printed fields", async () => {
     const { printingId: oversizedId } = await transact((trx) =>
-      insertNewPrinting(trx, cardId, { ...fields, size: "oversized", artist: "Other Artist" }, []),
+      insertNewPrinting(trx, cardId, { ...fields, size: "oversized" }, []),
     );
 
     const oversized = await db

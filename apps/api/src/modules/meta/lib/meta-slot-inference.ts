@@ -38,9 +38,9 @@ export interface BattlefieldGuess {
   neighbours: readonly Neighbour[];
 }
 
-export const NEIGHBOUR_COUNT = 5;
-export const MIN_NEIGHBOURS = 3;
-export const UNSURE_VOTE_RATIO = 0.6;
+const NEIGHBOUR_COUNT = 5;
+const MIN_NEIGHBOURS = 3;
+const UNSURE_VOTE_RATIO = 0.6;
 
 export function buildLegendIndex(decks: readonly InferenceDeck[]): LegendIndex {
   const lists = new Map<string, { decks: number[]; quantities: number[] }>();
@@ -217,8 +217,8 @@ export function guessBattlefield(
   return { top, alsoSeen: rest.slice(0, 3), neighbours };
 }
 
-export const ACCURACY_SAMPLE = 100;
-export const LEGEND_ACCURACY_FLOOR = 0.7;
+const ACCURACY_SAMPLE = 100;
+const LEGEND_ACCURACY_FLOOR = 0.7;
 
 export interface GroupDeck extends InferenceDeck {
   partial: boolean;
@@ -234,7 +234,7 @@ export interface PlannedInference {
   neighbours: { zone: "champion" | "battlefield"; neighbourDeckId: string; shared: number }[];
 }
 
-export function legendChampionAccuracy(
+function legendChampionAccuracy(
   index: LegendIndex,
   legendCardId: string,
   facts: ReadonlyMap<string, ChampionFacts>,

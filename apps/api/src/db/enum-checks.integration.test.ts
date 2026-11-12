@@ -76,6 +76,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { setupTestDb } from "../test/integration-setup.js";
 import type { Database } from "./tables.js";
 import { CARD_TOKEN_SOURCES } from "./tables/catalog.js";
+import { META_INFERRED_ZONES } from "./tables/meta.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -114,6 +115,7 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   chk_marketplace_groups_marketplace: marketplaceEnum.options,
   chk_marketplace_ignored_products_marketplace: marketplaceEnum.options,
   chk_marketplace_products_marketplace: marketplaceEnum.options,
+  chk_meta_deck_inference_neighbours_zone: META_INFERRED_ZONES,
   chk_meta_event_overlays_status: metaOverlayStatusSchema.options,
   chk_meta_event_overlays_tier: metaEventTierSchema.options,
   chk_meta_event_player_overlays_entry_status: META_ENTRY_STATUSES,
