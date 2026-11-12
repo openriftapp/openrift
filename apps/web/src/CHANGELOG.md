@@ -10,6 +10,7 @@
 
 ### Other
 
+- fix(Decks): **Compare pickers line up** — on larger screens an empty deck picker in the comparison is now as tall as a filled one, so the Open and clear buttons sit level with the arrow.
 - fix(Decks): **Compare rows open the card** — tapping or clicking a card in the deck comparison now opens its card page.
 - fix(Decks): **Variant groups keep their place** — making a different variant the primary, linking or unlinking variants no longer counts as an update, so the group stays where it was in the deck list. Sorted by date, a group now goes by its most recently edited variant.
 - fix(Cards): **Shown printing marked again** — on a card page on desktop, the printing you are looking at is outlined again in the Printings table.

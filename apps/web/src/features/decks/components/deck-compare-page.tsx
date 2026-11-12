@@ -246,7 +246,7 @@ function DeckPicker({
       {/* A caption, not a form label: the control below is a menu button, which
           `<label for>` can't point at. */}
       <span className="text-sm leading-none font-medium">{label}</span>
-      <div className="flex min-w-0 items-stretch gap-2">
+      <div className="flex min-w-0 flex-1 items-stretch gap-2">
         <ResponsivePopover open={open} onOpenChange={handleOpenChange}>
           <ResponsivePopoverTrigger
             render={
