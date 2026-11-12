@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import type { PackPrinting, PackPull, PackResult } from "@openrift/shared/pack-opener/types";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -132,7 +133,7 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
 
 function buildNotablePulls(
   allPulls: readonly { pull: PackPull; rarity: string; value: number | undefined }[],
-  rarityLabels: Record<string, string>,
+  rarityLabels: LabelMap,
 ): NotablePull[] {
   const seen = new Set<string>();
   const notable: NotablePull[] = [];

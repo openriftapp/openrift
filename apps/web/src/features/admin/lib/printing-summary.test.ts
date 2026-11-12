@@ -1,11 +1,12 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import { printingBlockTitle, printingKindLabel } from "@/features/admin/lib/printing-summary";
 import { makeAdminPrinting } from "@/test/factories";
 
 const kindLabels = {
-  artVariants: { normal: "Normal", altart: "Alt art" },
-  markers: { prerelease: "Prerelease", promo: "Promo" },
+  artVariants: labelMapOf({ normal: "Normal", altart: "Alt art" }),
+  markers: labelMapOf({ prerelease: "Prerelease", promo: "Promo" }),
 };
 
 function basePrinting(overrides: Parameters<typeof makeAdminPrinting>[0] = {}) {

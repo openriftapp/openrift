@@ -29,6 +29,11 @@ import { useAdminMetaOverlays } from "@/features/admin/hooks/use-admin-meta-over
 import { useMetaEventCorrections } from "@/features/admin/hooks/use-admin-meta-submissions";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import { catalogueSource } from "@/features/admin/lib/meta-admin-triggers";
+import {
+  META_SOURCE_LABELS,
+  metaSyncAlerts,
+  overlayCountsForProvider,
+} from "@/features/admin/lib/meta-catalog-display";
 import type { MetaRun, MetaRunCell } from "@/features/admin/lib/meta-source-overview";
 import {
   autoPublishRuleText,
@@ -42,11 +47,6 @@ import {
   refreshKind,
   sourceTone,
 } from "@/features/admin/lib/meta-source-overview";
-import {
-  META_SOURCE_LABELS,
-  metaSyncAlerts,
-  overlayCountsForProvider,
-} from "@/features/meta/lib/meta-catalog-display";
 import { useMountedAt } from "@/hooks/use-mounted-at";
 import { summarizeRunResult } from "@/lib/job-run-display";
 import { cn } from "@/lib/utils";

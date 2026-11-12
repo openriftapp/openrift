@@ -213,6 +213,7 @@ vi.mock("@/features/collections/hooks/use-collections", () => ({
 
 vi.mock("@/hooks/use-enums", () => ({
   useChannelRegistry: () => new Map(),
+  useEnumOrders: () => ({ orders: { rarities: [] }, labels: {} }),
 }));
 
 vi.mock("@/hooks/use-is-mobile", () => ({

@@ -7,6 +7,7 @@ import { appendSetTotal } from "@openrift/shared/fix-typography";
 import { isTbaCode, tbaPublicCode, tbaShortCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { normalizeToPeriodStart } from "@openrift/shared/set-release";
+import { pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { PrintingsTable } from "../../../db/tables/catalog.js";
@@ -407,7 +408,7 @@ export async function removeDeskSide(
         throw new AppError(
           409,
           ERROR_CODES.CONFLICT,
-          `${covers} ${covers === 1 ? "deck uses" : "decks use"} this face as a cover.`,
+          `${covers} ${pluralize(covers, "deck uses", "decks use")} this face as a cover.`,
         );
       }
       await trxRepos.printingDesk.dropFace(printingId, faceId);

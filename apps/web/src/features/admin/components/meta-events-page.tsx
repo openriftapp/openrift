@@ -1,3 +1,5 @@
+import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
@@ -24,8 +26,8 @@ import {
   metaEventsParamsFromSearch,
 } from "@/features/admin/lib/admin-meta-queries";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
+import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { useDeckFormatList } from "@/hooks/use-enums";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/meta");
@@ -33,11 +35,11 @@ const routeApi = getRouteApi("/_app/_authenticated/admin/meta");
 function EventCell({
   row,
   formatLabels,
-}: AdminCellSlotProps<AdminMetaEvent> & { formatLabels: Record<string, string> }) {
+}: AdminCellSlotProps<AdminMetaEvent> & { formatLabels: LabelMap }) {
   if (!row) {
     return null;
   }
-  const detail = [row.organizer, formatLabels[row.format] ?? row.format]
+  const detail = [row.organizer, enumLabel(formatLabels, row.format)]
     .filter((part) => part !== null)
     .join(" · ");
   return (
@@ -118,7 +120,7 @@ function SourcesCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   );
 }
 
-function eventColumns(formatLabels: Record<string, string>): AdminColumnDef<AdminMetaEvent>[] {
+function eventColumns(formatLabels: LabelMap): AdminColumnDef<AdminMetaEvent>[] {
   return [
     {
       header: "Date",

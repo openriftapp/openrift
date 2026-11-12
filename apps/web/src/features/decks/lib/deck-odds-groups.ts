@@ -1,5 +1,6 @@
 import type { DeckOddsGroup } from "@openrift/shared/contracts/decks";
 import { totalQuantity } from "@openrift/shared/deck-rules";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -86,7 +87,7 @@ const UNIT = WellKnown.cardType.UNIT;
 
 export function oddsGroupPresets(
   cards: readonly GroupCard[],
-  typeLabels: Record<string, string>,
+  typeLabels: LabelMap,
 ): OddsGroupPreset[] {
   const presets: OddsGroupPreset[] = [
     // Turn-1 energy is 2 going first, 3 going second.

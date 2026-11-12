@@ -4,6 +4,7 @@ import { boundsOf } from "./collections";
 import { filterCards } from "./filters";
 import { computeFilterCounts } from "./filters-counts";
 import type { FilterCounts } from "./filters-counts";
+import { testSearchContext } from "./test-factories.js";
 import type { Card, Printing } from "./types/catalog.js";
 import type { CardFilters, FilterRange, PresenceDimension } from "./types/search.js";
 import { EMPTY_CARD_FILTERS, NONE, PRESENCE_DIMENSIONS } from "./types/search.js";
@@ -165,7 +166,7 @@ function referenceComputeFilterCounts(
       [dim.filterField]: [],
       ...(dim.excludeField ? { [dim.excludeField]: [] } : {}),
     };
-    const matched = filterCards(printings, filtersWithoutDim, options);
+    const matched = filterCards(printings, filtersWithoutDim, testSearchContext(options));
     const counts = new Map<string, number>();
     if (options.countBy === "card") {
       const seen = new Set<string>();
@@ -190,7 +191,11 @@ function referenceComputeFilterCounts(
   }
   for (const { key, filterField } of REF_FLAGS) {
     const targetValue = filters[filterField] !== false;
-    const matched = filterCards(printings, { ...filters, [filterField]: targetValue }, options);
+    const matched = filterCards(
+      printings,
+      { ...filters, [filterField]: targetValue },
+      testSearchContext(options),
+    );
     result.flags[key] = refCountMatches(matched, options.countBy);
   }
   for (const dimension of PRESENCE_DIMENSIONS) {
@@ -201,7 +206,7 @@ function referenceComputeFilterCounts(
       ...(valueFields.include ? { [valueFields.include]: [] } : {}),
       ...(valueFields.exclude ? { [valueFields.exclude]: [] } : {}),
     };
-    const matched = filterCards(printings, cleared, options);
+    const matched = filterCards(printings, cleared, testSearchContext(options));
     const withValue: Printing[] = [];
     const withoutValue: Printing[] = [];
     for (const printing of matched) {
@@ -220,7 +225,11 @@ function referenceComputeFilterCounts(
     { key: "power", pick: (p) => p.card.power },
   ];
   for (const { key, pick } of statDims) {
-    const matched = filterCards(printings, { ...filters, [key]: REF_EMPTY_RANGE }, options);
+    const matched = filterCards(
+      printings,
+      { ...filters, [key]: REF_EMPTY_RANGE },
+      testSearchContext(options),
+    );
     const values = matched.flatMap((p) => {
       const v = pick(p);
       return v === null ? [] : [v];
@@ -231,7 +240,11 @@ function referenceComputeFilterCounts(
     };
   }
   if (options.getPrice) {
-    const matchedForPrice = filterCards(printings, { ...filters, price: REF_EMPTY_RANGE }, options);
+    const matchedForPrice = filterCards(
+      printings,
+      { ...filters, price: REF_EMPTY_RANGE },
+      testSearchContext(options),
+    );
     const priceGetter = options.getPrice;
     const prices = matchedForPrice.flatMap((p) => {
       const price = priceGetter(p);

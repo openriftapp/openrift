@@ -5,7 +5,7 @@ import {
   parseMetaUploadFile,
   sourceDismissTarget,
   sourceProviderDisplay,
-} from "@/features/meta/lib/meta-source-review";
+} from "@/features/admin/lib/meta-source-review";
 
 describe("parseMetaUploadFile", () => {
   it("accepts a full provider + events body", () => {

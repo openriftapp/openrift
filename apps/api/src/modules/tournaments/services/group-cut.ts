@@ -15,6 +15,7 @@ import {
   validateGroupCount,
 } from "@openrift/shared/pairing/group-stage";
 import { mathRandom } from "@openrift/shared/random";
+import { pluralize } from "@openrift/shared/strings";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
@@ -45,10 +46,6 @@ function badRequest(message: string): AppError {
 
 function conflict(message: string): AppError {
   return new AppError(409, ERROR_CODES.CONFLICT, message);
-}
-
-function plural(count: number, singular: string, pluralWord: string): string {
-  return count === 1 ? singular : pluralWord;
 }
 
 async function loadState(
@@ -191,7 +188,7 @@ async function assertLegendsOnFile(
   }
   const names = still.map((player) => player.displayName).join(", ");
   throw badRequest(
-    `${still.length} ${plural(still.length, "player has", "players have")} no Legend on file: ${names}`,
+    `${still.length} ${pluralize(still.length, "player has", "players have")} no Legend on file: ${names}`,
   );
 }
 

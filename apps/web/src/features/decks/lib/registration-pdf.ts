@@ -5,6 +5,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { jsPDF } from "jspdf";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { downloadFilename } from "@/lib/download";
 import { createPdfDocument } from "@/lib/pdf-document";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
@@ -401,6 +402,7 @@ export async function generateRegistrationPdf(
   cards: DeckBuilderCard[],
   pageSize: RegistrationPageSize,
   siteUrl: string,
+  deckId?: string,
 ): Promise<void> {
   const page = PAGE_SIZES[pageSize];
   const doc = createPdfDocument({
@@ -525,9 +527,7 @@ export async function generateRegistrationPdf(
   const footerBoxHeight = 22;
   drawFooter(doc, rightColX, cardAreaBottom - footerBoxHeight - padding, colWidth);
 
-  const safeName = fields.deckName
-    .replaceAll(/[^\w\s-]/gu, "")
-    .trim()
-    .replaceAll(/\s+/gu, "-");
-  doc.save(`${safeName || "deck"}-registration.pdf`);
+  doc.save(
+    `${downloadFilename({ base: fields.deckName, fallback: "deck", id: deckId })}-registration.pdf`,
+  );
 }

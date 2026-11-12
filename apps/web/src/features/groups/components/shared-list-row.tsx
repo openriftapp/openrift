@@ -2,21 +2,14 @@ import type {
   FriendGroupMemberResponse,
   FriendGroupShareResponse,
 } from "@openrift/shared/types/api/friend-group";
-import type { ListIntent } from "@openrift/shared/types/api/list";
 import { Link } from "@tanstack/react-router";
 
 import { cardLinkVariants } from "@/components/ui/card-link";
 import { CardRow } from "@/components/ui/card-list";
 import { UserAvatar } from "@/components/user-avatar";
-import { LIST_INTENT_ICON, listKindNoun } from "@/features/groups/lib/list-intent-meta";
+import { LIST_INTENT_ICON, listIntentLabel, listKindNoun } from "@/lib/list-intent";
+import { memberName } from "@/lib/member-name";
 import { cn } from "@/lib/utils";
-import { m } from "@/paraglide/messages.js";
-
-const LIST_INTENT_LABEL: Record<ListIntent, () => string> = {
-  wish: m.lists_intent_label_wish,
-  trade: m.lists_intent_label_trade,
-  organize: m.lists_intent_label_organize,
-};
 
 export function SharedListRow({
   slug,
@@ -44,7 +37,7 @@ export function SharedListRow({
           <span className="block truncate">{share.listName}</span>
         </Link>
         <span className="text-muted-foreground text-xs">
-          {LIST_INTENT_LABEL[share.listIntent]()} · {share.entryCount} {noun}
+          {listIntentLabel(share.listIntent)} · {share.entryCount} {noun}
         </span>
       </div>
       {showMember ? (
@@ -59,9 +52,7 @@ export function SharedListRow({
             gravatarHash={member.gravatarHash}
             size="sm"
           />
-          <span className="hidden text-sm sm:inline">
-            {member.userName ?? m.groups_unknown_user()}
-          </span>
+          <span className="hidden text-sm sm:inline">{memberName(member.userName)}</span>
         </Link>
       ) : null}
     </CardRow>

@@ -1,5 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
 import { catalogRefResolver, catalogValueSides } from "@openrift/shared/catalog-join";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabelsFromInit } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels } from "@openrift/shared/printing-label";
 import type {
@@ -26,7 +28,8 @@ export type CatalogPrinting = Omit<
 };
 
 export interface EnumLabels extends VariantLabelEnumLabels, CardStatLabels {
-  deckZones: Record<string, string>;
+  deckZones: LabelMap;
+  languages: LabelMap;
 }
 
 export interface CatalogSnapshot {
@@ -63,14 +66,12 @@ export function buildSnapshot(
     }));
     if (sides.length === 2) {
       const [front, back] = sides as [CatalogPrinting, CatalogPrinting];
-      front.otherSide = {
-        cardName: catalog.cards[back.cardId]?.name ?? "",
-        shortCode: back.shortCode,
+      const nameOf = (cardId: string) => {
+        const card = catalog.cards[cardId];
+        return card ? legendDisplayName(card) : "";
       };
-      back.otherSide = {
-        cardName: catalog.cards[front.cardId]?.name ?? "",
-        shortCode: front.shortCode,
-      };
+      front.otherSide = { cardName: nameOf(back.cardId), shortCode: back.shortCode };
+      back.otherSide = { cardName: nameOf(front.cardId), shortCode: front.shortCode };
     }
     allSides.push(...sides);
   }

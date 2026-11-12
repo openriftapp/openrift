@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { linkHostLabel } from "@openrift/shared/link-hosts";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -84,7 +85,7 @@ export function DeckImportPreviewStep({
   deckFormat: DeckFormat;
   deckFormats: { slug: string; label: string }[];
   zoneOrder: DeckZone[];
-  zoneLabels: Record<DeckZone, string>;
+  zoneLabels: LabelMap;
   readyCount: number;
   toVerifyCount: number;
   needsAttentionCount: number;

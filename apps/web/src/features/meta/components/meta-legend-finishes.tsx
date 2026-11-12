@@ -46,7 +46,7 @@ function ListLink({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: 
         render={<Link to="/meta/decks/$token" params={{ token: finish.shareToken }} />}
       >
         {finish.listStatus === "partial"
-          ? m.meta_list_partial_short()
+          ? m.meta_list_status_partial()
           : m.meta_standings_decklist()}
       </TextLink>
     );

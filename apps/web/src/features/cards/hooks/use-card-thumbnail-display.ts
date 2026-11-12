@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
@@ -16,9 +17,9 @@ export interface CardThumbnailDisplay {
   gridFoil: boolean;
   coarsePointer: boolean;
   domainColors: Record<string, string>;
-  finishLabels: Record<string, string>;
-  sizeLabels: Record<string, string>;
-  rarityLabels: Record<string, string>;
+  finishLabels: LabelMap;
+  sizeLabels: LabelMap;
+  rarityLabels: LabelMap;
   prices: PriceLookup;
   favoriteMarketplace: Marketplace;
   compactFmt: (n: number) => string;

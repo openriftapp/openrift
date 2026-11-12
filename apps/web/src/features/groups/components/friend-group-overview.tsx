@@ -25,7 +25,6 @@ import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useFriendGroupShopEvents } from "@/features/groups/hooks/use-friend-group-shops";
 import { useGroupBoxWants } from "@/features/groups/hooks/use-friend-groups";
-import { LIST_INTENT_ICON, listIntentNoun } from "@/features/groups/lib/list-intent-meta";
 import { filterShopEventsByRange } from "@/features/groups/lib/shop-events";
 import { useGroupTournaments } from "@/features/tournaments/hooks/use-tournaments";
 import {
@@ -33,6 +32,8 @@ import {
   partitionTournaments,
 } from "@/features/tournaments/lib/tournament-display";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { LIST_INTENT_ICON, listIntentNoun } from "@/lib/list-intent";
+import { memberName } from "@/lib/member-name";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -316,7 +317,7 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
       sharedAt: share.sharedAt,
       icon: LIST_INTENT_ICON[share.listIntent],
       name: share.listName,
-      sub: `${capitalize(listIntentNoun(share.listIntent))} · ${share.userName ?? m.groups_a_member()}`,
+      sub: `${capitalize(listIntentNoun(share.listIntent))} · ${memberName(share.userName)}`,
       target: "list",
       listId: share.listId,
     })),
@@ -325,7 +326,7 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
       sharedAt: share.sharedAt,
       icon: FolderIcon,
       name: share.collectionName,
-      sub: `${m.groups_overview_collection_noun()} · ${share.userName ?? m.groups_a_member()}`,
+      sub: `${m.groups_overview_collection_noun()} · ${memberName(share.userName)}`,
       target: "collection",
       collectionId: share.collectionId,
     })),

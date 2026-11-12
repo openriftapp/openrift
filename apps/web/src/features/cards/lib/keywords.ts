@@ -1,19 +1,15 @@
+import { keywordReverseMap } from "@openrift/shared/keywords";
 import { foldForSearch } from "@openrift/shared/search-fold";
 import type { KeywordsResponse } from "@openrift/shared/types/api/keyword";
 
 const FALLBACK_COLOR = "#6a6a6a";
 
-/** Keys must use `foldForSearch`, matching the lookup in `filters.ts`. */
 export function buildTranslationReverseMap(styles: KeywordsResponse["items"]): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const [canonical, entry] of Object.entries(styles)) {
-    if (entry.translations) {
-      for (const label of Object.values(entry.translations)) {
-        map.set(foldForSearch(label), canonical);
-      }
-    }
-  }
-  return map;
+  return keywordReverseMap(
+    Object.entries(styles).flatMap(([keywordName, entry]) =>
+      Object.values(entry.translations ?? {}).map((label) => ({ keywordName, label })),
+    ),
+  );
 }
 
 function resolveKeywordCanonical(keyword: string, reverseMap: Map<string, string>): string {

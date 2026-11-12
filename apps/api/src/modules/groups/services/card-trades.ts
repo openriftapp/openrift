@@ -1,5 +1,6 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { formatDay } from "@openrift/shared/format-date";
+import { formatDay, HOUR_MS } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import { tradeSettlementFingerprint } from "@openrift/shared/trade-settlement";
 import type { TradeSettlementOptions } from "@openrift/shared/trade-settlement";
 import type {
@@ -146,7 +147,7 @@ async function assertRequestableCopies(
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Choose each copy only once");
   }
   if (unique.size !== input.quantity) {
-    const noun = input.quantity === 1 ? "copy" : "copies";
+    const noun = pluralize(input.quantity, "copy", "copies");
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Choose exactly ${input.quantity} ${noun}`);
   }
   const { unreservedCopyIds } = await repos.friendGroupMatches.giverPrintingSupply({
@@ -301,7 +302,7 @@ async function createCheckedTrade(
     });
   }
 
-  const expiresAt = new Date(Date.now() + PENDING_TTL_HOURS * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + PENDING_TTL_HOURS * HOUR_MS);
   let created: LiveCardTrade;
   try {
     created = await repos.cardTrades.create({
@@ -383,7 +384,7 @@ async function resolvePinnedCopyIds(
     throw new AppError(409, ERROR_CODES.CONFLICT, "Choose each copy only once");
   }
   if (unique.size !== trade.quantity) {
-    const noun = trade.quantity === 1 ? "copy" : "copies";
+    const noun = pluralize(trade.quantity, "copy", "copies");
     throw new AppError(409, ERROR_CODES.CONFLICT, `Choose exactly ${trade.quantity} ${noun}`);
   }
   const available = new Set(availableCopyIds);
@@ -765,7 +766,7 @@ async function resolveSettleCopyIds(
     throw new AppError(409, ERROR_CODES.CONFLICT, "Choose each copy only once");
   }
   if (unique.size !== quantity) {
-    const noun = quantity === 1 ? "copy" : "copies";
+    const noun = pluralize(quantity, "copy", "copies");
     throw new AppError(409, ERROR_CODES.CONFLICT, `Choose exactly ${quantity} ${noun}`);
   }
 
@@ -825,7 +826,7 @@ async function claimSettleTarget(
 ): Promise<LiveCardTrade> {
   const settling = quantity ?? trade.quantity;
   if (settling > trade.quantity) {
-    const noun = trade.quantity === 1 ? "copy" : "copies";
+    const noun = pluralize(trade.quantity, "copy", "copies");
     throw new AppError(
       409,
       ERROR_CODES.CONFLICT,

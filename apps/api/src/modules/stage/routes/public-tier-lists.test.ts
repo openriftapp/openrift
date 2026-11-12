@@ -81,11 +81,11 @@ describe("GET /api/v1/tier-lists/share/{token}", () => {
     expect(res.status).toBe(404);
   });
 
-  it("falls back to Anonymous when the owner has no display name", async () => {
+  it("returns a null display name when the owner has none", async () => {
     mockRepo.getByShareToken.mockResolvedValue(sharedRow({ ownerName: null }));
 
     const json = await readJson(await app.request("/api/v1/tier-lists/share/AbC123XyZ789"));
 
-    expect(json.owner.displayName).toBe("Anonymous");
+    expect(json.owner.displayName).toBeNull();
   });
 });

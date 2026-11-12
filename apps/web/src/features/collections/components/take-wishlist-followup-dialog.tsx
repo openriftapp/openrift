@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -42,8 +43,8 @@ export function TakeWishlistFollowUpDialog({
     printing?.otherSide !== undefined &&
     new Set(entries.flatMap((entry) => (entry.cardId ? [entry.cardId] : []))).size > 1;
   const cardNameOf = (entry: WishEntryFlat): string | undefined =>
-    entry.cardId === printing?.cardId
-      ? printing?.card.name
+    printing && entry.cardId === printing.cardId
+      ? legendDisplayName(printing.card)
       : entry.cardId === printing?.otherSide?.cardId
         ? printing?.otherSide?.cardName
         : undefined;

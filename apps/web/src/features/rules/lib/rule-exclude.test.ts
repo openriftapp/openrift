@@ -1,3 +1,4 @@
+import { testSearchContext } from "@openrift/shared/test-factories";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ListRule } from "@openrift/shared/types/list-rule";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
@@ -35,7 +36,12 @@ function tradeRule(overrides: Partial<Extract<ListRule, { kind: "trade" }>> = {}
 
 describe("excludeEntryFromRules", () => {
   it("excludes a card from the wish rule whose filter matches it", () => {
-    const next = excludeEntryFromRules([wishRule()], { kind: "card", cardId: "card-a" }, catalog);
+    const next = excludeEntryFromRules(
+      [wishRule()],
+      { kind: "card", cardId: "card-a" },
+      catalog,
+      testSearchContext(),
+    );
     expect(next).toEqual([expect.objectContaining({ excludeIds: ["card-a"] })]);
   });
 
@@ -44,6 +50,7 @@ describe("excludeEntryFromRules", () => {
       [wishRule()],
       { kind: "printing", printingId: "p-a" },
       catalog,
+      testSearchContext(),
     );
     expect(next?.[0]).toMatchObject({ excludeIds: ["p-a"] });
   });
@@ -54,7 +61,12 @@ describe("excludeEntryFromRules", () => {
       wishRule({ filter: EMPTY_CARD_FILTERS }),
       wishRule({ filter: { ...EMPTY_CARD_FILTERS, rarities: ["rare"] } }),
     ];
-    const next = excludeEntryFromRules(rules, { kind: "card", cardId: "card-a" }, catalog);
+    const next = excludeEntryFromRules(
+      rules,
+      { kind: "card", cardId: "card-a" },
+      catalog,
+      testSearchContext(),
+    );
     expect(next?.map((rule) => (rule.kind === "wish" ? rule.excludeIds : []))).toEqual([
       ["card-a"],
       ["card-a"],
@@ -63,7 +75,12 @@ describe("excludeEntryFromRules", () => {
   });
 
   it("returns null when no rule produces the target", () => {
-    const next = excludeEntryFromRules([wishRule()], { kind: "card", cardId: "card-b" }, catalog);
+    const next = excludeEntryFromRules(
+      [wishRule()],
+      { kind: "card", cardId: "card-b" },
+      catalog,
+      testSearchContext(),
+    );
     expect(next).toBeNull();
   });
 
@@ -72,12 +89,18 @@ describe("excludeEntryFromRules", () => {
       [wishRule({ excludeIds: ["card-a"] })],
       { kind: "card", cardId: "card-a" },
       catalog,
+      testSearchContext(),
     );
     expect(next).toBeNull();
   });
 
   it("appends a copy id to a trade rule's excludeCopyIds", () => {
-    const next = excludeEntryFromRules([tradeRule()], { kind: "copy", copyId: "copy-1" }, catalog);
+    const next = excludeEntryFromRules(
+      [tradeRule()],
+      { kind: "copy", copyId: "copy-1" },
+      catalog,
+      testSearchContext(),
+    );
     expect(next).toEqual([expect.objectContaining({ excludeCopyIds: ["copy-1"] })]);
   });
 
@@ -86,13 +109,14 @@ describe("excludeEntryFromRules", () => {
       [tradeRule({ excludeCopyIds: ["copy-1"] })],
       { kind: "copy", copyId: "copy-1" },
       catalog,
+      testSearchContext(),
     );
     expect(next).toBeNull();
   });
 
   it("does not mutate the input rules", () => {
     const rules = [wishRule()];
-    excludeEntryFromRules(rules, { kind: "card", cardId: "card-a" }, catalog);
+    excludeEntryFromRules(rules, { kind: "card", cardId: "card-a" }, catalog, testSearchContext());
     expect(rules[0]).toMatchObject({ excludeIds: [] });
   });
 });

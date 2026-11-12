@@ -43,7 +43,6 @@ import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
@@ -114,10 +113,12 @@ export function SharedCollectionView({
                 {topBarTrailing ? <TopBarBreadcrumbSeparator className="hidden sm:inline" /> : null}
                 <PageTopBarTitle>{collection.name}</PageTopBarTitle>
                 <span className="text-muted-foreground hidden shrink-0 items-baseline gap-x-1.5 text-xs sm:flex">
-                  <span>{m.collections_shared_by({ name: owner.displayName })}</span>
+                  {owner.displayName ? (
+                    <span>{m.collections_shared_by({ name: owner.displayName })}</span>
+                  ) : null}
                   {valueLabel !== null && (
                     <>
-                      <span aria-hidden="true">·</span>
+                      {owner.displayName ? <span aria-hidden="true">·</span> : null}
                       <ValueWithUnpriced
                         value={valueLabel}
                         unpriced={collection.unpricedCopyCount ?? 0}
@@ -162,7 +163,6 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
-  const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
   const router = useRouter();
   const { data: session } = useSession();
@@ -220,7 +220,6 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
     ownedCountByPrinting: ownedCountForCardData,
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
-    keywordReverseMap,
     channels,
   });
 

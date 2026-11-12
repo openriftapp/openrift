@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type {
   DeckCheckChangeSummary,
   DeckCheckEntryDetailResponse,
@@ -228,7 +229,8 @@ function FixZonesDialog({
                     {displayNameFor(suggestion)}
                   </span>
                   <span className="text-muted-foreground shrink-0 text-sm">
-                    {zoneLabels[suggestion.currentZone]} → {zoneLabels[suggestion.suggestedZone]}
+                    {enumLabel(zoneLabels, suggestion.currentZone)} →{" "}
+                    {enumLabel(zoneLabels, suggestion.suggestedZone)}
                   </span>
                 </Label>
               </li>

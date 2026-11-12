@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
@@ -621,9 +622,9 @@ describe("computeCompletion", () => {
       setId: "set-1",
     });
     const labels = {
-      domains: { fury: "Fury", calm: "Calm" },
-      rarities: { common: "Common", rare: "Rare" },
-      cardTypes: { unit: "Unit", spell: "Spell" },
+      domains: labelMapOf({ fury: "Fury", calm: "Calm" }),
+      rarities: labelMapOf({ common: "Common", rare: "Rare" }),
+      cardTypes: labelMapOf({ unit: "Unit", spell: "Spell" }),
     };
 
     const byDomain = computeCompletion({

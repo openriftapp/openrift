@@ -1,3 +1,5 @@
+import { matchesTextQuery } from "@openrift/shared/search-fold";
+
 import type { QuickAddCardResult } from "@/features/collections/lib/quick-add-result";
 import type { HelpArticle } from "@/lib/help-article";
 import type { NavItemConfig } from "@/lib/nav-items";
@@ -33,10 +35,6 @@ interface BuildPaletteGroupsInput {
   syntaxMatchCount?: number;
 }
 
-function matches(query: string, ...haystack: (string | undefined)[]): boolean {
-  return haystack.some((text) => text !== undefined && text.toLowerCase().includes(query));
-}
-
 /** Nav items are platform-gated, so the same destination can appear in both lists here; merge, keeping the richer description. */
 function dedupeByDestination(navItems: NavItemConfig[]): NavItemConfig[] {
   const byDestination = new Map<string, NavItemConfig>();
@@ -63,7 +61,6 @@ export function buildPaletteGroups({
   syntaxMatchCount,
 }: BuildPaletteGroupsInput): PaletteGroup[] {
   const trimmed = query.trim();
-  const folded = trimmed.toLowerCase();
   const searchable = trimmed.length >= PALETTE_MIN_QUERY_LENGTH;
 
   const quickAddRows: PaletteRow[] = (
@@ -76,16 +73,16 @@ export function buildPaletteGroups({
         ]
       : []
   )
-    .filter((action) => folded === "" || matches(folded, action.label))
+    .filter((action) => trimmed === "" || matchesTextQuery(trimmed, [action.label]))
     .map((action) => ({ kind: "quickAdd", id: `quick-add:${action.verb}`, ...action }));
 
   const uniqueNav = dedupeByDestination(navItems);
   const navRows: PaletteRow[] = uniqueNav
-    .filter((item) => folded === "" || matches(folded, item.label, item.description))
-    .slice(0, folded === "" ? uniqueNav.length : NAV_LIMIT)
+    .filter((item) => trimmed === "" || matchesTextQuery(trimmed, [item.label, item.description]))
+    .slice(0, trimmed === "" ? uniqueNav.length : NAV_LIMIT)
     .map((item) => ({ kind: "nav", id: `nav:${item.to}`, item }));
 
-  if (folded === "") {
+  if (trimmed === "") {
     return [
       ...(quickAddRows.length > 0
         ? [{ heading: m.palette_group_actions(), rows: quickAddRows }]
@@ -100,7 +97,7 @@ export function buildPaletteGroups({
 
   const helpRows: PaletteRow[] = searchable
     ? helpArticles
-        .filter((article) => matches(folded, article.title, article.description))
+        .filter((article) => matchesTextQuery(trimmed, [article.title, article.description]))
         .slice(0, HELP_LIMIT)
         .map((article) => ({ kind: "help", id: `help:${article.slug}`, article }))
     : [];

@@ -145,11 +145,9 @@ const tradeRow = {
   giverName: "Alice",
   giverImage: null,
   giverEmail: "alice@example.com",
-  giverSnapshotName: null,
   receiverName: "Bob",
   receiverImage: null,
   receiverEmail: "bob@example.com",
-  receiverSnapshotName: null,
   counterpartyContacts: [],
 };
 

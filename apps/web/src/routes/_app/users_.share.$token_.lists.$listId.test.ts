@@ -23,8 +23,8 @@ describe("/users/share/$token/lists/$listId head", () => {
   it("previews with the owner's bundle image, busted by this list's updates", async () => {
     const head = await loadedHead(Route, PARAMS, SHARED);
 
-    expect(headTitle(head)).toBe("Haves (trade list) - OpenRift");
-    expect(headMeta(head, "description")).toBe("A Riftbound trade list shared by Teemo Scout.");
+    expect(headTitle(head)).toBe("Haves (Tradelist) - OpenRift");
+    expect(headMeta(head, "description")).toBe("A Riftbound tradelist shared by Teemo Scout.");
     expect(headMeta(head, "og:image")).toBe(
       "http://localhost:5173/api/v1/users/share/BUNDLE123/image.png?v=1785578400000",
     );

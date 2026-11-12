@@ -12,6 +12,7 @@ import {
 } from "./filters-predicates.js";
 import type { BoundsAcc, FilterCardsOptions } from "./filters-shared.js";
 import { bumpBounds, EMPTY_STRINGS, readBounds } from "./filters-shared.js";
+import { cardMatchContext } from "./filters.js";
 import { searchPredicate } from "./search-query/evaluate.js";
 import { isStandardPrinting } from "./standard.js";
 import type { Printing } from "./types/catalog.js";
@@ -321,6 +322,7 @@ export function computeFilterCounts(
   options: ComputeFilterCountsOptions,
 ): FilterCounts {
   const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
+  const matchContext = cardMatchContext(printings, filters, options);
   const matchesQuery = searchPredicate(filters.search, options.vocabulary, options.strict);
   const hasQuery = filters.search.trim() !== "";
   const getPrice = options.getPrice;
@@ -406,7 +408,7 @@ export function computeFilterCounts(
   for (const printing of printings) {
     const { card } = printing;
     // No facet clears the query, so a miss can't count anywhere.
-    if (hasQuery && !matchesQuery(printing, options)) {
+    if (hasQuery && !matchesQuery(printing, matchContext)) {
       continue;
     }
 

@@ -3,8 +3,8 @@ import type {
   PublicUserProfileStats,
 } from "@openrift/shared/types/api/user-share";
 
+import { formatRank } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
-import { getLocale } from "@/paraglide/runtime.js";
 
 const LAST_ACTIVE_LABELS: Record<ProfileLastActive, () => string> = {
   today: () => m.user_profile_active_today(),
@@ -15,27 +15,6 @@ const LAST_ACTIVE_LABELS: Record<ProfileLastActive, () => string> = {
 
 export function lastActiveLabel(lastActive: ProfileLastActive): string {
   return LAST_ACTIVE_LABELS[lastActive]();
-}
-
-const ORDINAL_SUFFIXES: Record<number, string> = { 1: "st", 2: "nd", 3: "rd" };
-
-export function ordinal(n: number): string {
-  const locale = getLocale();
-  if (locale === "de") {
-    return `${n}.`;
-  }
-  if (locale === "fr") {
-    return n === 1 ? "1er" : `${n}e`;
-  }
-  if (locale === "zh-Hans" || locale === "zh-Hant") {
-    return `第${n}名`;
-  }
-  if (locale === "ko") {
-    return `${n}위`;
-  }
-  const mod100 = n % 100;
-  const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (ORDINAL_SUFFIXES[n % 10] ?? "th");
-  return `${n}${suffix}`;
 }
 
 /** The parts under the contributions number, non-zero kinds only. */
@@ -59,7 +38,7 @@ export function bestFinishHint(
     return null;
   }
   return m.user_profile_best_finish({
-    rank: ordinal(bestFinish.rank),
+    rank: formatRank(bestFinish.rank, false),
     players: bestFinish.players,
   });
 }

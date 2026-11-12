@@ -4,8 +4,6 @@
  * (TCGplayer-style NM/LP/MP/HP/DMG, Cardmarket-style MT/EX/GD/PL/PO).
  */
 
-import { enumLabel } from "@openrift/shared/enum-label";
-
 const SOURCE_TO_SLUG: Record<string, string> = {
   mint: "mint",
   "near-mint": "near-mint",
@@ -58,7 +56,7 @@ const SLUG_TO_CODE: Record<string, string> = {
 
 /** Always populated for known slugs, like enum labels. */
 export function conditionShortCode(slug: string): string {
-  return enumLabel(SLUG_TO_CODE, slug);
+  return SLUG_TO_CODE[slug] ?? slug;
 }
 
 /** Unrecorded and graded copies fall back to "NM" because the export format requires a value. */

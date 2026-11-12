@@ -1,6 +1,6 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
-import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
+import { zoneExpected } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -46,7 +46,7 @@ import { zoneAddLabel, zoneEmptyHint } from "@/features/decks/lib/deck-zone-labe
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -98,6 +98,7 @@ export function DeckZoneSection({
   deckItems,
   workbench = false,
 }: DeckZoneSectionProps) {
+  const { zoneLabels } = useZoneOrder();
   const [localOpen, setLocalOpen] = useState(
     zone !== WellKnown.deckZone.SIDEBOARD && zone !== WellKnown.deckZone.OVERFLOW,
   );
@@ -274,7 +275,7 @@ export function DeckZoneSection({
     });
   };
 
-  const zoneLabel = ZONE_LABELS[zone];
+  const zoneLabel = enumLabel(zoneLabels, zone);
 
   return (
     <div

@@ -5,6 +5,7 @@
 
 import { filterCards } from "@openrift/shared/filters";
 import { sortCards } from "@openrift/shared/filters-sort";
+import { testSearchContext } from "@openrift/shared/test-factories";
 import type { CatalogSetResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { CardFilters } from "@openrift/shared/types/search";
@@ -203,15 +204,15 @@ function runTanstackQuery(filters: CardFilters) {
 test("filter+sort: current JS path", async ({ bench }) => {
   await bench.compare(
     bench("noop", () => {
-      const f = filterCards(fixture.printings, SCENARIOS.noop);
+      const f = filterCards(fixture.printings, SCENARIOS.noop, testSearchContext());
       sortCards(f, "name", { sortDir: "asc" });
     }),
     bench("simple", () => {
-      const f = filterCards(fixture.printings, SCENARIOS.simple);
+      const f = filterCards(fixture.printings, SCENARIOS.simple, testSearchContext());
       sortCards(f, "name", { sortDir: "asc" });
     }),
     bench("complex", () => {
-      const f = filterCards(fixture.printings, SCENARIOS.complex);
+      const f = filterCards(fixture.printings, SCENARIOS.complex, testSearchContext());
       sortCards(f, "name", { sortDir: "asc" });
     }),
   );

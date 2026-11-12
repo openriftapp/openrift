@@ -23,6 +23,7 @@ function makeIndex() {
         makeRule({ ruleNumber: "119", ruleType: "subtitle", content: "Game Objects" }),
         makeRule({ ruleNumber: "423", content: "*Stun*" }),
         makeRule({ ruleNumber: "424", content: "A stunned unit does not ready." }),
+        makeRule({ ruleNumber: "425", content: "A unit’s owner chooses its déploiement." }),
       ],
       [
         makeRule({ ruleNumber: "103", content: "Judges resolve rules disputes." }),
@@ -95,6 +96,11 @@ describe("searchRules", () => {
   it("requires every word of a text query to match", () => {
     const results = searchRules(makeIndex(), "stunned ready", 25);
     expect(results.map((entry) => entry.number)).toEqual(["424"]);
+  });
+
+  it("folds apostrophes and accents on both sides", () => {
+    const results = searchRules(makeIndex(), "unit's deploiement", 25);
+    expect(results.map((entry) => entry.number)).toEqual(["425"]);
   });
 
   it("ranks italic term usage and phrase openers over mid-sentence mentions", () => {

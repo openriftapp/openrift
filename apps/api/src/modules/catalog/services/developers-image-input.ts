@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
@@ -64,7 +65,7 @@ export function buildDevelopersImageInput(
     showcasePrinting && card
       ? {
           imageId: firstImageId(showcasePrinting),
-          name: card.name,
+          name: legendDisplayName(card),
           energy: card.energy,
           tags: card.tags,
           domains: card.domains,

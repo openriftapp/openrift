@@ -1,13 +1,9 @@
-import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
-import { sortCards } from "@openrift/shared/filters-sort";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
-import { sortByPreference } from "@openrift/shared/search-query/evaluate";
 import type { SearchOrder } from "@openrift/shared/search-query/keys";
-import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -15,12 +11,11 @@ import type { CardFilters, GroupByField, SortOption } from "@openrift/shared/typ
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { useDeferredValue } from "react";
 
-import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
+import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useTagGroupResolvers } from "@/features/cards/hooks/use-tag-group-resolvers";
-import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
-import { cardsViewTileKey, dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
+import { deriveCardGrid } from "@/features/cards/lib/card-grid-pipeline";
+import { cardsViewTileKey } from "@/features/cards/lib/card-tiles";
 import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
-import { findSearchAlternatives } from "@/features/cards/lib/search-alternative";
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
 import {
   applyOwnedBucketFilter,
@@ -46,7 +41,6 @@ interface UseCardDataParams {
   enabled?: boolean;
   metaEnabled?: boolean;
   countsEnabled?: boolean;
-  keywordReverseMap?: Map<string, string>;
   channels?: readonly DistributionChannel[];
   customTagAssignments?: Record<string, readonly string[]>;
 }
@@ -64,7 +58,6 @@ interface UseCatalogFilterMetaParams {
   prices: PriceLookup;
   enabled?: boolean;
   countsEnabled?: boolean;
-  keywordReverseMap?: Map<string, string>;
   channels?: readonly DistributionChannel[];
   customTagAssignments?: Record<string, readonly string[]>;
 }
@@ -163,15 +156,20 @@ export function useCatalogFilterMeta({
   prices,
   enabled = true,
   countsEnabled = true,
-  keywordReverseMap,
   channels,
   customTagAssignments,
 }: UseCatalogFilterMetaParams) {
   "use memo";
 
   const { orders } = useEnumOrders();
-  const vocabulary = useCatalogSearchVocabulary();
   const { tagGroup, customTagGroup } = useTagGroupResolvers();
+  const lookup = prices ?? EMPTY_PRICE_LOOKUP;
+  const context = useCardSearchContext({
+    getPrice: (p: Printing) => lookup.get(p.printingId, favoriteMarketplace),
+    priceLookup: lookup,
+    getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
+    customTagAssignments,
+  });
 
   // All four inputs must defer together, or the counts transiently mix old
   // and new filter state.
@@ -193,7 +191,6 @@ export function useCatalogFilterMeta({
   const setSlugToName = new Map(sets.map((s) => [s.slug, s.name]));
   const setDisplayLabel = (slug: string) => setSlugToName.get(slug) ?? slug;
 
-  const lookup = prices ?? EMPTY_PRICE_LOOKUP;
   const getPrice = (p: Printing) => lookup.get(p.printingId, favoriteMarketplace);
 
   const availableFilters = getAvailableFilters(allPrintings, {
@@ -227,14 +224,9 @@ export function useCatalogFilterMeta({
   }
   const filterCounts = countsLive
     ? computeFilterCounts(universeForCounts, deferredFilters, {
+        ...context,
+        searchablePrintings: context.searchablePrintings ?? allPrintings,
         countBy: view === "cards" ? "card" : "printing",
-        keywordReverseMap,
-        getPrice,
-        priceLookup: lookup,
-        getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
-        rarityOrder: orders.rarities,
-        vocabulary,
-        customTagAssignments,
         tagGroup,
         customTagGroup,
       })
@@ -261,14 +253,18 @@ export function useCardData({
   enabled = true,
   metaEnabled = true,
   countsEnabled = true,
-  keywordReverseMap,
   channels,
   customTagAssignments,
 }: UseCardDataParams) {
   "use memo";
 
-  const { orders } = useEnumOrders();
-  const vocabulary = useCatalogSearchVocabulary();
+  const lookup = prices ?? EMPTY_PRICE_LOOKUP;
+  const context = useCardSearchContext({
+    getPrice: (p: Printing) => lookup.get(p.printingId, favoriteMarketplace),
+    priceLookup: lookup,
+    getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
+    customTagAssignments,
+  });
 
   const meta = useCatalogFilterMeta({
     allPrintings,
@@ -283,7 +279,6 @@ export function useCardData({
     prices,
     enabled: enabled && metaEnabled,
     countsEnabled,
-    keywordReverseMap,
     channels,
     customTagAssignments,
   });
@@ -301,71 +296,23 @@ export function useCardData({
     };
   }
 
-  const lookup = prices ?? EMPTY_PRICE_LOOKUP;
-  const getPrice = (p: Printing) => lookup.get(p.printingId, favoriteMarketplace);
-
-  // allPrintings arrives pre-sorted (userLanguageRank, canonicalRank); the
-  // dedup/group below relies on filterCards preserving that order.
-  const matchPrintings = (search: string): Printing[] => {
-    let matched = filterCards(
+  const { displayCards, sortedCards, printingsByCardId, priceRangeByCardId, searchAlternatives } =
+    deriveCardGrid({
       allPrintings,
-      { ...filters, search },
-      {
-        keywordReverseMap,
-        getPrice,
-        priceLookup: lookup,
-        getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
-        rarityOrder: orders.rarities,
-        vocabulary,
-        customTagAssignments,
-      },
-    );
-    if (ownedCountByPrinting) {
-      const bucketBy = view === "printings" ? "printing" : "card";
-      if (ownedFilter && ownedFilter.length > 0) {
-        matched = applyOwnedBucketFilter(matched, ownedFilter, ownedCountByPrinting, bucketBy);
-      }
-      if ((ownedCountMin ?? null) !== null || (ownedCountMax ?? null) !== null) {
-        matched = applyOwnedCountFilter(
-          matched,
-          ownedCountMin ?? null,
-          ownedCountMax ?? null,
-          ownedCountByPrinting,
-          bucketBy,
-        );
-      }
-    }
-    return matched;
-  };
-  const filteredCards = matchPrintings(filters.search);
-  const searchAlternatives = findSearchAlternatives(filters.search, filteredCards, matchPrintings);
-
-  // Cards view collapses printings into one tile per card, or per
-  // (cardId, set)/(cardId, rarity) when grouped by set/rarity.
-  const prefer = parseSearchQuery(filters.search).directives.prefer;
-  const displayCards =
-    view === "cards"
-      ? dedupeToCardsViewTiles(
-          prefer ? sortByPreference(filteredCards, prefer, lookup) : filteredCards,
-          groupBy,
-        )
-      : filteredCards;
-
-  const printingsByCardId = Map.groupBy(filteredCards, (p) => p.cardId);
-
-  const priceRangeByCardId =
-    view === "cards" ? computePriceRanges(printingsByCardId, lookup, favoriteMarketplace) : null;
-
-  const sortOptions = buildSortCardsOptions({
-    sortBy,
-    sortDir,
-    sets,
-    getPrice,
-    rarityOrder: orders.rarities,
-    prices: lookup,
-    priceRangeByCardId,
-  });
-  const sortedCards = sortCards(displayCards, sortBy, sortOptions);
+      sets,
+      filters,
+      view,
+      groupBy,
+      sortBy,
+      sortDir,
+      context,
+      prices: lookup,
+      favoriteMarketplace,
+      ownedCountByPrinting,
+      ownedFilter,
+      ownedCountMin,
+      ownedCountMax,
+    });
 
   const ownedCounts = ownedCountByPrinting
     ? buildOwnedCounts(allPrintings, displayCards, ownedCountByPrinting, view, groupBy)

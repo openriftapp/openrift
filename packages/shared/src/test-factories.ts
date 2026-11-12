@@ -3,6 +3,9 @@
  * app bundles.
  */
 
+import type { CardSearchContext } from "./filters-shared.js";
+import { cardSearchContext } from "./filters-shared.js";
+import type { SearchContext } from "./search-query/evaluate.js";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
@@ -141,4 +144,14 @@ export function makePrinting(
     setReleased: setReleased ?? true,
     card: makeCard(card),
   };
+}
+
+export function testSearchContext(overrides: SearchContext = {}): CardSearchContext {
+  return cardSearchContext({
+    vocabulary: undefined,
+    keywordReverseMap: undefined,
+    customTagAssignments: undefined,
+    rarityOrder: undefined,
+    ...overrides,
+  });
 }

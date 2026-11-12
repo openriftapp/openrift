@@ -2,7 +2,6 @@ import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import { isDeckCode } from "@openrift/shared/deck-code";
 import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import type { DeckCodeFormat } from "@openrift/shared/deck-codecs/types";
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import { sourceSlotForZone } from "@openrift/shared/zone-inference";
 
@@ -113,6 +112,6 @@ export function entriesFromSharedDeck(cards: PublicDeckCardResponse[]): DeckImpo
     quantity: card.quantity,
     sourceSlot: sourceSlotForZone(card.zone),
     explicitZone: card.zone,
-    rawFields: { "Parsed Name": card.cardName, Zone: ZONE_LABELS[card.zone] },
+    rawFields: { "Parsed Name": card.cardName },
   }));
 }

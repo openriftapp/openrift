@@ -18,6 +18,15 @@ export function pointsForPod(placements: number[], size: 2 | 3 | 4, scoring: Pod
   return pointsForPlacements(placements, size, scoring.scheme);
 }
 
+export function isResultlessPod(
+  members: readonly { gamePoints: number | null }[],
+  teams: [string, string] | null,
+): boolean {
+  return (
+    teams === null && members.length > 2 && members.every((member) => member.gamePoints === null)
+  );
+}
+
 /** Null when the members don't form exactly two full teams (falls back to per-player scoring). */
 export function teamsOf(members: { teamId: string | null }[]): [string, string] | null {
   if (members.length !== 4 || members.some((member) => member.teamId === null)) {

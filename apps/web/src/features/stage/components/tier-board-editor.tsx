@@ -1,4 +1,5 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { MAX_TIER_ROWS } from "@openrift/shared/contracts/tier-lists";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import {
@@ -316,7 +317,7 @@ function BoardCard({ view, rowIndex, position, width, tapToAssign, onHoverCard }
     return (
       <TierPicker
         rows={picker.rows}
-        cardName={view.card.name}
+        cardName={legendDisplayName(view.card)}
         currentRowIndex={rowIndex}
         onPick={(target) => assign(view.cardId, target)}
         onUnrank={() => unassign(view.cardId)}
@@ -333,7 +334,7 @@ function BoardCard({ view, rowIndex, position, width, tapToAssign, onHoverCard }
         }}
         trigger={
           <Pressable
-            aria-label={m.tier_lists_move_card_aria({ name: view.card.name })}
+            aria-label={m.tier_lists_move_card_aria({ name: legendDisplayName(view.card) })}
             className="rounded-sm"
           >
             <TierCardTile view={view} width={width} />

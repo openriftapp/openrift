@@ -1,3 +1,4 @@
+import { todayUtc } from "@openrift/shared/format-date";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -88,7 +89,7 @@ export function cardBansRepo(db: Kysely<Database>) {
     async unban(cardId: string, formatId: string): Promise<boolean> {
       const result = await db
         .updateTable("cardBans")
-        .set({ unbannedAt: new Date().toISOString().slice(0, 10) })
+        .set({ unbannedAt: todayUtc() })
         .where("cardId", "=", cardId)
         .where("formatId", "=", formatId)
         .where("unbannedAt", "is", null)

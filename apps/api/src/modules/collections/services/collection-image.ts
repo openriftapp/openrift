@@ -11,7 +11,7 @@ const COLLECTION_SHARE_CARD_CAP = 60;
 
 export interface CollectionImageData {
   collectionId: string;
-  ownerName: string;
+  ownerName?: string;
   collectionName: string;
   siteHost?: string;
   shareUrl?: string;

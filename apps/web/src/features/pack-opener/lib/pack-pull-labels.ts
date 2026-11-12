@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { PackPull } from "@openrift/shared/pack-opener/types";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -38,7 +39,7 @@ export function packRarityKey(pull: PackPull): string {
   return pull.printing.rarity;
 }
 
-export function packRarityLabel(rarity: string, rarityLabels: Record<string, string>): string {
+export function packRarityLabel(rarity: string, rarityLabels: LabelMap): string {
   switch (rarity) {
     case WellKnown.cardType.RUNE: {
       return m.packs_slot_rune();
@@ -55,7 +56,7 @@ export function packRarityLabel(rarity: string, rarityLabels: Record<string, str
   }
 }
 
-export function packSlotLabel(pull: PackPull, rarityLabels: Record<string, string>): string {
+export function packSlotLabel(pull: PackPull, rarityLabels: LabelMap): string {
   const { printing } = pull;
   switch (pull.slot) {
     case WellKnown.packSlot.COMMON: {

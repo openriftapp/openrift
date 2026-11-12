@@ -1,4 +1,5 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import type { MarketplaceLinksResponse } from "@openrift/shared/types/api/pricing";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,7 +16,7 @@ export function useMarketplaceLinks(printingIds: string[]) {
         printings: stableIds.join(","),
       }),
     enabled: stableIds.length > 0,
-    staleTime: 60 * 60 * 1000,
+    staleTime: HOUR_MS,
     refetchOnWindowFocus: false,
   });
 }

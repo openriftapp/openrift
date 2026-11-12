@@ -106,10 +106,14 @@ export function SharedTierListPresentation({
   const { data } = usePublicTierList(token);
   return (
     <TierBoardPresentation
-      title={m.tier_lists_presentation_title_shared({
-        title: data.tierList.title,
-        owner: data.owner.displayName,
-      })}
+      title={
+        data.owner.displayName
+          ? m.tier_lists_presentation_title_shared({
+              title: data.tierList.title,
+              owner: data.owner.displayName,
+            })
+          : data.tierList.title
+      }
       boardTitle={data.tierList.title}
       tiers={data.tierList.tiers}
       {...rest}

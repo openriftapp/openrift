@@ -1,11 +1,7 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
 import { totalQuantity, validateDeck } from "@openrift/shared/deck-rules";
-import {
-  isZoneShown,
-  requiredZoneProgress,
-  ZONE_LABELS,
-  zoneExpected,
-} from "@openrift/shared/deck-zones";
+import { isZoneShown, requiredZoneProgress, zoneExpected } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { setIndexById } from "@openrift/shared/set-order";
 import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck";
@@ -97,7 +93,7 @@ import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
-import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
+import { useChampionIdentifierTags, useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { formatterForMarketplace } from "@/lib/format";
@@ -177,6 +173,7 @@ export function DeckOverview({
   oddsConfig,
   onSaveOddsConfig,
 }: DeckOverviewProps) {
+  const { zoneLabels } = useZoneOrder();
   const championIdentifierTags = useChampionIdentifierTags();
   const workbench = useWorkbenchStore((state) => state.relaxed);
   const { labels: enumLabels, orders: enumOrders } = useEnumOrders();
@@ -500,7 +497,7 @@ export function DeckOverview({
       getOwnershipEntry={getOwnershipEntry}
       copyViewFor={copyViewFor}
       zone={zone}
-      label={ZONE_LABELS[zone]}
+      label={enumLabel(zoneLabels, zone)}
       cards={zoneCardsFor(zone)}
       planTags={zone === WellKnown.deckZone.BATTLEFIELD ? planTags : undefined}
       allCards={cards}

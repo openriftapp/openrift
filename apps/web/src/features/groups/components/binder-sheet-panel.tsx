@@ -19,13 +19,14 @@ import {
   binderSheetSizeHint,
   binderSheetSizeLabel,
 } from "@/features/collections/lib/binder-sheet-specs";
+import type { DownloadName } from "@/lib/download";
 import { m } from "@/paraglide/messages.js";
 
 export interface BinderSheetPanelProps {
   shareUrl: string;
   defaultTitle: string;
   defaultSubtitle: string;
-  filenameHint?: string;
+  filename?: DownloadName;
 }
 
 function sizeItems(): { value: BinderSheetSize; label: string }[] {
@@ -62,7 +63,7 @@ export function BinderSheetPanel({
   shareUrl,
   defaultTitle,
   defaultSubtitle,
-  filenameHint,
+  filename,
 }: BinderSheetPanelProps) {
   const [title, setTitle] = useState(defaultTitle);
   const [subtitle, setSubtitle] = useState(defaultSubtitle);
@@ -95,7 +96,7 @@ export function BinderSheetPanel({
         size,
         paper,
         style,
-        filenameHint,
+        filename,
       });
       setGenerating(false);
     } catch {

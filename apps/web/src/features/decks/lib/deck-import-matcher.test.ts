@@ -37,7 +37,22 @@ describe("matchDeckEntries", () => {
       const results = matchDeckEntries(entries, printings);
       expect(results).toHaveLength(1);
       expect(results[0]!.status).toBe("exact");
-      expect(results[0]!.resolvedCard?.cardName).toBe("Sett, The Boss");
+      expect(results[0]!.resolvedCard?.displayName).toBe("Sett, The Boss");
+    });
+
+    it("resolves the printed name of a card's later printing", () => {
+      const localized = [
+        ...printings,
+        stubPrinting({
+          cardId: printings[2]!.cardId,
+          shortCode: "OGN-203",
+          printedName: "Grubenneuling",
+          card: printings[2]!.card,
+        }),
+      ];
+      const results = matchDeckEntries([textEntry("Grubenneuling")], localized);
+      expect(results[0]!.status).toBe("exact");
+      expect(results[0]!.resolvedCard?.displayName).toBe("Pit Rookie");
     });
 
     it("prefers exact name match over tag+name", () => {
@@ -45,7 +60,7 @@ describe("matchDeckEntries", () => {
       const results = matchDeckEntries(entries, printings);
       expect(results).toHaveLength(1);
       expect(results[0]!.status).toBe("exact");
-      expect(results[0]!.resolvedCard?.cardName).toBe("Sett, Kingpin");
+      expect(results[0]!.resolvedCard?.displayName).toBe("Sett, Kingpin");
     });
 
     it("returns unresolved when tag does not match", () => {
@@ -67,7 +82,7 @@ describe("matchDeckEntries", () => {
       const results = matchDeckEntries(entries, printings);
       expect(results).toHaveLength(1);
       expect(results[0]!.status).toBe("exact");
-      expect(results[0]!.resolvedCard?.cardName).toBe("Sett, The Boss");
+      expect(results[0]!.resolvedCard?.displayName).toBe("Sett, The Boss");
     });
 
     it("does not attempt tag+name split for names without commas", () => {
@@ -75,7 +90,7 @@ describe("matchDeckEntries", () => {
       const results = matchDeckEntries(entries, printings);
       expect(results).toHaveLength(1);
       expect(results[0]!.status).toBe("exact");
-      expect(results[0]!.resolvedCard?.cardName).toBe("Pit Rookie");
+      expect(results[0]!.resolvedCard?.displayName).toBe("Pit Rookie");
     });
   });
 

@@ -2,10 +2,16 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type * as UseEnums from "@/hooks/use-enums";
 import { stubCardOwnership } from "@/test/factories";
 
 const marketplaceLinks = vi.hoisted(() => ({ data: undefined as unknown }));
 
+vi.mock("@/hooks/use-enums", async (importOriginal) => {
+  const actual = await importOriginal<typeof UseEnums>();
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return { ...actual, useZoneOrder: useZoneOrderStub };
+});
 vi.mock("@/features/cards/hooks/use-marketplace-links", () => ({
   useMarketplaceLinks: () => marketplaceLinks,
 }));
@@ -88,5 +94,24 @@ describe("DeckMissingCardsDialog footer", () => {
     renderDialog("tcgplayer");
     const button = await screen.findByRole("button", { name: /Add 3 cards to TCGplayer cart/u });
     expect(button.hasAttribute("disabled")).toBe(true);
+  });
+});
+
+describe("DeckMissingCardsDialog zone sections", () => {
+  it("orders the zone sections by deck zone order, not by label", () => {
+    render(
+      <DeckMissingCardsDialog
+        open
+        onOpenChange={() => {}}
+        missingCards={[
+          stubCardOwnership({ cardName: "Sunken Temple", zone: "battlefield", shortfall: 1 }),
+          stubCardOwnership({ cardName: "Azir, Emperor", zone: "legend", shortfall: 1 }),
+        ]}
+        totalMissingValue={undefined}
+        marketplace="cardmarket"
+      />,
+    );
+    const headings = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    expect(headings).toEqual(["Legend", "Battlefields"]);
   });
 });

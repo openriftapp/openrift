@@ -1,3 +1,4 @@
+import { tierListShareDescription } from "@openrift/shared/share-titles";
 import type { PublicTierListDetailResponse } from "@openrift/shared/types/api/tier-list";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
@@ -38,9 +39,7 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
     return seoHead({
       siteUrl,
       title: tierList.title,
-      description:
-        tierList.description ??
-        `A Riftbound tier list by ${owner.displayName}, ranking ${rankedCount} cards.`,
+      description: tierList.description ?? tierListShareDescription(owner.displayName, rankedCount),
       path,
       ogImage,
       oembed: true,

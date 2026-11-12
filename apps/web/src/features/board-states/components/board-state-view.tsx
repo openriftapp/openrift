@@ -22,7 +22,7 @@ export function BoardStateView({
   actions,
 }: {
   boardState: PublicBoardStateResponse;
-  ownerName: string;
+  ownerName: string | null;
   actions?: React.ReactNode;
 }) {
   const [activeStep, setActiveStep] = useState(0);
@@ -44,7 +44,7 @@ export function BoardStateView({
           {boardState.isFeatured ? null : (
             <Badge variant="outline">{m.board_states_not_reviewed()}</Badge>
           )}
-          <span>{m.board_states_byline({ owner: ownerName })}</span>
+          {ownerName ? <span>{m.board_states_byline({ owner: ownerName })}</span> : null}
         </div>
 
         <BoardStepsPlayer

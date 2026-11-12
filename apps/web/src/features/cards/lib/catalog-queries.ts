@@ -2,6 +2,7 @@ import { joinCatalog, joinCatalogCards, joinPrintingSides } from "@openrift/shar
 import { indexByPrinting, indexBySideKey } from "@openrift/shared/printing-side";
 import type { CatalogPrintingsResponse, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
+import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { QueryClient, UseSuspenseQueryOptions } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
@@ -107,6 +108,12 @@ export function completeCatalogEntry(
 
 export function normalizeCatalogLangs(langs: readonly string[]): string[] {
   return [...new Set(langs.map((lang) => lang.toUpperCase()))].sort();
+}
+
+export function ssrCatalogPreloadLangs(urlLanguages: readonly string[] | undefined): string[] {
+  return normalizeCatalogLangs(
+    urlLanguages && urlLanguages.length > 0 ? urlLanguages : PREFERENCE_DEFAULTS.languages,
+  );
 }
 
 // Shared by the client fetch and the /cards SSR head's preload link, which

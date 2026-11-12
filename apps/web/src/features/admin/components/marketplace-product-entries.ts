@@ -1,3 +1,4 @@
+import { HOUR_MS } from "@openrift/shared/format-date";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
 import {
   productSuggestionKey,
@@ -30,7 +31,7 @@ export const MARKETPLACE_CONFIGS: Record<AdminMarketplaceName, SourceMappingConf
   cardnexus: CN_CONFIG,
 };
 
-const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+const STALE_THRESHOLD_MS = 48 * HOUR_MS;
 
 export function isStaleRecord(recordedAt: Date): boolean {
   return Date.now() - recordedAt.getTime() > STALE_THRESHOLD_MS;

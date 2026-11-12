@@ -1,3 +1,4 @@
+import { organizationRoleSchema } from "@openrift/shared/contracts/organizations";
 import type { OrganizationRole } from "@openrift/shared/types/api/tournament";
 import { useState } from "react";
 
@@ -32,25 +33,15 @@ import {
   useRemoveOrganizationMember,
   useUpdateOrganizationMemberRole,
 } from "@/features/tournaments/hooks/use-organizations";
+import { organizationRoleLabels } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-function roleLabel(role: OrganizationRole): string {
-  return {
-    owner: m.tournaments_org_role_owner(),
-    manager: m.tournaments_org_role_manager(),
-    judge: m.tournaments_org_role_judge(),
-  }[role];
-}
-
 // The server enforces the last-owner guard, not this list.
-function memberRoleItems() {
-  return [
-    { value: "owner", label: m.tournaments_org_role_owner() },
-    { value: "manager", label: m.tournaments_org_role_manager() },
-    { value: "judge", label: m.tournaments_org_role_judge() },
-  ] satisfies { value: OrganizationRole; label: string }[];
+function memberRoleItems(): { value: OrganizationRole; label: string }[] {
+  const labels = organizationRoleLabels();
+  return organizationRoleSchema.options.map((value) => ({ value, label: labels[value] }));
 }
 
 export function OrganizationPage({ id }: { id: string }) {
@@ -150,7 +141,7 @@ export function OrganizationPage({ id }: { id: string }) {
                       size="sm"
                     />
                   ) : (
-                    <Badge variant="outline">{roleLabel(member.role)}</Badge>
+                    <Badge variant="outline">{organizationRoleLabels()[member.role]}</Badge>
                   )}
                 </span>
                 {canManage ? (

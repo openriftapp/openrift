@@ -11,6 +11,7 @@ import {
   useDeclineFriendGroupInvite,
 } from "@/features/groups/hooks/use-friend-group-mutations";
 import { DATE_WORDS } from "@/lib/date-words";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 export function PendingRequestsBand({
@@ -41,7 +42,7 @@ export function PendingRequestsBand({
               className="size-7"
             />
             <span className="min-w-0 flex-1 truncate text-sm">
-              <span className="font-medium">{req.userName ?? m.trades_request_unknown_user()}</span>
+              <span className="font-medium">{memberName(req.userName)}</span>
               <span className="text-muted-foreground">
                 {" "}
                 ·{" "}

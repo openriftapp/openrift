@@ -1,5 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { legendDisplayName } from "@openrift/shared/card-name";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -119,7 +120,7 @@ export function PowerPips({
   power: number | null;
   domains: string[];
   colors: Record<string, string>;
-  domainLabels: Record<string, string>;
+  domainLabels: LabelMap;
 }) {
   if (power === null || power <= 0) {
     return null;

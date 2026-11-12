@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { DeckCheckEntryCardResponse } from "@openrift/shared/types/api/deck-check";
@@ -147,7 +148,7 @@ export function CardChecklist({
             key={zone}
             tournamentId={tournamentId}
             entryId={entryId}
-            label={zoneLabels[zone]}
+            label={enumLabel(zoneLabels, zone)}
             cards={zoneCards(zone)}
             displayMode="list"
             printingOf={(card) => resolvedSide(card, printingsById, printingsByCardId)}
@@ -174,7 +175,7 @@ export function CardChecklist({
               key={zone}
               tournamentId={tournamentId}
               entryId={entryId}
-              label={zoneLabels[zone]}
+              label={enumLabel(zoneLabels, zone)}
               cards={zoneCards(zone)}
               displayMode="grid"
               columns={columns}
@@ -194,7 +195,7 @@ export function CardChecklist({
           key={zone}
           tournamentId={tournamentId}
           entryId={entryId}
-          label={zoneLabels[zone]}
+          label={enumLabel(zoneLabels, zone)}
           cards={zoneCards(zone)}
           displayMode="grid"
           columns={columns}

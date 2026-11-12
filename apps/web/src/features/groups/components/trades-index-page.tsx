@@ -25,6 +25,7 @@ import type { TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -62,9 +63,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
           gravatarHash={person.gravatarHash}
           size="sm"
         />
-        <span className="min-w-0 flex-1 truncate font-medium">
-          {person.name ?? m.trades_member_fallback()}
-        </span>
+        <span className="min-w-0 flex-1 truncate font-medium">{memberName(person.name)}</span>
         <ChevronRightIcon className="text-muted-foreground/40 group-hover/card:text-muted-foreground size-4 shrink-0 transition-transform group-hover/card:translate-x-0.5" />
       </div>
       {showGroups ? (
@@ -117,9 +116,7 @@ function YourMoveRow({ person }: { person: TradesIndexPerson }) {
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate font-medium">
-            {person.name ?? m.trades_member_fallback()}
-          </span>
+          <span className="min-w-0 flex-1 truncate font-medium">{memberName(person.name)}</span>
           <Link
             to="/trades/$userId"
             params={{ userId: person.userId }}

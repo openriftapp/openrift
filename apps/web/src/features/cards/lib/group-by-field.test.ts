@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { EnumOrders } from "@openrift/shared/types/enums";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -21,15 +22,15 @@ const ORDERS: Omit<EnumOrders, "finishes"> = {
 };
 
 const LABELS: EnumLabels = {
-  finishes: { normal: "Normal" },
-  rarities: { common: "Common", uncommon: "Uncommon", rare: "Rare" },
-  domains: { fury: "Fury", calm: "Calm", colorless: "Colorless" },
-  cardTypes: { unit: "Unit", spell: "Spell" },
-  superTypes: { champion: "Champion", signature: "Signature" },
-  artVariants: { normal: "Normal" },
-  cardSizes: { standard: "Standard", oversized: "Oversized" },
-  conditions: {},
-  graders: {},
+  finishes: labelMapOf({ normal: "Normal" }),
+  rarities: labelMapOf({ common: "Common", uncommon: "Uncommon", rare: "Rare" }),
+  domains: labelMapOf({ fury: "Fury", calm: "Calm", colorless: "Colorless" }),
+  cardTypes: labelMapOf({ unit: "Unit", spell: "Spell" }),
+  superTypes: labelMapOf({ champion: "Champion", signature: "Signature" }),
+  artVariants: labelMapOf({ normal: "Normal" }),
+  cardSizes: labelMapOf({ standard: "Standard", oversized: "Oversized" }),
+  conditions: labelMapOf({}),
+  graders: labelMapOf({}),
 };
 
 function item(printing: ReturnType<typeof stubPrinting>): CardViewerItem {

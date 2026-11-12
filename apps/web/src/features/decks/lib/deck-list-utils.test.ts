@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Domain } from "@openrift/shared/types/enums";
 import { describe, expect, it } from "vitest";
@@ -496,7 +497,7 @@ describe("groupDecks", () => {
       makeItem({ id: "c", legendDomains: ["calm", "mind"] }),
     ];
     const groups = groupDecks(items, "domains", "asc", {
-      domains: { fury: "Fury", body: "Body", calm: "Calm", mind: "Mind" },
+      domains: labelMapOf({ fury: "Fury", body: "Body", calm: "Calm", mind: "Mind" }),
     });
     const byLabel = Object.fromEntries(groups.map((group) => [group.label, group]));
     expect(byLabel["Body / Fury"]!.items.map((item) => item.deck.id)).toEqual(["a", "b"]);

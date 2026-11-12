@@ -9,8 +9,13 @@ export const shareStateResponseSchema = z.object({
   isPublic: z.boolean(),
 });
 
+export const shareOwnerDisplayNameSchema = z.string().nullable().meta({
+  description:
+    "The owner's display name, or null when the account has no name. Clients omit the byline then.",
+});
+
 export const shareOwnerSchema = z.object({
-  displayName: z.string(),
+  displayName: shareOwnerDisplayNameSchema,
   gravatarHash: z.string().nullable(),
 });
 

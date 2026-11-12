@@ -1,4 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
+import { DAY_MS } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { snapshotHeadline } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -102,8 +103,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
   const dataSpanDays =
     firstSnapshot && lastSnapshot
       ? Math.round(
-          (new Date(lastSnapshot.date).getTime() - new Date(firstSnapshot.date).getTime()) /
-            86_400_000,
+          (new Date(lastSnapshot.date).getTime() - new Date(firstSnapshot.date).getTime()) / DAY_MS,
         )
       : null;
 

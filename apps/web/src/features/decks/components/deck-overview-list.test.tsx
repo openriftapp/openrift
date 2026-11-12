@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { Domain } from "@openrift/shared/types/enums";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
@@ -42,8 +43,8 @@ function renderRow({
         locked,
         borrowed,
       })}
-      rarityLabels={{}}
-      domainLabels={{ fury: "Fury" }}
+      rarityLabels={labelMapOf({})}
+      domainLabels={labelMapOf({ fury: "Fury" })}
       domainColors={DOMAIN_COLORS}
       showOwnership
       reserved={reserved}

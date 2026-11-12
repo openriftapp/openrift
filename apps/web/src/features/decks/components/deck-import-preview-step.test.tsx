@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -39,7 +40,7 @@ function renderStep(props: { importableCount: number; totalCards: number; entrie
       deckFormat={WellKnown.deckFormat.CONSTRUCTED}
       deckFormats={[]}
       zoneOrder={[]}
-      zoneLabels={{} as Record<DeckMatchedEntry["zone"], string>}
+      zoneLabels={labelMapOf({})}
       readyCount={0}
       toVerifyCount={0}
       needsAttentionCount={0}

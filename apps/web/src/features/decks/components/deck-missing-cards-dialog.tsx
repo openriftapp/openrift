@@ -1,4 +1,4 @@
-import { zoneLabel } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { straightenApostrophes } from "@openrift/shared/strings";
 import type { ListKind } from "@openrift/shared/types/api/list";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -36,6 +36,7 @@ import {
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
 import { AddToWishlistDialog } from "@/features/lists/components/add-to-wishlist-dialog";
 import { CreateListDialog } from "@/features/lists/components/create-list-dialog";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { formatterForMarketplace } from "@/lib/format";
 import {
   marketplaceCartLabel,
@@ -126,9 +127,12 @@ function MissingCardsDialogBody({
   const fmt = formatterForMarketplace(marketplace);
   const meta = MARKETPLACE_META[marketplace];
   const showImages = useDisplayStore((s) => s.showImages);
+  const { zoneOrder, zoneLabels } = useZoneOrder();
+  const zoneRank = new Map<string, number>(zoneOrder.map((zone, index) => [zone, index]));
+  const rankOf = (zone: string) => zoneRank.get(zone) ?? zoneOrder.length;
 
   const sorted = missingCards.toSorted((a, b) => {
-    const zoneCmp = zoneLabel(a.zone).localeCompare(zoneLabel(b.zone));
+    const zoneCmp = rankOf(a.zone) - rankOf(b.zone);
     if (zoneCmp !== 0) {
       return zoneCmp;
     }
@@ -205,7 +209,7 @@ function MissingCardsDialogBody({
           {groupedByZone.map(([zone, cards]) => (
             <div key={zone} className="pt-3 first:pt-0">
               <SectionHeading as="h3" className="px-2 pb-1">
-                {zoneLabel(zone)}
+                {enumLabel(zoneLabels, zone)}
               </SectionHeading>
               {cards.map((card) => {
                 const printing = card.cheapestPrinting ?? card.displayPrinting;

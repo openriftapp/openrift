@@ -64,7 +64,7 @@ describe("SharePanel", () => {
           unfurls: true,
           actions: <span>native share</span>,
         }}
-        qrFilenameBase="ogn-001-en"
+        qrFilename={{ base: "ogn-001-en", fallback: "card" }}
       />,
     );
     expect(screen.getByText("native share")).toBeInTheDocument();

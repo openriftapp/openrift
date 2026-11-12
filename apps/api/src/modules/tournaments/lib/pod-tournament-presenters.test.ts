@@ -185,6 +185,32 @@ describe("toRoundResponse", () => {
     expect(partial.pods[0]!.members.map((entry) => entry.points)).toEqual([null, null, null, null]);
   });
 
+  it("awards no points to a 3 or 4 player pod placed without game points", () => {
+    for (const count of [3, 4]) {
+      const members = MEMBERS.slice(0, count).map((entry) => ({
+        ...entry,
+        placement: 1,
+        gamePoints: null,
+      }));
+      const response = toRoundResponse(
+        { round: ROUND, pods: [{ pod: { ...POD, size: count }, members }], byes: [] },
+        SCORING,
+      );
+      expect(response.pods[0]!.members.map((entry) => entry.points)).toEqual(
+        Array.from({ length: count }, () => null),
+      );
+    }
+  });
+
+  it("scores a genuine tie entered with equal game points", () => {
+    const members = MEMBERS.slice(0, 3).map((entry) => ({ ...entry, placement: 1, gamePoints: 2 }));
+    const response = toRoundResponse(
+      { round: ROUND, pods: [{ pod: { ...POD, size: 3 }, members }], byes: [] },
+      SCORING,
+    );
+    expect(response.pods[0]!.members.map((entry) => entry.points)).toEqual([2, 2, 2]);
+  });
+
   it("scores a 2v2 pod by team when the tournament plays 2v2", () => {
     const response = toRoundResponse(
       {

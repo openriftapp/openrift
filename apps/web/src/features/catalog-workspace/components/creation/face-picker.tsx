@@ -10,9 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDeskCardPrintings } from "@/features/admin/hooks/use-printing-desk";
-import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
-import { useCards } from "@/features/cards/hooks/use-cards";
-import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
+import { CatalogCardSlugSearch } from "@/features/cards/components/catalog-card-slug-search";
 import type { ExistingDraftFace } from "@/features/catalog-workspace/lib/creation-draft";
 import { existingFacesFromDeskRows } from "@/features/catalog-workspace/lib/creation-draft";
 
@@ -50,29 +48,6 @@ function CardFaces({
         </Button>
       ))}
     </div>
-  );
-}
-
-function CardSearchStep({ onPick }: { onPick: (cardSlug: string) => void }) {
-  const [query, setQuery] = useState("");
-  const results = useCatalogCardSearch(query);
-  const { cardsById } = useCards();
-
-  return (
-    <CardSearchDropdown
-      results={results}
-      onSearch={setQuery}
-      onSelect={(cardId) => {
-        const slug = cardsById[cardId]?.slug;
-        if (slug) {
-          onPick(slug);
-        }
-      }}
-      placeholder="Search the catalog…"
-      className="w-full"
-      // oxlint-disable-next-line jsx-a11y/no-autofocus -- the dialog's first control
-      autoFocus
-    />
   );
 }
 
@@ -115,7 +90,11 @@ export function FacePicker({
         {open && (
           <Suspense fallback={<Skeleton className="h-8 w-full" />}>
             {slug === null ? (
-              <CardSearchStep onPick={setSearchedSlug} />
+              <CatalogCardSlugSearch
+                // oxlint-disable-next-line jsx-a11y/no-autofocus -- the dialog's first control
+                autoFocus
+                onPick={setSearchedSlug}
+              />
             ) : (
               <div className="flex flex-col gap-3">
                 <CardFaces

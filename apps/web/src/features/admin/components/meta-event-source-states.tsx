@@ -22,12 +22,12 @@ import {
   useRemoveMetaEvent,
 } from "@/features/admin/hooks/use-admin-meta";
 import { useCollectMirrorRow } from "@/features/admin/hooks/use-admin-meta-mirror";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import {
   cancelledAtSourceText,
   sourceStateLifecycle,
 } from "@/features/admin/lib/meta-event-source-state";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 
 function SourceStateRow({ state }: { state: AdminMetaSourceState }) {
   const collect = useCollectMirrorRow();

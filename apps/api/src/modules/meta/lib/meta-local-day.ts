@@ -1,4 +1,5 @@
-const MS_PER_HOUR = 3_600_000;
+import { HOUR_MS, formatDay } from "@openrift/shared/format-date";
+
 const DEGREES_PER_HOUR = 15;
 
 /**
@@ -7,8 +8,8 @@ const DEGREES_PER_HOUR = 15;
  */
 export function longitudeLocalDay(startAt: Date, longitude: number | null): string {
   if (longitude === null) {
-    return startAt.toISOString().slice(0, 10);
+    return formatDay(startAt);
   }
   const offsetHours = Math.round(longitude / DEGREES_PER_HOUR);
-  return new Date(startAt.getTime() + offsetHours * MS_PER_HOUR).toISOString().slice(0, 10);
+  return formatDay(new Date(startAt.getTime() + offsetHours * HOUR_MS));
 }

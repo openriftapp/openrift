@@ -70,7 +70,7 @@ export function CollectionExportDialog({
   return (
     <ExportDialog
       title={m.collections_export_collection_title()}
-      filenameBase={collectionName}
+      filename={{ base: collectionName, fallback: "collection", id: collectionId }}
       payload={{ mode: "printings", stacks: exportStacks, copiesById }}
       unit="copy"
       successMessage={m.collections_export_collection_success()}

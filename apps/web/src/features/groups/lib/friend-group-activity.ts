@@ -1,4 +1,5 @@
 import { TRADE_VOLUME_WINDOW_DAYS } from "@openrift/shared/contracts/friend-groups";
+import { formatDayLocal } from "@openrift/shared/format-date";
 import type { AggregatedActivityRow } from "@openrift/shared/friend-group-activity";
 import { aggregateActivityEvents } from "@openrift/shared/friend-group-activity";
 import type { FriendGroupActivityEvent } from "@openrift/shared/types/api/friend-group";
@@ -21,11 +22,6 @@ export interface ActivityDayGroup {
   rows: AggregatedActivityRow[];
 }
 
-function localDayKey(at: string): string {
-  const date = new Date(at);
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
 /** Aggregates within a local day, so a trade batch never spans two date leaves. */
 export function buildActivityDays(
   events: readonly FriendGroupActivityEvent[],
@@ -33,7 +29,7 @@ export function buildActivityDays(
 ): ActivityDayGroup[] {
   const days: ActivityDayGroup[] = [];
   let budget = maxRows;
-  for (const [key, dayEvents] of Map.groupBy(events, (event) => localDayKey(event.at))) {
+  for (const [key, dayEvents] of Map.groupBy(events, (event) => formatDayLocal(event.at))) {
     if (budget <= 0) {
       break;
     }

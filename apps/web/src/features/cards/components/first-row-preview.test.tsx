@@ -1,3 +1,5 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,7 +11,7 @@ interface LoaderData {
   firstRow: FirstRowCard[];
   facets: AvailableFiltersWire | null;
   availableLanguages: string[];
-  setLabels: Record<string, string>;
+  setLabels: LabelMap;
   counts: CardCounts;
 }
 
@@ -104,7 +106,7 @@ function makeLoaderData(overrides: Partial<LoaderData> = {}): LoaderData {
     firstRow: [],
     facets: EMPTY_FACETS,
     availableLanguages: [],
-    setLabels: {},
+    setLabels: labelMapOf({}),
     counts: { totalCards: 0, filteredCount: 0 },
     ...overrides,
   };
@@ -160,7 +162,7 @@ describe("FirstRowPreview", () => {
     mockUseLoaderData.mockReturnValue(
       makeLoaderData({
         firstRow: [makeCard(0, "OGN"), makeCard(1, "OGN")],
-        setLabels: { OGN: "Origins" },
+        setLabels: labelMapOf({ OGN: "Origins" }),
       }),
     );
     const { container } = renderPreview();
@@ -170,7 +172,7 @@ describe("FirstRowPreview", () => {
 
   it("falls back to the slug when setLabels has no entry for the set", () => {
     mockUseLoaderData.mockReturnValue(
-      makeLoaderData({ firstRow: [makeCard(0, "ARC")], setLabels: {} }),
+      makeLoaderData({ firstRow: [makeCard(0, "ARC")], setLabels: labelMapOf({}) }),
     );
     const { container } = renderPreview();
     expect(container.textContent).toContain("ARC");

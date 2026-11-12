@@ -20,13 +20,28 @@ const CARDS = [
     tags: ["Azir"],
   },
   { id: "c-dorans", slug: "dorans-shield", name: "Doran’s Shield", types: ["gear"], tags: [] },
+  {
+    id: "c-mf-buccaneer",
+    slug: "miss-fortune-buccaneer",
+    name: "Miss Fortune, Buccaneer",
+    types: ["unit"],
+    tags: ["Miss Fortune"],
+  },
+  {
+    id: "c-mf-bounty",
+    slug: "bounty-hunter",
+    name: "Bounty Hunter",
+    types: ["legend"],
+    tags: ["Miss Fortune"],
+  },
 ];
 
 const CODES = [{ cardId: "c-annie", shortCode: "OGN-001", publicCode: "OGN-001/298" }];
 
 /** Each call builds its own repos double so the per-`Repos` index memo starts cold. */
-function makeRepos(aliases: { cardId: string; normName: string }[] = []) {
+function makeRepos() {
   const cards = vi.fn().mockResolvedValue(CARDS);
+  const nameAliases = vi.fn().mockResolvedValue([{ cardId: "c-dorans", normName: "missfortune" }]);
   const canonicalPrintingByCard = vi
     .fn()
     .mockImplementation((ids: string[]) =>
@@ -35,13 +50,13 @@ function makeRepos(aliases: { cardId: string; normName: string }[] = []) {
   const repos = {
     catalog: {
       cards,
-      printingCodes: vi.fn().mockResolvedValue(CODES),
-      nameAliases: vi.fn().mockResolvedValue(aliases),
+      printingLookupRows: vi.fn().mockResolvedValue(CODES),
+      nameAliases,
       catalogContentVersion: vi.fn().mockResolvedValue("catalog-v1"),
     },
     deckCheck: { canonicalPrintingByCard },
   } as unknown as Repos;
-  return { repos, cards, canonicalPrintingByCard };
+  return { repos, cards, canonicalPrintingByCard, nameAliases };
 }
 
 describe("resolveDeckCheckCards", () => {
@@ -67,12 +82,17 @@ describe("resolveDeckCheckCards", () => {
     );
   });
 
-  it("matches through a curated alias", async () => {
-    const { repos } = makeRepos([{ cardId: "c-annie", normName: "anniestarterpromo" }]);
+  it("leaves a bare champion name to the cards it fits, never to an aliased card", async () => {
+    const { repos, nameAliases } = makeRepos();
 
-    const results = await resolveDeckCheckCards(repos, [{ name: "Annie Starter Promo" }]);
+    const results = await resolveDeckCheckCards(repos, [{ name: "Miss Fortune" }]);
 
-    expect(results.get(cardResolutionKey("Annie Starter Promo"))?.resolvedCardId).toBe("c-annie");
+    expect(results.get(cardResolutionKey("Miss Fortune"))).toEqual({
+      resolvedCardId: null,
+      resolvedPrintingId: null,
+      matchStatus: "ambiguous",
+    });
+    expect(nameAliases).not.toHaveBeenCalled();
   });
 
   it("matches across typographic punctuation the player cannot type", async () => {

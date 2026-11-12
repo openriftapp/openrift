@@ -17,7 +17,6 @@ import {
 } from "@/features/lists/lib/list-entries";
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { useChannelRegistry } from "@/hooks/use-enums";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSession } from "@/hooks/use-session";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -36,7 +35,6 @@ export function useListEntryBrowserData({
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
-  const keywordReverseMap = useKeywordReverseMap();
 
   const { data: session } = useSession();
   const { data: ownedCountByPrinting } = useOwnedCount(Boolean(session?.user));
@@ -76,7 +74,6 @@ export function useListEntryBrowserData({
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
     metaEnabled: !showLibrary,
-    keywordReverseMap,
     channels,
   });
 
@@ -106,7 +103,6 @@ export function useListEntryBrowserData({
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
     metaEnabled: showLibrary,
-    keywordReverseMap,
     channels,
   });
 

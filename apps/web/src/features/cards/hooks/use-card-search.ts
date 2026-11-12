@@ -1,41 +1,48 @@
-import type { SearchableCard, SearchablePrintingCodes } from "@openrift/shared/card-search";
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
+import type { CardSearchIndex, SearchableCard } from "@openrift/shared/card-search";
 import {
-  buildCardIndex,
   CARD_SEARCH_MIN_QUERY_LENGTH,
   CARD_SEARCH_RESULT_LIMIT,
   searchCards,
 } from "@openrift/shared/card-search";
-import { useMemo } from "react";
 
 import type { CardSearchResult } from "@/features/cards/lib/card-search-result";
 
-const NO_PRINTING_CODES: ReadonlyMap<string, readonly SearchablePrintingCodes[]> = new Map();
-
-/**
- * Ranked free-text card search shared by every card picker in the app.
- * `cards` and `printingsByCardId` must be identity-stable across keystrokes; both
- * `useMemo` calls are deliberate, rebuilding the search index per keystroke otherwise.
- */
 export function useCardSearch<TCard extends SearchableCard>(
-  cards: readonly TCard[],
+  index: CardSearchIndex<TCard>,
   query: string,
-  printingsByCardId: ReadonlyMap<string, readonly SearchablePrintingCodes[]> = NO_PRINTING_CODES,
   limit: number = CARD_SEARCH_RESULT_LIMIT,
   minQueryLength: number = CARD_SEARCH_MIN_QUERY_LENGTH,
 ): TCard[] {
-  const index = useMemo(() => buildCardIndex(cards, printingsByCardId), [cards, printingsByCardId]);
-
-  return useMemo(() => {
-    if (query.length < minQueryLength) {
-      return [];
-    }
-    return searchCards(index, query, limit);
-  }, [index, query, limit, minQueryLength]);
+  "use memo";
+  if (query.length < minQueryLength) {
+    return [];
+  }
+  return searchCards(index, query, limit);
 }
 
-/** No public codes here, so each short code stands in for both. */
-function shortCodesAsCodes(shortCodes: readonly string[]): SearchablePrintingCodes[] {
-  return shortCodes.map((code) => ({ shortCode: code, publicCode: code }));
+function adminLookupIndex<TCard extends { id: string; slug: string; name: string }>(
+  cards: readonly TCard[],
+  shortCodesOf: (card: TCard) => readonly string[],
+) {
+  return buildCardLookupIndex(
+    cards.map((card) => ({
+      id: card.id,
+      slug: card.slug,
+      name: card.name,
+      types: [],
+      tags: [],
+      source: card,
+    })),
+    cards.flatMap((card) =>
+      shortCodesOf(card).map((code) => ({
+        cardId: card.id,
+        shortCode: code,
+        publicCode: code,
+        printedName: null,
+      })),
+    ),
+  );
 }
 
 export interface AdminSearchableCard extends SearchableCard {
@@ -47,13 +54,9 @@ export function useAdminCardSearch(
   cards: readonly AdminSearchableCard[],
   query: string,
 ): CardSearchResult[] {
-  const printingsByCardId = useMemo(
-    () => new Map(cards.map((card) => [card.id, shortCodesAsCodes(card.shortCodes)])),
-    [cards],
-  );
-
-  const matches = useCardSearch(cards, query, printingsByCardId);
-  return matches.map((card) => ({
+  "use memo";
+  const index = adminLookupIndex(cards, (card) => card.shortCodes);
+  return useCardSearch(index, query).map(({ source: card }) => ({
     id: card.id,
     label: card.name,
     sublabel: card.slug,
@@ -75,26 +78,19 @@ export function useAssignableCardSearch(
   cards: readonly AssignableCard[],
   query: string,
 ): CardSearchResult[] {
-  const searchable = useMemo(
-    () =>
-      cards.map((card) => ({
-        id: card.cardId,
-        slug: card.cardSlug,
-        name: card.cardName,
-        setName: card.setName,
-        firstShortCode: card.shortCodes.toSorted((a, b) => a.localeCompare(b))[0] ?? "",
-      })),
-    [cards],
+  "use memo";
+  const index = adminLookupIndex(
+    cards.map((card) => ({
+      id: card.cardId,
+      slug: card.cardSlug,
+      name: card.cardName,
+      setName: card.setName,
+      shortCodes: card.shortCodes,
+      firstShortCode: card.shortCodes.toSorted((a, b) => a.localeCompare(b))[0] ?? "",
+    })),
+    (card) => card.shortCodes,
   );
-
-  const printingsByCardId = useMemo(
-    () => new Map(cards.map((card) => [card.cardId, shortCodesAsCodes(card.shortCodes)])),
-    [cards],
-  );
-
-  const matches = useCardSearch(searchable, query, printingsByCardId, ASSIGNABLE_RESULT_LIMIT);
-
-  return matches.map((card) => ({
+  return useCardSearch(index, query, ASSIGNABLE_RESULT_LIMIT).map(({ source: card }) => ({
     id: card.id,
     label: card.name,
     sublabel: card.firstShortCode,

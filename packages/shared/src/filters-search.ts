@@ -26,7 +26,7 @@ function foldedContains(value: string | null | undefined, term: SearchTerm): boo
  * As {@link foldedContains}, but also matches with separators stripped from
  * both sides. Restricted to identifier-like fields; see {@link squashForSearch}.
  */
-function looselyContains(value: string | null | undefined, term: SearchTerm): boolean {
+export function looselyContains(value: string | null | undefined, term: SearchTerm): boolean {
   if (!value) {
     return false;
   }
@@ -38,13 +38,15 @@ export function printingMatchesField(
   field: SearchField,
   term: SearchTerm,
   keywordReverseMap?: Map<string, string>,
+  cardPrintedNames?: ReadonlyMap<string, readonly string[]>,
 ): boolean {
   const { card } = printing;
   if (field === "name") {
     return (
       looselyContains(card.name, term) ||
       looselyContains(printing.printedName, term) ||
-      cardSearchAltNames(card).some((name) => looselyContains(name, term))
+      cardSearchAltNames(card).some((name) => looselyContains(name, term)) ||
+      (cardPrintedNames?.get(printing.cardId) ?? []).some((name) => looselyContains(name, term))
     );
   }
   if (field === "cardText") {
@@ -127,8 +129,13 @@ export function printingFieldEquals(
   printing: Printing,
   field: SearchField,
   term: SearchTerm,
+  cardPrintedNames?: ReadonlyMap<string, readonly string[]>,
 ): boolean {
-  return printingFieldValues(printing, field).some(
+  const values = printingFieldValues(printing, field);
+  if (field === "name") {
+    values.push(...(cardPrintedNames?.get(printing.cardId) ?? []));
+  }
+  return values.some(
     (value) =>
       value !== null &&
       (foldCached(value) === term.folded || squashCached(value) === term.squashed),

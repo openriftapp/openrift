@@ -95,7 +95,7 @@ export function ListExportDialog({
   return (
     <ExportDialog
       title={m.lists_export_title()}
-      filenameBase={listName}
+      filename={{ base: listName, fallback: "list" }}
       payload={payload}
       unit="card"
       successMessage={m.lists_export_success()}

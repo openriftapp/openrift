@@ -21,7 +21,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { catalogDayBoundary } from "@/features/meta/lib/meta-catalog-display";
+import { catalogDayBoundary } from "@/features/admin/lib/meta-catalog-display";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";

@@ -13,7 +13,10 @@ import {
   publicFallbackImageId,
 } from "../../../repositories/query-helpers.js";
 
-type PrintingCodeRow = Pick<Selectable<FacesTable>, "cardId" | "shortCode" | "publicCode">;
+type PrintingLookupRow = Pick<
+  Selectable<FacesTable>,
+  "cardId" | "shortCode" | "publicCode" | "printedName"
+>;
 
 export interface CatalogPrintingImageRow {
   printingId: string;
@@ -181,16 +184,10 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
       return selectSides(db).execute();
     },
 
-    /**
-     * Just the two lookup codes per printing, for building a code index. The
-     * full `printings()` read carries every printed rules and flavor text on
-     * every row, which is orders of magnitude more bytes than a code lookup
-     * needs.
-     */
-    printingCodes(): Promise<PrintingCodeRow[]> {
+    printingLookupRows(): Promise<PrintingLookupRow[]> {
       return db
         .selectFrom("faces")
-        .select(["cardId", "shortCode", "publicCode"])
+        .select(["cardId", "shortCode", "publicCode", "printedName"])
         .orderBy("shortCode")
         .execute();
     },

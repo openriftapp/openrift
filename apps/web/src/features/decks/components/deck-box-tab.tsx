@@ -1,6 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels, VariantLabelPrinting } from "@openrift/shared/printing-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
@@ -43,7 +43,7 @@ import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import { useDomainColors } from "@/hooks/use-domain-colors";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -64,8 +64,8 @@ const SURPLUS_TICK_CLASS =
 // Resolved once for the tab: the hooks behind these rebuild their maps on
 // every call, so a row reading them itself would get a fresh object each time.
 interface BoxRowLabels extends VariantLabelEnumLabels {
-  rarities: Record<string, string>;
-  conditions: Record<string, string>;
+  rarities: LabelMap;
+  conditions: LabelMap;
   domainColors: Record<string, string>;
 }
 
@@ -335,13 +335,14 @@ function ZoneSection({
   groupBy: DeckOverviewGroup;
   rowsFor: (card: DeckBuilderCard) => React.ReactNode;
 }) {
+  const { zoneLabels } = useZoneOrder();
   const zoneSlots = cards.flatMap((card) => slotsByCardKey.get(getDeckCardKey(card)) ?? []);
   const inBox = zoneSlots.filter((slot) => slot.state === "in-box").length;
   const groups = GROUPED_ZONES.has(zone) ? groupCards(cards) : null;
 
   return (
     <section className={DECK_LIST_SECTION_CLASS}>
-      <DeckZoneHeader label={ZONE_LABELS[zone]}>
+      <DeckZoneHeader label={enumLabel(zoneLabels, zone)}>
         <span
           className={cn(
             "ml-auto text-xs tabular-nums",

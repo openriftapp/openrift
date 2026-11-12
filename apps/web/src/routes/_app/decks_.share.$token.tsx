@@ -1,4 +1,5 @@
-import { sentenceCaseSlug } from "@openrift/shared/strings";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
+import { deckShareDescription, deckShareTitle } from "@openrift/shared/share-titles";
 import type { PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
@@ -7,6 +8,7 @@ import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
+import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
 import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
@@ -15,7 +17,8 @@ import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface SharedDeckHeadData {
-  deck: Pick<PublicDeckDetailResponse["deck"], "name" | "format" | "description" | "updatedAt">;
+  deck: Pick<PublicDeckDetailResponse["deck"], "name" | "description" | "updatedAt">;
+  formatLabel: string;
   owner: Pick<PublicDeckDetailResponse["owner"], "displayName">;
 }
 
@@ -27,15 +30,11 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
     if (!data) {
       return seoHead({ siteUrl, title: "Shared deck", path, unlisted: true });
     }
-    const { deck, owner } = data;
+    const { deck, formatLabel, owner } = data;
     // Versioned off the deck's updatedAt so the immutable image URL busts on edit.
     const ogImage = deckShareImageUrl(siteUrl, params.token, shareImageVersion(deck.updatedAt));
-    // The `<head>` strings ship in the HTML before /init runs, so the
-    // admin-managed display label isn't available here.
-    const formatLabel = sentenceCaseSlug(deck.format);
-    const title = `${deck.name} (${formatLabel} deck)`;
-    const description =
-      deck.description ?? `A ${formatLabel} Riftbound deck shared by ${owner.displayName}.`;
+    const title = deckShareTitle(deck.name, formatLabel);
+    const description = deck.description ?? deckShareDescription(formatLabel, owner.displayName);
     return seoHead({
       siteUrl,
       title,
@@ -50,13 +49,14 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<SharedDeckHeadData> => {
     try {
-      const data = await context.queryClient.query({
-        ...publicDeckQueryOptions(params.token),
-        staleTime: "static",
-      });
+      const [data, init] = await Promise.all([
+        context.queryClient.query({ ...publicDeckQueryOptions(params.token), staleTime: "static" }),
+        context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+      ]);
       const { name, format, description, updatedAt } = data.deck;
       return {
-        deck: { name, format, description, updatedAt },
+        deck: { name, description, updatedAt },
+        formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), format),
         owner: { displayName: data.owner.displayName },
       };
     } catch (error) {

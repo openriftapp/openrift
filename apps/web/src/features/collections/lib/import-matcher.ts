@@ -1,19 +1,11 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
-import type {
-  CardResolution,
-  CardSearchIndex,
-  CodeIndex,
-  SearchableCard,
-} from "@openrift/shared/card-search";
-import {
-  buildCardIndex,
-  buildCodeIndex,
-  lookupCode,
-  resolveCard,
-} from "@openrift/shared/card-search";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import type { CardResolution, CardSearchIndex, CodeIndex } from "@openrift/shared/card-search";
+import { buildCodeIndex, lookupCode, resolveCard } from "@openrift/shared/card-search";
 import { squashForSearch } from "@openrift/shared/search-fold";
 import type { Printing } from "@openrift/shared/types/catalog";
 
+import type { CardSearchRow } from "@/features/cards/lib/card-lookup-rows";
+import { cardLookupIndex } from "@/features/cards/lib/card-lookup-rows";
 import type { ImportEntry } from "@/features/collections/lib/import-parsers";
 
 function onlyOne<Item>(items: readonly Item[]): Item | undefined {
@@ -34,18 +26,12 @@ function buildPrintingIndex(allPrintings: Printing[]): PrintingIndex {
   return new PrintingIndex(allPrintings);
 }
 
-interface SearchableCardGroup extends SearchableCard {
-  altNames: string[];
-  cardName: string;
-  printings: Printing[];
-}
-
 class PrintingIndex {
   private readonly byShortCode = new Map<string, Printing[]>();
   private readonly bySquashedCode: CodeIndex<null, Printing>;
   private readonly ambiguousSquashedCodes = new Set<string>();
-  private readonly nameIndex: CardSearchIndex<SearchableCardGroup>;
-  private readonly byCardId = new Map<string, SearchableCardGroup>();
+  private readonly nameIndex: CardSearchIndex<CardSearchRow>;
+  private readonly byCardId = new Map<string, CardSearchRow>();
 
   constructor(allPrintings: Printing[]) {
     for (const printing of allPrintings) {
@@ -74,29 +60,13 @@ class PrintingIndex {
       }
     }
 
-    const byCard = this.byCardId;
-    for (const printing of allPrintings) {
-      let row = byCard.get(printing.cardId);
-      if (!row) {
-        row = {
-          id: printing.cardId,
-          slug: printing.cardId,
-          name: printing.card.name,
-          altNames: cardSearchAltNames(printing.card),
-          cardName: legendDisplayName(printing.card),
-          printings: [],
-        };
-        byCard.set(printing.cardId, row);
-      }
-      row.printings.push(printing);
-      if (printing.printedName && !row.altNames.includes(printing.printedName)) {
-        row.altNames.push(printing.printedName);
-      }
+    this.nameIndex = cardLookupIndex(allPrintings);
+    for (const { card } of this.nameIndex.entries) {
+      this.byCardId.set(card.id, card);
     }
-    this.nameIndex = buildCardIndex([...byCard.values()], new Map());
   }
 
-  resolveName(cardName: string): CardResolution<SearchableCardGroup> {
+  resolveName(cardName: string): CardResolution<CardSearchRow> {
     return resolveCard(this.nameIndex, cardName);
   }
 
@@ -153,6 +123,24 @@ export function matchEntries(
   return entries.map((entry) => matchSingleEntry(entry, index, fallbackLanguage));
 }
 
+function sameName(written: string, name: string): boolean {
+  return squashForSearch(written) === squashForSearch(name);
+}
+
+function narrowToPair(candidates: Printing[], entry: ImportEntry): Printing[] {
+  const paired = entry.pairedCardName;
+  if (paired === undefined) {
+    return candidates;
+  }
+  const pairs = candidates.filter(
+    (printing) =>
+      printing.otherSide !== undefined &&
+      sameName(entry.cardName, legendDisplayName(printing.card)) &&
+      sameName(paired, printing.otherSide.cardName),
+  );
+  return pairs.length > 0 ? pairs : candidates;
+}
+
 function narrowByLanguage(candidates: Printing[], language?: string): Printing[] {
   if (!language || candidates.length === 0) {
     return candidates;
@@ -168,7 +156,7 @@ function matchSingleEntry(
 ): MatchedEntry {
   const language = entry.language ?? fallbackLanguage;
 
-  const codeMatches = index.lookupByCode(entry.sourceCode);
+  const codeMatches = narrowToPair(index.lookupByCode(entry.sourceCode), entry);
 
   if (codeMatches.length > 0) {
     const langMatches = narrowByLanguage(codeMatches, language);
@@ -289,7 +277,10 @@ function matchSingleEntry(
   if (resolution.status !== "unmatched") {
     const groups = resolution.status === "matched" ? [resolution.card] : resolution.candidates;
     const langMatches = narrowByLanguage(
-      groups.flatMap((group) => group.printings),
+      narrowToPair(
+        groups.flatMap((group) => group.printings),
+        entry,
+      ),
       language,
     );
 
@@ -307,7 +298,7 @@ function matchSingleEntry(
         status: "needs-review",
         resolvedPrinting: onlyFinishMatch,
         candidates: langMatches,
-        suggestedName: groups[0]?.cardName,
+        suggestedName: groups[0]?.displayName,
       };
     }
 
@@ -316,7 +307,7 @@ function matchSingleEntry(
       status: "needs-review",
       resolvedPrinting: null,
       candidates: langMatches,
-      suggestedName: groups[0]?.cardName,
+      suggestedName: groups[0]?.displayName,
     };
   }
 

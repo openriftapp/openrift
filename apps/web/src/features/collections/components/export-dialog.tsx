@@ -23,6 +23,7 @@ import { stackCardName } from "@/features/collections/lib/stacked-entry";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { downloadCsv } from "@/lib/download";
+import type { DownloadName } from "@/lib/download";
 import type { EnumLabels } from "@/lib/enum-labels";
 import type { CardLine, DetailedCardLine } from "@/lib/export-text";
 import {
@@ -129,7 +130,7 @@ function MarketplaceHint({ description, link }: { description: string; link: Rea
 interface ExportDialogProps {
   title: string;
   /** Slugged into the download filename. */
-  filenameBase: string;
+  filename: DownloadName;
   payload: ExportPayload;
   unit: ExportUnit;
   successMessage: string;
@@ -141,7 +142,7 @@ interface ExportDialogProps {
 
 export function ExportDialog({
   title,
-  filenameBase,
+  filename,
   payload,
   unit,
   successMessage,
@@ -178,7 +179,7 @@ export function ExportDialog({
       csvExportLabels(sets, labels),
       payload.copiesById,
     );
-    downloadCsv(csv, csvExportFilename(format, filenameBase));
+    downloadCsv(csv, csvExportFilename(format, filename));
     toast.success(successMessage);
   };
 

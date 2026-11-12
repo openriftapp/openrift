@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -20,20 +21,20 @@ import {
 } from "./format";
 
 const TEST_LABELS: EnumLabels = {
-  finishes: { normal: "Normal", foil: "Foil" },
-  rarities: {},
-  domains: {},
-  cardTypes: {},
-  superTypes: {},
-  artVariants: {
+  finishes: labelMapOf({ normal: "Normal", foil: "Foil" }),
+  rarities: labelMapOf({}),
+  domains: labelMapOf({}),
+  cardTypes: labelMapOf({}),
+  superTypes: labelMapOf({}),
+  artVariants: labelMapOf({
     normal: "Normal",
     altart: "Alt Art",
     overnumbered: "Overnumbered",
     ultimate: "Ultimate",
-  },
-  cardSizes: { standard: "Standard", oversized: "Oversized" },
-  conditions: {},
-  graders: {},
+  }),
+  cardSizes: labelMapOf({ standard: "Standard", oversized: "Oversized" }),
+  conditions: labelMapOf({}),
+  graders: labelMapOf({}),
 };
 
 function stub(overrides: Partial<Printing> = {}): Printing {

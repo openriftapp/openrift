@@ -1,5 +1,6 @@
 import { totalQuantity } from "@openrift/shared/deck-rules";
-import { isZoneShown, ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
+import { isZoneShown, zoneExpected } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { CheckIcon } from "lucide-react";
@@ -25,7 +26,7 @@ export function WorkbenchZoneBar({
   const cards = useDeckCards(deckId);
   const { data } = useDeckDetail(deckId);
   const { format, formatConfig } = data.deck;
-  const { zoneOrder } = useZoneOrder();
+  const { zoneOrder, zoneLabels } = useZoneOrder();
   const showAllCards = useWorkbenchStore((state) => state.showAllCardsZones.has(zone));
   const setShowAllCards = useWorkbenchStore((state) => state.setShowAllCards);
   const dismissedAdvance = useWorkbenchStore((state) => state.dismissedAdvance);
@@ -57,7 +58,7 @@ export function WorkbenchZoneBar({
     <div className="flex flex-col gap-2 pb-3">
       <div className="flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span className="text-muted-foreground">{m.decks_workbench_adding_to()}</span>
-        <span className="text-primary font-semibold">{ZONE_LABELS[zone]}</span>
+        <span className="text-primary font-semibold">{enumLabel(zoneLabels, zone)}</span>
         {expected !== undefined && (
           <span className="text-muted-foreground tabular-nums">
             {count}/{expected}
@@ -95,14 +96,14 @@ export function WorkbenchZoneBar({
           <CheckIcon className="text-success size-4 shrink-0" />
           <span className="min-w-0 flex-1">
             {m.decks_workbench_zone_complete({
-              zone: ZONE_LABELS[zone],
-              next: ZONE_LABELS[nextZone],
+              zone: enumLabel(zoneLabels, zone),
+              next: enumLabel(zoneLabels, nextZone),
               count: countIn(nextZone),
               expected: expectedIn(nextZone) ?? 0,
             })}
           </span>
           <Button size="sm" onClick={() => onTargetZone(nextZone)}>
-            {m.decks_workbench_go_to_zone({ zone: ZONE_LABELS[nextZone] })}
+            {m.decks_workbench_go_to_zone({ zone: enumLabel(zoneLabels, nextZone) })}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setDismissedAdvance(zone)}>
             {m.decks_workbench_stay()}
@@ -114,6 +115,7 @@ export function WorkbenchZoneBar({
 }
 
 export function WorkbenchAddAnnouncer({ deckId }: { deckId: string }) {
+  const { zoneLabels } = useZoneOrder();
   const cards = useDeckCards(deckId);
   const lastAdd = useWorkbenchStore((state) => state.lastAdd);
   return (
@@ -121,7 +123,7 @@ export function WorkbenchAddAnnouncer({ deckId }: { deckId: string }) {
       {lastAdd &&
         m.decks_workbench_added_announcement({
           card: lastAdd.cardName,
-          zone: ZONE_LABELS[lastAdd.zone],
+          zone: enumLabel(zoneLabels, lastAdd.zone),
           count: totalQuantity(cards.filter((card) => card.zone === lastAdd.zone)),
         })}
     </p>

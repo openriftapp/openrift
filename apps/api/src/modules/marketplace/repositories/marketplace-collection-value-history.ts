@@ -1,3 +1,4 @@
+import { formatDay } from "@openrift/shared/format-date";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
@@ -238,7 +239,7 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       // have lost their collection id to a former ON DELETE SET NULL and read
       // as non-group, which is right for every affected account — deleting a
       // group collection is rarer still.
-      const windowStartDay = cutoff ? toDateString(cutoff) : null;
+      const windowStartDay = cutoff ? formatDay(cutoff) : null;
       const windowClause = windowStartDay
         ? sql`AND ce.created_at >= ${windowStartDay}::date`
         : sql``;
@@ -282,12 +283,12 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
         return [];
       }
 
-      const endDay = toDateString(new Date());
+      const endDay = formatDay(new Date());
       // Without a cutoff the series starts at the first event, or today if none exist.
       // The baseline basis floors at this day: a copy bought earlier enters
       // the baseline at the window's opening price.
       const [firstEvent] = events.rows;
-      const startDay = windowStartDay ?? (firstEvent ? toDateString(firstEvent.createdAt) : endDay);
+      const startDay = windowStartDay ?? (firstEvent ? formatDay(firstEvent.createdAt) : endDay);
 
       // Prices are needed for anything held today and anything touched inside
       // the window — a printing sold off mid-window is absent from the anchor
@@ -471,7 +472,7 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       // they don't leak into today's figure.
       while (eventIndex >= 0) {
         const event = events.rows[eventIndex];
-        if (!event || toDateString(event.createdAt) <= endDay) {
+        if (!event || formatDay(event.createdAt) <= endDay) {
           break;
         }
         undo(event);
@@ -481,8 +482,8 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       const reversed: CollectionValueHistoryPoint[] = [];
       const currentDay = new Date(endDay);
 
-      while (toDateString(currentDay) >= startDay) {
-        const dayStr = toDateString(currentDay);
+      while (formatDay(currentDay) >= startDay) {
+        const dayStr = formatDay(currentDay);
 
         let valueCents = 0;
         let baselineValueCents = 0;
@@ -500,7 +501,7 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
 
         while (eventIndex >= 0) {
           const event = events.rows[eventIndex];
-          if (!event || toDateString(event.createdAt) !== dayStr) {
+          if (!event || formatDay(event.createdAt) !== dayStr) {
             break;
           }
           undo(event);
@@ -519,8 +520,4 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       return firstHeld === -1 ? [] : series.slice(firstHeld);
     },
   };
-}
-
-function toDateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }

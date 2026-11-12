@@ -8,6 +8,7 @@ import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups"
 import type { ListExchangeContext } from "@/features/lists/components/shared-list-content";
 import { SharedListContent } from "@/features/lists/components/shared-list-content";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/_authenticated/groups/$slug_/lists/$listId");
@@ -30,7 +31,7 @@ export function GroupSharedListPage() {
           groupSlug: slug,
           groupName: groupDetail.group.name,
           counterpartyUserId: data.list.ownerUserId,
-          counterpartyName: data.list.ownerName ?? m.groups_this_member(),
+          counterpartyName: memberName(data.list.ownerName),
         }
       : undefined;
 
@@ -48,16 +49,15 @@ export function GroupSharedListPage() {
       updatedAt: "",
     },
     entries: data.entries,
-    owner: { displayName: data.list.ownerName ?? m.groups_owner_unknown(), gravatarHash: null },
+    owner: { displayName: memberName(data.list.ownerName), gravatarHash: null },
   };
 
   const groupCrumb = {
     label: groupDetail.group.name,
     link: <Link to="/groups/$slug" params={{ slug }} />,
   };
-  const memberName = fromUser
-    ? (groupDetail.members.find((member) => member.userId === fromUser)?.userName ??
-      m.groups_member_fallback())
+  const fromMemberName = fromUser
+    ? memberName(groupDetail.members.find((member) => member.userId === fromUser)?.userName)
     : null;
   const backLink = (
     <TopBarBreadcrumbTrail
@@ -70,7 +70,7 @@ export function GroupSharedListPage() {
                 link: <Link to="/groups/$slug/members" params={{ slug }} />,
               },
               {
-                label: memberName ?? m.groups_member_fallback(),
+                label: fromMemberName ?? memberName(null),
                 link: (
                   <Link to="/groups/$slug/members/$userId" params={{ slug, userId: fromUser }} />
                 ),

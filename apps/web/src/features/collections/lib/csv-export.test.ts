@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
@@ -59,15 +60,15 @@ function makeStack(overrides: {
 }
 
 const LABELS: CsvExportLabels = {
-  sets: { OGN: "Origins", ARC: "Arcane Box Set" },
-  rarities: {
+  sets: labelMapOf({ OGN: "Origins", ARC: "Arcane Box Set" }),
+  rarities: labelMapOf({
     common: "Common",
     uncommon: "Uncommon",
     rare: "Rare",
     epic: "Epic",
     showcase: "Showcase",
-  },
-  conditions: {
+  }),
+  conditions: labelMapOf({
     mint: "Mint",
     "near-mint": "Near Mint",
     excellent: "Excellent",
@@ -75,8 +76,8 @@ const LABELS: CsvExportLabels = {
     "light-played": "Light Played",
     played: "Played",
     poor: "Poor",
-  },
-  graders: { psa: "PSA", bgs: "BGS", cgc: "CGC", sgc: "SGC", tag: "TAG" },
+  }),
+  graders: labelMapOf({ psa: "PSA", bgs: "BGS", cgc: "CGC", sgc: "SGC", tag: "TAG" }),
 };
 
 describe("generateExportCSV", () => {
@@ -568,15 +569,19 @@ describe("generateRiftCoreCSV", () => {
 
 describe("csvExportFilename", () => {
   it("kebab-cases the name and adds the format prefix and date", () => {
-    expect(csvExportFilename("riftmana", "My Trade Binder!")).toMatch(
-      /^riftmana-my-trade-binder-\d{4}-\d{2}-\d{2}\.csv$/u,
-    );
+    expect(
+      csvExportFilename("riftmana", { base: "My Trade Binder!", fallback: "collection" }),
+    ).toMatch(/^riftmana-my-trade-binder-\d{4}-\d{2}-\d{2}\.csv$/u);
   });
 
-  it("falls back to 'export' when the name has no usable characters", () => {
-    expect(csvExportFilename("openrift", "☆☆☆")).toMatch(
-      /^openrift-export-\d{4}-\d{2}-\d{2}\.csv$/u,
-    );
+  it("falls back to the kind and id when the name has no usable characters", () => {
+    expect(
+      csvExportFilename("openrift", {
+        base: "☆☆☆",
+        fallback: "collection",
+        id: "019d6c25-b081-74b3-a901-64da4ae01dab",
+      }),
+    ).toMatch(/^openrift-collection-4ae01dab-\d{4}-\d{2}-\d{2}\.csv$/u);
   });
 });
 

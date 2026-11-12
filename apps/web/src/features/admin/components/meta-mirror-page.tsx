@@ -1,4 +1,5 @@
 import type { MetaSource } from "@openrift/shared/contracts/admin/meta-catalog";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { formatDayTime } from "@openrift/shared/format-date";
 import { META_CATALOG_PROVIDERS, META_CATALOG_SORTS } from "@openrift/shared/types/enums";
 import { getRouteApi } from "@tanstack/react-router";
@@ -37,6 +38,7 @@ import {
   usePublishMirrorRow,
 } from "@/features/admin/hooks/use-admin-meta-mirror";
 import { urlTableSort, useUrlTableFilters } from "@/features/admin/hooks/use-url-table-filters";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import type { MetaMirrorRow } from "@/features/admin/lib/meta-mirror-rows";
 import {
   playloltcgMirrorRow,
@@ -54,7 +56,6 @@ import {
   mirrorViewId,
   mirrorViewSearch,
 } from "@/features/admin/lib/meta-mirror-view";
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useMountedAt } from "@/hooks/use-mounted-at";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -74,7 +75,7 @@ const SOURCE_ONLY_FILTERS = {
 
 function mirrorRows(
   response: MetaMirrorResponse | undefined,
-  formatLabels: Record<string, string>,
+  formatLabels: LabelMap,
   now: Date,
 ): MetaMirrorRow[] {
   if (response === undefined) {

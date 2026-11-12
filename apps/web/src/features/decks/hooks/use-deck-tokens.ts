@@ -1,4 +1,4 @@
-import { compareCardDisplayName } from "@openrift/shared/card-name";
+import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 
@@ -40,10 +40,15 @@ export function useDeckTokens(cards: DeckBuilderCard[]): DeckTokenEntry[] {
     if (!tokenCardIds) {
       continue;
     }
+    const sourceName = legendDisplayName({
+      name: entry.cardName,
+      types: entry.cardTypes,
+      tags: entry.tags,
+    });
     for (const tokenCardId of tokenCardIds) {
       const names = sourceNamesByToken.get(tokenCardId) ?? [];
-      if (!names.includes(entry.cardName)) {
-        names.push(entry.cardName);
+      if (!names.includes(sourceName)) {
+        names.push(sourceName);
       }
       sourceNamesByToken.set(tokenCardId, names);
     }

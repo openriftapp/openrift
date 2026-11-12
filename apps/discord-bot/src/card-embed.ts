@@ -4,8 +4,9 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { errataForLanguage } from "@openrift/shared/errata";
 import { imageUrl } from "@openrift/shared/image-url";
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
+import { memberNameEnglish } from "@openrift/shared/member-name";
 import { formatCents } from "@openrift/shared/money";
-import { cardPath } from "@openrift/shared/site-paths";
+import { cardUrl } from "@openrift/shared/site-paths";
 import {
   fallbackArtDifferences as sharedFallbackArtDifferences,
   findStandardArtFallback,
@@ -98,7 +99,7 @@ function tradelistField(
   const shown = tradelists.holders.slice(0, MAX_TRADELIST_HOLDERS);
   const lines = shown.flatMap((holder) => {
     const breakdown = printingBreakdown(holder.printings, snapshot, card);
-    const header = `${holder.userName ?? "Unknown user"} · ${holder.quantity}×`;
+    const header = `${memberNameEnglish(holder.userName)} · ${holder.quantity}×`;
     return breakdown ? [header, breakdown] : [header];
   });
   const hidden = tradelists.holders.length - shown.length;
@@ -300,7 +301,7 @@ export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
   const lines = [...cardWarnings(card, printing), ...(fallbackNote ? [fallbackNote] : [])];
   return {
     title: legendDisplayName(card),
-    url: `${siteUrl}${cardPath(card.slug)}`,
+    url: cardUrl(siteUrl, card.slug),
     ...(lines.length > 0 ? { description: lines.join("\n") } : {}),
     color: EMBED_COLOR,
     ...(imageId ? { image: { url: `${siteUrl}${imageUrl(imageId, "full")}` } } : {}),

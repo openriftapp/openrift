@@ -65,6 +65,24 @@ describe("useDeckTokens", () => {
     expect(result.current[0]!.sourceNames).toEqual(["Sprite Mother"]);
   });
 
+  it("names a legend source the way players do", () => {
+    registerToken("sand", "Sand Soldier");
+    registerSource("azir", "Emperor of the Sands", ["sand"]);
+
+    const { result } = renderHook(() =>
+      useDeckTokens([
+        stubDeckBuilderCard({
+          cardId: "azir",
+          cardName: "Emperor of the Sands",
+          cardTypes: ["legend"],
+          tags: ["Azir"],
+        }),
+      ]),
+    );
+
+    expect(result.current[0]!.sourceNames).toEqual(["Azir, Emperor of the Sands"]);
+  });
+
   it("orders tokens by name, not by deck order", () => {
     registerToken("sprite", "Sprite");
     registerToken("bird", "Bird");

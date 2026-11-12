@@ -1,3 +1,4 @@
+import { formatDay } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -33,7 +34,7 @@ export interface AcceptedPlayloltcgEvent {
 }
 
 function eventDate(row: PlayloltcgListRow, now: Date): string {
-  return row.startAt ?? now.toISOString().slice(0, 10);
+  return row.startAt ?? formatDay(now);
 }
 
 export async function acceptPlayloltcgEvent(

@@ -1,7 +1,10 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { printingValueSides } from "@openrift/shared/catalog-join";
+import { labelMap } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
+import { cardPath } from "@openrift/shared/site-paths";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
@@ -39,8 +42,8 @@ const cardDetailSearchSchema = z.object({
 interface CardDetailLoaderData {
   data: CardDetailPayload;
   languageOrder: readonly string[];
-  domainLabels: Record<string, string>;
-  cardTypeLabels: Record<string, string>;
+  domainLabels: LabelMap;
+  cardTypeLabels: LabelMap;
   marketplaceOffers: CardMarketplaceOffer[];
 }
 
@@ -84,7 +87,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     );
     // Every printing variant canonicalises to the bare card URL: that is the one
     // the sitemap submits and the one other pages link to.
-    const cardPath = `/cards/${data.card.slug}`;
+    const canonicalPath = cardPath(data.card.slug);
     const cardName = legendDisplayName(data.card);
     const titleSuffix =
       loaded.marketplaceOffers.length > 0 ? "Riftbound Card Price & Data" : "Riftbound Card";
@@ -92,7 +95,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
       siteUrl,
       title: `${cardName} - ${titleSuffix}`,
       description,
-      path: cardPath,
+      path: canonicalPath,
       ogImage: cardShareImageUrl(siteUrl, data.card.slug, metaPrinting?.slug),
       ogType: "product",
     });
@@ -107,12 +110,12 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
           name: cardName,
           description: `${cardName} is a ${data.card.types.join(" ")} card from Riftbound.`,
           image: imageUrl,
-          url: cardPath,
+          url: canonicalPath,
           marketplaceOffers: loaded.marketplaceOffers,
         }),
         breadcrumbJsonLd(siteUrl, [
           { name: "Cards", path: "/cards" },
-          { name: cardName, path: cardPath },
+          { name: cardName, path: canonicalPath },
         ]),
       ].filter((script) => script !== null),
     };
@@ -151,8 +154,6 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     }
     const languageRows = (init.enums.languages ?? []) as { slug: string; sortOrder: number }[];
     const languageOrder = effectiveLanguageOrder([], languageRows);
-    const labelMap = (rows: readonly { slug: string; label: string }[]) =>
-      Object.fromEntries(rows.map((row) => [row.slug, row.label]));
 
     // Server path bypasses the query client: writing prices there gets dehydrated
     // into the SSR HTML, inlining the ~270 KB catalog price map into every page.

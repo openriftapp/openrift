@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -62,7 +63,11 @@ describe("CardMiniRow", () => {
 
   it("labels the rarity icon from the live labels", () => {
     const { container } = render(
-      <CardMiniRow src="/x.webp" rarity="showcase" rarityLabels={{ showcase: "Showcase" }} />,
+      <CardMiniRow
+        src="/x.webp"
+        rarity="showcase"
+        rarityLabels={labelMapOf({ showcase: "Showcase" })}
+      />,
     );
 
     const icon = container.querySelector('img[src="/images/rarities/showcase-28x28.webp"]');

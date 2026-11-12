@@ -1,28 +1,21 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { primaryCardType } from "@openrift/shared/card-primary-type";
-import type {
-  CardResolution,
-  CardSearchIndex,
-  CodeIndex,
-  SearchableCard,
-} from "@openrift/shared/card-search";
-import {
-  buildCardIndex,
-  buildCodeIndex,
-  lookupCode,
-  resolveCard,
-} from "@openrift/shared/card-search";
+import type { CardResolution, CardSearchIndex, CodeIndex } from "@openrift/shared/card-search";
+import { buildCodeIndex, lookupCode, resolveCard } from "@openrift/shared/card-search";
 import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { inferZone } from "@openrift/shared/zone-inference";
 
+import type { CardSearchRow } from "@/features/cards/lib/card-lookup-rows";
+import { cardLookupIndex } from "@/features/cards/lib/card-lookup-rows";
+
 export type DeckMatchStatus = "exact" | "needs-review" | "unresolved";
 
 export interface ResolvedCard {
   cardId: string;
-  cardName: string;
+  displayName: string;
   cardType: CardType;
   cardTypes: CardType[];
   superTypes: SuperType[];
@@ -40,38 +33,15 @@ export interface DeckMatchedEntry {
   zone: DeckZone;
 }
 
-interface SearchableDeckCard extends SearchableCard {
-  altNames: string[];
-  resolved: ResolvedCard;
-}
-
 class CardIndex {
   private readonly byCode: CodeIndex<ResolvedCard, Printing>;
-  private readonly nameIndex: CardSearchIndex<SearchableDeckCard>;
+  private readonly nameIndex: CardSearchIndex<CardSearchRow>;
 
   constructor(allPrintings: Printing[]) {
-    const rows = new Map<string, SearchableDeckCard>();
-
     this.byCode = buildCodeIndex(
-      allPrintings.map((printing) => ({ card: cardFromPrinting(printing), printing })),
+      allPrintings.map((printing) => ({ card: resolvedCardFromPrinting(printing), printing })),
     );
-
-    for (const printing of allPrintings) {
-      if (rows.has(printing.cardId)) {
-        continue;
-      }
-      rows.set(printing.cardId, {
-        id: printing.cardId,
-        slug: printing.cardId,
-        name: printing.card.name,
-        // Covers a colloquial "Sett, The Boss" spelling for a card the
-        // catalogue stores as "The Boss" tagged "Sett".
-        altNames: cardSearchAltNames(printing.card, [printing.printedName]),
-        resolved: cardFromPrinting(printing),
-      });
-    }
-
-    this.nameIndex = buildCardIndex([...rows.values()], new Map());
+    this.nameIndex = cardLookupIndex(allPrintings);
   }
 
   /** `preferredPrintingId` is always null: deck-code formats encode card identity, not printing identity. */
@@ -79,15 +49,15 @@ class CardIndex {
     return lookupCode(this.byCode, shortCode)?.card ?? null;
   }
 
-  resolveName(cardName: string): CardResolution<SearchableDeckCard> {
+  resolveName(cardName: string): CardResolution<CardSearchRow> {
     return resolveCard(this.nameIndex, cardName);
   }
 }
 
-function cardFromPrinting(printing: Printing): ResolvedCard {
+export function resolvedCardFromPrinting(printing: Printing): ResolvedCard {
   return {
     cardId: printing.cardId,
-    cardName: legendDisplayName(printing.card),
+    displayName: legendDisplayName(printing.card),
     cardType: primaryCardType(printing.card.types),
     cardTypes: printing.card.types,
     superTypes: printing.card.superTypes,
@@ -174,7 +144,7 @@ function matchSingleDeckEntry(entry: DeckImportEntry, index: CardIndex): DeckMat
   if (entry.cardName) {
     const resolution = index.resolveName(entry.cardName);
     if (resolution.status === "matched") {
-      const card = resolution.card.resolved;
+      const card = resolvedCardFromPrinting(resolution.card.printing);
       return {
         entry,
         status: "exact",
@@ -184,14 +154,14 @@ function matchSingleDeckEntry(entry: DeckImportEntry, index: CardIndex): DeckMat
       };
     }
     if (resolution.status === "ambiguous") {
-      const candidates = resolution.candidates.map((row) => row.resolved);
+      const candidates = resolution.candidates.map((row) => resolvedCardFromPrinting(row.printing));
       const first = candidates[0] as ResolvedCard;
       return {
         entry,
         status: "needs-review",
         resolvedCard: first,
         candidates,
-        suggestedName: first.cardName,
+        suggestedName: first.displayName,
         zone: inferEntryZone(entry, first),
       };
     }

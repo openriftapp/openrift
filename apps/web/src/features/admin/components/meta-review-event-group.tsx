@@ -36,9 +36,9 @@ import {
   useRejectMetaOverlay,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
-import type { MetaReviewGroup } from "@/features/meta/lib/meta-review-queue";
-import { bulkAcceptItems, triageOverlay } from "@/features/meta/lib/meta-review-queue";
-import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
+import type { MetaReviewGroup } from "@/features/admin/lib/meta-review-queue";
+import { bulkAcceptItems, triageOverlay } from "@/features/admin/lib/meta-review-queue";
+import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 
 const READY_PREVIEW = 5;
 

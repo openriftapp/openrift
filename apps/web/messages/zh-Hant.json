@@ -471,7 +471,6 @@
   "shared_link_url_label": "連結 {index} 的網址",
   "shared_link_title_label": "連結 {index} 的標題",
   "shared_link_remove_label": "移除連結 {index}",
-  "shared_unknown_user": "未知使用者",
   "common_close": "關閉",
   "ui_quantity_one_fewer": "減少一張",
   "ui_quantity_one_more": "增加一張",
@@ -3761,8 +3760,6 @@
   "loans_group_borrowed": "借入中",
   "loans_group_history": "歷史紀錄",
   "loans_card_fallback": "卡牌",
-  "loans_member_fallback": "成員",
-  "loans_former_member": "前成員",
   "loans_quantity": "{count}× {card}",
   "loans_quantity_partial": "{card} 尚有 {outstanding} 張未歸還，共 {total} 張",
   "loans_to_person": "借給 {name}",
@@ -3908,9 +3905,7 @@
   "trade_pref_reset": "重設為清單預設",
   "trade_pref_edit_aria": "編輯交換偏好（{value}）",
   "trade_pref_set_aria": "設定交換偏好",
-  "groups_a_member": "某位成員",
   "groups_activity_a_card": "一張卡牌",
-  "groups_activity_a_member": "某位成員",
   "groups_activity_collection_shared": "{member} 分享了收藏 {collection}",
   "groups_activity_empty": "目前還沒有動態。隨著社團活躍起來，新成員、分享的清單與交換都會顯示在這裡。",
   "groups_activity_list_shared": "{member} 分享了{noun} {list}",
@@ -3919,8 +3914,6 @@
   "groups_activity_title": "近期動態",
   "groups_activity_trade_batch": "{giver} 與 {receiver} 交換了 {count} 張卡牌",
   "groups_activity_trade_completed": "{giver} 與 {receiver} 交換了 {quantity}× {card}",
-  "groups_activity_you": "你",
-  "groups_activity_you_object": "你",
   "groups_admin_banner_description": "顯示在社團名稱後方。",
   "groups_admin_description_label": "說明",
   "groups_admin_enable_invites": "啟用邀請",
@@ -4074,7 +4067,6 @@
       }
     }
   ],
-  "groups_member_fallback": "成員",
   "groups_member_has_not_shared": "{member} 還沒有與這個社團分享任何收藏或清單。",
   "groups_member_needs_you": "{count} 筆需要你處理",
   "groups_member_nothing_here_description": "{member} 還沒有與這個社團分享任何清單或收藏，你們兩人之間也還沒有交換紀錄。",
@@ -4182,7 +4174,6 @@
   "groups_overview_tournaments_total": "共 {count} 場",
   "groups_overview_waiting_in": "在 {name} 中等待",
   "groups_overview_youre_in": "你參加了 {count} 場",
-  "groups_owner_unknown": "未知",
   "groups_pending_approval": "正在等待管理員核准你的加入申請。",
   "groups_role_admin": "管理員",
   "groups_role_member": "成員",
@@ -4246,8 +4237,6 @@
   "groups_slug_error_min": "至少 {count} 個字元",
   "groups_slug_error_pattern": "只能使用小寫字母、數字與連字號，且須以字母或數字開頭",
   "groups_slug_error_reserved": "這個網址已被 OpenRift 保留，請換一個",
-  "groups_this_member": "這位成員",
-  "groups_this_member_capitalized": "這位成員",
   "groups_trade_volume_none": "這裡還沒有交換紀錄",
   "groups_trade_volume_quiet": "過去 {days} 天內沒有交換",
   "groups_trade_volume_recent": [
@@ -4267,7 +4256,6 @@
   "groups_transfer_placeholder": "選擇一位成員",
   "groups_transfer_select_aria": "新擁有者",
   "groups_transfer_title": "轉移擁有權",
-  "groups_unknown_user": "未知使用者",
   "binder_contact_label": "聯絡方式（選填）",
   "binder_contact_placeholder": "Discord: summonerkai",
   "binder_create_pdf": "建立 PDF",
@@ -4521,12 +4509,9 @@
   ],
   "trades_hero_lead": "配對來自成員在社團中分享的願望清單與交換清單。未回覆的請求會在 7 天後失效。",
   "trades_view_trades": "查看交換",
-  "trades_member_fallback": "成員",
-  "trades_this_member": "這位成員",
   "trades_this_card": "這張卡牌",
   "trades_card_fallback": "卡牌",
   "trades_them": "他們",
-  "trades_a_member": "某位成員",
   "trades_member_pair": "{first} 和 {second}",
   "trades_member_count": "{count} 位成員",
   "trades_members": [
@@ -4647,7 +4632,6 @@
       }
     }
   ],
-  "trades_request_unknown_user": "未知使用者",
   "trades_requested_ago": "於 {time} 提出申請",
   "trades_approve": "核准",
   "trades_deny": "拒絕",
@@ -8743,7 +8727,6 @@
     }
   ],
   "meta_event_organized_by": "由 {organizer} 主辦",
-  "meta_list_partial_short": "不完整",
   "tournaments_claim_page_title_loading": "認領你的名額",
   "tournaments_claim_invalid_title": "這個認領連結無效",
   "tournaments_claim_invalid_description": "請向主辦人索取有效的連結。",
@@ -10426,5 +10409,156 @@
   "decks_workbench_showing_all_cards": "正在顯示所有卡牌。",
   "decks_workbench_stats_paused_note": "你的數值篩選已暫停。",
   "decks_workbench_show_all_cards": "顯示所有卡牌",
-  "decks_workbench_only_allowed_cards": "僅顯示允許的卡牌"
+  "decks_workbench_only_allowed_cards": "僅顯示允許的卡牌",
+  "common_unnamed_member": "未命名成員",
+  "common_former_member": "前成員",
+  "tier_lists_share_ranked_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已分級 {count} 張卡牌",
+        "countPlural=*": "已分級 {count} 張卡牌"
+      }
+    }
+  ],
+  "user_profile_unnamed_heading": "願望清單和交換清單",
+  "user_profile_cta_title_unnamed": "看看你能交換什麼",
+  "meta_outcome_word_double_forfeit": "雙方棄權",
+  "tournaments_pod_double_forfeit": "雙方棄權",
+  "tournaments_pairings_earlier_byes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "此前 {count} 次輪空",
+        "countPlural=*": "此前 {count} 次輪空"
+      }
+    }
+  ],
+  "tournaments_pod_vs": "對",
+  "tournaments_pod_points": "{score} 分",
+  "tournaments_pairing_error_team_match": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "第 {match} 場比賽有 {count} 支隊伍。每場比賽必須剛好 2 支。",
+        "countPlural=*": "第 {match} 場比賽有 {count} 支隊伍。每場比賽必須剛好 2 支。"
+      }
+    }
+  ],
+  "tournaments_pairing_error_match_size": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "第 {match} 場比賽有 {count} 名玩家。每場比賽必須剛好 2 名。",
+        "countPlural=*": "第 {match} 場比賽有 {count} 名玩家。每場比賽必須剛好 2 名。"
+      }
+    }
+  ],
+  "tournaments_pairing_error_pod_size": [
+    {
+      "declarations": ["input pod", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "第 {pod} 桌有 {count} 名玩家。每桌必須有 3 或 4 名。",
+        "countPlural=*": "第 {pod} 桌有 {count} 名玩家。每桌必須有 3 或 4 名。"
+      }
+    }
+  ],
+  "tournaments_group_seats_hint_four": "座位決定賽程：第 1 輪 1 號對 2 號、3 號對 4 號；第 2 輪 1 號對 3 號、2 號對 4 號；第 3 輪 1 號對 4 號、2 號對 3 號。",
+  "tournaments_group_seats_hint_five": "座位決定賽程：1 號在第 1 輪跨組對戰，2 號在第 2 輪，3 號在第 3 輪；另外兩人互相對戰。",
+  "tournaments_match_format_bo1": "一局決勝",
+  "tournaments_match_format_bo3": "三局兩勝",
+  "meta_submission_sent_line": "提交於 {sent}",
+  "meta_submission_sent_reviewed_line": "提交於 {sent} · 審核於 {reviewed}",
+  "meta_submissions_lead": "你提交到檔案庫的所有內容，以及每一項的處理結果。",
+  "meta_deck_preview_units": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張單位",
+        "countPlural=*": "{count} 張單位"
+      }
+    }
+  ],
+  "meta_deck_preview_spells": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張法術",
+        "countPlural=*": "{count} 張法術"
+      }
+    }
+  ],
+  "meta_deck_preview_gear": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張裝備",
+        "countPlural=*": "{count} 張裝備"
+      }
+    }
+  ],
+  "meta_run_finished": "最終 {#strong}{finish}{/strong}",
+  "meta_standings_missing_value": "缺 {amount}",
+  "decks_hero_value_suffix": "價值",
+  "lists_toast_removed_from_list": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已從清單移除 {count} 張卡牌",
+        "countPlural=*": "已從清單移除 {count} 張卡牌"
+      }
+    }
+  ],
+  "lists_toast_marked_sold": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已將 {count} 張卡牌標記為已售出",
+        "countPlural=*": "已將 {count} 張卡牌標記為已售出"
+      }
+    }
+  ],
+  "collections_toast_moved_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已移動 {count} 張卡牌",
+        "countPlural=*": "已移動 {count} 張卡牌"
+      }
+    }
+  ],
+  "collections_toast_removed_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已移除 {count} 張卡牌",
+        "countPlural=*": "已移除 {count} 張卡牌"
+      }
+    }
+  ],
+  "groups_shop_events_today": "今天 · {weekday}",
+  "groups_shop_events_tomorrow": "明天 · {weekday}",
+  "cards_filter_domain_none": "無",
+  "meta_deck_tile_label": "{player} 的牌組列表",
+  "meta_deck_tile_label_legend": "{player} 的 {legend} 牌組列表",
+  "lists_import_issue_unreadable": "第 {line} 行：無法讀取「{text}」，應為「<數量> <卡牌名稱>」。",
+  "lists_import_issue_zero_quantity": "第 {line} 行：數量必須大於零。",
+  "lists_import_issue_missing_name": "第 {line} 行：缺少卡牌名稱。",
+  "groups_activity_trade_batch_you_gave": "你與 {receiver} 交換了 {count} 張卡牌",
+  "groups_activity_trade_batch_you_received": "{giver} 與你交換了 {count} 張卡牌",
+  "groups_activity_trade_completed_you_gave": "你與 {receiver} 交換了 {quantity}× {card}",
+  "groups_activity_trade_completed_you_received": "{giver} 與你交換了 {quantity}× {card}",
+  "trades_sheet_nothing_open_title": "目前沒有進行中的交易"
 }

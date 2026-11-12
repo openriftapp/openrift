@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
@@ -83,9 +84,9 @@ const DataRow = memo(function DataRow({
   columns: string;
   options?: CardTableColumnOptions;
   groupBy?: GroupByField;
-  cardTypeLabels: Record<string, string>;
-  superTypeLabels: Record<string, string>;
-  rarityLabels: Record<string, string>;
+  cardTypeLabels: LabelMap;
+  superTypeLabels: LabelMap;
+  rarityLabels: LabelMap;
   setNameBySlug: Map<string, string>;
   actionsCell?: ReactNode;
 }) {

@@ -27,11 +27,15 @@ vi.mock("@/features/groups/hooks/use-loans", () => ({
   useBorrowedLenders: () => ({ data: undefined }),
 }));
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({
-    labels: { domains: {}, cardTypes: { unit: "Unit", spell: "Spell", gear: "Gear" } },
-  }),
-}));
+vi.mock("@/hooks/use-enums", async () => {
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return {
+    useZoneOrder: useZoneOrderStub,
+    useEnumOrders: () => ({
+      labels: { domains: {}, cardTypes: { unit: "Unit", spell: "Spell", gear: "Gear" } },
+    }),
+  };
+});
 vi.mock("@/features/decks/components/deck-card-printing-menu", () => ({
   DeckCardPrintingMenu: ({ children }: { children: React.ReactNode }) => children,
 }));

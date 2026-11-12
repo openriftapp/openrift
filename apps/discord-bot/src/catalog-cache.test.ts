@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import { buildSnapshot, CatalogCache, representativePrinting } from "./catalog-cache.js";
@@ -51,6 +52,25 @@ describe("buildSnapshot", () => {
     expect(buff.printingsByCardId.get("buff")?.map((p) => p.printingId)).toEqual(["rioter"]);
   });
 
+  it("names a legend on the other side the way players do", () => {
+    const catalog = makeCatalogResponse(
+      [
+        makeCard({ id: "bird", name: "Bird" }),
+        makeCard({ id: "azir", name: "Emperor of the Sands", types: ["legend"], tags: ["Azir"] }),
+      ],
+      [makePrinting({ printingId: "pair", cardId: "bird" })],
+    );
+    const { side: _side, printingId: _id, ...sideFields } = makePrinting({ cardId: "azir" });
+    catalog.printings.pair = {
+      ...catalog.printings.pair!,
+      side2: { ...sideFields, faceId: "face-azir" },
+    } as never;
+    const pair = buildSnapshot(catalog, makePricesResponse(), makeInitResponse());
+    expect(pair.printingsByCardId.get("bird")?.[0]?.otherSide?.cardName).toBe(
+      "Azir, Emperor of the Sands",
+    );
+  });
+
   it("groups printings per card sorted by canonical rank", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
@@ -83,9 +103,9 @@ describe("buildSnapshot", () => {
       makePricesResponse(),
       makeInitResponse(),
     );
-    expect(snapshot.labels.cardTypes.unit).toBe("Unit");
-    expect(snapshot.labels.superTypes.champion).toBe("Champion");
-    expect(snapshot.labels.domains.chaos).toBe("Chaos");
+    expect(enumLabel(snapshot.labels.cardTypes, "unit")).toBe("Unit");
+    expect(enumLabel(snapshot.labels.superTypes, "champion")).toBe("Champion");
+    expect(enumLabel(snapshot.labels.domains, "chaos")).toBe("Chaos");
   });
 
   it("handles an empty catalog", () => {

@@ -170,13 +170,21 @@ describe("qrPixelWidth", () => {
 });
 
 describe("binderSheetFilename", () => {
-  it("slugifies the hint", () => {
-    expect(binderSheetFilename("Trade Binder #1")).toBe("openrift-binder-trade-binder-1.pdf");
+  it("slugifies the name", () => {
+    expect(binderSheetFilename({ base: "Trade Binder #1", fallback: "list" })).toBe(
+      "openrift-binder-trade-binder-1.pdf",
+    );
   });
 
-  it("falls back when the hint is empty or unusable", () => {
+  it("falls back to the kind and id when the name is unusable", () => {
     expect(binderSheetFilename()).toBe("openrift-binder-sheet.pdf");
-    expect(binderSheetFilename("   ")).toBe("openrift-binder-sheet.pdf");
-    expect(binderSheetFilename("!!!")).toBe("openrift-binder-sheet.pdf");
+    expect(binderSheetFilename({ base: "!!!", fallback: "list" })).toBe("openrift-binder-list.pdf");
+    expect(
+      binderSheetFilename({
+        base: "交易",
+        fallback: "list",
+        id: "019d6c25-b081-74b3-a901-64da4ae01dab",
+      }),
+    ).toBe("openrift-binder-list-4ae01dab.pdf");
   });
 });

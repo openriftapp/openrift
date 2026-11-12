@@ -1,33 +1,35 @@
-import type { MetaRunOutcome, MetaStandingsRound } from "@openrift/shared/types/api/meta";
 import { Fragment } from "react";
 
+import type { RunOutcome, RunStripRound } from "@/features/meta/lib/run-outcome";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-const OUTCOME_CLASS: Record<MetaRunOutcome, string> = {
+const OUTCOME_CLASS: Record<RunOutcome, string> = {
   win: "bg-success",
   loss: "bg-destructive",
   draw: "bg-muted-foreground/45",
+  double_forfeit: "bg-muted-foreground/45",
   bye: "ring-muted-foreground/45 ring-1 ring-inset",
   unknown: "ring-muted-foreground/45 ring-1 ring-inset",
 };
 
-function outcomeWords(): Record<MetaRunOutcome, string> {
+function outcomeWords(): Record<RunOutcome, string> {
   return {
     win: m.meta_outcome_word_win(),
     loss: m.meta_outcome_word_loss(),
     draw: m.meta_outcome_word_draw(),
+    double_forfeit: m.meta_outcome_word_double_forfeit(),
     bye: m.meta_outcome_word_bye(),
     unknown: m.meta_outcome_word_none(),
   };
 }
 
-function words(rounds: readonly MetaStandingsRound[]): string {
+function words(rounds: readonly RunStripRound[]): string {
   const labels = outcomeWords();
   return rounds.map((round) => labels[round.outcome]).join(", ");
 }
 
-export function runStripLabel(rounds: readonly MetaStandingsRound[]): string {
+export function runStripLabel(rounds: readonly RunStripRound[]): string {
   const swiss = words(rounds.filter((round) => !round.isCut));
   const cut = words(rounds.filter((round) => round.isCut));
   if (swiss === "") {
@@ -43,7 +45,7 @@ export function MetaRunStrip({
   rounds,
   className,
 }: {
-  rounds: readonly MetaStandingsRound[];
+  rounds: readonly RunStripRound[];
   className?: string;
 }) {
   if (rounds.length === 0) {

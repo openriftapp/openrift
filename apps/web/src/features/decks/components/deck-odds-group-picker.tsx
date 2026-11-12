@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { SlidersHorizontalIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ interface DeckOddsGroupPickerProps {
   selectedSet: ReadonlySet<string>;
   hasOverride: boolean;
   canCustomize: boolean;
-  typeLabels: Record<string, string>;
+  typeLabels: LabelMap;
   onToggle: (key: string) => void;
   onReset: () => void;
   onAddCustom: (group: OddsGroupDef) => void;

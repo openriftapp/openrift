@@ -5,6 +5,7 @@ import {
 } from "@openrift/shared/deck-check";
 import type { DeckCheckCardLine } from "@openrift/shared/deck-check";
 import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
+import { resolveDeckCodeEntries } from "@openrift/shared/deck-code-resolve";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { DeckCheckClaimResultResponse } from "@openrift/shared/types/api/deck-check";
 import type { CardType, SuperType } from "@openrift/shared/types/enums";
@@ -16,6 +17,7 @@ import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { sha256Hex } from "../../../lib/hash.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
+import { createCardCodeIndexLoader } from "../../catalog/lib/card-lookup-index.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
@@ -219,20 +221,17 @@ async function linesFromDeckCode(repos: Repos, deckCode: string): Promise<DeckCh
     );
   }
 
-  const shortCodes = entries.flatMap((entry) => (entry.shortCode ? [entry.shortCode] : []));
-  const cardsByShortCode = await repos.deckCheck.getCardsByShortCodes(shortCodes);
-
+  const codeIndex = await createCardCodeIndexLoader(repos)();
   return entries.map((entry) => {
-    const shortCode = entry.shortCode ?? "";
-    const card = cardsByShortCode.get(shortCode);
-    if (!card) {
-      return { name: shortCode, zone: WellKnown.deckZone.MAIN, quantity: entry.quantity };
+    const [row] = resolveDeckCodeEntries([entry], codeIndex).rows;
+    if (!row) {
+      return {
+        name: entry.shortCode ?? "",
+        zone: WellKnown.deckZone.MAIN,
+        quantity: entry.quantity,
+      };
     }
-    return {
-      name: card.name,
-      zone: inferZone(card.types as CardType[], [], entry.sourceSlot),
-      quantity: entry.quantity,
-    };
+    return { name: row.card.name, zone: row.zone, quantity: entry.quantity };
   });
 }
 

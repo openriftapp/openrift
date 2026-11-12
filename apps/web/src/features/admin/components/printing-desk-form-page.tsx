@@ -100,7 +100,7 @@ export function PrintingDeskCreatePage({ cardSlug }: { cardSlug: string }) {
           base={base}
           rarityLabel={base ? enumLabel(labels.rarities, base.rarity) : ""}
           typeLabel={base ? enumLabel(labels.cardTypes, base.cardType) : ""}
-          languageLabel={languageLabels[form.language] ?? form.language}
+          languageLabel={enumLabel(languageLabels, form.language)}
         />
       </div>
     </div>
@@ -471,7 +471,7 @@ function PrintingDeskFields({
 
           {form.isCreate && (
             <Field className="@3xl/desk-form:col-span-2">
-              <FieldLabel htmlFor="desk-second-side">Second face</FieldLabel>
+              <FieldLabel htmlFor="desk-second-side">Face 2</FieldLabel>
               {form.secondSide ? (
                 <div className="flex items-center gap-2">
                   {form.secondSide.card.name} · {formatPrintingCode(form.secondSide.publicCode)}

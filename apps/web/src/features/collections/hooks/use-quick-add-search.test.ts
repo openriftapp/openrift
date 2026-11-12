@@ -68,6 +68,49 @@ describe("useQuickAddSearch", () => {
     expect(results[0]!.printings).toEqual([ahriEn]);
   });
 
+  describe("with printings outside the display languages", () => {
+    const card = { name: "Royal Guard" };
+    const en = stubPrinting({
+      cardId: "guard",
+      language: "EN",
+      shortCode: "OGN-010",
+      publicCode: "OGN-010/298",
+      card,
+    });
+    const enAlt = stubPrinting({
+      cardId: "guard",
+      language: "EN",
+      shortCode: "OGN-010a",
+      publicCode: "OGN-010a/298",
+      card,
+    });
+    const fr = stubPrinting({
+      cardId: "guard",
+      language: "FR",
+      shortCode: "OGN-210",
+      publicCode: "OGN-210/298",
+      printedName: "Garde royal",
+      card,
+    });
+    const map = groupByCardId([en, enAlt, fr]);
+
+    it("finds the card by a printed name in another language and shows the shown printings", () => {
+      const [result] = search("garde royal", map, { preferredLanguages: ["EN"] });
+      expect(result?.printings).toEqual([en, enAlt]);
+      expect(result?.defaultPrinting).toBe(en);
+    });
+
+    it("finds the card by the code of a hidden printing", () => {
+      expect(search("OGN-210", map, { preferredLanguages: ["EN"] })[0]?.defaultPrinting).toBe(en);
+    });
+
+    it("opens on the printing whose code was typed when it is shown", () => {
+      expect(search("OGN-010a", map, { preferredLanguages: ["EN"] })[0]?.defaultPrinting).toBe(
+        enAlt,
+      );
+    });
+  });
+
   it("treats an empty preferredLanguages list as 'show all'", () => {
     const ahriJa = stubPrinting({
       cardId: "card-ahri",

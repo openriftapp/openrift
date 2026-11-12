@@ -11,6 +11,8 @@ import {
   BINDER_SHEET_SPECS,
   CARD_WIDTH_MM,
 } from "@/features/collections/lib/binder-sheet-specs";
+import type { DownloadName } from "@/lib/download";
+import { downloadFilename } from "@/lib/download";
 import { createPdfDocument } from "@/lib/pdf-document";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 import { m } from "@/paraglide/messages.js";
@@ -44,7 +46,7 @@ export interface BinderSheetOptions {
   size: BinderSheetSize;
   paper: BinderSheetPaper;
   style: BinderSheetStyle;
-  filenameHint?: string;
+  filename?: DownloadName;
 }
 
 /** pt → mm */
@@ -171,12 +173,10 @@ export function qrPixelWidth(sizeMm: number): number {
   return Math.min(2048, Math.max(512, Math.ceil((sizeMm / 25.4) * 300)));
 }
 
-export function binderSheetFilename(hint?: string): string {
-  const slug = (hint ?? "")
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/gu, "-")
-    .replaceAll(/^-+|-+$/gu, "");
-  return slug ? `openrift-binder-${slug}.pdf` : "openrift-binder-sheet.pdf";
+export function binderSheetFilename(name?: DownloadName): string {
+  return name === undefined
+    ? "openrift-binder-sheet.pdf"
+    : `openrift-binder-${downloadFilename(name)}.pdf`;
 }
 
 function drawCenteredLine(
@@ -478,5 +478,5 @@ export async function buildBinderSheetDoc(options: BinderSheetOptions): Promise<
 
 export async function generateBinderSheetPdf(options: BinderSheetOptions): Promise<void> {
   const doc = await buildBinderSheetDoc(options);
-  doc.save(binderSheetFilename(options.filenameHint));
+  doc.save(binderSheetFilename(options.filename));
 }

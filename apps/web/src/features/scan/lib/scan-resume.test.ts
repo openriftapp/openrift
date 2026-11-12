@@ -34,6 +34,11 @@ describe("describeLastScan", () => {
     expect(describeLastScan(null)).toBe("in an earlier session");
   });
 
+  it("counts calendar days, so last night's late session reads as yesterday", () => {
+    vi.setSystemTime(new Date(2026, 4, 4, 1, 0));
+    expect(describeLastScan(new Date(2026, 4, 3, 23, 0).getTime())).toBe("yesterday");
+  });
+
   it("describes the same day, the day before, and older sessions", () => {
     expect(describeLastScan(NOW - 3 * HOUR)).toBe("earlier today");
     expect(describeLastScan(NOW - DAY)).toBe("yesterday");

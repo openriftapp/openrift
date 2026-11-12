@@ -1,3 +1,5 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { labelMap } from "@openrift/shared/enum-label";
 import { filterCards } from "@openrift/shared/filters";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
@@ -5,9 +7,9 @@ import type { FilterCounts } from "@openrift/shared/filters-counts";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import { countPrintings } from "@openrift/shared/printing-side";
-import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
+import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type {
@@ -25,16 +27,22 @@ import type { PresenceDimension, PresenceState } from "@openrift/shared/types/se
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { createServerFn } from "@tanstack/react-start";
 
-import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-queries";
+import {
+  enrichCatalog,
+  readCatalogFromServerCache,
+  ssrCatalogPreloadLangs,
+} from "@/features/cards/lib/catalog-queries";
 import { readPricesFromServerCache } from "@/features/cards/lib/prices-queries";
+import { ssrCardSearchContext } from "@/features/cards/lib/search-context";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
+import type { EnumLabels } from "@/lib/enum-labels";
 import { readInitFromServerCache } from "@/lib/init-queries";
 
 // Both match PREFERENCE_DEFAULTS from shared/types/api/preferences.ts.
-const SSR_MARKETPLACE: Marketplace = "cardtrader";
+export const SSR_MARKETPLACE: Marketplace = "cardtrader";
 const SSR_DEFAULT_VIEW = "cards";
 
-function ordersFromInit(init: InitResponse): EnumOrders {
+export function ordersFromInit(init: Pick<InitResponse, "enums">): EnumOrders {
   const slugs = (rows: { slug: string; sortOrder: number }[]): string[] =>
     rows.toSorted((a, b) => a.sortOrder - b.sortOrder).map((row) => row.slug);
   return {
@@ -45,6 +53,21 @@ function ordersFromInit(init: InitResponse): EnumOrders {
     superTypes: slugs(init.enums.superTypes),
     artVariants: slugs(init.enums.artVariants),
     cardSizes: slugs(init.enums.cardSizes),
+  };
+}
+
+export function labelsFromInit(init: Pick<InitResponse, "enums">): EnumLabels {
+  const { enums } = init;
+  return {
+    finishes: labelMap(enums.finishes),
+    rarities: labelMap(enums.rarities),
+    domains: labelMap(enums.domains),
+    cardTypes: labelMap(enums.cardTypes),
+    superTypes: labelMap(enums.superTypes),
+    artVariants: labelMap(enums.artVariants),
+    cardSizes: labelMap(enums.cardSizes),
+    conditions: labelMap(enums.conditions),
+    graders: labelMap(enums.graders),
   };
 }
 
@@ -66,8 +89,8 @@ export function extractAvailableLanguages(catalog: CatalogResponse): string[] {
 }
 
 /** Powers `setDisplayLabel` in chrome components without shipping the full GroupInfo[] over the wire. */
-export function extractSetLabels(catalog: CatalogResponse): Record<string, string> {
-  return Object.fromEntries(catalog.sets.map((set) => [set.slug, set.name]));
+export function extractSetLabels(catalog: CatalogResponse): LabelMap {
+  return labelMap(catalog.sets.map((set) => ({ slug: set.slug, label: set.name })));
 }
 
 /** Mirrors the inline presence construction in `useFilterValues` for the server path. */
@@ -97,6 +120,13 @@ function presenceFromSearch(
 }
 
 /** Mirrors `useFilterValues`; the server has no search scope store, so it uses the default scope. */
+export function ssrSearchToFilters(search: FilterSearch) {
+  const filters = searchToFilters(search);
+  return filters.languages.length > 0
+    ? filters
+    : { ...filters, languages: [...PREFERENCE_DEFAULTS.languages] };
+}
+
 export function searchToFilters(search: FilterSearch) {
   return {
     ...EMPTY_CARD_FILTERS,
@@ -144,12 +174,6 @@ export function searchToFilters(search: FilterSearch) {
   };
 }
 
-/** Formats come from /init, which the SSR pass does not read, so `f:` values pass through as typed. */
-function ssrSearchVocabulary(catalog: CatalogResponse) {
-  const { allPrintings, sets } = enrichCatalog(catalog);
-  return catalogSearchVocabulary({ printings: allPrintings, sets, enums: catalog.enums });
-}
-
 export interface CardCounts {
   totalCards: number;
   filteredCount: number;
@@ -162,18 +186,27 @@ export interface CardCounts {
 export function extractCardCounts(
   catalog: CatalogResponse,
   prices: PricesResponse,
+  init: Pick<InitResponse, "enums" | "keywords">,
   search: FilterSearch,
 ): CardCounts {
-  const { allPrintings } = enrichCatalog(catalog);
+  const enriched = enrichCatalog(catalog);
+  const { allPrintings } = enriched;
   const view = search.view ?? SSR_DEFAULT_VIEW;
   const lookup = priceLookupFromMap(prices.prices);
-  const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
-  const filters = searchToFilters(search);
-  const filtered = filterCards(allPrintings, filters, {
-    getPrice,
-    priceLookup: lookup,
-    vocabulary: ssrSearchVocabulary(catalog),
-  });
+  const filters = ssrSearchToFilters(search);
+  const filtered = filterCards(
+    allPrintings,
+    filters,
+    ssrCardSearchContext(
+      enriched,
+      init,
+      {
+        getPrice: (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
+        priceLookup: lookup,
+      },
+      ssrCatalogPreloadLangs(search.languages),
+    ),
+  );
 
   const totalCards =
     view === "cards"
@@ -285,7 +318,7 @@ export function fromWireFilterCounts(wire: FilterCountsWire): FilterCounts {
 interface CardFacetsPayloadWire {
   facets: AvailableFiltersWire;
   availableLanguages: string[];
-  setLabels: Record<string, string>;
+  setLabels: LabelMap;
 }
 
 // TODO: no in-process cache layered on top of the upstream serverCache reads.
@@ -312,29 +345,36 @@ export const fetchCardFacets = createServerFn({ method: "GET" }).handler(
 export const fetchCardCounts = createServerFn({ method: "GET" })
   .validator((input: FilterSearch) => input)
   .handler(async ({ data }): Promise<CardCounts> => {
-    const [catalog, prices] = await Promise.all([
+    const [catalog, prices, init] = await Promise.all([
       readCatalogFromServerCache(),
       readPricesFromServerCache(),
+      readInitFromServerCache(),
     ]);
-    return extractCardCounts(catalog, prices, data);
+    return extractCardCounts(catalog, prices, init, data);
   });
 
 export const fetchCardFilterCounts = createServerFn({ method: "GET" })
   .validator((input: FilterSearch) => input)
   .handler(async ({ data }): Promise<FilterCountsWire> => {
-    const [catalog, prices] = await Promise.all([
+    const [catalog, prices, init] = await Promise.all([
       readCatalogFromServerCache(),
       readPricesFromServerCache(),
+      readInitFromServerCache(),
     ]);
-    const { allPrintings } = enrichCatalog(catalog);
+    const enriched = enrichCatalog(catalog);
     const lookup = priceLookupFromMap(prices.prices);
-    const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
     const view = data.view ?? SSR_DEFAULT_VIEW;
-    const counts = computeFilterCounts(allPrintings, searchToFilters(data), {
+    const counts = computeFilterCounts(enriched.allPrintings, ssrSearchToFilters(data), {
+      ...ssrCardSearchContext(
+        enriched,
+        init,
+        {
+          getPrice: (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
+          priceLookup: lookup,
+        },
+        ssrCatalogPreloadLangs(data.languages),
+      ),
       countBy: view === "cards" ? "card" : "printing",
-      vocabulary: ssrSearchVocabulary(catalog),
-      getPrice,
-      priceLookup: lookup,
     });
     return toWireFilterCounts(counts);
   });

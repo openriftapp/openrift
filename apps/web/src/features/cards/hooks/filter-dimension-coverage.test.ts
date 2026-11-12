@@ -11,6 +11,8 @@ vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({ navigate: vi.fn() }),
 }));
 
+import { testSearchContext } from "@openrift/shared/test-factories";
+
 import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { searchToFilters } from "@/features/cards/lib/cards-facets";
@@ -195,10 +197,14 @@ function filtersFor(search: Record<string, unknown>) {
 }
 
 function matchedIds(search: Record<string, unknown>): string[] {
-  return filterCards(FIXTURES, filtersFor(search), {
-    customTagAssignments: CUSTOM_TAGS,
-    getPrice: (printing) => PRICES[printing.printingId],
-  }).map((printing) => printing.printingId);
+  return filterCards(
+    FIXTURES,
+    filtersFor(search),
+    testSearchContext({
+      customTagAssignments: CUSTOM_TAGS,
+      getPrice: (printing) => PRICES[printing.printingId],
+    }),
+  ).map((printing) => printing.printingId);
 }
 
 function chipParams(chip: ActiveFilterChip): string[] {
@@ -283,10 +289,14 @@ describe("filter dimension coverage", () => {
 
   it.each(CASES)("%s is parsed the same by the SSR facet counts", (name, dimension, param) => {
     const search = { [param]: PARAM_SAMPLES[param] };
-    const ssr = filterCards(FIXTURES, searchToFilters(search), {
-      customTagAssignments: CUSTOM_TAGS,
-      getPrice: (printing) => PRICES[printing.printingId],
-    }).map((printing) => printing.printingId);
+    const ssr = filterCards(
+      FIXTURES,
+      searchToFilters(search),
+      testSearchContext({
+        customTagAssignments: CUSTOM_TAGS,
+        getPrice: (printing) => PRICES[printing.printingId],
+      }),
+    ).map((printing) => printing.printingId);
     const reason = NOT_APPLICABLE[name]?.ssr ?? NOT_APPLICABLE[dimension.key]?.ssr;
     if (reason === undefined) {
       expect(ssr).toEqual(matchedIds(search));

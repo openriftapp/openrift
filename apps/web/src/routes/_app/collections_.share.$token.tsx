@@ -1,3 +1,4 @@
+import { collectionShareDescription, collectionShareTitle } from "@openrift/shared/share-titles";
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
 import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 
@@ -38,9 +39,8 @@ export const Route = createFileRoute("/_app/collections_/share/$token")({
       return seoHead({ siteUrl, title: "Shared collection", path, unlisted: true });
     }
     const { collection, owner } = data;
-    const title = `${collection.name} (collection)`;
-    const description =
-      collection.description ?? `A Riftbound card collection shared by ${owner.displayName}.`;
+    const title = collectionShareTitle(collection.name);
+    const description = collection.description ?? collectionShareDescription(owner.displayName);
     // Copies changing does not bump collections.updatedAt, so fold copyCount
     // into the version to bust the immutably-cached og:image on add/remove.
     const version = `${shareImageVersion(collection.updatedAt)}-${collection.copyCount}`;

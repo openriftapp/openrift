@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
 import { pluralize } from "@openrift/shared/strings";
@@ -288,7 +289,7 @@ export function MetaEventPlayersPage({ eventId }: { eventId: string }) {
       />
 
       <div className="space-y-10 pt-3">
-        <EventFacts event={event} formatLabel={formatLabels[event.format] ?? event.format} />
+        <EventFacts event={event} formatLabel={enumLabel(formatLabels, event.format)} />
         <MetaEventCancelledBanner event={event} />
 
         <Section title="Sources">

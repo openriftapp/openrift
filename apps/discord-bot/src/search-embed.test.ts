@@ -15,7 +15,7 @@ function response(total: number, names: string[]): SearchResponse {
   const cards: SearchResponse["cards"] = {};
   for (const [index, name] of names.entries()) {
     printings[`p${index}`] = { cardId: `c${index}`, shortCode: `OGN-00${index}` } as never;
-    cards[`c${index}`] = { name, slug: name.toLowerCase() } as never;
+    cards[`c${index}`] = { name, slug: name.toLowerCase(), types: ["unit"], tags: [] } as never;
   }
   return {
     total,
@@ -45,6 +45,18 @@ describe("buildSearchEmbed", () => {
         `[10 more on OpenRift](${SITE}/cards?q=d%3Afury)`,
       ].join("\n"),
     );
+  });
+
+  it("names a legend the way players do", () => {
+    const legend = response(1, ["Emperor of the Sands"]);
+    legend.cards.c0 = {
+      name: "Emperor of the Sands",
+      slug: "azir",
+      types: ["legend"],
+      tags: ["Azir"],
+    } as never;
+    const embed = buildSearchEmbed({ query: "azir", response: legend, siteUrl: SITE });
+    expect(embed.description).toContain(`[Azir, Emperor of the Sands](${SITE}/cards/azir)`);
   });
 
   it("says so when nothing matches", () => {

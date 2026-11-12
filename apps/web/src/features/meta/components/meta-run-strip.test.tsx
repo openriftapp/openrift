@@ -1,10 +1,11 @@
-import type { MetaRunRound } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import type { RunRound } from "@/features/meta/lib/run-outcome";
+
 import { MetaRunStrip, runStripLabel } from "./meta-run-strip";
 
-function round(overrides: Partial<MetaRunRound> = {}): MetaRunRound {
+function round(overrides: Partial<RunRound> = {}): RunRound {
   return {
     phaseOrder: 1,
     roundNumber: 1,
@@ -46,6 +47,12 @@ describe("runStripLabel", () => {
     expect(
       runStripLabel([round({ outcome: "draw" }), round({ roundNumber: 2, outcome: "unknown" })]),
     ).toBe("Round by round: draw, no result");
+  });
+
+  it("reads a double forfeit as both forfeited", () => {
+    expect(runStripLabel([round({ outcome: "double_forfeit" })])).toBe(
+      "Round by round: both forfeited",
+    );
   });
 
   it("says nothing for a player with no rounds", () => {

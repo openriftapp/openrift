@@ -1,3 +1,4 @@
+import { labelMap, enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -97,10 +98,10 @@ export function CardErrataSection({
   const announcements = useErrataAnnouncements();
   const deleteErrata = useDeleteCardErrata();
   const languages = useLanguageList();
-  const languageLabels = Object.fromEntries(
-    languages.map((language) => [language.code, language.name]),
+  const languageLabels = labelMap(
+    languages.map((language) => ({ slug: language.code, label: language.name })),
   );
-  const labelFor = (code: string) => languageLabels[code] ?? code;
+  const labelFor = (code: string) => enumLabel(languageLabels, code);
 
   const [draft, setDraft] = useState<ErrataDraft>(EMPTY_ERRATA_DRAFT);
   const [editing, setEditing] = useState<"new" | "existing" | null>(null);

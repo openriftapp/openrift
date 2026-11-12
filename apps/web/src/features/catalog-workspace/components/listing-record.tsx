@@ -5,8 +5,8 @@ import {
   productSuggestionKey,
 } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
-import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 import type { ListingSku } from "@openrift/shared/workspace-listing-key";
@@ -41,7 +41,9 @@ import {
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { usePrintingSearchIndex } from "@/features/cards/hooks/use-search-index";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
@@ -300,25 +302,10 @@ export function ListingPrintingCombobox({
   const { allPrintings } = useCards();
   const [query, setQuery] = useState("");
 
-  const needle = query.trim().toLowerCase();
-  const seen = new Set<string>();
-  const matches: Printing[] = [];
-  if (needle.length >= MIN_QUERY_LENGTH) {
-    for (const printing of allPrintings) {
-      if (matches.length >= MAX_MATCHES) {
-        break;
-      }
-      if (
-        !seen.has(printing.printingId) &&
-        (printing.shortCode.toLowerCase().includes(needle) ||
-          printing.publicCode.toLowerCase().includes(needle) ||
-          printing.card.name.toLowerCase().includes(needle))
-      ) {
-        seen.add(printing.printingId);
-        matches.push(printing);
-      }
-    }
-  }
+  const index = usePrintingSearchIndex(allPrintings);
+  // Rows are per side, so a double-sided printing can match twice.
+  const results = useCardSearch(index, query.trim(), MAX_MATCHES * 2, MIN_QUERY_LENGTH);
+  const matches = uniquePrintings(results.map((row) => row.printing)).slice(0, MAX_MATCHES);
 
   return (
     <ComboboxPicker
@@ -339,7 +326,7 @@ export function ListingPrintingCombobox({
       query={query}
       onQueryChange={setQuery}
       hint={
-        needle.length < MIN_QUERY_LENGTH
+        query.trim().length < MIN_QUERY_LENGTH
           ? `Type ${MIN_QUERY_LENGTH} characters to search.`
           : undefined
       }

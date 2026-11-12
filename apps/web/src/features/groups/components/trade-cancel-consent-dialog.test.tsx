@@ -33,7 +33,7 @@ describe("TradeCancelConsentDialog", () => {
 
     expect(screen.getByText("Cancel 2 pending trades?")).toBeInTheDocument();
     expect(screen.getByText("2× Jinx, Rebel for Mara")).toBeInTheDocument();
-    expect(screen.getByText("2× Ahri, Alluring for Member")).toBeInTheDocument();
+    expect(screen.getByText("2× Ahri, Alluring for Unnamed member")).toBeInTheDocument();
   });
 
   it("lists five trades and counts the rest", () => {

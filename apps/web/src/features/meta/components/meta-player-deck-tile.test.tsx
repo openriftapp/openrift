@@ -82,6 +82,15 @@ describe("MetaPlayerDeckTile", () => {
     expect(screen.getByRole("link", { name: "Deck" })).toHaveAttribute("href", "/meta/decks/tok-1");
   });
 
+  it("labels a partial decklist link as a partial list", () => {
+    render(<MetaPlayerDeckTile deck={deck({ listStatus: "partial" })} />);
+
+    expect(screen.getByRole("link", { name: "Partial list" })).toHaveAttribute(
+      "href",
+      "/meta/decks/tok-1",
+    );
+  });
+
   it("draws the legend's domain runes when the page knows them", () => {
     render(<MetaPlayerDeckTile deck={deck()} legendDomains={["fury"]} />);
 

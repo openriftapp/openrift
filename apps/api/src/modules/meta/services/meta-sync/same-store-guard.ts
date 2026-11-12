@@ -1,5 +1,6 @@
+import { DAY_MS, formatDay } from "@openrift/shared/format-date";
+
 import type { Repos } from "../../../../deps.js";
-import { DAY_MS } from "../../lib/meta-durations.js";
 import { nameSimilarity } from "../meta-match-suggestions.js";
 
 const MAX_DAY_DELTA = 1;
@@ -56,7 +57,7 @@ export async function sameStoreLiveEvent(
     return undefined;
   }
   const day = dayOf(candidate.eventDate);
-  const shift = (days: number) => new Date(day + days * DAY_MS).toISOString().slice(0, 10);
+  const shift = (days: number) => formatDay(new Date(day + days * DAY_MS));
   const rows = await repos.meta.eventsAtStoresOutside({
     dateFrom: shift(-MAX_DAY_DELTA),
     dateTo: shift(MAX_DAY_DELTA),

@@ -8,6 +8,7 @@ export interface LoansTable {
   lenderUserId: string;
   borrowerUserId: string | null;
   borrowerName: string | null;
+  borrowerAccountClosed: Generated<boolean>;
   printingId: string;
   quantity: number;
   returnedQuantity: Generated<number>;

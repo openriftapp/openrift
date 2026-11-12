@@ -22,8 +22,8 @@ import {
   useMetaSyncSettings,
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 
 /** The auto-accept rule form's editable shape. */
 interface RulesDraft {

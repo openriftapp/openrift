@@ -1,5 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
@@ -220,9 +222,9 @@ interface CardTableRowProps {
   columns: string;
   groupBy?: GroupByField;
   options?: CardTableColumnOptions;
-  cardTypeLabels: Record<string, string>;
-  superTypeLabels: Record<string, string>;
-  rarityLabels: Record<string, string>;
+  cardTypeLabels: LabelMap;
+  superTypeLabels: LabelMap;
+  rarityLabels: LabelMap;
   setNameBySlug: Map<string, string>;
   onRowClick: (printing: Printing) => void;
   actionsCell?: ReactNode;
@@ -254,13 +256,13 @@ export function CardTableRow({
   const cardName = legendDisplayName(printing.card);
   const setName = setNameBySlug.get(printing.setSlug) ?? printing.setSlug;
   const typeLabel = [
-    ...printing.card.superTypes.map((slug) => superTypeLabels[slug]),
-    ...printing.card.types.map((slug) => cardTypeLabels[slug]),
+    ...printing.card.superTypes.map((slug) => enumLabel(superTypeLabels, slug)),
+    ...printing.card.types.map((slug) => enumLabel(cardTypeLabels, slug)),
   ]
-    .filter(Boolean)
+    .filter((label) => label !== "")
     .join(" ");
   const typeIconPaths = getTypeIconPaths(printing.card.types, printing.card.superTypes);
-  const rarityLabel = rarityLabels[printing.rarity];
+  const rarityLabel = enumLabel(rarityLabels, printing.rarity);
 
   const staticCellByKey: Record<StaticColumnKey, ReactNode> = {
     image: (

@@ -1,4 +1,5 @@
-import { labelMap } from "@openrift/shared/collections";
+import { labelMap } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { formatSearchSlug } from "@openrift/shared/search-query/keys";
 import type { ColoredEnumRow, EnumRow } from "@openrift/shared/types/api/init";
 import type { CustomTag, DistributionChannel } from "@openrift/shared/types/catalog";
@@ -17,7 +18,7 @@ function slugs(rows: readonly EnumRow[]): string[] {
   return sorted(rows).map((row) => row.slug);
 }
 
-function sortedLabelMap(rows: readonly EnumRow[]): Record<string, string> {
+function sortedLabelMap(rows: readonly EnumRow[]): LabelMap {
   return labelMap(sorted(rows));
 }
 
@@ -29,21 +30,17 @@ function colorMap(rows: readonly ColoredEnumRow[]): Record<string, string> {
 
 export function useZoneOrder(): {
   zoneOrder: DeckZone[];
-  zoneLabels: Record<DeckZone, string>;
+  zoneLabels: LabelMap;
 } {
   const { data } = useSuspenseQuery(initQueryOptions);
-  const zones = data.enums.deckZones ?? [];
-  const s = sorted(zones);
+  const zones = sorted(data.enums.deckZones ?? []);
   return {
-    zoneOrder: s.map((zone) => zone.slug as DeckZone),
-    zoneLabels: Object.fromEntries(s.map((zone) => [zone.slug, zone.label])) as Record<
-      DeckZone,
-      string
-    >,
+    zoneOrder: zones.map((zone) => zone.slug as DeckZone),
+    zoneLabels: labelMap(zones),
   };
 }
 
-export function useLanguageLabels(): Record<string, string> {
+export function useLanguageLabels(): LabelMap {
   const { data } = useSuspenseQuery(initQueryOptions);
   return sortedLabelMap(data.enums.languages ?? []);
 }
@@ -65,13 +62,13 @@ export function useLanguageColors(): Record<string, string> {
 
 export function useDeckFormatList(): {
   formats: { slug: string; label: string }[];
-  labels: Record<string, string>;
+  labels: LabelMap;
 } {
   const { data } = useSuspenseQuery(initQueryOptions);
   const rows = sorted(data.enums.deckFormats ?? []);
   return {
     formats: rows.map((row) => ({ slug: row.slug, label: row.label })),
-    labels: Object.fromEntries(rows.map((row) => [row.slug, row.label])),
+    labels: labelMap(rows),
   };
 }
 
@@ -79,7 +76,7 @@ export function useDeckFormatList(): {
 export function useFormatList(): {
   names: string[];
   ids: string[];
-  labels: Record<string, string>;
+  labels: LabelMap;
 } {
   const { data } = useSuspenseQuery(initQueryOptions);
   const rows = sorted(data.enums.formats ?? []);
@@ -87,10 +84,10 @@ export function useFormatList(): {
   return {
     names,
     ids: rows.map((row) => row.slug),
-    labels: Object.fromEntries(
+    labels: labelMap(
       rows.flatMap((row, index) => [
-        [row.slug, row.label],
-        [names[index] as string, row.label],
+        { slug: row.slug, label: row.label },
+        { slug: names[index] ?? row.slug, label: row.label },
       ]),
     ),
   };

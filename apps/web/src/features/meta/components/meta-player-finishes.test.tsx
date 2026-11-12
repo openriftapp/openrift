@@ -158,7 +158,7 @@ describe("MetaPlayerFinishes", () => {
         playerName="Renata"
       />,
     );
-    expect(screen.getAllByRole("link", { name: "Partial" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Partial list" }).length).toBeGreaterThan(0);
   });
 
   it("offers no submission link to a signed-out reader", () => {

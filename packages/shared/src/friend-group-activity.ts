@@ -17,8 +17,12 @@ export type AggregatedActivityRow =
   | { kind: "event"; at: string; event: FriendGroupActivityEvent }
   | TradeBatch;
 
+function sameParty(a: string | null, b: string | null): boolean {
+  return a !== null && a === b;
+}
+
 function sameParties(a: TradeCompletedEvent, b: TradeCompletedEvent): boolean {
-  return a.giverUserId === b.giverUserId && a.receiverUserId === b.receiverUserId;
+  return sameParty(a.giverUserId, b.giverUserId) && sameParty(a.receiverUserId, b.receiverUserId);
 }
 
 /** Only consecutive trade-completed events with the same parties merge into a {@link TradeBatch}. */

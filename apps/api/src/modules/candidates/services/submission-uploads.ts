@@ -1,14 +1,13 @@
 import { extname, join } from "node:path";
 
 import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";
+import { DAY_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
 import type { MediaUploadResult } from "../../../lib/media-upload.js";
 import { createMediaUploadStore } from "../../../lib/media-upload.js";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MAX_EDGE_PX = 4000;
 

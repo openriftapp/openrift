@@ -16,7 +16,6 @@ import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { useFriendGroupsList, useGroupBoxWants } from "@/features/groups/hooks/use-friend-groups";
 import { useChannelRegistry } from "@/hooks/use-enums";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSession } from "@/hooks/use-session";
 import type { GroupInfo } from "@/lib/card-group-types";
 
@@ -56,7 +55,6 @@ export function useCollectionGridData({
 }: UseCollectionGridDataParams) {
   const collectionsMap = useCollectionsMap();
   const channels = useChannelRegistry();
-  const keywordReverseMap = useKeywordReverseMap();
   const countsVisible = useFilterCountsVisible();
   const { data: session } = useSession();
   const { data: ownedCountByPrinting } = useOwnedCount(Boolean(session?.user));
@@ -117,7 +115,6 @@ export function useCollectionGridData({
     sets,
     favoriteMarketplace,
     prices,
-    keywordReverseMap,
     languageOrder: languageFilter,
     channels,
     ownedFilter: filters.ownedFilter,
@@ -159,7 +156,6 @@ export function useCollectionGridData({
     prices,
     metaEnabled: showLibrary,
     countsEnabled: countsVisible,
-    keywordReverseMap,
     channels,
   });
 

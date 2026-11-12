@@ -1,4 +1,4 @@
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { Undo2Icon, XIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -12,6 +12,7 @@ import {
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { useDeckUndo } from "@/features/decks/components/deck-undo-controls";
 import { DeckZonePanelHeader } from "@/features/decks/components/deck-zone-panel";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -26,6 +27,7 @@ export function DeckZoneDrawer({
   target?: DeckZone;
   children: React.ReactNode;
 }) {
+  const { zoneLabels } = useZoneOrder();
   const { openMobile, setOpenMobile } = useSidebar();
   const workbench = target !== undefined;
   const { canUndo, undo } = useDeckUndo(deckId);
@@ -77,7 +79,7 @@ export function DeckZoneDrawer({
         {target !== undefined && (
           <div className="text-muted-foreground flex shrink-0 items-center gap-2 border-b px-3 py-2">
             <span className="min-w-0 flex-1">
-              {m.decks_workbench_sheet_hint({ zone: ZONE_LABELS[target] })}
+              {m.decks_workbench_sheet_hint({ zone: enumLabel(zoneLabels, target) })}
             </span>
             <Button variant="ghost" size="sm" disabled={!canUndo} onClick={undo}>
               <Undo2Icon className="size-4" />

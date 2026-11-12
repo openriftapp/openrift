@@ -27,6 +27,7 @@ import {
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -76,13 +77,13 @@ function MemberTradeSection({
   slug,
   userId,
   groupId,
-  memberName,
+  memberDisplayName,
   hasSharedAnything,
 }: {
   slug: string;
   userId: string;
   groupId: string;
-  memberName: string;
+  memberDisplayName: string;
   hasSharedAnything: boolean;
 }) {
   const { data: tradesData } = useGroupTrades(groupId);
@@ -109,7 +110,7 @@ function MemberTradeSection({
       <EmptyState
         icon={HandshakeIcon}
         title={m.groups_member_nothing_here_title()}
-        description={m.groups_member_nothing_here_description({ member: memberName })}
+        description={m.groups_member_nothing_here_description({ member: memberDisplayName })}
       />
     );
   }
@@ -130,7 +131,7 @@ function MemberTradeSection({
       </div>
       {hasSharedAnything ? null : (
         <p className="text-muted-foreground">
-          {m.groups_member_has_not_shared({ member: memberName })}
+          {m.groups_member_has_not_shared({ member: memberDisplayName })}
         </p>
       )}
     </section>
@@ -160,7 +161,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
             label: m.groups_nav_members(),
             link: <Link to="/groups/$slug/members" params={{ slug }} />,
           },
-          { label: member.userName ?? m.groups_member_fallback() },
+          { label: memberName(member.userName) },
         ]}
       />
       <CardDetailOverlayProvider>
@@ -181,7 +182,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
               slug={slug}
               userId={userId}
               groupId={groupDetail.group.id}
-              memberName={member.userName ?? m.groups_this_member_capitalized()}
+              memberDisplayName={memberName(member.userName)}
               hasSharedAnything={hasShares || hasCollections}
             />
           )}

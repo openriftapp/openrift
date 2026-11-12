@@ -21,6 +21,7 @@ import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardMetaLine } from "@/features/groups/components/trade-row-parts";
 import { useCreateLoan, useLoanBorrowerOptions } from "@/features/groups/hooks/use-loans";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 const FREE_TEXT = "__name__";
@@ -100,7 +101,7 @@ export function LendCardDialog({
                       gravatarHash={member.gravatarHash}
                       size="sm"
                     />
-                    <span className="truncate">{member.name ?? m.loans_member_fallback()}</span>
+                    <span className="truncate">{memberName(member.name)}</span>
                   </span>
                 }
               />

@@ -1,4 +1,5 @@
 import { deckCheckEntrySource } from "@openrift/shared/deck-check";
+import { formatDay } from "@openrift/shared/format-date";
 import type {
   DeckCheckEntryCardResponse,
   DeckCheckEntryDetailResponse,
@@ -25,7 +26,7 @@ export function isoDate(value: Date | string | null): string | null {
   if (value === null) {
     return null;
   }
-  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
+  return value instanceof Date ? formatDay(value) : String(value);
 }
 
 export function toDeckCheckEntryCardResponse(row: DeckCheckEntryCard): DeckCheckEntryCardResponse {

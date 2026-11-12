@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useId, useState } from "react";
@@ -112,7 +113,7 @@ export function SingleSelect({
   value: string | null;
   onChange: (next: string | null) => void;
   options: readonly string[];
-  labels: Record<string, string>;
+  labels: LabelMap;
   placeholder: string;
 }) {
   return (

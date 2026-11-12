@@ -14,6 +14,8 @@ import {
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { matchEntries } from "@/features/collections/lib/import-matcher";
 import { useBulkAddListEntries } from "@/features/lists/hooks/use-lists";
+import { knownPrintingCode } from "@/features/lists/lib/list-import-parser";
+import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -39,6 +41,13 @@ export function useListImportFlow(
   const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
   const [rowCount, setRowCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { labels: enumLabels } = useEnumOrders();
+  const languageLabels = useLanguageLabels();
+  const importLabels = {
+    finishes: enumLabels.finishes,
+    languages: languageLabels,
+    isCode: knownPrintingCode(allPrintings),
+  };
 
   const reset = () => {
     setStep("input");
@@ -53,6 +62,7 @@ export function useListImportFlow(
   const handleParse = (text: string) => {
     runImportParse(
       text,
+      importLabels,
       (entries) => {
         const matched = matchEntries(entries, allPrintings, preferredLanguages[0]).map((entry) =>
           listKind === "card" ? promoteToExact(entry) : entry,

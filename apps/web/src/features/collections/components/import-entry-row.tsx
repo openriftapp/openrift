@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -159,8 +160,8 @@ export function ImportEntryRow({
 /** Formats a "Foil · Alt Art" style suffix, or null when there's nothing notable. */
 function formatEntrySpecialties(
   entry: MatchedEntry,
-  finishLabels: Record<string, string>,
-  artVariantLabels: Record<string, string>,
+  finishLabels: LabelMap,
+  artVariantLabels: LabelMap,
 ): string | null {
   const parts: string[] = [];
   if (entry.entry.finish !== WellKnown.finish.NORMAL) {

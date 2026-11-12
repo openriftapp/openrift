@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/_app/meta_/$slug")({
     if (!metaEventHasArchivedResults(event)) {
       return seoHead({ siteUrl, title, path, unlisted: true });
     }
-    const description = `${event.name} on ${event.eventDate}: standings for ${event.playerRowCount} Riftbound ${event.format} ${event.playerRowCount === 1 ? "player" : "players"}, with ${event.deckCount} archived ${event.deckCount === 1 ? "decklist" : "decklists"}.`;
+    const description = `${event.name} on ${event.eventDate}: standings for ${event.playerRowCount} Riftbound ${event.format} ${pluralize(event.playerRowCount, "player", "players")}, with ${event.deckCount} archived ${pluralize(event.deckCount, "decklist", "decklists")}.`;
     return {
       ...seoHead({ siteUrl, title, description, path }),
       scripts: [

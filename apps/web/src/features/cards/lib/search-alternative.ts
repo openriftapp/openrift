@@ -1,4 +1,4 @@
-import { foldForSearch } from "@openrift/shared/search-fold";
+import { foldForSearch, matchesTextPhrase } from "@openrift/shared/search-fold";
 import { looksLikeCardNumber } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -43,7 +43,7 @@ function tagLabel(words: readonly string[], matches: readonly Printing[]): strin
     .map((word) => {
       const folded = foldForSearch(word);
       const exact = tags.find((tag) => foldForSearch(tag) === folded);
-      const containing = tags.filter((tag) => foldForSearch(tag).includes(folded));
+      const containing = tags.filter((tag) => matchesTextPhrase(word, [tag]));
       return exact ?? (containing.length === 1 ? containing[0] : undefined) ?? word;
     })
     .join(" ");

@@ -1,4 +1,6 @@
 import { mergeListEntriesByTarget } from "@openrift/shared/list-entries";
+import { listIntentLabelEnglish } from "@openrift/shared/share-titles";
+import type { ListIntent } from "@openrift/shared/types/api/list";
 
 import type { Repos } from "../../../deps.js";
 import type { ShareImageCard, ShareImageInput } from "../../system/services/share-image.js";
@@ -50,16 +52,6 @@ export async function buildCards(
   }));
 }
 
-function intentLabel(intent: string): string {
-  if (intent === "trade") {
-    return "Trade list";
-  }
-  if (intent === "wish") {
-    return "Wishlist";
-  }
-  return "List";
-}
-
 // Mirrors the share text's KIND_NOUN.
 function unitForKind(kind: string): { one: string; many: string } {
   if (kind === "printing" || kind === "copy") {
@@ -69,9 +61,9 @@ function unitForKind(kind: string): { one: string; many: string } {
 }
 
 export interface ListImageData {
-  ownerName: string;
+  ownerName?: string;
   listName: string;
-  intent: string;
+  intent: ListIntent;
   kind: string;
   entries: readonly ListEntryRow[];
   siteHost?: string;
@@ -88,7 +80,7 @@ export async function buildListShareInput(data: ListImageData): Promise<ShareIma
   return {
     ownerName: data.ownerName,
     title: data.listName,
-    intentLabel: intentLabel(data.intent),
+    intentLabel: listIntentLabelEnglish(data.intent),
     unit: unitForKind(data.kind),
     cards,
     totalCount: display.length,

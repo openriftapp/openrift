@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
 import { parseShareImageQuery } from "../../../lib/share-image-query.js";
+import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import { getUserId } from "../../../middleware/get-user-id.js";
 import { requireAuth } from "../../../middleware/require-auth.js";
@@ -37,7 +38,7 @@ export const tierListImageRoute = new Hono<{ Variables: Variables }>()
       kind: "tierList",
       input: {
         title: tierList.title,
-        ownerName: c.get("user")?.name ?? undefined,
+        ownerName: bylineName(c.get("user")?.name),
         rows,
         siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl,

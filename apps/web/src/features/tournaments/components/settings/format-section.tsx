@@ -11,7 +11,7 @@ import {
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import {
   hasPairing,
-  MATCH_FORMAT_LABEL,
+  matchFormatLabels,
   pairingStyleLabels,
   pairingFromRoundsChoice,
   roundsChoiceFor,
@@ -48,14 +48,14 @@ export function FormatSection({
         groupCut ? (
           <p className="text-muted-foreground text-sm">
             {m.tournaments_settings_format_group_cut_note({
-              format: MATCH_FORMAT_LABEL[detail.matchFormat],
+              format: matchFormatLabels()[detail.matchFormat],
               size: detail.cutSize,
             })}
           </p>
         ) : isSwiss ? (
           <p className="text-muted-foreground text-sm">
             {m.tournaments_settings_format_swiss_note({
-              format: MATCH_FORMAT_LABEL[detail.matchFormat],
+              format: matchFormatLabels()[detail.matchFormat],
             })}
           </p>
         ) : null

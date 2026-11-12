@@ -41,11 +41,9 @@ export interface CardTradeDtoRow {
   giverName: string | null;
   giverImage: string | null;
   giverEmail: string | null;
-  giverSnapshotName: string | null;
   receiverName: string | null;
   receiverImage: string | null;
   receiverEmail: string | null;
-  receiverSnapshotName: string | null;
   counterpartyContacts: readonly ContactMethod[];
 }
 
@@ -108,11 +106,9 @@ export function tradeDtoBaseQuery(db: Kysely<Database>) {
       "giverUser.name as giverName",
       "giverUser.image as giverImage",
       "giverUser.email as giverEmail",
-      "t.giverName as giverSnapshotName",
       "receiverUser.name as receiverName",
       "receiverUser.image as receiverImage",
       "receiverUser.email as receiverEmail",
-      "t.receiverName as receiverSnapshotName",
     ]);
 }
 

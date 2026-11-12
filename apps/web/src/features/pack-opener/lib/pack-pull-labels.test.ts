@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { PackPrinting, PackPull } from "@openrift/shared/pack-opener/types";
 import { describe, expect, it } from "vitest";
 
@@ -9,7 +10,7 @@ import {
   packSlotLabel,
 } from "./pack-pull-labels";
 
-const LABELS = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
+const LABELS = labelMapOf({ common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" });
 
 function makePull(slot: PackPull["slot"], overrides: Partial<PackPrinting> = {}): PackPull {
   return {
@@ -127,6 +128,6 @@ describe("packSlotLabel", () => {
   });
 
   it("falls back to the rarity slug when the label map has no entry", () => {
-    expect(packSlotLabel(makePull("flex", { rarity: "mythic" }), {})).toBe("mythic");
+    expect(packSlotLabel(makePull("flex", { rarity: "mythic" }), labelMapOf({}))).toBe("mythic");
   });
 });

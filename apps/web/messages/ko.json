@@ -471,7 +471,6 @@
   "shared_link_url_label": "링크 {index} URL",
   "shared_link_title_label": "링크 {index} 제목",
   "shared_link_remove_label": "링크 {index} 삭제",
-  "shared_unknown_user": "알 수 없는 사용자",
   "common_close": "닫기",
   "ui_quantity_one_fewer": "하나 줄이기",
   "ui_quantity_one_more": "하나 늘리기",
@@ -3761,8 +3760,6 @@
   "loans_group_borrowed": "빌려 온 카드",
   "loans_group_history": "기록",
   "loans_card_fallback": "카드",
-  "loans_member_fallback": "멤버",
-  "loans_former_member": "이전 멤버",
   "loans_quantity": "{card} {count}장",
   "loans_quantity_partial": "{card} {total}장 중 {outstanding}장이 아직 나가 있습니다",
   "loans_to_person": "{name}님에게",
@@ -3908,9 +3905,7 @@
   "trade_pref_reset": "목록 기본값으로 되돌리기",
   "trade_pref_edit_aria": "교환 조건 편집 ({value})",
   "trade_pref_set_aria": "교환 조건 설정",
-  "groups_a_member": "한 멤버",
   "groups_activity_a_card": "어떤 카드",
-  "groups_activity_a_member": "한 멤버",
   "groups_activity_collection_shared": "{member}님이 {collection} 컬렉션을 공유했습니다",
   "groups_activity_empty": "아직 아무것도 없습니다. 그룹이 활발해지면 새 멤버, 공유된 목록, 교환이 여기에 표시됩니다.",
   "groups_activity_list_shared": "{member}님이 {noun} {list}을(를) 공유했습니다",
@@ -3919,8 +3914,6 @@
   "groups_activity_title": "최근 활동",
   "groups_activity_trade_batch": "{giver}님이 {receiver}님에게 카드 {count}장을 교환했습니다",
   "groups_activity_trade_completed": "{giver}님이 {receiver}님에게 {card} {quantity}장을 교환했습니다",
-  "groups_activity_you": "나",
-  "groups_activity_you_object": "나",
   "groups_admin_banner_description": "그룹 이름 뒤에 표시됩니다.",
   "groups_admin_description_label": "설명",
   "groups_admin_enable_invites": "초대 사용",
@@ -4074,7 +4067,6 @@
       }
     }
   ],
-  "groups_member_fallback": "멤버",
   "groups_member_has_not_shared": "{member}님은 아직 이 그룹에 컬렉션이나 목록을 공유하지 않았습니다.",
   "groups_member_needs_you": "{count}건이 확인을 기다립니다",
   "groups_member_nothing_here_description": "{member}님은 이 그룹에 목록이나 컬렉션을 공유하지 않았고, 두 분 사이의 교환도 아직 없습니다.",
@@ -4182,7 +4174,6 @@
   "groups_overview_tournaments_total": "총 {count}개",
   "groups_overview_waiting_in": "{name}에서 대기 중",
   "groups_overview_youre_in": "참가 중 {count}개",
-  "groups_owner_unknown": "알 수 없음",
   "groups_pending_approval": "관리자가 가입 신청을 승인하기를 기다리는 중입니다.",
   "groups_role_admin": "관리자",
   "groups_role_member": "멤버",
@@ -4246,8 +4237,6 @@
   "groups_slug_error_min": "{count}자 이상 입력하세요",
   "groups_slug_error_pattern": "영소문자, 숫자, 하이픈만 쓸 수 있으며 글자나 숫자로 시작해야 합니다",
   "groups_slug_error_reserved": "이 주소는 OpenRift가 사용 중입니다. 다른 주소를 고르세요",
-  "groups_this_member": "이 멤버",
-  "groups_this_member_capitalized": "이 멤버",
   "groups_trade_volume_none": "아직 이곳에서 교환이 없습니다",
   "groups_trade_volume_quiet": "지난 {days}일 동안 교환이 없습니다",
   "groups_trade_volume_recent": [
@@ -4267,7 +4256,6 @@
   "groups_transfer_placeholder": "멤버 선택",
   "groups_transfer_select_aria": "새 소유자",
   "groups_transfer_title": "소유권 이전",
-  "groups_unknown_user": "알 수 없는 사용자",
   "binder_contact_label": "연락처 (선택 사항)",
   "binder_contact_placeholder": "Discord: summonerkai",
   "binder_create_pdf": "PDF 만들기",
@@ -4521,12 +4509,9 @@
   ],
   "trades_hero_lead": "매칭은 멤버가 그룹에 공유한 위시리스트와 교환 목록에서 나옵니다. 답하지 않은 요청은 7일 후 만료됩니다.",
   "trades_view_trades": "교환 보기",
-  "trades_member_fallback": "멤버",
-  "trades_this_member": "이 멤버",
   "trades_this_card": "이 카드",
   "trades_card_fallback": "카드",
   "trades_them": "상대방",
-  "trades_a_member": "한 멤버",
   "trades_member_pair": "{first}와(과) {second}",
   "trades_member_count": "멤버 {count}명",
   "trades_members": [
@@ -4647,7 +4632,6 @@
       }
     }
   ],
-  "trades_request_unknown_user": "알 수 없는 사용자",
   "trades_requested_ago": "{time}에 요청함",
   "trades_approve": "승인",
   "trades_deny": "거절",
@@ -8743,7 +8727,6 @@
     }
   ],
   "meta_event_organized_by": "{organizer} 주최",
-  "meta_list_partial_short": "부분",
   "tournaments_claim_page_title_loading": "참가 자리 확인하기",
   "tournaments_claim_invalid_title": "이 클레임 링크는 유효하지 않습니다",
   "tournaments_claim_invalid_description": "주최자에게 최신 링크를 요청하세요.",
@@ -10426,5 +10409,156 @@
   "decks_workbench_showing_all_cards": "모든 카드를 표시 중입니다.",
   "decks_workbench_stats_paused_note": "능력치 필터가 일시 중지되었습니다.",
   "decks_workbench_show_all_cards": "모든 카드 보기",
-  "decks_workbench_only_allowed_cards": "넣을 수 있는 카드만"
+  "decks_workbench_only_allowed_cards": "넣을 수 있는 카드만",
+  "common_unnamed_member": "이름 없는 멤버",
+  "common_former_member": "탈퇴한 멤버",
+  "tier_lists_share_ranked_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장 순위 지정",
+        "countPlural=*": "카드 {count}장 순위 지정"
+      }
+    }
+  ],
+  "user_profile_unnamed_heading": "위시리스트와 교환 목록",
+  "user_profile_cta_title_unnamed": "교환할 수 있는 카드 보기",
+  "meta_outcome_word_double_forfeit": "쌍방 몰수패",
+  "tournaments_pod_double_forfeit": "쌍방 몰수패",
+  "tournaments_pairings_earlier_byes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "이전 부전승 {count}회",
+        "countPlural=*": "이전 부전승 {count}회"
+      }
+    }
+  ],
+  "tournaments_pod_vs": "vs",
+  "tournaments_pod_points": "{score}점",
+  "tournaments_pairing_error_team_match": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{match}번 매치에 팀이 {count}개 있습니다. 매치에는 팀이 정확히 2개 있어야 합니다.",
+        "countPlural=*": "{match}번 매치에 팀이 {count}개 있습니다. 매치에는 팀이 정확히 2개 있어야 합니다."
+      }
+    }
+  ],
+  "tournaments_pairing_error_match_size": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{match}번 매치에 플레이어가 {count}명 있습니다. 매치에는 정확히 2명이 있어야 합니다.",
+        "countPlural=*": "{match}번 매치에 플레이어가 {count}명 있습니다. 매치에는 정확히 2명이 있어야 합니다."
+      }
+    }
+  ],
+  "tournaments_pairing_error_pod_size": [
+    {
+      "declarations": ["input pod", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pod}번 팟에 플레이어가 {count}명 있습니다. 팟에는 3명 또는 4명이 있어야 합니다.",
+        "countPlural=*": "{pod}번 팟에 플레이어가 {count}명 있습니다. 팟에는 3명 또는 4명이 있어야 합니다."
+      }
+    }
+  ],
+  "tournaments_group_seats_hint_four": "좌석이 일정을 정합니다. 1라운드는 1번과 2번, 3번과 4번, 2라운드는 1번과 3번, 2번과 4번, 3라운드는 1번과 4번, 2번과 3번이 대결합니다.",
+  "tournaments_group_seats_hint_five": "좌석이 일정을 정합니다. 1번은 1라운드, 2번은 2라운드, 3번은 3라운드에 다른 조와 대결하고, 나머지 두 명은 서로 대결합니다.",
+  "tournaments_match_format_bo1": "단판",
+  "tournaments_match_format_bo3": "3판 2선승",
+  "meta_submission_sent_line": "{sent} 제출",
+  "meta_submission_sent_reviewed_line": "{sent} 제출 · {reviewed} 검토",
+  "meta_submissions_lead": "아카이브에 보낸 모든 내용과 각각의 처리 결과입니다.",
+  "meta_deck_preview_units": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "유닛 {count}장",
+        "countPlural=*": "유닛 {count}장"
+      }
+    }
+  ],
+  "meta_deck_preview_spells": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "주문 {count}장",
+        "countPlural=*": "주문 {count}장"
+      }
+    }
+  ],
+  "meta_deck_preview_gear": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "장비 {count}장",
+        "countPlural=*": "장비 {count}장"
+      }
+    }
+  ],
+  "meta_run_finished": "최종 {#strong}{finish}{/strong}",
+  "meta_standings_missing_value": "{amount} 부족",
+  "decks_hero_value_suffix": "가치",
+  "lists_toast_removed_from_list": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "목록에서 카드 {count}장을 제거했습니다",
+        "countPlural=*": "목록에서 카드 {count}장을 제거했습니다"
+      }
+    }
+  ],
+  "lists_toast_marked_sold": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장을 판매됨으로 표시했습니다",
+        "countPlural=*": "카드 {count}장을 판매됨으로 표시했습니다"
+      }
+    }
+  ],
+  "collections_toast_moved_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장을 옮겼습니다",
+        "countPlural=*": "카드 {count}장을 옮겼습니다"
+      }
+    }
+  ],
+  "collections_toast_removed_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장을 제거했습니다",
+        "countPlural=*": "카드 {count}장을 제거했습니다"
+      }
+    }
+  ],
+  "groups_shop_events_today": "오늘 · {weekday}",
+  "groups_shop_events_tomorrow": "내일 · {weekday}",
+  "cards_filter_domain_none": "없음",
+  "meta_deck_tile_label": "{player}님의 덱 리스트",
+  "meta_deck_tile_label_legend": "{player}님의 {legend} 덱 리스트",
+  "lists_import_issue_unreadable": "{line}번째 줄: \"{text}\"을(를) 읽을 수 없습니다. \"<수량> <카드 이름>\" 형식이어야 합니다.",
+  "lists_import_issue_zero_quantity": "{line}번째 줄: 수량은 0보다 커야 합니다.",
+  "lists_import_issue_missing_name": "{line}번째 줄: 카드 이름이 없습니다.",
+  "groups_activity_trade_batch_you_gave": "{receiver}님에게 카드 {count}장을 교환했습니다",
+  "groups_activity_trade_batch_you_received": "{giver}님이 나에게 카드 {count}장을 교환했습니다",
+  "groups_activity_trade_completed_you_gave": "{receiver}님에게 {card} {quantity}장을 교환했습니다",
+  "groups_activity_trade_completed_you_received": "{giver}님이 나에게 {card} {quantity}장을 교환했습니다",
+  "trades_sheet_nothing_open_title": "지금 진행 중인 교환이 없습니다"
 }

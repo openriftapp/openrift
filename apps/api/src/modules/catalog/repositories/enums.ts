@@ -104,6 +104,10 @@ export function enumsRepo(db: Kysely<Database>) {
       };
     },
 
+    deckZones(): Promise<EnumRow[]> {
+      return list("deckZones");
+    },
+
     async all(): Promise<AllEnumRows> {
       const [
         cardTypes,

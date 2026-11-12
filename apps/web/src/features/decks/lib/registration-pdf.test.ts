@@ -207,6 +207,7 @@ async function render(
     cards?: DeckBuilderCard[];
     pageSize?: RegistrationPageSize;
     siteUrl?: string;
+    deckId?: string;
   } = {},
 ): Promise<FakeDoc> {
   await generateRegistrationPdf(
@@ -214,6 +215,7 @@ async function render(
     options.cards ?? [],
     options.pageSize ?? "a4",
     options.siteUrl ?? SITE_URL,
+    options.deckId,
   );
   const doc = mocks.docs.at(-1);
   if (!doc) {
@@ -305,7 +307,7 @@ describe("generateRegistrationPdf", () => {
 
     it("saves the sheet exactly once", async () => {
       const doc = await render();
-      expect(doc.saved).toEqual(["Piltover-Tempo-registration.pdf"]);
+      expect(doc.saved).toEqual(["piltover-tempo-registration.pdf"]);
     });
   });
 
@@ -727,7 +729,7 @@ describe("generateRegistrationPdf", () => {
   describe("filename", () => {
     it("slugifies the deck name", async () => {
       const doc = await render({ fields: stubFields({ deckName: "  Kai's Deck!! #2  " }) });
-      expect(doc.saved).toEqual(["Kais-Deck-2-registration.pdf"]);
+      expect(doc.saved).toEqual(["kais-deck-2-registration.pdf"]);
     });
 
     it("falls back when the deck name is empty or unusable", async () => {
@@ -736,6 +738,14 @@ describe("generateRegistrationPdf", () => {
 
       const punctuation = await render({ fields: stubFields({ deckName: "!!!" }) });
       expect(punctuation.saved).toEqual(["deck-registration.pdf"]);
+    });
+
+    it("tells apart decks with non-Latin names by the deck id", async () => {
+      const doc = await render({
+        fields: stubFields({ deckName: "沙漠皇帝" }),
+        deckId: "019d6c25-b081-74b3-a901-64da4ae01dab",
+      });
+      expect(doc.saved).toEqual(["deck-4ae01dab-registration.pdf"]);
     });
   });
 

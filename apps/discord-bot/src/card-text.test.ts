@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCardText, glyphFallback } from "./card-text.js";
+import { formatCardText } from "./card-text.js";
 import type { GlyphEmojis } from "./glyph-emoji.js";
 
 const EMOJIS: GlyphEmojis = new Map([
@@ -8,20 +8,6 @@ const EMOJIS: GlyphEmojis = new Map([
   ["energy_1", "<:rb_energy_1:2>"],
   ["rune_rainbow", "<:rb_rune_rainbow:3>"],
 ]);
-
-describe("glyphFallback", () => {
-  it("spells out energy costs", () => {
-    expect(glyphFallback("energy_2")).toBe("2 energy");
-  });
-
-  it("names runes by their domain", () => {
-    expect(glyphFallback("rune_fury")).toBe("Fury rune");
-  });
-
-  it("capitalizes plain glyphs", () => {
-    expect(glyphFallback("might")).toBe("Might");
-  });
-});
 
 describe("formatCardText", () => {
   it("replaces glyph tokens with the app's emojis", () => {

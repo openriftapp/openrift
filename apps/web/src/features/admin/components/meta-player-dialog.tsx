@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatRankEnglish } from "@openrift/shared/meta-standings";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminMetaPlayer } from "@openrift/shared/types/api/meta";
@@ -200,7 +201,7 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
         continue;
       }
       if (entry.status === "needs-review") {
-        needsReview.push({ source: sourceLabel(entry), matched: resolved.cardName });
+        needsReview.push({ source: sourceLabel(entry), matched: resolved.displayName });
       }
     }
     setFormError("");
@@ -481,7 +482,7 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
                 <p className="text-muted-foreground">
                   {zoneOrder
                     .filter((zone) => copiesByZone.has(zone))
-                    .map((zone) => `${zoneLabels[zone]}: ${copiesByZone.get(zone)}`)
+                    .map((zone) => `${enumLabel(zoneLabels, zone)}: ${copiesByZone.get(zone)}`)
                     .join(" · ")}
                 </p>
               </div>

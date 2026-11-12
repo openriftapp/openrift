@@ -147,7 +147,7 @@ export function ListShareDialog({
       }}
       image={{
         title: listName,
-        filenameBase: listName || "list",
+        filename: { base: listName, fallback: "list", id: listId },
         // Owner-authenticated route, so the render works whether or not the
         // list is shared (the public/og image needs a share token).
         buildUrl: (choice) =>
@@ -161,11 +161,11 @@ export function ListShareDialog({
         qrNoun: "list",
         qrAvailable: shareUrl !== null,
       }}
-      qrFilenameBase={listName || "list"}
+      qrFilename={{ base: listName, fallback: "list", id: listId }}
       print={{
         defaultTitle: listName,
         defaultSubtitle: binderSubtitle(intent),
-        filenameHint: listName,
+        filename: { base: listName, fallback: "list", id: listId },
       }}
     />
   );

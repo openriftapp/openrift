@@ -27,9 +27,9 @@ import {
   useSetMetaSourcePriority,
   useWriteMetaEventOverlayFields,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { reviewFieldLabel } from "@/features/admin/lib/meta-review-queue";
+import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
-import { reviewFieldLabel } from "@/features/meta/lib/meta-review-queue";
-import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { cn } from "@/lib/utils";
 
 type DriftField = MetaEventDrift["fields"][number];

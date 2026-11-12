@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type {
   CardTradeLiveAnnotation,
   CardTradeResponse,
@@ -26,10 +27,10 @@ import {
   withoutLiveTradeMatches,
 } from "./trade-derivation";
 
-const CONDITION_LABELS: Record<string, string> = {
+const CONDITION_LABELS = labelMapOf({
   "near-mint": "Near Mint",
   played: "Played",
-};
+});
 
 function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
   return {
@@ -610,7 +611,7 @@ describe("sumTradeValues", () => {
 describe("matchCopyConditionLabel and summarizeMatchCopies", () => {
   const LABELS = {
     conditions: CONDITION_LABELS,
-    graders: { psa: "PSA" },
+    graders: labelMapOf({ psa: "PSA" }),
   };
   const copy = (overrides: Partial<MatchCopyDetail> = {}): MatchCopyDetail => ({
     condition: null,

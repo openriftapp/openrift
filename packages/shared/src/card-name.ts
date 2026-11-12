@@ -44,7 +44,7 @@ export function compareCardDisplayName(left: CardNameParts, right: CardNameParts
 }
 
 export function cardSearchAltNames(
-  card: Pick<Card, "name" | "types" | "tags">,
+  card: CardNameParts,
   extra?: readonly (string | null | undefined)[],
 ): string[] {
   const seen = new Set<string>([card.name]);

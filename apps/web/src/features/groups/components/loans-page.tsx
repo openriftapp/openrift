@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
@@ -23,7 +24,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { ReturnLoanDialog } from "@/features/groups/components/return-loan-dialog";
 import { CardMetaLine } from "@/features/groups/components/trade-row-parts";
 import { WriteOffLoanDialog } from "@/features/groups/components/write-off-loan-dialog";
@@ -67,11 +68,11 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
 
   const card = cardsById[loan.cardId];
   const printing = printingsById[loan.printingId];
-  const cardName = card
-    ? printing?.otherSide
-      ? `${card.name} // ${printing.otherSide.cardName}`
-      : card.name
-    : m.loans_card_fallback();
+  const cardName = printing
+    ? printingDisplayName(printing)
+    : card
+      ? legendDisplayName(card)
+      : m.loans_card_fallback();
   const imageId = frontImageId(printing);
 
   const lending = loan.role === "lender";

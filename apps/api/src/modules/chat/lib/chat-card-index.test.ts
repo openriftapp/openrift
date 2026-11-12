@@ -14,8 +14,7 @@ function makeRepos() {
   };
   const catalog = {
     cards: vi.fn(async () => []),
-    printingCodes: vi.fn(async () => []),
-    nameAliases: vi.fn(async () => []),
+    printingLookupRows: vi.fn(async () => []),
     catalogContentVersion: vi.fn(async () => "catalog-v1"),
   };
   return { repos: { enums, catalog } as unknown as Repos, enums, catalog };

@@ -98,7 +98,7 @@ function finishLabel(rank: number | undefined, rankIsTier: boolean | undefined):
   if (rank === undefined) {
     return null;
   }
-  return rankIsTier === true ? formatRank(rank, true) : `#${rank}`;
+  return formatRank(rank, rankIsTier === true);
 }
 
 function eventFacts(event: MetaEventSummary, formatLabel: string): string {

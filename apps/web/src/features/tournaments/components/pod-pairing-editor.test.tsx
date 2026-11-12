@@ -179,7 +179,7 @@ describe("PodPairingEditor move menu", () => {
     await user.click(await screen.findByRole("menuitem", { name: "New pod" }));
 
     expect(screen.getByText("Pod 3")).toBeInTheDocument();
-    expect(screen.getByText("Pod 3 has 1 players. Pods must have 3 or 4.")).toBeInTheDocument();
+    expect(screen.getByText("Pod 3 has 1 player. Pods must have 3 or 4.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save pairing" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Move Summoner H" }));
     expect(await menuItemNames()).toEqual(["Pod 1", "Pod 2", "New pod", "Byes"]);

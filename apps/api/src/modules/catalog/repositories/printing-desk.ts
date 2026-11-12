@@ -1,10 +1,11 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import type {
   DeskSecondSide,
   DeskSharedPrinting,
 } from "@openrift/shared/contracts/admin/printing-desk";
 import type { ReleasePrecision } from "@openrift/shared/set-release";
-import type { CardFace } from "@openrift/shared/types/enums";
+import type { CardFace, CardType } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
@@ -431,16 +432,18 @@ export function printingDeskRepo(db: Kysely<Database>) {
     },
 
     /** The side holding `imageFileId` captions the post; side 1 when no side holds it. */
-    getPostImageRow(
+    async getPostImageRow(
       printingId: string,
       imageFileId?: string,
     ): Promise<DeskPostImageRow | undefined> {
-      return joinAdminFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId")
+      const row = await joinAdminFaceImage(db.selectFrom("printingSidesOrdered as s"), "s.faceId")
         .innerJoin("cards as c", "c.id", "s.cardId")
         .select([
           "s.printingId",
           "s.cardId",
           "c.name as cardName",
+          "c.tags as cardTags",
+          sql<CardType[]>`coalesce(${cardTypes("c.id")}, '{}')`.as("cardTypes"),
           primaryCardType("c.id").as("cardType"),
           "s.publicCode",
           "s.finish",
@@ -458,6 +461,14 @@ export function printingDeskRepo(db: Kysely<Database>) {
         .orderBy("s.position")
         .limit(1)
         .executeTakeFirst();
+      if (!row) {
+        return undefined;
+      }
+      const { cardTags, cardTypes: types, ...rest } = row;
+      return {
+        ...rest,
+        cardName: legendDisplayName({ name: row.cardName, types, tags: cardTags }),
+      };
     },
 
     async getBasePrinting(cardId: string, language: string): Promise<FullPrintingRow | undefined> {

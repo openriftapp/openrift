@@ -1,4 +1,4 @@
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -22,6 +22,7 @@ import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildMoveRows, getAllowedMoveTargets } from "@/features/decks/lib/deck-builder-card";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
 
@@ -49,6 +50,7 @@ export function DeckCardPrintingMenu({
   onSwitch,
   onOpenPlan,
 }: DeckCardPrintingMenuProps) {
+  const { zoneLabels } = useZoneOrder();
   const { changePreferredPrinting, moveCard, moveOneCard, setQuantity } =
     useDeckBuilderActions(deckId);
   const workbench = useWorkbenchStore((state) => state.relaxed);
@@ -116,7 +118,7 @@ export function DeckCardPrintingMenu({
             )}
             {onSwitch && (
               <ContextMenuItem onClick={onSwitch}>
-                {m.decks_card_menu_switch({ zone: ZONE_LABELS[card.zone] })}
+                {m.decks_card_menu_switch({ zone: enumLabel(zoneLabels, card.zone) })}
               </ContextMenuItem>
             )}
             {onOpenPlan && (
@@ -144,7 +146,7 @@ export function DeckCardPrintingMenu({
                     handleMove(row.zone, row.splitOne || (event.shiftKey && card.quantity > 1));
                   }}
                 >
-                  {ZONE_LABELS[row.zone]}
+                  {enumLabel(zoneLabels, row.zone)}
                   {splitRowsShown && (
                     <span className="text-muted-foreground/70 ml-1">
                       {row.splitOne

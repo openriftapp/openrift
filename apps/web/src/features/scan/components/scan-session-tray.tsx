@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -368,7 +369,7 @@ interface TrayRowProps {
   row: ScanSessionRow;
   sequence: string[];
   siblings?: Printing[];
-  rarityLabels: Record<string, string>;
+  rarityLabels: LabelMap;
   domainColors: Record<string, string>;
   open: boolean;
   onToggle: (printingId: string) => void;

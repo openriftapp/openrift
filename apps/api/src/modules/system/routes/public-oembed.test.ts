@@ -22,6 +22,17 @@ const mockUserSharesRepo = {
   listsForOwner: vi.fn(),
 };
 
+const DECK_FORMAT_LABELS: Record<string, string> = {
+  constructed: "Constructed",
+  "custom-region": "Custom Region",
+};
+const mockDeckFormatsRepo = {
+  getBySlug: vi.fn((slug: string) => {
+    const label = DECK_FORMAT_LABELS[slug];
+    return Promise.resolve(label === undefined ? undefined : { slug, label });
+  }),
+};
+
 const app = new Hono<{ Variables: Variables }>()
   .use("*", async (c, next) => {
     c.set("repos", {
@@ -30,6 +41,7 @@ const app = new Hono<{ Variables: Variables }>()
       lists: mockListsRepo,
       tierLists: mockTierListsRepo,
       userShares: mockUserSharesRepo,
+      deckFormats: mockDeckFormatsRepo,
     } as never);
     c.set("config", {
       siteOrigin: "https://site.openrift.test",
@@ -100,7 +112,7 @@ describe("GET /api/v1/oembed", () => {
     );
   });
 
-  it("resolves a list share URL with the list intent in the title", async () => {
+  it("resolves a list share URL with the product word for its intent in the title", async () => {
     mockListsRepo.getByShareToken.mockResolvedValue({
       list: { name: "Holiday Targets", intent: "trade", updatedAt: NOW },
       ownerName: "Alice",
@@ -110,8 +122,48 @@ describe("GET /api/v1/oembed", () => {
     const res = await request({ url: "https://openrift.app/lists/share/tok-list" });
 
     const body = await readJson(res);
-    expect(body.title).toBe("Holiday Targets (trade list)");
+    expect(body.title).toBe("Holiday Targets (Tradelist)");
     expect(body.url).toBe(`https://openrift.app/api/v1/lists/share/tok-list/image.png?v=${NOW_MS}`);
+  });
+
+  it("titles an organize list without the internal intent word", async () => {
+    mockListsRepo.getByShareToken.mockResolvedValue({
+      list: { name: "Binder", intent: "organize", updatedAt: NOW },
+      ownerName: "Alice",
+      ownerEmail: "alice@example.test",
+    });
+
+    const body = await readJson(
+      await request({ url: "https://openrift.app/lists/share/tok-list" }),
+    );
+
+    expect(body.title).toBe("Binder (List)");
+  });
+
+  it("titles a deck with the admin-managed format label", async () => {
+    mockDecksRepo.getByShareToken.mockResolvedValue({
+      deck: { name: "Azir Control", format: "custom-region", updatedAt: NOW },
+      ownerName: "Alice",
+      ownerEmail: "alice@example.test",
+    });
+
+    const body = await readJson(
+      await request({ url: "https://openrift.app/decks/share/tok-deck" }),
+    );
+
+    expect(body.title).toBe("Azir Control (Custom Region deck)");
+  });
+
+  it("titles a user bundle without a name and omits the author", async () => {
+    mockUserSharesRepo.findOwnerByShareToken.mockResolvedValue({ userId: "u2", displayName: null });
+    mockUserSharesRepo.listsForOwner.mockResolvedValue([]);
+
+    const body = await readJson(
+      await request({ url: "https://openrift.app/users/share/tok-anon" }),
+    );
+
+    expect(body.title).toBe("Wishlists and tradelists");
+    expect(body.author_name).toBeUndefined();
   });
 
   it("resolves a tier-list share URL", async () => {
@@ -157,7 +209,7 @@ describe("GET /api/v1/oembed", () => {
     const res = await request({ url: "https://openrift.app/users/share/tok-bundle" });
 
     const body = await readJson(res);
-    expect(body.title).toBe("Alice's wish & tradelists");
+    expect(body.title).toBe("Alice's wishlists and tradelists");
     expect(body.url).toBe(
       `https://openrift.app/api/v1/users/share/tok-bundle/image.png?v=${NOW_MS}-2`,
     );

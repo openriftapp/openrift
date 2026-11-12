@@ -1,8 +1,9 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { buildCodeIndex, lookupCode } from "@openrift/shared/card-search";
 import type { CodeEntry, CodeIndex } from "@openrift/shared/card-search";
+import { memberNameEnglish } from "@openrift/shared/member-name";
 import { foldForSearch } from "@openrift/shared/search-fold";
-import { cardPath } from "@openrift/shared/site-paths";
+import { cardUrl } from "@openrift/shared/site-paths";
 
 import type { CatalogCard, CatalogPrinting } from "./catalog-cache.js";
 import type { TradelistHolders } from "./group-tradelists.js";
@@ -121,9 +122,9 @@ export function tradeLine(
     return null;
   }
   const offers = holders.holders.map(
-    (holder) => `${holder.userName ?? "Unknown user"} ${holder.quantity}×`,
+    (holder) => `${memberNameEnglish(holder.userName)} ${holder.quantity}×`,
   );
-  return `**[${legendDisplayName(card)}](${siteUrl}${cardPath(card.slug)})** · ${offers.join(" · ")}`;
+  return `**[${legendDisplayName(card)}](${cardUrl(siteUrl, card.slug)})** · ${offers.join(" · ")}`;
 }
 
 export function buildTradeReply(lines: (string | null)[], groupName: string | null): string | null {

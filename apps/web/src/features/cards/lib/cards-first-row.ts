@@ -1,24 +1,38 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { filterCards } from "@openrift/shared/filters";
-import { sortCards } from "@openrift/shared/filters-sort";
+import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import { resolveDirection } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
-import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
-import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
+import type { InitResponse } from "@openrift/shared/types/api/init";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { PrintingSide } from "@openrift/shared/types/catalog";
-import type { GroupByField, SortOption } from "@openrift/shared/types/search";
+import type { GroupByField, SortDirection, SortOption } from "@openrift/shared/types/search";
 import { createServerFn } from "@tanstack/react-start";
 
-import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
-import { searchToFilters } from "@/features/cards/lib/cards-facets";
-import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-queries";
+import { deriveCardGrid } from "@/features/cards/lib/card-grid-pipeline";
+import { buildGroups } from "@/features/cards/lib/card-groups";
+import { frontImageId } from "@/features/cards/lib/card-meta";
+import {
+  labelsFromInit,
+  ordersFromInit,
+  ssrSearchToFilters,
+  SSR_MARKETPLACE,
+} from "@/features/cards/lib/cards-facets";
+import {
+  enrichCatalog,
+  readCatalogFromServerCache,
+  ssrCatalogPreloadLangs,
+} from "@/features/cards/lib/catalog-queries";
+import { readPricesFromServerCache } from "@/features/cards/lib/prices-queries";
+import { ssrCardSearchContext } from "@/features/cards/lib/search-context";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { needsCssRotation } from "@/lib/images";
+import { readInitFromServerCache } from "@/lib/init-queries";
 import { getShellCookie } from "@/lib/page-cache";
 import type { SurfaceViewPrefs } from "@/lib/view-prefs";
 import {
@@ -32,7 +46,7 @@ export interface FirstRowCard {
   side: PrintingSide;
   cardName: string;
   setSlug: string;
-  imageId: string;
+  imageId: string | null;
   rotated: boolean;
 }
 
@@ -46,12 +60,14 @@ const FIRST_ROW_LIMIT = 16;
 const SSR_USER_LANGUAGES: readonly string[] = PREFERENCE_DEFAULTS.languages;
 const SSR_DEFAULT_VIEW: "cards" | "printings" = "cards";
 
-/**
- * Mirrors useCards → useCardData → card-grid so the SSR shell shows the same
- * tiles, in the same order, the hydrated grid will.
- */
+export interface FirstRowSources {
+  catalog: CatalogResponse;
+  init: Pick<InitResponse, "enums" | "keywords">;
+  prices: PricesResponse;
+}
+
 export function extractFirstRow(
-  catalog: CatalogResponse,
+  { catalog, init, prices }: FirstRowSources,
   search: FilterSearch,
   limit: number,
   viewDefaults: SurfaceViewPrefs = VIEW_SURFACE_CONFIGS.cards.defaults,
@@ -66,63 +82,62 @@ export function extractFirstRow(
         ? "printings"
         : SSR_DEFAULT_VIEW;
   const groupBy = (search.groupBy ?? viewDefaults.groupBy) as GroupByField;
-  const requestedSort: SearchOrder =
+  const groupDir: SortDirection =
+    (search.groupDir ?? viewDefaults.groupDir) === "desc" ? "desc" : "asc";
+  const sortBy: SearchOrder =
     directives.order ?? ((search.sort ?? viewDefaults.sort) as SortOption);
-  // sortCards needs rarityOrder for "rarity" and a price lookup for the price sorts;
-  // the SSR pipeline has neither, so fall back to "id" (shortCode) for those.
-  const sortBy: SearchOrder = ["rarity", "price", "usd", "eur"].includes(requestedSort)
-    ? "id"
-    : requestedSort;
-  const sortDir: "asc" | "desc" =
+  const sortDir: SortDirection =
     directives.order === undefined && directives.direction === undefined
       ? (search.sortDir ?? viewDefaults.sortDir) === "desc"
         ? "desc"
         : "asc"
-      : resolveDirection(requestedSort, directives.direction);
+      : resolveDirection(sortBy, directives.direction);
 
-  const { allPrintings, sets } = enrichCatalog(catalog);
-  const ordered = sortByLanguageAndCanonicalRank(allPrintings, SSR_USER_LANGUAGES);
-  const filters = searchToFilters(search);
-  const vocabulary = catalogSearchVocabulary({
-    printings: allPrintings,
-    sets,
-    enums: catalog.enums,
+  const enriched = enrichCatalog(catalog);
+  const lookup = priceLookupFromMap(prices.prices);
+  const { sortedCards } = deriveCardGrid({
+    allPrintings: sortByLanguageAndCanonicalRank(enriched.allPrintings, SSR_USER_LANGUAGES),
+    sets: enriched.sets,
+    filters: ssrSearchToFilters(search),
+    view,
+    groupBy,
+    sortBy,
+    sortDir,
+    context: ssrCardSearchContext(
+      enriched,
+      init,
+      {
+        getPrice: (printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
+        priceLookup: lookup,
+      },
+      ssrCatalogPreloadLangs(search.languages),
+    ),
+    prices: lookup,
+    favoriteMarketplace: SSR_MARKETPLACE,
   });
-  const filtered = filterCards(ordered, filters, { vocabulary });
 
-  let displayCards = filtered;
-  if (view === "cards") {
-    displayCards = dedupeToCardsViewTiles(filtered, groupBy);
-  }
-
-  let sortedCards = sortCards(displayCards, sortBy, { sortDir, sets });
-
-  if (groupBy === "set") {
-    // Mirrors the live grid's set order (groupItemsBySet): main sets lead,
-    // supplemental follow.
-    const setSortIndex = setIndexById(sets);
-    sortedCards = sortedCards.toSorted((a, b) => {
-      const aIdx = setSortIndex.get(a.setId) ?? UNKNOWN_SET_INDEX;
-      const bIdx = setSortIndex.get(b.setId) ?? UNKNOWN_SET_INDEX;
-      return aIdx - bIdx;
-    });
-  }
+  const items = sortedCards.map((printing) => ({ id: sideKey(printing), printing }));
+  const ordered = buildGroups(
+    items,
+    groupBy,
+    enriched.sets,
+    groupDir,
+    ordersFromInit(init),
+    labelsFromInit(init),
+  ).flatMap((group) => group.items);
 
   const result: FirstRowCard[] = [];
-  for (const printing of sortedCards) {
+  for (const { printing } of ordered) {
     if (result.length >= limit) {
       break;
     }
-    const front = printing.images[0] ?? printing.images[0];
-    if (!front) {
-      continue;
-    }
+    const imageId = frontImageId(printing);
     result.push({
       printingId: printing.printingId,
       side: printing.side,
       cardName: legendDisplayName(printing.card),
       setSlug: printing.setSlug,
-      imageId: front.imageId,
+      imageId,
       rotated: needsCssRotation(getOrientation(printing.card.types)),
     });
   }
@@ -132,8 +147,12 @@ export function extractFirstRow(
 export const fetchFirstRowCards = createServerFn({ method: "GET" })
   .validator((input: FilterSearch) => input)
   .handler(async ({ data }): Promise<FirstRowCard[]> => {
-    const catalog = await readCatalogFromServerCache();
+    const [catalog, init, prices] = await Promise.all([
+      readCatalogFromServerCache(),
+      readInitFromServerCache(),
+      readPricesFromServerCache(),
+    ]);
     // Same cookie the hydrated grid resolves its defaults from.
     const viewPrefs = resolveViewPrefsFromCookie(getShellCookie(VIEW_PREFS_COOKIE));
-    return extractFirstRow(catalog, data, FIRST_ROW_LIMIT, viewPrefs.cards);
+    return extractFirstRow({ catalog, init, prices }, data, FIRST_ROW_LIMIT, viewPrefs.cards);
   });

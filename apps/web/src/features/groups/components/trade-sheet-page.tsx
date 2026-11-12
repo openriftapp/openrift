@@ -39,7 +39,8 @@ import {
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
 import { tradeSideKey } from "@/features/groups/lib/trade-printing";
-import { splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
+import { sheetEmptyState, splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
+import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -166,7 +167,7 @@ function TradeSheetBody({
     anchorGroupDetail.shares.some(
       (share) => share.userId === userId && share.listIntent !== "organize",
     ) || anchorGroupDetail.collectionShares.some((share) => share.userId === userId);
-  const name = sheet.counterparty.name ?? m.trades_member_fallback();
+  const name = memberName(sheet.counterparty.name);
   // A group since deleted still counts: its trades keep the name they were
   // made under and stay on this sheet beside a live group's.
   const groupKeys = new Set(sheet.groups.map((group) => group.id));
@@ -183,13 +184,7 @@ function TradeSheetBody({
     (trade) => trade.status === "pending" || trade.status === "reserved",
   );
   const reserved = live.filter((trade) => trade.status === "reserved");
-  const empty =
-    ledger.yourMove.length +
-      ledger.readyToSwap.length +
-      ledger.waiting.length +
-      incoming.length +
-      outgoing.length ===
-    0;
+  const emptyState = sheetEmptyState(ledger, incoming.length + outgoing.length);
 
   return (
     <CardDetailOverlayProvider>
@@ -216,7 +211,7 @@ function TradeSheetBody({
         <header className="flex flex-col gap-4">
           <PersonPageHeader
             image={sheet.counterparty.image}
-            name={name}
+            name={sheet.counterparty.name}
             gravatarHash={sheet.counterparty.gravatarHash}
             actions={
               <>
@@ -265,14 +260,19 @@ function TradeSheetBody({
           <TradeBalanceBar trades={live} />
         </header>
 
-        {empty ? (
+        {emptyState === "none" ? null : (
           // No action here: the header's "View their lists" link sits right above.
           <EmptyState
             icon={HandshakeIcon}
-            title={m.trades_sheet_empty_title()}
+            title={
+              emptyState === "nothing-open"
+                ? m.trades_sheet_nothing_open_title()
+                : m.trades_sheet_empty_title()
+            }
             description={m.trades_sheet_empty_description()}
           />
-        ) : (
+        )}
+        {emptyState === "none" ? (
           <>
             <LedgerSection
               heading={m.trades_section_your_move()}
@@ -303,7 +303,7 @@ function TradeSheetBody({
               </section>
             ) : null}
           </>
-        )}
+        ) : null}
 
         <HistoryFold trades={ledger.history} />
       </div>

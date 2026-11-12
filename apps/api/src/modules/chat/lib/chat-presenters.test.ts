@@ -1,4 +1,5 @@
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { ChatCard } from "./chat-presenters.js";
@@ -7,9 +8,9 @@ import { chatCardLine, chatErrorLine, chatMissLine, chatUsageLine } from "./chat
 const SITE = "https://openrift.app";
 
 const labels: CardStatLabels = {
-  cardTypes: { unit: "Unit", spell: "Spell", battlefield: "Battlefield" },
-  superTypes: { legend: "Legend", champion: "Champion" },
-  domains: { fury: "Fury", mind: "Mind" },
+  cardTypes: labelMapOf({ unit: "Unit", spell: "Spell", battlefield: "Battlefield" }),
+  superTypes: labelMapOf({ legend: "Legend", champion: "Champion" }),
+  domains: labelMapOf({ fury: "Fury", mind: "Mind" }),
 };
 
 function makeCard(overrides: Partial<ChatCard> = {}): ChatCard {
@@ -55,11 +56,13 @@ describe("chatCardLine stat line", () => {
     );
   });
 
-  it("skips a slug the label map does not know rather than rendering undefined", () => {
+  it("shows the slug of a type or domain the label map does not know, never undefined", () => {
     const card = makeCard({ types: ["unit", "mystery"], domains: ["fury", "mystery"] });
     const line = statLine(card);
     expect(line).not.toContain("undefined");
-    expect(line).toBe("Legend Champion Unit · Fury · Energy 3 · Might 4 · Power 2");
+    expect(line).toBe(
+      "Legend Champion Unit mystery · Fury / mystery · Energy 3 · Might 4 · Power 2",
+    );
   });
 });
 

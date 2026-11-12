@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -54,7 +55,7 @@ describe("FieldRow", () => {
           value="common"
           onChange={() => undefined}
           options={["common"]}
-          labels={{ common: "Common" }}
+          labels={labelMapOf({ common: "Common" })}
           placeholder="Pick a rarity"
         />
       </FieldRow>,
@@ -158,7 +159,7 @@ describe("SingleSelect", () => {
           value="rare"
           onChange={() => undefined}
           options={["common", "rare"]}
-          labels={{ common: "Common", rare: "Rare" }}
+          labels={labelMapOf({ common: "Common", rare: "Rare" })}
           placeholder="Pick a rarity"
         />
       </FieldRow>,
@@ -176,7 +177,7 @@ describe("SingleSelect", () => {
           value={null}
           onChange={onChange}
           options={["common", "rare"]}
-          labels={{ common: "Common", rare: "Rare" }}
+          labels={labelMapOf({ common: "Common", rare: "Rare" })}
           placeholder="Pick a rarity"
         />
       </FieldRow>,

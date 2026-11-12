@@ -94,8 +94,8 @@ function OwnedRow({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Mar
 
 function deckLabel(deck: MetaDeckSummary): string {
   return deck.legendName === null
-    ? `${deck.playerName}'s decklist`
-    : `${deck.playerName}'s ${deck.legendName} decklist`;
+    ? m.meta_deck_tile_label({ player: deck.playerName })
+    : m.meta_deck_tile_label_legend({ player: deck.playerName, legend: deck.legendName });
 }
 
 export function MetaArchiveDeckTile({

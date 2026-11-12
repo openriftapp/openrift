@@ -8,6 +8,7 @@ export interface SearchableCard {
   id: string;
   slug: string;
   name: string;
+  displayName?: string;
   altNames?: readonly string[];
 }
 
@@ -49,13 +50,17 @@ export function buildCardIndex<TCard extends SearchableCard>(
   const entries = cards
     .map((card) => ({
       card,
-      names: [card.name, ...(card.altNames ?? [])].map((name) => indexName(name)),
+      names: [...new Set([card.name, card.displayName ?? card.name, ...(card.altNames ?? [])])].map(
+        (name) => indexName(name),
+      ),
       codes: (printingsByCardId.get(card.id) ?? []).flatMap((printing) => [
         squashForSearch(printing.shortCode),
         squashForSearch(printing.publicCode),
       ]),
     }))
-    .toSorted((a, b) => a.card.name.localeCompare(b.card.name));
+    .toSorted((a, b) =>
+      (a.card.displayName ?? a.card.name).localeCompare(b.card.displayName ?? b.card.name),
+    );
   return { entries, bySlug: new Map(cards.map((card) => [card.slug, card])) };
 }
 

@@ -156,7 +156,7 @@ export function PublicDeckActionsMenu({
         noun="deck"
         image={{
           title: deckName,
-          filenameBase: deckName || "deck",
+          filename: { base: deckName, fallback: "deck", id: deckId },
           buildUrl: (choice) =>
             deckShareImageUrl(
               getSiteUrl(),

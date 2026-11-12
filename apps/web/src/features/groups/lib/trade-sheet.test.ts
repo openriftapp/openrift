@@ -2,7 +2,7 @@ import { cardTradeState } from "@openrift/shared/card-trade-lifecycle";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { describe, expect, it } from "vitest";
 
-import { splitTradeLedger, stepSequence } from "./trade-sheet";
+import { sheetEmptyState, splitTradeLedger, stepSequence } from "./trade-sheet";
 
 function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
   return {
@@ -363,5 +363,19 @@ describe("stepSequence", () => {
         (trade) => (trade.id === "a" ? "pair" : "pair:2"),
       ),
     ).toEqual(["pair", "pair:2"]);
+  });
+});
+
+describe("sheetEmptyState", () => {
+  const ledger = { yourMove: [], readyToSwap: [], waiting: [], history: [] };
+
+  it("says nothing was traded only when the history is empty too", () => {
+    expect(sheetEmptyState(ledger, 0)).toBe("nothing-traded");
+    expect(sheetEmptyState({ ...ledger, history: [stubTrade()] }, 0)).toBe("nothing-open");
+  });
+
+  it("shows no empty state while anything is open or suggested", () => {
+    expect(sheetEmptyState({ ...ledger, waiting: [stubTrade()] }, 0)).toBe("none");
+    expect(sheetEmptyState(ledger, 2)).toBe("none");
   });
 });

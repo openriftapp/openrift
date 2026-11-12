@@ -29,7 +29,7 @@ function entry(
     resolvedCard: resolvedName
       ? {
           cardId: resolvedName,
-          cardName: resolvedName,
+          displayName: resolvedName,
           cardType: "unit",
           cardTypes: ["unit"],
           superTypes: [],
@@ -90,7 +90,7 @@ describe("sortDeckImportEntries", () => {
       ],
       ZONE_ORDER,
     );
-    expect(sorted.map((item) => item.resolvedCard?.cardName)).toEqual(["Ahri", "Zed"]);
+    expect(sorted.map((item) => item.resolvedCard?.displayName)).toEqual(["Ahri", "Zed"]);
   });
 
   it("falls back to the short code when no name is present", () => {

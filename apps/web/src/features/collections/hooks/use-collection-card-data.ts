@@ -14,7 +14,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useDeferredValue } from "react";
 
 import { EMPTY_FILTER_COUNTS } from "@/features/cards/hooks/use-card-data";
-import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
+import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useTagGroupResolvers } from "@/features/cards/hooks/use-tag-group-resolvers";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
@@ -41,7 +41,6 @@ interface UseCollectionCardDataParams {
   sets: GroupInfo[];
   favoriteMarketplace: Marketplace;
   prices: PriceLookup;
-  keywordReverseMap?: Map<string, string>;
   languageOrder?: string[];
   channels?: readonly DistributionChannel[];
   /** Counts are scoped to this collection, not aggregated across every collection the user owns. */
@@ -72,7 +71,6 @@ export function useCollectionCardData({
   sets,
   favoriteMarketplace,
   prices,
-  keywordReverseMap,
   languageOrder,
   channels,
   ownedFilter,
@@ -84,7 +82,6 @@ export function useCollectionCardData({
   "use memo";
   const { stacks, totalCopies, collectionIdByCopyId, isReady } = useStackedCopies(collectionId);
   const { orders } = useEnumOrders();
-  const vocabulary = useCatalogSearchVocabulary();
   const { tagGroup, customTagGroup } = useTagGroupResolvers();
   const defaultEffectiveLanguageOrder = useEffectiveLanguageOrder();
 
@@ -154,14 +151,7 @@ export function useCollectionCardData({
     ownedFilterCounts = countByPrintingId;
     ownedFilterBucketBy = "card";
   }
-  const filterOptions = {
-    keywordReverseMap,
-    getPrice,
-    priceLookup: prices,
-    getOwnedCount,
-    rarityOrder: orders.rarities,
-    vocabulary,
-  };
+  const filterOptions = useCardSearchContext({ getPrice, priceLookup: prices, getOwnedCount });
   // Owned-bucket narrowing must run before the Copies slider bound below.
   const narrowByOwnedBucket = (cards: Printing[]) =>
     ownedFilter && ownedFilter.length > 0
@@ -212,13 +202,9 @@ export function useCollectionCardData({
   }
   const filterCounts = countsEnabled
     ? computeFilterCounts(universeForCounts, deferredFilters, {
+        ...filterOptions,
+        searchablePrintings: filterOptions.searchablePrintings ?? collectionPrintings,
         countBy: view === "cards" ? "card" : "printing",
-        keywordReverseMap,
-        getPrice,
-        priceLookup: prices,
-        getOwnedCount,
-        rarityOrder: orders.rarities,
-        vocabulary,
         tagGroup,
         customTagGroup,
       })

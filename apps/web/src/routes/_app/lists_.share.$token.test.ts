@@ -23,8 +23,8 @@ describe("/lists/share/$token head", () => {
   it("names the list by its kind and credits the owner", async () => {
     const head = await loadedHead(Route, PARAMS, SHARED);
 
-    expect(headTitle(head)).toBe("Wants (wish list) - OpenRift");
-    expect(headMeta(head, "description")).toBe("A Riftbound wish list shared by Teemo Scout.");
+    expect(headTitle(head)).toBe("Wants (Wishlist) - OpenRift");
+    expect(headMeta(head, "description")).toBe("A Riftbound wishlist shared by Teemo Scout.");
     expect(headMeta(head, "og:image")).toBe(
       "http://localhost:5173/api/v1/lists/share/LIST123/image.png?v=1785578400000",
     );

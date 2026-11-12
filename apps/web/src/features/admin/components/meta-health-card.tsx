@@ -1,5 +1,6 @@
 import type { JobStatus } from "@openrift/shared/contracts/admin/job-runs";
 import type { MetaSource } from "@openrift/shared/contracts/admin/meta-catalog";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon } from "lucide-react";
 
@@ -9,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetaToneDot } from "@/features/admin/components/meta-overview-shared";
 import type { MetaAdminTarget } from "@/features/admin/lib/meta-admin-triggers";
 import { catalogueSource, JOB_KIND_PREFIX } from "@/features/admin/lib/meta-admin-triggers";
-import type { MetaSyncAlert, MetaSyncAlertTarget } from "@/features/meta/lib/meta-catalog-display";
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
+import type { MetaSyncAlert, MetaSyncAlertTarget } from "@/features/admin/lib/meta-catalog-display";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 
 /** A union, not an optional `target`: a forgotten one must fail to compile, not link nowhere. */
 type AlertDestination =
@@ -78,7 +79,7 @@ export function HealthCard({ alerts }: { alerts: SourcedAlert[] }) {
           <MetaToneDot tone={alerts.length === 0 ? "ok" : "warn"} />
           {alerts.length === 0
             ? "No warnings"
-            : `${alerts.length} ${alerts.length === 1 ? "warning" : "warnings"}`}
+            : `${alerts.length} ${pluralize(alerts.length, "warning", "warnings")}`}
         </CardTitle>
       </CardHeader>
       {alerts.length > 0 && (

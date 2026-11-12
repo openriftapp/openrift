@@ -1,4 +1,5 @@
 import { buildTermAnchors, compareRuleNumbers, formatRuleNumber } from "@openrift/shared/rules";
+import { foldForSearch } from "@openrift/shared/search-fold";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { RuleKind, RuleResponse } from "@openrift/shared/types/api/rules";
 
@@ -13,9 +14,9 @@ export interface IndexedRule {
   number: string;
   numberLower: string;
   squashedNumber: string;
-  contentLower: string;
+  contentFolded: string;
   plain: string;
-  plainLower: string;
+  plainFolded: string;
 }
 
 export interface RuleIndex {
@@ -42,9 +43,9 @@ function indexKind(kind: RuleKind, rules: RuleResponse[]): IndexedRule[] {
         number,
         numberLower: number.toLowerCase(),
         squashedNumber: number.replaceAll(".", "").toLowerCase(),
-        contentLower: rule.content.toLowerCase(),
+        contentFolded: foldForSearch(rule.content),
         plain,
-        plainLower: plain.toLowerCase(),
+        plainFolded: foldForSearch(plain),
       };
     });
 }
@@ -65,7 +66,7 @@ export function buildRuleIndex(snapshot: RulesSnapshot): RuleIndex {
     for (const [term, ruleNumber] of buildTermAnchors(rules)) {
       const target = byKey.get(`${KIND_PREFIX[kind].toLowerCase()} ${ruleNumber.toLowerCase()}`);
       if (target) {
-        termTargets.set(term, target);
+        termTargets.set(foldForSearch(term), target);
       }
     }
   }
@@ -113,7 +114,7 @@ function searchByText(
   kind: RuleKind | undefined,
   limit: number,
 ): IndexedRule[] {
-  const lower = rest.toLowerCase().replace(/[.,:;]+$/u, "");
+  const lower = foldForSearch(rest).replace(/[.,:;]+$/u, "");
   const terms = lower.split(/\s+/u).filter(Boolean);
   if (terms.length === 0) {
     return [];
@@ -129,15 +130,15 @@ function searchByText(
     if (entry === termTarget) {
       continue;
     }
-    const matches = terms.every((term) => entry.contentLower.includes(term));
+    const matches = terms.every((term) => entry.contentFolded.includes(term));
     if (!matches) {
       continue;
     }
     if (entry.rule.ruleType !== "text") {
       tiers[0]?.push(entry);
-    } else if (entry.plainLower.startsWith(lower)) {
+    } else if (entry.plainFolded.startsWith(lower)) {
       tiers[1]?.push(entry);
-    } else if (entry.contentLower.includes(italicTerm)) {
+    } else if (entry.contentFolded.includes(italicTerm)) {
       tiers[2]?.push(entry);
     } else {
       tiers[3]?.push(entry);

@@ -40,10 +40,13 @@ vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({ getPreferredFrontImage: () => undefined }),
 }));
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({ labels: { domains: {} }, orders: { domains: [] } }),
-  useZoneOrder: () => ({ zoneOrder: [], zoneLabels: {} }),
-}));
+vi.mock("@/hooks/use-enums", async () => {
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return {
+    useZoneOrder: useZoneOrderStub,
+    useEnumOrders: () => ({ labels: { domains: {} }, orders: { domains: [] } }),
+  };
+});
 
 import { DeckZoneDrawer } from "./deck-zone-drawer";
 import { DeckZonePanelHeader } from "./deck-zone-panel";

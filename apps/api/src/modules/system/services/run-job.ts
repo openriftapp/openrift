@@ -1,4 +1,5 @@
 import type { JobTrigger } from "@openrift/shared/contracts/admin/job-runs";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
 import { context, SpanStatusCode, trace } from "@opentelemetry/api";
 import * as Sentry from "@sentry/bun";
@@ -12,7 +13,7 @@ export type JobOutcome<T> =
   | { status: "failed"; message: string }
   | { status: "already_running"; runId: string };
 
-export const STALE_RUN_MS = 2 * 60 * 60 * 1000;
+export const STALE_RUN_MS = 2 * HOUR_MS;
 const STALE_RUN_MESSAGE = "still running after 2 h, presumed dead";
 
 let shuttingDown = false;

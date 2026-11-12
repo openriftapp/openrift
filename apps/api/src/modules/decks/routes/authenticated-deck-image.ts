@@ -1,14 +1,15 @@
-import { sentenceCaseSlug } from "@openrift/shared/strings";
 import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
 import { parseShareImageQuery } from "../../../lib/share-image-query.js";
+import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import { getUserId } from "../../../middleware/get-user-id.js";
 import { requireAuth } from "../../../middleware/require-auth.js";
 import type { Variables } from "../../../types.js";
 import { renderImage } from "../../system/services/render-pool.js";
+import { deckFormatLabel, deckZoneLabels } from "../lib/deck-format-label.js";
 import { buildDeckImageCards, resolveCoverImageId } from "../services/deck-image.js";
 
 /**
@@ -40,8 +41,9 @@ export const deckImageRoute = new Hono<{ Variables: Variables }>()
       kind: "deck",
       input: {
         deckName: deck.name,
-        ownerName: c.get("user")?.name ?? undefined,
-        formatLabel: sentenceCaseSlug(deck.format),
+        ownerName: bylineName(c.get("user")?.name),
+        formatLabel: await deckFormatLabel(repos.deckFormats, deck.format),
+        zoneLabels: await deckZoneLabels(repos.enums),
         cards,
         siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl,

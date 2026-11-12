@@ -60,6 +60,16 @@ const mockCardErrataRepo = {
 const mockCatalogResponse = {
   current: vi.fn(),
 };
+const DECK_FORMAT_LABELS: Record<string, string> = {
+  constructed: "Constructed",
+  "custom-region": "Custom Region",
+};
+const mockDeckFormatsRepo = {
+  getBySlug: vi.fn((slug: string) => {
+    const label = DECK_FORMAT_LABELS[slug];
+    return Promise.resolve(label === undefined ? undefined : { slug, label });
+  }),
+};
 
 const app = new Hono<{ Variables: Variables }>()
   .use("*", async (c, next) => {
@@ -74,6 +84,8 @@ const app = new Hono<{ Variables: Variables }>()
       meta: mockMetaRepo,
       cardErrata: mockCardErrataRepo,
       catalogResponse: mockCatalogResponse,
+      deckFormats: mockDeckFormatsRepo,
+      enums: { deckZones: () => Promise.resolve([]) },
     } as never);
     c.set("io", {} as never);
     c.set("config", { siteOrigin: "https://openrift.app" } as never);
@@ -177,11 +189,25 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
     expect(input).toMatchObject({
       ownerName: "Alice",
       title: "Holiday Targets",
-      intentLabel: "Trade list",
+      intentLabel: "Tradelist",
       totalCount: 2,
       siteHost: "openrift.app",
     });
     expect(input.cards).toHaveLength(2);
+  });
+
+  it("renders no byline when the owner has no name", async () => {
+    mockListsRepo.getByShareToken.mockResolvedValue({
+      list: tradeList,
+      ownerName: null,
+      ownerEmail: "anon@example.test",
+    });
+    mockListsRepo.entriesWithDetailsAnon.mockResolvedValue([]);
+
+    const res = await getImage("/api/v1/lists/share/tok-anon/image.png?v=1");
+
+    expect(res.status).toBe(200);
+    expect(shareJobs()[0]!.input.ownerName).toBeUndefined();
   });
 
   it("returns 404 for an unknown token and does not render", async () => {
@@ -313,7 +339,7 @@ describe("GET /api/v1/users/share/:token/image.png", () => {
     expect(mockUserSharesRepo.listsForOwner).toHaveBeenCalledWith("u1", null);
     expect(shareJobs()[0]!.input).toMatchObject({
       ownerName: "Alice",
-      title: "Wish & trade lists",
+      title: "Wishlists and tradelists",
       intentLabel: "1 list",
     });
   });
@@ -447,6 +473,20 @@ describe("GET /api/v1/decks/share/:token/image.png", () => {
       { cardId: "card-2", imageId: "img-2" },
     ]);
   }
+
+  it("labels the format with the admin-managed deck format label", async () => {
+    setupDeck();
+    mockDecksRepo.getByShareToken.mockResolvedValue({
+      deck: { ...deck, format: "custom-region" },
+      ownerName: "drawphasetcg",
+      ownerEmail: "owner@example.test",
+    });
+
+    const res = await getImage("/api/v1/decks/share/tok-deck/image.png?v=1");
+
+    expect(res.status).toBe(200);
+    expect(deckJobs()[0]!.input.formatLabel).toBe("Custom Region");
+  });
 
   it("renders a PNG with an immutable cache header and the enriched deck cards", async () => {
     setupDeck();
@@ -708,6 +748,13 @@ describe("POST /api/v1/decks/image", () => {
     expect(res.headers.get("content-type")).toBe("image/png");
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(deckJobs()).toHaveLength(1);
+  });
+
+  it("labels a posted format with the admin-managed label", async () => {
+    const res = await postRender("10.0.0.2", { ...validBody, format: "custom-region" });
+
+    expect(res.status).toBe(200);
+    expect(deckJobs()[0]!.input.formatLabel).toBe("Custom Region");
   });
 
   it("truncates oversized deckName and ownerName before rendering", async () => {

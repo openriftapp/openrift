@@ -21,7 +21,7 @@ import { JsonFileField } from "@/features/admin/components/json-file-field";
 import { useUploadMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
 import type { JsonParseResult } from "@/features/admin/lib/json-upload";
-import { parseMetaUploadFile } from "@/features/meta/lib/meta-source-review";
+import { parseMetaUploadFile } from "@/features/admin/lib/meta-source-review";
 
 const EXAMPLE_UPLOAD_JSON = `{
   "provider": "riftdecks",

@@ -7,6 +7,7 @@ import type {
   CatalogResponsePrintingValue,
   CatalogSetResponse,
 } from "@openrift/shared/types/api/catalog";
+import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { EnumOrders } from "@openrift/shared/types/enums";
@@ -212,6 +213,8 @@ describe("extractSetLabels", () => {
   });
 });
 
+const NO_INIT = { enums: {}, keywords: {} } as Pick<InitResponse, "enums" | "keywords">;
+
 describe("extractCardCounts", () => {
   const emptySearch: FilterSearch = {};
 
@@ -222,9 +225,61 @@ describe("extractCardCounts", () => {
       "p-2": makePrinting({ cardId: "card-1", shortCode: "OGN-002" }),
       "p-3": makePrinting({ cardId: "card-2", shortCode: "OGN-003" }),
     };
-    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, emptySearch);
+    const counts = extractCardCounts(
+      makeCatalog(cards, printings),
+      NO_PRICES,
+      NO_INIT,
+      emptySearch,
+    );
 
     expect(counts).toEqual({ totalCards: 2, filteredCount: 2 });
+  });
+
+  it("applies the default display languages when the URL names none, like the hydrated grid", () => {
+    const cards = { "card-1": makeCard(), "card-2": makeCard() };
+    const printings = {
+      "p-en": makePrinting({ cardId: "card-1", shortCode: "OGN-001" }),
+      "p-fr": makePrinting({
+        cardId: "card-2",
+        shortCode: "OGN-271a",
+        language: "FR",
+        printedName: "Gardien Royal",
+      }),
+    };
+    const catalog = makeCatalog(cards, printings);
+    expect(extractCardCounts(catalog, NO_PRICES, NO_INIT, { q: "gardien" }).filteredCount).toBe(0);
+    expect(
+      extractCardCounts(catalog, NO_PRICES, NO_INIT, { q: "gardien", languages: ["FR"] })
+        .filteredCount,
+    ).toBe(1);
+  });
+
+  it("finds a keyword typed in another language", () => {
+    const cards = {
+      "card-1": makeCard({ keywords: ["Accelerate"] }),
+      "card-2": makeCard(),
+    };
+    const printings = {
+      "p-1": makePrinting({ cardId: "card-1", shortCode: "OGN-001" }),
+      "p-2": makePrinting({ cardId: "card-2", shortCode: "OGN-002" }),
+    };
+    const init = {
+      enums: {},
+      keywords: {
+        Accelerate: {
+          color: "#000000",
+          darkText: false,
+          costKeyword: false,
+          cardModifier: false,
+          translations: { de: "Beschleunigen" },
+        },
+      },
+    } as unknown as Pick<InitResponse, "enums" | "keywords">;
+    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, init, {
+      q: "kw:beschleunigen",
+    });
+
+    expect(counts).toEqual({ totalCards: 2, filteredCount: 1 });
   });
 
   it("counts every printing when view=printings", () => {
@@ -234,7 +289,7 @@ describe("extractCardCounts", () => {
       "p-2": makePrinting({ cardId: "card-1", shortCode: "OGN-002" }),
       "p-3": makePrinting({ cardId: "card-2", shortCode: "OGN-003" }),
     };
-    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, {
+    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, NO_INIT, {
       view: "printings",
     });
 
@@ -250,7 +305,7 @@ describe("extractCardCounts", () => {
       "p-1": makePrinting({ cardId: "card-unit", shortCode: "OGN-001" }),
       "p-2": makePrinting({ cardId: "card-spell", shortCode: "OGN-002" }),
     };
-    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, {
+    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, NO_INIT, {
       types: ["unit"],
     });
 
@@ -265,7 +320,7 @@ describe("extractCardCounts", () => {
       "p-2": makePrinting({ cardId: "card-2", shortCode: "OGN-002" }),
     };
     const catalog = { ...makeCatalog(cards, printings), markers: [promo] };
-    const counts = extractCardCounts(catalog, NO_PRICES, {
+    const counts = extractCardCounts(catalog, NO_PRICES, NO_INIT, {
       markers: ["promo"],
     });
 

@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { sideKey } from "@openrift/shared/printing-side";
+import { cardUrl } from "@openrift/shared/site-paths";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
@@ -29,7 +30,6 @@ import { ShareCardButton } from "@/features/cards/components/card-page-share-but
 import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
-import { cardShareUrl } from "@/features/cards/lib/card-share-url";
 import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
 import { sortByLanguagePreference } from "@/features/cards/lib/printing-designs";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
@@ -115,7 +115,7 @@ export function CardDetailPage() {
               cardName={legendDisplayName(card)}
               cardSlug={cardSlug}
               printingSlug={selectedPrinting.slug}
-              url={cardShareUrl(getSiteUrl(), cardSlug, selectedPrinting.slug, side)}
+              url={cardUrl(getSiteUrl(), cardSlug, selectedPrinting.slug, side)}
             />
           </PageTopBarActions>
         </PageTopBar>

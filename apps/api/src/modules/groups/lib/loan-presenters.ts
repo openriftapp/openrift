@@ -42,7 +42,7 @@ export function toLoanResponse(row: LoanDtoRow, userId: string): LoanResponse {
     id: row.id,
     role,
     counterparty,
-    counterpartyName: role === "lender" ? row.borrowerName : null,
+    counterpartyName: role === "lender" && !row.borrowerAccountClosed ? row.borrowerName : null,
     printingId: row.printingId,
     cardId: row.cardId,
     quantity: row.quantity,

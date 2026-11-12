@@ -1,4 +1,7 @@
 import { DEFAULT_DOMAIN_COLORS, DOMAIN_COLOR_FALLBACK } from "@openrift/shared/domain-colors";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
+import { pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Io } from "../../../io.js";
@@ -47,6 +50,7 @@ export interface DeckImageInput {
   ownerName?: string;
   /** Presentable format label, e.g. "Constructed". */
   formatLabel: string;
+  zoneLabels: LabelMap;
   /** What the list scored, e.g. "1st of 3,283 · Summoner Skirmish Wuhan"; set for an archive entry only. */
   resultLine?: string;
   cards: readonly DeckImageCard[];
@@ -157,7 +161,7 @@ export function deckMetaLabel(
 ): string {
   const total = mainCardCount + sideboardCount;
   const counts = `${mainCardCount}${sideboardCount > 0 ? ` + ${sideboardCount}` : ""}`;
-  return `${formatLabel} · ${counts} ${total === 1 ? "card" : "cards"}`;
+  return `${formatLabel} · ${counts} ${pluralize(total, "card", "cards")}`;
 }
 
 export interface PackedGrid {
@@ -266,6 +270,10 @@ export function domainIconElements(
           backgroundColor: COLORS.gold,
         }),
   );
+}
+
+export function zoneHeading(labels: LabelMap, zone: string): string {
+  return enumLabel(labels, zone).toUpperCase();
 }
 
 export function deckSection(label: string, tiles: Child[], marginTop = 0): Element {

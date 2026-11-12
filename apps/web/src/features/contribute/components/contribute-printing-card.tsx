@@ -1,3 +1,4 @@
+import { labelMap } from "@openrift/shared/enum-label";
 import type { VariantLabelPrinting } from "@openrift/shared/printing-label";
 import type { SetListResponse } from "@openrift/shared/types/api/catalog";
 import type { EnumOrders } from "@openrift/shared/types/enums";
@@ -202,7 +203,7 @@ export function PrintingCard({
                       value={printing.setId}
                       onChange={handleSetChange}
                       options={sets.map((s) => s.slug)}
-                      labels={Object.fromEntries(sets.map((s) => [s.slug, s.name]))}
+                      labels={labelMap(sets.map((s) => ({ slug: s.slug, label: s.name })))}
                       placeholder={m.contribute_placeholder_set()}
                     />
                   </FieldRow>
@@ -238,8 +239,11 @@ export function PrintingCard({
                       value={printing.language}
                       onChange={(v) => onChange("language", v)}
                       options={languages.map((language) => language.code)}
-                      labels={Object.fromEntries(
-                        languages.map((language) => [language.code, language.name]),
+                      labels={labelMap(
+                        languages.map((language) => ({
+                          slug: language.code,
+                          label: language.name,
+                        })),
                       )}
                       placeholder={m.contribute_placeholder_language()}
                     />

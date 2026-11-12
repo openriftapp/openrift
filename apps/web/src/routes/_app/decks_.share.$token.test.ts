@@ -13,17 +13,21 @@ import { Route } from "./decks_.share.$token";
 
 const PARAMS = { token: "DECK123" };
 
-function shared(description: string | null) {
+function shared(
+  description: string | null,
+  format = "constructed",
+  displayName: string | null = "Teemo Scout",
+) {
   return {
     deck: {
       id: "deck-1",
       name: "Jinx Aggro",
-      format: "constructed",
+      format,
       description,
       updatedAt: "2026-08-01T10:00:00.000Z",
     },
     cards: [{ cardId: "card-jinx", quantity: 3 }],
-    owner: { displayName: "Teemo Scout", gravatarHash: "hash" },
+    owner: { displayName, gravatarHash: "hash" },
     plan: null,
     planCardMeta: [],
     customTagAssignments: {},
@@ -46,6 +50,18 @@ describe("/decks/share/$token head", () => {
     expect(headCanonical(head)).toBe("http://localhost:5173/decks/share/DECK123");
   });
 
+  it("titles the deck with the admin-managed format label", async () => {
+    const head = await loadedHead(Route, PARAMS, shared(null, "custom-region"));
+
+    expect(headTitle(head)).toBe("Jinx Aggro (Custom Region deck) - OpenRift");
+  });
+
+  it("omits the byline when the owner has no name", async () => {
+    const head = await loadedHead(Route, PARAMS, shared(null, "constructed", null));
+
+    expect(headMeta(head, "description")).toBe("A Constructed Riftbound deck.");
+  });
+
   it("prefers the deck's own description", async () => {
     const head = await loadedHead(Route, PARAMS, shared("Burn them down."));
 
@@ -56,10 +72,10 @@ describe("/decks/share/$token head", () => {
     expect(await runRouteLoader(Route, PARAMS, shared(null))).toEqual({
       deck: {
         name: "Jinx Aggro",
-        format: "constructed",
         description: null,
         updatedAt: "2026-08-01T10:00:00.000Z",
       },
+      formatLabel: "Constructed",
       owner: { displayName: "Teemo Scout" },
     });
   });

@@ -8,5 +8,5 @@ export function ignoredDraftsMessage(ignored: number, contributorOnly: number): 
   if (contributorOnly === 0) {
     return done;
   }
-  return `${done} ${contributorOnly} with only contributor submissions ${contributorOnly === 1 ? "stays" : "stay"}.`;
+  return `${done} ${contributorOnly} with only contributor submissions ${pluralize(contributorOnly, "stays", "stay")}.`;
 }

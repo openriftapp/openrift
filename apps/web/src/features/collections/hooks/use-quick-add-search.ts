@@ -1,10 +1,9 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
-import type { SearchablePrintingCodes } from "@openrift/shared/card-search";
-import { buildCardIndex, searchCards } from "@openrift/shared/card-search";
+import { searchCards } from "@openrift/shared/card-search";
 import { uniquePrintings } from "@openrift/shared/printing-side";
+import { squashForSearch } from "@openrift/shared/search-fold";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useMemo } from "react";
 
+import { cardLookupIndex } from "@/features/cards/lib/card-lookup-rows";
 import type { QuickAddCardResult } from "@/features/collections/lib/quick-add-result";
 
 interface QuickAddSearchOptions {
@@ -15,13 +14,16 @@ interface QuickAddSearchOptions {
 
 const DEFAULT_LIMIT = 8;
 
-/** One row per card, carrying its printings so the palette can expand without a second lookup. */
-interface QuickAddRow {
-  id: string;
-  slug: string;
-  name: string;
-  altNames: string[];
-  printings: Printing[];
+function quickAddIndex(printingsByCardId: Map<string, Printing[]>) {
+  return cardLookupIndex([...printingsByCardId.values()].flat());
+}
+
+function shownPrintings(printings: Printing[], languageKey: string): Printing[] {
+  if (languageKey === "") {
+    return printings;
+  }
+  const allowlist = new Set(languageKey.split(","));
+  return printings.filter((printing) => allowlist.has(printing.language));
 }
 
 /**
@@ -33,64 +35,43 @@ export function useQuickAddSearch(
   printingsByCardId: Map<string, Printing[]>,
   options: QuickAddSearchOptions = {},
 ): QuickAddCardResult[] {
+  "use memo";
   const { ownedCountByPrinting, preferredLanguages, limit = DEFAULT_LIMIT } = options;
 
   // Must be a joined string, not an array: a caller rebuilding the list each render
   // would otherwise invalidate the index on every keystroke.
   const languageKey = preferredLanguages?.join(",") ?? "";
+  const index = quickAddIndex(printingsByCardId);
 
-  const index = useMemo(() => {
-    const allowlist = languageKey === "" ? null : new Set(languageKey.split(","));
-    const rows: QuickAddRow[] = [];
-    const codes = new Map<string, SearchablePrintingCodes[]>();
-    for (const [cardId, allPrintings] of printingsByCardId) {
-      const printings = allowlist
-        ? allPrintings.filter((printing) => allowlist.has(printing.language))
-        : allPrintings;
-      const first = printings[0];
-      if (!first) {
-        continue;
-      }
-      rows.push({
-        id: cardId,
-        slug: cardId,
-        name: legendDisplayName(first.card),
-        altNames: cardSearchAltNames(
-          first.card,
-          printings.map((printing) => printing.printedName),
-        ),
-        printings,
-      });
-      codes.set(
-        cardId,
-        printings.map((printing) => ({
-          shortCode: printing.shortCode,
-          publicCode: printing.publicCode,
-        })),
-      );
-    }
-    return buildCardIndex(rows, codes);
-  }, [printingsByCardId, languageKey]);
-
-  return useMemo(() => {
-    if (query.trim() === "") {
+  if (query.trim() === "") {
+    return [];
+  }
+  const typedCode = squashForSearch(query);
+  return searchCards(index, query, limit).flatMap((row) => {
+    const printings = shownPrintings(row.printings, languageKey);
+    const first = printings[0];
+    if (!first) {
       return [];
     }
-    return searchCards(index, query, limit).map((row) => {
-      let ownedCount = 0;
-      if (ownedCountByPrinting) {
-        for (const printing of uniquePrintings(row.printings)) {
-          ownedCount += ownedCountByPrinting[printing.printingId] ?? 0;
-        }
+    let ownedCount = 0;
+    if (ownedCountByPrinting) {
+      for (const printing of uniquePrintings(printings)) {
+        ownedCount += ownedCountByPrinting[printing.printingId] ?? 0;
       }
-      return {
+    }
+    const typed = printings.find(
+      (printing) =>
+        squashForSearch(printing.shortCode) === typedCode ||
+        squashForSearch(printing.publicCode) === typedCode,
+    );
+    return [
+      {
         cardId: row.id,
-        cardName: row.name,
-        // A row only exists when it has at least one printing, so this is safe.
-        defaultPrinting: row.printings[0] as Printing,
-        printings: row.printings,
+        cardName: row.displayName,
+        defaultPrinting: typed ?? first,
+        printings,
         ownedCount,
-      };
-    });
-  }, [index, query, limit, ownedCountByPrinting]);
+      },
+    ];
+  });
 }

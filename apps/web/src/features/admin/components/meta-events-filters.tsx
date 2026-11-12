@@ -9,8 +9,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/components/admin-filters";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { cn } from "@/lib/utils";
 

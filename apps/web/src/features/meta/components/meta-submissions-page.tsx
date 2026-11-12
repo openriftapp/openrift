@@ -60,8 +60,12 @@ function SubmissionRow({
       </div>
 
       <p className="text-muted-foreground text-sm">
-        Sent {formatDay(submission.createdAt)}
-        {submission.resolvedAt ? ` · Reviewed ${formatDay(submission.resolvedAt)}` : ""}
+        {submission.resolvedAt
+          ? m.meta_submission_sent_reviewed_line({
+              sent: formatDay(submission.createdAt),
+              reviewed: formatDay(submission.resolvedAt),
+            })
+          : m.meta_submission_sent_line({ sent: formatDay(submission.createdAt) })}
       </p>
 
       {explanation ? <p>{explanation}</p> : null}
@@ -105,9 +109,7 @@ export function MetaSubmissionsPage() {
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
-        <PageDescription>
-          Everything you&apos;ve sent to the archive, and what happened to each one.
-        </PageDescription>
+        <PageDescription>{m.meta_submissions_lead()}</PageDescription>
 
         {isPending ? (
           <div className="flex flex-col gap-3">

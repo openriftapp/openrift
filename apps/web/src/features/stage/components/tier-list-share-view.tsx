@@ -43,10 +43,9 @@ export function TierListShareView({ data, token }: TierListSharePageProps) {
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
             <PageTopBarTitle>{tierList.title}</PageTopBarTitle>
             <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-              {m.tier_lists_share_byline({
-                owner: owner.displayName,
-                count: rankedCount,
-              })}
+              {owner.displayName
+                ? m.tier_lists_share_byline({ owner: owner.displayName, count: rankedCount })
+                : m.tier_lists_share_ranked_count({ count: rankedCount })}
             </span>
           </div>
           {rankedCount > 0 && (

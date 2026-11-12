@@ -62,7 +62,7 @@ describe("GET /api/v1/board-states/share/{token}", () => {
     expect(json.owner.gravatarHash).toMatch(/^[0-9a-f]{64}$/u);
   });
 
-  it("falls back to Anonymous for an owner without a name", async () => {
+  it("returns a null display name for an owner without a name", async () => {
     mockRepo.getByShareToken.mockResolvedValue({
       boardState: row(),
       ownerName: null,
@@ -71,7 +71,7 @@ describe("GET /api/v1/board-states/share/{token}", () => {
 
     const json = await readJson(await app.request("/api/v1/board-states/share/AbC123XyZ789"));
 
-    expect(json.owner.displayName).toBe("Anonymous");
+    expect(json.owner.displayName).toBeNull();
   });
 
   it("404s for an unknown or revoked token", async () => {

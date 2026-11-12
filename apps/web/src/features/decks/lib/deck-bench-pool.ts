@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -29,7 +30,11 @@ export function buildBenchPool(cards: readonly DeckBuilderCard[]): PoolCard[] {
         return {
           key: `${card.cardId}-${index}`,
           cardId: card.cardId,
-          cardName: card.cardName,
+          cardName: legendDisplayName({
+            name: card.cardName,
+            types: card.cardTypes,
+            tags: card.tags,
+          }),
           preferredPrintingId: card.preferredPrintingId,
         };
       }),

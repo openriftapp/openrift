@@ -1,4 +1,4 @@
-import { pluralize } from "@openrift/shared/strings";
+import { countNoun } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 
 import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/admin-search-values";
@@ -34,10 +34,6 @@ export interface AttentionBadge {
   label: string;
   title?: string;
   tone: "warning" | "violet" | "info" | "neutral";
-}
-
-function plural(count: number, singular: string): string {
-  return `${count} ${pluralize(count, singular)}`;
 }
 
 export function hasIssue(
@@ -82,7 +78,7 @@ export function cardAttentionBadges(
   if (row.pendingSubmissions > 0) {
     badges.push({
       key: "proposals",
-      label: plural(row.pendingSubmissions, "submission"),
+      label: countNoun(row.pendingSubmissions, "submission"),
       tone: "warning",
     });
   }
@@ -90,7 +86,7 @@ export function cardAttentionBadges(
     const fromOthers = row.unlinkedPrintingCount - row.unlinkedTrustedPrintingCount;
     badges.push({
       key: "new-printings",
-      label: plural(row.unlinkedTrustedPrintingCount, "new trusted printing"),
+      label: countNoun(row.unlinkedTrustedPrintingCount, "new trusted printing"),
       title: fromOthers > 0 ? `${fromOthers} more proposed by sources you do not trust` : undefined,
       tone: "violet",
     });
@@ -105,7 +101,7 @@ export function cardAttentionBadges(
   if (row.cardSlug === null && row.candidateCount > 0) {
     badges.push({
       key: "sources",
-      label: plural(row.candidateCount, "source"),
+      label: countNoun(row.candidateCount, "source"),
       tone: "neutral",
     });
   }

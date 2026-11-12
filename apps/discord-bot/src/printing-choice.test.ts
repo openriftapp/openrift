@@ -66,6 +66,57 @@ describe("printingChoices", () => {
     expect(choices[2]?.name).toBe("OGN-202/298 · Origins · DE");
   });
 
+  it("names the language with its catalog label", () => {
+    const init = makeInitResponse();
+    const snapshot = buildSnapshot(
+      makeCatalogResponse([card], defaultPrintings(), [
+        makeSet(),
+        makeSet({ id: "set-2", slug: "SFB", name: "Spirit Blossom" }),
+      ]),
+      makePricesResponse(),
+      {
+        ...init,
+        enums: {
+          ...init.enums,
+          languages: [{ slug: "DE", label: "German", sortOrder: 1, color: null }],
+        },
+      },
+    );
+    expect(printingChoices(snapshot, card, "")[2]?.name).toBe("OGN-202/298 · Origins · German");
+  });
+
+  it("shortens the set name of a long choice and keeps the language", () => {
+    const longSet = makeSet({ name: "A".repeat(120) });
+    const snapshot = buildSnapshot(
+      makeCatalogResponse([card], defaultPrintings(), [longSet]),
+      makePricesResponse(),
+      makeInitResponse(),
+    );
+    const names = printingChoices(snapshot, card, "").map((choice) => choice.name);
+    expect(names.every((name) => name.length <= 100)).toBe(true);
+    expect(names[0]).toMatch(/^OGN-202\/298 · A+… · EN \(default\)$/u);
+    expect(names[2]).toMatch(/^OGN-202\/298 · A+… · DE$/u);
+  });
+
+  it("filters by the language code as well as its label", () => {
+    const init = makeInitResponse();
+    const snapshot = buildSnapshot(
+      makeCatalogResponse([card], defaultPrintings(), [makeSet()]),
+      makePricesResponse(),
+      {
+        ...init,
+        enums: {
+          ...init.enums,
+          languages: [{ slug: "DE", label: "German", sortOrder: 1, color: null }],
+        },
+      },
+    );
+    expect(printingChoices(snapshot, card, "de").map((choice) => choice.name)).toEqual([
+      "OGN-202/298 · Origins · German",
+    ]);
+    expect(printingChoices(snapshot, card, "german")).toHaveLength(1);
+  });
+
   it("labels the language even when every printing shares a non-EN one", () => {
     const printings = [
       makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, language: "DE" }),

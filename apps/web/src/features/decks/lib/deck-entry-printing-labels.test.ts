@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
@@ -8,7 +9,11 @@ import {
 } from "@/features/decks/lib/deck-entry-printing-labels";
 import { stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
-const LABELS = { artVariants: {}, finishes: { foil: "Foil" }, cardSizes: {} };
+const LABELS = {
+  artVariants: labelMapOf({}),
+  finishes: labelMapOf({ foil: "Foil" }),
+  cardSizes: labelMapOf({}),
+};
 
 function labelsFor(
   entries: ReturnType<typeof stubDeckBuilderCard>[],

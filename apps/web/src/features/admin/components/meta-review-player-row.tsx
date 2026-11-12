@@ -33,10 +33,10 @@ import {
   useAcceptMetaPlayerOverlay,
   useRejectMetaOverlay,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
-import { acceptClaimMask } from "@/features/meta/lib/meta-review-queue";
-import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
+import { acceptClaimMask } from "@/features/admin/lib/meta-review-queue";
+import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
+import { metaSubmissionReasonLabels } from "@/features/admin/lib/meta-submission-admin-copy";
 import {
-  metaSubmissionReasonLabels,
   metaSubmissionReasonSentences,
   metaSubmissionReasonsFor,
 } from "@/features/meta/lib/meta-submission-copy";

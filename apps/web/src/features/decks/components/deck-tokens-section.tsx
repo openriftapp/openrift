@@ -1,4 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -39,7 +41,7 @@ function tokenImageUrl(entry: DeckTokenEntry, size: "120w" | "400w"): string | u
 
 function tokenTitle(entry: DeckTokenEntry): string {
   return m.decks_editor_token_title({
-    card: entry.card.name,
+    card: legendDisplayName(entry.card),
     sources: entry.sourceNames.join(", "),
   });
 }
@@ -89,12 +91,14 @@ function TokenThumb({
       {showFallback ? (
         <div className="border-muted-foreground/25 bg-muted/30 flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-[inherit] border border-dashed p-2 text-center">
           <ImageOffIcon aria-hidden="true" className="text-muted-foreground/70 size-5 shrink-0" />
-          <span className="text-muted-foreground line-clamp-3 text-xs">{entry.card.name}</span>
+          <span className="text-muted-foreground line-clamp-3 text-xs">
+            {legendDisplayName(entry.card)}
+          </span>
         </div>
       ) : (
         <img
           src={thumbnail}
-          alt={entry.card.name}
+          alt={legendDisplayName(entry.card)}
           className="h-full w-full rounded-[inherit] object-cover shadow-sm"
           draggable={false}
           onError={() => setFailedUrl(thumbnail)}
@@ -113,7 +117,7 @@ function TokenRow({
 }: {
   entry: DeckTokenEntry;
   domainColors: Record<string, string>;
-  rarityLabels: Record<string, string>;
+  rarityLabels: LabelMap;
   onSelect: () => void;
   onHoverCard?: HoverHandler;
 }) {
@@ -141,7 +145,7 @@ function TokenRow({
       {/* Aligns names with the zones' rows, which use this slot for the copy count. */}
       <span aria-hidden className="w-6 shrink-0" />
 
-      <span className="min-w-0 flex-1 truncate">{entry.card.name}</span>
+      <span className="min-w-0 flex-1 truncate">{legendDisplayName(entry.card)}</span>
 
       <span className="text-muted-foreground min-w-0 shrink truncate text-xs">
         {m.decks_editor_token_from({ sources: entry.sourceNames.join(", ") })}

@@ -1,5 +1,5 @@
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
-import { labelMap } from "@openrift/shared/collections";
+import { labelMap } from "@openrift/shared/enum-label";
 
 import type { Repos } from "../../../deps.js";
 import { createContentAddressedCache } from "../../../lib/content-addressed-cache.js";

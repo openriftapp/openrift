@@ -39,6 +39,7 @@ export const Route = createFileRoute("/_app/promos")({
       throw redirect({
         to: "/promos/$language",
         params: { language: defaultLanguage },
+        search: true,
         hash: location.hash || undefined,
         replace: true,
       });

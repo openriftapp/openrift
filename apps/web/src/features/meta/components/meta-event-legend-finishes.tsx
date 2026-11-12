@@ -48,7 +48,9 @@ function EventLegendFinishTile({
       action={
         player.shareToken === null ? null : (
           <TextLink render={<Link to="/meta/decks/$token" params={{ token: player.shareToken }} />}>
-            {m.meta_legend_finishes_deck()}
+            {player.listStatus === "partial"
+              ? m.meta_list_status_partial()
+              : m.meta_legend_finishes_deck()}
           </TextLink>
         )
       }

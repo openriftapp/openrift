@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
@@ -345,7 +346,7 @@ export function OutlineLabelPage() {
           {keptAutosave > 0 && (
             <p className="text-muted-foreground">
               Kept this browser&apos;s autosave for {keptAutosave}{" "}
-              {keptAutosave === 1 ? "frame" : "frames"} that differ from the opened
+              {pluralize(keptAutosave, "frame", "frames")} that differ from the opened
               scan-labels.json.
             </p>
           )}

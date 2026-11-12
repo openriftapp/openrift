@@ -1,5 +1,6 @@
 import type { LoanResponse, LoanStatus } from "@openrift/shared/types/api/loan";
 
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 export function loanStatusLabel(status: LoanStatus): string {
@@ -21,7 +22,10 @@ export function outstandingQuantity(loan: LoanResponse): number {
 }
 
 export function loanCounterpartyLabel(loan: LoanResponse): string {
-  return loan.counterparty?.name ?? loan.counterpartyName ?? m.loans_former_member();
+  if (loan.counterparty) {
+    return memberName(loan.counterparty.name);
+  }
+  return memberName(loan.counterpartyName, loan.counterpartyName === null);
 }
 
 /** An empty `lenders` means the loans feed hasn't loaded yet, not that there are none. */

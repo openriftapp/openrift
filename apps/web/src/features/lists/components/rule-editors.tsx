@@ -18,6 +18,7 @@ import type { RuleWording } from "@/features/rules/lib/rule-wording";
 import { matchLabel } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -54,6 +55,7 @@ export function CopyRuleEditor({
   const serialized = serializeRules(rules, kind);
   const priceLookup = usePrices();
   const vocabulary = useCatalogSearchVocabulary();
+  const keywordReverseMap = useKeywordReverseMap();
   const ctx = {
     catalog: allPrintings,
     ownedCopies: copies ? ownedCopiesFromCopyList(copies, printingsById) : [],
@@ -61,6 +63,7 @@ export function CopyRuleEditor({
     enumOrders,
     priceLookup,
     vocabulary,
+    keywordReverseMap,
   };
   // Undefined while copies load; the UI shows no count, never a misleading zero.
   const perRuleCounts = copies
@@ -114,7 +117,15 @@ export function CardRuleEditor({
   const serialized = serializeRules(rules, kind);
   const priceLookup = usePrices();
   const vocabulary = useCatalogSearchVocabulary();
-  const ctx = { catalog: allPrintings, ownedCopies, customTagAssignments, priceLookup, vocabulary };
+  const keywordReverseMap = useKeywordReverseMap();
+  const ctx = {
+    catalog: allPrintings,
+    ownedCopies,
+    customTagAssignments,
+    priceLookup,
+    vocabulary,
+    keywordReverseMap,
+  };
   const perRuleCounts = serialized.map((rule) => evaluateListRule(rule, kind, ctx).length);
   const previewCount =
     rules.length > 0

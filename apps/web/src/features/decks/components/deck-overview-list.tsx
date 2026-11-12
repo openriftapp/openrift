@@ -3,12 +3,9 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { formatHasSideboard, SIDEBOARD_MAXIMUM, totalQuantity } from "@openrift/shared/deck-rules";
-import {
-  isSingleSlotZone,
-  isZoneShown,
-  ZONE_LABELS,
-  zoneExpected,
-} from "@openrift/shared/deck-zones";
+import { isSingleSlotZone, isZoneShown, zoneExpected } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { setIndexById } from "@openrift/shared/set-order";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -63,7 +60,7 @@ import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import { useDomainColors } from "@/hooks/use-domain-colors";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -195,6 +192,7 @@ export function DeckOverviewList({
   planTags,
   countsOnlyUnfinished = false,
 }: DeckOverviewListProps) {
+  const { zoneLabels } = useZoneOrder();
   const isRowDimmed = (card: DeckBuilderCard) =>
     statsFocus !== null && statsFocus !== undefined && !cardMatchesStatsFocus(card, statsFocus);
   const { orders, labels } = useEnumOrders();
@@ -305,7 +303,7 @@ export function DeckOverviewList({
 
     return (
       <ZoneSection key={zone} zone={zone} format={format} allCards={cards} droppable={dragEnabled}>
-        <DeckZoneHeader label={ZONE_LABELS[zone]}>
+        <DeckZoneHeader label={enumLabel(zoneLabels, zone)}>
           {zoneViolations.length > 0 && (
             <Popover>
               <PopoverTrigger
@@ -314,7 +312,7 @@ export function DeckOverviewList({
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={m.decks_overview_zone_issues({ zone: ZONE_LABELS[zone] })}
+                    aria-label={m.decks_overview_zone_issues({ zone: enumLabel(zoneLabels, zone) })}
                     className="size-5 shrink-0 rounded-md"
                   />
                 }
@@ -452,6 +450,7 @@ function ZoneAddRow({
   isEmpty: boolean;
   onClick: () => void;
 }) {
+  const { zoneLabels } = useZoneOrder();
   const hint = zoneEmptyHint(zone, format);
   if (isEmpty && zone === WellKnown.deckZone.RUNES) {
     return (
@@ -465,7 +464,9 @@ function ZoneAddRow({
       type="button"
       variant="dashed"
       onClick={onClick}
-      aria-label={isEmpty ? hint : m.decks_overview_zone_add_to({ zone: ZONE_LABELS[zone] })}
+      aria-label={
+        isEmpty ? hint : m.decks_overview_zone_add_to({ zone: enumLabel(zoneLabels, zone) })
+      }
       className="h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-xs font-normal whitespace-normal"
     >
       <PlusIcon className="size-3.5 shrink-0" />
@@ -558,8 +559,8 @@ function GroupedRows({
   sortBy: DeckOverviewSort;
   sortDir: "asc" | "desc";
   sortContext: DeckListSortContext;
-  rarityLabels: Record<string, string>;
-  domainLabels: Record<string, string>;
+  rarityLabels: LabelMap;
+  domainLabels: LabelMap;
   domainColors: Record<string, string>;
   showOwnership: boolean;
   reserved: ReservedCells;
@@ -623,8 +624,8 @@ interface DeckListRowProps {
   card: DeckBuilderCard;
   copyIndex?: number;
   entry: CardOwnership | undefined;
-  rarityLabels: Record<string, string>;
-  domainLabels: Record<string, string>;
+  rarityLabels: LabelMap;
+  domainLabels: LabelMap;
   domainColors: Record<string, string>;
   showOwnership: boolean;
   reserved: ReservedCells;

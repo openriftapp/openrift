@@ -1,4 +1,5 @@
 import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
+import { keywordReverseMap } from "@openrift/shared/keywords";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
 import type {
@@ -169,18 +170,21 @@ export interface RuleCatalog {
   printings: Printing[];
   customTagAssignments: Record<string, readonly string[]>;
   vocabulary: SearchVocabulary;
+  keywordReverseMap: Map<string, string>;
 }
 
 export async function assembleRuleCatalog(repos: Repos): Promise<RuleCatalog> {
-  const [response, assignments, formats] = await Promise.all([
+  const [response, assignments, formats, translations] = await Promise.all([
     assembleCatalogResponse(repos),
     repos.customTags.assignmentsByCard(),
     repos.cardBans.listFormats(),
+    repos.keywords.listAllTranslations(),
   ]);
   const printings = joinCatalogPrintings(response);
   return {
     printings,
     customTagAssignments: Object.fromEntries(assignments),
+    keywordReverseMap: keywordReverseMap(translations),
     vocabulary: catalogSearchVocabulary({
       printings,
       sets: response.sets,

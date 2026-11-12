@@ -70,18 +70,18 @@ export function CollectionShareDialog({
       }
       image={{
         title: collectionName,
-        filenameBase: collectionName || "collection",
+        filename: { base: collectionName, fallback: "collection", id: collectionId },
         buildUrl: (choice) =>
           collectionOwnerImageUrl(getSiteUrl(), collectionId, shareImageOptions(choice)),
         scales: [1, 2],
         qrNoun: "collection",
         qrAvailable: shareUrl !== null,
       }}
-      qrFilenameBase={collectionName || "collection"}
+      qrFilename={{ base: collectionName, fallback: "collection", id: collectionId }}
       print={{
         defaultTitle: collectionName,
         defaultSubtitle: m.collections_dialog_share_print_subtitle(),
-        filenameHint: collectionName,
+        filename: { base: collectionName, fallback: "collection", id: collectionId },
       }}
     />
   );

@@ -36,6 +36,10 @@ describe("matchesPickerQuery", () => {
   it("matches everything for a blank query", () => {
     expect(matchesPickerQuery(UNLEASHED, "  ")).toBe(true);
   });
+
+  it("folds accents and apostrophes on both sides", () => {
+    expect(matchesPickerQuery({ value: "x", label: "Kai’Sa Évolution" }, "kai'sa evo")).toBe(true);
+  });
 });
 
 describe("ComboboxPicker", () => {

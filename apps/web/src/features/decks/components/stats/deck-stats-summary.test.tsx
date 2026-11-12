@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -7,7 +8,7 @@ import { DeckStatsSummary } from "./deck-stats-summary";
 
 afterEach(cleanup);
 
-const TYPE_LABELS = { unit: "Unit", spell: "Spell", gear: "Gear" };
+const TYPE_LABELS = labelMapOf({ unit: "Unit", spell: "Spell", gear: "Gear" });
 
 function stubStats(): ReturnType<typeof useDeckStats> {
   return {

@@ -1,5 +1,6 @@
 import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
+import { cardPath } from "@openrift/shared/site-paths";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
@@ -62,7 +63,7 @@ export const Route = createFileRoute("/_app/errata")({
         .toSorted((left, right) => compareCardDisplayName(left.card, right.card))
         .map((entry) => ({
           name: legendDisplayName(entry.card),
-          url: `/cards/${entry.card.slug}`,
+          url: cardPath(entry.card.slug),
           image: entry.printing?.imageId ? imageUrl(entry.printing.imageId, "full") : undefined,
         })),
       imageVersion: errataContentVersion(data),

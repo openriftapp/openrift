@@ -1,5 +1,7 @@
 import type { PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
 
+import { m } from "@/paraglide/messages.js";
+
 /** A pod in the manual editor: just the seated player ids (size is derived from length). */
 interface EditorPod {
   playerIds: string[];
@@ -86,10 +88,10 @@ export function validatePartition(
     if (size !== 0 && !sizeOk(size)) {
       errors.push(
         mode === "team"
-          ? `Match ${index + 1} has ${size} team${size === 1 ? "" : "s"}. Matches must have exactly 2.`
+          ? m.tournaments_pairing_error_team_match({ match: index + 1, count: size })
           : mode === "swiss" || mode === "cut"
-            ? `Match ${index + 1} has ${size} players. Matches must have exactly 2.`
-            : `Pod ${index + 1} has ${size} players. Pods must have 3 or 4.`,
+            ? m.tournaments_pairing_error_match_size({ match: index + 1, count: size })
+            : m.tournaments_pairing_error_pod_size({ pod: index + 1, count: size }),
       );
     }
   });

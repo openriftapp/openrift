@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type * as UseEnums from "@/hooks/use-enums";
 import { stubPrinting } from "@/test/factories";
 
 const violations = vi.hoisted(() => ({
@@ -11,6 +12,11 @@ const collections = vi.hoisted(() => ({
   current: [] as { id: string; availableForDeckbuilding: boolean }[],
 }));
 
+vi.mock("@/hooks/use-enums", async (importOriginal) => {
+  const actual = await importOriginal<typeof UseEnums>();
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return { ...actual, useZoneOrder: useZoneOrderStub };
+});
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckViolations: () => violations.current,
 }));

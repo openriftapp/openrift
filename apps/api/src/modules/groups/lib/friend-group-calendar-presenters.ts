@@ -1,3 +1,4 @@
+import { HOUR_MS } from "@openrift/shared/format-date";
 import type { FriendGroupCalendarFeedKind } from "@openrift/shared/types/api/friend-group";
 
 import type { CalendarEvent } from "../../../lib/icalendar.js";
@@ -16,7 +17,7 @@ function eventEnd(start: Date, end: Date | null): Date {
   if (end !== null && end.getTime() > start.getTime()) {
     return end;
   }
-  return new Date(start.getTime() + DEFAULT_EVENT_HOURS * 60 * 60 * 1000);
+  return new Date(start.getTime() + DEFAULT_EVENT_HOURS * HOUR_MS);
 }
 
 export function calendarFeedName(groupName: string, kind: FriendGroupCalendarFeedKind): string {

@@ -2,9 +2,15 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import type * as UseEnums from "@/hooks/use-enums";
 import { stubDeckBuilderCard } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
+vi.mock("@/hooks/use-enums", async (importOriginal) => {
+  const actual = await importOriginal<typeof UseEnums>();
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return { ...actual, useZoneOrder: useZoneOrderStub };
+});
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckBuilderActions: () => ({
     changePreferredPrinting: vi.fn(),

@@ -4,21 +4,23 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { QrCode } from "@/components/ui/qr-code";
+import type { DownloadName } from "@/lib/download";
+import { downloadFilename } from "@/lib/download";
 import { downloadQrPng } from "@/lib/qr-download";
 import { m } from "@/paraglide/messages.js";
 
 interface ShareQrPanelProps {
   url: string;
   label: string;
-  filenameBase: string;
+  filename: DownloadName;
 }
 
 /** The share link as a bare, downloadable QR code; the image render and binder sheet embed one inside more artwork. */
-export function ShareQrPanel({ url, label, filenameBase }: ShareQrPanelProps) {
+export function ShareQrPanel({ url, label, filename }: ShareQrPanelProps) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
-    const base = filenameBase.replaceAll(/[^\w -]+/gu, "_").trim() || "qr-code";
+    const base = downloadFilename(filename);
     setDownloading(true);
     try {
       await downloadQrPng(url, `${base}-qr.png`);

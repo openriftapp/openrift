@@ -20,6 +20,11 @@ vi.mock("../../system/services/render-pool.js", () => ({
 const mockDecksRepo = {
   getByIdForUser: vi.fn(),
 };
+const mockDeckFormatsRepo = {
+  getBySlug: vi.fn((slug: string) =>
+    Promise.resolve(slug === "custom-region" ? { slug, label: "Custom Region" } : undefined),
+  ),
+};
 
 // 418 sentinel stands in for the oRPC catch-all, distinguishing a 401 from
 // this route's auth from a fall-through to a public route.
@@ -33,7 +38,11 @@ function buildApp(session: { user: { id: string; name?: string } } | null) {
     })
     .use("/api/*", async (c, next) => {
       c.set("auth", { api: { getSession: () => Promise.resolve(session) } } as never);
-      c.set("repos", { decks: mockDecksRepo } as never);
+      c.set("repos", {
+        decks: mockDecksRepo,
+        deckFormats: mockDeckFormatsRepo,
+        enums: { deckZones: () => Promise.resolve([]) },
+      } as never);
       c.set("io", {} as never);
       c.set("config", { siteOrigin: "https://openrift.app" } as never);
       await next();
@@ -78,6 +87,20 @@ describe("deckImageRoute auth scoping", () => {
     expect(res.headers.get("content-type")).toBe("image/png");
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(mockDecksRepo.getByIdForUser).toHaveBeenCalledWith("abc", "user-1");
+  });
+
+  it("labels the format with the admin-managed deck format label", async () => {
+    mockDecksRepo.getByIdForUser.mockResolvedValue({
+      id: "abc",
+      name: "Deck",
+      format: "custom-region",
+    });
+
+    await buildApp({ user: { id: "user-1" } }).request("/api/v1/decks/abc/image.png");
+
+    expect(renderImage).toHaveBeenCalledWith(
+      expect.objectContaining({ input: expect.objectContaining({ formatLabel: "Custom Region" }) }),
+    );
   });
 
   it("404s when the caller does not own the deck", async () => {

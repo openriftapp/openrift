@@ -97,6 +97,10 @@ vi.mock("@/hooks/use-enums", () => ({
   useLanguageLabels: () => ({ en: "English", de: "German" }),
 }));
 
+vi.mock("@/hooks/use-keyword-reverse-map", () => ({
+  useKeywordReverseMap: () => new Map<string, string>(),
+}));
+
 vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
   useCatalogSearchVocabulary: () => undefined,
 }));

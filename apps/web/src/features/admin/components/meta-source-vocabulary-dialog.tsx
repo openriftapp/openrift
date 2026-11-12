@@ -45,7 +45,7 @@ import {
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
-import { runningRunId } from "@/features/meta/lib/meta-catalog-display";
+import { runningRunId } from "@/features/admin/lib/meta-catalog-display";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
 

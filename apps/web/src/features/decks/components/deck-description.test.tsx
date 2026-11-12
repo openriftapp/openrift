@@ -87,6 +87,12 @@ describe("DeckDescription on a page serving its own catalogue subset", () => {
     expect(screen.getByRole("button", { name: "Yasuo Windrider" })).toBeInTheDocument();
   });
 
+  it("resolves a reference typed with different case and punctuation", () => {
+    renderDescription("Beats [[yasuo-windrider]] on the play.", { seedCatalog: true });
+
+    expect(screen.getByRole("button", { name: "yasuo-windrider" })).toBeInTheDocument();
+  });
+
   it("leaves the catalogue alone for a description with no card reference", () => {
     const { client, catalogFetch } = renderDescription("Just a plain note about the deck.");
 

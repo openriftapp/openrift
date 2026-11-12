@@ -45,8 +45,6 @@ export function SearchBar({
   const { filterState, hasActiveFilters, view } = useFilterValues();
   const { setSearch } = useFilterActions();
 
-  const unitLabel = view === "cards" ? "cards" : view === "copies" ? "copies" : "printings";
-
   const [searchFocused, setSearchFocused] = useState(false);
   const [caret, setCaret] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -136,7 +134,9 @@ export function SearchBar({
     }
   };
 
-  const cardCountLabel = isFiltered ? `${filteredCount} / ${totalCards}` : String(totalCards);
+  const cardCountLabel = isFiltered
+    ? `${filteredCount} / ${unitCount(view, totalCards)}`
+    : unitCount(view, totalCards);
 
   const showSuggestions = suggestions !== null && suggestions.suggestions.length > 0;
 
@@ -155,7 +155,7 @@ export function SearchBar({
             setSearch("");
           }}
           placeholder={placeholder}
-          trailing={countInField ? undefined : `${cardCountLabel} ${unitLabel}`}
+          trailing={countInField ? undefined : cardCountLabel}
           action={
             <TextLink
               variant="muted"

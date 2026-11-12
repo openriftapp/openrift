@@ -1,4 +1,5 @@
 import { totalQuantity } from "@openrift/shared/deck-rules";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -63,8 +64,8 @@ function ownershipFocusLabel(ownershipClass: OwnershipClass): string {
 
 export function statsFocusLabel(
   focus: StatsFocus,
-  typeLabels: Record<string, string>,
-  rarityLabels: Record<string, string>,
+  typeLabels: LabelMap,
+  rarityLabels: LabelMap,
 ): string {
   switch (focus.kind) {
     case "energy": {

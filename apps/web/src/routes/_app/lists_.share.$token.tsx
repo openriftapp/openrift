@@ -1,3 +1,4 @@
+import { listShareDescription, listShareTitle } from "@openrift/shared/share-titles";
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 
@@ -35,8 +36,8 @@ export const Route = createFileRoute("/_app/lists_/share/$token")({
       return seoHead({ siteUrl, title: "Shared list", path, unlisted: true });
     }
     const { list, owner } = data;
-    const title = `${list.name} (${list.intent} list)`;
-    const description = `A Riftbound ${list.intent} list shared by ${owner.displayName}.`;
+    const title = listShareTitle(list.name, list.intent);
+    const description = listShareDescription(list.intent, owner.displayName);
     const ogImage = listShareImageUrl(siteUrl, params.token, shareImageVersion(list.updatedAt));
     return seoHead({ siteUrl, title, description, path, ogImage, oembed: true, unlisted: true });
   },

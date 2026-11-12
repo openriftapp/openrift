@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
@@ -19,7 +20,7 @@ export function DeckOddsCustomGroupForm({
   typeLabels,
   onAdd,
 }: {
-  typeLabels: Record<string, string>;
+  typeLabels: LabelMap;
   onAdd: (group: OddsGroupDef) => void;
 }) {
   const [label, setLabel] = useState("");

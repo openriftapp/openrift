@@ -1,3 +1,4 @@
+import { matchesTextPhrase } from "@openrift/shared/search-fold";
 import { Command as CommandPrimitive } from "cmdk";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useLayoutEffect, useRef } from "react";
@@ -30,11 +31,10 @@ const PICKER_ROW_SELECTED =
  * @returns 1 when a keyword contains the query (or the query is empty), else 0.
  */
 function keywordFilter(_value: string, search: string, keywords?: string[]): number {
-  const query = search.trim().toLowerCase();
-  if (!query) {
+  if (!search.trim()) {
     return 1;
   }
-  return keywords?.some((keyword) => keyword.toLowerCase().includes(query)) ? 1 : 0;
+  return keywords !== undefined && matchesTextPhrase(search, keywords) ? 1 : 0;
 }
 
 /**

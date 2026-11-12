@@ -1,4 +1,4 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
+import { resolveCard } from "@openrift/shared/card-search";
 import type { LinkHost } from "@openrift/shared/link-hosts";
 import { resolveLinkHost } from "@openrift/shared/link-hosts";
 import type { DeckLink } from "@openrift/shared/types/api/deck";
@@ -9,6 +9,7 @@ import { MarkdownText } from "@/components/markdown-text";
 import { buttonVariants } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { useFullCatalog } from "@/features/cards/hooks/use-cards";
+import { cardLookupIndex } from "@/features/cards/lib/card-lookup-rows";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { catalogCardToDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -66,19 +67,14 @@ function ResolvedDeckDescription({
   onHoverCard,
   onCardClick,
 }: DeckDescriptionProps) {
-  const { printingsByCardId } = useFullCatalog();
-
-  const cardByName = new Map<string, DeckBuilderCard>();
-  for (const [cardId, printings] of printingsByCardId) {
-    const card = printings[0]?.card;
-    if (card) {
-      const builderCard = catalogCardToDeckBuilderCard(cardId, card);
-      cardByName.set(card.name.toLowerCase(), builderCard);
-      // Legends also resolve by their colloquial display name ("Azir, Emperor
-      // of the Sands"): the editor's autocomplete inserts that form.
-      cardByName.set(legendDisplayName(card).toLowerCase(), builderCard);
-    }
-  }
+  const { allPrintings } = useFullCatalog();
+  const index = cardLookupIndex(allPrintings);
+  const cardByName = (name: string): DeckBuilderCard | undefined => {
+    const resolution = resolveCard(index, name);
+    return resolution.status === "matched"
+      ? catalogCardToDeckBuilderCard(resolution.card.id, resolution.card.printing.card)
+      : undefined;
+  };
 
   return (
     <MarkdownText
@@ -86,7 +82,7 @@ function ResolvedDeckDescription({
       headings
       className={className}
       renderCardLink={(name, children) => {
-        const card = cardByName.get(name.toLowerCase());
+        const card = cardByName(name);
         if (!card) {
           return <span className={CARD_LINK_CLASS}>{children}</span>;
         }

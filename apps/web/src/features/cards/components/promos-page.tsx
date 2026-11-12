@@ -26,6 +26,7 @@ import {
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
+import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { buildGroups } from "@/features/cards/lib/card-groups";
@@ -161,17 +162,13 @@ function PromosBrowser() {
     languages: [activeLanguage],
     price: priceFilterEnabled ? ranges.price : { min: null, max: null },
   };
+  const searchContext = useCardSearchContext({
+    getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
+    priceLookup: display.prices,
+    getOwnedCount: (p) => ownedCountByPrinting?.[p.printingId],
+  });
   const matchPrintings = (search: string) => {
-    const matches = filterCards(
-      activePrintings,
-      { ...cardFilters, search },
-      {
-        getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
-        priceLookup: display.prices,
-        getOwnedCount: (p) => ownedCountByPrinting?.[p.printingId],
-        rarityOrder: enumOrders.rarities,
-      },
-    );
+    const matches = filterCards(activePrintings, { ...cardFilters, search }, searchContext);
     return !ownedFilterActive || !isLoggedIn || !ownedCountByPrinting
       ? matches
       : applyOwnedBucketFilter(matches, filters.ownedFilter, ownedCountByPrinting);

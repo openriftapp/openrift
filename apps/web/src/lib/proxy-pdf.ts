@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { joinCatalog } from "@openrift/shared/catalog-join";
 import { errataForLanguage } from "@openrift/shared/errata";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -9,6 +10,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { jsPDF } from "jspdf";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { downloadFilename } from "@/lib/download";
 import { loadImage } from "@/lib/load-image";
 import { createPdfDocument } from "@/lib/pdf-document";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
@@ -22,6 +24,7 @@ interface ProxyOptions {
   cutLines: boolean;
   watermark: boolean;
   deckName?: string;
+  deckId?: string;
 }
 
 const CARD_WIDTH_MM = 63;
@@ -88,7 +91,7 @@ export function resolveProxyCards(
       result.push({
         cardId: deckCard.cardId,
         printingId: printing?.printingId ?? null,
-        name: card.name,
+        name: legendDisplayName(card),
         imageFullUrl,
         card,
         rarity: printing?.rarity ?? WellKnown.rarity.COMMON,
@@ -295,10 +298,7 @@ export async function assembleProxyPdf(
     }
   }
 
-  const slug = (options.deckName ?? "")
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/gu, "-")
-    .replaceAll(/^-+|-+$/gu, "");
-  const filename = slug ? `${slug}-proxies.pdf` : "proxies.pdf";
-  doc.save(filename);
+  doc.save(
+    `${downloadFilename({ base: options.deckName ?? "", fallback: "deck", id: options.deckId })}-proxies.pdf`,
+  );
 }

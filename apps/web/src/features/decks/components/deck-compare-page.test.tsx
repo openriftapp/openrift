@@ -118,9 +118,13 @@ vi.mock("@/features/cards/hooks/use-cards", async () => {
 vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({ getPreferredPrinting: () => undefined }),
 }));
-vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({ labels: { rarities: {}, domains: {} } }),
-}));
+vi.mock("@/hooks/use-enums", async () => {
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return {
+    useZoneOrder: useZoneOrderStub,
+    useEnumOrders: () => ({ labels: { rarities: {}, domains: {} } }),
+  };
+});
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => false }));
 vi.mock("@/features/decks/hooks/use-local-decks", () => ({

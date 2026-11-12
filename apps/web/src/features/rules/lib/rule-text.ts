@@ -1,3 +1,5 @@
+import { foldForSearch } from "@openrift/shared/search-fold";
+
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",
@@ -18,7 +20,7 @@ const searchTextByRule = new WeakMap<object, string>();
 export function ruleSearchText(rule: { contentHtml: string }): string {
   let text = searchTextByRule.get(rule);
   if (text === undefined) {
-    text = ruleHtmlToText(rule.contentHtml).toLowerCase();
+    text = foldForSearch(ruleHtmlToText(rule.contentHtml));
     searchTextByRule.set(rule, text);
   }
   return text;

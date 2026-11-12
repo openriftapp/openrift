@@ -14,7 +14,7 @@ import {
   notReservedByTrade,
   joinPublicFaceImage,
   pairedCardName,
-  secondSideCardName,
+  secondSideCard,
   selectCopyWithCard,
 } from "../../../repositories/query-helpers.js";
 
@@ -711,7 +711,7 @@ export function copiesRepo(db: Kysely<Database>) {
           "c.name as name",
           cardTypesColumn(),
           "c.tags as tags",
-          secondSideCardName(),
+          secondSideCard(),
           "pimg.id as imageId",
           eb.cast<number>(eb.fn.countAll(), "integer").as("quantity"),
         ])

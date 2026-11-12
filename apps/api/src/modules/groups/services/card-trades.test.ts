@@ -57,11 +57,9 @@ const DTO_ROW: CardTradeDtoRow = {
   giverName: "Ekko",
   giverImage: null,
   giverEmail: "ekko@example.com",
-  giverSnapshotName: null,
   receiverName: "Jinx",
   receiverImage: null,
   receiverEmail: "jinx@example.com",
-  receiverSnapshotName: null,
   counterpartyContacts: [],
 };
 

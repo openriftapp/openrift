@@ -55,7 +55,11 @@ function MissingLine({ cost }: { cost: MetaDeckCost }) {
   if (cost.toComplete === undefined || cost.toComplete === 0) {
     return null;
   }
-  return <span className="text-muted-foreground text-xs">{format(cost.toComplete)} missing</span>;
+  return (
+    <span className="text-muted-foreground text-xs">
+      {m.meta_standings_missing_value({ amount: format(cost.toComplete) })}
+    </span>
+  );
 }
 
 export function DeckValue({

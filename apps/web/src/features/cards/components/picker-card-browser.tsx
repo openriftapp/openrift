@@ -18,7 +18,6 @@ import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -63,7 +62,6 @@ export function PickerCardBrowser({
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
-  const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
 
   const {
@@ -103,7 +101,6 @@ export function PickerCardBrowser({
     ownedCountByPrinting: undefined,
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
-    keywordReverseMap,
     channels,
   });
 

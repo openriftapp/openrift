@@ -1,4 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
+import { cardPath } from "@openrift/shared/site-paths";
 import { RENAMED_LANGUAGES } from "@openrift/shared/well-known";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
@@ -98,10 +100,9 @@ export const Route = createFileRoute("/_app/promos_/$language")({
       if (!card) {
         continue;
       }
-      items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
+      items.push({ name: legendDisplayName(card), url: cardPath(card.slug) });
     }
-    const languageName =
-      init.enums.languages?.find((row) => row.slug === params.language)?.label ?? params.language;
+    const languageName = enumLabel(labelMap(init.enums.languages ?? []), params.language);
     return { items, languageName };
   },
   errorComponent: RouteErrorFallback,

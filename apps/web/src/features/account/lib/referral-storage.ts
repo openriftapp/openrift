@@ -1,7 +1,8 @@
+import { DAY_MS } from "@openrift/shared/format-date";
 import { REFERRAL_CODE_PATTERN } from "@openrift/shared/referral";
 
 const STORAGE_KEY = "openrift-pending-referral";
-const TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const TTL_MS = 30 * DAY_MS;
 
 interface PendingReferral {
   code: string;

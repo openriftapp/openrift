@@ -1,4 +1,5 @@
 import { enumLabel } from "./enum-label.js";
+import type { LabelMap } from "./enum-label.js";
 import { WellKnown } from "./well-known.js";
 
 /** Structural on purpose: both the web `Printing` and the Discord bot's compact wire shape satisfy it. */
@@ -25,9 +26,9 @@ export interface VariantLabelPrinting {
 }
 
 export interface VariantLabelEnumLabels {
-  artVariants: Record<string, string>;
-  finishes: Record<string, string>;
-  cardSizes: Record<string, string>;
+  artVariants: LabelMap;
+  finishes: LabelMap;
+  cardSizes: LabelMap;
   flags?: { overnumbered: string; signed: string };
   onOneSide?: (part: string) => string;
 }
@@ -194,23 +195,23 @@ export function otherSideLabel(
   return nameRepeats ? `${other.cardName} (${other.shortCode})` : other.cardName;
 }
 
-export function formatPrintingVariantLabel(
+export function printingVariantPartsEnglish(
   printing: VariantLabelPrinting,
   siblings: VariantSiblings | undefined,
-  labels: VariantLabelEnumLabels,
-  withOtherSide: (name: string, sameCard: boolean) => string = (name, sameCard) =>
-    sameCard ? `${name} on both sides` : `with ${name}`,
-): string {
+  labels: VariantLabelEnumLabels & { languages: LabelMap },
+): string[] {
   const { language, rest, otherSide, otherSideIsSelf } = formatPrintingVariantLabelParts(
     printing,
     siblings,
     labels,
   );
-  const parts = [...(language ? [`[${language}]`] : []), ...rest];
+  const shownLanguage =
+    language ?? (printing.language === WellKnown.language.EN ? null : printing.language);
+  const parts = shownLanguage ? [enumLabel(labels.languages, shownLanguage), ...rest] : [...rest];
   if (otherSide) {
-    parts.push(withOtherSide(otherSide, otherSideIsSelf));
+    parts.push(otherSideIsSelf ? `${otherSide} on both sides` : `with ${otherSide}`);
   }
-  return parts.length > 0 ? parts.join(" · ") : "Standard";
+  return parts;
 }
 
 export function printingLabelParts(

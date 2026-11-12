@@ -56,7 +56,7 @@ function ServerDeckShareDialog({
       }}
       image={{
         title: deckName,
-        filenameBase: deckName || "deck",
+        filename: { base: deckName, fallback: "deck", id: deckId },
         buildUrl: (choice) => deckOwnerImageUrl(getSiteUrl(), deckId, shareImageOptions(choice)),
         scales: [1, 2],
         qrNoun: "deck",
@@ -65,11 +65,11 @@ function ServerDeckShareDialog({
           <p className="text-muted-foreground text-sm">{m.decks_dialog_share_dirty_note()}</p>
         ) : undefined,
       }}
-      qrFilenameBase={deckName || "deck"}
+      qrFilename={{ base: deckName, fallback: "deck", id: deckId }}
       print={{
         defaultTitle: deckName,
         defaultSubtitle: m.decks_dialog_share_print_subtitle(),
-        filenameHint: deckName,
+        filename: { base: deckName, fallback: "deck", id: deckId },
       }}
     />
   );
@@ -96,7 +96,7 @@ function LocalDeckShareDialog({
       }
       image={{
         title: deckName,
-        filenameBase: deckName || "deck",
+        filename: { base: deckName, fallback: "deck", id: deckId },
         // No server row to resolve by id, so the render is posted the cards instead: no GET URL, no preview.
         buildUrl: () => deckImageFromCardsUrl(getSiteUrl()),
         download: (choice, filename) =>

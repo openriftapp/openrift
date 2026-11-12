@@ -1,4 +1,4 @@
-import { todayUtc } from "@openrift/shared/format-date";
+import { todayUtc, formatDay } from "@openrift/shared/format-date";
 import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import type { SetReleases } from "@openrift/shared/set-release";
 import { earliestRelease } from "@openrift/shared/set-release";
@@ -391,7 +391,7 @@ export function scopeKey(scope: MetaScope): string {
 function dayBefore(date: string): string {
   const at = new Date(`${date}T00:00:00Z`);
   at.setUTCDate(at.getUTCDate() - 1);
-  return at.toISOString().slice(0, 10);
+  return formatDay(at);
 }
 
 /**

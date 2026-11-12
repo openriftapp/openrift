@@ -7,7 +7,7 @@ import {
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-import { cardArtSchema } from "./fields.js";
+import { cardArtSchema, shareOwnerDisplayNameSchema } from "./fields.js";
 
 const groupRefSchema = z.object({
   id: z.string(),
@@ -68,7 +68,7 @@ export const publicUserBundleCollectionResponseSchema = z.object({
 
 export const publicUserBundleResponseSchema = z.object({
   owner: z.object({
-    displayName: z.string(),
+    displayName: shareOwnerDisplayNameSchema,
     gravatarHash: z.string(),
     userId: z.string().nullable(),
     isViewer: z.boolean(),

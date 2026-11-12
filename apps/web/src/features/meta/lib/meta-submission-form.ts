@@ -169,7 +169,7 @@ function metaSubmissionCardsFromMatches(
 ): MetaSubmissionCardLine[] {
   const lines = new Map<string, MetaSubmissionCardLine>();
   for (const entry of matched) {
-    const name = entry.resolvedCard?.cardName ?? sourceLabel(entry);
+    const name = entry.resolvedCard?.displayName ?? sourceLabel(entry);
     const key = `${name}::${entry.zone}`;
     const existing = lines.get(key);
     if (existing) {
@@ -201,10 +201,10 @@ export function parseMetaSubmissionList(
       continue;
     }
     if (entry.zone === "legend" && legend === null) {
-      legend = { cardId: resolved.cardId, cardName: resolved.cardName };
+      legend = { cardId: resolved.cardId, cardName: resolved.displayName };
     }
     if (entry.status === "needs-review") {
-      reinterpreted.push({ source: sourceLabel(entry), matched: resolved.cardName });
+      reinterpreted.push({ source: sourceLabel(entry), matched: resolved.displayName });
     }
   }
   return {

@@ -101,6 +101,37 @@ export function isWalkoverPod(pod: PodResponse): boolean {
   );
 }
 
+function podSideCount(pod: PodResponse): number {
+  const teams = new Set(
+    pod.members.flatMap((member) => (member.teamId === null ? [] : [member.teamId])),
+  );
+  return teams.size > 0 ? teams.size : pod.members.length;
+}
+
+function sharesOnePlacement(pod: PodResponse): boolean {
+  const [first] = pod.members;
+  return first !== undefined && pod.members.every((member) => member.placement === first.placement);
+}
+
+export function isDoubleForfeitPod(pod: PodResponse): boolean {
+  return podSideCount(pod) === 2 && isWalkoverPod(pod) && sharesOnePlacement(pod);
+}
+
+export function isResultlessPod(pod: PodResponse): boolean {
+  return podSideCount(pod) > 2 && isWalkoverPod(pod);
+}
+
+export function podForDisplay(pod: PodResponse): PodResponse {
+  if (!isResultlessPod(pod)) {
+    return pod;
+  }
+  return {
+    ...pod,
+    resultStatus: "pending",
+    members: pod.members.map((member) => ({ ...member, placement: null, points: null })),
+  };
+}
+
 /** "Ashe 2-0 Braum", "Ashe def. Braum" on a walkover, "Ashe vs Braum" unplayed. */
 export function podScoreLine(pod: PodResponse): string {
   const ordered = pod.members.toSorted(
@@ -108,16 +139,16 @@ export function podScoreLine(pod: PodResponse): string {
   );
   const [first, second] = ordered;
   if (!first || !second) {
-    return ordered.map((member) => member.displayName).join(" vs ");
+    return ordered.map((member) => member.displayName).join(` ${m.tournaments_pod_vs()} `);
   }
-  if (first.placement === null) {
+  if (first.placement === null || isResultlessPod(pod)) {
     return m.tournaments_lib_pod_score_vs({
       first: first.displayName,
       second: second.displayName,
     });
   }
   if (isWalkoverPod(pod)) {
-    return first.placement === second.placement
+    return isDoubleForfeitPod(pod)
       ? m.tournaments_lib_pod_score_both_forfeited({
           first: first.displayName,
           second: second.displayName,

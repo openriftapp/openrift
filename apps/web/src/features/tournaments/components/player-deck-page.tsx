@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay, formatDayTimeLocal } from "@openrift/shared/format-date";
 import type {
   DeckCheckEntryCardResponse,
@@ -31,6 +32,7 @@ import { FormatStateBadge } from "@/features/decks/components/deck-format-badge"
 import { typeCountSummary } from "@/features/decks/components/deck-tile";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { DeckCheckCardZonesSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
+import { DeckCheckStateBadge } from "@/features/tournaments/components/deck-check-state-badge";
 import { PlayerDeckSourceForm } from "@/features/tournaments/components/player-deck-source-form";
 import type { DeckSourceInput } from "@/features/tournaments/components/player-deck-source-form";
 import { TournamentSectionFrame } from "@/features/tournaments/components/tournament-detail-frame";
@@ -105,7 +107,11 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
         {entry.unlockRequested ? (
           <Badge variant="outline">{m.tournaments_deck_check_unlock_requested()}</Badge>
         ) : null}
-        <PlayerStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
+        <DeckCheckStateBadge
+          state={entry.state}
+          reviewOutcome={entry.reviewOutcome}
+          audience="player"
+        />
       </div>
 
       {entry.state === "withdrawn" ? (
@@ -184,33 +190,6 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
   );
 }
 
-// Mirrors the labels in `MY_DECK_STATE_LABEL`; keep both in sync.
-function PlayerStateBadge({
-  state,
-  reviewOutcome,
-}: {
-  state: PlayerDeckCheckEntryDetailResponse["entry"]["state"];
-  reviewOutcome: PlayerDeckCheckEntryDetailResponse["entry"]["reviewOutcome"];
-}) {
-  if (state === "editable") {
-    return <Badge variant="outline">{m.tournaments_my_deck_state_not_submitted()}</Badge>;
-  }
-  if (state === "approved") {
-    return <Badge>{m.tournaments_deck_check_state_approved()}</Badge>;
-  }
-  if (state === "checked") {
-    return reviewOutcome === "issue" ? (
-      <Badge variant="destructive">{m.tournaments_deck_check_state_checked_issue()}</Badge>
-    ) : (
-      <Badge>{m.tournaments_deck_check_state_checked()}</Badge>
-    );
-  }
-  if (state === "withdrawn") {
-    return <Badge variant="secondary">{m.tournaments_deck_check_state_withdrawn()}</Badge>;
-  }
-  return <Badge variant="secondary">{m.tournaments_deck_check_state_submitted()}</Badge>;
-}
-
 function sharingSummary(allowPublish: boolean, allowName: boolean, allowRiotId: boolean): string {
   if (!allowPublish) {
     return m.tournaments_my_deck_sharing_none();
@@ -274,7 +253,7 @@ function PlayerCardGrid({ cards }: { cards: DeckCheckEntryCardResponse[] }) {
         return (
           <section key={zone} className="flex min-w-0 flex-col gap-2">
             <SectionHeading as="h3">
-              {zoneLabels[zone]} · {copies}
+              {enumLabel(zoneLabels, zone)} · {copies}
             </SectionHeading>
             <div
               className="grid gap-3"

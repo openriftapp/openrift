@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ export function DeckCoverDialog({
       choices.push({
         cardId: card.cardId,
         faceId: faceOf(card.cardId, card.preferredPrintingId),
-        name: card.cardName,
+        name: legendDisplayName({ name: card.cardName, types: card.cardTypes, tags: card.tags }),
         thumbnail,
       });
     }

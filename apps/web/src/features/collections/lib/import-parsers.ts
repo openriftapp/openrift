@@ -28,6 +28,7 @@ export interface ImportEntry {
   isOvernumbered?: boolean;
   quantity: number;
   cardName: string;
+  pairedCardName?: string;
   sourceCode: string;
   promoSlug?: string;
   /** The source wrote the printing's real finish and full marker set, so both match exactly. */

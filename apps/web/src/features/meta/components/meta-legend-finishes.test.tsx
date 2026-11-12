@@ -176,7 +176,7 @@ describe("MetaLegendFinishes", () => {
 
   it("labels a partial list as partial", () => {
     renderFinishes([finish({ shareToken: "tok-1", listStatus: "partial" })]);
-    expect(screen.getAllByRole("link", { name: "Partial" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Partial list" }).length).toBeGreaterThan(0);
   });
 
   it("offers no submission link to a signed-out reader", () => {

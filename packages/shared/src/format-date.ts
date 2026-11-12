@@ -247,6 +247,23 @@ export function formatDayTimeLocal(input: Date | string): string {
   return `${formatDayLocal(date)} ${formatTimeLocal(date)}`;
 }
 
+/** Calendar days from `from` to `to` on the viewer's clock, so a DST change never makes a day 23 or 25 hours long. */
+export function localDayDiff(from: Date | string, to: Date | string): number {
+  const start = toDate(from);
+  const end = toDate(to);
+  if (start === null || end === null) {
+    return 0;
+  }
+  const startDay = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDay = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.round((endDay - startDay) / DAY_MS);
+}
+
+export function shiftUtcDay(day: string, days: number): string {
+  const date = toDate(day);
+  return date === null ? "" : new Date(date.getTime() + days * DAY_MS).toISOString().slice(0, 10);
+}
+
 /** `Thursday` on the viewer's clock. Same SSR constraint as the other `…Local` functions. */
 export function formatWeekdayLocal(
   input: Date | string,

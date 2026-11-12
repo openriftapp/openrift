@@ -106,6 +106,25 @@ describe("evaluateListRule — wish", () => {
     expect(evaluateListRule(rule("s:zzz"), "printing", ctx)).toEqual([]);
   });
 
+  it("finds a keyword the rule names in another language", () => {
+    const keyworded = [
+      makePrinting("p1", "c1", { keywords: ["Accelerate"] }),
+      makePrinting("p2", "c2"),
+    ];
+    const rule: ListRule = {
+      kind: "wish",
+      filter: filters({ search: "kw:beschleunigen" }),
+      quantity: { mode: "fixed", n: 1 },
+      excludeIds: [],
+    };
+    const keywordReverseMap = new Map([["beschleunigen", "Accelerate"]]);
+    expect(
+      evaluateListRule(rule, "printing", { catalog: keyworded, keywordReverseMap }).map(
+        (entry) => entry.kind === "printing" && entry.printingId,
+      ),
+    ).toEqual(["p1"]);
+  });
+
   it("printing kind honors excludeIds (printing ids)", () => {
     const rule: ListRule = {
       kind: "wish",

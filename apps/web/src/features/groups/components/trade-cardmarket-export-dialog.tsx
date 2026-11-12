@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { formatCardmarketWants } from "@/lib/export-text";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 interface TradeCardmarketExportDialogProps {
@@ -81,7 +82,7 @@ export function TradeCardmarketExportDialog({
         <DialogHeader>
           <DialogTitle>{m.trades_export_cardmarket()}</DialogTitle>
           <DialogDescription>
-            {m.trades_export_description({ name: counterpartyName ?? m.trades_this_member() })}
+            {m.trades_export_description({ name: memberName(counterpartyName) })}
           </DialogDescription>
         </DialogHeader>
 

@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { CardType, Domain } from "@openrift/shared/types/enums";
 import { describe, expect, it } from "vitest";
 
@@ -6,8 +7,8 @@ import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-gr
 import { stubCardOwnership, stubDeckBuilderCard } from "@/test/factories";
 
 const ctx: DeckCardGroupContext = {
-  typeLabels: { unit: "Unit", spell: "Spell", gear: "Gear", rune: "Rune" },
-  domainLabels: { fury: "Fury", calm: "Calm", mind: "Mind" },
+  typeLabels: labelMapOf({ unit: "Unit", spell: "Spell", gear: "Gear", rune: "Rune" }),
+  domainLabels: labelMapOf({ fury: "Fury", calm: "Calm", mind: "Mind" }),
   domainOrder: ["fury", "calm", "mind"],
 };
 

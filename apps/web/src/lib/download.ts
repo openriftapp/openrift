@@ -1,3 +1,6 @@
+import { foldForSearch } from "@openrift/shared/search-fold";
+import { slugifyName } from "@openrift/shared/strings";
+
 export function downloadUrl(href: string, filename: string): void {
   const anchor = document.createElement("a");
   anchor.href = href;
@@ -29,6 +32,18 @@ export function downloadCsv(csv: string, filename: string): void {
   downloadText(csv, "text/csv;charset=utf-8", filename);
 }
 
-export function safeFilename(base: string, fallback: string): string {
-  return base.replaceAll(/[^\w -]+/gu, "_").trim() || fallback;
+export interface DownloadName {
+  base: string;
+  fallback: string;
+  id?: string;
+}
+
+export function downloadFilename({ base, fallback, id }: DownloadName): string {
+  const slug = slugifyName(foldForSearch(base));
+  if (slug) {
+    return slug;
+  }
+  // A uuidv7 starts with its timestamp, so the tail is what differs between two ids.
+  const suffix = id === undefined ? "" : slugifyName(id).replaceAll("-", "").slice(-8);
+  return suffix ? `${fallback}-${suffix}` : fallback;
 }

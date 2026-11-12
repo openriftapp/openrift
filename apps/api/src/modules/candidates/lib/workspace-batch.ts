@@ -1,9 +1,6 @@
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import type { CardSearchIndex, SearchableCard } from "@openrift/shared/card-search";
-import {
-  buildCardIndex,
-  CARD_SEARCH_MIN_QUERY_LENGTH,
-  searchCards,
-} from "@openrift/shared/card-search";
+import { CARD_SEARCH_MIN_QUERY_LENGTH, searchCards } from "@openrift/shared/card-search";
 import { extractCardIdFromShortCode } from "@openrift/shared/printing-code";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Selectable } from "kysely";
@@ -58,7 +55,10 @@ export function eligibleTrustedCards(
   printings: readonly CandidatePrintingRow[],
   liveCards: readonly SearchableCard[],
 ): { eligible: TrustedCardDraft[]; ineligible: IneligibleTrustedCard[] } {
-  const index = buildCardIndex(liveCards, new Map());
+  const index = buildCardLookupIndex(
+    liveCards.map((card) => ({ ...card, types: [], tags: [] })),
+    [],
+  );
   const completePrintingCardIds = new Set(
     printings
       .filter((cp) => acceptFieldsFromCandidate(cp).fields !== undefined)

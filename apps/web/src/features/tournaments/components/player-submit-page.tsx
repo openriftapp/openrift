@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -61,7 +62,7 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
         <h2 className="font-medium">{m.tournaments_submit_heading()}</h2>
         {data.format ? (
           <p className="text-muted-foreground text-sm">
-            {m.tournaments_submit_format({ format: formatLabels[data.format] ?? data.format })}
+            {m.tournaments_submit_format({ format: enumLabel(formatLabels, data.format) })}
           </p>
         ) : null}
         {data.allowedSets && data.allowedSets.length > 0 ? (

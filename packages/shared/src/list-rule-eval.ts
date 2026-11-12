@@ -1,3 +1,5 @@
+import type { CardSearchContext } from "./filters-shared.js";
+import { cardSearchContext } from "./filters-shared.js";
 import { filterCards } from "./filters.js";
 import { getPlaysetSize } from "./playset.js";
 import { indexByPrinting } from "./printing-side.js";
@@ -65,6 +67,21 @@ export interface RuleEvalContext {
   enumOrders?: KeepPriorityOrders;
   priceLookup?: PriceLookup;
   vocabulary?: SearchVocabulary;
+  keywordReverseMap?: Map<string, string>;
+}
+
+function ruleSearchContext(
+  ctx: RuleEvalContext,
+  getPrice: ((printing: Printing) => number | undefined) | undefined,
+): CardSearchContext {
+  return cardSearchContext({
+    vocabulary: ctx.vocabulary,
+    keywordReverseMap: ctx.keywordReverseMap,
+    customTagAssignments: ctx.customTagAssignments,
+    rarityOrder: undefined,
+    strict: true,
+    getPrice,
+  });
 }
 
 function rulePriceResolver(
@@ -116,12 +133,11 @@ function wishRuleTargets(
   listKind: ListKind,
   ctx: RuleEvalContext,
 ): WishRuleTargets {
-  const matched = filterCards(ctx.catalog, rule.filter, {
-    customTagAssignments: ctx.customTagAssignments,
-    strict: true,
-    vocabulary: ctx.vocabulary,
-    getPrice: rulePriceResolver(rule, ctx),
-  });
+  const matched = filterCards(
+    ctx.catalog,
+    rule.filter,
+    ruleSearchContext(ctx, rulePriceResolver(rule, ctx)),
+  );
   const excluded = new Set(rule.excludeIds);
   const targets = new Map<string, number>();
   const matchedPrintings = new Map<string, Set<string>>();
@@ -167,12 +183,11 @@ function wishRuleTargets(
     ...(relaxPrice ? { price: { min: null, max: null } } : {}),
     ...(relaxStandard ? { isStandard: null } : {}),
   };
-  const relaxed = filterCards(ctx.catalog, netFilter, {
-    customTagAssignments: ctx.customTagAssignments,
-    strict: true,
-    vocabulary: ctx.vocabulary,
-    getPrice: relaxPrice ? undefined : rulePriceResolver(rule, ctx),
-  });
+  const relaxed = filterCards(
+    ctx.catalog,
+    netFilter,
+    ruleSearchContext(ctx, relaxPrice ? undefined : rulePriceResolver(rule, ctx)),
+  );
   const netPrintings = new Map<string, Set<string>>();
   for (const printing of relaxed) {
     if (!targets.has(printing.cardId)) {
@@ -338,12 +353,11 @@ export function ownedCopyPrintingScope(
   };
   for (const rule of rules) {
     if (rule.kind === "trade") {
-      for (const printing of filterCards(ctx.catalog, rule.filter, {
-        customTagAssignments: ctx.customTagAssignments,
-        strict: true,
-        vocabulary: ctx.vocabulary,
-        getPrice: rulePriceResolver(rule, ctx),
-      })) {
+      for (const printing of filterCards(
+        ctx.catalog,
+        rule.filter,
+        ruleSearchContext(ctx, rulePriceResolver(rule, ctx)),
+      )) {
         scope.add(printing.printingId);
       }
       continue;
@@ -376,12 +390,9 @@ function tradeRulePools(
   printingById: Map<string, Printing>,
 ): Map<string, TradeRulePool> {
   const passing = new Set(
-    filterCards(ctx.catalog, rule.filter, {
-      customTagAssignments: ctx.customTagAssignments,
-      strict: true,
-      vocabulary: ctx.vocabulary,
-      getPrice: rulePriceResolver(rule, ctx),
-    }).map((printing) => `${printing.printingId}:${printing.cardId}`),
+    filterCards(ctx.catalog, rule.filter, ruleSearchContext(ctx, rulePriceResolver(rule, ctx))).map(
+      (printing) => `${printing.printingId}:${printing.cardId}`,
+    ),
   );
   const excludedCopies = new Set(rule.excludeCopyIds);
   const candidates = (ctx.ownedCopies ?? []).filter(

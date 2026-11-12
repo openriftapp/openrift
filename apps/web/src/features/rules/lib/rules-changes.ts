@@ -1,4 +1,5 @@
 import { compareRuleNumbers, RULE_REFERENCE_REGEX } from "@openrift/shared/rules";
+import { foldedFieldsMatchTerms, searchTerms } from "@openrift/shared/search-fold";
 import type { RulePageEntry, RuleSourceResponse } from "@openrift/shared/types/api/rules";
 
 import { ruleSearchText } from "@/features/rules/lib/rule-text";
@@ -293,10 +294,6 @@ export const EMPTY_ANCESTORS: readonly string[] = [];
 export const EMPTY_STRING_SET: ReadonlySet<string> = new Set();
 export const EMPTY_STRING_MAP: ReadonlyMap<string, string> = new Map();
 
-export function parseSearchTerms(query: string): string[] {
-  return query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
-}
-
 const RULE_NUMBER_QUERY =
   /^(?:(?:rules?|r|règle|regle|규칙|规则)\s*)?#?\s*(?<number>\d+(?:\.[\da-z]+)*)\.?$/iu;
 
@@ -322,8 +319,7 @@ function ruleMatches(rule: RuleEntry, terms: string[]): boolean {
   if (terms.length === 0) {
     return false;
   }
-  const text = ruleSearchText(rule);
-  return terms.every((term) => text.includes(term));
+  return foldedFieldsMatchTerms(terms, [ruleSearchText(rule)]);
 }
 
 function headingSectionIndices(rules: RuleEntry[], headingIndex: number): number[] {
@@ -379,7 +375,7 @@ export function computeSearchResult(rules: RuleEntry[], query: string): SearchRe
   const matchSet = new Set<number>();
   const ancestorSet = new Set<number>();
   const sectionSet = new Set<number>();
-  const terms = parseSearchTerms(query);
+  const terms = searchTerms(query);
   if (terms.length === 0) {
     return { visibleIndices: [], matchSet, ancestorSet };
   }

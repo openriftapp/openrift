@@ -18,6 +18,7 @@ import {
   restrictToVerticalAxis,
   snapCenterToCursor,
 } from "@dnd-kit/modifiers";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -104,7 +105,7 @@ export function StageDndContext({ children }: { children: ReactNode }) {
         <DragOverlay modifiers={[snapCenterToCursor]} dropAnimation={null}>
           <CardDragGhost
             printings={[dragged.printing]}
-            label={dragged.printing.card.name}
+            label={legendDisplayName(dragged.printing.card)}
             className="opacity-90"
           />
         </DragOverlay>

@@ -1,3 +1,4 @@
+import { DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { stableKey } from "../../../lib/hash.js";
@@ -467,9 +468,9 @@ export function phasesToStore(
   }));
 }
 
-const QUIET_MS = 6 * 60 * 60 * 1000;
+const QUIET_MS = 6 * HOUR_MS;
 
-const ABANDONED_MS = 3 * 24 * 60 * 60 * 1000;
+const ABANDONED_MS = 3 * DAY_MS;
 
 /**
  * The source has no "finished" flag. Stores stop short of the planned rounds

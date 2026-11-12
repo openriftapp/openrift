@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -194,13 +195,13 @@ function TypeValue({
   );
 }
 
-function DomainList({ domains, labels }: { domains: string[]; labels: Record<string, string> }) {
+function DomainList({ domains, labels }: { domains: string[]; labels: LabelMap }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       {domains.map((domain) => (
         <span key={domain} className="flex items-center gap-1">
           <FilterIcon category="domains" value={domain} className="size-4" />
-          {labels[domain]}
+          {enumLabel(labels, domain)}
         </span>
       ))}
     </span>

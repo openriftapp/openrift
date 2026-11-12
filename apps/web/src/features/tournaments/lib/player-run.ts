@@ -1,6 +1,12 @@
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
-import type { MetaRunOutcome, MetaRunRound } from "@openrift/shared/types/api/meta";
-import type { GroupStageView, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
+import type {
+  GroupStageView,
+  PodResponse,
+  PodRoundResponse,
+} from "@openrift/shared/types/api/pod-tournament";
+
+import type { RunOutcome, RunRound } from "@/features/meta/lib/run-outcome";
+import { isDoubleForfeitPod, isResultlessPod } from "@/features/tournaments/lib/group-cut-units";
 
 export interface PlayerLegend {
   legendCardId: string | null;
@@ -25,13 +31,14 @@ export function legendsByPlayer(groupStage: GroupStageView | null): Map<string, 
   );
 }
 
-function outcomeOf(
-  members: readonly { playerId: string; placement: number | null }[],
-  playerId: string,
-): MetaRunOutcome {
+function outcomeOf(pod: PodResponse, playerId: string): RunOutcome {
+  const { members } = pod;
   const own = members.find((member) => member.playerId === playerId)?.placement ?? null;
-  if (own === null) {
+  if (own === null || isResultlessPod(pod)) {
     return "unknown";
+  }
+  if (isDoubleForfeitPod(pod)) {
+    return "double_forfeit";
   }
   if (members.every((member) => member.placement === own)) {
     return "draw";
@@ -44,10 +51,10 @@ export function playerRunRounds(
   rounds: readonly PodRoundResponse[],
   playerId: string,
   hasCut: boolean,
-): MetaRunRound[] {
+): RunRound[] {
   return rounds
     .toSorted((a, b) => a.roundNumber - b.roundNumber)
-    .flatMap((round): MetaRunRound[] => {
+    .flatMap((round): RunRound[] => {
       const isCut = hasCut && round.roundNumber > GROUP_STAGE_ROUNDS;
       const base = { phaseOrder: isCut ? 1 : 0, roundNumber: round.roundNumber, isCut };
       if (round.byes.some((bye) => bye.playerId === playerId)) {
@@ -74,7 +81,7 @@ export function playerRunRounds(
         {
           ...base,
           tableNumber: pod.podNumber,
-          outcome: outcomeOf(pod.members, playerId),
+          outcome: outcomeOf(pod, playerId),
           gamesWon: own?.gamePoints ?? null,
           gamesLost: pod.members.length === 2 ? (opponent?.gamePoints ?? null) : null,
           opponentId: pod.members.length === 2 ? (opponent?.playerId ?? null) : null,

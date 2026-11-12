@@ -58,9 +58,7 @@ export function swapSeats(groups: readonly SeatGroup[], a: string, b: string): S
 }
 
 function scheduleHint(size: number): string {
-  return size === 4
-    ? "Seats set the schedule: round 1 pairs seats 1 and 2, 3 and 4; round 2 pairs 1 and 3, 2 and 4; round 3 pairs 1 and 4, 2 and 3."
-    : "Seats set the schedule: seat 1 plays across in round 1, seat 2 in round 2, seat 3 in round 3; the other two play each other.";
+  return size === 4 ? m.tournaments_group_seats_hint_four() : m.tournaments_group_seats_hint_five();
 }
 
 function SeatChip({ playerId, name }: { playerId: string; name: string }) {

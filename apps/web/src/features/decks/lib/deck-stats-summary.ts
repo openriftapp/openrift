@@ -1,10 +1,12 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
+
 import type { DomainCombo, EnergyCostCount } from "@/features/collections/lib/stat-types";
 import type { GroupCard } from "@/features/decks/lib/deck-odds-groups";
 import { oddsGroupPresets, oddsGroupRow } from "@/features/decks/lib/deck-odds-groups";
 
 export function turnOnePlayChances(
   cards: readonly GroupCard[],
-  typeLabels: Record<string, string>,
+  typeLabels: LabelMap,
 ): { first: number; second: number } | null {
   const presets = oddsGroupPresets(cards, typeLabels);
   const first = presets.find((preset) => preset.key === "turn-one-first");

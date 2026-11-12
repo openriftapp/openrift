@@ -1,8 +1,11 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { DAY_MS } from "@openrift/shared/format-date";
+import type { CardType } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-import { cardHasType } from "../../../db/helpers.js";
+import { cardHasType, cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import {
   joinPublicFaceImage,
@@ -14,8 +17,6 @@ const PRICE_MARKETPLACE = "cardmarket";
 export const PRICE_BAND_CENTS = { min: 50, max: 2000 };
 
 const PROMO_MAX_CHANNEL_DEPTH = 2;
-
-const DAY_MS = 86_400_000;
 
 /** One sampled printing inside a {@link LandingPromoSection}. */
 interface LandingPromoPrinting {
@@ -37,7 +38,9 @@ export interface LandingPromoSection {
 }
 
 type PromoSectionRow = Omit<LandingPromoSection, "printings"> &
-  LandingPromoPrinting & { sortKey: string };
+  LandingPromoPrinting & { sortKey: string; types: CardType[]; tags: string[] };
+
+const CARD_TYPE_SLUGS = sql<CardType[]>`coalesce(${cardTypes("cards.id")}, '{}')`;
 
 export function catalogLandingRepo(db: Kysely<Database>) {
   return {
@@ -83,6 +86,8 @@ export function catalogLandingRepo(db: Kysely<Database>) {
             "pimg.id as imageId",
             "s.rarity as rarity",
             "cards.name as name",
+            "cards.tags as tags",
+            CARD_TYPE_SLUGS.as("types"),
             "s.shortCode as shortCode",
             "pr.headlineCents as priceCents",
             sql<
@@ -119,7 +124,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           imageId: r.imageId,
           rarity: r.rarity,
           domains: r.domains,
-          name: r.name,
+          name: legendDisplayName(r),
           shortCode: r.shortCode,
           variantLabel: r.variantLabel,
           priceCents: r.priceCents,
@@ -193,15 +198,16 @@ export function catalogLandingRepo(db: Kysely<Database>) {
         ),
         channel_printings AS (
           SELECT pdc.channel_id, p.printing_id, f.id AS image_id,
-                 c.name, p.short_code, p.rarity, p.marker_slugs
+                 cards.name, cards.tags, ${CARD_TYPE_SLUGS} AS types,
+                 p.short_code, p.rarity, p.marker_slugs
           FROM printing_distribution_channels pdc
           JOIN printing_sides_ordered p ON p.printing_id = pdc.printing_id
-          JOIN cards c ON c.id = p.card_id
+          JOIN cards ON cards.id = p.card_id
           ${publicFaceImageJoinSql("p.face_id", "f", "inner")}
           WHERE p.language = ${WellKnown.language.EN}
             AND NOT EXISTS (
               SELECT 1 FROM card_card_types cct
-              WHERE cct.card_id = c.id AND cct.type_slug = ${WellKnown.cardType.BATTLEFIELD}
+              WHERE cct.card_id = cards.id AND cct.type_slug = ${WellKnown.cardType.BATTLEFIELD}
             )
         ),
         sections AS (
@@ -217,7 +223,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
         ),
         ranked AS (
           SELECT s.sort_key, s.path, s.printing_count, chp.image_id, chp.name,
-                 chp.short_code, chp.rarity,
+                 chp.tags, chp.types, chp.short_code, chp.rarity,
                  coalesce((
                    SELECT array_agg(m.label ORDER BY m.sort_order)
                    FROM markers m WHERE m.slug = ANY(chp.marker_slugs)
@@ -231,7 +237,8 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           JOIN channel_printings chp ON chp.channel_id = s.id
         )
         SELECT sort_key AS "sortKey", path, printing_count AS "printingCount",
-               image_id AS "imageId", name, short_code AS "shortCode", rarity, markers
+               image_id AS "imageId", name, tags, types, short_code AS "shortCode", rarity,
+               markers
         FROM ranked
         WHERE rn <= ${perSection}
         ORDER BY sort_key, rn
@@ -246,7 +253,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
         }
         section.printings.push({
           imageId: row.imageId,
-          name: row.name,
+          name: legendDisplayName(row),
           shortCode: row.shortCode,
           rarity: row.rarity,
           markers: row.markers,

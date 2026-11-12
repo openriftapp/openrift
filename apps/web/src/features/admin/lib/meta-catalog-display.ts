@@ -5,8 +5,9 @@ import type {
   MetaSyncTriggerResult,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { isResumableCheckpoint } from "@openrift/shared/contracts/admin/meta-catalog";
-import { formatRelativeTime } from "@openrift/shared/format-date";
+import { formatRelativeTime, DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
 import { playriftboundFormatLabel } from "@openrift/shared/playriftbound-links";
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import {
   PLAYLOLTCG_STATUSES,
@@ -204,11 +205,11 @@ export interface MetaSyncAlert {
   target: MetaSyncAlertTarget;
 }
 
-const STALE_CRAWL_MS = 8 * 24 * 60 * 60 * 1000;
+const STALE_CRAWL_MS = 8 * DAY_MS;
 
-const RECENT_FAILURE_MS = 24 * 60 * 60 * 1000;
+const RECENT_FAILURE_MS = DAY_MS;
 
-const RECHECK_LAG_LIMIT_MS = 2 * 60 * 60 * 1000;
+const RECHECK_LAG_LIMIT_MS = 2 * HOUR_MS;
 
 export interface OverlayProviderCounts {
   pendingReview: number;
@@ -262,7 +263,7 @@ export function runErrorsMessage(job: string, errors: readonly string[]): string
       rest > 0 ? [...named, `${rest} more`] : named,
     );
     return asSentence(
-      `${job} failed for ${ids.length === 1 ? "event" : "events"} ${list}: ${reason.slice(0, 160)}`,
+      `${job} failed for ${pluralize(ids.length, "event", "events")} ${list}: ${reason.slice(0, 160)}`,
     );
   });
   const first = other[0];
@@ -317,7 +318,7 @@ export function metaSyncAlerts(
   if (failed.length > 0) {
     alerts.push({
       id: "failed-runs",
-      message: `${failed.length} ${failed.length === 1 ? "run" : "runs"} failed in the last 24 hours.`,
+      message: `${failed.length} ${pluralize(failed.length, "run", "runs")} failed in the last 24 hours.`,
       target: "failed-runs",
     });
   }
@@ -336,7 +337,7 @@ export function metaSyncAlerts(
     const first: unknown = Array.isArray(errors) ? errors[0] : undefined;
     alerts.push({
       id: "partial-crawls",
-      message: `${partial.length} ${partial.length === 1 ? "run" : "runs"} stopped before covering the whole window, so part of the source's list was not read.${typeof first === "string" ? ` First error: ${first.slice(0, 200)}` : ""}`,
+      message: `${partial.length} ${pluralize(partial.length, "run", "runs")} stopped before covering the whole window, so part of the source's list was not read.${typeof first === "string" ? ` First error: ${first.slice(0, 200)}` : ""}`,
       target: "runs",
     });
   }
@@ -393,7 +394,7 @@ export function metaSyncAlerts(
   if (catalog.acceptedMissing > 0) {
     alerts.push({
       id: "accepted-missing",
-      message: `${catalog.acceptedMissing} published ${catalog.acceptedMissing === 1 ? "event has" : "events have"} disappeared from the source's list.`,
+      message: `${catalog.acceptedMissing} published ${pluralize(catalog.acceptedMissing, "event has", "events have")} disappeared from the source's list.`,
       target: "catalogue-accepted-missing",
     });
   }
@@ -401,7 +402,7 @@ export function metaSyncAlerts(
   if (catalog.acceptedCancelled > 0) {
     alerts.push({
       id: "accepted-cancelled",
-      message: `${catalog.acceptedCancelled} published ${catalog.acceptedCancelled === 1 ? "event is" : "events are"} cancelled at the source. Refresh mirror withdraws the ones without standings or another source. Remove the rest on their event page.`,
+      message: `${catalog.acceptedCancelled} published ${pluralize(catalog.acceptedCancelled, "event is", "events are")} cancelled at the source. Refresh mirror withdraws the ones without standings or another source. Remove the rest on their event page.`,
       target: "catalogue-accepted-cancelled",
     });
   }
@@ -409,7 +410,7 @@ export function metaSyncAlerts(
   if (unresolvedCardCount > 0) {
     alerts.push({
       id: "unresolved-cards",
-      message: `${unresolvedCardCount} card ${unresolvedCardCount === 1 ? "name" : "names"} across staged decks match no live card.`,
+      message: `${unresolvedCardCount} card ${pluralize(unresolvedCardCount, "name", "names")} across staged decks match no live card.`,
       target: "review",
     });
   }

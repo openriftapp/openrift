@@ -1,4 +1,4 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { zoneExpected } from "@openrift/shared/deck-zones";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -143,7 +143,7 @@ interface MatchupEditorProps {
   index: number;
   isFirst: boolean;
   isLast: boolean;
-  cardCandidates: { cardId: string; cardName: string; altNames: string[] }[];
+  cardCandidates: { cardId: string }[];
   maindeckCandidates: { cardId: string; cardName: string; quantity: number }[];
   sideboardCandidates: { cardId: string; cardName: string; quantity: number }[];
   warnings: PlanWarning[];
@@ -356,21 +356,14 @@ export function DeckPlanEditor({
     (warning) =>
       warning.code === "battlefield-not-in-deck" || warning.code === "battlefield-duplicate",
   );
-  const nameOf = (cardId: string) =>
-    getPreferredPrinting(cardId)?.card.name ?? m.decks_plan_a_card();
+  const nameOf = (cardId: string) => {
+    const card = getPreferredPrinting(cardId)?.card;
+    return card ? legendDisplayName(card) : m.decks_plan_a_card();
+  };
 
-  const cardSeen = new Set<string>();
-  const cardCandidates: { cardId: string; cardName: string; altNames: string[] }[] = [];
-  for (const printing of allPrintings) {
-    if (!cardSeen.has(printing.cardId)) {
-      cardSeen.add(printing.cardId);
-      cardCandidates.push({
-        cardId: printing.cardId,
-        cardName: legendDisplayName(printing.card),
-        altNames: cardSearchAltNames(printing.card, [printing.printedName]),
-      });
-    }
-  }
+  const cardCandidates = [...new Set(allPrintings.map((printing) => printing.cardId))].map(
+    (cardId) => ({ cardId }),
+  );
   const zoneCandidates = (zone: DeckZone) => {
     const inZone = deckCards.filter((card) => card.zone === zone);
     const totalByCard = new Map<string, number>();

@@ -7,7 +7,7 @@ import type {
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 
-import type { CatalogChipDisplay } from "@/features/meta/lib/meta-catalog-display";
+import type { CatalogChipDisplay } from "@/features/admin/lib/meta-catalog-display";
 
 export const RESULTS_DISPLAY: Record<MetaResultsState, CatalogChipDisplay> = {
   notStarted: { label: "Not started", variant: "outline" },

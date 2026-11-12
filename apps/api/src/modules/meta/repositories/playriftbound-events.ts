@@ -1,4 +1,5 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
+import { DAY_MS } from "@openrift/shared/format-date";
 import type { Kysely, RawBuilder, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -459,7 +460,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
 
     /** Pulls running events, those started in the last three days and still on stage 0, to now. */
     async rearmRunningEvents(now: Date): Promise<number> {
-      const since = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const since = new Date(now.getTime() - 3 * DAY_MS);
       const result = await db
         .updateTable("playriftboundEventChecks as ck")
         .set({ nextCheckAt: now })

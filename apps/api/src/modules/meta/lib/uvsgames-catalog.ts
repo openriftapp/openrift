@@ -1,4 +1,5 @@
 import { META_NOTABLE_EVENT_NAMES } from "@openrift/shared/contracts/admin/meta-catalog";
+import { formatDay } from "@openrift/shared/format-date";
 
 import { stableKey } from "../../../lib/hash.js";
 import { count, instant, record, sourceId, text } from "../../../lib/json-coerce.js";
@@ -192,7 +193,7 @@ export function venueLocalDay(startAt: Date, timezone: string | null): string {
       // empty
     }
   }
-  return startAt.toISOString().slice(0, 10);
+  return formatDay(startAt);
 }
 
 function formatInZone(startAt: Date, timeZone: string): string {

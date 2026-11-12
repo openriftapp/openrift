@@ -1,5 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { totalQuantity } from "@openrift/shared/deck-rules";
-import type { DeckZone } from "@openrift/shared/types/enums";
+import type { CardType, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 /** Riftbound opening hand size; the mulligan swaps up to {@link MULLIGAN_LIMIT} of these once. */
@@ -45,6 +46,12 @@ export function formatChancePct(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+interface CardNameFields {
+  cardName: string;
+  cardTypes: CardType[];
+  tags: string[];
+}
+
 export interface DrawOddsRow {
   cardId: string;
   cardName: string;
@@ -55,7 +62,7 @@ export interface DrawOddsRow {
 
 /** One row per distinct card in the main zone, sorted by copy count desc then name. */
 export function buildDrawOddsRows(
-  cards: readonly { cardId: string; cardName: string; quantity: number; zone: DeckZone }[],
+  cards: readonly (CardNameFields & { cardId: string; quantity: number; zone: DeckZone })[],
 ): DrawOddsRow[] {
   const mainCards = cards.filter((card) => card.zone === WellKnown.deckZone.MAIN);
   const deckSize = totalQuantity(mainCards);
@@ -68,7 +75,14 @@ export function buildDrawOddsRows(
     if (entry) {
       entry.copies += card.quantity;
     } else {
-      byCard.set(card.cardId, { cardName: card.cardName, copies: card.quantity });
+      byCard.set(card.cardId, {
+        cardName: legendDisplayName({
+          name: card.cardName,
+          types: card.cardTypes,
+          tags: card.tags,
+        }),
+        copies: card.quantity,
+      });
     }
   }
   return [...byCard.entries()]

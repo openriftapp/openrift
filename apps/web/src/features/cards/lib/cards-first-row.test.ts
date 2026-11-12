@@ -5,6 +5,8 @@ import type {
   CatalogResponsePrintingValue,
   CatalogSetResponse,
 } from "@openrift/shared/types/api/catalog";
+import type { InitResponse } from "@openrift/shared/types/api/init";
+import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { describe, expect, it } from "vitest";
 
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
@@ -81,6 +83,27 @@ function makeCatalog(
 
 const NO_FILTERS: FilterSearch = {};
 
+function enumRows(slugs: string[]) {
+  return slugs.map((slug, sortOrder) => ({ slug, label: slug, sortOrder }));
+}
+
+const NO_INIT = {
+  enums: {
+    finishes: [],
+    rarities: enumRows(["common", "uncommon", "rare", "epic"]),
+    domains: [],
+    cardTypes: enumRows(["legend", "unit", "spell", "gear", "battlefield", "rune"]),
+    superTypes: [],
+    artVariants: [],
+    cardSizes: [],
+    conditions: [],
+    graders: [],
+  },
+  keywords: {},
+} as unknown as Pick<InitResponse, "enums" | "keywords">;
+
+const NO_PRICES = { prices: {}, currencies: {} } as unknown as PricesResponse;
+
 describe("extractFirstRow", () => {
   it("iterates sets in catalog.sets order before sorting by shortCode within a set", () => {
     const cards = { "card-a": makeCard(), "card-b": makeCard() };
@@ -89,7 +112,11 @@ describe("extractFirstRow", () => {
       "p-ogn": makePrinting({ cardId: "card-b", shortCode: "OGN-005", setId: "set-ogn" }),
     };
     const sets = [makeSet("set-ogn", "OGN"), makeSet("set-arc", "ARC")];
-    const result = extractFirstRow(makeCatalog(cards, printings, sets), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings, sets), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-ogn", "p-arc"]);
   });
 
@@ -100,7 +127,11 @@ describe("extractFirstRow", () => {
       "p-main": makePrinting({ cardId: "card-b", shortCode: "OGN-001", setId: "set-main" }),
     };
     const sets = [makeSet("set-supp", "PROMO", "supplemental"), makeSet("set-main", "OGN", "main")];
-    const result = extractFirstRow(makeCatalog(cards, printings, sets), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings, sets), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-main", "p-supp"]);
   });
 
@@ -115,7 +146,11 @@ describe("extractFirstRow", () => {
       "p-a": makePrinting({ cardId: "card-a", shortCode: "OGN-001" }),
       "p-b": makePrinting({ cardId: "card-b", shortCode: "OGN-002" }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-a", "p-b", "p-c"]);
   });
 
@@ -125,7 +160,11 @@ describe("extractFirstRow", () => {
       "p-sc": makePrinting({ shortCode: "OGN-001", language: "SC", canonicalRank: 1 }),
       "p-en": makePrinting({ shortCode: "OGN-005", language: "EN", canonicalRank: 5 }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-en"]);
   });
 
@@ -135,7 +174,11 @@ describe("extractFirstRow", () => {
       "p-de-first": makePrinting({ shortCode: "OGN-001", language: "DE" }),
       "p-en-later": makePrinting({ shortCode: "OGN-002", language: "EN" }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      1,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-en-later"]);
   });
 
@@ -145,7 +188,11 @@ describe("extractFirstRow", () => {
       "p-2": makePrinting({ shortCode: "OGN-001", canonicalRank: 50 }),
       "p-1": makePrinting({ shortCode: "OGN-001", canonicalRank: 10 }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), { view: "printings" }, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      { view: "printings" },
+      10,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-1", "p-2"]);
   });
 
@@ -158,7 +205,11 @@ describe("extractFirstRow", () => {
       "p-bf": makePrinting({ cardId: "bf-card", shortCode: "OGN-100" }),
       "p-unit": makePrinting({ cardId: "unit-card", shortCode: "OGN-001" }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result.map((r) => r.printingId)).toEqual(["p-unit", "p-bf"]);
   });
 
@@ -169,7 +220,11 @@ describe("extractFirstRow", () => {
         images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae0bbbb" }],
       }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result).toHaveLength(1);
     expect(result[0]?.imageId).toBe("019d6c25-b081-74b3-a901-64da4ae0bbbb");
   });
@@ -185,7 +240,11 @@ describe("extractFirstRow", () => {
         shortCode: `OGN-${String(i).padStart(3, "0")}`,
       });
     }
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 12);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      12,
+    );
     expect(result).toHaveLength(12);
     expect(result.map((r) => r.printingId)).toEqual(
       Array.from({ length: 12 }, (_, i) => `p-${String(i).padStart(3, "0")}`),
@@ -193,23 +252,40 @@ describe("extractFirstRow", () => {
   });
 
   it("returns an empty array for an empty catalog", () => {
-    expect(extractFirstRow(makeCatalog({}, {}, []), NO_FILTERS, 12)).toEqual([]);
+    expect(
+      extractFirstRow(
+        { catalog: makeCatalog({}, {}, []), init: NO_INIT, prices: NO_PRICES },
+        NO_FILTERS,
+        12,
+      ),
+    ).toEqual([]);
   });
 
-  it("skips printings with no images at all", () => {
+  it("keeps printings with no images, as the hydrated grid does", () => {
     const cards = { "card-a": makeCard(), "card-b": makeCard() };
     const printings = {
       "p-noimg": makePrinting({ cardId: "card-a", shortCode: "OGN-001", images: [] }),
       "p-img": makePrinting({ cardId: "card-b", shortCode: "OGN-002" }),
     };
-    const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
-    expect(result.map((r) => r.printingId)).toEqual(["p-img"]);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
+    expect(result.map((r) => [r.printingId, r.imageId])).toEqual([
+      ["p-noimg", null],
+      ["p-img", "019d6c25-b081-74b3-a901-64da4ae0aaaa"],
+    ]);
   });
 
   it("returns the slim shape with name pulled from the card", () => {
     const cards = { "card-1": makeCard({ name: "Garen, the Might of Demacia" }) };
     const printings = { "p-1": makePrinting() };
-    const [card] = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
+    const [card] = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      1,
+    );
     expect(card).toEqual({
       printingId: "p-1",
       side: 1,
@@ -223,14 +299,22 @@ describe("extractFirstRow", () => {
   it("flags battlefields as rotated so the SSR preview can rotate the landscape art", () => {
     const cards = { "bf-card": makeCard({ types: ["battlefield"] }) };
     const printings = { "p-bf": makePrinting({ cardId: "bf-card", shortCode: "OGN-100" }) };
-    const [card] = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
+    const [card] = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      1,
+    );
     expect(card?.rotated).toBe(true);
   });
 
   it("leaves portrait card types unrotated", () => {
     const cards = { "unit-card": makeCard({ types: ["unit"] }) };
     const printings = { "p-unit": makePrinting({ cardId: "unit-card" }) };
-    const [card] = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
+    const [card] = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      1,
+    );
     expect(card?.rotated).toBe(false);
   });
 
@@ -241,7 +325,11 @@ describe("extractFirstRow", () => {
       "p-ogn": makePrinting({ cardId: "card-b", shortCode: "OGN-001", setId: "set-ogn" }),
     };
     const sets = [makeSet("set-ogn", "OGN"), makeSet("set-arc", "ARC")];
-    const result = extractFirstRow(makeCatalog(cards, printings, sets), NO_FILTERS, 10);
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings, sets), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+    );
     expect(result.map((r) => r.setSlug)).toEqual(["OGN", "ARC"]);
   });
 
@@ -257,7 +345,11 @@ describe("extractFirstRow", () => {
           canonicalRank: 3,
         }),
       };
-      const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        NO_FILTERS,
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-normal"]);
     });
 
@@ -268,7 +360,11 @@ describe("extractFirstRow", () => {
         "p-arc": makePrinting({ shortCode: "ARC-001", setId: "set-arc" }),
       };
       const sets = [makeSet("set-ogn", "OGN"), makeSet("set-arc", "ARC")];
-      const result = extractFirstRow(makeCatalog(cards, printings, sets), NO_FILTERS, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings, sets), init: NO_INIT, prices: NO_PRICES },
+        NO_FILTERS,
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-ogn", "p-arc"]);
     });
 
@@ -279,7 +375,11 @@ describe("extractFirstRow", () => {
         "p-arc": makePrinting({ shortCode: "ARC-001", setId: "set-arc", canonicalRank: 5 }),
       };
       const sets = [makeSet("set-ogn", "OGN"), makeSet("set-arc", "ARC")];
-      const result = extractFirstRow(makeCatalog(cards, printings, sets), { groupBy: "none" }, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings, sets), init: NO_INIT, prices: NO_PRICES },
+        { groupBy: "none" },
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-ogn"]);
     });
   });
@@ -291,7 +391,11 @@ describe("extractFirstRow", () => {
         "p-foil": makePrinting({ shortCode: "OGN-001★", finish: "foil", canonicalRank: 5 }),
         "p-normal": makePrinting({ shortCode: "OGN-001", canonicalRank: 1 }),
       };
-      const result = extractFirstRow(makeCatalog(cards, printings), { view: "printings" }, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        { view: "printings" },
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-normal", "p-foil"]);
     });
   });
@@ -306,8 +410,26 @@ describe("extractFirstRow", () => {
         "p-fury": makePrinting({ cardId: "card-fury", shortCode: "OGN-001" }),
         "p-other": makePrinting({ cardId: "card-other", shortCode: "OGN-002" }),
       };
-      const result = extractFirstRow(makeCatalog(cards, printings), { q: "fury" }, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        { q: "fury" },
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-fury"]);
+    });
+
+    it("applies the default display languages when the URL names none", () => {
+      const cards = { "card-a": makeCard(), "card-b": makeCard() };
+      const printings = {
+        "p-de": makePrinting({ cardId: "card-a", shortCode: "OGN-001", language: "DE" }),
+        "p-en": makePrinting({ cardId: "card-b", shortCode: "OGN-002", language: "EN" }),
+      };
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        NO_FILTERS,
+        10,
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-en"]);
     });
 
     it("applies the URL languages filter", () => {
@@ -316,8 +438,33 @@ describe("extractFirstRow", () => {
         "p-de": makePrinting({ cardId: "card-a", shortCode: "OGN-001", language: "DE" }),
         "p-en": makePrinting({ cardId: "card-b", shortCode: "OGN-002", language: "EN" }),
       };
-      const result = extractFirstRow(makeCatalog(cards, printings), { languages: ["EN"] }, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        { languages: ["EN"] },
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-en"]);
+    });
+
+    it("shows the card a printed-name query finds in the URL's languages", () => {
+      const cards = { "card-annie": makeCard({ name: "Annie, Fiery" }), "card-b": makeCard() };
+      const printings = {
+        "p-en": makePrinting({ cardId: "card-annie", shortCode: "OGS-001", language: "EN" }),
+        "p-fr": makePrinting({
+          cardId: "card-annie",
+          shortCode: "OGS-001",
+          language: "FR",
+          printedName: "Annie, Enflammée",
+          images: [],
+        }),
+        "p-other": makePrinting({ cardId: "card-b", shortCode: "OGS-002", language: "FR" }),
+      };
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        { q: "Annie, Enflammée", languages: ["FR"] },
+        10,
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-fr"]);
     });
 
     it("applies the URL sets filter", () => {
@@ -327,8 +474,83 @@ describe("extractFirstRow", () => {
         "p-arc": makePrinting({ cardId: "card-b", shortCode: "ARC-001", setId: "set-arc" }),
       };
       const sets = [makeSet("set-ogn", "OGN"), makeSet("set-arc", "ARC")];
-      const result = extractFirstRow(makeCatalog(cards, printings, sets), { sets: ["ARC"] }, 10);
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings, sets), init: NO_INIT, prices: NO_PRICES },
+        { sets: ["ARC"] },
+        10,
+      );
       expect(result.map((r) => r.printingId)).toEqual(["p-arc"]);
+    });
+  });
+  describe("the live grid's grouping and search", () => {
+    const sets = [makeSet("set-ogn", "OGN"), makeSet("set-arc", "ARC")];
+    const sources = (
+      cards: Record<string, CatalogResponseCardValue>,
+      printings: Record<string, CatalogResponsePrintingValue>,
+      init = NO_INIT,
+    ) => ({ catalog: makeCatalog(cards, printings, sets), init, prices: NO_PRICES });
+
+    it("reverses the group order when groupDir is desc", () => {
+      const cards = { "card-a": makeCard(), "card-b": makeCard() };
+      const printings = {
+        "p-ogn": makePrinting({ cardId: "card-a", shortCode: "OGN-001", setId: "set-ogn" }),
+        "p-arc": makePrinting({ cardId: "card-b", shortCode: "ARC-001", setId: "set-arc" }),
+      };
+      const result = extractFirstRow(sources(cards, printings), { groupDir: "desc" }, 10);
+      expect(result.map((r) => r.printingId)).toEqual(["p-arc", "p-ogn"]);
+    });
+
+    it("groups by rarity in rarity order, not only by set", () => {
+      const cards = { "card-a": makeCard(), "card-b": makeCard() };
+      const printings = {
+        "p-rare": makePrinting({ cardId: "card-a", shortCode: "OGN-001", rarity: "rare" }),
+        "p-common": makePrinting({ cardId: "card-b", shortCode: "OGN-002", rarity: "common" }),
+      };
+      const result = extractFirstRow(sources(cards, printings), { groupBy: "rarity" }, 10);
+      expect(result.map((r) => r.printingId)).toEqual(["p-common", "p-rare"]);
+    });
+
+    it("finds a keyword typed in another language", () => {
+      const cards = {
+        "card-a": makeCard({ keywords: ["Accelerate"] }),
+        "card-b": makeCard(),
+      };
+      const printings = {
+        "p-a": makePrinting({ cardId: "card-a", shortCode: "OGN-001" }),
+        "p-b": makePrinting({ cardId: "card-b", shortCode: "OGN-002" }),
+      };
+      const init = {
+        ...NO_INIT,
+        keywords: {
+          Accelerate: {
+            color: "#000000",
+            darkText: false,
+            costKeyword: false,
+            cardModifier: false,
+            translations: { de: "Beschleunigen" },
+          },
+        },
+      } as Pick<InitResponse, "enums" | "keywords">;
+      const result = extractFirstRow(
+        sources(cards, printings, init),
+        { q: "kw:beschleunigen" },
+        10,
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-a"]);
+    });
+
+    it("sorts by rarity instead of falling back to the code", () => {
+      const cards = { "card-a": makeCard(), "card-b": makeCard() };
+      const printings = {
+        "p-epic": makePrinting({ cardId: "card-a", shortCode: "OGN-001", rarity: "epic" }),
+        "p-common": makePrinting({ cardId: "card-b", shortCode: "OGN-002", rarity: "common" }),
+      };
+      const result = extractFirstRow(
+        sources(cards, printings),
+        { sort: "rarity", sortDir: "desc", groupBy: "none" },
+        10,
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-epic", "p-common"]);
     });
   });
 });

@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
@@ -34,7 +35,7 @@ function PreviewArt({ printing }: { printing: Printing }) {
         sizes={SIZES}
         width={400}
         height={558}
-        alt={printing.card.name}
+        alt={legendDisplayName(printing.card)}
         className="aspect-card w-full rounded-lg object-cover"
       />
     );
@@ -51,7 +52,7 @@ function PreviewArt({ printing }: { printing: Printing }) {
           sizes={SIZES}
           width={880}
           height={630}
-          alt={printing.card.name}
+          alt={legendDisplayName(printing.card)}
           className="size-full object-cover"
         />
       </div>
@@ -88,7 +89,7 @@ export function ProductContentsPreview({
                   className="mt-2.5 space-y-0.5 text-xs"
                   style={{ height: LABEL_HEIGHT, borderRadius: CARD_BORDER_RADIUS }}
                 >
-                  <div className="truncate font-medium">{printing.card.name}</div>
+                  <div className="truncate font-medium">{legendDisplayName(printing.card)}</div>
                   <div className="text-muted-foreground flex min-w-0 items-center gap-1">
                     <CatalogPrintingVariantLine
                       printing={printing}

@@ -20,6 +20,7 @@ export interface LoanDtoRow {
   lenderUserId: string;
   borrowerUserId: string | null;
   borrowerName: string | null;
+  borrowerAccountClosed: boolean;
   printingId: string;
   cardId: string;
   quantity: number;
@@ -62,6 +63,7 @@ function loanDtoBaseQuery(db: Kysely<Database>) {
       "l.lenderUserId",
       "l.borrowerUserId",
       "l.borrowerName",
+      "l.borrowerAccountClosed",
       "l.printingId",
       "pf.cardId",
       "l.quantity",
@@ -470,6 +472,7 @@ export function loansRepo(db: Kysely<Database>) {
         .select((eb) => eb.fn.max("createdAt").as("lastUsed"))
         .where("lenderUserId", "=", lenderUserId)
         .where("borrowerName", "is not", null)
+        .where("borrowerAccountClosed", "=", false)
         .groupBy("borrowerName")
         .orderBy("lastUsed", "desc")
         .limit(limit)

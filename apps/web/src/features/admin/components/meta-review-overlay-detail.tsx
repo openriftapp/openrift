@@ -1,7 +1,7 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
-import type { DeckZone } from "@openrift/shared/types/enums";
 import { ArchiveXIcon, CheckIcon, LinkIcon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,8 +25,11 @@ import {
   useMetaPlayerMatchSuggestions,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { useMetaSubmissionForPlayerOverlay } from "@/features/admin/hooks/use-admin-meta-submissions";
-import { reviewFieldLabel, reviewFieldValue } from "@/features/meta/lib/meta-review-queue";
-import { sourceDismissTarget, sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
+import { reviewFieldLabel, reviewFieldValue } from "@/features/admin/lib/meta-review-queue";
+import {
+  sourceDismissTarget,
+  sourceProviderDisplay,
+} from "@/features/admin/lib/meta-source-review";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 
@@ -111,7 +114,7 @@ function ZoneLines({ cards }: { cards: MetaOverlayQueueRow["cards"] }) {
         return (
           <section key={zone} className="flex flex-col gap-2">
             <SectionHeading as="h3" size="sm">
-              {zoneLabels[zone as DeckZone] ?? zone} · {copies}
+              {enumLabel(zoneLabels, zone)} · {copies}
             </SectionHeading>
             <ul className="space-y-0.5 text-sm">
               {lines.map((card) => (

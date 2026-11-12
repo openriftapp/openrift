@@ -1,6 +1,8 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import type { LookupRow } from "@openrift/shared/card-lookup";
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardSearchIndex } from "@openrift/shared/card-search";
-import { buildCardIndex, findCard, searchCards } from "@openrift/shared/card-search";
+import { findCard, searchCards } from "@openrift/shared/card-search";
 import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
 import type { PrintingMarketplaceLinks } from "@openrift/shared/types/api/pricing";
 import { isDefinedError, safe } from "@orpc/client";
@@ -164,9 +166,10 @@ interface BotContext {
 let glyphEmojis: GlyphEmojis = NO_GLYPH_EMOJIS;
 
 /** Search index rebuilt lazily per snapshot, so refreshes stay cheap until a lookup happens. */
-let cachedIndex: { snapshot: unknown; index: CardSearchIndex<CatalogCard> } | null = null;
+let cachedIndex: { snapshot: unknown; index: CardSearchIndex<LookupRow<CatalogCard>> } | null =
+  null;
 
-function indexFor(cache: CatalogCache): CardSearchIndex<CatalogCard> | null {
+function indexFor(cache: CatalogCache): CardSearchIndex<LookupRow<CatalogCard>> | null {
   const snapshot = cache.snapshot;
   if (!snapshot) {
     return null;
@@ -174,12 +177,7 @@ function indexFor(cache: CatalogCache): CardSearchIndex<CatalogCard> | null {
   if (cachedIndex?.snapshot !== snapshot) {
     cachedIndex = {
       snapshot,
-      index: buildCardIndex(
-        // `[[Azir, Emperor of the Sands]]` is how players write a Legend in
-        // chat, so index the colloquial form beside the stored name.
-        snapshot.cards.map((card) => ({ ...card, altNames: cardSearchAltNames(card) })),
-        snapshot.printingsByCardId,
-      ),
+      index: buildCardLookupIndex(snapshot.cards, [...snapshot.printingsByCardId.values()].flat()),
     };
   }
   return cachedIndex.index;

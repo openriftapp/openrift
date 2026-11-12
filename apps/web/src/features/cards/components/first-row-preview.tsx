@@ -142,6 +142,21 @@ export function FirstRowPreview() {
             </OrnamentRule>
             <div className={cn("grid", SSR_RESPONSIVE_GRID_COLS, SSR_RESPONSIVE_GRID_GAP)}>
               {firstRow.map((card, i) => {
+                if (card.imageId === null) {
+                  return (
+                    <div
+                      key={sideKey(card)}
+                      className={cn("rounded-lg", BUTTON_PAD_CLASS, visibilityForIndex(i))}
+                    >
+                      <div
+                        role="img"
+                        aria-label={card.cardName}
+                        className="aspect-card bg-muted w-full rounded-lg"
+                      />
+                      <div aria-hidden="true" style={{ height: LABEL_HEIGHT }} />
+                    </div>
+                  );
+                }
                 const srcSet = `${imageUrl(card.imageId, "120w")} 120w, ${imageUrl(card.imageId, "240w")} 240w, ${imageUrl(card.imageId, "400w")} 400w, ${imageUrl(card.imageId, "full")} 800w`;
                 // Approximate resolution hint only; exact per-breakpoint values come from computeGridMetrics.
                 const sizes =

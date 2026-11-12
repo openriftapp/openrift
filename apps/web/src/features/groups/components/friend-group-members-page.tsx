@@ -1,4 +1,4 @@
-import { formatMonth } from "@openrift/shared/format-date";
+import { formatMonth, DAY_MS } from "@openrift/shared/format-date";
 import { canManageMember, isGroupAdminRole } from "@openrift/shared/friend-group-roles";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
@@ -45,9 +45,10 @@ import {
 } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { roleLabel } from "@/features/groups/lib/group-roles";
-import { LIST_INTENT_ICON } from "@/features/groups/lib/list-intent-meta";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { LIST_INTENT_ICON } from "@/lib/list-intent";
+import { memberName } from "@/lib/member-name";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -261,7 +262,7 @@ const ROLE_AVATAR_RING = {
   member: "",
 } as const;
 
-const NEW_MEMBER_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const NEW_MEMBER_WINDOW_MS = 30 * DAY_MS;
 
 function isNewMember(joinedAt: string): boolean {
   return Date.now() - Date.parse(joinedAt) < NEW_MEMBER_WINDOW_MS;
@@ -355,9 +356,7 @@ function MemberRow({
         />
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className="font-medium break-words">
-              {member.userName ?? m.groups_unknown_user()}
-            </span>
+            <span className="font-medium break-words">{memberName(member.userName)}</span>
             {member.role === "member" ? null : (
               <Badge variant={ROLE_BADGE_VARIANT[member.role]}>{roleLabel(member.role)}</Badge>
             )}

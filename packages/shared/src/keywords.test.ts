@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractBracketedTerms, extractKeywords } from "./keywords.js";
+import { extractBracketedTerms, extractKeywords, keywordReverseMap } from "./keywords.js";
 
 describe("extractBracketedTerms", () => {
   it("returns empty array for empty string", () => {
@@ -253,5 +253,16 @@ describe("extractKeywords", () => {
 
   it("skips a shape marker attached to a keyword", () => {
     expect(extractKeywords("[>>][Reaction]")).toEqual(["Reaction"]);
+  });
+});
+
+describe("keywordReverseMap", () => {
+  it("maps every folded translation to its canonical keyword", () => {
+    const map = keywordReverseMap([
+      { keywordName: "Accelerate", label: "Beschleunigen" },
+      { keywordName: "Accelerate", label: "Accélérer" },
+    ]);
+    expect(map.get("beschleunigen")).toBe("Accelerate");
+    expect(map.get("accelerer")).toBe("Accelerate");
   });
 });

@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type { DeckCheckEntrySummaryResponse } from "@openrift/shared/types/api/deck-check";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -46,6 +47,7 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { DeckCheckListSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
+import { DeckCheckStateBadge } from "@/features/tournaments/components/deck-check-state-badge";
 import {
   useCreateTournamentDeckCheckEntry,
   useDeleteTournamentDeckCheckEntry,
@@ -261,7 +263,11 @@ function EntryRow({
             {participantStatusLabels()[entry.participantStatus]}
           </Badge>
         ) : (
-          <EntryStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
+          <DeckCheckStateBadge
+            state={entry.state}
+            reviewOutcome={entry.reviewOutcome}
+            audience="staff"
+          />
         )}
       </Link>
       {canManage ? <EntryRowMenu tournamentId={tournamentId} entry={entry} /> : null}
@@ -343,36 +349,6 @@ function EntryRowMenu({
         onConfirm={() => void handleDelete()}
       />
     </>
-  );
-}
-
-export function EntryStateBadge({
-  state,
-  reviewOutcome,
-}: {
-  state: DeckCheckEntrySummaryResponse["state"];
-  reviewOutcome: DeckCheckEntrySummaryResponse["reviewOutcome"];
-}) {
-  if (state === "editable") {
-    return <Badge variant="outline">{m.tournaments_deck_check_state_editing()}</Badge>;
-  }
-  if (state === "approved") {
-    return <Badge>{m.tournaments_deck_check_state_approved()}</Badge>;
-  }
-  if (state === "checked") {
-    return reviewOutcome === "issue" ? (
-      <Badge variant="destructive">{m.tournaments_deck_check_state_checked_issue()}</Badge>
-    ) : (
-      <Badge>{m.tournaments_deck_check_state_checked()}</Badge>
-    );
-  }
-  if (state === "withdrawn") {
-    return <Badge variant="secondary">{m.tournaments_deck_check_state_withdrawn()}</Badge>;
-  }
-  return reviewOutcome === "issue" ? (
-    <Badge variant="destructive">{m.tournaments_deck_check_state_submitted_issue()}</Badge>
-  ) : (
-    <Badge variant="secondary">{m.tournaments_deck_check_state_submitted()}</Badge>
   );
 }
 
@@ -497,10 +473,7 @@ function AddDeckDialog({
                 <p className="text-muted-foreground text-sm">
                   {m.common_copies({ count: parsed.totalCopies })} ·{" "}
                   {perZone
-                    .map(
-                      ({ section, copies }) =>
-                        `${zoneLabels[section as never] ?? section} ${copies}`,
-                    )
+                    .map(({ section, copies }) => `${enumLabel(zoneLabels, section)} ${copies}`)
                     .join(" · ")}
                 </p>
               ) : null}

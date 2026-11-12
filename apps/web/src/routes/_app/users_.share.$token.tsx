@@ -1,3 +1,4 @@
+import { userBundleShareDescription, userBundleShareTitle } from "@openrift/shared/share-titles";
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
@@ -29,8 +30,8 @@ export const Route = createFileRoute("/_app/users_/share/$token")({
     const wishCount = data.lists.filter((list) => list.intent === "wish").length;
     const tradeCount = data.lists.filter((list) => list.intent === "trade").length;
     const totalEntries = data.lists.reduce((sum, list) => sum + list.entryCount, 0);
-    const title = `${data.owner.displayName}'s wish & tradelists`;
-    const description = `${wishCount} wishlist${wishCount === 1 ? "" : "s"}, ${tradeCount} tradelist${tradeCount === 1 ? "" : "s"}, ${totalEntries} cards in total.`;
+    const title = userBundleShareTitle(data.owner.displayName);
+    const description = userBundleShareDescription(wishCount, tradeCount, totalEntries);
     const latestUpdate = data.lists.reduce(
       (latest, list) => (list.updatedAt > latest ? list.updatedAt : latest),
       "",

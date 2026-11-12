@@ -10,9 +10,15 @@ vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
 vi.mock("@/features/decks/hooks/use-decks", () => ({
   useDeckDetail: () => ({ data: { deck: { format: "constructed", formatConfig: null } } }),
 }));
-vi.mock("@/hooks/use-enums", () => ({
-  useZoneOrder: () => ({ zoneOrder: ["legend", "champion", "main", "battlefield", "runes"] }),
-}));
+vi.mock("@/hooks/use-enums", async () => {
+  const { TEST_ZONE_LABELS } = await import("@/test/zone-order-stub");
+  return {
+    useZoneOrder: () => ({
+      zoneOrder: ["legend", "champion", "main", "battlefield", "runes"],
+      zoneLabels: TEST_ZONE_LABELS,
+    }),
+  };
+});
 
 const { WorkbenchZoneBar } = await import("./workbench-zone-bar");
 

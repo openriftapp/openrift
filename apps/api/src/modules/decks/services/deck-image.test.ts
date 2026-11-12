@@ -1,3 +1,4 @@
+import { labelMap } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import { defaultIo } from "../../../io.js";
@@ -42,6 +43,12 @@ const baseInput = {
   deckName: "Best of Diana",
   ownerName: "drawphasetcg",
   formatLabel: "Constructed",
+  zoneLabels: labelMap([
+    { slug: "battlefield", label: "Battlefields" },
+    { slug: "runes", label: "Runes" },
+    { slug: "sideboard", label: "Sideboard" },
+    { slug: "legend-options", label: "Extra Legends" },
+  ]),
   siteHost: "openrift.app",
   shareUrl: "https://openrift.app/decks/share/sampletoken",
 };

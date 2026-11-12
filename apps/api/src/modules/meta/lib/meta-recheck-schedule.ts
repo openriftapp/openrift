@@ -1,10 +1,9 @@
+import { DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
-
-import { DAY_MS } from "./meta-durations.js";
 
 const RECHECK_LADDER_DAYS = [1, 3, 7, 30, 90] as const;
 
-const EVENT_DAY_POLL_MS = 60 * 60 * 1000;
+const EVENT_DAY_POLL_MS = HOUR_MS;
 
 const WATCHED_EVENT_DAY_POLL_MS = 10 * 60 * 1000;
 

@@ -1,5 +1,6 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatDay, formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
@@ -94,7 +95,7 @@ export function PrintingDeskPage() {
   const { labels } = useEnumOrders();
 
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
-  const markerLabels = new Map(markerData.markers.map((marker) => [marker.slug, marker.label]));
+  const markerLabels = labelMap(markerData.markers);
   const rows = sortDeskPrintings(
     filterDeskPrintings(data?.printings ?? [], { query, status }),
     sort,
@@ -265,7 +266,7 @@ function DeskPrintingListRow({
 }: {
   row: DeskPrintingRow;
   channelPath: string;
-  markerLabels: ReadonlyMap<string, string>;
+  markerLabels: LabelMap;
   finishLabel: string;
   selected: boolean;
   onSelectedChange: (checked: boolean) => void;
@@ -295,7 +296,7 @@ function DeskPrintingListRow({
         <div className="mt-0.5 flex flex-wrap items-center gap-1">
           {row.markerSlugs.map((slug) => (
             <Badge key={slug} variant="subtle">
-              {markerLabels.get(slug) ?? slug}
+              {enumLabel(markerLabels, slug)}
             </Badge>
           ))}
         </div>

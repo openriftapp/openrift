@@ -429,7 +429,9 @@ export function DeckHero({
                             }
                           >
                             {fmtPrice(ownershipData.deckValueCents)}
-                            <span className="text-muted-foreground">value</span>
+                            <span className="text-muted-foreground">
+                              {m.decks_hero_value_suffix()}
+                            </span>
                           </PopoverTrigger>
                           <PopoverContent
                             side="bottom"
@@ -483,7 +485,9 @@ export function DeckHero({
                       ) : (
                         <span className={cn(CHIP_CLASS, "tabular-nums")}>
                           {fmtPrice(ownershipData.deckValueCents)}
-                          <span className="text-muted-foreground">value</span>
+                          <span className="text-muted-foreground">
+                            {m.decks_hero_value_suffix()}
+                          </span>
                         </span>
                       ))}
                   </>

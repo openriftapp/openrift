@@ -1,28 +1,21 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
-import { buildCodeIndex, lookupCode } from "@openrift/shared/card-search";
+import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
+import { buildCodeIndex } from "@openrift/shared/card-search";
 import type { DeckImportEntry } from "@openrift/shared/deck-code";
+import type { ResolvedDeckCodeRow } from "@openrift/shared/deck-code-resolve";
+import { resolveDeckCodeEntries } from "@openrift/shared/deck-code-resolve";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckImageBody } from "@openrift/shared/share-image-params";
 import { deckImportPath } from "@openrift/shared/site-paths";
-import { truncateWithEllipsis } from "@openrift/shared/strings";
-import type { DeckZone } from "@openrift/shared/types/enums";
+import { truncateWithEllipsis, pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
-import { inferZone } from "@openrift/shared/zone-inference";
 import type { APIEmbed } from "discord.js";
 
 import { EMBED_COLOR } from "./card-embed.js";
 import type { CatalogCard, CatalogPrinting, CatalogSnapshot } from "./catalog-cache.js";
 import { log } from "./log.js";
 
-interface ResolvedDeckRow {
-  entry: DeckImportEntry;
-  card: CatalogCard;
-  printing: CatalogPrinting;
-  zone: DeckZone;
-}
-
 export interface ResolvedDeck {
-  rows: ResolvedDeckRow[];
+  rows: ResolvedDeckCodeRow<CatalogCard, CatalogPrinting>[];
   unknownCodes: string[];
   totalCards: number;
 }
@@ -40,25 +33,7 @@ export function resolveDeckEntries(
       }),
     ),
   );
-
-  const rows: ResolvedDeckRow[] = [];
-  const unknownCodes: string[] = [];
-  for (const entry of entries) {
-    const match = entry.shortCode ? lookupCode(codeIndex, entry.shortCode) : undefined;
-    if (!match) {
-      if (entry.shortCode) {
-        unknownCodes.push(entry.shortCode);
-      }
-      continue;
-    }
-    rows.push({
-      entry,
-      card: match.card,
-      printing: match.printing,
-      zone:
-        entry.explicitZone ?? inferZone(match.card.types, match.card.superTypes, entry.sourceSlot),
-    });
-  }
+  const { rows, unknownCodes } = resolveDeckCodeEntries(entries, codeIndex);
 
   return {
     rows,
@@ -74,7 +49,7 @@ export function deckTitle(deck: ResolvedDeck): string {
   }
   const champion = deck.rows.find((row) => row.zone === WellKnown.deckZone.CHAMPION);
   if (champion) {
-    return champion.card.name;
+    return legendDisplayName(champion.card);
   }
   return "Riftbound Deck";
 }
@@ -102,13 +77,13 @@ export function buildDeckEmbed(input: {
       return [];
     }
     const lines = rows
-      .toSorted((a, b) => a.card.name.localeCompare(b.card.name))
-      .map((row) => `${row.entry.quantity}× ${row.card.name}`);
+      .toSorted((a, b) => compareCardDisplayName(a.card, b.card))
+      .map((row) => `${row.entry.quantity}× ${legendDisplayName(row.card)}`);
     return [`**${enumLabel(snapshot.labels.deckZones, zone)}**\n${lines.join("\n")}`];
   });
   if (deck.unknownCodes.length > 0) {
     sections.push(
-      `*${deck.unknownCodes.length} ${deck.unknownCodes.length === 1 ? "card" : "cards"} not in the catalog yet: ${deck.unknownCodes.join(", ")}*`,
+      `*${deck.unknownCodes.length} ${pluralize(deck.unknownCodes.length, "card", "cards")} not in the catalog yet: ${deck.unknownCodes.join(", ")}*`,
     );
   }
 

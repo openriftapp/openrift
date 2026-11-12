@@ -1,5 +1,6 @@
 import { tournamentArchiveListsContract } from "@openrift/shared/contracts/tournament-archive-lists";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type {
   ArchiveListSendResponse,
@@ -30,7 +31,7 @@ const os = implement(tournamentArchiveListsContract).$context<ApiContext>().use(
 
 const SEATED_STATUSES = new Set(["active", "dropped"]);
 
-const SUGGESTION_WINDOW_MS = 36 * 60 * 60 * 1000;
+const SUGGESTION_WINDOW_MS = 36 * HOUR_MS;
 
 function isCompleted(tournament: Tournament, now: Date): boolean {
   return (

@@ -533,7 +533,7 @@ export function CreationPanel({
                 key={index}
                 className="flex flex-col gap-2 border-t pt-3 first:border-t-0 first:pt-0"
               >
-                <p className="font-medium">{index === 0 ? "Face" : "Second face"}</p>
+                <p className="font-medium">{index === 0 ? "Face" : "Face 2"}</p>
                 <FaceValue face={face} summary={faceSummary} actions={faceActions(face, index)} />
                 {faceEditor(face, index)}
               </div>
@@ -546,7 +546,7 @@ export function CreationPanel({
             {draft.faces.map((face, index) => (
               <div key={index} className="flex flex-col gap-2">
                 {draft.faces.length > 1 && (
-                  <p className="font-medium">{index === 0 ? "Face" : "Second face"}</p>
+                  <p className="font-medium">{index === 0 ? "Face" : "Face 2"}</p>
                 )}
                 <CreationImages
                   images={face.images}
@@ -603,7 +603,7 @@ export function CreationPanel({
           return (
             <FieldRow
               key={index}
-              label={index === 0 ? "Face" : "Second face"}
+              label={index === 0 ? "Face" : "Face 2"}
               value={
                 <FaceValue face={face} summary={faceSummary} actions={faceActions(face, index)} />
               }
@@ -635,7 +635,7 @@ export function CreationPanel({
                 {draft.faces.map((face, index) => (
                   <div key={index} className="flex flex-col gap-2">
                     {draft.faces.length > 1 && (
-                      <p className="font-medium">{index === 0 ? "Face" : "Second face"}</p>
+                      <p className="font-medium">{index === 0 ? "Face" : "Face 2"}</p>
                     )}
                     <CreationImages
                       images={face.images}

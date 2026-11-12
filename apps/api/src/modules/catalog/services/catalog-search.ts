@@ -1,6 +1,7 @@
-import { cardSearchAltNames } from "@openrift/shared/card-name";
+import type { LookupCardInput, LookupRow } from "@openrift/shared/card-lookup";
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import type { CardSearchIndex } from "@openrift/shared/card-search";
-import { buildCardIndex, resolveCard } from "@openrift/shared/card-search";
+import { resolveCard } from "@openrift/shared/card-search";
 import type { SearchResponse } from "@openrift/shared/contracts/search";
 import { SEARCH_PAGE_DEFAULT } from "@openrift/shared/contracts/search";
 import { sortCards } from "@openrift/shared/filters-sort";
@@ -316,7 +317,7 @@ export function randomCard(
 }
 
 export interface NamedCardIndex {
-  fuzzy: CardSearchIndex<{ id: string; slug: string; name: string; altNames: string[] }>;
+  fuzzy: CardSearchIndex<LookupRow<LookupCardInput>>;
   byFoldedName: Map<string, string>;
 }
 
@@ -324,25 +325,29 @@ export function buildNamedCardIndex(
   catalog: CatalogResponse,
   printings: Printing[],
 ): NamedCardIndex {
-  const cards = Object.entries(catalog.cards).map(([id, card]) => ({
-    id,
-    slug: card.slug,
-    name: card.name,
-    altNames: cardSearchAltNames(card),
-  }));
+  const fuzzy = buildCardLookupIndex(
+    Object.entries(catalog.cards).map(([id, card]) => ({
+      id,
+      slug: card.slug,
+      name: card.name,
+      types: card.types,
+      tags: card.tags,
+    })),
+    printings,
+  );
   const byFoldedName = new Map<string, string>();
-  for (const card of cards) {
-    for (const name of [card.name, ...card.altNames]) {
+  for (const { card } of fuzzy.entries) {
+    for (const name of card.altNames) {
       byFoldedName.set(foldForSearch(name), card.id);
     }
   }
-  return {
-    fuzzy: buildCardIndex(
-      cards,
-      Map.groupBy(printings, (printing) => printing.cardId),
-    ),
-    byFoldedName,
-  };
+  // A card's own name wins over another card's printed spelling.
+  for (const { card } of fuzzy.entries) {
+    for (const name of [card.name, card.displayName]) {
+      byFoldedName.set(foldForSearch(name), card.id);
+    }
+  }
+  return { fuzzy, byFoldedName };
 }
 
 type NamedCardResult =

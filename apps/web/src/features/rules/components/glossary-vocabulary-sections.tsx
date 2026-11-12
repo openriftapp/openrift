@@ -1,3 +1,5 @@
+import { matchesTextQuery } from "@openrift/shared/search-fold";
+
 import { CardIcon } from "@/components/card-icon";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +14,6 @@ import {
   glossarySymbols,
   supertypeEntries,
 } from "@/features/rules/lib/glossary-content";
-import { matches } from "@/features/rules/lib/glossary-search";
 import { m } from "@/paraglide/messages.js";
 
 import {
@@ -29,7 +30,7 @@ export function DomainsSection({
   domains: { slug: string; label: string; color?: string | null }[];
   query: string;
 }) {
-  const visible = domains.filter((domain) => matches(query, domain.label, domain.slug));
+  const visible = domains.filter((domain) => matchesTextQuery(query, [domain.label, domain.slug]));
   if (visible.length === 0) {
     return null;
   }
@@ -80,9 +81,11 @@ export function CardTypesSection({
   types: { slug: string; label: string }[];
   query: string;
 }) {
-  const visible = types.filter((cardType) => matches(query, cardType.label, cardType.slug));
+  const visible = types.filter((cardType) =>
+    matchesTextQuery(query, [cardType.label, cardType.slug]),
+  );
   const visibleSupertypes = supertypeEntries().filter((supertype) =>
-    matches(query, supertype.label, supertype.slug, supertype.description),
+    matchesTextQuery(query, [supertype.label, supertype.slug, supertype.description]),
   );
   if (visible.length === 0 && visibleSupertypes.length === 0) {
     return null;
@@ -178,7 +181,7 @@ function KeywordPill({
 
 export function KeywordsSection({ keywords, query }: { keywords: KeywordRow[]; query: string }) {
   const visible = keywords.filter((kw) =>
-    matches(query, kw.name, kw.info?.summary, kw.info?.ruleNumber),
+    matchesTextQuery(query, [kw.name, kw.info?.summary, kw.info?.ruleNumber]),
   );
   if (visible.length === 0) {
     return null;
@@ -208,7 +211,7 @@ export function KeywordsSection({ keywords, query }: { keywords: KeywordRow[]; q
 
 export function SymbolsSection({ query }: { query: string }) {
   const visible = glossarySymbols().filter((symbol) =>
-    matches(query, symbol.label, symbol.summary),
+    matchesTextQuery(query, [symbol.label, symbol.summary]),
   );
   if (visible.length === 0) {
     return null;

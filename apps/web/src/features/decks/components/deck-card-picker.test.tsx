@@ -49,6 +49,29 @@ vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: { domains: {}, cardTypes: CARD_TYPE_LABELS } }),
 }));
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({
+    cardsById: Object.fromEntries(
+      Object.entries(PRINTINGS).map(([cardId, printing]) => [
+        cardId,
+        { ...printing.card, tags: [] },
+      ]),
+    ),
+    printingsByCardId: new Map([
+      [
+        "card-vi",
+        [
+          {
+            cardId: "card-vi",
+            shortCode: "OGN-101",
+            publicCode: "OGN-101/298",
+            printedName: "Vi la Cogneuse",
+          },
+        ],
+      ],
+    ]),
+  }),
+}));
 vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({
     getPreferredPrinting: (cardId: string) => PRINTINGS[cardId],
@@ -136,6 +159,15 @@ describe("CardPicker rows", () => {
     renderPicker();
     await userEvent.type(screen.getByLabelText("Search"), "bolt");
     expect(rowTexts("label")).toEqual(["Piltover Bolt"]);
+  });
+
+  it("finds a candidate by a printing code and a printed name from the catalog", async () => {
+    renderPicker();
+    await userEvent.type(screen.getByLabelText("Search"), "OGN-101");
+    expect(rowTexts("label")).toEqual(["Vi"]);
+    await userEvent.clear(screen.getByLabelText("Search"));
+    await userEvent.type(screen.getByLabelText("Search"), "cogneuse");
+    expect(rowTexts("label")).toEqual(["Vi"]);
   });
 
   it("finds nothing for a query no candidate matches", async () => {

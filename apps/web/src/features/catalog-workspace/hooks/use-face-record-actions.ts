@@ -1,4 +1,5 @@
 import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
+import { labelMap } from "@openrift/shared/enum-label";
 
 import {
   acceptPrintingFieldFn,
@@ -47,8 +48,13 @@ export function useValueLabels(): ValueLabels {
     artVariants: labels.artVariants,
     cardSizes: labels.cardSizes,
     languages,
-    markers: Object.fromEntries(markerData.markers.map((marker) => [marker.slug, marker.label])),
-    channels: Object.fromEntries(buildChannelBreadcrumbsBySlug(channelData.distributionChannels)),
+    markers: labelMap(markerData.markers),
+    channels: labelMap(
+      [...buildChannelBreadcrumbsBySlug(channelData.distributionChannels)].map(([slug, label]) => ({
+        slug,
+        label,
+      })),
+    ),
   };
 }
 

@@ -2,6 +2,7 @@ import { vi } from "vitest";
 
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { initQueryOptions } from "@/lib/init-queries";
 
 interface HeadOutput {
   meta: Record<string, string>[];
@@ -16,10 +17,19 @@ interface RouteLike {
 type LoaderFn = (ctx: unknown) => Promise<unknown>;
 type HeadFn = (ctx: { loaderData: unknown; params: Record<string, string> }) => HeadOutput;
 
-/** Answers the route's own query with `payload`; flags and the set list get the values every loader needs. */
+const ROUTE_HEAD_INIT = {
+  enums: {
+    deckFormats: [
+      { slug: "constructed", label: "Constructed", sortOrder: 0 },
+      { slug: "custom-region", label: "Custom Region", sortOrder: 1 },
+    ],
+  },
+};
+
 function stubQueryClient(payload: unknown) {
   const flagsKey = JSON.stringify(featureFlagsQueryOptions.queryKey);
   const setsKey = JSON.stringify(publicSetListQueryOptions.queryKey);
+  const initKey = JSON.stringify(initQueryOptions.queryKey);
   return {
     query: vi.fn((options: { queryKey: readonly unknown[] }) => {
       const key = JSON.stringify(options.queryKey);
@@ -28,6 +38,9 @@ function stubQueryClient(payload: unknown) {
       }
       if (key === setsKey) {
         return Promise.resolve({ sets: [] });
+      }
+      if (key === initKey) {
+        return Promise.resolve(ROUTE_HEAD_INIT);
       }
       return Promise.resolve(payload);
     }),

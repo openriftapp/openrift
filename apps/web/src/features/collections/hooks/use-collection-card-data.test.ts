@@ -27,6 +27,10 @@ vi.mock("@/features/collections/hooks/use-stacked-copies", () => ({
   useStackedCopies: () => ({ collectionIdByCopyId: new Map<string, string>(), ...mockStacks() }),
 }));
 
+vi.mock("@/hooks/use-keyword-reverse-map", () => ({
+  useKeywordReverseMap: () => new Map<string, string>(),
+}));
+
 vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
   useCatalogSearchVocabulary: () => ({}),
 }));

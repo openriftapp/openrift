@@ -1,4 +1,5 @@
 import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -165,9 +166,9 @@ describe("cardWaitingSince", () => {
 });
 
 const labels = {
-  cardTypes: { unit: "Unit" },
-  superTypes: { champion: "Champion" },
-  domains: { fury: "Fury", chaos: "Chaos" },
+  cardTypes: labelMapOf({ unit: "Unit" }),
+  superTypes: labelMapOf({ champion: "Champion" }),
+  domains: labelMapOf({ fury: "Fury", chaos: "Chaos" }),
 };
 
 describe("CARD_RECORD_FIELDS", () => {

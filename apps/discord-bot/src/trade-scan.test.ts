@@ -174,7 +174,7 @@ describe("tradeLine", () => {
         { groupName: null, holders: [{ userName: null, quantity: 1, printings: [] }] },
         SITE,
       ),
-    ).toContain("Unknown user 1×");
+    ).toContain("Unnamed member 1×");
   });
 
   it("is silent when nobody offers the card", () => {

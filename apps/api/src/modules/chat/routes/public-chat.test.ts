@@ -50,8 +50,7 @@ const ENUMS = {
 
 const mockCatalogRepo = {
   cards: vi.fn(),
-  printingCodes: vi.fn(),
-  nameAliases: vi.fn(),
+  printingLookupRows: vi.fn(),
   catalogContentVersion: vi.fn(),
 };
 const mockEnumsRepo = {
@@ -93,8 +92,7 @@ async function lookupText(
 
 beforeEach(() => {
   mockCatalogRepo.cards.mockReset().mockResolvedValue(CARDS);
-  mockCatalogRepo.printingCodes.mockReset().mockResolvedValue(CODES);
-  mockCatalogRepo.nameAliases.mockReset().mockResolvedValue([]);
+  mockCatalogRepo.printingLookupRows.mockReset().mockResolvedValue(CODES);
   mockCatalogRepo.catalogContentVersion.mockReset().mockResolvedValue("catalog-v1");
   mockEnumsRepo.all.mockReset().mockResolvedValue(ENUMS);
   mockEnumsRepo.contentVersion.mockReset().mockResolvedValue("enums-v1");

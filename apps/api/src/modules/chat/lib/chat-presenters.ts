@@ -9,6 +9,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
 import { describeCardStats } from "@openrift/shared/card-stat-line";
+import { cardUrl } from "@openrift/shared/site-paths";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
 
 const CHAT_LINE_LIMIT = 400;
@@ -46,7 +47,7 @@ function oneLine(text: string): string {
  * without a link.
  */
 export function chatCardLine(card: ChatCard, labels: CardStatLabels, siteUrl?: string): string {
-  const tail = siteUrl ? `${SEPARATOR}${siteUrl}/cards/${card.slug}` : "";
+  const tail = siteUrl ? `${SEPARATOR}${cardUrl(siteUrl, card.slug)}` : "";
   const name = truncateWithEllipsis(oneLine(legendDisplayName(card)), NAME_LIMIT);
   const room = CHAT_LINE_LIMIT - name.length - tail.length - SEPARATOR.length;
   const description = truncateWithEllipsis(describeCardStats(card, labels), room);

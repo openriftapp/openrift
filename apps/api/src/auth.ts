@@ -2,6 +2,7 @@ import { apiKey } from "@better-auth/api-key";
 // better-auth 1.7.3 leaks SchemaCheck into betterAuth()'s inferred type. The import
 // makes it nameable for declaration emit. Drop once better-auth re-exports it.
 import type { SchemaCheck as _SchemaCheck } from "@better-auth/core/db/internal";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { validateProfileBio } from "@openrift/shared/profile-bio";
 import { validateRiotId } from "@openrift/shared/riot-id";
 import { betterAuth } from "better-auth";
@@ -73,7 +74,7 @@ export function createAuth(deps: {
         // Plugin default is 10 requests per day, far too tight for upload scripts.
         rateLimit: {
           enabled: true,
-          timeWindow: 60 * 60 * 1000,
+          timeWindow: HOUR_MS,
           maxRequests: 1000,
         },
         schema: {

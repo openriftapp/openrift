@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
@@ -26,7 +27,7 @@ interface DropdownContext {
   filterState: ReturnType<typeof useFilterValues>["filterState"];
   actions: ReturnType<typeof useFilterActions>;
   labels: ReturnType<typeof useEnumOrders>["labels"];
-  languageLabels: Record<string, string>;
+  languageLabels: LabelMap;
   channelBreadcrumbs: ReadonlyMap<string, string>;
 }
 

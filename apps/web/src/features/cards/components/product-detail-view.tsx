@@ -44,7 +44,6 @@ import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
@@ -239,7 +238,6 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
-  const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
   const router = useRouter();
   const { data: session } = useSession();
@@ -289,7 +287,6 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
     ownedCountByPrinting: ownedCountForCardData,
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
-    keywordReverseMap,
     channels,
   });
 

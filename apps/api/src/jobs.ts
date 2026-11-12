@@ -1,3 +1,4 @@
+import { DAY_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
 
@@ -207,7 +208,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       description: `Deletes job runs older than ${JOB_RUNS_RETENTION_DAYS} days.`,
       suggestedSchedule: "0 4 * * *",
       execute: async () => {
-        const cutoff = new Date(Date.now() - JOB_RUNS_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+        const cutoff = new Date(Date.now() - JOB_RUNS_RETENTION_DAYS * DAY_MS);
         const deleted = await repos.jobRuns.purgeOlderThan(cutoff);
         return { deleted, cutoff: cutoff.toISOString() };
       },

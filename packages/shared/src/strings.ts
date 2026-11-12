@@ -30,10 +30,6 @@ export function capitalize(word: string): string {
 // Reference-table slugs use `-`; a few legacy ones use `_`.
 const SLUG_SEPARATORS = /[-_]/u;
 
-export function sentenceCaseSlug(slug: string): string {
-  return capitalize(slug.split(SLUG_SEPARATORS).filter(Boolean).join(" "));
-}
-
 export function titleCaseSlug(slug: string): string {
   return slug
     .split(SLUG_SEPARATORS)
@@ -77,6 +73,10 @@ export function escapeHtml(value: string): string {
 
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return count === 1 ? singular : plural;
+}
+
+export function countNoun(count: number, singular: string, plural?: string): string {
+  return `${count} ${pluralize(count, singular, plural)}`;
 }
 
 export function toError(thrown: unknown): Error {

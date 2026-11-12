@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
@@ -34,8 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { presenceLabel, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
@@ -132,8 +133,8 @@ export function RuleFilterEditor({
   const languageLabels = useLanguageLabels();
   const { all: customTags } = useCustomTagList();
   const prices = usePrices();
-  const vocabulary = useCatalogSearchVocabulary();
   const customTagAssignments = useCustomTagAssignments();
+  const searchContext = useCardSearchContext({ customTagAssignments, strict: true });
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const shownMarketplace = priceMarketplace ?? marketplaceOrder[0];
   const available = getAvailableFilters(allPrintings, { orders, sets });
@@ -172,7 +173,7 @@ export function RuleFilterEditor({
     .sort((first, second) => first.localeCompare(second))
     .map((language) => ({ value: language, label: enumLabel(languageLabels, language) }));
 
-  const namedOptions = (slugs: readonly string[], lookup: Record<string, string>): Option[] =>
+  const namedOptions = (slugs: readonly string[], lookup: LabelMap): Option[] =>
     slugs.map((slug) => ({ value: slug, label: enumLabel(lookup, slug) }));
 
   const setNames = new Map(sets.map((set) => [set.slug, set.name]));
@@ -309,7 +310,7 @@ export function RuleFilterEditor({
         filterCards(
           allPrintings,
           { ...value, price: { min: null, max: null } },
-          { customTagAssignments, strict: true, vocabulary },
+          searchContext,
         ).filter((printing) => prices.get(printing.printingId, shownMarketplace) === undefined),
       )
     : 0;

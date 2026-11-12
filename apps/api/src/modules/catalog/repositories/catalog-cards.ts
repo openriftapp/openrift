@@ -1,8 +1,10 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { CardBansTable, CardErrataTable, CardsTable } from "../../../db/tables/catalog.js";
 import {
@@ -176,24 +178,27 @@ export function catalogCardsRepo(db: Kysely<Database>) {
       return selectCardErrata(db).where("cardErrata.cardId", "in", cardIds).execute();
     },
 
-    /**
-     * The curated name aliases, for the server-side lookup index.
-     *
-     * Only the normalized key is stored, never the original spelling, so these
-     * feed `SearchableCard.altNames` as already-squashed strings. Aliases are
-     * written alongside the card rows that own them, so `catalogContentVersion`
-     * moves whenever they do and no separate probe is needed.
-     */
-    nameAliases(): Promise<{ cardId: string; normName: string }[]> {
-      return db
-        .selectFrom("cardNameAliases")
-        .select(["cardId", "normName"])
-        .orderBy("normName")
-        .execute();
-    },
-
     getCardById(id: string): Promise<Pick<Selectable<CardsTable>, "id"> | undefined> {
       return db.selectFrom("cards").select("id").where("id", "=", id).executeTakeFirst();
+    },
+
+    /** Reads types straight from `card_card_types`: a just-accepted card is not in `mv_card_aggregates` yet. */
+    cardNameById(
+      id: string,
+    ): Promise<
+      { id: string; slug: string; name: string; tags: string[]; types: CardType[] } | undefined
+    > {
+      return db
+        .selectFrom("cards")
+        .select([
+          "id",
+          "slug",
+          "name",
+          "tags",
+          sql<CardType[]>`coalesce(${cardTypes("cards.id")}, '{}')`.as("types"),
+        ])
+        .where("id", "=", id)
+        .executeTakeFirst();
     },
 
     cardBySlug(slug: string): Promise<CatalogCardRow | undefined> {
@@ -223,7 +228,7 @@ export function catalogCardsRepo(db: Kysely<Database>) {
      * one with a rehosted image).
      */
     async relatedCards(cardId: string, limit: number): Promise<RelatedCardRow[]> {
-      const result = await sql<RelatedCardRow>`
+      const result = await sql<RelatedCardRow & { tags: string[] }>`
         WITH me AS (
           SELECT c.id, c.tags, c.energy, mca.domains, mca.types
           FROM cards c
@@ -242,7 +247,7 @@ export function catalogCardsRepo(db: Kysely<Database>) {
         ),
         scored AS (
           SELECT
-            c.id, c.slug, c.name, mca.types, mca.domains,
+            c.id, c.slug, c.name, c.tags, mca.types, mca.domains,
             (CASE WHEN EXISTS (SELECT 1 FROM token_links tl WHERE tl.other_id = c.id)
               THEN 100.0 ELSE 0.0 END)
             + COALESCE((
@@ -266,6 +271,7 @@ export function catalogCardsRepo(db: Kysely<Database>) {
         SELECT
           top_cards.slug,
           top_cards.name,
+          top_cards.tags,
           top_cards.types,
           top_cards.domains,
           art.rarity,
@@ -285,7 +291,10 @@ export function catalogCardsRepo(db: Kysely<Database>) {
         ) art ON TRUE
         ORDER BY top_cards.score DESC, top_cards.name
       `.execute(db);
-      return result.rows;
+      return result.rows.map(({ tags, ...row }) => ({
+        ...row,
+        name: legendDisplayName({ name: row.name, types: row.types, tags }),
+      }));
     },
 
     cardBansByCardId(cardId: string): Promise<CatalogCardBanRow[]> {

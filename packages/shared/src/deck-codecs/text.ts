@@ -1,5 +1,4 @@
 import type { DeckCodeParseResult, DeckImportEntry } from "../deck-code.js";
-import { ZONE_LABELS } from "../deck-zones.js";
 import { straightenApostrophes } from "../strings.js";
 import type { DeckZone } from "../types/enums.js";
 import { WellKnown } from "../well-known.js";
@@ -93,8 +92,44 @@ function headerTextOf(line: string): string | undefined {
 }
 
 const QUANTITY_LINE = /^(?:(?<count>\d+)\s*[x×]?|[x×]\s*(?<prefixedCount>\d+))\s+(?<name>.+)$/iu;
-const SHORT_CODE = /^[A-Z0-9]+-[A-Z0-9]+[a-z]?\*?$/u;
 const URL_LINE = /^https?:\/\/\S+$/iu;
+const CODE_SHAPE = /^[A-Z0-9]+(?:-[A-Z0-9]+)*(?:\/\d+)?[a-z]?\*?$/u;
+
+/** Without a catalog to ask, a code needs a digit: `SC` and `EN` are languages, not codes. */
+export function looksLikePrintingCode(segment: string): boolean {
+  return CODE_SHAPE.test(segment) && /\d/u.test(segment);
+}
+
+export function isUrlLine(line: string): boolean {
+  return URL_LINE.test(line);
+}
+
+export interface CardListLine {
+  quantity: number | null;
+  name: string;
+  pairedName?: string;
+  code?: string;
+  trailing: string[];
+}
+
+export function parseCardListLine(
+  line: string,
+  isCode: (segment: string) => boolean = looksLikePrintingCode,
+): CardListLine {
+  const match = QUANTITY_LINE.exec(line);
+  const count = match?.groups?.count ?? match?.groups?.prefixedCount;
+  const [namePart = "", ...trailing] = (match?.groups?.name ?? line).split(" · ");
+  const [name = "", pairedName] = namePart.split(" // ");
+  const segments = trailing.map((segment) => segment.trim()).filter(Boolean);
+  const code = segments[0] !== undefined && isCode(segments[0]) ? segments[0] : undefined;
+  return {
+    quantity: count === undefined ? null : Number(count),
+    name: name.trim(),
+    ...(pairedName !== undefined && pairedName.trim() !== "" && { pairedName: pairedName.trim() }),
+    ...(code !== undefined && { code }),
+    trailing: segments,
+  };
+}
 
 /**
  * Lines are `{quantity} {card name}` under an optional zone header; a bare
@@ -104,6 +139,7 @@ export function parseTextFormat(code: string): DeckCodeParseResult {
   const warnings: string[] = [];
   const entries: DeckImportEntry[] = [];
   let currentZone: DeckZone | undefined;
+  let currentHeader: string | undefined;
 
   for (const rawLine of code.split("\n")) {
     const line = rawLine.trim();
@@ -116,24 +152,25 @@ export function parseTextFormat(code: string): DeckCodeParseResult {
       const zone = HEADER_TO_ZONE[headerText.toLowerCase()];
       if (zone) {
         currentZone = zone;
+        currentHeader = headerText;
       } else {
         // Unknown header clears the current zone; it must not inherit the prior zone.
         currentZone = undefined;
+        currentHeader = undefined;
         warnings.push(`Unknown zone header: ${line}`);
       }
       continue;
     }
 
-    if (URL_LINE.test(line) || line.startsWith(COMMENT_PREFIX)) {
+    if (isUrlLine(line) || line.startsWith(COMMENT_PREFIX)) {
       continue;
     }
 
-    const match = QUANTITY_LINE.exec(line);
+    const parsed = parseCardListLine(line);
     const effectiveZone = currentZone ?? WellKnown.deckZone.MAIN;
-    const quantity = Number(match?.groups?.count ?? match?.groups?.prefixedCount ?? 1);
-    const [namePart = "", codePart] = (match?.groups?.name ?? line).split(" · ");
-    const cardName = namePart.trim();
-    const shortCode = codePart !== undefined && SHORT_CODE.test(codePart) ? codePart : undefined;
+    const quantity = parsed.quantity ?? 1;
+    const cardName = parsed.name;
+    const shortCode = parsed.code;
     entries.push({
       ...(shortCode && { shortCode }),
       cardName,
@@ -142,7 +179,10 @@ export function parseTextFormat(code: string): DeckCodeParseResult {
       // Only set explicitZone when a zone header was provided by the user.
       // Without it, inferZone() assigns the correct zone based on card type.
       explicitZone: currentZone,
-      rawFields: { "Parsed Name": cardName, Zone: ZONE_LABELS[effectiveZone] },
+      rawFields: {
+        "Parsed Name": cardName,
+        ...(currentHeader !== undefined && { Zone: currentHeader }),
+      },
     });
   }
 

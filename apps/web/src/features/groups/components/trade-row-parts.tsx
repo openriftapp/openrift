@@ -1,4 +1,4 @@
-import { formatRelativeTime } from "@openrift/shared/format-date";
+import { formatRelativeTime, DAY_MS } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { CardTradeStatus } from "@openrift/shared/types/api/card-trade";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-const EXPIRY_URGENT_MS = 24 * 60 * 60 * 1000;
+const EXPIRY_URGENT_MS = DAY_MS;
 
 function expiresWithinUrgentWindow(expiresAt: string): boolean {
   return new Date(expiresAt).getTime() - Date.now() < EXPIRY_URGENT_MS;

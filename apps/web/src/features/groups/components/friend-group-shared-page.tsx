@@ -29,6 +29,7 @@ import { deriveCollectionCovers } from "@/features/collections/lib/collection-co
 import { useFriendGroupShareableCollections } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
@@ -266,9 +267,7 @@ function MemberSharesBlock({
           gravatarHash={member.gravatarHash}
           size="sm"
         />
-        <span className="truncate font-medium">
-          {member.userName ?? m.groups_member_fallback()}
-        </span>
+        <span className="truncate font-medium">{memberName(member.userName)}</span>
         {collections.length > 0 ? (
           <CountPill>{collections.length}</CountPill>
         ) : (

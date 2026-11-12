@@ -1,4 +1,5 @@
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse, AdminCardResponse } from "@openrift/shared/types/api/admin";
@@ -239,7 +240,7 @@ function FacesTree({
   isAdmin: boolean;
   openByFace: ReadonlyMap<string, number>;
   labels: EnumLabels;
-  markerLabels: Record<string, string>;
+  markerLabels: LabelMap;
 }) {
   const [language, setLanguage] = useState("");
   const [marker, setMarker] = useState("");
@@ -393,7 +394,7 @@ function CardRecordBody({
     record;
   const items = queue?.items ?? [];
   const waitingSince = cardWaitingSince(items, cardSlug);
-  const markerLabels = Object.fromEntries(markers.map((entry) => [entry.slug, entry.label]));
+  const markerLabels = labelMap(markers);
   const rowsByField = new Map<string, SuggestionRow>(model.rows.map((row) => [row.field, row]));
   const differingDefs = CARD_RECORD_FIELDS.filter(
     (def) => (rowsByField.get(def.field)?.suggestions.length ?? 0) > 0,
@@ -437,7 +438,7 @@ function CardRecordBody({
             {others > 0 && (
               <span className="text-muted-foreground ml-2 text-xs">
                 Use closes the proposal. Its {others} other {pluralize(others, "change")}{" "}
-                {others === 1 ? "stays" : "stay"} unapplied.
+                {pluralize(others, "stays", "stay")} unapplied.
               </span>
             )}
           </>

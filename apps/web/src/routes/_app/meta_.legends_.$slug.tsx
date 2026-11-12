@@ -1,4 +1,5 @@
 import { imageUrl } from "@openrift/shared/image-url";
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaLegendDetailResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
       return seoHead({ siteUrl, title: "Legend", path, unlisted: true });
     }
     const { legend, counts } = data;
-    const description = `${legend.name} in the Riftbound meta archive: ${counts.finishes} archived ${counts.finishes === 1 ? "finish" : "finishes"}, the players behind them, and the decklists they registered.`;
+    const description = `${legend.name} in the Riftbound meta archive: ${counts.finishes} archived ${pluralize(counts.finishes, "finish", "finishes")}, the players behind them, and the decklists they registered.`;
     const ogImage = toAbsoluteUrl(
       siteUrl,
       legend.imageId === null ? undefined : imageUrl(legend.imageId, "full"),

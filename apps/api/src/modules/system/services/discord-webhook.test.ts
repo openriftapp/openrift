@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { createLogger } from "@openrift/shared/logger";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,12 +13,12 @@ import {
 const APP_BASE_URL = "https://openrift.app";
 
 const LABELS: PrintingLabels = {
-  rarities: { common: "Common", rare: "Rare" },
-  finishes: { normal: "Normal", foil: "Foil", metal: "Metal" },
-  artVariants: { normal: "Normal", altart: "Alt Art" },
-  cardSizes: { standard: "Standard", oversized: "Oversized" },
-  languages: { EN: "English", FR: "French", ZH: "Traditional Chinese" },
-  markers: { promo: "Promo", champion: "Champion" },
+  rarities: labelMapOf({ common: "Common", rare: "Rare" }),
+  finishes: labelMapOf({ normal: "Normal", foil: "Foil", metal: "Metal" }),
+  artVariants: labelMapOf({ normal: "Normal", altart: "Alt Art" }),
+  cardSizes: labelMapOf({ standard: "Standard", oversized: "Oversized" }),
+  languages: labelMapOf({ EN: "English", FR: "French", ZH: "Traditional Chinese" }),
+  markers: labelMapOf({ promo: "Promo", champion: "Champion" }),
 };
 
 function makeEvent(overrides: Partial<EnrichedPrintingEvent> = {}): EnrichedPrintingEvent {

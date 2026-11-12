@@ -32,6 +32,7 @@ export interface ListRuleProviders {
     printings: Printing[];
     customTagAssignments: Record<string, readonly string[]>;
     vocabulary?: SearchVocabulary;
+    keywordReverseMap?: Map<string, string>;
   }>;
   /**
    * The given user's personally-owned copies, narrowed to `printingIds`.
@@ -128,7 +129,12 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
           : undefined,
       ]);
       const manualByList = Map.groupBy(manualRows, (row) => row.listId);
-      const { printings: catalog, customTagAssignments, vocabulary } = catalogData;
+      const {
+        printings: catalog,
+        customTagAssignments,
+        vocabulary,
+        keywordReverseMap,
+      } = catalogData;
 
       for (const list of ruleLists) {
         const manual = (manualByList.get(list.id) ?? []).map((row) => toRawManualEntryRow(row));
@@ -141,6 +147,7 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
             customTagAssignments,
             enumOrders,
             vocabulary,
+            keywordReverseMap,
             priceLookup,
           },
           list.ruleCombine,
@@ -258,6 +265,7 @@ async function expandAndEnrich(
     printings: catalog,
     customTagAssignments,
     vocabulary,
+    keywordReverseMap,
   } = await providers.assembleCatalog();
   // Loaded before the copy scope below — the scope must see the same prices as
   // the evaluation, or copy loading would drift from what the rules match.
@@ -276,6 +284,7 @@ async function expandAndEnrich(
           customTagAssignments,
           priceLookup,
           vocabulary,
+          keywordReverseMap,
         }),
       )
     : [];
@@ -292,6 +301,7 @@ async function expandAndEnrich(
       customTagAssignments,
       enumOrders,
       vocabulary,
+      keywordReverseMap,
       priceLookup,
     },
     listRow.ruleCombine,

@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { EnumOrders } from "@openrift/shared/types/enums";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -23,15 +24,15 @@ const ORDERS: EnumOrders = {
 };
 
 const LABELS: EnumLabels = {
-  finishes: {},
-  rarities: {},
-  domains: {},
-  cardTypes: {},
-  superTypes: {},
-  artVariants: {},
-  cardSizes: { standard: "Standard", oversized: "Oversized" },
-  conditions: {},
-  graders: {},
+  finishes: labelMapOf({}),
+  rarities: labelMapOf({}),
+  domains: labelMapOf({}),
+  cardTypes: labelMapOf({}),
+  superTypes: labelMapOf({}),
+  artVariants: labelMapOf({}),
+  cardSizes: labelMapOf({ standard: "Standard", oversized: "Oversized" }),
+  conditions: labelMapOf({}),
+  graders: labelMapOf({}),
 };
 
 function item(setId: string): CardViewerItem {

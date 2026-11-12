@@ -1,7 +1,7 @@
 import type { MetaOverlayQueueRow, MetaUploadBody } from "@openrift/shared/types/api/meta";
 import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
 
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 
 /** What a source is called and how its badge is toned. */
 export interface SourceProviderDisplay {

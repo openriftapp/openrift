@@ -1,3 +1,4 @@
+import { matchesCardQuery } from "@openrift/shared/card-search";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
@@ -23,7 +24,7 @@ export function SideSearch({
   const { allPrintings } = useCards();
   const [query, setQuery] = useState("");
 
-  const needle = query.trim().toLowerCase();
+  const needle = query.trim();
   const matches: Printing[] = [];
   if (needle.length >= 3) {
     const seen = new Set(excludeFaceIds);
@@ -31,11 +32,7 @@ export function SideSearch({
       if (matches.length >= MAX_MATCHES) {
         break;
       }
-      if (
-        !seen.has(side.faceId) &&
-        (side.shortCode.toLowerCase().includes(needle) ||
-          side.publicCode.toLowerCase().includes(needle))
-      ) {
+      if (!seen.has(side.faceId) && matchesCardQuery(needle, [side.shortCode, side.publicCode])) {
         seen.add(side.faceId);
         matches.push(side);
       }

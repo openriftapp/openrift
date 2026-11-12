@@ -1,5 +1,5 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
-import { formatDay } from "@openrift/shared/format-date";
+import { formatDay, DAY_MS } from "@openrift/shared/format-date";
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import type {
   MarketplaceLink,
@@ -95,7 +95,7 @@ export const pricesRouter = {
 
       const { printingId, range } = input;
       const days = TIME_RANGE_DAYS[range];
-      const cutoff = days ? new Date(Date.now() - days * 86_400_000) : null;
+      const cutoff = days ? new Date(Date.now() - days * DAY_MS) : null;
 
       const printing = await catalog.getPrintingById(printingId);
       if (!printing) {

@@ -4,11 +4,26 @@ import type {
   CatalogResponsePrintingValue,
   CatalogSetResponse,
 } from "@openrift/shared/types/api/catalog";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { sortCardsLikeSidebar } from "@/features/decks/lib/deck-card-order";
-import { proxyRenderKey, resolveProxyCards } from "@/lib/proxy-pdf";
+import { assembleProxyPdf, proxyRenderKey, resolveProxyCards } from "@/lib/proxy-pdf";
 import { resetIdCounter, stubCard, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
+
+const saved = vi.hoisted(() => [] as string[]);
+
+vi.mock("@/lib/pdf-document", () => ({
+  createPdfDocument: () => ({
+    addPage: () => {},
+    addImage: () => {},
+    setDrawColor: () => {},
+    setFontSize: () => {},
+    setTextColor: () => {},
+    rect: () => {},
+    text: () => {},
+    save: (filename: string) => saved.push(filename),
+  }),
+}));
 
 function stubSet(overrides: Partial<CatalogSetResponse> = {}): CatalogSetResponse {
   return {
@@ -232,5 +247,38 @@ describe("proxyRenderKey", () => {
     expect(proxyRenderKey({ ...base, cardId: "bird" })).not.toBe(
       proxyRenderKey({ ...base, cardId: "gold" }),
     );
+  });
+});
+
+describe("assembleProxyPdf", () => {
+  const proxyCard = {
+    cardId: "card-1",
+    printingId: null,
+    name: "沙漠皇帝",
+    imageFullUrl: null,
+    card: stubCard(),
+    rarity: "common" as const,
+    publicCode: "OGN-001",
+    artist: "",
+    flavorText: null,
+    rulesText: null,
+    effectText: null,
+  };
+  const options = {
+    pageSize: "a4" as const,
+    renderMode: "image" as const,
+    cutLines: false,
+    watermark: false,
+  };
+
+  it("names the file after the deck, told apart by the deck id when the name has no Latin letters", async () => {
+    saved.length = 0;
+    await assembleProxyPdf([proxyCard], new Map(), { ...options, deckName: "Kai's Deck" });
+    await assembleProxyPdf([proxyCard], new Map(), {
+      ...options,
+      deckName: "沙漠皇帝",
+      deckId: "019d6c25-b081-74b3-a901-64da4ae01dab",
+    });
+    expect(saved).toEqual(["kais-deck-proxies.pdf", "deck-4ae01dab-proxies.pdf"]);
   });
 });

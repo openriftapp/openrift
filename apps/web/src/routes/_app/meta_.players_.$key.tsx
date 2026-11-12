@@ -1,4 +1,5 @@
 import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
+import { pluralize } from "@openrift/shared/strings";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
       return seoHead({ siteUrl, title: "Player", path, unlisted: true });
     }
     const { name, finishCount } = data;
-    const description = `${name} in the Riftbound meta archive: ${finishCount} archived ${finishCount === 1 ? "finish" : "finishes"}, the legends they brought, and the decklists they registered.`;
+    const description = `${name} in the Riftbound meta archive: ${finishCount} archived ${pluralize(finishCount, "finish", "finishes")}, the legends they brought, and the decklists they registered.`;
     return {
       ...seoHead({
         siteUrl,

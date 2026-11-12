@@ -2,9 +2,16 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import type * as UseEnums from "@/hooks/use-enums";
 import { stubDeckBuilderCard } from "@/test/factories";
 
 import { DeckCardZoneSteppers } from "./deck-card-zone-steppers";
+
+vi.mock("@/hooks/use-enums", async (importOriginal) => {
+  const actual = await importOriginal<typeof UseEnums>();
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return { ...actual, useZoneOrder: useZoneOrderStub };
+});
 
 const buccaneer = stubDeckBuilderCard({ cardName: "Brazen Buccaneer", zone: "main", quantity: 3 });
 

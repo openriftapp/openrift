@@ -1,11 +1,17 @@
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
+
+function displayNameOf(entry: DeckBuilderCard): string {
+  return legendDisplayName({ name: entry.cardName, types: entry.cardTypes, tags: entry.tags });
+}
 
 const ONE_COPY_ZONES = new Set<DeckZone>([
   WellKnown.deckZone.LEGEND,
@@ -27,6 +33,7 @@ export function DeckCardZoneSteppers({
   onAdd: (entry: DeckBuilderCard) => void;
   onRemove: (entry: DeckBuilderCard) => void;
 }) {
+  const { zoneLabels } = useZoneOrder();
   if (entries.length === 0) {
     return null;
   }
@@ -35,7 +42,7 @@ export function DeckCardZoneSteppers({
       {entries.map((entry) => (
         <li key={getDeckCardKey(entry)} className="contents">
           <span>
-            {ZONE_LABELS[entry.zone]}
+            {enumLabel(zoneLabels, entry.zone)}
             {printingLabels?.has(getDeckCardKey(entry)) && (
               <span className="text-muted-foreground">
                 {" · "}
@@ -47,8 +54,8 @@ export function DeckCardZoneSteppers({
             size="sm"
             variant="outline"
             count={<span className="tabular-nums">{entry.quantity}×</span>}
-            decrementLabel={m.decks_editor_remove_one_copy({ card: entry.cardName })}
-            incrementLabel={m.decks_editor_add_one_copy({ card: entry.cardName })}
+            decrementLabel={m.decks_editor_remove_one_copy({ card: displayNameOf(entry) })}
+            incrementLabel={m.decks_editor_add_one_copy({ card: displayNameOf(entry) })}
             onDecrement={() => onRemove(entry)}
             onIncrement={
               !isFreeform && ONE_COPY_ZONES.has(entry.zone) ? undefined : () => onAdd(entry)

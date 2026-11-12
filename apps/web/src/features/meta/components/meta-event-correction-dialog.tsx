@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
 import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
@@ -185,7 +186,7 @@ export function MetaEventCorrectionDialog({
                 <Field>
                   <FieldDescription>
                     {m.meta_correction_format_hint({
-                      format: formatLabels[event.format] ?? event.format,
+                      format: enumLabel(formatLabels, event.format),
                     })}
                   </FieldDescription>
                 </Field>

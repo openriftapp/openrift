@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { sideKey } from "@openrift/shared/printing-side";
 import type {
@@ -78,7 +79,9 @@ function TallyRow({
   const printing = tradePrinting(trade, printingsByCardId, printingsById);
   const cardName = printing
     ? printingDisplayName(printing)
-    : (card?.name ?? m.trades_card_fallback());
+    : card
+      ? legendDisplayName(card)
+      : m.trades_card_fallback();
   const count = talliedCount(counts, trade.id, trade.quantity);
 
   return (

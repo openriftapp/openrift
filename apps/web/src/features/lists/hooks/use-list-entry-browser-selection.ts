@@ -11,8 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
-import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import type {
   CardRowClickModifiers,
@@ -127,10 +127,10 @@ export function useListEntryBrowserSelection({
   const moveEntries = useMoveListEntries();
   const bulkRemove = useBulkRemoveListEntries();
   const updateList = useUpdateList();
-  const vocabulary = useCatalogSearchVocabulary();
+  const searchContext = useCardSearchContext();
 
   const handleExcludeFromRule = (target: RuleExcludeTarget) => {
-    const next = excludeEntryFromRules(rules, target, allPrintings, vocabulary);
+    const next = excludeEntryFromRules(rules, target, allPrintings, searchContext);
     if (!next) {
       return;
     }
@@ -413,7 +413,7 @@ export function useListEntryBrowserSelection({
       { listId, entryIds: actionRowIds },
       {
         onSuccess: () => {
-          toast.success(`Removed ${count} card${count === 1 ? "" : "s"} from list`);
+          toast.success(m.lists_toast_removed_from_list({ count }));
           clearSelection();
           setRemoveOpen(false);
         },
@@ -427,7 +427,7 @@ export function useListEntryBrowserSelection({
       { listId, entryIds: actionRowIds },
       {
         onSuccess: () => {
-          toast.success(`Removed ${count} card${count === 1 ? "" : "s"} from list`);
+          toast.success(m.lists_toast_removed_from_list({ count }));
           clearSelection();
           setTakeOffOpen(false);
         },
@@ -441,7 +441,7 @@ export function useListEntryBrowserSelection({
       { copyIds: takeOffCopyIds },
       {
         onSuccess: () => {
-          toast.success(`Marked ${count} card${count === 1 ? "" : "s"} as sold`);
+          toast.success(m.lists_toast_marked_sold({ count }));
           clearSelection();
           setTakeOffOpen(false);
           // Dispose cascades its list-entry deletes server-side; refetch to drop them from view.

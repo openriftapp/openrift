@@ -53,11 +53,21 @@ describe("/meta/decks/$token SSR head", () => {
     );
   });
 
+  it("names the deck format with its admin-managed label", async () => {
+    const head = await loadedHead(Route, PARAMS, {
+      ...archivedDeck({ cards: [] }),
+      deck: { name: "x", format: "custom-region", updatedAt: "2026-08-29T10:00:00.000Z" },
+    });
+    expect(headMeta(head, "description")).toBe(
+      "adtoll piloted this Custom Region deck to 1st at Wuhan Open (2026-08-29).",
+    );
+  });
+
   it("falls back to the player for a list whose source published no legend", async () => {
     const head = await runHead({ cards: [] });
     expect(headTitle(head)).toContain("adtoll, 1st at Wuhan Open");
     expect(headMeta(head, "description")).toBe(
-      "adtoll piloted this constructed deck to 1st at Wuhan Open (2026-08-29).",
+      "adtoll piloted this Constructed deck to 1st at Wuhan Open (2026-08-29).",
     );
   });
 
@@ -76,7 +86,8 @@ describe("/meta/decks/$token SSR head", () => {
 describe("/meta/decks/$token loader", () => {
   it("keeps the card rows out of the loader data", async () => {
     expect(await runRouteLoader(Route, PARAMS, archivedDeck())).toEqual({
-      deck: { format: "constructed", updatedAt: "2026-08-29T10:00:00.000Z" },
+      deck: { updatedAt: "2026-08-29T10:00:00.000Z" },
+      formatLabel: "Constructed",
       meta: {
         playerName: "adtoll",
         rank: 1,

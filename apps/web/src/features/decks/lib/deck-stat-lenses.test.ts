@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -35,7 +36,7 @@ function card(overrides: Partial<DeckBuilderCard> & { cardId: string }): DeckBui
 }
 
 const RARITY_ORDER = ["common", "rare", "epic"];
-const RARITY_LABELS = { common: "Common", rare: "Rare", epic: "Epic" };
+const RARITY_LABELS = labelMapOf({ common: "Common", rare: "Rare", epic: "Epic" });
 
 describe("buildRarityByCardKey", () => {
   it("maps entries via the resolver and skips unresolved ones", () => {
@@ -91,7 +92,7 @@ describe("rarityLensSeries", () => {
   it("falls back to a neutral color for a rarity the palette doesn't know", () => {
     const series = rarityLensSeries(
       [{ key: "mythic", label: "1 Mythic", total: 1, segments: { mythic: 1 } }],
-      { mythic: "Mythic" },
+      labelMapOf({ mythic: "Mythic" }),
     );
     expect(series[0]!.color).toBe("var(--color-muted-foreground)");
   });

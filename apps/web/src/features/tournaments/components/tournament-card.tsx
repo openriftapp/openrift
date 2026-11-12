@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
@@ -34,7 +35,7 @@ export function TournamentCard({ tournament }: { tournament: TournamentSummaryRe
               {tournament.deckFormat ? (
                 <span className="flex items-center gap-1.5">
                   <LayersIcon className="size-4 shrink-0" />
-                  {formatLabels[tournament.deckFormat]}
+                  {enumLabel(formatLabels, tournament.deckFormat)}
                 </span>
               ) : null}
               <span className="flex items-center gap-1.5">

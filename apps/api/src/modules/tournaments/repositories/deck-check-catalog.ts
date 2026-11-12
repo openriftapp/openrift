@@ -30,28 +30,6 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
       return thumbnailByCard;
     },
 
-    async getCardsByShortCodes(
-      shortCodes: string[],
-    ): Promise<Map<string, { cardId: string; name: string; types: string[] }>> {
-      if (shortCodes.length === 0) {
-        return new Map();
-      }
-      const rows = await db
-        .selectFrom("faces as p")
-        .innerJoin("cards as c", "c.id", "p.cardId")
-        .innerJoin("mvCardAggregates as mca", "mca.cardId", "c.id")
-        .select(["p.shortCode", "c.id", "c.name", "mca.types"])
-        .where("p.shortCode", "in", [...new Set(shortCodes)])
-        .execute();
-      const byShortCode = new Map<string, { cardId: string; name: string; types: string[] }>();
-      for (const row of rows) {
-        if (!byShortCode.has(row.shortCode)) {
-          byShortCode.set(row.shortCode, { cardId: row.id, name: row.name, types: row.types });
-        }
-      }
-      return byShortCode;
-    },
-
     async getCardDetails(cardIds: string[]): Promise<
       Map<
         string,

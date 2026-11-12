@@ -96,7 +96,7 @@ export function diffCardsFromEntries(
     }
     cards.push({
       cardId: match.resolvedCard.cardId,
-      cardName: match.resolvedCard.cardName,
+      cardName: match.resolvedCard.displayName,
       zone: match.zone,
       quantity: match.entry.quantity,
     });

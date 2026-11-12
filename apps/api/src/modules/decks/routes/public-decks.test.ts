@@ -242,7 +242,7 @@ describe("GET /api/v1/decks/share/:token", () => {
     expect(json.deck).not.toHaveProperty("userId");
   });
 
-  it("falls back to 'Anonymous' when the owner has no display name", async () => {
+  it("returns a null display name when the owner has none", async () => {
     mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: null,
@@ -252,7 +252,7 @@ describe("GET /api/v1/decks/share/:token", () => {
 
     const res = await app.request("/api/v1/decks/share/tok-abc");
     const json = await readJson(res);
-    expect(json.owner.displayName).toBe("Anonymous");
+    expect(json.owner.displayName).toBeNull();
   });
 
   it("returns 404 when the token is not found or the deck is not public", async () => {

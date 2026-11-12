@@ -4,6 +4,7 @@ import type {
   BoardPlayerStats,
 } from "@openrift/shared/board-state";
 import { BATTLEFIELD_ENCOUNTERS, TURN_PHASES, TURN_STATES } from "@openrift/shared/board-state";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { HourglassIcon, TrophyIcon } from "lucide-react";
 
@@ -134,7 +135,7 @@ function PlayerStatsRow({ player }: { player: BoardPlayer }) {
   );
   const scoring = useBoardEditorStore((state) => state.document.scoring);
   const setPlayerStats = useBoardEditorStore((state) => state.setPlayerStats);
-  const { orders } = useEnumOrders();
+  const { orders, labels } = useEnumOrders();
   const domains = orders.domains.filter((domain) => domain !== WellKnown.domain.COLORLESS);
   const holdsScore = scoring === "players" || player === "A" || player === "B";
   const set = (patch: Partial<BoardPlayerStats>) => setPlayerStats(player, patch);
@@ -178,7 +179,7 @@ function PlayerStatsRow({ player }: { player: BoardPlayer }) {
           <span key={domain} className="flex items-center gap-0.5">
             <DomainIcon domain={domain} className="size-5" />
             <NumberField
-              label={`${m.board_states_stat_power()} ${domain}`}
+              label={`${m.board_states_stat_power()} ${enumLabel(labels.domains, domain)}`}
               value={stats?.power?.[domain]}
               onChange={(amount) => setPower(domain, amount)}
               className="w-14"

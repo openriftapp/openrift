@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
@@ -223,7 +224,9 @@ describe("withoutReservedCopies", () => {
 
   it("drops the reserved copy from the share text and the Cardmarket block", () => {
     const kept = withoutReservedCopies(binder);
-    expect(formatListShareText("Binder", "copy", kept, null, {})).toContain("2x Cleave · OGN-004");
+    expect(formatListShareText("Binder", "copy", kept, null, labelMapOf({}))).toContain(
+      "2x Cleave · OGN-004",
+    );
     expect(
       formatCardmarketWants(kept.map((entry) => ({ name: entry.cardName, quantity: 1 }))),
     ).toBe("2x Cleave");
@@ -252,7 +255,11 @@ describe("withoutReservedCopies", () => {
 
 describe("formatListShareText", () => {
   const SHARE_URL = "https://openrift.app/lists/share/tok123";
-  const FINISH_LABELS = { normal: "Normal", foil: "Foil", "metal-deluxe": "Metal Deluxe" };
+  const FINISH_LABELS = labelMapOf({
+    normal: "Normal",
+    foil: "Foil",
+    "metal-deluxe": "Metal Deluxe",
+  });
 
   it("renders a card-kind header, link, blank line, then a line per entry", () => {
     const output = formatListShareText(
@@ -338,7 +345,7 @@ describe("formatListShareText", () => {
     expect(output).toContain("1x Cleave · OGN-004 · Metal Deluxe");
   });
 
-  it("shows 'Foil' only when the card also has a non-foil version in the list", () => {
+  it("names a non-default finish on every printing line, so an import can read it back", () => {
     const withCounterpart = formatListShareText(
       "Mixed",
       "printing",
@@ -361,7 +368,8 @@ describe("formatListShareText", () => {
       SHARE_URL,
       FINISH_LABELS,
     );
-    expect(foilOnly).not.toContain(" · Foil");
+    expect(foilOnly).toContain("1x Cleave · OGN-004 · Foil");
+    expect(foilOnly).toContain("1x Cleave · OGN-117 · Foil");
   });
 
   it("merges identical copies of a printing into one line for copy lists", () => {

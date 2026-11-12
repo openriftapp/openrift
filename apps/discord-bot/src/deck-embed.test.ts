@@ -1,4 +1,5 @@
 import type { DeckImportEntry } from "@openrift/shared/deck-code";
+import { labelMap } from "@openrift/shared/enum-label";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildSnapshot } from "./catalog-cache.js";
@@ -162,13 +163,15 @@ describe("buildDeckEmbed", () => {
     });
 
     expect(embed.description).toBe(
-      "**Legend**\n1× Emperor of the Sands\n\n**Runes**\n2× Fury Rune\n\n**Main Deck**\n3× Iron Ballista",
+      "**Legend**\n1× Azir, Emperor of the Sands\n\n**Runes**\n2× Fury Rune\n\n**Main Deck**\n3× Iron Ballista",
     );
   });
 
   it("falls back to the zone slug when the catalog has no label for it", () => {
     const snapshot = makeDeckSnapshot();
-    const { runes: _runes, ...deckZones } = snapshot.labels.deckZones;
+    const deckZones = labelMap(
+      makeInitResponse().enums.deckZones.filter((zone) => zone.slug !== "runes"),
+    );
     const deck = resolveDeckEntries(snapshot, [makeEntry({ shortCode: "OGN-200", quantity: 2 })]);
 
     const embed = buildDeckEmbed({

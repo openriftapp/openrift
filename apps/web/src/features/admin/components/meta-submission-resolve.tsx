@@ -28,13 +28,15 @@ import {
   useResolveMetaSubmission,
 } from "@/features/admin/hooks/use-admin-meta-submissions";
 import {
-  metaSubmissionExplanation,
-  metaSubmissionKindLabels,
   metaSubmissionReasonLabels,
-  metaSubmissionReasonSentences,
-  metaSubmissionReasonsFor,
   metaSubmissionResolutionHints,
   metaSubmissionResolutionLabels,
+} from "@/features/admin/lib/meta-submission-admin-copy";
+import {
+  metaSubmissionExplanation,
+  metaSubmissionKindLabels,
+  metaSubmissionReasonSentences,
+  metaSubmissionReasonsFor,
   metaSubmissionStatusBadgeVariant,
   metaSubmissionStatusLabels,
 } from "@/features/meta/lib/meta-submission-copy";

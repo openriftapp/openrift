@@ -21,9 +21,7 @@ import {
   basePrintingForLanguage,
   defaultCardLanguage,
 } from "@/features/admin/lib/printing-desk-base";
-import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
-import { useCards } from "@/features/cards/hooks/use-cards";
-import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
+import { CatalogCardSlugSearch } from "@/features/cards/components/catalog-card-slug-search";
 import { catalogKeys, cardsKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { draftImageLabel } from "@/features/catalog-workspace/components/creation/creation-images";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
@@ -89,27 +87,6 @@ function PendingStep({ step, title, hint }: { step: number; title: string; hint:
       </StepTitle>
       <span className="text-muted-foreground ml-auto text-sm">{hint}</span>
     </div>
-  );
-}
-
-function CardSearch({ onPick }: { onPick: (cardSlug: string) => void }) {
-  const [query, setQuery] = useState("");
-  const results = useCatalogCardSearch(query);
-  const { cardsById } = useCards();
-
-  return (
-    <CardSearchDropdown
-      results={results}
-      onSearch={setQuery}
-      onSelect={(cardId) => {
-        const slug = cardsById[cardId]?.slug;
-        if (slug) {
-          onPick(slug);
-        }
-      }}
-      placeholder="Search the catalog…"
-      className="w-full"
-    />
   );
 }
 
@@ -455,7 +432,7 @@ export function ManualPrintingRecord() {
       >
         <div className="flex flex-col gap-2.5">
           <Suspense fallback={<Skeleton className="h-8 w-full" />}>
-            <CardSearch onPick={setCardSlug} />
+            <CatalogCardSlugSearch onPick={setCardSlug} />
           </Suspense>
           <p>
             <Button variant="link" className="h-auto p-0" onClick={() => setDuplicate(!duplicate)}>

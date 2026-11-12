@@ -1,4 +1,4 @@
-import { labelMap } from "@openrift/shared/collections";
+import { labelMap } from "@openrift/shared/enum-label";
 import type { Logger } from "@openrift/shared/logger";
 
 import type { PrintingLabels, WebhookFailure } from "../../system/services/discord-webhook.js";

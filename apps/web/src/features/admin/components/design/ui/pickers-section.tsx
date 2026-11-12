@@ -1,3 +1,4 @@
+import { matchesTextPhrase } from "@openrift/shared/search-fold";
 import { CheckIcon, FolderIcon, HeartIcon, SwordsIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -123,8 +124,7 @@ const EVENT_SUGGESTIONS: ComboboxPickerOption[] = [
 const SEARCH_MIN = 2;
 
 function searchLegends(query: string): ComboboxPickerOption[] {
-  const needle = query.trim().toLowerCase();
-  return LEGEND_OPTIONS.filter((option) => option.label.toLowerCase().includes(needle));
+  return LEGEND_OPTIONS.filter((option) => matchesTextPhrase(query, [option.label]));
 }
 
 const DIALOG_LISTS: PickerOption[] = [

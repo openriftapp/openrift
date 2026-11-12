@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Domain } from "@openrift/shared/types/enums";
 import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
@@ -34,7 +35,7 @@ interface TypeBreakdownProps {
 
 function buildChartConfig(
   domains: Domain[],
-  domainLabels: Record<string, string>,
+  domainLabels: LabelMap,
   colors: Record<string, string>,
 ): ChartConfig {
   const config: ChartConfig = {};

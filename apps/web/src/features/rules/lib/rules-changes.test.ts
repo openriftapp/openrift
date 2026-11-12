@@ -9,7 +9,6 @@ import {
   detectSilentChanges,
   mergeTombstones,
   parseRuleNumberQuery,
-  parseSearchTerms,
   withSourceContent,
 } from "./rules-changes";
 import type { RuleChanges, RuleEntry } from "./rules-changes";
@@ -612,17 +611,6 @@ describe("computeAncestorsByRule", () => {
   });
 });
 
-describe("parseSearchTerms", () => {
-  it("lowercases, trims and splits on whitespace", () => {
-    expect(parseSearchTerms("  Draw   A Card ")).toEqual(["draw", "a", "card"]);
-  });
-
-  it("returns no terms for an empty or whitespace-only query", () => {
-    expect(parseSearchTerms("")).toEqual([]);
-    expect(parseSearchTerms("   ")).toEqual([]);
-  });
-});
-
 describe("computeSearchResult", () => {
   const rules = [
     rule({ ruleNumber: "1", ruleType: "title", content: "Game Concepts" }),
@@ -632,6 +620,7 @@ describe("computeSearchResult", () => {
     rule({ ruleNumber: "103.1.a", content: "A coin flip settles a tie." }),
     rule({ ruleNumber: "2", ruleType: "title", content: "Combat" }),
     rule({ ruleNumber: "200", content: "Units deal damage simultaneously." }),
+    rule({ ruleNumber: "201", content: "A unit&#39;s owner resolves its déploiement." }),
   ];
 
   it("returns nothing for an empty term list", () => {
@@ -664,6 +653,10 @@ describe("computeSearchResult", () => {
 
   it("matches case-insensitively against the rule content", () => {
     expect([...computeSearchResult(rules, "COMBAT").matchSet]).toEqual([5]);
+  });
+
+  it("folds apostrophes and accents on both sides", () => {
+    expect([...computeSearchResult(rules, "unit’s deploiement").matchSet]).toEqual([7]);
   });
 
   it("returns visible indices in ascending order across several matches", () => {

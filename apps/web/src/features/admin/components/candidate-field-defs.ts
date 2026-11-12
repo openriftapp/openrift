@@ -2,6 +2,8 @@ import type {
   AcceptCardField,
   AcceptPrintingField,
 } from "@openrift/shared/contracts/admin/card-mutations";
+import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import type { EnumOrders } from "@openrift/shared/types/enums";
 
 import { hasValue } from "@/features/admin/lib/candidate-cell-values";
@@ -11,9 +13,9 @@ import type { FilterCategory } from "@/lib/icons";
 
 function toLabeledOptions(
   slugs: readonly string[],
-  labels: Record<string, string>,
+  labels: LabelMap,
 ): { value: string; label: string }[] {
-  return slugs.map((slug) => ({ value: slug, label: labels[slug] ?? slug }));
+  return slugs.map((slug) => ({ value: slug, label: enumLabel(labels, slug) }));
 }
 
 export interface FieldDef<TKey extends string = string> {

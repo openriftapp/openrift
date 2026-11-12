@@ -73,7 +73,9 @@ export function MetaPlayerDeckTile({
               className="shrink-0 font-medium"
               render={<Link to="/meta/decks/$token" params={{ token: deck.shareToken }} />}
             >
-              {m.meta_legend_finishes_deck()}
+              {deck.listStatus === "partial"
+                ? m.meta_list_status_partial()
+                : m.meta_legend_finishes_deck()}
             </TextLink>
           </div>
         </div>

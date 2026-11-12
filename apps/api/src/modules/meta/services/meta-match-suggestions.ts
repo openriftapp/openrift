@@ -1,4 +1,6 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { DAY_MS, shiftUtcDay } from "@openrift/shared/format-date";
+import { countNoun } from "@openrift/shared/strings";
 /**
  * Ranks candidate live events/players against a meta archive overlay for
  * manual linking. Ranks only; never applies a suggestion.
@@ -6,7 +8,6 @@ import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { MetaOverlayRowMatch } from "@openrift/shared/types/api/meta";
 
 import type { Repos } from "../../../deps.js";
-import { DAY_MS } from "../lib/meta-durations.js";
 import type { MetaEventWithCounts } from "../repositories/meta-events.js";
 import type { AdminMetaPlayerRow } from "../repositories/meta-players.js";
 
@@ -54,10 +55,6 @@ const MIN_EVENT_SCORE = 4;
 
 /** uvsgames files a multi-day event under the Friday, playriftbound under the Sunday; must stay wide enough to bridge that gap. */
 export const MAX_EVENT_MATCH_DAY_DELTA = 3;
-
-function shiftDay(day: string, days: number): string {
-  return new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
-}
 
 function dayDelta(a: string, b: string): number | null {
   const left = Date.parse(`${a}T00:00:00Z`);
@@ -117,7 +114,7 @@ export function scoreEventMatch(
   const withinWindow = delta !== null && delta <= MAX_EVENT_MATCH_DAY_DELTA;
   if (withinWindow) {
     score += delta === 0 ? 3 : 2;
-    reasons.push(delta === 0 ? "same date" : `${delta} day${delta === 1 ? "" : "s"} apart`);
+    reasons.push(delta === 0 ? "same date" : `${countNoun(delta, "day")} apart`);
   }
 
   const similarity = nameSimilarity(candidate.name, live.name);
@@ -180,8 +177,8 @@ export async function suggestMetaEventMatches(
   }
   const input = { name: candidate.name, eventDate: candidate.eventDate, format: candidate.format };
   const window = await repos.meta.eventIdentitiesInWindow(
-    shiftDay(candidate.eventDate, -MAX_EVENT_MATCH_DAY_DELTA),
-    shiftDay(candidate.eventDate, MAX_EVENT_MATCH_DAY_DELTA),
+    shiftUtcDay(candidate.eventDate, -MAX_EVENT_MATCH_DAY_DELTA),
+    shiftUtcDay(candidate.eventDate, MAX_EVENT_MATCH_DAY_DELTA),
   );
   const top = topEventMatches(input, window, candidate.metaEventId);
   if (top.length === 0) {

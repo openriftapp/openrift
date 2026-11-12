@@ -1,10 +1,5 @@
-import {
-  ZONE_EXPECTED,
-  ZONE_LABELS,
-  requiredZoneProgress,
-  zoneExpected,
-  zoneLabel,
-} from "@openrift/shared/deck-zones";
+import { ZONE_EXPECTED, requiredZoneProgress, zoneExpected } from "@openrift/shared/deck-zones";
+import { deckZoneSchema } from "@openrift/shared/response-schemas";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
@@ -16,25 +11,6 @@ import {
   zoneEmptyReadOnlyLabel,
 } from "./deck-zone-labels";
 
-describe("zoneLabel", () => {
-  it("returns the canonical descriptive label for known zones", () => {
-    expect(zoneLabel("champion")).toBe("Chosen Champion");
-    expect(zoneLabel("main")).toBe("Main Deck");
-    expect(zoneLabel("battlefield")).toBe("Battlefields");
-  });
-
-  it("matches the ZONE_LABELS map for every known zone", () => {
-    for (const [zone, label] of Object.entries(ZONE_LABELS)) {
-      expect(zoneLabel(zone)).toBe(label);
-    }
-  });
-
-  it("falls back to the raw value for unknown zones", () => {
-    expect(zoneLabel("nonsense")).toBe("nonsense");
-    expect(zoneLabel("")).toBe("");
-  });
-});
-
 describe("zone constants", () => {
   it("expects 56 cards across the fixed required zones", () => {
     const requiredTotal = (["legend", "champion", "runes", "battlefield", "main"] as const).reduce(
@@ -45,8 +21,8 @@ describe("zone constants", () => {
   });
 
   it("has an empty-state hint for every labelled zone", () => {
-    for (const zone of Object.keys(ZONE_LABELS)) {
-      expect(zoneEmptyHints()[zone as keyof typeof ZONE_LABELS]).toBeTruthy();
+    for (const zone of deckZoneSchema.options) {
+      expect(zoneEmptyHints()[zone]).toBeTruthy();
     }
   });
 });
@@ -139,8 +115,8 @@ describe("zoneEmptyReadOnlyLabel", () => {
   });
 
   it("covers every labelled zone", () => {
-    for (const zone of Object.keys(ZONE_LABELS)) {
-      const label = zoneEmptyReadOnlyLabel(zone as keyof typeof ZONE_LABELS);
+    for (const zone of deckZoneSchema.options) {
+      const label = zoneEmptyReadOnlyLabel(zone);
       expect(label).toBeTruthy();
       expect(label).not.toBe("Empty");
     }
@@ -154,8 +130,8 @@ describe("zoneAddLabel", () => {
   });
 
   it("covers every labelled zone", () => {
-    for (const zone of Object.keys(ZONE_LABELS)) {
-      expect(zoneAddLabel(zone as keyof typeof ZONE_LABELS)).toBeTruthy();
+    for (const zone of deckZoneSchema.options) {
+      expect(zoneAddLabel(zone)).toBeTruthy();
     }
   });
 });

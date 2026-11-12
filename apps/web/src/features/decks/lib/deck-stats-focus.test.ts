@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
@@ -117,15 +118,39 @@ describe("statsFocusOpeningChance", () => {
 
 describe("statsFocusLabel", () => {
   it("labels each focus kind", () => {
-    expect(statsFocusLabel({ kind: "energy", value: 2 }, {}, {})).toBe("2-energy cards");
-    expect(statsFocusLabel({ kind: "power", value: 1 }, {}, {})).toBe("1-power cards");
-    expect(statsFocusLabel({ kind: "type", value: "unit" }, { unit: "Unit" }, {})).toBe("Units");
-    expect(statsFocusLabel({ kind: "type", value: "gear" }, { gear: "Gear" }, {})).toBe("Gear");
+    expect(statsFocusLabel({ kind: "energy", value: 2 }, labelMapOf({}), labelMapOf({}))).toBe(
+      "2-energy cards",
+    );
+    expect(statsFocusLabel({ kind: "power", value: 1 }, labelMapOf({}), labelMapOf({}))).toBe(
+      "1-power cards",
+    );
     expect(
-      statsFocusLabel({ kind: "rarity", value: "rare", cardKeys: new Set() }, {}, { rare: "Rare" }),
+      statsFocusLabel(
+        { kind: "type", value: "unit" },
+        labelMapOf({ unit: "Unit" }),
+        labelMapOf({}),
+      ),
+    ).toBe("Units");
+    expect(
+      statsFocusLabel(
+        { kind: "type", value: "gear" },
+        labelMapOf({ gear: "Gear" }),
+        labelMapOf({}),
+      ),
+    ).toBe("Gear");
+    expect(
+      statsFocusLabel(
+        { kind: "rarity", value: "rare", cardKeys: new Set() },
+        labelMapOf({}),
+        labelMapOf({ rare: "Rare" }),
+      ),
     ).toBe("Rare cards");
     expect(
-      statsFocusLabel({ kind: "ownership", value: "missing", cardKeys: new Set() }, {}, {}),
+      statsFocusLabel(
+        { kind: "ownership", value: "missing", cardKeys: new Set() },
+        labelMapOf({}),
+        labelMapOf({}),
+      ),
     ).toBe("Cards with missing copies");
   });
 });

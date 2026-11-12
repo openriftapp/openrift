@@ -1,4 +1,5 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { centsToDollars } from "@openrift/shared/money";
 import type { PrintingPricesResponse } from "@openrift/shared/types/api/pricing";
 import type { TimeRange } from "@openrift/shared/types/pricing";
@@ -67,6 +68,6 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
       },
     }),
     enabled: Boolean(printingId),
-    staleTime: 60 * 60 * 1000, // 1 hour
+    staleTime: HOUR_MS,
   });
 }

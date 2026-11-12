@@ -1,3 +1,5 @@
+import { DAY_MS, formatDay } from "@openrift/shared/format-date";
+
 export interface VignettePriceSource {
   price: number;
   phase: number;
@@ -29,5 +31,5 @@ export function tickStep(min: number, max: number): number {
 }
 
 export function chartDay(daysAgo: number): string {
-  return new Date(PRICE_END_DAY - daysAgo * 86_400_000).toISOString().slice(0, 10);
+  return formatDay(new Date(PRICE_END_DAY - daysAgo * DAY_MS));
 }

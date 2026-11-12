@@ -1,4 +1,5 @@
-import type { Domain, Rarity } from "@openrift/shared/types/enums";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import type { CardType, Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { CSSProperties } from "react";
 import { useId } from "react";
@@ -65,7 +66,7 @@ interface CardPlaceholderImageProps {
   energy: number | null;
   might?: number | null;
   power?: number | null;
-  types?: string[];
+  types?: CardType[];
   superTypes?: string[];
   tags?: string[];
   rulesText?: string | null;
@@ -83,7 +84,7 @@ interface CardPlaceholderImageProps {
 }
 
 export function CardPlaceholderImage({
-  name,
+  name: storedName,
   domain,
   energy,
   might,
@@ -104,6 +105,7 @@ export function CardPlaceholderImage({
   tintIcons,
   className,
 }: CardPlaceholderImageProps) {
+  const name = legendDisplayName({ name: storedName, types: types ?? [], tags: tags ?? [] });
   const domainColors = useDomainColors();
   const primaryDomain = domain[0] ?? WellKnown.domain.COLORLESS;
   const runePipIcon =

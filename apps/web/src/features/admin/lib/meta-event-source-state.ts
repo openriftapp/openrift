@@ -1,11 +1,12 @@
 import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta";
+import { pluralize } from "@openrift/shared/strings";
 
-import type { CatalogChipDisplay } from "@/features/meta/lib/meta-catalog-display";
+import type { CatalogChipDisplay } from "@/features/admin/lib/meta-catalog-display";
 import {
   catalogStatusDisplay,
   META_SOURCE_LABELS,
   playloltcgStatusDisplay,
-} from "@/features/meta/lib/meta-catalog-display";
+} from "@/features/admin/lib/meta-catalog-display";
 
 export function sourceStateLifecycle(state: AdminMetaSourceState): CatalogChipDisplay | null {
   switch (state.provider) {
@@ -35,9 +36,9 @@ export function cancelledAtSourceText(
 ): string {
   const source = META_SOURCE_LABELS[cancelled.provider];
   const keeps = [
-    ...(standings > 0 ? [`${standings} ${standings === 1 ? "standing" : "standings"}`] : []),
+    ...(standings > 0 ? [`${standings} ${pluralize(standings, "standing", "standings")}`] : []),
     ...(otherSources > 0
-      ? [`${otherSources} other ${otherSources === 1 ? "source" : "sources"}`]
+      ? [`${otherSources} other ${pluralize(otherSources, "source", "sources")}`]
       : []),
   ];
   return keeps.length === 0

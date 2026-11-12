@@ -1,3 +1,6 @@
+import { enumLabel } from "./enum-label.js";
+import type { LabelMap } from "./enum-label.js";
+
 export interface CardStatFields {
   readonly superTypes: readonly string[];
   readonly types: readonly string[];
@@ -8,28 +11,23 @@ export interface CardStatFields {
 }
 
 export interface CardStatLabels {
-  readonly superTypes: Record<string, string>;
-  readonly cardTypes: Record<string, string>;
-  readonly domains: Record<string, string>;
+  readonly superTypes: LabelMap;
+  readonly cardTypes: LabelMap;
+  readonly domains: LabelMap;
 }
 
-/** Labels are looked up defensively since this also renders in contexts (chat bots) that can't guarantee every slug has a label row. */
 export function describeCardStats(card: CardStatFields, labels: CardStatLabels): string {
   const typeLine = [
-    ...card.superTypes.map((slug) => labels.superTypes[slug]),
-    ...card.types.map((slug) => labels.cardTypes[slug]),
+    ...card.superTypes.map((slug) => enumLabel(labels.superTypes, slug)),
+    ...card.types.map((slug) => enumLabel(labels.cardTypes, slug)),
   ]
-    .filter(Boolean)
+    .filter((label) => label !== "")
     .join(" ");
-  const parts = typeLine ? [typeLine] : [];
-  if (card.domains.length > 0) {
-    parts.push(
-      card.domains
-        .map((slug) => labels.domains[slug])
-        .filter(Boolean)
-        .join(" / "),
-    );
-  }
+  const domainLine = card.domains
+    .map((slug) => enumLabel(labels.domains, slug))
+    .filter((label) => label !== "")
+    .join(" / ");
+  const parts = [typeLine, domainLine].filter((part) => part !== "");
   if (card.energy !== null) {
     parts.push(`Energy ${card.energy}`);
   }

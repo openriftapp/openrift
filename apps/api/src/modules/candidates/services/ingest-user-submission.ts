@@ -11,7 +11,7 @@ import type {
  * candidate card with a per-submission-unique `external_id` and never deletes.
  * Payload mapping and link resolution are shared with candidate-fields.ts / candidate-links.ts.
  */
-import { formatCompactUtcStamp } from "@openrift/shared/format-date";
+import { formatCompactUtcStamp, DAY_MS } from "@openrift/shared/format-date";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 import { shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -37,8 +37,6 @@ import {
 
 /** Per-user cap on in-app submissions in a rolling 24h window. */
 const USER_SUBMISSION_DAILY_LIMIT = 200;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 type IngestRepo = ReturnType<typeof ingestRepo>;
 

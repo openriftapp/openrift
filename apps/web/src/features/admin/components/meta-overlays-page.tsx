@@ -10,7 +10,7 @@ import { MetaOverlayUploadDialog } from "@/features/admin/components/meta-overla
 import { MetaReviewEventGroup } from "@/features/admin/components/meta-review-event-group";
 import { useAdminMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { useMetaEventCorrections } from "@/features/admin/hooks/use-admin-meta-submissions";
-import type { MetaReviewTriage } from "@/features/meta/lib/meta-review-queue";
+import type { MetaReviewTriage } from "@/features/admin/lib/meta-review-queue";
 import {
   META_REVIEW_TRIAGE,
   META_REVIEW_TRIAGE_LABELS,
@@ -18,7 +18,7 @@ import {
   groupReviewQueue,
   sumTriageCounts,
   totalTriageCount,
-} from "@/features/meta/lib/meta-review-queue";
+} from "@/features/admin/lib/meta-review-queue";
 
 const ALL = "all";
 

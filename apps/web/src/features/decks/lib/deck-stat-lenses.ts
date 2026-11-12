@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -62,10 +63,7 @@ export const RARITY_LENS_COLORS: Record<string, string> = {
 // Fallback for a rarity not yet added to RARITY_LENS_COLORS.
 const RARITY_LENS_FALLBACK_COLOR = "var(--color-muted-foreground)";
 
-export function rarityLensSeries(
-  rows: readonly LensRow[],
-  rarityLabels: Record<string, string>,
-): LensSeries[] {
+export function rarityLensSeries(rows: readonly LensRow[], rarityLabels: LabelMap): LensSeries[] {
   return rows.map((row) => ({
     key: row.key,
     label: enumLabel(rarityLabels, row.key),
@@ -77,7 +75,7 @@ export function buildRarityRows(
   cards: readonly DeckBuilderCard[],
   rarityByCardKey: ReadonlyMap<string, string>,
   rarityOrder: readonly string[],
-  rarityLabels: Record<string, string>,
+  rarityLabels: LabelMap,
 ): LensRow[] {
   const totals = new Map<string, number>();
   for (const card of cards) {

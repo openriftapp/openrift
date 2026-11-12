@@ -36,4 +36,10 @@ describe("shareOwnerSchema", () => {
     expect(shareOwnerSchema.safeParse({ displayName: "A", gravatarHash: null }).success).toBe(true);
     expect(shareOwnerSchema.safeParse({ displayName: "A" }).success).toBe(false);
   });
+
+  it("accepts a null display name", () => {
+    expect(shareOwnerSchema.safeParse({ displayName: null, gravatarHash: null }).success).toBe(
+      true,
+    );
+  });
 });

@@ -18,7 +18,7 @@ export function RelatedCardsSection({ related }: { related: CardDetailRelatedCar
           <Link
             key={relatedCard.slug}
             to="/cards/$cardSlug/{-$printingSlug}"
-            params={{ cardSlug: relatedCard.slug }}
+            params={{ cardSlug: relatedCard.slug, printingSlug: undefined }}
             className="group flex flex-col gap-1.5"
           >
             <CardArtThumb

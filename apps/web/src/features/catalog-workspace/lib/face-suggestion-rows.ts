@@ -5,6 +5,7 @@ import {
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
@@ -302,13 +303,13 @@ export function buildFaceSuggestions(
 }
 
 export interface ValueLabels {
-  rarities: Record<string, string>;
-  finishes: Record<string, string>;
-  artVariants: Record<string, string>;
-  cardSizes: Record<string, string>;
-  languages: Record<string, string>;
-  markers: Record<string, string>;
-  channels: Record<string, string>;
+  rarities: LabelMap;
+  finishes: LabelMap;
+  artVariants: LabelMap;
+  cardSizes: LabelMap;
+  languages: LabelMap;
+  markers: LabelMap;
+  channels: LabelMap;
 }
 
 const SLUG_LABEL_GROUPS: Partial<Record<string, keyof ValueLabels>> = {

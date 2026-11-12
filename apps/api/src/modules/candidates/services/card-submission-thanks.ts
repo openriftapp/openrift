@@ -1,3 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { cardUrl } from "@openrift/shared/site-paths";
+
 import type { Repos } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
 import { sendSubmissionAcceptedEmail } from "../../users/services/submission-accepted-notifications.js";
@@ -24,19 +27,22 @@ export async function notifySubmitterOfCardAcceptance(
     const card =
       submission.acceptedCardId === null
         ? undefined
-        : await repos.catalogMutations.getCardById(submission.acceptedCardId);
+        : await repos.catalog.cardNameById(submission.acceptedCardId);
     const submissionsUrl = `${deps.appBaseUrl}/contribute/submissions`;
     const link: ViewLink =
       card === undefined
         ? { viewUrl: submissionsUrl, viewTarget: "submissions" }
         : {
-            viewUrl: `${deps.appBaseUrl}/cards/${encodeURIComponent(card.slug)}`,
+            viewUrl: cardUrl(deps.appBaseUrl, card.slug),
             viewTarget: "card",
           };
 
     await sendSubmissionAcceptedEmail(repos, deps, {
       userId: submission.userId,
-      submission: { kind: "card", cardName: card?.name ?? submission.cardName },
+      submission: {
+        kind: "card",
+        cardName: card === undefined ? submission.cardName : legendDisplayName(card),
+      },
       link,
       submissionsUrl,
     });

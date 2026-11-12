@@ -7,6 +7,7 @@ import type {
   TurnPhase,
   TurnState,
 } from "@openrift/shared/board-state";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { useQuery } from "@tanstack/react-query";
 
 import { hasTurnState, scoreHolder } from "@/features/board-states/lib/board-layout";
@@ -80,7 +81,7 @@ export function BoardTurnBar({ turn }: { turn: BoardTurn }) {
 function DomainGlyph({ domain }: { domain: string }) {
   const hydrated = useHydrated();
   const domains = useQuery({ ...initQueryOptions, enabled: hydrated }).data?.enums.domains;
-  const label = (hydrated ? domains?.find((row) => row.slug === domain)?.label : null) ?? domain;
+  const label = hydrated && domains ? enumLabel(labelMap(domains), domain) : domain;
   return (
     <img src={getFilterIconPath("domains", domain)} alt={label} title={label} className="size-4" />
   );

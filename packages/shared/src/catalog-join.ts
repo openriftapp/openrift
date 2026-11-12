@@ -1,4 +1,5 @@
 import { splitCardBans } from "./card-ban.js";
+import { legendDisplayName } from "./card-name.js";
 import { PRINTING_LEVEL_FIELDS } from "./catalog-printing-fields.js";
 import type { PrintingLevelField } from "./catalog-printing-fields.js";
 import { todayUtc } from "./format-date.js";
@@ -187,7 +188,7 @@ export function joinCatalog(catalog: CatalogSlice): {
               otherSide: {
                 faceId: other.faceId,
                 cardId: other.cardId,
-                cardName: otherCard.name,
+                cardName: legendDisplayName(otherCard),
                 cardSlug: otherCard.slug,
                 shortCode: other.shortCode,
                 finish: other.finish,

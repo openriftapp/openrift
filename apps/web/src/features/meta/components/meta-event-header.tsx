@@ -32,6 +32,7 @@ import {
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { DATE_WORDS } from "@/lib/date-words";
 import { formatCount } from "@/lib/format";
 import { heroStatRowClass } from "@/lib/hero-stat-row";
 import { m } from "@/paraglide/messages.js";
@@ -163,7 +164,9 @@ export function MetaEventHeader({
     // Relative to the reader's clock, so it only renders once hydrated.
     if (hydrated && event.sourceCheckedAt !== null) {
       liveLine.push(
-        m.meta_event_header_checked({ time: formatRelativeTime(event.sourceCheckedAt) }),
+        m.meta_event_header_checked({
+          time: formatRelativeTime(event.sourceCheckedAt, { words: DATE_WORDS }),
+        }),
       );
     }
   }

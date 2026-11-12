@@ -1,4 +1,5 @@
-import { formatPrintingVariantLabel } from "@openrift/shared/printing-label";
+import { labelMapOf } from "@openrift/shared/enum-label";
+import { printingVariantPartsEnglish } from "@openrift/shared/printing-label";
 import { describe, expect, it } from "vitest";
 
 import type { ContributeFormPrinting } from "@/features/contribute/lib/contribute-json";
@@ -8,12 +9,13 @@ import {
   toVariantLabelPrinting,
 } from "@/features/contribute/lib/contribute-printing-labels";
 
-const markerLabels = { promo: "Promo", judge: "Judge" };
+const markerLabels = labelMapOf({ promo: "Promo", judge: "Judge" });
 
 const enumLabels = {
-  artVariants: { normal: "Normal art", alternate: "Alt Art" },
-  finishes: { normal: "Normal", foil: "Foil" },
-  cardSizes: { standard: "Standard", oversized: "Oversized" },
+  artVariants: labelMapOf({ normal: "Normal art", alternate: "Alt Art" }),
+  finishes: labelMapOf({ normal: "Normal", foil: "Foil" }),
+  cardSizes: labelMapOf({ standard: "Standard", oversized: "Oversized" }),
+  languages: labelMapOf({ EN: "English" }),
 };
 
 function printing(overrides: Partial<ContributeFormPrinting> = {}): ContributeFormPrinting {
@@ -21,10 +23,12 @@ function printing(overrides: Partial<ContributeFormPrinting> = {}): ContributeFo
 }
 
 function labelOf(target: ContributeFormPrinting, siblings: ContributeFormPrinting[]): string {
-  return formatPrintingVariantLabel(
-    toVariantLabelPrinting(target, markerLabels),
-    siblings.map((sibling) => toVariantLabelPrinting(sibling, markerLabels)),
-    enumLabels,
+  return (
+    printingVariantPartsEnglish(
+      toVariantLabelPrinting(target, markerLabels),
+      siblings.map((sibling) => toVariantLabelPrinting(sibling, markerLabels)),
+      enumLabels,
+    ).join(" · ") || "Standard"
   );
 }
 
@@ -60,7 +64,7 @@ describe("toVariantLabelPrinting", () => {
       printing({ language: "EN", finish: "foil" }),
       printing({ language: "FR", finish: "normal" }),
     ];
-    expect(siblings.map((p) => labelOf(p, siblings))).toEqual(["[EN]", "[EN] · Foil", "[FR]"]);
+    expect(siblings.map((p) => labelOf(p, siblings))).toEqual(["English", "English · Foil", "FR"]);
   });
 
   it("labels a lone plain printing Standard", () => {

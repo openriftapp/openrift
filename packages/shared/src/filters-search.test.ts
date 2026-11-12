@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { toSearchTerm } from "./filters-search.js";
 import { emptyFilters, makePrinting } from "./filters-test-helpers.js";
 import { filterCards } from "./filters.js";
+import { testSearchContext } from "./test-factories.js";
 import type { CardFilters } from "./types/search.js";
 
 describe("toSearchTerm", () => {
@@ -22,6 +23,7 @@ describe("filterCards search folding", () => {
   const printings = [
     makePrinting({
       printingId: "OGN-101",
+      cardId: "c-dorans",
       shortCode: "OGN-101",
       artist: "黯荧岛Dark Glow",
       printedRulesText: "Give a unit −1 :rb_might:. [Equip] a Gear.",
@@ -35,6 +37,7 @@ describe("filterCards search folding", () => {
     }),
     makePrinting({
       printingId: "OGN-269",
+      cardId: "c-kaisa",
       shortCode: "OGN-269",
       artist: "Jane Doe",
       printedName: "波比，扶弱使者",
@@ -48,6 +51,7 @@ describe("filterCards search folding", () => {
     }),
     makePrinting({
       printingId: "OGN-400",
+      cardId: "c-sterak",
       shortCode: "OGN-400",
       artist: "Jane Doe",
       printedRulesText: "Equip a Gear to deal 1 damage.",
@@ -56,7 +60,7 @@ describe("filterCards search folding", () => {
   ];
 
   const names = (filters: Partial<CardFilters>) =>
-    filterCards(printings, emptyFilters(filters)).map((p) => p.card.name);
+    filterCards(printings, emptyFilters(filters), testSearchContext()).map((p) => p.card.name);
 
   describe("names", () => {
     it.each([
@@ -172,9 +176,13 @@ describe("filterCards search folding", () => {
     it("resolves a translated label whose key was folded", () => {
       // buildTranslationReverseMap folds its keys; the lookup must use the
       // folded term, not a merely lowercased one.
-      const result = filterCards(printings, emptyFilters({ search: "kw:护盾" }), {
-        keywordReverseMap: new Map([["护盾", "Shield"]]),
-      });
+      const result = filterCards(
+        printings,
+        emptyFilters({ search: "kw:护盾" }),
+        testSearchContext({
+          keywordReverseMap: new Map([["护盾", "Shield"]]),
+        }),
+      );
       expect(result.map((p) => p.card.name)).toEqual(["Kai’Sa, Survivor"]);
     });
   });

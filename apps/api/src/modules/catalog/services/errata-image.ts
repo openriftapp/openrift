@@ -1,4 +1,5 @@
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
+import { pluralize } from "@openrift/shared/strings";
 
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
@@ -106,8 +107,8 @@ export async function renderErrataImage(
     element(
       "div",
       { display: "flex", gap: 48, marginTop: 6 },
-      stat(input.cardCount, input.cardCount === 1 ? "card reworded" : "cards reworded"),
-      stat(input.updateCount, input.updateCount === 1 ? "errata update" : "errata updates"),
+      stat(input.cardCount, pluralize(input.cardCount, "card reworded", "cards reworded")),
+      stat(input.updateCount, pluralize(input.updateCount, "errata update", "errata updates")),
     ),
     input.siteHost &&
       element(

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { PrintingLevelField } from "./catalog-printing-fields.js";
+import { shareOwnerSchema } from "./contracts/fields.js";
 import { ERROR_CODES } from "./error-codes.js";
 import type { ErrorCode } from "./error-codes.js";
 import { isAllowedLinkUrl } from "./link-hosts.js";
@@ -523,7 +524,7 @@ export const publicListResponseSchema = z.object({
 export const publicListDetailResponseSchema = z.object({
   list: publicListResponseSchema,
   entries: z.array(listEntryDetailResponseSchema),
-  owner: z.object({ displayName: z.string(), gravatarHash: z.string().nullable() }),
+  owner: shareOwnerSchema,
 });
 
 export const contactMethodSchema = z.object({

@@ -1,4 +1,5 @@
 import { collectionValueHistoryContract } from "@openrift/shared/contracts/collection-value-history";
+import { DAY_MS } from "@openrift/shared/format-date";
 import { TIME_RANGE_DAYS } from "@openrift/shared/types/pricing";
 import type { TimeRange } from "@openrift/shared/types/pricing";
 import { implement } from "@orpc/server";
@@ -14,7 +15,7 @@ export const collectionValueHistoryRouter = {
     const userId = context.userId;
 
     const days = TIME_RANGE_DAYS[query.range as TimeRange];
-    const cutoff = days ? new Date(Date.now() - days * 86_400_000) : null;
+    const cutoff = days ? new Date(Date.now() - days * DAY_MS) : null;
 
     const collectionIds = query.collectionIds?.split(",").filter(Boolean) ?? null;
 

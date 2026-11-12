@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -24,9 +25,9 @@ describe("CardTableRow", () => {
         isSelected={false}
         actionsColumn="none"
         columns="1fr"
-        cardTypeLabels={{}}
-        superTypeLabels={{}}
-        rarityLabels={{ common: "Common" }}
+        cardTypeLabels={labelMapOf({})}
+        superTypeLabels={labelMapOf({})}
+        rarityLabels={labelMapOf({ common: "Common" })}
         setNameBySlug={new Map()}
         onRowClick={() => {}}
       />,
@@ -46,9 +47,9 @@ describe("CardTableRow", () => {
       printing,
       actionsColumn: "none",
       columns: "1fr",
-      cardTypeLabels: {},
-      superTypeLabels: {},
-      rarityLabels: { common: "Common" },
+      cardTypeLabels: labelMapOf({}),
+      superTypeLabels: labelMapOf({}),
+      rarityLabels: labelMapOf({ common: "Common" }),
       setNameBySlug: new Map<string, string>(),
       onRowClick: () => {},
     } as const;
@@ -105,9 +106,9 @@ describe("CardTableRow", () => {
         actionsColumn="none"
         columns="1fr"
         options={{ columns: ["name", "channel"] }}
-        cardTypeLabels={{}}
-        superTypeLabels={{}}
-        rarityLabels={{ common: "Common" }}
+        cardTypeLabels={labelMapOf({})}
+        superTypeLabels={labelMapOf({})}
+        rarityLabels={labelMapOf({ common: "Common" })}
         setNameBySlug={new Map()}
         onRowClick={() => {}}
       />,

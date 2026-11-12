@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { DAY_MS } from "@openrift/shared/format-date";
 import { v7 as uuidv7 } from "uuid";
 
 import type { Io } from "../io.js";
@@ -19,8 +20,6 @@ function findProjectRoot(): string {
 }
 
 export const MEDIA_DIR = join(findProjectRoot(), "media");
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type MediaUploadResult =
   | { status: "ok"; url: string }

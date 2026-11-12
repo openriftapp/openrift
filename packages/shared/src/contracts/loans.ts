@@ -42,7 +42,8 @@ export const loanResponseSchema = z.object({
   role: z.enum(["lender", "borrower"]),
   /**
    * For lender rows, the member borrower; for borrower rows, always the
-   * lender. Null with `counterpartyName` set means a departed member borrower.
+   * lender. Null with `counterpartyName` set means a free-text borrower, null
+   * without a name means a closed account.
    */
   counterparty: loanCounterpartySchema.nullable(),
   /** Free-text borrower name (lender-role rows only). */

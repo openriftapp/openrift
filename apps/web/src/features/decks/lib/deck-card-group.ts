@@ -1,4 +1,5 @@
 import { totalQuantity } from "@openrift/shared/deck-rules";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { CardType } from "@openrift/shared/types/enums";
 
@@ -20,8 +21,8 @@ export interface DeckCardGroup {
 }
 
 export interface DeckCardGroupContext {
-  typeLabels: Record<string, string>;
-  domainLabels: Record<string, string>;
+  typeLabels: LabelMap;
+  domainLabels: LabelMap;
   domainOrder: readonly string[];
   getEntry?: (card: DeckBuilderCard) => CardOwnership | undefined;
 }

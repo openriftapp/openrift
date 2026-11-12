@@ -13,6 +13,7 @@ function loanRow(overrides: Partial<LoanDtoRow> = {}): LoanDtoRow {
     lenderUserId: LENDER_ID,
     borrowerUserId: BORROWER_ID,
     borrowerName: null,
+    borrowerAccountClosed: false,
     printingId: "printing-a",
     cardId: "OGS-001",
     quantity: 3,
@@ -58,10 +59,25 @@ describe("toLoanResponse", () => {
     });
   });
 
-  it("gives the lender a bare name for a borrower who is off the app or departed", () => {
+  it("gives the lender no name for a borrower whose account was closed", () => {
+    const row = loanRow({
+      borrowerUserId: null,
+      borrowerName: "Ekko Timewinder",
+      borrowerAccountClosed: true,
+      borrowerUserName: null,
+      borrowerUserImage: null,
+      borrowerUserEmail: null,
+    });
+    const result = toLoanResponse(row, LENDER_ID);
+    expect(result.counterparty).toBeNull();
+    expect(result.counterpartyName).toBeNull();
+  });
+
+  it("gives the lender a bare name for a borrower who is off the app", () => {
     const row = loanRow({
       borrowerUserId: null,
       borrowerName: "Partial Pat",
+      borrowerAccountClosed: false,
       borrowerUserName: null,
       borrowerUserImage: null,
       borrowerUserEmail: null,

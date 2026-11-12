@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  countNoun,
   capitalize,
   emptyToNull,
   errorMessage,
   escapeHtml,
   isUuid,
   pluralize,
-  sentenceCaseSlug,
   slugifyName,
   straightenApostrophes,
   stringifyUnknown,
@@ -92,22 +92,6 @@ describe("capitalize", () => {
     expect(capitalize("")).toBe("");
   });
 });
-
-describe("sentenceCaseSlug", () => {
-  it("capitalizes only the first word", () => {
-    expect(sentenceCaseSlug("constructed")).toBe("Constructed");
-    expect(sentenceCaseSlug("custom-region")).toBe("Custom region");
-  });
-
-  it("treats underscores as word separators too", () => {
-    expect(sentenceCaseSlug("custom_region")).toBe("Custom region");
-  });
-
-  it("drops empty segments from a doubled or trailing separator", () => {
-    expect(sentenceCaseSlug("custom--region-")).toBe("Custom region");
-  });
-});
-
 describe("titleCaseSlug", () => {
   it("capitalizes every word of a hyphenated slug", () => {
     expect(titleCaseSlug("proving-grounds")).toBe("Proving Grounds");
@@ -191,6 +175,14 @@ describe("escapeHtml", () => {
 
   it("leaves plain text alone", () => {
     expect(escapeHtml("plain")).toBe("plain");
+  });
+});
+
+describe("countNoun", () => {
+  it("prefixes the count to the right noun", () => {
+    expect(countNoun(1, "row")).toBe("1 row");
+    expect(countNoun(3, "row")).toBe("3 rows");
+    expect(countNoun(2, "copy", "copies")).toBe("2 copies");
   });
 });
 

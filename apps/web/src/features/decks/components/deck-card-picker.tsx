@@ -1,3 +1,4 @@
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { XIcon } from "lucide-react";
@@ -7,6 +8,7 @@ import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import type { CardSearchResult } from "@/features/cards/lib/card-search-result";
@@ -18,8 +20,7 @@ import { m } from "@/paraglide/messages.js";
 
 interface CardCandidate {
   cardId: string;
-  cardName: string;
-  altNames?: string[];
+  cardName?: string;
 }
 
 /**
@@ -56,29 +57,29 @@ const PICKER_MIN_QUERY_LENGTH = 1;
 // An empty query lists the whole candidate set for a zone-backed dropdown;
 // a catalog-backed caller turns listAllWhenEmpty off instead.
 function usePickerResults(
-  candidates: CardCandidate[],
+  candidates: readonly CardCandidate[],
   query: string,
   listAllWhenEmpty: boolean,
 ): CardSearchResult[] {
+  const { cardsById, printingsByCardId } = useCards();
   const { getPreferredPrinting } = usePreferredPrinting();
   const { labels } = useEnumOrders();
-  const searchable = candidates.map((card) => ({
-    id: card.cardId,
-    // The matcher only reads `slug` for exact-slug lookups; the id keeps
-    // every entry distinct.
-    slug: card.cardId,
-    name: card.cardName,
-    altNames: card.altNames,
-  }));
-
-  const matches = useCardSearch(
-    searchable,
-    query.trim(),
-    undefined,
-    MAX_PICKER_RESULTS,
-    PICKER_MIN_QUERY_LENGTH,
+  const cards = candidates.map(({ cardId, cardName }) => {
+    const card = cardsById[cardId];
+    return card
+      ? { id: cardId, slug: cardId, name: card.name, types: card.types, tags: card.tags }
+      : { id: cardId, slug: cardId, name: cardName ?? cardId, types: [], tags: [] };
+  });
+  const index = buildCardLookupIndex(
+    cards,
+    cards.flatMap((card) => printingsByCardId.get(card.id) ?? []),
   );
-  const emptyList = listAllWhenEmpty ? searchable.slice(0, MAX_PICKER_RESULTS) : [];
+
+  const matches = useCardSearch(index, query.trim(), MAX_PICKER_RESULTS, PICKER_MIN_QUERY_LENGTH);
+  const rowsById = new Map(index.entries.map((entry) => [entry.card.id, entry.card]));
+  const emptyList = listAllWhenEmpty
+    ? cards.flatMap((card) => rowsById.get(card.id) ?? []).slice(0, MAX_PICKER_RESULTS)
+    : [];
   const shown = query.trim() === "" ? emptyList : matches;
 
   return shown.map((card) => {
@@ -86,7 +87,7 @@ function usePickerResults(
     const detail = printing?.card.types.map((slug) => enumLabel(labels.cardTypes, slug)).join(" ");
     return {
       id: card.id,
-      label: card.name,
+      label: card.displayName,
       detail,
       leading: <PreferredPrintingThumbnail cardId={card.id} className="h-8" />,
       adornment: <CardStats cardId={card.id} />,
@@ -144,7 +145,7 @@ export function CardPicker({
   placeholder,
   listAllWhenEmpty = true,
 }: {
-  candidates: CardCandidate[];
+  candidates: readonly CardCandidate[];
   onSelect: (cardId: string) => void;
   placeholder: string;
   listAllWhenEmpty?: boolean;

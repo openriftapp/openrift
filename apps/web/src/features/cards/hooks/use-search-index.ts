@@ -1,20 +1,17 @@
+import type { CardSearchIndex } from "@openrift/shared/card-search";
 import type { Printing } from "@openrift/shared/types/catalog";
 
-import type { PrintingSearchRow, SearchIndexRows } from "@/features/cards/lib/card-search-rows";
-import { cardSearchRows, printingSearchRows } from "@/features/cards/lib/card-search-rows";
+import type { CardSearchRow, PrintingSearchRow } from "@/features/cards/lib/card-lookup-rows";
+import { cardLookupIndex, printingLookupIndex } from "@/features/cards/lib/card-lookup-rows";
 
-/** Rows for `useCardSearch`, one per printing. Stable while `printings` is. */
 export function usePrintingSearchIndex(
   printings: readonly Printing[],
-): SearchIndexRows<PrintingSearchRow> {
+): CardSearchIndex<PrintingSearchRow> {
   "use memo";
-  return printingSearchRows(printings);
+  return printingLookupIndex(printings);
 }
 
-/** Rows for `useCardSearch`, one per card. Stable while `printings` is. */
-export function useCardSearchIndex(
-  printings: Iterable<Printing>,
-): SearchIndexRows<PrintingSearchRow> {
+export function useCardSearchIndex(printings: Iterable<Printing>): CardSearchIndex<CardSearchRow> {
   "use memo";
-  return cardSearchRows(printings);
+  return cardLookupIndex(printings);
 }

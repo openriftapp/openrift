@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { VariantLabelPrinting } from "@openrift/shared/printing-label";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -6,7 +7,7 @@ import type { ContributeFormPrinting } from "@/features/contribute/lib/contribut
 
 export function toVariantLabelPrinting(
   printing: ContributeFormPrinting,
-  markerLabels: Record<string, string>,
+  markerLabels: LabelMap,
 ): VariantLabelPrinting {
   return {
     language: printing.language ?? "EN",

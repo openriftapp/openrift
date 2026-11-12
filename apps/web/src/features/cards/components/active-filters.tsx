@@ -1,4 +1,4 @@
-import { enumLabel } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { XIcon } from "lucide-react";
@@ -85,8 +85,8 @@ export function ActiveFilters({
   const favoriteMarketplace = useDisplayStore((s) => s.marketplaceOrder[0]);
   const formatPrice = compactFormatterForMarketplace(favoriteMarketplace);
 
-  const markerLabel = (slug: string) =>
-    availableFilters.markers.find((marker) => marker.slug === slug)?.label ?? slug;
+  const markerLabels = labelMap(availableFilters.markers);
+  const markerLabel = (slug: string) => enumLabel(markerLabels, slug);
   const channelBreadcrumbs = buildChannelBreadcrumbsBySlug(availableFilters.distributionChannels);
   const channelLabel = (slug: string) => channelBreadcrumbs.get(slug) ?? slug;
   const valueLabels: Record<ChipValueLabel, (value: string) => string> = {

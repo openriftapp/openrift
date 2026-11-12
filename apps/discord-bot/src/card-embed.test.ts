@@ -306,7 +306,7 @@ describe("buildCardEmbed", () => {
       [
         "Alice · 2×",
         "-# OGN-202/298 2× (Binder)",
-        "Unknown user · 1×",
+        "Unnamed member · 1×",
         "-# OGN-202/298 1× (Binder, Trades)",
       ].join("\n"),
     );

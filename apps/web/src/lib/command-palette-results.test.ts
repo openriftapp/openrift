@@ -218,6 +218,50 @@ describe("buildPaletteGroups", () => {
       expect(nav?.rows[0]).toMatchObject({ id: "nav:/decks" });
     });
 
+    it("matches every typed word in any order, across label and description", () => {
+      const groups = buildPaletteGroups({
+        query: "rules tournament",
+        cards: [],
+        navItems: NAV,
+        helpArticles: HELP,
+        quickAdd: null,
+      });
+      expect(groups.find((group) => group.heading === "Go to")?.rows[0]).toMatchObject({
+        id: "nav:/rules",
+      });
+      const reordered = buildPaletteGroups({
+        query: "deck building",
+        cards: [],
+        navItems: NAV,
+        helpArticles: HELP,
+        quickAdd: null,
+      });
+      expect(reordered.find((group) => group.heading === "Help")?.rows[0]).toMatchObject({
+        id: "help:deck-building",
+      });
+    });
+
+    it("folds accents and apostrophes", () => {
+      const groups = buildPaletteGroups({
+        query: "décks",
+        cards: [],
+        navItems: NAV,
+        helpArticles: HELP,
+        quickAdd: { label: "Add to Mira’s Binder", moveLabel: null },
+      });
+      expect(groups.find((group) => group.heading === "Go to")?.rows[0]).toMatchObject({
+        id: "nav:/decks",
+      });
+      const actions = buildPaletteGroups({
+        query: "mira's",
+        cards: [],
+        navItems: NAV,
+        helpArticles: HELP,
+        quickAdd: { label: "Add to Mira’s Binder", moveLabel: null },
+      });
+      expect(actions.flatMap((group) => group.rows).map((row) => row.kind)).toContain("quickAdd");
+    });
+
     it("keeps the quick-add row only while the query still matches it", () => {
       const quickAdd = { label: "Add to My Binder", moveLabel: null };
       const matching = buildPaletteGroups({

@@ -55,6 +55,43 @@ describe("quickSyntaxSearch", () => {
     expect(results.map((r) => r.cardName)).toEqual(["Ahri"]);
   });
 
+  it("finds a card by a printed name outside the display languages, showing its shown printings", () => {
+    const card = { name: "Royal Guard", types: ["Unit"], energy: 2 };
+    const en = stubPrinting({ cardId: "guard", language: "EN", card });
+    const fr = stubPrinting({ cardId: "guard", language: "FR", printedName: "Garde royal", card });
+
+    const { results } = quickSyntaxSearch('n:"garde royal"', groupByCardId([en, fr]), {
+      limit: 8,
+      preferredLanguages: ["EN"],
+    });
+
+    expect(results.map((r) => r.printings)).toEqual([[en]]);
+  });
+
+  it("needs a shown printing for a clause only a hidden printing meets", () => {
+    const card = { name: "Royal Guard", types: ["Unit"], energy: 2 };
+    const en = stubPrinting({ cardId: "guard", language: "EN", setSlug: "ogn", card });
+    const fr = stubPrinting({
+      cardId: "guard",
+      language: "FR",
+      setSlug: "sfd",
+      shortCode: "OGN-210",
+      printedName: "Garde royal",
+      card,
+    });
+    const options = { limit: 8, preferredLanguages: ["EN"] };
+
+    expect(quickSyntaxSearch("s:sfd", groupByCardId([en, fr]), options).results).toEqual([]);
+    expect(
+      quickSyntaxSearch("garde royal s:sfd", groupByCardId([en, fr]), options).results,
+    ).toEqual([]);
+    expect(
+      quickSyntaxSearch("OGN-210 s:ogn", groupByCardId([en, fr]), options).results.map(
+        (r) => r.printings,
+      ),
+    ).toEqual([[en]]);
+  });
+
   it("caps the rows at the limit but counts every match", () => {
     const map = groupByCardId([unit("A", 1), unit("B", 1), unit("C", 1)]);
 

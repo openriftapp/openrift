@@ -3,6 +3,7 @@ import {
   cardTradeState,
   isLiveCardTradeStatus,
 } from "@openrift/shared/card-trade-lifecycle";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type {
   CardTradeLiveAnnotation,
@@ -204,7 +205,7 @@ export interface MatchCopyDetail {
 /** Mirrors the collection dialog's condition badge. */
 export function matchCopyConditionLabel(
   copy: MatchCopyDetail,
-  labels: { conditions: Record<string, string>; graders: Record<string, string> },
+  labels: { conditions: LabelMap; graders: LabelMap },
 ): string | null {
   if (copy.grader !== null && copy.grade !== null) {
     return `${enumLabel(labels.graders, copy.grader)} ${copy.grade}`;

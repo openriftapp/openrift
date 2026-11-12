@@ -5,25 +5,9 @@
  */
 
 import type { CardTextToken } from "@openrift/shared/card-text";
-import { tokenizeCardText } from "@openrift/shared/card-text";
-import { capitalize } from "@openrift/shared/strings";
+import { glyphWord, tokenizeCardText } from "@openrift/shared/card-text";
 
 import type { GlyphEmojis } from "./glyph-emoji.js";
-
-const ENERGY_PATTERN = /^energy_(?<amount>\d+)$/u;
-const RUNE_PATTERN = /^rune_(?<domain>\w+)$/u;
-
-export function glyphFallback(name: string): string {
-  const energy = ENERGY_PATTERN.exec(name)?.[1];
-  if (energy !== undefined) {
-    return `${energy} energy`;
-  }
-  const rune = RUNE_PATTERN.exec(name)?.[1];
-  if (rune !== undefined) {
-    return `${capitalize(rune)} rune`;
-  }
-  return capitalize(name);
-}
 
 /** Discord prints code-span contents literally; keep the glyph outside the code span. */
 function keywordChip(children: CardTextToken[], emojis: GlyphEmojis): string {
@@ -43,7 +27,7 @@ function keywordChip(children: CardTextToken[], emojis: GlyphEmojis): string {
       switch (token.type) {
         case "glyph": {
           flushRun();
-          parts.push(emojis.get(token.name) ?? glyphFallback(token.name));
+          parts.push(emojis.get(token.name) ?? glyphWord(token.name));
           break;
         }
         case "text": {
@@ -90,7 +74,7 @@ function renderToken(token: CardTextToken, emojis: GlyphEmojis): string {
       return "\n";
     }
     case "glyph": {
-      return emojis.get(token.name) ?? glyphFallback(token.name);
+      return emojis.get(token.name) ?? glyphWord(token.name);
     }
     case "keyword": {
       // The site angles the neighbouring chip's edge for these markers;

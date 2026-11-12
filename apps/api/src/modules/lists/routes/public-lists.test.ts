@@ -84,7 +84,7 @@ describe("GET /api/v1/lists/share/:token", () => {
     expect(mockListsRepo.entriesWithDetailsAnon).toHaveBeenCalledWith(LIST_ID, dbList.kind);
   });
 
-  it("falls back to 'Anonymous' when the owner has no display name", async () => {
+  it("returns a null display name when the owner has none", async () => {
     mockListsRepo.getByShareToken.mockResolvedValue({
       list: dbList,
       ownerName: null,
@@ -95,7 +95,7 @@ describe("GET /api/v1/lists/share/:token", () => {
     const res = await app.request("/api/v1/lists/share/tok-abc");
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json.owner.displayName).toBe("Anonymous");
+    expect(json.owner.displayName).toBeNull();
     expect(json.entries).toEqual([]);
   });
 

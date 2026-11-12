@@ -26,7 +26,6 @@ import {
   useShareListWithFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
-import { listKindNoun } from "@/features/groups/lib/list-intent-meta";
 import { matchOnPrinting } from "@/features/groups/lib/trade-printing";
 import {
   entryForPrinting,
@@ -36,6 +35,7 @@ import {
 } from "@/features/groups/lib/tradelist-exchange";
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
+import { listKindNoun } from "@/lib/list-intent";
 import { m } from "@/paraglide/messages.js";
 
 const NEW_LIST = "__new__";

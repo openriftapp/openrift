@@ -34,6 +34,7 @@ import {
   JOB_KIND_PREFIX,
   TRIGGER_GROUPS,
 } from "@/features/admin/lib/meta-admin-triggers";
+import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
 import type { MetaRunCell } from "@/features/admin/lib/meta-source-overview";
 import {
@@ -45,7 +46,6 @@ import {
   sourceTone,
   triggerKind,
 } from "@/features/admin/lib/meta-source-overview";
-import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 import { cn } from "@/lib/utils";
 
 interface Segment {

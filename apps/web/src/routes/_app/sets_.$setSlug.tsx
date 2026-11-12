@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { cardPath } from "@openrift/shared/site-paths";
 import type { SetDetailResponse } from "@openrift/shared/types/api/catalog";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
@@ -81,7 +82,7 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
       if (!card) {
         continue;
       }
-      items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
+      items.push({ name: legendDisplayName(card), url: cardPath(card.slug) });
     }
     return {
       slug: data.set.slug,

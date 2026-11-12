@@ -281,7 +281,7 @@ export function NewCardRecord({ name }: { name: string }) {
             ? `Accepting creates the card and the ${checked.size} ticked ${pluralize(checked.size, "printing")} under “What gets created”.`
             : "Accepting creates the card. Tick a complete printing under “What gets created” to add it in the same step."}
           {remainingGroups > 0 &&
-            ` ${remainingGroups} unticked ${pluralize(remainingGroups, "printing")} ${remainingGroups === 1 ? "stays" : "stay"} under Printings, New.`}
+            ` ${remainingGroups} unticked ${pluralize(remainingGroups, "printing")} ${pluralize(remainingGroups, "stays", "stay")} under Printings, New.`}
           {!canAccept && " Pick name, types and domains first."}
         </RecordBanner>
       }

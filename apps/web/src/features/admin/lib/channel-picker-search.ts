@@ -1,3 +1,5 @@
+import { foldForSearch } from "@openrift/shared/search-fold";
+
 export interface ChannelSearchOption {
   id: string;
   slug: string;
@@ -7,9 +9,9 @@ export interface ChannelSearchOption {
 }
 
 function rank(option: ChannelSearchOption, query: string): number {
-  const label = option.label.toLowerCase();
-  const slug = option.slug.toLowerCase();
-  const breadcrumb = option.breadcrumb.toLowerCase();
+  const label = foldForSearch(option.label);
+  const slug = foldForSearch(option.slug);
+  const breadcrumb = foldForSearch(option.breadcrumb);
   if (label === query || slug === query) {
     return 0;
   }
@@ -27,7 +29,7 @@ export function searchChannelOptions(
   query: string,
   limit = 8,
 ): ChannelSearchOption[] {
-  const needle = query.trim().toLowerCase();
+  const needle = foldForSearch(query);
   if (needle.length === 0) {
     return options.slice(0, limit);
   }

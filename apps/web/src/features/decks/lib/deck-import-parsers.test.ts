@@ -320,9 +320,9 @@ describe("entriesFromSharedDeck", () => {
     expect(entries[2]!.shortCode).toBeUndefined();
   });
 
-  it("carries display raw fields for the preview row", () => {
+  it("carries the parsed name as the raw field; the row shows the resolved zone itself", () => {
     const entries = entriesFromSharedDeck([publicDeckCard({ zone: "battlefield" })]);
 
-    expect(entries[0]!.rawFields).toEqual({ "Parsed Name": "Iron Ballista", Zone: "Battlefields" });
+    expect(entries[0]!.rawFields).toEqual({ "Parsed Name": "Iron Ballista" });
   });
 });

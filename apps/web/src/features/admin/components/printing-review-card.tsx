@@ -1,5 +1,5 @@
 import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
-import { enumLabel } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import type {
@@ -210,7 +210,7 @@ export function PrintingReviewCard({
     rarities: labels.rarities,
     finishes: labels.finishes,
     artVariants: labels.artVariants,
-    markers: Object.fromEntries(markersData.markers.map((marker) => [marker.slug, marker.label])),
+    markers: labelMap(markersData.markers),
   };
   const setAndFinish = [
     printing.setName ?? printing.setSlug,

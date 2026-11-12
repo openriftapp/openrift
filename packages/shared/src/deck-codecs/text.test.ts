@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { encodeText, parseTextFormat, TEXT_INFERRED_COMMENT } from "./text.js";
+import { encodeText, parseCardListLine, parseTextFormat, TEXT_INFERRED_COMMENT } from "./text.js";
 import type { DeckCodecCard } from "./types.js";
 
 function card(overrides: Partial<DeckCodecCard> & { cardName: string }): DeckCodecCard {
@@ -76,6 +76,13 @@ describe("parseTextFormat", () => {
         rawFields: { "Parsed Name": "Fireball", Zone: "Sideboard" },
       },
     ]);
+  });
+
+  it("keeps the zone header as the user wrote it, and no zone without a header", () => {
+    const { entries } = parseTextFormat("1 Loose Card\n\nMain Deck:\n2 Iron Ballista");
+
+    expect(entries[0]!.rawFields).toEqual({ "Parsed Name": "Loose Card" });
+    expect(entries[1]!.rawFields).toEqual({ "Parsed Name": "Iron Ballista", Zone: "Main Deck" });
   });
 
   it("accepts the alternate header spellings other tools write", () => {
@@ -240,6 +247,12 @@ describe("parseTextFormat", () => {
     expect(entries[0]!.shortCode).toBeUndefined();
   });
 
+  it("keeps a public code from a collection export as the entry's code", () => {
+    const { entries } = parseTextFormat("1 Pouty Poro · OGN-031/298 · EN");
+
+    expect(entries[0]).toMatchObject({ cardName: "Pouty Poro", shortCode: "OGN-031/298" });
+  });
+
   it("skips URL lines", () => {
     const { entries } = parseTextFormat("https://example.com/lists/abc\n\n1x Pouty Poro");
 
@@ -260,5 +273,45 @@ describe("parseTextFormat", () => {
       ["Charm", 3],
     ]);
     expect(warnings).toEqual([]);
+  });
+});
+
+describe("parseCardListLine", () => {
+  it("reads the count in every spelling the exports produce", () => {
+    expect(parseCardListLine("2 Pouty Poro").quantity).toBe(2);
+    expect(parseCardListLine("2x Pouty Poro").quantity).toBe(2);
+    expect(parseCardListLine("x2 Pouty Poro").quantity).toBe(2);
+    expect(parseCardListLine("2× Pouty Poro").quantity).toBe(2);
+    expect(parseCardListLine("Pouty Poro").quantity).toBeNull();
+  });
+
+  it("takes a short, public or set code from the first trailing segment", () => {
+    expect(parseCardListLine("2x Pouty Poro · OGN-031 · Foil · DE")).toMatchObject({
+      name: "Pouty Poro",
+      code: "OGN-031",
+      trailing: ["OGN-031", "Foil", "DE"],
+    });
+    expect(parseCardListLine("1 Pouty Poro · OGN-031/298").code).toBe("OGN-031/298");
+    expect(parseCardListLine("1 Buff · OGN").code).toBeUndefined();
+    expect(parseCardListLine("1 Buff · OGN", (segment) => segment === "OGN").code).toBe("OGN");
+    expect(parseCardListLine("1x Pouty Poro · $0.50").code).toBeUndefined();
+  });
+
+  it("leaves a language or finish segment alone when it is not a code", () => {
+    expect(parseCardListLine("1 Teemo · SC")).toMatchObject({ trailing: ["SC"] });
+    expect(parseCardListLine("1 Teemo · SC").code).toBeUndefined();
+    expect(parseCardListLine("1 Teemo · Foil").code).toBeUndefined();
+    expect(parseCardListLine("1 Teemo · OGN-197 · SC · Foil")).toMatchObject({
+      code: "OGN-197",
+      trailing: ["OGN-197", "SC", "Foil"],
+    });
+  });
+
+  it("splits a double-sided printing into both card names", () => {
+    expect(parseCardListLine("2x Bird // Brush · UNL-T02")).toMatchObject({
+      name: "Bird",
+      pairedName: "Brush",
+      code: "UNL-T02",
+    });
   });
 });

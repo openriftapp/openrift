@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
@@ -92,7 +93,7 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
               {tournament.deckFormat ? (
                 <span className="flex items-center gap-1.5">
                   <LayersIcon className="size-4 shrink-0" />
-                  {formatLabels[tournament.deckFormat]}
+                  {enumLabel(formatLabels, tournament.deckFormat)}
                 </span>
               ) : null}
             </div>
@@ -110,8 +111,7 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
           ) : null}
           {tournament.pendingRequestCount > 0 ? (
             <Badge variant="warning">
-              {tournament.pendingRequestCount} pending request
-              {tournament.pendingRequestCount === 1 ? "" : "s"}
+              {m.tournaments_card_pending_requests({ count: tournament.pendingRequestCount })}
             </Badge>
           ) : null}
         </div>
@@ -122,8 +122,7 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
               totalCount={tournament.participantCount}
               size="sm"
             />
-            {tournament.participantCount} participant
-            {tournament.participantCount === 1 ? "" : "s"}
+            {m.tournaments_card_participants({ count: tournament.participantCount })}
           </div>
         ) : null}
       </div>

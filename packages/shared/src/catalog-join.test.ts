@@ -206,6 +206,23 @@ describe("joinCatalogPrintings double-sided", () => {
     });
   });
 
+  it("names a legend on the other side the way players do", () => {
+    const base = doubleSided(GOLD_ID);
+    const [bird] = joinCatalogPrintings({
+      ...base,
+      cards: {
+        ...base.cards,
+        [GOLD_ID]: card({
+          name: "Emperor of the Sands",
+          slug: "azir",
+          types: ["legend"],
+          tags: ["Azir"],
+        }),
+      },
+    });
+    expect(bird!.otherSide?.cardName).toBe("Azir, Emperor of the Sands");
+  });
+
   it("keeps a printing with the same card on both sides as two entries of that card", () => {
     const sides = joinCatalogPrintings(doubleSided(CARD_ID));
     expect(sides.map((side) => side.cardId)).toEqual([CARD_ID, CARD_ID]);

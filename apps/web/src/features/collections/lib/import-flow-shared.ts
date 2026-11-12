@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { MatchStatus, MatchedEntry } from "@/features/collections/lib/import-matcher";
 import type { ImportEntry } from "@/features/collections/lib/import-parsers";
 import { summarizeMatchedEntries } from "@/features/collections/lib/import-summary";
+import type { ListImportIssue, ListImportLabels } from "@/features/lists/lib/list-import-parser";
 import { parseListImport } from "@/features/lists/lib/list-import-parser";
 import { m } from "@/paraglide/messages.js";
 
@@ -27,14 +28,29 @@ export interface ImportParseSetters {
   setStep: (step: ImportStep) => void;
 }
 
+export function listImportIssueText(issue: ListImportIssue): string {
+  switch (issue.code) {
+    case "unreadable": {
+      return m.lists_import_issue_unreadable({ line: issue.line, text: issue.text });
+    }
+    case "zeroQuantity": {
+      return m.lists_import_issue_zero_quantity({ line: issue.line });
+    }
+    case "missingName": {
+      return m.lists_import_issue_missing_name({ line: issue.line });
+    }
+  }
+}
+
 export function runImportParse(
   text: string,
+  labels: ListImportLabels,
   buildSorted: (entries: ImportEntry[]) => MatchedEntry[],
   setters: ImportParseSetters,
 ): void {
-  const { entries, errors, rowCount } = parseListImport(text);
+  const { entries, errors, issues, rowCount } = parseListImport(text, labels);
   setters.setRowCount(rowCount);
-  setters.setParseErrors(errors);
+  setters.setParseErrors([...errors, ...issues.map((issue) => listImportIssueText(issue))]);
 
   if (entries.length === 0) {
     return;

@@ -18,7 +18,11 @@ import { UserAvatar } from "@/components/user-avatar";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { RegionBadge } from "@/features/tournaments/components/region-badge";
-import { isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
+import {
+  isDoubleForfeitPod,
+  podForDisplay,
+  isWalkoverPod,
+} from "@/features/tournaments/lib/group-cut-units";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
@@ -85,7 +89,7 @@ function podPenaltySummary(penalty: NonNullable<PodResponse["penalty"]>): string
 }
 
 export function PodCard({
-  pod,
+  pod: rawPod,
   teamMode,
   scheme,
   matchFormat,
@@ -127,6 +131,7 @@ export function PodCard({
   onSubmit: (podId: string, results: PodResultEntry[]) => Promise<void>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
 }) {
+  const pod = podForDisplay(rawPod);
   const isMatch = teamMode || isMatchPairing(pod.size);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -349,7 +354,11 @@ export function PodCard({
               <WarningBadge warnings={warnings} nameById={nameById} />
             ) : null}
             {walkover ? (
-              <Badge variant="neutral">{m.tournaments_pod_walkover()}</Badge>
+              <Badge variant="neutral">
+                {isDoubleForfeitPod(pod)
+                  ? m.tournaments_pod_double_forfeit()
+                  : m.tournaments_pod_walkover()}
+              </Badge>
             ) : (
               <PodStatusBadge
                 reported={reported}
@@ -403,7 +412,7 @@ export function PodCard({
                         aria-hidden="true"
                         className="text-muted-foreground/60 py-0.5 text-center text-xs font-medium tracking-wide uppercase"
                       >
-                        vs
+                        {m.tournaments_pod_vs()}
                       </li>,
                     ]
                   : []),

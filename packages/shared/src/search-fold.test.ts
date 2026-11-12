@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   foldCached,
+  foldedFieldsMatchTerms,
   foldForSearch,
+  matchesTextPhrase,
   matchesTextQuery,
+  searchTerms,
   squashCached,
   squashForSearch,
 } from "./search-fold.js";
@@ -126,5 +129,27 @@ describe("matchesTextQuery", () => {
     expect(matchesTextQuery("a", [null, undefined, "a"])).toBe(true);
     expect(matchesTextQuery("  ", ["a"])).toBe(true);
     expect(matchesTextQuery("a", [null])).toBe(false);
+  });
+});
+
+describe("searchTerms", () => {
+  it("folds and splits on whitespace", () => {
+    expect(searchTerms("  Kai’Sa  Évolution ")).toEqual(["kaisa", "evolution"]);
+    expect(searchTerms("   ")).toEqual([]);
+  });
+});
+
+describe("foldedFieldsMatchTerms", () => {
+  it("needs every term in some folded field", () => {
+    expect(foldedFieldsMatchTerms(["kaisa", "hunt"], ["kaisa", "the hunt"])).toBe(true);
+    expect(foldedFieldsMatchTerms(["kaisa", "void"], ["kaisa", "the hunt"])).toBe(false);
+  });
+});
+
+describe("matchesTextPhrase", () => {
+  it("keeps the query as one folded run", () => {
+    expect(matchesTextPhrase("doran's shield", ["Doran’s Shield"])).toBe(true);
+    expect(matchesTextPhrase("shield doran", ["Doran’s Shield"])).toBe(false);
+    expect(matchesTextPhrase(" ", ["x"])).toBe(true);
   });
 });

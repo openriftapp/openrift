@@ -471,7 +471,6 @@
   "shared_link_url_label": "链接 {index} 的网址",
   "shared_link_title_label": "链接 {index} 的标题",
   "shared_link_remove_label": "移除链接 {index}",
-  "shared_unknown_user": "未知用户",
   "common_close": "关闭",
   "ui_quantity_one_fewer": "减少一个",
   "ui_quantity_one_more": "增加一个",
@@ -3761,8 +3760,6 @@
   "loans_group_borrowed": "借入",
   "loans_group_history": "历史记录",
   "loans_card_fallback": "卡牌",
-  "loans_member_fallback": "成员",
-  "loans_former_member": "前成员",
   "loans_quantity": "{count}× {card}",
   "loans_quantity_partial": "{total}× {card} 中仍有 {outstanding} 张在外",
   "loans_to_person": "借给 {name}",
@@ -3908,9 +3905,7 @@
   "trade_pref_reset": "重置为清单默认",
   "trade_pref_edit_aria": "编辑交换偏好（{value}）",
   "trade_pref_set_aria": "设置交换偏好",
-  "groups_a_member": "某位成员",
   "groups_activity_a_card": "某张卡牌",
-  "groups_activity_a_member": "某位成员",
   "groups_activity_collection_shared": "{member} 分享了收藏 {collection}",
   "groups_activity_empty": "暂无动态。随着小组活跃起来，新成员、分享的清单和交换都会显示在这里。",
   "groups_activity_list_shared": "{member} 分享了{noun} {list}",
@@ -3919,8 +3914,6 @@
   "groups_activity_title": "最近动态",
   "groups_activity_trade_batch": "{giver} 向 {receiver} 交换了 {count} 张卡牌",
   "groups_activity_trade_completed": "{giver} 向 {receiver} 交换了 {quantity}× {card}",
-  "groups_activity_you": "你",
-  "groups_activity_you_object": "你",
   "groups_admin_banner_description": "显示在小组名称的背后。",
   "groups_admin_description_label": "简介",
   "groups_admin_enable_invites": "开启邀请",
@@ -4074,7 +4067,6 @@
       }
     }
   ],
-  "groups_member_fallback": "成员",
   "groups_member_has_not_shared": "{member} 还没有向这个小组分享任何收藏或清单。",
   "groups_member_needs_you": "{count} 项需要你处理",
   "groups_member_nothing_here_description": "{member} 还没有向这个小组分享任何清单或收藏，你们之间也还没有交换过。",
@@ -4182,7 +4174,6 @@
   "groups_overview_tournaments_total": "共 {count} 场",
   "groups_overview_waiting_in": "在 {name} 中等待",
   "groups_overview_youre_in": "你参加了 {count} 场",
-  "groups_owner_unknown": "未知",
   "groups_pending_approval": "正在等待管理员批准你的加入申请。",
   "groups_role_admin": "管理员",
   "groups_role_member": "成员",
@@ -4246,8 +4237,6 @@
   "groups_slug_error_min": "至少使用 {count} 个字符",
   "groups_slug_error_pattern": "只能使用小写字母、数字和连字符，并以字母或数字开头",
   "groups_slug_error_reserved": "该地址已被 OpenRift 占用，请另选一个",
-  "groups_this_member": "这位成员",
-  "groups_this_member_capitalized": "这位成员",
   "groups_trade_volume_none": "这里还没有交换记录",
   "groups_trade_volume_quiet": "过去 {days} 天没有交换",
   "groups_trade_volume_recent": [
@@ -4267,7 +4256,6 @@
   "groups_transfer_placeholder": "选择一位成员",
   "groups_transfer_select_aria": "新群主",
   "groups_transfer_title": "转让群主",
-  "groups_unknown_user": "未知用户",
   "binder_contact_label": "联系方式（可选）",
   "binder_contact_placeholder": "Discord: summonerkai",
   "binder_create_pdf": "生成 PDF",
@@ -4521,12 +4509,9 @@
   ],
   "trades_hero_lead": "配对来自成员在小组中共享的心愿单和交换清单。未回复的请求会在 7 天后过期。",
   "trades_view_trades": "查看交换",
-  "trades_member_fallback": "成员",
-  "trades_this_member": "这位成员",
   "trades_this_card": "这张卡牌",
   "trades_card_fallback": "卡牌",
   "trades_them": "对方",
-  "trades_a_member": "某位成员",
   "trades_member_pair": "{first} 和 {second}",
   "trades_member_count": "{count} 位成员",
   "trades_members": [
@@ -4647,7 +4632,6 @@
       }
     }
   ],
-  "trades_request_unknown_user": "未知用户",
   "trades_requested_ago": "{time}提出申请",
   "trades_approve": "批准",
   "trades_deny": "拒绝",
@@ -8646,7 +8630,7 @@
   "tournaments_lib_group_unit_label": "{labels} 组",
   "tournaments_lib_group_waiting_unit": "{label}（第 {number} 轮）",
   "tournaments_lib_pod_score_vs": "{first} 对 {second}",
-  "tournaments_lib_pod_score_both_forfeited": "{first} 和 {second} 均判负",
+  "tournaments_lib_pod_score_both_forfeited": "{first} 和 {second} 均弃权",
   "tournaments_lib_pod_score_defeated": "{first} 战胜 {second}",
   "tournaments_lib_deck_action_lock": "锁定为已提交",
   "tournaments_lib_deck_action_approve": "通过卡组表",
@@ -8743,7 +8727,6 @@
     }
   ],
   "meta_event_organized_by": "由 {organizer} 主办",
-  "meta_list_partial_short": "不完整",
   "tournaments_claim_page_title_loading": "认领你的席位",
   "tournaments_claim_invalid_title": "此认领链接无效",
   "tournaments_claim_invalid_description": "请向主办方索取一个有效的链接。",
@@ -10426,5 +10409,156 @@
   "decks_workbench_showing_all_cards": "正在显示所有卡牌。",
   "decks_workbench_stats_paused_note": "你的数值筛选已暂停。",
   "decks_workbench_show_all_cards": "显示所有卡牌",
-  "decks_workbench_only_allowed_cards": "仅显示允许的卡牌"
+  "decks_workbench_only_allowed_cards": "仅显示允许的卡牌",
+  "common_unnamed_member": "未命名成员",
+  "common_former_member": "前成员",
+  "tier_lists_share_ranked_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已排名 {count} 张卡牌",
+        "countPlural=*": "已排名 {count} 张卡牌"
+      }
+    }
+  ],
+  "user_profile_unnamed_heading": "愿望清单和交换清单",
+  "user_profile_cta_title_unnamed": "看看你能换些什么",
+  "meta_outcome_word_double_forfeit": "双方弃权",
+  "tournaments_pod_double_forfeit": "双方弃权",
+  "tournaments_pairings_earlier_byes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "此前 {count} 次轮空",
+        "countPlural=*": "此前 {count} 次轮空"
+      }
+    }
+  ],
+  "tournaments_pod_vs": "对",
+  "tournaments_pod_points": "{score} 分",
+  "tournaments_pairing_error_team_match": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "第 {match} 场比赛有 {count} 支队伍。每场比赛必须正好 2 支。",
+        "countPlural=*": "第 {match} 场比赛有 {count} 支队伍。每场比赛必须正好 2 支。"
+      }
+    }
+  ],
+  "tournaments_pairing_error_match_size": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "第 {match} 场比赛有 {count} 名玩家。每场比赛必须正好 2 名。",
+        "countPlural=*": "第 {match} 场比赛有 {count} 名玩家。每场比赛必须正好 2 名。"
+      }
+    }
+  ],
+  "tournaments_pairing_error_pod_size": [
+    {
+      "declarations": ["input pod", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "第 {pod} 桌有 {count} 名玩家。每桌必须有 3 或 4 名。",
+        "countPlural=*": "第 {pod} 桌有 {count} 名玩家。每桌必须有 3 或 4 名。"
+      }
+    }
+  ],
+  "tournaments_group_seats_hint_four": "座位决定赛程：第 1 轮 1 号对 2 号、3 号对 4 号；第 2 轮 1 号对 3 号、2 号对 4 号；第 3 轮 1 号对 4 号、2 号对 3 号。",
+  "tournaments_group_seats_hint_five": "座位决定赛程：1 号在第 1 轮跨组对战，2 号在第 2 轮，3 号在第 3 轮；另外两人互相对战。",
+  "tournaments_match_format_bo1": "一局决胜",
+  "tournaments_match_format_bo3": "三局两胜",
+  "meta_submission_sent_line": "提交于 {sent}",
+  "meta_submission_sent_reviewed_line": "提交于 {sent} · 审核于 {reviewed}",
+  "meta_submissions_lead": "你提交到档案库的所有内容，以及每一项的处理结果。",
+  "meta_deck_preview_units": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张单位",
+        "countPlural=*": "{count} 张单位"
+      }
+    }
+  ],
+  "meta_deck_preview_spells": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张法术",
+        "countPlural=*": "{count} 张法术"
+      }
+    }
+  ],
+  "meta_deck_preview_gear": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张装备",
+        "countPlural=*": "{count} 张装备"
+      }
+    }
+  ],
+  "meta_run_finished": "最终 {#strong}{finish}{/strong}",
+  "meta_standings_missing_value": "缺 {amount}",
+  "decks_hero_value_suffix": "价值",
+  "lists_toast_removed_from_list": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已从清单移除 {count} 张卡牌",
+        "countPlural=*": "已从清单移除 {count} 张卡牌"
+      }
+    }
+  ],
+  "lists_toast_marked_sold": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已将 {count} 张卡牌标记为已售出",
+        "countPlural=*": "已将 {count} 张卡牌标记为已售出"
+      }
+    }
+  ],
+  "collections_toast_moved_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已移动 {count} 张卡牌",
+        "countPlural=*": "已移动 {count} 张卡牌"
+      }
+    }
+  ],
+  "collections_toast_removed_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已移除 {count} 张卡牌",
+        "countPlural=*": "已移除 {count} 张卡牌"
+      }
+    }
+  ],
+  "groups_shop_events_today": "今天 · {weekday}",
+  "groups_shop_events_tomorrow": "明天 · {weekday}",
+  "cards_filter_domain_none": "无",
+  "meta_deck_tile_label": "{player} 的卡组列表",
+  "meta_deck_tile_label_legend": "{player} 的 {legend} 卡组列表",
+  "lists_import_issue_unreadable": "第 {line} 行：无法读取“{text}”，应为“<数量> <卡牌名称>”。",
+  "lists_import_issue_zero_quantity": "第 {line} 行：数量必须大于零。",
+  "lists_import_issue_missing_name": "第 {line} 行：缺少卡牌名称。",
+  "groups_activity_trade_batch_you_gave": "你向 {receiver} 交换了 {count} 张卡牌",
+  "groups_activity_trade_batch_you_received": "{giver} 向你交换了 {count} 张卡牌",
+  "groups_activity_trade_completed_you_gave": "你向 {receiver} 交换了 {quantity}× {card}",
+  "groups_activity_trade_completed_you_received": "{giver} 向你交换了 {quantity}× {card}",
+  "trades_sheet_nothing_open_title": "目前没有进行中的交易"
 }

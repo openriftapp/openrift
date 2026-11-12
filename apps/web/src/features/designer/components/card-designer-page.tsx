@@ -1,4 +1,3 @@
-import { slugifyName } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useRef, useState } from "react";
 
@@ -17,6 +16,7 @@ import type { DesignerCard } from "@/features/designer/stores/card-designer-stor
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getPipGlyphTint } from "@/lib/domain";
+import { downloadFilename } from "@/lib/download";
 import { getFilterIconPath, getTypeIconPath } from "@/lib/icons";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";
@@ -84,7 +84,7 @@ export function CardDesignerPage() {
     setRenderClone(true);
     await waitForRender();
     const element = cloneRef.current;
-    const filename = `${slugifyName(cardName, { foldDiacritics: true }) || "riftbound-card"}.png`;
+    const filename = `${downloadFilename({ base: cardName, fallback: "riftbound-card" })}.png`;
     const outcome = element
       ? await exportCardImage(element, action, filename).catch(() => null)
       : null;

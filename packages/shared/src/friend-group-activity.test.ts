@@ -79,6 +79,16 @@ describe("aggregateActivityEvents", () => {
     ]);
   });
 
+  it("never merges trades with a closed account, which has no id to match on", () => {
+    const toFirstClosed = trade({ receiverUserId: null, receiverName: null });
+    const toSecondClosed = trade({ receiverUserId: null, receiverName: null });
+    const rows = aggregateActivityEvents([toFirstClosed, toSecondClosed]);
+    expect(rows).toEqual([
+      { kind: "event", at: toFirstClosed.at, event: toFirstClosed },
+      { kind: "event", at: toSecondClosed.at, event: toSecondClosed },
+    ]);
+  });
+
   it("does not merge same-pair trades separated by another event", () => {
     const before = trade();
     const interruption = memberJoined("2026-07-15T11:30:00.000Z");

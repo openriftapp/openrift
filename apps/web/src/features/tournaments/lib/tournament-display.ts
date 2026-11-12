@@ -1,6 +1,8 @@
+import { localDayDiff } from "@openrift/shared/format-date";
 import type { EffectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type {
+  OrganizationRole,
   TournamentDeckPhase,
   TournamentDeckSubmission,
   TournamentFormat,
@@ -46,10 +48,12 @@ export const PLAY_MODE_ITEMS: { value: TournamentPlayMode; label: string }[] = [
   { value: "2v2", label: "2v2" },
 ];
 
-export const MATCH_FORMAT_LABEL: Record<TournamentMatchFormat, string> = {
-  bo1: "Best of 1",
-  bo3: "Best of 3",
-};
+export function matchFormatLabels(): Record<TournamentMatchFormat, string> {
+  return {
+    bo1: m.tournaments_match_format_bo1(),
+    bo3: m.tournaments_match_format_bo3(),
+  };
+}
 
 // "None" is deliberately not an option: the pairings-enable switch owns that state.
 export type TournamentRoundsChoice =
@@ -164,6 +168,14 @@ export function staffRoleLabels(): Record<TournamentStaffRole, string> {
   };
 }
 
+export function organizationRoleLabels(): Record<OrganizationRole, string> {
+  return {
+    owner: m.tournaments_org_role_owner(),
+    manager: m.tournaments_org_role_manager(),
+    judge: m.tournaments_org_role_judge(),
+  };
+}
+
 export function viewerRoleLabels(): Record<TournamentViewerRole, string> {
   return {
     host: m.tournaments_lib_viewer_role_host(),
@@ -231,16 +243,11 @@ export function tournamentContextLabel(
   return tournament.host.type === "organization" ? tournament.host.displayName : null;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export function formatStartsIn(iso: string, now: Date = new Date()): string | null {
-  const start = new Date(iso);
-  if (start.getTime() <= now.getTime()) {
+  if (new Date(iso).getTime() <= now.getTime()) {
     return null;
   }
-  const startOfDay = (date: Date) =>
-    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const days = Math.round((startOfDay(start) - startOfDay(now)) / DAY_MS);
+  const days = localDayDiff(now, iso);
   if (days <= 0) {
     return m.tournaments_lib_starts_in_today();
   }

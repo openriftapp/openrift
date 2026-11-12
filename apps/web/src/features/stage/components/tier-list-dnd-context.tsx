@@ -8,6 +8,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { TIER_LABEL_INK, tierColor } from "@openrift/shared/tier-colors";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
@@ -157,7 +158,7 @@ function DragPreview({
     <CardDragGhost
       printings={shown ? [shown] : []}
       card={card}
-      label={card.name}
+      label={legendDisplayName(card)}
       width={tileWidth}
       className="opacity-90"
     />

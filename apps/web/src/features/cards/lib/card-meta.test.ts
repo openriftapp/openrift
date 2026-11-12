@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type {
   CardDetailResponse,
   CatalogPrintingResponse,
@@ -70,8 +71,8 @@ function makePrinting(rulesText: string | null): CatalogPrintingResponse {
 }
 
 const labels = {
-  domains: { fury: "Fury", calm: "Calm" },
-  cardTypes: { unit: "Unit", legend: "Legend", gear: "Gear" },
+  domains: labelMapOf({ fury: "Fury", calm: "Calm" }),
+  cardTypes: labelMapOf({ unit: "Unit", legend: "Legend", gear: "Gear" }),
 };
 
 describe("buildCardMetaDescription", () => {
@@ -91,24 +92,24 @@ describe("buildCardMetaDescription", () => {
     );
   });
 
-  it("strips :emoji_shortcodes: from rules text", () => {
+  it("reads :emoji_shortcodes: in rules text as words", () => {
     const result = buildCardMetaDescription(
       baseCard,
       makePrinting("Costs :rb_energy_2: less."),
       labels,
     );
     expect(result).not.toContain(":rb_energy_2:");
-    expect(result).toContain("Costs less.");
+    expect(result).toContain("Costs 2 energy less.");
   });
 
-  it("strips [keyword:foo] markup from rules text", () => {
+  it("keeps the keyword word and drops its brackets", () => {
     const result = buildCardMetaDescription(
       baseCard,
       makePrinting("[Equip] this to a unit."),
       labels,
     );
     expect(result).not.toContain("[Equip]");
-    expect(result).toContain("this to a unit.");
+    expect(result).toContain("Equip this to a unit.");
   });
 
   it("strips markdown emphasis markers from rules text", () => {
@@ -127,7 +128,7 @@ describe("buildCardMetaDescription", () => {
       makePrinting("_Pay :rb_energy_2: first._"),
       labels,
     );
-    expect(result).toContain("Pay first.");
+    expect(result).toContain("Pay 2 energy first.");
   });
 
   it("strips the bullet markers on a multi-line effect list", () => {
@@ -152,7 +153,7 @@ describe("buildCardMetaDescription", () => {
     const long = "a ".repeat(200);
     const result = buildCardMetaDescription(baseCard, makePrinting(long), labels);
     expect(result.length).toBeLessThanOrEqual(155);
-    expect(result.endsWith("...")).toBe(true);
+    expect(result.endsWith("…")).toBe(true);
   });
 
   it("inserts the price line between the type sentence and the rules text", () => {
@@ -176,7 +177,7 @@ describe("buildCardMetaDescription", () => {
   });
 
   it("omits the rules-text segment entirely when it strips down to nothing", () => {
-    const result = buildCardMetaDescription(baseCard, makePrinting(":rb_energy_2:"), labels);
+    const result = buildCardMetaDescription(baseCard, makePrinting("[>]"), labels);
     expect(result).toBe("Brazen Buccaneer is a Fury Unit card from Riftbound.");
   });
 });

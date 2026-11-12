@@ -154,7 +154,7 @@ describe("GET /api/v1/collections/share/:token", () => {
     expect(json.items[0]).not.toHaveProperty("notesPrivate");
   });
 
-  it("falls back to 'Anonymous' when the owner has no display name", async () => {
+  it("returns a null display name when the owner has none", async () => {
     mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbCollection,
       ownerName: null,
@@ -163,7 +163,7 @@ describe("GET /api/v1/collections/share/:token", () => {
 
     const res = await app.request("/api/v1/collections/share/tok-abc");
     const json = await readJson(res);
-    expect(json.owner.displayName).toBe("Anonymous");
+    expect(json.owner.displayName).toBeNull();
   });
 
   it("returns 404 when the token is not found or the collection is not public", async () => {

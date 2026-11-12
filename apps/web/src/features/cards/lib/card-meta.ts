@@ -1,6 +1,9 @@
 import type { CardNameParts } from "@openrift/shared/card-name";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { cardTextPlain, truncateAtWord } from "@openrift/shared/card-text";
+import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
@@ -77,21 +80,19 @@ export function resolveCardMetaPrinting<T extends MetaPrinting>(
   );
 }
 
-// Strips rules-text markup so emoji shortcodes (`:rb_energy_2:`), `[keyword:foo]`
-// macros and markdown emphasis don't leak into unfurls.
 export function buildCardMetaDescription(
   card: CardDetailResponse["card"],
   printing: Pick<MetaPrinting, "printedRulesText"> | undefined,
-  labels?: { domains?: Record<string, string>; cardTypes?: Record<string, string> },
+  labels: { domains: LabelMap; cardTypes: LabelMap },
   offers?: readonly CardMarketplaceOffer[],
 ): string {
   const parts: string[] = [];
 
   const domainLabels =
     card.domains.length > 0
-      ? card.domains.map((slug) => labels?.domains?.[slug] ?? slug).join("/")
+      ? card.domains.map((slug) => enumLabel(labels.domains, slug)).join("/")
       : null;
-  const typeLabel = card.types.map((slug) => labels?.cardTypes?.[slug] ?? slug).join(" ");
+  const typeLabel = card.types.map((slug) => enumLabel(labels.cardTypes, slug)).join(" ");
   const typeLine = domainLabels ? `${domainLabels} ${typeLabel}` : typeLabel;
   parts.push(`${legendDisplayName(card)} is a ${typeLine} card from Riftbound.`);
 
@@ -102,21 +103,9 @@ export function buildCardMetaDescription(
 
   const rulesText = printing?.printedRulesText;
   if (rulesText) {
-    // Emphasis markers come off after the shortcodes: `:rb_energy_2:` carries
-    // underscores of its own and would stop matching otherwise.
-    const cleaned = rulesText
-      .replaceAll(/\[.*?\]/gu, "")
-      .replaceAll(/:[a-z0-9_]+:/giu, "")
-      .replaceAll(/[*_]/gu, "")
-      .replaceAll(/\s+/gu, " ")
-      .trim();
-    if (cleaned.length > 0) {
-      const remaining = META_DESCRIPTION_LIMIT - parts.join(" ").length - 1;
-      if (cleaned.length > remaining) {
-        parts.push(`${cleaned.slice(0, remaining - 3)}...`);
-      } else {
-        parts.push(cleaned);
-      }
+    const plain = cardTextPlain(rulesText);
+    if (plain.length > 0) {
+      parts.push(truncateAtWord(plain, META_DESCRIPTION_LIMIT - parts.join(" ").length - 1));
     }
   }
 

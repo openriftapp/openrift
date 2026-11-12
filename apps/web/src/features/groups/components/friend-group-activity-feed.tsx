@@ -21,10 +21,15 @@ import {
   buildActivityDays,
   distinctPrintingIds,
 } from "@/features/groups/lib/friend-group-activity";
-import { LIST_INTENT_ICON, listIntentNoun } from "@/features/groups/lib/list-intent-meta";
+import {
+  tradeBatchText,
+  tradeCompletedText,
+} from "@/features/groups/lib/friend-group-activity-copy";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { DATE_WORDS } from "@/lib/date-words";
+import { LIST_INTENT_ICON, listIntentNoun } from "@/lib/list-intent";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 const FEED_ROWS = 10;
@@ -128,17 +133,7 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
       <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
       <CardArtThumbStack items={thumbs} thumbClassName="w-6" />
       <span className="text-muted-foreground line-clamp-2 min-w-0 flex-1 text-sm">
-        {m.groups_activity_trade_batch({
-          giver:
-            batch.giverUserId === viewerId
-              ? m.groups_activity_you()
-              : (batch.giverName ?? m.groups_activity_a_member()),
-          count: batch.totalQuantity,
-          receiver:
-            batch.receiverUserId === viewerId
-              ? m.groups_activity_you_object()
-              : (batch.receiverName ?? m.groups_a_member()),
-        })}
+        {tradeBatchText(batch, viewerId)}
       </span>
     </RowListLink>
   );
@@ -179,21 +174,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
       return (
         <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
           <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
-          {text(
-            m.groups_activity_trade_completed({
-              giver:
-                event.giverUserId === viewerId
-                  ? m.groups_activity_you()
-                  : (event.giverName ?? m.groups_activity_a_member()),
-              quantity: event.quantity,
-              card: cardName(event),
-              receiver:
-                event.receiverUserId === viewerId
-                  ? m.groups_activity_you_object()
-                  : (event.receiverName ?? m.groups_a_member()),
-            }),
-            thumb(event),
-          )}
+          {text(tradeCompletedText(event, cardName(event), viewerId), thumb(event))}
         </RowListLink>
       );
     }
@@ -203,7 +184,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
           <IconChip icon={SparklesIcon} tone="primary" size="sm" shape="round" />
           {text(
             m.groups_activity_match({
-              member: event.counterpartyName ?? m.groups_activity_a_member(),
+              member: memberName(event.counterpartyName),
               card: cardName(event),
             }),
             thumb(event),
@@ -225,7 +206,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
           />
           {text(
             m.groups_activity_member_joined({
-              member: event.userName ?? m.groups_activity_a_member(),
+              member: memberName(event.userName),
             }),
           )}
         </RowListLink>
@@ -240,7 +221,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
           <IconChip icon={Icon} size="sm" shape="round" />
           {text(
             m.groups_activity_list_shared({
-              member: event.userName ?? m.groups_activity_a_member(),
+              member: memberName(event.userName),
               noun: listIntentNoun(event.listIntent),
               list: event.listName,
             }),
@@ -261,7 +242,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
           <IconChip icon={FolderIcon} size="sm" shape="round" />
           {text(
             m.groups_activity_collection_shared({
-              member: event.userName ?? m.groups_activity_a_member(),
+              member: memberName(event.userName),
               collection: event.collectionName,
             }),
           )}

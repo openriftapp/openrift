@@ -8,7 +8,13 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
-import { podSizeOf, pointsForPod, pointsForTeamPod, teamsOf } from "./pod-points.js";
+import {
+  isResultlessPod,
+  podSizeOf,
+  pointsForPod,
+  pointsForTeamPod,
+  teamsOf,
+} from "./pod-points.js";
 import type { PodRosterPlayer, PodScoring } from "./pod-tournaments-shared.js";
 import { ROSTER_STATUSES } from "./pod-tournaments-shared.js";
 
@@ -111,6 +117,9 @@ function foldFinalized(
   for (const [, members] of Map.groupBy(rows, (row) => row.podId)) {
     const size = podSizeOf(members[0]?.size ?? 4);
     const teams = scoring.playMode === "2v2" ? teamsOf(members) : null;
+    if (isResultlessPod(members, teams)) {
+      continue;
+    }
     const points = teams
       ? pointsForTeamPod(members, teams, scoring)
       : pointsForPod(

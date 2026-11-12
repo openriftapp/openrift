@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { FilterCardsOptions } from "../filters-shared.js";
 import { emptyFilters, makePrinting } from "../filters-test-helpers.js";
 import { filterCards } from "../filters.js";
+import { testSearchContext } from "../test-factories.js";
 import type { Printing } from "../types/catalog.js";
 import type { SearchVocabulary } from "./bind.js";
 import { searchPredicate, sortByPreference } from "./evaluate.js";
@@ -120,7 +121,7 @@ const options: FilterCardsOptions = {
 };
 
 function names(search: string, printings: Printing[] = all, opts: FilterCardsOptions = options) {
-  return filterCards(printings, emptyFilters({ search }), opts).map(
+  return filterCards(printings, emptyFilters({ search }), testSearchContext(opts)).map(
     (printing) => printing.card.name,
   );
 }
@@ -292,12 +293,18 @@ describe("search query evaluation", () => {
     });
 
     it("tells reprints from first printings", () => {
-      expect(filterCards(printings, emptyFilters({ search: "is:reprint" }))).toEqual([reprint]);
-      expect(filterCards(printings, emptyFilters({ search: "is:firstprint" }))).toEqual([garen]);
+      expect(
+        filterCards(printings, emptyFilters({ search: "is:reprint" }), testSearchContext()),
+      ).toEqual([reprint]);
+      expect(
+        filterCards(printings, emptyFilters({ search: "is:firstprint" }), testSearchContext()),
+      ).toEqual([garen]);
     });
 
     it("treats a printing with a marker as a promo", () => {
-      expect(filterCards(printings, emptyFilters({ search: "is:promo" }))).toEqual([reprint]);
+      expect(
+        filterCards(printings, emptyFilters({ search: "is:promo" }), testSearchContext()),
+      ).toEqual([reprint]);
     });
   });
 

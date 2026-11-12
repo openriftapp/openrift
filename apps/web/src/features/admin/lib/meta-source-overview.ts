@@ -1,4 +1,6 @@
 import type { MetaSource, MetaSyncStatus } from "@openrift/shared/contracts/admin/meta-catalog";
+import { HOUR_MS } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 
 import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import { BACKFILL_KIND, TRIGGER_GROUPS } from "@/features/admin/lib/meta-admin-triggers";
@@ -14,9 +16,9 @@ export interface MetaRunCell {
   detail: string;
 }
 
-const REFRESH_STALE_MS = 26 * 60 * 60 * 1000;
+const REFRESH_STALE_MS = 26 * HOUR_MS;
 
-const OVERDUE_LIMIT_MS = 2 * 60 * 60 * 1000;
+const OVERDUE_LIMIT_MS = 2 * HOUR_MS;
 
 export function refreshKind(source: MetaSource): string {
   return `meta.${source}_sync`;
@@ -112,7 +114,7 @@ export function refreshCell(run: MetaRun | undefined, scheduled: boolean, now: D
     parts.push(`${published.toLocaleString()} published`);
   }
   if (errors.length > 0) {
-    parts.push(`${errors.length.toLocaleString()} ${errors.length === 1 ? "error" : "errors"}`);
+    parts.push(`${errors.length.toLocaleString()} ${pluralize(errors.length, "error", "errors")}`);
   }
   const stale = scheduled && now.getTime() - new Date(run.startedAt).getTime() > REFRESH_STALE_MS;
   return {
@@ -137,7 +139,7 @@ export function collectDetail(run: MetaRun): MetaRunCell {
   const players = numberOf(result, "players");
   const detail =
     fetched > 0
-      ? `${fetched.toLocaleString()} ${fetched === 1 ? "event" : "events"}, ${players.toLocaleString()} players`
+      ? `${fetched.toLocaleString()} ${pluralize(fetched, "event", "events")}, ${players.toLocaleString()} players`
       : numberOf(result, "due") === 0
         ? "nothing due"
         : "nothing new";
@@ -146,7 +148,7 @@ export function collectDetail(run: MetaRun): MetaRunCell {
     at: run.startedAt,
     detail:
       errors.length > 0
-        ? `${detail} · ${errors.length.toLocaleString()} ${errors.length === 1 ? "error" : "errors"}`
+        ? `${detail} · ${errors.length.toLocaleString()} ${pluralize(errors.length, "error", "errors")}`
         : detail,
   };
 }

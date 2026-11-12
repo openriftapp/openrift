@@ -1,5 +1,4 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -25,21 +24,8 @@ import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/
 import { deckPrintingIds, listPrintingIds } from "@/features/stage/lib/present-queue-sources";
 import { useUserId } from "@/hooks/use-session";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
+import { listIntentLabel } from "@/lib/list-intent";
 import { m } from "@/paraglide/messages.js";
-
-function intentLabel(intent: ListIntent): string {
-  switch (intent) {
-    case "wish": {
-      return m.lists_intent_label_wish();
-    }
-    case "trade": {
-      return m.lists_intent_label_trade();
-    }
-    default: {
-      return m.lists_intent_label_organize();
-    }
-  }
-}
 
 export interface QueueSource {
   label: string;
@@ -207,7 +193,7 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
             key={list.id}
             id={list.id}
             name={list.name}
-            detail={intentLabel(list.intent)}
+            detail={listIntentLabel(list.intent)}
             busy={busyId === list.id}
             onSelect={() => void pickList(list.id, list.name)}
           />

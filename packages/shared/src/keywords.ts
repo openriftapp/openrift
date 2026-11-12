@@ -1,5 +1,6 @@
 import type { CardTextToken } from "./card-text.js";
 import { tokenizeCardText } from "./card-text.js";
+import { foldForSearch } from "./search-fold.js";
 
 /**
  * The tokenizer folds `[>]` / `[>>]` shape markers into the keyword they
@@ -76,4 +77,14 @@ export function extractKeywords(text: string): string[] {
     }
   }
   return [...found];
+}
+
+export function keywordReverseMap(
+  translations: Iterable<{ keywordName: string; label: string }>,
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const { keywordName, label } of translations) {
+    map.set(foldForSearch(label), keywordName);
+  }
+  return map;
 }

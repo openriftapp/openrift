@@ -1,5 +1,9 @@
 import { DEFAULT_DOMAIN_COLORS, DOMAIN_COLOR_FALLBACK } from "@openrift/shared/domain-colors";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
+
+import { m } from "@/paraglide/messages.js";
 
 import { contrastGlyphTint } from "./color";
 
@@ -66,8 +70,11 @@ export function getPipGlyphTint(
   return contrastGlyphTint(resolve(colors, domains[0] ?? WellKnown.domain.COLORLESS));
 }
 
-export function formatDomainFilterLabel(value: string, labels?: Record<string, string>): string {
-  return value === WellKnown.domain.COLORLESS ? "None" : (labels?.[value] ?? value);
+export function formatDomainFilterLabel(value: string, labels?: LabelMap): string {
+  if (value === WellKnown.domain.COLORLESS) {
+    return m.cards_filter_domain_none();
+  }
+  return labels === undefined ? value : enumLabel(labels, value);
 }
 
 const MAX_DOMAINS = 2;

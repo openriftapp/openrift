@@ -1,5 +1,7 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/server-only";
+import { HOUR_MS } from "@openrift/shared/format-date";
+
 import { isIndexableRequest } from "./indexing";
 import type { SitemapInput } from "./sitemap";
 import {
@@ -11,7 +13,7 @@ import {
 
 export const SITEMAP_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=7200";
 
-const SITEMAP_DATA_TTL_MS = 60 * 60 * 1000;
+const SITEMAP_DATA_TTL_MS = HOUR_MS;
 
 interface RenderedFile {
   body: string;

@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { BuildCardShareInputArgs } from "./card-share-input.js";
@@ -49,10 +50,10 @@ function args(overrides: Partial<BuildCardShareInputArgs> = {}): BuildCardShareI
       { printingId: "p-kr", marketplace: "cardtrader", marketCents: 50 },
     ],
     labels: {
-      domains: { fury: "Fury" },
-      superTypes: {},
-      cardTypes: { unit: "Unit" },
-      rarities: { common: "Common" },
+      domains: labelMapOf({ fury: "Fury" }),
+      superTypes: labelMapOf({}),
+      cardTypes: labelMapOf({ unit: "Unit" }),
+      rarities: labelMapOf({ common: "Common" }),
     },
     ...overrides,
   };

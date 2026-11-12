@@ -48,7 +48,7 @@ export function TierListShareDialog({
       }}
       image={{
         title,
-        filenameBase: title || "tier-list",
+        filename: { base: title, fallback: "tier-list", id: tierListId },
         buildUrl: (choice) =>
           tierListOwnerImageUrl(getSiteUrl(), tierListId, {
             aspect: choice.aspect,
@@ -62,11 +62,11 @@ export function TierListShareDialog({
           <p className="text-muted-foreground text-sm">{m.tier_lists_share_dirty_note()}</p>
         ) : null,
       }}
-      qrFilenameBase={title || "tier-list"}
+      qrFilename={{ base: title, fallback: "tier-list", id: tierListId }}
       print={{
         defaultTitle: title,
         defaultSubtitle: m.tier_lists_share_print_subtitle(),
-        filenameHint: title,
+        filename: { base: title, fallback: "tier-list", id: tierListId },
       }}
     />
   );

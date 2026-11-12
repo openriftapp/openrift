@@ -13,6 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useReferralUrl } from "@/features/account/hooks/use-referral";
 import { BinderSheetPanel } from "@/features/groups/components/binder-sheet-panel";
+import type { DownloadName } from "@/lib/download";
 import { m } from "@/paraglide/messages.js";
 
 const QR_LABEL: Record<ShareNoun, () => string> = {
@@ -57,7 +58,7 @@ interface SharePanelText {
 interface SharePanelPrint {
   defaultTitle: string;
   defaultSubtitle: string;
-  filenameHint?: string;
+  filename?: DownloadName;
 }
 
 export interface SharePanelProps {
@@ -72,7 +73,7 @@ export interface SharePanelProps {
   text?: SharePanelText;
   print?: SharePanelPrint;
   /** Slugged into the QR download filename; omit on surfaces with no QR output. */
-  qrFilenameBase?: string;
+  qrFilename?: DownloadName;
 }
 
 function NeedsLinkNote({ reason }: { reason: string }) {
@@ -106,7 +107,7 @@ export function SharePanel({
   image,
   text,
   print,
-  qrFilenameBase,
+  qrFilename,
 }: SharePanelProps) {
   const [tab, setTab] = useState<string | null>(null);
   const [confirmStopOpen, setConfirmStopOpen] = useState(false);
@@ -128,7 +129,7 @@ export function SharePanel({
       body: <ShareImagePanel {...image} />,
     });
   }
-  if (qrFilenameBase !== undefined) {
+  if (qrFilename !== undefined) {
     outputs.push({
       value: "qr",
       label: m.share_output_qr(),
@@ -136,7 +137,7 @@ export function SharePanel({
         url === null ? (
           <NeedsLinkNote reason={m.share_needs_link_qr_reason()} />
         ) : (
-          <ShareQrPanel url={url} label={QR_LABEL[noun]()} filenameBase={qrFilenameBase} />
+          <ShareQrPanel url={url} label={QR_LABEL[noun]()} filename={qrFilename} />
         ),
     });
   }
@@ -152,7 +153,7 @@ export function SharePanel({
             shareUrl={url}
             defaultTitle={print.defaultTitle}
             defaultSubtitle={print.defaultSubtitle}
-            filenameHint={print.filenameHint}
+            filename={print.filename}
           />
         ),
     });

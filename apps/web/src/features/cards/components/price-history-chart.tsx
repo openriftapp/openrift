@@ -1,4 +1,4 @@
-import { formatShortDayYear } from "@openrift/shared/format-date";
+import { formatShortDayYear, DAY_MS } from "@openrift/shared/format-date";
 import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { CircleXIcon } from "lucide-react";
@@ -79,8 +79,7 @@ export function PriceHistoryChart({
   const dataSpanDays =
     firstSnapshot && lastSnapshot
       ? Math.round(
-          (new Date(lastSnapshot.date).getTime() - new Date(firstSnapshot.date).getTime()) /
-            86_400_000,
+          (new Date(lastSnapshot.date).getTime() - new Date(firstSnapshot.date).getTime()) / DAY_MS,
         )
       : null;
 

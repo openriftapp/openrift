@@ -1,4 +1,5 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { TIER_LABEL_INK, tierRowColor } from "@openrift/shared/tier-colors";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
@@ -34,7 +35,7 @@ function poolDetailActions(printing: Printing, view: "cards" | "printings") {
   return (
     <PoolCardStrip
       cardId={printing.cardId}
-      cardName={printing.card.name}
+      cardName={legendDisplayName(printing.card)}
       printingId={view === "printings" ? printing.printingId : undefined}
     />
   );
@@ -76,7 +77,11 @@ function PoolCardCell({
       priceRange={priceRange}
       dimmed={rowIndex !== null}
       strip={
-        <PoolCardStrip cardId={cardId} cardName={item.printing.card.name} printingId={printingId} />
+        <PoolCardStrip
+          cardId={cardId}
+          cardName={legendDisplayName(item.printing.card)}
+          printingId={printingId}
+        />
       }
       wrap={
         // On touch, no draggable wrap: the wrap's touch-none would block

@@ -472,14 +472,28 @@ describe("offsetPage", () => {
 
 describe("pairedCardName", () => {
   it("joins both cards of a double-sided printing in display order", () => {
-    expect(pairedCardName({ name: "Bird", types: [], tags: [], secondSideName: "Gold" })).toBe(
-      "Bird // Gold",
-    );
+    expect(
+      pairedCardName({
+        name: "Bird",
+        types: [],
+        tags: [],
+        secondSide: { name: "Gold", types: [], tags: [] },
+      }),
+    ).toBe("Bird // Gold");
+  });
+
+  it("names a legend on either side the way players do", () => {
+    expect(
+      pairedCardName({
+        name: "Bird",
+        types: [],
+        tags: [],
+        secondSide: { name: "Emperor of the Sands", types: ["legend"], tags: ["Azir"] },
+      }),
+    ).toBe("Bird // Azir, Emperor of the Sands");
   });
 
   it("names a single-sided printing by its card alone", () => {
-    expect(pairedCardName({ name: "Bird", types: [], tags: [], secondSideName: null })).toBe(
-      "Bird",
-    );
+    expect(pairedCardName({ name: "Bird", types: [], tags: [], secondSide: null })).toBe("Bird");
   });
 });

@@ -67,3 +67,15 @@ export function splitTradeLedger(
     history: rest.filter((trade) => !stillWaiting(trade)).toSorted(byUpdatedAtDescending),
   };
 }
+
+export function sheetEmptyState(
+  ledger: TradeLedger,
+  suggestionCount: number,
+): "none" | "nothing-traded" | "nothing-open" {
+  const open =
+    ledger.yourMove.length + ledger.readyToSwap.length + ledger.waiting.length + suggestionCount;
+  if (open > 0) {
+    return "none";
+  }
+  return ledger.history.length > 0 ? "nothing-open" : "nothing-traded";
+}

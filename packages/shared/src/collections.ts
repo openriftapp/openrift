@@ -38,7 +38,3 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
   }
   return chunks;
 }
-
-export function labelMap(rows: readonly { slug: string; label: string }[]): Record<string, string> {
-  return Object.fromEntries(rows.map((row) => [row.slug, row.label]));
-}

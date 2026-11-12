@@ -1,4 +1,4 @@
-import { formatDayTime } from "@openrift/shared/format-date";
+import { formatDayTime, HOUR_MS } from "@openrift/shared/format-date";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
   AssignableCardResponse,
@@ -53,7 +53,7 @@ const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
   cardnexus: CN_CONFIG,
 };
 
-const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+const STALE_THRESHOLD_MS = 48 * HOUR_MS;
 const COLUMN_COUNT = 7;
 
 function isStaleRecord(recordedAt: Date): boolean {

@@ -1,3 +1,5 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { getPlaysetSize } from "@openrift/shared/playset";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
@@ -108,9 +110,9 @@ interface CompletionInput {
     cardTypes: readonly string[];
   };
   labels?: {
-    domains: Record<string, string>;
-    rarities: Record<string, string>;
-    cardTypes: Record<string, string>;
+    domains: LabelMap;
+    rarities: LabelMap;
+    cardTypes: LabelMap;
   };
 }
 
@@ -172,21 +174,21 @@ function getGroupConfig(
     case "domain": {
       return {
         keyOrder: [...orders.domains],
-        labelFn: (key: string) => labels?.domains[key] ?? key,
+        labelFn: (key: string) => (labels ? enumLabel(labels.domains, key) : key),
         extraFn: undefined,
       };
     }
     case "rarity": {
       return {
         keyOrder: [...orders.rarities],
-        labelFn: (key: string) => labels?.rarities[key] ?? key,
+        labelFn: (key: string) => (labels ? enumLabel(labels.rarities, key) : key),
         extraFn: undefined,
       };
     }
     case "type": {
       return {
         keyOrder: [...orders.cardTypes],
-        labelFn: (key: string) => labels?.cardTypes[key] ?? key,
+        labelFn: (key: string) => (labels ? enumLabel(labels.cardTypes, key) : key),
         extraFn: undefined,
       };
     }

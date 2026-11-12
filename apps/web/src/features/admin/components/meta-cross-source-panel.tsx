@@ -16,8 +16,8 @@ import {
   useSetMetaSourceContributes,
   useUnlinkMetaCrossSourcePlayer,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 import { crossSourceAutoLinks, crossSourceProgress } from "@/features/meta/lib/meta-cross-source";
-import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 
 function StateBadge({ row }: { row: MetaCrossSourceRow }) {
   if (row.state === "linked") {

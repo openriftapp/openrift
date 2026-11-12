@@ -1,5 +1,6 @@
 import { totalQuantity } from "@openrift/shared/deck-rules";
-import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
+import { zoneExpected } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { Redo2Icon, Undo2Icon } from "lucide-react";
 import { useRef } from "react";
@@ -13,6 +14,7 @@ import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { lastChange } from "@/features/decks/lib/deck-last-change";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -42,6 +44,7 @@ function ZoneRing({ count, expected }: { count: number; expected?: number }) {
 
 // Must be mounted inside the editor's SidebarProvider: it opens the zone sheet via useSidebar.
 export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZone }) {
+  const { zoneLabels } = useZoneOrder();
   const cards = useDeckCards(deckId);
   const { data } = useDeckDetail(deckId);
   const { setOpenMobile } = useSidebar();
@@ -88,7 +91,7 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
             <ZoneRing count={count} expected={expected} />
           </span>
           <span className="flex min-w-0 flex-col text-xs leading-tight">
-            <span className="font-medium">{ZONE_LABELS[zone]}</span>
+            <span className="font-medium">{enumLabel(zoneLabels, zone)}</span>
             <span className="text-muted-foreground tabular-nums">
               <span
                 key={count}

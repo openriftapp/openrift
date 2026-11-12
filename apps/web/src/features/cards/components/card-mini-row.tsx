@@ -1,3 +1,5 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { ImageVariant } from "@openrift/shared/image-url";
 
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
@@ -15,7 +17,7 @@ interface CardMiniRowProps {
   domainColors?: Record<string, string>;
   rarity?: string | null;
   foil?: boolean;
-  rarityLabels?: Record<string, string>;
+  rarityLabels?: LabelMap;
   shortCode?: string | null;
   loading?: "eager" | "lazy";
   className?: string;
@@ -82,7 +84,7 @@ export function CardMiniRow({
             <img
               src={rarityIcon}
               alt=""
-              title={rarity && rarityLabels ? rarityLabels[rarity] : undefined}
+              title={rarity && rarityLabels ? enumLabel(rarityLabels, rarity) : undefined}
               className="size-3.5 shrink-0"
             />
           )}

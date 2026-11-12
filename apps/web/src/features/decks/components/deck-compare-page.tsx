@@ -1,6 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { totalQuantity } from "@openrift/shared/deck-rules";
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
@@ -61,7 +62,7 @@ import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 import { metaDeckQueryOptions } from "@/features/meta/lib/meta-queries";
 import { useDomainColors } from "@/hooks/use-domain-colors";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -91,8 +92,8 @@ interface RowCatalog {
 /** Everything the rows read from a hook, lifted to the page — see `CardMiniRow`. */
 interface RowDisplay {
   domainColors: Record<string, string>;
-  rarityLabels: Record<string, string>;
-  domainLabels: Record<string, string>;
+  rarityLabels: LabelMap;
+  domainLabels: LabelMap;
 }
 
 function SideCell({
@@ -468,6 +469,7 @@ function openSideLink(side: CompareSide, name: string) {
 }
 
 export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: string }) {
+  const { zoneLabels } = useZoneOrder();
   const [changesOnly, setChangesOnly] = useState(true);
   const [pastedFrom, setPastedFrom] = useState<PastedCompareSource | null>(null);
   const [pastedTo, setPastedTo] = useState<PastedCompareSource | null>(null);
@@ -724,7 +726,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
               }
               return (
                 <section key={zone.zone} className="flex min-w-0 flex-col gap-1">
-                  <DeckZoneHeader label={ZONE_LABELS[zone.zone]} />
+                  <DeckZoneHeader label={enumLabel(zoneLabels, zone.zone)} />
                   {zoneRows.map((row) => (
                     <ChangesRow
                       key={`${zone.zone}-${row.cardId}`}

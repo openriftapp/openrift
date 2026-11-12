@@ -1,3 +1,4 @@
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { sourceJobKinds } from "./job-kinds.js";
@@ -6,7 +7,7 @@ interface JobRunsRead {
   getLatestForResume: (kind: string) => Promise<{ result: unknown } | null>;
 }
 
-const BLOCK_MS = 6 * 60 * 60 * 1000;
+const BLOCK_MS = 6 * HOUR_MS;
 const PAUSE_MS = 30 * 60 * 1000;
 
 export type SourceStop = "block" | "pause";

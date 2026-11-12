@@ -3,29 +3,15 @@ import type {
   ListIntent,
   ListKind,
 } from "@openrift/shared/types/api/list";
-import { FolderIcon, HandshakeIcon, HeartIcon } from "lucide-react";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
 
 import { PageTopBar, PageTopBarActions, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { TopBarBreadcrumbSeparator } from "@/components/layout/top-bar-breadcrumb";
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { ListValueLabel } from "@/features/lists/components/list-value-label";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { LIST_INTENT_ICON, listIntentLabel } from "@/lib/list-intent";
 import { m } from "@/paraglide/messages.js";
-
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
-
-const INTENT_LABEL: Record<ListIntent, () => string> = {
-  wish: () => m.lists_intent_label_wish(),
-  trade: () => m.lists_intent_label_trade(),
-  organize: () => m.lists_intent_label_organize(),
-};
-
-const INTENT_ICON: Record<ListIntent, IconComponent> = {
-  wish: HeartIcon,
-  trade: HandshakeIcon,
-  organize: FolderIcon,
-};
 
 const KIND_COUNT: Record<ListKind, (inputs: { count: number }) => string> = {
   card: m.common_cards,
@@ -62,7 +48,7 @@ export function ListHeader({
   actions,
 }: ListHeaderProps) {
   const hydrated = useHydrated();
-  const IntentIcon = INTENT_ICON[list.intent];
+  const IntentIcon = LIST_INTENT_ICON[list.intent];
   const KindIcon = LIST_KIND_ICON[list.kind];
   const count = entries.length;
 
@@ -74,7 +60,7 @@ export function ListHeader({
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{list.name}</PageTopBarTitle>
         <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
           <IntentIcon className="size-3 self-center" />
-          <span>{INTENT_LABEL[list.intent]()}</span>
+          <span>{listIntentLabel(list.intent)}</span>
         </span>
         <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
           <KindIcon className="size-3 self-center" />

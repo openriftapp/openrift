@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -839,7 +840,11 @@ describe("computeDeckBoxPlan extras", () => {
 });
 
 describe("computeDeckBoxPlan sibling printings", () => {
-  const VARIANT_LABELS = { artVariants: {}, finishes: { foil: "Foil" }, cardSizes: {} };
+  const VARIANT_LABELS = {
+    artVariants: labelMapOf({}),
+    finishes: labelMapOf({ foil: "Foil" }),
+    cardSizes: labelMapOf({}),
+  };
 
   function labelFor(plan: DeckBoxPlan, cardId: string) {
     const copy = plan.slots.find((slot) => slot.cardId === cardId)?.copy;

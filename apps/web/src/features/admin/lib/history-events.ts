@@ -1,6 +1,6 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
-import { pluralize } from "@openrift/shared/strings";
+import { pluralize, countNoun } from "@openrift/shared/strings";
 
 import {
   CARD_FIELD_LABELS,
@@ -157,10 +157,6 @@ function skippedCount(value: unknown): number {
   return count(value) ?? 0;
 }
 
-function plural(n: number, singular: string): string {
-  return `${n} ${pluralize(n, singular)}`;
-}
-
 function eventPrintingId(event: AdminAuditEventResponse): string | null {
   if (event.entityType === "printing") {
     return text(event.entityId);
@@ -203,7 +199,7 @@ function createdPrintings(event: AdminAuditEventResponse, context: HistoryContex
     return null;
   }
   return names === null
-    ? plural(made, "new printing")
+    ? countNoun(made, "new printing")
     : `new ${pluralize(made, "printing")} ${names}`;
 }
 
@@ -410,7 +406,7 @@ export function historySentence(
         cardFields.length === 0 ? null : cardFields.join(", "),
         ...acceptedPrintingFields(event, context),
         createdPrintings(event, context),
-        images === 0 ? null : plural(images, "image"),
+        images === 0 ? null : countNoun(images, "image"),
         skipped === 0 ? null : `${skipped} skipped`,
       ].filter((part): part is string => part !== null);
       return parts.length === 0
@@ -427,7 +423,7 @@ export function historySentence(
       const skipped = skippedCount(event.newValues?.skipped);
       const parts = [
         createdPrintings(event, context),
-        images === 0 ? null : plural(images, "image"),
+        images === 0 ? null : countNoun(images, "image"),
         skipped === 0 ? null : `${skipped} skipped`,
       ].filter((part): part is string => part !== null);
       return parts.length === 0 ? head : `${head} (${parts.join(", ")})`;
@@ -440,7 +436,7 @@ export function historySentence(
           ? "printings"
           : made === 0
             ? "no printings"
-            : (names ?? plural(made, "printing"));
+            : (names ?? countNoun(made, "printing"));
       return joined([
         `Added ${what} from trusted sources`,
         skipped === 0 ? null : `(${skipped} skipped)`,

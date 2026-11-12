@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 6XtWdu7YLHY2JRMpsi4WPmdddmk97suyDqdJvp0CRDfRbMx5C2VqQds65DYmzMI
+\restrict tHajgPXGJHXReLXjTquobIOlsakI7Ww1SKolGN1T2jUAtczE0sY1vif6Ozt1cLY
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -666,43 +666,42 @@ CREATE FUNCTION public.snapshot_deleted_group_names() RETURNS trigger
 CREATE FUNCTION public.snapshot_deleted_user_names() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-    DECLARE
-      display_name text := COALESCE(NULLIF(OLD.name, ''), 'Former member');
-    BEGIN
-      -- A live trade needs two people. Close the ones this account was in
-      -- before snapshotting, so no request or reservation is left waiting on
-      -- somebody who is gone, and release the copies a reservation had pinned.
-      -- This is what leaving a group already does to that member's live trades.
-      DELETE FROM card_trade_copies
-       WHERE trade_id IN (
-         SELECT id FROM card_trades
-          WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
-            AND status IN ('pending', 'reserved')
-       );
+        
+        BEGIN
+          -- A live trade needs two people. Close the ones this account was in
+          -- before snapshotting, so no request or reservation is left waiting on
+          -- somebody who is gone, and release the copies a reservation had pinned.
+          -- This is what leaving a group already does to that member's live trades.
+          DELETE FROM card_trade_copies
+           WHERE trade_id IN (
+             SELECT id FROM card_trades
+              WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
+                AND status IN ('pending', 'reserved')
+           );
 
-      UPDATE card_trades
-         SET status = 'cancelled',
-             closed_at = now(),
-             expires_at = NULL,
-             last_actor_user_id = NULL
-       WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
-         AND status IN ('pending', 'reserved');
+          UPDATE card_trades
+             SET status = 'cancelled',
+                 closed_at = now(),
+                 expires_at = NULL,
+                 last_actor_user_id = NULL
+           WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
+             AND status IN ('pending', 'reserved');
 
-      UPDATE card_trades
-         SET giver_user_id = NULL, giver_name = display_name
-       WHERE giver_user_id = OLD.id;
+          UPDATE card_trades
+             SET giver_user_id = NULL, giver_name = NULL, giver_account_closed = true
+           WHERE giver_user_id = OLD.id;
 
-      UPDATE card_trades
-         SET receiver_user_id = NULL, receiver_name = display_name
-       WHERE receiver_user_id = OLD.id;
+          UPDATE card_trades
+             SET receiver_user_id = NULL, receiver_name = NULL, receiver_account_closed = true
+           WHERE receiver_user_id = OLD.id;
 
-      UPDATE loans
-         SET borrower_user_id = NULL, borrower_name = display_name
-       WHERE borrower_user_id = OLD.id;
+          UPDATE loans
+             SET borrower_user_id = NULL, borrower_name = NULL, borrower_account_closed = true
+           WHERE borrower_user_id = OLD.id;
 
-      RETURN OLD;
-    END;
-    $$;
+          RETURN OLD;
+        END;
+        $$;
 
 
 --
@@ -1578,18 +1577,28 @@ CREATE TABLE public.card_trades (
     receiver_name text,
     group_name text,
     card_id uuid NOT NULL,
+    giver_account_closed boolean DEFAULT false NOT NULL,
+    receiver_account_closed boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_card_trades_closed_shape CHECK (((status = ANY (ARRAY['declined'::text, 'cancelled'::text, 'expired'::text])) = (closed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_completed_shape CHECK (((status = 'completed'::text) = (completed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_distinct_parties CHECK ((giver_user_id <> receiver_user_id)),
     CONSTRAINT chk_card_trades_giver_name_not_empty CHECK (((giver_name IS NULL) OR (giver_name <> ''::text))),
-    CONSTRAINT chk_card_trades_giver_party_shape CHECK ((num_nonnulls(giver_user_id, giver_name) = 1)),
+    CONSTRAINT chk_card_trades_giver_party_shape CHECK (
+CASE
+    WHEN giver_account_closed THEN (giver_user_id IS NULL)
+    ELSE (num_nonnulls(giver_user_id, giver_name) = 1)
+END),
     CONSTRAINT chk_card_trades_group_name_not_empty CHECK (((group_name IS NULL) OR (group_name <> ''::text))),
     CONSTRAINT chk_card_trades_group_shape CHECK ((num_nonnulls(group_id, group_name) = 1)),
     CONSTRAINT chk_card_trades_initiator CHECK ((initiator = ANY (ARRAY['giver'::text, 'receiver'::text]))),
     CONSTRAINT chk_card_trades_pending_expiry CHECK (((status <> 'pending'::text) OR (expires_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_quantity CHECK ((quantity > 0)),
     CONSTRAINT chk_card_trades_receiver_name_not_empty CHECK (((receiver_name IS NULL) OR (receiver_name <> ''::text))),
-    CONSTRAINT chk_card_trades_receiver_party_shape CHECK ((num_nonnulls(receiver_user_id, receiver_name) = 1)),
+    CONSTRAINT chk_card_trades_receiver_party_shape CHECK (
+CASE
+    WHEN receiver_account_closed THEN (receiver_user_id IS NULL)
+    ELSE (num_nonnulls(receiver_user_id, receiver_name) = 1)
+END),
     CONSTRAINT chk_card_trades_reserved_accepted CHECK (((status <> 'reserved'::text) OR (accepted_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_status CHECK ((status = ANY (ARRAY['pending'::text, 'reserved'::text, 'completed'::text, 'declined'::text, 'cancelled'::text, 'expired'::text])))
 );
@@ -2716,10 +2725,15 @@ CREATE TABLE public.loans (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     closed_at timestamp with time zone,
     borrower_returned_quantity integer DEFAULT 0 NOT NULL,
+    borrower_account_closed boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_loans_ack_reject CHECK ((NOT ((acknowledged_at IS NOT NULL) AND (rejected_at IS NOT NULL)))),
     CONSTRAINT chk_loans_borrower_name_not_empty CHECK (((borrower_name IS NULL) OR (borrower_name <> ''::text))),
     CONSTRAINT chk_loans_borrower_returned_bounds CHECK (((borrower_returned_quantity >= 0) AND (borrower_returned_quantity <= returned_quantity))),
-    CONSTRAINT chk_loans_borrower_shape CHECK ((num_nonnulls(borrower_user_id, borrower_name) = 1)),
+    CONSTRAINT chk_loans_borrower_shape CHECK (
+CASE
+    WHEN borrower_account_closed THEN (borrower_user_id IS NULL)
+    ELSE (num_nonnulls(borrower_user_id, borrower_name) = 1)
+END),
     CONSTRAINT chk_loans_closed_shape CHECK (((status = 'active'::text) = (closed_at IS NULL))),
     CONSTRAINT chk_loans_distinct_parties CHECK (((borrower_user_id IS NULL) OR (borrower_user_id <> lender_user_id))),
     CONSTRAINT chk_loans_quantity CHECK ((quantity > 0)),
@@ -11430,5 +11444,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6XtWdu7YLHY2JRMpsi4WPmdddmk97suyDqdJvp0CRDfRbMx5C2VqQds65DYmzMI
+\unrestrict tHajgPXGJHXReLXjTquobIOlsakI7Ww1SKolGN1T2jUAtczE0sY1vif6Ozt1cLY
 

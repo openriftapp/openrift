@@ -10,6 +10,9 @@ import {
   groupLabelByPlayer,
   groupUnits,
   isCrossGroupPod,
+  isDoubleForfeitPod,
+  isResultlessPod,
+  podForDisplay,
   isWalkoverPod,
   podScoreLine,
   podsOfUnit,
@@ -180,6 +183,73 @@ describe("isWalkoverPod", () => {
     ]);
     expect(isWalkoverPod(played)).toBe(false);
     expect(isWalkoverPod(makePod("y", 1, [makeMember("p1"), makeMember("p2")]))).toBe(false);
+  });
+});
+
+function unplayedPod(size: 2 | 3 | 4, teams = false): PodResponse {
+  return makePod(
+    "u",
+    1,
+    Array.from({ length: size }, (_, index) =>
+      makeMember(`p${index + 1}`, {
+        displayName: `P${index + 1}`,
+        placement: 0,
+        gamePoints: null,
+        teamId: teams ? `t${index % 2}` : null,
+      }),
+    ),
+    { size: teams ? 2 : size },
+  );
+}
+
+describe("double forfeit by pod size", () => {
+  it("is a double forfeit only for two sides", () => {
+    expect(isDoubleForfeitPod(unplayedPod(2))).toBe(true);
+    expect(isDoubleForfeitPod(unplayedPod(4, true))).toBe(true);
+    expect(isDoubleForfeitPod(unplayedPod(3))).toBe(false);
+    expect(isDoubleForfeitPod(unplayedPod(4))).toBe(false);
+  });
+
+  it("shows a 3 or 4 player pod without games as not played, a two-sided one unchanged", () => {
+    for (const size of [3, 4] as const) {
+      const shown = podForDisplay(unplayedPod(size));
+      expect(shown.resultStatus).toBe("pending");
+      expect(shown.members.every((member) => member.placement === null)).toBe(true);
+      expect(isWalkoverPod(shown)).toBe(false);
+    }
+    expect(podForDisplay(unplayedPod(2))).toEqual(unplayedPod(2));
+  });
+
+  it("treats a 3 or 4 player pod on one placement without games as having no result", () => {
+    expect(isResultlessPod(unplayedPod(3))).toBe(true);
+    expect(isResultlessPod(unplayedPod(4))).toBe(true);
+    expect(isResultlessPod(unplayedPod(2))).toBe(false);
+    expect(podScoreLine(unplayedPod(2))).toBe("P1 and P2 both forfeited");
+    expect(podScoreLine(unplayedPod(3))).toBe("P1 vs P2");
+    expect(podScoreLine(unplayedPod(4))).toBe("P1 vs P2");
+  });
+});
+
+describe("isDoubleForfeitPod", () => {
+  it("is true when both sides took the same placement without playing", () => {
+    const pod = makePod("x", 1, [
+      makeMember("p1", { placement: 0, gamePoints: null }),
+      makeMember("p2", { placement: 0, gamePoints: null }),
+    ]);
+    expect(isDoubleForfeitPod(pod)).toBe(true);
+  });
+
+  it("is false for a one-sided walkover and for a played draw", () => {
+    const walkover = makePod("x", 1, [
+      makeMember("p1", { placement: 1, gamePoints: null }),
+      makeMember("p2", { placement: 2, gamePoints: null }),
+    ]);
+    const draw = makePod("y", 1, [
+      makeMember("p1", { placement: 1, gamePoints: 1 }),
+      makeMember("p2", { placement: 1, gamePoints: 1 }),
+    ]);
+    expect(isDoubleForfeitPod(walkover)).toBe(false);
+    expect(isDoubleForfeitPod(draw)).toBe(false);
   });
 });
 

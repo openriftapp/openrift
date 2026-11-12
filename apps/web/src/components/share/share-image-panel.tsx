@@ -15,6 +15,8 @@ import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { DownloadName } from "@/lib/download";
+import { downloadFilename } from "@/lib/download";
 import type { ShareImageRenderChoice } from "@/lib/share-image";
 import { downloadImageFromUrl } from "@/lib/share-image";
 import { m } from "@/paraglide/messages.js";
@@ -44,7 +46,7 @@ const QR_TOGGLE_LABEL: Record<ShareNoun, () => string> = {
 
 export interface ShareImagePanelProps {
   title: string;
-  filenameBase: string;
+  filename: DownloadName;
   buildUrl: (choice: ShareImageRenderChoice) => string;
   download?: (choice: ShareImageRenderChoice, filename: string) => Promise<void>;
   aspects?: readonly ShareImageAspect[];
@@ -64,7 +66,7 @@ export interface ShareImagePanelProps {
  */
 export function ShareImagePanel({
   title,
-  filenameBase,
+  filename,
   buildUrl,
   download,
   aspects = ["landscape", "vertical"],
@@ -92,13 +94,13 @@ export function ShareImagePanel({
   };
 
   const handleDownload = async () => {
-    const base = filenameBase.replaceAll(/[^\w -]+/gu, "_").trim() || "image";
-    const filename = `${base}${aspect === "vertical" ? "-vertical" : ""}.png`;
+    const base = downloadFilename(filename);
+    const imageFilename = `${base}${aspect === "vertical" ? "-vertical" : ""}.png`;
     const choice: ShareImageRenderChoice = { aspect, scale, qr: withQr };
     const run =
       download === undefined
-        ? downloadImageFromUrl(buildUrl(choice), filename)
-        : download(choice, filename);
+        ? downloadImageFromUrl(buildUrl(choice), imageFilename)
+        : download(choice, imageFilename);
     setDownloading(true);
     try {
       await run;

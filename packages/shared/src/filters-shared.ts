@@ -1,6 +1,25 @@
+import type { SearchVocabulary } from "./search-query/bind.js";
 import type { SearchContext } from "./search-query/evaluate.js";
 
 export type FilterCardsOptions = SearchContext;
+
+declare const cardSearchContextBrand: unique symbol;
+
+export type CardSearchContext = SearchContext & { readonly [cardSearchContextBrand]: true };
+
+export interface CardSearchContextParts extends Omit<
+  SearchContext,
+  "vocabulary" | "keywordReverseMap" | "customTagAssignments" | "rarityOrder"
+> {
+  vocabulary: SearchVocabulary | undefined;
+  keywordReverseMap: Map<string, string> | undefined;
+  customTagAssignments: Record<string, readonly string[]> | undefined;
+  rarityOrder: readonly string[] | undefined;
+}
+
+export function cardSearchContext(parts: CardSearchContextParts): CardSearchContext {
+  return parts as CardSearchContext;
+}
 
 export const EMPTY_STRINGS: readonly string[] = [];
 

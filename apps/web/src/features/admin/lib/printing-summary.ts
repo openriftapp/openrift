@@ -1,10 +1,11 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 
 interface PrintingKindLabels {
-  artVariants: Record<string, string>;
-  markers: Record<string, string>;
+  artVariants: LabelMap;
+  markers: LabelMap;
 }
 
 type KindPrinting = Pick<

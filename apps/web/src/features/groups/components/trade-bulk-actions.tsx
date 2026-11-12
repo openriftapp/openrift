@@ -9,6 +9,7 @@ import {
   useDeclineTrade,
 } from "@/features/groups/hooks/use-card-trades";
 import { useTradeActionStore } from "@/features/groups/stores/trade-action-store";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 type BulkMode = "accept-decline" | "cancel" | "none";
@@ -67,7 +68,7 @@ export function BulkTradeActions({
   // A big accept-all reserves real copies on both shelves; above the
   // threshold the button confirms once before firing.
   const needsConfirm = targets.length > BULK_ACCEPT_CONFIRM_THRESHOLD;
-  const counterpartyName = targets[0]?.counterparty.name ?? m.trades_this_member();
+  const counterpartyName = memberName(targets[0]?.counterparty.name);
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">

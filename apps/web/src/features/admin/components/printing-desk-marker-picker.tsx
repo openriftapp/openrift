@@ -1,3 +1,4 @@
+import { labelMap, enumLabel } from "@openrift/shared/enum-label";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -21,7 +22,7 @@ export function PrintingDeskMarkerPicker({
   const createMarker = useCreateMarker();
   const [query, setQuery] = useState("");
 
-  const labelBySlug = new Map(data.markers.map((marker) => [marker.slug, marker.label]));
+  const labelBySlug = labelMap(data.markers);
   const descriptionBySlug = new Map(
     data.markers.map((marker) => [marker.slug, marker.description]),
   );
@@ -69,9 +70,9 @@ export function PrintingDeskMarkerPicker({
         <div className="flex flex-wrap gap-1">
           {value.map((slug) => (
             <Badge key={slug} variant="secondary">
-              {labelBySlug.get(slug) ?? slug}
+              {enumLabel(labelBySlug, slug)}
               <ChipRemoveButton
-                aria-label={`Remove ${labelBySlug.get(slug) ?? slug}`}
+                aria-label={`Remove ${enumLabel(labelBySlug, slug)}`}
                 onClick={() => onChange(value.filter((entry) => entry !== slug))}
               />
             </Badge>

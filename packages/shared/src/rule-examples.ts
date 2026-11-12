@@ -1,3 +1,4 @@
+import { cardPath } from "./site-paths.js";
 import type { RuleLanguage } from "./types/api/rules.js";
 
 export interface RuleSection {
@@ -162,7 +163,7 @@ export function linkCardMentions(
       run.linkable
         ? run.text.replaceAll(pattern, (name) => {
             const slug = slugsByName.get(name);
-            return slug === undefined ? name : `[${name}](/cards/${slug})`;
+            return slug === undefined ? name : `[${name}](${cardPath(slug)})`;
           })
         : run.text,
     )

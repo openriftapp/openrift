@@ -1,3 +1,4 @@
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -22,59 +23,63 @@ const cards: AdminSearchableCard[] = [
   },
 ];
 
-const codes = new Map([["c-1", [{ shortCode: "OGN-202", publicCode: "OGN-202/298" }]]]);
+const rows = cards.map((card) => ({ ...card, types: [], tags: [] }));
+const index = buildCardLookupIndex(rows, []);
+const indexWithCodes = buildCardLookupIndex(rows, [
+  { cardId: "c-1", shortCode: "OGN-202", publicCode: "OGN-202/298", printedName: null },
+]);
 
 describe("useCardSearch", () => {
   it("returns nothing below the minimum query length", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "y"));
+    const { result } = renderHook(() => useCardSearch(index, "y"));
 
     expect(result.current).toEqual([]);
   });
 
   it("returns nothing for an empty candidate list", () => {
-    const { result } = renderHook(() => useCardSearch([], "yasuo"));
+    const { result } = renderHook(() => useCardSearch(buildCardLookupIndex([], []), "yasuo"));
 
     expect(result.current).toEqual([]);
   });
 
   it("matches on name, case-insensitively", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "YASUO"));
+    const { result } = renderHook(() => useCardSearch(index, "YASUO"));
 
     expect(result.current.map((card) => card.id)).toEqual(["c-1"]);
   });
 
   it("folds punctuation so an apostrophe never decides a match", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "kaisa"));
+    const { result } = renderHook(() => useCardSearch(index, "kaisa"));
 
     expect(result.current.map((card) => card.id)).toEqual(["c-2"]);
   });
 
   it("matches a printing short code when codes are supplied", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "ogn202", codes));
+    const { result } = renderHook(() => useCardSearch(indexWithCodes, "ogn202"));
 
     expect(result.current.map((card) => card.id)).toEqual(["c-1"]);
   });
 
   it("cannot match a code when no codes are supplied", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "ogn202"));
+    const { result } = renderHook(() => useCardSearch(index, "ogn202"));
 
     expect(result.current).toEqual([]);
   });
 
   it("honors the result limit", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "a", undefined, 1, 1));
+    const { result } = renderHook(() => useCardSearch(index, "a", 1, 1));
 
     expect(result.current).toHaveLength(1);
   });
 
   it("ranks a prefix match above a substring match when the minimum is lowered", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "h", undefined, 20, 1));
+    const { result } = renderHook(() => useCardSearch(index, "h", 20, 1));
 
     expect(result.current.map((card) => card.id)).toEqual(["c-3", "c-1"]);
   });
 
   it("returns no match for a query nothing contains", () => {
-    const { result } = renderHook(() => useCardSearch(cards, "zaun"));
+    const { result } = renderHook(() => useCardSearch(index, "zaun"));
 
     expect(result.current).toEqual([]);
   });

@@ -65,7 +65,6 @@ import { collectListPrintings, kindToView } from "@/features/lists/lib/list-entr
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
@@ -167,7 +166,6 @@ function SharedListGrid({
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
-  const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
   const router = useRouter();
   const [requestPrinting, setRequestPrinting] = useState<Printing | null>(null);
@@ -302,7 +300,6 @@ function SharedListGrid({
     ownedCountByPrinting: undefined,
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
-    keywordReverseMap,
     channels,
   });
 

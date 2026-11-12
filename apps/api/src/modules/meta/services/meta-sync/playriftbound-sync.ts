@@ -1,7 +1,8 @@
+import { DAY_MS, HOUR_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped, record } from "../../../../lib/json-coerce.js";
-import { DAY_MS, HOUR_MS, shiftDays } from "../../lib/meta-durations.js";
+import { shiftDays } from "../../lib/meta-durations.js";
 import { firstRevisit, lifecycleStatus, nextRecheck } from "../../lib/meta-recheck-schedule.js";
 import type { PlayriftboundCell } from "../../lib/playriftbound-catalog.js";
 import {

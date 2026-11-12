@@ -52,7 +52,7 @@ export function PublicSharingSection() {
               ? undefined
               : {
                   title: m.profile_sharing_image_title(),
-                  filenameBase: "openrift-lists",
+                  filename: { base: "openrift-lists", fallback: "lists" },
                   buildUrl: (choice) =>
                     bundleShareImageUrl(
                       getSiteUrl(),
@@ -65,11 +65,11 @@ export function PublicSharingSection() {
                   qrAvailable: true,
                 }
           }
-          qrFilenameBase="openrift-lists"
+          qrFilename={{ base: "openrift-lists", fallback: "lists" }}
           print={{
             defaultTitle: session?.user?.name ?? m.profile_sharing_print_title(),
             defaultSubtitle: m.profile_sharing_print_subtitle(),
-            filenameHint: "my-lists",
+            filename: { base: "my-lists", fallback: "lists" },
           }}
         />
       )}

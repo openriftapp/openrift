@@ -19,6 +19,10 @@ const TEST_ORDERS = {
   languages: ["EN"],
 };
 
+vi.mock("@/hooks/use-keyword-reverse-map", () => ({
+  useKeywordReverseMap: () => new Map<string, string>(),
+}));
+
 vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
   useCatalogSearchVocabulary: () => ({}),
 }));

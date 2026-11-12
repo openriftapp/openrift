@@ -1,11 +1,12 @@
-import { cardSearchAltNames } from "@openrift/shared/card-name";
-import { buildCardIndex, resolveCard } from "@openrift/shared/card-search";
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
+import { resolveCard } from "@openrift/shared/card-search";
 import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
+import type { CardType } from "@openrift/shared/types/enums";
 
 export interface MinimalCard {
   id: string;
   name: string;
-  types: string[];
+  types: CardType[];
   tags: string[];
   shortCodes?: readonly string[];
 }
@@ -31,9 +32,9 @@ export function planCustomTagBulkImport(text: string, allCards: MinimalCard[]): 
       byShortCode.set(shortCode.toLowerCase(), card);
     }
   }
-  const nameIndex = buildCardIndex(
-    allCards.map((card) => ({ ...card, slug: card.id, altNames: cardSearchAltNames(card) })),
-    new Map(),
+  const nameIndex = buildCardLookupIndex(
+    allCards.map((card) => ({ ...card, slug: card.id })),
+    [],
   );
 
   const matched: { cardId: string; name: string }[] = [];

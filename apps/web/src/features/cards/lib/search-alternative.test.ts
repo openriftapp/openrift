@@ -1,4 +1,5 @@
 import { filterCards } from "@openrift/shared/filters";
+import { testSearchContext } from "@openrift/shared/test-factories";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -27,7 +28,8 @@ beforeEach(() => {
 });
 
 function run(query: string) {
-  const search = (q: string) => filterCards(catalog, { ...EMPTY_CARD_FILTERS, search: q });
+  const search = (q: string) =>
+    filterCards(catalog, { ...EMPTY_CARD_FILTERS, search: q }, testSearchContext());
   return findSearchAlternatives(query, search(query), search);
 }
 

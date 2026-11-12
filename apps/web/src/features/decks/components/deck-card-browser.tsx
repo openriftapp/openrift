@@ -5,7 +5,8 @@ import {
   RUNE_TARGET,
   totalQuantity,
 } from "@openrift/shared/deck-rules";
-import { isSingleSlotZone, ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { isSingleSlotZone } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { DeckResponse } from "@openrift/shared/types/api/deck";
@@ -98,9 +99,8 @@ import { flyCardToDeck } from "@/features/decks/lib/workbench-fly-to-dock";
 import { applyZoneLayer } from "@/features/decks/lib/workbench-zone-layer";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
-import { useChannelRegistry } from "@/hooks/use-enums";
+import { useChannelRegistry, useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/hooks/use-session";
 import { useShiftHeld } from "@/hooks/use-shift-held";
@@ -391,6 +391,7 @@ function DeckCardBrowserInner({
   ownershipData?: DeckOwnershipData;
   onTargetZone?: (zone: DeckZone) => void;
 }) {
+  const { zoneLabels } = useZoneOrder();
   const { data: deckDetail } = useDeckDetail(deckId);
   const showImages = useDisplayStore((state) => state.showImages);
   const highlightOwned = useDisplayStore((state) => state.deckHighlightOwned);
@@ -493,7 +494,6 @@ function DeckCardBrowserInner({
 
   // "copies" is a collection-only view; clamp to "printings" in the deck builder.
   const view = rawView === "copies" ? "printings" : rawView;
-  const keywordReverseMap = useKeywordReverseMap();
 
   const {
     availableFilters,
@@ -519,7 +519,6 @@ function DeckCardBrowserInner({
     ownedCountByPrinting,
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
-    keywordReverseMap,
     channels,
     customTagAssignments,
   });
@@ -704,8 +703,8 @@ function DeckCardBrowserInner({
           >
             <PlusIcon className="size-4" />
             {isSingleCardZone
-              ? m.decks_workbench_detail_set_as({ zone: ZONE_LABELS[activeZone] })
-              : m.decks_workbench_detail_add_to({ zone: ZONE_LABELS[activeZone] })}
+              ? m.decks_workbench_detail_set_as({ zone: enumLabel(zoneLabels, activeZone) })
+              : m.decks_workbench_detail_add_to({ zone: enumLabel(zoneLabels, activeZone) })}
           </Button>
           {showSideboardAdd && (
             <Button
@@ -727,7 +726,7 @@ function DeckCardBrowserInner({
             >
               <PlusIcon className="size-4" />
               {m.decks_workbench_detail_add_to({
-                zone: ZONE_LABELS[WellKnown.deckZone.SIDEBOARD],
+                zone: enumLabel(zoneLabels, WellKnown.deckZone.SIDEBOARD),
               })}
             </Button>
           )}

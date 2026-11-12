@@ -1,0 +1,293 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+import ts from "typescript";
+import { describe, expect, it } from "vitest";
+
+const SRC = import.meta.dirname;
+const SHARED_SRC = path.resolve(SRC, "../../../packages/shared/src");
+
+function sourceFiles(root: string): string[] {
+  return readdirSync(root, { recursive: true, encoding: "utf-8" })
+    .filter(
+      (file) =>
+        /\.tsx?$/u.test(file) &&
+        !/\.test\.tsx?$/u.test(file) &&
+        !file.startsWith("paraglide") &&
+        !file.endsWith("routeTree.gen.ts"),
+    )
+    .map((file) => path.join(root, file));
+}
+
+const WEB_FILES = sourceFiles(SRC);
+const ALL_FILES = [...WEB_FILES, ...sourceFiles(SHARED_SRC)];
+
+function relative(file: string): string {
+  return path.relative(path.resolve(SRC, "../../.."), file);
+}
+
+function offenders(files: readonly string[], pattern: RegExp, allowed: readonly string[] = []) {
+  return files
+    .map((file) => relative(file))
+    .filter(
+      (file) =>
+        !allowed.includes(file) &&
+        pattern.test(readFileSync(path.resolve(SRC, "../../..", file), "utf-8")),
+    );
+}
+
+const ADMIN_COPY_DIRS = [
+  "features/admin/",
+  "features/catalog-workspace/",
+  "features/marketing/",
+  "components/ui/",
+];
+const NON_COPY_FILES = [
+  "features/contribute/components/card-text-input.tsx",
+  "features/tournaments/components/deck-check-ingest-guide.tsx",
+  "features/cards/components/catalog-card-slug-search.tsx",
+];
+const KEY_CAPS = new Set(["esc"]);
+const NON_WORDS = new Set([
+  "OpenRift",
+  "Discord",
+  "Google",
+  "Esc",
+  "Ctrl",
+  "Riot",
+  "Piltover",
+  "Archive",
+]);
+const COPY_ATTRIBUTES = new Set(["aria-label", "title", "alt", "label", "description"]);
+const SAMPLE_ATTRIBUTES = new Set(["placeholder"]);
+const SAMPLE_VALUE = /^(?:https?:\/\/|[\w.+-]+@[\w.-]+$|Whiskers von Catsworth$)/u;
+const RAW_CARD_NAME_DIRS = [
+  "features/admin/",
+  "features/catalog-workspace/",
+  "features/contribute/",
+  "features/designer/",
+  "features/marketing/",
+];
+const RAW_CARD_NAME_EXPRESSIONS: Record<string, readonly string[]> = {
+  "apps/web/src/features/cards/components/card-thumbnail.tsx": ["name={card.name}"],
+  "apps/web/src/features/cards/components/card-page-hero.tsx": ["name={card.name}"],
+  "apps/web/src/features/cards/components/card-detail/card-image.tsx": ["name={card.name}"],
+  "apps/web/src/features/board-states/components/board-state-editor-workspace.tsx": [
+    "{draft.card.name}",
+  ],
+  "apps/web/src/features/collections/lib/custom-tag-bulk-import.ts": ["name: card.name })"],
+  "apps/web/src/features/meta/components/meta-inferred-slots.tsx": ["{card.name}"],
+};
+
+function offendersExcept(
+  files: readonly string[],
+  pattern: RegExp,
+  allowedExpressions: Readonly<Record<string, readonly string[]>>,
+) {
+  return files
+    .map((file) => relative(file))
+    .filter((file) => {
+      let text = readFileSync(path.resolve(SRC, "../../..", file), "utf-8");
+      for (const expression of allowedExpressions[file] ?? []) {
+        text = text.replaceAll(expression, "");
+      }
+      return pattern.test(text);
+    });
+}
+
+function copyLiterals(file: string, returnsCopy = false): string[] {
+  const source = readFileSync(file, "utf-8");
+  const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
+  const found: string[] = [];
+  const isProse = (text: string) =>
+    (text.replaceAll(/&#?\w+;/gu, "").match(/\b[a-z]{3,}\b/gu) ?? []).some(
+      (word) => !KEY_CAPS.has(word),
+    );
+  const hasWord = (text: string) =>
+    isProse(text) ||
+    (text.match(/\b[A-Z][a-z]{2,}\b/gu) ?? []).some((word) => !NON_WORDS.has(word));
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxText(node) && hasWord(node.getText())) {
+      found.push(node.getText().trim());
+    }
+    if (
+      ts.isJsxAttribute(node) &&
+      node.initializer !== undefined &&
+      ts.isStringLiteral(node.initializer)
+    ) {
+      const name = node.name.getText();
+      const value = node.initializer.text;
+      const copy = COPY_ATTRIBUTES.has(name) && hasWord(value);
+      const sample = SAMPLE_ATTRIBUTES.has(name) && isProse(value) && !SAMPLE_VALUE.test(value);
+      if (copy || sample) {
+        found.push(`${name}=${node.initializer.getText()}`);
+      }
+    }
+    if (
+      ts.isReturnStatement(node) &&
+      returnsCopy &&
+      node.expression !== undefined &&
+      (ts.isStringLiteral(node.expression) ||
+        ts.isNoSubstitutionTemplateLiteral(node.expression)) &&
+      /\s/u.test(node.expression.text) &&
+      isProse(node.expression.text)
+    ) {
+      found.push(`return ${node.expression.getText()}`);
+    }
+    if (
+      ts.isCallExpression(node) &&
+      /^toast(?:\.\w+)?$/u.test(node.expression.getText()) &&
+      node.arguments[0] !== undefined &&
+      (ts.isStringLiteral(node.arguments[0]) ||
+        ts.isTemplateExpression(node.arguments[0]) ||
+        ts.isNoSubstitutionTemplateLiteral(node.arguments[0]))
+    ) {
+      found.push(node.arguments[0].getText());
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return found;
+}
+
+describe("source conventions", () => {
+  it("renders player-facing copy through messages", () => {
+    const literals = WEB_FILES.filter(
+      (file) =>
+        file.endsWith(".tsx") || file.includes("/hooks/") || /\/features\/[^/]+\/lib\//u.test(file),
+    )
+      .filter((file) => {
+        const rel = path.relative(SRC, file);
+        return !ADMIN_COPY_DIRS.some((dir) => rel.startsWith(dir)) && !NON_COPY_FILES.includes(rel);
+      })
+      .flatMap((file) =>
+        copyLiterals(file, file.includes("/lib/")).map(
+          (text) => `${path.relative(SRC, file)}: ${text}`,
+        ),
+      );
+
+    expect(literals).toEqual([]);
+  });
+
+  it("takes day and hour lengths from the shared date module", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /\b(?:24 \* 60 \* 60 \* 1000|60 \* 60 \* 1000|86_?400_?000|3_?600_?000)\b|const (?:DAY_MS|HOUR_MS|MS_PER_DAY|MS_PER_HOUR)\b/u,
+        ["packages/shared/src/format-date.ts"],
+      ),
+    ).toEqual([]);
+  });
+
+  it("reads a UTC day key through formatDay", () => {
+    expect(
+      offenders(ALL_FILES, /\.toISOString\(\)\.slice\(0, 10\)/u, [
+        "packages/shared/src/format-date.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("pluralizes through messages or the shared pluralize", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /(?:[=!]==|>) 1 \? "s?" : "s?"|(?:[=!]==|>) 1 \? "(?<stem>[a-z]{3})[a-z ]*" : "\k<stem>[a-z ]*"|function plural\(/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("omits a missing owner name instead of naming it", () => {
+    expect(offenders(ALL_FILES, /"Anonymous"/u)).toEqual([]);
+  });
+
+  it("builds label maps from rows, leaving hand-written ones to tests", () => {
+    expect(
+      offenders(ALL_FILES, /\blabelMapOf\(/u, [
+        "packages/shared/src/enum-label.ts",
+        "apps/web/src/test/zone-order-stub.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("gives avatars the real name, never the nameless placeholder", () => {
+    expect(
+      offenders(WEB_FILES, /<(?:UserAvatar|PersonPageHeader)\b[^>]*?\bname=\{memberName\(/su),
+    ).toEqual([]);
+  });
+
+  it("names deck zones only through the admin-managed labels", () => {
+    expect(offenders(ALL_FILES, /\bZONE_LABELS\b|\bsentenceCaseSlug\b/u)).toEqual([]);
+  });
+
+  it("shows a card's name only through legendDisplayName", () => {
+    const files = WEB_FILES.filter(
+      (file) => !RAW_CARD_NAME_DIRS.some((dir) => path.relative(SRC, file).startsWith(dir)),
+    );
+    expect(
+      offendersExcept(
+        files,
+        /\{\s*[\w?.]*\bcard\??\.name\s*\}|: [\w?.]*\bcard\??\.name\s*\}\)|\$\{[\w?.]*\bcard\??\.name\}/u,
+        RAW_CARD_NAME_EXPRESSIONS,
+      ),
+    ).toEqual([]);
+  });
+
+  it("builds card lookups only through the shared lookup builders", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /\bbuildCardIndex\b|\bcardSearchAltNames\(|import \* as \w+ from "@openrift\/shared\/card-search"/u,
+        [
+          "packages/shared/src/card-lookup.ts",
+          "packages/shared/src/card-name.ts",
+          "packages/shared/src/card-search.ts",
+          "packages/shared/src/filters-search.ts",
+        ],
+      ),
+    ).toEqual([]);
+  });
+
+  it("matches typed text only through the shared folding matchers", () => {
+    expect(
+      offendersExcept(
+        ALL_FILES,
+        /\.to(?:Locale)?LowerCase\(\)\.(?:includes|startsWith|indexOf|split)\(|\bconst (?:needle|query|folded) = [^;]*\.to(?:Locale)?LowerCase\(\);|foldForSearch\([^)]*\)\.includes\(/u,
+        {
+          "apps/web/src/features/admin/components/printing-desk-marker-picker.tsx": [
+            "const needle = typed.trim().toLowerCase();",
+          ],
+          "apps/web/src/features/cards/lib/query-filters.ts": [
+            "const folded = wanted.trim().toLowerCase();",
+          ],
+          "apps/web/src/features/collections/lib/import-parsers.ts": [
+            'variantType.trim().toLowerCase().startsWith("overnumbered")',
+          ],
+          "packages/shared/src/search-query/bind.ts": [
+            "entry.value.toLowerCase().startsWith(wanted)",
+          ],
+          "packages/shared/src/search-fold.ts": ["foldForSearch(field).includes(needle)"],
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("names downloads only through downloadFilename", () => {
+    expect(
+      offenders(ALL_FILES, /\.replaceAll\(\/\[\^(?:\\w|a-z0-9\]\+)/u, [
+        "packages/shared/src/strings.ts",
+        // A channel slug suggestion, not a filename.
+        "apps/web/src/features/admin/lib/channel-slug-suggest.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("builds card page links only through cardPath and cardUrl", () => {
+    expect(
+      offenders(ALL_FILES, /`[^`]*(?<!media|api\/v1|API_BASE\})\/cards\/\$\{|"\/cards\/" *\+/u, [
+        "packages/shared/src/site-paths.ts",
+        "packages/shared/src/marketplace.ts",
+      ]),
+    ).toEqual([]);
+  });
+});

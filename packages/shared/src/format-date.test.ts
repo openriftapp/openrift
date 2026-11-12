@@ -8,6 +8,8 @@ import {
   formatCompactUtcStamp,
   formatDay,
   formatDayLocal,
+  localDayDiff,
+  shiftUtcDay,
   formatDayTime,
   formatDayTimeLocal,
   formatFileStamp,
@@ -388,5 +390,33 @@ describe("duration constants", () => {
   it("are consistent", () => {
     expect(HOUR_MS).toBe(3_600_000);
     expect(DAY_MS).toBe(24 * HOUR_MS);
+  });
+});
+
+describe("localDayDiff", () => {
+  it("counts calendar days on the viewer's clock", () => {
+    expect(localDayDiff(new Date(2026, 7, 15, 23, 30), new Date(2026, 7, 16, 0, 15))).toBe(1);
+    expect(localDayDiff(new Date(2026, 7, 15, 0, 5), new Date(2026, 7, 15, 23, 55))).toBe(0);
+    expect(localDayDiff(new Date(2026, 7, 16, 9), new Date(2026, 7, 15, 9))).toBe(-1);
+  });
+
+  it("keeps whole days across a daylight saving change", () => {
+    expect(localDayDiff(new Date(2026, 2, 28, 12), new Date(2026, 2, 30, 12))).toBe(2);
+    expect(localDayDiff(new Date(2026, 9, 24, 12), new Date(2026, 9, 26, 12))).toBe(2);
+  });
+
+  it("returns 0 for bad input", () => {
+    expect(localDayDiff("nope", new Date())).toBe(0);
+  });
+});
+
+describe("shiftUtcDay", () => {
+  it("moves a day across month and year ends", () => {
+    expect(shiftUtcDay("2026-01-31", 1)).toBe("2026-02-01");
+    expect(shiftUtcDay("2026-01-01", -1)).toBe("2025-12-31");
+  });
+
+  it("returns an empty string for bad input", () => {
+    expect(shiftUtcDay("nope", 1)).toBe("");
   });
 });

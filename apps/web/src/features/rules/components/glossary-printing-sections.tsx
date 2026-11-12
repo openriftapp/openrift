@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { Link } from "@tanstack/react-router";
 
 import { RowList } from "@/components/ui/row-list";
@@ -10,7 +11,6 @@ import {
   packSlots,
   printingDetails,
 } from "@/features/rules/lib/glossary-content";
-import { matches } from "@/features/rules/lib/glossary-search";
 import { m } from "@/paraglide/messages.js";
 
 import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
@@ -22,7 +22,7 @@ export function RaritiesSection({
   rarities: { slug: string; label: string; color?: string | null }[];
   query: string;
 }) {
-  const visible = rarities.filter((rarity) => matches(query, rarity.label, rarity.slug));
+  const visible = rarities.filter((rarity) => matchesTextQuery(query, [rarity.label, rarity.slug]));
   if (visible.length === 0) {
     return null;
   }
@@ -49,7 +49,9 @@ export function RaritiesSection({
 }
 
 export function BoosterPacksSection({ query }: { query: string }) {
-  const visible = packSlots().filter((slot) => matches(query, slot.label, slot.description));
+  const visible = packSlots().filter((slot) =>
+    matchesTextQuery(query, [slot.label, slot.description]),
+  );
   if (visible.length === 0) {
     return null;
   }
@@ -87,7 +89,7 @@ export function ArtVariantsSection({
 }) {
   const visible = artVariants.filter((variant) => {
     const description = artVariantDescription(variant.slug.toLowerCase());
-    return matches(query, variant.label, variant.slug, description);
+    return matchesTextQuery(query, [variant.label, variant.slug, description]);
   });
   if (visible.length === 0) {
     return null;
@@ -118,7 +120,7 @@ export function FinishesSection({
 }) {
   const visible = finishes.filter((finish) => {
     const description = finishDescription(finish.slug.toLowerCase());
-    return matches(query, finish.label, finish.slug, description);
+    return matchesTextQuery(query, [finish.label, finish.slug, description]);
   });
   if (visible.length === 0) {
     return null;
@@ -148,7 +150,7 @@ export function MarkersSection({
   query: string;
 }) {
   const visible = markers.filter((marker) =>
-    matches(query, marker.label, marker.slug, marker.description ?? undefined),
+    matchesTextQuery(query, [marker.label, marker.slug, marker.description ?? undefined]),
   );
   if (visible.length === 0) {
     return null;
@@ -173,7 +175,9 @@ export function MarkersSection({
 }
 
 export function PrintingDetailsSection({ query }: { query: string }) {
-  const visible = printingDetails().filter((item) => matches(query, item.label, item.description));
+  const visible = printingDetails().filter((item) =>
+    matchesTextQuery(query, [item.label, item.description]),
+  );
   if (visible.length === 0) {
     return null;
   }

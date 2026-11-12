@@ -7,25 +7,6 @@ import {
 import type { DeckFormat, DeckZone } from "./types/enums.js";
 import { WellKnown } from "./well-known.js";
 
-/**
- * Display labels. The zone headers in the text interchange format are a
- * separate vocabulary owned by `deck-codecs/text.ts`.
- */
-export const ZONE_LABELS: Record<DeckZone, string> = {
-  legend: "Legend",
-  "legend-options": "Extra Legends",
-  champion: "Chosen Champion",
-  runes: "Runes",
-  battlefield: "Battlefields",
-  main: "Main Deck",
-  sideboard: "Sideboard",
-  overflow: "Overflow",
-};
-
-export function zoneLabel(zone: string): string {
-  return ZONE_LABELS[zone as DeckZone] ?? zone;
-}
-
 /** Prefer `zoneExpected`; this omits the per-format overrides. */
 export const ZONE_EXPECTED: Partial<Record<DeckZone, number>> = {
   legend: 1,

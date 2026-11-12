@@ -1,4 +1,5 @@
 import { adminDistributionChannelsContract } from "@openrift/shared/contracts/admin/distribution-channels";
+import { countNoun } from "@openrift/shared/strings";
 import { implement } from "@orpc/server";
 
 import { assertSlugAvailable, assertValidReorder } from "../../../lib/assertions.js";
@@ -131,7 +132,7 @@ export const adminDistributionChannelsRouter = {
     const usageCount = await repo.countInUse(id);
     if (usageCount > 0 && !force) {
       throw errors.CONFLICT({
-        message: `Cannot delete: distribution channel is in use by ${usageCount} printing${usageCount === 1 ? "" : "s"}. Pass force=true to unlink and delete.`,
+        message: `Cannot delete: distribution channel is in use by ${countNoun(usageCount, "printing")}. Pass force=true to unlink and delete.`,
       });
     }
     if (usageCount > 0) {

@@ -1,3 +1,5 @@
+import { WellKnown } from "@openrift/shared/well-known";
+
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
@@ -29,6 +31,7 @@ import {
   runeCountsByDomain,
   splitDeckZones,
   truncateTitle,
+  zoneHeading,
 } from "./deck-image-parts.js";
 
 /** Vertical legend hero width; its height sets the whole identity band's. */
@@ -323,15 +326,20 @@ export async function renderVerticalDeckImage(
           width: identityRightW,
           height: legendH,
         },
-        bandBf && deckSection("BATTLEFIELDS", battlefieldTiles),
+        bandBf &&
+          deckSection(
+            zoneHeading(input.zoneLabels, WellKnown.deckZone.BATTLEFIELD),
+            battlefieldTiles,
+          ),
         bandOptions &&
           deckSection(
-            "LEGEND OPTIONS",
+            zoneHeading(input.zoneLabels, WellKnown.deckZone.LEGEND_OPTIONS),
             legendOptions.map((card, index) =>
               cardTile(card, legendOptionUris[index] ?? null, bandOptionW, bandOptionH),
             ),
           ),
-        bandRunes && deckSection("RUNES", runeTiles),
+        bandRunes &&
+          deckSection(zoneHeading(input.zoneLabels, WellKnown.deckZone.RUNES), runeTiles),
       ),
     );
 
@@ -384,11 +392,20 @@ export async function renderVerticalDeckImage(
     element(
       "div",
       { display: "flex", flexDirection: "column", marginTop: GAP, flexShrink: 0 },
-      lowerBf && deckSection("BATTLEFIELDS", battlefieldTiles),
-      lowerRunes && deckSection("RUNES", runeTiles, lowerBf ? GAP : 0),
+      lowerBf &&
+        deckSection(
+          zoneHeading(input.zoneLabels, WellKnown.deckZone.BATTLEFIELD),
+          battlefieldTiles,
+        ),
+      lowerRunes &&
+        deckSection(
+          zoneHeading(input.zoneLabels, WellKnown.deckZone.RUNES),
+          runeTiles,
+          lowerBf ? GAP : 0,
+        ),
       hasSideboard &&
         deckSection(
-          "SIDEBOARD",
+          zoneHeading(input.zoneLabels, WellKnown.deckZone.SIDEBOARD),
           sideboard.map((card, index) =>
             cardTile(card, sideboardUris[index] ?? null, sideboardTileW, sideboardTileH),
           ),

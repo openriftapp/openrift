@@ -15,6 +15,7 @@ import {
   liveTradeStatus,
   tradeStatusTitle,
 } from "@/features/groups/lib/trade-status-labels";
+import { memberName } from "@/lib/member-name";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -27,6 +28,7 @@ export type TradeChipDetail = "icon" | "count" | "label" | "word";
 interface TradeChipPerson {
   userId: string;
   name: string;
+  avatarName: string | null;
   image: string | null;
   gravatarHash: string;
   quantity: number;
@@ -42,7 +44,8 @@ function tradeChipPeople(trades: readonly CardTradeResponse[]): TradeChipPerson[
     return [
       {
         userId,
-        name: group.counterparty.name ?? m.trades_member_fallback(),
+        name: memberName(group.counterparty.name),
+        avatarName: group.counterparty.name,
         image: group.counterparty.image,
         gravatarHash: group.counterparty.gravatarHash,
         quantity: group.trades.reduce((sum, trade) => sum + trade.quantity, 0),
@@ -168,7 +171,7 @@ function TradeChip({
                 >
                   <UserAvatar
                     image={person.image}
-                    name={person.name}
+                    name={person.avatarName}
                     gravatarHash={person.gravatarHash}
                     size="sm"
                   />

@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
@@ -16,6 +16,7 @@ import { useCollectionsList } from "@/features/collections/hooks/use-collections
 import { useOwnedCollectionsByVariants } from "@/features/collections/hooks/use-owned-count";
 import { useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
 import type { UncoveredCopies } from "@/features/decks/lib/deck-card-detail-plan";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export function DeckCardDetailHeader({
   otherZones?: ReactNode;
   missing: number;
 }) {
+  const { zoneLabels } = useZoneOrder();
   const violations = useDeckViolations(deckId, format, formatConfig).filter(
     (violation) => violation.cardId === cardId,
   );
@@ -69,7 +71,7 @@ export function DeckCardDetailHeader({
             <span className="flex flex-wrap gap-x-3 text-sm">
               {zones.map((entry) => (
                 <span key={entry.zone}>
-                  {ZONE_LABELS[entry.zone]}
+                  {enumLabel(zoneLabels, entry.zone)}
                   <span className="text-muted-foreground tabular-nums"> · {entry.count}</span>
                 </span>
               ))}
@@ -90,7 +92,7 @@ export function DeckCardDetailHeader({
             >
               {zones.map((entry) => (
                 <ToggleGroupItem key={entry.zone} value={entry.zone}>
-                  {ZONE_LABELS[entry.zone]}
+                  {enumLabel(zoneLabels, entry.zone)}
                   <span className="tabular-nums opacity-70">· {entry.count}</span>
                 </ToggleGroupItem>
               ))}

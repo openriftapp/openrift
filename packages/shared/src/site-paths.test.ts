@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cardPath, deckImportPath, groupPath, rulesPath } from "./site-paths.js";
+import { cardPath, cardUrl, deckImportPath, groupPath, rulesPath } from "./site-paths.js";
 
 describe("cardPath", () => {
   it("builds the card path", () => {
@@ -9,6 +9,20 @@ describe("cardPath", () => {
 
   it("encodes the slug once", () => {
     expect(cardPath("a b/c")).toBe("/cards/a%20b%2Fc");
+  });
+
+  it("appends an encoded printing segment and the second side", () => {
+    expect(cardPath("bird", "unl-t02 p")).toBe("/cards/bird/unl-t02%20p");
+    expect(cardPath("bird", "unl-t02", 2)).toBe("/cards/bird/unl-t02?side=2");
+    expect(cardPath("bird", "unl-t02", 1)).toBe("/cards/bird/unl-t02");
+  });
+});
+
+describe("cardUrl", () => {
+  it("prefixes the site url", () => {
+    expect(cardUrl("https://example.test", "bird", "unl-t02", 2)).toBe(
+      "https://example.test/cards/bird/unl-t02?side=2",
+    );
   });
 });
 

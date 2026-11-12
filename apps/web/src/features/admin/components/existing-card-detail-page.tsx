@@ -223,7 +223,7 @@ export function ExistingCardDetailPage({
     ...unifiedMappingsForCardQueryOptions(identifier),
     enabled: isAdmin,
   });
-  const { data: bansData } = useCardBans(identifier);
+  const { data: bansData } = useCardBans(existingData?.card?.id ?? "");
   const attentionSubmissions = existingData
     ? buildAttentionSubmissions(existingData, costKeywords)
     : [];

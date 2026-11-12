@@ -1,3 +1,4 @@
+import { todayUtc } from "@openrift/shared/format-date";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
@@ -136,7 +137,7 @@ async function playloltcgFacts(
     event: {
       name: listing.name.slice(0, META_NAME_MAX),
       // The source publishes day granularity only; startAt is already the venue-local day.
-      eventDate: listing.startAt ?? new Date().toISOString().slice(0, 10),
+      eventDate: listing.startAt ?? todayUtc(),
       // activityType conflates city qualifiers and play nights; not mapped, filed as constructed.
       format: WellKnown.deckFormat.CONSTRUCTED,
       playerCount,

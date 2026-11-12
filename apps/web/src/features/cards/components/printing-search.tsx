@@ -7,7 +7,7 @@ import { ImportPrintingLabel } from "@/features/cards/components/printing-label"
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { usePrintingSearchIndex } from "@/features/cards/hooks/use-search-index";
-import type { PrintingSearchRow } from "@/features/cards/lib/card-search-rows";
+import type { PrintingSearchRow } from "@/features/cards/lib/card-lookup-rows";
 import { m } from "@/paraglide/messages.js";
 
 const MAX_RESULTS = 20;
@@ -22,8 +22,8 @@ export function PrintingSearch({
 }) {
   const [query, setQuery] = useState("");
 
-  const { rows, codesByRowId } = usePrintingSearchIndex(allPrintings);
-  const results = useCardSearch(rows, query, codesByRowId, MAX_RESULTS, MIN_QUERY_LENGTH);
+  const index = usePrintingSearchIndex(allPrintings);
+  const results = useCardSearch(index, query, MAX_RESULTS, MIN_QUERY_LENGTH);
 
   return (
     <CatalogSearchCombobox<PrintingSearchRow>
@@ -37,7 +37,7 @@ export function PrintingSearch({
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <PrintingThumbnail printing={row.printing} className="h-10" />
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-medium">{row.name}</span>
+            <span className="truncate font-medium">{row.displayName}</span>
             <span className="text-muted-foreground min-w-0 truncate text-xs">
               <ImportPrintingLabel printing={row.printing} />
             </span>

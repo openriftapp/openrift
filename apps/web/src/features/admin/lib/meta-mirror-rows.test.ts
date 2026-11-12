@@ -4,6 +4,7 @@ import type {
   PlayriftboundCatalogRow,
   TopdeckCatalogRow,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -51,7 +52,7 @@ function uvsgames(overrides: Partial<MetaCatalogRow> = {}): MetaCatalogRow {
 
 describe("uvsgamesMirrorRow", () => {
   it("gives an undecided row no results state", () => {
-    const row = uvsgamesMirrorRow(uvsgames(), { constructed: "Constructed" }, NOW);
+    const row = uvsgamesMirrorRow(uvsgames(), labelMapOf({ constructed: "Constructed" }), NOW);
 
     expect(row).toMatchObject({
       key: "923368",
@@ -72,7 +73,7 @@ describe("uvsgamesMirrorRow", () => {
         stagedPlayerCount: 26,
         stagedDeckCount: 8,
       }),
-      {},
+      labelMapOf({}),
       NOW,
     );
 
@@ -81,7 +82,11 @@ describe("uvsgamesMirrorRow", () => {
   });
 
   it("asks for a format pick when nothing maps the source's format", () => {
-    const row = uvsgamesMirrorRow(uvsgames({ mappedFormat: null, eventFormat: "Draft" }), {}, NOW);
+    const row = uvsgamesMirrorRow(
+      uvsgames({ mappedFormat: null, eventFormat: "Draft" }),
+      labelMapOf({}),
+      NOW,
+    );
 
     expect(row.unmappedFormat).toBe("Draft");
     expect(row.badges[0]).toMatchObject({ label: "Draft, unmapped", variant: "warning" });
@@ -89,8 +94,16 @@ describe("uvsgamesMirrorRow", () => {
 
   it("tells a probed-but-unlisted event from one gone from the source", () => {
     const missingSince = "2026-10-12T06:00:00.000Z";
-    const found = uvsgamesMirrorRow(uvsgames({ missingSince, missingProbe: "found" }), {}, NOW);
-    const absent = uvsgamesMirrorRow(uvsgames({ missingSince, missingProbe: "absent" }), {}, NOW);
+    const found = uvsgamesMirrorRow(
+      uvsgames({ missingSince, missingProbe: "found" }),
+      labelMapOf({}),
+      NOW,
+    );
+    const absent = uvsgamesMirrorRow(
+      uvsgames({ missingSince, missingProbe: "absent" }),
+      labelMapOf({}),
+      NOW,
+    );
 
     expect(found.badges.at(-1)?.label).toBe("Only reachable by id");
     expect(absent.badges.at(-1)?.label).toBe("Gone from the source");

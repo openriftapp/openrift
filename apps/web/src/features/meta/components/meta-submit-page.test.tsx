@@ -192,7 +192,7 @@ describe("MetaSubmitPage from a standings row", () => {
     expect(screen.getByText("Summoner Skirmish")).toBeInTheDocument();
     expect(screen.getByText(/2026-08-15 · Standard · 64 players/u)).toBeInTheDocument();
     expect(screen.getByText("Kira")).toBeInTheDocument();
-    expect(screen.getByText("#3")).toBeInTheDocument();
+    expect(screen.getByText("3rd")).toBeInTheDocument();
     expect(screen.getByText("5-1-0")).toBeInTheDocument();
     expect(screen.queryByLabelText("Who played it")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Where they finished")).not.toBeInTheDocument();

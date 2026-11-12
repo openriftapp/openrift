@@ -1,3 +1,5 @@
+import { WellKnown } from "@openrift/shared/well-known";
+
 import type { Io } from "../../../io.js";
 import {
   CARD_ASPECT,
@@ -28,6 +30,7 @@ import {
   runeCountsByDomain,
   splitDeckZones,
   truncateTitle,
+  zoneHeading,
 } from "./deck-image-parts.js";
 
 /** Width of the landscape layout's left legend panel. */
@@ -285,7 +288,7 @@ export async function renderLandscapeDeckImage(
           "div",
           { display: "flex", flexDirection: "column", width: legendW },
           deckSection(
-            "LEGEND OPTIONS",
+            zoneHeading(input.zoneLabels, WellKnown.deckZone.LEGEND_OPTIONS),
             legendOptions.map((card, index) =>
               cardTile(
                 card,
@@ -319,7 +322,7 @@ export async function renderLandscapeDeckImage(
   const sideboardSection =
     hasSideboard &&
     deckSection(
-      "SIDEBOARD",
+      zoneHeading(input.zoneLabels, WellKnown.deckZone.SIDEBOARD),
       sideboard.map((card, index) =>
         cardTile(card, sideboardUris[index] ?? null, sideboardTileW, sideboardTileH),
       ),
@@ -329,7 +332,7 @@ export async function renderLandscapeDeckImage(
   const battlefieldSection =
     bfCount > 0 &&
     deckSection(
-      "BATTLEFIELDS",
+      zoneHeading(input.zoneLabels, WellKnown.deckZone.BATTLEFIELD),
       battlefields.map((card, index) =>
         cardTile(card, battlefieldUris[index] ?? null, battlefieldTileW, bottomTileH),
       ),
@@ -338,7 +341,7 @@ export async function renderLandscapeDeckImage(
   const runesSection =
     runeCount > 0 &&
     deckSection(
-      "RUNES",
+      zoneHeading(input.zoneLabels, WellKnown.deckZone.RUNES),
       runeCards.map((card, index) => cardTile(card, runeUris[index] ?? null, runeTileW, runeTileH)),
     );
 

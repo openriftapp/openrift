@@ -1,6 +1,8 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { matchesDomains, noneExcluded } from "@openrift/shared/filters-predicates";
-import { foldForSearch, squashForSearch } from "@openrift/shared/search-fold";
+import { matchesTextPhrase, squashForSearch } from "@openrift/shared/search-fold";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 import type { Domain } from "@openrift/shared/types/enums";
@@ -37,10 +39,12 @@ interface DeckListFilters {
 }
 
 export interface DeckGroupLabels {
-  domains?: Record<string, string>;
-  formats?: Record<string, string>;
+  domains?: LabelMap;
+  formats?: LabelMap;
   folders?: Record<string, string>;
 }
+
+const NO_LABELS = labelMap([]);
 
 interface DeckListEnrichedItem {
   legendName: string | null;
@@ -78,16 +82,11 @@ function deckMatchesSearch(item: DeckListItemWithNames, query: string): boolean 
   if (query === "") {
     return true;
   }
-  // Names carry curly apostrophes ("Kai’Sa"), so both sides are folded.
   const haystack = [item.deck.name, item.familyName, item.legendName, item.championName]
     .filter((value): value is string => value !== null && value !== undefined)
     .join(" ");
-  const folded = foldForSearch(query);
-  if (folded === "") {
-    return true;
-  }
   return (
-    foldForSearch(haystack).includes(folded) ||
+    matchesTextPhrase(query, [haystack]) ||
     squashForSearch(haystack).includes(squashForSearch(query))
   );
 }
@@ -279,14 +278,14 @@ function groupEntriesOf(
   switch (groupBy) {
     case "format": {
       const slug = item.deck.format;
-      return [{ key: slug, label: labels?.formats?.[slug] ?? slug }];
+      return [{ key: slug, label: enumLabel(labels?.formats ?? NO_LABELS, slug) }];
     }
     case "domains": {
       const combo = domainComboOf(item);
       if (combo.length === 0) {
         return [{ key: "domains:none", label: m.decks_list_group_no_domain() }];
       }
-      const label = combo.map((slug) => labels?.domains?.[slug] ?? slug).join(" / ");
+      const label = combo.map((slug) => enumLabel(labels?.domains ?? NO_LABELS, slug)).join(" / ");
       return [{ key: `domains:${label}`, label }];
     }
     case "legend": {
@@ -296,9 +295,9 @@ function groupEntriesOf(
     case "validity": {
       const slug = item.deck.format;
       if (slug === WellKnown.deckFormat.FREEFORM) {
-        return [{ key: slug, label: labels?.formats?.[slug] ?? slug }];
+        return [{ key: slug, label: enumLabel(labels?.formats ?? NO_LABELS, slug) }];
       }
-      const formatLabel = labels?.formats?.[slug] ?? slug;
+      const formatLabel = enumLabel(labels?.formats ?? NO_LABELS, slug);
       return item.isValid
         ? [{ key: `valid:${slug}`, label: m.decks_list_group_valid({ format: formatLabel }) }]
         : [{ key: `invalid:${slug}`, label: m.decks_list_group_invalid({ format: formatLabel }) }];

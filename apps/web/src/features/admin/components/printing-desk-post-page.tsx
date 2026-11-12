@@ -1,6 +1,6 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { enumLabel } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { todayUtc } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import {
@@ -197,9 +197,7 @@ function PostComposer({
   const dataByPrinting = new Map(
     printingIds.map((printingId, position) => [printingId, results[position]?.data]),
   );
-  const markerLabelBySlug = new Map(
-    markerData.markers.map((marker) => [marker.slug, marker.label]),
-  );
+  const markerLabelBySlug = labelMap(markerData.markers);
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
 
   const entries: SlideEntry[] = slides.flatMap((slide) => {
@@ -297,8 +295,8 @@ function PostComposer({
         publicCode: formatPrintingCode(current.printing.publicCode),
         finishLabel: enumLabel(labels.finishes, current.printing.finish),
         channelLabel: channelLabelFor(current.printing),
-        markerLabels: current.printing.markerSlugs.map(
-          (slug) => markerLabelBySlug.get(slug) ?? slug,
+        markerLabels: current.printing.markerSlugs.map((slug) =>
+          enumLabel(markerLabelBySlug, slug),
         ),
       })
     : "";
@@ -343,7 +341,7 @@ function PostComposer({
       publicCode: entry.printing.publicCode,
       finishLabel: enumLabel(labels.finishes, entry.printing.finish),
       channelLabel: channelLabelFor(entry.printing),
-      markerLabels: entry.printing.markerSlugs.map((slug) => markerLabelBySlug.get(slug) ?? slug),
+      markerLabels: entry.printing.markerSlugs.map((slug) => enumLabel(markerLabelBySlug, slug)),
       artist: entry.printing.artist,
       imageCredit: showCredit ? (entry.image?.credit ?? null) : null,
       cardUrl: printingDeskCardUrl(entry.printing, getSiteUrl()),

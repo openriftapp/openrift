@@ -356,13 +356,13 @@ export function toCardTradeResponse(row: CardTradeDtoRow, userId: string): CardT
   const counterpartyRow: TradeCounterpartyRow = viewerIsGiver
     ? {
         userId: row.receiverUserId,
-        name: row.receiverName ?? row.receiverSnapshotName,
+        name: row.receiverName,
         email: row.receiverEmail,
         image: row.receiverImage,
       }
     : {
         userId: row.giverUserId,
-        name: row.giverName ?? row.giverSnapshotName,
+        name: row.giverName,
         email: row.giverEmail,
         image: row.giverImage,
       };

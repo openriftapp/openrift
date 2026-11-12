@@ -564,6 +564,21 @@ describe("buildTradeShelf", () => {
     expect(shelf).toMatchObject({ waitingPeople: 1, headline: "1 person is waiting on you" });
   });
 
+  it("counts two nameless members as two people, keyed by their ids", () => {
+    const nameless = (id: string, userId: string) =>
+      stubTrade({
+        id,
+        actionNeeded: "settle",
+        role: "giver",
+        counterparty: { userId, name: null, image: null, gravatarHash: "h", contactMethods: [] },
+      });
+    const shelf = buildTradeShelf({
+      ...empty,
+      needsYou: [nameless("a", "user-a"), nameless("b", "user-b")],
+    });
+    expect(shelf).toMatchObject({ waitingPeople: 2 });
+  });
+
   it("appends the expiry tail to the requests row only", () => {
     const soon = new Date("2026-08-02T10:00:00.000Z").toISOString();
     const shelf = buildTradeShelf({
@@ -604,7 +619,7 @@ describe("buildTradeShelf", () => {
     ]);
   });
 
-  it("falls back to a generic name for a counterparty with none", () => {
+  it("names a live counterparty without a name as unnamed", () => {
     expect(
       details(
         buildTradeShelf({
@@ -624,6 +639,29 @@ describe("buildTradeShelf", () => {
           ],
         }),
       ),
-    ).toEqual(["confirm: 1 card from a member"]);
+    ).toEqual(["confirm: 1 card from Unnamed member"]);
+  });
+
+  it("names a closed counterparty account as a former member", () => {
+    expect(
+      details(
+        buildTradeShelf({
+          ...empty,
+          needsYou: [
+            stubTrade({
+              actionNeeded: "settle",
+              role: "receiver",
+              counterparty: {
+                userId: null,
+                name: null,
+                image: null,
+                gravatarHash: "hash",
+                contactMethods: [],
+              },
+            }),
+          ],
+        }),
+      ),
+    ).toEqual(["confirm: 1 card from Former member"]);
   });
 });

@@ -13,9 +13,9 @@ describe("rulesTeaser", () => {
     );
   });
 
-  it("strips keyword brackets, italics and glyph tokens", () => {
+  it("keeps keyword words, drops brackets and italics, and names glyphs", () => {
     expect(rulesTeaser("[Hidden] _(Hide now for :rb_rune_rainbow:.)_", 40)).toBe(
-      "Hidden (Hide now for .)",
+      "Hidden (Hide now for Rainbow rune.)",
     );
   });
 

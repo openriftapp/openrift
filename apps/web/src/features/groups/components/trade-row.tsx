@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
@@ -35,7 +36,11 @@ export function TradeRow({
 
   const card = cardsById[trade.cardId];
   const printing = tradePrinting(trade, printingsByCardId, printingsById);
-  const cardName = printing ? printingDisplayName(printing) : (card?.name ?? "Card");
+  const cardName = printing
+    ? printingDisplayName(printing)
+    : card
+      ? legendDisplayName(card)
+      : "Card";
   const imageId = frontImageId(printing);
 
   const incoming = trade.role === "receiver";

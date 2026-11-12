@@ -37,7 +37,9 @@ export function SharedDeckPage() {
     <PublicDeckSurface
       data={data}
       isLoggedIn={isLoggedIn}
-      heroByline={<>{m.decks_share_byline({ name: data.owner.displayName })}</>}
+      heroByline={
+        data.owner.displayName ? m.decks_share_byline({ name: data.owner.displayName }) : undefined
+      }
       heroActions={
         <>
           <Button onClick={() => void handleClone()} disabled={cloneMutation.isPending}>

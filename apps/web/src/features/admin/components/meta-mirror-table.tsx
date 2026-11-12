@@ -1,5 +1,6 @@
 import type { MetaSource } from "@openrift/shared/contracts/admin/meta-catalog";
 import { formatDay, formatDayTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { ArchiveXIcon, CheckIcon, DownloadIcon, LayersIcon, UndoIcon } from "lucide-react";
 import { useState } from "react";
@@ -23,6 +24,7 @@ import {
   useRejectMirrorRow,
   useRestoreMirrorRow,
 } from "@/features/admin/hooks/use-admin-meta-mirror";
+import { catalogTriageDisplay } from "@/features/admin/lib/meta-catalog-display";
 import type { MetaMirrorRow } from "@/features/admin/lib/meta-mirror-rows";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
 import {
@@ -30,7 +32,6 @@ import {
   selectedMirrorKeys,
   useMetaMirrorSelectionStore,
 } from "@/features/admin/stores/meta-mirror-selection-store";
-import { catalogTriageDisplay } from "@/features/meta/lib/meta-catalog-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function SelectCell({ row, scope }: AdminCellSlotProps<MetaMirrorRow> & { scope: string }) {
@@ -281,8 +282,8 @@ export function MirrorRowActions({
   return <RowActionsFor row={row} onPickFormat={onPickFormat} />;
 }
 
-function plural(count: number, noun: string): string {
-  return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+function localeCountNoun(count: number, noun: string): string {
+  return `${count.toLocaleString()} ${pluralize(count, noun)}`;
 }
 
 export function MirrorSelectionBar({
@@ -315,10 +316,10 @@ export function MirrorSelectionBar({
         onSuccess: ({ published, skipped }) => {
           setConfirm(null);
           clear();
-          toast.success(`Published ${plural(published.length, "event")}`, {
+          toast.success(`Published ${localeCountNoun(published.length, "event")}`, {
             description:
               skipped > 0
-                ? `${plural(skipped, "event")} skipped: no longer undecided, or the format needs a pick.`
+                ? `${localeCountNoun(skipped, "event")} skipped: no longer undecided, or the format needs a pick.`
                 : undefined,
             action:
               published.length > 0
@@ -329,10 +330,10 @@ export function MirrorSelectionBar({
                         { source, keys: published },
                         {
                           onSuccess: ({ unpublished, kept }) =>
-                            toast.success(`Unpublished ${plural(unpublished, "event")}`, {
+                            toast.success(`Unpublished ${localeCountNoun(unpublished, "event")}`, {
                               description:
                                 kept > 0
-                                  ? `${plural(kept, "event")} already has standings. Remove those on their event page.`
+                                  ? `${localeCountNoun(kept, "event")} already has standings. Remove those on their event page.`
                                   : undefined,
                             }),
                         },
@@ -352,9 +353,11 @@ export function MirrorSelectionBar({
         onSuccess: ({ rejected, skipped }) => {
           setConfirm(null);
           clear();
-          toast.success(`Rejected ${plural(rejected.length, "event")}`, {
+          toast.success(`Rejected ${localeCountNoun(rejected.length, "event")}`, {
             description:
-              skipped > 0 ? `${plural(skipped, "event")} skipped: no longer undecided.` : undefined,
+              skipped > 0
+                ? `${localeCountNoun(skipped, "event")} skipped: no longer undecided.`
+                : undefined,
             action:
               rejected.length > 0
                 ? {
@@ -399,7 +402,7 @@ export function MirrorSelectionBar({
               {
                 onSuccess: ({ restored }) => {
                   clear();
-                  toast.success(`Restored ${plural(restored, "event")}`);
+                  toast.success(`Restored ${localeCountNoun(restored, "event")}`);
                 },
               },
             )
@@ -416,7 +419,7 @@ export function MirrorSelectionBar({
       <ConfirmActionDialog
         open={confirm === "publish"}
         onOpenChange={(open) => !open && setConfirm(null)}
-        title={`Publish ${plural(count, "event")}?`}
+        title={`Publish ${localeCountNoun(count, "event")}?`}
         description="Each one gets a page on the public archive and its results are collected. You can undo right after."
         confirmLabel={`Publish ${count}`}
         isPending={publish.isPending}
@@ -425,7 +428,7 @@ export function MirrorSelectionBar({
       <ConfirmActionDialog
         open={confirm === "reject"}
         onOpenChange={(open) => !open && setConfirm(null)}
-        title={`Reject ${plural(count, "event")}?`}
+        title={`Reject ${localeCountNoun(count, "event")}?`}
         description="Refresh mirror will not offer them again. You can restore them under Rejected, or undo right after."
         confirmLabel={`Reject ${count}`}
         destructive

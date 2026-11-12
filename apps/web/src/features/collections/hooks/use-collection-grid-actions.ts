@@ -89,7 +89,7 @@ export function useCollectionGridActions({
       { copyIds, toCollectionId },
       {
         onSuccess: () => {
-          toast.success(`Moved ${copyIds.length} card${copyIds.length > 1 ? "s" : ""}`);
+          toast.success(m.collections_toast_moved_cards({ count: copyIds.length }));
           clearSelection();
           setMoveOpen(false);
         },
@@ -103,7 +103,7 @@ export function useCollectionGridActions({
       { copyIds },
       {
         onSuccess: () => {
-          toast.success(`Removed ${copyIds.length} card${copyIds.length > 1 ? "s" : ""}`);
+          toast.success(m.collections_toast_removed_cards({ count: copyIds.length }));
           clearSelection();
           setDisposeOpen(false);
         },

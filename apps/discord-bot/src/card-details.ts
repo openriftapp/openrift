@@ -1,7 +1,7 @@
 import { splitCardBans } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { describeCardStats } from "@openrift/shared/card-stat-line";
-import { cardPath } from "@openrift/shared/site-paths";
+import { cardUrl } from "@openrift/shared/site-paths";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { APIEmbed, APIEmbedField } from "discord.js";
 
@@ -74,7 +74,7 @@ export function buildCardDetailsEmbed(input: CardDetailsInput): APIEmbed {
   ];
   return {
     title: legendDisplayName(card),
-    url: `${siteUrl}${cardPath(card.slug)}`,
+    url: cardUrl(siteUrl, card.slug),
     description: describeCardStats(card, snapshot.labels),
     color: EMBED_COLOR,
     ...(fields.length > 0 ? { fields } : {}),

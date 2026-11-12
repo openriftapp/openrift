@@ -1,5 +1,8 @@
-import { formatDayLocal, formatWeekdayLocal } from "@openrift/shared/format-date";
+import { formatDayLocal, formatWeekdayLocal, localDayDiff } from "@openrift/shared/format-date";
 import type { FriendGroupShopEventResponse } from "@openrift/shared/types/api/friend-group";
+
+import { DATE_WORDS } from "@/lib/date-words";
+import { m } from "@/paraglide/messages.js";
 
 export type ShopEventRange = "upcoming" | "past" | "all";
 
@@ -16,13 +19,12 @@ function localMidnight(day: string): string {
 }
 
 export function shopEventDayLabel(day: string, now: Date = new Date()): string {
-  const weekday = formatWeekdayLocal(localMidnight(day));
-  if (day === formatDayLocal(now)) {
-    return `Today · ${weekday}`;
+  const weekday = formatWeekdayLocal(localMidnight(day), DATE_WORDS);
+  const ahead = localDayDiff(now, localMidnight(day));
+  if (ahead === 0) {
+    return m.groups_shop_events_today({ weekday });
   }
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return day === formatDayLocal(tomorrow) ? `Tomorrow · ${weekday}` : weekday;
+  return ahead === 1 ? m.groups_shop_events_tomorrow({ weekday }) : weekday;
 }
 
 /**

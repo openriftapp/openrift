@@ -1,3 +1,4 @@
+import type { CardNameParts } from "@openrift/shared/card-name";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardType, Finish, Rarity } from "@openrift/shared/types/enums";
 import type {
@@ -300,10 +301,18 @@ export function cardTypesColumn() {
 }
 
 /** Requires `printings as p` joined through its first side; null on a single-sided printing. */
-export function secondSideCardName() {
-  return sql<string | null>`(
-    SELECT sc.name FROM faces sf JOIN cards sc ON sc.id = sf.card_id WHERE sf.id = p.face2_id
-  )`.as("secondSideName");
+export function secondSideCard() {
+  return sql<CardNameParts | null>`(
+    SELECT json_build_object(
+      'name', sc.name,
+      'tags', sc.tags,
+      'types', coalesce(
+        (SELECT array_agg(cct.type_slug ORDER BY cct.position) FROM card_card_types cct WHERE cct.card_id = sc.id),
+        '{}'
+      )
+    )
+    FROM faces sf JOIN cards sc ON sc.id = sf.card_id WHERE sf.id = p.face2_id
+  )`.as("secondSide");
 }
 
 /** `cardName` with " // <second card>" when the printing under `printings` is double-sided. */
@@ -314,13 +323,9 @@ export function pairedCardNameSql(cardName: string, printings = "p") {
   ), '')`;
 }
 
-export function pairedCardName(
-  row: Parameters<typeof legendDisplayName>[0] & {
-    secondSideName: string | null;
-  },
-): string {
+export function pairedCardName(row: CardNameParts & { secondSide: CardNameParts | null }): string {
   const name = legendDisplayName(row);
-  return row.secondSideName === null ? name : `${name} // ${row.secondSideName}`;
+  return row.secondSide === null ? name : `${name} // ${legendDisplayName(row.secondSide)}`;
 }
 
 export function selectCopyWithCard(db: Kysely<Database>) {
@@ -360,7 +365,7 @@ export async function printingDetailsByIds(
       "card.name as name",
       cardTypesColumn(),
       "card.tags as tags",
-      secondSideCardName(),
+      secondSideCard(),
       "pf.setId",
       "pf.rarity",
       "pf.finish",

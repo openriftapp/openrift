@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { formatReleasePeriod, isReleasedAnywhere } from "@openrift/shared/set-release";
 import { Link } from "@tanstack/react-router";
 
@@ -7,14 +8,13 @@ import { RowList } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import type { SetEntry } from "@/features/rules/lib/glossary-content";
 import { numberingPatterns } from "@/features/rules/lib/glossary-content";
-import { matches } from "@/features/rules/lib/glossary-search";
 import { m } from "@/paraglide/messages.js";
 
 import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
 
 export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }) {
   const visible = sets.filter((setEntry) =>
-    matches(query, setEntry.slug, setEntry.name, setEntry.setType),
+    matchesTextQuery(query, [setEntry.slug, setEntry.name, setEntry.setType]),
   );
   if (visible.length === 0) {
     return null;
@@ -66,7 +66,9 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
 }
 
 export function NumberingSection({ query }: { query: string }) {
-  const visible = numberingPatterns().filter((item) => matches(query, item.pattern, item.summary));
+  const visible = numberingPatterns().filter((item) =>
+    matchesTextQuery(query, [item.pattern, item.summary]),
+  );
   if (visible.length === 0) {
     return null;
   }

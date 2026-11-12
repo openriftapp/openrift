@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
@@ -92,7 +93,7 @@ export function TotalLabel(props: {
 function buildChartConfig(
   stacks: DomainCombo[],
   prefix: string,
-  domainLabels: Record<string, string>,
+  domainLabels: LabelMap,
   colors: Record<string, string>,
 ): ChartConfig {
   const config: ChartConfig = {};

@@ -349,7 +349,7 @@ function ByesSection({
               <PlayerChip name={bye.displayName}>
                 {priorByes > 0 ? (
                   <Badge variant="warning">
-                    {priorByes} earlier bye{priorByes === 1 ? "" : "s"}
+                    {m.tournaments_pairings_earlier_byes({ count: priorByes })}
                   </Badge>
                 ) : null}
               </PlayerChip>

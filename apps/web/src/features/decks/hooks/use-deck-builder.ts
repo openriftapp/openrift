@@ -8,7 +8,8 @@ import {
   totalQuantity,
   validateDeck,
 } from "@openrift/shared/deck-rules";
-import { isSingleSlotZone, ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { isSingleSlotZone } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone, Domain } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -45,7 +46,7 @@ import {
   useDeckUndoStore,
 } from "@/features/decks/stores/deck-undo-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
-import { useChampionIdentifierTags } from "@/hooks/use-enums";
+import { useChampionIdentifierTags, useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
 const EMPTY_CARDS: DeckBuilderCard[] = [];
@@ -745,6 +746,7 @@ interface DeckBuilderActions {
 }
 
 export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
+  const { zoneLabels } = useZoneOrder();
   const collection = useDeckDraftCollection(deckId);
   const runesByDomain = useDeckBuilderUiStore((state) => state.runesByDomain);
   const activeZone = useDeckBuilderUiStore((state) => state.activeZone);
@@ -794,7 +796,7 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       return;
     }
     showRemovalToast(
-      m.decks_workbench_removed({ card: displayName(removed), zone: ZONE_LABELS[zone] }),
+      m.decks_workbench_removed({ card: displayName(removed), zone: enumLabel(zoneLabels, zone) }),
       () => {
         const snapshot = useDeckUndoStore.getState().undo(deckId, allCards(collection));
         if (snapshot && scope) {

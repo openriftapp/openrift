@@ -513,11 +513,9 @@ function tradeRow(overrides: Partial<CardTradeDtoRow> = {}): CardTradeDtoRow {
     giverName: "Ekko",
     giverImage: null,
     giverEmail: "ekko@example.com",
-    giverSnapshotName: null,
     receiverName: "Jinx",
     receiverImage: "https://cdn.example/jinx.png",
     receiverEmail: "jinx@example.com",
-    receiverSnapshotName: null,
     counterpartyContacts: [],
     ...overrides,
   };
@@ -556,7 +554,7 @@ describe("toCardTradeResponse", () => {
     ]);
   });
 
-  it("falls back to the snapshots of a deleted counterparty and group", () => {
+  it("keeps a deleted group's snapshot name but no name for a deleted counterparty", () => {
     const row = tradeRow({
       groupId: null,
       groupSlug: null,
@@ -566,13 +564,12 @@ describe("toCardTradeResponse", () => {
       receiverName: null,
       receiverEmail: null,
       receiverImage: null,
-      receiverSnapshotName: "Jinx",
     });
     const result = toCardTradeResponse(row, VIEWER_ID);
     expect(result.groupName).toBe("Arcane Nights");
     expect(result.counterparty).toEqual({
       userId: null,
-      name: "Jinx",
+      name: null,
       image: null,
       gravatarHash: gravatarHashForEmail(""),
       contactMethods: [],

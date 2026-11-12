@@ -31,6 +31,7 @@ import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -46,7 +47,7 @@ function haveLine(sources: readonly TradeMarketSource[]): string {
   if (first === undefined) {
     return m.trades_buy_source_none();
   }
-  const name = (source: TradeMarketSource) => source.name ?? m.trades_member_fallback();
+  const name = (source: TradeMarketSource) => memberName(source.name);
   if (second === undefined) {
     return m.trades_market_one_has({ name: name(first) });
   }

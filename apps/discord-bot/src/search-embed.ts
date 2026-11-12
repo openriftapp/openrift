@@ -1,5 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { SearchResponse } from "@openrift/shared/contracts/search";
-import { cardPath } from "@openrift/shared/site-paths";
+import { cardUrl } from "@openrift/shared/site-paths";
+import { pluralize } from "@openrift/shared/strings";
 import type { APIEmbed } from "discord.js";
 
 import { EMBED_COLOR } from "./card-embed.js";
@@ -23,7 +25,7 @@ export function buildSearchEmbed({
     const printing = response.printings[printingId];
     const card = printing ? response.cards[printing.cardId] : undefined;
     return card && printing
-      ? [`[${card.name}](${siteUrl}${cardPath(card.slug)}) · ${printing.shortCode}`]
+      ? [`[${legendDisplayName(card)}](${cardUrl(siteUrl, card.slug)}) · ${printing.shortCode}`]
       : [];
   });
   const more = response.total - lines.length;
@@ -33,7 +35,7 @@ export function buildSearchEmbed({
       : `[Open on OpenRift](${searchPageUrl(siteUrl, query)})`;
   return {
     color: EMBED_COLOR,
-    title: `${response.total} ${response.total === 1 ? "result" : "results"} for ${query}`,
+    title: `${response.total} ${pluralize(response.total, "result", "results")} for ${query}`,
     url: searchPageUrl(siteUrl, query),
     description: response.total === 0 ? "Nothing matches." : [...lines, "", footer].join("\n"),
     ...(response.warnings.length > 0 ? { footer: { text: response.warnings.join("\n") } } : {}),

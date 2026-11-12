@@ -206,10 +206,8 @@ const MAX_NAME_MATCHES = 8;
 const MIN_QUERY_LENGTH = 1;
 
 function useMatchingPrintings(allPrintings: readonly Printing[], query: string): Printing[] {
-  const { rows } = useCardSearchIndex(allPrintings);
-  // Names only: the judge reads a decklist, not a card in hand, so there is no
-  // code to type here.
-  const matches = useCardSearch(rows, query, undefined, MAX_NAME_MATCHES, MIN_QUERY_LENGTH);
+  const index = useCardSearchIndex(allPrintings);
+  const matches = useCardSearch(index, query, MAX_NAME_MATCHES, MIN_QUERY_LENGTH);
   return matches.map((row) => row.printing);
 }
 
@@ -310,7 +308,10 @@ export function FixCardDialog({
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label>{m.tournaments_deck_check_zone_label()}</Label>
                 <SimpleSelect
-                  items={zoneOrder.map((zone) => ({ value: zone, label: zoneLabels[zone] }))}
+                  items={zoneOrder.map((zone) => ({
+                    value: zone,
+                    label: enumLabel(zoneLabels, zone),
+                  }))}
                   value={section}
                   onChange={setSection}
                   className="w-full"
@@ -335,12 +336,12 @@ export function FixCardDialog({
                 {parsedCopies >= card.quantity
                   ? m.tournaments_deck_check_moves_all({
                       count: card.quantity,
-                      zone: zoneLabels[section as never] ?? section,
+                      zone: enumLabel(zoneLabels, section),
                     })
                   : m.tournaments_deck_check_moves_some({
                       moved: copiesValid ? parsedCopies : "?",
                       count: card.quantity,
-                      zone: zoneLabels[card.zone],
+                      zone: enumLabel(zoneLabels, card.zone),
                     })}
               </p>
             ) : null}
@@ -424,7 +425,10 @@ export function AddCardDialog({
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label>{m.tournaments_deck_check_zone_label()}</Label>
                 <SimpleSelect
-                  items={zoneOrder.map((zone) => ({ value: zone, label: zoneLabels[zone] }))}
+                  items={zoneOrder.map((zone) => ({
+                    value: zone,
+                    label: enumLabel(zoneLabels, zone),
+                  }))}
                   value={section}
                   onChange={setSection}
                   className="w-full"

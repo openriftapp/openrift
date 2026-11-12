@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { boundsOf, chunk, labelMap, mostCommonValue, unique } from "./collections.js";
+import { boundsOf, chunk, mostCommonValue, unique } from "./collections.js";
 
 describe("unique", () => {
   it("returns empty array for empty input", () => {
@@ -77,21 +77,6 @@ describe("mostCommonValue", () => {
 
   it("handles all-unique values (returns first)", () => {
     expect(mostCommonValue(["a", "b", "c"])).toBe("a");
-  });
-});
-
-describe("labelMap", () => {
-  it("keys rows by slug in input order", () => {
-    const map = labelMap([
-      { slug: "foil", label: "Foil" },
-      { slug: "metal-deluxe", label: "Metal Deluxe" },
-    ]);
-    expect(map).toEqual({ foil: "Foil", "metal-deluxe": "Metal Deluxe" });
-    expect(Object.keys(map)).toEqual(["foil", "metal-deluxe"]);
-  });
-
-  it("returns an empty object for no rows", () => {
-    expect(labelMap([])).toEqual({});
   });
 });
 

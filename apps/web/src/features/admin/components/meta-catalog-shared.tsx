@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { syncTriggerAnnouncement } from "@/features/admin/lib/meta-catalog-display";
 import type { MetaMirrorRow } from "@/features/admin/lib/meta-mirror-rows";
-import { syncTriggerAnnouncement } from "@/features/meta/lib/meta-catalog-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
 
 export function announceSyncTrigger(label: string, result: MetaSyncTriggerResult): void {

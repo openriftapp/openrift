@@ -1,5 +1,6 @@
 import { formatDay } from "@openrift/shared/format-date";
 import { formatRuleNumber } from "@openrift/shared/rules";
+import { searchTerms } from "@openrift/shared/search-fold";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -35,7 +36,6 @@ import {
   EMPTY_STRING_SET,
   mergeTombstones,
   parseRuleNumberQuery,
-  parseSearchTerms,
   withSourceContent,
 } from "@/features/rules/lib/rules-changes";
 import type { RuleEntry } from "@/features/rules/lib/rules-changes";
@@ -218,7 +218,7 @@ function RulesContent({
     .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
 
   const isSearching =
-    parseSearchTerms(debouncedSearchQuery).length > 0 &&
+    searchTerms(debouncedSearchQuery).length > 0 &&
     (debouncedSearchQuery.trim().length >= 2 ||
       parseRuleNumberQuery(debouncedSearchQuery) !== null);
   const isEmpty = rulesData.rules.length === 0;

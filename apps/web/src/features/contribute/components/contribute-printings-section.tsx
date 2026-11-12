@@ -1,3 +1,4 @@
+import { labelMap } from "@openrift/shared/enum-label";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 
@@ -56,9 +57,7 @@ export function ContributePrintingsSection({
   }));
   const { data: setListData } = useSuspenseQuery(publicSetListQueryOptions);
 
-  const markerLabels = Object.fromEntries(
-    markerOptions.map((marker) => [marker.slug, marker.label]),
-  );
+  const markerLabels = labelMap(markerOptions);
   const printingVariants = form.printings.map((p) => toVariantLabelPrinting(p, markerLabels));
 
   const single = scope === "printing";

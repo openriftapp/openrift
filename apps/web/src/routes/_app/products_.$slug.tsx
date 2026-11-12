@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
+import { cardPath } from "@openrift/shared/site-paths";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
@@ -73,7 +74,7 @@ export const Route = createFileRoute("/_app/products_/$slug")({
       seenCardIds.add(printing.cardId);
       const card = data.cards[printing.cardId];
       if (card) {
-        items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
+        items.push({ name: legendDisplayName(card), url: cardPath(card.slug) });
       }
     }
     const { name, description, cardTotal } = data.product;

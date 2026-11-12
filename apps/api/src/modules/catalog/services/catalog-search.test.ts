@@ -395,6 +395,19 @@ describe("namedCard", () => {
     });
   });
 
+  it("finds a card by the printed name of one of its printings", () => {
+    const localized = {
+      ...catalog,
+      printings: {
+        ...catalog.printings,
+        "jinx-fr": printing("jinx", "OGN-020", { printedName: "Jinx la Rebelle", language: "FR" }),
+      },
+    } as CatalogResponse;
+    const withPrinted = buildNamedCardIndex(localized, joinCatalogPrintings(localized));
+    const result = namedCard(source(), withPrinted, { fuzzy: "rebelle" });
+    expect(result.ok && result.response.printingIds.length > 0).toBe(true);
+  });
+
   it("limits the printings to a set by code or name", () => {
     expect(named({ exact: "annie", set: "sfd" })).toEqual(["annie-1"]);
     expect(named({ exact: "annie", set: "Spiritforged" })).toEqual(["annie-1"]);

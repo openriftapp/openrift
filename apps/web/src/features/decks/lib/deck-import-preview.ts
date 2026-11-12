@@ -14,7 +14,7 @@ export function deckImportRowId(index: number): string {
 
 function entryDisplayName(entry: DeckMatchedEntry): string {
   return (
-    entry.resolvedCard?.cardName ??
+    entry.resolvedCard?.displayName ??
     entry.entry.cardName ??
     entry.entry.shortCode ??
     ""

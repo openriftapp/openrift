@@ -1,5 +1,6 @@
 import type { DeskCard, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon, PlusIcon } from "lucide-react";
@@ -28,7 +29,7 @@ export function PrintingDeskCardPage({ cardSlug }: { cardSlug: string }) {
   const languageLabels = useLanguageLabels();
   const preferredLanguages = useEffectiveLanguageOrder();
   const { data: markerData } = useMarkers();
-  const markerLabels = new Map(markerData.markers.map((marker) => [marker.slug, marker.label]));
+  const markerLabels = labelMap(markerData.markers);
 
   const languages = [...new Set(data.printings.map((printing) => printing.language))];
   const [language, setLanguage] = useState(() =>
@@ -55,7 +56,7 @@ export function PrintingDeskCardPage({ cardSlug }: { cardSlug: string }) {
           onChange={setLanguage}
           options={languages.map((code) => ({
             value: code,
-            label: languageLabels[code] ?? code,
+            label: enumLabel(languageLabels, code),
           }))}
         />
       )}
@@ -114,7 +115,7 @@ function PrintingTile({
   printing: DeskPrintingRow;
   rarityLabel: string;
   finishLabel: string;
-  markerLabels: ReadonlyMap<string, string>;
+  markerLabels: LabelMap;
 }) {
   return (
     <CardLink
@@ -129,7 +130,7 @@ function PrintingTile({
         <Badge variant="neutral">{rarityLabel}</Badge>
         <Badge variant="neutral">{finishLabel}</Badge>
         {printing.markerSlugs.map((slug) => (
-          <Badge key={slug}>{markerLabels.get(slug) ?? slug}</Badge>
+          <Badge key={slug}>{enumLabel(markerLabels, slug)}</Badge>
         ))}
       </div>
       <p className="text-muted-foreground text-xs">{imageCountText(printing.imageCount)}</p>

@@ -1,6 +1,6 @@
 import { buildCodeIndex, lookupCode } from "@openrift/shared/card-search";
-import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
-import { foldForSearch } from "@openrift/shared/search-fold";
+import { printingVariantPartsEnglish } from "@openrift/shared/printing-label";
+import { matchesTextPhrase } from "@openrift/shared/search-fold";
 
 import type { CatalogCard, CatalogPrinting, CatalogSnapshot } from "./catalog-cache.js";
 import { representativePrinting } from "./catalog-cache.js";
@@ -10,8 +10,28 @@ export interface PrintingChoice {
   value: string;
 }
 
-/** Discord caps autocomplete responses at 25 choices. */
+/** Discord caps autocomplete responses at 25 choices of at most 100 characters. */
 const MAX_CHOICES = 25;
+const MAX_CHOICE_NAME = 100;
+const DEFAULT_SUFFIX = " (default)";
+
+function fitChoiceName(
+  code: string,
+  setName: string | undefined,
+  variants: string,
+  suffix: string,
+): string {
+  const join = (set: string | undefined) =>
+    `${[code, set, variants].filter(Boolean).join(" · ")}${suffix}`;
+  const full = join(setName);
+  if (full.length <= MAX_CHOICE_NAME) {
+    return full;
+  }
+  const room = (setName?.length ?? 0) - (full.length - MAX_CHOICE_NAME) - 1;
+  return setName !== undefined && room > 0
+    ? join(`${setName.slice(0, room)}…`)
+    : `${full.slice(0, MAX_CHOICE_NAME - 1)}…`;
+}
 
 function orderedPrintings(snapshot: CatalogSnapshot, card: CatalogCard): CatalogPrinting[] {
   const printings = snapshot.printingsByCardId.get(card.id) ?? [];
@@ -27,18 +47,7 @@ export function printingVariantParts(
   printing: CatalogPrinting,
   siblings: CatalogPrinting[],
 ): string[] {
-  const { language, rest, otherSide } = formatPrintingVariantLabelParts(
-    printing,
-    siblings,
-    snapshot.labels,
-  );
-  // formatPrintingVariantLabelParts omits language when siblings agree; add it back
-  // for a card printed solely in one non-English language.
-  const shown = language ?? (printing.language === "EN" ? null : printing.language);
-  const parts = shown ? [shown, ...rest] : [...rest];
-  if (otherSide) {
-    parts.push(`with ${otherSide}`);
-  }
+  const parts = printingVariantPartsEnglish(printing, siblings, snapshot.labels);
   if (parts.length === 0 && siblings.length > 1) {
     parts.push("Standard");
   }
@@ -52,13 +61,8 @@ function printingLabel(
   isDefault: boolean,
 ): string {
   const set = snapshot.setsById.get(printing.setId);
-  const parts = [printing.publicCode];
-  if (set) {
-    parts.push(set.name);
-  }
-  parts.push(...printingVariantParts(snapshot, printing, siblings));
-  const label = parts.join(" · ");
-  return (isDefault ? `${label} (default)` : label).slice(0, 100);
+  const variants = printingVariantParts(snapshot, printing, siblings).join(" · ");
+  return fitChoiceName(printing.publicCode, set?.name, variants, isDefault ? DEFAULT_SUFFIX : "");
 }
 
 export function printingChoices(
@@ -67,15 +71,19 @@ export function printingChoices(
   query: string,
 ): PrintingChoice[] {
   const printings = orderedPrintings(snapshot, card);
-  const folded = foldForSearch(query);
-  const choices = printings.map((printing, index) => ({
-    name: printingLabel(snapshot, printing, printings, index === 0),
-    value: printing.printingId,
-  }));
-  const filtered = folded
-    ? choices.filter((choice) => foldForSearch(choice.name).includes(folded))
-    : choices;
-  return filtered.slice(0, MAX_CHOICES);
+  return printings
+    .map((printing, index) => ({
+      choice: {
+        name: printingLabel(snapshot, printing, printings, index === 0),
+        value: printing.printingId,
+      },
+      language: printing.language,
+    }))
+    .filter(({ choice, language }) =>
+      matchesTextPhrase(query, [choice.name.replace(DEFAULT_SUFFIX, ""), language]),
+    )
+    .map(({ choice }) => choice)
+    .slice(0, MAX_CHOICES);
 }
 
 export function resolvePrinting(

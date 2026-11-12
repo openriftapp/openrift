@@ -37,7 +37,7 @@ import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-print
 import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
 import { FormatStateBadge } from "@/features/decks/components/deck-format-badge";
 import { FannedPreview, typeCountSummary } from "@/features/decks/components/deck-tile";
-import { EntryStateBadge } from "@/features/tournaments/components/deck-check-event-page";
+import { DeckCheckStateBadge } from "@/features/tournaments/components/deck-check-state-badge";
 import { useDraftRevision } from "@/features/tournaments/hooks/use-draft-revision";
 import {
   useDenyTournamentDeckCheckUnlock,
@@ -79,7 +79,11 @@ export function DeckEntryTopBar({
         entry || actions ? (
           <>
             {entry ? (
-              <EntryStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
+              <DeckCheckStateBadge
+                state={entry.state}
+                reviewOutcome={entry.reviewOutcome}
+                audience="staff"
+              />
             ) : null}
             {actions}
           </>

@@ -76,6 +76,37 @@ describe("playerRunRounds", () => {
   });
 });
 
+describe("playerRunRounds without a result in a larger pod", () => {
+  it("reads a 3 or 4 player pod on one placement without games as no result", () => {
+    for (const size of [3, 4] as const) {
+      const unplayed = round(1, [["Ashe", 0, "Jinx", 0]]);
+      const pod = unplayed.pods[0]!;
+      const extra = Array.from({ length: size - 2 }, (_, index) => ({
+        ...pod.members[0]!,
+        playerId: `Extra${index}`,
+        displayName: `Extra${index}`,
+      }));
+      pod.members = [...pod.members, ...extra].map((member) => ({ ...member, gamePoints: null }));
+      pod.size = size;
+      expect(playerRunRounds([unplayed], "Ashe", false).map((entry) => entry.outcome)).toEqual([
+        "unknown",
+      ]);
+    }
+  });
+});
+
+describe("playerRunRounds double forfeit", () => {
+  it("reads a round neither side played as both forfeited, not a draw", () => {
+    const forfeited = round(1, [["Ashe", 0, "Jinx", 0]]);
+    for (const member of forfeited.pods[0]!.members) {
+      member.gamePoints = null;
+    }
+    expect(playerRunRounds([forfeited], "Ashe", false).map((entry) => entry.outcome)).toEqual([
+      "double_forfeit",
+    ]);
+  });
+});
+
 describe("latestSnapshotRound", () => {
   it("ignores the open round and an empty list", () => {
     const rounds = [round(1, []), round(3, []), { ...round(2, []), status: "reporting" as const }];

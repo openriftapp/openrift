@@ -151,7 +151,6 @@ function makeRepos() {
     updateEntry: stub<any>(undefined),
     createEntry: stub<any>(undefined),
     canonicalPrintingByCard: stub(new Map()),
-    getCardsByShortCodes: stub(new Map()),
     getCardDetails: stub(new Map()),
     getCardSetSlugs: stub(new Map()),
     getEntryIdByParticipant: stub<any>(null),
@@ -171,12 +170,35 @@ function makeRepos() {
   const catalog = {
     championIdentifierTags: stub([] as string[]),
     cards: stub([] as unknown[]),
-    printingCodes: stub([] as unknown[]),
-    nameAliases: stub([] as unknown[]),
+    printingLookupRows: stub([] as unknown[]),
     catalogContentVersion: stub("catalog-v1"),
   };
   const cardBans = { listActiveForCards: stub([] as unknown[]) };
   return { deckCheck, tournaments, decks, enums, catalog, cardBans };
+}
+
+function catalogCards(
+  repos: ReturnType<typeof makeRepos>,
+  rows: [shortCode: string, cardId: string, name: string, types?: string[], tags?: string[]][],
+) {
+  repos.catalog.cards.mockResolvedValue(
+    rows.map(([, id, name, types = ["unit"], tags = []]) => ({
+      id,
+      slug: id,
+      name,
+      types,
+      superTypes: [],
+      tags,
+    })),
+  );
+  repos.catalog.printingLookupRows.mockResolvedValue(
+    rows.map(([shortCode, cardId]) => ({
+      cardId,
+      shortCode,
+      publicCode: `${shortCode}/298`,
+      printedName: null,
+    })),
+  );
 }
 
 function makeApp(repos: ReturnType<typeof makeRepos>) {
@@ -539,13 +561,11 @@ describe("deck-code decoding (linesFromDeckCode)", () => {
     const repos = makeRepos();
     repos.deckCheck.getEntryForPlayer.mockResolvedValue(entryRow({ state: "editable" }));
     repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
-    repos.deckCheck.getCardsByShortCodes.mockResolvedValue(
-      new Map([
-        ["OGN-001", { cardId: "card-main", name: "Main Card", types: ["unit"] }],
-        ["OGN-002", { cardId: "card-side", name: "Side Card", types: ["unit"] }],
-        ["OGN-003", { cardId: "card-champ", name: "Champion Card", types: ["unit"] }],
-      ]),
-    );
+    catalogCards(repos, [
+      ["OGN-001", "card-main", "Main Card"],
+      ["OGN-002", "card-side", "Side Card"],
+      ["OGN-003", "card-champ", "Champion Card"],
+    ]);
 
     const res = await makeApp(repos).fetch(
       req("PUT", `/mine/${ENTRY_ID}/list`, { deckCode: "SOMECODE", dryRun: true }),
@@ -564,6 +584,34 @@ describe("deck-code decoding (linesFromDeckCode)", () => {
     ]);
   });
 
+  it("resolves a deck code's printing code regardless of case", async () => {
+    mockParsePiltoverDeckCode.mockReturnValueOnce({
+      entries: [{ shortCode: "sfd-001", quantity: 1, sourceSlot: "mainDeck", rawFields: {} }],
+      warnings: [],
+    });
+    const repos = makeRepos();
+    repos.deckCheck.getEntryForPlayer.mockResolvedValue(entryRow({ state: "editable" }));
+    repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
+    catalogCards(repos, [["SFD-001", "card-azir", "Emperor of the Sands", ["legend"], ["Azir"]]]);
+
+    const res = await makeApp(repos).fetch(
+      req("PUT", `/mine/${ENTRY_ID}/list`, { deckCode: "SOMECODE", dryRun: true }),
+    );
+    const body = (await res.json()) as {
+      cards: { rawName: string; zone: string; matchStatus: string; resolvedCardId: string }[];
+    };
+
+    expect(res.status).toBe(200);
+    expect(body.cards).toEqual([
+      expect.objectContaining({
+        rawName: "Emperor of the Sands",
+        zone: "legend",
+        matchStatus: "matched",
+        resolvedCardId: "card-azir",
+      }),
+    ]);
+  });
+
   it("falls back an unresolved short code to a MAIN-zone placeholder, even from the sideboard", async () => {
     // linesFromDeckCode's "not found" branch always returns
     // WellKnown.deckZone.MAIN — it does not consult entry.sourceSlot the way
@@ -576,7 +624,6 @@ describe("deck-code decoding (linesFromDeckCode)", () => {
     const repos = makeRepos();
     repos.deckCheck.getEntryForPlayer.mockResolvedValue(entryRow({ state: "editable" }));
     repos.deckCheck.getEventById.mockResolvedValue(deckEvent());
-    // getCardsByShortCodes defaults to an empty map: UNKNOWN-999 stays unresolved.
 
     const res = await makeApp(repos).fetch(
       req("PUT", `/mine/${ENTRY_ID}/list`, { deckCode: "SOMECODE", dryRun: true }),

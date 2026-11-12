@@ -4,10 +4,23 @@
 
 ### Highlights
 
+- feat(Cards): **Search by any printed name** — a card's name in any language now finds it in the card browser, the command palette and quick-add, whichever languages you display. Codes of printings in other languages find the card too.
+- feat(Lists): **Paste a shared list back in** — the list text import now reads the text the share and export buttons produce, including "2x" quantities, printing codes, finish and language. Import errors follow your language.
+- fix(Groups): **Deleted accounts lose their name** — when someone deletes their account, old trades and loans now show "Former member" in place of their name.
 - feat(Meta): **Likely champion on partial lists** — partial lists show a guessed champion and battlefield, marked as such, plus a bar for what is known.
 
 ### Other
 
+- fix(Cards): **Legend names read the same everywhere** — legends show as "Champion, Epithet" on tier lists, boards, product contents, related cards, placeholder art, deck tools and in the Discord bot, and sort under the champion's name.
+- fix(Cards): **Translated keyword searches on more pages** — keyword names in your language now work on the promos page, in list filters and in list rules, and the first row of cards matches the loaded grid for every sort and grouping.
+- fix(Rules): **Forgiving search** — rules, glossary and command palette searches ignore accents and apostrophe or dash styles, and the glossary and palette match your words in any order.
+- fix(Tournaments): **Deck check no longer guesses champions** — a decklist line with only a champion's name is flagged as ambiguous when several cards share it, and deck codes are read regardless of letter case.
+- fix(Groups): **Clearer names for missing members** — members without a name show as "Unnamed member" in groups, trades, loans and the activity feed, and avatars no longer show initials made from those words.
+- fix(Collection): **Shares without an owner name** — share pages, link previews and embeds leave out the byline when the owner has no name. Share titles use Wishlist and Tradelist.
+- fix(Tournaments): **Both forfeited** — a match neither side played reads "both forfeited" in round lines and run strips.
+- fix(Decks): **Zone and format names on share images** — deck share images, page titles and embeds use the same zone and format names as the deck editor.
+- fix(App): **More of the app translated** — tournament counts, meta archive labels, activity feed lines, toasts and shop event days follow your language.
+- fix(App): **Tidier download names** — downloaded images, PDFs and CSV files get lowercase names with hyphens.
 - fix(Cards): **Card art stays up while new art loads** — when a card's picture is replaced, the old one now stays visible until the new one is ready. Before, the card could show no art for a moment, or for good when the new picture failed to load.
 
 ## 2026-11-11

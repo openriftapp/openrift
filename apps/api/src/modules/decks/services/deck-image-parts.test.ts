@@ -1,7 +1,9 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { DeckImageCard } from "./deck-image-parts.js";
 import {
+  zoneHeading,
   deckMetaLabel,
   legendOptionTileSize,
   packGrid,
@@ -206,5 +208,17 @@ describe("legendOptionTileSize", () => {
   it("draws nothing without options or without room", () => {
     expect(legendOptionTileSize(0, 300, 120)).toEqual({ tileW: 0, tileH: 0 });
     expect(legendOptionTileSize(3, 300, 0)).toEqual({ tileW: 0, tileH: 0 });
+  });
+});
+
+describe("zoneHeading", () => {
+  it("prints the admin-managed zone label in capitals", () => {
+    const labels = labelMapOf({ battlefield: "Schlachtfelder", "legend-options": "Extra Legends" });
+    expect(zoneHeading(labels, "battlefield")).toBe("SCHLACHTFELDER");
+    expect(zoneHeading(labels, "legend-options")).toBe("EXTRA LEGENDS");
+  });
+
+  it("falls back to the slug for a zone without a label", () => {
+    expect(zoneHeading(labelMapOf({}), "sideboard")).toBe("SIDEBOARD");
   });
 });

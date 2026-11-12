@@ -81,9 +81,23 @@ describe("catalogRepo", () => {
         rarity: "epic",
         domains: ["fury"],
         name: "Jinx, Rebel",
+        tags: ["Jinx"],
+        types: ["unit"],
         shortCode: "OGN-202",
         variantLabel: "Foil",
         priceCents: 420,
+      },
+      {
+        count: "5",
+        imageId: "image-uuid-2",
+        rarity: "epic",
+        domains: ["order"],
+        name: "Emperor of the Sands",
+        tags: ["Azir"],
+        types: ["legend"],
+        shortCode: "SFD-001",
+        variantLabel: null,
+        priceCents: null,
       },
     ]);
     const summary = await catalogRepo(db).landingSummary(36);
@@ -100,6 +114,15 @@ describe("catalogRepo", () => {
         variantLabel: "Foil",
         priceCents: 420,
       },
+      {
+        imageId: "image-uuid-2",
+        rarity: "epic",
+        domains: ["order"],
+        name: "Azir, Emperor of the Sands",
+        shortCode: "SFD-001",
+        variantLabel: null,
+        priceCents: null,
+      },
     ]);
   });
 
@@ -110,6 +133,8 @@ describe("catalogRepo", () => {
       printingCount: 40,
       imageId: `image-${shortCode}`,
       name: "Navori Scout",
+      tags: [],
+      types: ["unit"],
       shortCode,
       rarity: "common",
       markers: ["Promo"],

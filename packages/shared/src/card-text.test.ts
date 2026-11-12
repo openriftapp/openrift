@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CardTextToken } from "./card-text.js";
-import { tokenizeCardText } from "./card-text.js";
+import { cardTextPlain, glyphWord, tokenizeCardText, truncateAtWord } from "./card-text.js";
 
 function text(value: string): CardTextToken {
   return { type: "text", value };
@@ -169,5 +169,37 @@ describe("tokenizeCardText", () => {
 
   it("parses a keyword inside parenthesized reminder text", () => {
     expect(tokenizeCardText("(gain [Flying])")).toEqual([paren(text("gain "), keyword("Flying"))]);
+  });
+});
+
+describe("cardTextPlain", () => {
+  it("keeps the words of a keyword chip and drops the chip markup", () => {
+    expect(cardTextPlain("[Reaction] [>][Deflect 1] Draw 1.")).toBe("Reaction Deflect 1 Draw 1.");
+  });
+
+  it("names glyphs and unwraps italic reminder text", () => {
+    expect(cardTextPlain("Spend :rb_energy_2: _(then ready it.)_")).toBe(
+      "Spend 2 energy (then ready it.)",
+    );
+  });
+
+  it("joins lines with a space", () => {
+    expect(cardTextPlain("Draw 1.\n**Then** discard 1.")).toBe("Draw 1. Then discard 1.");
+  });
+});
+
+describe("glyphWord", () => {
+  it("reads energy and rune glyphs as words", () => {
+    expect(glyphWord("energy_2")).toBe("2 energy");
+    expect(glyphWord("rune_fury")).toBe("Fury rune");
+    expect(glyphWord("might")).toBe("Might");
+  });
+});
+
+describe("truncateAtWord", () => {
+  it("cuts at a word boundary and hard-cuts one long word", () => {
+    expect(truncateAtWord("Your spells and abilities", 17)).toBe("Your spells and…");
+    expect(truncateAtWord("Supercalifragilistic", 8)).toBe("Superca…");
+    expect(truncateAtWord("Short", 8)).toBe("Short");
   });
 });

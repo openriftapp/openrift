@@ -1,4 +1,4 @@
-import { enumLabel } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
@@ -148,9 +148,7 @@ function DesignInfo({ design }: { design: PrintingDesign<AdminPrintingResponse> 
   const printing = design.lead;
   const { labels } = useEnumOrders();
   const { data: markersData } = useMarkers();
-  const markerLabels = Object.fromEntries(
-    markersData.markers.map((marker) => [marker.slug, marker.label]),
-  );
+  const markerLabels = labelMap(markersData.markers);
 
   const badges: ReactNode[] = [
     <span key="rarity" className="text-muted-foreground inline-flex items-center gap-0.5 text-xs">

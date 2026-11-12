@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
@@ -11,7 +12,7 @@ import {
 } from "@/features/decks/lib/deck-odds-groups";
 import { stubDeckBuilderCard } from "@/test/factories";
 
-const TYPE_LABELS = { unit: "Unit", spell: "Spell", gear: "Gear" };
+const TYPE_LABELS = labelMapOf({ unit: "Unit", spell: "Spell", gear: "Gear" });
 
 const main = (overrides: Parameters<typeof stubDeckBuilderCard>[0] = {}) =>
   stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, ...overrides });

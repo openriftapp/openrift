@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,7 +11,7 @@ vi.mock("@/hooks/use-domain-colors", () => ({
   useDomainColors: () => ({ fury: "#cb212d", calm: "#16aa71", colorless: "#737373" }),
 }));
 vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({ labels: { domains: { fury: "Fury", calm: "Calm" } } }),
+  useEnumOrders: () => ({ labels: { domains: labelMapOf({ fury: "Fury", calm: "Calm" }) } }),
 }));
 const pointer = vi.hoisted(() => ({ coarse: false }));
 vi.mock("@/hooks/use-coarse-pointer", () => ({ useCoarsePointer: () => pointer.coarse }));
@@ -57,7 +58,7 @@ describe("PowerDomainIcon", () => {
   });
 });
 
-const DOMAIN_LABELS = { fury: "Fury", calm: "Calm", colorless: "Colorless" };
+const DOMAIN_LABELS = labelMapOf({ fury: "Fury", calm: "Calm", colorless: "Colorless" });
 
 function renderPips(power: number | null, domains: string[]) {
   const { container } = render(

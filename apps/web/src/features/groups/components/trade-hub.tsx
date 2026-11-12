@@ -22,6 +22,7 @@ import {
   isQuietTradeHubCard,
   needsYouLine,
 } from "@/features/groups/lib/trade-hub";
+import { memberName } from "@/lib/member-name";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -119,9 +120,7 @@ export function TradeHubMemberCard({
           gravatarHash={member.gravatarHash}
           size="sm"
         />
-        <span className="min-w-0 flex-1 truncate font-medium">
-          {member.userName ?? m.trades_member_fallback()}
-        </span>
+        <span className="min-w-0 flex-1 truncate font-medium">{memberName(member.userName)}</span>
         <ChevronRightIcon className="text-muted-foreground/40 group-hover/card:text-muted-foreground size-4 shrink-0 transition-transform group-hover/card:translate-x-0.5" />
       </div>
 

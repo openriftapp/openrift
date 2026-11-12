@@ -4,6 +4,7 @@ import { getAvailableFilters as getAvailableFiltersRaw } from "./filters-availab
 import { computeFilterCounts } from "./filters-counts.js";
 import { emptyFilters, makePrinting, TEST_ORDERS } from "./filters-test-helpers.js";
 import { filterCards } from "./filters.js";
+import { testSearchContext } from "./test-factories.js";
 import type { Printing } from "./types/catalog.js";
 import type { CardFilters } from "./types/search.js";
 
@@ -44,44 +45,70 @@ describe("filterCards predicates", () => {
     it("markers: any keeps marked, none keeps unmarked", () => {
       const cards = [withMarker, withoutMarker];
       expect(
-        filterCards(cards, emptyFilters({ presence: { markers: "any" } })).map((p) => p.cardId),
+        filterCards(cards, emptyFilters({ presence: { markers: "any" } }), testSearchContext()).map(
+          (p) => p.cardId,
+        ),
       ).toEqual(["has-marker"]);
       expect(
-        filterCards(cards, emptyFilters({ presence: { markers: "none" } })).map((p) => p.cardId),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { markers: "none" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["no-marker"]);
     });
 
     it("superTypes: 'basic' placeholder counts as no supertype", () => {
       const cards = [withSuperType, onlyBasic];
       expect(
-        filterCards(cards, emptyFilters({ presence: { superTypes: "any" } })).map((p) => p.cardId),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { superTypes: "any" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["has-super"]);
       expect(
-        filterCards(cards, emptyFilters({ presence: { superTypes: "none" } })).map((p) => p.cardId),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { superTypes: "none" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["basic-only"]);
     });
 
     it("distributionChannels: any keeps distributed, none keeps undistributed", () => {
       const cards = [withChannel, withoutChannel];
       expect(
-        filterCards(cards, emptyFilters({ presence: { distributionChannels: "any" } })).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { distributionChannels: "any" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["has-channel"]);
       expect(
-        filterCards(cards, emptyFilters({ presence: { distributionChannels: "none" } })).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { distributionChannels: "none" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["no-channel"]);
     });
 
     it("keywords: any keeps keyworded, none keeps keyword-less", () => {
       const cards = [withKeyword, withoutKeyword];
       expect(
-        filterCards(cards, emptyFilters({ presence: { keywords: "any" } })).map((p) => p.cardId),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { keywords: "any" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["has-kw"]);
       expect(
-        filterCards(cards, emptyFilters({ presence: { keywords: "none" } })).map((p) => p.cardId),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { keywords: "none" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["no-kw"]);
     });
 
@@ -91,14 +118,18 @@ describe("filterCards predicates", () => {
       const cards = [tagged, untagged];
       const options = { customTagAssignments: { tagged: ["foil-hunt"] } };
       expect(
-        filterCards(cards, emptyFilters({ presence: { customTags: "any" } }), options).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { customTags: "any" } }),
+          testSearchContext(options),
+        ).map((p) => p.cardId),
       ).toEqual(["tagged"]);
       expect(
-        filterCards(cards, emptyFilters({ presence: { customTags: "none" } }), options).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { customTags: "none" } }),
+          testSearchContext(options),
+        ).map((p) => p.cardId),
       ).toEqual(["untagged"]);
     });
 
@@ -110,26 +141,30 @@ describe("filterCards predicates", () => {
       });
       const cards = [both, withMarker, withoutKeyword];
       expect(
-        filterCards(cards, emptyFilters({ presence: { markers: "any", keywords: "none" } })).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          cards,
+          emptyFilters({ presence: { markers: "any", keywords: "none" } }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["both"]);
     });
 
     it("empty presence map imposes no constraint", () => {
       const cards = [withMarker, withoutMarker];
-      expect(filterCards(cards, emptyFilters({ presence: {} }))).toHaveLength(2);
+      expect(filterCards(cards, emptyFilters({ presence: {} }), testSearchContext())).toHaveLength(
+        2,
+      );
     });
 
     it("matches the old hasAnyMarker semantics (migration equivalence)", () => {
       const cards = [withMarker, withoutMarker];
-      expect(filterCards(cards, emptyFilters({ presence: { markers: "any" } }))).toEqual(
-        cards.filter((p) => p.markers.length > 0),
-      );
-      expect(filterCards(cards, emptyFilters({ presence: { markers: "none" } }))).toEqual(
-        cards.filter((p) => p.markers.length === 0),
-      );
-      expect(filterCards(cards, emptyFilters())).toEqual(cards);
+      expect(
+        filterCards(cards, emptyFilters({ presence: { markers: "any" } }), testSearchContext()),
+      ).toEqual(cards.filter((p) => p.markers.length > 0));
+      expect(
+        filterCards(cards, emptyFilters({ presence: { markers: "none" } }), testSearchContext()),
+      ).toEqual(cards.filter((p) => p.markers.length === 0));
+      expect(filterCards(cards, emptyFilters(), testSearchContext())).toEqual(cards);
     });
   });
 
@@ -141,7 +176,11 @@ describe("filterCards predicates", () => {
         card: { name: "Regular Card" },
       }),
     ];
-    const result = filterCards(cards, emptyFilters({ markerSlugs: ["promo"] }));
+    const result = filterCards(
+      cards,
+      emptyFilters({ markerSlugs: ["promo"] }),
+      testSearchContext(),
+    );
     expect(result).toHaveLength(0);
   });
 
@@ -152,21 +191,31 @@ describe("filterCards predicates", () => {
     const cards = [shieldCard, ambushCard, plainCard];
 
     it("passes everything when no keyword is selected", () => {
-      expect(filterCards(cards, emptyFilters({ keywords: [] }))).toHaveLength(3);
+      expect(filterCards(cards, emptyFilters({ keywords: [] }), testSearchContext())).toHaveLength(
+        3,
+      );
     });
 
     it("keeps cards carrying any of the selected keywords", () => {
       expect(
-        filterCards(cards, emptyFilters({ keywords: ["Shield"] })).map((p) => p.cardId),
+        filterCards(cards, emptyFilters({ keywords: ["Shield"] }), testSearchContext()).map(
+          (p) => p.cardId,
+        ),
       ).toEqual(["shield"]);
       expect(
-        filterCards(cards, emptyFilters({ keywords: ["Shield", "Ambush"] })).map((p) => p.cardId),
+        filterCards(
+          cards,
+          emptyFilters({ keywords: ["Shield", "Ambush"] }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["shield", "ambush"]);
     });
 
     it("excludes cards carrying an excluded keyword", () => {
       expect(
-        filterCards(cards, emptyFilters({ keywordsExclude: ["Shield"] })).map((p) => p.cardId),
+        filterCards(cards, emptyFilters({ keywordsExclude: ["Shield"] }), testSearchContext()).map(
+          (p) => p.cardId,
+        ),
       ).toEqual(["ambush", "plain"]);
     });
 
@@ -189,38 +238,48 @@ describe("filterCards predicates", () => {
     const cards = [ioniaCard, noxusCard, untaggedCard];
 
     it("passes everything when no tag is selected", () => {
-      expect(filterCards(cards, emptyFilters({ tags: [] }))).toHaveLength(3);
+      expect(filterCards(cards, emptyFilters({ tags: [] }), testSearchContext())).toHaveLength(3);
     });
 
     it("keeps cards carrying any of the selected tags", () => {
-      expect(filterCards(cards, emptyFilters({ tags: ["Ionia"] })).map((p) => p.cardId)).toEqual([
-        "ionia",
-      ]);
       expect(
-        filterCards(cards, emptyFilters({ tags: ["Poro", "Noxus"] })).map((p) => p.cardId),
+        filterCards(cards, emptyFilters({ tags: ["Ionia"] }), testSearchContext()).map(
+          (p) => p.cardId,
+        ),
+      ).toEqual(["ionia"]);
+      expect(
+        filterCards(cards, emptyFilters({ tags: ["Poro", "Noxus"] }), testSearchContext()).map(
+          (p) => p.cardId,
+        ),
       ).toEqual(["ionia", "noxus"]);
     });
 
     it("matches multi-word tags as exact values", () => {
       const targon = makePrinting({ cardId: "targon", card: { tags: ["Mount Targon"] } });
       expect(
-        filterCards([targon, noxusCard], emptyFilters({ tags: ["Mount Targon"] })).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          [targon, noxusCard],
+          emptyFilters({ tags: ["Mount Targon"] }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["targon"]);
     });
 
     it("excludes cards carrying an excluded tag", () => {
       expect(
-        filterCards(cards, emptyFilters({ tagsExclude: ["Poro"] })).map((p) => p.cardId),
+        filterCards(cards, emptyFilters({ tagsExclude: ["Poro"] }), testSearchContext()).map(
+          (p) => p.cardId,
+        ),
       ).toEqual(["noxus", "untagged"]);
     });
 
     it("combines include and exclude", () => {
       expect(
-        filterCards(cards, emptyFilters({ tags: ["Ionia", "Noxus"], tagsExclude: ["Poro"] })).map(
-          (p) => p.cardId,
-        ),
+        filterCards(
+          cards,
+          emptyFilters({ tags: ["Ionia", "Noxus"], tagsExclude: ["Poro"] }),
+          testSearchContext(),
+        ).map((p) => p.cardId),
       ).toEqual(["noxus"]);
     });
 
@@ -243,9 +302,17 @@ describe("filterCards predicates", () => {
     });
 
     it("presence any/none partitions by printed tags", () => {
-      const anyMatched = filterCards(cards, emptyFilters({ presence: { tags: "any" } }));
+      const anyMatched = filterCards(
+        cards,
+        emptyFilters({ presence: { tags: "any" } }),
+        testSearchContext(),
+      );
       expect(anyMatched.map((p) => p.cardId)).toEqual(["ionia", "noxus"]);
-      const noneMatched = filterCards(cards, emptyFilters({ presence: { tags: "none" } }));
+      const noneMatched = filterCards(
+        cards,
+        emptyFilters({ presence: { tags: "none" } }),
+        testSearchContext(),
+      );
       expect(noneMatched.map((p) => p.cardId)).toEqual(["untagged"]);
     });
 
@@ -262,9 +329,13 @@ describe("filterCards predicates", () => {
       makePrinting({ cardId: "a", card: { name: "A" } }),
       makePrinting({ cardId: "b", card: { name: "B" } }),
     ];
-    const result = filterCards(cards, emptyFilters({ customTagSlugs: [] }), {
-      customTagAssignments: { a: ["bandle-city"], b: ["bilgewater"] },
-    });
+    const result = filterCards(
+      cards,
+      emptyFilters({ customTagSlugs: [] }),
+      testSearchContext({
+        customTagAssignments: { a: ["bandle-city"], b: ["bilgewater"] },
+      }),
+    );
     expect(result).toHaveLength(2);
   });
 
@@ -277,7 +348,9 @@ describe("filterCards predicates", () => {
     const result = filterCards(
       cards,
       emptyFilters({ customTagSlugs: ["bandle-city", "bilgewater"] }),
-      { customTagAssignments: { a: ["bandle-city"], b: ["bilgewater"], c: ["demacia"] } },
+      testSearchContext({
+        customTagAssignments: { a: ["bandle-city"], b: ["bilgewater"], c: ["demacia"] },
+      }),
     );
     expect(result.map((p) => p.card.name).toSorted()).toEqual(["A", "B"]);
   });
@@ -287,16 +360,24 @@ describe("filterCards predicates", () => {
       makePrinting({ cardId: "a", card: { name: "A" } }),
       makePrinting({ cardId: "b", card: { name: "B" } }),
     ];
-    const result = filterCards(cards, emptyFilters({ customTagSlugs: ["bandle-city"] }), {
-      customTagAssignments: { a: ["bandle-city"] },
-    });
+    const result = filterCards(
+      cards,
+      emptyFilters({ customTagSlugs: ["bandle-city"] }),
+      testSearchContext({
+        customTagAssignments: { a: ["bandle-city"] },
+      }),
+    );
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("A");
   });
 
   it("customTagSlugs filter with missing assignment map excludes everything", () => {
     const cards = [makePrinting({ cardId: "a", card: { name: "A" } })];
-    const result = filterCards(cards, emptyFilters({ customTagSlugs: ["bandle-city"] }));
+    const result = filterCards(
+      cards,
+      emptyFilters({ customTagSlugs: ["bandle-city"] }),
+      testSearchContext(),
+    );
     expect(result).toHaveLength(0);
   });
 
@@ -319,7 +400,11 @@ describe("filterCards predicates", () => {
         },
       }),
     ];
-    const result = filterCards(cards, emptyFilters({ energy: { min: 3, max: null } }));
+    const result = filterCards(
+      cards,
+      emptyFilters({ energy: { min: 3, max: null } }),
+      testSearchContext(),
+    );
     expect(result).toHaveLength(0);
   });
 
@@ -342,7 +427,11 @@ describe("filterCards predicates", () => {
         },
       }),
     ];
-    const result = filterCards(cards, emptyFilters({ energy: { min: null, max: 5 } }));
+    const result = filterCards(
+      cards,
+      emptyFilters({ energy: { min: null, max: 5 } }),
+      testSearchContext(),
+    );
     expect(result).toHaveLength(0);
   });
 });
@@ -353,26 +442,46 @@ describe("filterCards negation", () => {
       makePrinting({ rarity: "common", card: { slug: "a" } }),
       makePrinting({ rarity: "rare", card: { slug: "b" } }),
     ];
-    const result = filterCards(cards, emptyFilters({ raritiesExclude: ["common"] }));
+    const result = filterCards(
+      cards,
+      emptyFilters({ raritiesExclude: ["common"] }),
+      testSearchContext(),
+    );
     expect(result.map((p) => p.rarity)).toEqual(["rare"]);
   });
 
   it("excludes by set, language, type, art variant, finish", () => {
     const base = makePrinting();
-    expect(filterCards([base], emptyFilters({ setsExclude: [base.setSlug] }))).toHaveLength(0);
-    expect(filterCards([base], emptyFilters({ languagesExclude: ["EN"] }))).toHaveLength(0);
-    expect(filterCards([base], emptyFilters({ typesExclude: ["unit"] }))).toHaveLength(0);
-    expect(filterCards([base], emptyFilters({ artVariantsExclude: ["normal"] }))).toHaveLength(0);
-    expect(filterCards([base], emptyFilters({ finishesExclude: ["normal"] }))).toHaveLength(0);
+    expect(
+      filterCards([base], emptyFilters({ setsExclude: [base.setSlug] }), testSearchContext()),
+    ).toHaveLength(0);
+    expect(
+      filterCards([base], emptyFilters({ languagesExclude: ["EN"] }), testSearchContext()),
+    ).toHaveLength(0);
+    expect(
+      filterCards([base], emptyFilters({ typesExclude: ["unit"] }), testSearchContext()),
+    ).toHaveLength(0);
+    expect(
+      filterCards([base], emptyFilters({ artVariantsExclude: ["normal"] }), testSearchContext()),
+    ).toHaveLength(0);
+    expect(
+      filterCards([base], emptyFilters({ finishesExclude: ["normal"] }), testSearchContext()),
+    ).toHaveLength(0);
   });
 
   it("excludes by array dimension when any value overlaps (domains, superTypes)", () => {
     const card = makePrinting({
       card: { slug: "x", domains: ["fury", "calm"], superTypes: ["champion"] },
     });
-    expect(filterCards([card], emptyFilters({ domainsExclude: ["calm"] }))).toHaveLength(0);
-    expect(filterCards([card], emptyFilters({ domainsExclude: ["mind"] }))).toHaveLength(1);
-    expect(filterCards([card], emptyFilters({ superTypesExclude: ["champion"] }))).toHaveLength(0);
+    expect(
+      filterCards([card], emptyFilters({ domainsExclude: ["calm"] }), testSearchContext()),
+    ).toHaveLength(0);
+    expect(
+      filterCards([card], emptyFilters({ domainsExclude: ["mind"] }), testSearchContext()),
+    ).toHaveLength(1);
+    expect(
+      filterCards([card], emptyFilters({ superTypesExclude: ["champion"] }), testSearchContext()),
+    ).toHaveLength(0);
   });
 
   it("exclude overrides include for the same value", () => {
@@ -383,6 +492,7 @@ describe("filterCards negation", () => {
     const result = filterCards(
       cards,
       emptyFilters({ rarities: ["common", "rare"], raritiesExclude: ["common"] }),
+      testSearchContext(),
     );
     expect(result.map((p) => p.rarity)).toEqual(["rare"]);
   });
@@ -393,8 +503,8 @@ describe("filterCards negation", () => {
     const card = makePrinting({ card: { slug: "a", keywords: ["Shield"] } });
     const stale = emptyFilters();
     delete (stale as Partial<CardFilters>).keywordsExclude;
-    expect(() => filterCards([card], stale)).not.toThrow();
-    expect(filterCards([card], stale)).toHaveLength(1);
+    expect(() => filterCards([card], stale, testSearchContext())).not.toThrow();
+    expect(filterCards([card], stale, testSearchContext())).toHaveLength(1);
   });
 });
 
@@ -408,16 +518,18 @@ describe("filterCards isStandard", () => {
   const cards = [standard, nonStandard];
 
   it("null = no constraint", () => {
-    expect(filterCards(cards, emptyFilters({ isStandard: null }))).toHaveLength(2);
+    expect(
+      filterCards(cards, emptyFilters({ isStandard: null }), testSearchContext()),
+    ).toHaveLength(2);
   });
 
   it("true = standard only", () => {
-    const result = filterCards(cards, emptyFilters({ isStandard: true }));
+    const result = filterCards(cards, emptyFilters({ isStandard: true }), testSearchContext());
     expect(result.map((p) => p.card.slug)).toEqual(["std"]);
   });
 
   it("false = non-standard only", () => {
-    const result = filterCards(cards, emptyFilters({ isStandard: false }));
+    const result = filterCards(cards, emptyFilters({ isStandard: false }), testSearchContext());
     expect(result.map((p) => p.card.slug)).toEqual(["nonstd"]);
   });
 });

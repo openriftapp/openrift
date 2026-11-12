@@ -111,16 +111,24 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
     await db.deleteFrom("users").where("id", "in", SURVIVING_IDS).execute();
   });
 
-  it("keeps a completed trade and snapshots the deleted party's name", async () => {
+  it("keeps a completed trade and marks the deleted party closed, without its name", async () => {
     const trade = await db
       .selectFrom("cardTrades")
-      .select(["status", "giverUserId", "giverName", "receiverUserId", "receiverName"])
+      .select([
+        "status",
+        "giverUserId",
+        "giverName",
+        "receiverUserId",
+        "receiverName",
+        "receiverAccountClosed",
+      ])
       .where("id", "=", completedTradeId)
       .executeTakeFirst();
     expect(trade).toBeDefined();
     expect(trade?.status).toBe("completed");
     expect(trade?.receiverUserId).toBeNull();
-    expect(trade?.receiverName).toBe("Ekko Timewinder");
+    expect(trade?.receiverName).toBeNull();
+    expect(trade?.receiverAccountClosed).toBe(true);
     expect(trade?.giverUserId).toBe(GIVER_ID);
     expect(trade?.giverName).toBeNull();
   });
@@ -128,24 +136,26 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
   it("cancels the live trade the deleted account was in", async () => {
     const trade = await db
       .selectFrom("cardTrades")
-      .select(["status", "closedAt", "expiresAt", "giverUserId", "giverName"])
+      .select(["status", "closedAt", "expiresAt", "giverUserId", "giverName", "giverAccountClosed"])
       .where("id", "=", pendingTradeId)
       .executeTakeFirst();
     expect(trade?.status).toBe("cancelled");
     expect(trade?.closedAt).not.toBeNull();
     expect(trade?.expiresAt).toBeNull();
     expect(trade?.giverUserId).toBeNull();
-    expect(trade?.giverName).toBe("Ekko Timewinder");
+    expect(trade?.giverName).toBeNull();
+    expect(trade?.giverAccountClosed).toBe(true);
   });
 
-  it("snapshots a loan's borrower instead of leaving it nameless", async () => {
+  it("marks a deleted loan borrower closed, without its name", async () => {
     const loan = await db
       .selectFrom("loans")
-      .select(["borrowerUserId", "borrowerName", "lenderUserId"])
+      .select(["borrowerUserId", "borrowerName", "borrowerAccountClosed", "lenderUserId"])
       .where("id", "=", loanId)
       .executeTakeFirst();
     expect(loan?.borrowerUserId).toBeNull();
-    expect(loan?.borrowerName).toBe("Ekko Timewinder");
+    expect(loan?.borrowerName).toBeNull();
+    expect(loan?.borrowerAccountClosed).toBe(true);
     expect(loan?.lenderUserId).toBe(LENDER_ID);
   });
 
@@ -159,9 +169,23 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
     ).rejects.toThrow();
   });
 
-  it("refuses a loan borrower that is neither a user nor a name", async () => {
+  it("refuses an open loan borrower that is neither a user nor a name", async () => {
     await expect(
-      db.updateTable("loans").set({ borrowerName: null }).where("id", "=", loanId).execute(),
+      db
+        .updateTable("loans")
+        .set({ borrowerName: null, borrowerAccountClosed: false })
+        .where("id", "=", loanId)
+        .execute(),
+    ).rejects.toThrow();
+  });
+
+  it("refuses a closed party that still has a user", async () => {
+    await expect(
+      db
+        .updateTable("cardTrades")
+        .set({ giverAccountClosed: true })
+        .where("id", "=", completedTradeId)
+        .execute(),
     ).rejects.toThrow();
   });
 });

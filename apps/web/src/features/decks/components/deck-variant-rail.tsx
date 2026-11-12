@@ -1,4 +1,4 @@
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import type { DeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
@@ -19,6 +19,7 @@ import type { DeckDiff, DeckDiffEntry } from "@/features/decks/lib/deck-diff";
 import { deckDiffCardsFrom, diffDecks } from "@/features/decks/lib/deck-diff";
 import type { RailEdge, RailLayout, RailNode } from "@/features/decks/lib/deck-variant-rail";
 import { buildRailLayout } from "@/features/decks/lib/deck-variant-rail";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScrollEdges } from "@/hooks/use-scroll-edges";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,7 @@ function RailPopoverFooter({ children }: { children: ReactNode }) {
 }
 
 function RailDiffRows({ diff }: { diff: DeckDiff }) {
+  const { zoneLabels } = useZoneOrder();
   if (diff.zones.length === 0) {
     return <p className="text-muted-foreground">{m.decks_dialog_rail_lists_match()}</p>;
   }
@@ -151,7 +153,7 @@ function RailDiffRows({ diff }: { diff: DeckDiff }) {
       {diff.zones.map((zoneDiff) => (
         <section key={zoneDiff.zone} className="flex min-w-0 flex-col gap-1">
           <SectionHeading as="h3" size="sm">
-            {ZONE_LABELS[zoneDiff.zone]}
+            {enumLabel(zoneLabels, zoneDiff.zone)}
           </SectionHeading>
           {zoneDiff.entries.map((entry) => (
             <div key={entry.cardId} className="flex items-baseline gap-2">

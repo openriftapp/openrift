@@ -53,6 +53,7 @@ import {
   formatterForMarketplace,
   priceColorClass,
 } from "@/lib/format";
+import { memberName } from "@/lib/member-name";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -809,7 +810,7 @@ function MatchPersonRow({
   onHide?: () => void;
   hidePending?: boolean;
 }) {
-  const name = match.counterpartyName ?? m.trades_member_fallback();
+  const name = memberName(match.counterpartyName);
   const incoming = match.direction === "incoming";
   const pref = incoming ? match.sellPref : match.buyPref;
   return (

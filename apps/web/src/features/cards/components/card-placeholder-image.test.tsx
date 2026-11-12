@@ -57,6 +57,22 @@ describe("CardPlaceholderImage", () => {
     expect(container.querySelectorAll("button")).toHaveLength(0);
   });
 
+  it("titles a legend with its champion over the epithet, from the stored name", () => {
+    const { getByRole } = render(
+      <CardPlaceholderImage
+        name="Emperor of the Sands"
+        domain={["COLORLESS"]}
+        energy={null}
+        types={["legend"]}
+        tags={["Azir"]}
+      />,
+      { wrapper: makeWrapper() },
+    );
+    const title = getByRole("img");
+    expect(title.textContent).toContain("Azir");
+    expect(title.getAttribute("aria-label")).toContain("Azir, Emperor of the Sands");
+  });
+
   it("renders the might-bonus badge when no rules / effect / flavor text is set", () => {
     const { container } = render(
       <CardPlaceholderImage

@@ -1,7 +1,9 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
-import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
+import { printingVariantPartsEnglish } from "@openrift/shared/printing-label";
+import { cardUrl } from "@openrift/shared/site-paths";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
@@ -101,31 +103,23 @@ export async function flushPrintingEvents(
 }
 
 export interface PrintingLabels {
-  rarities: Record<string, string>;
-  finishes: Record<string, string>;
-  artVariants: Record<string, string>;
-  cardSizes: Record<string, string>;
-  languages: Record<string, string>;
-  markers: Record<string, string>;
-}
-
-function cardUrl(appBaseUrl: string, slug: string | null): string | undefined {
-  if (!slug) {
-    return undefined;
-  }
-  return `${appBaseUrl}/cards/${slug}`;
+  rarities: LabelMap;
+  finishes: LabelMap;
+  artVariants: LabelMap;
+  cardSizes: LabelMap;
+  languages: LabelMap;
+  markers: LabelMap;
 }
 
 function printingUrl(appBaseUrl: string, event: EnrichedPrintingEvent): string | undefined {
-  const base = cardUrl(appBaseUrl, event.cardSlug);
-  return base && `${base}/${encodeURIComponent(event.printingSlug)}`;
+  return event.cardSlug ? cardUrl(appBaseUrl, event.cardSlug, event.printingSlug) : undefined;
 }
 
 export function printingVariantParts(
   event: EnrichedPrintingEvent,
   labels: PrintingLabels,
 ): string[] {
-  const { rest } = formatPrintingVariantLabelParts(
+  return printingVariantPartsEnglish(
     {
       language: event.language ?? WellKnown.language.EN,
       artVariant: event.artVariant,
@@ -138,11 +132,6 @@ export function printingVariantParts(
     undefined,
     labels,
   );
-  const language =
-    event.language && event.language !== WellKnown.language.EN
-      ? [enumLabel(labels.languages, event.language)]
-      : [];
-  return [...language, ...rest];
 }
 
 export function buildNewPrintingMessages(
@@ -169,7 +158,7 @@ export function buildNewPrintingMessages(
       eventId: event.id,
       embed: {
         author: { name: siteName, url: appBaseUrl },
-        title: `New: ${event.cardName ?? "Unknown Card"}`,
+        title: `New: ${event.cardName}`,
         url: printingUrl(appBaseUrl, event),
         color: COLOR_NEW,
         ...(image ? { image: { url: image } } : {}),
@@ -223,7 +212,7 @@ function setBlock(
       return url ? `[${text}](${url})` : text;
     });
     return {
-      text: `${cardPrintings[0]?.event.cardName ?? "Unknown Card"}: ${links.join(", ")}`,
+      text: `${cardPrintings[0]?.event.cardName}: ${links.join(", ")}`,
       eventIds: cardPrintings.map(({ event }) => event.id),
     };
   });

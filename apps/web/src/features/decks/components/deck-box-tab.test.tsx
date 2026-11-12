@@ -61,11 +61,15 @@ vi.mock("@/features/collections/hooks/use-collections", () => ({
   useCollections: () => ({ data: [{ id: "inbox", name: "Inbox", isInbox: true }] }),
 }));
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({ fury: "#cb212d" }) }));
-vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({
-    labels: { rarities: {}, finishes: {}, artVariants: {}, cardSizes: {}, conditions: {} },
-  }),
-}));
+vi.mock("@/hooks/use-enums", async () => {
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return {
+    useZoneOrder: useZoneOrderStub,
+    useEnumOrders: () => ({
+      labels: { rarities: {}, finishes: {}, artVariants: {}, cardSizes: {}, conditions: {} },
+    }),
+  };
+});
 
 const { DeckBoxTab } = await import("./deck-box-tab");
 

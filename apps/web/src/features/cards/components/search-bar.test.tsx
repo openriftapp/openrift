@@ -99,6 +99,18 @@ describe("SearchBar count", () => {
     expect(screen.getByPlaceholderText("Search…")).toBeInTheDocument();
     expect(screen.getByText("40 cards")).toBeInTheDocument();
   });
+
+  it("pluralizes the trailing unit through the messages", () => {
+    mockUseFilterValues.mockReturnValue({
+      filterState: { search: "" },
+      hasActiveFilters: false,
+      view: "printings",
+    });
+    mockUseFilterActions.mockReturnValue({ setSearch: vi.fn() });
+    render(<SearchBar totalCards={1} filteredCount={1} />);
+
+    expect(screen.getByText("1 printing")).toBeInTheDocument();
+  });
 });
 
 describe("SearchBar syntax help", () => {

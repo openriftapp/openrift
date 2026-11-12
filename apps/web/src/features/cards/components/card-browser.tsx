@@ -40,7 +40,6 @@ import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-
 import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
@@ -134,7 +133,6 @@ export function CardBrowser() {
   const { setSearch } = useFilterActions();
 
   const view = rawView === "copies" ? "printings" : rawView;
-  const keywordReverseMap = useKeywordReverseMap();
 
   useSeedLanguagesFromPrefs(filters.languages);
 
@@ -172,7 +170,6 @@ export function CardBrowser() {
     // Meta comes from the useCatalogFilterMeta call below; enabling it here
     // too would run computeFilterCounts twice per filter change.
     metaEnabled: false,
-    keywordReverseMap,
     channels,
   });
 
@@ -211,7 +208,6 @@ export function CardBrowser() {
     favoriteMarketplace: display.favoriteMarketplace,
     prices: display.prices,
     countsEnabled: countsVisible,
-    keywordReverseMap,
     channels,
   });
 

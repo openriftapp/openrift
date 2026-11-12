@@ -1,4 +1,4 @@
-import { ZONE_LABELS } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -52,7 +52,7 @@ import {
 } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
-import { useDeckFormatList } from "@/hooks/use-enums";
+import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
@@ -84,6 +84,7 @@ export function DeckEditorTopBar({
   openDialog,
   workbench,
 }: DeckEditorTopBarProps) {
+  const { zoneLabels } = useZoneOrder();
   const navigate = useNavigate();
   const openQuickAdd = useCommandPaletteStore((state) => state.openQuickAdd);
   const { update: updateDeckMeta } = useUpdateDeckMeta(deckId);
@@ -135,7 +136,7 @@ export function DeckEditorTopBar({
           <span className={workbench ? "hidden" : "md:hidden"}>
             {activeZone ? (
               <>
-                {ZONE_LABELS[activeZone]}
+                {enumLabel(zoneLabels, activeZone)}
                 <span className="text-muted-foreground ml-1">({zoneCount})</span>
               </>
             ) : (

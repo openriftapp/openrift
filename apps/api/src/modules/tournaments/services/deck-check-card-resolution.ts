@@ -2,7 +2,6 @@ import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { resolveCard } from "@openrift/shared/card-search";
 
 import type { Repos } from "../../../deps.js";
-import type { CardLookupIndex } from "../../catalog/lib/card-lookup-index.js";
 import { createCardLookupIndexLoader } from "../../catalog/lib/card-lookup-index.js";
 import type { CardResolution } from "../repositories/deck-check-entry-cards.js";
 
@@ -13,18 +12,6 @@ interface CardResolutionInput {
 /** An identity key to collapse repeated spellings in a batch, not a search key. */
 export function cardResolutionKey(name: string): string {
   return normalizeNameForIdentity(name);
-}
-
-/** One index loader per `Repos`, so a batch does not rebuild the catalogue. */
-const loaders = new WeakMap<Repos, () => Promise<CardLookupIndex>>();
-
-function loaderFor(repos: Repos): () => Promise<CardLookupIndex> {
-  let loader = loaders.get(repos);
-  if (!loader) {
-    loader = createCardLookupIndexLoader(repos);
-    loaders.set(repos, loader);
-  }
-  return loader;
 }
 
 const UNMATCHED: CardResolution = {
@@ -61,7 +48,7 @@ export async function resolveDeckCheckCards(
     return results;
   }
 
-  const index = await loaderFor(repos)();
+  const index = await createCardLookupIndexLoader(repos)();
   const matchedCardByKey = new Map<string, string>();
   for (const [key, name] of byKey) {
     const resolution = resolveCard(index, name);

@@ -1,5 +1,6 @@
 import type { WorkspaceRecordRow } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatDay, formatRelativeTime } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
@@ -153,13 +154,7 @@ function Muted({ children }: { children: ReactNode }) {
   return <span className="text-muted-foreground text-sm">{children}</span>;
 }
 
-function MarkerBadges({
-  markers,
-  labels,
-}: {
-  markers: readonly string[];
-  labels?: ReadonlyMap<string, string>;
-}) {
+function MarkerBadges({ markers, labels }: { markers: readonly string[]; labels?: LabelMap }) {
   if (markers.length === 0) {
     return null;
   }
@@ -167,7 +162,7 @@ function MarkerBadges({
     <span className="mt-0.5 flex flex-wrap gap-1">
       {markers.map((marker) => (
         <Badge key={marker} variant="neutral">
-          {labels?.get(marker) ?? marker}
+          {labels ? enumLabel(labels, marker) : marker}
         </Badge>
       ))}
     </span>
@@ -259,7 +254,7 @@ function LanguageCell({ row }: AdminCellSlotProps<{ language: string }>) {
 function FinishCell({
   row,
   finishLabels,
-}: AdminCellSlotProps<{ finish: string }> & { finishLabels?: Record<string, string> }) {
+}: AdminCellSlotProps<{ finish: string }> & { finishLabels?: LabelMap }) {
   if (!row) {
     return null;
   }
@@ -300,8 +295,8 @@ function FaceNameCell({
   rarityLabels,
   artVariantLabels,
 }: AdminCellSlotProps<WorkspaceRecordRow> & {
-  rarityLabels?: Record<string, string>;
-  artVariantLabels?: Record<string, string>;
+  rarityLabels?: LabelMap;
+  artVariantLabels?: LabelMap;
 }) {
   if (!row) {
     return null;
@@ -357,7 +352,7 @@ function FaceStatusCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
 function DeskNameCell({
   row,
   markerLabels,
-}: AdminCellSlotProps<DeskRow> & { markerLabels?: ReadonlyMap<string, string> }) {
+}: AdminCellSlotProps<DeskRow> & { markerLabels?: LabelMap }) {
   if (!row) {
     return null;
   }
@@ -837,7 +832,7 @@ function DeskTable({
   const { data: markerData } = useMarkers();
   const { labels } = useEnumOrders();
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
-  const markerLabels = new Map(markerData.markers.map((marker) => [marker.slug, marker.label]));
+  const markerLabels = labelMap(markerData.markers);
   const exporter = useExport(() =>
     Promise.resolve({
       csv: buildPrintingDeskCsv(rows, { channelPaths, siteUrl: getSiteUrl() }),

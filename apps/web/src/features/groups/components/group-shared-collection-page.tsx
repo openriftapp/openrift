@@ -5,6 +5,7 @@ import { TopBarBreadcrumbTrail } from "@/components/layout/top-bar-breadcrumb";
 import { SharedCollectionView } from "@/features/collections/components/shared-collection-view";
 import { useFriendGroupSharedCollection } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/_authenticated/groups/$slug_/collections/$collectionId");
@@ -30,7 +31,7 @@ export function GroupSharedCollectionPage() {
     items: data.copies,
     nextCursor: null,
     owner: {
-      displayName: data.collection.ownerName ?? m.groups_owner_unknown(),
+      displayName: memberName(data.collection.ownerName),
       gravatarHash: null,
     },
   };

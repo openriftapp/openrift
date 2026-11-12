@@ -1,9 +1,17 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { sentenceCaseSlug } from "@openrift/shared/strings";
+import {
+  collectionShareTitle,
+  deckShareTitle,
+  listShareTitle,
+  tierListShareTitle,
+  userBundleShareTitle,
+} from "@openrift/shared/share-titles";
 import { Hono } from "hono";
 
 import { jsonError } from "../../../lib/http-response.js";
+import { bylineName } from "../../../lib/share-owner.js";
 import type { Variables } from "../../../types.js";
+import { deckFormatLabel } from "../../decks/lib/deck-format-label.js";
 
 /**
  * oEmbed provider endpoint (https://oembed.com) for OpenRift's public share
@@ -75,10 +83,6 @@ function parseShareUrl(
   return { kind, token };
 }
 
-/**
- * Mirrors the per-surface title/version logic the web route `head()`
- * functions use so the oEmbed image matches the page's og:image.
- */
 async function resolveShare(
   repos: Variables["repos"],
   kind: string,
@@ -90,10 +94,12 @@ async function resolveShare(
       if (!found) {
         return undefined;
       }
-      const formatLabel = sentenceCaseSlug(found.deck.format);
       return {
-        title: `${found.deck.name} (${formatLabel} deck)`,
-        authorName: found.ownerName ?? undefined,
+        title: deckShareTitle(
+          found.deck.name,
+          await deckFormatLabel(repos.deckFormats, found.deck.format),
+        ),
+        authorName: bylineName(found.ownerName),
         version: String(versionFromDate(found.deck.updatedAt)),
       };
     }
@@ -105,8 +111,8 @@ async function resolveShare(
       // Copies changing does not bump collections.updatedAt, so fold copyCount
       // into the version (matches the web route's og:image cache key).
       return {
-        title: `${found.collection.name} (collection)`,
-        authorName: found.ownerName ?? undefined,
+        title: collectionShareTitle(found.collection.name),
+        authorName: bylineName(found.ownerName),
         version: `${versionFromDate(found.collection.updatedAt)}-${found.collection.copyCount}`,
       };
     }
@@ -116,8 +122,8 @@ async function resolveShare(
         return undefined;
       }
       return {
-        title: `${found.list.name} (${found.list.intent} list)`,
-        authorName: found.ownerName ?? undefined,
+        title: listShareTitle(found.list.name, found.list.intent),
+        authorName: bylineName(found.ownerName),
         version: String(versionFromDate(found.list.updatedAt)),
       };
     }
@@ -129,8 +135,8 @@ async function resolveShare(
         return undefined;
       }
       return {
-        title: `${found.tierList.title} (tier list)`,
-        authorName: found.ownerName ?? undefined,
+        title: tierListShareTitle(found.tierList.title),
+        authorName: bylineName(found.ownerName),
         version: String(versionFromDate(found.tierList.updatedAt)),
       };
     }
@@ -147,8 +153,8 @@ async function resolveShare(
       );
       // Fold the list count into the version so removing a list busts the cache.
       return {
-        title: `${owner.displayName ?? "Anonymous"}'s wish & tradelists`,
-        authorName: owner.displayName ?? undefined,
+        title: userBundleShareTitle(bylineName(owner.displayName)),
+        authorName: bylineName(owner.displayName),
         version: `${latestUpdate}-${summaries.length}`,
       };
     }

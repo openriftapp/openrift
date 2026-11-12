@@ -1,12 +1,15 @@
 import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
-import { labelMap } from "@openrift/shared/collections";
+import { labelMap } from "@openrift/shared/enum-label";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import {
   aspectFromQuery,
   deckImageBodySchema,
   qrFromQuery,
 } from "@openrift/shared/share-image-params";
-import { sentenceCaseSlug } from "@openrift/shared/strings";
+import { userBundleShareTitle } from "@openrift/shared/share-titles";
+import { cardPath } from "@openrift/shared/site-paths";
+import { pluralize } from "@openrift/shared/strings";
+import { WellKnown } from "@openrift/shared/well-known";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
@@ -16,11 +19,13 @@ import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { clientAddress } from "../../../lib/client-address.js";
 import { jsonError, pngResponse } from "../../../lib/http-response.js";
+import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import type { Variables } from "../../../types.js";
 import { buildCardShareInput } from "../../catalog/services/card-share-input.js";
 import { buildDevelopersImageInput } from "../../catalog/services/developers-image-input.js";
 import { buildCollectionShareInput } from "../../collections/services/collection-image.js";
+import { deckFormatLabel, deckZoneLabels } from "../../decks/lib/deck-format-label.js";
 import {
   buildDeckImageCards,
   buildDeckImageCardsFromRefs,
@@ -130,8 +135,7 @@ async function cardImage(
     enums.all(),
   ]);
 
-  const path =
-    printingSlug === undefined ? `/cards/${cardSlug}` : `/cards/${cardSlug}/${printingSlug}`;
+  const path = cardPath(cardSlug, printingSlug);
   const input = buildCardShareInput({
     card,
     printings,
@@ -178,7 +182,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
 
     const entries = await lists.entriesWithDetailsAnon(found.list.id, found.list.kind);
     const input = await buildListShareInput({
-      ownerName: found.ownerName ?? "Anonymous",
+      ownerName: bylineName(found.ownerName),
       listName: found.list.name,
       intent: found.list.intent,
       kind: found.list.kind,
@@ -218,9 +222,9 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const png = await renderImage({
       kind: "share",
       input: {
-        ownerName: owner.displayName ?? "Anonymous",
-        title: "Wish & trade lists",
-        intentLabel: `${summaries.length} ${summaries.length === 1 ? "list" : "lists"}`,
+        ownerName: bylineName(owner.displayName),
+        title: userBundleShareTitle(null),
+        intentLabel: `${summaries.length} ${pluralize(summaries.length, "list")}`,
         unit: { one: "card", many: "cards" },
         cards,
         totalCount: cards.length,
@@ -246,7 +250,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
 
     const input = await buildCollectionShareInput({
       collectionId: found.collection.id,
-      ownerName: found.ownerName ?? "Anonymous",
+      ownerName: bylineName(found.ownerName),
       collectionName: found.collection.name,
       siteHost: siteHostFromOrigin(config.siteOrigin),
       shareUrl: shareUrlFromOrigin(config.siteOrigin, `/collections/share/${token}`),
@@ -290,8 +294,9 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       kind: "deck",
       input: {
         deckName: archive?.deckName ?? found.deck.name,
-        ownerName: archive ? archive.ownerName : (found.ownerName ?? "Anonymous"),
-        formatLabel: sentenceCaseSlug(found.deck.format),
+        ownerName: archive ? archive.ownerName : bylineName(found.ownerName),
+        formatLabel: await deckFormatLabel(repos.deckFormats, found.deck.format),
+        zoneLabels: await deckZoneLabels(repos.enums),
         resultLine: archive?.resultLine,
         cards,
         siteHost: siteHostFromOrigin(config.siteOrigin),
@@ -326,7 +331,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       kind: "tierList",
       input: {
         title: found.tierList.title,
-        ownerName: found.ownerName ?? "Anonymous",
+        ownerName: bylineName(found.ownerName),
         rows,
         siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl,
@@ -430,9 +435,13 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       input: {
         deckName: body.deckName ? body.deckName.slice(0, MAX_RENDER_TEXT_LENGTH) : "Deck",
         ownerName: body.ownerName ? body.ownerName.slice(0, MAX_RENDER_TEXT_LENGTH) : undefined,
-        formatLabel: sentenceCaseSlug(
-          body.format ? body.format.slice(0, MAX_RENDER_TEXT_LENGTH) : "constructed",
+        formatLabel: await deckFormatLabel(
+          repos.deckFormats,
+          body.format
+            ? body.format.slice(0, MAX_RENDER_TEXT_LENGTH)
+            : WellKnown.deckFormat.CONSTRUCTED,
         ),
+        zoneLabels: await deckZoneLabels(repos.enums),
         cards: imageCards,
         siteHost: siteHostFromOrigin(config.siteOrigin),
       },

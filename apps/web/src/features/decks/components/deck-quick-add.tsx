@@ -1,5 +1,7 @@
 import { requiredLegendOptions, totalQuantity } from "@openrift/shared/deck-rules";
-import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
+import { zoneExpected } from "@openrift/shared/deck-zones";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -32,6 +34,7 @@ import {
 } from "@/features/decks/lib/deck-builder-card";
 import { workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
@@ -53,6 +56,7 @@ export function buildTargets(
   builderCard: DeckBuilderCard,
   deckCards: DeckBuilderCard[],
   format: DeckFormat,
+  zoneLabels: LabelMap,
 ): AddTarget[] {
   const freeform = format === WellKnown.deckFormat.FREEFORM;
   const isLegend = builderCard.cardTypes.includes(WellKnown.cardType.LEGEND);
@@ -73,7 +77,7 @@ export function buildTargets(
           zone === WellKnown.deckZone.RUNES && !freeform && !canAddRune(builderCard, deckCards);
         return {
           zone,
-          label: ZONE_LABELS[zone],
+          label: enumLabel(zoneLabels, zone),
           kind: "add" as const,
           disabled: full || runeMismatch,
           count: totalQuantity(
@@ -215,6 +219,7 @@ function QuickAddInner({
     inDeckByCardId.set(card.cardId, (inDeckByCardId.get(card.cardId) ?? 0) + card.quantity);
   }
   const relaxed = useWorkbenchStore((state) => state.relaxed);
+  const { zoneLabels } = useZoneOrder();
 
   const toBuilderCard = (cardId: string): DeckBuilderCard | undefined => {
     const printing = printingsByCardId.get(cardId)?.[0];
@@ -226,7 +231,7 @@ function QuickAddInner({
 
   const targetsFor = (cardId: string): AddTarget[] => {
     const builderCard = toBuilderCard(cardId);
-    const targets = builderCard ? buildTargets(builderCard, cards, format) : [];
+    const targets = builderCard ? buildTargets(builderCard, cards, format, zoneLabels) : [];
     return relaxed ? targets.map((target) => ({ ...target, disabled: false })) : targets;
   };
 

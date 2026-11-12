@@ -22,6 +22,7 @@ import type {
 } from "@/features/groups/lib/trade-market";
 import { marketDismissals } from "@/features/groups/lib/trade-market";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_PEOPLE = "all";
@@ -44,7 +45,7 @@ export function PeopleFilter({
       { value: ALL_PEOPLE, label: m.trades_market_everyone() },
       ...people.map((person) => ({
         value: person.userId,
-        label: `${person.name ?? m.trades_member_fallback()} · ${person.cardCount}`,
+        label: `${memberName(person.name)} · ${person.cardCount}`,
       })),
     ];
     return (
@@ -77,7 +78,7 @@ export function PeopleFilter({
             gravatarHash={person.gravatarHash}
             size="sm"
           />
-          {person.name ?? m.trades_member_fallback()}
+          {memberName(person.name)}
           <CountPill>{person.cardCount}</CountPill>
         </ToggleGroupItem>
       ))}
@@ -93,7 +94,7 @@ export function PersonActions({
   person: TradeMarketPerson;
 }) {
   const dismiss = useDismissSuggestions();
-  const name = person.name ?? m.trades_member_fallback();
+  const name = memberName(person.name);
   const dismissals = marketDismissals(cards, person.userId);
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -158,7 +159,7 @@ export function HiddenSuggestions({
           {dismissals.map((dismissal) => {
             const printing = printingsById[dismissal.printingId];
             const card = printing === undefined ? "" : printingDisplayName(printing);
-            const name = names.get(dismissal.counterpartyUserId) ?? m.trades_member_fallback();
+            const name = memberName(names.get(dismissal.counterpartyUserId));
             return (
               <li
                 key={`${dismissal.direction}:${dismissal.counterpartyUserId}:${dismissal.printingId}`}

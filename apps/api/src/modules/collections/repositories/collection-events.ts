@@ -8,7 +8,8 @@ import { rowBatches } from "../../../lib/bind-batches.js";
 import {
   joinPublicFaceImage,
   keysetCursorPredicate,
-  pairedCardNameSql,
+  pairedCardName,
+  secondSideCard,
   withFace1,
 } from "../../../repositories/query-helpers.js";
 
@@ -34,7 +35,11 @@ type CollectionEventRow = Pick<
 
 export function collectionEventsRepo(db: Kysely<Database>) {
   return {
-    listForUser(userId: string, limit: number, cursor?: string): Promise<CollectionEventRow[]> {
+    async listForUser(
+      userId: string,
+      limit: number,
+      cursor?: string,
+    ): Promise<CollectionEventRow[]> {
       let query = joinPublicFaceImage(
         withFace1(
           db
@@ -58,7 +63,8 @@ export function collectionEventsRepo(db: Kysely<Database>) {
           "pimg.id as imageId",
           "pf.shortCode",
           "pf.rarity",
-          pairedCardNameSql("card.name").as("cardName"),
+          "card.name as cardName",
+          secondSideCard(),
           "mca.types as cardTypes",
           "mca.superTypes as cardSuperTypes",
           "card.tags as tags",
@@ -76,7 +82,16 @@ export function collectionEventsRepo(db: Kysely<Database>) {
           }),
         );
       }
-      return query.execute();
+      const rows = await query.execute();
+      return rows.map(({ secondSide, ...row }) => ({
+        ...row,
+        cardName: pairedCardName({
+          name: row.cardName,
+          types: row.cardTypes,
+          tags: row.tags,
+          secondSide,
+        }),
+      }));
     },
 
     async insert(

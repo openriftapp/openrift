@@ -239,7 +239,11 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
       <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         {types.total > 0 && (
           <span className="tabular-nums">
-            {types.units} units · {types.spells} spells · {types.gear} gear
+            {[
+              m.meta_deck_preview_units({ count: types.units }),
+              m.meta_deck_preview_spells({ count: types.spells }),
+              m.meta_deck_preview_gear({ count: types.gear }),
+            ].join(" · ")}
           </span>
         )}
         {runes.length > 0 && (

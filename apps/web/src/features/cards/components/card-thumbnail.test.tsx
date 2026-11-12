@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -50,9 +51,9 @@ const baseDisplay: CardThumbnailDisplay = {
   gridFoil: false,
   coarsePointer: false,
   domainColors: {},
-  finishLabels: {},
-  sizeLabels: {},
-  rarityLabels: {},
+  finishLabels: labelMapOf({}),
+  sizeLabels: labelMapOf({}),
+  rarityLabels: labelMapOf({}),
   prices: EMPTY_PRICE_LOOKUP,
   favoriteMarketplace: "cardtrader",
   compactFmt: String,
@@ -122,7 +123,11 @@ describe("CardThumbnail siblings", () => {
         onClick={() => {}}
         showImages
         siblings={[front, sibling]}
-        display={{ ...baseDisplay, coarsePointer: false, finishLabels: { foil: "Foil" } }}
+        display={{
+          ...baseDisplay,
+          coarsePointer: false,
+          finishLabels: labelMapOf({ foil: "Foil" }),
+        }}
       />,
     );
 

@@ -83,7 +83,14 @@ describe("cardDetailQueryOptions", () => {
 });
 
 describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
-  const card = { id: "card-1", slug: "ezreal", name: "Ezreal", bans: [] };
+  const card = {
+    id: "card-1",
+    slug: "ezreal",
+    name: "Ezreal",
+    types: ["unit"],
+    tags: [],
+    bans: [],
+  };
   const printing = (setId: string, language = "EN") => ({
     setId,
     cardId: "card-1",
@@ -230,7 +237,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
   it("keeps only this card's face of a double-sided printing, with the other card's face apart", () => {
     const result = runSelect({
       ...slice,
-      cards: { "card-2": { slug: "gold", name: "Gold", bans: [] } },
+      cards: { "card-2": { slug: "gold", name: "Gold", types: ["unit"], tags: [], bans: [] } },
       card,
       printings: {
         p1: {
@@ -251,7 +258,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
   it("keeps the second face when this card is side 2 of the printing", () => {
     const result = runSelect({
       ...slice,
-      cards: { "card-2": { slug: "gold", name: "Gold", bans: [] } },
+      cards: { "card-2": { slug: "gold", name: "Gold", types: ["unit"], tags: [], bans: [] } },
       card,
       printings: {
         p1: {

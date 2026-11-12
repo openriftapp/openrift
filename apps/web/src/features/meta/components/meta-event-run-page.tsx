@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventPlayer, MetaRunRound } from "@openrift/shared/types/api/meta";
 import { getRouteApi, Link } from "@tanstack/react-router";
@@ -46,7 +47,7 @@ function OpponentList({ opponent }: { opponent: MetaEventPlayer | undefined }) {
       render={<Link to="/meta/decks/$token" params={{ token: opponent.shareToken }} />}
     >
       {opponent.listStatus === "partial"
-        ? m.meta_list_partial_short()
+        ? m.meta_list_status_partial()
         : m.meta_standings_decklist()}
     </TextLink>
   );
@@ -140,7 +141,15 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
         <div className="text-muted-foreground text-xs leading-tight tabular-nums">
           {finish !== null && (
             <p>
-              finished <span className="text-foreground font-medium">{finish}</span>
+              <ParaglideMessage
+                message={m.meta_run_finished}
+                inputs={{ finish }}
+                markup={{
+                  strong: ({ children }) => (
+                    <span className="text-foreground font-medium">{children}</span>
+                  ),
+                }}
+              />
             </p>
           )}
           {record !== null && <p>{record}</p>}

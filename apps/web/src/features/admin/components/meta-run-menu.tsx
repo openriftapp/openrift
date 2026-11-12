@@ -23,7 +23,7 @@ import {
   BACKFILL_TRIGGERS_BY_SOURCE,
   TRIGGER_GROUPS,
 } from "@/features/admin/lib/meta-admin-triggers";
-import { backfillDisplay, stoppableRunId } from "@/features/meta/lib/meta-catalog-display";
+import { backfillDisplay, stoppableRunId } from "@/features/admin/lib/meta-catalog-display";
 
 interface StopEntry {
   job: MetaCancellableJob;

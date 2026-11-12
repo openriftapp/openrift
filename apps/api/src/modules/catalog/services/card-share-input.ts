@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { formatCents } from "@openrift/shared/money";
@@ -43,10 +44,10 @@ interface PrintingRow {
 }
 
 interface Labels {
-  domains: Record<string, string>;
-  superTypes: Record<string, string>;
-  cardTypes: Record<string, string>;
-  rarities: Record<string, string>;
+  domains: LabelMap;
+  superTypes: LabelMap;
+  cardTypes: LabelMap;
+  rarities: LabelMap;
 }
 
 export interface BuildCardShareInputArgs {

@@ -42,6 +42,7 @@ import { wantedMatchesPrinting } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { formatterForMarketplace } from "@/lib/format";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -60,7 +61,7 @@ function whoLine(card: TradeMarketCard): string {
   const [first] = card.sources;
   const count = card.sources.length;
   if (count === 1 && first !== undefined) {
-    const name = first.name ?? m.trades_member_fallback();
+    const name = memberName(first.name);
     return card.direction === "incoming"
       ? m.trades_market_one_has({ name })
       : m.trades_market_one_wants({ name });

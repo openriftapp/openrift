@@ -1,3 +1,5 @@
+import { DAY_MS } from "@openrift/shared/format-date";
+
 export interface LatestMilestone {
   date: string;
   icon?: string;
@@ -6,8 +8,6 @@ export interface LatestMilestone {
 }
 
 const MILESTONE_BANNER_MAX_AGE_DAYS = 30;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * A first visit seeds the dismissed date instead of showing a banner, so the

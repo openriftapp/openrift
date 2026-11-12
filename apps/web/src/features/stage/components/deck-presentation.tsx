@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -44,7 +45,7 @@ export function DeckPresentation({
     (item) => ({
       id: item.id,
       printing: item.printing,
-      contextLabel: item.zone ? zoneLabels[item.zone] : undefined,
+      contextLabel: item.zone ? enumLabel(zoneLabels, item.zone) : undefined,
     }),
   );
 

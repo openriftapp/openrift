@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { useTransferFriendGroupOwnership } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 export function TransferOwnershipControl({
@@ -27,7 +28,7 @@ export function TransferOwnershipControl({
   }
   const items = candidates.map((member) => ({
     value: member.userId,
-    label: member.userName ?? m.groups_unknown_user(),
+    label: memberName(member.userName),
   }));
   const target = candidates.find((member) => member.userId === targetId);
 
@@ -58,7 +59,7 @@ export function TransferOwnershipControl({
           disabled={target === undefined}
           onConfirm={handleTransfer}
           title={m.groups_transfer_confirm_title({
-            member: target?.userName ?? m.groups_this_member(),
+            member: memberName(target?.userName),
           })}
           description={m.groups_transfer_confirm_description()}
           confirmLabel={m.groups_transfer_button()}

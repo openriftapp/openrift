@@ -1,6 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
+import { pluralize } from "@openrift/shared/strings";
 import { tierRowColor } from "@openrift/shared/tier-colors";
 
 import type { Repos } from "../../../deps.js";
@@ -456,7 +457,7 @@ function countRanked(rows: readonly TierListImageRow[]): number {
 }
 
 function rankedLabel(rankedCount: number): string {
-  return `${rankedCount} ${rankedCount === 1 ? "card" : "cards"} ranked`;
+  return `${rankedCount} ${pluralize(rankedCount, "card", "cards")} ranked`;
 }
 
 /**

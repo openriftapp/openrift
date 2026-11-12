@@ -471,7 +471,6 @@
   "shared_link_url_label": "Link {index} URL",
   "shared_link_title_label": "Link {index} title",
   "shared_link_remove_label": "Remove link {index}",
-  "shared_unknown_user": "Unknown user",
   "common_close": "Close",
   "ui_quantity_one_fewer": "One fewer",
   "ui_quantity_one_more": "One more",
@@ -3767,8 +3766,6 @@
   "loans_group_borrowed": "Borrowed",
   "loans_group_history": "History",
   "loans_card_fallback": "Card",
-  "loans_member_fallback": "Member",
-  "loans_former_member": "Former member",
   "loans_quantity": "{count}× {card}",
   "loans_quantity_partial": "{outstanding} of {total}× {card} still out",
   "loans_to_person": "to {name}",
@@ -3914,9 +3911,7 @@
   "trade_pref_reset": "Reset to list default",
   "trade_pref_edit_aria": "Edit trade preference ({value})",
   "trade_pref_set_aria": "Set trade preference",
-  "groups_a_member": "a member",
   "groups_activity_a_card": "a card",
-  "groups_activity_a_member": "A member",
   "groups_activity_collection_shared": "{member} shared the collection {collection}",
   "groups_activity_empty": "Nothing yet. New members, shared lists, and trades show up here as the group gets going.",
   "groups_activity_list_shared": "{member} shared the {noun} {list}",
@@ -3925,8 +3920,6 @@
   "groups_activity_title": "Recent activity",
   "groups_activity_trade_batch": "{giver} traded {count} cards to {receiver}",
   "groups_activity_trade_completed": "{giver} traded {quantity}× {card} to {receiver}",
-  "groups_activity_you": "You",
-  "groups_activity_you_object": "you",
   "groups_admin_banner_description": "Shown behind the group's name.",
   "groups_admin_description_label": "Description",
   "groups_admin_enable_invites": "Enable invites",
@@ -4080,7 +4073,6 @@
       }
     }
   ],
-  "groups_member_fallback": "Member",
   "groups_member_has_not_shared": "{member} hasn't shared any collections or lists with this group yet.",
   "groups_member_needs_you": "{count} needs you",
   "groups_member_nothing_here_description": "{member} hasn't shared any lists or collections with this group, and the two of you haven't traded.",
@@ -4188,7 +4180,6 @@
   "groups_overview_tournaments_total": "{count} total",
   "groups_overview_waiting_in": "waiting in {name}",
   "groups_overview_youre_in": "you're in {count}",
-  "groups_owner_unknown": "Unknown",
   "groups_pending_approval": "Waiting for an admin to approve your request to join.",
   "groups_role_admin": "Admin",
   "groups_role_member": "Member",
@@ -4252,8 +4243,6 @@
   "groups_slug_error_min": "Use at least {count} characters",
   "groups_slug_error_pattern": "Lowercase letters, digits, and dashes, starting with a letter or digit",
   "groups_slug_error_reserved": "That address is taken by OpenRift, pick another",
-  "groups_this_member": "this member",
-  "groups_this_member_capitalized": "This member",
   "groups_trade_volume_none": "No trades here yet",
   "groups_trade_volume_quiet": "No trades in the last {days} days",
   "groups_trade_volume_recent": [
@@ -4273,7 +4262,6 @@
   "groups_transfer_placeholder": "Choose a member",
   "groups_transfer_select_aria": "New owner",
   "groups_transfer_title": "Transfer ownership",
-  "groups_unknown_user": "Unknown user",
   "binder_contact_label": "Contact (optional)",
   "binder_contact_placeholder": "Discord: summonerkai",
   "binder_create_pdf": "Create PDF",
@@ -4528,12 +4516,9 @@
   ],
   "trades_hero_lead": "Matches come from the wishlists and tradelists members share in a group. Unanswered requests expire after 7 days.",
   "trades_view_trades": "View trades",
-  "trades_member_fallback": "Member",
-  "trades_this_member": "this member",
   "trades_this_card": "this card",
   "trades_card_fallback": "Card",
   "trades_them": "them",
-  "trades_a_member": "a member",
   "trades_member_pair": "{first} and {second}",
   "trades_member_count": "{count} members",
   "trades_members": [
@@ -4654,7 +4639,6 @@
       }
     }
   ],
-  "trades_request_unknown_user": "Unknown user",
   "trades_requested_ago": "requested {time}",
   "trades_approve": "Approve",
   "trades_deny": "Deny",
@@ -8950,7 +8934,6 @@
     }
   ],
   "meta_event_organized_by": "Organized by {organizer}",
-  "meta_list_partial_short": "Partial",
   "tournaments_claim_page_title_loading": "Claim your spot",
   "tournaments_claim_invalid_title": "This claim link is not valid",
   "tournaments_claim_invalid_description": "Ask the organizer for a current one.",
@@ -10437,5 +10420,156 @@
   "decks_workbench_showing_all_cards": "Showing all cards.",
   "decks_workbench_stats_paused_note": "Your stat filters are paused.",
   "decks_workbench_show_all_cards": "Show all cards",
-  "decks_workbench_only_allowed_cards": "Only allowed cards"
+  "decks_workbench_only_allowed_cards": "Only allowed cards",
+  "common_unnamed_member": "Unnamed member",
+  "common_former_member": "Former member",
+  "tier_lists_share_ranked_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card ranked",
+        "countPlural=*": "{count} cards ranked"
+      }
+    }
+  ],
+  "user_profile_unnamed_heading": "Wishlists and tradelists",
+  "user_profile_cta_title_unnamed": "See what you could trade",
+  "meta_outcome_word_double_forfeit": "both forfeited",
+  "tournaments_pod_double_forfeit": "Both forfeited",
+  "tournaments_pairings_earlier_byes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} earlier bye",
+        "countPlural=*": "{count} earlier byes"
+      }
+    }
+  ],
+  "tournaments_pod_vs": "vs",
+  "tournaments_pod_points": "{score} pts",
+  "tournaments_pairing_error_team_match": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Match {match} has {count} team. Matches must have exactly 2.",
+        "countPlural=*": "Match {match} has {count} teams. Matches must have exactly 2."
+      }
+    }
+  ],
+  "tournaments_pairing_error_match_size": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Match {match} has {count} player. Matches must have exactly 2.",
+        "countPlural=*": "Match {match} has {count} players. Matches must have exactly 2."
+      }
+    }
+  ],
+  "tournaments_pairing_error_pod_size": [
+    {
+      "declarations": ["input pod", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Pod {pod} has {count} player. Pods must have 3 or 4.",
+        "countPlural=*": "Pod {pod} has {count} players. Pods must have 3 or 4."
+      }
+    }
+  ],
+  "tournaments_group_seats_hint_four": "Seats set the schedule: round 1 pairs seats 1 and 2, 3 and 4; round 2 pairs 1 and 3, 2 and 4; round 3 pairs 1 and 4, 2 and 3.",
+  "tournaments_group_seats_hint_five": "Seats set the schedule: seat 1 plays across in round 1, seat 2 in round 2, seat 3 in round 3; the other two play each other.",
+  "tournaments_match_format_bo1": "Best of 1",
+  "tournaments_match_format_bo3": "Best of 3",
+  "meta_submission_sent_line": "Sent {sent}",
+  "meta_submission_sent_reviewed_line": "Sent {sent} · Reviewed {reviewed}",
+  "meta_submissions_lead": "Everything you've sent to the archive, and what happened to each one.",
+  "meta_deck_preview_units": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} unit",
+        "countPlural=*": "{count} units"
+      }
+    }
+  ],
+  "meta_deck_preview_spells": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} spell",
+        "countPlural=*": "{count} spells"
+      }
+    }
+  ],
+  "meta_deck_preview_gear": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} gear",
+        "countPlural=*": "{count} gear"
+      }
+    }
+  ],
+  "meta_run_finished": "finished {#strong}{finish}{/strong}",
+  "meta_standings_missing_value": "{amount} missing",
+  "decks_hero_value_suffix": "value",
+  "lists_toast_removed_from_list": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Removed {count} card from list",
+        "countPlural=*": "Removed {count} cards from list"
+      }
+    }
+  ],
+  "lists_toast_marked_sold": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Marked {count} card as sold",
+        "countPlural=*": "Marked {count} cards as sold"
+      }
+    }
+  ],
+  "collections_toast_moved_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved {count} card",
+        "countPlural=*": "Moved {count} cards"
+      }
+    }
+  ],
+  "collections_toast_removed_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Removed {count} card",
+        "countPlural=*": "Removed {count} cards"
+      }
+    }
+  ],
+  "groups_shop_events_today": "Today · {weekday}",
+  "groups_shop_events_tomorrow": "Tomorrow · {weekday}",
+  "cards_filter_domain_none": "None",
+  "meta_deck_tile_label": "{player}'s decklist",
+  "meta_deck_tile_label_legend": "{player}'s {legend} decklist",
+  "lists_import_issue_unreadable": "Line {line}: couldn't read \"{text}\", expected \"<quantity> <card name>\".",
+  "lists_import_issue_zero_quantity": "Line {line}: quantity must be greater than zero.",
+  "lists_import_issue_missing_name": "Line {line}: missing card name.",
+  "groups_activity_trade_batch_you_gave": "You traded {count} cards to {receiver}",
+  "groups_activity_trade_batch_you_received": "{giver} traded {count} cards to you",
+  "groups_activity_trade_completed_you_gave": "You traded {quantity}× {card} to {receiver}",
+  "groups_activity_trade_completed_you_received": "{giver} traded {quantity}× {card} to you",
+  "trades_sheet_nothing_open_title": "Nothing open right now"
 }

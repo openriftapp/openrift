@@ -552,6 +552,7 @@ export async function buildRuleEvalContexts(
   const catalog = ruleCatalog?.printings ?? [];
   const customTagAssignments = ruleCatalog?.customTagAssignments;
   const vocabulary = ruleCatalog?.vocabulary;
+  const keywordReverseMap = ruleCatalog?.keywordReverseMap;
 
   // Reference orders for trade-rule keep/offer ranking, fetched once so the
   // matcher picks the exact same copies the owner sees on their list page — a
@@ -584,6 +585,7 @@ export async function buildRuleEvalContexts(
         customTagAssignments,
         priceLookup,
         vocabulary,
+        keywordReverseMap,
       })) {
         printingScope.add(id);
       }
@@ -603,6 +605,7 @@ export async function buildRuleEvalContexts(
     enumOrders,
     priceLookup,
     vocabulary,
+    keywordReverseMap,
   });
 }
 

@@ -1,4 +1,5 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
+import { formatDay } from "@openrift/shared/format-date";
 import type { Kysely, RawBuilder, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -449,7 +450,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
 
     /** Re-arms started events, including ones that left the ladder. */
     async pullForwardRechecks(activityShopIds: readonly number[], now: Date): Promise<number> {
-      const today = now.toISOString().slice(0, 10);
+      const today = formatDay(now);
       let pulled = 0;
       for (const batch of keyBatches(activityShopIds)) {
         const result = await db

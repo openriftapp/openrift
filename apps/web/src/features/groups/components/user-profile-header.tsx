@@ -61,7 +61,7 @@ export function UserProfileHeader({
         />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <Heading level={1}>{owner.displayName}</Heading>
+            <Heading level={1}>{owner.displayName ?? m.user_profile_unnamed_heading()}</Heading>
             {owner.isContributor ? (
               <Badge variant="subtle" className="gap-1">
                 <SparklesIcon />

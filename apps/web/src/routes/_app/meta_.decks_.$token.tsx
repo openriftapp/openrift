@@ -1,3 +1,4 @@
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
@@ -14,7 +15,8 @@ import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
 interface MetaDeckHeadData {
-  deck: Pick<MetaDeckDetailResponse["deck"], "format" | "updatedAt">;
+  deck: Pick<MetaDeckDetailResponse["deck"], "updatedAt">;
+  formatLabel: string;
   meta: Pick<MetaDeckDetailResponse["meta"], "playerName" | "rank" | "rankIsTier"> & {
     event: Pick<MetaDeckDetailResponse["meta"]["event"], "slug" | "name" | "eventDate">;
   };
@@ -33,7 +35,7 @@ export const Route = createFileRoute("/_app/meta_/decks_/$token")({
     const { legend } = data;
     const named = legend ?? data.meta.playerName;
     const title = `${named}, ${finish} at ${data.meta.event.name}`;
-    const piloted = legend === null ? `this ${data.deck.format} deck` : legend;
+    const piloted = legend === null ? `this ${data.formatLabel} deck` : legend;
     const description = `${data.meta.playerName} piloted ${piloted} to ${finish} at ${data.meta.event.name} (${data.meta.event.eventDate}).`;
     const ogImage = deckShareImageUrl(
       siteUrl,
@@ -55,13 +57,14 @@ export const Route = createFileRoute("/_app/meta_/decks_/$token")({
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<MetaDeckHeadData> => {
     try {
-      const [, deck] = await Promise.all([
+      const [init, deck] = await Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
         context.queryClient.query({ ...metaDeckQueryOptions(params.token), staleTime: "static" }),
       ]);
       const { playerName, rank, rankIsTier, event } = deck.meta;
       return {
-        deck: { format: deck.deck.format, updatedAt: deck.deck.updatedAt },
+        deck: { updatedAt: deck.deck.updatedAt },
+        formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), deck.deck.format),
         meta: {
           playerName,
           rank,

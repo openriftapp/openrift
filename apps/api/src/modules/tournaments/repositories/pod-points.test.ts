@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { podSizeOf, pointsForPod, pointsForTeamPod, teamsOf } from "./pod-points.js";
+import {
+  isResultlessPod,
+  podSizeOf,
+  pointsForPod,
+  pointsForTeamPod,
+  teamsOf,
+} from "./pod-points.js";
 import type { PodScoring } from "./pod-tournaments-shared.js";
 
 const SCORING: PodScoring = {
@@ -10,6 +16,23 @@ const SCORING: PodScoring = {
   drawPoints: 1,
   playMode: "1v1",
 };
+
+describe("isResultlessPod", () => {
+  const noGames = (count: number) => Array.from({ length: count }, () => ({ gamePoints: null }));
+
+  it("marks a 3 or 4 player pod without game points as having no result", () => {
+    expect(isResultlessPod(noGames(3), null)).toBe(true);
+    expect(isResultlessPod(noGames(4), null)).toBe(true);
+  });
+
+  it("keeps a two-sided walkover and any pod with game points", () => {
+    expect(isResultlessPod(noGames(2), null)).toBe(false);
+    expect(isResultlessPod(noGames(4), ["t1", "t2"])).toBe(false);
+    expect(isResultlessPod([{ gamePoints: 0 }, { gamePoints: 0 }, { gamePoints: 0 }], null)).toBe(
+      false,
+    );
+  });
+});
 
 describe("podSizeOf", () => {
   it("narrows the stored sizes to the literal union", () => {

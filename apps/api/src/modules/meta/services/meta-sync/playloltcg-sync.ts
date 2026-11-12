@@ -1,8 +1,9 @@
+import { DAY_MS, HOUR_MS, formatDay } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../../lib/meta-providers.js";
-import { DAY_MS, HOUR_MS, shiftDays } from "../../lib/meta-durations.js";
+import { shiftDays } from "../../lib/meta-durations.js";
 import {
   DECKLIST_PUBLISHED,
   firstRevisit,
@@ -97,7 +98,7 @@ export function isPlayloltcgRecheckNoop(result: PlayloltcgRecheckResult): boolea
 }
 
 function day(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return formatDay(date);
 }
 
 function absorbStop(

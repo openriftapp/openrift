@@ -1,5 +1,7 @@
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -20,14 +22,15 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
+import { useCardSearchIndex } from "@/features/cards/hooks/use-search-index";
 import {
   ImportRowRawFields,
   ImportRowShell,
 } from "@/features/collections/components/import-row-shell";
 import type { ImportBucket } from "@/features/collections/lib/import-summary";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
-import { useResolvedCardIndex } from "@/features/decks/hooks/use-resolved-card-index";
 import type { DeckMatchedEntry, ResolvedCard } from "@/features/decks/lib/deck-import-matcher";
+import { resolvedCardFromPrinting } from "@/features/decks/lib/deck-import-matcher";
 import { deckImportRowId } from "@/features/decks/lib/deck-import-preview";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
@@ -55,7 +58,7 @@ export function DeckImportEntryRow({
   allPrintings: Printing[];
   index: number;
   zoneOrder: DeckZone[];
-  zoneLabels: Record<DeckZone, string>;
+  zoneLabels: LabelMap;
   isSkipped: boolean;
   onResolve: (index: number, card: ResolvedCard) => void;
   onZoneChange: (index: number, zone: DeckZone) => void;
@@ -67,7 +70,7 @@ export function DeckImportEntryRow({
   const { icon: StatusIcon, className: statusColor } = BUCKET_CONFIG[bucket];
   const rawFieldEntries = Object.entries(entry.entry.rawFields);
   const displayName =
-    entry.resolvedCard?.cardName ??
+    entry.resolvedCard?.displayName ??
     entry.entry.cardName ??
     entry.entry.shortCode ??
     m.collections_import_deck_unknown_card();
@@ -77,10 +80,10 @@ export function DeckImportEntryRow({
   const sourceName = entry.entry.cardName?.trim();
   const resolved = entry.resolvedCard;
   const matchedNote =
-    resolved && (!sourceName || sourceName.toLowerCase() !== resolved.cardName.toLowerCase()) ? (
+    resolved && (!sourceName || sourceName.toLowerCase() !== resolved.displayName.toLowerCase()) ? (
       <>
         {m.collections_import_matched_to()}{" "}
-        <span className="text-foreground font-medium">{resolved.cardName}</span> (
+        <span className="text-foreground font-medium">{resolved.displayName}</span> (
         {resolved.shortCode})
       </>
     ) : null;
@@ -167,7 +170,7 @@ export function DeckImportEntryRow({
         // trigger registers as a new open, not a toggle-close.
         foldActions ? (
           <span className="text-muted-foreground text-xs group-data-[panel-open]:hidden">
-            {zoneLabels[entry.zone]}
+            {enumLabel(zoneLabels, entry.zone)}
           </span>
         ) : null
       }
@@ -216,7 +219,7 @@ function ZonePicker({
 }: {
   zone: DeckZone;
   zoneOrder: DeckZone[];
-  zoneLabels: Record<DeckZone, string>;
+  zoneLabels: LabelMap;
   isMobile: boolean;
   onZoneChange: (zone: DeckZone) => void;
 }) {
@@ -227,7 +230,7 @@ function ZonePicker({
     <SimpleSelect
       items={assignableZones.map((zoneKey) => ({
         value: zoneKey,
-        label: zoneLabels[zoneKey],
+        label: enumLabel(zoneLabels, zoneKey),
         className: isMobile ? "py-2.5" : "py-1.5",
       }))}
       value={zone}
@@ -251,14 +254,14 @@ function CardSearch({
   onSelect: (card: ResolvedCard) => void;
 }) {
   const [query, setQuery] = useState("");
-  const { rows, codesByCardId } = useResolvedCardIndex(allPrintings);
-  const matches = useCardSearch(rows, query, codesByCardId, MAX_SEARCH_RESULTS, MIN_QUERY_LENGTH);
+  const index = useCardSearchIndex(allPrintings);
+  const matches = useCardSearch(index, query, MAX_SEARCH_RESULTS, MIN_QUERY_LENGTH);
   const results = matches.map((row) => ({
     id: row.id,
-    label: row.name,
-    sublabel: row.card.shortCode,
+    label: row.displayName,
+    sublabel: row.printing.shortCode,
     leading: <PreferredPrintingThumbnail cardId={row.id} className="h-8" />,
-    card: row.card,
+    card: resolvedCardFromPrinting(row.printing),
   }));
 
   return (

@@ -1,6 +1,6 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { enumLabel } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -219,8 +219,8 @@ function FaceCard({
   const removeFace = useRemoveDeskSecondSide();
   const [editing, setEditing] = useState(false);
 
-  const markerLabels = new Map(markerData.markers.map((marker) => [marker.slug, marker.label]));
-  const markers = face.markerSlugs.map((slug) => markerLabels.get(slug) ?? slug).join(", ");
+  const markerLabels = labelMap(markerData.markers);
+  const markers = face.markerSlugs.map((slug) => enumLabel(markerLabels, slug)).join(", ");
 
   return (
     <Card data-face-id={face.faceId}>
@@ -265,7 +265,7 @@ function FaceCard({
             <DetailRow label="Code" value={formatPrintingCode(face.publicCode)} />
             <DetailRow label="Set" value={face.setName} />
             <DetailRow label="Finish" value={enumLabel(labels.finishes, face.finish)} />
-            <DetailRow label="Language" value={languageLabels[face.language] ?? face.language} />
+            <DetailRow label="Language" value={enumLabel(languageLabels, face.language)} />
             <DetailRow label="Rarity" value={enumLabel(labels.rarities, face.rarity)} />
             <DetailRow label="Artist" value={face.artist} />
             <DetailRow label="Markers" value={markers.length > 0 ? markers : "None"} />

@@ -1,3 +1,4 @@
+import { todayUtc } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -215,7 +216,7 @@ async function fetchCardtraderData(
     expansions,
     blueprints: allBlueprints,
     prices,
-    recordedAt: new Date(new Date().toISOString().slice(0, 10)),
+    recordedAt: new Date(todayUtc()),
   };
 }
 

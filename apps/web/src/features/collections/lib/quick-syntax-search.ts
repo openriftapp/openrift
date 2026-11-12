@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { cardHiddenCodesOf, cardPrintedNamesOf } from "@openrift/shared/filters";
 import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { resolveSearchQuery } from "@openrift/shared/search-query/bind";
@@ -88,11 +89,18 @@ export function quickSyntaxSearch(
       ? new Set(preferredLanguages)
       : null;
 
+  const isShown = (printing: Printing) => allowlist === null || allowlist.has(printing.language);
+  const searchable = [...printingsByCardId.values()].flat();
+  const searchContext = {
+    ...context,
+    cardPrintedNames: context.cardPrintedNames ?? cardPrintedNamesOf(searchable),
+    cardHiddenCodes: allowlist === null ? undefined : cardHiddenCodesOf(searchable, isShown),
+  };
+
   const rows: QuickAddCardResult[] = [];
   for (const [cardId, printings] of printingsByCardId) {
     const matching = printings.filter(
-      (printing) =>
-        (allowlist === null || allowlist.has(printing.language)) && matches(printing, context),
+      (printing) => isShown(printing) && matches(printing, searchContext),
     );
     const first = matching[0];
     if (!first) {

@@ -6,18 +6,20 @@ import type {
   PlayriftboundCatalogRow,
   TopdeckCatalogRow,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay, formatDayTime } from "@openrift/shared/format-date";
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 import { mirrorResultsState } from "@openrift/shared/meta-results";
 import { playriftboundFormatLabel } from "@openrift/shared/playriftbound-links";
 
-import type { CatalogChipDisplay } from "@/features/meta/lib/meta-catalog-display";
+import type { CatalogChipDisplay } from "@/features/admin/lib/meta-catalog-display";
 import {
   catalogStatusDisplay,
   META_SOURCE_LABELS,
   playloltcgStatusDisplay,
   playriftboundTypeLabel,
-} from "@/features/meta/lib/meta-catalog-display";
+} from "@/features/admin/lib/meta-catalog-display";
 
 interface MirrorBadge extends CatalogChipDisplay {
   title?: string;
@@ -54,9 +56,7 @@ function started(startAt: string | null, isDay: boolean, now: Date): boolean {
   if (startAt === null) {
     return false;
   }
-  return isDay
-    ? startAt <= now.toISOString().slice(0, 10)
-    : new Date(startAt).getTime() <= now.getTime();
+  return isDay ? startAt <= formatDay(now) : new Date(startAt).getTime() <= now.getTime();
 }
 
 function count(value: number, one: string, many: string): string {
@@ -78,7 +78,7 @@ function stagedDetail(row: { stagedPlayerCount: number; stagedDeckCount: number 
 
 export function uvsgamesMirrorRow(
   row: MetaCatalogRow,
-  formatLabels: Record<string, string>,
+  formatLabels: LabelMap,
   now: Date,
 ): MetaMirrorRow {
   const missing: MirrorBadge[] =
@@ -126,7 +126,7 @@ export function uvsgamesMirrorRow(
           ]
         : [
             {
-              label: formatLabels[row.mappedFormat] ?? row.mappedFormat,
+              label: enumLabel(formatLabels, row.mappedFormat),
               variant: "subtle" as const,
             },
           ]),

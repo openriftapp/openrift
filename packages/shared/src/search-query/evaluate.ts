@@ -1,5 +1,10 @@
 import { errataForLanguage } from "../errata.js";
-import { printingFieldEquals, printingMatchesField, toSearchTerm } from "../filters-search.js";
+import {
+  looselyContains,
+  printingFieldEquals,
+  printingMatchesField,
+  toSearchTerm,
+} from "../filters-search.js";
 import type { SearchTerm } from "../filters-search.js";
 import { isStandardPrinting } from "../standard.js";
 import type { PriceLookup } from "../types/api/pricing.js";
@@ -15,6 +20,9 @@ import { parseSearchQuery, pruneIgnored } from "./parse.js";
 
 export interface SearchContext {
   keywordReverseMap?: Map<string, string>;
+  searchablePrintings?: readonly Printing[];
+  cardPrintedNames?: ReadonlyMap<string, readonly string[]>;
+  cardHiddenCodes?: ReadonlyMap<string, readonly string[]>;
   /** Major currency units. */
   getPrice?: (printing: Printing) => number | undefined;
   /** Major currency units. */
@@ -200,10 +208,17 @@ function textPredicate(
   term: SearchTerm,
 ): SearchPredicate {
   if (operator === "=") {
-    return (printing) => printingFieldEquals(printing, field, term);
+    return (printing, context) =>
+      printingFieldEquals(printing, field, term, context.cardPrintedNames);
   }
   const contains: SearchPredicate = (printing, context) =>
-    printingMatchesField(printing, field, term, context.keywordReverseMap);
+    printingMatchesField(
+      printing,
+      field,
+      term,
+      context.keywordReverseMap,
+      context.cardPrintedNames,
+    );
   return operator === "!=" ? (printing, context) => !contains(printing, context) : contains;
 }
 
@@ -453,7 +468,9 @@ function clausePredicate(
 
 function exactNamePredicate(value: string): SearchPredicate {
   const term = toSearchTerm(value);
-  return term ? (printing) => printingFieldEquals(printing, "name", term) : MATCH_ALL;
+  return term
+    ? (printing, context) => printingFieldEquals(printing, "name", term, context.cardPrintedNames)
+    : MATCH_ALL;
 }
 
 function textTermPredicate(value: string): SearchPredicate {
@@ -462,10 +479,15 @@ function textTermPredicate(value: string): SearchPredicate {
     return MATCH_ALL;
   }
   if (looksLikeCardNumber(value)) {
-    return (printing) =>
-      printingMatchesField(printing, "name", term) || printingMatchesField(printing, "id", term);
+    return (printing, context) =>
+      printingMatchesField(printing, "name", term, undefined, context.cardPrintedNames) ||
+      printingMatchesField(printing, "id", term) ||
+      (context.cardHiddenCodes?.get(printing.cardId) ?? []).some((code) =>
+        looselyContains(code, term),
+      );
   }
-  return (printing) => printingMatchesField(printing, "name", term);
+  return (printing, context) =>
+    printingMatchesField(printing, "name", term, undefined, context.cardPrintedNames);
 }
 
 export function compileQuery(root: QueryNode | null, strict = false): SearchPredicate {

@@ -161,12 +161,12 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
         const rows = await db
           .selectFrom("cardTrades as t")
           .leftJoin("users as receiverUser", "receiverUser.id", "t.receiverUserId")
-          .select((eb) => [
+          .select([
             "t.id",
             "t.cardId",
             "t.printingId",
             "t.quantity",
-            eb.fn.coalesce("receiverUser.name", "t.receiverName").as("counterpartyName"),
+            "receiverUser.name as counterpartyName",
           ])
           .where("t.id", "in", batch)
           .orderBy("t.createdAt", "asc")
@@ -282,8 +282,6 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
           "t.receiverUserId",
           "giver.name as giverName",
           "receiver.name as receiverName",
-          "t.giverName as giverSnapshotName",
-          "t.receiverName as receiverSnapshotName",
         ])
         .where("t.groupId", "=", groupId)
         .where("t.status", "=", "completed")
@@ -299,9 +297,9 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
         // Non-null by the `completedAt is not null` filter above.
         completedAt: row.completedAt as Date,
         giverUserId: row.giverUserId,
-        giverName: row.giverName ?? row.giverSnapshotName,
+        giverName: row.giverName,
         receiverUserId: row.receiverUserId,
-        receiverName: row.receiverName ?? row.receiverSnapshotName,
+        receiverName: row.receiverName,
       }));
     },
 

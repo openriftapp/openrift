@@ -3,6 +3,8 @@
  * (site, Discord bot) keeps its own renderer for the resulting tokens.
  */
 
+import { capitalize } from "./strings.js";
+
 // Ordering is load-bearing: glyphs must precede italics (an italic run can't
 // swallow a glyph's underscores), and parens must precede italics.
 const TOKEN_PATTERN =
@@ -70,4 +72,68 @@ export function tokenizeCardText(text: string): CardTextToken[] {
   }
 
   return tokens;
+}
+
+const ENERGY_GLYPH = /^energy_(?<amount>\d+)$/u;
+const RUNE_GLYPH = /^rune_(?<domain>\w+)$/u;
+
+export function glyphWord(name: string): string {
+  const energy = ENERGY_GLYPH.exec(name)?.[1];
+  if (energy !== undefined) {
+    return `${energy} energy`;
+  }
+  const rune = RUNE_GLYPH.exec(name)?.[1];
+  if (rune !== undefined) {
+    return `${capitalize(rune)} rune`;
+  }
+  return capitalize(name);
+}
+
+function plainToken(token: CardTextToken): string {
+  switch (token.type) {
+    case "text": {
+      return token.value;
+    }
+    case "glyph": {
+      return glyphWord(token.name);
+    }
+    case "keyword": {
+      return token.name === ">" || token.name === ">>" ? "" : plainTokens(token.children);
+    }
+    case "italic": {
+      return plainTokens(token.children);
+    }
+    case "paren": {
+      return `(${plainTokens(token.children)})`;
+    }
+    default: {
+      return " ";
+    }
+  }
+}
+
+function plainTokens(tokens: readonly CardTextToken[]): string {
+  return tokens.map((token) => plainToken(token)).join("");
+}
+
+export function cardTextPlain(text: string): string {
+  return plainTokens(tokenizeCardText(text))
+    .replaceAll(/[*_]/gu, "")
+    .replaceAll(/\s+/gu, " ")
+    .trim();
+}
+
+export function truncateAtWord(text: string, max: number): string {
+  if (text.length <= max) {
+    return text;
+  }
+  let cut = "";
+  for (const word of text.split(" ")) {
+    const next = cut ? `${cut} ${word}` : word;
+    if (next.length > max - 1) {
+      break;
+    }
+    cut = next;
+  }
+  return `${cut || text.slice(0, max - 1)}…`;
 }

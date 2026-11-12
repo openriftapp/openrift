@@ -3,8 +3,10 @@ import {
   isTradedCardTrade,
   needsViewerAction,
 } from "@openrift/shared/card-trade-lifecycle";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
+import { memberName } from "@/lib/member-name";
 import { m } from "@/paraglide/messages.js";
 
 import { distinctPrintingIds } from "./friend-group-activity";
@@ -44,7 +46,7 @@ export function needsYouCounts(needsYou: readonly CardTradeResponse[]): NeedsYou
   return { toAnswer, toHandOver, toReceive };
 }
 
-const EXPIRING_SOON_MS = 48 * 60 * 60 * 1000;
+const EXPIRING_SOON_MS = 48 * HOUR_MS;
 
 export function expiringSoonCount(
   needsYou: readonly CardTradeResponse[],
@@ -306,7 +308,7 @@ export interface TradeShelf {
 
 function memberPhrase(names: readonly string[]): string {
   if (names.length === 1) {
-    return names[0] ?? m.trades_a_member();
+    return memberName(names[0]);
   }
   const [first, second] = names;
   if (names.length === 2 && first !== undefined && second !== undefined) {
@@ -316,11 +318,12 @@ function memberPhrase(names: readonly string[]): string {
 }
 
 function counterpartyNames(trades: readonly CardTradeResponse[]): string[] {
-  const names = new Set<string>();
-  for (const trade of trades) {
-    names.add(trade.counterparty.name ?? m.trades_a_member());
+  const byParty = new Map<string, string>();
+  for (const [index, trade] of trades.entries()) {
+    const { userId, name } = trade.counterparty;
+    byParty.set(userId ?? `closed:${index}`, memberName(name, userId === null));
   }
-  return [...names].sort((a, b) => a.localeCompare(b));
+  return [...byParty.values()].sort((a, b) => a.localeCompare(b));
 }
 
 function cardCount(count: number): string {

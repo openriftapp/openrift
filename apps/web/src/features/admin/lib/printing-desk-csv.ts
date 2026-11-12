@@ -1,5 +1,6 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { cardUrl } from "@openrift/shared/site-paths";
 
 import { escapeCsvField } from "@/features/collections/lib/csv-export";
 
@@ -44,7 +45,7 @@ export function printingDeskCardUrl(
   row: Pick<DeskPrintingRow, "cardSlug" | "slug">,
   siteUrl = "",
 ): string {
-  return `${siteUrl}/cards/${row.cardSlug}/${row.slug}`;
+  return cardUrl(siteUrl, row.cardSlug, row.slug);
 }
 
 function siteAbsolute(path: string | null, siteUrl = ""): string {

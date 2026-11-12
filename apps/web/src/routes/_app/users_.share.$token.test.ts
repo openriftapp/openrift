@@ -27,7 +27,7 @@ describe("/users/share/$token head", () => {
   it("counts the lists and cards, and versions the image by the newest list and the list count", async () => {
     const head = await loadedHead(Route, PARAMS, BUNDLE);
 
-    expect(headTitle(head)).toBe("Teemo Scout's wish & tradelists - OpenRift");
+    expect(headTitle(head)).toBe("Teemo Scout's wishlists and tradelists - OpenRift");
     expect(headMeta(head, "description")).toBe("2 wishlists, 1 tradelist, 9 cards in total.");
     expect(headMeta(head, "og:image")).toBe(
       "http://localhost:5173/api/v1/users/share/BUNDLE123/image.png?v=1788256800000-3",

@@ -2,13 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  downloadFilename,
   REVOKE_DELAY_MS,
   downloadBlob,
   downloadCsv,
   downloadJson,
   downloadText,
   downloadUrl,
-  safeFilename,
 } from "./download";
 
 const createObjectURL = vi.fn<(blob: Blob) => string>();
@@ -129,21 +129,31 @@ describe("downloadCsv", () => {
   });
 });
 
-describe("safeFilename", () => {
-  it("keeps word characters, spaces and dashes", () => {
-    expect(safeFilename("Jinx Aggro - v2", "deck")).toBe("Jinx Aggro - v2");
+describe("downloadFilename", () => {
+  it("lowercases, hyphenates and folds diacritics and apostrophes", () => {
+    expect(downloadFilename({ base: "Jinx Aggro - v2", fallback: "deck" })).toBe("jinx-aggro-v2");
+    expect(downloadFilename({ base: "Ahri/Lux: final?", fallback: "deck" })).toBe("ahri-lux-final");
+    expect(downloadFilename({ base: "Évolution à Piltover", fallback: "deck" })).toBe(
+      "evolution-a-piltover",
+    );
+    expect(downloadFilename({ base: "Kai’Sa's Deck", fallback: "deck" })).toBe("kaisas-deck");
   });
 
-  it("replaces unsafe runs with an underscore", () => {
-    expect(safeFilename("Ahri/Lux: final?", "deck")).toBe("Ahri_Lux_ final_");
-  });
-
-  it("trims surrounding whitespace", () => {
-    expect(safeFilename("  Summoner Skirmish  ", "deck")).toBe("Summoner Skirmish");
-  });
-
-  it("falls back when nothing usable remains", () => {
-    expect(safeFilename("   ", "qr-code")).toBe("qr-code");
-    expect(safeFilename("", "image")).toBe("image");
+  it("falls back to the kind, told apart by the id, when nothing sluggable is left", () => {
+    expect(downloadFilename({ base: "   ", fallback: "list" })).toBe("list");
+    expect(
+      downloadFilename({
+        base: "사막의 황제",
+        fallback: "deck",
+        id: "019d6c25-b081-74b3-a901-64da4ae01dab",
+      }),
+    ).toBe("deck-4ae01dab");
+    expect(
+      downloadFilename({
+        base: "沙漠皇帝",
+        fallback: "deck",
+        id: "019d6c25-b081-74b3-a901-64da4ae0aaaa",
+      }),
+    ).toBe("deck-4ae0aaaa");
   });
 });

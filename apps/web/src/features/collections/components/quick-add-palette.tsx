@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { PaletteFrame } from "@/components/command-palette/palette-frame";
 import { PaletteScopeToken } from "@/components/command-palette/palette-scope-token";
+import { SearchProblems } from "@/components/command-palette/search-problems";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -30,7 +31,7 @@ import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useQuickAddMoveMode } from "@/features/collections/hooks/use-quick-add-move-mode";
-import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
+import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
 import { MOVE_FROM_ANYWHERE } from "@/features/collections/lib/move-sources";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -159,7 +160,7 @@ function PaletteInner({
   });
   const { inMoveMode, moveFrom, moveTo } = move;
 
-  const results = useQuickAddSearch(query, printingsByCardId, {
+  const { results, syntax } = useQuickCardSearch(query, printingsByCardId, {
     // In move mode the ×N badges show what's movable in the current
     // From scope, not the global owned count.
     ownedCountByPrinting: inMoveMode ? (move.movableCounts ?? {}) : ownedCountByPrinting,
@@ -430,6 +431,7 @@ function PaletteInner({
         ref={listRef}
         className={cn("overflow-y-auto", !isMobile && expandedCardId ? "max-h-112" : "max-h-72")}
       >
+        <SearchProblems problems={syntax?.problems ?? []} />
         {query.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-sm">
             {inMoveMode

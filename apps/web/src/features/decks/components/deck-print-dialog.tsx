@@ -38,7 +38,7 @@ import type {
   RegistrationPageSize,
 } from "@/features/decks/lib/registration-pdf";
 import { useSession } from "@/hooks/use-session";
-import { safeFilename } from "@/lib/download";
+import { downloadFilename } from "@/lib/download";
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import type { ProxyCard, ProxyPageSize, ProxyRenderMode, RenderedCard } from "@/lib/proxy-pdf";
@@ -161,6 +161,7 @@ interface GenerateProxyPdfParams {
   cutLines: boolean;
   watermark: boolean;
   deckName: string | undefined;
+  deckId: string;
   queryClient: ReturnType<typeof useQueryClient>;
   cardElementRef: React.RefObject<HTMLDivElement | null>;
   setProgress: (progress: { current: number; total: number }) => void;
@@ -179,6 +180,7 @@ async function generateProxyPdf({
   cutLines,
   watermark,
   deckName,
+  deckId,
   queryClient,
   cardElementRef,
   setProgress,
@@ -274,15 +276,18 @@ async function generateProxyPdf({
     cutLines,
     watermark,
     deckName,
+    deckId,
   });
 }
 
 function ProxyPrintPanel({
   cards,
+  deckId,
   deckName,
   onDone,
 }: {
   cards: DeckBuilderCard[];
+  deckId: string;
   deckName: string;
   onDone: () => void;
 }) {
@@ -322,6 +327,7 @@ function ProxyPrintPanel({
         cutLines,
         watermark,
         deckName,
+        deckId,
         queryClient,
         cardElementRef,
         setProgress,
@@ -448,9 +454,11 @@ function ProxyPrintPanel({
 
 function RegistrationPrintPanel({
   cards,
+  deckId,
   deckName,
 }: {
   cards: DeckBuilderCard[];
+  deckId: string;
   deckName: string;
 }) {
   const { data: session } = useSession();
@@ -484,7 +492,7 @@ function RegistrationPrintPanel({
     };
     const generateRegistrationPdf = await loadRegistrationPdfGenerator();
     try {
-      await generateRegistrationPdf(fields, cards, pageSize, getSiteUrl());
+      await generateRegistrationPdf(fields, cards, pageSize, getSiteUrl(), deckId);
     } catch (error) {
       setGenerating(false);
       throw error;
@@ -622,7 +630,7 @@ function DeckSheetPrintPanel({
     setDownloading(true);
     const options = { size: "hq" as const, qr: isLocal ? false : qr };
     const blob = fetchSheetImage(deckId, publicSource, options, imageBody);
-    const filename = `${safeFilename(deckName, "deck")}.pdf`;
+    const filename = `${downloadFilename({ base: deckName, fallback: "deck", id: deckId })}-proxies.pdf`;
     // React Compiler can't yet lower try/finally, so reset in both paths.
     try {
       const downloadImageAsPdf = await loadImagePdfDownloader();
@@ -697,10 +705,15 @@ export function DeckPrintDialog({
           </DialogHeader>
 
           <TabsContent value="proxies" keepMounted>
-            <ProxyPrintPanel cards={cards} deckName={deckName} onDone={() => onOpenChange(false)} />
+            <ProxyPrintPanel
+              cards={cards}
+              deckId={deckId}
+              deckName={deckName}
+              onDone={() => onOpenChange(false)}
+            />
           </TabsContent>
           <TabsContent value="registration" keepMounted>
-            <RegistrationPrintPanel cards={cards} deckName={deckName} />
+            <RegistrationPrintPanel cards={cards} deckId={deckId} deckName={deckName} />
           </TabsContent>
           <TabsContent value="sheet" keepMounted>
             <DeckSheetPrintPanel

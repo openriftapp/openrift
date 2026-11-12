@@ -53,6 +53,10 @@ vi.mock("@/hooks/use-keyword-reverse-map", () => ({
   useKeywordReverseMap: () => new Map<string, string[]>(),
 }));
 
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({ orders: { rarities: [] }, labels: {} }),
+}));
+
 vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
   useCatalogSearchVocabulary: () => ({}),
 }));

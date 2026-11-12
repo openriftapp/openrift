@@ -57,7 +57,7 @@ export interface ShareImageCard {
 }
 
 export interface ShareImageInput {
-  ownerName: string;
+  ownerName?: string;
   title: string;
   intentLabel: string;
   unit: { one: string; many: string };

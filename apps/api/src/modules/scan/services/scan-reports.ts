@@ -1,11 +1,10 @@
 import type { ScanReportJournalEntry } from "@openrift/shared/contracts/scan-reports";
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { createLogger } from "@openrift/shared/logger";
 
 import type { Repos, Transact } from "../../../deps.js";
 
 const log = createLogger("scan-reports");
-
-const HOUR_MS = 60 * 60 * 1000;
 
 export const SCAN_REPORT_HOURLY_LIMIT = 5;
 

@@ -329,6 +329,15 @@ describe("formatRank", () => {
     expect(formatRank(2, false)).toBe("2e");
     expect(formatRank(8, true)).toBe("Top 8");
   });
+
+  it("uses the Chinese and Korean place forms", () => {
+    overwriteGetLocale(() => "zh-Hans");
+    expect(formatRank(3, false)).toBe("第3名");
+    overwriteGetLocale(() => "zh-Hant");
+    expect(formatRank(12, false)).toBe("第12名");
+    overwriteGetLocale(() => "ko");
+    expect(formatRank(3, false)).toBe("3위");
+  });
 });
 
 describe("metaOpponentFinishLine", () => {

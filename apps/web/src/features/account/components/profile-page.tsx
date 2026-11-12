@@ -8,7 +8,6 @@ import { SettingsGroup } from "@/components/layout/settings-group";
 import { SettingsLayout } from "@/components/layout/settings-layout";
 import { PersonPageHeader } from "@/components/person-page-header";
 import { AccountInfoSection } from "@/features/account/components/account-info-section";
-import { AdminNotificationsSection } from "@/features/account/components/admin-notifications-section";
 import { BetaFeaturesSection } from "@/features/account/components/beta-features-section";
 import { ConnectedAccountsSection } from "@/features/account/components/connected-accounts-section";
 import { ContactMethodsSection } from "@/features/account/components/contact-methods-section";
@@ -24,6 +23,7 @@ import { PublicProfileSection } from "@/features/account/components/public-profi
 import { PublicSharingSection } from "@/features/account/components/public-sharing-section";
 import { ReferralSection } from "@/features/account/components/referral-section";
 import { TradingSection } from "@/features/account/components/trading-section";
+import { AdminNotificationsSection } from "@/features/admin/components/admin-notifications-section";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { MyDeckCheckKeysSection } from "@/features/tournaments/components/deck-check-keys-section";
 import { useLanguageList } from "@/hooks/use-enums";

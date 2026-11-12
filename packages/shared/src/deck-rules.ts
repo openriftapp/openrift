@@ -1,3 +1,4 @@
+import { pluralize } from "./strings.js";
 import type { DeckFormatConfig } from "./types/api/deck.js";
 import type { CardType, DeckFormat, DeckZone, Domain, SuperType } from "./types/enums.js";
 import { WellKnown } from "./well-known.js";
@@ -731,7 +732,7 @@ const signatureChampionCopiesInDeck: DeckRule = (state) => {
       violations.push({
         zone: card.zone,
         code: "SIGNATURE_CHAMPION_COPIES",
-        message: `${card.cardName} needs ${demand.copies} ${demand.copies === 1 ? "copy" : "copies"} of ${tag} in the deck (found ${available})`,
+        message: `${card.cardName} needs ${demand.copies} ${pluralize(demand.copies, "copy", "copies")} of ${tag} in the deck (found ${available})`,
         cardId: card.cardId,
       });
     }

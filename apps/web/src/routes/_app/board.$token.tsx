@@ -1,3 +1,4 @@
+import { boardShareDescription } from "@openrift/shared/share-titles";
 import type { PublicBoardStateDetailResponse } from "@openrift/shared/types/api/board-state";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
@@ -28,8 +29,7 @@ export const Route = createFileRoute("/_app/board/$token")({
     return seoHead({
       siteUrl,
       title: data.boardState.title,
-      description:
-        data.boardState.summary ?? `A Riftbound board state by ${data.owner.displayName}.`,
+      description: data.boardState.summary ?? boardShareDescription(data.owner.displayName),
       path,
       ogImage: boardStateShareImageUrl(
         siteUrl,

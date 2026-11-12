@@ -18,7 +18,7 @@ interface ShareCardButtonProps {
 }
 
 export function ShareCardButton({ cardName, cardSlug, printingSlug, url }: ShareCardButtonProps) {
-  const filenameBase = printingSlug ?? cardSlug;
+  const filename = { base: printingSlug ?? cardSlug, fallback: "card" };
   const [open, setOpen] = useState(false);
   const canNativeShare =
     open && typeof navigator !== "undefined" && typeof navigator.share === "function";
@@ -57,7 +57,7 @@ export function ShareCardButton({ cardName, cardSlug, printingSlug, url }: Share
         }}
         image={{
           title: cardName,
-          filenameBase,
+          filename,
           buildUrl: (choice) =>
             cardShareImageUrl(getSiteUrl(), cardSlug, printingSlug, {
               size: choice.scale >= 2 ? "hq" : undefined,
@@ -67,7 +67,7 @@ export function ShareCardButton({ cardName, cardSlug, printingSlug, url }: Share
           qrNoun: "card",
           qrAvailable: true,
         }}
-        qrFilenameBase={filenameBase}
+        qrFilename={filename}
       />
     </>
   );

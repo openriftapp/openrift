@@ -1,7 +1,6 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
-import { buildCardIndex } from "@openrift/shared/card-search";
-import { labelMap } from "@openrift/shared/collections";
-import { enumLabel } from "@openrift/shared/enum-label";
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
@@ -84,9 +83,10 @@ function suggestCard(
       id,
       slug: card.slug,
       name: card.name,
-      altNames: cardSearchAltNames(card),
+      types: card.types,
+      tags: card.tags,
     }));
-  const match = closestCard(buildCardIndex(cards, catalog.printingsByCardId), query);
+  const match = closestCard(buildCardLookupIndex(cards, catalog.allPrintings), query);
   const card = match ? catalog.cardsById[match.id] : undefined;
   const printing = match
     ? sortByLanguageAndCanonicalRank(catalog.printingsByCardId.get(match.id) ?? [], languages)[0]

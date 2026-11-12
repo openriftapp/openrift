@@ -96,11 +96,58 @@ describe("source conventions", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps day and hour constants in meta-durations", () => {
-    const offenders = filesMatching("modules/meta", /const (?:DAY_MS|MS_PER_DAY|HOUR_MS)\b/u, [
-      "modules/meta/lib/meta-durations.ts",
-    ]);
+  it("takes day and hour lengths from the shared date module", () => {
+    const offenders = filesMatching(
+      ".",
+      /\b(?:24 \* 60 \* 60 \* 1000|60 \* 60 \* 1000|86_?400_?000|3_?600_?000)\b|const (?:DAY_MS|HOUR_MS|MS_PER_DAY|MS_PER_HOUR)\b/u,
+      [],
+    );
 
     expect(offenders).toEqual([]);
+  });
+
+  it("reads a UTC day key through formatDay", () => {
+    expect(filesMatching(".", /\.toISOString\(\)\.slice\(0, 10\)/u, [])).toEqual([]);
+  });
+
+  it("pluralizes through the shared pluralize", () => {
+    expect(
+      filesMatching(
+        ".",
+        /(?:[=!]==|>) 1 \? "s?" : "s?"|(?:[=!]==|>) 1 \? "(?<stem>[a-z]{3})[a-z ]*" : "\k<stem>[a-z ]*"|function plural\(/u,
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  it("omits a missing owner name instead of naming it", () => {
+    expect(filesMatching(".", /"Anonymous"/u, [])).toEqual([]);
+  });
+
+  it("labels deck formats and list intents through the label sources", () => {
+    expect(filesMatching(".", /\bsentenceCaseSlug\b|\$\{[\w.]*intent\} list/u, [])).toEqual([]);
+  });
+
+  it("builds card lookups only through the shared lookup builders", () => {
+    expect(
+      filesMatching(
+        ".",
+        /import \{[^}]*\b(?:buildCardIndex|cardSearchAltNames)\b[^}]*\} from "@openrift\/shared\/card-(?:search|name)"|import \* as \w+ from "@openrift\/shared\/card-(?:search|name)"|export \{[^}]*\bbuildCardIndex\b/u,
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  it("builds card page links only through cardPath and cardUrl", () => {
+    expect(filesMatching(".", /`[^`]*(?<!media)\/cards\/\$\{|"\/cards\/" *\+/u, [])).toEqual([]);
+  });
+
+  it("names a card in a player-facing string through legendDisplayName", () => {
+    expect(
+      filesMatching("modules", /\$\{[\w?.]*\bcard\??\.name\}/u, [
+        "modules/candidates/services/ingest-candidates.ts",
+        "modules/meta/services/meta-submission.ts",
+      ]),
+    ).toEqual([]);
   });
 });

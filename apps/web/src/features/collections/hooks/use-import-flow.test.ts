@@ -21,6 +21,13 @@ vi.mock("@/features/lists/hooks/use-lists", () => ({
   useLists: () => ({ data: [] }),
   useBulkAddListEntries: () => ({ mutateAsync: vi.fn() }),
 }));
+vi.mock("@/hooks/use-enums", async () => {
+  const { labelMap } = await import("@openrift/shared/enum-label");
+  return {
+    useEnumOrders: () => ({ labels: { finishes: labelMap([]) } }),
+    useLanguageLabels: () => labelMap([]),
+  };
+});
 vi.mock("@/stores/display-store", () => ({
   useDisplayStore: (selector: (state: { languages: string[] }) => unknown) =>
     selector({ languages: [] }),

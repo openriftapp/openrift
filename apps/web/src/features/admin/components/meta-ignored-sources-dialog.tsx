@@ -17,7 +17,7 @@ import {
   useAdminMetaIgnoredSources,
   useUnignoreMetaSourcePlayer,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
-import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
+import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 
 export function MetaIgnoredSourcesDialog({ onClose }: { onClose: () => void }) {
   const { data, isPending } = useAdminMetaIgnoredSources();

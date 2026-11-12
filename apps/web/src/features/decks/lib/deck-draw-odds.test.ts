@@ -35,6 +35,8 @@ describe("buildDrawOddsRows", () => {
   const card = (cardId: string, cardName: string, quantity: number, zone = "main") => ({
     cardId,
     cardName,
+    cardTypes: ["unit" as const],
+    tags: [] as string[],
     quantity,
     zone: zone as "main",
   });
@@ -49,6 +51,13 @@ describe("buildDrawOddsRows", () => {
     ]);
     expect(rows.map((row) => row.cardName)).toEqual(["Alpha", "Beta", "Solo"]);
     expect(rows[0]!.openingChance).toBeCloseTo(chanceToDraw(3, 7, 4), 10);
+  });
+
+  it("names a legend the way players do", () => {
+    const rows = buildDrawOddsRows([
+      { ...card("a", "Emperor of the Sands", 1), cardTypes: ["legend"], tags: ["Azir"] },
+    ]);
+    expect(rows.map((row) => row.cardName)).toEqual(["Azir, Emperor of the Sands"]);
   });
 
   it("returns nothing for an empty main deck", () => {

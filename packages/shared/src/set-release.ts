@@ -29,7 +29,7 @@ export function releasePeriodEnd(release: SetRelease): string | null {
   // Day 0 of the following month is the last day of the month before it, so
   // this needs no leap-year special case.
   const endMonth = precision === "year" ? 12 : precision === "quarter" ? month + 2 : month;
-  return new Date(Date.UTC(year, endMonth, 0)).toISOString().slice(0, 10);
+  return formatDay(new Date(Date.UTC(year, endMonth, 0)));
 }
 
 export function normalizeToPeriodStart(release: SetRelease): SetRelease {
@@ -110,7 +110,7 @@ export function parseReleaseInput(
   }
   const releasedAt = `${groups.year}-${groups.month ?? "01"}-${groups.day ?? "01"}`;
   const parsed = new Date(`${releasedAt}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== releasedAt) {
+  if (Number.isNaN(parsed.getTime()) || formatDay(parsed) !== releasedAt) {
     return null;
   }
   const implied: ReleasePrecision =

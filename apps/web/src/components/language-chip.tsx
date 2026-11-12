@@ -1,3 +1,5 @@
+import { enumLabel } from "@openrift/shared/enum-label";
+
 import { Badge } from "@/components/ui/badge";
 import { useLanguageColors, useLanguageLabels } from "@/hooks/use-enums";
 import { contrastText } from "@/lib/color";
@@ -20,7 +22,7 @@ export function LanguageChip({ code, className }: { code: string; className?: st
     <Badge
       className={cn("text-2xs h-4 gap-0.5 px-1.5 font-mono", className)}
       style={languageChipStyle(colors[code] ?? null)}
-      title={labels[code] ?? code}
+      title={enumLabel(labels, code)}
     >
       {code}
     </Badge>

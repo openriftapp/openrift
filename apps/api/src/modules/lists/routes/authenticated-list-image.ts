@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
 import { parseShareImageQuery } from "../../../lib/share-image-query.js";
+import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import { getUserId } from "../../../middleware/get-user-id.js";
 import { requireAuth } from "../../../middleware/require-auth.js";
@@ -33,7 +34,7 @@ export const listImageRoute = new Hono<{ Variables: Variables }>()
     // requires `is_public`, so encoding a revoked list's stale token would put a
     // 404 on the image. No token, no mark — the renderer drops it.
     const input = await buildListShareInput({
-      ownerName: c.get("user")?.name ?? "Anonymous",
+      ownerName: bylineName(c.get("user")?.name),
       listName: list.name,
       intent: list.intent,
       kind: list.kind,

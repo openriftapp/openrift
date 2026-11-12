@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { TIER_LABEL_INK, tierRowColor } from "@openrift/shared/tier-colors";
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
@@ -161,7 +162,11 @@ function TierBoardCardButton({
   onClick: (view: TierCardView) => void;
 }) {
   return (
-    <Pressable aria-label={view.card.name} className="rounded-sm" onClick={() => onClick(view)}>
+    <Pressable
+      aria-label={legendDisplayName(view.card)}
+      className="rounded-sm"
+      onClick={() => onClick(view)}
+    >
       <TierCardTile view={view} width={width} />
     </Pressable>
   );

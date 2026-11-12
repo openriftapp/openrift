@@ -1,4 +1,4 @@
-import { enumLabel } from "@openrift/shared/enum-label";
+import { enumLabel, mergeLabelMaps } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { SearchKeyId } from "@openrift/shared/search-query/keys";
@@ -59,7 +59,7 @@ export function useSearchVocabulary(
         return enumLabel(languageLabels, value.toUpperCase());
       }
       case "type": {
-        return enumLabel({ ...labels.superTypes, ...labels.cardTypes }, value.toLowerCase());
+        return enumLabel(mergeLabelMaps(labels.superTypes, labels.cardTypes), value.toLowerCase());
       }
       default: {
         return value;

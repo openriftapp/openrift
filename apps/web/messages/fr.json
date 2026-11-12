@@ -471,7 +471,6 @@
   "shared_link_url_label": "URL du lien {index}",
   "shared_link_title_label": "Titre du lien {index}",
   "shared_link_remove_label": "Supprimer le lien {index}",
-  "shared_unknown_user": "Utilisateur inconnu",
   "common_close": "Fermer",
   "ui_quantity_one_fewer": "Un de moins",
   "ui_quantity_one_more": "Un de plus",
@@ -2217,7 +2216,7 @@
     }
   ],
   "lists_import_title": "Importer une liste",
-  "lists_import_paste": "Collez un export CSV ou une liste simple ({#code}<quantity> <card name>{/code} par ligne).",
+  "lists_import_paste": "Collez un export CSV ou une liste simple ({#code}<quantité> <nom de la carte>{/code} par ligne).",
   "lists_import_hint_printing": "Les lignes sans assez de détails pour identifier une impression sont signalées pour vérification.",
   "lists_import_hint_card": "Les quantités s'ajoutent à ce qui est déjà présent.",
   "lists_import_upload_file": "Envoyer un fichier",
@@ -3762,8 +3761,6 @@
   "loans_group_borrowed": "Empruntées",
   "loans_group_history": "Historique",
   "loans_card_fallback": "Carte",
-  "loans_member_fallback": "Membre",
-  "loans_former_member": "Ancien membre",
   "loans_quantity": "{count}× {card}",
   "loans_quantity_partial": "{outstanding} sur {total}× {card} encore dehors",
   "loans_to_person": "à {name}",
@@ -3909,9 +3906,7 @@
   "trade_pref_reset": "Revenir à la valeur par défaut de la liste",
   "trade_pref_edit_aria": "Modifier la préférence d'échange ({value})",
   "trade_pref_set_aria": "Définir la préférence d'échange",
-  "groups_a_member": "un membre",
   "groups_activity_a_card": "une carte",
-  "groups_activity_a_member": "Un membre",
   "groups_activity_collection_shared": "{member} a partagé la collection {collection}",
   "groups_activity_empty": "Rien pour l'instant. Les nouveaux membres, les listes partagées et les échanges apparaissent ici quand le groupe démarre.",
   "groups_activity_list_shared": "{member} a partagé la {noun} {list}",
@@ -3920,8 +3915,6 @@
   "groups_activity_title": "Activité récente",
   "groups_activity_trade_batch": "{giver} a échangé {count} cartes avec {receiver}",
   "groups_activity_trade_completed": "{giver} a échangé {quantity}× {card} avec {receiver}",
-  "groups_activity_you": "Vous",
-  "groups_activity_you_object": "vous",
   "groups_admin_banner_description": "Affiché derrière le nom du groupe.",
   "groups_admin_description_label": "Description",
   "groups_admin_enable_invites": "Activer les invitations",
@@ -4075,7 +4068,6 @@
       }
     }
   ],
-  "groups_member_fallback": "Membre",
   "groups_member_has_not_shared": "{member} n'a encore partagé aucune collection ni liste avec ce groupe.",
   "groups_member_needs_you": "{count} vous attendent",
   "groups_member_nothing_here_description": "{member} n'a partagé aucune liste ni collection avec ce groupe, et vous n'avez rien échangé tous les deux.",
@@ -4183,7 +4175,6 @@
   "groups_overview_tournaments_total": "{count} au total",
   "groups_overview_waiting_in": "en attente dans {name}",
   "groups_overview_youre_in": "vous participez à {count}",
-  "groups_owner_unknown": "Inconnu",
   "groups_pending_approval": "En attente qu'un admin approuve votre demande.",
   "groups_role_admin": "Admin",
   "groups_role_member": "Membre",
@@ -4247,8 +4238,6 @@
   "groups_slug_error_min": "Utilisez au moins {count} caractères",
   "groups_slug_error_pattern": "Minuscules, chiffres et tirets, en commençant par une lettre ou un chiffre",
   "groups_slug_error_reserved": "Cette adresse est réservée par OpenRift, choisissez-en une autre",
-  "groups_this_member": "ce membre",
-  "groups_this_member_capitalized": "Ce membre",
   "groups_trade_volume_none": "Aucun échange ici pour l'instant",
   "groups_trade_volume_quiet": "Aucun échange ces {days} derniers jours",
   "groups_trade_volume_recent": [
@@ -4268,7 +4257,6 @@
   "groups_transfer_placeholder": "Choisir un membre",
   "groups_transfer_select_aria": "Nouveau propriétaire",
   "groups_transfer_title": "Transférer la propriété",
-  "groups_unknown_user": "Personne inconnue",
   "binder_contact_label": "Contact (facultatif)",
   "binder_contact_placeholder": "Discord : summonerkai",
   "binder_create_pdf": "Créer le PDF",
@@ -4523,12 +4511,9 @@
   ],
   "trades_hero_lead": "Les correspondances viennent des listes de souhaits et d’échange que les membres partagent dans un groupe. Les demandes sans réponse expirent après 7 jours.",
   "trades_view_trades": "Voir les échanges",
-  "trades_member_fallback": "Membre",
-  "trades_this_member": "ce membre",
   "trades_this_card": "cette carte",
   "trades_card_fallback": "Carte",
   "trades_them": "eux",
-  "trades_a_member": "un membre",
   "trades_member_pair": "{first} et {second}",
   "trades_member_count": "{count} membres",
   "trades_members": [
@@ -4649,7 +4634,6 @@
       }
     }
   ],
-  "trades_request_unknown_user": "Personne inconnue",
   "trades_requested_ago": "demandé {time}",
   "trades_approve": "Approuver",
   "trades_deny": "Refuser",
@@ -8745,7 +8729,6 @@
     }
   ],
   "meta_event_organized_by": "Organisé par {organizer}",
-  "meta_list_partial_short": "Partielle",
   "tournaments_claim_page_title_loading": "Revendiquez votre place",
   "tournaments_claim_invalid_title": "Ce lien de revendication n'est pas valide",
   "tournaments_claim_invalid_description": "Demandez un lien à jour à l'organisateur.",
@@ -10433,5 +10416,156 @@
   "decks_workbench_showing_all_cards": "Toutes les cartes sont affichées.",
   "decks_workbench_stats_paused_note": "Vos filtres de statistiques sont en pause.",
   "decks_workbench_show_all_cards": "Afficher toutes les cartes",
-  "decks_workbench_only_allowed_cards": "Cartes autorisées uniquement"
+  "decks_workbench_only_allowed_cards": "Cartes autorisées uniquement",
+  "common_unnamed_member": "Membre sans nom",
+  "common_former_member": "Ancien membre",
+  "tier_lists_share_ranked_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte classée",
+        "countPlural=*": "{count} cartes classées"
+      }
+    }
+  ],
+  "user_profile_unnamed_heading": "Listes de souhaits et listes d'échange",
+  "user_profile_cta_title_unnamed": "Voyez ce que vous pourriez échanger",
+  "meta_outcome_word_double_forfeit": "double forfait",
+  "tournaments_pod_double_forfeit": "Double forfait",
+  "tournaments_pairings_earlier_byes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} bye précédent",
+        "countPlural=*": "{count} byes précédents"
+      }
+    }
+  ],
+  "tournaments_pod_vs": "contre",
+  "tournaments_pod_points": "{score} pts",
+  "tournaments_pairing_error_team_match": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Le match {match} a {count} équipe. Un match en compte exactement 2.",
+        "countPlural=*": "Le match {match} a {count} équipes. Un match en compte exactement 2."
+      }
+    }
+  ],
+  "tournaments_pairing_error_match_size": [
+    {
+      "declarations": ["input match", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Le match {match} a {count} joueur. Un match en compte exactement 2.",
+        "countPlural=*": "Le match {match} a {count} joueurs. Un match en compte exactement 2."
+      }
+    }
+  ],
+  "tournaments_pairing_error_pod_size": [
+    {
+      "declarations": ["input pod", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Le pod {pod} a {count} joueur. Un pod en compte 3 ou 4.",
+        "countPlural=*": "Le pod {pod} a {count} joueurs. Un pod en compte 3 ou 4."
+      }
+    }
+  ],
+  "tournaments_group_seats_hint_four": "Les places fixent le programme : la ronde 1 oppose les places 1 et 2, 3 et 4 ; la ronde 2 oppose 1 et 3, 2 et 4 ; la ronde 3 oppose 1 et 4, 2 et 3.",
+  "tournaments_group_seats_hint_five": "Les places fixent le programme : la place 1 joue contre l'autre groupe à la ronde 1, la place 2 à la ronde 2, la place 3 à la ronde 3 ; les deux autres s'affrontent.",
+  "tournaments_match_format_bo1": "Best of 1",
+  "tournaments_match_format_bo3": "Best of 3",
+  "meta_submission_sent_line": "Envoyé le {sent}",
+  "meta_submission_sent_reviewed_line": "Envoyé le {sent} · Examiné le {reviewed}",
+  "meta_submissions_lead": "Tout ce que vous avez envoyé aux archives, et ce qu'il en est advenu.",
+  "meta_deck_preview_units": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} unité",
+        "countPlural=*": "{count} unités"
+      }
+    }
+  ],
+  "meta_deck_preview_spells": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} sort",
+        "countPlural=*": "{count} sorts"
+      }
+    }
+  ],
+  "meta_deck_preview_gear": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} équipement",
+        "countPlural=*": "{count} équipements"
+      }
+    }
+  ],
+  "meta_run_finished": "résultat : {#strong}{finish}{/strong}",
+  "meta_standings_missing_value": "{amount} manquants",
+  "decks_hero_value_suffix": "de valeur",
+  "lists_toast_removed_from_list": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte retirée de la liste",
+        "countPlural=*": "{count} cartes retirées de la liste"
+      }
+    }
+  ],
+  "lists_toast_marked_sold": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte marquée comme vendue",
+        "countPlural=*": "{count} cartes marquées comme vendues"
+      }
+    }
+  ],
+  "collections_toast_moved_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte déplacée",
+        "countPlural=*": "{count} cartes déplacées"
+      }
+    }
+  ],
+  "collections_toast_removed_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte retirée",
+        "countPlural=*": "{count} cartes retirées"
+      }
+    }
+  ],
+  "groups_shop_events_today": "Aujourd'hui · {weekday}",
+  "groups_shop_events_tomorrow": "Demain · {weekday}",
+  "cards_filter_domain_none": "Aucun",
+  "meta_deck_tile_label": "Liste de deck de {player}",
+  "meta_deck_tile_label_legend": "Liste de deck {legend} de {player}",
+  "lists_import_issue_unreadable": "Ligne {line} : impossible de lire « {text} », format attendu « <quantité> <nom de la carte> ».",
+  "lists_import_issue_zero_quantity": "Ligne {line} : la quantité doit être supérieure à zéro.",
+  "lists_import_issue_missing_name": "Ligne {line} : nom de carte manquant.",
+  "groups_activity_trade_batch_you_gave": "Vous avez échangé {count} cartes avec {receiver}",
+  "groups_activity_trade_batch_you_received": "{giver} a échangé {count} cartes avec vous",
+  "groups_activity_trade_completed_you_gave": "Vous avez échangé {quantity}× {card} avec {receiver}",
+  "groups_activity_trade_completed_you_received": "{giver} a échangé {quantity}× {card} avec vous",
+  "trades_sheet_nothing_open_title": "Rien en cours pour le moment"
 }

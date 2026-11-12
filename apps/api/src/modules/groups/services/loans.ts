@@ -1,4 +1,5 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { pluralize } from "@openrift/shared/strings";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
 
 import type { Repos, Transact } from "../../../deps.js";
@@ -19,12 +20,12 @@ export interface CreateLoanInput {
 }
 
 function tooFewOutstanding(count: number): AppError {
-  const noun = count === 1 ? "copy is" : "copies are";
+  const noun = pluralize(count, "copy is", "copies are");
   return new AppError(400, ERROR_CODES.BAD_REQUEST, `Only ${count} ${noun} still out on this loan`);
 }
 
 function tooFewAvailable(count: number): AppError {
-  const noun = count === 1 ? "copy is" : "copies are";
+  const noun = pluralize(count, "copy is", "copies are");
   return new AppError(409, ERROR_CODES.CONFLICT, `Only ${count} ${noun} still available`);
 }
 

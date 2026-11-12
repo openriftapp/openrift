@@ -1,3 +1,5 @@
+import { labelMap } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
@@ -19,7 +21,7 @@ import { cardsSearchSchema } from "@/features/cards/lib/cards-search-schema";
 import {
   catalogFetchUrl,
   catalogQueryOptions,
-  normalizeCatalogLangs,
+  ssrCatalogPreloadLangs,
   readCatalogVersionFromServerCache,
 } from "@/features/cards/lib/catalog-queries";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
@@ -63,7 +65,7 @@ export const Route = createFileRoute("/_app/cards")({
         firstRow: FirstRowCard[];
         facets: AvailableFiltersWire | null;
         availableLanguages: string[];
-        setLabels: Record<string, string>;
+        setLabels: LabelMap;
         counts: CardCounts;
         filterCounts: FilterCountsWire | null;
         catalogVersion: string | null;
@@ -73,7 +75,7 @@ export const Route = createFileRoute("/_app/cards")({
         firstRow: FirstRowCard[];
         facets: AvailableFiltersWire | null;
         availableLanguages: string[];
-        setLabels: Record<string, string>;
+        setLabels: LabelMap;
         counts: CardCounts;
         filterCounts: FilterCountsWire | null;
         catalogVersion: string | null;
@@ -84,7 +86,7 @@ export const Route = createFileRoute("/_app/cards")({
         firstRow: [],
         facets: null,
         availableLanguages: [],
-        setLabels: {},
+        setLabels: labelMap([]),
         counts: { totalCards: 0, filteredCount: 0 },
         filterCounts: null,
         catalogVersion: null,
@@ -122,9 +124,8 @@ export const Route = createFileRoute("/_app/cards")({
       ]);
       // location.search is untyped in the loader; re-validate to read the
       // languages filter.
-      const ssrLanguages = cardsSearchSchema.parse(ssrSearch).languages ?? [];
-      const catalogPreloadLangs = normalizeCatalogLangs(
-        ssrLanguages.length > 0 ? ssrLanguages : ["EN"],
+      const catalogPreloadLangs = ssrCatalogPreloadLangs(
+        cardsSearchSchema.parse(ssrSearch).languages,
       );
       return {
         firstRow,

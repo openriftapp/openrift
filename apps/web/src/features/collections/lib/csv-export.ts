@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { LabelMap } from "@openrift/shared/enum-label";
+import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { straightenApostrophes } from "@openrift/shared/strings";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
@@ -9,25 +10,27 @@ import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
 import { conditionShortCode } from "@/features/collections/lib/condition-codes";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { stackCardName } from "@/features/collections/lib/stacked-entry";
+import type { DownloadName } from "@/lib/download";
+import { downloadFilename } from "@/lib/download";
 import { languageNameForCode } from "@/lib/language-names";
 
 export interface CsvExportLabels {
-  sets: Record<string, string>;
-  rarities: Record<string, string>;
-  conditions: Record<string, string>;
-  graders: Record<string, string>;
+  sets: LabelMap;
+  rarities: LabelMap;
+  conditions: LabelMap;
+  graders: LabelMap;
 }
 
 export function csvExportLabels(
   sets: readonly { slug: string; name: string }[],
   labels: {
-    rarities: Record<string, string>;
-    conditions: Record<string, string>;
-    graders: Record<string, string>;
+    rarities: LabelMap;
+    conditions: LabelMap;
+    graders: LabelMap;
   },
 ): CsvExportLabels {
   return {
-    sets: Object.fromEntries(sets.map((set) => [set.slug, set.name])),
+    sets: labelMap(sets.map((set) => ({ slug: set.slug, label: set.name }))),
     rarities: labels.rarities,
     conditions: labels.conditions,
     graders: labels.graders,
@@ -499,12 +502,8 @@ export const CSV_EXPORT_FORMATS: Record<
   },
 };
 
-export function csvExportFilename(format: CsvExportFormat, name: string): string {
-  const slug =
-    name
-      .toLowerCase()
-      .replaceAll(/[^a-z0-9]+/gu, "-")
-      .replaceAll(/^-|-$/gu, "") || "export";
+export function csvExportFilename(format: CsvExportFormat, name: DownloadName): string {
+  const slug = downloadFilename(name);
   const date = formatDay(new Date());
   return `${CSV_EXPORT_FORMATS[format].filenamePrefix}-${slug}-${date}.csv`;
 }

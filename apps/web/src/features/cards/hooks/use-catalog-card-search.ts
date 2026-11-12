@@ -1,7 +1,6 @@
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import { buildCardLookupIndex } from "@openrift/shared/card-lookup";
 import type { Card } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
 
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -17,25 +16,21 @@ export function useCatalogCardSearch(
   renderLeading?: (cardId: string) => ReactNode,
   minQueryLength?: number,
 ): CardSearchResult[] {
+  "use memo";
   const { cardsById, printingsByCardId } = useCards();
 
-  const cards = useMemo(
-    () =>
-      Object.entries(cardsById)
-        .filter(([, card]) => filter === undefined || filter(card))
-        .map(([id, card]) => ({
-          id,
-          slug: card.slug,
-          name: card.name,
-          // The row shows the name players use ("Azir, Emperor of the Sands"),
-          // not the stored catalog name.
-          displayName: legendDisplayName(card),
-          altNames: cardSearchAltNames(card),
-        })),
-    [cardsById, filter],
-  );
+  const cards = Object.entries(cardsById)
+    .filter(([, card]) => filter === undefined || filter(card))
+    .map(([id, card]) => ({
+      id,
+      slug: card.slug,
+      name: card.name,
+      types: card.types,
+      tags: card.tags,
+    }));
+  const index = buildCardLookupIndex(cards, [...printingsByCardId.values()].flat());
 
-  const matches = useCardSearch(cards, query, printingsByCardId, undefined, minQueryLength);
+  const matches = useCardSearch(index, query, undefined, minQueryLength);
 
   return matches.map((card) => ({
     id: card.id,

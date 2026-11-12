@@ -3,7 +3,7 @@ import type {
   ReviewQueueItem,
   ReviewQueueKind,
 } from "@openrift/shared/contracts/admin/catalog-review";
-import { pluralize } from "@openrift/shared/strings";
+import { countNoun } from "@openrift/shared/strings";
 
 import type { ReviewFilter } from "@/features/admin/lib/admin-search-values";
 
@@ -85,20 +85,16 @@ export function countReviewKinds(
   return counts;
 }
 
-function plural(count: number, singular: string): string {
-  return `${count} ${pluralize(count, singular)}`;
-}
-
 export function summarizeReviewItem(item: ReviewQueueItem): string {
   const parts: string[] = [];
   if (item.changedFields > 0) {
-    parts.push(plural(item.changedFields, "field"));
+    parts.push(countNoun(item.changedFields, "field"));
   }
   if (item.newPrintings > 0) {
-    parts.push(`${plural(item.newPrintings, "new printing")}`);
+    parts.push(`${countNoun(item.newPrintings, "new printing")}`);
   }
   if (item.uncheckedPrintings > 0) {
-    parts.push(plural(item.uncheckedPrintings, "unchecked printing"));
+    parts.push(countNoun(item.uncheckedPrintings, "unchecked printing"));
   }
   if (parts.length === 0) {
     return "Nothing to apply";

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildTargets } from "@/features/decks/components/deck-quick-add";
 import { stubDeckBuilderCard } from "@/test/factories";
+import { TEST_ZONE_LABELS } from "@/test/zone-order-stub";
 
 const CONSTRUCTED = WellKnown.deckFormat.CONSTRUCTED;
 const FREEFORM = WellKnown.deckFormat.FREEFORM;
@@ -21,7 +22,7 @@ function legendInDeck(domains: Domain[] = ["fury"] as Domain[]) {
 describe("buildTargets", () => {
   it("offers a legend card the single set action in constructed", () => {
     const legend = stubDeckBuilderCard({ cardTypes: ["legend" as CardType] });
-    const targets = buildTargets(legend, [], CONSTRUCTED);
+    const targets = buildTargets(legend, [], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets).toEqual([
       {
         zone: WellKnown.deckZone.LEGEND,
@@ -35,13 +36,13 @@ describe("buildTargets", () => {
 
   it("labels the legend action as a switch when one is already set", () => {
     const legend = stubDeckBuilderCard({ cardTypes: ["legend" as CardType] });
-    const targets = buildTargets(legend, [legendInDeck()], CONSTRUCTED);
+    const targets = buildTargets(legend, [legendInDeck()], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets[0]?.label).toBe("Switch Legend");
   });
 
   it("offers main and sideboard to a plain unit", () => {
     const unit = stubDeckBuilderCard({ cardTypes: ["unit" as CardType] });
-    const targets = buildTargets(unit, [], CONSTRUCTED);
+    const targets = buildTargets(unit, [], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets.map((target) => target.zone)).toEqual([
       WellKnown.deckZone.MAIN,
       WellKnown.deckZone.SIDEBOARD,
@@ -54,7 +55,7 @@ describe("buildTargets", () => {
       cardTypes: ["unit" as CardType],
       superTypes: ["champion" as SuperType],
     });
-    const targets = buildTargets(champion, [], CONSTRUCTED);
+    const targets = buildTargets(champion, [], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets.map((target) => target.zone)).toEqual([
       WellKnown.deckZone.CHAMPION,
       WellKnown.deckZone.MAIN,
@@ -70,7 +71,7 @@ describe("buildTargets", () => {
       zone: "main" as DeckZone,
       quantity: 3,
     });
-    const targets = buildTargets(unit, [inDeck], CONSTRUCTED);
+    const targets = buildTargets(unit, [inDeck], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets.find((target) => target.zone === WellKnown.deckZone.MAIN)).toMatchObject({
       disabled: true,
       count: 3,
@@ -85,7 +86,7 @@ describe("buildTargets", () => {
       zone: "main" as DeckZone,
       quantity: 2,
     });
-    const targets = buildTargets(unit, [inDeck], CONSTRUCTED);
+    const targets = buildTargets(unit, [inDeck], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets.find((target) => target.zone === WellKnown.deckZone.MAIN)?.count).toBe(2);
   });
 
@@ -101,7 +102,7 @@ describe("buildTargets", () => {
       domains: ["fury"] as Domain[],
       quantity: 12,
     });
-    const targets = buildTargets(rune, [legendInDeck(), fullRunes], CONSTRUCTED);
+    const targets = buildTargets(rune, [legendInDeck(), fullRunes], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets).toHaveLength(1);
     expect(targets[0]).toMatchObject({ zone: WellKnown.deckZone.RUNES, disabled: true });
   });
@@ -113,13 +114,13 @@ describe("buildTargets", () => {
       cardTypes: ["battlefield" as CardType],
       zone: "battlefield" as DeckZone,
     });
-    const targets = buildTargets(battlefield, [inDeck], CONSTRUCTED);
+    const targets = buildTargets(battlefield, [inDeck], CONSTRUCTED, TEST_ZONE_LABELS);
     expect(targets[0]).toMatchObject({ zone: WellKnown.deckZone.BATTLEFIELD, disabled: true });
   });
 
   it("treats legends as a plain zone add in freeform with nothing disabled", () => {
     const legend = stubDeckBuilderCard({ cardTypes: ["legend" as CardType] });
-    const targets = buildTargets(legend, [legendInDeck()], FREEFORM);
+    const targets = buildTargets(legend, [legendInDeck()], FREEFORM, TEST_ZONE_LABELS);
     expect(targets).toHaveLength(1);
     expect(targets[0]).toMatchObject({
       zone: WellKnown.deckZone.LEGEND,

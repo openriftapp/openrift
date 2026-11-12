@@ -1,9 +1,13 @@
+import type { CardType } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 
+import { cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import {
   joinPublicFaceImage,
-  pairedCardNameSql,
+  pairedCardName,
+  secondSideCard,
   withFace1,
 } from "../../../repositories/query-helpers.js";
 
@@ -13,7 +17,7 @@ export interface EnrichedPrintingEvent {
   id: string;
   printingId: string;
   createdAt: Date;
-  cardName: string | null;
+  cardName: string;
   cardSlug: string | null;
   printingSlug: string;
   setName: string | null;
@@ -54,7 +58,10 @@ export function printingEventsRepo(db: Kysely<Database>) {
       "pe.id",
       "pe.printingId",
       "pe.createdAt",
-      pairedCardNameSql("c.name").as("cardName"),
+      "c.name",
+      "c.tags",
+      sql<CardType[]>`coalesce(${cardTypes("c.id")}, '{}')`.as("types"),
+      secondSideCard(),
       "c.slug as cardSlug",
       "p.slug as printingSlug",
       "s.name as setName",
@@ -73,6 +80,15 @@ export function printingEventsRepo(db: Kysely<Database>) {
       "pimg.id as frontImageId",
     ]);
 
+  function withPairedName<T extends Parameters<typeof pairedCardName>[0]>(
+    rows: T[],
+  ): (Omit<T, "name" | "tags" | "types" | "secondSide"> & { cardName: string })[] {
+    return rows.map(({ name, tags, types, secondSide, ...row }) => ({
+      ...row,
+      cardName: pairedCardName({ name, tags, types, secondSide }),
+    }));
+  }
+
   return {
     async recordNew(printingId: string): Promise<void> {
       await db
@@ -82,21 +98,25 @@ export function printingEventsRepo(db: Kysely<Database>) {
     },
 
     async listPending(): Promise<EnrichedPrintingEvent[]> {
-      return await selectEnriched()
-        .where("pe.status", "=", "pending")
-        .orderBy("pe.createdAt", "asc")
-        .execute();
+      return withPairedName(
+        await selectEnriched()
+          .where("pe.status", "=", "pending")
+          .orderBy("pe.createdAt", "asc")
+          .execute(),
+      );
     },
 
     async listByStatus(statuses: PrintingEventStatus[]): Promise<AdminPrintingEvent[]> {
       if (statuses.length === 0) {
         return [];
       }
-      return await selectEnriched()
-        .select(["pe.status", "pe.retryCount"])
-        .where("pe.status", "in", statuses)
-        .orderBy("pe.createdAt", "desc")
-        .execute();
+      return withPairedName(
+        await selectEnriched()
+          .select(["pe.status", "pe.retryCount"])
+          .where("pe.status", "in", statuses)
+          .orderBy("pe.createdAt", "desc")
+          .execute(),
+      );
     },
 
     async retryFailed(ids: string[]): Promise<void> {

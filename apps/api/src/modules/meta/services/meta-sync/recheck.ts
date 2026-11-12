@@ -1,3 +1,4 @@
+import { HOUR_MS } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -268,7 +269,7 @@ async function reschedule(
   checkStage: number,
 ): Promise<void> {
   await deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
-    nextCheckAt: new Date(now.getTime() + 60 * 60 * 1000),
+    nextCheckAt: new Date(now.getTime() + HOUR_MS),
     checkStage,
   });
 }

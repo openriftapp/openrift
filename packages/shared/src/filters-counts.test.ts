@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { computeFilterCounts } from "./filters-counts.js";
 import { emptyFilters, makePrinting } from "./filters-test-helpers.js";
+import { filterCards } from "./filters.js";
+import { testSearchContext } from "./test-factories.js";
 
 describe("computeFilterCounts", () => {
   const sample = [
@@ -458,6 +460,38 @@ describe("computeFilterCounts", () => {
     it("returns 0..0 price bounds when no getPrice resolver is supplied", () => {
       const counts = computeFilterCounts(rangeSample, emptyFilters(), { countBy: "printing" });
       expect(counts.ranges.price).toEqual({ min: 0, max: 0 });
+    });
+  });
+
+  describe("with a language filter and a search a hidden printing answers", () => {
+    const card = { name: "Royal Guard" };
+    const printings = [
+      makePrinting({ printingId: "en", cardId: "guard", language: "EN", rarity: "rare", card }),
+      makePrinting({
+        printingId: "fr",
+        cardId: "guard",
+        language: "FR",
+        rarity: "epic",
+        shortCode: "OGN-210",
+        printedName: "Garde royal",
+        card,
+      }),
+      makePrinting({
+        printingId: "scout",
+        cardId: "scout",
+        language: "EN",
+        card: { name: "Scout" },
+      }),
+    ];
+
+    it.each(["garde royal", "OGN-210"])("counts what the grid shows for %s", (search) => {
+      const filters = emptyFilters({ search, languages: ["EN"] });
+      const counts = computeFilterCounts(printings, filters, { countBy: "card" });
+      const shown = filterCards(printings, filters, testSearchContext());
+
+      expect(shown.map((printing) => printing.printingId)).toEqual(["en"]);
+      expect(counts.rarities.get("rare")).toBe(1);
+      expect(counts.rarities.get("epic")).toBeUndefined();
     });
   });
 });

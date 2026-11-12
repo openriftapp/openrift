@@ -243,9 +243,15 @@ function PrintingRecordBody({
     postImage === null
       ? null
       : encodePostSlides([{ printingId, imageFileId: postImage.imageFileId }]);
-  const mapped = details
-    .flatMap((detail) => detail.marketplaceMappings)
-    .filter((mapping) => mapping.targetPrintingId === printingId);
+  // Each card on a double-sided printing reports the printing's mappings, so both details list them.
+  const mapped = [
+    ...new Map(
+      details
+        .flatMap((detail) => detail.marketplaceMappings)
+        .filter((mapping) => mapping.targetPrintingId === printingId)
+        .map((mapping) => [mappingKey(mapping), mapping]),
+    ).values(),
+  ];
 
   const primaryAndNext = async () => {
     if (await runReportedMutation(actions.runPrimary)) {
@@ -550,6 +556,10 @@ function PrintingRecordBody({
   );
 }
 
+function mappingKey(mapping: AdminCardDetailResponse["marketplaceMappings"][number]): string {
+  return `${mapping.marketplace}:${mapping.externalId}:${mapping.finish}:${mapping.variantLanguage ?? ""}`;
+}
+
 function MappedListings({
   printingId,
   mapped,
@@ -570,7 +580,7 @@ function MappedListings({
     <ul className="space-y-1">
       {mapped.map((mapping) => (
         <li
-          key={`${mapping.marketplace}:${mapping.externalId}:${mapping.finish}:${mapping.variantLanguage ?? ""}`}
+          key={mappingKey(mapping)}
           className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
         >
           <span className="w-28 shrink-0 font-medium">{marketplaceLabel(mapping.marketplace)}</span>

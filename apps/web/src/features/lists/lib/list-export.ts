@@ -1,3 +1,4 @@
+import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { mergeListEntriesByTarget } from "@openrift/shared/list-entries";
@@ -19,19 +20,27 @@ const KIND_NOUN: Record<ListKind, { one: string; many: string }> = {
   copy: { one: "printing", many: "printings" },
 };
 
-function variantSuffix(
-  entry: ListEntryDetailResponse,
-  siblings: readonly ListEntryDetailResponse[],
-  finishLabels: Record<string, string>,
-): string {
+function shareHeader(listName: string, kind: ListKind, count: number): string {
+  const noun = count === 1 ? KIND_NOUN[kind].one : KIND_NOUN[kind].many;
+  return `${listName} (${count} ${noun})`;
+}
+
+const SHARE_HEADER_SUFFIX = new RegExp(
+  String.raw` \(\d+ (?:${[...new Set(Object.values(KIND_NOUN).flatMap((noun) => [noun.one, noun.many]))].join("|")})\)$`,
+  "u",
+);
+
+export function isListShareHeader(line: string): boolean {
+  return SHARE_HEADER_SUFFIX.test(line);
+}
+
+/** The import reads these segments back, so every non-default finish and language is named. */
+function variantSuffix(entry: ListEntryDetailResponse, finishLabels: LabelMap): string {
   if (entry.kind === "card") {
     return "";
   }
   const parts = [entry.shortCode];
-  const finishVaries = siblings.some(
-    (other) => other.kind !== "card" && other.finish !== entry.finish,
-  );
-  if (entry.finish !== WellKnown.finish.NORMAL && finishVaries) {
+  if (entry.finish !== WellKnown.finish.NORMAL) {
     parts.push(enumLabel(finishLabels, entry.finish));
   }
   if (entry.language !== WellKnown.language.EN) {
@@ -121,20 +130,17 @@ export function formatListShareText(
   kind: ListKind,
   entries: readonly ListEntryDetailResponse[],
   shareUrl: string | null,
-  finishLabels: Record<string, string>,
+  finishLabels: LabelMap,
   pricing?: SharePricing,
 ): string {
   const display = kind === "copy" ? mergeListEntriesByTarget(entries) : entries;
   const count = display.length;
-  const noun = count === 1 ? KIND_NOUN[kind].one : KIND_NOUN[kind].many;
-  const header = `${listName} (${count} ${noun})`;
-  const byCard = Map.groupBy(display, (entry) => entry.cardName);
+  const header = shareHeader(listName, kind, count);
   const lines = display.map((entry) => {
-    const siblings = byCard.get(entry.cardName) ?? [entry];
     const price = pricing ? tradePriceText(entry, pricing) : "";
     // A plain ASCII "x", not "×": this gets pasted into Cardmarket's wants
     // import, which only parses "2x Name" lines.
-    return `${entry.quantity}x ${straightenApostrophes(entry.cardName)}${variantSuffix(entry, siblings, finishLabels)}${price}`;
+    return `${entry.quantity}x ${straightenApostrophes(entry.cardName)}${variantSuffix(entry, finishLabels)}${price}`;
   });
   const head = shareUrl ? [header, shareUrl, ""] : [header, ""];
   return [...head, ...lines].join("\n");

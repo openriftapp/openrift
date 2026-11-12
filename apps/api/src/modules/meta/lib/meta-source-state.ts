@@ -1,4 +1,5 @@
 import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta";
+import { formatDay } from "@openrift/shared/format-date";
 import { mirrorResultsState } from "@openrift/shared/meta-results";
 
 import {
@@ -44,7 +45,7 @@ export function playloltcgSourceState(row: PlayloltcgListRow, now: Date): AdminM
     missingSince: iso(row.missingSince),
     ...NO_ROUNDS,
     results: mirrorResultsState({
-      started: row.startAt !== null && row.startAt <= now.toISOString().slice(0, 10),
+      started: row.startAt !== null && row.startAt <= formatDay(now),
       hasResults: row.status === PLAYLOLTCG_STATUS_FINISHED,
       nextCheckAt: row.nextCheckAt,
     }),

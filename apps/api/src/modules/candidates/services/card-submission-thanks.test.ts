@@ -48,17 +48,19 @@ function contextRepo(context: EmailContext | null) {
 
 function makeCardRepos(
   submission: Record<string, unknown> | null = CARD_SUBMISSION,
-  card: { id: string; name: string; slug: string } | undefined = {
+  card: { id: string; name: string; slug: string; types: string[]; tags: string[] } | undefined = {
     id: "card-1",
     name: "Jinx, Loose Cannon",
     slug: "jinx-loose-cannon",
+    types: ["unit"],
+    tags: ["Jinx"],
   },
   context: EmailContext | null = SUBMITTER,
 ) {
   const getById = vi.fn().mockResolvedValue(submission);
   const repos = {
     cardSubmissions: { getById },
-    catalogMutations: { getCardById: vi.fn().mockResolvedValue(card) },
+    catalog: { cardNameById: vi.fn().mockResolvedValue(card) },
     userPreferences: contextRepo(context),
   } as unknown as Repos;
   return { repos, getById };
@@ -79,6 +81,25 @@ describe("notifySubmitterOfCardAcceptance", () => {
     expect(args.html).toContain('href="https://openrift.app/cards/jinx-loose-cannon"');
     expect(args.html).toContain('href="https://openrift.app/contribute/submissions"');
     expect(args.listUnsubscribeUrl).toContain("/unsubscribe/one-click");
+  });
+
+  it("names an accepted legend the way players do", async () => {
+    const { repos } = makeCardRepos(
+      { ...CARD_SUBMISSION, cardName: "Emperor of the Sands" },
+      {
+        id: "card-1",
+        name: "Emperor of the Sands",
+        slug: "emperor-of-the-sands",
+        types: ["legend"],
+        tags: ["Azir"],
+      },
+    );
+    const { deps, sendEmail } = makeDeps();
+
+    await notifySubmitterOfCardAcceptance(repos, "sub-1", deps);
+
+    const [args] = sendEmail.mock.calls[0]!;
+    expect(args.subject).toBe("Your submission for Azir, Emperor of the Sands was accepted");
   });
 
   it("links the submissions page when the accept names no live card", async () => {

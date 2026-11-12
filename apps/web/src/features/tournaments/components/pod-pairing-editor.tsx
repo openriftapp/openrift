@@ -415,7 +415,9 @@ function ChipContent({ name, score }: { name: string; score: number }) {
     <>
       <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
       <span className="font-medium">{name}</span>
-      <span className="text-muted-foreground tabular-nums">{score} pts</span>
+      <span className="text-muted-foreground tabular-nums">
+        {m.tournaments_pod_points({ score })}
+      </span>
     </>
   );
 }

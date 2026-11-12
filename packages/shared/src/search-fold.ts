@@ -73,15 +73,40 @@ export function squashCached(text: string): string {
   return squashed;
 }
 
+export function searchTerms(query: string): string[] {
+  return foldForSearch(query).split(" ").filter(Boolean);
+}
+
+/** `foldedFields` must already be folded with `foldForSearch` or `foldCached`. */
+export function foldedFieldsMatchTerms(
+  terms: readonly string[],
+  foldedFields: readonly string[],
+): boolean {
+  return terms.every((term) => foldedFields.some((field) => field.includes(term)));
+}
+
 /** True when every whitespace-separated term of the query appears in at least one field. */
 export function matchesTextQuery(
   query: string,
   fields: readonly (string | null | undefined)[],
 ): boolean {
-  const terms = foldForSearch(query).split(" ").filter(Boolean);
+  const terms = searchTerms(query);
   if (terms.length === 0) {
     return true;
   }
-  const haystack = fields.map((field) => (field ? foldForSearch(field) : ""));
-  return terms.every((term) => haystack.some((field) => field.includes(term)));
+  return foldedFieldsMatchTerms(
+    terms,
+    fields.map((field) => (field ? foldForSearch(field) : "")),
+  );
+}
+
+export function matchesTextPhrase(
+  query: string,
+  fields: readonly (string | null | undefined)[],
+): boolean {
+  const needle = foldForSearch(query);
+  if (needle === "") {
+    return true;
+  }
+  return fields.some((field) => (field ? foldForSearch(field).includes(needle) : false));
 }

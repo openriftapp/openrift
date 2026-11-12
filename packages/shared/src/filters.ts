@@ -11,7 +11,7 @@ import {
   notExcluded,
   overlaps,
 } from "./filters-predicates.js";
-import type { FilterCardsOptions } from "./filters-shared.js";
+import type { CardSearchContext, FilterCardsOptions } from "./filters-shared.js";
 import { EMPTY_STRINGS } from "./filters-shared.js";
 import { searchPredicate } from "./search-query/evaluate.js";
 import { isStandardPrinting } from "./standard.js";
@@ -20,12 +20,74 @@ import type { CardFilters } from "./types/search.js";
 import { EMPTY_CARD_FILTERS } from "./types/search.js";
 import { WellKnown } from "./well-known.js";
 
+const printedNamesCache = new WeakMap<readonly Printing[], Map<string, string[]>>();
+
+export function cardPrintedNamesOf(printings: readonly Printing[]): Map<string, string[]> {
+  let names = printedNamesCache.get(printings);
+  if (!names) {
+    names = new Map();
+    for (const printing of printings) {
+      if (printing.printedName) {
+        const list = names.get(printing.cardId) ?? [];
+        if (!list.includes(printing.printedName)) {
+          list.push(printing.printedName);
+        }
+        names.set(printing.cardId, list);
+      }
+    }
+    printedNamesCache.set(printings, names);
+  }
+  return names;
+}
+
+export function cardHiddenCodesOf(
+  printings: readonly Printing[],
+  isShown: (printing: Printing) => boolean,
+): Map<string, string[]> {
+  const codes = new Map<string, string[]>();
+  for (const printing of printings) {
+    if (!isShown(printing)) {
+      const list = codes.get(printing.cardId) ?? [];
+      list.push(printing.shortCode, printing.publicCode);
+      codes.set(printing.cardId, list);
+    }
+  }
+  return codes;
+}
+
+export function cardMatchContext<T extends FilterCardsOptions>(
+  printings: readonly Printing[],
+  filters: CardFilters,
+  options: T,
+): T {
+  if (filters.search.trim() === "") {
+    return options;
+  }
+  const searchable = options.searchablePrintings ?? printings;
+  const narrowsLanguage = filters.languages.length > 0 || filters.languagesExclude.length > 0;
+  return {
+    ...options,
+    cardPrintedNames: options.cardPrintedNames ?? cardPrintedNamesOf(searchable),
+    cardHiddenCodes: narrowsLanguage
+      ? cardHiddenCodesOf(
+          searchable,
+          (printing) =>
+            includes(filters.languages, printing.language) &&
+            notExcluded(filters.languagesExclude, printing.language),
+        )
+      : undefined,
+  };
+}
+
 export function filterCards(
   printings: Printing[],
   rawFilters: CardFilters,
-  options: FilterCardsOptions = {},
+  options: CardSearchContext,
 ): Printing[] {
-  return printings.filter(cardFiltersPredicate(rawFilters, options));
+  const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
+  return printings.filter(
+    cardFiltersPredicate(filters, cardMatchContext(printings, filters, options)),
+  );
 }
 
 export function cardFiltersPredicate(

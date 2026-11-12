@@ -10,6 +10,20 @@ export const LIST_INTENT_ICON: Record<ListIntent, ComponentType<SVGProps<SVGSVGE
   organize: FolderIcon,
 };
 
+export function listIntentLabel(intent: ListIntent): string {
+  switch (intent) {
+    case "wish": {
+      return m.lists_intent_label_wish();
+    }
+    case "trade": {
+      return m.lists_intent_label_trade();
+    }
+    case "organize": {
+      return m.lists_intent_label_organize();
+    }
+  }
+}
+
 export function listIntentNoun(intent: ListIntent): string {
   switch (intent) {
     case "wish": {

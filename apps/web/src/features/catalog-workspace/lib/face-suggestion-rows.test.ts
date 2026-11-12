@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -335,13 +336,13 @@ describe("buildFaceSuggestions", () => {
 
 describe("formatSuggestionValue", () => {
   const labels = {
-    rarities: { rare: "Rare" },
-    finishes: { foil: "Foil" },
-    artVariants: {},
-    cardSizes: {},
-    languages: { FR: "French" },
-    markers: { promo: "Promo" },
-    channels: { "summoner-skirmish": "Organized play › Summoner Skirmish" },
+    rarities: labelMapOf({ rare: "Rare" }),
+    finishes: labelMapOf({ foil: "Foil" }),
+    artVariants: labelMapOf({}),
+    cardSizes: labelMapOf({}),
+    languages: labelMapOf({ FR: "French" }),
+    markers: labelMapOf({ promo: "Promo" }),
+    channels: labelMapOf({ "summoner-skirmish": "Organized play › Summoner Skirmish" }),
   };
 
   it("reads enum slugs through their label map", () => {

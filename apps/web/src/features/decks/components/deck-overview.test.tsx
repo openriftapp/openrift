@@ -11,13 +11,17 @@ const viewport = vi.hoisted(() => ({ phone: false }));
 
 vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => viewport.phone }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
-vi.mock("@/hooks/use-enums", () => ({
-  useChampionIdentifierTags: () => [],
-  useEnumOrders: () => ({
-    labels: { cardTypes: {}, rarities: {}, domains: {} },
-    orders: { cardTypes: [], rarities: [], domains: [] },
-  }),
-}));
+vi.mock("@/hooks/use-enums", async () => {
+  const { useZoneOrderStub } = await import("@/test/zone-order-stub");
+  return {
+    useZoneOrder: useZoneOrderStub,
+    useChampionIdentifierTags: () => [],
+    useEnumOrders: () => ({
+      labels: { cardTypes: {}, rarities: {}, domains: {} },
+      orders: { cardTypes: [], rarities: [], domains: [] },
+    }),
+  };
+});
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   useQuery: () => ({ data: undefined }),

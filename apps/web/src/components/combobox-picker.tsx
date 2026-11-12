@@ -1,3 +1,4 @@
+import { matchesTextPhrase } from "@openrift/shared/search-fold";
 import { ChevronRightIcon } from "lucide-react";
 import type { FocusEvent, KeyboardEvent, ReactElement, ReactNode, Ref } from "react";
 import { Fragment, useState } from "react";
@@ -114,12 +115,7 @@ const CREATE_ACTION = "\u0000create";
 const TYPED_REASONS = new Set(["input-change", "input-paste", "clear-press"]);
 
 export function matchesPickerQuery(option: ComboboxPickerOption, query: string): boolean {
-  const needle = query.trim().toLowerCase();
-  if (needle === "") {
-    return true;
-  }
-  const haystack = `${option.label} ${option.keywords ?? ""}`.toLowerCase();
-  return haystack.includes(needle);
+  return matchesTextPhrase(query, [`${option.label} ${option.keywords ?? ""}`]);
 }
 
 export function summarizePickerSelection(
