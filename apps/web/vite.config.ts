@@ -4,7 +4,6 @@ import path from "node:path";
 
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { formatFileStamp } from "@openrift/shared/format-date";
-import type { RolldownBabelPreset } from "@rolldown/plugin-babel";
 import babel from "@rolldown/plugin-babel";
 import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -112,26 +111,6 @@ const saveDeviceRunPlugin: Plugin = {
   },
 };
 
-function withReactCompilerLogger(preset: RolldownBabelPreset): RolldownBabelPreset {
-  // `PresetItem` covers every shape babel accepts. This one is a factory.
-  const innerPreset = preset.preset as (...args: unknown[]) => { plugins: unknown[] };
-  preset.preset = (...args: unknown[]) => {
-    const result = innerPreset(...args);
-    result.plugins = result.plugins.map((plugin: unknown) => {
-      if (
-        Array.isArray(plugin) &&
-        typeof plugin[0] === "string" &&
-        plugin[0].includes("react-compiler")
-      ) {
-        return [plugin[0], { ...(plugin[1] as object | undefined), logger: compilerLogger }];
-      }
-      return plugin;
-    });
-    return result;
-  };
-  return preset;
-}
-
 interface CompilerLoggerEvent {
   kind: string;
   reason?: string;
@@ -149,7 +128,8 @@ const ALLOWED_COMPILER_BAILOUTS: Record<string, string> = {
 const compilerBailouts = new Map<string, string>();
 
 const compilerLogger = {
-  logEvent(filename: string | null, event: CompilerLoggerEvent): void {
+  logEvent(filename: string | null, rawEvent: unknown): void {
+    const event = rawEvent as CompilerLoggerEvent;
     if (
       event.kind !== "CompileError" &&
       event.kind !== "CompileSkip" &&
@@ -350,7 +330,7 @@ export default defineConfig(({ mode, command }) => {
       babel({
         // Generated message code has no components, and _index.js alone is 3 MB.
         exclude: [/[/\\]node_modules[/\\]/u, /[/\\]src[/\\]paraglide[/\\]/u],
-        presets: [withReactCompilerLogger(reactCompilerPreset())],
+        presets: [reactCompilerPreset({ logger: compilerLogger })],
       }),
       reactCompilerBailoutGuard,
       bootChunkGuardPlugin(),
