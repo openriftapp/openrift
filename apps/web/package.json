@@ -30,7 +30,7 @@
     "@fontsource/kanit": "5.3.0",
     "@fontsource/roboto": "5.3.0",
     "@hookform/resolvers": "7.0.1",
-    "@inlang/paraglide-js": "2.29.3",
+    "@inlang/paraglide-js": "3.2.1",
     "@inlang/paraglide-js-react": "1.0.3",
     "@openrift/shared": "workspace:*",
     "@opentelemetry/api": "1.10.0",
