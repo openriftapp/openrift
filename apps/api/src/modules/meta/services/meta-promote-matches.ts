@@ -1,8 +1,8 @@
 import type { Repos } from "../../../deps.js";
 import { PLAYRIFTBOUND_PROVIDER, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
+import { samePhases } from "../lib/meta-phases.js";
 import type {
   MetaEventMatchRow,
-  MetaEventPhaseRow,
   NewMetaEventMatch,
   NewMetaEventPhase,
 } from "../repositories/meta-events.js";
@@ -266,27 +266,6 @@ async function overlayStructure(repos: Repos, metaEventId: string): Promise<Even
     });
   }
   return { phases, matches };
-}
-
-function samePhases(
-  stored: readonly MetaEventPhaseRow[],
-  next: readonly NewMetaEventPhase[],
-): boolean {
-  if (stored.length !== next.length) {
-    return false;
-  }
-  return next.every((row, index) => {
-    const was = stored[index];
-    return (
-      was !== undefined &&
-      was.phaseOrder === row.phaseOrder &&
-      was.name === row.name &&
-      was.roundType === row.roundType &&
-      was.roundCount === row.roundCount &&
-      was.rankRequired === row.rankRequired &&
-      was.maxGameWins === row.maxGameWins
-    );
-  });
 }
 
 /** The pairings whose stored row would actually move. */

@@ -1,7 +1,7 @@
 import type { AcceptPrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
 import { describe, expect, it } from "vitest";
 
-import { describeUnknownRefs, unknownPrintingRefs } from "./printing-refs.js";
+import { describeUnknownRefs, knownRarity, unknownPrintingRefs } from "./printing-refs.js";
 
 const known = {
   languages: ["EN", "SC"],
@@ -59,7 +59,26 @@ describe("unknownPrintingRefs", () => {
       { field: "rarity", value: "mythic" },
       { field: "marker", value: "promo" },
     ]);
-    expect(describeUnknownRefs(unknown)).toBe('language "JP", rarity "mythic", marker "promo"');
+    expect(describeUnknownRefs(unknown)).toBe(
+      'not on an admin list: language "JP", rarity "mythic", marker "promo"',
+    );
+  });
+
+  it.each([
+    ["finish", { finish: "glossy" }],
+    ["size", { size: "jumbo" }],
+    ["art variant", { artVariant: "borderless" }],
+    ["language", { language: "XX" }],
+    ["distribution channel", { distributionChannelSlugs: ["mail-in"] }],
+  ])("names an unknown %s", (field, override) => {
+    expect(unknownPrintingRefs(fields(override), known)).toEqual([
+      { field, value: Object.values(override).flat()[0] },
+    ]);
+  });
+
+  it("matches the rarity whatever its case", () => {
+    expect(unknownPrintingRefs(fields({ rarity: "Rare" }), known)).toEqual([]);
+    expect(knownRarity(known, "Rare")).toBe("rare");
   });
 
   it("ignores references the printing does not carry", () => {

@@ -5,7 +5,7 @@ import { sql } from "kysely";
 import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { TopdeckEventsTable } from "../../../db/tables/meta-sources.js";
-import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
+import { keyBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { TOPDECK_PROVIDER } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
@@ -24,6 +24,7 @@ import {
   toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
+import { upsertMirrorRows } from "./mirror-upsert.js";
 
 type TopdeckEventRow = Selectable<TopdeckEventsTable>;
 
@@ -239,62 +240,54 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       rows: readonly TopdeckUpsertInput[],
       seenAt: Date,
     ): Promise<TopdeckUpsertResult> {
-      if (rows.length === 0) {
-        return { inserted: [], changed: [], unchanged: [] };
-      }
-      const inserted: string[] = [];
-      const changed: string[] = [];
-      for (const batch of rowBatches(
+      return await upsertMirrorRows(
         rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null })),
-      )) {
-        const written = await db
-          .insertInto("topdeckEvents")
-          .values(batch)
-          .onConflict((oc) =>
-            oc
-              .columns(["tid"])
-              .doUpdateSet((eb) => ({
-                name: eb.ref("excluded.name"),
-                format: eb.ref("excluded.format"),
-                startAt: eb.ref("excluded.startAt"),
-                swissRounds: eb.ref("excluded.swissRounds"),
-                topCut: eb.ref("excluded.topCut"),
-                playerCount: eb.ref("excluded.playerCount"),
-                isTeamEvent: eb.ref("excluded.isTeamEvent"),
-                teamSize: eb.ref("excluded.teamSize"),
-                city: eb.ref("excluded.city"),
-                state: eb.ref("excluded.state"),
-                country: eb.ref("excluded.country"),
-                address: eb.ref("excluded.address"),
-                longitude: eb.ref("excluded.longitude"),
-                latitude: eb.ref("excluded.latitude"),
-                contentHash: eb.ref("excluded.contentHash"),
-                lastSeenAt: eb.ref("excluded.lastSeenAt"),
-                missingSince: eb.ref("excluded.missingSince"),
-              }))
-              .where(
-                sql<SqlBool>`topdeck_events.content_hash is distinct from excluded.content_hash
-                or topdeck_events.missing_since is not null`,
-              ),
-          )
-          .returning(["tid", sql<boolean>`(xmax = 0)`.as("inserted")])
-          .execute();
-
-        for (const row of written) {
-          (row.inserted ? inserted : changed).push(row.tid);
-        }
-      }
-
-      const touched = new Set([...inserted, ...changed]);
-      const unchanged = rows.map((row) => row.tid).filter((tid) => !touched.has(tid));
-      for (const batch of keyBatches(unchanged)) {
-        await db
-          .updateTable("topdeckEvents")
-          .set({ lastSeenAt: seenAt })
-          .where("tid", "in", batch)
-          .execute();
-      }
-      return { inserted, changed, unchanged };
+        {
+          keyOf: (row) => row.tid,
+          write: async (batch) => {
+            const written = await db
+              .insertInto("topdeckEvents")
+              .values(batch)
+              .onConflict((oc) =>
+                oc
+                  .columns(["tid"])
+                  .doUpdateSet((eb) => ({
+                    name: eb.ref("excluded.name"),
+                    format: eb.ref("excluded.format"),
+                    startAt: eb.ref("excluded.startAt"),
+                    swissRounds: eb.ref("excluded.swissRounds"),
+                    topCut: eb.ref("excluded.topCut"),
+                    playerCount: eb.ref("excluded.playerCount"),
+                    isTeamEvent: eb.ref("excluded.isTeamEvent"),
+                    teamSize: eb.ref("excluded.teamSize"),
+                    city: eb.ref("excluded.city"),
+                    state: eb.ref("excluded.state"),
+                    country: eb.ref("excluded.country"),
+                    address: eb.ref("excluded.address"),
+                    longitude: eb.ref("excluded.longitude"),
+                    latitude: eb.ref("excluded.latitude"),
+                    contentHash: eb.ref("excluded.contentHash"),
+                    lastSeenAt: eb.ref("excluded.lastSeenAt"),
+                    missingSince: eb.ref("excluded.missingSince"),
+                  }))
+                  .where(
+                    sql<SqlBool>`topdeck_events.content_hash is distinct from excluded.content_hash
+                    or topdeck_events.missing_since is not null`,
+                  ),
+              )
+              .returning(["tid", sql<boolean>`(xmax = 0)`.as("inserted")])
+              .execute();
+            return written.map((row) => ({ key: row.tid, inserted: row.inserted }));
+          },
+          touch: async (keys) => {
+            await db
+              .updateTable("topdeckEvents")
+              .set({ lastSeenAt: seenAt })
+              .where("tid", "in", keys)
+              .execute();
+          },
+        },
+      );
     },
 
     /** A sentinel no real hash equals, so the next pass reads the row as changed and rewrites its results. */
@@ -319,9 +312,9 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         .updateTable("topdeckEvents")
         .set({ missingSince: params.at })
         .where("format", "=", params.format)
-        .where("startAt", ">=", params.from)
-        .where("startAt", "<=", params.to)
-        .where("lastSeenAt", "<", params.seenBefore)
+        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) >= ${params.from}`)
+        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) <= ${params.to}`)
+        .where(sql<SqlBool>`date_trunc('milliseconds', last_seen_at) < ${params.seenBefore}`)
         .where("missingSince", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows ?? 0n);

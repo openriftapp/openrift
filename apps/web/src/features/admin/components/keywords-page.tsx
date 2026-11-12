@@ -30,6 +30,7 @@ import {
   useUpdateKeywordStyle,
   useUpsertTranslation,
 } from "@/features/admin/hooks/use-keywords";
+import { validateKeywordColor } from "@/features/admin/lib/keyword-color";
 
 // Fallback badge color, matching getKeywordStyle's FALLBACK_COLOR. Used when a
 // keyword with no style row is flagged as a cost keyword (which needs a row).
@@ -415,7 +416,7 @@ export function KeywordsPage() {
           onSave: (draft) =>
             createStyle.mutateAsync({
               name: draft.keyword.trim(),
-              color: draft.color,
+              color: draft.color.trim(),
               darkText: draft.darkText,
               costKeyword: draft.costKeyword,
               cardModifier: draft.cardModifier,
@@ -428,14 +429,14 @@ export function KeywordsPage() {
             if (data.styles.some((s) => s.name === name)) {
               return "Style already exists for this keyword";
             }
-            return null;
+            return validateKeywordColor(draft.color);
           },
           label: "Add Style",
         }}
         edit={{
           toDraft: (row) => ({
             keyword: row.keyword,
-            color: row.color ?? "#707070",
+            color: row.color ?? "",
             darkText: row.darkText,
             costKeyword: row.costKeyword,
             cardModifier: row.cardModifier,
@@ -443,11 +444,12 @@ export function KeywordsPage() {
           onSave: (draft) =>
             updateStyle.mutateAsync({
               name: draft.keyword,
-              color: draft.color,
+              color: draft.color.trim(),
               darkText: draft.darkText,
               costKeyword: draft.costKeyword,
               cardModifier: draft.cardModifier,
             }),
+          validate: (draft) => validateKeywordColor(draft.color),
         }}
         delete={{
           onDelete: (row) => deleteStyle.mutateAsync(row.keyword),

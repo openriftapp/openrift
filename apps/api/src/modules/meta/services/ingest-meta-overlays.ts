@@ -17,12 +17,12 @@ import {
   loadCardNameIndex,
   resolveCardIdByName,
 } from "../../candidates/services/candidate-links.js";
+import { samePhases } from "../lib/meta-phases.js";
 import type {
   MetaEventOverlayRow,
   MetaOverlayMatchInput,
   MetaOverlayMatchRow,
   MetaOverlayPhaseInput,
-  MetaOverlayPhaseRow,
   MetaOverlayStructure,
   MetaPlayerOverlayRow,
 } from "../repositories/meta-overlays.js";
@@ -129,27 +129,6 @@ function toMatchRows(event: MetaIngestEvent, errors: string[]): MetaOverlayMatch
     });
   }
   return rows;
-}
-
-function samePhases(
-  stored: readonly MetaOverlayPhaseRow[],
-  next: readonly MetaOverlayPhaseInput[],
-): boolean {
-  if (stored.length !== next.length) {
-    return false;
-  }
-  return next.every((row, index) => {
-    const was = stored[index];
-    return (
-      was !== undefined &&
-      was.phaseOrder === row.phaseOrder &&
-      was.name === row.name &&
-      was.roundType === row.roundType &&
-      was.roundCount === row.roundCount &&
-      was.rankRequired === row.rankRequired &&
-      was.maxGameWins === row.maxGameWins
-    );
-  });
 }
 
 function sameMatches(

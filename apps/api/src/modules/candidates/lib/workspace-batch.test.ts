@@ -1,63 +1,17 @@
-import type { Selectable } from "kysely";
 import { describe, expect, it } from "vitest";
 
-import type { CandidatePrintingsTable } from "../../../db/tables/candidates.js";
+import { candidatePrintingRow as cp } from "../../../test/candidate-printing-row.js";
 import type {
   PrintingProbeRow,
   TrustedDraftRow,
   TrustedNewPrintingRow,
 } from "../repositories/workspace-batch.js";
 import {
-  acceptPrintingFieldsFrom,
   eligibleTrustedCards,
   findDuplicatePrinting,
-  missingPrintingFields,
   nameHead,
   trustedPrintingGroups,
 } from "./workspace-batch.js";
-
-function cp(
-  id: string,
-  over: Partial<Selectable<CandidatePrintingsTable>> = {},
-): Selectable<CandidatePrintingsTable> {
-  return {
-    id,
-    candidateCardId: "cc-1",
-    printingId: null,
-    shortCode: "OGN-027",
-    setId: "ogn",
-    setName: "Origins",
-    rarity: "rare",
-    artVariant: null,
-    isSigned: null,
-    isOvernumbered: null,
-    markerSlugs: [],
-    distributionChannelSlugs: [],
-    finish: "normal",
-    size: null,
-    artist: "Kudos Productions",
-    publicCode: "OGN-027/298",
-    printedRulesText: null,
-    printedEffectText: null,
-    imageUrl: null,
-    imageFingerprint: null,
-    imageFingerprintUrl: null,
-    flavorText: null,
-    externalId: id,
-    extraData: null,
-    language: "EN",
-    printedName: null,
-    printedYear: null,
-    releasedAt: null,
-    releasePrecision: null,
-    announcedAt: null,
-    checkedAt: null,
-    uploadedAt: new Date("2026-10-20T00:00:00.000Z"),
-    createdAt: new Date("2026-10-20T00:00:00.000Z"),
-    updatedAt: new Date("2026-10-20T00:00:00.000Z"),
-    ...over,
-  };
-}
 
 function draft(id: string, over: Partial<TrustedDraftRow> = {}): TrustedDraftRow {
   return {
@@ -79,16 +33,6 @@ describe("nameHead", () => {
   });
 });
 
-describe("missingPrintingFields", () => {
-  it("lists the empty required fields", () => {
-    expect(missingPrintingFields(cp("a"))).toEqual([]);
-    expect(missingPrintingFields(cp("a", { setId: null, artist: "" }))).toEqual([
-      "setId",
-      "artist",
-    ]);
-  });
-});
-
 describe("eligibleTrustedCards", () => {
   it("returns a complete draft without a similar live card", () => {
     expect(eligibleTrustedCards([draft("cc-1")], [cp("p1")], LIVE)).toEqual([
@@ -107,6 +51,9 @@ describe("eligibleTrustedCards", () => {
 
   it("drops a draft without a complete printing", () => {
     expect(eligibleTrustedCards([draft("cc-1")], [cp("p1", { rarity: null })], LIVE)).toEqual([]);
+    expect(eligibleTrustedCards([draft("cc-1")], [cp("p1", { publicCode: null })], LIVE)).toEqual(
+      [],
+    );
     expect(eligibleTrustedCards([draft("cc-1")], [], LIVE)).toEqual([]);
   });
 
@@ -164,10 +111,20 @@ describe("trustedPrintingGroups", () => {
       newRow("p4"),
     ];
     const groups = trustedPrintingGroups(rows, printings);
-    expect(groups.map((group) => [group.label, group.candidatePrintingIds])).toEqual([
+    expect(
+      groups.map((group) => [group.label, group.candidates.map((candidate) => candidate.id)]),
+    ).toEqual([
       ["OGN-027 normal EN", ["p1", "p2"]],
       ["OGN-027 foil EN", ["p3"]],
       ["OGN-027 normal FR", ["p4"]],
+    ]);
+  });
+
+  it("groups a candidate without a finish with the one its rarity implies", () => {
+    const printings = [cp("p1", { finish: "foil" }), cp("p2", { finish: null, rarity: "epic" })];
+    const groups = trustedPrintingGroups([newRow("p1"), newRow("p2")], printings);
+    expect(groups.map((group) => group.candidates.map((candidate) => candidate.id))).toEqual([
+      ["p1", "p2"],
     ]);
   });
 
@@ -208,18 +165,5 @@ describe("findDuplicatePrinting", () => {
         probe({ shortCode: "OGN-028", distributionChannelSlugs: ["store-event"] }),
       ]),
     ).toBeUndefined();
-  });
-});
-
-describe("acceptPrintingFieldsFrom", () => {
-  it("fills defaults for missing optional fields", () => {
-    expect(acceptPrintingFieldsFrom(cp("p1", { language: null }))).toMatchObject({
-      shortCode: "OGN-027",
-      setId: "ogn",
-      artVariant: "normal",
-      isSigned: false,
-      size: "standard",
-      language: "EN",
-    });
   });
 });

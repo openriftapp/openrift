@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
-import type { Io } from "../../../io.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import {
   assertDeskImageFileScope,
   assertDeskPrintingScope,
+  assertImageEditScope,
   assertImageUploader,
   canUseDesk,
   createDeskPrinting,
@@ -15,15 +15,17 @@ import {
   updateDeskPrinting,
 } from "./printing-desk.js";
 
-const acceptPrinting = vi.hoisted(() =>
-  vi.fn((..._args: unknown[]) => Promise.resolve("new-printing")),
+const NEW_PRINTING = { printingId: "new-printing", imageIds: [] };
+const createNewPrinting = vi.hoisted(() =>
+  vi.fn((..._args: unknown[]) => Promise.resolve({ printingId: "new-printing", imageIds: [] })),
 );
 const updatePrintingMarkers = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 const updatePrintingDistributionChannels = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 const recordAdminEvent = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 
-vi.mock("./printing-admin.js", () => ({
-  acceptPrinting,
+vi.mock("./printing-admin.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  createNewPrinting,
   updatePrintingMarkers,
   updatePrintingDistributionChannels,
 }));
@@ -113,7 +115,6 @@ function makeRepos() {
 type FakeRepos = ReturnType<typeof makeRepos>;
 
 const transact = ((fn) => fn({} as never)) as Transact;
-const io = {} as Io;
 
 const CREATE_INPUT = {
   cardId: CARD.id,
@@ -132,7 +133,7 @@ const CREATE_INPUT = {
 } as const;
 
 function create(repos: FakeRepos, over: Record<string, unknown> = {}) {
-  return createDeskPrinting(transact, repos as unknown as Repos, io, "user-1", {
+  return createDeskPrinting(transact, repos as unknown as Repos, "user-1", {
     ...CREATE_INPUT,
     ...over,
   } as never);
@@ -142,7 +143,7 @@ let repos: FakeRepos;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  acceptPrinting.mockResolvedValue("new-printing");
+  createNewPrinting.mockResolvedValue(NEW_PRINTING);
   repos = makeRepos();
 });
 
@@ -150,7 +151,7 @@ describe("createDeskPrinting", () => {
   it("derives a set-scoped TBA short code and leaves the public code unnumbered", async () => {
     await create(repos, { codeTba: true, shortCode: undefined });
 
-    expect(acceptPrinting.mock.calls[0]?.[3]).toMatchObject({
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
       shortCode: "OGN-TBA-poro-snack",
       publicCode: "OGN-TBA",
     });
@@ -163,7 +164,7 @@ describe("createDeskPrinting", () => {
   it("leaves a real code alone and writes no public-code override", async () => {
     await create(repos);
 
-    expect(acceptPrinting.mock.calls[0]?.[3]).toMatchObject({
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
       shortCode: "OGN-P01",
       publicCode: "OGN-P01",
     });
@@ -177,7 +178,7 @@ describe("createDeskPrinting", () => {
   it("copies presentation fields off the base printing", async () => {
     await create(repos);
 
-    expect(acceptPrinting.mock.calls[0]?.[3]).toMatchObject({
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({
       artist: "Base Artist",
       rarity: "rare",
       printedRulesText: "Draw a card.",
@@ -190,7 +191,7 @@ describe("createDeskPrinting", () => {
 
   it("prefers an explicitly given artist over the base printing's", async () => {
     await create(repos, { artist: "Guest Artist" });
-    expect(acceptPrinting.mock.calls[0]?.[3]).toMatchObject({ artist: "Guest Artist" });
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({ artist: "Guest Artist" });
   });
 
   it("rejects a card with no base printing when no artist is given", async () => {
@@ -246,8 +247,8 @@ describe("createDeskPrinting", () => {
     );
   });
 
-  it("records the create event and refreshes the catalog views", async () => {
-    await create(repos);
+  it("records the create event and hands the new printing back for the finisher", async () => {
+    const created = await create(repos);
 
     expect(recordAdminEvent).toHaveBeenCalledWith(
       repos,
@@ -260,18 +261,7 @@ describe("createDeskPrinting", () => {
         cardSlug: "poro-snack",
       }),
     );
-    expect(repos.catalog.refreshCatalogViews).toHaveBeenCalled();
-  });
-
-  it("maps an identity unique violation to a 409", async () => {
-    acceptPrinting.mockRejectedValue(
-      Object.assign(new Error("duplicate"), {
-        code: "23505",
-        constraint_name: "uq_printings_identity",
-      }),
-    );
-
-    await expect(create(repos)).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+    expect(created).toEqual(NEW_PRINTING);
   });
 });
 
@@ -628,6 +618,57 @@ describe("assertDeskPrintingScope", () => {
     await expect(
       assertDeskPrintingScope(repos as unknown as Repos, GRANT_HOLDER, "user-1", "p-1"),
     ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
+  });
+});
+
+describe("assertImageEditScope", () => {
+  const CARD_REVIEW = { isAdmin: false, sections: ["card-review"] } as unknown as AdminAccess;
+  const image = { imageId: "img-1", printingId: "p-1" };
+
+  function imageRepos() {
+    return {
+      ...repos,
+      printingImages: { faceIdOfImage: vi.fn(() => Promise.resolve("face-1")) },
+    } as unknown as Repos;
+  }
+
+  beforeEach(() => {
+    repos.printingDesk.printingIdsShowingFace.mockResolvedValue(["p-1"]);
+  });
+
+  it("lets a full admin through without reading anything", async () => {
+    await expect(
+      assertImageEditScope(imageRepos(), FULL_ADMIN, "user-1", image),
+    ).resolves.toBeUndefined();
+    expect(repos.printingDesk.isDeskPrinting).not.toHaveBeenCalled();
+  });
+
+  it("lets a card-review holder edit an image on any printing", async () => {
+    await expect(
+      assertImageEditScope(imageRepos(), CARD_REVIEW, "user-1", image),
+    ).resolves.toBeUndefined();
+    expect(repos.printingDesk.isDeskPrinting).not.toHaveBeenCalled();
+  });
+
+  it("lets a desk-only holder edit an image on a printing they added", async () => {
+    repos.adminEvents.wasPrintingCreatedBy.mockResolvedValue(true);
+    await expect(
+      assertImageEditScope(imageRepos(), GRANT_HOLDER, "user-1", image),
+    ).resolves.toBeUndefined();
+  });
+
+  it("403s a desk-only holder on a printing outside the desk", async () => {
+    await expect(
+      assertImageEditScope(imageRepos(), GRANT_HOLDER, "user-1", image),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("403s a desk-only holder when another printing outside the desk shows the face", async () => {
+    repos.adminEvents.wasPrintingCreatedBy.mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+    repos.printingDesk.printingIdsShowingFace.mockResolvedValue(["p-1", "p-foreign"]);
+    await expect(
+      assertImageEditScope(imageRepos(), GRANT_HOLDER, "user-1", image),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });
 

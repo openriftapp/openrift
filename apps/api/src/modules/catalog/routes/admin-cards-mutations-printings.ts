@@ -11,10 +11,11 @@ import {
   assertSomeProviderInScope,
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
+import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
-import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { acceptPrinting, deletePrinting } from "../services/printing-admin.js";
+import type { NewPrinting } from "../services/printing-admin.js";
+import { createNewPrinting, deletePrinting } from "../services/printing-admin.js";
 import {
   changesCatalogViews,
   normalizePrintingFieldValue,
@@ -112,8 +113,6 @@ export const adminCardMutationsPrintingsRouter = {
   }),
 
   acceptPrinting: os.acceptPrinting.handler(async ({ input, context }) => {
-    const { catalogMutations, printingImages, markers, distributionChannels, printingEvents } =
-      context.repos;
     const { cardId, printingFields, candidatePrintingIds, secondSideFaceId } = input;
 
     const scope = await reviewableProviderScope(
@@ -133,19 +132,16 @@ export const adminCardMutationsPrintingsRouter = {
       );
     }
 
-    // Without requireNew an identity collision updates the matching printing and
-    // links the candidate to it, instead of failing.
-    const printingId = await acceptPrinting(
+    const created = await createNewPrinting(
       context.transact,
-      { catalogMutations, printingImages, markers, distributionChannels, printingEvents },
       cardId,
       printingFields,
       candidatePrintingIds,
-      context.io,
-      { requireNew: true, secondFaceId: secondSideFaceId ?? null },
+      { secondFaceId: secondSideFaceId ?? null },
     );
+    const { printingId } = created;
 
-    const card = await catalogMutations.getCardById(cardId);
+    const card = await context.repos.catalogMutations.getCardById(cardId);
     await recordAdminEvent(context.repos, context.userId, {
       action: "printing.accept",
       entityType: "printing",
@@ -155,44 +151,27 @@ export const adminCardMutationsPrintingsRouter = {
       newValues: { printingFields, candidatePrintingIds, secondSideFaceId },
     });
 
-    // A brand-new printing has no rank row yet, and may complete an existing
-    // one's foil-twin pair — both need the full refresh, not just the rank one.
-    await context.repos.catalog.refreshCatalogViews();
-
-    // Other providers' candidates for this printing were uploaded before it
-    // existed, so their ingest-time key resolution missed it. Re-resolve now so
-    // they leave the "new printing" list on the very next refetch.
-    await relinkCandidatePrintings(context.repos);
+    await finishPrintingAccepts(context.repos, context.io, [created]);
 
     return { printingId };
   }),
 
   acceptFavoritePrintings: os.acceptFavoritePrintings.handler(async ({ input, context }) => {
-    const {
-      candidateCards,
-      catalogMutations,
-      printingImages,
-      markers,
-      distributionChannels,
-      providerSettings,
-      printingEvents,
-    } = context.repos;
-    const favoriteProviders = await providerSettings.favoriteProviders();
+    const favoriteProviders = await context.repos.providerSettings.favoriteProviders();
 
-    const result = await acceptFavoritePrintingsForCard(
-      context.transact,
-      context.io,
-      {
-        candidateCards,
-        catalogMutations,
-        printingImages,
-        markers,
-        distributionChannels,
-        printingEvents,
-      },
-      input.cardSlug,
-      favoriteProviders,
-    );
+    const created: NewPrinting[] = [];
+    let result: Awaited<ReturnType<typeof acceptFavoritePrintingsForCard>>;
+    try {
+      result = await acceptFavoritePrintingsForCard(
+        context.transact,
+        context.repos,
+        input.cardSlug,
+        favoriteProviders,
+        created,
+      );
+    } finally {
+      await finishPrintingAccepts(context.repos, context.io, created);
+    }
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "printing.accept-favorites",
@@ -206,32 +185,16 @@ export const adminCardMutationsPrintingsRouter = {
       },
     });
 
-    if (result.printingsCreated > 0) {
-      // Same reason as the single acceptPrinting handler: candidates from other
-      // providers were keyed before these printings existed.
-      await relinkCandidatePrintings(context.repos);
-    }
-
     return { printingsCreated: result.printingsCreated, skipped: result.skipped };
   }),
 
   createPrinting: os.createPrinting.handler(async ({ input, context }) => {
-    const { catalogMutations, printingImages, markers, distributionChannels, printingEvents } =
-      context.repos;
     const { cardId, ...printingFields } = input;
 
-    // An identity collision here is rejected; the shared upsert never overwrites it.
-    const printingId = await acceptPrinting(
-      context.transact,
-      { catalogMutations, printingImages, markers, distributionChannels, printingEvents },
-      cardId,
-      printingFields,
-      [],
-      context.io,
-      { requireNew: true },
-    );
+    const created = await createNewPrinting(context.transact, cardId, printingFields, []);
+    const { printingId } = created;
 
-    const card = await catalogMutations.getCardById(cardId);
+    const card = await context.repos.catalogMutations.getCardById(cardId);
     await recordAdminEvent(context.repos, context.userId, {
       action: "printing.create",
       entityType: "printing",
@@ -241,9 +204,7 @@ export const adminCardMutationsPrintingsRouter = {
       newValues: printingFields,
     });
 
-    // A brand-new printing has no rank row yet, and may complete an existing
-    // one's foil-twin pair — both need the full refresh, not just the rank one.
-    await context.repos.catalog.refreshCatalogViews();
+    await finishPrintingAccepts(context.repos, context.io, [created]);
 
     return { printingId };
   }),

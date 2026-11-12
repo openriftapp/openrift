@@ -1,16 +1,19 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { errorMessage } from "@openrift/shared/strings";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import { AppError } from "../../../../errors.js";
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { UVSGAMES_PROVIDER, UVSGAMES_STATUS_CANCELED } from "../../../../lib/meta-providers.js";
 import type { MetaAutoAcceptRule, MetaAutoAcceptSettings } from "../../lib/meta-auto-accept.js";
 import { autoAcceptRule } from "../../lib/meta-auto-accept.js";
+import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { lifecycleStatus } from "../../lib/meta-recheck-schedule.js";
 import { mapSourceFormat, venueLocalDay } from "../../lib/uvsgames-catalog.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { clock, errorText } from "./deps.js";
+import { clock } from "./deps.js";
 import { sameStoreLiveEvent } from "./same-store-guard.js";
 
 export interface AcceptedCatalogEvent {
@@ -28,8 +31,6 @@ export interface MetaAutoAcceptSummary {
 }
 
 const SWEEP_PAGE = 1000;
-
-const MAX_SWEEP_ERRORS = 50;
 
 function emptySummary(): MetaAutoAcceptSummary {
   return { considered: 0, accepted: 0, held: 0, failed: 0, errors: [] };
@@ -53,7 +54,7 @@ export async function acceptCatalogEvent(
   }
 
   const promoted = await promoteNewEvent(deps.repos, UVSGAMES_PROVIDER, row.externalId, {
-    name: row.name.slice(0, 120),
+    name: row.name.slice(0, META_NAME_MAX),
     eventDate: venueLocalDay(row.startAt, row.timezone),
     format,
     sourceUrl: uvsgamesEventUrl(row.externalId),
@@ -125,7 +126,7 @@ async function sweep(
       const twin = await sameStoreLiveEvent(deps.repos, UVSGAMES_PROVIDER, {
         name: row.name,
         eventDate: venueLocalDay(row.startAt, row.timezone),
-        organizer: row.storeDisplayName,
+        organizer: row.storeName,
       });
       if (twin !== undefined) {
         summary.held++;
@@ -137,9 +138,7 @@ async function sweep(
         continue;
       }
       summary.failed++;
-      if (summary.errors.length < MAX_SWEEP_ERRORS) {
-        summary.errors.push(outcome);
-      }
+      recordCapped(summary.errors, [outcome]);
     }
   }
   return summary;
@@ -186,7 +185,7 @@ async function tryAutoAccept(
     return null;
   } catch (error) {
     // One row failing to accept must not stop the sweep over the rest of the page.
-    return errorText(error, `Auto-accept "${row.name}" (${row.externalId})`);
+    return `Auto-accept "${row.name}" (${row.externalId}): ${errorMessage(error)}`;
   }
 }
 

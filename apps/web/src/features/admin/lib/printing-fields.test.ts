@@ -41,6 +41,12 @@ describe("buildPrintingFieldsFromCandidate", () => {
     const fields = buildPrintingFieldsFromCandidate(candidate, { rarity: "epic" });
     expect(fields.rarity).toBe("epic");
   });
+
+  it("infers a missing finish from the rarity, an overridden one included", () => {
+    const candidate = makeCandidatePrinting({ finish: null, rarity: "common" });
+    expect(buildPrintingFieldsFromCandidate(candidate).finish).toBe("normal");
+    expect(buildPrintingFieldsFromCandidate(candidate, { rarity: "rare" }).finish).toBe("foil");
+  });
 });
 
 describe("missingPrintingFields", () => {
@@ -55,6 +61,16 @@ describe("missingPrintingFields", () => {
     expect(missingPrintingFields(buildPrintingFieldsFromCandidate(candidate))).toEqual([
       "artist",
       "publicCode",
+    ]);
+  });
+
+  it("misses the finish only when the rarity cannot supply it", () => {
+    const inferred = makeCandidatePrinting({ finish: null, rarity: "epic" });
+    expect(missingPrintingFields(buildPrintingFieldsFromCandidate(inferred))).toEqual([]);
+    const blank = makeCandidatePrinting({ finish: null, rarity: null });
+    expect(missingPrintingFields(buildPrintingFieldsFromCandidate(blank))).toEqual([
+      "rarity",
+      "finish",
     ]);
   });
 

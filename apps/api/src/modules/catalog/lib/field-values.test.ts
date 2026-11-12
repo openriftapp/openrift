@@ -14,7 +14,7 @@ describe("validateFieldValue", () => {
     expect(validateFieldValue(z.string().trim(), "artist", "  Kudos  ")).toBe("Kudos");
   });
 
-  it("throws a VALIDATION_ERROR naming the field and the first issue", () => {
+  it("throws a BAD_REQUEST naming the field and the first issue", () => {
     let thrown: unknown;
     try {
       validateFieldValue(z.number(), "might", "three");
@@ -22,19 +22,19 @@ describe("validateFieldValue", () => {
       thrown = error;
     }
     expect(thrown).toBeInstanceOf(AppError);
-    expect(thrown).toMatchObject({ status: 400, code: ERROR_CODES.VALIDATION_ERROR });
+    expect(thrown).toMatchObject({ status: 400, code: ERROR_CODES.BAD_REQUEST });
     expect((thrown as AppError).message).toMatch(/^Invalid value for might: /u);
   });
 });
 
 describe("asFieldWriteError", () => {
-  it("maps a foreign-key violation to a VALIDATION_ERROR", () => {
+  it("maps a foreign-key violation to a BAD_REQUEST", () => {
     const fk = Object.assign(new Error("fk"), { code: "23503" });
     const mapped = asFieldWriteError(fk, "rarity", "mythic");
     expect(mapped).toBeInstanceOf(AppError);
     expect(mapped).toMatchObject({
       status: 400,
-      code: ERROR_CODES.VALIDATION_ERROR,
+      code: ERROR_CODES.BAD_REQUEST,
       message: "Invalid value for rarity: mythic",
     });
   });

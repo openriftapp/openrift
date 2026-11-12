@@ -14,6 +14,7 @@ import {
   attentionCount,
   buildAttentionSources,
   buildAttentionSubmissions,
+  existingPrintingFor,
 } from "@/features/admin/lib/attention-items";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 
@@ -54,12 +55,18 @@ export function CardAttentionSection({
         continue;
       }
       const unknown = unknownOptionValues([group.candidate], printingFields, providerLabels);
+      const existing = existingPrintingFor(group.candidate, detail.printings);
       if (unknown.length > 0) {
         blockedNewPrintings.set(
           group.candidate.id,
           unknown
             .map((entry) => `${entry.label} “${entry.value}” is not on the admin list`)
             .join(", "),
+        );
+      } else if (existing) {
+        blockedNewPrintings.set(
+          group.candidate.id,
+          `it is the existing printing ${existing.expectedPrintingId}; link it instead`,
         );
       }
     }

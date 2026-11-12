@@ -1,4 +1,6 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { cardFieldsSchema } from "@openrift/shared/contracts/admin/card-mutations";
+import { REQUIRED_ACCEPT_PRINTING_FIELDS, resolveFinish } from "@openrift/shared/printing-accept";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 import { findStandardArtFallback } from "@openrift/shared/standard";
 import type {
@@ -359,6 +361,10 @@ export function buildPreseededActiveCard(
   return seed;
 }
 
+export function hasRequiredPrintingFields(printing: Record<string, unknown>): boolean {
+  return REQUIRED_ACCEPT_PRINTING_FIELDS.every((field) => hasFieldValue(printing[field]));
+}
+
 export function buildPreseededActivePrinting(
   candidates: readonly CandidatePrintingResponse[],
   fields: readonly FieldDef[],
@@ -396,6 +402,19 @@ export function buildPreseededActivePrinting(
       seed[field.key] = value;
       break;
     }
+  }
+
+  const finishField = fields.find((field) => field.key === "finish");
+  const inferredFinish = candidateHasValue(seed.finish)
+    ? null
+    : resolveFinish(null, typeof seed.rarity === "string" ? seed.rarity : null);
+  if (
+    inferredFinish !== null &&
+    (finishField === undefined ||
+      !hasDropdownOptions(finishField) ||
+      isValidFieldOption(finishField, inferredFinish))
+  ) {
+    seed.finish = inferredFinish;
   }
 
   // Image: only from a favorited provider, so accepting sets a favorite image as

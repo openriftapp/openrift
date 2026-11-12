@@ -7,7 +7,6 @@ import {
   ColorCell,
   ColorInput,
   DraftTextInput,
-  validateHexColor,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -20,6 +19,7 @@ import {
   useUpdateLanguage,
 } from "@/features/admin/hooks/use-languages";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
+import { validateHexColor } from "@/features/admin/lib/hex-color";
 
 interface LanguageDraft {
   code: string;

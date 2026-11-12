@@ -27,10 +27,12 @@ import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { useLinkCandidatePrintings } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { SettleScope } from "@/features/admin/hooks/use-catalog-review";
 import { settleKeys, useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
+import { showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
 import type { AttentionGroup, AttentionSubmission } from "@/features/admin/lib/attention-items";
 import {
   buildAcceptSubmissionInput,
   printingGroupTickKeys,
+  submissionSkips,
   submissionTickKeys,
 } from "@/features/admin/lib/build-accept-input";
 import {
@@ -265,6 +267,9 @@ export function SubmissionBlock({
         : { ...row, label: `${row.label} (${reason})`, applied: false };
     });
     setSettled({ applied: result.applied, total, rows });
+    showAcceptOutcome(result.applied, submissionSkips(submission, result.skipped), {
+      noun: "change",
+    });
     onSettled?.();
   }
 

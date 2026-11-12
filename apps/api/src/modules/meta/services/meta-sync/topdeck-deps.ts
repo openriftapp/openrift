@@ -1,26 +1,15 @@
-import type { Logger } from "@openrift/shared/logger";
-
-import type { Repos, Transact } from "../../../../deps.js";
-import type { Fetch } from "../../../../io.js";
+import type { SourceSyncDeps, SourceSyncEnv } from "./deps.js";
+import { createPacingGate } from "./paced-http.js";
 import type { TopdeckClient } from "./topdeck-client.js";
 import { createTopdeckClient } from "./topdeck-client.js";
 
-export interface TopdeckSyncDeps {
-  repos: Repos;
-  transact: Transact;
-  client: TopdeckClient;
-  log: Logger;
-  now?: () => Date;
-}
+export type TopdeckSyncDeps = SourceSyncDeps<TopdeckClient>;
 
-export interface TopdeckSyncEnv {
-  repos: Repos;
-  transact: Transact;
-  fetch: Fetch;
-  log: Logger;
-  baseUrl: string;
+export interface TopdeckSyncEnv extends SourceSyncEnv {
   apiKey: string;
 }
+
+const gate = createPacingGate();
 
 export function createTopdeckSyncDeps(env: TopdeckSyncEnv): TopdeckSyncDeps {
   return {
@@ -31,10 +20,7 @@ export function createTopdeckSyncDeps(env: TopdeckSyncEnv): TopdeckSyncDeps {
       fetch: env.fetch,
       baseUrl: env.baseUrl,
       apiKey: env.apiKey,
+      gate,
     }),
   };
-}
-
-export function clock(deps: TopdeckSyncDeps): Date {
-  return deps.now?.() ?? new Date();
 }

@@ -26,13 +26,6 @@ describe("printingImagesRepo", () => {
     expect(await printingImagesRepo(db).getIdAndRehostedUrl("pi-1")).toBeDefined();
   });
 
-  it("getIdAndUrls returns image URLs", async () => {
-    const db = createMockDb([
-      { id: "pi-1", rehostedUrl: null, originalUrl: "https://example.com/orig.jpg" },
-    ]);
-    expect(await printingImagesRepo(db).getIdAndUrls("pi-1")).toBeDefined();
-  });
-
   it("getForActivate returns image for activation", async () => {
     const db = createMockDb([{ id: "pi-1", printingId: "p-1" }]);
     expect(await printingImagesRepo(db).getForActivate("pi-1")).toBeDefined();
@@ -177,11 +170,6 @@ describe("printingImagesRepo", () => {
   it("listAllRehosted returns rehosted images", async () => {
     const db = createMockDb([{ imageId: "pi-1", rehostedUrl: "https://cdn.example.com/img.jpg" }]);
     expect(await printingImagesRepo(db).listAllRehosted()).toHaveLength(1);
-  });
-
-  it("countOthersByImageFileId returns count", async () => {
-    const db = createMockDb([{ count: 2 }]);
-    expect(await printingImagesRepo(db).countOthersByImageFileId("ci-1", "pi-1")).toBe(2);
   });
 
   it("listAllRehostedWithContext returns images with context", async () => {

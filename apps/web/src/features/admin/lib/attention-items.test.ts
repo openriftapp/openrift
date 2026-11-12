@@ -11,7 +11,11 @@ import {
   makeProviderSetting,
 } from "@/test/factories";
 
-import { buildAttentionSources, buildAttentionSubmissions } from "./attention-items";
+import {
+  buildAttentionSources,
+  buildAttentionSubmissions,
+  existingPrintingFor,
+} from "./attention-items";
 import { printingImageDisplayUrl } from "./printing-image-display-url";
 
 beforeEach(() => {
@@ -530,5 +534,37 @@ describe("buildAttentionSources image comparison", () => {
       ?.entries[0]?.groups[0]?.changes[0];
     expect(change?.current).toBe(printingImageDisplayUrl(image));
     expect(change?.current).toMatch(/^\/media\/cards\/lux-full\.webp\?/u);
+  });
+});
+
+describe("existingPrintingFor", () => {
+  it("finds the live printing with the candidate's identity", () => {
+    const live = makeAdminPrinting();
+    expect(existingPrintingFor(makeCandidatePrinting(), [live])).toBe(live);
+  });
+
+  it("matches a candidate without a finish by the one its rarity implies", () => {
+    const live = makeAdminPrinting({ finish: "foil", rarity: "rare" });
+    const candidate = makeCandidatePrinting({ finish: null, rarity: "rare" });
+    expect(existingPrintingFor(candidate, [live])).toBe(live);
+  });
+
+  it("misses a printing that differs in finish, size, language or markers", () => {
+    const candidate = makeCandidatePrinting();
+    expect(
+      existingPrintingFor(candidate, [
+        makeAdminPrinting({ finish: "foil" }),
+        makeAdminPrinting({ size: "oversized" }),
+        makeAdminPrinting({ language: "FR" }),
+        makeAdminPrinting({ markerSlugs: ["promo"] }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  it("misses a double-sided printing, which a single-sided accept never collides with", () => {
+    const paired = makeAdminPrinting({
+      otherFace: { faceId: "f-2", cardName: "Gold", cardSlug: "gold", publicCode: "T05" },
+    });
+    expect(existingPrintingFor(makeCandidatePrinting(), [paired])).toBeUndefined();
   });
 });

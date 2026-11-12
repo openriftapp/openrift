@@ -1,14 +1,18 @@
 import { join } from "node:path";
 
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
+import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Logger } from "@openrift/shared/logger";
+import { errorMessage } from "@openrift/shared/strings";
 import type {
   RegenerateImagesCheckpoint,
   RehostImageResponse,
   UnrehostImagesResponse,
 } from "@openrift/shared/types/api/admin";
 
+import { AppError } from "../../../../errors.js";
 import type { Io } from "../../../../io.js";
+import { assertFound } from "../../../../lib/assertions.js";
 import type { jobRunsRepo } from "../../../system/repositories/job-runs.js";
 import type { printingImagesRepo } from "../../repositories/printing-images.js";
 import { fetchOriginalImage } from "./original-source.js";
@@ -35,6 +39,28 @@ export async function rehostSingleImage(
     return;
   }
   await rehostImageFile(io, repo, image.imageFileId);
+}
+
+async function rehostAndLogFailure(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageId: string,
+): Promise<void> {
+  try {
+    await rehostSingleImage(io, repo, imageId);
+  } catch (error) {
+    console.error(`[rehost] Auto-rehost failed for image ${imageId}:`, errorMessage(error));
+  }
+}
+
+export function rehostImagesInBackground(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageIds: readonly string[],
+): void {
+  for (const imageId of imageIds) {
+    void rehostAndLogFailure(io, repo, imageId);
+  }
 }
 
 /**
@@ -68,7 +94,7 @@ export async function rehostImageFile(
     );
     await repo.updateRehostedUrl(file.id, rehostedUrl);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.error(`[rehost] Auto-rehost failed for image file ${imageFileId}:`, message);
   }
 }
@@ -135,8 +161,7 @@ export async function rehostImages(
       }
     } else {
       progress.failed++;
-      const message =
-        result.reason instanceof Error ? result.reason.message : String(result.reason);
+      const message = errorMessage(result.reason);
       progress.errors.push(`${img.imageId}: ${message}`);
       console.error(`[rehost] Failed for ${img.imageId}:`, message);
     }
@@ -231,8 +256,7 @@ export async function regenerateImagesBatch(
       out.regenerated++;
     } else {
       out.failed++;
-      const message =
-        result.reason instanceof Error ? result.reason.message : String(result.reason);
+      const message = errorMessage(result.reason);
       out.errors.push(`${imageId}: ${message}`);
       console.error(`[regenerate] ${imageId}:`, message);
     }
@@ -351,6 +375,30 @@ export async function runRegenerateImagesJob(
   return checkpoint;
 }
 
+export async function unrehostImageFile(
+  io: Io,
+  repo: PrintingImagesRepo,
+  imageFileId: string,
+): Promise<string> {
+  const image = await repo.getImageFileById(imageFileId);
+  assertFound(image, "Image file not found");
+  if (!image.rehostedUrl) {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image is not rehosted");
+  }
+  // image_files requires original_url or rehosted_url, and an upload has no
+  // original to fall back to.
+  if (!image.originalUrl) {
+    throw new AppError(
+      400,
+      ERROR_CODES.BAD_REQUEST,
+      "Cannot un-rehost: image has no original URL to fall back to",
+    );
+  }
+  await deleteRehostFiles(io, image.rehostedUrl);
+  await repo.updateRehostedUrl(imageFileId, null);
+  return image.rehostedUrl;
+}
+
 /**
  * Un-rehost a batch of images by image_file IDs: clear `rehostedUrl` and
  * delete the associated disk files. The IDs match `findBrokenImages` and the
@@ -372,24 +420,7 @@ export async function unrehostImages(
   };
 
   const results = await Promise.allSettled(
-    imageFileIds.map(async (imageFileId) => {
-      const image = await repo.getImageFileById(imageFileId);
-      if (!image) {
-        throw new Error("image file not found");
-      }
-      if (!image.rehostedUrl) {
-        throw new Error("image is not rehosted");
-      }
-      // image_files has a check constraint requiring at least one of original_url
-      // or rehosted_url. Uploaded images have no originalUrl, so clearing
-      // rehostedUrl would violate it — and there's no source to re-fetch from
-      // anyway, which makes un-rehost meaningless for them.
-      if (!image.originalUrl) {
-        throw new Error("image has no original URL to re-fetch from (uploaded image)");
-      }
-      await deleteRehostFiles(io, image.rehostedUrl);
-      await repo.updateRehostedUrl(imageFileId, null);
-    }),
+    imageFileIds.map((imageFileId) => unrehostImageFile(io, repo, imageFileId)),
   );
 
   for (const [idx, imageFileId] of imageFileIds.entries()) {
@@ -401,8 +432,7 @@ export async function unrehostImages(
       progress.unrehosted++;
     } else {
       progress.failed++;
-      const message =
-        result.reason instanceof Error ? result.reason.message : String(result.reason);
+      const message = errorMessage(result.reason);
       progress.errors.push(`${imageFileId}: ${message}`);
     }
   }

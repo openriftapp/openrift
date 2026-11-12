@@ -319,6 +319,7 @@ export async function ingestCandidates(
           externalId: p.external_id,
           shortCode: p.short_code,
           finish: p.finish,
+          rarity: p.rarity,
           markerSlugs: p.marker_slugs,
           language: p.language,
           size: p.size,

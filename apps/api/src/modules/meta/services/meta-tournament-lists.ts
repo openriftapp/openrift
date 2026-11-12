@@ -4,6 +4,7 @@ import type { MetaEventOverlayField, MetaOverlayStatus } from "@openrift/shared/
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { TOURNAMENT_LIST_PROVIDER, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "../lib/meta-event-naming.js";
 import {
   mapSourceFormat,
   uvsgamesStandingIdentity,
@@ -136,11 +137,11 @@ async function proposalFor(
 
   const mappings = await repos.uvsgamesEvents.formatMappings();
   const format = mapSourceFormat(mappings, event.eventFormat) ?? args.fallbackFormat;
-  const organizer = event.storeName === null ? null : event.storeName.slice(0, 120);
+  const organizer = event.storeName === null ? null : event.storeName.slice(0, META_NAME_MAX);
   const playerCount =
     event.playerCount !== null && event.playerCount > 0 ? event.playerCount : null;
   const values = {
-    name: event.name.slice(0, 120),
+    name: event.name.slice(0, META_NAME_MAX),
     eventDate: venueLocalDay(event.startAt, event.timezone),
     format,
     playerCount,
@@ -274,8 +275,8 @@ export async function sendTournamentLists(
         playerOverlayId,
         metaEventId: target.metaEvent?.id ?? null,
         metaEventPlayerId,
-        eventName: target.event.name.slice(0, 120),
-        playerName: (standing.playerName ?? `#${standing.rank}`).slice(0, 80),
+        eventName: target.event.name.slice(0, META_NAME_MAX),
+        playerName: (standing.playerName ?? `#${standing.rank}`).slice(0, META_PLAYER_NAME_MAX),
         kind: "new_list",
         note: listNote(standing),
       });

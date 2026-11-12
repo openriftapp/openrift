@@ -6,7 +6,6 @@ import {
   LabelCell,
   SlugAddInput,
   SlugCell,
-  validateHexColor,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
@@ -21,6 +20,7 @@ import {
   useUpdateDomain,
 } from "@/features/admin/hooks/use-domains";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
+import { validateHexColor } from "@/features/admin/lib/hex-color";
 
 interface DomainRow {
   slug: string;

@@ -12,14 +12,14 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { PrintingsTable } from "../../../db/tables/catalog.js";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import type { PrintingUpdate } from "../repositories/catalog-mutations.js";
+import type { NewPrinting } from "./printing-admin.js";
 import {
-  acceptPrinting,
+  asPrintingIdentityConflict,
+  createNewPrinting,
   updatePrintingDistributionChannels,
   updatePrintingMarkers,
 } from "./printing-admin.js";
@@ -27,22 +27,6 @@ import {
 interface DeskRelease {
   releasedAt: string | null;
   releasePrecision: PrintingsTable["releasePrecision"];
-}
-
-/** Not a check-then-act: two edits racing to the same identity would both pass a pre-read. */
-function asIdentityConflict(error: unknown): unknown {
-  if (
-    isUniqueViolationOn(error, "uq_printings_identity") ||
-    isUniqueViolationOn(error, "uq_faces_identity") ||
-    isUniqueViolationOn(error, "uq_faces_variant")
-  ) {
-    return new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "Another printing already has that code, finish, size, language and marker combination.",
-    );
-  }
-  return error;
 }
 
 /**
@@ -121,6 +105,19 @@ export async function assertImageScope(
   await assertFaceScope(repos, adminAccess, userId, faceId);
 }
 
+export async function assertImageEditScope(
+  repos: Pick<Repos, "adminEvents" | "printingDesk" | "printingImages">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  image: { imageId: string; printingId: string },
+): Promise<void> {
+  if (adminAccess?.isAdmin || adminAccess?.sections.includes("card-review")) {
+    return;
+  }
+  await assertDeskPrintingScope(repos, adminAccess, userId, image.printingId);
+  await assertImageScope(repos, adminAccess, userId, image.imageId);
+}
+
 export async function assertPrintingSideScope(
   repos: Pick<Repos, "adminEvents" | "printingDesk">,
   adminAccess: AdminAccess | null,
@@ -190,32 +187,19 @@ export async function assertImageUploader(
   );
 }
 
-type CreateRepos = Pick<
-  Repos,
-  | "adminEvents"
-  | "catalog"
-  | "catalogMutations"
-  | "distributionChannels"
-  | "markers"
-  | "printingDesk"
-  | "printingEvents"
-  | "printingImages"
-  | "sets"
->;
+type CreateRepos = Pick<Repos, "adminEvents" | "catalogMutations" | "printingDesk" | "sets">;
 
 export async function createDeskPrinting(
   transact: Transact,
   repos: CreateRepos,
-  io: Io,
   userId: string,
   input: DeskCreateInput,
-): Promise<string> {
+): Promise<NewPrinting> {
   const { cardId, basePrintingId, codeTba, secondSideFaceId, ...fields } = input;
 
   const card = await repos.catalogMutations.getCardById(cardId);
   assertFound(card, "Card not found");
 
-  // The desk speaks set uuids; `acceptPrinting` takes the slug.
   const set = await repos.sets.getRef(fields.setId);
   assertFound(set, "Set not found");
 
@@ -242,38 +226,32 @@ export async function createDeskPrinting(
     releasePrecision: fields.releasePrecision,
   });
 
-  let printingId: string;
-  try {
-    printingId = await acceptPrinting(
-      transact,
-      repos,
-      cardId,
-      {
-        shortCode,
-        publicCode: codeTba ? tbaPublicCode(set.slug) : shortCode,
-        setId: set.slug,
-        setName: set.name,
-        finish: fields.finish,
-        size: fields.size,
-        language: fields.language,
-        artist,
-        markerSlugs: fields.markerSlugs,
-        distributionChannelSlugs: fields.distributionChannelSlugs,
-        rarity: base?.rarity ?? WellKnown.rarity.COMMON,
-        artVariant: WellKnown.artVariant.NORMAL,
-        isSigned: false,
-        printedRulesText: base?.printedRulesText ?? null,
-        printedEffectText: base?.printedEffectText ?? null,
-        flavorText: base?.flavorText ?? null,
-        printedName: base?.printedName ?? null,
-      },
-      [],
-      io,
-      { requireNew: true, secondFaceId: secondSideFaceId ?? null },
-    );
-  } catch (error) {
-    throw asIdentityConflict(error);
-  }
+  const created = await createNewPrinting(
+    transact,
+    cardId,
+    {
+      shortCode,
+      publicCode: codeTba ? tbaPublicCode(set.slug) : shortCode,
+      setId: set.slug,
+      setName: set.name,
+      finish: fields.finish,
+      size: fields.size,
+      language: fields.language,
+      artist,
+      markerSlugs: fields.markerSlugs,
+      distributionChannelSlugs: fields.distributionChannelSlugs,
+      rarity: base?.rarity ?? WellKnown.rarity.COMMON,
+      artVariant: WellKnown.artVariant.NORMAL,
+      isSigned: false,
+      printedRulesText: base?.printedRulesText ?? null,
+      printedEffectText: base?.printedEffectText ?? null,
+      flavorText: base?.flavorText ?? null,
+      printedName: base?.printedName ?? null,
+    },
+    [],
+    { secondFaceId: secondSideFaceId ?? null },
+  );
+  const { printingId } = created;
 
   await repos.printingDesk.updatePrintingDeskFields(printingId, {
     announcedAt: fields.announcedAt,
@@ -281,8 +259,6 @@ export async function createDeskPrinting(
     releasePrecision: release.releasePrecision,
     comment: fields.comment,
   });
-  // `acceptPrinting` runs the public code through `appendSetTotal`, which would
-  // turn a TBA code into "<SET>-TBA/<total>"; the desk's TBA code stays unnumbered.
   if (codeTba) {
     const face = await repos.catalogMutations.findFaceIdByIdentity({
       cardId,
@@ -307,9 +283,7 @@ export async function createDeskPrinting(
     newValues: { ...fields, cardId, codeTba, shortCode, artist },
   });
 
-  await repos.catalog.refreshCatalogViews();
-
-  return printingId;
+  return created;
 }
 
 const SCALAR_FIELDS = [
@@ -390,7 +364,7 @@ export async function setDeskSecondSide(
       await trxRepos.printingDesk.setSecondFace(printingId, faceId);
     });
   } catch (error) {
-    throw asIdentityConflict(error);
+    throw asPrintingIdentityConflict(error);
   }
 
   await recordAdminEvent(repos, userId, {
@@ -440,7 +414,7 @@ export async function removeDeskSide(
       before = locked;
     });
   } catch (error) {
-    throw asIdentityConflict(error);
+    throw asPrintingIdentityConflict(error);
   }
 
   await recordAdminEvent(repos, userId, {
@@ -556,7 +530,7 @@ export async function updateDeskPrinting(
       }
     });
   } catch (error) {
-    throw asIdentityConflict(error);
+    throw asPrintingIdentityConflict(error);
   }
 
   const changed = Object.keys(patch);

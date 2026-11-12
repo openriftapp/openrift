@@ -61,9 +61,48 @@ describe("summarizeRunResult", () => {
     expect(summarizeRunResult({ complete: false, skipped: 0 })).toBe("incomplete · 0 skipped");
   });
 
+  it("does not call a crawl incomplete while it is still running", () => {
+    expect(
+      summarizeRunResult({ complete: false, skipped: 0, requests: 9 }, { running: true }),
+    ).toBe("9 requests · 0 skipped");
+  });
+
   it("leads with a source block, ahead of the coverage warning", () => {
     expect(summarizeRunResult({ blocked: true, complete: false, requests: 14 })).toBe(
       "blocked · incomplete · 14 requests",
+    );
+  });
+
+  it("says until when a blocked source may be asked again, in UTC", () => {
+    expect(
+      summarizeRunResult({
+        blocked: true,
+        blockedUntil: "2026-11-12T16:05:00.000Z",
+        complete: false,
+        requests: 14,
+      }),
+    ).toBe("blocked until 2026-11-12 16:05 · incomplete · 14 requests");
+  });
+
+  it("says until when a paused job runs again", () => {
+    expect(
+      summarizeRunResult({
+        backedOff: true,
+        pausedUntil: "2026-11-12T10:30:00.000Z",
+        processed: 3,
+      }),
+    ).toBe("paused until 2026-11-12 10:30 · 3 processed");
+  });
+
+  it("labels a cancelled recheck, which has no coverage flag", () => {
+    expect(summarizeRunResult({ cancelRequested: true, processed: 2 })).toBe(
+      "cancelled · 2 processed",
+    );
+  });
+
+  it("calls a cancel still winding down stopping", () => {
+    expect(summarizeRunResult({ cancelRequested: true, processed: 2 }, { running: true })).toBe(
+      "stopping · 2 processed",
     );
   });
 

@@ -5,6 +5,7 @@ import { inferZone } from "@openrift/shared/zone-inference";
 import { stableKey } from "../../../lib/hash.js";
 import { coord, count, record, text } from "../../../lib/json-coerce.js";
 import { countryFromAddress } from "./meta-event-classify.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * Reading topdeck.gg's tournament search into the shapes `topdeck_*` stores.
@@ -74,8 +75,6 @@ export function topdeckContentHash(fields: Omit<TopdeckEventProjection, "content
   return stableKey(parts, 32);
 }
 
-const MAX_EVENT_NAME = 120;
-const MAX_PLAYER_NAME = 80;
 const MAX_ADDRESS = 500;
 
 export interface TopdeckStandingProjection {
@@ -134,7 +133,7 @@ function projectStandings(raw: unknown, tid: string): TopdeckStandingProjection[
       continue;
     }
     const sourcePlayerId = text(row.id);
-    const trimmedName = playerName.slice(0, MAX_PLAYER_NAME);
+    const trimmedName = playerName.slice(0, META_PLAYER_NAME_MAX);
     const playerKey = playerKeyOf(sourcePlayerId, trimmedName, seenNames);
     const deckSections = record(row.deckObj);
     rows.push({
@@ -172,7 +171,7 @@ export function projectTournament(raw: unknown): TopdeckTournamentProjection | n
   const address = text(eventData.address);
   const fields = {
     tid,
-    name: name.slice(0, MAX_EVENT_NAME),
+    name: name.slice(0, META_NAME_MAX),
     format,
     startAt,
     swissRounds: count(row.swissNum),
@@ -259,9 +258,4 @@ export function projectTopdeckDeckLines(
     }
   }
   return lines;
-}
-
-/** The legend a deck's lines imply, for the standings row's own column. */
-export function legendFromTopdeckLines(lines: readonly TopdeckDeckLine[]): string | null {
-  return lines.find((line) => line.zone === WellKnown.deckZone.LEGEND)?.cardName ?? null;
 }

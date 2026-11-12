@@ -263,6 +263,7 @@ export function ingestUserSubmission(
         externalId: printing.external_id,
         shortCode: printing.short_code,
         finish: printing.finish,
+        rarity: printing.rarity,
         markerSlugs: printing.marker_slugs,
         language: printing.language,
         size: printing.size,

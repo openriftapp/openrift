@@ -1,9 +1,9 @@
-import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventSourcesTable } from "../../../db/tables/meta.js";
+import { MIRROR_PROVIDERS } from "../../../lib/meta-providers.js";
 
 /**
  * One citation on an event: where a slice of its data came from. Public, and
@@ -11,9 +11,6 @@ import type { MetaEventSourcesTable } from "../../../db/tables/meta.js";
  * instead.
  */
 export type MetaEventSourceRow = Selectable<MetaEventSourcesTable>;
-
-/** The providers promotion reads a mirror for, as opposed to a push provider. */
-const MIRROR_PROVIDERS: ReadonlySet<string> = new Set(META_CATALOG_PROVIDERS);
 
 /**
  * `provider` and `externalId` are null together for a hand-entered citation (a
@@ -46,6 +43,32 @@ export function metaSourcesRepo(db: Kysely<Database>) {
     },
 
     /** The only link between a mirror and live event; accept and promotion resolve through it. */
+    async sourceKeyUntriaged(provider: string, externalId: string): Promise<boolean> {
+      const row = await db
+        .selectNoFrom(({ not, exists, selectFrom, and }) =>
+          and([
+            not(
+              exists(
+                selectFrom("metaEventSources")
+                  .select("id")
+                  .where("provider", "=", provider)
+                  .where("externalId", "=", externalId),
+              ),
+            ),
+            not(
+              exists(
+                selectFrom("ignoredMetaSourceEvents")
+                  .select("externalId")
+                  .where("provider", "=", provider)
+                  .where("externalId", "=", externalId),
+              ),
+            ),
+          ]).as("untriaged"),
+        )
+        .executeTakeFirstOrThrow();
+      return Boolean(row.untriaged);
+    },
+
     sourceByKey(provider: string, externalId: string): Promise<MetaEventSourceRow | undefined> {
       return db
         .selectFrom("metaEventSources")

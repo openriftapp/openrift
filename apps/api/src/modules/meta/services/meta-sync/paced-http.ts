@@ -1,9 +1,20 @@
 import type { Fetch } from "../../../../io.js";
+import {
+  httpFailureMessage,
+  isHtmlChallenge,
+  isPermanentRefusal,
+  isTransientStatus,
+  SourceBlockedError,
+  SourceHttpError,
+  SourceThrottledError,
+} from "./source-http.js";
 import { metaSyncUserAgent } from "./user-agent.js";
 
 const MAX_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 1000;
-const REQUEST_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_THROTTLE_WAIT_MS = 30_000;
+const MAX_THROTTLE_WAIT_MS = 120_000;
 
 export interface PacingGate {
   lastStartedAt: number;
@@ -24,13 +35,19 @@ export interface PacedHttpOptions {
   now?: () => number;
   spacingMs: number;
   jitterMs: number;
-  blockRetryDelayMs: number;
-  isBlock: (status: number, text: string) => boolean;
-  blockedError: (url: string, detail?: string) => Error;
-  refusedError: (message: string) => Error;
+  /** ms */
+  timeoutMs?: number;
+  blockRetryDelayMs?: number;
+  isBlock?: (status: number, text: string) => boolean;
+  blockedError?: (url: string, detail?: string) => Error;
+  refusedError: (status: number, url: string, body: string) => Error;
+  throttleWaitMs?: (text: string) => number | null;
+  throttledError?: (url: string) => Error;
+  waitOnThrottle?: boolean;
 }
 
 interface PacedRequest {
+  expectsJson?: boolean;
   method?: "GET" | "POST";
   headers?: Record<string, string>;
   body?: string;
@@ -39,7 +56,6 @@ interface PacedRequest {
 }
 
 export interface PacedHttp {
-  /** A 2xx body that `parse` (the text itself by default) reads; a body it cannot read is retried. */
   request: <T = string>(
     url: string,
     init?: PacedRequest,
@@ -47,10 +63,6 @@ export interface PacedHttp {
   ) => Promise<T>;
   readonly requests: number;
   readonly blocked: boolean;
-}
-
-function isRetryableStatus(status: number): boolean {
-  return status >= 500 || status === 429;
 }
 
 export async function settled(promise: Promise<unknown>): Promise<void> {
@@ -61,17 +73,37 @@ export async function settled(promise: Promise<unknown>): Promise<void> {
   }
 }
 
-type Outcome<T> = { value: T } | { error: Error; retryable: boolean; block: boolean };
+function retryAfterMs(headers: Headers): number | null {
+  const raw = headers.get("retry-after");
+  if (raw === null) {
+    return null;
+  }
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return seconds * 1000;
+  }
+  const at = Date.parse(raw);
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now());
+}
 
-/**
- * A source that answers a burst with a block keeps refusing for hours, so after
- * one patient retry the client latches `blocked` and fails fast.
- */
+type Outcome<T> =
+  | { value: T }
+  | { throttleMs: number; error: Error }
+  | { error: Error; retryable: boolean; block: boolean };
+
 export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
   const userAgent = options.userAgent ?? metaSyncUserAgent();
   const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
   const random = options.random ?? Math.random;
   const now = options.now ?? Date.now;
+  const isBlock = options.isBlock ?? (() => false);
+  const blockedError =
+    options.blockedError ??
+    ((url: string, detail?: string) =>
+      new SourceBlockedError(
+        `The source blocked ${url}${detail === undefined ? "" : ` (${detail})`}`,
+      ));
+  const throttledError = options.throttledError ?? ((url: string) => new SourceThrottledError(url));
 
   let requests = 0;
   let blocked = false;
@@ -92,6 +124,11 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
     await turn;
   }
 
+  function throttleWait(headers: Headers, text: string): number {
+    const named = options.throttleWaitMs?.(text) ?? retryAfterMs(headers);
+    return Math.min(named ?? DEFAULT_THROTTLE_WAIT_MS, MAX_THROTTLE_WAIT_MS);
+  }
+
   async function attemptOnce<T>(
     url: string,
     init: PacedRequest,
@@ -102,22 +139,27 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
         method: init.method ?? "GET",
         headers: { "user-agent": userAgent, ...init.headers },
         ...(init.body === undefined ? {} : { body: init.body }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
       });
       const text = await response.text();
-      const isBlock = init.isBlock ?? options.isBlock;
-      if (isBlock(response.status, text)) {
+      const challenge = init.expectsJson === true && isHtmlChallenge(response.status, text);
+      if (challenge || (init.isBlock ?? isBlock)(response.status, text)) {
         return {
           error: new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`),
           retryable: false,
           block: true,
         };
       }
+      const message = httpFailureMessage(response.status, url, text);
+      if (response.status === 429) {
+        return { throttleMs: throttleWait(response.headers, text), error: new Error(message) };
+      }
       if (!response.ok && !(init.readStatuses ?? []).includes(response.status)) {
-        const retryable = isRetryableStatus(response.status);
-        const message = `HTTP ${response.status} for ${url}: ${text.slice(0, 200)}`;
+        const retryable = isTransientStatus(response.status);
         return {
-          error: retryable ? new Error(message) : options.refusedError(message),
+          error: retryable
+            ? new SourceHttpError(response.status, message)
+            : options.refusedError(response.status, url, text),
           retryable,
           block: false,
         };
@@ -126,11 +168,21 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
         try {
           return { value: parse(text) };
         } catch {
-          const message = `HTTP ${response.status} for ${url}: ${text.slice(0, 200)}`;
-          return { error: options.refusedError(message), retryable: false, block: false };
+          return {
+            error: options.refusedError(response.status, url, text),
+            retryable: false,
+            block: false,
+          };
         }
       }
-      return { value: parse(text) };
+      try {
+        return { value: parse(text) };
+      } catch (error) {
+        if (isPermanentRefusal(error)) {
+          return { error: error as Error, retryable: false, block: false };
+        }
+        throw error;
+      }
     } catch (error) {
       return {
         error: error instanceof Error ? error : new Error(String(error)),
@@ -146,14 +198,13 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
     parse: (text: string) => T,
   ): Promise<T> {
     if (blocked) {
-      throw options.blockedError(url);
+      throw blockedError(url);
     }
     let lastError: Error | null = null;
+    let failures = 0;
     let blockTries = 0;
-    for (let tries = 0; tries < MAX_ATTEMPTS; tries++) {
-      if (tries > 0) {
-        await sleep(RETRY_BASE_DELAY_MS * 2 ** (tries - 1) + random() * options.jitterMs);
-      }
+    let throttled = false;
+    while (failures < MAX_ATTEMPTS) {
       await pace();
       requests++;
       const outcome = await attemptOnce(url, init, parse);
@@ -161,20 +212,35 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
         return outcome.value;
       }
       lastError = outcome.error;
+      if ("throttleMs" in outcome) {
+        if (throttled || options.waitOnThrottle === false) {
+          throw throttledError(url);
+        }
+        throttled = true;
+        await sleep(outcome.throttleMs);
+        continue;
+      }
       if (outcome.block) {
-        if (blockTries === 0 && tries < MAX_ATTEMPTS - 1) {
+        if (blockTries === 0 && failures < MAX_ATTEMPTS - 1) {
           blockTries++;
-          await sleep(options.blockRetryDelayMs);
+          failures++;
+          await sleep(options.blockRetryDelayMs ?? 0);
           continue;
         }
         blocked = true;
-        throw options.blockedError(url, outcome.error.message);
+        throw blockedError(url, outcome.error.message);
       }
       if (!outcome.retryable) {
         throw lastError;
       }
+      failures++;
+      if (failures < MAX_ATTEMPTS) {
+        await sleep(RETRY_BASE_DELAY_MS * 2 ** (failures - 1) + random() * options.jitterMs);
+      }
     }
-    throw lastError ?? new Error(`Request failed: ${url}`);
+    throw lastError instanceof SourceHttpError
+      ? lastError
+      : new SourceHttpError(0, `${url}: ${lastError?.message ?? "request failed"}`);
   }
 
   return {

@@ -3,6 +3,7 @@ import { META_NOTABLE_EVENT_NAMES } from "@openrift/shared/contracts/admin/meta-
 import { stableKey } from "../../../lib/hash.js";
 import { count, instant, record, sourceId, text } from "../../../lib/json-coerce.js";
 import { normalizeFormatKey } from "../../../lib/meta-providers.js";
+import { META_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * Reads the official source's event listing into `uvsgames_events`. The
@@ -132,7 +133,7 @@ export function projectProbedRow(raw: unknown): UvsgamesProbedProjection | null 
   const fields = {
     externalId,
     // The live column and the candidate both CHECK the name length at 120.
-    name: name.slice(0, 120),
+    name: name.slice(0, META_NAME_MAX),
     startAt,
     endAtEstimate: instant(row.heuristic_end_datetime),
     displayStatus,

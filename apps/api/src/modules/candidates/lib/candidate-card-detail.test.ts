@@ -948,6 +948,62 @@ describe("buildCardDetail", () => {
     expect(result.candidatePrintingGroups[0]!.expectedPrintingId).toBe("OGN-001::foil");
   });
 
+  it("groups a candidate without a finish with one stating the finish its rarity implies", async () => {
+    const printing = {
+      candidateCardId: "cc-1",
+      printingId: null,
+      shortCode: "OGN-001",
+      setId: "s1",
+      setName: "S",
+      rarity: "rare",
+      artVariant: "normal",
+      isSigned: false,
+      markerSlugs: [],
+      artist: "A",
+      publicCode: "001",
+      printedRulesText: null,
+      printedEffectText: null,
+      imageUrl: null,
+      flavorText: null,
+      extraData: null,
+      checkedAt: null,
+    };
+    const repo = createMockRepo({
+      cardForDetailBySlug: vi.fn().mockResolvedValue(matchedCard),
+      cardNameAliases: vi.fn().mockResolvedValue([{ normName: "x" }]),
+      candidateCardsForDetail: vi.fn().mockResolvedValue([
+        {
+          id: "cc-1",
+          provider: "gallery",
+          name: "X",
+          type: null,
+          superTypes: [],
+          domains: [],
+          might: null,
+          energy: null,
+          power: null,
+          mightBonus: null,
+          rulesText: null,
+          effectText: null,
+          tags: [],
+          shortCode: null,
+          externalId: "ext",
+          extraData: null,
+          checkedAt: null,
+        },
+      ]),
+      candidatePrintingsForDetail: vi.fn().mockResolvedValue([
+        { ...printing, id: "cp-1", finish: null, externalId: "ext-p1" },
+        { ...printing, id: "cp-2", finish: "foil", externalId: "ext-p2" },
+      ]),
+    });
+
+    const result = await buildCardDetail(repo, mpRepo(), "x");
+    expect(result.candidatePrintingGroups.map((group) => group.shortCodes)).toEqual([
+      ["cp-1", "cp-2"],
+    ]);
+  });
+
   it("resolves finish to normal for Common/Uncommon rarity", async () => {
     const repo = createMockRepo({
       cardForDetailBySlug: vi.fn().mockResolvedValue(matchedCard),

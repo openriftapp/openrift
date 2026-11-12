@@ -1,19 +1,23 @@
-import { WellKnown } from "@openrift/shared/well-known";
-import { inferZone } from "@openrift/shared/zone-inference";
+import { errorMessage } from "@openrift/shared/strings";
 import type { Insertable } from "kysely";
 
 import type { PlayloltcgEventStandingsTable } from "../../../../db/tables/meta-sources.js";
+import { coord, record } from "../../../../lib/json-coerce.js";
 import { PLAYLOLTCG_PROVIDER } from "../../../../lib/meta-providers.js";
+import { legendFromDeckLines } from "../../lib/meta-deck-lines.js";
+import { META_PLAYER_NAME_MAX } from "../../lib/meta-event-naming.js";
+import type { PlayloltcgDeckLine } from "../../lib/playloltcg-catalog.js";
 import {
   normalizeCardNo,
-  projectDeckCard,
+  projectPlayloltcgDeckLines,
   referencedDeckIds,
 } from "../../lib/playloltcg-catalog.js";
 import type { PlayloltcgListRow } from "../../repositories/playloltcg-events.js";
 import { promoteMetaEvent } from "../meta-promote.js";
-import { PlayloltcgBlockedError, PlayloltcgRefusedError } from "./playloltcg-client.js";
+import { clock } from "./deps.js";
+import { PlayloltcgRefusedError } from "./playloltcg-client.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
-import { clock } from "./playloltcg-deps.js";
+import { isPermanentRefusal, sourceStopOf } from "./source-http.js";
 
 // The source refuses a larger page with `code 500 网络繁忙` (network busy).
 const STANDINGS_PAGE_SIZE = 20;
@@ -41,19 +45,8 @@ export interface PlayloltcgDetailFacts {
   isPublishResult: boolean;
 }
 
-function record(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function failure(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-/** PlayloltcgBlockedError blocks the whole run and must propagate past the caller's per-event error collection. */
 function rethrowIfBlocked(error: unknown): void {
-  if (error instanceof PlayloltcgBlockedError) {
+  if (sourceStopOf(error) !== null) {
     throw error;
   }
 }
@@ -63,6 +56,7 @@ export async function readPlayloltcgDetail(
   deps: PlayloltcgSyncDeps,
   activityShopId: number,
   errors: string[],
+  options: { rethrowRefusal?: boolean } = {},
 ): Promise<PlayloltcgDetailFacts | null> {
   try {
     const result = await deps.client.get<unknown>("/xcx/activityShop/info", {
@@ -76,7 +70,10 @@ export async function readPlayloltcgDetail(
     return { shopId, shopName, isPublishResult: row?.isPublishResult === true };
   } catch (error) {
     rethrowIfBlocked(error);
-    errors.push(`Event ${activityShopId} detail: ${failure(error)}`);
+    if (options.rethrowRefusal === true && isPermanentRefusal(error)) {
+      throw error;
+    }
+    errors.push(`Event ${activityShopId} detail: ${errorMessage(error)}`);
     return null;
   }
 }
@@ -99,10 +96,12 @@ async function readStandings(
       );
     } catch (error) {
       rethrowIfBlocked(error);
-      errors.push(`Event ${activityShopId} standings after rank ${lastRank}: ${failure(error)}`);
+      errors.push(
+        `Event ${activityShopId} standings after rank ${lastRank}: ${errorMessage(error)}`,
+      );
       return null;
     }
-    const first = num(body.items[0]?.finalRanking);
+    const first = coord(body.items[0]?.finalRanking);
     if (pageNum > 1 && body.items.length > 0 && (first === null || first < lastRank)) {
       errors.push(`Event ${activityShopId} standings stopped advancing at rank ${lastRank}.`);
       return null;
@@ -111,7 +110,7 @@ async function readStandings(
     if (body.items.length < STANDINGS_PAGE_SIZE) {
       return rows;
     }
-    const last = num(body.items.at(-1)?.finalRanking);
+    const last = coord(body.items.at(-1)?.finalRanking);
     if (last === null) {
       errors.push(`Event ${activityShopId} standings stopped advancing at rank ${lastRank}.`);
       return null;
@@ -138,7 +137,7 @@ async function readDeck(
     return body.items;
   } catch (error) {
     rethrowIfBlocked(error);
-    errors.push(`Deck ${cardGroupId}: ${failure(error)}`);
+    errors.push(`Deck ${cardGroupId}: ${errorMessage(error)}`);
     return error instanceof PlayloltcgRefusedError ? null : SKIPPED;
   }
 }
@@ -187,10 +186,6 @@ async function fetchDecks(
   };
 }
 
-function num(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
 /**
  * Keyed by source user id, or name+occurrence as fallback, never rank:
  * the source re-ranks standings on finalization.
@@ -200,51 +195,13 @@ function playerKey(
   playerName: string,
   seenNames: Map<string, number>,
 ): string {
-  const userId = num(row.userId);
+  const userId = coord(row.userId);
   if (userId !== null && Number.isInteger(userId) && userId > 0) {
     return `u${userId}`;
   }
   const occurrence = (seenNames.get(playerName) ?? 0) + 1;
   seenNames.set(playerName, occurrence);
   return `n${playerName}#${occurrence}`;
-}
-
-interface PlayloltcgDeckLine {
-  lineNumber: number;
-  zone: string;
-  quantity: number;
-  cardName: string;
-}
-
-/** The bridge is consulted only for zone placement, never to rewrite the source's published card name. */
-function projectPlayloltcgDeckLines(
-  cards: readonly unknown[],
-  bridge: Map<string, { cardId: string; name: string; type: string }>,
-): PlayloltcgDeckLine[] {
-  const lines: PlayloltcgDeckLine[] = [];
-  for (const raw of cards) {
-    const card = projectDeckCard(raw);
-    if (card === null) {
-      continue;
-    }
-    const resolved = card.shortCode === null ? undefined : bridge.get(card.shortCode);
-    const name = resolved?.name ?? card.cardName ?? card.cardNo;
-    const zone = card.isMainHero
-      ? WellKnown.deckZone.CHAMPION
-      : card.isSideboard
-        ? WellKnown.deckZone.SIDEBOARD
-        : resolved
-          ? inferZone([resolved.type], [], "mainDeck")
-          : card.isLegend
-            ? WellKnown.deckZone.LEGEND
-            : WellKnown.deckZone.MAIN;
-    lines.push({ lineNumber: lines.length, zone, quantity: card.cardCount, cardName: name });
-  }
-  return lines;
-}
-
-function legendFromLines(lines: readonly { zone: string; cardName: string }[]): string | null {
-  return lines.find((line) => line.zone === WellKnown.deckZone.LEGEND)?.cardName ?? null;
 }
 
 /** Failures are collected, not thrown; a bad deck body doesn't block the rest of the standings table. */
@@ -313,29 +270,29 @@ export async function playloltcgDeepFetch(
   const seenNames = new Map<string, number>();
   const rows: Insertable<PlayloltcgEventStandingsTable>[] = [];
   for (const s of standings) {
-    const rank = num(s.finalRanking);
+    const rank = coord(s.finalRanking);
     const rawName = typeof s.name === "string" ? s.name.trim() : "";
     if (rank === null || rank < 1 || rawName === "") {
       continue;
     }
-    const playerName = rawName.slice(0, 80);
-    const cardGroupId = num(s.cardGroupId) ?? 0;
+    const playerName = rawName.slice(0, META_PLAYER_NAME_MAX);
+    const cardGroupId = coord(s.cardGroupId) ?? 0;
     const sourceDeckId = cardGroupId > 0 ? String(cardGroupId) : null;
     const lines: readonly { zone: string; cardName: string }[] =
       sourceDeckId === null
         ? []
         : (freshLines.get(sourceDeckId) ?? heldLines.get(sourceDeckId) ?? []);
-    const userId = num(s.userId);
+    const userId = coord(s.userId);
     rows.push({
       activityShopId,
       playerKey: playerKey(s, playerName, seenNames),
       sourceUserId: userId !== null && Number.isInteger(userId) && userId > 0 ? userId : null,
       playerName,
       rank,
-      wins: num(s.winCount),
+      wins: coord(s.winCount),
       losses: null,
       draws: null,
-      legendName: legendFromLines(lines),
+      legendName: legendFromDeckLines(lines),
       sourceDeckId,
       fetchedAt: clock(deps),
     });

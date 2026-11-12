@@ -38,6 +38,7 @@ import { LanguageSelect } from "@/features/admin/components/language-select";
 import { SetPicker } from "@/features/admin/components/set-picker";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
+import { parseSetDraft } from "@/features/admin/lib/set-draft";
 import {
   useCreateSet,
   useDeleteSet,
@@ -486,25 +487,18 @@ export function SetsPage() {
             setType: WellKnown.setType.MAIN,
           },
           onSave: (d) => {
-            // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of a form field; Number() would yield NaN on trailing text
-            const printedTotal = parseInt(d.printedTotal, 10);
-            return createMutation.mutateAsync({
-              id: d.id.trim(),
-              name: d.name.trim(),
-              printedTotal: isNaN(printedTotal) ? 0 : printedTotal,
-              setType: d.setType,
-            });
+            const parsed = parseSetDraft(d);
+            if ("error" in parsed) {
+              throw new Error(parsed.error);
+            }
+            return createMutation.mutateAsync({ id: d.id.trim(), ...parsed, setType: d.setType });
           },
           validate: (d) => {
-            if (!d.id.trim() || !d.name.trim()) {
-              return "ID and name are required";
+            if (!d.id.trim()) {
+              return "ID is required";
             }
-            // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of a form field; Number() would yield NaN on trailing text
-            const pt = parseInt(d.printedTotal, 10);
-            if (d.printedTotal && (isNaN(pt) || pt < 0)) {
-              return "Printed total must be a non-negative number";
-            }
-            return null;
+            const parsed = parseSetDraft(d);
+            return "error" in parsed ? parsed.error : null;
           },
           label: "Add Set",
         }}
@@ -516,23 +510,20 @@ export function SetsPage() {
             setType: s.setType,
           }),
           onSave: (d) => {
-            // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of a form field; Number() would yield NaN on trailing text
-            const printedTotal = parseInt(d.printedTotal, 10);
+            const parsed = parseSetDraft(d);
+            if ("error" in parsed) {
+              throw new Error(parsed.error);
+            }
             return updateMutation.mutateAsync({
               id: d.id,
-              name: d.name,
-              printedTotal: isNaN(printedTotal) ? 0 : printedTotal,
+              ...parsed,
               releases: releasesById.get(d.id) ?? {},
               setType: d.setType,
             });
           },
           validate: (d) => {
-            // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of a form field; Number() would yield NaN on trailing text
-            const pt = parseInt(d.printedTotal, 10);
-            if (isNaN(pt) || pt < 0) {
-              return "Printed total must be a non-negative number";
-            }
-            return null;
+            const parsed = parseSetDraft(d);
+            return "error" in parsed ? parsed.error : null;
           },
         }}
         delete={{

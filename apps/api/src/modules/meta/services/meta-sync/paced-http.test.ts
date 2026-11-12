@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
 import { createPacedHttp, createPacingGate } from "./paced-http.js";
+import {
+  isPermanentRefusal,
+  isTransientSourceFailure,
+  SourceThrottledError,
+} from "./source-http.js";
 
 class BlockedError extends Error {
   override name = "BlockedError";
@@ -33,7 +38,7 @@ function harness(responses: (() => Response)[]) {
     blockRetryDelayMs: 15_000,
     isBlock: (status) => status === 403,
     blockedError: (url) => new BlockedError(url),
-    refusedError: (message) => new RefusedError(message),
+    refusedError: (code) => new RefusedError(String(code)),
   });
   return { http, sleeps };
 }
@@ -73,7 +78,7 @@ describe("createPacedHttp", () => {
         blockRetryDelayMs: 15_000,
         isBlock: () => false,
         blockedError: (url) => new BlockedError(url),
-        refusedError: (message) => new RefusedError(message),
+        refusedError: (code) => new RefusedError(String(code)),
       });
     const [first, second] = [make(), make()];
     await Promise.all([
@@ -120,6 +125,53 @@ describe("createPacedHttp", () => {
     const before = http.requests;
     await expect(http.request("https://source.invalid/b")).rejects.toBeInstanceOf(BlockedError);
     expect(http.requests).toBe(before);
+  });
+
+  it("waits out the Retry-After a throttle names, then succeeds", async () => {
+    const throttled = () =>
+      new Response("slow down", { status: 429, headers: { "retry-after": "7" } });
+    const { http, sleeps } = harness([throttled, ok("done")]);
+
+    await expect(http.request("https://source.invalid/a")).resolves.toBe("done");
+    expect(sleeps).toContain(7000);
+    expect(http.blocked).toBe(false);
+  });
+
+  it("ends the call on a second throttle with a transient throttle error", async () => {
+    const { http, sleeps } = harness([status(429)]);
+
+    const error = await http.request("https://source.invalid/a").catch((error_: unknown) => error_);
+
+    expect(error).toBeInstanceOf(SourceThrottledError);
+    expect(isPermanentRefusal(error)).toBe(false);
+    expect(sleeps).toContain(30_000);
+    expect(http.requests).toBe(2);
+  });
+
+  it("retries a request timeout instead of refusing it", async () => {
+    const { http } = harness([status(408), ok("done")]);
+
+    await expect(http.request("https://source.invalid/a")).resolves.toBe("done");
+  });
+
+  it("ends a server error that never clears with the status on the error", async () => {
+    const { http } = harness([status(502)]);
+
+    await expect(http.request("https://source.invalid/a")).rejects.toMatchObject({ status: 502 });
+    expect(http.requests).toBe(3);
+  });
+
+  it("ends a request that never got an answer as a transient source failure", async () => {
+    const { http } = harness([
+      () => {
+        throw new Error("ECONNRESET");
+      },
+    ]);
+
+    const error = await http.request("https://source.invalid/a").catch((error_: unknown) => error_);
+
+    expect(isTransientSourceFailure(error)).toBe(true);
+    expect((error as Error).message).toContain("ECONNRESET");
   });
 
   it("latches a block that arrives on the last attempt", async () => {

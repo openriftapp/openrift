@@ -143,7 +143,7 @@ describe.skipIf(!ctx)("claimed printings on user submissions (integration)", () 
       ...sideValues("CPS Gold", "CPS-T05"),
       comment: null,
     });
-    pairId = await catalogMutationsRepo(db).upsertPrinting(
+    pairId = await catalogMutationsRepo(db).insertPrinting(
       sideValues("CPS Bird", "CPS-T01"),
       goldFaceId,
     );

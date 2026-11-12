@@ -8,6 +8,7 @@ import { PlayloltcgBlockedError, PlayloltcgRefusedError } from "./playloltcg-cli
 import type { PlayloltcgDetailFacts } from "./playloltcg-deep-fetch.js";
 import { playloltcgDeepFetch } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
+import { SourceThrottledError } from "./source-http.js";
 
 const NOW = new Date("2026-08-30T12:00:00Z");
 const ACTIVITY_SHOP_ID = 109_991;
@@ -92,9 +93,7 @@ function fakeDeps(options: {
           return Promise.reject(options.standings);
         }
         if (Number(body.pageSize) > 20) {
-          return Promise.reject(
-            new PlayloltcgRefusedError(`playloltcg code 500 for ${path}: 网络繁忙，请稍后再试`),
-          );
+          return Promise.reject(new Error(`playloltcg code 500 for ${path}: 网络繁忙，请稍后再试`));
         }
         const pageNum = Number(body.pageNum);
         standingsPages.push(pageNum);
@@ -360,10 +359,22 @@ describe("playloltcgDeepFetch", () => {
     expect(result.errors.some((line) => line.includes("missing 900 decks"))).toBe(true);
   });
 
+  it("stops the run on a throttled deck read instead of recording the deck", async () => {
+    const { deps, storedDecklists } = fakeDeps({
+      standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
+      deckErrors: { 11: new SourceThrottledError("/xcx/cardGroup") },
+    });
+
+    await expect(playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET)).rejects.toBeInstanceOf(
+      SourceThrottledError,
+    );
+    expect(storedDecklists).toEqual([]);
+  });
+
   it("records a deck the source refuses so no later pass asks for it again", async () => {
     const { deps, storedDecklists } = fakeDeps({
       standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
-      deckErrors: { 11: new PlayloltcgRefusedError("playloltcg code 500 for deck 11") },
+      deckErrors: { 11: new PlayloltcgRefusedError("playloltcg code 404 for deck 11") },
     });
 
     const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);

@@ -1,9 +1,12 @@
+import { errorMessage } from "@openrift/shared/strings";
+
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { TOPDECK_PROVIDER } from "../../../../lib/meta-providers.js";
+import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { longitudeLocalDay } from "../../lib/meta-local-day.js";
 import { topdeckEventUrl, topdeckFormat } from "../../lib/topdeck-catalog.js";
 import type { TopdeckListRow } from "../../repositories/topdeck-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
-import { errorText } from "./deps.js";
 import type { TopdeckSyncDeps } from "./topdeck-deps.js";
 
 export interface TopdeckAcceptSummary {
@@ -14,10 +17,6 @@ export interface TopdeckAcceptSummary {
 }
 
 const SWEEP_PAGE = 1000;
-
-const MAX_SWEEP_ERRORS = 50;
-
-const MAX_EVENT_NAME = 120;
 
 function emptySummary(): TopdeckAcceptSummary {
   return { considered: 0, accepted: 0, failed: 0, errors: [] };
@@ -35,7 +34,7 @@ export async function acceptTopdeckEvent(
   row: TopdeckListRow,
 ): Promise<AcceptedTopdeckEvent> {
   return await promoteNewEvent(deps.repos, TOPDECK_PROVIDER, row.tid, {
-    name: row.name.slice(0, MAX_EVENT_NAME),
+    name: row.name.slice(0, META_NAME_MAX),
     eventDate: longitudeLocalDay(row.startAt, row.longitude),
     format: topdeckFormat(row.format),
     sourceUrl: topdeckEventUrl(row.tid),
@@ -63,9 +62,7 @@ async function sweep(
         summary.accepted++;
       } catch (error) {
         summary.failed++;
-        if (summary.errors.length < MAX_SWEEP_ERRORS) {
-          summary.errors.push(errorText(error, `Auto-accept "${row.name}"`));
-        }
+        recordCapped(summary.errors, [`Auto-accept "${row.name}": ${errorMessage(error)}`]);
       }
     }
   }

@@ -10,10 +10,12 @@ import {
   assertSomeProviderInScope,
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
+import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { deleteCard } from "../services/card-admin.js";
 import { normalizeCardFieldValue, writeCardField } from "../services/card-field-writes.js";
+import type { NewPrinting } from "../services/printing-admin.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -159,33 +161,21 @@ export const adminCardMutationsCardsRouter = {
   }),
 
   acceptFavoriteNewCard: os.acceptFavoriteNewCard.handler(async ({ input, context }) => {
-    const {
-      candidateCards,
-      catalogMutations,
-      printingImages,
-      markers,
-      distributionChannels,
-      providerSettings,
-      printingEvents,
-    } = context.repos;
-    const favoriteProviders = await providerSettings.favoriteProviders();
+    const favoriteProviders = await context.repos.providerSettings.favoriteProviders();
 
-    const result = await acceptFavoriteNewCard(
-      context.transact,
-      context.io,
-      {
-        candidateCards,
-        catalogMutations,
-        printingImages,
-        markers,
-        distributionChannels,
-        printingEvents,
-      },
-      input.name,
-      favoriteProviders,
-    );
-
-    await context.repos.catalog.refreshCatalogViews();
+    const created: NewPrinting[] = [];
+    let result: Awaited<ReturnType<typeof acceptFavoriteNewCard>>;
+    try {
+      result = await acceptFavoriteNewCard(
+        context.transact,
+        context.repos,
+        input.name,
+        favoriteProviders,
+        created,
+      );
+    } finally {
+      await finishPrintingAccepts(context.repos, context.io, created, { catalogChanged: true });
+    }
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "card.accept-favorites",

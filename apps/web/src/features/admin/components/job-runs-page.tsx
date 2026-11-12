@@ -318,7 +318,9 @@ function ResultCell({ row: run }: AdminCellSlotProps<JobRunView>) {
     return null;
   }
   return run.errorMessage === null ? (
-    <span className="text-muted-foreground">{summarizeRunResult(run.result)}</span>
+    <span className="text-muted-foreground">
+      {summarizeRunResult(run.result, { running: run.status === "running" })}
+    </span>
   ) : (
     <span className="text-destructive">{run.errorMessage}</span>
   );

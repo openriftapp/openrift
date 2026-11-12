@@ -1,3 +1,5 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import { record, instant } from "../../../../lib/json-coerce.js";
 import { PLAYRIFTBOUND_PROVIDER } from "../../../../lib/meta-providers.js";
 import type { PlayriftboundDetailFacts } from "../../lib/playriftbound-catalog.js";
@@ -7,9 +9,9 @@ import {
   projectTournamentDetail,
 } from "../../lib/playriftbound-catalog.js";
 import { promoteMetaEvent } from "../meta-promote.js";
+import { clock } from "./deps.js";
 import { isRunStopping, PlayriftboundRefusedError } from "./playriftbound-client.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
-import { clock } from "./playriftbound-deps.js";
 
 const DETAIL_QUERY = "GetCompeteTournamentForRiftboundPlayer";
 const POLLER_QUERY = "GetCompeteRbRefreshPoller";
@@ -25,10 +27,6 @@ export interface PlayriftboundDeepFetchResult {
   complete: boolean;
   gone: boolean;
   errors: string[];
-}
-
-function failure(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -81,7 +79,7 @@ export async function playriftboundDeepFetch(
     if (isRunStopping(error)) {
       throw error;
     }
-    result.errors.push(`Event ${tournamentId} detail: ${failure(error)}`);
+    result.errors.push(`Event ${tournamentId} detail: ${errorMessage(error)}`);
     result.requests = deps.client.requests - before;
     return result;
   }

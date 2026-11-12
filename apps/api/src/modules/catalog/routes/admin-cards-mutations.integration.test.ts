@@ -1145,6 +1145,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
           printingFields: {
             shortCode: "CSM-AP-X",
             setId: "CSM",
+            rarity: "common",
             artist: "X",
             publicCode: "X",
           },

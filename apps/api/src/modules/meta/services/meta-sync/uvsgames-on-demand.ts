@@ -1,8 +1,10 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { clock, errorText } from "./deps.js";
+import { clock } from "./deps.js";
 import { gameTypeOf } from "./id-sweep.js";
 import { settleAfterManualFetch } from "./recheck.js";
 import { UvsHttpError } from "./uvsgames-client.js";
@@ -38,7 +40,7 @@ export async function fetchUvsgamesEvent(
     if (error instanceof UvsHttpError && error.status === 404) {
       return { status: "not_found" };
     }
-    return { status: "failed", errors: [errorText(error, "Event detail")] };
+    return { status: "failed", errors: [`Event detail: ${errorMessage(error)}`] };
   }
   if (!gameTypeOf(detail).isRiftbound) {
     return { status: "not_found" };
@@ -56,6 +58,9 @@ export async function fetchUvsgamesEvent(
   const startedAt = clock(deps);
   const fetched = await deepFetchEvent(deps, row, undefined, detail);
   await settleAfterManualFetch(deps, externalId, startedAt);
+  if (fetched.stopped === true) {
+    return { status: "failed", errors: fetched.errors };
+  }
   const settled = (await deps.repos.uvsgamesEvents.byKey(externalId)) ?? row;
   return { status: "fetched", row: settled, errors: fetched.errors };
 }

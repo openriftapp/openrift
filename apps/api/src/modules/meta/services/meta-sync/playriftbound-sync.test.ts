@@ -341,6 +341,22 @@ describe("syncPlayriftboundCatalog", () => {
 });
 
 describe("backfillPlayriftbound", () => {
+  it("finishes the sweep when the run row cannot be read or written", async () => {
+    const { deps, searches } = fakeDeps({});
+    deps.repos = {
+      ...deps.repos,
+      jobRuns: {
+        getResult: () => Promise.reject(new Error("db gone")),
+        mergeResult: () => Promise.reject(new Error("db gone")),
+      },
+    } as unknown as Repos;
+
+    const result = await backfillPlayriftbound(deps, "run-1");
+
+    expect(result.cancelRequested).toBe(false);
+    expect(searches.length).toBeGreaterThan(50);
+  });
+
   it("resumes after the last covered cell and checkpoints as resumable", async () => {
     const { deps, searches, heartbeats } = fakeDeps({ cancelAfter: 1 });
     const result = await backfillPlayriftbound(deps, "run-1", { resumeFrom: 99 });
@@ -425,6 +441,9 @@ describe("backfillPlayriftbound", () => {
     expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
     expect(result.blockedUntil).toBeNull();
     expect(result.coveredThrough).toBeNull();
+    expect(result.errors.at(-1)).toBe(
+      `Stopped: the source throttled or kept failing (5 areas in a row failed); this job pauses until ${result.pausedUntil}.`,
+    );
   });
 });
 

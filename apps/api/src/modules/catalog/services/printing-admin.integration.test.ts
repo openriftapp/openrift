@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createRepos, createTransact } from "../../../deps.js";
-import type { Io } from "../../../io.js";
+import { createTransact } from "../../../deps.js";
 import {
   createDbContext,
   deletePrintingsByFace,
@@ -9,7 +8,7 @@ import {
   insertCards,
   insertPrintings,
 } from "../../../test/integration-context.js";
-import { acceptPrinting, updatePrintingMarkers } from "./printing-admin.js";
+import { insertNewPrinting, updatePrintingMarkers } from "./printing-admin.js";
 
 // Editing one sibling printing's markers must not trip the
 // `uq_printings_identity` constraint even when another printing already has
@@ -150,29 +149,13 @@ describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
   });
 });
 
-// The admin "create printing" flow (and the duplicate-a-printing shortcut
-// behind it) went through the same upsert as the ingest paths, so submitting
-// an unchanged duplicate overwrote the source printing and reported success.
-// `requireNew` makes that identity collision a 409 instead.
-
-describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
+describe.skipIf(!ctx)("insertNewPrinting (integration)", () => {
   const { db } = ctx!;
   const transact = createTransact(db);
-  const io = {} as Io;
 
   const SET_SLUG = "PADM2-TEST";
   const CARD_SLUG = "PADM2-001";
   const SHORT_CODE = "PADM2-001";
-
-  const repos = createRepos(db);
-  // Deliberately without `printingEvents`: the new-printing feed is not what
-  // this test is about, and leaving it out keeps teardown to the rows below.
-  const acceptRepos = {
-    catalogMutations: repos.catalogMutations,
-    printingImages: repos.printingImages,
-    markers: repos.markers,
-    distributionChannels: repos.distributionChannels,
-  };
 
   const fields = {
     shortCode: SHORT_CODE,
@@ -239,16 +222,8 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
 
   it("rejects a duplicate of an existing printing instead of overwriting it", async () => {
     await expect(
-      acceptPrinting(
-        transact,
-        acceptRepos,
-        cardId,
-        { ...fields, artist: "Overwriting Artist" },
-        [],
-        io,
-        {
-          requireNew: true,
-        },
+      transact((trx) =>
+        insertNewPrinting(trx, cardId, { ...fields, artist: "Overwriting Artist" }, []),
       ),
     ).rejects.toThrow(`This card already has a printing with short code "${SHORT_CODE}"`);
 
@@ -261,14 +236,8 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
   });
 
   it("allows a duplicate that differs in a field the identity covers", async () => {
-    const newId = await acceptPrinting(
-      transact,
-      acceptRepos,
-      cardId,
-      { ...fields, finish: "foil" },
-      [],
-      io,
-      { requireNew: true },
+    const { printingId: newId } = await transact((trx) =>
+      insertNewPrinting(trx, cardId, { ...fields, finish: "foil" }, []),
     );
 
     expect(newId).not.toBe(printingId);
@@ -282,22 +251,22 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
     expect(created.finish).toBe("foil");
   });
 
-  it("still upserts without requireNew so ingest re-runs stay idempotent", async () => {
-    const sameId = await acceptPrinting(
-      transact,
-      acceptRepos,
-      cardId,
-      { ...fields, artist: "Ingest Artist" },
-      [],
-      io,
+  it("shares the existing face for another size and leaves its printed fields alone", async () => {
+    const { printingId: oversizedId } = await transact((trx) =>
+      insertNewPrinting(trx, cardId, { ...fields, size: "oversized", artist: "Other Artist" }, []),
     );
 
-    expect(sameId).toBe(printingId);
-    const updated = await db
+    const oversized = await db
+      .selectFrom("printings")
+      .select("face1Id")
+      .where("id", "=", oversizedId)
+      .executeTakeFirstOrThrow();
+    expect(oversized.face1Id).toBe(printingId);
+    const face = await db
       .selectFrom("faces")
       .select("artist")
       .where("id", "=", printingId)
       .executeTakeFirstOrThrow();
-    expect(updated.artist).toBe("Ingest Artist");
+    expect(face.artist).toBe("Original Artist");
   });
 });

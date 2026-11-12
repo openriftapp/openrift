@@ -1,15 +1,24 @@
+import { errorMessage } from "@openrift/shared/strings";
+
+import { shiftDays } from "../../lib/meta-durations.js";
 import type {
   UvsgamesCatalogProjection,
   UvsgamesProbedProjection,
 } from "../../lib/uvsgames-catalog.js";
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
 import { autoAcceptCatalogEvents, withdrawCancelledCatalogEvents } from "./accept.js";
-import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
+import type { CrawlRun } from "./crawl-run.js";
+import { createCrawlRun } from "./crawl-run.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { clock, errorText, EVENTS_PATH, GAME_SLUG } from "./deps.js";
+import { clock, EVENTS_PATH, GAME_SLUG } from "./deps.js";
 import { probeMirroredId } from "./id-sweep.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
+import { createRunHeartbeat } from "./run-heartbeat.js";
+import { sourceStopOf } from "./source-http.js";
+import type { SourceStopFields } from "./source-stop.js";
+import { applySourceStop } from "./source-stop.js";
+import { isSyncNoop } from "./sync-noop.js";
 import { syncEventTemplates } from "./templates.js";
 import type { UvsQuery } from "./uvsgames-client.js";
 import { MAX_PAGE_SIZE } from "./uvsgames-client.js";
@@ -43,12 +52,9 @@ const MAX_MISSING_PROBES = 1000;
 
 const HEARTBEAT_PROBES = 100;
 
-const MAX_ERRORS = 50;
 const MAX_SKIPPED = 50;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-export interface MetaCatalogSyncResult extends MetaSyncResultBase {
+export interface MetaCatalogSyncResult extends MetaSyncResultBase, SourceStopFields {
   ranges: number;
   unreadable: number;
   skipped: number;
@@ -72,23 +78,14 @@ function emptyResult(): MetaCatalogSyncResult {
     missingAbsent: 0,
     withdrawn: 0,
     skippedRanges: [],
+    blocked: false,
+    blockedUntil: null,
+    pausedUntil: null,
   };
 }
 
-// A cancelled run never counts as a noop, however little it wrote, so the
-// admin who stopped it still sees the stop in the history.
 export function isCatalogSyncNoop(result: MetaCatalogSyncResult): boolean {
-  return (
-    !result.cancelRequested &&
-    result.inserted === 0 &&
-    result.changed === 0 &&
-    result.missing === 0 &&
-    result.missingFound === 0 &&
-    result.missingAbsent === 0 &&
-    result.withdrawn === 0 &&
-    result.autoAccepted === 0 &&
-    result.autoHeld === 0
-  );
+  return isSyncNoop(result, [result.missingFound, result.missingAbsent, result.withdrawn]);
 }
 
 interface CrawlContext {
@@ -96,38 +93,35 @@ interface CrawlContext {
   touched: string[];
   seenAt: Date;
   filter: UvsQuery;
-  maxRequests: number;
-  requestsBefore: number;
-  runId?: string;
+  run: CrawlRun<MetaCatalogSyncResult>;
   checkpoints: boolean;
-  rangesAtLastBeat: number;
   consecutiveFailures: number;
-  stopped: boolean;
 }
 
 function newContext(
   deps: MetaSyncDeps,
   options: { filter?: UvsQuery; maxRequests: number; runId?: string; checkpoints?: boolean },
 ): CrawlContext {
+  const result = emptyResult();
   return {
-    result: emptyResult(),
+    result,
     touched: [],
     seenAt: clock(deps),
     filter: options.filter ?? {},
-    maxRequests: options.maxRequests,
-    requestsBefore: deps.client.requests,
-    runId: options.runId,
+    run: createCrawlRun({
+      result,
+      heartbeat: createRunHeartbeat(deps, options.runId),
+      requests: () => deps.client.requests,
+      maxRequests: options.maxRequests,
+      beatEvery: HEARTBEAT_RANGES,
+    }),
     checkpoints: options.checkpoints ?? false,
-    rangesAtLastBeat: 0,
     consecutiveFailures: 0,
-    stopped: false,
   };
 }
 
 function record(ctx: CrawlContext, message: string): void {
-  if (ctx.result.errors.length < MAX_ERRORS) {
-    ctx.result.errors.push(message);
-  }
+  ctx.run.record(message);
 }
 
 // The counters alone cannot say a crawl fell short, so a gap is marked explicitly.
@@ -146,58 +140,11 @@ function cover(ctx: CrawlContext, to: Date): void {
   }
 }
 
-function spent(deps: MetaSyncDeps, ctx: CrawlContext): number {
-  return deps.client.requests - ctx.requestsBefore;
-}
-
-// A crawl that stops here must mark complete=false; a silent halt would
-// read as full coverage it never achieved.
-async function keepGoing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<boolean> {
-  if (ctx.stopped) {
-    return false;
+async function keepGoing(ctx: CrawlContext): Promise<boolean> {
+  if (!ctx.run.stopped && ctx.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    ctx.run.stop(`Stopped after ${ctx.consecutiveFailures} listing queries failed in a row`);
   }
-  if (spent(deps, ctx) >= ctx.maxRequests) {
-    ctx.stopped = true;
-    ctx.result.complete = false;
-    record(ctx, `Stopped at the ${ctx.maxRequests}-request budget`);
-    return false;
-  }
-  if (ctx.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-    ctx.stopped = true;
-    ctx.result.complete = false;
-    record(ctx, `Stopped after ${ctx.consecutiveFailures} listing queries failed in a row`);
-    return false;
-  }
-  if (ctx.result.ranges - ctx.rangesAtLastBeat >= HEARTBEAT_RANGES) {
-    ctx.rangesAtLastBeat = ctx.result.ranges;
-    await heartbeat(deps, ctx);
-  }
-  return !ctx.stopped;
-}
-
-// A failed heartbeat write is only logged, never thrown, so it can't kill a
-// crawl hours into its ranges; the same beat is how an out-of-band cancel reaches it.
-async function heartbeat(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void> {
-  const runId = ctx.runId;
-  if (runId === undefined) {
-    return;
-  }
-  try {
-    if (await runCancelRequested(deps.repos.jobRuns, runId)) {
-      ctx.stopped = true;
-      ctx.result.cancelRequested = true;
-      ctx.result.complete = false;
-      record(ctx, "Cancelled from the admin panel");
-    }
-    await writeRunHeartbeat(
-      deps.repos.jobRuns,
-      runId,
-      { ...ctx.result, requests: spent(deps, ctx) },
-      clock(deps),
-    );
-  } catch (error) {
-    deps.log.warn({ err: error, runId }, "Crawl heartbeat write failed");
-  }
+  return await ctx.run.tick();
 }
 
 function rangeLabel(from: Date, to: Date): string {
@@ -230,8 +177,13 @@ async function readRange(
     ctx.consecutiveFailures = 0;
     return { results: body.results, count: body.count };
   } catch (error) {
+    const stop = sourceStopOf(error);
+    if (stop !== null) {
+      ctx.run.stop(applySourceStop(ctx.result, stop, clock(deps), error));
+      return null;
+    }
     ctx.consecutiveFailures++;
-    record(ctx, errorText(error, `${rangeLabel(from, to)} page ${page}`));
+    record(ctx, `${rangeLabel(from, to)} page ${page}: ${errorMessage(error)}`);
     return null;
   }
 }
@@ -294,7 +246,7 @@ async function crawlRange(
   from: Date,
   to: Date,
 ): Promise<void> {
-  if (!(await keepGoing(deps, ctx))) {
+  if (!(await keepGoing(ctx))) {
     return;
   }
 
@@ -305,7 +257,9 @@ async function crawlRange(
       return;
     }
     await salvageInstant(deps, ctx, from);
-    cover(ctx, to);
+    if (!ctx.run.stopped) {
+      cover(ctx, to);
+    }
     return;
   }
 
@@ -320,7 +274,9 @@ async function crawlRange(
   if (body.count > body.results.length) {
     await drainInstant(deps, ctx, from, body.count);
   }
-  cover(ctx, to);
+  if (!ctx.run.stopped) {
+    cover(ctx, to);
+  }
 }
 
 // Time cannot split a single instant any further, so this is the one place
@@ -333,7 +289,7 @@ async function drainInstant(
 ): Promise<void> {
   const pages = Math.ceil(count / MAX_PAGE_SIZE);
   for (let page = 2; page <= pages; page++) {
-    if (!(await keepGoing(deps, ctx))) {
+    if (!(await keepGoing(ctx))) {
       return;
     }
     const body = await readRange(deps, ctx, at, at, page, MAX_PAGE_SIZE);
@@ -352,7 +308,7 @@ async function salvageInstant(deps: MetaSyncDeps, ctx: CrawlContext, at: Date): 
   let page = 1;
 
   while (page <= Math.min(total ?? INSTANT_PROBE_PAGES, MAX_INSTANT_ROWS)) {
-    if (!(await keepGoing(deps, ctx))) {
+    if (!(await keepGoing(ctx))) {
       return;
     }
     const body = await readRange(deps, ctx, at, at, page, 1);
@@ -382,7 +338,7 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
     record(ctx, message);
   }
   ctx.result.withdrawn = await withdrawCancelledCatalogEvents(deps);
-  if (!ctx.stopped) {
+  if (!ctx.run.stopped) {
     const templates = await syncEventTemplates(deps);
     ctx.result.templatesNamed = templates.named;
     ctx.result.templatesRetired = templates.retired;
@@ -390,14 +346,13 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
       record(ctx, message);
     }
   }
-  ctx.result.requests = spent(deps, ctx);
-  return ctx.result;
+  return ctx.run.finish();
 }
 
 // The listing drops cancelled, archived and unlisted events, while the
 // per-event endpoint still serves them.
 async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void> {
-  if (ctx.stopped) {
+  if (ctx.run.stopped) {
     return;
   }
   const ids = await deps.repos.uvsgamesEvents.unprobedMissing(MAX_MISSING_PROBES);
@@ -406,12 +361,22 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
   let failures = 0;
   for (const [index, id] of ids.entries()) {
     if (index > 0 && index % HEARTBEAT_PROBES === 0) {
-      await heartbeat(deps, ctx);
+      await ctx.run.checkpoint();
     }
-    if (ctx.stopped) {
+    if (ctx.run.stopped) {
       break;
     }
-    const outcome = await probeMirroredId(deps, Number(id));
+    let outcome;
+    try {
+      outcome = await probeMirroredId(deps, Number(id));
+    } catch (error) {
+      const stop = sourceStopOf(error);
+      if (stop === null) {
+        throw error;
+      }
+      ctx.run.stop(applySourceStop(ctx.result, stop, clock(deps), error));
+      break;
+    }
     if (outcome.kind === "event") {
       found.push(outcome.projection);
       failures = 0;
@@ -437,10 +402,6 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
   ctx.result.missingAbsent = absent.length;
 }
 
-function shift(from: Date, days: number): Date {
-  return new Date(from.getTime() + days * DAY_MS);
-}
-
 // Rows are flagged missing only when the crawl fully covered the range; a
 // partial run must not mistake unreached rows for dropped ones.
 export async function syncCatalog(
@@ -448,10 +409,10 @@ export async function syncCatalog(
   runId?: string,
 ): Promise<MetaCatalogSyncResult> {
   const now = clock(deps);
-  const from = shift(now, -SYNC_LOOKBACK_DAYS);
+  const from = shiftDays(now, -SYNC_LOOKBACK_DAYS);
   const ctx = newContext(deps, { maxRequests: MAX_REQUESTS_PER_CRAWL, runId, checkpoints: true });
 
-  await crawlRange(deps, ctx, from, shift(now, FUTURE_HORIZON_DAYS));
+  await crawlRange(deps, ctx, from, shiftDays(now, FUTURE_HORIZON_DAYS));
 
   if (ctx.result.complete) {
     ctx.result.missing = await deps.repos.uvsgamesEvents.markMissing({
@@ -478,7 +439,7 @@ export interface RecentListingResult {
 export async function refreshRecentListing(deps: MetaSyncDeps): Promise<RecentListingResult> {
   const now = clock(deps);
   const ctx = newContext(deps, { maxRequests: MAX_REQUESTS_PER_LISTING });
-  await crawlRange(deps, ctx, shift(now, -RECENT_LISTING_DAYS), now);
+  await crawlRange(deps, ctx, shiftDays(now, -RECENT_LISTING_DAYS), now);
   const touched = [...new Set(ctx.touched)];
   const auto = await autoAcceptCatalogEvents(deps, touched);
   for (const message of auto.errors) {
@@ -506,7 +467,7 @@ export async function backfillCatalog(
   options: BackfillOptions = {},
 ): Promise<MetaCatalogSyncResult> {
   const now = clock(deps);
-  const to = shift(now, FUTURE_HORIZON_DAYS);
+  const to = shiftDays(now, FUTURE_HORIZON_DAYS);
   const ctx = newContext(deps, { maxRequests: MAX_REQUESTS_PER_CRAWL, runId, checkpoints: true });
 
   const resumeFrom = options.resumeFrom;

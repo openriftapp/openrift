@@ -41,7 +41,7 @@ export function cardUpdateFor(
       const unhandled: never = field;
       throw new AppError(
         400,
-        ERROR_CODES.VALIDATION_ERROR,
+        ERROR_CODES.BAD_REQUEST,
         `Unsupported card field: ${String(unhandled)}`,
       );
     }

@@ -106,6 +106,7 @@ export function ingestRepo(db: Db) {
         id: string;
         shortCode: string;
         finish: string | null;
+        rarity: string | null;
         markerSlugs: string[];
         language: string | null;
         externalId: string;
@@ -121,6 +122,7 @@ export function ingestRepo(db: Db) {
           "cp.id",
           "cp.shortCode",
           "cp.finish",
+          "cp.rarity",
           "cp.markerSlugs",
           "cp.language",
           "cp.size",

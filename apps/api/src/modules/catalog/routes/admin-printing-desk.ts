@@ -4,6 +4,7 @@ import { implement } from "@orpc/server";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { toDeskImages, toDeskPrintingRow } from "../lib/printing-desk-presenters.js";
 import {
@@ -84,14 +85,14 @@ export const adminPrintingDeskRouter = {
   }),
 
   create: os.create.handler(async ({ input, context }) => {
-    const printingId = await createDeskPrinting(
+    const created = await createDeskPrinting(
       context.transact,
       context.repos,
-      context.io,
       context.userId,
       input,
     );
-    return { printingId };
+    await finishPrintingAccepts(context.repos, context.io, [created]);
+    return { printingId: created.printingId };
   }),
 
   update: os.update.handler(async ({ input, context }): Promise<void> => {

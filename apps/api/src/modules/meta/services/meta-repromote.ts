@@ -1,6 +1,7 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import type { Repos } from "../../../deps.js";
 import { createMetaPromoteContext, promoteMetaEvent } from "./meta-promote.js";
-import { errorText } from "./meta-sync/deps.js";
 
 /**
  * Re-runs promotion over every event in the archive: the general repair,
@@ -47,7 +48,7 @@ export async function promoteEach(
     } catch (error) {
       result.events++;
       result.failed++;
-      result.errors.push(errorText(error, `Event ${eventId}`));
+      result.errors.push(`Event ${eventId}: ${errorMessage(error)}`);
     }
   }
   return result;

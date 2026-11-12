@@ -121,13 +121,6 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     expect(row).toBeUndefined();
   });
 
-  it("countOthersByImageFileId returns 0 when no other printing image shares the image file", async () => {
-    const imageFileId = await repo.getImageFileId(createdImageIds[0]!);
-    expect(imageFileId).toBeDefined();
-    const count = await repo.countOthersByImageFileId(imageFileId!, createdImageIds[0]!);
-    expect(count).toBe(0);
-  });
-
   it("listAllRehostedWithContext returns images with card context", async () => {
     const result = await repo.listAllRehostedWithContext();
     expect(Array.isArray(result)).toBe(true);
@@ -174,30 +167,5 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
       .where("originalUrl", "=", RACE_URL)
       .execute();
     expect(files).toHaveLength(1);
-  });
-
-  it("deleteOrphanedImageFiles removes image_files no face_images row points at", async () => {
-    // Table-wide delete; runs in a rolled-back transaction so it doesn't
-    // touch other integration files' fixtures in the shared database.
-    await expect(
-      db.transaction().execute(async (trx) => {
-        const orphan = await trx
-          .insertInto("imageFiles")
-          .values({ originalUrl: "https://example.com/orphan-0034.jpg" })
-          .returning("id")
-          .executeTakeFirstOrThrow();
-
-        expect(await printingImagesRepo(trx).deleteOrphanedImageFiles()).toBeGreaterThanOrEqual(1);
-
-        const survivor = await trx
-          .selectFrom("imageFiles")
-          .select("id")
-          .where("id", "=", orphan.id)
-          .executeTakeFirst();
-        expect(survivor).toBeUndefined();
-
-        throw new Error("rollback");
-      }),
-    ).rejects.toThrow("rollback");
   });
 });

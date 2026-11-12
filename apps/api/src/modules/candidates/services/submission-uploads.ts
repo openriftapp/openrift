@@ -1,6 +1,7 @@
 import { extname, join } from "node:path";
 
 import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";
+import { errorMessage } from "@openrift/shared/strings";
 
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
@@ -96,7 +97,7 @@ export async function discardSubmissionUploads(
       }
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.error(`[submission-uploads] Cleanup failed for candidate ${candidateCardId}:`, message);
   }
 }

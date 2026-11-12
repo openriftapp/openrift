@@ -44,9 +44,8 @@ const CANCELLABLE_KINDS: Partial<
   "playloltcg:recheck": "meta.playloltcg_recheck",
   "topdeck:backfill": "meta.topdeck_backfill",
   "playriftbound:backfill": "meta.playriftbound_backfill",
+  "playriftbound:recheck": "meta.playriftbound_recheck",
 };
-
-const UNSTOPPABLE_RECHECKS: ReadonlySet<MetaSource> = new Set(["playloltcg", "playriftbound"]);
 
 const STATUS_RUN_LIMIT = 25;
 
@@ -74,7 +73,10 @@ export const adminMetaCatalogRouter = {
         continue;
       }
       try {
-        await row.publish();
+        if ((await row.publish()) === null) {
+          skipped++;
+          continue;
+        }
         published.push(key);
       } catch (error) {
         // An unmapped format needs a pick per row; the rest of the batch still goes.
@@ -96,20 +98,22 @@ export const adminMetaCatalogRouter = {
   bulkReject: os.bulkReject.handler(async ({ input, context }) => {
     const mirror = MIRRORS[input.source];
     const keys: string[] = [];
+    let skipped = 0;
     for (const key of new Set(input.keys)) {
       const row = await mirror.row(context, key);
-      if (row?.triage === "new") {
+      if (row?.triage === "new" && (await row.dismiss())) {
         keys.push(key);
+      } else {
+        skipped++;
       }
     }
-    await context.repos.metaOverlays.ignoreEvents(mirror.provider, keys);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss-bulk",
       entityType: "meta-catalog",
       entityId: mirror.provider,
-      newValues: { rejected: keys },
+      newValues: { rejected: keys, skipped },
     });
-    return { rejected: keys };
+    return { rejected: keys, skipped };
   }),
 
   bulkRestore: os.bulkRestore.handler(async ({ input, context }) => {
@@ -299,13 +303,6 @@ export const adminMetaCatalogRouter = {
 
   cancelRun: os.cancelRun.handler(async ({ input, context }) => {
     const { source, job } = input;
-    if (job === "recheck" && UNSTOPPABLE_RECHECKS.has(source)) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `The ${source} recheck cannot be stopped: it runs without a run id, so nothing there reads the flag.`,
-      );
-    }
     const kind = CANCELLABLE_KINDS[`${source}:${job}`];
     if (kind === undefined) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, `${source} runs no ${job}`);

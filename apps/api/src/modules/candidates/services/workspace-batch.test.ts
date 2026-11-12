@@ -6,23 +6,20 @@ import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { MarketplaceConfigs } from "../../marketplace/lib/marketplace-configs.js";
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 
-vi.mock("../../catalog/services/printing-admin.js", () => ({
-  acceptPrinting: vi.fn(),
+vi.mock("./accept-candidate-printings.js", () => ({
+  acceptCandidateGroup: vi.fn(),
+  finishPrintingAccepts: vi.fn(async () => {}),
 }));
 vi.mock("./accept-gallery.js", () => ({
   acceptFavoriteNewCard: vi.fn(),
-}));
-vi.mock("./relink-candidates.js", () => ({
-  relinkCandidatePrintings: vi.fn(async () => ({ examined: 0, linked: 0 })),
 }));
 vi.mock("../../marketplace/services/marketplace-mapping.js", () => ({
   saveMappings: vi.fn(async () => ({ saved: 1, skipped: [] })),
 }));
 
-import { acceptPrinting } from "../../catalog/services/printing-admin.js";
 import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
+import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "./accept-gallery.js";
-import { relinkCandidatePrintings } from "./relink-candidates.js";
 import {
   acceptTrustedCards,
   acceptTrustedPrintings,
@@ -117,6 +114,17 @@ function makeRepos(over: { printings?: unknown[]; probes?: unknown[] } = {}) {
     },
     catalog: { refreshCatalogViews: vi.fn(async () => {}) },
     adminEvents: { insert: vi.fn(async () => {}) },
+    enums: {
+      all: vi.fn(async () => ({
+        languages: [{ slug: "EN" }],
+        rarities: [{ slug: "common" }, { slug: "rare" }],
+        artVariants: [{ slug: "normal" }],
+        finishes: [{ slug: "normal" }, { slug: "foil" }],
+        cardSizes: [{ slug: "standard" }],
+        markers: [],
+      })),
+    },
+    distributionChannels: { listBySlugs: vi.fn(async () => []) },
   };
 }
 
@@ -156,10 +164,14 @@ describe("trusted cards", () => {
     expect(repos.workspaceBatch.trustedNewCardDrafts).toHaveBeenCalledWith(["gallery"]);
   });
 
-  it("accepts each draft, records an event per card and reports failures", async () => {
+  it("accepts each draft, records an event per card, reports failures and finishes once", async () => {
+    const created = [{ printingId: "printing-1", imageIds: [] }];
     vi.mocked(acceptFavoriteNewCard)
       .mockRejectedValueOnce(new Error("Card already exists"))
-      .mockResolvedValueOnce({ cardSlug: "poro-herder", printingsCreated: 1, skipped: [] });
+      .mockImplementationOnce(async (_transact, _repos, _name, _providers, sink) => {
+        sink.push(...created);
+        return { cardSlug: "poro-herder", printingsCreated: 1, skipped: [] };
+      });
     const repos = makeRepos({ printings });
 
     const result = await acceptTrustedCards(asRepos(repos), context());
@@ -173,7 +185,41 @@ describe("trusted cards", () => {
     expect(repos.adminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({ action: "card.accept-favorites", cardSlug: "poro-herder" }),
     );
-    expect(repos.catalog.refreshCatalogViews).toHaveBeenCalledTimes(1);
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, created, {
+      catalogChanged: true,
+    });
+  });
+
+  it("still finishes the printings a draft created before it failed", async () => {
+    const created = [{ printingId: "printing-1", imageIds: ["img-1"] }];
+    vi.mocked(acceptFavoriteNewCard).mockImplementation(
+      async (_transact, _repos, _name, _providers, sink) => {
+        sink.push(...created);
+        throw new Error("connection reset");
+      },
+    );
+    const repos = makeRepos({ printings });
+
+    const result = await acceptTrustedCards(asRepos(repos), context());
+
+    expect(result.accepted).toBe(0);
+    expect(result.skipped).toContainEqual({ name: "Poro Herder", reason: "connection reset" });
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [...created, ...created], {
+      catalogChanged: false,
+    });
+  });
+
+  it("refreshes the views for cards accepted without printings", async () => {
+    vi.mocked(acceptFavoriteNewCard).mockResolvedValue({
+      cardSlug: "poro-herder",
+      printingsCreated: 0,
+      skipped: [],
+    });
+    const repos = makeRepos({ printings });
+
+    await acceptTrustedCards(asRepos(repos), context());
+
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [], { catalogChanged: true });
   });
 
   it("skips the view refresh when nothing was accepted", async () => {
@@ -182,7 +228,7 @@ describe("trusted cards", () => {
       accepted: 0,
       skipped: [],
     });
-    expect(repos.catalog.refreshCatalogViews).not.toHaveBeenCalled();
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [], { catalogChanged: false });
   });
 });
 
@@ -211,8 +257,12 @@ describe("trusted printings", () => {
     });
   });
 
-  it("accepts each group as new, records events and relinks once", async () => {
-    vi.mocked(acceptPrinting).mockResolvedValueOnce("printing-1");
+  it("accepts each group as new, records events and finishes once", async () => {
+    const created = { printingId: "printing-1", imageIds: [] };
+    vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
+      printing: created,
+      fields: { shortCode: "OGN-027" } as never,
+    });
     const repos = makeRepos({ printings, probes });
 
     const result = await acceptTrustedPrintings(asRepos(repos), context());
@@ -222,24 +272,40 @@ describe("trusted printings", () => {
       { label: "poro OGN-030 normal EN", reason: "missing: rarity" },
       { label: "poro OGN-031 normal EN", reason: "possible duplicate of OGN-031" },
     ]);
-    expect(acceptPrinting).toHaveBeenCalledWith(
-      transact,
-      repos,
-      "card-1",
-      expect.objectContaining({ shortCode: "OGN-027" }),
-      ["p1", "p2"],
-      io,
-      { requireNew: true, secondFaceId: null },
-    );
+    expect(acceptCandidateGroup).toHaveBeenCalledWith(transact, "card-1", [
+      expect.objectContaining({ id: "p1" }),
+      expect.objectContaining({ id: "p2" }),
+    ]);
     expect(repos.adminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({ action: "printing.accept", entityId: "printing-1" }),
     );
-    expect(repos.catalog.refreshCatalogViews).toHaveBeenCalledTimes(1);
-    expect(relinkCandidatePrintings).toHaveBeenCalledTimes(1);
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, [created]);
+  });
+
+  it("previews a group with a value no admin list holds as ineligible", async () => {
+    const repos = makeRepos({ printings: [printing("p1", { finish: "glossy" })] });
+
+    expect(await previewTrustedPrintings(asRepos(repos), ADMIN)).toEqual({ count: 0, items: [] });
+    const result = await acceptTrustedPrintings(asRepos(repos), context());
+    expect(result.skipped).toEqual([
+      { label: "poro OGN-027 glossy EN", reason: 'not on an admin list: finish "glossy"' },
+    ]);
+    expect(acceptCandidateGroup).not.toHaveBeenCalled();
+  });
+
+  it("skips a group without a public code", async () => {
+    const repos = makeRepos({ printings: [printing("p1", { publicCode: null })] });
+
+    const result = await acceptTrustedPrintings(asRepos(repos), context());
+
+    expect(result.skipped).toEqual([
+      { label: "poro OGN-027 normal EN", reason: "missing: publicCode" },
+    ]);
+    expect(acceptCandidateGroup).not.toHaveBeenCalled();
   });
 
   it("reports a conflict as skipped", async () => {
-    vi.mocked(acceptPrinting).mockRejectedValueOnce(new Error("already has a printing"));
+    vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({ reason: "already has a printing" });
     const repos = makeRepos({ printings: [printing("p1")] });
 
     const result = await acceptTrustedPrintings(asRepos(repos), context());
@@ -248,7 +314,7 @@ describe("trusted printings", () => {
       accepted: 0,
       skipped: [{ label: "poro OGN-027 normal EN", reason: "already has a printing" }],
     });
-    expect(relinkCandidatePrintings).not.toHaveBeenCalled();
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, []);
   });
 });
 

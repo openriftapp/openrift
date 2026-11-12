@@ -1,7 +1,7 @@
 import type { Repos } from "../../../../deps.js";
+import { DAY_MS } from "../../lib/meta-durations.js";
 import { nameSimilarity } from "../meta-match-suggestions.js";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MAX_DAY_DELTA = 1;
 const MIN_STORE_SIMILARITY = 0.75;
 const MIN_NAME_SIMILARITY = 0.5;
@@ -37,7 +37,7 @@ export function findSameStoreEvent<T extends SameStoreLiveEvent>(
   return live.find(
     (event) =>
       event.organizer !== null &&
-      Math.abs(dayOf(event.eventDate) - day) <= MAX_DAY_DELTA * MS_PER_DAY &&
+      Math.abs(dayOf(event.eventDate) - day) <= MAX_DAY_DELTA * DAY_MS &&
       nameSimilarity(store, event.organizer) >= MIN_STORE_SIMILARITY &&
       nameSimilarity(candidate.name, event.name) >= MIN_NAME_SIMILARITY,
   );
@@ -56,7 +56,7 @@ export async function sameStoreLiveEvent(
     return undefined;
   }
   const day = dayOf(candidate.eventDate);
-  const shift = (days: number) => new Date(day + days * MS_PER_DAY).toISOString().slice(0, 10);
+  const shift = (days: number) => new Date(day + days * DAY_MS).toISOString().slice(0, 10);
   const rows = await repos.meta.eventsAtStoresOutside({
     dateFrom: shift(-MAX_DAY_DELTA),
     dateTo: shift(MAX_DAY_DELTA),

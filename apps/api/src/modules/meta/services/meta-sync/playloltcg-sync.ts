@@ -1,5 +1,8 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import { recordCapped } from "../../../../lib/json-coerce.js";
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../../lib/meta-providers.js";
+import { DAY_MS, HOUR_MS, shiftDays } from "../../lib/meta-durations.js";
 import {
   DECKLIST_PUBLISHED,
   firstRevisit,
@@ -16,30 +19,32 @@ import type {
   PlayloltcgRecheckRow,
   PlayloltcgUpsertInput,
 } from "../../repositories/playloltcg-events.js";
-import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
-import { errorText } from "./deps.js";
+import { createCrawlRun } from "./crawl-run.js";
+import { clock } from "./deps.js";
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
-import { MAX_PAGE_SIZE, PlayloltcgBlockedError } from "./playloltcg-client.js";
+import { MAX_PAGE_SIZE } from "./playloltcg-client.js";
 import type { PlayloltcgDeepFetchResult, PlayloltcgDetailFacts } from "./playloltcg-deep-fetch.js";
 import { playloltcgDeepFetch, readPlayloltcgDetail } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
-import { clock } from "./playloltcg-deps.js";
+import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
+import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
-import { cooldownUntil } from "./source-cooldown.js";
+import { createRunHeartbeat } from "./run-heartbeat.js";
+import { isTransientSourceFailure, sourceStopOf } from "./source-http.js";
+import type { SourceStopFields } from "./source-stop.js";
+import { applySourceStop } from "./source-stop.js";
+import { isRecheckPassNoop, isSyncNoop } from "./sync-noop.js";
 
 const EVENTS_PATH = "/xcx/activityShop/page";
 const SHOPS_PATH = "/xcx/shop/searchShop";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const SYNC_LOOKBACK_DAYS = 7;
 const RECENT_LISTING_DAYS = 3;
 const FUTURE_HORIZON_DAYS = 730;
 const BACKFILL_CHUNK_DAYS = 14;
 const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 
-const HOUR_MS = 60 * 60 * 1000;
-const BACKOFF_MS = 30 * 60 * 1000;
 const BLOCKED_EVENT_DEFER_MS = 24 * HOUR_MS;
 
 const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * 60 * 1000;
@@ -51,80 +56,67 @@ const MIN_DECKS_PER_VISIT = 20;
 
 const RECHECK_PAGE_SIZE = 50;
 
-const MAX_FAILED_VISITS_IN_A_ROW = 5;
-
 const DECK_CONTINUE_MS = 60 * 1000;
 
-export interface PlayloltcgSyncResult extends MetaSyncResultBase {
+export interface PlayloltcgSyncResult extends MetaSyncResultBase, SourceStopFields {
   shops: number;
-  blocked: boolean;
-  blockedUntil: string | null;
 }
 
 function emptyResult(): PlayloltcgSyncResult {
-  return { ...emptyMetaSyncResult(), shops: 0, blocked: false, blockedUntil: null };
+  return {
+    ...emptyMetaSyncResult(),
+    shops: 0,
+    blocked: false,
+    blockedUntil: null,
+    pausedUntil: null,
+  };
 }
 
 export function isPlayloltcgSyncNoop(result: PlayloltcgSyncResult): boolean {
-  return (
-    result.inserted === 0 &&
-    result.changed === 0 &&
-    result.missing === 0 &&
-    result.autoAccepted === 0 &&
-    !result.blocked
-  );
+  return isSyncNoop(result);
 }
 
-export interface PlayloltcgRecheckResult {
-  due: number;
-  processed: number;
-  requests: number;
+export interface PlayloltcgRecheckResult extends RecheckPassResult {
   fetched: number;
   players: number;
   decks: number;
   acceptedPlayers: number;
   listed: number | null;
   pulledForward: number;
-  backedOff: boolean;
-  blocked: boolean;
-  blockedUntil: string | null;
-  errors: string[];
 }
 
 export interface PlayloltcgRecheckOptions {
   /** Wall-clock milliseconds; the pass stops between two events once it is spent. */
   budgetMs?: number;
   listing?: boolean;
+  runId?: string;
 }
 
 export function isPlayloltcgRecheckNoop(result: PlayloltcgRecheckResult): boolean {
-  return (
-    result.processed === 0 &&
-    result.pulledForward === 0 &&
-    !result.blocked &&
-    result.errors.length === 0
-  );
+  return isRecheckPassNoop(result);
 }
 
 function day(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function shift(from: Date, days: number): Date {
-  return new Date(from.getTime() + days * DAY_MS);
-}
-
-function markBlocked(
+function absorbStop(
   deps: PlayloltcgSyncDeps,
-  result: PlayloltcgSyncResult,
+  result: SourceStopFields & { errors: string[] },
   now: Date,
-  error: PlayloltcgBlockedError,
-): void {
-  deps.log.warn({ err: error }, "playloltcg WAF block");
-  result.blocked = true;
-  result.complete = false;
-  result.blockedUntil = cooldownUntil(now);
-  recordCapped(result.errors, [error.message]);
+  error: unknown,
+): boolean {
+  const stop = sourceStopOf(error);
+  if (stop !== null) {
+    deps.log.warn({ err: error }, "playloltcg stopped the run");
+    recordCapped(result.errors, [applySourceStop(result, stop, now, error)]);
+    return true;
+  }
+  if (isTransientSourceFailure(error)) {
+    recordCapped(result.errors, [`Stopped: ${errorMessage(error)}`]);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -175,9 +167,9 @@ async function crawlWindow(
     ]);
     return;
   }
-  const mid = shift(from, Math.floor(days / 2));
+  const mid = shiftDays(from, Math.floor(days / 2));
   await crawlWindow(deps, result, from, mid, seenAt, touched);
-  await crawlWindow(deps, result, shift(mid, 1), to, seenAt, touched);
+  await crawlWindow(deps, result, shiftDays(mid, 1), to, seenAt, touched);
 }
 
 async function syncShops(deps: PlayloltcgSyncDeps, result: PlayloltcgSyncResult): Promise<void> {
@@ -205,6 +197,7 @@ async function finish(
 ): Promise<void> {
   const auto = await autoAcceptPlayloltcgEvents(deps, [...new Set(touched)]);
   result.autoAccepted = auto.accepted;
+  result.autoHeld = auto.held;
   recordCapped(result.errors, auto.errors);
   result.requests = deps.client.requests;
 }
@@ -214,11 +207,11 @@ export async function syncPlayloltcgCatalog(
 ): Promise<PlayloltcgSyncResult> {
   const result = emptyResult();
   const now = clock(deps);
-  const from = shift(now, -SYNC_LOOKBACK_DAYS);
+  const from = shiftDays(now, -SYNC_LOOKBACK_DAYS);
   const touched: number[] = [];
   try {
     await syncShops(deps, result);
-    await crawlWindow(deps, result, from, shift(now, FUTURE_HORIZON_DAYS), now, touched);
+    await crawlWindow(deps, result, from, shiftDays(now, FUTURE_HORIZON_DAYS), now, touched);
     // A gap in coverage looks identical to a row the source stopped listing, so
     // only a run that covered the whole window may mark a stored row missing.
     if (result.complete) {
@@ -230,11 +223,10 @@ export async function syncPlayloltcgCatalog(
       });
     }
   } catch (error) {
-    if (error instanceof PlayloltcgBlockedError) {
-      markBlocked(deps, result, now, error);
-    } else {
+    if (!absorbStop(deps, result, now, error)) {
       throw error;
     }
+    result.complete = false;
   }
   await finish(deps, result, touched);
   return result;
@@ -284,7 +276,7 @@ async function refreshRecentListing(
 ): Promise<void> {
   const listing = emptyResult();
   const touched: number[] = [];
-  await crawlWindow(deps, listing, shift(now, -RECENT_LISTING_DAYS), now, now, touched);
+  await crawlWindow(deps, listing, shiftDays(now, -RECENT_LISTING_DAYS), now, now, touched);
   const unique = [...new Set(touched)];
   const auto = await autoAcceptPlayloltcgEvents(deps, unique);
   result.listed = listing.rows;
@@ -301,103 +293,56 @@ export async function processPlayloltcgRechecks(
   options: PlayloltcgRecheckOptions = {},
 ): Promise<PlayloltcgRecheckResult> {
   const { budgetMs = PLAYLOLTCG_RECHECK_BUDGET_MS } = options;
-  const deadline = performance.now() + budgetMs;
-  const before = deps.client.requests;
-  const spent = () => deps.client.requests - before;
   const now = clock(deps);
   const result: PlayloltcgRecheckResult = {
-    due: 0,
-    processed: 0,
-    requests: 0,
+    ...emptyRecheckPassResult(),
     fetched: 0,
     players: 0,
     decks: 0,
     acceptedPlayers: 0,
     listed: null,
     pulledForward: 0,
-    backedOff: false,
-    blocked: false,
-    blockedUntil: null,
-    errors: [],
   };
-
-  let failedInARow = 0;
-  // A row a failed write left due must not be visited twice in one pass.
-  const visited = new Set<number>();
-  let stopped = false;
-  try {
-    if (options.listing === true) {
-      await refreshRecentListing(deps, now, result);
-    }
-    while (!stopped && spent() < PLAYLOLTCG_RUN_REQUESTS && performance.now() < deadline) {
-      const due = await deps.repos.playloltcgEvents.dueForRecheck(clock(deps), RECHECK_PAGE_SIZE);
-      const fresh = due.filter((row) => !visited.has(row.activityShopId));
-      if (fresh.length === 0) {
-        break;
+  return await runRecheckPass({
+    result,
+    heartbeat: createRunHeartbeat(deps, options.runId),
+    log: deps.log,
+    now: () => clock(deps),
+    budgetMs,
+    requests: () => deps.client.requests,
+    maxRequests: PLAYLOLTCG_RUN_REQUESTS,
+    pageSize: RECHECK_PAGE_SIZE,
+    prepare: async () => {
+      if (options.listing === true) {
+        await refreshRecentListing(deps, now, result);
       }
-      for (const row of fresh) {
-        visited.add(row.activityShopId);
-        result.due++;
-        const deckBudget = Math.max(MIN_DECKS_PER_VISIT, PLAYLOLTCG_RUN_REQUESTS - spent());
-        const failed = await visitContained(deps, row, clock(deps), result, deckBudget);
-        failedInARow = failed ? failedInARow + 1 : 0;
-        if (failedInARow >= MAX_FAILED_VISITS_IN_A_ROW) {
-          result.backedOff = true;
-          result.blockedUntil = new Date(clock(deps).getTime() + BACKOFF_MS).toISOString();
-          recordCapped(result.errors, [
-            `Stopped after ${failedInARow} visits in a row failed; pausing for 30 minutes.`,
-          ]);
-        }
-        if (
-          result.backedOff ||
-          spent() >= PLAYLOLTCG_RUN_REQUESTS ||
-          performance.now() >= deadline
-        ) {
-          stopped = true;
-          break;
-        }
-      }
-    }
-  } catch (error) {
-    if (error instanceof PlayloltcgBlockedError) {
-      deps.log.warn({ err: error }, "playloltcg WAF block");
-      result.blocked = true;
-      result.blockedUntil = cooldownUntil(now);
-      recordCapped(result.errors, [error.message]);
-    } else {
-      throw error;
-    }
-  }
-  result.requests = spent();
-  return result;
-}
-
-/**
- * Catches everything but a block, so one event's failure can't starve the rows behind it.
- * A blocked event moves past the cool-down; left due, every later run starts on it.
- */
-async function visitContained(
-  deps: PlayloltcgSyncDeps,
-  row: PlayloltcgRecheckRow,
-  now: Date,
-  result: PlayloltcgRecheckResult,
-  deckBudget: number,
-): Promise<boolean> {
-  try {
-    return await visitPlayloltcgEvent(deps, row, now, result, deckBudget);
-  } catch (error) {
-    if (error instanceof PlayloltcgBlockedError) {
-      await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
-        nextCheckAt: new Date(now.getTime() + BLOCKED_EVENT_DEFER_MS),
+    },
+    due: (at, limit) => deps.repos.playloltcgEvents.dueForRecheck(at, limit),
+    keyOf: (row) => row.activityShopId,
+    visit: (row, at, spent) =>
+      visitPlayloltcgEvent(
+        deps,
+        row,
+        at,
+        result,
+        Math.max(MIN_DECKS_PER_VISIT, PLAYLOLTCG_RUN_REQUESTS - spent),
+      ),
+    grace: (row, at) => grace(deps, row.activityShopId, at, row.checkStage),
+    drop: (row) =>
+      deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
+        nextCheckAt: null,
         checkStage: row.checkStage,
-      });
-      throw error;
-    }
-    deps.log.warn({ err: error, activityShopId: row.activityShopId }, "Recheck visit failed");
-    result.errors.push(errorText(error, `Event ${row.activityShopId}`));
-    await grace(deps, row.activityShopId, now, row.checkStage);
-    return true;
-  }
+      }),
+    stopOf: sourceStopOf,
+    deferOnStop: async (row, stop, at) => {
+      if (stop === "block") {
+        await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
+          nextCheckAt: new Date(at.getTime() + BLOCKED_EVENT_DEFER_MS),
+          checkStage: row.checkStage,
+        });
+      }
+    },
+  });
 }
 
 async function visitPlayloltcgEvent(
@@ -406,13 +351,15 @@ async function visitPlayloltcgEvent(
   now: Date,
   result: PlayloltcgRecheckResult,
   deckBudget: number,
-): Promise<boolean> {
+): Promise<VisitOutcome> {
   const detailErrors: string[] = [];
-  const detail = await readPlayloltcgDetail(deps, row.activityShopId, detailErrors);
+  const detail = await readPlayloltcgDetail(deps, row.activityShopId, detailErrors, {
+    rethrowRefusal: true,
+  });
   recordCapped(result.errors, detailErrors);
   if (detail === null) {
     await grace(deps, row.activityShopId, now, row.checkStage);
-    return true;
+    return "failed";
   }
   if (detail.shopId !== null) {
     await deps.repos.playloltcgEvents.linkShopFromDetail(row.activityShopId, {
@@ -454,7 +401,7 @@ async function visitPlayloltcgEvent(
   if (!decision.deepFetch) {
     await advance();
     result.processed++;
-    return false;
+    return "ok";
   }
 
   const fetched = await playloltcgDeepFetch(deps, row, detail, deckBudget);
@@ -465,13 +412,13 @@ async function visitPlayloltcgEvent(
   recordCapped(result.errors, fetched.errors);
   if (!fetched.complete) {
     await grace(deps, row.activityShopId, now, row.checkStage);
-    return true;
+    return "failed";
   }
   await (fetched.decksRemaining > 0
     ? resumeSoon(deps, row.activityShopId, now, row.checkStage)
     : advance());
   result.processed++;
-  return false;
+  return "ok";
 }
 
 /** A manual fetch of published results counts as the event's first finished visit. */
@@ -523,7 +470,7 @@ export async function backfillPlayloltcg(
 ): Promise<PlayloltcgSyncResult> {
   const result = emptyResult();
   const now = clock(deps);
-  const to = shift(now, FUTURE_HORIZON_DAYS);
+  const to = shiftDays(now, FUTURE_HORIZON_DAYS);
   const resumeFrom = options.resumeFrom;
   let from = resumeFrom === undefined ? ARCHIVE_START : new Date(resumeFrom.getTime() + DAY_MS);
   if (resumeFrom !== undefined) {
@@ -531,30 +478,28 @@ export async function backfillPlayloltcg(
     result.coveredThrough = day(resumeFrom);
   }
   const touched: number[] = [];
+  const run = createCrawlRun({
+    result,
+    heartbeat: createRunHeartbeat(deps, runId),
+    requests: () => deps.client.requests,
+  });
   try {
     await syncShops(deps, result);
     while (from.getTime() <= to.getTime()) {
-      const chunkTo = shift(from, BACKFILL_CHUNK_DAYS - 1);
+      if (!(await run.tick())) {
+        break;
+      }
+      const chunkTo = shiftDays(from, BACKFILL_CHUNK_DAYS - 1);
       const windowTo = chunkTo.getTime() > to.getTime() ? to : chunkTo;
       await crawlWindow(deps, result, from, windowTo, now, touched);
       result.coveredThrough = day(windowTo);
-      from = shift(windowTo, 1);
-      if (runId !== undefined) {
-        result.requests = deps.client.requests;
-        if (await runCancelRequested(deps.repos.jobRuns, runId)) {
-          result.cancelRequested = true;
-          result.complete = false;
-          break;
-        }
-        await writeRunHeartbeat(deps.repos.jobRuns, runId, result, clock(deps));
-      }
+      from = shiftDays(windowTo, 1);
     }
   } catch (error) {
-    if (error instanceof PlayloltcgBlockedError) {
-      markBlocked(deps, result, now, error);
-    } else {
+    if (!absorbStop(deps, result, now, error)) {
       throw error;
     }
+    result.complete = false;
   }
   await finish(deps, result, touched);
   return result;

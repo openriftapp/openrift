@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPrintingLinkKey } from "./printing-link-key.js";
+import { buildPrintingLinkKey, buildSizedPrintingLinkKey } from "./printing-link-key.js";
 
 describe("buildPrintingLinkKey", () => {
   it("uppercases the short code so source casing never blocks a match", () => {
@@ -40,5 +40,21 @@ describe("buildPrintingLinkKey", () => {
         language: null,
       }),
     ).toBe("OGN-001:normal::EN");
+  });
+});
+
+describe("buildSizedPrintingLinkKey", () => {
+  const base = { shortCode: "OGN-001", finish: "normal", markerSlugs: [], language: "EN" };
+
+  it("tells a standard printing from an oversized one", () => {
+    expect(buildSizedPrintingLinkKey({ ...base, size: "standard" })).not.toBe(
+      buildSizedPrintingLinkKey({ ...base, size: "oversized" }),
+    );
+  });
+
+  it("treats a missing size as standard", () => {
+    expect(buildSizedPrintingLinkKey({ ...base, size: null })).toBe(
+      buildSizedPrintingLinkKey({ ...base, size: "standard" }),
+    );
   });
 });

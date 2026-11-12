@@ -142,11 +142,11 @@ const acceptNewCardFn = createServerFn({ method: "POST" })
 const acceptFavoritesFn = createServerFn({ method: "POST" })
   .validator((input: { name: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminCardMutationsContract, context.cookie).acceptFavoriteNewCard({
+  .handler(({ context, data }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).acceptFavoriteNewCard({
       name: data.name,
-    });
-  });
+    }),
+  );
 
 const linkCardFn = createServerFn({ method: "POST" })
   .validator((input: { name: string; cardId: string }) => input)
@@ -438,9 +438,7 @@ export function useCreatePrinting() {
 
 export function useAcceptFavoriteNewCard() {
   return useMutationWithInvalidation({
-    mutationFn: async (name: string) => {
-      await acceptFavoritesFn({ data: { name } });
-    },
+    mutationFn: (name: string) => acceptFavoritesFn({ data: { name } }),
     invalidates: (name) => [
       adminKeys.cards.unmatched(name),
       adminKeys.cards.list,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
 import { requestUrl } from "../../../../test/request-url.js";
+import { SourceBlockedError } from "./source-http.js";
 import {
   createTopdeckClient,
   TopdeckRefusedError,
@@ -13,6 +14,10 @@ const SEARCH = { game: "Riftbound", format: "Constructed" };
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, { status });
+}
+
+function challenge(status: number): () => Response {
+  return () => new Response("<html><body>Checking your browser</body></html>", { status });
 }
 
 function harness(responses: (() => Response)[]) {
@@ -128,6 +133,19 @@ describe("createTopdeckClient", () => {
 
     await expect(client.searchTournaments(SEARCH)).rejects.toBeInstanceOf(TopdeckRefusedError);
   });
+
+  it.each([200, 403])(
+    "treats an HTML challenge page with status %i as a source block, never a refusal",
+    async (status) => {
+      const { client } = harness([challenge(status)]);
+
+      const error = await client.searchTournaments(SEARCH).catch((error_: unknown) => error_);
+
+      expect(error).toBeInstanceOf(SourceBlockedError);
+      expect(error).not.toBeInstanceOf(TopdeckRefusedError);
+      expect(client.requests).toBe(2);
+    },
+  );
 
   it("counts every request it made, for the run summary", async () => {
     const { client } = harness([() => json([])]);

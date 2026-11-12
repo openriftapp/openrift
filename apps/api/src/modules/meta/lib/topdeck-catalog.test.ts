@@ -2,7 +2,6 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
 import {
-  legendFromTopdeckLines,
   projectTopdeckDeckLines,
   projectTournament,
   referencedShortCodes,
@@ -275,24 +274,6 @@ describe("projectTopdeckDeckLines", () => {
       bridge,
     );
     expect(lines.map((line) => line.lineNumber)).toEqual([0, 1]);
-  });
-});
-
-describe("legendFromTopdeckLines", () => {
-  it("reads the legend off the deck's own Legend line", () => {
-    const lines = projectTopdeckDeckLines(
-      {
-        Legend: { "Lee Sin, Blind Monk": { count: 1 } },
-        Mainboard: { Gust: { count: 3 } },
-      },
-      new Map(),
-    );
-    expect(legendFromTopdeckLines(lines)).toBe("Lee Sin, Blind Monk");
-  });
-
-  it("says nothing for a list with no legend line", () => {
-    const lines = projectTopdeckDeckLines({ Mainboard: { Gust: { count: 3 } } }, new Map());
-    expect(legendFromTopdeckLines(lines)).toBeNull();
   });
 });
 

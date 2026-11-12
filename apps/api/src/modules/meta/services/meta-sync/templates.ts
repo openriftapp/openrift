@@ -1,6 +1,8 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import { projectTemplateRows } from "../../lib/uvsgames-catalog.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { errorText, GAME_SLUG, TEMPLATES_PATH } from "./deps.js";
+import { GAME_SLUG, TEMPLATES_PATH } from "./deps.js";
 
 export interface MetaTemplateSyncResult {
   named: number;
@@ -18,13 +20,13 @@ export async function syncEventTemplates(deps: MetaSyncDeps): Promise<MetaTempla
     await deps.repos.uvsgamesEvents.upsertTemplates(templates);
     result.named = templates.length;
   } catch (error) {
-    result.errors.push(errorText(error, "Template vocabulary"));
+    result.errors.push(`Template vocabulary: ${errorMessage(error)}`);
   }
 
   try {
     result.retired = await deps.repos.uvsgamesEvents.discoverTemplatesFromEvents();
   } catch (error) {
-    result.errors.push(errorText(error, "Template discovery"));
+    result.errors.push(`Template discovery: ${errorMessage(error)}`);
   }
 
   return result;

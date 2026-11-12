@@ -1,7 +1,8 @@
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { stableKey } from "../../../lib/hash.js";
-import { coord, count, instant, record, text } from "../../../lib/json-coerce.js";
+import { coord, count, fraction, instant, record, text } from "../../../lib/json-coerce.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * The source publishes a GraphQL schema we cannot introspect, so every field is
@@ -213,12 +214,6 @@ function list(value: unknown): Record<string, unknown>[] {
     : [];
 }
 
-/** The source sends tiebreakers as decimal strings (`"0.4444444444444444"`). */
-function fraction(value: unknown): number | null {
-  const n = typeof value === "string" ? Number(value) : value;
-  return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1 ? n : null;
-}
-
 function positive(value: unknown): number | null {
   const n = count(value);
   return n === null || n === 0 ? null : n;
@@ -370,7 +365,7 @@ function projectStandings(
     projections.push({
       teamId,
       playerId: players.length === 1 ? text(players[0]?.id) : null,
-      playerName: names.join(" / ").slice(0, 80),
+      playerName: names.join(" / ").slice(0, META_PLAYER_NAME_MAX),
       rank: positive(standing?.rank),
       wins: count(standing?.matchWins),
       losses: count(standing?.matchLosses),
@@ -438,7 +433,7 @@ export function projectTournamentDetail(raw: unknown): PlayriftboundDetailProjec
     const observed = rounds.filter((ref) => ref.phaseOrder === index).length;
     return {
       phaseOrder: index,
-      name: text(stage.name)?.slice(0, 120) ?? null,
+      name: text(stage.name)?.slice(0, META_NAME_MAX) ?? null,
       roundType,
       roundCount: roundType === "SWISS" && roundCount !== null ? roundCount : observed || null,
       maxGameWins: maxGameWins(matchFormat),

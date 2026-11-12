@@ -1,5 +1,6 @@
 import { join } from "node:path";
 
+import { errorMessage } from "@openrift/shared/strings";
 import type {
   BrokenImagesResponse,
   CleanupOrphanedResponse,
@@ -204,7 +205,7 @@ export async function cleanupOrphanedFiles(
           await io.fs.unlink(join(prefixDir, file));
           progress.deleted++;
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = errorMessage(error);
           progress.errors.push(`${prefix}/${file}: ${message}`);
         }
       }
@@ -331,7 +332,7 @@ export async function migrateImageDirectories(io: Io): Promise<{
         progress.moved++;
       } catch (error) {
         progress.failed++;
-        const message = error instanceof Error ? error.message : String(error);
+        const message = errorMessage(error);
         progress.errors.push(`${dir.name}/${file}: ${message}`);
       }
     }

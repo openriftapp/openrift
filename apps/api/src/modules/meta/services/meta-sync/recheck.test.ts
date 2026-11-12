@@ -7,7 +7,9 @@ import { refreshRecentListing } from "./catalog-sync.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { fetchEventNow, isRecheckNoop, processRechecks } from "./recheck.js";
+import { SourceThrottledError } from "./source-http.js";
 import type { UvsClient } from "./uvsgames-client.js";
+import { UvsHttpError } from "./uvsgames-client.js";
 
 vi.mock("./deep-fetch.js", () => ({
   deepFetchEvent: vi.fn(() =>
@@ -191,6 +193,44 @@ describe("processRechecks", () => {
         checkStage: 0,
       },
     ]);
+  });
+
+  it("pauses the job on a throttle and leaves the event due", async () => {
+    const { deps, writes } = fakeDeps({
+      due: [dueRow()],
+      detail: () => new SourceThrottledError("/api/v2/events/1/"),
+    });
+
+    const result = await processRechecks(deps);
+
+    expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(result.blocked).toBe(false);
+    expect(writes).toEqual([]);
+  });
+
+  it("stops rechecking events the source deleted, without pausing the job", async () => {
+    const due = Array.from({ length: 6 }, (_, index) => dueRow({ externalId: String(index + 1) }));
+    const { deps, writes } = fakeDeps({
+      due,
+      detail: (externalId) => new UvsHttpError(404, `/api/v2/events/${externalId}/`, "Not found"),
+    });
+
+    const result = await processRechecks(deps);
+
+    expect(result.backedOff).toBe(false);
+    expect(result.dropped).toBe(6);
+    expect(writes.every((write) => write.nextCheckAt === null)).toBe(true);
+  });
+
+  it("pauses the job after five unreadable events in a row", async () => {
+    const due = Array.from({ length: 7 }, (_, index) => dueRow({ externalId: String(index + 1) }));
+    const { deps } = fakeDeps({ due, detail: () => new Error("HTTP 502") });
+
+    const result = await processRechecks(deps);
+
+    expect(result.due).toBe(5);
+    expect(result.backedOff).toBe(true);
+    expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
   });
 
   it("polls hourly once the event is under way", async () => {

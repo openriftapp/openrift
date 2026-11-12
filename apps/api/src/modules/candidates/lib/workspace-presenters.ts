@@ -37,6 +37,7 @@ import type {
   WorkspaceFaceRecordDbRow,
   WorkspacePrintingRecordDbRow,
 } from "../repositories/workspace-records.js";
+import { candidatePrintingLabel } from "./candidate-printing-accept.js";
 
 interface WorkspaceSubmissionRow {
   id: string;
@@ -258,7 +259,7 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
       itemBase("printing", "new", "new-printing", row.id, null, {
         cardSlug: row.cardSlug,
         cardName: row.cardName,
-        label: [row.shortCode, row.finish, row.language].filter(Boolean).join(" "),
+        label: candidatePrintingLabel(row),
         provider: row.provider,
         isContributor: row.provider === USER_SUBMISSION_PROVIDER,
       }),

@@ -1,4 +1,5 @@
 import { appendSetTotal } from "@openrift/shared/fix-typography";
+import { REQUIRED_ACCEPT_PRINTING_FIELDS } from "@openrift/shared/printing-accept";
 import { setSlugFromShortCode, shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import { pluralize, stringifyUnknown } from "@openrift/shared/strings";
@@ -27,6 +28,7 @@ import type {
 import { CandidateSpreadsheet } from "@/features/admin/components/candidate-spreadsheet";
 import {
   buildPreseededActivePrinting,
+  hasRequiredPrintingFields,
   buildPrintingNormalizer,
   unknownOptionValues,
   useCardDetailData,
@@ -47,16 +49,6 @@ function withDerivedCodes(record: Record<string, unknown>): Record<string, unkno
     ...(setId === null ? {} : { setId }),
   };
 }
-
-const REQUIRED_PRINTING_KEYS = [
-  "rarity",
-  "artVariant",
-  "isSigned",
-  "finish",
-  "language",
-  "artist",
-  "publicCode",
-];
 
 interface NewPrintingColumnActionsProps {
   row?: CandidateCardResponse | CandidatePrintingResponse;
@@ -229,15 +221,11 @@ export function NewPrintingGroupCard({
 
   const unknownValues = unknownOptionValues(group.candidates, printingFields, providerLabels);
 
-  const hasRequired = REQUIRED_PRINTING_KEYS.every((k) => {
-    const v = activePrinting[k];
-    return v !== undefined && v !== null && v !== "";
-  });
-
   const markerSlugs = Array.isArray(activePrinting.markerSlugs)
     ? (activePrinting.markerSlugs as string[])
     : [];
   const derivedPrinting = withDerivedCodes(activePrinting);
+  const hasRequired = hasRequiredPrintingFields(derivedPrinting);
   const derivedShortCode = derivedPrinting.shortCode;
   const printingLabel =
     hasRequired && typeof derivedShortCode === "string"
@@ -373,7 +361,7 @@ export function NewPrintingGroupCard({
               <CandidateSpreadsheet
                 key={group.candidates.map((s) => s.id).join(",")}
                 fields={printingFields}
-                requiredKeys={REQUIRED_PRINTING_KEYS}
+                requiredKeys={[...REQUIRED_ACCEPT_PRINTING_FIELDS]}
                 activeRow={Object.keys(activePrinting).length > 0 ? activePrinting : null}
                 candidateRows={group.candidates}
                 providerLabels={providerLabels}

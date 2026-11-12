@@ -1,14 +1,19 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Transact } from "../../../deps.js";
-import type { Io } from "../../../io.js";
+import { candidatePrintingRow } from "../../../test/candidate-printing-row.js";
+import type { NewPrinting } from "../../catalog/services/printing-admin.js";
 import { acceptFavoriteNewCard } from "./accept-gallery.js";
 
-vi.mock("../../catalog/services/printing-admin.js", () => ({
-  acceptPrinting: vi.fn(async () => "printing-slug"),
+vi.mock("./accept-candidate-printings.js", () => ({
+  acceptCandidateGroups: vi.fn(),
+}));
+vi.mock("./relink-candidates.js", () => ({
+  relinkCandidatePrintings: vi.fn(async () => ({ examined: 0, linked: 0 })),
 }));
 
-import { acceptPrinting } from "../../catalog/services/printing-admin.js";
+import { acceptCandidateGroups } from "./accept-candidate-printings.js";
+import { relinkCandidatePrintings } from "./relink-candidates.js";
 
 const FAVORITE_PROVIDERS = new Set(["gallery", "tcgplayer"]);
 
@@ -22,7 +27,7 @@ function makeCandidate(overrides: Record<string, unknown> = {}) {
     name: "Flame Striker",
     shortCode: "OGN-001",
     provider: "gallery",
-    type: "unit",
+    types: ["unit"],
     superTypes: ["Elemental"],
     domains: ["Fire"],
     might: 3,
@@ -34,41 +39,19 @@ function makeCandidate(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeCandidatePrinting(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "cp-1",
-    shortCode: "OGN-001",
-    setId: "ogn",
-    setName: "Origins",
-    rarity: "common",
-    artVariant: "normal",
-    isSigned: false,
-    markerSlugs: [] as string[],
-    finish: "normal",
-    artist: "Artist A",
-    publicCode: "001",
-    printedRulesText: null,
-    printedEffectText: null,
-    flavorText: null,
-    imageUrl: "https://example.com/img.png",
-    ...overrides,
-  };
-}
-
 function createMockRepos(
   overrides: {
     candidates?: ReturnType<typeof makeCandidate>[];
-    candidatePrintings?: ReturnType<typeof makeCandidatePrinting>[];
     existingCard?: { id: string } | null;
   } = {},
 ) {
   const candidates = overrides.candidates ?? [makeCandidate()];
-  const printings = overrides.candidatePrintings ?? [makeCandidatePrinting()];
+  const printings = [candidatePrintingRow("cp-1")];
   const existingCard = overrides.existingCard ?? null;
 
   const candidateCards = {
     candidateCardsByNormName: vi.fn(async () => candidates),
-    allCandidatePrintingsForCandidateCards: vi.fn(async () => printings),
+    acceptableCandidatePrintings: vi.fn(async () => printings),
     checkCandidateCard: vi.fn(async () => {}),
   };
 
@@ -78,187 +61,125 @@ function createMockRepos(
     createNameAliases: vi.fn(async () => {}),
   };
 
-  const printingImages = {} as any;
-  const distributionChannels = {} as any;
-  const markers = {} as any;
+  const repos = { candidateCards, catalogMutations, ingest: {} } as unknown as Parameters<
+    typeof acceptFavoriteNewCard
+  >[1];
 
-  const repos = {
-    candidateCards,
-    catalogMutations,
-    printingImages,
-    distributionChannels,
-    markers,
-  } as unknown as Parameters<typeof acceptFavoriteNewCard>[2];
-
-  return { repos, candidateCards, catalogMutations };
+  return { repos, candidateCards, catalogMutations, printings };
 }
 
 describe("acceptFavoriteNewCard", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    vi.mocked(acceptPrinting).mockResolvedValue("printing-slug");
+    vi.clearAllMocks();
+    vi.mocked(acceptCandidateGroups).mockResolvedValue({
+      created: [{ printingId: "p-1", imageIds: [] }],
+      skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
+    });
   });
 
-  it("throws when no favorite candidates exist", async () => {
+  it("404s when no favorite candidates exist", async () => {
     const { repos } = createMockRepos({ candidates: [] });
-    const transact = mockTransact(repos);
 
     await expect(
-      acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS),
-    ).rejects.toThrow("No favorite-provider source found for this card");
+      acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []),
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it("filters out non-favorite providers", async () => {
     const { repos } = createMockRepos({
       candidates: [makeCandidate({ id: "c1", provider: "unknown-provider" })],
     });
-    const transact = mockTransact(repos);
 
     await expect(
-      acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS),
+      acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []),
     ).rejects.toThrow("No favorite-provider source found for this card");
   });
 
-  it("creates a new card when slug does not exist", async () => {
-    const { repos, catalogMutations } = createMockRepos();
-    const transact = mockTransact(repos);
-
-    const result = await acceptFavoriteNewCard(
-      transact,
-      {} as Io,
-      repos,
-      "flame-striker",
-      FAVORITE_PROVIDERS,
-    );
-
-    expect(catalogMutations.getCardIdBySlug).toHaveBeenCalledWith("flame-striker");
-    expect(catalogMutations.acceptNewCardFromSources).toHaveBeenCalledTimes(1);
-    expect(result.cardSlug).toBe("flame-striker");
-  });
-
-  it("links to existing card when slug already exists", async () => {
+  it("400s a source without a card type instead of failing in the database", async () => {
     const { repos, catalogMutations } = createMockRepos({
-      existingCard: { id: "card-uuid-1" },
+      candidates: [makeCandidate({ types: [] })],
     });
-    const transact = mockTransact(repos);
 
-    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
-
-    expect(catalogMutations.createNameAliases).toHaveBeenCalledWith("flame-striker", "card-uuid-1");
+    await expect(
+      acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []),
+    ).rejects.toMatchObject({ status: 400 });
     expect(catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
   });
 
-  it("passes the created card's id to acceptPrinting", async () => {
-    const { repos, catalogMutations } = createMockRepos();
-    catalogMutations.acceptNewCardFromSources.mockResolvedValue("new-card-uuid");
-    const transact = mockTransact(repos);
+  it("creates a new card and accepts its candidates onto it", async () => {
+    const { repos, catalogMutations, candidateCards, printings } = createMockRepos();
 
-    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
+    const created: NewPrinting[] = [];
+    const result = await acceptFavoriteNewCard(
+      mockTransact(repos),
+      repos,
+      "flamestriker",
+      FAVORITE_PROVIDERS,
+      created,
+    );
 
-    expect(vi.mocked(acceptPrinting).mock.calls[0]![2]).toBe("new-card-uuid");
+    expect(catalogMutations.acceptNewCardFromSources).toHaveBeenCalledTimes(1);
+    expect(relinkCandidatePrintings).not.toHaveBeenCalled();
+    expect(candidateCards.acceptableCandidatePrintings).toHaveBeenCalledWith(["cand-1"]);
+    expect(vi.mocked(acceptCandidateGroups).mock.calls[0]?.slice(1)).toEqual([
+      "new-card-uuid",
+      printings,
+    ]);
+    expect(result).toEqual({
+      cardSlug: "flame-striker",
+      printingsCreated: 1,
+      skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
+    });
+    expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
   });
 
-  it("passes the existing card's id to acceptPrinting", async () => {
-    const { repos } = createMockRepos({ existingCard: { id: "card-uuid-1" } });
-    const transact = mockTransact(repos);
+  it("hands back the printings it created when a later step throws", async () => {
+    const { repos, candidateCards } = createMockRepos();
+    candidateCards.checkCandidateCard.mockRejectedValue(new Error("connection reset"));
+    const created: NewPrinting[] = [];
 
-    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
-
-    expect(vi.mocked(acceptPrinting).mock.calls[0]![2]).toBe("card-uuid-1");
+    await expect(
+      acceptFavoriteNewCard(
+        mockTransact(repos),
+        repos,
+        "flamestriker",
+        FAVORITE_PROVIDERS,
+        created,
+      ),
+    ).rejects.toThrow("connection reset");
+    expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
   });
 
-  it("derives slug from card name regardless of shortCode variant suffix", async () => {
+  it("on an existing card, links matching candidates before accepting the rest", async () => {
+    const { repos, catalogMutations, candidateCards } = createMockRepos({
+      existingCard: { id: "card-uuid-1" },
+    });
+
+    await acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []);
+
+    expect(catalogMutations.createNameAliases).toHaveBeenCalledWith("flamestriker", "card-uuid-1");
+    expect(catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
+    expect(relinkCandidatePrintings).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(relinkCandidatePrintings).mock.invocationCallOrder[0]).toBeLessThan(
+      candidateCards.acceptableCandidatePrintings.mock.invocationCallOrder[0]!,
+    );
+    expect(vi.mocked(acceptCandidateGroups).mock.calls[0]?.[1]).toBe("card-uuid-1");
+  });
+
+  it("derives the slug from the card name", async () => {
     const { repos } = createMockRepos({
       candidates: [makeCandidate({ shortCode: "OGN-001a" })],
     });
-    const transact = mockTransact(repos);
 
     const result = await acceptFavoriteNewCard(
-      transact,
-      {} as Io,
+      mockTransact(repos),
       repos,
-      "flame-striker",
+      "flamestriker",
       FAVORITE_PROVIDERS,
+      [],
     );
 
     expect(result.cardSlug).toBe("flame-striker");
-  });
-
-  it("uses normalizedName as slug when shortCode is missing", async () => {
-    const { repos } = createMockRepos({
-      candidates: [makeCandidate({ shortCode: undefined })],
-    });
-    const transact = mockTransact(repos);
-
-    const result = await acceptFavoriteNewCard(
-      transact,
-      {} as Io,
-      repos,
-      "flame-striker",
-      FAVORITE_PROVIDERS,
-    );
-
-    expect(result.cardSlug).toBe("flame-striker");
-  });
-
-  it("calls acceptPrinting for each group of candidate printings", async () => {
-    const { repos } = createMockRepos({
-      candidatePrintings: [
-        makeCandidatePrinting({ id: "cp-1", shortCode: "OGN-001", finish: "normal" }),
-        makeCandidatePrinting({ id: "cp-2", shortCode: "OGN-001", finish: "foil" }),
-      ],
-    });
-    const transact = mockTransact(repos);
-
-    const result = await acceptFavoriteNewCard(
-      transact,
-      {} as Io,
-      repos,
-      "flame-striker",
-      FAVORITE_PROVIDERS,
-    );
-
-    expect(acceptPrinting).toHaveBeenCalledTimes(2);
-    expect(result.printingsCreated).toBe(2);
-  });
-
-  it("skips candidate printings without setId", async () => {
-    const { repos } = createMockRepos({
-      candidatePrintings: [makeCandidatePrinting({ setId: undefined })],
-    });
-    const transact = mockTransact(repos);
-
-    const result = await acceptFavoriteNewCard(
-      transact,
-      {} as Io,
-      repos,
-      "flame-striker",
-      FAVORITE_PROVIDERS,
-    );
-
-    expect(acceptPrinting).not.toHaveBeenCalled();
-    expect(result.printingsCreated).toBe(0);
-  });
-
-  it("continues when acceptPrinting throws for one group", async () => {
-    const { repos } = createMockRepos({
-      candidatePrintings: [
-        makeCandidatePrinting({ id: "cp-1", shortCode: "OGN-001", finish: "normal" }),
-        makeCandidatePrinting({ id: "cp-2", shortCode: "OGN-001", finish: "foil" }),
-      ],
-    });
-    vi.mocked(acceptPrinting).mockRejectedValueOnce(new Error("conflict"));
-    const transact = mockTransact(repos);
-
-    const result = await acceptFavoriteNewCard(
-      transact,
-      {} as Io,
-      repos,
-      "flame-striker",
-      FAVORITE_PROVIDERS,
-    );
-
-    expect(result.printingsCreated).toBe(1);
   });
 
   it("marks only favorite candidates as checked", async () => {
@@ -268,48 +189,11 @@ describe("acceptFavoriteNewCard", () => {
       makeCandidate({ id: "cand-3", provider: "unknown" }),
     ];
     const { repos, candidateCards } = createMockRepos({ candidates: cands });
-    const transact = mockTransact(repos);
 
-    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
+    await acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []);
 
     expect(candidateCards.checkCandidateCard).toHaveBeenCalledTimes(2);
     expect(candidateCards.checkCandidateCard).toHaveBeenCalledWith("cand-1");
     expect(candidateCards.checkCandidateCard).toHaveBeenCalledWith("cand-2");
-  });
-
-  it("passes io through to acceptPrinting so it can rehost the inserted image", async () => {
-    const { repos } = createMockRepos();
-    const io = {} as Io;
-    const transact = mockTransact(repos);
-
-    await acceptFavoriteNewCard(transact, io, repos, "flame-striker", FAVORITE_PROVIDERS);
-
-    expect(vi.mocked(acceptPrinting).mock.calls[0]![5]).toBe(io);
-  });
-
-  it("groups candidate printings by shortCode + finish + markerSlugs", async () => {
-    const { repos } = createMockRepos({
-      candidatePrintings: [
-        makeCandidatePrinting({
-          id: "cp-1",
-          shortCode: "OGN-001",
-          finish: "normal",
-          markerSlugs: [],
-        }),
-        makeCandidatePrinting({
-          id: "cp-2",
-          shortCode: "OGN-001",
-          finish: "normal",
-          markerSlugs: [],
-        }),
-      ],
-    });
-    const transact = mockTransact(repos);
-
-    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
-
-    expect(acceptPrinting).toHaveBeenCalledTimes(1);
-    const cpIds = vi.mocked(acceptPrinting).mock.calls[0]![4];
-    expect(cpIds).toEqual(["cp-1", "cp-2"]);
   });
 });

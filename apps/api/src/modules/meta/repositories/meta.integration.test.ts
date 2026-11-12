@@ -3459,3 +3459,50 @@ describe.skipIf(!ctx)("promotion", () => {
     expect(again.map((row) => row.id).toSorted()).toEqual(written.map((row) => row.id).toSorted());
   });
 });
+
+describe.skipIf(!ctx)("source key triage claim", () => {
+  const { db } = ctx!;
+  const repos = createRepos(db);
+  const provider = "uvsgames";
+  const claimed: string[] = [];
+
+  afterAll(async () => {
+    await db
+      .deleteFrom("ignoredMetaSourceEvents")
+      .where("provider", "=", provider)
+      .where("externalId", "in", claimed)
+      .execute();
+  });
+
+  it("lets exactly one of two racing dismisses claim an untriaged key", async () => {
+    const key = `mta-claim-${crypto.randomUUID()}`;
+    claimed.push(key);
+
+    const claims = await Promise.all(
+      [1, 2].map(() =>
+        repos.meta.withPromoteLock(`source:${provider}:${key}`, (locked) =>
+          locked.metaOverlays.claimIgnoreEvent(provider, key),
+        ),
+      ),
+    );
+
+    expect(claims.toSorted()).toEqual([false, true]);
+    expect(await repos.meta.sourceKeyUntriaged(provider, key)).toBe(false);
+  });
+
+  it("refuses to dismiss a key an accept already cited", async () => {
+    const key = `mta-claim-${crypto.randomUUID()}`;
+    claimed.push(key);
+    const eventId = await seedEvent(metaRepo(db), `mta-claim-${key.slice(-8)}`);
+    await repos.meta.insertEventSource({
+      metaEventId: eventId,
+      provider,
+      externalId: key,
+      label: provider,
+      sourceUrl: null,
+    });
+
+    expect(await repos.meta.sourceKeyUntriaged(provider, key)).toBe(false);
+    expect(await repos.metaOverlays.claimIgnoreEvent(provider, key)).toBe(false);
+  });
+});

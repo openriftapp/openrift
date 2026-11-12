@@ -1,3 +1,4 @@
+import { errorMessage } from "@openrift/shared/strings";
 import { TOPDECK_FORMATS } from "@openrift/shared/types/enums";
 import type { Insertable } from "kysely";
 
@@ -6,8 +7,9 @@ import type {
   TopdeckEventStandingsTable,
 } from "../../../../db/tables/meta-sources.js";
 import { recordCapped } from "../../../../lib/json-coerce.js";
+import { legendFromDeckLines } from "../../lib/meta-deck-lines.js";
+import { shiftDays } from "../../lib/meta-durations.js";
 import {
-  legendFromTopdeckLines,
   projectTopdeckDeckLines,
   projectTournament,
   referencedShortCodes,
@@ -18,16 +20,17 @@ import type {
   TopdeckTournamentProjection,
 } from "../../lib/topdeck-catalog.js";
 import type { TopdeckUpsertInput } from "../../repositories/topdeck-events.js";
-import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
-import { errorText } from "./deps.js";
+import { createCrawlRun } from "./crawl-run.js";
+import { clock } from "./deps.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
+import { createRunHeartbeat } from "./run-heartbeat.js";
+import { isTransientSourceFailure, sourceStopOf } from "./source-http.js";
+import type { SourceStopFields } from "./source-stop.js";
+import { applySourceStop } from "./source-stop.js";
+import { isSyncNoop } from "./sync-noop.js";
 import { autoAcceptTopdeckEvents } from "./topdeck-accept.js";
-import { TopdeckThrottledError } from "./topdeck-client.js";
 import type { TopdeckSyncDeps } from "./topdeck-deps.js";
-import { clock } from "./topdeck-deps.js";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const SYNC_LOOKBACK_DAYS = 30;
 
@@ -39,28 +42,42 @@ const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 // without it returns neither.
 const SEARCH_COLUMNS = ["name", "id", "decklist", "wins", "losses", "draws"];
 
-export interface TopdeckSyncResult extends MetaSyncResultBase {
+export interface TopdeckSyncResult extends MetaSyncResultBase, SourceStopFields {
   players: number;
   decks: number;
   throttled: boolean;
 }
 
 function emptyResult(): TopdeckSyncResult {
-  return { ...emptyMetaSyncResult(), players: 0, decks: 0, throttled: false };
+  return {
+    ...emptyMetaSyncResult(),
+    players: 0,
+    decks: 0,
+    throttled: false,
+    blocked: false,
+    blockedUntil: null,
+    pausedUntil: null,
+  };
+}
+
+function absorbStop(ctx: CrawlContext, error: unknown): boolean {
+  const stop = sourceStopOf(error);
+  if (stop !== null) {
+    ctx.result.throttled = stop === "pause";
+    ctx.result.complete = false;
+    recordCapped(ctx.result.errors, [applySourceStop(ctx.result, stop, ctx.now, error)]);
+    return true;
+  }
+  if (isTransientSourceFailure(error)) {
+    ctx.result.complete = false;
+    recordCapped(ctx.result.errors, [`Stopped: ${errorMessage(error)}`]);
+    return true;
+  }
+  return false;
 }
 
 export function isTopdeckSyncNoop(result: TopdeckSyncResult): boolean {
-  return (
-    result.inserted === 0 &&
-    result.changed === 0 &&
-    result.missing === 0 &&
-    result.autoAccepted === 0 &&
-    !result.throttled
-  );
-}
-
-function shift(from: Date, days: number): Date {
-  return new Date(from.getTime() + days * DAY_MS);
+  return isSyncNoop(result);
 }
 
 function unixSeconds(date: Date): number {
@@ -97,7 +114,7 @@ async function writeResults(
       // The deck's Legend line carries our catalogue's spelling and wins over
       // the source's own `leader` string when a list was submitted.
       legendName:
-        legendFromTopdeckLines(deckLines.get(standing.sourceDeckId ?? "") ?? []) ??
+        legendFromDeckLines(deckLines.get(standing.sourceDeckId ?? "") ?? []) ??
         standing.legendName,
       sourceDeckId: standing.sourceDeckId,
       fetchedAt: now,
@@ -175,7 +192,7 @@ async function crawlFormatWindow(
       ctx.result.decks += counts.decks;
     } catch (error) {
       failed.push(projection.event.tid);
-      recordCapped(ctx.result.errors, [errorText(error, `topdeck ${projection.event.tid}`)]);
+      recordCapped(ctx.result.errors, [`topdeck ${projection.event.tid}: ${errorMessage(error)}`]);
     }
   }
   if (failed.length > 0) {
@@ -207,16 +224,13 @@ async function finish(deps: TopdeckSyncDeps, ctx: CrawlContext): Promise<Topdeck
 export async function syncTopdeckCatalog(deps: TopdeckSyncDeps): Promise<TopdeckSyncResult> {
   const now = clock(deps);
   const ctx: CrawlContext = { result: emptyResult(), touched: [], now };
-  const from = shift(now, -SYNC_LOOKBACK_DAYS);
+  const from = shiftDays(now, -SYNC_LOOKBACK_DAYS);
   try {
     for (const format of TOPDECK_FORMATS) {
       await crawlFormatWindow(deps, ctx, format, from, now);
     }
   } catch (error) {
-    if (error instanceof TopdeckThrottledError) {
-      ctx.result.throttled = true;
-      ctx.result.complete = false;
-    } else {
+    if (!absorbStop(ctx, error)) {
       throw error;
     }
   }
@@ -243,28 +257,25 @@ export async function backfillTopdeck(
     ctx.result.coveredThrough = resumeFrom.toISOString();
   }
 
+  const run = createCrawlRun({
+    result: ctx.result,
+    heartbeat: createRunHeartbeat(deps, runId),
+    requests: () => deps.client.requests,
+  });
   try {
     while (from.getTime() <= now.getTime()) {
-      if (runId !== undefined && (await runCancelRequested(deps.repos.jobRuns, runId))) {
-        ctx.result.cancelRequested = true;
-        ctx.result.complete = false;
+      if (!(await run.tick())) {
         break;
       }
-      const to = new Date(Math.min(shift(from, BACKFILL_CHUNK_DAYS).getTime(), now.getTime()));
+      const to = new Date(Math.min(shiftDays(from, BACKFILL_CHUNK_DAYS).getTime(), now.getTime()));
       for (const format of TOPDECK_FORMATS) {
         await crawlFormatWindow(deps, ctx, format, from, to);
       }
       ctx.result.coveredThrough = to.toISOString();
-      if (runId !== undefined) {
-        await writeRunHeartbeat(deps.repos.jobRuns, runId, ctx.result, clock(deps));
-      }
       from = new Date(to.getTime() + 1);
     }
   } catch (error) {
-    if (error instanceof TopdeckThrottledError) {
-      ctx.result.throttled = true;
-      ctx.result.complete = false;
-    } else {
+    if (!absorbStop(ctx, error)) {
       throw error;
     }
   }

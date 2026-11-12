@@ -1,20 +1,13 @@
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type { AcceptPrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
+import type { RequiredAcceptPrintingField } from "@openrift/shared/printing-accept";
+import { REQUIRED_ACCEPT_PRINTING_FIELDS, resolveFinish } from "@openrift/shared/printing-accept";
 import { setSlugFromShortCode, shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
 
 type AcceptPrintingFields = AcceptPrintingBody["printingFields"];
 
-const REQUIRED_PRINTING_FIELDS = [
-  "shortCode",
-  "setId",
-  "rarity",
-  "finish",
-  "artist",
-  "publicCode",
-] as const;
-
-export type RequiredPrintingField = (typeof REQUIRED_PRINTING_FIELDS)[number];
+export type RequiredPrintingField = RequiredAcceptPrintingField;
 
 export type PrintingFieldOverrides = Partial<Record<RequiredPrintingField, string>>;
 
@@ -32,11 +25,13 @@ export function buildPrintingFieldsFromCandidate(
   overrides: Partial<Record<RequiredPrintingField, string>> = {},
 ): AcceptPrintingFields {
   const publicCode = overrides.publicCode ?? candidate.publicCode ?? "";
+  const rarity = overrides.rarity ?? candidate.rarity;
   const fields: AcceptPrintingFields = {
     // The grids carry the public code, so the short code follows it and only
     // falls back to what the source called the printing.
     shortCode: overrides.shortCode ?? shortCodeFromPublicCode(publicCode) ?? candidate.shortCode,
     artist: overrides.artist ?? candidate.artist ?? "",
+    rarity: rarity ?? "",
     publicCode,
     markerSlugs: candidate.markerSlugs,
     distributionChannelSlugs: candidate.distributionChannelSlugs,
@@ -49,10 +44,6 @@ export function buildPrintingFieldsFromCandidate(
   if (hasFieldValue(candidate.setName)) {
     fields.setName = candidate.setName;
   }
-  const rarity = overrides.rarity ?? candidate.rarity;
-  if (hasFieldValue(rarity)) {
-    fields.rarity = rarity as string;
-  }
   if (hasFieldValue(candidate.artVariant)) {
     fields.artVariant = candidate.artVariant as string;
   }
@@ -62,7 +53,7 @@ export function buildPrintingFieldsFromCandidate(
   if (candidate.isOvernumbered !== null) {
     fields.isOvernumbered = candidate.isOvernumbered;
   }
-  const finish = overrides.finish ?? candidate.finish;
+  const finish = overrides.finish ?? resolveFinish(candidate.finish, rarity);
   if (hasFieldValue(finish)) {
     fields.finish = finish as string;
   }
@@ -96,7 +87,7 @@ export function buildPrintingFieldsFromCandidate(
 
 export function missingPrintingFields(fields: AcceptPrintingFields): RequiredPrintingField[] {
   const record = fields as Record<string, unknown>;
-  return REQUIRED_PRINTING_FIELDS.filter((field) => !hasFieldValue(record[field]));
+  return REQUIRED_ACCEPT_PRINTING_FIELDS.filter((field) => !hasFieldValue(record[field]));
 }
 
 export function summarizeCandidatePrinting(candidate: CandidatePrintingResponse): string {

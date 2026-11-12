@@ -1,13 +1,15 @@
 import { playriftboundEventUrl } from "@openrift/shared/playriftbound-links";
+import { errorMessage } from "@openrift/shared/strings";
 
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { PLAYRIFTBOUND_PROVIDER } from "../../../../lib/meta-providers.js";
+import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { longitudeLocalDay } from "../../lib/meta-local-day.js";
 import { isTeamFormat, playriftboundFormat } from "../../lib/playriftbound-catalog.js";
 import type { PlayriftboundListRow } from "../../repositories/playriftbound-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
-import { errorText } from "./deps.js";
+import { clock } from "./deps.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
-import { clock } from "./playriftbound-deps.js";
 import { sameStoreLiveEvent } from "./same-store-guard.js";
 
 export interface PlayriftboundAcceptSummary {
@@ -19,9 +21,6 @@ export interface PlayriftboundAcceptSummary {
 }
 
 const SWEEP_PAGE = 1000;
-const MAX_SWEEP_ERRORS = 50;
-const MAX_EVENT_NAME = 120;
-
 function emptySummary(): PlayriftboundAcceptSummary {
   return { considered: 0, accepted: 0, held: 0, failed: 0, errors: [] };
 }
@@ -37,7 +36,7 @@ export async function acceptPlayriftboundEvent(
   row: PlayriftboundListRow,
 ): Promise<AcceptedPlayriftboundEvent> {
   const promoted = await promoteNewEvent(deps.repos, PLAYRIFTBOUND_PROVIDER, row.tournamentId, {
-    name: row.name.slice(0, MAX_EVENT_NAME),
+    name: row.name.slice(0, META_NAME_MAX),
     eventDate: longitudeLocalDay(row.startAt, row.organizerLongitude),
     format: playriftboundFormat(row.format),
     sourceUrl: playriftboundEventUrl(row.tournamentId),
@@ -83,9 +82,7 @@ async function sweep(
         summary.accepted++;
       } catch (error) {
         summary.failed++;
-        if (summary.errors.length < MAX_SWEEP_ERRORS) {
-          summary.errors.push(errorText(error, `Auto-accept "${row.name}"`));
-        }
+        recordCapped(summary.errors, [`Auto-accept "${row.name}": ${errorMessage(error)}`]);
       }
     }
   }

@@ -204,7 +204,7 @@ const createPrintingFieldsSchema = z.object({
   shortCode: printingFieldRules.shortCode,
   setId: setFieldRules.slug,
   setName: setFieldRules.name.optional().nullable(),
-  rarity: printingFieldRules.rarity.optional().nullable(),
+  rarity: printingFieldRules.rarity,
   artVariant: printingFieldRules.artVariant.optional(),
   isSigned: z.boolean().optional(),
   isOvernumbered: z.boolean().optional(),

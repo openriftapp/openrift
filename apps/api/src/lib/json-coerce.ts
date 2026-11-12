@@ -29,6 +29,12 @@ export function coord(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+export function fraction(value: unknown): number | null {
+  const raw = typeof value === "string" ? text(value) : value;
+  const n = typeof raw === "string" ? Number(raw) : raw;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1 ? n : null;
+}
+
 export function sourceId(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }

@@ -50,7 +50,7 @@ const releasePairSchema = z.object({
 });
 
 function invalidRelease(message: string): AppError {
-  return new AppError(400, ERROR_CODES.VALIDATION_ERROR, message);
+  return new AppError(400, ERROR_CODES.BAD_REQUEST, message);
 }
 
 /** A bare date keeps the printing's precision. Both columns are written together because

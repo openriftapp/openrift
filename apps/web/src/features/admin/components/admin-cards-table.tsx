@@ -7,7 +7,6 @@ import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/ad
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ImagePlusIcon, StarIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import {
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
 import { useCardsTableSort } from "@/features/admin/hooks/use-cards-table-sort";
+import { showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
 import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/card-attention";
 import {
   ANY_ISSUE,
@@ -141,27 +141,11 @@ function AcceptFavoriteButton({ cardSlug, codes }: { cardSlug: string; codes: st
         event.preventDefault();
         event.stopPropagation();
         acceptFavorite.mutate(cardSlug, {
-          onSuccess: (data) => {
-            const result = data as {
-              printingsCreated: number;
-              skipped: { shortCode: string; reason: string }[];
-            };
-            if (result.printingsCreated > 0 && result.skipped.length === 0) {
-              toast.success(
-                `Accepted ${result.printingsCreated} ${pluralize(result.printingsCreated, "printing")}`,
-              );
-            } else if (result.printingsCreated > 0 && result.skipped.length > 0) {
-              toast.warning(
-                `Accepted ${result.printingsCreated}, skipped ${result.skipped.length}: ${result.skipped.map((s) => `${s.shortCode} (${s.reason})`).join(", ")}`,
-              );
-            } else if (result.skipped.length > 0) {
-              toast.error(
-                `All skipped: ${result.skipped.map((s) => `${s.shortCode} (${s.reason})`).join(", ")}`,
-              );
-            } else {
-              toast.info("No printings to accept");
-            }
-          },
+          onSuccess: (result) =>
+            showAcceptOutcome(
+              result.printingsCreated,
+              result.skipped.map((entry) => ({ label: entry.shortCode, reason: entry.reason })),
+            ),
         });
       }}
     >

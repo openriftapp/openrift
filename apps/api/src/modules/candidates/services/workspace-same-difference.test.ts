@@ -155,7 +155,7 @@ describe("findSameDifference", () => {
 });
 
 describe("discardSameDifference", () => {
-  it("checks the matching rows and writes one event per card inside the transaction", async () => {
+  it("checks the matching rows, then writes one event per card after the commit", async () => {
     const outer = makeRepos([]);
     const inner = makeRepos();
     const transact = vi.fn((fn: (trx: Repos) => Promise<unknown>) =>
@@ -176,8 +176,9 @@ describe("discardSameDifference", () => {
       ["a", "b", "g"],
       now,
     );
-    expect(inner.adminEvents.insert).toHaveBeenCalledTimes(3);
-    expect(inner.adminEvents.insert).toHaveBeenCalledWith({
+    expect(inner.adminEvents.insert).not.toHaveBeenCalled();
+    expect(outer.adminEvents.insert).toHaveBeenCalledTimes(3);
+    expect(outer.adminEvents.insert).toHaveBeenCalledWith({
       actorUserId: "admin-1",
       action: "candidate-card.discard-same-difference",
       entityType: "candidate-card",
@@ -186,6 +187,24 @@ describe("discardSameDifference", () => {
       cardSlug: "card-a",
       newValues: { provider: "gallery", field: "might", value: "4" },
     });
+  });
+
+  it("keeps the discard when an audit write fails", async () => {
+    const outer = makeRepos([]);
+    outer.adminEvents.insert.mockRejectedValue(new Error("audit down"));
+    const inner = makeRepos();
+    const transact = vi.fn((fn: (trx: Repos) => Promise<unknown>) =>
+      fn(asRepos(inner)),
+    ) as unknown as Transact;
+
+    const result = await discardSameDifference(transact, asRepos(outer), {
+      access: ADMIN,
+      userId: "admin-1",
+      input: { provider: "gallery", field: "might", value: "4" },
+      now: new Date(),
+    });
+
+    expect(result.checked).toBe(3);
   });
 
   it("refuses an out-of-scope provider before opening a transaction", async () => {

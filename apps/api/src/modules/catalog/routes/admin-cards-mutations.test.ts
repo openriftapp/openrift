@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
+import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
@@ -12,19 +13,22 @@ import { importErrata } from "../../candidates/services/import-errata.js";
 import { ingestCandidates } from "../../candidates/services/ingest-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import {
-  acceptPrinting,
   deletePrinting,
+  createNewPrinting,
   updatePrintingMarkers,
 } from "../services/printing-admin.js";
 import { adminCardMutationsRouter } from "./admin-cards-mutations";
 
 vi.mock("../services/printing-admin.js", () => ({
-  acceptPrinting: vi.fn(),
+  createNewPrinting: vi.fn(),
   deletePrinting: vi.fn(),
   updatePrintingMarkers: vi.fn(),
   updatePrintingDistributionChannels: vi.fn(),
 }));
 
+vi.mock("../../candidates/services/accept-candidate-printings.js", () => ({
+  finishPrintingAccepts: vi.fn(),
+}));
 vi.mock("../../candidates/services/accept-gallery.js", () => ({ acceptFavoriteNewCard: vi.fn() }));
 vi.mock("../../candidates/services/import-errata.js", () => ({ importErrata: vi.fn() }));
 vi.mock("../../candidates/services/ingest-candidates.js", () => ({ ingestCandidates: vi.fn() }));
@@ -46,7 +50,8 @@ vi.mock("@openrift/shared/fix-typography", async (importOriginal) => ({
 
 const mockDeletePrinting = vi.mocked(deletePrinting);
 const mockUpdatePrintingMarkers = vi.mocked(updatePrintingMarkers);
-const mockAcceptPrinting = vi.mocked(acceptPrinting);
+const mockCreateNewPrinting = vi.mocked(createNewPrinting);
+const mockFinishPrintingAccepts = vi.mocked(finishPrintingAccepts);
 const mockAcceptFavoriteNewCard = vi.mocked(acceptFavoriteNewCard);
 const mockAcceptFavoritePrintingsForCard = vi.mocked(acceptFavoritePrintingsForCard);
 const mockRelinkCandidatePrintings = vi.mocked(relinkCandidatePrintings);
@@ -1006,7 +1011,7 @@ describe("POST /cards/:cardId/accept-field", () => {
     expect(mockMut.updateCardById).toHaveBeenCalledWith(CARD_ID2, { might: 3 });
   });
 
-  it("returns 400 (VALIDATION_ERROR) when a card field value fails the field rule", async () => {
+  it("returns 400 (BAD_REQUEST) when a card field value fails the field rule", async () => {
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1014,7 +1019,7 @@ describe("POST /cards/:cardId/accept-field", () => {
     });
     expect(res.status).toBe(400);
     const json = await readJson(res);
-    expect(json.code).toBe("VALIDATION_ERROR");
+    expect(json.code).toBe("BAD_REQUEST");
     expect(json.message).toContain("Invalid value for might");
   });
 });
@@ -1210,7 +1215,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     expect(json.message).toContain("Set not found");
   });
 
-  it("returns 400 (VALIDATION_ERROR) when a printing field value fails the field rule", async () => {
+  it("returns 400 (BAD_REQUEST) when a printing field value fails the field rule", async () => {
     const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1218,7 +1223,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     });
     expect(res.status).toBe(400);
     const json = await readJson(res);
-    expect(json.code).toBe("VALIDATION_ERROR");
+    expect(json.code).toBe("BAD_REQUEST");
     expect(json.message).toContain("Invalid value for rarity");
   });
 });
@@ -1262,8 +1267,12 @@ describe("POST /cards/new/:name/accept-favorites", () => {
   });
 
   it("returns 200 with accept result", async () => {
-    const result = { cardSlug: "fire-dragon", printingsCreated: 3, skipped: [] };
-    mockAcceptFavoriteNewCard.mockResolvedValue(result);
+    const result = { cardSlug: "fire-dragon", printingsCreated: 1, skipped: [] };
+    const created = [{ printingId: "p-1", imageIds: [] }];
+    mockAcceptFavoriteNewCard.mockImplementation(async (_t, _r, _n, _p, sink) => {
+      sink.push(...created);
+      return result;
+    });
 
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
       method: "POST",
@@ -1273,11 +1282,46 @@ describe("POST /cards/new/:name/accept-favorites", () => {
     expect(json).toEqual(result);
     expect(mockAcceptFavoriteNewCard).toHaveBeenCalledWith(
       mockTransact,
-      mockIo,
       expect.objectContaining({ candidateCards: mockCandidateCards, catalogMutations: mockMut }),
       "Fire Dragon",
       expect.any(Set),
+      created,
     );
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, created, {
+      catalogChanged: true,
+    });
+  });
+
+  it("finishes the printings it created even when the accept then fails", async () => {
+    const created = [{ printingId: "p-1", imageIds: ["img-1"] }];
+    mockAcceptFavoriteNewCard.mockImplementation(async (_t, _r, _n, _p, sink) => {
+      sink.push(...created);
+      throw new Error("connection reset");
+    });
+
+    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
+      method: "POST",
+    });
+    expect(res.status).toBe(500);
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, created, {
+      catalogChanged: true,
+    });
+  });
+
+  it("refreshes the catalog views for a card created without printings", async () => {
+    mockAcceptFavoriteNewCard.mockResolvedValue({
+      cardSlug: "fire-dragon",
+      printingsCreated: 0,
+      skipped: [],
+    });
+
+    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [], {
+      catalogChanged: true,
+    });
   });
 });
 
@@ -1332,32 +1376,50 @@ describe("POST /cards/new/:name/link", () => {
 describe("POST /cards/:cardId/accept-printing", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
   });
 
-  it("returns 200 with printingId and re-resolves other providers' candidates", async () => {
-    mockAcceptPrinting.mockResolvedValue("printing-uuid");
+  it("returns 200 with printingId and finishes the accept", async () => {
+    const created = { printingId: "printing-uuid", imageIds: [] };
+    mockCreateNewPrinting.mockResolvedValue(created);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-printing`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        printingFields: { shortCode: "FD", artist: "Alice", publicCode: "OGS-001" },
+        printingFields: {
+          shortCode: "FD",
+          rarity: "common",
+          artist: "Alice",
+          publicCode: "OGS-001",
+        },
         candidatePrintingIds: ["cp-1", "cp-2"],
       }),
     });
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual({ printingId: "printing-uuid" });
-    expect(mockAcceptPrinting).toHaveBeenCalledWith(
-      mockTransact,
-      expect.objectContaining({ catalogMutations: mockMut }),
+    expect(mockCreateNewPrinting).toHaveBeenCalledWith(
+      expect.anything(),
       CARD_ID2,
       expect.objectContaining({ shortCode: "FD" }),
       ["cp-1", "cp-2"],
-      mockIo,
-      { requireNew: true, secondFaceId: null },
+      { secondFaceId: null },
     );
-    expect(mockRelinkCandidatePrintings).toHaveBeenCalled();
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [created]);
+  });
+
+  it("rejects a printing without a rarity", async () => {
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-printing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        printingFields: { shortCode: "FD", artist: "Alice", publicCode: "OGS-001" },
+        candidatePrintingIds: ["cp-1"],
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockCreateNewPrinting).not.toHaveBeenCalled();
   });
 });
 
@@ -1432,10 +1494,13 @@ describe("POST /cards/:cardSlug/accept-favorite-printings", () => {
 
   it("returns 200 with the accept result", async () => {
     const skipped = [{ shortCode: "OGN-202", reason: "exists" }];
-    mockAcceptFavoritePrintingsForCard.mockResolvedValue({
-      printingsCreated: 2,
-      skipped,
-      createdPrintingIds: ["p-1", "p-2"],
+    const created = [
+      { printingId: "p-1", imageIds: [] },
+      { printingId: "p-2", imageIds: ["img-1"] },
+    ];
+    mockAcceptFavoritePrintingsForCard.mockImplementation(async (_t, _r, _s, _p, sink) => {
+      sink.push(...created);
+      return { printingsCreated: 2, skipped, createdPrintingIds: ["p-1", "p-2"] };
     });
 
     const res = await app.request("/api/admin/v1/cards/fire-dragon/accept-favorite-printings", {
@@ -1446,11 +1511,26 @@ describe("POST /cards/:cardSlug/accept-favorite-printings", () => {
     expect(json).toEqual({ printingsCreated: 2, skipped });
     expect(mockAcceptFavoritePrintingsForCard).toHaveBeenCalledWith(
       mockTransact,
-      mockIo,
       expect.objectContaining({ catalogMutations: mockMut }),
       "fire-dragon",
       expect.any(Set),
+      created,
     );
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, created);
+  });
+
+  it("finishes the printings it created even when the accept then fails", async () => {
+    const created = [{ printingId: "p-1", imageIds: [] }];
+    mockAcceptFavoritePrintingsForCard.mockImplementation(async (_t, _r, _s, _p, sink) => {
+      sink.push(...created);
+      throw new Error("connection reset");
+    });
+
+    const res = await app.request("/api/admin/v1/cards/fire-dragon/accept-favorite-printings", {
+      method: "POST",
+    });
+    expect(res.status).toBe(500);
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, created);
   });
 });
 
@@ -1495,10 +1575,12 @@ describe("POST /cards/create", () => {
 describe("POST /cards/:cardId/printings", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
   });
 
-  it("creates a printing and returns its id", async () => {
-    mockAcceptPrinting.mockResolvedValue("printing-uuid");
+  it("creates a printing, returns its id and finishes the accept", async () => {
+    const created = { printingId: "printing-uuid", imageIds: [] };
+    mockCreateNewPrinting.mockResolvedValue(created);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/printings`, {
       method: "POST",
@@ -1506,6 +1588,7 @@ describe("POST /cards/:cardId/printings", () => {
       body: JSON.stringify({
         shortCode: "FD",
         setId: "origin",
+        rarity: "common",
         artist: "Alice",
         publicCode: "OGS-001",
       }),
@@ -1513,16 +1596,13 @@ describe("POST /cards/:cardId/printings", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual({ printingId: "printing-uuid" });
-    expect(mockAcceptPrinting).toHaveBeenCalledWith(
-      mockTransact,
-      expect.objectContaining({ catalogMutations: mockMut }),
+    expect(mockCreateNewPrinting).toHaveBeenCalledWith(
+      expect.anything(),
       CARD_ID2,
       expect.objectContaining({ shortCode: "FD", setId: "origin" }),
       [],
-      mockIo,
-      // Explicit admin create: an identity collision must 409, not upsert.
-      { requireNew: true },
     );
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [created]);
   });
 });
 

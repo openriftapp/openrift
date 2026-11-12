@@ -8,6 +8,7 @@ import type {
 } from "../../repositories/uvsgames-events.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { isIdSweepNoop, sweepEventIds } from "./id-sweep.js";
+import { SourceThrottledError } from "./source-http.js";
 import type { UvsClient, UvsQuery } from "./uvsgames-client.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
@@ -27,7 +28,7 @@ function detail(id: number, over: Record<string, unknown> = {}): Record<string, 
   };
 }
 
-type FakeSource = Record<number, Record<string, unknown> | "absent" | "error">;
+type FakeSource = Record<number, Record<string, unknown> | "absent" | "error" | "throttled">;
 
 function fakeClient(source: FakeSource): { client: UvsClient; asked: number[] } {
   const asked: number[] = [];
@@ -43,6 +44,9 @@ function fakeClient(source: FakeSource): { client: UvsClient; asked: number[] } 
       }
       if (row === "error") {
         return Promise.reject(new UvsHttpError(503, path, "Service unavailable"));
+      }
+      if (row === "throttled") {
+        return Promise.reject(new SourceThrottledError(path));
       }
       return Promise.resolve(row as T);
     },
@@ -208,6 +212,17 @@ describe("sweepEventIds", () => {
 
     expect(asked.length).toBe(20);
     expect(result.errors).toContain("Stopped after 20 probes failed in a row");
+  });
+
+  it("stops at the first throttle and keeps what it already decided", async () => {
+    const { client, asked } = fakeClient({ 1: detail(1), 2: "throttled", 3: detail(3) });
+    const { deps } = fakeDeps(client, [], { fromId: 1, toId: 3 });
+
+    const result = await sweepEventIds(deps, undefined, {});
+
+    expect(asked).toEqual([1, 2]);
+    expect(result.found).toBe(1);
+    expect(result.complete).toBe(false);
   });
 
   it("keeps going when a failure is followed by an answer", async () => {

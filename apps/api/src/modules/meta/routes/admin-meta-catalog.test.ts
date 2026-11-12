@@ -101,8 +101,21 @@ const mockPlayloltcgEvents = {
   passingNoResultsKeys: vi.fn(),
 };
 
-const mockMeta = { archiveOverview: vi.fn(), deleteEvent: vi.fn(), eventById: vi.fn() };
-const mockMetaOverlays = { ignoreEvent: vi.fn(), ignoreEvents: vi.fn(), unignoreEvent: vi.fn() };
+const mockMetaOverlays = {
+  ignoreEvent: vi.fn(),
+  ignoreEvents: vi.fn(),
+  unignoreEvent: vi.fn(),
+  claimIgnoreEvent: vi.fn(() => Promise.resolve(true)),
+};
+const mockMeta = {
+  archiveOverview: vi.fn(),
+  deleteEvent: vi.fn(),
+  eventById: vi.fn(),
+  sourceKeyUntriaged: vi.fn(() => Promise.resolve(true)),
+  withPromoteLock: vi.fn((_key: string, run: (repos: unknown) => Promise<unknown>) =>
+    run({ meta: mockMeta, metaOverlays: mockMetaOverlays }),
+  ),
+};
 
 const mockDeckFormats = { getBySlug: vi.fn() };
 const mockScheduler = { runNow: vi.fn(), isEnabled: vi.fn(() => false) };
@@ -236,17 +249,24 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it.each(["playloltcg", "playriftbound"])(
-    "refuses the %s recheck, which runs without a run id to read the flag from",
+    "stops the %s recheck at its next visit",
     async (source) => {
       mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
 
       const res = await post("/sync/cancel", { source, job: "recheck" });
 
-      expect(res.status).toBe(400);
-      expect(mockJobRuns.getRunning).not.toHaveBeenCalled();
-      expect(mockJobRuns.requestCancel).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      expect(mockJobRuns.getRunning).toHaveBeenCalledWith(`meta.${source}_recheck`);
+      expect(mockJobRuns.requestCancel).toHaveBeenCalledWith(RUN_ID);
     },
   );
+
+  it("refuses a recheck the source does not run", async () => {
+    const res = await post("/sync/cancel", { source: "topdeck", job: "recheck" });
+
+    expect(res.status).toBe(400);
+    expect(mockJobRuns.getRunning).not.toHaveBeenCalled();
+  });
 
   it("cancels a running playriftbound sweep", async () => {
     mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID, startedAt: new Date() });
@@ -593,15 +613,16 @@ describe("bulk mirror actions", () => {
   });
 
   it("rejects only the undecided rows of a selection", async () => {
-    mockMetaOverlays.ignoreEvents.mockResolvedValue(2);
-
     const res = await post("/bulk/reject", {
       source: "playloltcg",
       keys: ["101", "102", "103", "104", "999"],
     });
 
-    expect(await readJson(res)).toEqual({ rejected: ["101", "104"] });
-    expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledWith("playloltcg", ["101", "104"]);
+    expect(await readJson(res)).toEqual({ rejected: ["101", "104"], skipped: 3 });
+    expect(mockMetaOverlays.claimIgnoreEvent.mock.calls).toEqual([
+      ["playloltcg", "101"],
+      ["playloltcg", "104"],
+    ]);
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({ action: "meta-catalog.dismiss-bulk", entityId: "playloltcg" }),
     );
@@ -614,6 +635,18 @@ describe("bulk mirror actions", () => {
 
     expect(await readJson(res)).toEqual({ published: ["101", "104"], skipped: 1 });
     expect(acceptPlayloltcgEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips a row another write triaged between the read and the claim", async () => {
+    mockMeta.sourceKeyUntriaged.mockResolvedValueOnce(false);
+    mockMetaOverlays.claimIgnoreEvent.mockResolvedValueOnce(false);
+
+    const published = await post("/bulk/publish", { source: "playloltcg", keys: ["101"] });
+    const rejected = await post("/bulk/reject", { source: "playloltcg", keys: ["104"] });
+
+    expect(await readJson(published)).toEqual({ published: [], skipped: 1 });
+    expect(await readJson(rejected)).toEqual({ rejected: [], skipped: 1 });
+    expect(acceptPlayloltcgEvent).not.toHaveBeenCalled();
   });
 
   it("restores every rejected key it was given", async () => {
@@ -900,7 +933,7 @@ describe("playloltcg catalogue", () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("playloltcg", String(SHOP_ID));
+    expect(mockMetaOverlays.claimIgnoreEvent).toHaveBeenCalledWith("playloltcg", String(SHOP_ID));
   });
 
   it("404s a dismiss for a key the mirror does not carry", async () => {

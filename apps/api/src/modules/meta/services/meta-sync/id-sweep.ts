@@ -1,3 +1,6 @@
+import { errorMessage } from "@openrift/shared/strings";
+
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import type {
   UvsgamesCatalogProjection,
   UvsgamesProbedProjection,
@@ -5,11 +8,14 @@ import type {
 import { projectCatalogRow, projectProbedRow } from "../../lib/uvsgames-catalog.js";
 import type { UvsgamesIdProbeInput } from "../../repositories/uvsgames-events.js";
 import { autoAcceptCatalogEvents } from "./accept.js";
-import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { clock, errorText } from "./deps.js";
+import { clock } from "./deps.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
+import type { RunHeartbeat } from "./run-heartbeat.js";
+import { createRunHeartbeat } from "./run-heartbeat.js";
+import { sourceStopOf } from "./source-http.js";
+import { isSyncNoop } from "./sync-noop.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
 /**
@@ -25,7 +31,6 @@ const CANDIDATE_PAGE = 500;
 const FLUSH_PROBES = 50;
 const HEARTBEAT_PROBES = 100;
 const MAX_CONSECUTIVE_FAILURES = 20;
-const MAX_ERRORS = 50;
 
 export interface MetaIdSweepResult extends MetaSyncResultBase {
   probed: number;
@@ -54,7 +59,7 @@ function emptyResult(): MetaIdSweepResult {
 }
 
 export function isIdSweepNoop(result: MetaIdSweepResult): boolean {
-  return !result.cancelRequested && result.probed === 0 && result.failed === 0;
+  return isSyncNoop(result, [result.probed, result.failed]);
 }
 
 /** `fromId`/`toId` default to the mirror's own id span. */
@@ -68,7 +73,7 @@ interface SweepContext {
   result: MetaIdSweepResult;
   seenAt: Date;
   maxProbes: number;
-  runId?: string;
+  heartbeat: RunHeartbeat;
   pendingRows: UvsgamesCatalogProjection[];
   pendingProbes: UvsgamesIdProbeInput[];
   touched: string[];
@@ -78,9 +83,7 @@ interface SweepContext {
 }
 
 function record(ctx: SweepContext, message: string): void {
-  if (ctx.result.errors.length < MAX_ERRORS) {
-    ctx.result.errors.push(message);
-  }
+  recordCapped(ctx.result.errors, [message]);
 }
 
 /** A failure isn't a probe: it stays undecided so the next run retries it. */
@@ -118,10 +121,13 @@ async function probeWith<P>(
   try {
     body = await deps.client.get<unknown>(`/api/v2/events/${id}/`);
   } catch (error) {
+    if (sourceStopOf(error) !== null) {
+      throw error;
+    }
     if (error instanceof UvsHttpError && error.status === 404) {
       return { kind: "probe", probe: { externalId: id, outcome: "absent", gameType: null } };
     }
-    return { kind: "failed", error: errorText(error, `Event ${id}`) };
+    return { kind: "failed", error: `Event ${id}: ${errorMessage(error)}` };
   }
 
   const game = gameTypeOf(body);
@@ -151,25 +157,12 @@ async function flush(deps: MetaSyncDeps, ctx: SweepContext): Promise<void> {
   }
 }
 
-/**
- * Logged, not thrown: a failed write must not kill a run 40 minutes in. The
- * same beat is how an admin's Stop reaches a job already running.
- */
-async function heartbeat(deps: MetaSyncDeps, ctx: SweepContext): Promise<void> {
-  const runId = ctx.runId;
-  if (runId === undefined) {
-    return;
-  }
-  try {
-    if (await runCancelRequested(deps.repos.jobRuns, runId)) {
-      ctx.stopped = true;
-      ctx.result.cancelRequested = true;
-      ctx.result.complete = false;
-      record(ctx, "Cancelled from the admin panel");
-    }
-    await writeRunHeartbeat(deps.repos.jobRuns, runId, ctx.result, clock(deps));
-  } catch (error) {
-    deps.log.warn({ err: error, runId }, "Id sweep heartbeat write failed");
+async function heartbeat(ctx: SweepContext): Promise<void> {
+  if (await ctx.heartbeat.beat(ctx.result)) {
+    ctx.stopped = true;
+    ctx.result.cancelRequested = true;
+    ctx.result.complete = false;
+    record(ctx, "Cancelled from the admin panel");
   }
 }
 
@@ -233,13 +226,23 @@ async function sweepRange(
       if (ctx.stopped || ctx.result.probed >= ctx.maxProbes) {
         break;
       }
-      apply(ctx, await probeId(deps, id));
+      try {
+        apply(ctx, await probeId(deps, id));
+      } catch (error) {
+        if (sourceStopOf(error) === null) {
+          throw error;
+        }
+        ctx.stopped = true;
+        ctx.result.complete = false;
+        record(ctx, `Stopped at event ${id}: ${errorMessage(error)}`);
+        break;
+      }
       if (ctx.pendingRows.length + ctx.pendingProbes.length >= FLUSH_PROBES) {
         await flush(deps, ctx);
       }
       if (ctx.result.probed - ctx.probesAtLastBeat >= HEARTBEAT_PROBES) {
         ctx.probesAtLastBeat = ctx.result.probed;
-        await heartbeat(deps, ctx);
+        await heartbeat(ctx);
       }
     }
     await flush(deps, ctx);
@@ -264,7 +267,7 @@ export async function sweepEventIds(
     result: emptyResult(),
     seenAt: clock(deps),
     maxProbes: options.maxProbes ?? MAX_PROBES_PER_SWEEP,
-    runId,
+    heartbeat: createRunHeartbeat(deps, runId),
     pendingRows: [],
     pendingProbes: [],
     touched: [],

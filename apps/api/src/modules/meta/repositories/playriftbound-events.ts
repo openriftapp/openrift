@@ -13,6 +13,7 @@ import type {
   PlayriftboundEventProjection,
   PlayriftboundOrganizerProjection,
 } from "../lib/playriftbound-catalog.js";
+import { dueBefore } from "./meta-shared.js";
 import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
@@ -28,6 +29,7 @@ import {
   toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
+import { upsertMirrorRows } from "./mirror-upsert.js";
 
 type PlayriftboundEventRow = Selectable<PlayriftboundEventsTable>;
 
@@ -281,60 +283,52 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       rows: readonly PlayriftboundUpsertInput[],
       seenAt: Date,
     ): Promise<PlayriftboundUpsertResult> {
-      if (rows.length === 0) {
-        return { inserted: [], changed: [], unchanged: [] };
-      }
-      const inserted: string[] = [];
-      const changed: string[] = [];
-      for (const batch of rowBatches(
+      return await upsertMirrorRows(
         rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null })),
-      )) {
-        const written = await db
-          .insertInto("playriftboundEvents")
-          .values(batch)
-          .onConflict((oc) =>
-            oc
-              .column("tournamentId")
-              .doUpdateSet((eb) => ({
-                organizerId: eb.ref("excluded.organizerId"),
-                name: eb.ref("excluded.name"),
-                startAt: eb.ref("excluded.startAt"),
-                tournamentType: eb.ref("excluded.tournamentType"),
-                format: eb.ref("excluded.format"),
-                playerFormat: eb.ref("excluded.playerFormat"),
-                participantCapacity: eb.ref("excluded.participantCapacity"),
-                registeredCount: eb.ref("excluded.registeredCount"),
-                waitlistedCount: eb.ref("excluded.waitlistedCount"),
-                pricing: eb.ref("excluded.pricing"),
-                entryFeeCurrency: eb.ref("excluded.entryFeeCurrency"),
-                entryFeeMinor: eb.ref("excluded.entryFeeMinor"),
-                contentHash: eb.ref("excluded.contentHash"),
-                lastSeenAt: eb.ref("excluded.lastSeenAt"),
-                missingSince: eb.ref("excluded.missingSince"),
-              }))
-              .where(
-                sql<SqlBool>`playriftbound_events.content_hash is distinct from excluded.content_hash
-                or playriftbound_events.missing_since is not null`,
-              ),
-          )
-          .returning(["tournamentId", sql<boolean>`(xmax = 0)`.as("inserted")])
-          .execute();
-
-        for (const row of written) {
-          (row.inserted ? inserted : changed).push(row.tournamentId);
-        }
-      }
-
-      const touched = new Set([...inserted, ...changed]);
-      const unchanged = rows.map((row) => row.tournamentId).filter((id) => !touched.has(id));
-      for (const batch of keyBatches(unchanged)) {
-        await db
-          .updateTable("playriftboundEvents")
-          .set({ lastSeenAt: seenAt })
-          .where("tournamentId", "in", batch)
-          .execute();
-      }
-      return { inserted, changed, unchanged };
+        {
+          keyOf: (row) => row.tournamentId,
+          write: async (batch) => {
+            const written = await db
+              .insertInto("playriftboundEvents")
+              .values(batch)
+              .onConflict((oc) =>
+                oc
+                  .column("tournamentId")
+                  .doUpdateSet((eb) => ({
+                    organizerId: eb.ref("excluded.organizerId"),
+                    name: eb.ref("excluded.name"),
+                    startAt: eb.ref("excluded.startAt"),
+                    tournamentType: eb.ref("excluded.tournamentType"),
+                    format: eb.ref("excluded.format"),
+                    playerFormat: eb.ref("excluded.playerFormat"),
+                    participantCapacity: eb.ref("excluded.participantCapacity"),
+                    registeredCount: eb.ref("excluded.registeredCount"),
+                    waitlistedCount: eb.ref("excluded.waitlistedCount"),
+                    pricing: eb.ref("excluded.pricing"),
+                    entryFeeCurrency: eb.ref("excluded.entryFeeCurrency"),
+                    entryFeeMinor: eb.ref("excluded.entryFeeMinor"),
+                    contentHash: eb.ref("excluded.contentHash"),
+                    lastSeenAt: eb.ref("excluded.lastSeenAt"),
+                    missingSince: eb.ref("excluded.missingSince"),
+                  }))
+                  .where(
+                    sql<SqlBool>`playriftbound_events.content_hash is distinct from excluded.content_hash
+                    or playriftbound_events.missing_since is not null`,
+                  ),
+              )
+              .returning(["tournamentId", sql<boolean>`(xmax = 0)`.as("inserted")])
+              .execute();
+            return written.map((row) => ({ key: row.tournamentId, inserted: row.inserted }));
+          },
+          touch: async (keys) => {
+            await db
+              .updateTable("playriftboundEvents")
+              .set({ lastSeenAt: seenAt })
+              .where("tournamentId", "in", keys)
+              .execute();
+          },
+        },
+      );
     },
 
     /** Only events at a located store: the crawl searches nowhere else, so nothing else was missed. */
@@ -456,7 +450,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       return await listSelect()
         .select([important.as("important"), "ck.failingSince"])
         .where("ck.nextCheckAt", "is not", null)
-        .where(sql<SqlBool>`date_trunc('milliseconds', ck.next_check_at) <= ${now}`)
+        .where("ck.nextCheckAt", "<", dueBefore(now))
         .orderBy(sql`${important} desc`)
         .orderBy("ck.nextCheckAt", "asc")
         .limit(limit)

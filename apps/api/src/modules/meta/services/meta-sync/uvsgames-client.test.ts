@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
 import { requestUrl } from "../../../../test/request-url.js";
+import { isPermanentRefusal, SourceBlockedError } from "./source-http.js";
 import { createUvsClient } from "./uvsgames-client.js";
 
 const USER_AGENT = "Mozilla/5.0 (test) AppleWebKit/537.36 Chrome/134.0.0.0 Safari/537.36";
@@ -11,6 +12,10 @@ function json(body: unknown, status = 200): Response {
 }
 
 /** Sleeps resolve immediately and are recorded, so pacing is asserted, not waited on. */
+function challenge(status: number): () => Response {
+  return () => new Response("<html><body>Checking your browser</body></html>", { status });
+}
+
 function harness(responses: (() => Response)[]) {
   const urls: string[] = [];
   const inits: (RequestInit | undefined)[] = [];
@@ -180,6 +185,54 @@ describe("createUvsClient", () => {
 
     expect(order).toEqual(["start /1/", "start /2/", "start /3/"]);
     expect(client.requests).toBe(3);
+  });
+
+  it("fails a throttled call at once for a caller someone is waiting on", async () => {
+    const sleeps: number[] = [];
+    const client = createUvsClient({
+      fetch: () => Promise.resolve(json({ detail: "slow down" }, 429)),
+      baseUrl: "https://source.invalid",
+      userAgent: USER_AGENT,
+      waitOnThrottle: false,
+      sleep: (ms) => {
+        sleeps.push(ms);
+        return Promise.resolve();
+      },
+      random: () => 0,
+      now: () => 1_000_000,
+    });
+
+    await expect(client.get("/api/v2/events/1/")).rejects.toMatchObject({ status: 429 });
+    expect(client.requests).toBe(1);
+    expect(sleeps.every((ms) => ms < 30_000)).toBe(true);
+  });
+
+  it.each([200, 403])(
+    "treats an HTML challenge page with status %i as a source block, never a refusal",
+    async (status) => {
+      const { client } = harness([challenge(status)]);
+
+      const error = await client
+        .get("/api/v2/deckbuilder/decks/d1/")
+        .catch((error_: unknown) => error_);
+
+      expect(error).toBeInstanceOf(SourceBlockedError);
+      expect(isPermanentRefusal(error)).toBe(false);
+      expect(client.requests).toBe(2);
+      await expect(client.get("/api/v2/events/1/")).rejects.toBeInstanceOf(SourceBlockedError);
+      expect(client.requests).toBe(2);
+    },
+  );
+
+  it("keeps a plain 403 a permanent refusal", async () => {
+    const { client } = harness([() => json({ detail: "forbidden" }, 403)]);
+
+    const error = await client
+      .get("/api/v2/deckbuilder/decks/d1/")
+      .catch((error_: unknown) => error_);
+
+    expect(isPermanentRefusal(error)).toBe(true);
+    expect(client.requests).toBe(1);
   });
 
   it("counts every attempt, so a run's request budget is reported honestly", async () => {

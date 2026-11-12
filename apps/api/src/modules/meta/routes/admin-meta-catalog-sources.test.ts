@@ -81,7 +81,18 @@ const playloltcgEvents = eventsRepo();
 const topdeckEvents = eventsRepo();
 const playriftboundEvents = eventsRepo();
 const jobRuns = { getLatestForResume: vi.fn() };
-const metaOverlays = { ignoreEvent: vi.fn(), unignoreEvent: vi.fn(), ignoreEvents: vi.fn() };
+const metaOverlays = {
+  ignoreEvent: vi.fn(),
+  unignoreEvent: vi.fn(),
+  ignoreEvents: vi.fn(),
+  claimIgnoreEvent: vi.fn(() => Promise.resolve(true)),
+};
+const meta = {
+  sourceKeyUntriaged: vi.fn(() => Promise.resolve(true)),
+  withPromoteLock: vi.fn((_key: string, run: (repos: unknown) => Promise<unknown>) =>
+    run(requestRepos),
+  ),
+};
 const adminEvents = { insert: vi.fn() };
 const scheduler = { runNow: vi.fn(), isEnabled: vi.fn(() => false) };
 
@@ -92,6 +103,7 @@ const requestRepos = {
   playriftboundEvents,
   jobRuns,
   metaOverlays,
+  meta,
   adminEvents,
 };
 const backgroundRepos = { ...requestRepos };
@@ -332,7 +344,7 @@ describe.each(CASES)("$source event writes", (c) => {
     const res = await post(c.paths.dismiss, c.body);
 
     expect(res.status).toBe(c.dismissStatus);
-    expect(metaOverlays.ignoreEvent).toHaveBeenCalledWith(c.source, c.externalId);
+    expect(metaOverlays.claimIgnoreEvent).toHaveBeenCalledWith(c.source, c.externalId);
     expect(adminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "meta-catalog.dismiss",
@@ -343,13 +355,59 @@ describe.each(CASES)("$source event writes", (c) => {
     );
   });
 
+  it.each(["accepted", "dismissed"])("409s an accept of a %s row", async (triage) => {
+    c.events.byKey.mockResolvedValue(rowFor(c, { triage }));
+
+    const res = await post(c.paths.accept, c.body);
+
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({ code: "CONFLICT" });
+    expect(c.accept).not.toHaveBeenCalled();
+    expect(adminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it.each(["accepted", "dismissed"])("409s a dismiss of a %s row", async (triage) => {
+    c.events.byKey.mockResolvedValue(rowFor(c, { triage }));
+
+    const res = await post(c.paths.dismiss, c.body);
+
+    expect(res.status).toBe(409);
+    expect(metaOverlays.claimIgnoreEvent).not.toHaveBeenCalled();
+    expect(adminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("409s the accept that loses a race for the same event, and audits only the winner", async () => {
+    c.events.byKey.mockResolvedValue(rowFor(c));
+    meta.sourceKeyUntriaged.mockResolvedValueOnce(false);
+
+    const res = await post(c.paths.accept, c.body);
+
+    expect(res.status).toBe(409);
+    expect(meta.withPromoteLock).toHaveBeenCalledWith(
+      `source:${c.source}:${c.externalId}`,
+      expect.any(Function),
+    );
+    expect(c.accept).not.toHaveBeenCalled();
+    expect(adminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("409s the dismiss that loses a race for the same event, and audits nothing", async () => {
+    c.events.byKey.mockResolvedValue(rowFor(c));
+    metaOverlays.claimIgnoreEvent.mockResolvedValueOnce(false);
+
+    const res = await post(c.paths.dismiss, c.body);
+
+    expect(res.status).toBe(409);
+    expect(adminEvents.insert).not.toHaveBeenCalled();
+  });
+
   it("404s a dismiss for a key the mirror does not carry", async () => {
     c.events.byKey.mockResolvedValue(undefined);
 
     const res = await post(c.paths.dismiss, c.body);
 
     expect(res.status).toBe(404);
-    expect(metaOverlays.ignoreEvent).not.toHaveBeenCalled();
+    expect(metaOverlays.claimIgnoreEvent).not.toHaveBeenCalled();
   });
 
   it("undismisses without reading the mirror and audits it", async () => {
@@ -635,13 +693,13 @@ describe.each([
     "/playloltcg/recheck",
     "meta.playloltcg_recheck",
     sync.processPlayloltcgRechecks,
-    { listing: true },
+    { runId: "run-1", listing: true },
   ],
   [
     "/playriftbound/recheck",
     "meta.playriftbound_recheck",
     sync.processPlayriftboundRechecks,
-    { rearm: true },
+    { runId: "run-1", rearm: true },
   ],
 ])("POST %s", (path, kind, fn, options) => {
   it("runs the recheck on the background pool with the source's own options", async () => {

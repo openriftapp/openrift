@@ -2,6 +2,7 @@ import type { MetaCatalogRow, MetaSyncStatus } from "@openrift/shared/contracts/
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -258,7 +259,7 @@ describe("MetaMirrorPage", () => {
 
   it("rejects the ticked rows only after confirming", async () => {
     const user = userEvent.setup();
-    captured.bulkReject.mockReturnValue({ rejected: ["923368"] });
+    captured.bulkReject.mockReturnValue({ rejected: ["923368"], skipped: 0 });
 
     render(<MetaMirrorPage />);
     await user.click(screen.getByRole("checkbox", { name: /^Select LAI LA NIU/u }));
@@ -270,6 +271,59 @@ describe("MetaMirrorPage", () => {
     );
 
     expect(captured.bulkReject).toHaveBeenCalledWith({ source: "uvsgames", keys: ["923368"] });
+  });
+
+  it("says how many ticked rows a bulk reject skipped", async () => {
+    const user = userEvent.setup();
+    captured.bulkReject.mockReturnValue({ rejected: [], skipped: 1 });
+
+    render(<MetaMirrorPage />);
+    await user.click(screen.getByRole("checkbox", { name: /^Select LAI LA NIU/u }));
+    await user.click(screen.getByRole("button", { name: "Reject 1" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Reject 1" }),
+    );
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "Rejected 0 events",
+      expect.objectContaining({ description: "1 event skipped: no longer undecided." }),
+    );
+  });
+
+  it("publishes once on a double-click and confirms the publish that landed", async () => {
+    const user = userEvent.setup();
+    let land: (value: unknown) => void = () => {};
+    captured.publish.mockReturnValue(
+      new Promise((resolve) => {
+        land = resolve;
+      }),
+    );
+
+    render(<MetaMirrorPage />);
+    await user.dblClick(screen.getByRole("button", { name: "Publish" }));
+
+    expect(captured.publish).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
+
+    land({ slug: "nexus-night" });
+    await vi.waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        'Published "LAI LA NIU LAI CMC TUESDAY NEXUS NIGHT 1v1"',
+      );
+    });
+  });
+
+  it("shows no success when the publish was refused", async () => {
+    const user = userEvent.setup();
+    captured.publish.mockImplementation(() => Promise.reject(new Error("already published")));
+
+    render(<MetaMirrorPage />);
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "Publish" })).toBeEnabled();
+    });
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("asks for a format before publishing an event whose format maps to nothing", async () => {

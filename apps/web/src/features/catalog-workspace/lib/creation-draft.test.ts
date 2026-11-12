@@ -483,6 +483,31 @@ describe("toAcceptInput", () => {
     });
   });
 
+  it("fills a missing finish from the candidate's rarity", () => {
+    const draft = draftFromCandidatePrinting(
+      { mode: "existing", ...CARD },
+      { ...candidate, finish: null, rarity: "uncommon" },
+      "Provider A",
+      {},
+      true,
+    );
+
+    expect((draft.faces[0] as DraftFace).fields.finish).toBe("normal");
+    expect(validateDraft(draft)).toEqual([]);
+  });
+
+  it("asks for a rarity before accepting a candidate", () => {
+    const draft = draftFromCandidatePrinting(
+      { mode: "existing", ...CARD },
+      { ...candidate, rarity: null },
+      "Provider A",
+      {},
+      true,
+    );
+
+    expect(validateDraft(draft).map((issue) => issue.path)).toEqual(["faces.0.rarity"]);
+  });
+
   it("offers a scan from a source that is not a favorite without attaching it", () => {
     const draft = draftFromCandidatePrinting(
       { mode: "existing", ...CARD },

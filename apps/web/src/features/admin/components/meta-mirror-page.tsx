@@ -57,6 +57,7 @@ import {
 import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useMountedAt } from "@/hooks/use-mounted-at";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/meta");
 
@@ -107,6 +108,7 @@ export function MetaMirrorPage() {
   const settings = useMetaSyncSettings();
   const publish = usePublishMirrorRow();
   const [formatTarget, setFormatTarget] = useState<MetaMirrorRow | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [vocabularyOpen, setVocabularyOpen] = useState(false);
 
@@ -158,20 +160,20 @@ export function MetaMirrorPage() {
     }
   }
 
-  function confirmFormat(format: string) {
+  async function confirmFormat(format: string) {
     const row = formatTarget;
-    if (row === null) {
+    if (row === null || publishing) {
       return;
     }
-    publish.mutate(
-      { source: row.source, key: row.key, format },
-      {
-        onSuccess: () => {
-          setFormatTarget(null);
-          toast.success(`Published "${row.name}"`);
-        },
-      },
+    setPublishing(true);
+    const published = await runReportedMutation(() =>
+      publish.mutateAsync({ source: row.source, key: row.key, format }),
     );
+    setPublishing(false);
+    if (published) {
+      setFormatTarget(null);
+      toast.success(`Published "${row.name}"`);
+    }
   }
 
   return (
@@ -299,9 +301,9 @@ export function MetaMirrorPage() {
 
       <MetaMirrorFormatDialog
         row={formatTarget}
-        pending={publish.isPending}
+        pending={publishing}
         onCancel={() => setFormatTarget(null)}
-        onConfirm={confirmFormat}
+        onConfirm={(format) => void confirmFormat(format)}
       />
       {rulesOpen && <MetaAutoAcceptDialog source={source} onClose={() => setRulesOpen(false)} />}
       {vocabularyOpen && <MetaSourceVocabularyDialog onClose={() => setVocabularyOpen(false)} />}

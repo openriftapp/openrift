@@ -3,7 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import type { Variables } from "../../../types.js";
+import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
+import { createDeskPrinting } from "../services/printing-desk.js";
 import { adminPrintingDeskRouter } from "./admin-printing-desk";
+
+vi.mock("../services/printing-desk.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  createDeskPrinting: vi.fn(),
+}));
+vi.mock("../../candidates/services/accept-candidate-printings.js", () => ({
+  finishPrintingAccepts: vi.fn(),
+}));
 
 const mockPrintingDesk = {
   getImageCredit: vi.fn(),
@@ -22,6 +32,7 @@ const mockPrintingImages = {
 const ON_PRINTING = "d0000000-0001-4000-a000-000000000001";
 const mockCatalog = { refreshCatalogViews: vi.fn() };
 const mockAdminEvents = { insert: vi.fn(), wasPrintingCreatedBy: vi.fn() };
+const mockIo = { fetch: vi.fn() };
 
 const FULL_ADMIN = { isAdmin: true, sections: [] };
 const GRANT_HOLDER = { isAdmin: false, sections: ["printing-desk"] };
@@ -36,6 +47,7 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("adminAccess", adminAccess as never);
+  c.set("io", mockIo as never);
   c.set("repos", {
     adminEvents: mockAdminEvents,
     printingDesk: mockPrintingDesk,
@@ -255,5 +267,40 @@ describe("grant holder scope", () => {
 
     expect(res.status).toBe(403);
     expect(mockPrintingImages.setFace).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /printing-desk/printings", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    adminAccess = FULL_ADMIN;
+  });
+
+  it("finishes the created printing once the desk has written it", async () => {
+    const created = { printingId: "p-new", imageIds: [] };
+    vi.mocked(createDeskPrinting).mockResolvedValue(created);
+
+    const res = await app.request("/api/admin/v1/printing-desk/printings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardId: "d0000000-0002-4000-a000-000000000001",
+        setId: "d0000000-0003-4000-a000-000000000001",
+        distributionChannelSlugs: [],
+        markerSlugs: [],
+        codeTba: false,
+        shortCode: "OGN-P01",
+        finish: "foil",
+        language: "EN",
+        size: "standard",
+        announcedAt: null,
+        releasedAt: null,
+        releasePrecision: null,
+        comment: null,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(finishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [created]);
   });
 });

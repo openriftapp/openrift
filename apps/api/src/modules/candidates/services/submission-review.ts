@@ -5,6 +5,7 @@ import type {
   CreateCardBody,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { resolveFinish } from "@openrift/shared/printing-accept";
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 
 import type { CardSubmissionReason, CardSubmissionStatus } from "../../../db/tables/candidates.js";
@@ -12,12 +13,25 @@ import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
+import { faceForNewImage } from "../../catalog/lib/image-face.js";
+import {
+  describeUnknownRefs,
+  loadKnownPrintingRefs,
+  unknownPrintingRefs,
+} from "../../catalog/lib/printing-refs.js";
 import {
   normalizeCardFieldValue,
   writeCardField,
 } from "../../catalog/services/card-field-writes.js";
-import { rehostSingleImage } from "../../catalog/services/images/jobs.js";
-import { acceptPrintingDeferringRehost } from "../../catalog/services/printing-admin.js";
+import { rehostImagesInBackground } from "../../catalog/services/images/jobs.js";
+import type { NewPrinting } from "../../catalog/services/printing-admin.js";
+import {
+  insertNewPrinting,
+  newPrintingConflict,
+  newPrintingIdentity,
+  withPrintingIdentityConflicts,
+} from "../../catalog/services/printing-admin.js";
 import type { PrintingFieldSource } from "../../catalog/services/printing-field-writes.js";
 import {
   normalizePrintingFieldValue,
@@ -25,8 +39,8 @@ import {
 } from "../../catalog/services/printing-field-writes.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { assertProvidersInScope } from "../lib/card-review-scope.js";
-import { describeUnknownRefs, unknownPrintingRefs } from "../lib/printing-refs.js";
 import type { CardSubmissionRow } from "../repositories/card-submissions.js";
+import { finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
 import { discardSubmissionUploads } from "./submission-uploads.js";
 
@@ -146,42 +160,56 @@ async function loadPendingSubmission(
 
 async function partitionNewPrintings(
   repos: Repos,
+  cardId: string | null,
   picks: readonly NewPrintingPick[],
-): Promise<{ usable: NewPrintingPick[]; skipped: SkippedNewPrinting[] }> {
+): Promise<{ usable: NewPrintingPick[]; skipped: SkippedNewPrinting[]; collided: boolean }> {
   if (picks.length === 0) {
-    return { usable: [], skipped: [] };
+    return { usable: [], skipped: [], collided: false };
   }
-  const channelSlugs = [
-    ...new Set(picks.flatMap((pick) => pick.printingFields.distributionChannelSlugs ?? [])),
-  ];
-  const [enums, channels] = await Promise.all([
-    repos.enums.all(),
-    repos.distributionChannels.listBySlugs(channelSlugs),
-  ]);
-  const known = {
-    languages: enums.languages.map((row) => row.slug),
-    rarities: enums.rarities.map((row) => row.slug),
-    artVariants: enums.artVariants.map((row) => row.slug),
-    finishes: enums.finishes.map((row) => row.slug),
-    cardSizes: enums.cardSizes.map((row) => row.slug),
-    markers: enums.markers.map((row) => row.slug),
-    distributionChannels: channels.map((row) => row.slug),
-  };
+  const known = await loadKnownPrintingRefs(
+    repos,
+    picks.flatMap((pick) => pick.printingFields.distributionChannelSlugs ?? []),
+  );
 
   const usable: NewPrintingPick[] = [];
   const skipped: SkippedNewPrinting[] = [];
+  const seen = new Set<string>();
+  let collided = false;
   for (const pick of picks) {
-    const unknown = unknownPrintingRefs(pick.printingFields, known);
-    if (unknown.length === 0) {
+    const { printingFields } = pick;
+    const finish = resolveFinish(printingFields.finish, printingFields.rarity);
+    const unknown = unknownPrintingRefs({ ...printingFields, finish }, known);
+    if (unknown.length > 0) {
+      skipped.push({
+        candidatePrintingId: pick.candidatePrintingId,
+        reason: describeUnknownRefs(unknown),
+      });
+      continue;
+    }
+    if (cardId === null) {
       usable.push(pick);
       continue;
     }
-    skipped.push({
-      candidatePrintingId: pick.candidatePrintingId,
-      reason: `not on an admin list: ${describeUnknownRefs(unknown)}`,
-    });
+    const identity = newPrintingIdentity(cardId, pick.printingFields);
+    const key = buildSizedPrintingLinkKey(identity);
+    if (seen.has(key)) {
+      skipped.push({
+        candidatePrintingId: pick.candidatePrintingId,
+        reason:
+          "another picked printing has the same short code, finish, size, language and markers",
+      });
+      continue;
+    }
+    seen.add(key);
+    const conflict = await newPrintingConflict(repos, identity);
+    if (conflict) {
+      collided = true;
+      skipped.push({ candidatePrintingId: pick.candidatePrintingId, reason: conflict });
+      continue;
+    }
+    usable.push(pick);
   }
-  return { usable, skipped };
+  return { usable, skipped, collided };
 }
 
 async function attachCandidateImage(trx: Repos, args: ImagePick): Promise<string> {
@@ -193,12 +221,13 @@ async function attachCandidateImage(trx: Repos, args: ImagePick): Promise<string
   if (!imageUrl) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Candidate printing has no image URL");
   }
-  const face =
+  const face = await faceForNewImage(
+    trx,
+    args.printingId,
     args.faceId === undefined
-      ? await trx.printingImages.faceForShortCode(args.printingId, candidatePrinting.shortCode)
-      : (await sideOfPick(trx, args)) === 2
-        ? "back"
-        : "front";
+      ? { shortCode: candidatePrinting.shortCode }
+      : { faceId: args.faceId },
+  );
   const imageId = await trx.printingImages.insertImage(args.printingId, imageUrl, "main", face);
   assertFound(imageId, "Candidate printing image could not be attached");
   return imageId;
@@ -215,7 +244,15 @@ export async function acceptSubmission(
   const candidate = await loadCandidate(repos, args);
   const submission = await loadPendingSubmission(repos, candidateCardId);
 
-  const { usable: usableNewPrintings, skipped } = await partitionNewPrintings(repos, newPrintings);
+  const liveCard = await repos.cardSubmissions.liveCardByNormName(candidate.normName);
+  const {
+    usable: usableNewPrintings,
+    skipped,
+    collided,
+  } = await partitionNewPrintings(repos, liveCard?.id ?? null, newPrintings);
+  if (collided) {
+    await relinkCandidatePrintings(repos);
+  }
   const pickCount =
     cardFields.length + printingFields.length + usableNewPrintings.length + images.length;
   // A skip is not a decision: settling here would close the submission on nothing.
@@ -226,15 +263,14 @@ export async function acceptSubmission(
       `Nothing could be applied. ${skipped.map((entry) => entry.reason).join("; ")}`,
     );
   }
-  const liveCard = await repos.cardSubmissions.liveCardByNormName(candidate.normName);
   if (!liveCard && pickCount > 0) {
     throw new AppError(404, ERROR_CODES.NOT_FOUND, "No live card for this submission");
   }
 
-  const createdPrintingIds: string[] = [];
+  const created: NewPrinting[] = [];
   const imageIds: string[] = [];
 
-  const { applied, status } = await transact(async (trx) => {
+  const { applied, status } = await withPrintingIdentityConflicts(transact)(async (trx) => {
     const inner: Transact = (fn) => fn(trx);
     let count = 0;
 
@@ -271,15 +307,11 @@ export async function acceptSubmission(
 
     if (liveCard && usableNewPrintings.length > 0) {
       for (const pick of usableNewPrintings) {
-        const created = await acceptPrintingDeferringRehost(
-          inner,
-          trx,
-          liveCard.id,
-          pick.printingFields,
-          [pick.candidatePrintingId],
+        created.push(
+          await insertNewPrinting(trx, liveCard.id, pick.printingFields, [
+            pick.candidatePrintingId,
+          ]),
         );
-        createdPrintingIds.push(created.printingId);
-        imageIds.push(...created.imageIds);
       }
       count += usableNewPrintings.length;
     }
@@ -308,15 +340,9 @@ export async function acceptSubmission(
     return { applied: count, status: outcome };
   });
 
-  if (applied > 0) {
-    await repos.catalog.refreshCatalogViews();
-  }
-  if (createdPrintingIds.length > 0) {
-    await relinkCandidatePrintings(repos);
-  }
-  for (const imageId of imageIds) {
-    await rehostSingleImage(io, repos.printingImages, imageId);
-  }
+  await finishPrintingAccepts(repos, io, created, { catalogChanged: applied > 0 });
+  rehostImagesInBackground(io, repos.printingImages, imageIds);
+  const createdPrintingIds = created.map((printing) => printing.printingId);
   if (status !== "accepted") {
     await discardSubmissionUploads(io, repos, candidateCardId);
   }
@@ -437,11 +463,21 @@ export async function createCardFromCandidate(
     throw new AppError(409, ERROR_CODES.CONFLICT, `Card already exists: ${existing.slug}`);
   }
 
+  const pickKeys = printings.map((pick) =>
+    buildSizedPrintingLinkKey(newPrintingIdentity(cardFields.id, pick.printingFields)),
+  );
+  if (new Set(pickKeys).size !== pickKeys.length) {
+    throw new AppError(
+      409,
+      ERROR_CODES.CONFLICT,
+      "Two picked printings have the same short code, finish, size, language and markers",
+    );
+  }
+
+  const created: NewPrinting[] = [];
   const imageIds: string[] = [];
 
-  await transact(async (trx) => {
-    const inner: Transact = (fn) => fn(trx);
-
+  await withPrintingIdentityConflicts(transact)(async (trx) => {
     await trx.catalogMutations.acceptNewCardFromSources(
       cardFields as CreateCardBody & {
         types: CardType[];
@@ -455,14 +491,9 @@ export async function createCardFromCandidate(
     assertFound(card, "Created card not found");
 
     for (const pick of printings) {
-      const created = await acceptPrintingDeferringRehost(
-        inner,
-        trx,
-        card.id,
-        pick.printingFields,
-        [pick.candidatePrintingId],
+      created.push(
+        await insertNewPrinting(trx, card.id, pick.printingFields, [pick.candidatePrintingId]),
       );
-      imageIds.push(...created.imageIds);
     }
 
     for (const pick of images) {
@@ -498,11 +529,8 @@ export async function createCardFromCandidate(
     }
   });
 
-  await repos.catalog.refreshCatalogViews();
-  await relinkCandidatePrintings(repos);
-  for (const imageId of imageIds) {
-    await rehostSingleImage(io, repos.printingImages, imageId);
-  }
+  await finishPrintingAccepts(repos, io, created, { catalogChanged: true });
+  rehostImagesInBackground(io, repos.printingImages, imageIds);
 
   await recordAdminEvent(repos, adminUserId, {
     action: "card-submission.create-card",

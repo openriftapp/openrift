@@ -1,4 +1,7 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import { recordCapped, record } from "../../../../lib/json-coerce.js";
+import { DAY_MS, HOUR_MS, shiftDays } from "../../lib/meta-durations.js";
 import { firstRevisit, lifecycleStatus, nextRecheck } from "../../lib/meta-recheck-schedule.js";
 import type { PlayriftboundCell } from "../../lib/playriftbound-catalog.js";
 import {
@@ -13,22 +16,24 @@ import type {
   PlayriftboundRecheckRow,
   PlayriftboundUpsertInput,
 } from "../../repositories/playriftbound-events.js";
-import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
-import { errorText } from "./deps.js";
+import { createCrawlRun } from "./crawl-run.js";
+import { clock } from "./deps.js";
 import { autoAcceptPlayriftboundEvents } from "./playriftbound-accept.js";
 import { isRunStopping, PlayriftboundUnavailableError } from "./playriftbound-client.js";
 import type { PlayriftboundDeepFetchResult } from "./playriftbound-deep-fetch.js";
 import { playriftboundDeepFetch, readPlayriftboundUpdatedAt } from "./playriftbound-deep-fetch.js";
 import type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
-import { clock } from "./playriftbound-deps.js";
+import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
+import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
-import { cooldownUntil } from "./source-cooldown.js";
+import { createRunHeartbeat } from "./run-heartbeat.js";
+import type { SourceStop, SourceStopFields } from "./source-stop.js";
+import { applySourceStop, cooldownUntil } from "./source-stop.js";
+import { isRecheckPassNoop, isSyncNoop } from "./sync-noop.js";
 
 const SEARCH_QUERY = "CompeteTournamentSearch";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const HOUR_MS = 60 * 60 * 1000;
 const SYNC_LOOKBACK_DAYS = 7;
 const SYNC_HORIZON_DAYS = 14;
 const SWEEP_LOOKBACK_DAYS = 45;
@@ -43,18 +48,14 @@ const SWEEP_NORTH = 72;
 const SWEEP_HEARTBEAT_CELLS = 50;
 
 const MAX_FAILURES_IN_A_ROW = 5;
-const BACKOFF_MS = 30 * 60 * 1000;
 
 const RECHECK_BUDGET_MS = 5 * 60 * 1000;
 const RECHECK_PAGE_SIZE = 50;
 const DROP_FAILING_AFTER_MS = 14 * DAY_MS;
 
-export interface PlayriftboundSyncResult extends MetaSyncResultBase {
+export interface PlayriftboundSyncResult extends MetaSyncResultBase, SourceStopFields {
   cells: number;
   cellsWithEvents: number;
-  blocked: boolean;
-  blockedUntil: string | null;
-  pausedUntil: string | null;
 }
 
 function emptyResult(): PlayriftboundSyncResult {
@@ -68,70 +69,36 @@ function emptyResult(): PlayriftboundSyncResult {
   };
 }
 
-function backoffUntil(now: Date): string {
-  return new Date(now.getTime() + BACKOFF_MS).toISOString();
-}
-
 function recordStop(
-  result: { blocked: boolean; blockedUntil: string | null; pausedUntil: string | null },
+  result: SourceStopFields & { errors: string[] },
   error: unknown,
   now: Date,
 ): void {
-  if (error instanceof PlayriftboundUnavailableError) {
-    result.pausedUntil = backoffUntil(now);
-    return;
-  }
-  result.blocked = true;
-  result.blockedUntil = cooldownUntil(now);
+  const stop = error instanceof PlayriftboundUnavailableError ? "pause" : "block";
+  recordCapped(result.errors, [applySourceStop(result, stop, now, error)]);
 }
 
 export function isPlayriftboundSyncNoop(result: PlayriftboundSyncResult): boolean {
-  return (
-    result.inserted === 0 &&
-    result.changed === 0 &&
-    result.missing === 0 &&
-    result.autoAccepted === 0 &&
-    result.autoHeld === 0 &&
-    result.complete &&
-    !result.cancelRequested &&
-    result.errors.length === 0
-  );
+  return isSyncNoop(result);
 }
 
-export interface PlayriftboundRecheckResult {
-  due: number;
-  processed: number;
-  dropped: number;
-  requests: number;
+export interface PlayriftboundRecheckResult extends RecheckPassResult {
   fetched: number;
   players: number;
   matches: number;
   acceptedPlayers: number;
   pulledForward: number;
-  backedOff: boolean;
-  blocked: boolean;
-  blockedUntil: string | null;
-  pausedUntil: string | null;
-  errors: string[];
 }
 
 export interface PlayriftboundRecheckOptions {
   /** Wall-clock milliseconds. */
   budgetMs?: number;
   rearm?: boolean;
+  runId?: string;
 }
 
 export function isPlayriftboundRecheckNoop(result: PlayriftboundRecheckResult): boolean {
-  return (
-    result.processed === 0 &&
-    result.pulledForward === 0 &&
-    !result.blocked &&
-    result.errors.length === 0
-  );
-}
-
-function shift(from: Date, days: number): Date {
-  return new Date(from.getTime() + days * DAY_MS);
+  return isRecheckPassNoop(result);
 }
 
 interface SearchPage {
@@ -256,7 +223,7 @@ async function crawlCellContained(
     state.failuresInARow = 0;
     return "done";
   } catch (error) {
-    recordCapped(result.errors, [errorText(error, `Area ${cell.key}`)]);
+    recordCapped(result.errors, [`Area ${cell.key}: ${errorMessage(error)}`]);
     const now = clock(deps);
     if (isRunStopping(error)) {
       deps.log.warn({ err: error }, "playriftbound refused the crawl");
@@ -265,8 +232,9 @@ async function crawlCellContained(
     }
     state.failuresInARow++;
     if (state.failuresInARow >= MAX_FAILURES_IN_A_ROW) {
-      result.pausedUntil = backoffUntil(now);
-      recordCapped(result.errors, [`Stopped after ${state.failuresInARow} areas in a row failed.`]);
+      recordCapped(result.errors, [
+        applySourceStop(result, "pause", now, `${state.failuresInARow} areas in a row failed`),
+      ]);
       return "stop";
     }
     return "failed";
@@ -300,8 +268,8 @@ export async function syncPlayriftboundCatalog(
 ): Promise<PlayriftboundSyncResult> {
   const result = emptyResult();
   const now = clock(deps);
-  const from = shift(now, -SYNC_LOOKBACK_DAYS);
-  const horizon = shift(now, SYNC_HORIZON_DAYS);
+  const from = shiftDays(now, -SYNC_LOOKBACK_DAYS);
+  const horizon = shiftDays(now, SYNC_HORIZON_DAYS);
   const state: CrawlState = { seenAt: now, touched: [], seen: new Set(), failuresInARow: 0 };
   const cells = cellsOfOrganizers(await deps.repos.playriftboundEvents.organizerCoordinates());
   if (cells.length === 0) {
@@ -355,8 +323,8 @@ export async function backfillPlayriftbound(
 ): Promise<PlayriftboundSyncResult> {
   const result = emptyResult();
   const now = clock(deps);
-  const from = shift(now, -SWEEP_LOOKBACK_DAYS);
-  const horizon = shift(now, SYNC_HORIZON_DAYS);
+  const from = shiftDays(now, -SWEEP_LOOKBACK_DAYS);
+  const horizon = shiftDays(now, SYNC_HORIZON_DAYS);
   const state: CrawlState = { seenAt: now, touched: [], seen: new Set(), failuresInARow: 0 };
   const cells = cellsBetween(SWEEP_SOUTH, SWEEP_NORTH);
   const start = options.resumeFrom === undefined ? 0 : options.resumeFrom + 1;
@@ -365,6 +333,11 @@ export async function backfillPlayriftbound(
     result.coveredThrough = String(options.resumeFrom);
   }
 
+  const run = createCrawlRun({
+    result,
+    heartbeat: createRunHeartbeat(deps, runId),
+    requests: () => deps.client.requests,
+  });
   const failed: number[] = [];
   let stopped = false;
   for (let index = start; index < cells.length; index++) {
@@ -392,20 +365,9 @@ export async function backfillPlayriftbound(
     } else {
       result.coveredThrough = firstFailed === 0 ? null : String(firstFailed - 1);
     }
-    if (runId !== undefined && (index - start) % SWEEP_HEARTBEAT_CELLS === 0) {
-      result.requests = deps.client.requests;
-      if (await runCancelRequested(deps.repos.jobRuns, runId)) {
-        result.cancelRequested = true;
-        stopped = true;
-        break;
-      }
-      // A run that dies mid-sweep must leave a checkpoint the next run can resume from.
-      await writeRunHeartbeat(
-        deps.repos.jobRuns,
-        runId,
-        { ...result, complete: false },
-        clock(deps),
-      );
+    if ((index - start) % SWEEP_HEARTBEAT_CELLS === 0 && !(await run.checkpoint())) {
+      stopped = true;
+      break;
     }
   }
 
@@ -474,7 +436,7 @@ async function visitPlayriftboundEvent(
   row: PlayriftboundRecheckRow,
   now: Date,
   result: PlayriftboundRecheckResult,
-): Promise<boolean> {
+): Promise<VisitOutcome> {
   if (row.startAt.getTime() > now.getTime()) {
     await deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
       nextCheckAt: row.startAt,
@@ -482,7 +444,7 @@ async function visitPlayriftboundEvent(
       failingSince: null,
     });
     result.processed++;
-    return false;
+    return "ok";
   }
 
   const updatedAt = await readPlayriftboundUpdatedAt(deps, row.tournamentId);
@@ -542,11 +504,11 @@ async function visitPlayriftboundEvent(
     });
     result.dropped++;
     result.processed++;
-    return false;
+    return "ok";
   }
   if (!ok) {
     await grace(deps, row, now, result);
-    return true;
+    return gone ? "answered" : "failed";
   }
 
   const displayStatus = displayFor();
@@ -563,7 +525,7 @@ async function visitPlayriftboundEvent(
     failingSince: null,
   });
   result.processed++;
-  return false;
+  return "ok";
 }
 
 function tally(result: PlayriftboundRecheckResult, deep: PlayriftboundDeepFetchResult): void {
@@ -574,33 +536,11 @@ function tally(result: PlayriftboundRecheckResult, deep: PlayriftboundDeepFetchR
   recordCapped(result.errors, deep.errors);
 }
 
-/**
- * Catches everything but a run-stopping error, so one event's failure can't
- * starve the rows behind it. A block or refused query defers it to the cool-down's end.
- */
-async function visitContained(
-  deps: PlayriftboundSyncDeps,
-  row: PlayriftboundRecheckRow,
-  now: Date,
-  result: PlayriftboundRecheckResult,
-): Promise<boolean> {
-  try {
-    return await visitPlayriftboundEvent(deps, row, now, result);
-  } catch (error) {
-    if (isRunStopping(error)) {
-      if (!(error instanceof PlayriftboundUnavailableError)) {
-        await deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
-          nextCheckAt: new Date(cooldownUntil(now)),
-          checkStage: row.checkStage,
-        });
-      }
-      throw error;
-    }
-    deps.log.warn({ err: error, tournamentId: row.tournamentId }, "Recheck visit failed");
-    recordCapped(result.errors, [errorText(error, `Event ${row.tournamentId}`)]);
-    await grace(deps, row, now, result);
-    return true;
+function stopOf(error: unknown): SourceStop | null {
+  if (!isRunStopping(error)) {
+    return null;
   }
+  return error instanceof PlayriftboundUnavailableError ? "pause" : "block";
 }
 
 export async function processPlayriftboundRechecks(
@@ -608,72 +548,47 @@ export async function processPlayriftboundRechecks(
   options: PlayriftboundRecheckOptions = {},
 ): Promise<PlayriftboundRecheckResult> {
   const { budgetMs = RECHECK_BUDGET_MS } = options;
-  const deadline = performance.now() + budgetMs;
-  const before = deps.client.requests;
   const now = clock(deps);
   const result: PlayriftboundRecheckResult = {
-    due: 0,
-    processed: 0,
-    dropped: 0,
-    requests: 0,
+    ...emptyRecheckPassResult(),
     fetched: 0,
     players: 0,
     matches: 0,
     acceptedPlayers: 0,
     pulledForward: 0,
-    backedOff: false,
-    blocked: false,
-    blockedUntil: null,
-    pausedUntil: null,
-    errors: [],
   };
 
   if (options.rearm === true) {
     result.pulledForward = await deps.repos.playriftboundEvents.rearmRunningEvents(now);
   }
 
-  let failedInARow = 0;
-  // A row a failed write left due must not be visited twice in one pass.
-  const visited = new Set<string>();
-  let stopped = false;
-  try {
-    while (!stopped && performance.now() < deadline) {
-      const due = await deps.repos.playriftboundEvents.dueForRecheck(
-        clock(deps),
-        RECHECK_PAGE_SIZE,
-      );
-      const fresh = due.filter((row) => !visited.has(row.tournamentId));
-      if (fresh.length === 0) {
-        break;
+  return await runRecheckPass({
+    result,
+    heartbeat: createRunHeartbeat(deps, options.runId),
+    log: deps.log,
+    now: () => clock(deps),
+    budgetMs,
+    requests: () => deps.client.requests,
+    pageSize: RECHECK_PAGE_SIZE,
+    due: (at, limit) => deps.repos.playriftboundEvents.dueForRecheck(at, limit),
+    keyOf: (row) => row.tournamentId,
+    visit: (row, at) => visitPlayriftboundEvent(deps, row, at, result),
+    grace: (row, at) => grace(deps, row, at, result),
+    drop: (row) =>
+      deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
+        nextCheckAt: null,
+        checkStage: row.checkStage,
+      }),
+    stopOf,
+    deferOnStop: async (row, stop, at) => {
+      if (stop === "block") {
+        await deps.repos.playriftboundEvents.setRecheck(row.tournamentId, {
+          nextCheckAt: new Date(cooldownUntil(at)),
+          checkStage: row.checkStage,
+        });
       }
-      for (const row of fresh) {
-        visited.add(row.tournamentId);
-        result.due++;
-        const failed = await visitContained(deps, row, clock(deps), result);
-        failedInARow = failed ? failedInARow + 1 : 0;
-        if (failedInARow >= MAX_FAILURES_IN_A_ROW) {
-          result.backedOff = true;
-          result.pausedUntil = backoffUntil(clock(deps));
-          recordCapped(result.errors, [
-            `Stopped after ${failedInARow} visits in a row failed; pausing for 30 minutes.`,
-          ]);
-        }
-        if (result.backedOff || performance.now() >= deadline) {
-          stopped = true;
-          break;
-        }
-      }
-    }
-  } catch (error) {
-    if (!isRunStopping(error) || !(error instanceof Error)) {
-      throw error;
-    }
-    deps.log.warn({ err: error }, "playriftbound refused the recheck");
-    recordStop(result, error, now);
-    recordCapped(result.errors, [error.message]);
-  }
-  result.requests = deps.client.requests - before;
-  return result;
+    },
+  });
 }
 
 export async function fetchPlayriftboundEvent(

@@ -85,3 +85,7 @@ export function notIgnoredPrinting(alias: string, csAlias: string): Expression<S
     ),
   );
 }
+
+export function acceptableCandidatePrinting(cpAlias: string, ccAlias: string): Expression<SqlBool> {
+  return sql<SqlBool>`(${sql.ref(`${cpAlias}.printingId`)} is null and ${notIgnoredCard(ccAlias)} and ${notIgnoredPrinting(cpAlias, ccAlias)} and ${notHiddenSource(ccAlias)})`;
+}

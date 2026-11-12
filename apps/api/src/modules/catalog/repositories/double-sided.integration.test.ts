@@ -38,6 +38,11 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
   let setId = "";
   let collectionId = "";
 
+  async function pairPrinting(values: ReturnType<typeof sideValues>, secondFaceId: string) {
+    const existing = await mutations.findPrintingIdByIdentity(values, secondFaceId);
+    return existing?.id ?? mutations.insertPrinting(values, secondFaceId);
+  }
+
   function sideValues(card: string, shortCode: string) {
     return {
       cardId: cardIds[card]!,
@@ -152,14 +157,8 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
   });
 
   it("shares the Bird face between T01+T05 and T01+T03", async () => {
-    const withGold = await mutations.upsertPrinting(
-      sideValues("Bird", "DST-T01"),
-      faceIds["DST-T05"]!,
-    );
-    const withBrush = await mutations.upsertPrinting(
-      sideValues("Bird", "DST-T01"),
-      faceIds["DST-T03"]!,
-    );
+    const withGold = await pairPrinting(sideValues("Bird", "DST-T01"), faceIds["DST-T05"]!);
+    const withBrush = await pairPrinting(sideValues("Bird", "DST-T01"), faceIds["DST-T03"]!);
 
     const printings = await db
       .selectFrom("printings")
@@ -181,10 +180,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
   });
 
   it("finds the pair again whichever side is named first", async () => {
-    const first = await mutations.upsertPrinting(
-      sideValues("Bird", "DST-T01"),
-      faceIds["DST-T05"]!,
-    );
+    const first = await pairPrinting(sideValues("Bird", "DST-T01"), faceIds["DST-T05"]!);
     const birdFace = await mutations.findFaceIdByIdentity({
       cardId: cardIds.Bird!,
       shortCode: "DST-T01",
@@ -192,23 +188,17 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       markerSlugs: [],
       language: "EN",
     });
-    const reversed = await mutations.upsertPrinting(sideValues("Gold", "DST-T05"), birdFace!.id);
-    expect(reversed).toBe(first);
+    const reversed = await mutations.findPrintingIdByIdentity(
+      sideValues("Gold", "DST-T05"),
+      birdFace!.id,
+    );
+    expect(reversed?.id).toBe(first);
   });
 
   it("counts owned copies for the card on each side, once for a card on both", async () => {
-    const withGold = await mutations.upsertPrinting(
-      sideValues("Bird", "DST-T01"),
-      faceIds["DST-T05"]!,
-    );
-    const withBrush = await mutations.upsertPrinting(
-      sideValues("Bird", "DST-T01"),
-      faceIds["DST-T03"]!,
-    );
-    const buffBuff = await mutations.upsertPrinting(
-      sideValues("Buff", "DST-T09"),
-      faceIds["DST-T10"]!,
-    );
+    const withGold = await pairPrinting(sideValues("Bird", "DST-T01"), faceIds["DST-T05"]!);
+    const withBrush = await pairPrinting(sideValues("Bird", "DST-T01"), faceIds["DST-T03"]!);
+    const buffBuff = await pairPrinting(sideValues("Buff", "DST-T09"), faceIds["DST-T10"]!);
     await copies.insertBatch([
       { printingId: withGold, collectionId },
       { printingId: withBrush, collectionId },
@@ -233,7 +223,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       .where("face1Id", "=", brushFace)
       .executeTakeFirstOrThrow();
     await db.deleteFrom("printings").where("id", "=", single.id).execute();
-    const pair = await mutations.upsertPrinting(sideValues("Gold", "DST-T15"), brushFace);
+    const pair = await mutations.insertPrinting(sideValues("Gold", "DST-T15"), brushFace);
     const [deck] = await db
       .insertInto("decks")
       .values({ userId: USER_ID, name: "DST deck", format: "constructed" } as never)
@@ -288,7 +278,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       comment: null,
     });
     await db.deleteFrom("printings").where("face1Id", "=", faceId).execute();
-    const printingId = await mutations.upsertPrinting(sideValues(second[0], second[1]), faceId);
+    const printingId = await mutations.insertPrinting(sideValues(second[0], second[1]), faceId);
     return { printingId, firstFace: faceId };
   }
 
@@ -399,7 +389,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
     });
     await db.updateTable("faces").set({ printedYear: 2025 }).where("id", "=", faceId).execute();
 
-    await mutations.upsertPrinting({ ...sideValues("Brush", "DST-T27"), size: "oversized" });
+    await mutations.insertPrinting({ ...sideValues("Brush", "DST-T27"), size: "oversized" });
 
     const face = await db
       .selectFrom("faces")
@@ -771,7 +761,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
   });
 
   it("gives a printing created with a new face that face's id", async () => {
-    const printingId = await mutations.upsertPrinting(sideValues("Bird", "DST-T43"));
+    const printingId = await mutations.insertPrinting(sideValues("Bird", "DST-T43"));
     const printing = await db
       .selectFrom("printings")
       .select("face1Id")
@@ -785,7 +775,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       db
         .transaction()
         .execute((trx) =>
-          catalogMutationsRepo(trx).upsertPrinting(
+          catalogMutationsRepo(trx).insertPrinting(
             { ...sideValues("Bird", "DST-T41"), language: "FR" },
             faceIds["DST-T05"]!,
           ),
@@ -794,7 +784,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
   });
 
   it("refuses a language edit on one face of a pair", async () => {
-    const printingId = await mutations.upsertPrinting(
+    const printingId = await mutations.insertPrinting(
       sideValues("Brush", "DST-T42"),
       faceIds["DST-T10"]!,
     );

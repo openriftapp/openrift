@@ -10,26 +10,31 @@ import type {
 } from "@openrift/shared/contracts/admin/catalog-workspace-batch";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
+import { errorMessage } from "@openrift/shared/strings";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
-import { acceptPrinting } from "../../catalog/services/printing-admin.js";
+import {
+  describeUnknownRefs,
+  loadKnownPrintingRefs,
+  unknownPrintingRefs,
+} from "../../catalog/lib/printing-refs.js";
+import type { NewPrinting } from "../../catalog/services/printing-admin.js";
 import type { MarketplaceConfigs } from "../../marketplace/lib/marketplace-configs.js";
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { acceptFieldsFromCandidate } from "../lib/candidate-printing-accept.js";
 import {
-  acceptPrintingFieldsFrom,
   eligibleTrustedCards,
   findDuplicatePrinting,
-  missingPrintingFields,
   trustedPrintingGroups,
 } from "../lib/workspace-batch.js";
 import type { TrustedCardDraft, TrustedPrintingGroup } from "../lib/workspace-batch.js";
+import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "./accept-gallery.js";
-import { relinkCandidatePrintings } from "./relink-candidates.js";
 
 type BatchRepos = Pick<
   Repos,
@@ -38,7 +43,7 @@ type BatchRepos = Pick<
   | "providerSettings"
   | "catalogMutations"
   | "printingImages"
-  | "markers"
+  | "enums"
   | "distributionChannels"
   | "printingEvents"
   | "catalog"
@@ -57,10 +62,6 @@ function assertAdmin(access: AdminAccess | null): void {
   if (access?.isAdmin !== true) {
     throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
   }
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 async function loadTrustedCards(repos: BatchRepos): Promise<TrustedCardDraft[]> {
@@ -93,15 +94,16 @@ export async function acceptTrustedCards(
   const favoriteProviders = await repos.providerSettings.favoriteProviders();
   let accepted = 0;
   const skipped: WorkspaceAcceptTrustedCardsResponse["skipped"] = [];
+  const created: NewPrinting[] = [];
 
   for (const draft of drafts) {
     try {
       const result = await acceptFavoriteNewCard(
         context.transact,
-        context.io,
         repos,
         draft.normName,
         favoriteProviders,
+        created,
       );
       accepted++;
       await recordAdminEvent(repos, context.userId, {
@@ -121,9 +123,7 @@ export async function acceptTrustedCards(
     }
   }
 
-  if (accepted > 0) {
-    await repos.catalog.refreshCatalogViews();
-  }
+  await finishPrintingAccepts(repos, context.io, created, { catalogChanged: accepted > 0 });
   return { accepted, skipped };
 }
 
@@ -139,13 +139,23 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
     ]),
     repos.workspaceBatch.frontPrintingProbes([...new Set(rows.map((row) => row.cardId))]),
   ]);
+  const groups = trustedPrintingGroups(rows, printings);
+  const known = await loadKnownPrintingRefs(
+    repos,
+    groups.flatMap((group) => group.first.distributionChannelSlugs),
+  );
   const eligible: TrustedPrintingGroup[] = [];
   const ineligible: { label: string; reason: string }[] = [];
-  for (const group of trustedPrintingGroups(rows, printings)) {
+  for (const group of groups) {
     const label = `${group.cardSlug} ${group.label}`;
-    const missing = missingPrintingFields(group.first);
-    if (missing.length > 0) {
-      ineligible.push({ label, reason: `missing: ${missing.join(", ")}` });
+    const accepted = acceptFieldsFromCandidate(group.first);
+    if (accepted.missing) {
+      ineligible.push({ label, reason: `missing: ${accepted.missing.join(", ")}` });
+      continue;
+    }
+    const unknown = unknownPrintingRefs(accepted.fields, known);
+    if (unknown.length > 0) {
+      ineligible.push({ label, reason: describeUnknownRefs(unknown) });
       continue;
     }
     const duplicate = findDuplicatePrinting(group, probes);
@@ -180,40 +190,29 @@ export async function acceptTrustedPrintings(
 ): Promise<WorkspaceAcceptTrustedPrintingsResponse> {
   assertAdmin(context.access);
   const { eligible, ineligible } = await loadTrustedPrintings(repos);
-  let accepted = 0;
   const skipped: WorkspaceAcceptTrustedPrintingsResponse["skipped"] = [...ineligible];
+  const created: NewPrinting[] = [];
 
   for (const group of eligible) {
-    const printingFields = acceptPrintingFieldsFrom(group.first);
-    try {
-      const printingId = await acceptPrinting(
-        context.transact,
-        repos,
-        group.cardId,
-        printingFields,
-        group.candidatePrintingIds,
-        context.io,
-        { requireNew: true, secondFaceId: null },
-      );
-      accepted++;
-      await recordAdminEvent(repos, context.userId, {
-        action: "printing.accept",
-        entityType: "printing",
-        entityId: printingId,
-        entityLabel: printingFields.shortCode,
-        cardSlug: group.cardSlug,
-        newValues: { printingFields, candidatePrintingIds: group.candidatePrintingIds },
-      });
-    } catch (error) {
-      skipped.push({ label: `${group.cardSlug} ${group.label}`, reason: errorMessage(error) });
+    const outcome = await acceptCandidateGroup(context.transact, group.cardId, group.candidates);
+    if (!("printing" in outcome)) {
+      skipped.push({ label: `${group.cardSlug} ${group.label}`, reason: outcome.reason });
+      continue;
     }
+    created.push(outcome.printing);
+    const candidatePrintingIds = group.candidates.map((cp) => cp.id);
+    await recordAdminEvent(repos, context.userId, {
+      action: "printing.accept",
+      entityType: "printing",
+      entityId: outcome.printing.printingId,
+      entityLabel: outcome.fields.shortCode,
+      cardSlug: group.cardSlug,
+      newValues: { printingFields: outcome.fields, candidatePrintingIds },
+    });
   }
 
-  if (accepted > 0) {
-    await repos.catalog.refreshCatalogViews();
-    await relinkCandidatePrintings(repos);
-  }
-  return { accepted, skipped };
+  await finishPrintingAccepts(repos, context.io, created);
+  return { accepted: created.length, skipped };
 }
 
 interface StrongListing extends WorkspaceSuggestedListing {

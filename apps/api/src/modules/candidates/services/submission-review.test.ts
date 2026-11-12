@@ -155,6 +155,7 @@ describe("acceptSubmission", () => {
           printingFields: {
             shortCode: "UNL-131",
             artist: "A",
+            rarity: "common",
             publicCode: "UNL-131",
             language: "JP",
             markerSlugs: [],
@@ -185,6 +186,7 @@ describe("acceptSubmission", () => {
           printingFields: {
             shortCode: "UNL-131",
             artist: "A",
+            rarity: "common",
             publicCode: "UNL-131",
             language: "JP",
             markerSlugs: [],
@@ -212,6 +214,7 @@ describe("acceptSubmission", () => {
             printingFields: {
               shortCode: "UNL-131",
               artist: "A",
+              rarity: "common",
               publicCode: "UNL-131",
               language: "JP",
               markerSlugs: [],
@@ -221,6 +224,185 @@ describe("acceptSubmission", () => {
         ],
       }),
     ).rejects.toThrow(AppError);
+    expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
+  });
+
+  it("skips a new printing that already exists on the card instead of overwriting it", async () => {
+    const repos = createRepos();
+    Object.assign(repos.catalogMutations, {
+      getPrintingCardIdByComposite: vi.fn().mockResolvedValue({ cardId: "card-1" }),
+      findPrintingIdByIdentity: vi.fn().mockResolvedValue({ id: "p-live" }),
+      getCardById: vi.fn(),
+    });
+    const existing = {
+      candidatePrintingId: "cp-1",
+      printingFields: {
+        shortCode: "OGN-027",
+        artist: "Overwriting Artist",
+        rarity: "common",
+        publicCode: "OGN-027",
+        markerSlugs: [],
+        distributionChannelSlugs: [],
+      },
+    };
+
+    const result = await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      cardFields: [{ field: "energy", value: 3 }],
+      newPrintings: [existing],
+    });
+
+    expect(result.createdPrintingIds).toEqual([]);
+    expect(result.skipped).toEqual([
+      {
+        candidatePrintingId: "cp-1",
+        reason: expect.stringContaining(
+          'This card already has a printing with short code "OGN-027"',
+        ),
+      },
+    ]);
+    expect(repos.catalogMutations.getCardById).not.toHaveBeenCalled();
+    expect(repos.candidateCards.checkCandidatePrintingsForCard).toHaveBeenCalledWith("cc-1", [
+      "cp-1",
+    ]);
+  });
+
+  it("links a colliding pick to the existing printing in the same request", async () => {
+    const linkCandidatePrintings = vi.fn();
+    const repos = createRepos({
+      ingest: {
+        allUnlinkedCandidatePrintings: vi.fn().mockResolvedValue([
+          {
+            id: "cp-1",
+            shortCode: "OGN-027",
+            finish: null,
+            rarity: "common",
+            markerSlugs: [],
+            language: "EN",
+            externalId: "jinx--1",
+            size: null,
+            cardName: "Jinx",
+            provider: "usersubmission",
+          },
+        ]),
+        allCardNorms: vi.fn().mockResolvedValue([{ id: "card-1", normName: "jinx" }]),
+        allCardNameAliases: vi.fn().mockResolvedValue([]),
+        allPrintingKeys: vi.fn().mockResolvedValue([
+          {
+            id: "p-live",
+            shortCode: "OGN-027",
+            finish: "normal",
+            markerSlugs: [],
+            language: "EN",
+            size: "standard",
+          },
+        ]),
+        allPrintingLinkOverrides: vi.fn().mockResolvedValue([]),
+      },
+    });
+    Object.assign(repos.candidateCards, { linkCandidatePrintings });
+    Object.assign(repos.catalogMutations, {
+      getPrintingCardIdByComposite: vi.fn().mockResolvedValue({ cardId: "card-1" }),
+      findPrintingIdByIdentity: vi.fn().mockResolvedValue({ id: "p-live" }),
+    });
+    const collidingPick = {
+      candidatePrintingId: "cp-1",
+      printingFields: {
+        shortCode: "OGN-027",
+        rarity: "common",
+        artist: "A",
+        publicCode: "OGN-027",
+        markerSlugs: [],
+        distributionChannelSlugs: [],
+      },
+    };
+
+    const result = await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      cardFields: [{ field: "energy", value: 3 }],
+      newPrintings: [collidingPick],
+    });
+
+    expect(result.createdPrintingIds).toEqual([]);
+    expect(linkCandidatePrintings).toHaveBeenCalledWith(["cp-1"], "p-live");
+  });
+
+  it("links a colliding pick even when nothing else could be applied", async () => {
+    const repos = createRepos();
+    Object.assign(repos.catalogMutations, {
+      getPrintingCardIdByComposite: vi.fn().mockResolvedValue({ cardId: "card-1" }),
+      findPrintingIdByIdentity: vi.fn().mockResolvedValue({ id: "p-live" }),
+    });
+
+    await expect(
+      acceptSubmission(transactOn(repos), repos, io, {
+        ...baseArgs,
+        ...noPicks,
+        newPrintings: [
+          {
+            candidatePrintingId: "cp-1",
+            printingFields: {
+              shortCode: "OGN-027",
+              rarity: "common",
+              artist: "A",
+              publicCode: "OGN-027",
+              markerSlugs: [],
+              distributionChannelSlugs: [],
+            },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(repos.ingest.allUnlinkedCandidatePrintings).toHaveBeenCalled();
+  });
+
+  it("409s when a concurrent printing wins the identity at commit", async () => {
+    const repos = createRepos();
+    const failingCommit: Transact = async (fn) => {
+      await fn(repos);
+      throw Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "uq_faces_identity",
+      });
+    };
+
+    await expect(
+      acceptSubmission(failingCommit, repos, io, {
+        ...baseArgs,
+        ...noPicks,
+        cardFields: [{ field: "energy", value: 3 }],
+      }),
+    ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+  });
+
+  it("skips a second pick of the same printing identity", async () => {
+    const repos = createRepos();
+    Object.assign(repos.catalogMutations, {
+      getPrintingCardIdByComposite: vi.fn().mockResolvedValue(null),
+      findPrintingIdByIdentity: vi.fn().mockResolvedValue({ id: "p-live" }),
+    });
+    const fields = {
+      shortCode: "OGN-027",
+      artist: "A",
+      rarity: "common",
+      publicCode: "OGN-027",
+      markerSlugs: [],
+      distributionChannelSlugs: [],
+    };
+
+    await expect(
+      acceptSubmission(transactOn(repos), repos, io, {
+        ...baseArgs,
+        ...noPicks,
+        newPrintings: [
+          { candidatePrintingId: "cp-1", printingFields: { ...fields, finish: "normal" } },
+          { candidatePrintingId: "cp-2", printingFields: { ...fields, shortCode: "ogn-027" } },
+        ],
+      }),
+    ).rejects.toThrow("another picked printing has the same short code");
+    expect(repos.catalogMutations.findPrintingIdByIdentity).toHaveBeenCalledTimes(1);
     expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
   });
 
@@ -657,6 +839,37 @@ describe("createCardFromCandidate", () => {
         ...baseArgs,
         cardFields,
         printings: [],
+        images: [],
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(repos.catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
+  });
+
+  it("409s two picks of one printing identity before creating anything", async () => {
+    const repos = createRepos({
+      cardSubmissions: {
+        getByCandidateCardId: vi.fn().mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
+        liveCardByNormName: vi.fn().mockResolvedValue(null),
+        resolve: vi.fn(),
+      },
+    });
+    const printingFields = {
+      shortCode: "OGN-027",
+      artist: "A",
+      rarity: "common",
+      publicCode: "OGN-027",
+      markerSlugs: [],
+      distributionChannelSlugs: [],
+    };
+
+    await expect(
+      createCardFromCandidate(transactOn(repos), repos, io, {
+        ...baseArgs,
+        cardFields,
+        printings: [
+          { candidatePrintingId: "cp-1", printingFields },
+          { candidatePrintingId: "cp-2", printingFields: { ...printingFields, finish: "normal" } },
+        ],
         images: [],
       }),
     ).rejects.toMatchObject({ status: 409 });

@@ -452,7 +452,7 @@ const PLAYLOLTCG = {
   ),
   recheck: playloltcgJobs.job(
     "meta.playloltcg_recheck",
-    (deps) => processPlayloltcgRechecks(deps, { listing: true }),
+    (deps, runId) => processPlayloltcgRechecks(deps, { runId, listing: true }),
     isPlayloltcgRecheckNoop,
   ),
   fetchEvent: playloltcgJobs.eventFetch("meta.playloltcg_event_fetch", (deps, row) =>
@@ -550,7 +550,7 @@ const PLAYRIFTBOUND = {
   ),
   recheck: playriftboundJobs.job(
     "meta.playriftbound_recheck",
-    (deps) => processPlayriftboundRechecks(deps, { rearm: true }),
+    (deps, runId) => processPlayriftboundRechecks(deps, { runId, rearm: true }),
     isPlayriftboundRecheckNoop,
   ),
   fetchEvent: playriftboundJobs.eventFetch("meta.playriftbound_event_fetch", (deps, row) =>
@@ -574,6 +574,34 @@ async function requireMirrored<TKey, TRow extends MirroredEvent, TDeps>(
   return row;
 }
 
+function alreadyTriaged(): AppError {
+  return new AppError(409, ERROR_CODES.CONFLICT, "This event is already published or dismissed.");
+}
+
+async function claimAccept<TRow extends MirroredEvent, TDeps>(
+  source: Pick<MirrorEvents<unknown, TRow, TDeps>, "provider" | "deps" | "accept">,
+  context: ApiContext,
+  row: TRow,
+  keyText: string,
+  options: AcceptOptions,
+): Promise<AcceptedEvent | null> {
+  return await context.repos.meta.withPromoteLock(
+    `source:${source.provider}:${keyText}`,
+    async (locked) => {
+      if (!(await locked.meta.sourceKeyUntriaged(source.provider, keyText))) {
+        return null;
+      }
+      return await source.accept(source.deps({ ...context, repos: locked }), row, options);
+    },
+  );
+}
+
+function claimDismiss(context: ApiContext, provider: string, keyText: string): Promise<boolean> {
+  return context.repos.meta.withPromoteLock(`source:${provider}:${keyText}`, (locked) =>
+    locked.metaOverlays.claimIgnoreEvent(provider, keyText),
+  );
+}
+
 async function acceptMirrored<TKey, TRow extends MirroredEvent, TDeps>(
   source: MirrorEvents<TKey, TRow, TDeps>,
   context: AuthedContext,
@@ -581,7 +609,13 @@ async function acceptMirrored<TKey, TRow extends MirroredEvent, TDeps>(
   options: AcceptOptions = {},
 ): Promise<AcceptedEvent> {
   const row = await requireMirrored(source, context, key);
-  const accepted = await source.accept(source.deps(context), row, options);
+  if (row.triage !== "new") {
+    throw alreadyTriaged();
+  }
+  const accepted = await claimAccept(source, context, row, source.keyText(key), options);
+  if (accepted === null) {
+    throw alreadyTriaged();
+  }
   await recordAdminEvent(context.repos, context.userId, {
     action: "meta-catalog.accept",
     entityType: "meta-catalog",
@@ -599,7 +633,9 @@ async function dismissMirrored<TKey, TRow extends MirroredEvent, TDeps>(
 ): Promise<void> {
   const row = await requireMirrored(source, context, key);
   const externalId = source.keyText(key);
-  await context.repos.metaOverlays.ignoreEvent(source.provider, externalId);
+  if (row.triage !== "new" || !(await claimDismiss(context, source.provider, externalId))) {
+    throw alreadyTriaged();
+  }
   await recordAdminEvent(context.repos, context.userId, {
     action: "meta-catalog.dismiss",
     entityType: "meta-catalog",
@@ -663,7 +699,8 @@ const playriftbound = eventHandlers(PLAYRIFTBOUND);
 interface MirrorRowHandle {
   triage: string;
   metaEventId: string | null;
-  publish: () => Promise<unknown>;
+  publish: () => Promise<AcceptedEvent | null>;
+  dismiss: () => Promise<boolean>;
 }
 
 interface MirrorAccess {
@@ -683,7 +720,8 @@ function mirrorAccess<TKey, TRow extends MirroredEvent, TDeps>(
         row && {
           triage: row.triage,
           metaEventId: row.metaEventId,
-          publish: () => source.accept(source.deps(context), row, {}),
+          publish: () => claimAccept(source, context, row, source.keyText(parsed as TKey), {}),
+          dismiss: () => claimDismiss(context, source.provider, source.keyText(parsed as TKey)),
         }
       );
     },

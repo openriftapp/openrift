@@ -1,26 +1,29 @@
+import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { PLAYLOLTCG_PROVIDER } from "../../../../lib/meta-providers.js";
+import { META_NAME_MAX } from "../../lib/meta-event-naming.js";
 import { playloltcgEventUrl } from "../../lib/playloltcg-catalog.js";
 import type { PlayloltcgListRow } from "../../repositories/playloltcg-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
-import { errorText } from "./deps.js";
+import { clock } from "./deps.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
-import { clock } from "./playloltcg-deps.js";
+import { sameStoreLiveEvent } from "./same-store-guard.js";
 
 /** This source has no template or notable-name signal; `activityType` doesn't distinguish events, so player count is the only accept rule. */
 export interface PlayloltcgAcceptSummary {
   considered: number;
   accepted: number;
+  held: number;
   failed: number;
   errors: string[];
 }
 
 const SWEEP_PAGE = 1000;
-const MAX_SWEEP_ERRORS = 50;
 
 function emptySummary(): PlayloltcgAcceptSummary {
-  return { considered: 0, accepted: 0, failed: 0, errors: [] };
+  return { considered: 0, accepted: 0, held: 0, failed: 0, errors: [] };
 }
 
 export interface AcceptedPlayloltcgEvent {
@@ -42,7 +45,7 @@ export async function acceptPlayloltcgEvent(
     PLAYLOLTCG_PROVIDER,
     String(row.activityShopId),
     {
-      name: row.name.slice(0, 120),
+      name: row.name.slice(0, META_NAME_MAX),
       eventDate: eventDate(row, clock(deps)),
       // This source carries no other format.
       format: WellKnown.deckFormat.CONSTRUCTED,
@@ -70,14 +73,21 @@ async function sweep(
       if (row.playerCount === null || row.playerCount < threshold) {
         continue;
       }
+      const twin = await sameStoreLiveEvent(deps.repos, PLAYLOLTCG_PROVIDER, {
+        name: row.name,
+        eventDate: eventDate(row, clock(deps)),
+        organizer: row.shopName,
+      });
+      if (twin !== undefined) {
+        summary.held++;
+        continue;
+      }
       try {
         await acceptPlayloltcgEvent(deps, row);
         summary.accepted++;
       } catch (error) {
         summary.failed++;
-        if (summary.errors.length < MAX_SWEEP_ERRORS) {
-          summary.errors.push(errorText(error, `Auto-accept "${row.name}"`));
-        }
+        recordCapped(summary.errors, [`Auto-accept "${row.name}": ${errorMessage(error)}`]);
       }
     }
   }

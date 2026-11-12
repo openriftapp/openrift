@@ -458,7 +458,10 @@ export const adminMetaCatalogContract = {
   dismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/dismiss`, tags: [TAG], successStatus: 204 })
     .input(catalogKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    }),
 
   undismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/undismiss`, tags: [TAG], successStatus: 204 })
@@ -475,7 +478,7 @@ export const adminMetaCatalogContract = {
   bulkReject: authedRoute
     .route({ method: "POST", path: `${BASE}/bulk/reject`, tags: [TAG] })
     .input(bulkKeysSchema)
-    .output(z.object({ rejected: z.array(z.string()) })),
+    .output(z.object({ rejected: z.array(z.string()), skipped: z.number().int().nonnegative() })),
 
   bulkRestore: authedRoute
     .route({ method: "POST", path: `${BASE}/bulk/restore`, tags: [TAG] })
@@ -632,13 +635,19 @@ export const adminMetaCatalogContract = {
   playloltcgAccept: authedRoute
     .route({ method: "POST", path: `${BASE}/playloltcg/events/accept`, tags: [TAG] })
     .input(playloltcgKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } })
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    })
     .output(acceptedCatalogEventSchema),
 
   playloltcgDismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playloltcg/events/dismiss`, tags: [TAG] })
     .input(playloltcgKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    }),
 
   playloltcgUndismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playloltcg/events/undismiss`, tags: [TAG] })
@@ -688,13 +697,19 @@ export const adminMetaCatalogContract = {
   topdeckAccept: authedRoute
     .route({ method: "POST", path: `${BASE}/topdeck/events/accept`, tags: [TAG] })
     .input(topdeckKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } })
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    })
     .output(acceptedCatalogEventSchema),
 
   topdeckDismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/topdeck/events/dismiss`, tags: [TAG] })
     .input(topdeckKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    }),
 
   topdeckUndismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/topdeck/events/undismiss`, tags: [TAG] })
@@ -750,13 +765,19 @@ export const adminMetaCatalogContract = {
   playriftboundAccept: authedRoute
     .route({ method: "POST", path: `${BASE}/playriftbound/events/accept`, tags: [TAG] })
     .input(playriftboundKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } })
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    })
     .output(acceptedCatalogEventSchema),
 
   playriftboundDismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playriftbound/events/dismiss`, tags: [TAG] })
     .input(playriftboundKeySchema)
-    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
+    .errors({
+      NOT_FOUND: { message: "Mirrored event not found" },
+      CONFLICT: { message: "This event is already published or dismissed" },
+    }),
 
   playriftboundUndismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playriftbound/events/undismiss`, tags: [TAG] })

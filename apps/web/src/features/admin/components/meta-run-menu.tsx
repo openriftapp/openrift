@@ -23,7 +23,7 @@ import {
   BACKFILL_TRIGGERS_BY_SOURCE,
   TRIGGER_GROUPS,
 } from "@/features/admin/lib/meta-admin-triggers";
-import { backfillDisplay, runningRunId } from "@/features/meta/lib/meta-catalog-display";
+import { backfillDisplay, stoppableRunId } from "@/features/meta/lib/meta-catalog-display";
 
 interface StopEntry {
   job: MetaCancellableJob;
@@ -32,7 +32,7 @@ interface StopEntry {
 
 function isStoppable(source: MetaSource, runs: MetaSyncStatus["runs"], entry: TriggerEntry) {
   return (
-    entry.stop !== undefined && runningRunId(runs, `meta.${source}_${entry.stop.job}`) !== null
+    entry.stop !== undefined && stoppableRunId(runs, `meta.${source}_${entry.stop.job}`) !== null
   );
 }
 
@@ -43,7 +43,7 @@ function stopEntries(source: MetaSource, runs: MetaSyncStatus["runs"]): StopEntr
       stops.push({ job: entry.stop.job, label: entry.stop.label });
     }
   }
-  if (runningRunId(runs, BACKFILL_KIND[source]) !== null) {
+  if (stoppableRunId(runs, BACKFILL_KIND[source]) !== null) {
     const label = BACKFILL_TRIGGERS_BY_SOURCE[source].idle[0]?.label ?? "the backfill";
     stops.push({ job: "backfill", label: `Stop ${label}` });
   }

@@ -65,6 +65,7 @@ interface RecheckWrite {
 function fakeDeps(options: {
   unaccepted: PlayloltcgListRow[];
   autoAcceptMinPlayers: number | null;
+  live?: { id: string; name: string; eventDate: string; organizer: string | null }[];
 }): {
   deps: PlayloltcgSyncDeps;
   inserted: Record<string, unknown>[];
@@ -95,6 +96,7 @@ function fakeDeps(options: {
     repos: {
       playloltcgEvents,
       metaCandidates,
+      meta: { eventsAtStoresOutside: () => Promise.resolve(options.live ?? []) },
       uvsgamesEvents: {
         settings: () => Promise.resolve({ autoAcceptMinPlayers: options.autoAcceptMinPlayers }),
       },
@@ -157,6 +159,33 @@ describe("autoAcceptPlayloltcgEvents", () => {
     expect(ruleOff.accepted).toBe(0);
     expect(off.inserted).toEqual([]);
   });
+
+  it("holds an event another source already archived at the same store within a day", async () => {
+    const { deps, rechecks } = fakeDeps({
+      unaccepted: [catalogRow()],
+      autoAcceptMinPlayers: 16,
+      live: [
+        { id: "live-9", name: "本命传奇挑战赛", eventDate: "2026-08-31", organizer: "卡之域卡牌" },
+      ],
+    });
+
+    const summary = await autoAcceptPlayloltcgEvents(deps, [109_991]);
+
+    expect(summary).toMatchObject({ accepted: 0, held: 1 });
+    expect(rechecks).toEqual([]);
+  });
+
+  it("accepts when the store matches but the event name does not", async () => {
+    const { deps } = fakeDeps({
+      unaccepted: [catalogRow()],
+      autoAcceptMinPlayers: 16,
+      live: [{ id: "live-9", name: "周五轮抽", eventDate: "2026-08-30", organizer: "卡之域卡牌" }],
+    });
+
+    const summary = await autoAcceptPlayloltcgEvents(deps, [109_991]);
+
+    expect(summary).toMatchObject({ accepted: 1, held: 0 });
+  });
 });
 
 describe("autoAcceptPlayloltcgBacklog", () => {
@@ -171,7 +200,7 @@ describe("autoAcceptPlayloltcgBacklog", () => {
 
     const summary = await autoAcceptPlayloltcgBacklog(deps);
 
-    expect(summary).toEqual({ considered: 2, accepted: 1, failed: 0, errors: [] });
+    expect(summary).toEqual({ considered: 2, accepted: 1, held: 0, failed: 0, errors: [] });
     expect(rechecks.map((write) => write.activityShopId)).toEqual([1]);
   });
 
@@ -184,6 +213,7 @@ describe("autoAcceptPlayloltcgBacklog", () => {
     expect(await autoAcceptPlayloltcgBacklog(deps)).toEqual({
       considered: 0,
       accepted: 0,
+      held: 0,
       failed: 0,
       errors: [],
     });

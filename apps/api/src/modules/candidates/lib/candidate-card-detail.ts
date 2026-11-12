@@ -1,5 +1,6 @@
 import { mostCommonValue } from "@openrift/shared/collections";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { resolveFinish } from "@openrift/shared/printing-accept";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import { slugifyName } from "@openrift/shared/strings";
 import type {
@@ -15,6 +16,7 @@ import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
 import type { marketplaceMappingRepo } from "../../marketplace/repositories/marketplace-mapping.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
 import { formatCandidateCard, formatCandidatePrinting } from "./candidate-presenters.js";
+import { groupCandidatePrintings } from "./candidate-printing-accept.js";
 
 type Repo = ReturnType<typeof candidateCardsRepo>;
 type MarketplaceMappingRepo = ReturnType<typeof marketplaceMappingRepo>;
@@ -38,18 +40,6 @@ function deriveExpectedCardId(displayName: string, currentSlug?: string): string
     return slugifyName(displayName);
   }
   return currentSlug ?? "";
-}
-
-function resolveFinish(finish: string | null, rarity: string | null): string {
-  if (finish) {
-    return finish;
-  }
-  if (!rarity) {
-    return "";
-  }
-  return rarity === WellKnown.rarity.COMMON || rarity === WellKnown.rarity.UNCOMMON
-    ? WellKnown.finish.NORMAL
-    : WellKnown.finish.FOIL;
 }
 
 type CardForDetail = Awaited<ReturnType<Repo["cardForDetailBySlug"]>>;
@@ -181,18 +171,7 @@ async function buildDetailResponse(
   }
 
   // Linked candidate printings are already shown under their accepted printing.
-  const unlinkedCP = candidatePrintings.filter((cp) => !cp.printingId);
-  const cpGroupMap = new Map<string, typeof unlinkedCP>();
-  for (const cp of unlinkedCP) {
-    const slugKey = [...(cp.markerSlugs ?? [])].sort().join(",");
-    const key = `${cp.shortCode}|${cp.finish ?? ""}|${slugKey}|${cp.language ?? ""}`;
-    let arr = cpGroupMap.get(key);
-    if (!arr) {
-      arr = [];
-      cpGroupMap.set(key, arr);
-    }
-    arr.push(cp);
-  }
+  const unlinkedGroups = groupCandidatePrintings(candidatePrintings.filter((cp) => !cp.printingId));
 
   // Closest accepted printing for a candidate group whose exact expected id
   // has no counterpart: same short code (case-insensitive) and language, then
@@ -236,13 +215,13 @@ async function buildDetailResponse(
   }
 
   const filteredGroups: CandidatePrintingGroupResponse[] = [];
-  for (const [, groupCandidates] of cpGroupMap) {
+  for (const groupCandidates of unlinkedGroups) {
     const [first] = groupCandidates;
     if (!first) {
       continue;
     }
     const mcShortCode = mostCommonValue(groupCandidates.map((s) => s.shortCode));
-    const finish = resolveFinish(first.finish, first.rarity);
+    const finish = resolveFinish(first.finish, first.rarity) ?? "";
     const language = mostCommonValue(groupCandidates.map((s) => s.language ?? "")) || null;
 
     filteredGroups.push({

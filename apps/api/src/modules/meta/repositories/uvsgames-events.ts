@@ -13,6 +13,7 @@ import {
   UVSGAMES_STATUS_CANCELED,
 } from "../../../lib/meta-providers.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
+import { dueBefore } from "./meta-shared.js";
 import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
@@ -27,6 +28,7 @@ import {
   toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
+import { compareKeys, upsertMirrorRows } from "./mirror-upsert.js";
 import { uvsgamesRulePasses } from "./uvsgames-rule.js";
 
 /**
@@ -175,12 +177,6 @@ const CATALOG_ORDER_COLUMNS = {
   name: sql`lower(c.name)`,
   playerCount: sql`c.player_count`,
 };
-
-// Upserts write rows in key order: two crawls listing the same rows in
-// different orders deadlock on the row locks.
-function compareKeys<T extends string | number>(a: T, b: T): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 /** Nulls always sort last, whichever direction the column runs. */
 function catalogOrderBy(order: UvsgamesListOrder) {
@@ -402,73 +398,55 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       rows: readonly UvsgamesUpsertInput[],
       seenAt: Date,
     ): Promise<UvsgamesUpsertResult> {
-      if (rows.length === 0) {
-        return { inserted: [], changed: [], unchanged: [] };
-      }
-
       await upsertStores(rows);
-
-      const written: { externalId: string; inserted: boolean }[] = [];
-      for (const batch of rowBatches(
-        rows
-          .toSorted((a, b) => compareKeys(a.externalId, b.externalId))
-          .map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null, missingProbe: null })),
-      )) {
-        written.push(
-          ...(await db
-            .insertInto("uvsgamesEvents")
-            .values(batch)
-            .onConflict((oc) =>
-              oc
-                .columns(["externalId"])
-                .doUpdateSet((eb) => ({
-                  name: eb.ref("excluded.name"),
-                  startAt: eb.ref("excluded.startAt"),
-                  endAtEstimate: eb.ref("excluded.endAtEstimate"),
-                  displayStatus: eb.ref("excluded.displayStatus"),
-                  decklistStatus: eb.ref("excluded.decklistStatus"),
-                  playerCount: eb.ref("excluded.playerCount"),
-                  eventType: eb.ref("excluded.eventType"),
-                  eventFormat: eb.ref("excluded.eventFormat"),
-                  storeName: eb.ref("excluded.storeName"),
-                  location: eb.ref("excluded.location"),
-                  timezone: eb.ref("excluded.timezone"),
-                  storeId: eb.ref("excluded.storeId"),
-                  eventConfigurationTemplate: eb.ref("excluded.eventConfigurationTemplate"),
-                  contentHash: eb.ref("excluded.contentHash"),
-                  lastSeenAt: eb.ref("excluded.lastSeenAt"),
-                  missingSince: eb.ref("excluded.missingSince"),
-                  missingProbe: eb.ref("excluded.missingProbe"),
-                }))
-                .where(
-                  sql<SqlBool>`uvsgames_events.content_hash is distinct from excluded.content_hash
-                    or uvsgames_events.missing_since is not null`,
-                ),
-            )
-            .returning(["externalId", sql<boolean>`(xmax = 0)`.as("inserted")])
-            .execute()),
-        );
-      }
-
-      const inserted: string[] = [];
-      const changed: string[] = [];
-      for (const row of written) {
-        (row.inserted ? inserted : changed).push(row.externalId);
-      }
-
-      // The rows the conflict WHERE filtered out are the untouched ones, and
-      // they still have to record that the source repeated them.
-      const touched = new Set([...inserted, ...changed]);
-      const unchanged = rows.map((row) => row.externalId).filter((id) => !touched.has(id));
-      for (const batch of keyBatches(unchanged)) {
-        await db
-          .updateTable("uvsgamesEvents")
-          .set({ lastSeenAt: seenAt })
-          .where("externalId", "in", batch)
-          .execute();
-      }
-
-      return { inserted, changed, unchanged };
+      return await upsertMirrorRows(
+        rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null, missingProbe: null })),
+        {
+          keyOf: (row) => row.externalId,
+          write: async (batch) => {
+            const written = await db
+              .insertInto("uvsgamesEvents")
+              .values(batch)
+              .onConflict((oc) =>
+                oc
+                  .columns(["externalId"])
+                  .doUpdateSet((eb) => ({
+                    name: eb.ref("excluded.name"),
+                    startAt: eb.ref("excluded.startAt"),
+                    endAtEstimate: eb.ref("excluded.endAtEstimate"),
+                    displayStatus: eb.ref("excluded.displayStatus"),
+                    decklistStatus: eb.ref("excluded.decklistStatus"),
+                    playerCount: eb.ref("excluded.playerCount"),
+                    eventType: eb.ref("excluded.eventType"),
+                    eventFormat: eb.ref("excluded.eventFormat"),
+                    storeName: eb.ref("excluded.storeName"),
+                    location: eb.ref("excluded.location"),
+                    timezone: eb.ref("excluded.timezone"),
+                    storeId: eb.ref("excluded.storeId"),
+                    eventConfigurationTemplate: eb.ref("excluded.eventConfigurationTemplate"),
+                    contentHash: eb.ref("excluded.contentHash"),
+                    lastSeenAt: eb.ref("excluded.lastSeenAt"),
+                    missingSince: eb.ref("excluded.missingSince"),
+                    missingProbe: eb.ref("excluded.missingProbe"),
+                  }))
+                  .where(
+                    sql<SqlBool>`uvsgames_events.content_hash is distinct from excluded.content_hash
+                      or uvsgames_events.missing_since is not null`,
+                  ),
+              )
+              .returning(["externalId", sql<boolean>`(xmax = 0)`.as("inserted")])
+              .execute();
+            return written.map((row) => ({ key: row.externalId, inserted: row.inserted }));
+          },
+          touch: async (keys) => {
+            await db
+              .updateTable("uvsgamesEvents")
+              .set({ lastSeenAt: seenAt })
+              .where("externalId", "in", keys)
+              .execute();
+          },
+        },
+      );
     },
 
     // Rows are kept, not deleted, so an accepted event that vanishes
@@ -482,9 +460,9 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       const result = await db
         .updateTable("uvsgamesEvents")
         .set({ missingSince: params.at, missingProbe: null })
-        .where("startAt", ">=", params.from)
-        .where("startAt", "<=", params.to)
-        .where("lastSeenAt", "<", params.seenBefore)
+        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) >= ${params.from}`)
+        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) <= ${params.to}`)
+        .where(sql<SqlBool>`date_trunc('milliseconds', last_seen_at) < ${params.seenBefore}`)
         .where("missingSince", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows ?? 0n);
@@ -700,7 +678,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           ...joinedColumns,
         ])
         .where("ck.nextCheckAt", "is not", null)
-        .where("ck.nextCheckAt", "<=", now)
+        .where("ck.nextCheckAt", "<", dueBefore(now))
         .orderBy(sql`${important} desc`)
         .orderBy("ck.nextCheckAt", "asc")
         .limit(limit)

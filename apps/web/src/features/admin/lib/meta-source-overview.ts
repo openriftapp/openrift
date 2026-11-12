@@ -2,6 +2,7 @@ import type { MetaSource, MetaSyncStatus } from "@openrift/shared/contracts/admi
 
 import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import { BACKFILL_KIND, TRIGGER_GROUPS } from "@/features/admin/lib/meta-admin-triggers";
+import { runStopNote } from "@/lib/job-run-display";
 
 export type MetaRun = MetaSyncStatus["runs"][number];
 
@@ -73,7 +74,11 @@ function errorsOf(result: Record<string, unknown> | null): string[] {
 
 function unfinished(run: MetaRun): MetaRunCell | null {
   if (run.status === "running") {
-    return { tone: "running", at: run.startedAt, detail: "running" };
+    return {
+      tone: "running",
+      at: run.startedAt,
+      detail: runStopNote(run.result, { running: true }) ?? "running",
+    };
   }
   if (run.status === "failed") {
     return { tone: "bad", at: run.startedAt, detail: run.errorMessage ?? "failed" };
@@ -92,6 +97,10 @@ export function refreshCell(run: MetaRun | undefined, scheduled: boolean, now: D
     return open;
   }
   const { result } = run;
+  const stopped = runStopNote(result);
+  if (stopped !== null) {
+    return { tone: "warn", at: run.startedAt, detail: stopped };
+  }
   const errors = errorsOf(result);
   const inserted = numberOf(result, "inserted");
   const published = numberOf(result, "autoAccepted");
@@ -120,8 +129,9 @@ export function collectDetail(run: MetaRun): MetaRunCell {
   }
   const { result } = run;
   const errors = errorsOf(result);
-  if (result?.blocked === true || result?.backedOff === true) {
-    return { tone: "warn", at: run.startedAt, detail: "the source refused requests" };
+  const stopped = runStopNote(result);
+  if (stopped !== null) {
+    return { tone: "warn", at: run.startedAt, detail: stopped };
   }
   const fetched = numberOf(result, "fetched");
   const players = numberOf(result, "players");

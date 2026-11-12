@@ -61,7 +61,7 @@ function printingUpdateFor(
       const unhandled: never = field;
       throw new AppError(
         400,
-        ERROR_CODES.VALIDATION_ERROR,
+        ERROR_CODES.BAD_REQUEST,
         `Unsupported printing field: ${String(unhandled)}`,
       );
     }

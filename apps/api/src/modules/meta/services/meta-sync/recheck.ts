@@ -1,14 +1,21 @@
+import { errorMessage } from "@openrift/shared/strings";
+
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { UVSGAMES_PROVIDER } from "../../../../lib/meta-providers.js";
 import { firstRevisit, lifecycleStatus, nextRecheck } from "../../lib/meta-recheck-schedule.js";
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
 import { completedRounds } from "../../lib/uvsgames-transform.js";
 import type { UvsgamesListRow, UvsgamesRecheckRow } from "../../repositories/uvsgames-events.js";
 import { refreshRecentListing } from "./catalog-sync.js";
-import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
 import type { MetaDeepFetchResult } from "./deep-fetch.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { clock, errorText } from "./deps.js";
+import { clock } from "./deps.js";
+import type { RecheckPassResult, VisitOutcome } from "./recheck-pass.js";
+import { emptyRecheckPassResult, runRecheckPass } from "./recheck-pass.js";
+import { createRunHeartbeat } from "./run-heartbeat.js";
+import { isPermanentRefusal, sourceStopOf } from "./source-http.js";
+import { isRecheckPassNoop } from "./sync-noop.js";
 
 const RECHECK_BUDGET_MS = 5 * 60 * 1000;
 
@@ -21,21 +28,16 @@ export interface RecheckOptions {
   listing?: boolean;
 }
 
-export interface MetaRecheckResult {
-  due: number;
-  processed: number;
-  requests: number;
+export interface MetaRecheckResult extends RecheckPassResult {
   fetched: number;
   players: number;
   acceptedPlayers: number;
   listed: number | null;
   pulledForward: number;
-  cancelRequested: boolean;
-  errors: string[];
 }
 
 export function isRecheckNoop(result: MetaRecheckResult): boolean {
-  return result.processed === 0 && result.pulledForward === 0 && result.errors.length === 0;
+  return isRecheckPassNoop(result);
 }
 
 export async function processRechecks(
@@ -43,61 +45,45 @@ export async function processRechecks(
   options: RecheckOptions = {},
 ): Promise<MetaRecheckResult> {
   const { runId, budgetMs = RECHECK_BUDGET_MS } = options;
-  const before = deps.client.requests;
-  const deadline = performance.now() + budgetMs;
   const result: MetaRecheckResult = {
-    due: 0,
-    processed: 0,
-    requests: 0,
+    ...emptyRecheckPassResult(),
     fetched: 0,
     players: 0,
     acceptedPlayers: 0,
     listed: null,
     pulledForward: 0,
-    cancelRequested: false,
-    errors: [],
   };
 
   if (options.listing === true) {
     const listing = await refreshRecentListing(deps);
     result.listed = listing.rows;
     result.pulledForward = listing.pulledForward;
-    result.errors.push(...listing.errors.map((message) => `Listing: ${message}`));
+    recordCapped(
+      result.errors,
+      listing.errors.map((message) => `Listing: ${message}`),
+    );
   }
 
   const watched = await deps.repos.uvsgamesEvents.watchedTemplates();
-  // A row a failed write left due must not be visited twice in one pass.
-  const visited = new Set<string>();
-  let stopped = false;
-  while (!stopped && performance.now() < deadline) {
-    const due = await deps.repos.uvsgamesEvents.dueForRecheck(clock(deps), RECHECK_PAGE_SIZE);
-    const fresh = due.filter((row) => !visited.has(row.externalId));
-    if (fresh.length === 0) {
-      break;
-    }
-    for (const row of fresh) {
-      visited.add(row.externalId);
-      result.due++;
-      await visitContained(deps, row, watched, result, runId);
-      result.requests = deps.client.requests - before;
-      if (runId !== undefined) {
-        await heartbeat(deps, runId, result);
-        if (await cancelled(deps, runId)) {
-          result.cancelRequested = true;
-          result.errors.push("Cancelled from the admin panel");
-          stopped = true;
-          break;
-        }
-      }
-      if (performance.now() >= deadline) {
-        stopped = true;
-        break;
-      }
-    }
-  }
-
-  result.requests = deps.client.requests - before;
-  return result;
+  return await runRecheckPass({
+    result,
+    heartbeat: createRunHeartbeat(deps, runId),
+    log: deps.log,
+    now: () => clock(deps),
+    budgetMs,
+    requests: () => deps.client.requests,
+    pageSize: RECHECK_PAGE_SIZE,
+    due: (now, limit) => deps.repos.uvsgamesEvents.dueForRecheck(now, limit),
+    keyOf: (row) => row.externalId,
+    visit: (row, now) => visit(deps, row, watched, result, now, runId),
+    grace: (row, now) => reschedule(deps, row, now, row.checkStage),
+    drop: (row) =>
+      deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
+        nextCheckAt: null,
+        checkStage: row.checkStage,
+      }),
+    stopOf: sourceStopOf,
+  });
 }
 
 export async function fetchEventNow(
@@ -130,59 +116,19 @@ export async function settleAfterManualFetch(
   await deps.repos.uvsgamesEvents.setRecheck(externalId, firstRevisit(clock(deps)));
 }
 
-// A throw here must not abort the pass, or the failing row stays due and
-// blocks every row queued behind it.
-async function visitContained(
-  deps: MetaSyncDeps,
-  row: UvsgamesRecheckRow,
-  watched: ReadonlyMap<string, string | null>,
-  result: MetaRecheckResult,
-  runId?: string,
-): Promise<void> {
-  try {
-    await visit(deps, row, watched, result, runId);
-  } catch (error) {
-    deps.log.warn({ err: error, externalId: row.externalId }, "Recheck visit failed");
-    result.errors.push(errorText(error, `Event ${row.externalId}`));
-    await reschedule(deps, row, clock(deps), row.checkStage);
-  }
-}
-
-// A failed cancel check must not abort the pass; log and keep going.
-async function cancelled(deps: MetaSyncDeps, runId: string): Promise<boolean> {
-  try {
-    return await runCancelRequested(deps.repos.jobRuns, runId);
-  } catch (error) {
-    deps.log.warn({ err: error, runId }, "Recheck cancel check failed");
-    return false;
-  }
-}
-
-async function heartbeat(
-  deps: MetaSyncDeps,
-  runId: string,
-  result: MetaRecheckResult,
-): Promise<void> {
-  try {
-    await writeRunHeartbeat(deps.repos.jobRuns, runId, result, clock(deps));
-  } catch (error) {
-    deps.log.warn({ err: error, runId }, "Recheck heartbeat write failed");
-  }
-}
-
 async function visit(
   deps: MetaSyncDeps,
   row: UvsgamesRecheckRow,
   watched: ReadonlyMap<string, string | null>,
   result: MetaRecheckResult,
+  now: Date,
   runId?: string,
-): Promise<void> {
-  const now = clock(deps);
+): Promise<VisitOutcome> {
   const refreshed = await refreshStatus(deps, row, now, result.errors);
   if (refreshed === null) {
     // Failed read: retry in an hour, not the ten-minute cadence.
     await reschedule(deps, row, now, row.checkStage);
-    return;
+    return "failed";
   }
 
   const decision = nextRecheck({
@@ -213,11 +159,13 @@ async function visit(
   }
 
   if (decision.deepFetch) {
-    const fetched = await deepFetchEvent(deps, refreshed.row, runId, refreshed.detail);
+    const fetched = await deepFetchEvent(deps, refreshed.row, runId, refreshed.detail, {
+      stopOnSourceStop: true,
+    });
     result.fetched++;
     result.players += fetched.players;
     result.acceptedPlayers += fetched.acceptedPlayers;
-    result.errors.push(...fetched.errors);
+    recordCapped(result.errors, fetched.errors);
   }
 
   await deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
@@ -226,6 +174,7 @@ async function visit(
   });
   // Counted here, not at entry, so a row that throws mid-visit lands in errors.
   result.processed++;
+  return "ok";
 }
 
 interface RefreshedRow {
@@ -253,7 +202,7 @@ async function refreshStatus(
   }
   const projection = projectCatalogRow(detail);
   if (projection === null) {
-    errors.push(`Event ${row.externalId}: detail carried no readable projection`);
+    recordCapped(errors, [`Event ${row.externalId}: detail carried no readable projection`]);
     return null;
   }
   await deps.repos.uvsgamesEvents.upsertBatch([projection], now);
@@ -304,7 +253,10 @@ async function readDetail(
   try {
     return await deps.client.get<unknown>(`/api/v2/events/${externalId}/`);
   } catch (error) {
-    errors.push(errorText(error, `Event ${externalId} detail`));
+    if (sourceStopOf(error) !== null || isPermanentRefusal(error)) {
+      throw error;
+    }
+    recordCapped(errors, [`Event ${externalId} detail: ${errorMessage(error)}`]);
     return null;
   }
 }

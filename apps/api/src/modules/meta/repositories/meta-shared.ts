@@ -8,6 +8,10 @@ import { sql } from "kysely";
  */
 export const META_ARCHIVE_USER_ID = "meta-archive";
 
+export function dueBefore(now: Date): Date {
+  return new Date(now.getTime() + 1);
+}
+
 /**
  * Inclusive date-only bounds on the event a deck was played at. Either end may
  * be open; both absent is the whole archive.

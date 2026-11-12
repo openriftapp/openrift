@@ -1,33 +1,34 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
+import type { RequiredAcceptPrintingField } from "@openrift/shared/printing-accept";
+import { REQUIRED_ACCEPT_PRINTING_FIELDS, resolveFinish } from "@openrift/shared/printing-accept";
 import type { ArtVariant, CardSize, Finish, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
-import type { Transact } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
+import { isForeignKeyViolation, isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import type { candidateCardsRepo } from "../../candidates/repositories/candidate-cards.js";
+import { faceForNewImage } from "../lib/image-face.js";
+import {
+  describeUnknownRefs,
+  knownRarity,
+  loadKnownPrintingRefs,
+  unknownPrintingRefs,
+} from "../lib/printing-refs.js";
 import type {
   catalogDeleteGuardsRepo,
   PrintingDeleteBlockers,
 } from "../repositories/catalog-delete-guards.js";
-import type { catalogMutationsRepo } from "../repositories/catalog-mutations.js";
+import type { catalogMutationsRepo, PrintingIdentity } from "../repositories/catalog-mutations.js";
 import type { distributionChannelsRepo } from "../repositories/distribution-channels.js";
-import type { markersRepo } from "../repositories/markers.js";
-import type { printingEventsRepo } from "../repositories/printing-events.js";
-import type { printingImagesRepo } from "../repositories/printing-images.js";
-import { rehostSingleImage } from "./images/jobs.js";
 import { deleteRehostFiles } from "./images/variants.js";
-import { recordNewPrintingEvent } from "./record-printing-event.js";
 
 type CatalogMutationsRepo = ReturnType<typeof catalogMutationsRepo>;
 type CandidateCardsRepo = ReturnType<typeof candidateCardsRepo>;
 type CatalogDeleteGuardsRepo = ReturnType<typeof catalogDeleteGuardsRepo>;
-type PrintingEventsRepo = ReturnType<typeof printingEventsRepo>;
-type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
-type MarkersRepo = ReturnType<typeof markersRepo>;
 type DistributionChannelsRepo = ReturnType<typeof distributionChannelsRepo>;
 
 /**
@@ -192,11 +193,11 @@ export async function deletePrinting(
   await cleanupOrphanedImageFiles(io, mut, deletedImageFileIds);
 }
 
-interface AcceptPrintingFields {
+interface NewPrintingFields {
   shortCode: string;
   setId?: string;
   setName?: string | null;
-  rarity?: string | null;
+  rarity: string;
   artVariant?: string;
   isSigned?: boolean;
   isOvernumbered?: boolean;
@@ -215,248 +216,225 @@ interface AcceptPrintingFields {
   printedYear?: number | null;
 }
 
-/**
- * The write is an upsert so ingest paths can re-run without duplicating rows;
- * `requireNew` makes an identity collision surface as 409 instead.
- */
-interface AcceptPrintingRepos {
-  catalogMutations: CatalogMutationsRepo;
-  printingImages: PrintingImagesRepo;
-  markers: MarkersRepo;
-  distributionChannels: DistributionChannelsRepo;
-  printingEvents?: PrintingEventsRepo;
+type NewPrintingRepos = Pick<
+  Repos,
+  | "catalogMutations"
+  | "candidateCards"
+  | "cardTokens"
+  | "distributionChannels"
+  | "enums"
+  | "keywords"
+  | "printingImages"
+  | "sets"
+>;
+
+export interface NewPrinting {
+  printingId: string;
+  imageIds: string[];
 }
 
-export interface AcceptPrintingOptions {
-  requireNew?: boolean;
-  secondFaceId?: string | null;
-}
-
-export async function acceptPrinting(
-  transact: Transact,
-  repos: AcceptPrintingRepos,
-  cardId: string,
-  printingFields: AcceptPrintingFields,
-  candidatePrintingIds: string[],
-  io: Io,
-  options: AcceptPrintingOptions = {},
-): Promise<string> {
-  const { printingId, imageIds } = await acceptPrintingDeferringRehost(
-    transact,
-    repos,
+export function newPrintingIdentity(cardId: string, fields: NewPrintingFields): PrintingIdentity {
+  return {
     cardId,
-    printingFields,
-    candidatePrintingIds,
-    options,
-  );
-  for (const imageId of imageIds) {
-    // oxlint-disable-next-line promise/prefer-await-to-then -- intentionally fire-and-forget to avoid blocking the response
-    rehostSingleImage(io, repos.printingImages, imageId).catch(() => {
-      // Non-fatal; an un-rehosted image falls back to its external URL and is
-      // picked up by the next rehost batch.
-    });
-  }
-  return printingId;
+    shortCode: fields.shortCode,
+    finish: (resolveFinish(fields.finish, fields.rarity) ?? "") as Finish,
+    size: (fields.size ?? WellKnown.cardSize.STANDARD) as CardSize,
+    markerSlugs: [...(fields.markerSlugs ?? [])].sort(),
+    language: fields.language ?? WellKnown.language.EN,
+  };
 }
 
-/** For a caller inside its own transaction: the rehost must not start before that commit. */
-export async function acceptPrintingDeferringRehost(
-  transact: Transact,
-  repos: AcceptPrintingRepos,
-  cardId: string,
-  printingFields: AcceptPrintingFields,
-  candidatePrintingIds: string[],
-  options: AcceptPrintingOptions = {},
-): Promise<{ printingId: string; imageIds: string[] }> {
-  const secondFaceId = options.secondFaceId ?? null;
-  if (!printingFields.setId) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "printingFields.setId is required");
-  }
-
-  const mut = repos.catalogMutations;
-
-  const markerSlugs = [...(printingFields.markerSlugs ?? [])].sort();
-  const channelSlugs = printingFields.distributionChannelSlugs ?? [];
-
-  const markerRows = await repos.markers.listBySlugs(markerSlugs);
-  if (markerRows.length !== markerSlugs.length) {
-    const known = new Set(markerRows.map((m) => m.slug));
-    const missing = markerSlugs.filter((s) => !known.has(s));
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Unknown marker slug(s): ${missing.join(", ")}`,
-    );
-  }
-
-  const channelRows = await repos.distributionChannels.listBySlugs(channelSlugs);
-  if (channelRows.length !== channelSlugs.length) {
-    const known = new Set(channelRows.map((c) => c.slug));
-    const missing = channelSlugs.filter((s) => !known.has(s));
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Unknown distribution channel slug(s): ${missing.join(", ")}`,
-    );
-  }
-
-  const card = await mut.getCardById(cardId);
-  assertFound(card, "Card not found");
-
-  const finish = (printingFields.finish ?? WellKnown.finish.NORMAL) as Finish;
-  const size = (printingFields.size ?? WellKnown.cardSize.STANDARD) as CardSize;
-  const language = printingFields.language ?? WellKnown.language.EN;
-  const existing = await mut.getPrintingCardIdByComposite(
-    printingFields.shortCode,
+export async function newPrintingConflict(
+  repos: Pick<Repos, "catalogMutations">,
+  identity: PrintingIdentity,
+  secondFaceId: string | null = null,
+): Promise<string | null> {
+  const { cardId, shortCode, finish, markerSlugs, language } = identity;
+  const owner = await repos.catalogMutations.getPrintingCardIdByComposite(
+    shortCode,
     finish,
     markerSlugs,
     language,
   );
-  if (existing && existing.cardId !== cardId) {
+  if (owner && owner.cardId !== cardId) {
+    return `Printing "${shortCode}:${finish}:${language}" already belongs to a different card`;
+  }
+  const identical = await repos.catalogMutations.findPrintingIdByIdentity(identity, secondFaceId);
+  return identical ? existingPrintingMessage(identity) : null;
+}
+
+function existingPrintingMessage(identity: PrintingIdentity): string {
+  const { shortCode, finish, size, markerSlugs, language } = identity;
+  const markerPart = markerSlugs.length > 0 ? markerSlugs.join("+") : "no markers";
+  return `This card already has a printing with short code "${shortCode}" (${finish}, ${size}, ${language}, ${markerPart}). Change the short code, finish, size, language, or markers to create a separate printing (art variant, rarity and signed alone are not enough), or edit the existing printing instead.`;
+}
+
+const PRINTING_IDENTITY_CONSTRAINTS = [
+  "uq_printings_identity",
+  "uq_faces_identity",
+  "uq_faces_variant",
+] as const;
+
+export function asPrintingIdentityConflict(error: unknown, identity?: PrintingIdentity): unknown {
+  if (!PRINTING_IDENTITY_CONSTRAINTS.some((name) => isUniqueViolationOn(error, name))) {
+    return error;
+  }
+  return new AppError(
+    409,
+    ERROR_CODES.CONFLICT,
+    identity
+      ? existingPrintingMessage(identity)
+      : "Another printing already has that code, finish, size, language and marker combination.",
+  );
+}
+
+export function withPrintingIdentityConflicts(transact: Transact): Transact {
+  return async <T>(fn: (repos: Repos) => Promise<T>): Promise<T> => {
+    try {
+      return await transact(fn);
+    } catch (error) {
+      throw asPrintingIdentityConflict(error);
+    }
+  };
+}
+
+export async function createNewPrinting(
+  transact: Transact,
+  cardId: string,
+  printingFields: NewPrintingFields,
+  candidatePrintingIds: readonly string[],
+  options: { secondFaceId?: string | null } = {},
+): Promise<NewPrinting> {
+  try {
+    return await transact((trx) =>
+      insertNewPrinting(trx, cardId, printingFields, candidatePrintingIds, options),
+    );
+  } catch (error) {
+    throw asPrintingIdentityConflict(error, newPrintingIdentity(cardId, printingFields));
+  }
+}
+
+export async function insertNewPrinting(
+  trx: NewPrintingRepos,
+  cardId: string,
+  printingFields: NewPrintingFields,
+  candidatePrintingIds: readonly string[],
+  options: { secondFaceId?: string | null } = {},
+): Promise<NewPrinting> {
+  const secondFaceId = options.secondFaceId ?? null;
+  const required: Record<RequiredAcceptPrintingField, string | null | undefined> = {
+    shortCode: printingFields.shortCode,
+    setId: printingFields.setId,
+    rarity: printingFields.rarity,
+    finish: resolveFinish(printingFields.finish, printingFields.rarity),
+    artist: printingFields.artist,
+    publicCode: printingFields.publicCode,
+  };
+  const missingFields = REQUIRED_ACCEPT_PRINTING_FIELDS.filter((field) => !required[field]);
+  const { setId } = printingFields;
+  if (missingFields.length > 0 || !setId) {
     throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      `Printing "${printingFields.shortCode}:${finish}:${language}" already belongs to a different card`,
+      400,
+      ERROR_CODES.BAD_REQUEST,
+      `A printing needs ${missingFields.join(", ")}; a missing finish is inferred from the rarity`,
     );
   }
 
+  const mut = trx.catalogMutations;
+
+  const markerSlugs = [...(printingFields.markerSlugs ?? [])].sort();
+  const channelSlugs = printingFields.distributionChannelSlugs ?? [];
+
+  const known = await loadKnownPrintingRefs(trx, channelSlugs);
+  const unknown = unknownPrintingRefs({ ...printingFields, finish: required.finish }, known);
+  if (unknown.length > 0) {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Printing ${describeUnknownRefs(unknown)}`);
+  }
+  const normalizedRarity = knownRarity(known, printingFields.rarity) as Rarity;
+  const channelRows = await trx.distributionChannels.listBySlugs(channelSlugs);
+
+  const card = await mut.getCardById(cardId);
+  assertFound(card, "Card not found");
+
+  const identity = newPrintingIdentity(cardId, printingFields);
+  const { finish, size, language } = identity;
+  const { size: _size, ...faceIdentity } = identity;
+
   if (secondFaceId !== null) {
     assertFound(await mut.findFaceById(secondFaceId), "Second face not found");
-    const firstFace = await mut.findFaceIdByIdentity({
-      cardId,
-      shortCode: printingFields.shortCode,
-      finish,
-      markerSlugs,
-      language,
-    });
+    const firstFace = await mut.findFaceIdByIdentity(faceIdentity);
     if (firstFace?.id === secondFaceId) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two faces must be different");
     }
   }
 
-  if (options.requireNew) {
-    const identical = await mut.findPrintingIdByIdentity(
-      {
-        cardId,
-        shortCode: printingFields.shortCode,
-        finish,
-        size,
-        markerSlugs,
-        language,
-      },
-      secondFaceId,
+  const conflict = await newPrintingConflict(trx, identity, secondFaceId);
+  if (conflict) {
+    throw new AppError(409, ERROR_CODES.CONFLICT, conflict);
+  }
+
+  await trx.sets.upsert(setId, printingFields.setName ?? setId);
+  const setRow = await mut.getSetIdBySlug(setId);
+  const setUuid = setRow?.id ?? "";
+  const setTotalRow = setUuid ? await trx.sets.getPrintedTotal(setUuid) : null;
+  const setPrintedTotal = setTotalRow?.printedTotal ?? null;
+
+  const costKeywords = await trx.keywords.listCostKeywords();
+
+  const printingId = await mut.insertPrinting(
+    {
+      cardId,
+      setId: setUuid,
+      shortCode: printingFields.shortCode,
+      rarity: normalizedRarity,
+      artVariant: (printingFields.artVariant ?? WellKnown.artVariant.NORMAL) as ArtVariant,
+      isSigned: printingFields.isSigned ?? false,
+      isOvernumbered: printingFields.isOvernumbered ?? false,
+      markerSlugs,
+      finish,
+      size,
+      artist: printingFields.artist,
+      publicCode: appendSetTotal(printingFields.publicCode, setPrintedTotal),
+      printedRulesText: fixTypography(printingFields.printedRulesText ?? null, { costKeywords }),
+      printedEffectText: fixTypography(printingFields.printedEffectText ?? null, {
+        costKeywords,
+      }),
+      flavorText: fixTypography(printingFields.flavorText ?? null, {
+        italicParens: false,
+        keywordGlyphs: false,
+      }),
+      language,
+      printedName: printingFields.printedName ?? null,
+      printedYear: printingFields.printedYear ?? null,
+    },
+    secondFaceId,
+  );
+  await trx.distributionChannels.setForPrinting(
+    printingId,
+    channelRows.map((c) => ({ channelId: c.id })),
+  );
+
+  await trx.keywords.recomputeForPrintingCard(printingId);
+  await trx.cardTokens.recomputeForPrintingCard(printingId);
+
+  const imageIds: string[] = [];
+  if (printingFields.imageUrl) {
+    const face = await mut.findFaceIdByIdentity(faceIdentity);
+    assertFound(face, "Created printing face not found");
+    const imageId = await trx.printingImages.insertImage(
+      printingId,
+      printingFields.imageUrl,
+      "main",
+      await faceForNewImage(trx, printingId, { faceId: face.id }),
     );
-    if (identical) {
-      const markerPart = markerSlugs.length > 0 ? markerSlugs.join("+") : "no markers";
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        `This card already has a printing with short code "${printingFields.shortCode}" (${finish}, ${size}, ${language}, ${markerPart}). Change the short code, finish, size, language, or markers to create a separate printing (art variant, rarity and signed alone are not enough), or edit the existing printing instead.`,
-      );
+    if (imageId) {
+      imageIds.push(imageId);
     }
   }
 
-  let insertedId = "";
-  let insertedImageId: string | null = null;
-
-  await transact(async (trxRepos) => {
-    if (printingFields.setId) {
-      await trxRepos.sets.upsert(
-        printingFields.setId,
-        printingFields.setName ?? printingFields.setId,
-      );
-    }
-
-    let setUuid = "";
-    let setPrintedTotal: number | null = null;
-    if (printingFields.setId) {
-      const setRow = await trxRepos.catalogMutations.getSetIdBySlug(printingFields.setId);
-      setUuid = setRow?.id ?? "";
-      if (setUuid) {
-        const setTotalRow = await trxRepos.sets.getPrintedTotal(setUuid);
-        setPrintedTotal = setTotalRow?.printedTotal ?? null;
-      }
-    }
-
-    const rawRarity = String(printingFields.rarity || WellKnown.rarity.COMMON);
-    const rarityRows = await trxRepos.rarities.listAll();
-    const raritySlugs = rarityRows.map((row) => row.slug);
-    const normalizedRarity = raritySlugs.find(
-      (slug) => slug.toLowerCase() === rawRarity.toLowerCase(),
-    );
-    if (!normalizedRarity) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Invalid rarity "${rawRarity}". Must be one of: ${raritySlugs.join(", ")}`,
-      );
-    }
-
-    const costKeywords = await trxRepos.keywords.listCostKeywords();
-
-    insertedId = await trxRepos.catalogMutations.upsertPrinting(
-      {
-        cardId,
-        setId: setUuid,
-        shortCode: printingFields.shortCode,
-        rarity: normalizedRarity as Rarity,
-        artVariant: (printingFields.artVariant ?? WellKnown.artVariant.NORMAL) as ArtVariant,
-        isSigned: printingFields.isSigned ?? false,
-        isOvernumbered: printingFields.isOvernumbered ?? false,
-        markerSlugs,
-        finish,
-        size,
-        artist: printingFields.artist,
-        publicCode: appendSetTotal(printingFields.publicCode, setPrintedTotal),
-        printedRulesText: fixTypography(printingFields.printedRulesText ?? null, { costKeywords }),
-        printedEffectText: fixTypography(printingFields.printedEffectText ?? null, {
-          costKeywords,
-        }),
-        flavorText: fixTypography(printingFields.flavorText ?? null, {
-          italicParens: false,
-          keywordGlyphs: false,
-        }),
-        language,
-        printedName: printingFields.printedName ?? null,
-        printedYear: printingFields.printedYear ?? null,
-      },
-      secondFaceId,
-    );
-    await trxRepos.distributionChannels.setForPrinting(
-      insertedId,
-      channelRows.map((c) => ({ channelId: c.id })),
-    );
-
-    await trxRepos.keywords.recomputeForPrintingCard(insertedId);
-    await trxRepos.cardTokens.recomputeForPrintingCard(insertedId);
-
-    if (printingFields.imageUrl) {
-      const face = await trxRepos.catalogMutations.findFaceIdByIdentity({
-        cardId,
-        shortCode: printingFields.shortCode,
-        finish,
-        markerSlugs,
-        language,
-      });
-      insertedImageId = await trxRepos.printingImages.insertImage(
-        insertedId,
-        printingFields.imageUrl,
-        "main",
-        face ? await trxRepos.printingImages.sideOfFace(insertedId, face.id) : "front",
-      );
-    }
-
-    if (candidatePrintingIds.length > 0) {
-      await trxRepos.candidateCards.linkAndCheckCandidatePrintings(
-        candidatePrintingIds,
-        insertedId,
-      );
-    }
-  });
-
-  if (repos.printingEvents) {
-    await recordNewPrintingEvent(repos.printingEvents, insertedId);
+  if (candidatePrintingIds.length > 0) {
+    await trx.candidateCards.linkAndCheckCandidatePrintings([...candidatePrintingIds], printingId);
   }
 
-  return { printingId: insertedId, imageIds: insertedImageId ? [insertedImageId] : [] };
+  return { printingId, imageIds };
 }

@@ -6,6 +6,7 @@ import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { MetaOverlayRowMatch } from "@openrift/shared/types/api/meta";
 
 import type { Repos } from "../../../deps.js";
+import { DAY_MS } from "../lib/meta-durations.js";
 import type { MetaEventWithCounts } from "../repositories/meta-events.js";
 import type { AdminMetaPlayerRow } from "../repositories/meta-players.js";
 
@@ -54,10 +55,8 @@ const MIN_EVENT_SCORE = 4;
 /** uvsgames files a multi-day event under the Friday, playriftbound under the Sunday; must stay wide enough to bridge that gap. */
 export const MAX_EVENT_MATCH_DAY_DELTA = 3;
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 function shiftDay(day: string, days: number): string {
-  return new Date(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY).toISOString().slice(0, 10);
+  return new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
 function dayDelta(a: string, b: string): number | null {
@@ -66,7 +65,7 @@ function dayDelta(a: string, b: string): number | null {
   if (Number.isNaN(left) || Number.isNaN(right)) {
     return null;
   }
-  return Math.abs(left - right) / MS_PER_DAY;
+  return Math.abs(left - right) / DAY_MS;
 }
 
 /** Bigram Dice coefficient over the two normalized names, 0 (nothing shared) to 1 (identical). */

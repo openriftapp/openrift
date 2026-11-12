@@ -13,12 +13,13 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
+import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { assertProvidersInScope, reviewableProviderScope } from "../lib/card-review-scope.js";
 import type { WorkspaceCardDifferenceRow } from "../repositories/workspace-queue.js";
 
 const LISTED_CARDS = 20;
 
-type SameDifferenceRepos = Pick<Repos, "workspaceQueue" | "providerSettings">;
+type SameDifferenceRepos = Pick<Repos, "adminEvents" | "workspaceQueue" | "providerSettings">;
 
 function parseValue(raw: string): unknown {
   try {
@@ -89,21 +90,25 @@ export async function discardSameDifference(
 ): Promise<WorkspaceDiscardSameDifferenceResponse> {
   const { input, now } = options;
   await assertInScope(repos, options.access, input.provider);
-  return transact(async (trx) => {
-    const matches = matchSameDifference(await trx.workspaceQueue.uncheckedCardDifferences(), input);
-    const ids = matches.map((row) => row.id);
-    const checked = await trx.candidateCards.checkCandidateCardsByIds(ids, now);
-    for (const row of matches) {
-      await trx.adminEvents.insert({
-        actorUserId: options.userId,
-        action: "candidate-card.discard-same-difference",
-        entityType: "candidate-card",
-        entityId: row.id,
-        entityLabel: row.cardName,
-        cardSlug: row.cardSlug,
-        newValues: { provider: input.provider, field: input.field, value: input.value },
-      });
-    }
-    return { checked, candidateCardIds: ids };
+  const { checked, matches } = await transact(async (trx) => {
+    const rows = matchSameDifference(await trx.workspaceQueue.uncheckedCardDifferences(), input);
+    return {
+      matches: rows,
+      checked: await trx.candidateCards.checkCandidateCardsByIds(
+        rows.map((row) => row.id),
+        now,
+      ),
+    };
   });
+  for (const row of matches) {
+    await recordAdminEvent(repos, options.userId, {
+      action: "candidate-card.discard-same-difference",
+      entityType: "candidate-card",
+      entityId: row.id,
+      entityLabel: row.cardName,
+      cardSlug: row.cardSlug,
+      newValues: { provider: input.provider, field: input.field, value: input.value },
+    });
+  }
+  return { checked, candidateCardIds: matches.map((row) => row.id) };
 }

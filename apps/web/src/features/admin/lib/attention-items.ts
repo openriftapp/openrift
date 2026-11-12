@@ -535,3 +535,25 @@ export function attentionCount(
 ): number {
   return submissions.length + sources.length;
 }
+
+function sameSlugs(a: readonly string[], b: readonly string[]): boolean {
+  return a.toSorted().join(",") === b.toSorted().join(",");
+}
+
+export function existingPrintingFor(
+  candidate: CandidatePrintingResponse,
+  printings: readonly AdminPrintingResponse[],
+): AdminPrintingResponse | undefined {
+  const fields = buildPrintingFieldsFromCandidate(candidate);
+  const language = fields.language ?? "EN";
+  const size = fields.size ?? "standard";
+  return printings.find(
+    (printing) =>
+      printing.otherFace === null &&
+      printing.shortCode === fields.shortCode &&
+      printing.finish === fields.finish &&
+      printing.language === language &&
+      printing.size === size &&
+      sameSlugs(printing.markerSlugs, fields.markerSlugs ?? []),
+  );
+}

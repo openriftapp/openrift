@@ -100,17 +100,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    getIdAndUrls(
-      imageId: string,
-    ): Promise<{ id: string; rehostedUrl: string | null; originalUrl: string | null } | undefined> {
-      return db
-        .selectFrom("faceImages")
-        .innerJoin("imageFiles as imgf", "imgf.id", "faceImages.imageFileId")
-        .select(["faceImages.id", "imgf.rehostedUrl", "imgf.originalUrl"])
-        .where("faceImages.id", "=", imageId)
-        .executeTakeFirst();
-    },
-
     getForActivate(imageId: string) {
       return db
         .selectFrom("faceImages as fi")
@@ -280,15 +269,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         })
         .where("id", "=", imageId)
         .execute();
-    },
-
-    async sideOfFace(printingId: string, faceId: string): Promise<CardFace> {
-      const row = await db
-        .selectFrom("printings")
-        .select("face2Id")
-        .where("id", "=", printingId)
-        .executeTakeFirstOrThrow();
-      return row.face2Id === faceId ? "back" : "front";
     },
 
     /** Call inside a transaction. */
@@ -476,23 +456,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    /**
-     * Guards file deletion: disk files are only removed when no *other*
-     * face image still points at the same image_file.
-     */
-    async countOthersByImageFileId(
-      imageFileId: string,
-      excludePrintingImageId: string,
-    ): Promise<number> {
-      const result = await db
-        .selectFrom("faceImages")
-        .select((eb) => eb.fn.countAll<number>().as("count"))
-        .where("imageFileId", "=", imageFileId)
-        .where("id", "!=", excludePrintingImageId)
-        .executeTakeFirstOrThrow();
-      return Number(result.count);
-    },
-
     listAllRehostedWithContext() {
       return db
         .selectFrom("imageFiles as imgf")
@@ -555,21 +518,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .selectAll()
         .where("id", "=", id)
         .executeTakeFirst();
-    },
-
-    /**
-     * How many faces pin this image file as their substitute art.
-     * Deleting a face image consults this before removing the files behind
-     * it: the `face_images` row is going, but a pin on the same
-     * `image_files` row keeps the file on screen somewhere else.
-     */
-    async countPinsByImageFileId(imageFileId: string): Promise<number> {
-      const row = await db
-        .selectFrom("faces")
-        .select((eb) => eb.fn.countAll<number>().as("count"))
-        .where("fallbackImageFileId", "=", imageFileId)
-        .executeTakeFirstOrThrow();
-      return Number(row.count);
     },
 
     getFallbackArt(
@@ -659,39 +607,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .select(["id", "originalUrl", "rehostedUrl", "rotation", "needsTrim", "quad"])
         .where("id", "=", imageFileId)
         .executeTakeFirst();
-    },
-
-    /**
-     * Delete orphaned image_files rows that nothing references — neither a
-     * face_images row nor a face's pinned fallback art. A pinned file
-     * usually *is* some face's image too, but one uploaded purely as a
-     * substitute is not, and it is exactly as live as any other.
-     */
-    async deleteOrphanedImageFiles(): Promise<number> {
-      const result = await db
-        .deleteFrom("imageFiles")
-        .where((eb) =>
-          eb.not(
-            eb.exists(
-              eb
-                .selectFrom("faceImages")
-                .select("faceImages.id")
-                .whereRef("faceImages.imageFileId", "=", "imageFiles.id"),
-            ),
-          ),
-        )
-        .where((eb) =>
-          eb.not(
-            eb.exists(
-              eb
-                .selectFrom("faces")
-                .select("faces.id")
-                .whereRef("faces.fallbackImageFileId", "=", "imageFiles.id"),
-            ),
-          ),
-        )
-        .executeTakeFirst();
-      return Number(result.numDeletedRows);
     },
   };
 }

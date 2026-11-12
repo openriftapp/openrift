@@ -35,6 +35,7 @@ function candidate(overrides: Record<string, unknown> = {}) {
     externalId: "ext-1",
     shortCode: "OGN-001",
     finish: "normal" as string | null,
+    rarity: null as string | null,
     markerSlugs: [] as string[],
     language: "EN" as string | null,
     cardLinked: true,
@@ -139,7 +140,18 @@ describe("resolvePrintingLink", () => {
     expect(resolvePrintingLink(makeIndex(), candidate({ cardLinked: false }))).toBeNull();
   });
 
-  it("does not link without a finish", () => {
+  it("infers a missing finish from the rarity", () => {
+    const foil = { ...FIREBALL_PRINTING, id: "foil-uuid", finish: "foil" };
+    const index = makeIndex({ printings: [FIREBALL_PRINTING, foil] });
+    expect(resolvePrintingLink(index, candidate({ finish: null, rarity: "common" }))).toBe(
+      "printing-uuid",
+    );
+    expect(resolvePrintingLink(index, candidate({ finish: null, rarity: "epic" }))).toBe(
+      "foil-uuid",
+    );
+  });
+
+  it("does not link without a finish or a rarity", () => {
     expect(resolvePrintingLink(makeIndex(), candidate({ finish: null }))).toBeNull();
   });
 

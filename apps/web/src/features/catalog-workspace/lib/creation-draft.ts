@@ -379,6 +379,9 @@ function faceIssues(face: DraftFace, index: number, draft: CreationDraft): Draft
   if (fields.finish.length === 0) {
     issues.push({ path: `${path}.finish`, message: "Pick a finish." });
   }
+  if (draft.target === "accept" && fields.rarity.length === 0) {
+    issues.push({ path: `${path}.rarity`, message: "Pick a rarity." });
+  }
   const artistOptional = draft.target === "desk" && draft.basePrintingId !== undefined;
   if (!artistOptional && fields.artist.trim().length === 0) {
     issues.push({ path: `${path}.artist`, message: "Enter the artist." });
@@ -593,6 +596,7 @@ export function toAcceptInput(draft: CreationDraft, cardId?: string): AcceptInpu
     shortCode,
     publicCode: fields.publicCode.trim().length > 0 ? fields.publicCode.trim() : shortCode,
     artist: fields.artist.trim(),
+    rarity: fields.rarity,
     markerSlugs: [...fields.markerSlugs],
     distributionChannelSlugs: [...draft.printing.distributionChannelSlugs],
     isSigned: fields.isSigned,
@@ -605,7 +609,6 @@ export function toAcceptInput(draft: CreationDraft, cardId?: string): AcceptInpu
     printingFields.setName = fields.setName;
   }
   const optional = {
-    rarity: fields.rarity,
     artVariant: fields.artVariant,
     finish: fields.finish,
     size: draft.printing.size,

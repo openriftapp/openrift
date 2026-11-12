@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
-import { createPlayloltcgClient, PlayloltcgBlockedError } from "./playloltcg-client.js";
+import {
+  createPlayloltcgClient,
+  PlayloltcgBlockedError,
+  PlayloltcgRefusedError,
+} from "./playloltcg-client.js";
 
 const USER_AGENT = "Mozilla/5.0 (test) AppleWebKit/537.36 Chrome/134.0.0.0 Safari/537.36";
 
@@ -70,9 +74,40 @@ describe("createPlayloltcgClient", () => {
     expect(list.total).toBe(158_546);
   });
 
-  it("throws on a non-zero source code", async () => {
+  it("refuses for good on a not-found envelope code", async () => {
+    const { client } = harness([() => json({ code: 404, message: "活动不存在", result: null })]);
+
+    await expect(client.post("/xcx/x", {})).rejects.toBeInstanceOf(PlayloltcgRefusedError);
+  });
+
+  it("retries a busy envelope code like any transient failure, then succeeds", async () => {
+    let n = 0;
+    const { client } = harness([
+      () =>
+        n++ === 0
+          ? json({ code: 500, message: "网络繁忙", result: null })
+          : json({ code: 0, result: { ok: true } }),
+    ]);
+
+    const result = await client.post<{ ok: boolean }>("/xcx/x", {});
+
+    expect(result).toEqual({ ok: true });
+    expect(client.requests).toBe(2);
+  });
+
+  it("refuses a not-found envelope code without asking again", async () => {
+    const { client } = harness([() => json({ code: 404, message: "活动不存在", result: null })]);
+
+    await expect(client.post("/xcx/x", {})).rejects.toBeInstanceOf(PlayloltcgRefusedError);
+    expect(client.requests).toBe(1);
+  });
+
+  it("treats a busy envelope code as a transient failure", async () => {
     const { client } = harness([() => json({ code: 500, message: "boom", result: null })]);
-    await expect(client.post("/xcx/x", {})).rejects.toThrow(/code 500/u);
+    const error = await client.post("/xcx/x", {}).catch((error_: unknown) => error_);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(PlayloltcgRefusedError);
+    expect((error as Error).message).toMatch(/code 500/u);
   });
 
   it("retries a WAF block once, then latches and throws blocked", async () => {
@@ -83,6 +118,13 @@ describe("createPlayloltcgClient", () => {
     );
     expect(client.blocked).toBe(true);
     expect(client.requests).toBe(2);
+  });
+
+  it("latches a block on an HTML interstitial served with status 200", async () => {
+    const { client } = harness([() => html(200), () => html(200)]);
+
+    await expect(client.post("/xcx/x", {})).rejects.toBeInstanceOf(PlayloltcgBlockedError);
+    expect(client.blocked).toBe(true);
   });
 
   it("reads a JSON page whose player names happen to contain WAF", async () => {
@@ -121,6 +163,18 @@ describe("createPlayloltcgClient", () => {
     const result = await client.post<{ ok: boolean }>("/xcx/x", {});
     expect(result).toEqual({ ok: true });
     expect(client.requests).toBe(2);
+  });
+
+  it("retries a gateway's HTML 5xx page without latching a block", async () => {
+    let n = 0;
+    const { client } = harness([
+      () => (n++ === 0 ? html(502) : json({ code: 0, result: { ok: true } })),
+    ]);
+
+    const result = await client.post<{ ok: boolean }>("/xcx/x", {});
+
+    expect(result).toEqual({ ok: true });
+    expect(client.blocked).toBe(false);
   });
 
   it("retries a transient 5xx and then succeeds", async () => {

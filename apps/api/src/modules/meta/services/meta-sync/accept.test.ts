@@ -294,6 +294,32 @@ describe("autoAcceptCatalogEvents", () => {
     expect(rechecks).toHaveLength(0);
   });
 
+  it("matches the twin on the store name promotion files, not the store directory's name", async () => {
+    const { deps } = fakeDeps({
+      settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },
+      unaccepted: [
+        catalogRow({
+          externalId: "twin",
+          playerCount: 200,
+          storeName: "Nexus Games Bologna",
+          storeDisplayName: "Shurima Card Hall",
+        }),
+      ],
+      live: [
+        {
+          id: "riot-live",
+          name: "Riftbound Regional Qualifier Bologna",
+          eventDate: "2026-02-20",
+          organizer: "Nexus Games Bologna",
+        },
+      ],
+    });
+
+    const summary = await autoAcceptCatalogEvents(deps, ["twin"]);
+
+    expect(summary).toMatchObject({ accepted: 0, held: 1 });
+  });
+
   it("never accepts an event whose format the archive cannot file", async () => {
     const { deps } = fakeDeps({
       settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },

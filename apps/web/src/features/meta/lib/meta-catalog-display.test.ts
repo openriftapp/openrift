@@ -15,6 +15,7 @@ import {
   PLAYRIFTBOUND_FORMAT_CHOICES,
   playriftboundTypeLabel,
   runningRunId,
+  stoppableRunId,
   syncTriggerAnnouncement,
   TOPDECK_FORMAT_CHOICES,
 } from "./meta-catalog-display";
@@ -192,6 +193,18 @@ describe("backfillDisplay", () => {
       }),
     ];
     expect(backfillDisplay(runs, BACKFILL_KIND)).toEqual({ phase: "idle" });
+  });
+});
+
+describe("stoppableRunId", () => {
+  it("offers no second stop for a run already asked to stop", () => {
+    const kind = "meta.uvsgames_recheck";
+    expect(stoppableRunId([backfillRun("running", { processed: 2 }, kind)], kind)).toBe(
+      "run-backfill",
+    );
+    expect(
+      stoppableRunId([backfillRun("running", { cancelRequested: true }, kind)], kind),
+    ).toBeNull();
   });
 });
 
@@ -640,6 +653,16 @@ describe("runErrorsMessage", () => {
   it("quotes an error that names no event", () => {
     expect(runErrorsMessage("Refresh mirror", ["Source answered 503"])).toBe(
       "Refresh mirror reported: Source answered 503.",
+    );
+  });
+
+  it("keeps one period after a message that brought its own", () => {
+    expect(
+      runErrorsMessage("Collect results", [
+        "Stopped after 5 visits in a row failed; pausing for 30 minutes.",
+      ]),
+    ).toBe(
+      "Collect results reported: Stopped after 5 visits in a row failed; pausing for 30 minutes.",
     );
   });
 });

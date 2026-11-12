@@ -11,6 +11,7 @@ import type {
 } from "../../../db/tables/candidates.js";
 import type { CardsTable } from "../../../db/tables/catalog.js";
 import {
+  acceptableCandidatePrinting,
   CANONICAL_CANDIDATE_PRINTING_ORDER,
   notHiddenSource,
   notIgnoredCard,
@@ -344,6 +345,23 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         .selectFrom("candidatePrintings")
         .selectAll()
         .where("candidateCardId", "in", candidateCardIds)
+        .execute();
+    },
+
+    acceptableCandidatePrintings(
+      candidateCardIds: readonly string[],
+    ): Promise<Selectable<CandidatePrintingsTable>[]> {
+      if (candidateCardIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("candidatePrintings as cp")
+        .innerJoin("candidateCards as cc", "cc.id", "cp.candidateCardId")
+        .selectAll("cp")
+        .where("cp.candidateCardId", "in", candidateCardIds)
+        .where(acceptableCandidatePrinting("cp", "cc"))
+        .orderBy("cp.shortCode")
+        .orderBy("cp.id")
         .execute();
     },
 

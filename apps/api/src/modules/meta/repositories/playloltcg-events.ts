@@ -9,6 +9,7 @@ import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { PLAYLOLTCG_PROVIDER, PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
+import { dueBefore } from "./meta-shared.js";
 import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
@@ -24,6 +25,7 @@ import {
   toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
+import { upsertMirrorRows } from "./mirror-upsert.js";
 
 type PlayloltcgEventRow = Selectable<PlayloltcgEventsTable>;
 
@@ -287,65 +289,57 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       rows: readonly PlayloltcgUpsertInput[],
       seenAt: Date,
     ): Promise<PlayloltcgUpsertResult> {
-      if (rows.length === 0) {
-        return { inserted: [], changed: [], unchanged: [] };
-      }
-      const inserted: number[] = [];
-      const changed: number[] = [];
-      for (const batch of rowBatches(
+      return await upsertMirrorRows(
         rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null })),
-      )) {
-        const written = await db
-          .insertInto("playloltcgEvents")
-          .values(batch)
-          .onConflict((oc) =>
-            oc
-              .columns(["activityShopId"])
-              .doUpdateSet((eb) => ({
-                shopName: eb.ref("excluded.shopName"),
-                name: eb.ref("excluded.name"),
-                activityType: eb.ref("excluded.activityType"),
-                activityTypeName: eb.ref("excluded.activityTypeName"),
-                battleMode: eb.ref("excluded.battleMode"),
-                status: eb.ref("excluded.status"),
-                startAt: eb.ref("excluded.startAt"),
-                endAt: eb.ref("excluded.endAt"),
-                playerCount: eb.ref("excluded.playerCount"),
-                maxUser: eb.ref("excluded.maxUser"),
-                fee: eb.ref("excluded.fee"),
-                province: eb.ref("excluded.province"),
-                city: eb.ref("excluded.city"),
-                area: eb.ref("excluded.area"),
-                address: eb.ref("excluded.address"),
-                longitude: eb.ref("excluded.longitude"),
-                latitude: eb.ref("excluded.latitude"),
-                contentHash: eb.ref("excluded.contentHash"),
-                lastSeenAt: eb.ref("excluded.lastSeenAt"),
-                missingSince: eb.ref("excluded.missingSince"),
-              }))
-              .where(
-                sql<SqlBool>`playloltcg_events.content_hash is distinct from excluded.content_hash
-                or playloltcg_events.missing_since is not null`,
-              ),
-          )
-          .returning(["activityShopId", sql<boolean>`(xmax = 0)`.as("inserted")])
-          .execute();
-
-        for (const row of written) {
-          (row.inserted ? inserted : changed).push(row.activityShopId);
-        }
-      }
-
-      const touched = new Set([...inserted, ...changed]);
-      const unchanged = rows.map((row) => row.activityShopId).filter((id) => !touched.has(id));
-      for (const batch of keyBatches(unchanged)) {
-        await db
-          .updateTable("playloltcgEvents")
-          .set({ lastSeenAt: seenAt })
-          .where("activityShopId", "in", batch)
-          .execute();
-      }
-      return { inserted, changed, unchanged };
+        {
+          keyOf: (row) => row.activityShopId,
+          write: async (batch) => {
+            const written = await db
+              .insertInto("playloltcgEvents")
+              .values(batch)
+              .onConflict((oc) =>
+                oc
+                  .columns(["activityShopId"])
+                  .doUpdateSet((eb) => ({
+                    shopName: eb.ref("excluded.shopName"),
+                    name: eb.ref("excluded.name"),
+                    activityType: eb.ref("excluded.activityType"),
+                    activityTypeName: eb.ref("excluded.activityTypeName"),
+                    battleMode: eb.ref("excluded.battleMode"),
+                    status: eb.ref("excluded.status"),
+                    startAt: eb.ref("excluded.startAt"),
+                    endAt: eb.ref("excluded.endAt"),
+                    playerCount: eb.ref("excluded.playerCount"),
+                    maxUser: eb.ref("excluded.maxUser"),
+                    fee: eb.ref("excluded.fee"),
+                    province: eb.ref("excluded.province"),
+                    city: eb.ref("excluded.city"),
+                    area: eb.ref("excluded.area"),
+                    address: eb.ref("excluded.address"),
+                    longitude: eb.ref("excluded.longitude"),
+                    latitude: eb.ref("excluded.latitude"),
+                    contentHash: eb.ref("excluded.contentHash"),
+                    lastSeenAt: eb.ref("excluded.lastSeenAt"),
+                    missingSince: eb.ref("excluded.missingSince"),
+                  }))
+                  .where(
+                    sql<SqlBool>`playloltcg_events.content_hash is distinct from excluded.content_hash
+                    or playloltcg_events.missing_since is not null`,
+                  ),
+              )
+              .returning(["activityShopId", sql<boolean>`(xmax = 0)`.as("inserted")])
+              .execute();
+            return written.map((row) => ({ key: row.activityShopId, inserted: row.inserted }));
+          },
+          touch: async (keys) => {
+            await db
+              .updateTable("playloltcgEvents")
+              .set({ lastSeenAt: seenAt })
+              .where("activityShopId", "in", keys)
+              .execute();
+          },
+        },
+      );
     },
 
     async markMissing(params: {
@@ -359,7 +353,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         .set({ missingSince: params.at })
         .where("startAt", ">=", params.from)
         .where("startAt", "<=", params.to)
-        .where("lastSeenAt", "<", params.seenBefore)
+        .where(sql<SqlBool>`date_trunc('milliseconds', last_seen_at) < ${params.seenBefore}`)
         .where("missingSince", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows ?? 0n);
@@ -446,7 +440,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       return await listSelect()
         .select(important.as("important"))
         .where("ck.nextCheckAt", "is not", null)
-        .where("ck.nextCheckAt", "<=", now)
+        .where("ck.nextCheckAt", "<", dueBefore(now))
         .orderBy(sql`${important} desc`)
         .orderBy("ck.nextCheckAt", "asc")
         .limit(limit)

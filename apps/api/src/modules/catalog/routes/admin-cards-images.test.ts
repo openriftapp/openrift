@@ -7,14 +7,14 @@ import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { downloadImage } from "../services/images/download.js";
-import { rehostImageFile, rehostSingleImage } from "../services/images/jobs.js";
+import { rehostImageFile, rehostSingleImage, unrehostImageFile } from "../services/images/jobs.js";
 import { imageRehostedUrl } from "../services/images/paths.js";
 import {
-  deleteRehostFiles,
   ensureOriginalOnDisk,
   processAndSave,
   regenerateFromOrig,
 } from "../services/images/variants.js";
+import { cleanupOrphanedImageFiles } from "../services/printing-admin.js";
 import { adminCardImagesRouter } from "./admin-cards-images";
 
 vi.mock("../services/images/paths.js", () => ({
@@ -25,10 +25,14 @@ vi.mock("../services/images/paths.js", () => ({
 vi.mock("../services/images/jobs.js", () => ({
   rehostSingleImage: vi.fn(),
   rehostImageFile: vi.fn(),
+  unrehostImageFile: vi.fn(),
+}));
+
+vi.mock("../services/printing-admin.js", () => ({
+  cleanupOrphanedImageFiles: vi.fn(),
 }));
 
 vi.mock("../services/images/variants.js", () => ({
-  deleteRehostFiles: vi.fn(),
   ensureOriginalOnDisk: vi.fn(),
   processAndSave: vi.fn(),
   regenerateFromOrig: vi.fn(),
@@ -45,7 +49,8 @@ vi.mock("uuid", () => ({
 
 const mockRehostSingleImage = vi.mocked(rehostSingleImage);
 const mockRehostImageFile = vi.mocked(rehostImageFile);
-const mockDeleteRehostFiles = vi.mocked(deleteRehostFiles);
+const mockUnrehostImageFile = vi.mocked(unrehostImageFile);
+const mockCleanupOrphanedImageFiles = vi.mocked(cleanupOrphanedImageFiles);
 const mockDownloadImage = vi.mocked(downloadImage);
 const mockProcessAndSave = vi.mocked(processAndSave);
 const mockRegenerateFromOrig = vi.mocked(regenerateFromOrig);
@@ -58,17 +63,13 @@ const mockPrintingImages = {
   getCandidatePrintingById: vi.fn(),
   getIdAndRehostedUrl: vi.fn(),
   getImageFileId: vi.fn(),
-  countOthersByImageFileId: vi.fn(),
-  countPinsByImageFileId: vi.fn(),
   getFallbackArt: vi.fn(),
   setFallbackArt: vi.fn(),
   imageFileForUrl: vi.fn(),
   insertUnattachedImageFile: vi.fn(),
   getImageFileForRehost: vi.fn(),
   deleteById: vi.fn(),
-  deleteOrphanedImageFiles: vi.fn(),
   getForActivate: vi.fn(),
-  getIdAndUrls: vi.fn(),
   updateRehostedUrl: vi.fn(),
   getForRehost: vi.fn(),
   setRotation: vi.fn(),
@@ -77,6 +78,7 @@ const mockPrintingImages = {
 };
 
 const mockCatalog = { getPrintingById: vi.fn() };
+const mockCatalogMutations = {};
 
 const mockTrxPrintingImages = {
   insertImage: vi.fn(),
@@ -119,6 +121,7 @@ app.use("*", async (c, next) => {
   c.set("transact", mockTransact as never);
   c.set("repos", {
     catalog: mockCatalog,
+    catalogMutations: mockCatalogMutations,
     printingImages: mockPrintingImages,
     adminEvents: mockAdminEvents,
     printingDesk: mockPrintingDesk,
@@ -256,51 +259,36 @@ describe("DELETE /printing-images/:imageId", () => {
     adminAccess = FULL_ADMIN;
   });
 
-  it("returns 204 and deletes rehost files when no others share them", async () => {
+  it("hands the image file to the shared orphan cleanup after deleting the image", async () => {
     mockPrintingImages.getIdAndRehostedUrl.mockResolvedValue({
       rehostedUrl: "/cards/origin/img-1.avif",
     });
     mockPrintingImages.getImageFileId.mockResolvedValue("ci-1");
-    mockPrintingImages.countOthersByImageFileId.mockResolvedValue(0);
-    mockPrintingImages.countPinsByImageFileId.mockResolvedValue(0);
     mockPrintingImages.deleteById.mockResolvedValue(undefined);
-    mockPrintingImages.deleteOrphanedImageFiles.mockResolvedValue(0);
-    mockDeleteRehostFiles.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}`, {
       method: "DELETE",
     });
     expect(res.status).toBe(204);
     expect(mockPrintingImages.deleteById).toHaveBeenCalledWith(IMAGE_ID);
-    expect(mockDeleteRehostFiles).toHaveBeenCalledWith(mockIo, "/cards/origin/img-1.avif");
+    expect(mockCleanupOrphanedImageFiles).toHaveBeenCalledWith(mockIo, mockCatalogMutations, [
+      "ci-1",
+    ]);
+    expect(mockPrintingImages.deleteById.mock.invocationCallOrder[0]).toBeLessThan(
+      mockCleanupOrphanedImageFiles.mock.invocationCallOrder[0]!,
+    );
   });
 
-  it("skips file deletion when other images share image_file", async () => {
-    mockPrintingImages.getIdAndRehostedUrl.mockResolvedValue({
-      rehostedUrl: "/cards/origin/img-1.avif",
-    });
-    mockPrintingImages.getImageFileId.mockResolvedValue("ci-1");
-    mockPrintingImages.countOthersByImageFileId.mockResolvedValue(2);
-    mockPrintingImages.countPinsByImageFileId.mockResolvedValue(0);
-    mockPrintingImages.deleteById.mockResolvedValue(undefined);
-
-    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}`, {
-      method: "DELETE",
-    });
-    expect(res.status).toBe(204);
-    expect(mockDeleteRehostFiles).not.toHaveBeenCalled();
-  });
-
-  it("skips file deletion when image has no rehostedUrl", async () => {
+  it("cleans up nothing when the image has no file", async () => {
     mockPrintingImages.getIdAndRehostedUrl.mockResolvedValue({ rehostedUrl: null });
-    mockPrintingImages.getImageFileId.mockResolvedValue(null);
+    mockPrintingImages.getImageFileId.mockResolvedValue(undefined);
     mockPrintingImages.deleteById.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}`, {
       method: "DELETE",
     });
     expect(res.status).toBe(204);
-    expect(mockDeleteRehostFiles).not.toHaveBeenCalled();
+    expect(mockCleanupOrphanedImageFiles).not.toHaveBeenCalled();
   });
 
   it("returns 404 when image not found", async () => {
@@ -388,43 +376,25 @@ describe("POST /printing-images/:imageId/unrehost", () => {
     adminAccess = FULL_ADMIN;
   });
 
-  it("returns 204 and deletes files when no others share them", async () => {
-    mockPrintingImages.getIdAndUrls.mockResolvedValue({
-      rehostedUrl: "/cards/origin/img-1.avif",
-      originalUrl: "https://example.com/img.png",
-    });
+  it("un-rehosts the whole image file, shared or not", async () => {
     mockPrintingImages.getImageFileId.mockResolvedValue("ci-1");
-    mockPrintingImages.countOthersByImageFileId.mockResolvedValue(0);
-    mockDeleteRehostFiles.mockResolvedValue(undefined);
-    mockPrintingImages.updateRehostedUrl.mockResolvedValue(undefined);
+    mockUnrehostImageFile.mockResolvedValue("/cards/origin/img-1.avif");
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/unrehost`, {
       method: "POST",
     });
     expect(res.status).toBe(204);
-    expect(mockDeleteRehostFiles).toHaveBeenCalledWith(mockIo, "/cards/origin/img-1.avif");
-    expect(mockPrintingImages.updateRehostedUrl).toHaveBeenCalledWith("ci-1", null);
-  });
-
-  it("skips file deletion when others share image_file", async () => {
-    mockPrintingImages.getIdAndUrls.mockResolvedValue({
-      rehostedUrl: "/cards/origin/img-1.avif",
-      originalUrl: "https://example.com/img.png",
-    });
-    mockPrintingImages.getImageFileId.mockResolvedValue("ci-1");
-    mockPrintingImages.countOthersByImageFileId.mockResolvedValue(1);
-    mockPrintingImages.updateRehostedUrl.mockResolvedValue(undefined);
-
-    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/unrehost`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(204);
-    expect(mockDeleteRehostFiles).not.toHaveBeenCalled();
-    expect(mockPrintingImages.updateRehostedUrl).toHaveBeenCalledWith("ci-1", null);
+    expect(mockUnrehostImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, "ci-1");
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "image.unrehost",
+        oldValues: { rehostedUrl: "/cards/origin/img-1.avif", imageFileId: "ci-1" },
+      }),
+    );
   });
 
   it("returns 404 when image not found", async () => {
-    mockPrintingImages.getIdAndUrls.mockResolvedValue(null);
+    mockPrintingImages.getImageFileId.mockResolvedValue(undefined);
 
     const res = await app.request(
       "/api/admin/v1/cards/printing-images/00000000-0000-4000-a000-000000000099/unrehost",
@@ -433,13 +403,14 @@ describe("POST /printing-images/:imageId/unrehost", () => {
       },
     );
     expect(res.status).toBe(404);
+    expect(mockUnrehostImageFile).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when image is not rehosted", async () => {
-    mockPrintingImages.getIdAndUrls.mockResolvedValue({
-      rehostedUrl: null,
-      originalUrl: "https://example.com/img.png",
-    });
+  it("passes a refusal from the file-level un-rehost through", async () => {
+    mockPrintingImages.getImageFileId.mockResolvedValue("ci-1");
+    mockUnrehostImageFile.mockRejectedValue(
+      new AppError(400, ERROR_CODES.BAD_REQUEST, "Image is not rehosted"),
+    );
 
     const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/unrehost`, {
       method: "POST",
@@ -447,20 +418,6 @@ describe("POST /printing-images/:imageId/unrehost", () => {
     expect(res.status).toBe(400);
     const json = await readJson(res);
     expect(json.message).toContain("not rehosted");
-  });
-
-  it("returns 400 when image has no original URL to fall back to", async () => {
-    mockPrintingImages.getIdAndUrls.mockResolvedValue({
-      rehostedUrl: "/cards/origin/img-1.avif",
-      originalUrl: null,
-    });
-
-    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/unrehost`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(400);
-    const json = await readJson(res);
-    expect(json.message).toContain("no original URL");
   });
 });
 
@@ -1405,5 +1362,94 @@ describe("grant holder scope", () => {
 
     expect(res.status).toBe(204);
     expect(mockPrintingImages.deleteById).toHaveBeenCalledWith(IMAGE_ID);
+  });
+});
+
+describe("image edit scope", () => {
+  const OWN_ID = "00000000-0000-4000-a000-000000000005";
+  const FOREIGN_ID = "00000000-0000-4000-a000-000000000006";
+  const CARD_REVIEW = { isAdmin: false, sections: ["card-review"] };
+
+  const endpoints = [
+    { name: "activate", body: { active: true }, effect: () => mockTrxPrintingImages.setActive },
+    { name: "rotate", body: { rotation: 90 }, effect: () => mockPrintingImages.setRotation },
+    { name: "rehost", body: undefined, effect: () => mockPrintingImages.updateRehostedUrl },
+    {
+      name: "set-needs-trim",
+      body: { needsTrim: true },
+      effect: () => mockPrintingImages.setNeedsTrim,
+    },
+  ];
+
+  const cases = [
+    { who: "an admin", access: FULL_ADMIN, printingId: FOREIGN_ID, allowed: true },
+    { who: "a card-review holder", access: CARD_REVIEW, printingId: FOREIGN_ID, allowed: true },
+    {
+      who: "a desk-only holder on their own printing",
+      access: GRANT_HOLDER,
+      printingId: OWN_ID,
+      allowed: true,
+    },
+    {
+      who: "a desk-only holder on a foreign printing",
+      access: GRANT_HOLDER,
+      printingId: FOREIGN_ID,
+      allowed: false,
+    },
+  ];
+
+  function onPrinting(printingId: string) {
+    const image = {
+      printingId,
+      face: "front",
+      imageFileId: "if-1",
+      originalUrl: "https://example.com/img.png",
+      rotation: 0,
+      needsTrim: false,
+      quad: null,
+    };
+    mockPrintingImages.getForActivate.mockResolvedValue(image);
+    mockPrintingImages.getForRehost.mockResolvedValue(image);
+    mockPrintingImages.faceIdOfImage.mockResolvedValue("face-1");
+    mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([printingId]);
+  }
+
+  function call(name: string, body: unknown) {
+    return app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/${name}`, {
+      method: "POST",
+      ...(body === undefined
+        ? {}
+        : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+    });
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb({ printingImages: mockTrxPrintingImages }));
+    mockPrintingDesk.isDeskPrinting.mockResolvedValue(false);
+    mockAdminEvents.wasPrintingCreatedBy.mockImplementation((id: string) =>
+      Promise.resolve(id === OWN_ID),
+    );
+    mockDownloadImage.mockResolvedValue({ buffer: Buffer.from("image"), ext: ".png" });
+    mockImageRehostedUrl.mockReturnValue("/media/cards/f1/if-1");
+  });
+
+  const matrix = endpoints.flatMap((endpoint) =>
+    cases.map((entry) => ({
+      ...entry,
+      endpoint,
+      title: `${entry.allowed ? "lets" : "forbids"} ${entry.who} ${endpoint.name}`,
+    })),
+  );
+
+  it.each(matrix)("$title", async ({ access, printingId, allowed, endpoint }) => {
+    adminAccess = access as typeof FULL_ADMIN;
+    onPrinting(printingId);
+
+    const res = await call(endpoint.name, endpoint.body);
+
+    expect(res.status < 300).toBe(allowed);
+    expect(res.status === 403).toBe(!allowed);
+    expect(endpoint.effect().mock.calls.length > 0).toBe(allowed);
   });
 });

@@ -153,10 +153,45 @@ describe("collectDetail", () => {
     expect(collectDetail(recheck({ due: 3, fetched: 0 })).detail).toBe("nothing new");
   });
 
-  it("warns when the source refused requests", () => {
-    expect(collectDetail(recheck({ blocked: true }))).toMatchObject({
+  it("says a block from a pause, with the same times the job-runs page shows", () => {
+    expect(
+      collectDetail(recheck({ blocked: true, blockedUntil: "2026-10-28T13:00:00.000Z" })),
+    ).toMatchObject({ tone: "warn", detail: "blocked until 2026-10-28 13:00" });
+    expect(
+      collectDetail(recheck({ backedOff: true, pausedUntil: "2026-10-28T07:30:00.000Z" })),
+    ).toMatchObject({ tone: "warn", detail: "paused until 2026-10-28 07:30" });
+  });
+
+  it("says stopping for a running pass an admin asked to stop", () => {
+    expect(
+      collectDetail(
+        run({
+          kind: "meta.playloltcg_recheck",
+          status: "running",
+          finishedAt: null,
+          result: { cancelRequested: true },
+        }),
+      ),
+    ).toMatchObject({ tone: "running", detail: "stopping" });
+  });
+});
+
+describe("refreshCell", () => {
+  it("shows a stopped refresh by its stop, not the raw error line", () => {
+    const stopped = run({
+      result: {
+        rows: 0,
+        blocked: true,
+        blockedUntil: "2026-10-28T13:00:00.000Z",
+        errors: [
+          "Stopped: the source refused further requests; every job waits until 2026-10-28T13:00:00.000Z.",
+        ],
+      },
+    });
+
+    expect(refreshCell(stopped, true, new Date("2026-10-28T08:00:00.000Z"))).toMatchObject({
       tone: "warn",
-      detail: "the source refused requests",
+      detail: "blocked until 2026-10-28 13:00",
     });
   });
 });

@@ -328,6 +328,7 @@ describe("buildWorkspaceQueueEntries", () => {
             cardName: "Yasuo, Unforgiven",
             shortCode: "OGN-205",
             finish: "normal",
+            rarity: "rare",
             language: "FR",
           },
         ],
@@ -340,6 +341,28 @@ describe("buildWorkspaceQueueEntries", () => {
       ownerId: "cp-7",
       label: "OGN-205 normal FR",
     });
+  });
+
+  it("labels a new printing without a finish by the one its rarity implies", () => {
+    const entries = buildWorkspaceQueueEntries(
+      sources({
+        newPrintings: [
+          {
+            id: "cp-8",
+            candidateCardId: "cc-8",
+            provider: "provider-a",
+            createdAt: T1,
+            cardSlug: "yasuo-unforgiven",
+            cardName: "Yasuo, Unforgiven",
+            shortCode: "OGN-206",
+            finish: null,
+            rarity: "epic",
+            language: null,
+          },
+        ],
+      }),
+    );
+    expect(entries[0]?.item).toMatchObject({ label: "OGN-206 foil EN" });
   });
 
   it("puts an inactive upload in Faces with the printings showing that face", () => {

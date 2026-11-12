@@ -1,45 +1,22 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { WellKnown } from "@openrift/shared/well-known";
 
-import type { Transact } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
-import type { catalogMutationsRepo } from "../../catalog/repositories/catalog-mutations.js";
-import type { distributionChannelsRepo } from "../../catalog/repositories/distribution-channels.js";
-import type { markersRepo } from "../../catalog/repositories/markers.js";
-import type { printingEventsRepo } from "../../catalog/repositories/printing-events.js";
-import type { printingImagesRepo } from "../../catalog/repositories/printing-images.js";
-import { acceptPrinting } from "../../catalog/services/printing-admin.js";
-import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
+import type { NewPrinting } from "../../catalog/services/printing-admin.js";
+import { acceptCandidateGroups } from "./accept-candidate-printings.js";
 
-type CandidateCardsRepo = ReturnType<typeof candidateCardsRepo>;
-type CatalogMutationsRepo = ReturnType<typeof catalogMutationsRepo>;
-type PrintingEventsRepo = ReturnType<typeof printingEventsRepo>;
-type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
-type MarkersRepo = ReturnType<typeof markersRepo>;
-type DistributionChannelsRepo = ReturnType<typeof distributionChannelsRepo>;
-
-interface SkippedGroup {
-  shortCode: string;
-  reason: string;
-}
-
-/** Skips groups where the printing identity already exists or required fields are missing. */
 export async function acceptFavoritePrintingsForCard(
   transact: Transact,
-  io: Io,
-  repos: {
-    candidateCards: CandidateCardsRepo;
-    catalogMutations: CatalogMutationsRepo;
-    printingImages: PrintingImagesRepo;
-    markers: MarkersRepo;
-    distributionChannels: DistributionChannelsRepo;
-    printingEvents?: PrintingEventsRepo;
-  },
+  repos: Pick<Repos, "candidateCards" | "catalogMutations">,
   cardSlug: string,
   favoriteProviders: Set<string>,
-): Promise<{ printingsCreated: number; skipped: SkippedGroup[]; createdPrintingIds: string[] }> {
+  created: NewPrinting[],
+): Promise<{
+  printingsCreated: number;
+  skipped: { shortCode: string; reason: string }[];
+  createdPrintingIds: string[];
+}> {
   const mut = repos.catalogMutations;
 
   const card = await mut.getCardBySlug(cardSlug);
@@ -49,120 +26,30 @@ export async function acceptFavoritePrintingsForCard(
   if (aliases.length === 0) {
     throw new AppError(500, ERROR_CODES.MISSING_ALIAS, `Card "${cardSlug}" has no name aliases`);
   }
-  const normNames = aliases.map((a) => a.normName);
-  const allCandidates = await repos.candidateCards.candidateCardsForDetail(normNames);
-
+  const allCandidates = await repos.candidateCards.candidateCardsForDetail(
+    aliases.map((a) => a.normName),
+  );
   const favoriteCandidates = allCandidates.filter((cc) => favoriteProviders.has(cc.provider));
   if (favoriteCandidates.length === 0) {
     return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
   }
 
-  const favCandidateIds = favoriteCandidates.map((cc) => cc.id);
-  const allCandidatePrintings =
-    await repos.candidateCards.allCandidatePrintingsForCandidateCards(favCandidateIds);
-  const unlinkedPrintings = allCandidatePrintings.filter((cp) => !cp.printingId);
-
-  if (unlinkedPrintings.length === 0) {
+  const candidates = await repos.candidateCards.acceptableCandidatePrintings(
+    favoriteCandidates.map((cc) => cc.id),
+  );
+  if (candidates.length === 0) {
     return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
   }
-
-  const groupMap = new Map<string, typeof unlinkedPrintings>();
-  for (const cp of unlinkedPrintings) {
-    const slugKey = [...(cp.markerSlugs ?? [])].sort().join(",");
-    const key = `${cp.shortCode}|${cp.finish ?? ""}|${slugKey}|${cp.language ?? WellKnown.language.EN}`;
-    let arr = groupMap.get(key);
-    if (!arr) {
-      arr = [];
-      groupMap.set(key, arr);
-    }
-    arr.push(cp);
-  }
-
-  const createdPrintingIds: string[] = [];
-  const skipped: SkippedGroup[] = [];
-
-  for (const [, group] of groupMap) {
-    const [first] = group;
-
-    if (!first) {
-      continue;
-    }
-
-    const label = first.shortCode || "(unknown)";
-
-    const { shortCode, setId, rarity, finish } = first;
-    const missingFields: string[] = [];
-    if (!shortCode) {
-      missingFields.push("shortCode");
-    }
-    if (!setId) {
-      missingFields.push("setId");
-    }
-    if (!rarity) {
-      missingFields.push("rarity");
-    }
-    if (!finish) {
-      missingFields.push("finish");
-    }
-
-    if (missingFields.length > 0 || !shortCode || !setId || !rarity || !finish) {
-      skipped.push({ shortCode: label, reason: `missing: ${missingFields.join(", ")}` });
-      continue;
-    }
-
-    const existing = await mut.getPrintingCardIdByComposite(
-      shortCode,
-      finish,
-      first.markerSlugs ?? [],
-      first.language ?? WellKnown.language.EN,
-    );
-    if (existing) {
-      skipped.push({ shortCode: label, reason: "printing already exists" });
-      continue;
-    }
-
-    try {
-      const printingId = await acceptPrinting(
-        transact,
-        repos,
-        card.id,
-        {
-          shortCode,
-          setId,
-          setName: first.setName,
-          rarity,
-          artVariant: first.artVariant ?? WellKnown.artVariant.NORMAL,
-          isSigned: first.isSigned ?? false,
-          isOvernumbered: first.isOvernumbered ?? false,
-          markerSlugs: first.markerSlugs ?? [],
-          distributionChannelSlugs: first.distributionChannelSlugs ?? [],
-          finish,
-          size: first.size ?? WellKnown.cardSize.STANDARD,
-          artist: first.artist ?? "",
-          publicCode: first.publicCode ?? "",
-          printedRulesText: first.printedRulesText,
-          printedEffectText: first.printedEffectText,
-          flavorText: first.flavorText,
-          imageUrl: first.imageUrl,
-          language: first.language ?? WellKnown.language.EN,
-          printedName: first.printedName,
-          printedYear: first.printedYear,
-        },
-        group.map((cp) => cp.id),
-        io,
-      );
-      createdPrintingIds.push(printingId);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      skipped.push({ shortCode: label, reason: message });
-    }
-  }
+  const accepted = await acceptCandidateGroups(transact, card.id, candidates);
+  created.push(...accepted.created);
 
   for (const cc of favoriteCandidates) {
     await repos.candidateCards.checkCandidateCard(cc.id);
   }
 
-  // Each acceptPrinting above fire-and-forget rehosts the image it inserted, so
-  // there is no separate batch rehost step here.
-  return { printingsCreated: createdPrintingIds.length, skipped, createdPrintingIds };
+  return {
+    printingsCreated: accepted.created.length,
+    skipped: accepted.skipped,
+    createdPrintingIds: accepted.created.map((printing) => printing.printingId),
+  };
 }

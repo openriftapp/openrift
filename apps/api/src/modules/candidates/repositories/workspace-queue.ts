@@ -88,6 +88,7 @@ export interface WorkspaceNewPrintingRow {
   cardName: string;
   shortCode: string;
   finish: string | null;
+  rarity: string | null;
   language: string | null;
 }
 
@@ -260,6 +261,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           live_card.name as "cardName",
           cp.short_code as "shortCode",
           cp.finish,
+          cp.rarity,
           cp.language
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id

@@ -1,3 +1,5 @@
+import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
+
 export const UVSGAMES_PROVIDER = "uvsgames";
 
 export const UVSGAMES_STATUS_CANCELED = "canceled";
@@ -11,6 +13,8 @@ export const TOPDECK_PROVIDER = "topdeck";
 export const PLAYRIFTBOUND_PROVIDER = "playriftbound";
 
 export const TOURNAMENT_LIST_PROVIDER = "tournament";
+
+export const MIRROR_PROVIDERS: ReadonlySet<string> = new Set(META_CATALOG_PROVIDERS);
 
 /**
  * The lookup key both sides of a format mapping are compared on, so

@@ -1,10 +1,18 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
+const { createMetaSyncDeps } = vi.hoisted(() => ({
+  createMetaSyncDeps: vi.fn((_env: unknown) => ({})),
+}));
+
+vi.mock("../../meta/services/meta-sync/index.js", () => ({ createMetaSyncDeps }));
+
 import { AppError } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
+import { SourceThrottledError } from "../../meta/services/meta-sync/source-http.js";
+import { fetchUvsgamesEvent as fetchUvsgamesEventForReal } from "../../meta/services/meta-sync/uvsgames-on-demand.js";
 import { tournamentArchiveListsRouter } from "./authenticated-tournament-archive-lists.js";
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -46,6 +54,7 @@ function makeApp(
     manager?: boolean;
     tournament?: Record<string, unknown>;
     uncheckedState?: string;
+    fetchUvsgamesEvent?: (...args: never[]) => Promise<unknown>;
   } = {},
 ) {
   const sendTournamentLists = vi.fn((_transact: unknown, args: { lists: { identity: string }[] }) =>
@@ -57,6 +66,9 @@ function makeApp(
     }),
   );
   const notifyAdminsOfMetaSubmission = vi.fn(() => Promise.resolve());
+  const fetchUvsgamesEvent = vi.fn(
+    options.fetchUvsgamesEvent ?? (() => Promise.resolve({ status: "fetched", errors: [] })),
+  );
   const repos = {
     tournaments: {
       getById: vi.fn(() => Promise.resolve(tournament(options.tournament))),
@@ -98,7 +110,14 @@ function makeApp(
     c.set("user", { id: USER_ID } as never);
     c.set("repos", repos as never);
     c.set("transact", (async (fn: (r: typeof repos) => unknown) => fn(repos)) as never);
-    c.set("services", { sendTournamentLists, notifyAdminsOfMetaSubmission } as never);
+    c.set("services", {
+      sendTournamentLists,
+      notifyAdminsOfMetaSubmission,
+      fetchUvsgamesEvent,
+      loadTournamentListTarget: vi.fn(() => Promise.resolve(null)),
+    } as never);
+    c.set("config", { metaSync: { baseUrl: "http://upstream.test" } } as never);
+    c.set("io", { fetch: vi.fn() } as never);
     await next();
   });
   registerRouterForTest(app, tournamentArchiveListsRouter);
@@ -108,7 +127,7 @@ function makeApp(
     }
     throw err;
   });
-  return { app, sendTournamentLists, notifyAdminsOfMetaSubmission };
+  return { app, sendTournamentLists, notifyAdminsOfMetaSubmission, fetchUvsgamesEvent };
 }
 
 function send(app: Hono<{ Variables: Variables }>, links: unknown[]) {
@@ -132,6 +151,52 @@ describe("GET /tournaments/{id}/archive-lists", () => {
     expect(body.participants.find((row) => row.participantId === UNCHECKED)?.entryState).toBe(
       "submitted",
     );
+  });
+});
+
+describe("POST /tournaments/{id}/archive-lists/refresh", () => {
+  it("answers a throttled upstream with a failed refresh, not an error", async () => {
+    const setRecheck = vi.fn(() => Promise.resolve());
+    const mirrored = {
+      externalId: "667904",
+      name: "Friday Skirmish",
+      displayStatus: "complete",
+      nextCheckAt: new Date(),
+      checkStage: 0,
+      resultsFetchedAt: null,
+    };
+    createMetaSyncDeps.mockReturnValueOnce({
+      repos: {
+        uvsgamesEvents: {
+          byKey: () => Promise.resolve(mirrored),
+          upsertBatch: () => Promise.resolve({ inserted: [], changed: [], unchanged: [] }),
+          setRecheck,
+        },
+      },
+      client: {
+        requests: 0,
+        get: () =>
+          Promise.resolve({
+            id: 667_904,
+            name: "Friday Skirmish",
+            game_type: "RIFTBOUND",
+            start_datetime: "2026-09-12T16:00:00Z",
+            display_status: "complete",
+            event_format: "CONSTRUCTED",
+          }),
+        page: (path: string) => Promise.reject(new SourceThrottledError(path)),
+      },
+      log: { info: vi.fn(), warn: vi.fn() },
+    });
+    const { app } = makeApp({ fetchUvsgamesEvent: fetchUvsgamesEventForReal as never });
+
+    const res = await app.request(`/api/v1/tournaments/${TOURNAMENT_ID}/archive-lists/refresh`, {
+      method: "POST",
+    });
+
+    expect(res.status).toBe(200);
+    expect(((await readJson(res)) as { outcome: string }).outcome).toBe("failed");
+    expect(createMetaSyncDeps).toHaveBeenCalledWith(expect.objectContaining({ interactive: true }));
   });
 });
 

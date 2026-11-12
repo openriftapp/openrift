@@ -29,6 +29,7 @@ export async function relinkCandidatePrintings(repos: {
       externalId: cp.externalId,
       shortCode: cp.shortCode,
       finish: cp.finish,
+      rarity: cp.rarity,
       markerSlugs: cp.markerSlugs,
       language: cp.language,
       size: cp.size,

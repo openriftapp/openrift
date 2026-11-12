@@ -2,7 +2,11 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
+import {
+  acceptableCandidatePrinting,
+  notHiddenSource,
+  notIgnoredCard,
+} from "./candidate-cards-shared.js";
 
 export interface TrustedDraftRow {
   id: string;
@@ -68,11 +72,8 @@ export function workspaceBatchRepo(db: Kysely<Database>) {
           order by c.norm_name = cc.norm_name desc
           limit 1
         ) live_card on true
-        where cp.printing_id is null
-          and cc.provider in (${sql.join(providers)})
-          and ${notIgnoredCard("cc")}
-          and ${notIgnoredPrinting("cp", "cc")}
-          and ${notHiddenSource("cc")}
+        where cc.provider in (${sql.join(providers)})
+          and ${acceptableCandidatePrinting("cp", "cc")}
         order by live_card.slug, cp.short_code, cp.id
       `.execute(db);
       return rows.rows;

@@ -1,18 +1,16 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { MetaCrossSourceReview, MetaCrossSourceRow } from "@openrift/shared/types/api/meta";
-import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
 import type { MetaCrossSourceState } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { MIRROR_PROVIDERS } from "../../../lib/meta-providers.js";
 import { resolvedStandingName } from "../lib/meta-event-naming.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
 import { rankPlayerMatches } from "./meta-match-suggestions.js";
 import { sourceStandings } from "./meta-promote-sources.js";
 import { promoteMetaEvent } from "./meta-promote.js";
-
-const MIRROR_PROVIDERS: ReadonlySet<string> = new Set(META_CATALOG_PROVIDERS);
 
 /** The event's mirror citations, in the order promotion reads them. */
 function mirrorCitations(sources: readonly MetaEventSourceRow[]) {

@@ -16,7 +16,7 @@ export function validateFieldValue(
   if (!parsed.success) {
     throw new AppError(
       400,
-      ERROR_CODES.VALIDATION_ERROR,
+      ERROR_CODES.BAD_REQUEST,
       `Invalid value for ${field}: ${parsed.error.issues[0]?.message ?? "invalid value"}`,
     );
   }
@@ -28,7 +28,7 @@ export function asFieldWriteError(error: unknown, field: string, value: unknown)
   if (isForeignKeyViolation(error)) {
     return new AppError(
       400,
-      ERROR_CODES.VALIDATION_ERROR,
+      ERROR_CODES.BAD_REQUEST,
       `Invalid value for ${field}: ${String(value)}`,
     );
   }

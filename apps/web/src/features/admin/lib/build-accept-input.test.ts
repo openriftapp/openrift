@@ -13,6 +13,7 @@ import { buildAttentionSubmissions } from "./attention-items";
 import {
   buildAcceptSubmissionInput,
   printingGroupTickKeys,
+  submissionSkips,
   submissionTickKeys,
 } from "./build-accept-input";
 
@@ -291,5 +292,27 @@ describe("printingGroupTickKeys", () => {
 
   it("returns nothing for a printing the submission does not touch", () => {
     expect(printingGroupTickKeys(cardOnlySubmission(), "prt-nope")).toEqual([]);
+  });
+});
+
+describe("submissionSkips", () => {
+  it("names a skipped new printing by its printing label", () => {
+    const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
+    const candidate = makeCandidatePrinting({ candidateCardId: source.id, printingId: null });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      candidatePrintings: [candidate],
+    });
+    const submission = buildAttentionSubmissions(detail, [])[0];
+    if (!submission) {
+      throw new Error("expected a submission");
+    }
+
+    expect(
+      submissionSkips(submission, [
+        { candidatePrintingId: candidate.id, reason: "already exists" },
+      ]),
+    ).toEqual([{ label: "OGN-001", reason: "already exists" }]);
   });
 });

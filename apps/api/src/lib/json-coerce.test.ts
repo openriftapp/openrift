@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { coord, count, instant, record, recordCapped, sourceId, text } from "./json-coerce.js";
+import {
+  coord,
+  count,
+  fraction,
+  instant,
+  record,
+  recordCapped,
+  sourceId,
+  text,
+} from "./json-coerce.js";
 
 describe("record", () => {
   it("returns a plain object", () => {
@@ -49,6 +58,26 @@ describe("coord", () => {
   it("rejects non-finite numbers and strings", () => {
     expect(coord(Number.POSITIVE_INFINITY)).toBeNull();
     expect(coord("1")).toBeNull();
+  });
+});
+
+describe("fraction", () => {
+  it("reads a share sent as a number or a decimal string", () => {
+    expect(fraction(0.5)).toBe(0.5);
+    expect(fraction("0.4444444444444444")).toBe(0.4444444444444444);
+    expect(fraction(" 1 ")).toBe(1);
+  });
+
+  it("drops an empty string instead of reading it as zero", () => {
+    expect(fraction("")).toBeNull();
+    expect(fraction("   ")).toBeNull();
+  });
+
+  it("drops anything outside 0..1 or not a number", () => {
+    expect(fraction(1.2)).toBeNull();
+    expect(fraction(-0.1)).toBeNull();
+    expect(fraction("n/a")).toBeNull();
+    expect(fraction(null)).toBeNull();
   });
 });
 

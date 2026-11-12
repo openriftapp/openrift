@@ -122,6 +122,7 @@ export const tournamentArchiveListsRouter = {
       fetch: context.io.fetch,
       log: context.log,
       baseUrl: context.config.metaSync.baseUrl,
+      interactive: true,
     });
     const fetched = await context.services.fetchUvsgamesEvent(deps, uvsgamesEventId);
     if (fetched.status === "failed") {

@@ -5,6 +5,7 @@ import type { Repos, Transact } from "../../../../deps.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
+import { SourceBlockedError } from "./source-http.js";
 import type { UvsClient, UvsQuery } from "./uvsgames-client.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
@@ -342,6 +343,65 @@ describe("deepFetchEvent", () => {
     expect(storedDecklists.map((entry) => entry.row)).toEqual([
       expect.objectContaining({ sourceDeckId: "d-gone", fetchStatus: "refused" }),
     ]);
+  });
+
+  it("records nothing for a throttled deck and stops reading the rest this pass", async () => {
+    const asked: string[] = [];
+    const { deps, storedDecklists } = fakeDeps({
+      source: acceptedSource(),
+      outstandingDecks: ["d-1", "d-2", "d-3"],
+      registrations: [
+        { id: "r1", deck_id: "d-1" },
+        { id: "r2", deck_id: "d-2" },
+        { id: "r3", deck_id: "d-3" },
+      ],
+      deck: (deckId) => {
+        asked.push(deckId);
+        throw new UvsHttpError(429, `/decks/${deckId}/`, "slow down");
+      },
+    });
+
+    const result = await deepFetchEvent(deps, catalogRow({ decklistStatus: "PUBLISHED" }));
+
+    expect(storedDecklists).toEqual([]);
+    expect(asked).toEqual(["d-1"]);
+    expect(result.errors.some((message) => message.includes("throttle"))).toBe(true);
+  });
+
+  it("records nothing for a deck behind a challenge page", async () => {
+    const { deps, storedDecklists } = fakeDeps({
+      source: acceptedSource(),
+      outstandingDecks: ["d-1", "d-2"],
+      registrations: [
+        { id: "r1", deck_id: "d-1" },
+        { id: "r2", deck_id: "d-2" },
+      ],
+      deck: () => {
+        throw new SourceBlockedError("The source blocked /decks/d-1/ (HTTP 403: <html>)");
+      },
+    });
+
+    const result = await deepFetchEvent(deps, catalogRow({ decklistStatus: "PUBLISHED" }));
+
+    expect(storedDecklists).toEqual([]);
+    expect(result.errors.join(" ")).toContain(
+      "Stopped reading decks after the source refused further requests",
+    );
+  });
+
+  it("leaves a timed-out deck open for the next pass", async () => {
+    const { deps, storedDecklists } = fakeDeps({
+      source: acceptedSource(),
+      outstandingDecks: ["d-slow"],
+      registrations: [{ id: "r1", deck_id: "d-slow" }],
+      deck: () => {
+        throw new UvsHttpError(408, "/decks/d-slow/", "timeout");
+      },
+    });
+
+    await deepFetchEvent(deps, catalogRow({ decklistStatus: "PUBLISHED" }));
+
+    expect(storedDecklists).toEqual([]);
   });
 
   const TWO_ROUND_DETAIL = {

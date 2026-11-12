@@ -8,6 +8,7 @@ import {
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
 import { classifyMetaEventTier, countryFromAddress } from "../lib/meta-event-classify.js";
+import { META_NAME_MAX } from "../lib/meta-event-naming.js";
 import { longitudeLocalDay } from "../lib/meta-local-day.js";
 import { playriftboundFormat } from "../lib/playriftbound-catalog.js";
 import { topdeckFormat } from "../lib/topdeck-catalog.js";
@@ -65,11 +66,11 @@ async function uvsgamesFacts(
       country: location ?? undefined,
     },
     event: {
-      name: listing.name.slice(0, 120),
+      name: listing.name.slice(0, META_NAME_MAX),
       eventDate: venueLocalDay(listing.startAt, listing.timezone),
       format,
       playerCount,
-      organizer: listing.storeName === null ? null : listing.storeName.slice(0, 120),
+      organizer: listing.storeName === null ? null : listing.storeName.slice(0, META_NAME_MAX),
       notes: null,
       tier: classifyMetaEventTier(
         {
@@ -133,13 +134,13 @@ async function playloltcgFacts(
       tier: `${playerCount ?? 0} players`,
     },
     event: {
-      name: listing.name.slice(0, 120),
+      name: listing.name.slice(0, META_NAME_MAX),
       // The source publishes day granularity only; startAt is already the venue-local day.
       eventDate: listing.startAt ?? new Date().toISOString().slice(0, 10),
       // activityType conflates city qualifiers and play nights; not mapped, filed as constructed.
       format: WellKnown.deckFormat.CONSTRUCTED,
       playerCount,
-      organizer: listing.shopName === null ? null : listing.shopName.slice(0, 120),
+      organizer: listing.shopName === null ? null : listing.shopName.slice(0, META_NAME_MAX),
       notes: null,
       tier: classifyMetaEventTier(
         { templateTier: null, playerCount },
@@ -194,7 +195,7 @@ async function topdeckFacts(
       country: location ?? undefined,
     },
     event: {
-      name: listing.name.slice(0, 120),
+      name: listing.name.slice(0, META_NAME_MAX),
       eventDate: longitudeLocalDay(listing.startAt, listing.longitude),
       format: topdeckFormat(listing.format),
       playerCount,
@@ -267,11 +268,12 @@ async function playriftboundFacts(
       country: location ?? undefined,
     },
     event: {
-      name: listing.name.slice(0, 120),
+      name: listing.name.slice(0, META_NAME_MAX),
       eventDate: longitudeLocalDay(listing.startAt, listing.organizerLongitude),
       format: playriftboundFormat(listing.format),
       playerCount,
-      organizer: listing.organizerName === null ? null : listing.organizerName.slice(0, 120),
+      organizer:
+        listing.organizerName === null ? null : listing.organizerName.slice(0, META_NAME_MAX),
       notes: null,
       tier: classifyMetaEventTier(
         { templateTier: null, playerCount },

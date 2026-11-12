@@ -185,6 +185,11 @@ export function runningRunId(runs: MetaSyncStatus["runs"], kind: string): string
   return latest?.status === "running" ? latest.id : null;
 }
 
+export function stoppableRunId(runs: MetaSyncStatus["runs"], kind: string): string | null {
+  const latest = runs.find((run) => run.kind === kind);
+  return latest?.status === "running" && latest.result?.cancelRequested !== true ? latest.id : null;
+}
+
 export type MetaSyncAlertTarget =
   | "runs"
   | "failed-runs"
@@ -229,6 +234,10 @@ const EVENT_ERROR = /^Event (?<id>\S+): (?<reason>.+)$/u;
 
 const NAMED_EVENTS = 5;
 
+function asSentence(text: string): string {
+  return /[.!?]$/u.test(text) ? text : `${text}.`;
+}
+
 /**
  * Names the events a run could not handle, grouped by what went wrong, so the
  * warning says which event to open. Errors not about one event are quoted.
@@ -252,11 +261,13 @@ export function runErrorsMessage(job: string, errors: readonly string[]): string
     const list = new Intl.ListFormat("en", { type: "conjunction" }).format(
       rest > 0 ? [...named, `${rest} more`] : named,
     );
-    return `${job} failed for ${ids.length === 1 ? "event" : "events"} ${list}: ${reason.slice(0, 160)}.`;
+    return asSentence(
+      `${job} failed for ${ids.length === 1 ? "event" : "events"} ${list}: ${reason.slice(0, 160)}`,
+    );
   });
   const first = other[0];
   if (first !== undefined) {
-    sentences.push(`${job} reported: ${first.slice(0, 200)}.`);
+    sentences.push(asSentence(`${job} reported: ${first.slice(0, 200)}`));
   }
   return sentences.join(" ");
 }

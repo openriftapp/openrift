@@ -15,12 +15,6 @@ import type { Database } from "../../../db/tables.js";
 import type { CardsTable, FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
 import { inTransaction, withFace1 } from "../../../repositories/query-helpers.js";
 
-/**
- * A single-sided printing's identity: its face's `uq_faces_identity` columns
- * plus the printing's size. `findPrintingIdByIdentity` and `upsertPrinting`
- * share it so a caller checking "does this already exist?" cannot drift from
- * what the upsert actually treats as the same printing.
- */
 export interface PrintingIdentity {
   cardId: string;
   shortCode: string;
@@ -508,8 +502,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return deleted;
     },
 
-    // Select-then-write: the identity constraints are DEFERRABLE, which ON CONFLICT rejects as arbiters.
-    async upsertPrinting(
+    async insertPrinting(
       values: {
         cardId: string;
         setId: string;
@@ -548,27 +541,9 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
           .executeTakeFirstOrThrow();
         return result.id;
       }
-      const faceId = existingFace.id;
-      const existing = await findPrintingIdByFaces(faceId, secondFaceId, size);
-      if (existing) {
-        await db
-          .updateTable("faces")
-          .set({
-            artist: values.artist,
-            publicCode: values.publicCode,
-            printedRulesText: values.printedRulesText,
-            printedEffectText: values.printedEffectText,
-            flavorText: values.flavorText,
-            printedName: values.printedName,
-            printedYear: values.printedYear,
-          })
-          .where("id", "=", faceId)
-          .execute();
-        return existing.id;
-      }
       const result = await db
         .insertInto("printings")
-        .values({ face1Id: faceId, face2Id: secondFaceId, size })
+        .values({ face1Id: existingFace.id, face2Id: secondFaceId, size })
         .returning("id")
         .executeTakeFirstOrThrow();
       return result.id;

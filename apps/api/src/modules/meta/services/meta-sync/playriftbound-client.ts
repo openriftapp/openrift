@@ -1,6 +1,9 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import type { Fetch } from "../../../../io.js";
 import type { PacingGate } from "./paced-http.js";
 import { createPacedHttp, settled } from "./paced-http.js";
+import { httpFailureMessage, SourceBlockedError } from "./source-http.js";
 
 /**
  * The source answers only persisted queries, and their ids are not hashes of
@@ -18,7 +21,7 @@ const BLOCK_RETRY_DELAY_MS = 15_000;
 const MAX_DISCOVERY_DEPTH = 3;
 const MAX_DISCOVERY_CHUNKS = 120;
 
-export class PlayriftboundBlockedError extends Error {
+export class PlayriftboundBlockedError extends SourceBlockedError {
   constructor(url: string, response?: string) {
     super(
       `playriftbound refused further requests: ${url}${response === undefined ? "" : ` (${response})`}`,
@@ -99,12 +102,6 @@ export interface PlayriftboundClient {
 // The events page is HTML by design, so only the status can signal a block there.
 function isBlock(status: number): boolean {
   return status === 403 || status === 429;
-}
-
-// The API answers JSON; an HTML page in its place is an edge challenge. An
-// HTML 5xx is a gateway error page and is retried like any other 5xx.
-function isApiBlock(status: number, text: string): boolean {
-  return isBlock(status) || (status < 500 && text.trimStart().startsWith("<"));
 }
 
 /** Decodes the body of a single-quoted JS string literal. */
@@ -230,7 +227,8 @@ export function createPlayriftboundClient(
     blockRetryDelayMs: BLOCK_RETRY_DELAY_MS,
     isBlock,
     blockedError: (url, detail) => new PlayriftboundBlockedError(url, detail),
-    refusedError: (message) => new PlayriftboundRefusedError(message),
+    refusedError: (status, url, body) =>
+      new PlayriftboundRefusedError(httpFailureMessage(status, url, body)),
   });
   let rediscovered = false;
   let discoveryFailure: Error | null = null;
@@ -254,7 +252,7 @@ export function createPlayriftboundClient(
         (error instanceof PlayriftboundRefusedError && error.stopsRun)
           ? error
           : new PlayriftboundUnavailableError(
-              `Reading the query list failed: ${error instanceof Error ? error.message : String(error)}`,
+              `Reading the query list failed: ${errorMessage(error)}`,
             );
       throw discoveryFailure;
     }
@@ -349,7 +347,8 @@ export function createPlayriftboundClient(
           "apollographql-client-name": "Esports Web",
           "apollographql-client-version": "1",
         },
-        isBlock: isApiBlock,
+        expectsJson: true,
+        isBlock,
         // GraphQL servers answer a refused query with a 400 and the errors as JSON.
         readStatuses: [400],
       },

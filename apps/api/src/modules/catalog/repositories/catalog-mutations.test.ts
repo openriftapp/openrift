@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
+import { createRecordingDb } from "../../../test/recording-db.js";
 import { catalogMutationsRepo } from "./catalog-mutations.js";
 
 describe("catalogMutationsRepo", () => {
@@ -102,9 +103,9 @@ describe("catalogMutationsRepo", () => {
     ).toEqual({ id: "p-1" });
   });
 
-  it("upsertPrinting returns the printing id", async () => {
+  it("insertPrinting returns the printing id", async () => {
     const db = createMockDb([{ id: "p-1" }]);
-    const result = await catalogMutationsRepo(db).upsertPrinting({
+    const result = await catalogMutationsRepo(db).insertPrinting({
       cardId: "c-1",
       setId: "s-1",
       shortCode: "OGS-001",
@@ -178,5 +179,24 @@ describe("catalogMutationsRepo", () => {
     await expect(
       catalogMutationsRepo(db).syncSelfAliasOnRename("c-1", "akalirogueassassin", "rogueassassin"),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("isImageFileReferenced", () => {
+  it("counts a file another face image still shows", async () => {
+    const { db, queries } = createRecordingDb([[{ count: 1 }]]);
+    expect(await catalogMutationsRepo(db).isImageFileReferenced("if-1")).toBe(true);
+    expect(queries).toHaveLength(1);
+  });
+
+  it("counts a file a face pins as its substitute art", async () => {
+    const { db, queries } = createRecordingDb([[{ count: 0 }], [{ id: "face-1" }]]);
+    expect(await catalogMutationsRepo(db).isImageFileReferenced("if-1")).toBe(true);
+    expect(queries[1]).toContain('"fallback_image_file_id"');
+  });
+
+  it("calls a file nothing shows or pins unreferenced", async () => {
+    const { db } = createRecordingDb([[{ count: 0 }], []]);
+    expect(await catalogMutationsRepo(db).isImageFileReferenced("if-1")).toBe(false);
   });
 });

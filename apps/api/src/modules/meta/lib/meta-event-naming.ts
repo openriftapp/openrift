@@ -1,6 +1,12 @@
 import { RESERVED_META_EVENT_SLUGS } from "@openrift/shared/contracts/admin/meta-events";
 import { slugifyName } from "@openrift/shared/strings";
 
+/** chars: the CHECK limit on event, phase and organizer names */
+export const META_NAME_MAX = 120;
+
+/** chars: the CHECK limit on player names */
+export const META_PLAYER_NAME_MAX = 80;
+
 const MIN_SLUG_LENGTH = 3;
 const MAX_SLUG_LENGTH = 50;
 

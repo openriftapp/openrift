@@ -134,6 +134,12 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       description:
         "Re-reads the last three days of the list, then fetches standings and decklists for published events whose next check is due, important ones first, for up to five minutes.",
       scheduleKey: "meta.playloltcg_recheck",
+      stop: {
+        job: "recheck",
+        label: "Stop collecting results",
+        description:
+          "Stopping keeps every event it already collected, and the next run picks up the ones still due.",
+      },
     },
   ],
   topdeck: [
@@ -171,6 +177,12 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       description:
         "Re-queues the events running now, then fetches standings and pairings for published events that changed, important ones first, for up to five minutes.",
       scheduleKey: "meta.playriftbound_recheck",
+      stop: {
+        job: "recheck",
+        label: "Stop collecting results",
+        description:
+          "Stopping keeps every event it already collected, and the next run picks up the ones still due.",
+      },
     },
   ],
 };

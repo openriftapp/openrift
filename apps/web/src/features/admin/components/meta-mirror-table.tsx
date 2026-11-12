@@ -31,6 +31,7 @@ import {
   useMetaMirrorSelectionStore,
 } from "@/features/admin/stores/meta-mirror-selection-store";
 import { catalogTriageDisplay } from "@/features/meta/lib/meta-catalog-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function SelectCell({ row, scope }: AdminCellSlotProps<MetaMirrorRow> & { scope: string }) {
   const key = row?.key ?? "";
@@ -179,7 +180,17 @@ function RowActionsFor({
   const reject = useRejectMirrorRow();
   const restore = useRestoreMirrorRow();
   const collect = useCollectMirrorRow();
+  const [publishing, setPublishing] = useState(false);
   const target = { source: row.source, key: row.key };
+
+  async function publishRow() {
+    setPublishing(true);
+    const published = await runReportedMutation(() => publish.mutateAsync(target));
+    setPublishing(false);
+    if (published) {
+      toast.success(`Published "${row.name}"`);
+    }
+  }
 
   if (row.triage === "dismissed") {
     return (
@@ -234,13 +245,13 @@ function RowActionsFor({
       <Button
         variant="ghost"
         size="sm"
-        disabled={publish.isPending}
+        disabled={publishing}
         onClick={() => {
           if (row.unmappedFormat !== null) {
             onPickFormat(row);
             return;
           }
-          publish.mutate(target, { onSuccess: () => toast.success(`Published "${row.name}"`) });
+          void publishRow();
         }}
       >
         <CheckIcon />
@@ -338,10 +349,12 @@ export function MirrorSelectionBar({
     reject.mutate(
       { source, keys },
       {
-        onSuccess: ({ rejected }) => {
+        onSuccess: ({ rejected, skipped }) => {
           setConfirm(null);
           clear();
           toast.success(`Rejected ${plural(rejected.length, "event")}`, {
+            description:
+              skipped > 0 ? `${plural(skipped, "event")} skipped: no longer undecided.` : undefined,
             action:
               rejected.length > 0
                 ? {

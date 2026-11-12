@@ -131,9 +131,23 @@ describe("computeProposedDiff", () => {
     expect(diff).toEqual([`printing.${FR_NORMAL}.artist`]);
   });
 
-  it("skips a printing that carries no finish", () => {
+  it("matches a printing without a finish by the finish its rarity implies", () => {
     const diff = computeProposedDiff(
-      { card: { name: "Jinx" }, printings: [proposedPrinting({ finish: null, artist: "Nobody" })] },
+      {
+        card: { name: "Jinx" },
+        printings: [proposedPrinting({ finish: null, rarity: "common", artist: "Nobody" })],
+      },
+      liveSnapshot({ rarity: "common" }),
+    );
+    expect(diff).toEqual([`printing.${EN_NORMAL}.artist`]);
+  });
+
+  it("skips a printing that carries neither a finish nor a rarity", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [proposedPrinting({ finish: null, rarity: null, artist: "Nobody" })],
+      },
       liveSnapshot(),
     );
     expect(diff).toEqual([]);

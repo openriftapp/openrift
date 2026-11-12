@@ -7,6 +7,7 @@ import {
   useAcceptFavoriteNewCard,
   useLinkCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
+import { showAcceptOutcome } from "@/features/admin/lib/accept-outcome";
 import type { AdminSearchableCard } from "@/features/cards/hooks/use-card-search";
 
 export function DraftRowActions({
@@ -35,7 +36,16 @@ export function DraftRowActions({
           pending={acceptFavorite.isPending}
           aria-label="Accept as a new card"
           title="Accept as a new card"
-          onClick={() => acceptFavorite.mutate(row.normalizedName)}
+          onClick={() =>
+            acceptFavorite.mutate(row.normalizedName, {
+              onSuccess: (result) =>
+                showAcceptOutcome(
+                  result.printingsCreated,
+                  result.skipped.map((entry) => ({ label: entry.shortCode, reason: entry.reason })),
+                  { subject: `Created ${result.cardSlug}` },
+                ),
+            })
+          }
         >
           <CheckIcon />
         </Button>

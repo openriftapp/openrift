@@ -1,5 +1,7 @@
 import type { Fetch } from "../../../../io.js";
-import { metaSyncUserAgent } from "./user-agent.js";
+import type { PacingGate } from "./paced-http.js";
+import { createPacedHttp } from "./paced-http.js";
+import { httpFailureMessage, SourceHttpError } from "./source-http.js";
 
 // Only v2 endpoints are reachable through this client: the legacy endpoints
 // hand back players' real names and email addresses. The event detail still
@@ -10,10 +12,7 @@ export const MAX_PAGE_SIZE = 250;
 const REQUEST_SPACING_MS = 600;
 
 const REQUEST_JITTER_MS = 200;
-
-const MAX_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 1000;
-const REQUEST_TIMEOUT_MS = 30_000;
+const BLOCK_RETRY_DELAY_MS = 15_000;
 
 /** DRF's page-number envelope. */
 export interface UvsPage<T> {
@@ -24,19 +23,18 @@ export interface UvsPage<T> {
 
 export type UvsQuery = Record<string, string | number | boolean | undefined>;
 
-export class UvsHttpError extends Error {
-  readonly status: number;
-
+export class UvsHttpError extends SourceHttpError {
   constructor(status: number, url: string, body: string) {
-    super(`HTTP ${status} for ${url}: ${body.slice(0, 200)}`);
+    super(status, httpFailureMessage(status, url, body));
     this.name = "UvsHttpError";
-    this.status = status;
   }
 }
 
 export interface UvsClientOptions {
   fetch: Fetch;
   baseUrl: string;
+  gate?: PacingGate;
+  waitOnThrottle?: boolean;
   userAgent?: string;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
@@ -59,20 +57,6 @@ function buildUrl(baseUrl: string, path: string, query: UvsQuery | undefined): s
   return url.toString();
 }
 
-// A 5xx or a 429 is the source having a moment; a 404 means the event no
-// longer exists, so repeating the request cannot change the answer.
-function isRetryableStatus(status: number): boolean {
-  return status >= 500 || status === 429;
-}
-
-async function settled(promise: Promise<unknown>): Promise<void> {
-  try {
-    await promise;
-  } catch {
-    // Reported to whoever made that call.
-  }
-}
-
 function readPage<T>(body: unknown): UvsPage<T> {
   const row = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
   const results = Array.isArray(row.results) ? (row.results as T[]) : [];
@@ -84,89 +68,40 @@ function readPage<T>(body: unknown): UvsPage<T> {
   };
 }
 
-// Sequential by construction: every call awaits the previous one's spacing,
-// so two concurrent callers still produce one request at a time.
 export function createUvsClient(options: UvsClientOptions): UvsClient {
-  const baseUrl = options.baseUrl;
-  const userAgent = options.userAgent ?? metaSyncUserAgent();
-  const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
-  const random = options.random ?? Math.random;
-  const now = options.now ?? Date.now;
+  const http = createPacedHttp({
+    fetch: options.fetch,
+    gate: options.gate,
+    waitOnThrottle: options.waitOnThrottle,
+    userAgent: options.userAgent,
+    sleep: options.sleep,
+    random: options.random,
+    now: options.now,
+    spacingMs: REQUEST_SPACING_MS,
+    jitterMs: REQUEST_JITTER_MS,
+    blockRetryDelayMs: BLOCK_RETRY_DELAY_MS,
+    refusedError: (status, url, body) => new UvsHttpError(status, url, body),
+  });
 
-  let requests = 0;
-  let lastStartedAt = 0;
-  let queue: Promise<unknown> = Promise.resolve();
-
-  async function pace(): Promise<void> {
-    const wait = lastStartedAt + REQUEST_SPACING_MS + random() * REQUEST_JITTER_MS - now();
-    if (wait > 0) {
-      await sleep(wait);
-    }
-    lastStartedAt = now();
-  }
-
-  async function attempt(url: string): Promise<unknown> {
-    for (let tries = 0; ; tries++) {
-      if (tries > 0) {
-        await sleep(RETRY_BASE_DELAY_MS * 2 ** (tries - 1) + random() * REQUEST_JITTER_MS);
-      }
-      await pace();
-      requests++;
-      const outcome = await attemptOnce(url);
-      if ("body" in outcome) {
-        return outcome.body;
-      }
-      if (!outcome.retryable || tries === MAX_ATTEMPTS - 1) {
-        throw outcome.error;
-      }
-    }
-  }
-
-  async function attemptOnce(
-    url: string,
-  ): Promise<{ body: unknown } | { error: Error; retryable: boolean }> {
-    try {
-      const response = await options.fetch(url, {
-        headers: { accept: "application/json", "user-agent": userAgent },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      if (!response.ok) {
-        const body = await response.text();
-        return {
-          error: new UvsHttpError(response.status, url, body),
-          retryable: isRetryableStatus(response.status),
-        };
-      }
-      return { body: await response.json() };
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error(String(error)), retryable: true };
-    }
-  }
-
-  async function enqueue<T>(work: () => Promise<T>): Promise<T> {
-    const previous = queue;
-    const current = (async () => {
-      await settled(previous);
-      return await work();
-    })();
-    queue = settled(current);
-    return await current;
+  function getJson(url: string): Promise<unknown> {
+    return http.request(
+      url,
+      { expectsJson: true, headers: { accept: "application/json" } },
+      (text) => JSON.parse(text) as unknown,
+    );
   }
 
   return {
-    get: <T>(path: string, query?: UvsQuery): Promise<T> =>
-      enqueue(async () => (await attempt(buildUrl(baseUrl, path, query))) as T),
+    get: async <T>(path: string, query?: UvsQuery): Promise<T> =>
+      (await getJson(buildUrl(options.baseUrl, path, query))) as T,
 
-    page: <T>(path: string, query: UvsQuery, page: number, pageSize = MAX_PAGE_SIZE) =>
-      enqueue(async () => {
-        const body = await attempt(
-          buildUrl(baseUrl, path, { ...query, page, page_size: pageSize }),
-        );
-        return readPage<T>(body);
-      }),
+    page: async <T>(path: string, query: UvsQuery, page: number, pageSize = MAX_PAGE_SIZE) =>
+      readPage<T>(
+        await getJson(buildUrl(options.baseUrl, path, { ...query, page, page_size: pageSize })),
+      ),
 
     get requests() {
-      return requests;
+      return http.requests;
     },
   };
 }

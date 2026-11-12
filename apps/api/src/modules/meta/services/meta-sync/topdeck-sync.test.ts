@@ -1,3 +1,4 @@
+import { isResumableCheckpoint } from "@openrift/shared/contracts/admin/meta-catalog";
 import { createLogger } from "@openrift/shared/logger";
 import { TOPDECK_FORMATS } from "@openrift/shared/types/enums";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -63,6 +64,7 @@ function fakeDeps(options: {
   failWrites?: boolean;
   throttleOn?: string;
   cancelled?: boolean;
+  heartbeatFails?: boolean;
   bridge?: Map<string, { cardId: string; name: string; type: string }>;
 }) {
   const searches: TopdeckSearchBody[] = [];
@@ -120,8 +122,14 @@ function fakeDeps(options: {
       topdeckEvents,
       topdeckResults,
       jobRuns: {
-        getResult: () => Promise.resolve({ cancelRequested: options.cancelled === true }),
+        getResult: () =>
+          options.heartbeatFails === true
+            ? Promise.reject(new Error("db gone"))
+            : Promise.resolve({ cancelRequested: options.cancelled === true }),
         mergeResult: (_id: string, patch: unknown) => {
+          if (options.heartbeatFails === true) {
+            return Promise.reject(new Error("db gone"));
+          }
           heartbeats.push(patch);
           return Promise.resolve();
         },
@@ -250,6 +258,10 @@ describe("syncTopdeckCatalog", () => {
 
     expect(result.throttled).toBe(true);
     expect(result.complete).toBe(false);
+    expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(result.errors).toEqual([
+      expect.stringContaining(`this job pauses until ${result.pausedUntil}`),
+    ]);
     expect(searches.map((body) => body.format)).toEqual(["Constructed", "Limited", "Sealed"]);
   });
 
@@ -276,6 +288,9 @@ describe("isTopdeckSyncNoop", () => {
       players: 0,
       decks: 0,
       throttled: false,
+      pausedUntil: null,
+      blocked: false,
+      blockedUntil: null,
       complete: true,
       coveredThrough: null,
       resumedFrom: null,
@@ -339,5 +354,28 @@ describe("backfillTopdeck", () => {
 
     expect(heartbeats.length).toBeGreaterThan(0);
     expect(heartbeats[0]).toHaveProperty("heartbeatAt");
+  });
+
+  it("leaves every beat resumable, so a run that dies mid-archive picks up where it stopped", async () => {
+    const { deps, heartbeats } = fakeDeps({});
+
+    const result = await backfillTopdeck(deps, "run-1");
+
+    const progressed = heartbeats.filter(
+      (beat) => (beat as { coveredThrough: unknown }).coveredThrough !== null,
+    );
+    expect(progressed.length).toBeGreaterThan(0);
+    expect(progressed.every((beat) => isResumableCheckpoint(beat))).toBe(true);
+    expect(heartbeats.at(-1)).toMatchObject({ requests: expect.any(Number) });
+    expect(result.complete).toBe(true);
+  });
+
+  it("finishes the archive when the run row cannot be read or written", async () => {
+    const { deps } = fakeDeps({ heartbeatFails: true });
+
+    const result = await backfillTopdeck(deps, "run-1");
+
+    expect(result.coveredThrough).toBe(NOW.toISOString());
+    expect(result.complete).toBe(true);
   });
 });

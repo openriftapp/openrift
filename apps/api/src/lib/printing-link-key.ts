@@ -18,3 +18,13 @@ export function buildPrintingLinkKey(printing: {
   const language = printing.language ?? WellKnown.language.EN;
   return `${printing.shortCode.toUpperCase()}:${printing.finish}:${slugKey}:${language}`;
 }
+
+export function buildSizedPrintingLinkKey(printing: {
+  shortCode: string;
+  finish: string;
+  markerSlugs: readonly string[];
+  language: string | null;
+  size: string | null;
+}): string {
+  return `${buildPrintingLinkKey(printing)}|${printing.size ?? WellKnown.cardSize.STANDARD}`;
+}

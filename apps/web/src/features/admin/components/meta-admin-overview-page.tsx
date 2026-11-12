@@ -78,7 +78,8 @@ function lastRunCell(source: MetaSource, run: MetaRun, now: Date): MetaRunCell {
   return {
     tone: run.status === "failed" ? "bad" : run.status === "running" ? "running" : "ok",
     at: run.startedAt,
-    detail: run.errorMessage ?? summarizeRunResult(run.result),
+    detail:
+      run.errorMessage ?? summarizeRunResult(run.result, { running: run.status === "running" }),
   };
 }
 

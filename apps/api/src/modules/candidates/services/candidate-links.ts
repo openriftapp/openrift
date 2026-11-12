@@ -5,9 +5,9 @@
  * and overlay ingest; the key and gate must not be duplicated elsewhere.
  */
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
-import { WellKnown } from "@openrift/shared/well-known";
+import { resolveFinish } from "@openrift/shared/printing-accept";
 
-import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
+import { buildPrintingLinkKey, buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ingestRepo } from "../repositories/ingest.js";
 
 /** The live-catalog lookups that resolve a card *name* to a card id. */
@@ -22,7 +22,6 @@ export interface CardNameIndex {
 export interface CandidateLinkIndex extends CardNameIndex {
   /** {@link buildPrintingLinkKey} output to live printing id. */
   printingIdByKey: Map<string, string>;
-  /** The same key plus `|<size>`, for a side shared by a standard and an oversized printing. */
   printingIdBySizedKey: Map<string, string>;
   /**
    * `"<provider>:<externalId>:<finish>"` to the manually pinned live printing id.
@@ -87,9 +86,8 @@ export function buildCandidateLinkIndex(sources: CandidateLinkSources): Candidat
   return {
     ...buildCardNameIndex(sources),
     printingIdByKey: printingIdsByUniqueKey(sources.printings, (p) => buildPrintingLinkKey(p)),
-    printingIdBySizedKey: printingIdsByUniqueKey(
-      sources.printings,
-      (p) => `${buildPrintingLinkKey(p)}|${p.size}`,
+    printingIdBySizedKey: printingIdsByUniqueKey(sources.printings, (p) =>
+      buildSizedPrintingLinkKey(p),
     ),
     printingIdByOverrideKey: new Map(
       sources.linkOverrides.map((r) => [`${r.provider}:${r.externalId}:${r.finish}`, r.printingId]),
@@ -123,14 +121,6 @@ export function resolveCardIdByName(index: CardNameIndex, name: string): string 
   return index.cardIdByNorm.get(normName) ?? index.cardIdByAliasNorm.get(normName) ?? null;
 }
 
-/**
- * Resolve a candidate printing to a live printing: a manual link override
- * first (it survives delete + re-upload), then the composite key.
- *
- * Rarity is deliberately not part of the gate: it isn't part of the key, and
- * requiring it left sources that report a finish but no rarity permanently
- * unlinked.
- */
 export function resolvePrintingLink(
   index: CandidateLinkIndex,
   candidate: {
@@ -139,6 +129,7 @@ export function resolvePrintingLink(
     externalId: string;
     shortCode: string;
     finish: string | null;
+    rarity: string | null;
     markerSlugs: readonly string[];
     language: string | null;
     size?: string | null;
@@ -157,15 +148,20 @@ export function resolvePrintingLink(
   if (candidate.claimedPrintingId) {
     return candidate.claimedPrintingId;
   }
-  if (!candidate.cardLinked || !candidate.finish) {
+  const finish = resolveFinish(candidate.finish, candidate.rarity);
+  if (!candidate.cardLinked || !finish) {
     return null;
   }
-  const key = buildPrintingLinkKey({
+  const identity = {
     shortCode: candidate.shortCode,
-    finish: candidate.finish,
+    finish,
     markerSlugs: candidate.markerSlugs,
     language: candidate.language,
-  });
-  const size = candidate.size ?? WellKnown.cardSize.STANDARD;
-  return index.printingIdBySizedKey.get(`${key}|${size}`) ?? index.printingIdByKey.get(key) ?? null;
+    size: candidate.size ?? null,
+  };
+  return (
+    index.printingIdBySizedKey.get(buildSizedPrintingLinkKey(identity)) ??
+    index.printingIdByKey.get(buildPrintingLinkKey(identity)) ??
+    null
+  );
 }

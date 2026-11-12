@@ -1,3 +1,4 @@
+import { isResumableCheckpoint } from "@openrift/shared/contracts/admin/meta-catalog";
 import { createLogger } from "@openrift/shared/logger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,19 +6,25 @@ import type { Repos, Transact } from "../../../../deps.js";
 import type { PlayloltcgRecheckRow } from "../../repositories/playloltcg-events.js";
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
 import type { PlayloltcgClient, PlayloltcgList } from "./playloltcg-client.js";
-import { MAX_PAGE_SIZE, PlayloltcgBlockedError } from "./playloltcg-client.js";
+import {
+  MAX_PAGE_SIZE,
+  PlayloltcgBlockedError,
+  PlayloltcgRefusedError,
+} from "./playloltcg-client.js";
 import { playloltcgDeepFetch, readPlayloltcgDetail } from "./playloltcg-deep-fetch.js";
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import {
   backfillPlayloltcg,
   fetchPlayloltcgEvent,
+  isPlayloltcgSyncNoop,
   processPlayloltcgRechecks,
   syncPlayloltcgCatalog,
 } from "./playloltcg-sync.js";
+import { SourceHttpError, SourceThrottledError } from "./source-http.js";
 
 vi.mock("./playloltcg-accept.js", () => ({
   autoAcceptPlayloltcgEvents: vi.fn(() =>
-    Promise.resolve({ considered: 0, accepted: 0, failed: 0, errors: [] }),
+    Promise.resolve({ considered: 0, accepted: 0, held: 0, failed: 0, errors: [] }),
   ),
 }));
 
@@ -112,6 +119,8 @@ function fakeDeps(options: {
   rows?: Record<string, unknown[]>;
   overflowing?: boolean;
   blockOn?: string;
+  throttleOn?: string;
+  shopsFail?: boolean;
   due?: PlayloltcgRecheckRow[];
   outstandingDecks?: string[];
   priorResult?: unknown;
@@ -131,6 +140,11 @@ function fakeDeps(options: {
   const client = {
     requests: 0,
     postList: <T>(path: string, body: Record<string, unknown>): Promise<PlayloltcgList<T>> => {
+      if (path === SHOPS_PATH && options.shopsFail === true) {
+        return Promise.reject(
+          new SourceHttpError(502, "HTTP 502 for /xcx/shop/searchShop: <html>"),
+        );
+      }
       if (path === SHOPS_PATH) {
         return Promise.resolve({ items: [] as T[], total: null });
       }
@@ -139,6 +153,9 @@ function fakeDeps(options: {
       windows.push({ startTime, endTime, pageNum: Number(body.pageNum) });
       if (options.blockOn === startTime) {
         return Promise.reject(new PlayloltcgBlockedError(path));
+      }
+      if (options.throttleOn === startTime) {
+        return Promise.reject(new SourceThrottledError(path));
       }
       const items = options.overflowing
         ? FULL_PAGE
@@ -216,6 +233,18 @@ describe("syncPlayloltcgCatalog", () => {
     expect(missing).toEqual([]);
   });
 
+  it("pauses only this job on a throttle and still finishes the run", async () => {
+    const { deps, missing } = fakeDeps({ throttleOn: "2026-08-23" });
+
+    const result = await syncPlayloltcgCatalog(deps);
+
+    expect(result.blocked).toBe(false);
+    expect(result.blockedUntil).toBeNull();
+    expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(result.complete).toBe(false);
+    expect(missing).toEqual([]);
+  });
+
   it("keeps the blocked request in the run's errors", async () => {
     const { deps } = fakeDeps({ blockOn: "2026-08-23" });
 
@@ -249,10 +278,27 @@ describe("syncPlayloltcgCatalog", () => {
     expect(result.errors[0]).toContain("all the source will give for one query");
   });
 
+  it("reports the events the same-store guard held back", async () => {
+    vi.mocked(autoAcceptPlayloltcgEvents).mockResolvedValueOnce({
+      considered: 2,
+      accepted: 1,
+      held: 1,
+      failed: 0,
+      errors: [],
+    });
+    const { deps } = fakeDeps({});
+
+    const result = await syncPlayloltcgCatalog(deps);
+
+    expect(result).toMatchObject({ autoAccepted: 1, autoHeld: 1 });
+    expect(isPlayloltcgSyncNoop(result)).toBe(false);
+  });
+
   it("caps the errors one run collects", async () => {
     vi.mocked(autoAcceptPlayloltcgEvents).mockResolvedValueOnce({
       considered: 70,
       accepted: 0,
+      held: 0,
       failed: 70,
       errors: Array.from({ length: 70 }, (_, index) => `Auto-accept ${index} failed`),
     });
@@ -281,9 +327,83 @@ describe("backfillPlayloltcg", () => {
       "2025-06-29..2025-07-12",
     ]);
   });
+
+  it("ends short with the reason in its errors when the first request keeps failing", async () => {
+    const resumeFrom = new Date("2026-03-01T00:00:00.000Z");
+    const { deps, windows } = fakeDeps({ shopsFail: true });
+
+    const result = await backfillPlayloltcg(deps, undefined, { resumeFrom });
+
+    expect(windows).toEqual([]);
+    expect(result.complete).toBe(false);
+    expect(result.blocked).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("HTTP 502")]);
+    expect(isResumableCheckpoint(result)).toBe(true);
+  });
+
+  it("checkpoints every chunk as resumable", async () => {
+    const { deps } = fakeDeps({});
+    const beats: unknown[] = [];
+    deps.repos = {
+      ...deps.repos,
+      jobRuns: {
+        getResult: () => Promise.resolve({}),
+        mergeResult: (_id: string, patch: unknown) => {
+          beats.push(patch);
+          return Promise.resolve();
+        },
+      },
+    } as unknown as Repos;
+
+    const result = await backfillPlayloltcg(deps, "run-1");
+
+    expect(beats.length).toBeGreaterThan(1);
+    const progressed = beats.filter(
+      (beat) => (beat as { coveredThrough: unknown }).coveredThrough !== null,
+    );
+    expect(progressed.length).toBeGreaterThan(0);
+    expect(progressed.every((beat) => isResumableCheckpoint(beat))).toBe(true);
+    expect(result.complete).toBe(true);
+  });
+
+  it("finishes the archive when the run row cannot be read or written", async () => {
+    const { deps } = fakeDeps({});
+    deps.repos = {
+      ...deps.repos,
+      jobRuns: {
+        getResult: () => Promise.reject(new Error("db gone")),
+        mergeResult: () => Promise.reject(new Error("db gone")),
+      },
+    } as unknown as Repos;
+
+    const result = await backfillPlayloltcg(deps, "run-1");
+
+    expect(result.complete).toBe(true);
+    expect(result.cancelRequested).toBe(false);
+  });
 });
 
 describe("processPlayloltcgRechecks", () => {
+  it("stops rechecking events the source deleted, without pausing the job", async () => {
+    const due = Array.from({ length: 6 }, (_, index) => dueRow({ activityShopId: index + 1 }));
+    vi.mocked(readPlayloltcgDetail).mockRejectedValue(
+      new PlayloltcgRefusedError("playloltcg code 404: 活动不存在", 404),
+    );
+    const { deps, rechecks } = fakeDeps({ due });
+
+    const result = await processPlayloltcgRechecks(deps);
+    vi.mocked(readPlayloltcgDetail).mockReset();
+    vi.mocked(readPlayloltcgDetail).mockResolvedValue({
+      shopId: null,
+      shopName: null,
+      isPublishResult: true,
+    });
+
+    expect(result.backedOff).toBe(false);
+    expect(result.dropped).toBe(6);
+    expect(rechecks.every((write) => write.nextCheckAt === null)).toBe(true);
+  });
+
   it("fetches a published event and steps the ladder on", async () => {
     const { deps, rechecks } = fakeDeps({ due: [dueRow()] });
 
@@ -474,7 +594,7 @@ describe("processPlayloltcgRechecks", () => {
     ]);
     expect(new Date(result.blockedUntil ?? 0).getTime()).toBeLessThan(NOW.getTime() + DAY_MS);
     expect(result.errors).toEqual([
-      "playloltcg WAF blocked the request: /xcx/activityShop/info (HTTP 403: <html>)",
+      `Stopped: the source refused further requests (playloltcg WAF blocked the request: /xcx/activityShop/info (HTTP 403: <html>)); every job of this source waits until ${result.blockedUntil}.`,
     ]);
   });
 
@@ -491,7 +611,8 @@ describe("processPlayloltcgRechecks", () => {
 
     expect(result.backedOff).toBe(true);
     expect(result.blocked).toBe(false);
-    expect(result.blockedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(result.blockedUntil).toBeNull();
     expect(rechecks).toHaveLength(5);
     expect(result.errors.at(-1)).toContain("5 visits in a row failed");
   });

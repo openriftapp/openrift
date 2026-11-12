@@ -141,9 +141,17 @@ describe("candidate ingest link parity", () => {
     expect(batch).toBeNull();
   });
 
-  it("leaves both unlinked without a finish", async () => {
+  it("infers a missing finish from the rarity on both entry points", async () => {
     const { submission: fromSubmission, batch } = await bothPaths(
       submission({ finish: undefined }),
+    );
+    expect(fromSubmission).toBe(LIVE_PRINTING_ID);
+    expect(batch).toBe(fromSubmission);
+  });
+
+  it("leaves both unlinked without a finish or a rarity", async () => {
+    const { submission: fromSubmission, batch } = await bothPaths(
+      submission({ finish: undefined, rarity: undefined }),
     );
     expect(fromSubmission).toBeNull();
     expect(batch).toBeNull();

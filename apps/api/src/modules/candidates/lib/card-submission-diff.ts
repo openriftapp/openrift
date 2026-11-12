@@ -5,6 +5,8 @@
  * id, else by `buildPrintingLinkKey` (never hand-roll it); paths always use the
  * matched live side's key.
  */
+import { resolveFinish } from "@openrift/shared/printing-accept";
+
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ProposedCard, ProposedPrinting } from "../repositories/candidate-cards-review.js";
 import type { LivePrintingSnapshot, LiveSnapshot } from "../repositories/card-submissions.js";
@@ -111,15 +113,13 @@ export function computeProposedDiff(
         diff.push(`printing.${key}.markerSlugs`);
       }
     } else {
-      // Without a finish the printing cannot be identified among its siblings.
-      // Skipping is deliberate: calling it new would add a field that can never
-      // be adopted, which pins the submission to not_applied forever.
-      if (isEmpty(printing.finish)) {
+      const finish = resolveFinish(printing.finish, printing.rarity);
+      if (!finish) {
         continue;
       }
       key = buildPrintingLinkKey({
         shortCode: printing.shortCode,
-        finish: printing.finish ?? "",
+        finish,
         markerSlugs: printing.markerSlugs ?? [],
         language: printing.language ?? null,
       });

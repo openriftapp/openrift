@@ -5,6 +5,7 @@ import {
   playloltcgContentHash,
   projectDeckCard,
   projectEventRow,
+  projectPlayloltcgDeckLines,
   projectShopRow,
   referencedDeckIds,
 } from "./playloltcg-catalog.js";
@@ -178,6 +179,30 @@ describe("referencedDeckIds", () => {
         { cardGroupId: 9 },
       ]),
     ).toEqual(["7", "9"]);
+  });
+});
+
+describe("projectPlayloltcgDeckLines", () => {
+  it("keeps the source's card name and files the legend, champion and sideboard by their flags", () => {
+    const lines = projectPlayloltcgDeckLines(
+      [
+        {
+          cardNo: "SFD·195/221",
+          cardName: "刀锋舞者",
+          cardCount: 1,
+          cardCategoryList: ["legendary"],
+        },
+        { cardNo: "OGN-010", cardName: "主牌", cardCount: 1, isMainHero: true },
+        { cardNo: "OGN-011", cardName: "备牌", cardCount: 2, deckCardCreateType: 5 },
+      ],
+      new Map(),
+    );
+
+    expect(lines).toEqual([
+      { lineNumber: 0, zone: "legend", quantity: 1, cardName: "刀锋舞者" },
+      { lineNumber: 1, zone: "champion", quantity: 1, cardName: "主牌" },
+      { lineNumber: 2, zone: "sideboard", quantity: 2, cardName: "备牌" },
+    ]);
   });
 });
 

@@ -3,7 +3,8 @@ import { META_ENTRY_STATUSES } from "@openrift/shared/types/enums";
 import type { MetaEntryStatus } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
-import { count, record, text } from "../../../lib/json-coerce.js";
+import { count, fraction, record, text } from "../../../lib/json-coerce.js";
+import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * Projects one deep fetch's responses into the source mirror's columns.
@@ -72,13 +73,6 @@ type Json = Record<string, unknown>;
 
 function array(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
-}
-
-/** A tiebreaker percentage. The live CHECK is 0..1, so anything else is dropped. */
-function fraction(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1
-    ? value
-    : null;
 }
 
 function entryStatus(value: unknown): MetaEntryStatus | null {
@@ -350,7 +344,7 @@ export function projectPhases(detail: unknown): UvsPhaseProjection[] {
     }
     phases.push({
       phaseOrder,
-      name: text(phase?.phase_name)?.slice(0, 120) ?? null,
+      name: text(phase?.phase_name)?.slice(0, META_NAME_MAX) ?? null,
       roundType,
       roundCount: positive(phase?.number_of_rounds),
       rankRequired: positive(phase?.rank_required_to_enter_phase),
@@ -530,7 +524,7 @@ export function projectUvsStandings(raw: UvsDeepFetchResponses): UvsTransformRes
       uvsgamesPlayerId: userId,
       // A keyed player is rendered under `uvsgames_players.display_name`.
       // The mirror stores a name only where there is no id to resolve.
-      playerName: userId === null ? playerName.slice(0, 80) : null,
+      playerName: userId === null ? playerName.slice(0, META_PLAYER_NAME_MAX) : null,
       rank,
       wins: count(registration?.matches_won),
       losses: count(registration?.matches_lost),

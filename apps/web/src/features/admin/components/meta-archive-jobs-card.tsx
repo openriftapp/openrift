@@ -75,7 +75,11 @@ export function ArchiveJobsCard() {
                                   ? "running"
                                   : "ok",
                             at: last.startedAt,
-                            detail: last.errorMessage ?? summarizeRunResult(last.result),
+                            detail:
+                              last.errorMessage ??
+                              summarizeRunResult(last.result, {
+                                running: last.status === "running",
+                              }),
                           }}
                         />
                       )}

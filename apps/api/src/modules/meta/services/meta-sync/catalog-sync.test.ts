@@ -9,6 +9,7 @@ import type {
 } from "../../repositories/uvsgames-events.js";
 import { ARCHIVE_START, backfillCatalog, syncCatalog, sliceRange } from "./catalog-sync.js";
 import type { MetaSyncDeps } from "./deps.js";
+import { SourceBlockedError, SourceThrottledError } from "./source-http.js";
 import type { UvsClient, UvsPage, UvsQuery } from "./uvsgames-client.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
@@ -516,6 +517,34 @@ describe("backfillCatalog", () => {
     expect(spans(requests[0]!).to).toBeGreaterThan(NOW.getTime());
   });
 
+  it("stops on a throttle without splitting the range, pausing only this job", async () => {
+    const { client, requests } = fakeClient(() => {
+      throw new SourceThrottledError("/api/v2/events/");
+    });
+    const { deps } = fakeDeps(client);
+    const resumeFrom = new Date("2026-03-01T00:00:00.000Z");
+
+    const result = await backfillCatalog(deps, undefined, { resumeFrom });
+
+    expect(requests).toHaveLength(1);
+    expect(result.complete).toBe(false);
+    expect(result.pausedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(result.coveredThrough).toBe(resumeFrom.toISOString());
+  });
+
+  it("stops on a challenge page and cools the whole source down", async () => {
+    const { client } = fakeClient(() => {
+      throw new SourceBlockedError("The source blocked /api/v2/events/");
+    });
+    const { deps } = fakeDeps(client);
+
+    const result = await backfillCatalog(deps);
+
+    expect(result.blocked).toBe(true);
+    expect(result.blockedUntil).toBe(new Date(NOW.getTime() + 6 * 60 * 60 * 1000).toISOString());
+    expect(result.errors).toEqual([expect.stringContaining("refused further requests")]);
+  });
+
   it("resumes one millisecond past where the last run got to", async () => {
     const { client, requests } = fakeClient(() => pageOf([]));
     const { deps } = fakeDeps(client);
@@ -574,6 +603,7 @@ describe("crawl heartbeats", () => {
     expect(heartbeats.every((beat) => beat.runId === "run-1")).toBe(true);
     expect(heartbeats[0]!.result.heartbeatAt).toBe(NOW.toISOString());
     expect(typeof heartbeats[0]!.result.coveredThrough).toBe("string");
+    expect(heartbeats.every((beat) => isResumableCheckpoint(beat.result))).toBe(true);
   });
 
   it("writes nothing without a run id", async () => {

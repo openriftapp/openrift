@@ -1,6 +1,10 @@
+import { WellKnown } from "@openrift/shared/well-known";
+import { inferZone } from "@openrift/shared/zone-inference";
+
 import { stableKey } from "../../../lib/hash.js";
 import { coord, count, record, sourceId, text } from "../../../lib/json-coerce.js";
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
+import { META_NAME_MAX } from "./meta-event-naming.js";
 
 /**
  * The source publishes no schema and its lists nest differently per endpoint.
@@ -149,7 +153,7 @@ export function projectEventRow(raw: unknown): PlayloltcgEventProjection | null 
   const fields = {
     activityShopId,
     shopName: text(row.shopName),
-    name: name.slice(0, 120),
+    name: name.slice(0, META_NAME_MAX),
     activityType: text(row.activityType),
     activityTypeName: text(row.activityTypeName),
     battleMode: text(row.battleMode),
@@ -217,4 +221,37 @@ export function referencedDeckIds(standings: readonly unknown[]): string[] {
     }
   }
   return [...ids];
+}
+
+export interface PlayloltcgDeckLine {
+  lineNumber: number;
+  zone: string;
+  quantity: number;
+  cardName: string;
+}
+
+export function projectPlayloltcgDeckLines(
+  cards: readonly unknown[],
+  bridge: Map<string, { cardId: string; name: string; type: string }>,
+): PlayloltcgDeckLine[] {
+  const lines: PlayloltcgDeckLine[] = [];
+  for (const raw of cards) {
+    const card = projectDeckCard(raw);
+    if (card === null) {
+      continue;
+    }
+    const resolved = card.shortCode === null ? undefined : bridge.get(card.shortCode);
+    const name = resolved?.name ?? card.cardName ?? card.cardNo;
+    const zone = card.isMainHero
+      ? WellKnown.deckZone.CHAMPION
+      : card.isSideboard
+        ? WellKnown.deckZone.SIDEBOARD
+        : resolved
+          ? inferZone([resolved.type], [], "mainDeck")
+          : card.isLegend
+            ? WellKnown.deckZone.LEGEND
+            : WellKnown.deckZone.MAIN;
+    lines.push({ lineNumber: lines.length, zone, quantity: card.cardCount, cardName: name });
+  }
+  return lines;
 }

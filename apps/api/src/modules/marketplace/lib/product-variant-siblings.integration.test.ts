@@ -87,7 +87,7 @@ describe.skipIf(!ctx)("product variant siblings (integration)", () => {
       comment: null,
     });
     await insertPrinting(db, { ...sideValues("Recruit", "PVS-T01", "FR"), comment: null });
-    await catalogMutationsRepo(db).upsertPrinting(sideValues("Recruit", "PVS-T01"), spriteFace);
+    await catalogMutationsRepo(db).insertPrinting(sideValues("Recruit", "PVS-T01"), spriteFace);
     await refreshCardAggregates(db);
   });
 

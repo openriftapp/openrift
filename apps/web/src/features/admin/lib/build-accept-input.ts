@@ -4,6 +4,7 @@ import {
 } from "@openrift/shared/contracts/admin/card-mutations";
 import type { AcceptSubmissionInput } from "@openrift/shared/contracts/admin/catalog-review";
 
+import type { AcceptSkip } from "@/features/admin/lib/accept-outcome";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildPrintingFieldsFromCandidate } from "@/features/admin/lib/printing-fields";
 
@@ -87,6 +88,21 @@ export function buildAcceptSubmissionInput(
     },
     includedKeys,
   };
+}
+
+export function submissionSkips(
+  submission: AttentionSubmission,
+  skipped: readonly { candidatePrintingId: string; reason: string }[],
+): AcceptSkip[] {
+  return skipped.map((entry) => {
+    const group = submission.groups.find(
+      (candidateGroup) => candidateGroup.key === `new-printing:${entry.candidatePrintingId}`,
+    );
+    return {
+      label: group?.printingLabel ?? group?.candidate?.shortCode ?? entry.candidatePrintingId,
+      reason: entry.reason,
+    };
+  });
 }
 
 export function submissionTickKeys(submission: AttentionSubmission): string[] {

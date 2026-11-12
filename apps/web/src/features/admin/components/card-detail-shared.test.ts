@@ -12,6 +12,7 @@ import type { FieldDef } from "@/features/admin/components/candidate-field-defs"
 import {
   buildPreseededActiveCard,
   buildPreseededActivePrinting,
+  hasRequiredPrintingFields,
   findDerivedArtPrinting,
   foldedFieldKeys,
   unknownOptionValues,
@@ -202,6 +203,32 @@ describe("buildPreseededActivePrinting", () => {
     expect(seed.setId).toBe("ogn");
     expect(seed.publicCode).toBe("OGN-001");
     expect(seed.rarity).toBe("common");
+  });
+
+  const withFinish: FieldDef[] = [
+    ...printingFields,
+    {
+      key: "finish",
+      label: "Finish",
+      labeledOptions: [
+        { value: "normal", label: "Normal" },
+        { value: "foil", label: "Foil" },
+      ],
+    },
+  ];
+
+  it("fills a missing finish with the one the rarity implies", () => {
+    const candidates = [printing("cc-official", { setId: "ogn", rarity: "rare", finish: null })];
+    const seed = buildPreseededActivePrinting(candidates, withFinish, providerSettings, labels, {});
+    expect(seed.finish).toBe("foil");
+  });
+
+  it("keeps a finish a source stated", () => {
+    const candidates = [
+      printing("cc-official", { setId: "ogn", rarity: "rare", finish: "normal" }),
+    ];
+    const seed = buildPreseededActivePrinting(candidates, withFinish, providerSettings, labels, {});
+    expect(seed.finish).toBe("normal");
   });
 
   it("pre-fills imageUrl only from a favorited provider", () => {
@@ -485,5 +512,28 @@ describe("foldedFieldKeys", () => {
     );
 
     expect(folded.has("artist")).toBe(true);
+  });
+});
+
+describe("hasRequiredPrintingFields", () => {
+  const complete = {
+    shortCode: "OGN-001",
+    setId: "OGN",
+    rarity: "rare",
+    finish: "foil",
+    artist: "Kudos Productions",
+    publicCode: "OGN-001/298",
+  };
+
+  it("accepts a printing with every field the server requires", () => {
+    expect(hasRequiredPrintingFields(complete)).toBe(true);
+  });
+
+  it("does not ask for fields the server fills itself", () => {
+    expect(hasRequiredPrintingFields({ ...complete, artVariant: "", language: "" })).toBe(true);
+  });
+
+  it("refuses a printing missing the public code", () => {
+    expect(hasRequiredPrintingFields({ ...complete, publicCode: "" })).toBe(false);
   });
 });
