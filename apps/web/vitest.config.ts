@@ -7,7 +7,9 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 import { latestMilestonePlugin } from "./vite-plugins/latest-milestone";
 
-const paraglideDir = path.resolve(import.meta.dirname, "./src/paraglide");
+// The app's src/paraglide holds the Vite plugin's virtual-modules facade, which
+// has no per-locale files for the English-only alias below.
+const paraglideDir = path.resolve(import.meta.dirname, "./.paraglide-test");
 
 const domTests = ["src/**/*.test.tsx", "src/**/use-*.test.ts", "src/**/hooks/**/*.test.ts"];
 
@@ -21,7 +23,7 @@ const localeTests = [
 ];
 
 const englishMessages = path.resolve(import.meta.dirname, "./src/test/paraglide-en.js");
-const allMessages = path.resolve(import.meta.dirname, "./src/paraglide/messages.js");
+const allMessages = path.join(paraglideDir, "messages.js");
 
 // Every test file re-evaluates the 20 MB of generated messages, and half of
 // those bytes are JSDoc that only tsgo reads.
@@ -36,7 +38,11 @@ export default defineConfig({
   // src/paraglide and routeTree.gen.ts are generated and gitignored, so tests
   // generate them themselves instead of depending on a prior build.
   plugins: [
-    paraglideVitePlugin({ project: "./project.inlang" }),
+    paraglideVitePlugin({
+      project: "./project.inlang",
+      outdir: paraglideDir,
+      outputStructure: "locale-modules",
+    }),
     tanstackRouterGenerator(),
     stripParaglideJsdoc,
     latestMilestonePlugin(),
@@ -47,6 +53,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@/paraglide/messages.js": englishMessages,
+      "@/paraglide": paraglideDir,
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },

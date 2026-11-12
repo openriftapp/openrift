@@ -9,6 +9,7 @@ export default defineConfig(
     ignores: [
       "src/routeTree.gen.ts",
       "src/paraglide/",
+      ".paraglide-test/",
       ".output/",
       ".tanstack/",
       ".sonda/",

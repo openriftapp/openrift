@@ -219,6 +219,11 @@ const BASE_UI_SUBPATHS = [
   "use-render",
 ];
 
+const paraglideOptions = {
+  project: "./project.inlang",
+  outputStructure: "virtual-modules",
+} as const;
+
 export default defineConfig(({ mode, command }) => {
   // Loaded into process.env (not baked into the bundle) so SSR code can read
   // server-only vars like API_INTERNAL_URL at runtime.
@@ -296,7 +301,7 @@ export default defineConfig(({ mode, command }) => {
       saveDeviceRunPlugin,
       // Compiles messages/*.json into src/paraglide. Remaining options live in
       // project.inlang/paraglide.config.ts so the CLI reads the same setup.
-      paraglideVitePlugin({ project: "./project.inlang" }),
+      paraglideVitePlugin(paraglideOptions),
       tailwindcss(),
       // Router options live in tsr.config.json so this plugin and the lint
       // job's `tsr generate` read the same routeFileIgnorePattern.
@@ -348,6 +353,8 @@ export default defineConfig(({ mode, command }) => {
           ]
         : []),
     ],
+    // The scan worker imports messages, and Vite bundles workers with only these plugins.
+    worker: { plugins: () => [paraglideVitePlugin(paraglideOptions)] },
     build: {
       target: "es2024",
       sourcemap: true,

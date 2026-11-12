@@ -40,6 +40,9 @@ coverage/
 # TanStack Router (auto-generated)
 routeTree.gen.ts
 
+# Inlang cache; the Paraglide compiler does not write project.inlang/.gitignore
+apps/web/project.inlang/cache/
+
 # Self-hosted media files (card images, set images — generated at runtime, bind-mounted in Docker)
 /media
 
