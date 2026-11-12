@@ -1,6 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import type { CardType } from "@openrift/shared/types/enums";
+import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { cardHasType } from "../../../db/helpers.js";
+import { cardHasType, cardTypes } from "../../../db/helpers.js";
 import { createDbContext, insertCard } from "../../../test/integration-context.js";
 import { PRICE_BAND_CENTS } from "./catalog-landing.js";
 import { catalogRepo } from "./catalog.js";
@@ -157,13 +160,19 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
       .innerJoin("faces", "faces.id", "faceImages.faceId")
       .innerJoin("cards", "cards.id", "faces.cardId")
-      .select(["ci.id as imageId", "cards.name as name", "faces.shortCode as shortCode"])
+      .select([
+        "ci.id as imageId",
+        "cards.name as name",
+        "cards.tags as tags",
+        sql<CardType[]>`coalesce(${cardTypes("cards.id")}, '{}')`.as("types"),
+        "faces.shortCode as shortCode",
+      ])
       .execute();
     const byImageId = new Map(rows.map((r) => [r.imageId, r]));
     for (const thumb of summary.thumbnails) {
       const row = byImageId.get(thumb.imageId);
       expect(row).toBeDefined();
-      expect(thumb.name).toBe(row!.name);
+      expect(thumb.name).toBe(legendDisplayName(row!));
       expect(thumb.shortCode).toBe(row!.shortCode);
     }
   });

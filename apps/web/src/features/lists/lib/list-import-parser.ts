@@ -10,7 +10,7 @@ import type { ImportEntry } from "@/features/collections/lib/import-parsers";
 import { detectImportFormat, parseImportData } from "@/features/collections/lib/import-parsers";
 import { isListShareHeader } from "@/features/lists/lib/list-export";
 
-export type ListImportIssueCode = "unreadable" | "zeroQuantity" | "missingName";
+type ListImportIssueCode = "unreadable" | "zeroQuantity" | "missingName";
 
 export interface ListImportIssue {
   line: number;

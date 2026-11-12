@@ -106,7 +106,7 @@ export function completeCatalogEntry(
   return { catalog, version, partialLanguages: null };
 }
 
-export function normalizeCatalogLangs(langs: readonly string[]): string[] {
+function normalizeCatalogLangs(langs: readonly string[]): string[] {
   return [...new Set(langs.map((lang) => lang.toUpperCase()))].sort();
 }
 
