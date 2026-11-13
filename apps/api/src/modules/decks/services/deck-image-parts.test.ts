@@ -86,7 +86,7 @@ describe("splitDeckZones", () => {
       card("Singularity", "sideboard", 2, 6),
     ]);
     expect(zones.cardCount).toBe(16);
-    expect(zones.gridCards).toHaveLength(3);
+    expect(zones.gridCards.map((entry) => entry.cardName)).toEqual(["Diana", "Gust"]);
   });
 
   it("caps the battlefields it shows", () => {

@@ -1,4 +1,5 @@
 import { isBanInEffect } from "@openrift/shared/card-ban";
+import { isCountedZone } from "@openrift/shared/deck-zones";
 import type {
   DeckCatalogSubset,
   DeckPlanCardMetaResponse,
@@ -72,7 +73,7 @@ export async function buildPublicDeckDetailWithExtras(
   const { decks, deckPlans, catalog, canonicalPrintings, customTags } = repos;
 
   const deckCards = await decks.cardsForDeck(found.deck.id, found.deck.userId);
-  const cards = [...deckCards, ...extraRows];
+  const cards = [...deckCards.filter((card) => isCountedZone(card.zone)), ...extraRows];
   const planData = await deckPlans.getForDeck(found.deck.id);
   const plan = toDeckPlan(planData);
 

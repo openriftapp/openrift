@@ -1,6 +1,7 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
 import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable, Updateable } from "kysely";
 import { sql } from "kysely";
 
@@ -390,6 +391,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
           .selectFrom("deckCards")
           .select(["cardId", "zone", "quantity", "preferredPrintingId"])
           .where("deckId", "=", source.id)
+          .where("zone", "<>", WellKnown.deckZone.OVERFLOW)
           .execute();
 
         const extras = (overrides?.extraCards ?? []).filter(

@@ -9,6 +9,7 @@
 - feat(Meta): **Banned cards on event decklists** — event standings mark each list that runs a banned card or one with a ban coming, and the expanded decklist flags those cards.
 - feat(Tournaments): **Fuller report links** — shared report links show each player's round-by-round run, their Legend and the best finish per Legend.
 - fix(Decks): **Deck counts match everywhere** — a deck's card count leaves out Overflow on every page, share image and in the Discord bot, progress figures are labelled "required", and adding a rune at 12 swaps one out from quick add and drag too.
+- fix(Decks): **Overflow stays private** — share images no longer mix Overflow cards into the main deck, and shared deck pages and copies made from them leave Overflow out.
 - fix(Prices): **Totals say what is missing** — deck, list, meta deck and trade totals use your preferred languages first, fall back to any language, and show how many cards have no price.
 - fix(Decks): **Copied decks open with their cards** — copying a meta or shared deck, duplicating a deck or making a variant could open the new deck empty until you reloaded.
 - fix(Trades): **Live trades stay in suggestions** — a suggestion you already traded on keeps its row with the trade's status, even when the trade runs through another group.

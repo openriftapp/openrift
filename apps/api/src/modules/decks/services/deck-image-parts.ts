@@ -101,9 +101,7 @@ export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
     .slice(0, MAX_BATTLEFIELDS);
   const sideboard = cards.filter((card) => card.zone === zone.SIDEBOARD).sort(byEnergyThenName);
   const champions = cards.filter((card) => card.zone === zone.CHAMPION).sort(byEnergyThenName);
-  const mainline = cards
-    .filter((card) => card.zone === zone.MAIN || card.zone === zone.OVERFLOW)
-    .sort(byEnergyThenName);
+  const mainline = cards.filter((card) => card.zone === zone.MAIN).sort(byEnergyThenName);
   const gridCards = [...champions, ...mainline];
   const runeCards = [...runes].sort(
     (left, right) => right.quantity - left.quantity || left.cardName.localeCompare(right.cardName),

@@ -99,6 +99,7 @@ function repos(options: {
   cards: ReturnType<typeof cardRow>[];
   printings: ReturnType<typeof printingRow>[];
   printingsByCardIds?: ReturnType<typeof vi.fn>;
+  deckCards?: { cardId: string; zone: string; quantity: number; preferredPrintingId: null }[];
   bans?: { cardId: string; formatId: string; formatName: string; bannedAt: string; reason: null }[];
 }): Repos {
   const printingsByCardIds =
@@ -106,9 +107,11 @@ function repos(options: {
   return {
     decks: {
       cardsForDeck: vi.fn(() =>
-        Promise.resolve([
-          { cardId: CARD_ID, zone: "main", quantity: 3, preferredPrintingId: null },
-        ]),
+        Promise.resolve(
+          options.deckCards ?? [
+            { cardId: CARD_ID, zone: "main", quantity: 3, preferredPrintingId: null },
+          ],
+        ),
       ),
     },
     deckPlans: { getForDeck: vi.fn(() => Promise.resolve({ plan: null, matchups: [] })) },
@@ -177,6 +180,26 @@ describe("buildPublicDeckDetail", () => {
 
     expect(printingsByCardIds).toHaveBeenCalledWith([CARD_ID]);
     expect(printingsByCardIds).not.toHaveBeenCalledWith(expect.arrayContaining([OTHER_CARD_ID]));
+  });
+
+  it("leaves the owner's overflow out of the shared deck", async () => {
+    const printingsByCardIds = vi.fn(() => Promise.resolve([]));
+
+    const payload = await buildPublicDeckDetail(
+      repos({
+        cards: [cardRow(CARD_ID)],
+        printings: [],
+        printingsByCardIds,
+        deckCards: [
+          { cardId: CARD_ID, zone: "main", quantity: 3, preferredPrintingId: null },
+          { cardId: OTHER_CARD_ID, zone: "overflow", quantity: 2, preferredPrintingId: null },
+        ],
+      }),
+      DECK,
+    );
+
+    expect(payload.cards.map((card) => card.zone)).toEqual(["main"]);
+    expect(printingsByCardIds).toHaveBeenCalledWith([CARD_ID]);
   });
 
   it("hands each printing out in the catalogue's own shape", async () => {

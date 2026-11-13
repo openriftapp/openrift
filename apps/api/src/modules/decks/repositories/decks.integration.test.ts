@@ -281,6 +281,29 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     await repo.setShare(deckId, userId, null, false);
   });
 
+  it("copies a shared deck without its overflow", async () => {
+    const source = await repo.create({
+      userId,
+      name: "Shared With Overflow",
+      description: null,
+      format: "constructed",
+      formatConfig: null,
+      isPublic: false,
+    });
+    createdDeckIds.push(source.id);
+    await repo.replaceCards(source.id, [
+      { cardId: seedCardId, zone: "main", quantity: 3, preferredPrintingId: null },
+      { cardId: seedCardId, zone: "overflow", quantity: 2, preferredPrintingId: null },
+    ]);
+    await repo.setShare(source.id, userId, "OvErFlOwTeSt", true);
+
+    const copy = await repo.cloneFromShareToken("OvErFlOwTeSt", userId);
+    createdDeckIds.push(copy!.id);
+
+    const cards = await repo.cardsWithDetails(copy!.id, userId);
+    expect(cards.map((card) => card.zone)).toEqual(["main"]);
+  });
+
   it("lets concurrent replaces of the same deck's cards all succeed", async () => {
     const deckId = createdDeckIds[0]!;
     const cards = [
