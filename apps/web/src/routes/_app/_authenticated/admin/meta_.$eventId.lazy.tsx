@@ -1,12 +1,12 @@
-import { createLazyFileRoute, useParams } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { MetaEventPlayersPage } from "@/features/admin/components/meta-event-players-page";
-
-function MetaEventDecksRoute() {
-  const { eventId } = useParams({ from: "/_app/_authenticated/admin/meta_/$eventId" });
-  return <MetaEventPlayersPage key={eventId} eventId={eventId} />;
-}
 
 export const Route = createLazyFileRoute("/_app/_authenticated/admin/meta_/$eventId")({
   component: MetaEventDecksRoute,
 });
+
+function MetaEventDecksRoute() {
+  const { eventId } = Route.useParams();
+  return <MetaEventPlayersPage key={eventId} eventId={eventId} />;
+}

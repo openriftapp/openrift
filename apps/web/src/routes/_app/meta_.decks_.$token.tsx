@@ -1,6 +1,6 @@
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,7 +9,7 @@ import { formatRank } from "@/features/meta/lib/meta-format";
 import { metaDeckQueryOptions } from "@/features/meta/lib/meta-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
@@ -56,29 +56,24 @@ export const Route = createFileRoute("/_app/meta_/decks_/$token")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<MetaDeckHeadData> => {
-    try {
-      const [init, deck] = await Promise.all([
+    const [init, deck] = await notFoundOnSentinel(
+      Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
         context.queryClient.query({ ...metaDeckQueryOptions(params.token), staleTime: "static" }),
-      ]);
-      const { playerName, rank, rankIsTier, event } = deck.meta;
-      return {
-        deck: { updatedAt: deck.deck.updatedAt },
-        formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), deck.deck.format),
-        meta: {
-          playerName,
-          rank,
-          rankIsTier,
-          event: { slug: event.slug, name: event.name, eventDate: event.eventDate },
-        },
-        legend: archivedDeckIdentity(deck.cards)?.name ?? null,
-      };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      ]),
+    );
+    const { playerName, rank, rankIsTier, event } = deck.meta;
+    return {
+      deck: { updatedAt: deck.deck.updatedAt },
+      formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), deck.deck.format),
+      meta: {
+        playerName,
+        rank,
+        rankIsTier,
+        event: { slug: event.slug, name: event.name, eventDate: event.eventDate },
+      },
+      legend: archivedDeckIdentity(deck.cards)?.name ?? null,
+    };
   },
   pendingComponent: MetaDeckPending,
   errorComponent: RouteErrorFallback,

@@ -9,12 +9,12 @@ import {
   SwordsIcon,
   UsersIcon,
 } from "lucide-react";
-import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { CopyTextButton } from "@/components/copy-text-button";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { MetaItem } from "@/components/ui/meta-item";
 import { UserAvatar } from "@/components/user-avatar";
 import { useReferralUrl } from "@/features/account/hooks/use-referral";
 import { referralTierLabel } from "@/features/account/lib/referral-tier-label";
@@ -23,21 +23,6 @@ import { UserProfileStats } from "@/features/groups/components/user-profile-stat
 import { groupsInCommonLabel, lastActiveLabel } from "@/features/groups/lib/user-profile-copy";
 import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
-
-function MetaItem({
-  icon: Icon,
-  children,
-}: {
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
-  children: ReactNode;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <Icon className="size-3.5 shrink-0" />
-      {children}
-    </span>
-  );
-}
 
 export function UserProfileHeader({
   data,

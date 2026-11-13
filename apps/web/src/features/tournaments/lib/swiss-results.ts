@@ -10,6 +10,11 @@ import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournamen
 
 import { m } from "@/paraglide/messages.js";
 
+export interface PodResultEntry {
+  playerId: string;
+  gamePoints: number;
+}
+
 export interface SwissResultPreset {
   label: string;
   gamePoints: [number, number];

@@ -92,11 +92,16 @@ describe("Medal", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("keeps the themed tints flat by default", () => {
+  it("tints a flat medal with the standings-row chip colours", () => {
     render(<Medal rank={2} />);
     const medal = screen.getByText("2");
-    expect(medal).toHaveClass("bg-muted-foreground/40");
+    expect(medal).toHaveClass("bg-zinc-400/16", "border-zinc-400/60");
     expect(medal).not.toHaveClass("shadow-md");
+  });
+
+  it("tints the flat crown like the gold rank chip", () => {
+    render(<Medal rank={1} />);
+    expect(document.querySelector("[data-slot=medal]")).toHaveClass("text-amber-700");
   });
 
   it("plates and shadows the on-art variant so it holds over card art", () => {

@@ -29,6 +29,8 @@ async function buildReport(
   return {
     tournamentName: tournament.name,
     status: tournament.status,
+    startsAt: tournament.startsAt.toISOString(),
+    endsAt: tournament.endsAt?.toISOString() ?? null,
     currentRound: tournament.currentRound,
     pairingStyle: tournament.pairingStyle,
     playMode: tournament.playMode,
@@ -43,6 +45,11 @@ async function buildReport(
     legendTiebreak: tournament.legendTiebreak,
     groupsSelfPaced: tournament.groupsSelfPaced,
     groupStage,
+    playerLegends: players.flatMap((player) =>
+      player.legendCardId === null
+        ? []
+        : [{ playerId: player.id, legendCardId: player.legendCardId }],
+    ),
     standings,
     rounds: roundRows.map((rows) => {
       const round = toRoundResponse(rows, scoring);

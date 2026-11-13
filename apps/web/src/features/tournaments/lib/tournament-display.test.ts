@@ -8,9 +8,13 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 import { describe, expect, it } from "vitest";
 
+import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
+
 import {
-  canCheckDecks,
   canManageTournament,
+  applyFormatChange,
+  canOpenDeckCheck,
+  formatChangePatch,
   hasPairing,
   isGroupCutChoice,
   pairingFromRoundsChoice,
@@ -22,12 +26,19 @@ import {
   compareTournamentsForList,
   formatStartsIn,
   isTournamentHost,
+  isTournamentStaff,
+  parseDeadlineInput,
   parseScheduleInput,
   partitionTournaments,
   primaryViewerRole,
   reportAcceptsResults,
   reportCanEdit,
   tournamentContextLabel,
+  regionsAvailable,
+  regionsSectionVisible,
+  restorePairings,
+  tournamentKindLabel,
+  tournamentTokenUrl,
 } from "./tournament-display";
 
 function makeParticipant(
@@ -109,15 +120,189 @@ describe("isTournamentHost", () => {
   });
 });
 
-describe("canCheckDecks", () => {
+describe("isTournamentStaff", () => {
   it("includes judges", () => {
-    expect(canCheckDecks(["judge"])).toBe(true);
-    expect(canCheckDecks(["host"])).toBe(true);
-    expect(canCheckDecks(["organizer"])).toBe(true);
+    expect(isTournamentStaff(["judge"])).toBe(true);
+    expect(isTournamentStaff(["host"])).toBe(true);
+    expect(isTournamentStaff(["organizer"])).toBe(true);
   });
 
   it("excludes participant", () => {
-    expect(canCheckDecks(["participant"])).toBe(false);
+    expect(isTournamentStaff(["participant"])).toBe(false);
+  });
+});
+
+describe("applyFormatChange", () => {
+  const pod1v1 = {
+    playMode: "1v1",
+    pairingStyle: "pod",
+    matchFormat: "bo1",
+    format: "rounds",
+    regionsEnabled: true,
+  } as const;
+
+  it("turns regions off and leaves pod when switching to 2v2", () => {
+    expect(applyFormatChange(pod1v1, { playMode: "2v2" })).toEqual({
+      playMode: "2v2",
+      pairingStyle: "swiss",
+      matchFormat: "bo1",
+      format: "rounds",
+      regionsEnabled: false,
+    });
+  });
+
+  it("forces 1v1 and clears regions for a group cut", () => {
+    expect(
+      applyFormatChange(
+        { ...pod1v1, playMode: "2v2", pairingStyle: "swiss" },
+        { roundsChoice: "group-cut-bo3" },
+      ),
+    ).toEqual({
+      playMode: "1v1",
+      pairingStyle: "swiss",
+      matchFormat: "bo3",
+      format: "group_cut",
+      regionsEnabled: false,
+    });
+  });
+
+  it("picks pod for 1v1 and swiss for 2v2 when pairings turn on", () => {
+    const off = { ...pod1v1, pairingStyle: "none" } as const;
+    expect(applyFormatChange(off, { pairingsEnabled: true }).pairingStyle).toBe("pod");
+    expect(
+      applyFormatChange({ ...off, playMode: "2v2" }, { pairingsEnabled: true }).pairingStyle,
+    ).toBe("swiss");
+  });
+
+  it("leaves the group cut when pairings turn off", () => {
+    const groupCut = { ...pod1v1, pairingStyle: "swiss", format: "group_cut" } as const;
+    expect(applyFormatChange(groupCut, { pairingsEnabled: false })).toMatchObject({
+      pairingStyle: "none",
+      format: "rounds",
+    });
+  });
+
+  it("keeps pairings off when switching to 2v2", () => {
+    const off = { ...pod1v1, pairingStyle: "none" } as const;
+    expect(applyFormatChange(off, { playMode: "2v2" })).toMatchObject({
+      playMode: "2v2",
+      pairingStyle: "none",
+      regionsEnabled: false,
+    });
+  });
+
+  it("sends only the changed fields", () => {
+    expect(formatChangePatch(pod1v1, { playMode: "2v2" })).toEqual({
+      playMode: "2v2",
+      pairingStyle: "swiss",
+      regionsEnabled: false,
+    });
+  });
+});
+
+describe("regionsAvailable", () => {
+  it("offers regions only on 1v1 round events", () => {
+    expect(regionsAvailable({ pairingStyle: "pod", playMode: "1v1", format: "rounds" })).toBe(true);
+    expect(regionsAvailable({ pairingStyle: "swiss", playMode: "1v1", format: "group_cut" })).toBe(
+      false,
+    );
+    expect(regionsAvailable({ pairingStyle: "swiss", playMode: "2v2", format: "rounds" })).toBe(
+      false,
+    );
+  });
+});
+
+describe("regionsSectionVisible", () => {
+  it("keeps the switch on a group-cut event that already has regions on", () => {
+    const groupCut = { pairingStyle: "swiss", playMode: "1v1", format: "group_cut" } as const;
+    expect(regionsSectionVisible({ ...groupCut, regionsEnabled: true })).toBe(true);
+    expect(regionsSectionVisible({ ...groupCut, regionsEnabled: false })).toBe(false);
+  });
+});
+
+describe("restorePairings", () => {
+  const off = {
+    playMode: "1v1",
+    pairingStyle: "none",
+    matchFormat: "bo1",
+    format: "rounds",
+    regionsEnabled: false,
+  } as const;
+
+  it("brings back the last rounds choice", () => {
+    expect(restorePairings(off, "swiss-bo3")).toMatchObject({
+      pairingStyle: "swiss",
+      matchFormat: "bo3",
+    });
+    expect(restorePairings(off, "group-cut-bo1")).toMatchObject({ format: "group_cut" });
+  });
+
+  it("falls back to the default when the last choice does not fit 2v2", () => {
+    expect(restorePairings({ ...off, playMode: "2v2" }, "pod")).toMatchObject({
+      playMode: "2v2",
+      pairingStyle: "swiss",
+      format: "rounds",
+    });
+    expect(restorePairings(off, null)).toMatchObject({ pairingStyle: "pod" });
+  });
+});
+
+describe("canOpenDeckCheck", () => {
+  it("opens for staff when decks are collected", () => {
+    expect(canOpenDeckCheck({ deckSubmission: "optional", myRoles: ["judge"] })).toBe(true);
+  });
+
+  it("stays closed without deck submission or for players", () => {
+    expect(canOpenDeckCheck({ deckSubmission: "none", myRoles: ["host"] })).toBe(false);
+    expect(canOpenDeckCheck({ deckSubmission: "required", myRoles: ["participant"] })).toBe(false);
+  });
+});
+
+describe("tournamentTokenUrl", () => {
+  it("builds the landing link for each token kind", () => {
+    expect(tournamentTokenUrl("claim", "abc")).toMatch(/\/tournaments\/claim\/abc$/u);
+    expect(tournamentTokenUrl("staff-invite", "xyz")).toMatch(/\/tournaments\/staff-invite\/xyz$/u);
+  });
+});
+
+describe("tournamentKindLabel", () => {
+  it("names group-cut events", () => {
+    expect(
+      tournamentKindLabel({ playMode: "1v1", pairingStyle: "swiss", format: "group_cut" }),
+    ).toBe("Group stage and cut tournament");
+  });
+
+  it("names 2v2 before the pairing style", () => {
+    expect(tournamentKindLabel({ playMode: "2v2", pairingStyle: "swiss", format: "rounds" })).toBe(
+      "2v2 team tournament",
+    );
+  });
+});
+
+describe("parseDeadlineInput", () => {
+  it("treats both parts blank as no deadline", () => {
+    expect(parseDeadlineInput("", "", null)).toEqual({
+      closeAt: null,
+      incomplete: false,
+      afterEnd: false,
+    });
+  });
+
+  it("combines a full date and time into a UTC instant", () => {
+    expect(parseDeadlineInput("2026-06-10", "18:00", null).closeAt).toBe(
+      combineLocalDateTimeToUtc("2026-06-10", "18:00"),
+    );
+  });
+
+  it("flags a half-filled deadline", () => {
+    expect(parseDeadlineInput("2026-06-10", "", null).incomplete).toBe(true);
+  });
+
+  it("flags a deadline after the end, and skips the check without one", () => {
+    const endsAt = combineLocalDateTimeToUtc("2026-06-10", "12:00");
+    expect(parseDeadlineInput("2026-06-10", "13:00", endsAt).afterEnd).toBe(true);
+    expect(parseDeadlineInput("2026-06-10", "12:00", endsAt).afterEnd).toBe(false);
+    expect(parseDeadlineInput("2026-06-10", "13:00", null).afterEnd).toBe(false);
   });
 });
 

@@ -63,7 +63,7 @@ export function FeatureSection({
     >
       <Reveal className={cn("flex flex-col items-start gap-4", flip && "lg:order-2")}>
         {eyebrow ? (
-          <Eyebrow as="span" className="font-heading mb-0 text-xs">
+          <Eyebrow as="span" className="font-heading text-xs">
             {eyebrow}
           </Eyebrow>
         ) : null}

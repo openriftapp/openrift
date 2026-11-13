@@ -1,6 +1,6 @@
 import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { pluralize } from "@openrift/shared/strings";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,7 @@ import {
 } from "@/features/meta/lib/meta-scope";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -61,27 +61,22 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params, deps }): Promise<MetaPlayerHeadData> => {
-    try {
-      const [player, sets] = await Promise.all([
+    const [player, sets] = await notFoundOnSentinel(
+      Promise.all([
         context.queryClient.query({ ...metaPlayerQueryOptions(params.key), staleTime: "static" }),
         context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-      ]);
-      await context.queryClient.query({
-        ...metaDecksQueryOptions({
-          ...metaScopeQueryFromScope(scopeWithDefaultEra(deps, ERA_ALL), deriveSetEras(sets.sets)),
-          player: params.key,
-          limit: META_MAX_LIST_PAGE_SIZE,
-        }),
-        staleTime: "static",
-      });
-      return { name: player.name, finishCount: player.finishes.length };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      ]),
+    );
+    await context.queryClient.query({
+      ...metaDecksQueryOptions({
+        ...metaScopeQueryFromScope(scopeWithDefaultEra(deps, ERA_ALL), deriveSetEras(sets.sets)),
+        player: params.key,
+        limit: META_MAX_LIST_PAGE_SIZE,
+      }),
+      staleTime: "static",
+    });
+    return { name: player.name, finishCount: player.finishes.length };
   },
   pendingComponent: MetaPlayerPending,
   errorComponent: RouteErrorFallback,

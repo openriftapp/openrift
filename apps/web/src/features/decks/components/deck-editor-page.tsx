@@ -13,6 +13,7 @@ import {
   PageTopBarHeightContext,
   usePageTopBarHeight,
 } from "@/components/layout/page-top-bar";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import {
   NestedSidebar,
   SidebarContent,
@@ -382,9 +383,7 @@ function DeckEditorContent({
                   <ParaglideMessage
                     message={m.decks_editor_tap_zones}
                     markup={{
-                      strong: ({ children }) => (
-                        <span className="text-foreground font-medium">{children}</span>
-                      ),
+                      strong: PROSE_MARKUP.strong,
                     }}
                   />
                 </span>

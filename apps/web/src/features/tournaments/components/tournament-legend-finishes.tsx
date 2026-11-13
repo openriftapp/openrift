@@ -32,7 +32,7 @@ function FinishTile({ entry, cutSize }: { entry: LegendFinish; cutSize: number |
         />
       }
       player={entry.displayName}
-      detail={m.meta_count_players({ count: entry.playerCount })}
+      detail={entry.record}
     />
   );
 }

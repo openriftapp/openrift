@@ -2,12 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { tournamentsQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Tournaments", noIndex: true }),
+  head: () => privateSeoHead("Tournaments"),
   loader: async ({ context }) => {
     await context.queryClient.infiniteQuery({
       ...tournamentsQueryOptions(context.userId),

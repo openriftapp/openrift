@@ -43,7 +43,7 @@ interface QrCodeProps {
   /** Edge length of the code in pixels, excluding the plate's padding. */
   size?: number;
   /** Accessible name, e.g. "QR code for the registration link". */
-  label?: string;
+  label: string;
   className?: string;
 }
 
@@ -68,7 +68,7 @@ export function QrCode({ value, size = 160, label, className }: QrCodeProps) {
         viewBox={`0 0 ${extent} ${extent}`}
         shapeRendering="crispEdges"
         role="img"
-        aria-label={label ?? "QR code"}
+        aria-label={label}
       >
         <path d={modulesPath(matrix)} fill={QR_DARK} />
       </svg>

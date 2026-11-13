@@ -1,3 +1,6 @@
+import { z } from "zod/mini";
+
+import { lenient } from "@/lib/lenient-param";
 import { sanitizeRedirect } from "@/lib/utils";
 
 interface AuthSearch {
@@ -17,3 +20,10 @@ export function roundSearchSchema(search: Record<string, unknown>): { round?: nu
   const round = Number(search.round);
   return Number.isInteger(round) && round > 0 ? { round } : {};
 }
+
+export const sideSearchParam = lenient(
+  z.pipe(
+    z.transform((value) => (Number(value) === 2 ? 2 : undefined)),
+    z.optional(z.literal(2)),
+  ),
+);

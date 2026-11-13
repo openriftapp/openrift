@@ -4,8 +4,11 @@ import { describe, expect, it } from "vitest";
 import {
   collapseTeamStandings,
   groupPodMembersByTeam,
+  participantsByTeam,
   teamDisplayName,
+  teammateNamesById,
   teamNamesById,
+  unteamedActivePlayers,
 } from "./team-display";
 
 function member(
@@ -165,5 +168,51 @@ describe("collapseTeamStandings", () => {
 
   it("returns nothing for empty standings", () => {
     expect(collapseTeamStandings([])).toEqual([]);
+  });
+});
+
+describe("participantsByTeam", () => {
+  it("groups teamed players and skips the unteamed", () => {
+    const groups = participantsByTeam([
+      { id: "a", teamId: "t1" },
+      { id: "b", teamId: null },
+      { id: "c", teamId: "t1" },
+    ]);
+    expect([...groups.entries()]).toEqual([
+      [
+        "t1",
+        [
+          { id: "a", teamId: "t1" },
+          { id: "c", teamId: "t1" },
+        ],
+      ],
+    ]);
+  });
+});
+
+describe("unteamedActivePlayers", () => {
+  it("keeps active players without a team", () => {
+    expect(
+      unteamedActivePlayers([
+        { id: "a", status: "active", teamId: null },
+        { id: "b", status: "dropped", teamId: null },
+        { id: "c", status: "active", teamId: "t1" },
+      ]).map((player) => player.id),
+    ).toEqual(["a"]);
+  });
+});
+
+describe("teammateNamesById", () => {
+  it("maps each player to the partner's name and leaves lone team members out", () => {
+    const names = teammateNamesById([
+      { id: "a", teamId: "t1", displayName: "Ahri" },
+      { id: "b", teamId: "t1", displayName: "Yasuo" },
+      { id: "c", teamId: "t2", displayName: "Jinx" },
+      { id: "d", teamId: null, displayName: "Vi" },
+    ]);
+    expect([...names.entries()]).toEqual([
+      ["a", "Yasuo"],
+      ["b", "Ahri"],
+    ]);
   });
 });

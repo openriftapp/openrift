@@ -24,6 +24,7 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   useMintMyDeckCheckKey,
   useMintOrgDeckCheckKey,
@@ -39,14 +40,21 @@ import {
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
+interface MutationState {
+  isPending: boolean;
+  error: unknown;
+  reset: () => void;
+}
+
 interface KeyActions {
   keys: DeckCheckKeyResponse[] | undefined;
-  mint: (label: string) => Promise<string>;
-  mintPending: boolean;
-  rename: (keyId: string, label: string) => Promise<void>;
-  revoke: (keyId: string) => Promise<void>;
+  mint: (label: string) => Promise<{ token: string }>;
+  mintState: MutationState;
+  rename: (keyId: string, label: string) => Promise<unknown>;
+  renameState: MutationState;
+  revoke: (keyId: string) => Promise<unknown>;
   revokePending: boolean;
-  remove: (keyId: string) => Promise<void>;
+  remove: (keyId: string) => Promise<unknown>;
   removePending: boolean;
 }
 
@@ -59,21 +67,13 @@ export function MyDeckCheckKeysSection({ enabled = true }: { enabled?: boolean }
   return (
     <DeckCheckKeysCard
       keys={data?.items}
-      mint={async (label) => {
-        const result = await mintKey.mutateAsync({ label });
-        return result.token;
-      }}
-      mintPending={mintKey.isPending}
-      rename={async (keyId, label) => {
-        await renameKey.mutateAsync({ keyId, label });
-      }}
-      revoke={async (keyId) => {
-        await revokeKey.mutateAsync({ keyId });
-      }}
+      mint={(label) => mintKey.mutateAsync({ label })}
+      mintState={mintKey}
+      rename={(keyId, label) => renameKey.mutateAsync({ keyId, label })}
+      renameState={renameKey}
+      revoke={(keyId) => revokeKey.mutateAsync({ keyId })}
       revokePending={revokeKey.isPending}
-      remove={async (keyId) => {
-        await removeKey.mutateAsync({ keyId });
-      }}
+      remove={(keyId) => removeKey.mutateAsync({ keyId })}
       removePending={removeKey.isPending}
     />
   );
@@ -94,21 +94,13 @@ export function OrgDeckCheckKeysSection({
   return (
     <DeckCheckKeysCard
       keys={data?.items}
-      mint={async (label) => {
-        const result = await mintKey.mutateAsync({ orgId, label });
-        return result.token;
-      }}
-      mintPending={mintKey.isPending}
-      rename={async (keyId, label) => {
-        await renameKey.mutateAsync({ orgId, keyId, label });
-      }}
-      revoke={async (keyId) => {
-        await revokeKey.mutateAsync({ orgId, keyId });
-      }}
+      mint={(label) => mintKey.mutateAsync({ orgId, label })}
+      mintState={mintKey}
+      rename={(keyId, label) => renameKey.mutateAsync({ orgId, keyId, label })}
+      renameState={renameKey}
+      revoke={(keyId) => revokeKey.mutateAsync({ orgId, keyId })}
       revokePending={revokeKey.isPending}
-      remove={async (keyId) => {
-        await removeKey.mutateAsync({ orgId, keyId });
-      }}
+      remove={(keyId) => removeKey.mutateAsync({ orgId, keyId })}
       removePending={removeKey.isPending}
     />
   );
@@ -146,7 +138,7 @@ function DeckCheckKeysCard(actions: KeyActions) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onMint={(label) => actions.mint(label)}
-        mintPending={actions.mintPending}
+        mintState={actions.mintState}
         onMinted={setMintedToken}
       />
       <MintedKeyDialog token={mintedToken} onClose={() => setMintedToken(null)} />
@@ -158,13 +150,13 @@ function CreateKeyDialog({
   open,
   onOpenChange,
   onMint,
-  mintPending,
+  mintState,
   onMinted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onMint: (label: string) => Promise<string>;
-  mintPending: boolean;
+  onMint: (label: string) => Promise<{ token: string }>;
+  mintState: MutationState;
   onMinted: (token: string) => void;
 }) {
   const [label, setLabel] = useState("");
@@ -174,10 +166,16 @@ function CreateKeyDialog({
     if (!trimmed) {
       return;
     }
-    const token = await onMint(trimmed);
-    setLabel("");
-    onOpenChange(false);
-    onMinted(token);
+    let token: string | undefined;
+    const ok = await runReportedMutation(async () => {
+      const minted = await onMint(trimmed);
+      token = minted.token;
+    });
+    if (ok && token !== undefined) {
+      setLabel("");
+      onOpenChange(false);
+      onMinted(token);
+    }
   };
 
   return (
@@ -186,6 +184,8 @@ function CreateKeyDialog({
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setLabel("");
+        } else {
+          mintState.reset();
         }
         onOpenChange(nextOpen);
       }}
@@ -206,10 +206,11 @@ function CreateKeyDialog({
               maxLength={120}
             />
           </div>
+          <SaveError error={mintState.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={mintPending || !label.trim()}>
-              {mintPending ? m.profile_deck_check_creating() : m.profile_deck_check_create()}
+            <Button type="submit" disabled={!label.trim()} pending={mintState.isPending}>
+              {m.profile_deck_check_create()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -290,6 +291,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
         open={renameOpen}
         onOpenChange={setRenameOpen}
         onRename={(keyId, label) => actions.rename(keyId, label)}
+        renameState={actions.renameState}
       />
       <ConfirmActionDialog
         open={confirmOpen}
@@ -297,7 +299,6 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
         title={m.profile_deck_check_revoke_confirm_title()}
         description={m.profile_deck_check_revoke_confirm_description()}
         confirmLabel={m.profile_deck_check_revoke()}
-        pendingLabel={m.profile_deck_check_revoking()}
         isPending={actions.revokePending}
         onConfirm={() => void handleRevoke()}
       />
@@ -307,7 +308,6 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
         title={m.profile_deck_check_remove_confirm_title()}
         description={m.profile_deck_check_remove_confirm_description()}
         confirmLabel={m.profile_deck_check_remove()}
-        pendingLabel={m.profile_deck_check_removing()}
         isPending={actions.removePending}
         onConfirm={() => void handleRemove()}
       />
@@ -320,30 +320,26 @@ function RenameKeyDialog({
   open,
   onOpenChange,
   onRename,
+  renameState,
 }: {
   apiKey: DeckCheckKeyResponse;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRename: (keyId: string, label: string) => Promise<void>;
+  onRename: (keyId: string, label: string) => Promise<unknown>;
+  renameState: MutationState;
 }) {
   const [label, setLabel] = useState(apiKey.label ?? "");
-  const [pending, setPending] = useState(false);
 
   const handleRename = async () => {
     const trimmed = label.trim();
     if (!trimmed || trimmed === apiKey.label) {
+      renameState.reset();
       onOpenChange(false);
       return;
     }
-    setPending(true);
-    try {
-      await onRename(apiKey.id, trimmed);
+    if (await runReportedMutation(() => onRename(apiKey.id, trimmed))) {
       onOpenChange(false);
-    } catch (error) {
-      setPending(false);
-      throw error;
     }
-    setPending(false);
   };
 
   return (
@@ -352,6 +348,8 @@ function RenameKeyDialog({
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setLabel(apiKey.label ?? "");
+        } else {
+          renameState.reset();
         }
         onOpenChange(nextOpen);
       }}
@@ -362,10 +360,11 @@ function RenameKeyDialog({
             <DialogTitle>{m.profile_deck_check_rename_title()}</DialogTitle>
           </DialogHeader>
           <Input value={label} onChange={(event) => setLabel(event.target.value)} maxLength={120} />
+          <SaveError error={renameState.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={pending || !label.trim()}>
-              {pending ? m.common_saving() : m.common_save()}
+            <Button type="submit" disabled={!label.trim()} pending={renameState.isPending}>
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

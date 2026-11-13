@@ -49,7 +49,7 @@ export default function DeckBuildingArticle() {
       </Alert>
 
       <Callout>
-        <Eyebrow>{m.help_deck_building_structure_eyebrow()}</Eyebrow>
+        <Eyebrow className="mb-3">{m.help_deck_building_structure_eyebrow()}</Eyebrow>
         <div className="grid gap-2 text-sm sm:grid-cols-2">
           <ZoneCard
             name="Legend"

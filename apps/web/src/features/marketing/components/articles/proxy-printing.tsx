@@ -14,7 +14,7 @@ export default function ProxyPrintingArticle() {
       <p className="text-muted-foreground">{m.help_proxy_printing_intro()}</p>
 
       <Callout>
-        <Eyebrow>{m.help_proxy_printing_layout_eyebrow()}</Eyebrow>
+        <Eyebrow className="mb-3">{m.help_proxy_printing_layout_eyebrow()}</Eyebrow>
         <div className="mx-auto grid max-w-xs grid-cols-3 gap-1.5">
           {Array.from({ length: 9 }, (_, index) => (
             <div

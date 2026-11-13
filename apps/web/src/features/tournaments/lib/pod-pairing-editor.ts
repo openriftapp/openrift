@@ -1,4 +1,8 @@
-import type { PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
+import type { TeamSnapshotPlayer } from "@openrift/shared/pairing/team-units";
+import type {
+  PodRoundResponse,
+  PodSnapshotPlayer,
+} from "@openrift/shared/types/api/pod-tournament";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -98,14 +102,23 @@ export function validatePartition(
 
   const seated = participantIds(state);
   const seatedSet = new Set(seated);
-  const unit = mode === "team" ? "team" : "player";
   if (seatedSet.size !== seated.length) {
-    errors.push(`A ${unit} appears in more than one ${mode === "pod" ? "pod" : "match"} or bye.`);
+    errors.push(
+      mode === "team"
+        ? m.tournaments_pairing_error_team_twice_match()
+        : mode === "pod"
+          ? m.tournaments_pairing_error_player_twice_pod()
+          : m.tournaments_pairing_error_player_twice_match(),
+    );
   }
   const expected = new Set(expectedPlayerIds);
   if (seatedSet.size !== expected.size || [...expected].some((id) => !seatedSet.has(id))) {
     errors.push(
-      `Every ${unit} in the round must be in a ${mode === "pod" ? "pod" : "match"} or sitting out.`,
+      mode === "team"
+        ? m.tournaments_pairing_error_team_unseated_match()
+        : mode === "pod"
+          ? m.tournaments_pairing_error_player_unseated_pod()
+          : m.tournaments_pairing_error_player_unseated_match(),
     );
   }
 
@@ -121,4 +134,29 @@ export function toPayload(state: EditorState): PairingPayload {
       .map((pod) => ({ size: pod.playerIds.length as 2 | 3 | 4, playerIds: pod.playerIds })),
     byes: state.byes,
   };
+}
+
+export function snapshotToPlayers(snapshot: PodSnapshotPlayer[]): TeamSnapshotPlayer[] {
+  return snapshot.map((player) => ({
+    id: player.playerId,
+    teamId: player.teamId,
+    score: player.score,
+    pods3: player.pods3,
+    pods4: player.pods4,
+    byes: player.byes,
+    opponents: new Map(Object.entries(player.opponents)),
+    region: player.region,
+    regionHistory: new Map(Object.entries(player.regionHistory)),
+    fixedTable: player.fixedTable,
+  }));
+}
+
+export function refocusMenuTrigger(
+  root: HTMLElement | null,
+  attribute: "movePlayer" | "swapPlayer",
+  playerId: string,
+): void {
+  const selector = attribute === "movePlayer" ? "[data-move-player]" : "[data-swap-player]";
+  const triggers = root?.querySelectorAll<HTMLElement>(selector) ?? [];
+  [...triggers].find((trigger) => trigger.dataset[attribute] === playerId)?.focus();
 }

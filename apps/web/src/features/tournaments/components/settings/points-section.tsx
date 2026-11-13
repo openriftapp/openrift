@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   parsePointsInput,
   PointsFields,
@@ -39,8 +40,6 @@ export function PointsSection({
     if (invalid) {
       return;
     }
-    // Built before the try block: the React Compiler cannot lower conditional
-    // value blocks inside try/catch and would bail out of this component.
     const patch = {
       id: detail.id,
       byePoints: bye ?? undefined,
@@ -81,6 +80,7 @@ export function PointsSection({
           </Button>
         }
       />
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

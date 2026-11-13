@@ -201,7 +201,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           disabled={upload.isPending}
         >
           <SendIcon className="size-4" />
-          {submit.isPending ? m.contribute_submit_pending() : m.contribute_image_submit()}
+          {m.contribute_image_submit()}
         </Button>
       </div>
     </form>

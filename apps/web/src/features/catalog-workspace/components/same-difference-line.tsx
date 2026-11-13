@@ -56,7 +56,6 @@ export function SameDifferenceLine({
           count,
         )}. Discarding marks each of those source rows as checked. Undo (Z) brings them all back.`}
         confirmLabel={`Discard on all ${count}`}
-        pendingLabel="Discarding…"
         destructive={false}
         isPending={isPending}
         onConfirm={() =>

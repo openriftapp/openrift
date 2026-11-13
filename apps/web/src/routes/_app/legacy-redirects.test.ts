@@ -7,6 +7,7 @@ import { Route as ContributeCardRoute } from "./contribute_.$cardSlug";
 import { Route as ContributeImageRoute } from "./contribute_.$cardSlug_.image.$printingId";
 import { Route as PromosLanguageRoute } from "./promos_.$language";
 import { Route as RoadmapRoute } from "./roadmap";
+import { Route as RulesRoute } from "./rules";
 
 type Hook = (ctx: Record<string, unknown>) => unknown;
 
@@ -22,14 +23,14 @@ async function thrownBy(run: () => unknown): Promise<AnyRedirect> {
 
 describe("moved URLs answer with a permanent redirect", () => {
   it("/roadmap moved to the changelog milestones", async () => {
-    const thrown = await thrownBy(() => (RoadmapRoute.options.loader as unknown as Hook)({}));
+    const thrown = await thrownBy(() => (RoadmapRoute.options.beforeLoad as unknown as Hook)({}));
 
     expect(thrown.options).toMatchObject({ to: "/changelog", statusCode: 301 });
   });
 
   it("/contribute/$cardSlug moved under /contribute/card", async () => {
     const thrown = await thrownBy(() =>
-      (ContributeCardRoute.options.loader as unknown as Hook)({ params: { cardSlug: "jinx" } }),
+      (ContributeCardRoute.options.beforeLoad as unknown as Hook)({ params: { cardSlug: "jinx" } }),
     );
 
     expect(thrown.options).toMatchObject({ to: "/contribute/card/$cardSlug", statusCode: 301 });
@@ -37,7 +38,7 @@ describe("moved URLs answer with a permanent redirect", () => {
 
   it("/contribute/$cardSlug/image/$printingId moved under /contribute/card", async () => {
     const thrown = await thrownBy(() =>
-      (ContributeImageRoute.options.loader as unknown as Hook)({
+      (ContributeImageRoute.options.beforeLoad as unknown as Hook)({
         params: { cardSlug: "jinx", printingId: "p-1" },
       }),
     );
@@ -70,6 +71,24 @@ describe("moved URLs answer with a permanent redirect", () => {
     expect(thrown.options).toMatchObject({
       to: "/admin/printings/$printingId",
       statusCode: 301,
+    });
+  });
+});
+
+describe("the rules hub forwards to the core rules", () => {
+  it("before any loader runs, keeping the search and the anchor", async () => {
+    const thrown = await thrownBy(() =>
+      (RulesRoute.options.beforeLoad as unknown as Hook)({
+        search: { q: "might", lang: "de" },
+        location: { hash: "rule-101" },
+      }),
+    );
+
+    expect(thrown.options).toMatchObject({
+      to: "/rules/$kind",
+      params: { kind: "core" },
+      search: { q: "might", lang: "de" },
+      hash: "rule-101",
     });
   });
 });

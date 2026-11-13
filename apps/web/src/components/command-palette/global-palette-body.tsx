@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 
 import { SearchProblems } from "@/components/command-palette/search-problems";
-import type { NavFlags } from "@/components/layout/nav-items";
-import { moreNavSections, primaryNavItems } from "@/components/layout/nav-items";
+import { paletteNavItems, useNavFlags } from "@/components/layout/nav-items";
 import {
   Command,
   CommandEmpty,
@@ -33,8 +32,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
 import type { PaletteRow } from "@/lib/command-palette-results";
 import { buildPaletteGroups } from "@/lib/command-palette-results";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import type { LockedFeatureKey } from "@/lib/nav-items";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
@@ -54,8 +52,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
   const preferredLanguages = useDisplayStore((state) => state.languages);
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
-  const { data: rawFlags } = useSuspenseQuery(featureFlagsQueryOptions);
-  const flags = rawFlags as FeatureFlags;
+  const { data: flags } = useSuspenseQuery(featureFlagsQueryOptions);
   const quickAdd = useCommandPaletteStore((state) => state.quickAdd);
   const openQuickAdd = useCommandPaletteStore((state) => state.openQuickAdd);
   const closePalette = useCommandPaletteStore((state) => state.closePalette);
@@ -70,14 +67,8 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
     limit: SEARCH_DEPTH,
   });
 
-  const navFlags: NavFlags = {
-    glossary: featureEnabled(flags, "glossary"),
-    "board-states": featureEnabled(flags, "board-states"),
-    scanner: featureEnabled(flags, "scanner"),
-  };
-  const navItems = [...primaryNavItems(), ...moreNavSections().flatMap((s) => s.items)].filter(
-    (item) => item.flag === undefined || navFlags[item.flag],
-  );
+  const navFlags = useNavFlags();
+  const navItems = paletteNavItems({ flags: navFlags, mobile: isMobile });
 
   const groups = buildPaletteGroups({
     query,

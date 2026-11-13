@@ -138,6 +138,31 @@ function copyLiterals(file: string, returnsCopy = false): string[] {
       found.push(`return ${node.expression.getText()}`);
     }
     if (
+      ts.isJsxExpression(node) &&
+      ts.isJsxElement(node.parent) &&
+      node.expression !== undefined &&
+      ts.isTemplateExpression(node.expression)
+    ) {
+      const text = [
+        node.expression.head.text,
+        ...node.expression.templateSpans.map((span) => span.literal.text),
+      ].join(" ");
+      if (/\s/u.test(text) && isProse(text)) {
+        found.push(node.getText());
+      }
+    }
+    if (
+      ts.isCallExpression(node) &&
+      returnsCopy &&
+      /\berrors\.push$/u.test(node.expression.getText()) &&
+      node.arguments[0] !== undefined &&
+      (ts.isStringLiteral(node.arguments[0]) ||
+        ts.isNoSubstitutionTemplateLiteral(node.arguments[0]) ||
+        ts.isTemplateExpression(node.arguments[0]))
+    ) {
+      found.push(`errors.push(${node.arguments[0].getText()})`);
+    }
+    if (
       ts.isCallExpression(node) &&
       /^toast(?:\.\w+)?$/u.test(node.expression.getText()) &&
       node.arguments[0] !== undefined &&
@@ -638,6 +663,278 @@ describe("admin display", () => {
         admin("components/candidate-spreadsheet.tsx"),
         admin("components/design/ui/data-section.tsx"),
       ]),
+    ).toEqual([]);
+  });
+});
+
+describe("routes and app shell", () => {
+  const web = (file: string) => `apps/web/src/${file}`;
+  const routeFiles = WEB_FILES.filter(
+    (file) => relative(file).startsWith(web("routes/")) && !file.endsWith(".lazy.tsx"),
+  );
+  const NOT_FOUND_QUERY_OPTIONS = [
+    "productDetailQueryOptions",
+    "cardDetailQueryOptions",
+    "freshCardDetailQueryOptions",
+    "publicSetDetailQueryOptions",
+    "publicCollectionQueryOptions",
+    "tournamentRunStateQueryOptions",
+    "tournamentReportQueryOptions",
+    "publicDeckQueryOptions",
+    "friendGroupJoinPreviewQueryOptions",
+    "listDetailQueryOptions",
+    "publicListQueryOptions",
+    "boardStateQueryOptions",
+    "publicBoardStateQueryOptions",
+    "friendGroupDetailQueryOptions",
+    "friendGroupMemberDetailQueryOptions",
+    "friendGroupSharedListQueryOptions",
+    "friendGroupSharedCollectionQueryOptions",
+    "listGroupSharesQueryOptions",
+    "tournamentDetailQueryOptions",
+    "tournamentParticipantsQueryOptions",
+    "tournamentSubmitLandingQueryOptions",
+    "tournamentStaffInviteLandingQueryOptions",
+    "tierListQueryOptions",
+    "publicTierListQueryOptions",
+    "publicUserBundleQueryOptions",
+    "publicUserBundleListQueryOptions",
+    "metaEventQueryOptions",
+    "metaStandingsQueryOptions",
+    "metaRunQueryOptions",
+    "metaDeckQueryOptions",
+    "metaLegendQueryOptions",
+    "metaPlayerQueryOptions",
+  ];
+
+  it("converts the not-found sentinel only through notFoundOnSentinel", () => {
+    expect(
+      offenders(WEB_FILES, /isNotFoundSentinel\(/u, [
+        web("lib/server-fns/api-error.ts"),
+        web("features/decks/hooks/use-deck-import-flow.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("turns a missing resource into a 404 in every route that loads one", () => {
+    const declared = WEB_FILES.map((file) => readFileSync(file, "utf-8")).join("\n");
+    expect(
+      NOT_FOUND_QUERY_OPTIONS.filter((name) => !declared.includes(`function ${name}(`)),
+    ).toEqual([]);
+    const deliberate = new Set([
+      web("routes/_app/developers.tsx"),
+      web("routes/_app/_authenticated/meta_.$slug_.submit.tsx"),
+    ]);
+    const missing = routeFiles
+      .filter((file) => !deliberate.has(relative(file)))
+      .filter((file) => {
+        const text = readFileSync(file, "utf-8");
+        return (
+          NOT_FOUND_QUERY_OPTIONS.some((name) => text.includes(`${name}(`)) &&
+          !/\b(?:notFoundOnSentinel|ensureFriendGroupDetailCanonical|loadTournamentDetail)\(/u.test(
+            text,
+          )
+        );
+      });
+    expect(missing.map((file) => relative(file))).toEqual([]);
+  });
+
+  it("renders a route's own not-found page wherever it can throw one", () => {
+    const missing = routeFiles.filter((file) => {
+      const text = readFileSync(file, "utf-8");
+      if (!/\b(?:requireFeature|notFoundOnSentinel)\(/u.test(text)) {
+        return false;
+      }
+      const lazy = file.replace(/\.tsx$/u, ".lazy.tsx");
+      const lazyText = WEB_FILES.includes(lazy) ? readFileSync(lazy, "utf-8") : "";
+      return !text.includes("notFoundComponent") && !lazyText.includes("notFoundComponent");
+    });
+    expect(missing.map((file) => relative(file))).toEqual([]);
+  });
+
+  it("reads feature flags and site settings without casts", () => {
+    expect(offenders(WEB_FILES, /as (?:FeatureFlags|SiteSettings)\b/u)).toEqual([]);
+  });
+
+  it("gates flagged routes only through requireFeature", () => {
+    expect(offenders(routeFiles, /featureEnabled\(/u)).toEqual([]);
+  });
+
+  it("builds private page heads through privateSeoHead", () => {
+    expect(
+      offenders(
+        WEB_FILES,
+        /seoHead\(\{\s*siteUrl: getSiteUrl\(\),\s*title: [^,{}]+,\s*noIndex: true,?\s*\}\)/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("reads media queries only through the media-query module and its hooks", () => {
+    expect(
+      offenders(WEB_FILES, /prefers-reduced-motion|prefers-color-scheme|\bmatchMedia\(/u, [
+        web("lib/media-query.ts"),
+        web("lib/shell-prefs.ts"),
+        web("hooks/create-media-query-hook.ts"),
+        web("features/scan/hooks/use-scan-layout.ts"),
+        web("stores/theme-store.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("tracks the Shift key only through useShiftHeld", () => {
+    expect(
+      offenders(WEB_FILES, /event\.key === "Shift"/u, [
+        web("hooks/use-shift-held.ts"),
+        web("features/collections/components/collection-layout.tsx"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("prefetches in route loaders with a static staleTime", () => {
+    expect(
+      offenders(
+        routeFiles,
+        /queryClient\s*\.(?:query|infiniteQuery)\((?!\{)|queryClient\s*\.(?:query|infiniteQuery)\(\{\s*\.\.\.[\w.]+(?:\([^()]*\))?\s*\}\)/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("reads route params and search through the route's own API", () => {
+    expect(offenders(WEB_FILES, /(?:useParams|useSearch)\(\{\s*from:/u)).toEqual([]);
+  });
+
+  it("parses the second-face search field only through sideSearchParam", () => {
+    expect(offenders(WEB_FILES, /Number\(value\) === 2/u, [web("lib/route-search.ts")])).toEqual(
+      [],
+    );
+  });
+});
+
+describe("shared components and tournaments", () => {
+  const web = (file: string) => `apps/web/src/${file}`;
+  const filesIn = (dir: string) => WEB_FILES.filter((file) => relative(file).startsWith(web(dir)));
+
+  it("shows progress through Spinner", () => {
+    expect(
+      offenders(WEB_FILES, /\b(?:Loader2Icon|LoaderIcon|LoaderCircleIcon)\b/u, [
+        web("components/ui/spinner.tsx"),
+        web("components/ui/sonner.tsx"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("keeps the button label while pending", () => {
+    expect(
+      offenders(
+        WEB_FILES,
+        /\bpendingLabel\b|<(?:Button|PageTopBar\w*Button|AlertDialogAction)\b(?:=>|[^<>])*>(?:[^{}<]|<[^<>]*\/>)*\{\s*[\w.]*(?:[Pp]ending|[Ss]aving|[Ss]ubmitting|[Pp]reviewing)\s*\?\s*m\.\w+\(\)\s*:\s*m\./u,
+        [web("features/admin/components/meta-admin-page.tsx")],
+      ),
+    ).toEqual([]);
+  });
+
+  it("renders message markup through the shared markup components", () => {
+    expect(
+      offendersExcept(
+        WEB_FILES.filter((file) => relative(file) !== web("components/message-markup.tsx")),
+        /\b(?:strong|b): \(\{ children \}/u,
+        {
+          [web("features/decks/components/deck-import-input-step.tsx")]: [
+            "({ children }) => children",
+          ],
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("builds the accent glows and washes in one module", () => {
+    expect(
+      offenders(WEB_FILES, /radial-gradient\((?:120% 90% at 50% 115%|90% 130% at 85% 10%)/u, [
+        web("lib/accent-wash.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("defines thrownMessage once", () => {
+    expect(offenders(WEB_FILES, /function thrownMessage\b/u, [web("lib/error-text.ts")])).toEqual(
+      [],
+    );
+  });
+
+  it("checks admin sections only through hasAdminSection", () => {
+    expect(
+      offenders(WEB_FILES, /isAdmin \|\| [^;]*\.includes\(/u, [
+        web("features/admin/lib/admin-sections.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("draws empty card slots through the card fan", () => {
+    expect(offenders(WEB_FILES, /aspect-card absolute[^"]*border-dashed/u)).toEqual([]);
+  });
+
+  it("filters pickers without phrase matching", () => {
+    expect(
+      offenders(
+        WEB_FILES.filter((file) => /\/(?:combobox-picker|picker-list)\.tsx$/u.test(file)),
+        /matchesTextPhrase/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("builds tournament token links only through tournamentTokenUrl", () => {
+    expect(
+      offenders(WEB_FILES, /getSiteUrl\(\)\}\/tournaments\//u, [
+        web("features/tournaments/lib/tournament-display.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("names members only through memberName", () => {
+    expect(
+      offenders(WEB_FILES, /\?\?\s*\w+\.userId\b/u, [
+        web("features/admin/components/audit-log-page.tsx"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("orders deck zones through useZoneOrder", () => {
+    expect(
+      offenders(
+        filesIn("features/tournaments/components/"),
+        /\[[^\]]*WellKnown\.deckZone\.\w+[^\]]*WellKnown\.deckZone\.\w+/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("parses whole-number tournament inputs through parseIntegerInput", () => {
+    expect(offenders(filesIn("features/tournaments/components/"), /Number\.isInteger\(/u)).toEqual(
+      [],
+    );
+  });
+
+  it("opens deck check only through canOpenDeckCheck", () => {
+    expect(
+      offenders(WEB_FILES, /deckSubmission !== "none" && (?:isTournamentStaff|canCheckDecks)\(/u, [
+        web("features/tournaments/lib/tournament-display.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("defines isResultlessPod once", () => {
+    expect(
+      offenders(ALL_FILES, /(?:function|const) isResultlessPod\b/u, [
+        "packages/shared/src/pairing/pod-result.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("reads dnd-kit returns only after destructuring", () => {
+    expect(
+      offenders(
+        WEB_FILES,
+        /const (?<hook>\w+) = use(?:Draggable|Droppable|Sortable)\([\s\S]*?\b\k<hook>\./u,
+      ),
     ).toEqual([]);
   });
 });

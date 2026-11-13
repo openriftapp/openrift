@@ -38,7 +38,14 @@ vi.mock("@/lib/query-client", () => ({
   reportMutationError: (...args: unknown[]) => reportMutationError(...args),
 }));
 
-const { useTickTournamentDeckCheckCard } = await import("./use-tournament-deck-check");
+const {
+  useAddTournamentDeckCheckCard,
+  useApplyTournamentDeckCheckZoneFixes,
+  useCreateTournamentDeckCheckEntry,
+  useFixTournamentDeckCheckCard,
+  useTickTournamentDeckCheckCard,
+  useUpdateTournamentDeckCheckEntry,
+} = await import("./use-tournament-deck-check");
 
 const ENTRY_KEY = tournamentDeckCheckKeys.entry("user-1", "t-1", "e-1");
 
@@ -150,5 +157,32 @@ describe("useTickTournamentDeckCheckCard", () => {
     second.resolve();
     await act(() => secondDone);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ENTRY_KEY });
+  });
+});
+
+describe("deck-check dialog mutations", () => {
+  it("show their errors inline", async () => {
+    const hooks: (() => { mutateAsync: (variables: never) => Promise<unknown> })[] = [
+      () => useCreateTournamentDeckCheckEntry(),
+      () => useUpdateTournamentDeckCheckEntry(),
+      () => useAddTournamentDeckCheckCard(),
+      () => useFixTournamentDeckCheckCard(),
+      () => useApplyTournamentDeckCheckZoneFixes(),
+    ];
+    for (const hook of hooks) {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { result } = renderHook(hook, {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      });
+      await act(async () => {
+        await (result.current.mutateAsync as (v: unknown) => Promise<unknown>)({
+          tournamentId: "t-1",
+          entryId: "e-1",
+        }).catch(() => null);
+      });
+      expect(client.getMutationCache().getAll()[0]?.options.meta).toEqual({ inlineError: true });
+    }
   });
 });

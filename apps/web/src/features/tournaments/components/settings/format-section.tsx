@@ -4,16 +4,21 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { GroupCutSettingsFields } from "@/features/tournaments/components/group-cut-settings-fields";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   PlayModeField,
   RoundsField,
 } from "@/features/tournaments/components/settings/format-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
+import type {
+  TournamentFormatChange,
+  TournamentFormatState,
+} from "@/features/tournaments/lib/tournament-display";
 import {
+  formatChangePatch,
   hasPairing,
   matchFormatLabels,
   pairingStyleLabels,
-  pairingFromRoundsChoice,
   roundsChoiceFor,
 } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -37,6 +42,18 @@ export function FormatSection({
         style: pairingStyleLabels()[detail.pairingStyle],
       })
     : m.tournaments_settings_format_description_locked();
+
+  function changeFormat(change: TournamentFormatChange) {
+    const current: TournamentFormatState = {
+      playMode: detail.playMode,
+      pairingStyle: detail.pairingStyle,
+      matchFormat: detail.matchFormat,
+      format: detail.format,
+      regionsEnabled: detail.regionsEnabled,
+    };
+    const patch = formatChangePatch(current, change);
+    void runReportedMutation(() => updateTournament.mutateAsync({ id: detail.id, ...patch }));
+  }
 
   return (
     <SettingsSection
@@ -65,17 +82,7 @@ export function FormatSection({
             value={detail.playMode}
             groupCut={groupCut}
             disabled={locked || updateTournament.isPending}
-            onChange={(playMode) =>
-              void runReportedMutation(() =>
-                updateTournament.mutateAsync({
-                  id: detail.id,
-                  playMode,
-                  pairingStyle:
-                    playMode === "2v2" && detail.pairingStyle === "pod" ? "swiss" : undefined,
-                  regionsEnabled: playMode === "2v2" && detail.regionsEnabled ? false : undefined,
-                }),
-              )
-            }
+            onChange={(playMode) => changeFormat({ playMode })}
           />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="t-pairings-enabled">{m.tournaments_settings_pairings_label()}</Label>
@@ -84,18 +91,7 @@ export function FormatSection({
                 id="t-pairings-enabled"
                 checked={runsRounds}
                 disabled={locked || updateTournament.isPending}
-                onCheckedChange={(checked) => {
-                  void runReportedMutation(() =>
-                    updateTournament.mutateAsync({
-                      id: detail.id,
-                      pairingStyle: checked
-                        ? detail.playMode === "2v2"
-                          ? "swiss"
-                          : "pod"
-                        : "none",
-                    }),
-                  );
-                }}
+                onCheckedChange={(pairingsEnabled) => changeFormat({ pairingsEnabled })}
               />
             </div>
           </div>
@@ -104,18 +100,7 @@ export function FormatSection({
               value={roundsChoice}
               teams={detail.playMode === "2v2"}
               disabled={locked || updateTournament.isPending}
-              onChange={(choice) => {
-                const next = pairingFromRoundsChoice(choice);
-                void runReportedMutation(() =>
-                  updateTournament.mutateAsync({
-                    id: detail.id,
-                    pairingStyle: next.pairingStyle,
-                    matchFormat: next.pairingStyle === "swiss" ? next.matchFormat : undefined,
-                    format: next.format,
-                    playMode: next.format === "group_cut" ? "1v1" : undefined,
-                  }),
-                );
-              }}
+              onChange={(choice) => changeFormat({ roundsChoice: choice })}
             />
           ) : null}
           {groupCut ? (
@@ -139,6 +124,7 @@ export function FormatSection({
           ) : null}
         </div>
       )}
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

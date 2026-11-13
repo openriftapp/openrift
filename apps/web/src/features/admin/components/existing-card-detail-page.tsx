@@ -52,6 +52,7 @@ import { useCardPageFocus } from "@/features/admin/hooks/use-card-page-focus";
 import { useCardReviewNavigation } from "@/features/admin/hooks/use-card-review-navigation";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import {
   attentionCount,
   buildAttentionSources,
@@ -123,7 +124,7 @@ export function ExistingCardDetailPage({
   // card-review grant holders keep the per-field accept flow and image finishing;
   // triage, printing create/delete, rename, bans, errata, and marketplace stay full-admin.
   const isAdmin = access?.isAdmin === true;
-  const canOpenPrintingPages = isAdmin || (access?.sections ?? []).includes("printing-desk");
+  const canOpenPrintingPages = hasAdminSection(access, "printing-desk");
 
   // This card's detail, the admin card list and the printing pages, not all of `admin.cards`.
   const invalidateScope = [

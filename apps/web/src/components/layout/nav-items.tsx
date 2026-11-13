@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import {
   BookOpenIcon,
   BookTextIcon,
@@ -31,8 +30,8 @@ import type { ComponentType } from "react";
 import { useEffect } from "react";
 import { siDiscord, siGithub } from "simple-icons";
 
+import { SignedOutAuthButtons } from "@/components/signed-out-cta";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
-import { buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +40,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { trackAuthGate, trackSignupCta } from "@/lib/analytics";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { trackAuthGate } from "@/lib/analytics";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
@@ -288,6 +288,20 @@ export function navItemVisible(
   return true;
 }
 
+export function useNavFlags(): NavFlags {
+  return {
+    glossary: useFeatureEnabled("glossary"),
+    "board-states": useFeatureEnabled("board-states"),
+    scanner: useFeatureEnabled("scanner"),
+  };
+}
+
+export function paletteNavItems(opts: { flags: NavFlags; mobile: boolean }): NavItemConfig[] {
+  return [...primaryNavItems(), ...moreNavSections().flatMap((section) => section.items)].filter(
+    (item) => navItemVisible(item, opts),
+  );
+}
+
 function isPromoted(item: NavItemConfig, badges?: NavBadgeCounts): boolean {
   return Boolean(item.promoteWhenBadged && item.badge && badges && badges[item.badge] > 0);
 }
@@ -450,27 +464,13 @@ export function SignInRequiredDialog({
             <DialogDescription>{feature.description}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Link
-              rel="nofollow"
-              to="/login"
-              search={{ redirect: feature.to, email: undefined }}
-              className={buttonVariants({ variant: "ghost" })}
-              onClick={() => onOpenChange(false)}
-            >
-              {m.common_sign_in()}
-            </Link>
-            <Link
-              rel="nofollow"
-              to="/signup"
-              search={{ redirect: feature.to, email: undefined }}
-              className={buttonVariants({ variant: "default" })}
-              onClick={() => {
-                trackSignupCta("nav-gate");
-                onOpenChange(false);
-              }}
-            >
-              {m.common_sign_up()}
-            </Link>
+            <SignedOutAuthButtons
+              source="nav-gate"
+              redirect={feature.to}
+              className="contents"
+              signUpLabel={m.common_sign_up()}
+              onNavigate={() => onOpenChange(false)}
+            />
           </DialogFooter>
         </DialogContent>
       )}

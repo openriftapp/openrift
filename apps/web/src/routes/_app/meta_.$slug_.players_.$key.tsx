@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { metaRunQueryOptions } from "@/features/meta/lib/meta-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -36,21 +36,15 @@ export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
     };
   },
   loader: async ({ context, params }): Promise<MetaEventRunLoaderData> => {
-    let run;
-    try {
-      [, run] = await Promise.all([
+    const [, run] = await notFoundOnSentinel(
+      Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
         context.queryClient.query({
           ...metaRunQueryOptions(params.slug, params.key),
           staleTime: "static",
         }),
-      ]);
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      ]),
+    );
     if (run.rounds.length === 0) {
       throw notFound();
     }

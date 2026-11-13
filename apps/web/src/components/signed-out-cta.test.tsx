@@ -14,7 +14,10 @@ vi.mock("@/hooks/use-hydrated", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  useLocation: () => ({ href: "/lists/share/abc123" }),
+  useLocation: (opts?: { select?: (location: { href: string }) => unknown }) => {
+    const location = { href: "/lists/share/abc123" };
+    return opts?.select ? opts.select(location) : location;
+  },
   Link: ({
     to,
     search,
@@ -72,6 +75,24 @@ describe("SignedOutAuthButtons", () => {
     render(<SignedOutAuthButtons source="group-join" />);
     fireEvent.click(screen.getByRole("link", { name: "Create an account" }));
     expect(track).toHaveBeenCalledWith("signup-cta", { source: "group-join" });
+  });
+
+  it("fills the create-account button and keeps sign-in quiet", () => {
+    render(<SignedOutAuthButtons source="test" />);
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveClass("btn-corner-cut");
+    expect(screen.getByRole("link", { name: "Sign in" })).not.toHaveClass("btn-corner-cut");
+  });
+
+  it("sends both links to an explicit redirect when given", () => {
+    render(<SignedOutAuthButtons source="test" redirect="/collections" />);
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      "/login?redirect=/collections",
+    );
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
+      "href",
+      "/signup?redirect=/collections",
+    );
   });
 
   it("takes a custom sign-in label", () => {

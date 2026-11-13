@@ -4,8 +4,7 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/")({
   beforeLoad: ({ search, location }) => {
@@ -16,7 +15,7 @@ export const Route = createFileRoute("/_app/_authenticated/collections/")({
       throw redirect({ to: "/collections", search: cleaned, replace: true });
     }
   },
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Collections", noIndex: true }),
+  head: () => privateSeoHead("Collections"),
   loader: async ({ context }) => {
     const { getCollectionsCollection } =
       await import("@/features/collections/lib/collections-collection");

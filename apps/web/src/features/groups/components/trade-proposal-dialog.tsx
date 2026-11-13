@@ -302,7 +302,7 @@ function ProposalBody({
         {stepper}
         <DialogFooter>
           <DialogCancel />
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" pending={pending}>
             {copy.send()}
           </Button>
         </DialogFooter>
@@ -325,7 +325,7 @@ function ProposalBody({
           <Button variant="outline" disabled={pending} onClick={() => setPhase("pick")}>
             {m.trades_back()}
           </Button>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" pending={pending}>
             {copy.shareAndSend()}
           </Button>
         </DialogFooter>
@@ -402,12 +402,13 @@ function ProposalBody({
         {needsShare ? (
           <Button
             type="submit"
-            disabled={pending || (selectedId === NEW_LIST && newName.trim().length === 0)}
+            disabled={selectedId === NEW_LIST && newName.trim().length === 0}
+            pending={pending}
           >
             {m.trades_continue()}
           </Button>
         ) : (
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" pending={pending}>
             {copy.send()}
           </Button>
         )}

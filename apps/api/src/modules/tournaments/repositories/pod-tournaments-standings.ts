@@ -1,3 +1,4 @@
+import { isResultlessPod, teamsOf } from "@openrift/shared/pairing/pod-result";
 import type { PairingPlayer } from "@openrift/shared/pairing/types";
 import type {
   PodPlayerStatus,
@@ -8,13 +9,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
-import {
-  isResultlessPod,
-  podSizeOf,
-  pointsForPod,
-  pointsForTeamPod,
-  teamsOf,
-} from "./pod-points.js";
+import { podSizeOf, pointsForPod, pointsForTeamPod } from "./pod-points.js";
 import type { PodRosterPlayer, PodScoring } from "./pod-tournaments-shared.js";
 import { ROSTER_STATUSES } from "./pod-tournaments-shared.js";
 

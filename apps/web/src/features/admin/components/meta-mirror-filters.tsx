@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/components/admin-filters";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import {
   catalogStatusDisplay,
   PLAYLOLTCG_STATUS_CHOICES,
@@ -25,6 +24,7 @@ import type { MirrorRailGroup, MirrorView } from "@/features/admin/lib/meta-mirr
 import { mirrorViewId, mirrorViewSearch } from "@/features/admin/lib/meta-mirror-view";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { formatCount } from "@/lib/format";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { cn } from "@/lib/utils";
 
 const ANY = "any";

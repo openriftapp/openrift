@@ -305,7 +305,7 @@ function CreateProductDialog({
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createProduct.isPending}>
+            <Button type="submit" pending={createProduct.isPending}>
               Create product
             </Button>
           </DialogFooter>
@@ -384,7 +384,7 @@ function ResyncDialog({
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={resyncProduct.isPending}>
+            <Button type="submit" pending={resyncProduct.isPending}>
               Replace contents
             </Button>
           </DialogFooter>

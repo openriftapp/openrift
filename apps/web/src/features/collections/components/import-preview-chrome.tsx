@@ -6,6 +6,7 @@ import type { ChangeEvent, ReactNode, RefObject } from "react";
 import { useState } from "react";
 
 import { Disclosure } from "@/components/disclosure";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -267,7 +268,7 @@ export function ImportToVerifyNote({ count }: { count: number }) {
         message={m.collections_import_to_verify_note}
         inputs={{ count }}
         markup={{
-          strong: ({ children }) => <span className="text-foreground font-medium">{children}</span>,
+          strong: PROSE_MARKUP.strong,
         }}
       />
     </p>

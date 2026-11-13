@@ -104,6 +104,17 @@ describe("TournamentStaffTab roster", () => {
 
     expect(screen.getByTitle("Owner of Hextech Hall")).toHaveTextContent("via org");
   });
+
+  it("names a member without a display name as unnamed, never by user id", () => {
+    render(
+      <TournamentStaffTab
+        detail={makeDetail({ staff: [makeStaff("u9", "judge", { name: null })] })}
+      />,
+    );
+
+    expect(screen.getByText("Unnamed member")).toBeInTheDocument();
+    expect(screen.queryByText("u9")).not.toBeInTheDocument();
+  });
 });
 
 describe("TournamentStaffTab remove action", () => {
@@ -193,6 +204,23 @@ describe("TournamentStaffTab invite band", () => {
 
     await user.click(screen.getByRole("button", { name: "Copy" }));
     expect(writeText).toHaveBeenCalledWith(fullUrl);
+  });
+
+  it("keeps the disable confirm open when disabling fails", async () => {
+    const user = userEvent.setup();
+    setInviteMutateAsync.mockRejectedValueOnce(new Error("boom"));
+    render(<TournamentStaffTab detail={makeDetail({ judgeInviteToken: "tok-judge" })} />);
+
+    await user.click(screen.getByRole("button", { name: "Disable judge invite link" }));
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Disable link" }));
+
+    expect(setInviteMutateAsync).toHaveBeenCalledWith({
+      id: "tournament-1",
+      role: "judge",
+      enabled: false,
+    });
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
 
   it("hides the invite band from a non-host", () => {

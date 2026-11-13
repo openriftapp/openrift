@@ -166,7 +166,16 @@ describe("PairingsView", () => {
       rounds: [
         makeRound({
           pods: [
-            makePod({ id: "pod-1", podNumber: 1, resultStatus: "reported" }),
+            makePod({
+              id: "pod-1",
+              podNumber: 1,
+              resultStatus: "reported",
+              members: makePod().members.map((member, index) => ({
+                ...member,
+                gamePoints: 3 - index,
+                placement: index + 1,
+              })),
+            }),
             makePod({
               id: "pod-2",
               podNumber: 2,

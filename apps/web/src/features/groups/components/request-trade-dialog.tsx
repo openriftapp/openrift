@@ -234,7 +234,7 @@ export function RequestTradeDialog({
 
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={pending || !ready}>
+            <Button type="submit" disabled={!ready} pending={pending}>
               {verb}
             </Button>
           </DialogFooter>

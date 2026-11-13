@@ -3,11 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { collectionEventsQueryOptions } from "@/features/collections/lib/collection-events-queries";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/activity")({
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Collection Activity", noIndex: true }),
+  head: () => privateSeoHead("Collection Activity"),
   loader: async ({ context }) => {
     const { getCollectionsCollection } =
       await import("@/features/collections/lib/collections-collection");

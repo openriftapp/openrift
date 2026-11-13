@@ -54,6 +54,19 @@ describe("DatePicker", () => {
     expect(onValueChange).toHaveBeenCalledWith("2026-08-01");
   });
 
+  it("never emits an impossible day and keeps the typed text", () => {
+    const onValueChange = vi.fn();
+    const { container } = render(<DatePicker value="" onValueChange={onValueChange} />);
+    const input = getInput(container);
+
+    fireEvent.change(input, { target: { value: "2025-02-31" } });
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(input.value).toBe("2025-02-31");
+
+    fireEvent.change(input, { target: { value: "2024-02-29" } });
+    expect(onValueChange).toHaveBeenCalledWith("2024-02-29");
+  });
+
   it("calls onClear when the text is emptied", () => {
     const onClear = vi.fn();
     const { container } = render(<DatePicker value="2026-07-27" onClear={onClear} />);

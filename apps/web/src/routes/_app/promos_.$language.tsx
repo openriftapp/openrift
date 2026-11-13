@@ -1,6 +1,4 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
-import { cardPath } from "@openrift/shared/site-paths";
 import { RENAMED_LANGUAGES } from "@openrift/shared/well-known";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
@@ -8,7 +6,7 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { initQueryOptions } from "@/lib/init-queries";
-import { collectionPageJsonLd, seoHead } from "@/lib/seo";
+import { cardJsonLdItems, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 interface JsonLdItem {
@@ -89,21 +87,8 @@ export const Route = createFileRoute("/_app/promos_/$language")({
       throw notFound();
     }
 
-    const seenCardIds = new Set<string>();
-    const items: JsonLdItem[] = [];
-    for (const printing of data.printings) {
-      if (seenCardIds.has(printing.cardId)) {
-        continue;
-      }
-      seenCardIds.add(printing.cardId);
-      const card = data.cards[printing.cardId];
-      if (!card) {
-        continue;
-      }
-      items.push({ name: legendDisplayName(card), url: cardPath(card.slug) });
-    }
     const languageName = enumLabel(labelMap(init.enums.languages ?? []), params.language);
-    return { items, languageName };
+    return { items: cardJsonLdItems(data.printings, data.cards), languageName };
   },
   errorComponent: RouteErrorFallback,
 });

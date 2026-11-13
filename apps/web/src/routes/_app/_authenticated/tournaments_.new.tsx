@@ -3,12 +3,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteErrorFallback } from "@/components/error-message";
 import { friendGroupsQueryOptions } from "@/features/groups/lib/friend-groups-queries";
 import { myOrganizationsQueryOptions } from "@/features/tournaments/lib/organizations-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/new")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "New tournament", noIndex: true }),
+  head: () => privateSeoHead("New tournament"),
   validateSearch: (search: Record<string, unknown>): { group?: string } => ({
     group: typeof search.group === "string" ? search.group : undefined,
   }),

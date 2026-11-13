@@ -1,7 +1,23 @@
 import { ADMIN_SECTION_SLUGS } from "@openrift/shared/admin-sections";
 import { describe, expect, it } from "vitest";
 
-import { ADMIN_SECTION_ROUTES, adminSectionsForPathname } from "./admin-sections";
+import { ADMIN_SECTION_ROUTES, adminSectionsForPathname, hasAdminSection } from "./admin-sections";
+
+describe("hasAdminSection", () => {
+  it("grants every section to an admin", () => {
+    expect(hasAdminSection({ isAdmin: true, sections: [] }, "printing-desk")).toBe(true);
+  });
+
+  it("grants a holder only the sections they hold", () => {
+    const access = { isAdmin: false, sections: ["card-review"] };
+    expect(hasAdminSection(access, "card-review")).toBe(true);
+    expect(hasAdminSection(access, "printing-desk")).toBe(false);
+  });
+
+  it("denies while access is unknown", () => {
+    expect(hasAdminSection(undefined, "card-review")).toBe(false);
+  });
+});
 
 describe("adminSectionsForPathname", () => {
   it("resolves a section route to its slug", () => {

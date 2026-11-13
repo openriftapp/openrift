@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 
-import { Code } from "@/components/ui/code";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +62,7 @@ export function CollectionImportDialog({
               <ParaglideMessage
                 message={m.collections_import_paste_hint}
                 markup={{
-                  code: ({ children }) => <Code>{children}</Code>,
+                  code: PROSE_MARKUP.code,
                 }}
               />
             </DialogDescription>

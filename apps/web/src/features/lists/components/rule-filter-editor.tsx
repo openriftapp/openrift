@@ -27,14 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InfoHint } from "@/components/ui/info-hint";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
@@ -369,27 +362,13 @@ export function RuleFilterEditor({
           </div>
         </FilterRow>
         <FilterRow label={m.lists_rule_dim_marketplace()}>
-          <Select
+          <SimpleSelect
             items={PRICE_MARKETPLACE_OPTIONS}
-            value={shownMarketplace}
-            onValueChange={(next) => onPriceMarketplaceChange(next as Marketplace)}
-          >
-            <SelectTrigger
-              className={CONTROL_WIDTH}
-              aria-label={m.lists_rule_price_marketplace_aria()}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {PRICE_MARKETPLACE_OPTIONS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            value={shownMarketplace ?? null}
+            onChange={onPriceMarketplaceChange}
+            label={m.lists_rule_price_marketplace_aria()}
+            className={CONTROL_WIDTH}
+          />
         </FilterRow>
         <p className="text-muted-foreground -mt-1 text-sm">
           {m.lists_rule_price_note()}

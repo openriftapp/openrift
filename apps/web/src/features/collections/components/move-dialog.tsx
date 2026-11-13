@@ -70,7 +70,6 @@ export function MoveDialog({
         ? {
             confirm: {
               label: m.collections_dialog_move_confirm(),
-              pendingLabel: m.collections_dialog_move_pending(),
               onConfirm: (collectionId: string) => onMove(collectionId, quantity),
             },
           }

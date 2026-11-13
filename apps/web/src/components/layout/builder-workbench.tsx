@@ -41,10 +41,7 @@ export function BuilderWorkbench({
           {topBar}
         </div>
 
-        <div
-          ref={columnsRef}
-          className="px-safe relative flex flex-1 flex-col gap-4 px-3 lg:flex-row"
-        >
+        <div ref={columnsRef} className="px-safe relative flex flex-1 flex-col gap-4 lg:flex-row">
           {overlay}
           <div className={cn("w-full shrink-0", asideClassName)}>
             {/* overflow-y implies overflow-x auto, clipping an inset ring; the

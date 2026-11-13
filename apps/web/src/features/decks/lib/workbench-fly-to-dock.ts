@@ -1,11 +1,9 @@
 import type { DeckZone } from "@openrift/shared/types/enums";
 
+import { prefersReducedMotion } from "@/lib/media-query";
+
 const DURATION_MS = 420;
 const LANDING_MS = 260;
-
-function prefersReducedMotion(): boolean {
-  return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-}
 
 function visible(element: Element | null): element is HTMLElement {
   return element instanceof HTMLElement && element.getBoundingClientRect().width > 0;

@@ -1,0 +1,238 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
+import type { CSSProperties, ComponentType, SVGProps } from "react";
+
+import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import { LANDSCAPE_ROTATION_STYLE } from "@/lib/images";
+import { cn } from "@/lib/utils";
+
+/** One fan slot: x/y offset (px), rotation (deg), and an optional paint-order z. */
+interface FanSlot {
+  x: number;
+  r: number;
+  y?: number;
+  z?: number;
+}
+
+type FanSize = "xs" | "sm" | "lg";
+
+interface FanSpec {
+  cardWidth: number;
+  layouts: readonly (readonly FanSlot[])[];
+}
+
+const FAN_SPECS: Record<FanSize, FanSpec> = {
+  xs: {
+    cardWidth: 64,
+    layouts: [
+      [],
+      [{ x: 0, r: 0 }],
+      [
+        { x: 5, r: 4, z: 2 },
+        { x: -18, y: 6, r: -8, z: 1 },
+      ],
+      [
+        { x: 0, r: 0, z: 2 },
+        { x: -25, y: 7, r: -9, z: 1 },
+        { x: 25, y: 7, r: 9, z: 1 },
+      ],
+    ],
+  },
+  sm: {
+    cardWidth: 92,
+    layouts: [
+      [],
+      [{ x: 0, r: 0 }],
+      [
+        { x: -30, r: -6 },
+        { x: 30, r: 6 },
+      ],
+      [
+        { x: -52, r: -9 },
+        { x: 0, r: 0 },
+        { x: 52, r: 9 },
+      ],
+      [
+        { x: -69, r: -12 },
+        { x: -23, r: -4 },
+        { x: 23, r: 4 },
+        { x: 69, r: 12 },
+      ],
+    ],
+  },
+  lg: {
+    cardWidth: 132,
+    layouts: [
+      [],
+      [{ x: 0, r: 0 }],
+      [
+        { x: -44, r: -7 },
+        { x: 44, r: 7 },
+      ],
+      [
+        { x: -60, r: -9 },
+        { x: 0, r: 0 },
+        { x: 60, r: 9 },
+      ],
+    ],
+  },
+};
+
+type FanAnchor = "bottom" | "center" | "flush";
+
+const ANCHOR_CLASS: Record<FanAnchor, string> = {
+  bottom: "bottom-[-14px]",
+  center: "top-1/2",
+  flush: "bottom-0",
+};
+
+function fanCardClass(anchor: FanAnchor): string {
+  return cn("aspect-card absolute left-1/2", ANCHOR_CLASS[anchor]);
+}
+
+function fanCardStyle(slot: FanSlot, cardWidth: number, anchor: FanAnchor): CSSProperties {
+  const verticalCenter = anchor === "center" ? { marginTop: -cardWidth / CARD_ASPECT / 2 } : {};
+  return {
+    width: cardWidth,
+    zIndex: slot.z,
+    marginLeft: -cardWidth / 2,
+    ...verticalCenter,
+    transform: `translate(${slot.x}px, ${slot.y ?? 0}px) rotate(${slot.r}deg)`,
+    transformOrigin: anchor === "bottom" ? "50% 120%" : "50% 90%",
+  };
+}
+
+/** A self-hosted image id, or a direct `src` for demos and external art. */
+type FanCover = { key: string; landscape?: boolean } & ({ imageId: string } | { src: string });
+
+function coverSources(
+  cover: FanCover,
+  cardWidth: number,
+  variant: "240w" | "400w",
+): { src: string; srcSet?: string; sizes?: string } {
+  if ("src" in cover) {
+    return { src: cover.src };
+  }
+  return {
+    src: imageUrl(cover.imageId, variant),
+    srcSet: imageSrcSet(cover.imageId, ["120w", "240w", "400w"]),
+    sizes: `${cardWidth}px`,
+  };
+}
+
+interface CardFanProps {
+  covers: readonly FanCover[];
+  /** `xs` is the archive's podium fan, `sm` the products tile, `lg` the event hero. */
+  size?: FanSize;
+  anchor?: FanAnchor;
+  /** Set on above-the-fold fans: this is the page's LCP element, lazy loading it costs a round trip. */
+  priority?: boolean;
+}
+
+/**
+ * Up to four card images fanned like a physical spread, absolutely positioned
+ * inside a `CoverBand` (or any relative host).
+ */
+export function CardFan({ covers, size = "sm", anchor = "bottom", priority }: CardFanProps) {
+  const spec = FAN_SPECS[size];
+  const layout = spec.layouts[Math.min(covers.length, spec.layouts.length - 1)];
+  const variant = size === "lg" ? "400w" : "240w";
+  if (!layout) {
+    return null;
+  }
+  return (
+    <>
+      {layout.map((slot, index) => {
+        const cover = covers[index];
+        if (!cover) {
+          return null;
+        }
+        const loadProps = {
+          alt: "",
+          loading: priority ? ("eager" as const) : ("lazy" as const),
+          fetchPriority: priority ? ("high" as const) : undefined,
+          fallback: null,
+        };
+        const slotStyle: CSSProperties = {
+          ...fanCardStyle(slot, spec.cardWidth, anchor),
+          borderRadius: CARD_BORDER_RADIUS,
+        };
+        if (cover.landscape) {
+          return (
+            <span
+              key={cover.key}
+              className={cn(
+                "ring-foreground/20 min-w-0 overflow-hidden shadow-md ring-1",
+                fanCardClass(anchor),
+              )}
+              style={slotStyle}
+            >
+              <span
+                className="absolute top-1/2 left-1/2 overflow-hidden"
+                style={LANDSCAPE_ROTATION_STYLE}
+              >
+                <ImgWithFallback
+                  {...coverSources(cover, (spec.cardWidth * 88) / 63, variant)}
+                  {...loadProps}
+                  className="size-full object-cover"
+                />
+              </span>
+            </span>
+          );
+        }
+        return (
+          <ImgWithFallback
+            key={cover.key}
+            {...coverSources(cover, spec.cardWidth, variant)}
+            {...loadProps}
+            className={cn("ring-foreground/20 object-cover shadow-md ring-1", fanCardClass(anchor))}
+            style={slotStyle}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+const OUTLINE_ROTATIONS = [-12, 12, 0];
+
+export function CardFanOutline({
+  size = "sm",
+  anchor = "bottom",
+  icon: Icon,
+  caption,
+}: {
+  size?: FanSize;
+  anchor?: FanAnchor;
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
+  caption?: string;
+}) {
+  const spec = FAN_SPECS[size];
+  const stackedSlotStyle = (rotation: number): CSSProperties => ({
+    ...fanCardStyle({ x: 0, r: rotation }, spec.cardWidth, anchor),
+    // The house fan pivots at the cards' shared bottom edge, not the fan
+    // arc's virtual center below it.
+    transformOrigin: "50% 100%",
+  });
+  return (
+    <>
+      {OUTLINE_ROTATIONS.map((rotation) => (
+        <div
+          key={rotation}
+          className={cn(
+            "rounded-md border border-dashed",
+            rotation === 0
+              ? "border-muted-foreground/40 bg-card text-muted-foreground flex flex-col items-center justify-center gap-2"
+              : "border-border",
+            fanCardClass(anchor),
+          )}
+          style={stackedSlotStyle(rotation)}
+        >
+          {rotation === 0 && Icon ? <Icon className="size-6 opacity-70" /> : null}
+          {rotation === 0 && caption ? <span className="text-xs">{caption}</span> : null}
+        </div>
+      ))}
+    </>
+  );
+}

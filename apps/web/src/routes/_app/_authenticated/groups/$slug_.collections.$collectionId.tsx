@@ -1,13 +1,18 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import {
+  ensureFriendGroupDetailCanonical,
+  friendGroupSharedCollectionQueryOptions,
+} from "@/features/groups/lib/friend-groups-queries";
+import { privateSeoHead } from "@/lib/seo";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 
 export const Route = createFileRoute(
   "/_app/_authenticated/groups/$slug_/collections/$collectionId",
 )({
+  ssr: "data-only",
   validateSearch: filterSearchSchema,
   beforeLoad: ({ search, location, params }) => {
     const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
@@ -20,6 +25,25 @@ export const Route = createFileRoute(
       });
     }
   },
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Shared collection", noIndex: true }),
+  head: () => privateSeoHead("Shared collection"),
+  loader: async ({ context, location, params }) => {
+    await ensureFriendGroupDetailCanonical({
+      queryClient: context.queryClient,
+      userId: context.userId,
+      slug: params.slug,
+      location,
+      alongside: notFoundOnSentinel(
+        context.queryClient.query({
+          ...friendGroupSharedCollectionQueryOptions(
+            context.userId,
+            params.slug,
+            params.collectionId,
+          ),
+          staleTime: "static",
+        }),
+      ),
+    });
+  },
   errorComponent: RouteErrorFallback,
+  notFoundComponent: NotFoundFallback,
 });

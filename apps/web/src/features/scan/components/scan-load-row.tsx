@@ -1,6 +1,7 @@
-import { CheckIcon, LoaderIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import type { ResourceProgress } from "@/features/scan/lib/scan-load-progress";
 import { m } from "@/paraglide/messages.js";
 
@@ -37,7 +38,7 @@ export function ScanLoadRow({ label, done, progress }: ScanLoadRowProps) {
         {done ? (
           <CheckIcon className="text-success size-4 shrink-0" />
         ) : (
-          <LoaderIcon className="size-4 shrink-0 animate-spin" />
+          <Spinner aria-hidden="true" className="shrink-0" />
         )}
         {/* Colours are inherited, not pinned: these rows also run on the dark
             plate of the pre-start panel where text-foreground would be invisible. */}

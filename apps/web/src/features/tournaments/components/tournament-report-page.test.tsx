@@ -96,6 +96,8 @@ function report(
 ): PodReportResponse {
   return {
     tournamentName: "Summoner Skirmish",
+    startsAt: "2026-11-13T18:00:00Z",
+    endsAt: null,
     status,
     currentRound: 1,
     pairingStyle: "swiss",
@@ -113,6 +115,7 @@ function report(
     standings: [],
     rounds: [round(1, roundStatus)],
     groupStage,
+    playerLegends: [],
     canSubmit: true,
   };
 }

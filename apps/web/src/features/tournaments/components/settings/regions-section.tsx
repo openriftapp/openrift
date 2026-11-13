@@ -1,6 +1,7 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 
 import { SettingsSection } from "@/components/layout/settings-section";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -32,6 +33,7 @@ export function RegionsSection({
           )
         }
       />
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

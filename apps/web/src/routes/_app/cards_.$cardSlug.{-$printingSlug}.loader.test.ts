@@ -35,7 +35,7 @@ const CARD_DETAIL = {
 const INIT = { enums: { languages: [{ slug: "EN", sortOrder: 0 }], domains: [], cardTypes: [] } };
 
 function makeContext() {
-  const query = vi.fn((options: { queryKey: unknown[] }) => {
+  const query = vi.fn((options: { queryKey: unknown[] }): Promise<unknown> => {
     const [root] = options.queryKey;
     if (root === "cards") {
       return Promise.resolve(CARD_DETAIL);
@@ -171,7 +171,7 @@ describe("/cards/$cardSlug loader — unknown cards", () => {
     const loaded = context.queryClient.query.getMockImplementation();
     context.queryClient.query.mockImplementation((options: { queryKey: unknown[] }) => {
       if (options.queryKey[0] === "cards" || loaded === undefined) {
-        throw error;
+        return Promise.reject(error);
       }
       return loaded(options);
     });

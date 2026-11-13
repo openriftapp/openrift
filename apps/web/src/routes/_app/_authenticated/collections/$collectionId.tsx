@@ -7,8 +7,7 @@ import {
 } from "@/features/cards/lib/search-schemas";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/$collectionId")({
   // The layout route validates the shared filter set; this route adds `wanted`
@@ -31,7 +30,7 @@ export const Route = createFileRoute("/_app/_authenticated/collections/$collecti
       });
     }
   },
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Collection", noIndex: true }),
+  head: () => privateSeoHead("Collection"),
   loader: async ({ context, params }) => {
     const { getCollectionsCollection } =
       await import("@/features/collections/lib/collections-collection");

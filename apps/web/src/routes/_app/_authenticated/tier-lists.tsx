@@ -2,12 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { tierListsQueryOptions } from "@/features/stage/lib/tier-lists-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tier-lists")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Tier lists", noIndex: true }),
+  head: () => privateSeoHead("Tier lists"),
   loader: async ({ context }) => {
     await context.queryClient.query({
       ...tierListsQueryOptions(context.userId),

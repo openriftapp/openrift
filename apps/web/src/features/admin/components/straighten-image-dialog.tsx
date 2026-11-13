@@ -329,7 +329,7 @@ function StraightenDialogBody({
           </Button>
         )}
         <DialogCancel />
-        <Button type="submit" disabled={corners === null || setQuad.isPending}>
+        <Button type="submit" disabled={corners === null} pending={setQuad.isPending}>
           Save
         </Button>
       </DialogFooter>

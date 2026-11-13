@@ -1,6 +1,8 @@
 import { Heading } from "@/components/heading";
+import { PAGE_HERO_EYEBROW_CLASS } from "@/components/layout/page-hero";
 import type { FeatureChapter } from "@/features/marketing/lib/features-chapters";
 import { chapterAnchor } from "@/features/marketing/lib/features-chapters";
+import { cn } from "@/lib/utils";
 
 import { Reveal } from "./reveal";
 
@@ -23,7 +25,7 @@ export function ChapterDivider({ chapter }: { chapter: FeatureChapter }) {
       />
       <Reveal>
         <div className="flex flex-col items-start gap-4">
-          <div className="text-primary font-heading flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
+          <div className={cn(PAGE_HERO_EYEBROW_CLASS, "flex items-center gap-2")}>
             <Icon aria-hidden="true" className="size-4" />
             {chapter.number}
           </div>

@@ -9,7 +9,6 @@ import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticleLabels, visibleHelpArticles } from "@/features/marketing/components/articles";
-import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
@@ -18,7 +17,7 @@ import { m } from "@/paraglide/messages.js";
 export function HelpIndexPage() {
   // Requires featureFlagsQueryOptions prefetched in the root loader, or this suspends during SSR.
   const { data: flags } = useSuspenseQuery(featureFlagsQueryOptions);
-  const articles = visibleHelpArticles(flags as FeatureFlags);
+  const articles = visibleHelpArticles(flags);
 
   return (
     <>

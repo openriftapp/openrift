@@ -1,38 +1,16 @@
-import type { TeamSnapshotPlayer } from "@openrift/shared/pairing/team-units";
 import type { PairingWarning } from "@openrift/shared/pairing/warnings";
-import type { PodSnapshotPlayer } from "@openrift/shared/types/api/pod-tournament";
 import { TriangleAlertIcon } from "lucide-react";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useRegionLabel } from "@/features/tournaments/hooks/use-region-label";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-/**
- * Rebuilds the engine's snapshot players (Map opponents, plus the 2v2 team)
- * from the wire snapshot.
- */
-export function snapshotToPlayers(snapshot: PodSnapshotPlayer[]): TeamSnapshotPlayer[] {
-  return snapshot.map((player) => ({
-    id: player.playerId,
-    teamId: player.teamId,
-    score: player.score,
-    pods3: player.pods3,
-    pods4: player.pods4,
-    byes: player.byes,
-    opponents: new Map(Object.entries(player.opponents)),
-    region: player.region,
-    regionHistory: new Map(Object.entries(player.regionHistory)),
-    fixedTable: player.fixedTable,
-  }));
-}
 
 type SameRegionWarning = Extract<PairingWarning, { kind: "sameRegion" }>;
 
 function playerName(nameById: Map<string, string>, id: string): string {
-  return nameById.get(id) ?? m.tournaments_warning_fallback_player();
+  return nameById.get(id) ?? m.tournaments_pairings_fallback_player();
 }
 
 function describeWarning(
@@ -127,7 +105,7 @@ export function WarningList({
     return null;
   }
   return (
-    <Alert variant="warning" className={cn(className)}>
+    <Alert variant="warning" className={className}>
       <TriangleAlertIcon />
       <AlertTitle>
         <ul className="flex flex-col gap-0.5 font-normal">

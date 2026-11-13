@@ -10,6 +10,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { useTournamentDetailMutation } from "@/features/tournaments/hooks/use-tournament-mutations";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { podRoundMutationInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import {
   tournamentReportQueryOptions,
@@ -27,11 +28,6 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 // owners/managers, organizer/judge staff, and (read-only) participants — unlike
 // the retired owner-only pod route. The follow-along report stays on the public
 // token-gated contract.
-
-interface PodResultEntry {
-  playerId: string;
-  gamePoints: number;
-}
 
 interface PairingPodInput {
   size: 2 | 3 | 4;
@@ -212,10 +208,12 @@ const submitReportResultFn = createServerFn({ method: "POST" })
  */
 function useRunMutation<TVariables extends { id: string }>(
   mutationFn: (variables: TVariables) => Promise<PodTournamentDetailResponse>,
+  inlineError = false,
 ) {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<PodTournamentDetailResponse, TVariables>({
     mutationFn,
+    meta: { inlineError },
     invalidates: (variables) => podRoundMutationInvalidationKeys(userId, variables.id),
   });
 }
@@ -235,20 +233,23 @@ export function useStartGroupStageRound() {
 }
 
 export function useSetLegendMetaShares() {
-  return useRunMutation<{ id: string; shares: LegendMetaShareInput[] }>((data) =>
-    setLegendMetaSharesFn({ data }),
+  return useRunMutation<{ id: string; shares: LegendMetaShareInput[] }>(
+    (data) => setLegendMetaSharesFn({ data }),
+    true,
   );
 }
 
 export function useReplaceGroupSeats() {
-  return useRunMutation<{ id: string; groups: { label: string; playerIds: string[] }[] }>((data) =>
-    replaceGroupSeatsFn({ data }),
+  return useRunMutation<{ id: string; groups: { label: string; playerIds: string[] }[] }>(
+    (data) => replaceGroupSeatsFn({ data }),
+    true,
   );
 }
 
 export function useReplaceCutPairing() {
   return useRunMutation<{ id: string; roundNumber: number; pods: { playerIds: string[] }[] }>(
     (data) => replaceCutPairingFn({ data }),
+    true,
   );
 }
 
@@ -258,7 +259,7 @@ export function useReplaceTournamentPairing() {
     roundNumber: number;
     pods: PairingPodInput[];
     byes: string[];
-  }>((data) => replacePairingFn({ data }));
+  }>((data) => replacePairingFn({ data }), true);
 }
 
 export function useRerollTournamentRound() {
@@ -270,8 +271,9 @@ export function useFinalizeTournamentRound() {
 }
 
 export function useSubmitTournamentResult() {
-  return useRunMutation<{ id: string; podId: string; results: PodResultEntry[] }>((data) =>
-    submitResultFn({ data }),
+  return useRunMutation<{ id: string; podId: string; results: PodResultEntry[] }>(
+    (data) => submitResultFn({ data }),
+    true,
   );
 }
 
@@ -295,6 +297,7 @@ export function useSubmitTournamentReportPlayerResult(token: string) {
     { podId: string; playerId: string; gamePoints: number }
   >({
     mutationFn: (data) => submitReportPlayerResultFn({ data: { token, ...data } }),
+    meta: { inlineError: true },
     invalidates: () => [podTournamentsKeys.report(token)],
   });
 }
@@ -312,6 +315,7 @@ export function useSubmitTournamentReportResult(token: string) {
     { podId: string; results: PodResultEntry[] }
   >({
     mutationFn: (data) => submitReportResultFn({ data: { token, ...data } }),
+    meta: { inlineError: true },
     invalidates: () => [podTournamentsKeys.report(token)],
   });
 }

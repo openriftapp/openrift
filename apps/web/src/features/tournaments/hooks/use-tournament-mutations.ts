@@ -8,6 +8,7 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 import { createServerFn } from "@tanstack/react-start";
 
+import type { ParticipantAction } from "@/features/tournaments/lib/tournament-display";
 import { participantMutationInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -112,13 +113,7 @@ const updateParticipantFn = createServerFn({ method: "POST" })
   );
 
 const participantActionFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: {
-      id: string;
-      participantId: string;
-      action: "drop" | "reactivate" | "approve" | "deny" | "remove" | "unlink" | "reissue";
-    }) => input,
-  )
+  .validator((input: { id: string; participantId: string; action: ParticipantAction }) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<TournamentParticipantListResponse> => {
     const client = apiOrpcClient(tournamentsContract, context.cookie);
@@ -185,6 +180,7 @@ export function useCreateTournament() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<TournamentDetailResponse, CreateTournamentInput>({
     mutationFn: (data) => createTournamentFn({ data }),
+    meta: { inlineError: true },
     invalidates: () => [tournamentsKeys.all(userId)],
   });
 }
@@ -195,10 +191,12 @@ export function useCreateTournament() {
  */
 export function useTournamentDetailMutation<TVariables extends { id: string }, TData>(
   mutationFn: (variables: TVariables) => Promise<TData>,
+  inlineError = false,
 ) {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<TData, TVariables>({
     mutationFn,
+    meta: { inlineError },
     invalidates: (variables) => [
       tournamentsKeys.all(userId),
       tournamentsKeys.detail(userId, variables.id),
@@ -213,17 +211,20 @@ export function useTournamentDetailMutation<TVariables extends { id: string }, T
  */
 function useParticipantMutation<TVariables extends { id: string }>(
   mutationFn: (variables: TVariables) => Promise<TournamentParticipantListResponse>,
+  inlineError = false,
 ) {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<TournamentParticipantListResponse, TVariables>({
     mutationFn,
+    meta: { inlineError },
     invalidates: (variables) => participantMutationInvalidationKeys(userId, variables.id),
   });
 }
 
 export function useUpdateTournament() {
-  return useTournamentDetailMutation<UpdateTournamentInput, TournamentDetailResponse>((data) =>
-    updateTournamentFn({ data }),
+  return useTournamentDetailMutation<UpdateTournamentInput, TournamentDetailResponse>(
+    (data) => updateTournamentFn({ data }),
+    true,
   );
 }
 
@@ -251,7 +252,7 @@ export function useAddTournamentStaff() {
   return useTournamentDetailMutation<
     { id: string; userId: string; role: TournamentStaffRole },
     unknown
-  >((data) => addStaffFn({ data }));
+  >((data) => addStaffFn({ data }), true);
 }
 
 export function useSetTournamentStaffInvite() {
@@ -271,6 +272,7 @@ export function useRemoveTournamentStaff() {
 export function useAddParticipant() {
   return useParticipantMutation<{ id: string; displayName: string; region?: string | null }>(
     (data) => addParticipantFn({ data }),
+    true,
   );
 }
 
@@ -283,14 +285,14 @@ export function useUpdateParticipant() {
     region?: string | null;
     legendCardId?: string | null;
     fixedTable?: number | null;
-  }>((data) => updateParticipantFn({ data }));
+  }>((data) => updateParticipantFn({ data }), true);
 }
 
 export function useParticipantAction() {
   return useParticipantMutation<{
     id: string;
     participantId: string;
-    action: "drop" | "reactivate" | "approve" | "deny" | "remove" | "unlink" | "reissue";
+    action: ParticipantAction;
   }>((data) => participantActionFn({ data }));
 }
 
@@ -312,6 +314,7 @@ export function useRequestJoinTournament() {
   const userId = useUserId();
   return useMutationWithInvalidation<PublicTournamentJoinResponse, { token: string }>({
     mutationFn: (data) => requestJoinFn({ data: data.token }),
+    meta: { inlineError: true },
     invalidates: () => (userId ? [tournamentsKeys.all(userId)] : []),
   });
 }
@@ -320,6 +323,7 @@ export function useClaimStaffInvite() {
   const userId = useUserId();
   return useMutationWithInvalidation({
     mutationFn: (token: string) => claimStaffInviteFn({ data: token }),
+    meta: { inlineError: true },
     invalidates: (_token, result) => {
       if (!userId) {
         return [];

@@ -134,7 +134,8 @@ export function ListEditDialog({
             <DialogCancel disabled={updateList.isPending} />
             <Button
               type="submit"
-              disabled={!name.trim() || absoluteNeedsAmount || updateList.isPending}
+              disabled={!name.trim() || absoluteNeedsAmount}
+              pending={updateList.isPending}
             >
               {m.common_save()}
             </Button>

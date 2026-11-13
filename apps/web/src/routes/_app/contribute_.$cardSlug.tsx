@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/contribute_/$cardSlug")({
-  loader: ({ params }) => {
+  beforeLoad: ({ params }) => {
     throw redirect({
       to: "/contribute/card/$cardSlug",
       params: { cardSlug: params.cardSlug },

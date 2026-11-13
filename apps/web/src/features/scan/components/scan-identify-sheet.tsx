@@ -1,9 +1,9 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { Loader2Icon } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { Pressable } from "@/components/ui/pressable";
+import { Spinner } from "@/components/ui/spinner";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { ScanIdentifySearch } from "@/features/scan/components/scan-identify-search";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
@@ -87,7 +87,7 @@ export function ScanIdentifySheet({
         <div className="min-w-0 flex-1">
           {pending && (
             <p className="text-muted-foreground flex items-center gap-2">
-              <Loader2Icon className="size-4 animate-spin" />
+              <Spinner aria-hidden="true" />
               {m.scan_identify_recognising()}
             </p>
           )}

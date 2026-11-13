@@ -113,6 +113,18 @@ describe("RouterErrorFallback", () => {
     expect(screen.getByRole("button", { name: "Show details" })).toBeTruthy();
   });
 
+  it("shows the details of a server-function error that lost its Error prototype", async () => {
+    const user = userEvent.setup();
+    renderApp({
+      pageComponent: () => (
+        <RouteErrorFallback error={{ message: "Server function info not found" }} />
+      ),
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Show details" }));
+    expect(screen.getByText("Server function info not found")).toBeTruthy();
+  });
+
   it("retries in place and shows the page once the loader succeeds", async () => {
     const loader = vi
       .fn()

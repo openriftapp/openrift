@@ -23,6 +23,23 @@ describe("Disclosure", () => {
     expect(onOpenChange).toHaveBeenCalledWith(true);
   });
 
+  it("follows a controlled open prop", () => {
+    const { rerender } = render(
+      <Disclosure title="Card details" variant="plain" open={false}>
+        Domains
+      </Disclosure>,
+    );
+    const trigger = screen.getByRole("button", { name: "Card details" });
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+
+    rerender(
+      <Disclosure title="Card details" variant="plain" open>
+        Domains
+      </Disclosure>,
+    );
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("starts open with defaultOpen", () => {
     render(
       <Disclosure title="More" variant="plain" defaultOpen>

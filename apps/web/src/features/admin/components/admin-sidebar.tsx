@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
-import { adminSectionsForPathname } from "@/features/admin/lib/admin-sections";
+import { adminSectionsForPathname, hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 
@@ -195,7 +195,7 @@ export function AdminSidebar() {
   // sections they hold; groups left empty disappear entirely.
   const isAdmin = access?.isAdmin === true;
   const sections = access?.sections ?? [];
-  const canReview = isAdmin || sections.includes("card-review");
+  const canReview = hasAdminSection(access, "card-review");
   const { data: reviewQueue } = useReviewQueueWhen(canReview);
   const { data: workspaceQueue } = useQuery({
     ...workspaceQueueQueryOptions(),

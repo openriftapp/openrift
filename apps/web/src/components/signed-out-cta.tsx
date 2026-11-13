@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
@@ -6,7 +6,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { trackSignupCta, trackSignupPromptView } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -15,24 +17,28 @@ import { m } from "@/paraglide/messages.js";
  */
 export function SignedOutAuthButtons({
   source,
+  redirect,
   signInLabel,
   signUpLabel,
   onNavigate,
+  className,
 }: {
   source: string;
+  redirect?: string;
   signInLabel?: string;
   signUpLabel?: string;
   onNavigate?: () => void;
+  className?: string;
 }) {
-  const location = useLocation();
-  const search = { redirect: location.href, email: undefined };
+  const signIn = useSignInSearch();
+  const search = redirect === undefined ? signIn.search : { redirect, email: undefined };
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <Link
         rel="nofollow"
         to="/login"
         search={search}
-        className={buttonVariants()}
+        className={buttonVariants({ variant: "ghost" })}
         onClick={() => onNavigate?.()}
       >
         {signInLabel ?? m.common_sign_in()}
@@ -41,7 +47,7 @@ export function SignedOutAuthButtons({
         rel="nofollow"
         to="/signup"
         search={search}
-        className={buttonVariants({ variant: "ghost" })}
+        className={buttonVariants()}
         onClick={() => {
           onNavigate?.();
           trackSignupCta(source);

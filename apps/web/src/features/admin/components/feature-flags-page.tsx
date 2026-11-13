@@ -2,11 +2,12 @@ import type { FeatureFlagResponse } from "@openrift/shared/types/api/admin";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Eyebrow, Heading } from "@/components/heading";
+import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
@@ -17,8 +18,6 @@ import type {
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
-import { useAdminUsers } from "@/features/admin/hooks/use-admin-users";
-import { isValidKebabKey } from "@/features/admin/lib/admin-slug";
 import {
   useCreateFeatureFlag,
   useDeleteFeatureFlag,
@@ -27,7 +26,9 @@ import {
   useFeatureFlags,
   useToggleFeatureFlag,
   useUpsertFeatureFlagOverride,
-} from "@/hooks/use-feature-flags";
+} from "@/features/admin/hooks/use-admin-feature-flags";
+import { useAdminUsers } from "@/features/admin/hooks/use-admin-users";
+import { isValidKebabKey } from "@/features/admin/lib/admin-slug";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
@@ -187,7 +188,7 @@ function GlobalFlagsSection() {
 
       {missingKnown.length > 0 && (
         <div className="flex flex-col gap-2">
-          <Eyebrow className="mb-0">Available flags</Eyebrow>
+          <SectionHeading as="h2">Available flags</SectionHeading>
           <RowList>
             {missingKnown.map((known) => (
               <KnownFlagRow

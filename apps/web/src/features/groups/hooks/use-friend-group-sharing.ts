@@ -2,19 +2,20 @@ import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
 import type {
   FriendGroupShareableCollectionsResponse,
   FriendGroupShareableListsResponse,
-  FriendGroupSharedCollectionDetailResponse,
-  FriendGroupSharedListDetailResponse,
 } from "@openrift/shared/types/api/friend-group";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
+import {
+  friendGroupSharedCollectionQueryOptions,
+  friendGroupSharedListQueryOptions,
+} from "@/features/groups/lib/friend-groups-queries";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import { withTradeCancelConsent } from "@/features/groups/stores/trade-cancel-consent-store";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useRequiredUserId } from "@/hooks/use-session";
-import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient, browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -25,33 +26,12 @@ const fetchShareableLists = createServerFn({ method: "GET" })
     apiOrpcClient(friendGroupsContract, context.cookie).shareableLists({ slug }),
   );
 
-const fetchSharedList = createServerFn({ method: "GET" })
-  .validator((input: { slug: string; listId: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<FriendGroupSharedListDetailResponse> =>
-    orNotFound(apiOrpcClient(friendGroupsContract, context.cookie).getSharedList(data)),
-  );
-
 const fetchShareableCollections = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
   .handler(({ context, data: slug }): Promise<FriendGroupShareableCollectionsResponse> =>
     apiOrpcClient(friendGroupsContract, context.cookie).shareableCollections({ slug }),
   );
-
-const fetchSharedCollection = createServerFn({ method: "GET" })
-  .validator((input: { slug: string; collectionId: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<FriendGroupSharedCollectionDetailResponse> =>
-    orNotFound(apiOrpcClient(friendGroupsContract, context.cookie).getSharedCollection(data)),
-  );
-
-function friendGroupSharedListQueryOptions(userId: string, slug: string, listId: string) {
-  return queryOptions({
-    queryKey: friendGroupsKeys.sharedList(userId, slug, listId),
-    queryFn: () => fetchSharedList({ data: { slug, listId } }),
-  });
-}
 
 export function useFriendGroupSharedList(slug: string, listId: string) {
   const userId = useRequiredUserId();
@@ -76,17 +56,6 @@ export function useFriendGroupShareableCollections(slug: string) {
       queryFn: () => fetchShareableCollections({ data: slug }),
     }),
   );
-}
-
-function friendGroupSharedCollectionQueryOptions(
-  userId: string,
-  slug: string,
-  collectionId: string,
-) {
-  return queryOptions({
-    queryKey: friendGroupsKeys.sharedCollection(userId, slug, collectionId),
-    queryFn: () => fetchSharedCollection({ data: { slug, collectionId } }),
-  });
 }
 
 export function useFriendGroupSharedCollection(slug: string, collectionId: string) {

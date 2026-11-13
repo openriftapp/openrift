@@ -97,7 +97,7 @@ export function CreateCollectionDialog({
           />
           <DialogFooter>
             <DialogCancel disabled={createCollection.isPending} />
-            <Button type="submit" disabled={!name.trim() || createCollection.isPending}>
+            <Button type="submit" disabled={!name.trim()} pending={createCollection.isPending}>
               {m.common_create()}
             </Button>
           </DialogFooter>

@@ -60,7 +60,6 @@ describe("ConfirmActionButton", () => {
         title="Clear the cache?"
         description="Every entry is dropped."
         confirmLabel="Clear"
-        pendingLabel="Clearing…"
         onConfirm={onConfirm}
       >
         Clear cache
@@ -68,7 +67,7 @@ describe("ConfirmActionButton", () => {
     );
   }
 
-  it("shows the pending label and closes once the action resolves", async () => {
+  it("keeps the label, shows the spinner and closes once the action resolves", async () => {
     const user = userEvent.setup();
     let finish: () => void = () => {};
     const onConfirm = vi.fn(
@@ -81,7 +80,9 @@ describe("ConfirmActionButton", () => {
 
     await user.click(screen.getByRole("button", { name: "Clear cache" }));
     await user.click(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.getByRole("button", { name: "Clearing…" })).toHaveProperty("disabled", true);
+    const action = screen.getByRole("button", { name: "Clear" });
+    expect(action).toHaveProperty("disabled", true);
+    expect(action).toHaveAttribute("aria-busy", "true");
 
     finish();
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());

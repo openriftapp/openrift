@@ -10,8 +10,8 @@ import type {
 } from "@openrift/shared/types/enums";
 import { META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
+import { parseIntegerInput } from "@/lib/integer-input";
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 const COUNTRY_PATTERN = /^[A-Za-z]{2}$/u;

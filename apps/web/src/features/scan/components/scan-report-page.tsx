@@ -86,10 +86,11 @@ export function ScanReportPage() {
             </div>
             <div>
               <Button
+                pending={sendReport.isPending}
                 disabled={nothingToSend || sendReport.isPending}
                 onClick={() => void handleSend()}
               >
-                {sendReport.isPending ? m.scan_report_sending() : m.scan_report_send()}
+                {m.scan_report_send()}
               </Button>
             </div>
           </div>

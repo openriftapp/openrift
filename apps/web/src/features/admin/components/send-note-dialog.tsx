@@ -75,7 +75,7 @@ export function SendNoteDialog({
 
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={setResolution.isPending}>
+            <Button type="submit" pending={setResolution.isPending}>
               Send
             </Button>
           </DialogFooter>

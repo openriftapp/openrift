@@ -126,8 +126,8 @@ export function EditCollectionDialog({
           </div>
           <DialogFooter>
             <DialogCancel disabled={isPending} />
-            <Button type="submit" disabled={!name.trim() || isPending}>
-              {isPending ? m.common_saving() : m.common_save()}
+            <Button pending={isPending} type="submit" disabled={!name.trim() || isPending}>
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

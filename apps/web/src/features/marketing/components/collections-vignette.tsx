@@ -9,12 +9,13 @@ import {
   PlusIcon,
 } from "lucide-react";
 
+import { MiniCardArt } from "@/components/mini-card-art";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { MiniCardArt, Vignette, VignetteHeading } from "./vignette-parts";
+import { Vignette, VignetteHeading } from "./vignette-parts";
 
 // Before/after counts must keep summing to the 842 the "All Cards" badge shows.
 function collectionRows() {

@@ -61,7 +61,7 @@ export function FilterSection({
         className="text-muted-foreground border-dashed"
         render={<Pressable aria-expanded={expanded} onClick={() => setExpanded(!expanded)} />}
       >
-        {collapsed ? m.cards_filter_show_more({ count: hiddenCount }) : m.common_show_less()}
+        {collapsed ? m.cards_filter_show_more({ count: hiddenCount }) : m.common_show_fewer()}
       </Badge>
     ) : null;
   const flipToggle =

@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { Route } from "./groups_.join";
 
-const validateSearch = Route.options.validateSearch as unknown as (
-  search: unknown,
-) => Record<string, unknown>;
+const validateSearch = (search: unknown) =>
+  (
+    Route.options.validateSearch as unknown as {
+      parse: (search: unknown) => Record<string, unknown>;
+    }
+  ).parse(search);
 
 describe("/groups/join search", () => {
   it("keeps the invite code", () => {

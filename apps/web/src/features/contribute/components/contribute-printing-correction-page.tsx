@@ -13,7 +13,9 @@ import { prefillFromCard } from "@/features/contribute/lib/contribute-json";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
-const routeApi = getRouteApi("/_app/contribute_/card_/$cardSlug_/printing_/$printingId");
+const routeApi = getRouteApi(
+  "/_app/_authenticated/contribute_/card_/$cardSlug_/printing_/$printingId",
+);
 
 export function ContributePrintingCorrectionPage() {
   const { cardSlug, printingId } = routeApi.useParams();

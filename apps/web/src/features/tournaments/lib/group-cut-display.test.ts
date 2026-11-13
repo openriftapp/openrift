@@ -1,7 +1,37 @@
 import type { GroupQualificationRowView } from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
-import { cutLineExplanation, formatMetaShare } from "./group-cut-display";
+import {
+  checkGroupPlayerCount,
+  cutLineExplanation,
+  cutStageIndex,
+  formatMetaShare,
+} from "./group-cut-display";
+
+describe("cutStageIndex", () => {
+  it("maps the first cut round of a top 8 to the quarterfinal of a four-stage list", () => {
+    expect(cutStageIndex(8, 4, 4)).toBe(1);
+    expect(cutStageIndex(8, 6, 4)).toBe(3);
+  });
+
+  it("maps a top 4 onto a list that only names its own stages", () => {
+    expect(cutStageIndex(4, 4, 2)).toBe(0);
+    expect(cutStageIndex(4, 5, 2)).toBe(1);
+  });
+
+  it("returns null for group-stage rounds and rounds past the final", () => {
+    expect(cutStageIndex(8, 3, 4)).toBeNull();
+    expect(cutStageIndex(4, 6, 4)).toBeNull();
+  });
+});
+
+describe("checkGroupPlayerCount", () => {
+  it("rejects fewer than six players and odd fields", () => {
+    expect(checkGroupPlayerCount(4).valid).toBe(false);
+    expect(checkGroupPlayerCount(7).valid).toBe(false);
+    expect(checkGroupPlayerCount(8)).toEqual({ valid: true, message: null });
+  });
+});
 
 function row(
   displayName: string,

@@ -155,7 +155,7 @@ export function DeckComparePasteDialog({
           pending={pending}
           disabled={text.trim().length === 0}
         >
-          {pending ? m.decks_compare_reading() : m.decks_compare_use_this_list()}
+          {m.decks_compare_use_this_list()}
         </Button>
       </DialogContent>
     </Dialog>

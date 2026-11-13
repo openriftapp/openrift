@@ -219,8 +219,12 @@ export function RulesImportPage() {
           />
         </div>
 
-        <Button onClick={() => void handleImport()} disabled={!canImport}>
-          {importMutation.isPending ? "Importing..." : "Import"}
+        <Button
+          onClick={() => void handleImport()}
+          disabled={!canImport}
+          pending={importMutation.isPending}
+        >
+          Import
         </Button>
 
         {result && (
@@ -334,8 +338,8 @@ function VersionRow({
               <Button variant="outline" onClick={cancel} disabled={updateMutation.isPending}>
                 Cancel
               </Button>
-              <Button onClick={() => void save()} disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Saving..." : "Save"}
+              <Button onClick={() => void save()} pending={updateMutation.isPending}>
+                Save
               </Button>
             </>
           ) : (

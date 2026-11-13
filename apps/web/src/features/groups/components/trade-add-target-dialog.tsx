@@ -103,10 +103,8 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
         <DialogCancel />
         <Button
           type="submit"
-          disabled={
-            createCollection.isPending ||
-            (selectedId === NEW_COLLECTION_OPTION && newName.trim().length === 0)
-          }
+          disabled={selectedId === NEW_COLLECTION_OPTION && newName.trim().length === 0}
+          pending={createCollection.isPending}
         >
           {m.trades_use_this_collection()}
         </Button>

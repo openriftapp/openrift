@@ -223,7 +223,9 @@ describe("MetaSourceVocabularyDialog", () => {
     captured.archiveRuns = [{ id: "run-1", kind: "meta.retier", status: "running" }];
     open();
 
-    expect(screen.getByRole("button", { name: "Reapplying…" })).toBeDisabled();
+    const reapply = screen.getByRole("button", { name: "Reapply tier rules" });
+    expect(reapply).toBeDisabled();
+    expect(reapply).toHaveAttribute("aria-busy", "true");
   });
 
   it("offers no suggestion once a tier is mapped", () => {

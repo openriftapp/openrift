@@ -1,15 +1,4 @@
-import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
-
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { m } from "@/paraglide/messages.js";
 
 interface ScanClearDialogProps {
@@ -20,19 +9,17 @@ interface ScanClearDialogProps {
 
 export function ScanClearDialog({ count, onOpenChange, onClear }: ScanClearDialogProps) {
   return (
-    <AlertDialog open={count !== null} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{m.scan_clear_title({ count: count ?? 0 })}</AlertDialogTitle>
-          <AlertDialogDescription>{m.scan_clear_description()}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{m.scan_clear_cancel()}</AlertDialogCancel>
-          <AlertDialogPrimitive.Close render={<Button variant="destructive" />} onClick={onClear}>
-            {m.scan_clear_confirm()}
-          </AlertDialogPrimitive.Close>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionDialog
+      open={count !== null}
+      onOpenChange={onOpenChange}
+      title={m.scan_clear_title({ count: count ?? 0 })}
+      description={m.scan_clear_description()}
+      cancelLabel={m.scan_clear_cancel()}
+      confirmLabel={m.scan_clear_confirm()}
+      onConfirm={() => {
+        onClear();
+        onOpenChange(false);
+      }}
+    />
   );
 }

@@ -5,7 +5,6 @@ import type {
   FriendGroupJoinPreviewResponse,
   FriendGroupMatchesResponse,
   FriendGroupMatchRow,
-  FriendGroupMemberDetailResponse,
 } from "@openrift/shared/types/api/friend-group";
 import { queryOptions, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -14,6 +13,7 @@ import type { BoxWantRow, BoxWantsLookup } from "@/features/decks/lib/box-wants"
 import { buildBoxWantsLookup, EMPTY_BOX_WANTS } from "@/features/decks/lib/box-wants";
 import {
   friendGroupDetailQueryOptions,
+  friendGroupMemberDetailQueryOptions,
   friendGroupsQueryOptions,
 } from "@/features/groups/lib/friend-groups-queries";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
@@ -42,13 +42,6 @@ const fetchGroupActivity = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: slug }): Promise<FriendGroupActivityResponse> =>
     apiOrpcClient(friendGroupsContract, context.cookie).activity({ slug }),
-  );
-
-const fetchMemberDetail = createServerFn({ method: "GET" })
-  .validator((input: { slug: string; userId: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<FriendGroupMemberDetailResponse> =>
-    apiOrpcClient(friendGroupsContract, context.cookie).getMemberDetail(data),
   );
 
 const fetchJoinPreview = createServerFn({ method: "GET" })
@@ -180,10 +173,5 @@ export function useFriendGroupActivity(slug: string) {
 
 export function useFriendGroupMemberDetail(slug: string, memberUserId: string) {
   const userId = useRequiredUserId();
-  return useSuspenseQuery(
-    queryOptions({
-      queryKey: friendGroupsKeys.memberDetail(userId, slug, memberUserId),
-      queryFn: () => fetchMemberDetail({ data: { slug, userId: memberUserId } }),
-    }),
-  );
+  return useSuspenseQuery(friendGroupMemberDetailQueryOptions(userId, slug, memberUserId));
 }

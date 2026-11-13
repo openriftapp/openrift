@@ -191,6 +191,24 @@ describe("CutBracketCompact", () => {
     expect(screen.getByText("W")).toBeInTheDocument();
   });
 
+  it("says both forfeited on a double forfeit", () => {
+    render(
+      <CutBracketCompact
+        cutSize={4}
+        groupStage={stage}
+        rounds={[
+          round(5, [
+            pod("p3", 1, [
+              ["Ashe", null, 2],
+              ["Jinx", null, 2],
+            ]),
+          ]),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Both forfeited")).toBeInTheDocument();
+  });
+
   it("renders nothing before the cut is generated", () => {
     const { container } = render(
       <CutBracketCompact cutSize={4} groupStage={{ ...stage, cutGenerated: false }} rounds={[]} />,

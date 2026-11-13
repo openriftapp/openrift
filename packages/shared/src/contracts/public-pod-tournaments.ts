@@ -18,6 +18,8 @@ import { z } from "zod";
 export const podReportResponseSchema = z.object({
   tournamentName: z.string(),
   status: podTournamentStatusSchema,
+  startsAt: z.string(),
+  endsAt: z.string().nullable(),
   currentRound: z.number().int().nonnegative(),
   pairingStyle: podPairingStyleSchema,
   playMode: podPlayModeSchema,
@@ -35,6 +37,7 @@ export const podReportResponseSchema = z.object({
   rounds: z.array(podRoundResponseSchema),
   /** Null unless `format` is `group_cut`. */
   groupStage: groupStageViewSchema.nullable(),
+  playerLegends: z.array(z.object({ playerId: z.string(), legendCardId: z.string() })),
   canSubmit: z.boolean(),
 });
 

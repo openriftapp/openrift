@@ -48,7 +48,7 @@ describe("PickerDialog", () => {
         title="Pick a list"
         options={OPTIONS}
         emptyText="No lists yet."
-        confirm={{ label: "Move", pendingLabel: "Moving…", onConfirm }}
+        confirm={{ label: "Move", onConfirm }}
       />,
     );
     const confirm = screen.getByRole("button", { name: "Move" });
@@ -74,7 +74,6 @@ describe("PickerDialog", () => {
         emptyText="No lists yet."
         confirm={{
           label: (selected) => (selected === null ? "Pick one" : `Move to ${selected}`),
-          pendingLabel: "Moving…",
           disabledFor: (selected) => selected === "b",
           onConfirm,
         }}
@@ -103,10 +102,11 @@ describe("PickerDialog", () => {
         options={OPTIONS}
         emptyText="No lists yet."
         pending
-        confirm={{ label: "Move", pendingLabel: "Moving…", onConfirm }}
+        confirm={{ label: "Move", onConfirm }}
       />,
     );
-    expect(screen.getByRole("button", { name: "Moving…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Move" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Move" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("option", { name: /Arcane binder/u })).toHaveAttribute(
       "aria-disabled",
       "true",
@@ -121,7 +121,7 @@ describe("PickerDialog", () => {
         title="Pick a list"
         options={OPTIONS}
         emptyText="No lists yet."
-        confirm={{ label: "Move", pendingLabel: "Moving…", onConfirm: vi.fn() }}
+        confirm={{ label: "Move", onConfirm: vi.fn() }}
       />
     );
     const view = render(dialog(true));

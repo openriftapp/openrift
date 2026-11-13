@@ -215,7 +215,7 @@ function PreviewStep({
           />
 
           <Button type="submit" disabled={importableCount === 0} pending={isImporting}>
-            {isImporting ? m.lists_import_importing() : m.lists_import_add({ count: totalCards })}
+            {m.lists_import_add({ count: totalCards })}
           </Button>
         </Callout>
       </ImportPreviewStack>

@@ -238,7 +238,7 @@ export function ExportDialog({
               <div className="flex justify-end">
                 <Button type="submit" disabled={count === 0} pending={isLoading}>
                   <DownloadIcon className="size-4" />
-                  {isLoading ? m.common_loading() : exportButtonLabel(unit, count)}
+                  {exportButtonLabel(unit, count)}
                 </Button>
               </div>
             )}

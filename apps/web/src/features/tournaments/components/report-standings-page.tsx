@@ -1,18 +1,15 @@
 import type { PodReportResponse } from "@openrift/shared/types/api/pod-tournament";
-import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import { useNavigate, getRouteApi } from "@tanstack/react-router";
 
-import { RegionOverview } from "@/features/tournaments/components/region-overview";
-import { StandingsPodium } from "@/features/tournaments/components/standings-podium";
+import { StandingsBody } from "@/features/tournaments/components/standings-body";
 import {
   snapshotRound,
   StandingsRoundPicker,
 } from "@/features/tournaments/components/standings-round-picker";
-import { StandingsTable } from "@/features/tournaments/components/standings-table";
 import { TournamentReportFrame } from "@/features/tournaments/components/tournament-shell";
-import { GroupCutStandingsView } from "@/features/tournaments/components/tournament-standings-tab";
 import { useReportStandingsSnapshot } from "@/features/tournaments/hooks/use-tournament-run";
 import { latestSnapshotRound } from "@/features/tournaments/lib/player-run";
+import { isGroupCutStandings } from "@/features/tournaments/lib/standings-display";
 
 const routeApi = getRouteApi("/_app/tournaments_/report/$token_/standings");
 
@@ -20,41 +17,29 @@ function ReportSnapshot({
   token,
   round,
   report,
-  variant,
-  playMode,
-  regionsEnabled,
+  legendCardByPlayer,
 }: {
   token: string;
   round: number;
   report: PodReportResponse;
-  variant: "pod" | "swiss";
-  playMode: TournamentPlayMode;
-  regionsEnabled: boolean;
+  legendCardByPlayer: ReadonlyMap<string, string | null>;
 }) {
   const { data } = useReportStandingsSnapshot(token, round);
-  if (report.format === "group_cut" && data.groupStage !== null) {
-    return (
-      <GroupCutStandingsView
-        cutSize={report.cutSize}
-        legendTiebreak={report.legendTiebreak}
-        groupStage={data.groupStage}
-        rounds={data.rounds}
-        standings={data.standings}
-        legendCardByPlayer={new Map()}
-        live={false}
-      />
-    );
-  }
   return (
-    <>
-      <StandingsPodium standings={data.standings} variant={variant} playMode={playMode} />
-      <StandingsTable
-        standings={data.standings}
-        variant={variant}
-        playMode={playMode}
-        regionsEnabled={regionsEnabled}
-      />
-    </>
+    <StandingsBody
+      format={report.format}
+      cutSize={report.cutSize}
+      legendTiebreak={report.legendTiebreak}
+      pairingStyle={report.pairingStyle}
+      playMode={report.playMode}
+      regionsEnabled={report.regionsEnabled}
+      standings={data.standings}
+      rounds={data.rounds}
+      groupStage={data.groupStage}
+      legendCardByPlayer={legendCardByPlayer}
+      live={false}
+      completed={report.status === "completed"}
+    />
   );
 }
 
@@ -67,72 +52,50 @@ export function ReportStandingsPage() {
       token={token}
       active="standings"
       render={(data) => {
-        const variant = data.pairingStyle === "swiss" ? "swiss" : "pod";
-        const groupStage = data.groupStage;
-        const groupCut =
-          data.format === "group_cut" && groupStage !== null && groupStage.groups.length > 0;
-        const latestRound = latestSnapshotRound(data.rounds, groupCut);
+        const latestRound = latestSnapshotRound(
+          data.rounds,
+          isGroupCutStandings(data.format, data.groupStage),
+        );
         const snapshot = snapshotRound(requestedRound, latestRound);
+        const legendCardByPlayer = new Map(
+          data.playerLegends.map((legend) => [legend.playerId, legend.legendCardId] as const),
+        );
         const pickRound = (round: number | null) =>
           void navigate({
             to: "/tournaments/report/$token/standings",
             params: { token },
             search: round === null ? {} : { round },
           });
-        if (snapshot !== null) {
-          return (
-            <div className="flex flex-col gap-6">
-              <StandingsRoundPicker
-                latestRound={latestRound}
-                selected={snapshot}
-                onSelect={pickRound}
+        return (
+          <div className="flex flex-col gap-6">
+            <StandingsRoundPicker
+              latestRound={latestRound}
+              selected={snapshot}
+              onSelect={pickRound}
+            />
+            {snapshot === null ? (
+              <StandingsBody
+                format={data.format}
+                cutSize={data.cutSize}
+                legendTiebreak={data.legendTiebreak}
+                pairingStyle={data.pairingStyle}
+                playMode={data.playMode}
+                regionsEnabled={data.regionsEnabled}
+                standings={data.standings}
+                rounds={data.rounds}
+                groupStage={data.groupStage}
+                legendCardByPlayer={legendCardByPlayer}
+                live
+                completed={data.status === "completed"}
               />
+            ) : (
               <ReportSnapshot
                 token={token}
                 round={snapshot}
                 report={data}
-                variant={variant}
-                playMode={data.playMode}
-                regionsEnabled={data.regionsEnabled}
+                legendCardByPlayer={legendCardByPlayer}
               />
-            </div>
-          );
-        }
-        if (groupCut) {
-          return (
-            <div className="flex flex-col gap-6">
-              <StandingsRoundPicker
-                latestRound={latestRound}
-                selected={null}
-                onSelect={pickRound}
-              />
-              <GroupCutStandingsView
-                cutSize={data.cutSize}
-                legendTiebreak={data.legendTiebreak}
-                groupStage={groupStage}
-                rounds={data.rounds}
-                standings={data.standings}
-                legendCardByPlayer={new Map()}
-                live
-              />
-            </div>
-          );
-        }
-        return (
-          <div className="flex flex-col gap-6">
-            <StandingsRoundPicker latestRound={latestRound} selected={null} onSelect={pickRound} />
-            <StandingsPodium
-              standings={data.standings}
-              variant={variant}
-              playMode={data.playMode}
-            />
-            <StandingsTable
-              standings={data.standings}
-              variant={variant}
-              playMode={data.playMode}
-              regionsEnabled={data.regionsEnabled}
-            />
-            {data.regionsEnabled ? <RegionOverview standings={data.standings} /> : null}
+            )}
           </div>
         );
       }}

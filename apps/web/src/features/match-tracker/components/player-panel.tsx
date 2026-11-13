@@ -153,7 +153,7 @@ export function PlayerPanel({
             {isFirst && <FirstBadge />}
           </div>
         )}
-        <Eyebrow as="span" className="text-2xs mb-0 w-full truncate text-center">
+        <Eyebrow as="span" className="text-2xs w-full truncate text-center">
           {player.name}
         </Eyebrow>
       </div>
@@ -284,7 +284,7 @@ function ScoreMedallion({
         <Icon className={cn("text-primary", style.icon)} />
       </span>
       {style.label && (
-        <Eyebrow as="span" className="text-2xs mb-0 font-bold">
+        <Eyebrow as="span" className="text-2xs font-bold">
           {label}
         </Eyebrow>
       )}

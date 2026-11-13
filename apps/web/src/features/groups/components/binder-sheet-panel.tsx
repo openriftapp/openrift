@@ -212,7 +212,7 @@ export function BinderSheetPanel({
         <p className="text-muted-foreground text-sm">{m.binder_print_scale_note()}</p>
         <Button className="self-start" pending={generating} onClick={() => void handleCreate()}>
           <PrinterIcon />
-          {generating ? m.binder_creating() : m.binder_create_pdf()}
+          {m.binder_create_pdf()}
         </Button>
       </div>
     </div>

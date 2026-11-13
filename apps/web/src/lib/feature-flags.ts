@@ -1,5 +1,7 @@
 import { featureFlagsContract } from "@openrift/shared/contracts/feature-flags";
+import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 import { featureFlagsKeys, serverCacheKeys } from "@/lib/query-keys";
@@ -34,11 +36,18 @@ const fetchFeatureFlags = createServerFn({ method: "GET" })
 
 export const featureFlagsQueryOptions = queryOptions({
   queryKey: featureFlagsKeys.all,
-  queryFn: () => fetchFeatureFlags(),
+  queryFn: (): Promise<FeatureFlags> => fetchFeatureFlags(),
   staleTime: 5 * 60 * 1000, // 5 minutes
   refetchOnWindowFocus: false,
 });
 
 export function featureEnabled(flags: FeatureFlags, key: string): boolean {
   return flags[key] === true;
+}
+
+export async function requireFeature(queryClient: QueryClient, key: string): Promise<void> {
+  const flags = await queryClient.query({ ...featureFlagsQueryOptions, staleTime: "static" });
+  if (!featureEnabled(flags, key)) {
+    throw notFound();
+  }
 }

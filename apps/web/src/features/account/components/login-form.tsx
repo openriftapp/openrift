@@ -156,13 +156,14 @@ function PasswordSignIn({
         <RootFormError control={form.control}>
           {emailNotVerified && (
             <Button
+              pending={resending}
               type="button"
               variant="link-muted"
               className="ml-1 h-auto px-0 text-inherit hover:text-inherit"
               disabled={resending}
               onClick={() => void handleResend()}
             >
-              {resending ? m.auth_sending() : m.auth_send_verification_code()}
+              {m.auth_send_verification_code()}
             </Button>
           )}
         </RootFormError>
@@ -214,8 +215,8 @@ function PasswordSignIn({
           )}
         />
         <Field>
-          <Button type="submit" disabled={loading}>
-            {loading ? m.auth_signing_in() : m.auth_login_submit()}
+          <Button pending={loading} type="submit" disabled={loading}>
+            {m.auth_login_submit()}
           </Button>
         </Field>
       </FieldGroup>
@@ -328,8 +329,8 @@ function OtpSignIn({
               />
             </Field>
             <Field>
-              <Button type="submit" disabled={loading}>
-                {loading ? m.auth_sending() : m.auth_send_code()}
+              <Button pending={loading} type="submit" disabled={loading}>
+                {m.auth_send_code()}
               </Button>
             </Field>
           </>
@@ -340,8 +341,8 @@ function OtpSignIn({
               <SixDigitOtpInput autoFocusOnMount value={otp} onChange={setOtp} />
             </div>
             <Field>
-              <Button type="submit" disabled={otp.length < OTP_LENGTH || loading}>
-                {loading ? m.auth_verifying() : m.auth_verify()}
+              <Button pending={loading} type="submit" disabled={otp.length < OTP_LENGTH || loading}>
+                {m.auth_verify()}
               </Button>
             </Field>
             <Button

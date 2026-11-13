@@ -99,8 +99,12 @@ export function UnsubscribePage() {
         </Alert>
       )}
       <div className="flex items-center gap-3">
-        <Button onClick={() => void handleConfirm()} disabled={status === "submitting"}>
-          {status === "submitting" ? m.unsubscribe_submitting() : m.unsubscribe_submit()}
+        <Button
+          pending={status === "submitting"}
+          onClick={() => void handleConfirm()}
+          disabled={status === "submitting"}
+        >
+          {m.unsubscribe_submit()}
         </Button>
         <TextLink variant="muted" className="text-sm" render={<Link to="/" />}>
           {m.unsubscribe_keep()}

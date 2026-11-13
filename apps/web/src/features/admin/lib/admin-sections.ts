@@ -47,3 +47,10 @@ export function adminSectionsForPathname(pathname: string): AdminSectionSlug[] {
       sectionCovers(slug, pathname) && !(slug === "card-review" && pathname.endsWith("/create")),
   );
 }
+
+export function hasAdminSection(
+  access: { isAdmin: boolean; sections: readonly string[] } | undefined,
+  section: AdminSectionSlug,
+): boolean {
+  return access !== undefined && (access.isAdmin || access.sections.includes(section));
+}

@@ -1,6 +1,7 @@
 import { ArrowUpIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -13,6 +14,7 @@ export function ScrollToTopButton({
   className?: string;
 }) {
   const visible = useScrolledPast(threshold);
+  const reduceMotion = useReducedMotion();
   return (
     <Button
       variant="glass-pill"
@@ -21,7 +23,6 @@ export function ScrollToTopButton({
       aria-hidden={!visible}
       tabIndex={visible ? undefined : -1}
       onClick={() => {
-        const reduceMotion = globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
         globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
       }}
       className={cn(

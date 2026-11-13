@@ -7,13 +7,12 @@ import {
   redirectToTournamentOverview,
 } from "@/features/tournaments/lib/tournament-route-guards";
 import { roundSearchSchema } from "@/lib/route-search";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/standings")({
   ssr: "data-only",
   validateSearch: roundSearchSchema,
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Standings", noIndex: true }),
+  head: () => privateSeoHead("Standings"),
   loader: async ({ context, params }) => {
     const detail = await loadTournamentDetail(context.queryClient, context.userId, params.id);
     if (detail.pairingStyle === "none") {

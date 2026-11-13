@@ -1,4 +1,4 @@
-import type { FinalStandingRow } from "@openrift/shared/types/api/pod-tournament";
+import type { FinalStandingRow, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -30,6 +30,7 @@ describe("FinalStandingsCard", () => {
         cutSize={8}
         rounds={[]}
         legendByPlayer={new Map()}
+        standings={[]}
         rows={[row(1, 3, null), row(2, 5, 6), row(3, 1, 5), row(5, 2, 4), row(9, null, null)]}
       />,
     );
@@ -42,12 +43,53 @@ describe("FinalStandingsCard", () => {
     expect(table.getByText("#3")).toBeInTheDocument();
   });
 
+  it("tints the champion's row and dims a dropped player, like the main standings", () => {
+    render(
+      <FinalStandingsCard
+        cutSize={8}
+        rounds={[]}
+        legendByPlayer={new Map()}
+        standings={[{ playerId: "p9", status: "dropped" } as PodStandingRow]}
+        rows={[row(1, 3, null), row(9, null, null)]}
+      />,
+    );
+    const [, champion, dropped] = within(screen.getByRole("table")).getAllByRole("row");
+    expect(champion).toHaveClass("bg-border-accent/5");
+    expect(dropped).toHaveClass("opacity-50");
+  });
+
+  it("shows the Legend column for a player known only by the Legend's name", () => {
+    render(
+      <FinalStandingsCard
+        cutSize={8}
+        rounds={[]}
+        standings={[]}
+        legendByPlayer={
+          new Map([
+            [
+              "p1",
+              {
+                legendCardId: null,
+                legendName: "Jinx, Loose Cannon",
+                legendCharacter: "Jinx",
+                legendEpithet: "Loose Cannon",
+              },
+            ],
+          ])
+        }
+        rows={[row(1, 3, null)]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Legend" })).toBeInTheDocument();
+  });
+
   it("keeps place, result and seed on the phone list", () => {
     const { container } = render(
       <FinalStandingsCard
         cutSize={8}
         rounds={[]}
         legendByPlayer={new Map()}
+        standings={[]}
         rows={[row(1, 3, null, "Ashe"), row(2, 5, 6, "Braum")]}
       />,
     );

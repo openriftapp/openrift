@@ -8,9 +8,24 @@ import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
 const updateMutateAsync = vi.fn();
 const toastError = vi.fn();
 
-vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
-  useUpdateTournament: () => ({ mutateAsync: updateMutateAsync, isPending: false }),
-}));
+vi.mock("@/features/tournaments/hooks/use-tournament-mutations", async () => {
+  const { useState } = await import("react");
+  return {
+    useUpdateTournament: () => {
+      const [isPending, setIsPending] = useState(false);
+      return {
+        mutateAsync: async (variables: unknown) => {
+          setIsPending(true);
+          const result: unknown = await updateMutateAsync(variables);
+          setIsPending(false);
+          return result;
+        },
+        isPending,
+        error: null,
+      };
+    },
+  };
+});
 
 vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn() } }));
 
@@ -174,6 +189,17 @@ describe("ScheduleSection end-now action", () => {
     render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly />);
 
     expect(screen.getByRole("button", { name: "End now" })).toBeInTheDocument();
+  });
+
+  it("spins only the End now button while ending", async () => {
+    const user = userEvent.setup();
+    updateMutateAsync.mockReturnValue(new Promise(() => {}));
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly />);
+
+    await user.click(screen.getByRole("button", { name: "End now" }));
+
+    expect(screen.getByRole("button", { name: "End now" })).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Save schedule" })).not.toHaveAttribute("aria-busy");
   });
 
   it("hides End now once the tournament is over", () => {

@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
@@ -59,6 +60,7 @@ export function GenerateGroupsBand({
 
   function handleGenerate() {
     if (missingLegend.length > 0) {
+      updateTournament.reset();
       setCheckOpen(true);
       return;
     }
@@ -74,7 +76,11 @@ export function GenerateGroupsBand({
         value={active.length}
         sub={m.tournaments_group_band_groups_sub()}
         action={
-          <Button disabled={!count.valid || generateRound.isPending} onClick={handleGenerate}>
+          <Button
+            disabled={!count.valid}
+            pending={generateRound.isPending}
+            onClick={handleGenerate}
+          >
             {m.tournaments_group_generate_groups()}
           </Button>
         }
@@ -92,6 +98,7 @@ export function GenerateGroupsBand({
         open={checkOpen}
         players={missingLegend}
         pending={generateRound.isPending || updateTournament.isPending}
+        error={updateTournament.error}
         onOpenChange={setCheckOpen}
         onSkip={() => void skipLegendTiebreak()}
       />
@@ -104,6 +111,7 @@ function MissingLegendDialog({
   open,
   players,
   pending,
+  error,
   onOpenChange,
   onSkip,
 }: {
@@ -111,6 +119,7 @@ function MissingLegendDialog({
   open: boolean;
   players: TournamentParticipantResponse[];
   pending: boolean;
+  error: unknown;
   onOpenChange: (open: boolean) => void;
   onSkip: () => void;
 }) {
@@ -130,6 +139,7 @@ function MissingLegendDialog({
             </li>
           ))}
         </ul>
+        <SaveError error={error} />
         <DialogFooter>
           <DialogCancel />
           <Link
@@ -139,7 +149,7 @@ function MissingLegendDialog({
           >
             {m.tournaments_group_set_legends()}
           </Link>
-          <Button variant="secondary" disabled={pending} onClick={onSkip}>
+          <Button variant="secondary" pending={pending} onClick={onSkip}>
             {m.tournaments_group_skip_legend_tiebreak()}
           </Button>
         </DialogFooter>

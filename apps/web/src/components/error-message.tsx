@@ -1,5 +1,5 @@
 import { useQueryErrorResetBoundary } from "@tanstack/react-query";
-import { Link, useCanGoBack, useLocation, useRouter, useRouterState } from "@tanstack/react-router";
+import { Link, useCanGoBack, useRouter, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -9,6 +9,8 @@ import { Header } from "@/components/layout/header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useOnline } from "@/hooks/use-online";
 import { useUserId } from "@/hooks/use-session";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
+import { thrownMessage } from "@/lib/error-text";
 import { needsFullReload, routeErrorKind } from "@/lib/route-error-kind";
 import { errorStatus } from "@/lib/server-fns/api-error";
 import { forceReload } from "@/lib/stale-bundle-reload";
@@ -121,17 +123,6 @@ export function ErrorMessageLayout({
   );
 }
 
-// A route can be handed anything as its error, including an object with no message.
-function thrownMessage(thrown: unknown): string | undefined {
-  if (thrown instanceof Error) {
-    return thrown.message;
-  }
-  if (typeof thrown === "string" || typeof thrown === "number") {
-    return String(thrown);
-  }
-  return undefined;
-}
-
 function useRetry(error: unknown, onRetry?: () => void): () => void {
   const router = useRouter();
   const queryErrorResetBoundary = useQueryErrorResetBoundary();
@@ -173,14 +164,9 @@ function BackLink({ primary }: { primary: boolean }) {
 }
 
 function SignInLink() {
-  const href = useLocation({ select: (location) => location.href });
+  const signIn = useSignInSearch();
   return (
-    <Link
-      rel="nofollow"
-      to="/login"
-      search={{ redirect: href, email: undefined }}
-      className={buttonVariants()}
-    >
+    <Link rel="nofollow" {...signIn} className={buttonVariants()}>
       {m.common_sign_in()}
     </Link>
   );

@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/workspace/")({
   beforeLoad: async ({ context }) => {
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/_app/_authenticated/admin/workspace/")({
       ...adminAccessQueryOptions(context.userId),
       staleTime: "static",
     });
-    if (access.isAdmin || access.sections.includes("card-review")) {
+    if (hasAdminSection(access, "card-review")) {
       throw redirect({ to: "/admin/workspace/cards" });
     }
     throw redirect({ to: "/admin/workspace/printings" });

@@ -120,7 +120,9 @@ describe("CollectionExportDialog", () => {
     setup();
     await chooseFormat(user, "OpenRift CSV");
 
-    expect(screen.getByRole("button", { name: "Loading…" })).toBeDisabled();
+    const exportButton = screen.getByRole("button", { name: /^Export/u });
+    expect(exportButton).toBeDisabled();
+    expect(exportButton).toHaveAttribute("aria-busy", "true");
   });
 
   it("disables Export when the collection has no copies", async () => {

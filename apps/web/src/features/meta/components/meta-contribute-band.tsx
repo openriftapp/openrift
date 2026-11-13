@@ -3,10 +3,10 @@ import type { ReactNode } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { accentGlow } from "@/lib/accent-wash";
 import { m } from "@/paraglide/messages.js";
 
-const BAND_GLOW =
-  "radial-gradient(120% 90% at 50% 115%, color-mix(in oklab, var(--border-accent) 16%, transparent), transparent 70%)";
+const BAND_GLOW = accentGlow(16);
 
 export function MetaContributeBandShell({
   title,

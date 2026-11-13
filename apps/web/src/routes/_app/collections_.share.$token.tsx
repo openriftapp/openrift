@@ -1,6 +1,6 @@
 import { collectionShareDescription, collectionShareTitle } from "@openrift/shared/share-titles";
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
-import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-queries";
 import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { collectionShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
@@ -50,22 +50,17 @@ export const Route = createFileRoute("/_app/collections_/share/$token")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<SharedCollectionHeadData> => {
-    try {
-      const data = await context.queryClient.query({
+    const data = await notFoundOnSentinel(
+      context.queryClient.query({
         ...publicCollectionQueryOptions(params.token),
         staleTime: "static",
-      });
-      const { name, description, updatedAt, copyCount } = data.collection;
-      return {
-        collection: { name, description, updatedAt, copyCount },
-        owner: { displayName: data.owner.displayName },
-      };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      }),
+    );
+    const { name, description, updatedAt, copyCount } = data.collection;
+    return {
+      collection: { name, description, updatedAt, copyCount },
+      owner: { displayName: data.owner.displayName },
+    };
   },
   pendingComponent: SharedCollectionPending,
   errorComponent: RouteErrorFallback,

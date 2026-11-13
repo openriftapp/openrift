@@ -87,8 +87,12 @@ export function EditFormatTagsDialog({ deckId, format, currentSlugs, open, onOpe
             />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={selected.length === 0 || updateDeck.isPending}>
-              {updateDeck.isPending ? m.common_saving() : m.common_save()}
+            <Button
+              pending={updateDeck.isPending}
+              type="submit"
+              disabled={selected.length === 0 || updateDeck.isPending}
+            >
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

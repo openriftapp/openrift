@@ -346,9 +346,7 @@ function RunDetails({ run }: { run: JobRunView }) {
     <>
       {run.errorMessage !== null && (
         <div className="mb-2">
-          <Eyebrow as="p" className="mb-0">
-            Error
-          </Eyebrow>
+          <Eyebrow as="p">Error</Eyebrow>
           <pre className="bg-muted text-destructive overflow-x-auto rounded-md p-2 font-mono">
             {run.errorMessage}
           </pre>
@@ -356,9 +354,7 @@ function RunDetails({ run }: { run: JobRunView }) {
       )}
       {hasResult(run.result) && (
         <div>
-          <Eyebrow as="p" className="mb-0">
-            Result
-          </Eyebrow>
+          <Eyebrow as="p">Result</Eyebrow>
           <pre className="bg-muted overflow-x-auto rounded-md p-2 font-mono">
             {JSON.stringify(run.result, null, 2)}
           </pre>

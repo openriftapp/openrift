@@ -20,6 +20,7 @@ import { useState } from "react";
 import { CopyTextButton } from "@/components/copy-text-button";
 import { Heading } from "@/components/heading";
 import { PageHero } from "@/components/layout/page-hero";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { QrCode } from "@/components/ui/qr-code";
@@ -70,9 +71,7 @@ function markupFor(menuIcon: LucideIcon) {
         {children}
       </Glyph>
     ),
-    b: ({ children }: { children?: ReactNode }) => (
-      <strong className="font-semibold">{children}</strong>
-    ),
+    b: PROSE_MARKUP.strong,
     close: ({ children }: { children?: ReactNode }) => (
       <Glyph icon={XIcon} iconOnly>
         {children}

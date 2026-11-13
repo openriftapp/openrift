@@ -21,7 +21,6 @@ interface ConfirmContentProps {
   title: ReactNode;
   description: ReactNode;
   confirmLabel: ReactNode;
-  pendingLabel?: ReactNode;
   cancelLabel?: ReactNode;
   destructive?: boolean;
   confirmPhrase?: string;
@@ -68,7 +67,6 @@ function ConfirmActionBody({
   title,
   description,
   confirmLabel,
-  pendingLabel,
   cancelLabel,
   destructive = true,
   confirmPhrase,
@@ -107,9 +105,10 @@ function ConfirmActionBody({
         <AlertDialogAction
           type="submit"
           variant={destructive ? "destructive" : "default"}
-          disabled={isPending || !phraseSatisfied}
+          disabled={!phraseSatisfied}
+          pending={isPending}
         >
-          {isPending && pendingLabel !== undefined ? pendingLabel : confirmLabel}
+          {confirmLabel}
         </AlertDialogAction>
       </AlertDialogFooter>
     </DialogForm>

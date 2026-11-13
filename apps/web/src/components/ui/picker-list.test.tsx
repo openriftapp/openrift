@@ -62,6 +62,24 @@ describe("PickerList", () => {
     expect(screen.queryByText("Beta")).not.toBeInTheDocument();
   });
 
+  it("matches every word in any order across a row's keywords", () => {
+    render(
+      <PickerList searchPlaceholder="Filter…" highlightedId="" onHighlightChange={() => {}}>
+        <PickerRow value="id-a" keywords={["Ahri, Alluring", "OGN-066"]}>
+          Ahri
+        </PickerRow>
+        <PickerRow value="id-b" keywords={["Teemo, Scout", "OGN-100"]}>
+          Teemo
+        </PickerRow>
+      </PickerList>,
+    );
+    fireEvent.change(screen.getByPlaceholderText("Filter…"), {
+      target: { value: "alluring ahri" },
+    });
+    expect(screen.getByText("Ahri")).toBeInTheDocument();
+    expect(screen.queryByText("Teemo")).not.toBeInTheDocument();
+  });
+
   it("never matches the query against row values (opaque ids)", () => {
     render(
       <PickerList searchPlaceholder="Filter…" highlightedId="" onHighlightChange={() => {}}>

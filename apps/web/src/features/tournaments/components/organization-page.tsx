@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { OrgDeckCheckKeysSection } from "@/features/tournaments/components/deck-check-keys-section";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   useAddOrganizationMember,
   useOrganization,
@@ -34,6 +35,7 @@ import {
   useUpdateOrganizationMemberRole,
 } from "@/features/tournaments/hooks/use-organizations";
 import { organizationRoleLabels } from "@/features/tournaments/lib/tournament-display";
+import { memberName } from "@/lib/member-name";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -103,7 +105,13 @@ export function OrganizationPage({ id }: { id: string }) {
               {m.tournaments_org_members_heading()}
             </SectionHeading>
             {canManage ? (
-              <Button variant="secondary" onClick={() => setAddOpen(true)}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  addMember.reset();
+                  setAddOpen(true);
+                }}
+              >
                 {m.tournaments_org_add_member()}
               </Button>
             ) : null}
@@ -115,7 +123,7 @@ export function OrganizationPage({ id }: { id: string }) {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2"
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-medium">{member.name ?? member.userId}</span>
+                  <span className="truncate font-medium">{memberName(member.name)}</span>
                   {isOwner ? (
                     <SimpleSelect
                       items={allRoleItems}
@@ -136,7 +144,7 @@ export function OrganizationPage({ id }: { id: string }) {
                         }
                       }}
                       label={m.tournaments_org_role_for({
-                        name: member.name ?? member.userId,
+                        name: memberName(member.name),
                       })}
                       size="sm"
                     />
@@ -153,7 +161,7 @@ export function OrganizationPage({ id }: { id: string }) {
                     onClick={() =>
                       setMemberToRemove({
                         userId: member.userId,
-                        name: member.name ?? member.userId,
+                        name: memberName(member.name),
                       })
                     }
                   >
@@ -202,6 +210,7 @@ export function OrganizationPage({ id }: { id: string }) {
                   className="w-full"
                 />
               </div>
+              <SaveError error={addMember.error} />
             </div>
             <DialogFooter>
               <DialogCancel />
@@ -227,7 +236,6 @@ export function OrganizationPage({ id }: { id: string }) {
             : ""
         }
         confirmLabel={m.tournaments_org_remove()}
-        pendingLabel={m.tournaments_org_removing()}
         isPending={removeMember.isPending}
         onConfirm={() => void handleRemoveMember()}
       />

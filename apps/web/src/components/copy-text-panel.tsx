@@ -1,7 +1,7 @@
-import { Loader2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { CopyTextButton } from "@/components/copy-text-button";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { m } from "@/paraglide/messages.js";
 
@@ -24,7 +24,7 @@ export function CopyTextPanel({
   if (isLoading) {
     return (
       <div className="text-muted-foreground flex items-center gap-2 text-sm">
-        <Loader2Icon className="size-4 animate-spin" />
+        <Spinner aria-hidden="true" />
         {m.shared_preparing()}
       </div>
     );

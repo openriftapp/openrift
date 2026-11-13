@@ -5,15 +5,16 @@ import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tourn
 import { Link } from "@tanstack/react-router";
 import { CalendarIcon, LayersIcon, TrophyIcon } from "lucide-react";
 
+import { CardFan, CardFanOutline } from "@/components/card-fan";
 import { CoverBand } from "@/components/cover-band";
 import { Eyebrow, Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { CardLink } from "@/components/ui/card-link";
 import { DateLeaf } from "@/components/ui/date-leaf";
-import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar-cluster";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import {
+  effectiveStateLabels,
   viewerRoleLabels,
   formatStartsIn,
   primaryViewerRole,
@@ -101,7 +102,7 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {live ? (
-            <Badge variant="subtle">{m.tournaments_next_event_live()}</Badge>
+            <Badge variant="subtle">{effectiveStateLabels().in_progress}</Badge>
           ) : startsIn ? (
             <Badge variant="subtle">{startsIn}</Badge>
           ) : null}

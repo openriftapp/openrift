@@ -84,10 +84,12 @@ const adminDeleteOrgFn = createServerFn({ method: "POST" })
 
 function useOrgDetailMutation<TVariables extends { id: string }>(
   mutationFn: (variables: TVariables) => Promise<OrganizationDetailResponse>,
+  inlineError = false,
 ) {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<OrganizationDetailResponse, TVariables>({
     mutationFn,
+    meta: { inlineError },
     invalidates: (variables) => [
       organizationsKeys.mine(userId),
       organizationsKeys.detail(userId, variables.id),
@@ -96,8 +98,9 @@ function useOrgDetailMutation<TVariables extends { id: string }>(
 }
 
 export function useAddOrganizationMember() {
-  return useOrgDetailMutation<{ id: string; email: string; role: OrganizationRole }>((data) =>
-    addMemberFn({ data }),
+  return useOrgDetailMutation<{ id: string; email: string; role: OrganizationRole }>(
+    (data) => addMemberFn({ data }),
+    true,
   );
 }
 

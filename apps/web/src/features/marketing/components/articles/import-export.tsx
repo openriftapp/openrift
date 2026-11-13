@@ -159,7 +159,7 @@ export default function ImportExportArticle() {
         </DefinitionList>
 
         <Callout className="mt-4">
-          <Eyebrow>{m.help_import_export_example_preview()}</Eyebrow>
+          <Eyebrow className="mb-3">{m.help_import_export_example_preview()}</Eyebrow>
           <div className="divide-border divide-y text-sm">
             <MockMatchRow status="exact" quantity={3} code="OGN-007" name="Fury Rune" tags={[]} />
             <MockMatchRow

@@ -26,9 +26,9 @@ export function Heading({ level = 2, as, className, children, ...props }: Headin
 }
 
 const EYEBROW_STYLES = {
-  default: "text-muted-foreground mb-3",
-  kicker: "text-primary text-2xs mb-0",
-  gold: "text-border-accent text-2xs mb-0",
+  default: "text-muted-foreground",
+  kicker: "text-primary text-2xs",
+  gold: "text-border-accent text-2xs",
 } as const;
 
 /** Use `as="span"` where the label is not a heading. */

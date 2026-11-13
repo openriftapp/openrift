@@ -72,9 +72,12 @@ beforeEach(() => {
 
 describe("CardDetailHeader", () => {
   it("shows the run state on the check-all button", () => {
-    const { getByText } = renderHeader({ isCheckingAll: true });
+    const { getAllByRole } = renderHeader({ isCheckingAll: true });
 
-    expect(getByText("Checking…")).toBeTruthy();
+    const busy = getAllByRole("button", { name: /Check all & next/u }).filter(
+      (button) => button.getAttribute("aria-busy") === "true",
+    );
+    expect(busy.length).toBeGreaterThan(0);
   });
 
   it("offers a regenerate when the stored slug no longer matches", () => {

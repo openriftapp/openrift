@@ -1,7 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
-import { Code } from "@/components/ui/code";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { ImportTextInput } from "@/features/collections/components/import-preview-chrome";
 import type { ImportInputStepProps } from "@/features/collections/lib/import-input-step-props";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -20,7 +20,7 @@ export function CollectionImportInputStep({
       <PageDescription>
         <ParaglideMessage
           message={m.collections_import_paste_hint}
-          markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          markup={{ code: PROSE_MARKUP.code }}
         />
       </PageDescription>
 

@@ -1,9 +1,9 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { SmartphoneIcon } from "lucide-react";
-import type { ReactNode } from "react";
 
 import { SiteBannerStrip } from "@/components/layout/site-banner-strip";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { TextLink } from "@/components/ui/text-link";
 import { m } from "@/paraglide/messages.js";
 import { useInstallStore } from "@/stores/install-store";
@@ -21,9 +21,7 @@ export function InstallNudge() {
         <ParaglideMessage
           message={m.install_nudge_text}
           markup={{
-            b: ({ children }: { children?: ReactNode }) => (
-              <span className="font-semibold">{children}</span>
-            ),
+            b: PROSE_MARKUP.strong,
           }}
         />{" "}
         <TextLink render={<Link to="/install" />} onClick={dismissNudge}>

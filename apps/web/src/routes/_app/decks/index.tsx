@@ -6,8 +6,7 @@ import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckListSearchSchema } from "@/features/decks/lib/deck-list-search";
 import { sessionQueryOptions } from "@/lib/auth-session";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/decks/")({
   ssr: false,
@@ -18,7 +17,7 @@ export const Route = createFileRoute("/_app/decks/")({
       throw redirect({ to: "/decks", search: cleaned, replace: true });
     }
   },
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Decks", noIndex: true }),
+  head: () => privateSeoHead("Decks"),
   loader: async ({ context }) => {
     const { preloadLocalDecks } = await import("@/features/decks/lib/local-decks-collection");
     const [session] = await Promise.all([

@@ -10,6 +10,7 @@ import type {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { myDeckRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
 import {
   tournamentDecksKeys,
   tournamentsKeys,
@@ -102,6 +103,7 @@ export function useMyTournamentDeck(tournamentId: string) {
     queryKey: tournamentDecksKeys.entry(userId, tournamentId),
     queryFn: () => fetchMyTournamentDeck({ data: tournamentId }),
     staleTime: 0,
+    refetchInterval: (query) => myDeckRefetchInterval(query.state.data),
   });
 }
 
@@ -147,6 +149,7 @@ export function useEditMyTournamentDeck() {
       tournamentId: _tournamentId,
       ...body
     }: DeckEntryRef & TournamentDeckSubmissionInput) => editMyTournamentDeckFn({ data: body }),
+    meta: { inlineError: true },
     invalidates: (vars) => deckWriteKeys(userId, vars.tournamentId),
   });
 }
@@ -180,6 +183,7 @@ export function useSubmitTournamentDeck() {
   return useMutationWithInvalidation({
     mutationFn: (vars: { token: string } & TournamentDeckSubmissionInput) =>
       submitTournamentDeckFn({ data: vars }),
+    meta: { inlineError: true },
     // The token names the link, not the tournament; the result is what says
     // which tournament just took a deck.
     invalidates: (vars, data) => [
@@ -196,6 +200,7 @@ export function useSubmitTournamentDeck() {
 export function useClaimTournamentDeck() {
   return useMutation({
     mutationFn: (token: string) => claimTournamentDeckFn({ data: token }),
+    meta: { inlineError: true },
   });
 }
 

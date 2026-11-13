@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
+import { CardFanOutline } from "@/components/card-fan";
 import {
   Empty,
   EmptyContent,
@@ -8,27 +9,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { cn } from "@/lib/utils";
-
-function EmptyCardFan({ icon: Icon }: { icon?: ComponentType<SVGProps<SVGSVGElement>> }) {
-  const sideCardClass =
-    "aspect-card absolute bottom-0 left-1/2 w-16 origin-bottom -translate-x-1/2 rounded-md border border-dashed";
-  return (
-    <div className="relative h-[100px] w-36" aria-hidden="true">
-      <span className={cn(sideCardClass, "-rotate-12")} />
-      <span className={cn(sideCardClass, "rotate-12")} />
-      {/* Center card is opaque so the side outlines don't show through it. */}
-      <span
-        className={cn(
-          sideCardClass,
-          "border-muted-foreground/40 bg-card flex items-center justify-center",
-        )}
-      >
-        {Icon && <Icon className="text-muted-foreground size-6 opacity-70" />}
-      </span>
-    </div>
-  );
-}
 
 export function EmptyState({
   icon,
@@ -47,7 +27,9 @@ export function EmptyState({
     <Empty className={className}>
       <EmptyHeader>
         <EmptyMedia>
-          <EmptyCardFan icon={icon} />
+          <div className="relative h-[100px] w-36" aria-hidden="true">
+            <CardFanOutline size="xs" anchor="flush" icon={icon} />
+          </div>
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         {description && <EmptyDescription>{description}</EmptyDescription>}

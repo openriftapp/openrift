@@ -26,8 +26,8 @@ export function canRequestChanges(entry: JudgeActionEntry): boolean {
 export function primaryActionFor(state: DeckCheckEntryDetailResponse["entry"]["state"]): {
   label: string;
   icon: typeof CheckIcon;
-  state: "editable" | "submitted" | "approved" | "checked" | "withdrawn";
-  reviewOutcome?: "ok" | "issue";
+  state: DeckCheckEntryState;
+  reviewOutcome?: DeckCheckReviewOutcome;
 } | null {
   switch (state) {
     case "editable": {

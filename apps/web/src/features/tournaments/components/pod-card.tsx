@@ -18,26 +18,25 @@ import { UserAvatar } from "@/components/user-avatar";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { RegionBadge } from "@/features/tournaments/components/region-badge";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
 import {
   isDoubleForfeitPod,
   podForDisplay,
   isWalkoverPod,
 } from "@/features/tournaments/lib/group-cut-units";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { WarningBadge, WarningList } from "./pairing-warnings";
-import { parsePoints, PodResultForm } from "./pod-result-form";
+import { ChangedRemotelyNotice, PodResultForm } from "./pod-result-form";
 import { SwissResultForm } from "./swiss-result-form";
-
-interface PodResultEntry {
-  playerId: string;
-  gamePoints: number;
-}
 
 function MemberSeedBadge({
   placement,
@@ -66,7 +65,7 @@ function MemberSeedBadge({
           className="text-muted-foreground"
           title={m.tournaments_pod_game_points_title({ points: gamePoints })}
         >
-          {gamePoints}g
+          {m.tournaments_pod_game_points_short({ points: gamePoints })}
         </span>
       )}
     </Badge>
@@ -128,14 +127,19 @@ export function PodCard({
   /** Rendered before the player's face; the bracket puts the seed pill here. */
   renderMemberLeading?: (playerId: string) => ReactNode;
   renderMemberBadge?: (playerId: string) => ReactNode;
-  onSubmit: (podId: string, results: PodResultEntry[]) => Promise<void>;
-  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
+  onSubmit: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
 }) {
   const pod = podForDisplay(rawPod);
   const isMatch = teamMode || isMatchPairing(pod.size);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<unknown>(null);
   const [scoringPlayerId, setScoringPlayerId] = useState<string | null>(null);
+  const { changedRemotely, acceptLatest, resync, adoptSaved } = useResultBaseline(
+    pod,
+    scoringPlayerId,
+  );
   const [scoreDraft, setScoreDraft] = useState("");
   const reported = pod.resultStatus === "reported";
   const selfEntry = canEnter && onSubmitPlayerResult !== undefined;
@@ -146,33 +150,51 @@ export function PodCard({
 
   async function handleSubmit(results: PodResultEntry[]) {
     setSaving(true);
-    // React Compiler can't yet lower try/finally, so reset `saving` in both the
-    // success and error paths and rethrow to preserve the original propagation.
-    try {
-      await onSubmit(pod.id, results);
-      setEditing(false);
-    } catch (error) {
-      setSaving(false);
-      throw error;
-    }
+    setSaveError(null);
+    const ok = await runReportedMutation(() => onSubmit(pod.id, results), setSaveError);
     setSaving(false);
+    if (ok) {
+      adoptSaved(results);
+      setEditing(false);
+    }
+  }
+
+  function startEditing() {
+    setSaveError(null);
+    setEditing(true);
   }
 
   function startScoring(member: PodMemberResponse) {
+    resync();
+    setSaveError(null);
     setScoringPlayerId(member.playerId);
     setScoreDraft(member.gamePoints === null ? "" : String(member.gamePoints));
   }
 
+  function showLatestScore() {
+    const latest = pod.members.find((member) => member.playerId === scoringPlayerId);
+    acceptLatest();
+    setScoreDraft(
+      latest === undefined || latest.gamePoints === null ? "" : String(latest.gamePoints),
+    );
+  }
+
   async function handleSaveScore() {
-    const parsed = parsePoints(scoreDraft);
-    if (parsed === null || scoringPlayerId === null || !onSubmitPlayerResult) {
+    const parsed = parseIntegerInput(scoreDraft, 0);
+    if (typeof parsed !== "number" || scoringPlayerId === null || !onSubmitPlayerResult) {
       return;
     }
     setSaving(true);
-    if (await runReportedMutation(() => onSubmitPlayerResult(pod.id, scoringPlayerId, parsed))) {
+    setSaveError(null);
+    const ok = await runReportedMutation(
+      () => onSubmitPlayerResult(pod.id, scoringPlayerId, parsed),
+      setSaveError,
+    );
+    setSaving(false);
+    if (ok) {
+      adoptSaved([{ playerId: scoringPlayerId, gamePoints: parsed }]);
       setScoringPlayerId(null);
     }
-    setSaving(false);
   }
 
   // One row per side. In 2v2 the result lives on the side's first member and
@@ -207,7 +229,7 @@ export function PodCard({
           <Button
             size="icon-sm"
             onClick={() => void handleSaveScore()}
-            disabled={saving || parsePoints(scoreDraft) === null}
+            disabled={saving || typeof parseIntegerInput(scoreDraft, 0) !== "number"}
             aria-label={m.tournaments_pod_save_score_aria({ name })}
           >
             <CheckIcon />
@@ -385,16 +407,18 @@ export function PodCard({
               matchFormat={matchFormat}
               winPoints={winPoints}
               drawPoints={drawPoints}
-              onSubmit={handleSubmit}
+              onSubmit={(results) => void handleSubmit(results)}
               submitting={saving}
+              error={saveError}
               onCancel={() => setEditing(false)}
             />
           ) : (
             <PodResultForm
               pod={pod}
               scheme={scheme}
-              onSubmit={handleSubmit}
+              onSubmit={(results) => void handleSubmit(results)}
               submitting={saving}
+              error={saveError}
               onCancel={() => setEditing(false)}
             />
           )
@@ -419,12 +443,16 @@ export function PodCard({
                 sideRow(group),
               ])}
             </ul>
+            {scoringPlayerId !== null && changedRemotely ? (
+              <ChangedRemotelyNotice match={isMatch} onShowLatest={showLatestScore} />
+            ) : null}
+            {scoringPlayerId === null ? null : <SaveError error={saveError} />}
             {canEnter ? (
               <Button
                 variant={reported ? "destructive" : "secondary"}
                 size="sm"
                 className={cn("self-end")}
-                onClick={() => setEditing(true)}
+                onClick={startEditing}
               >
                 {reported
                   ? m.tournaments_pod_edit_result()

@@ -1,4 +1,5 @@
 import { pairUnits } from "@openrift/shared/pairing/group-stage";
+import { isResultlessPod, teamsOf } from "@openrift/shared/pairing/pod-result";
 import type { GroupStageGroupView, PodResponse } from "@openrift/shared/types/api/pod-tournament";
 
 import { m } from "@/paraglide/messages.js";
@@ -99,12 +100,12 @@ export function isDoubleForfeitPod(pod: PodResponse): boolean {
   return podSideCount(pod) === 2 && isWalkoverPod(pod) && sharesOnePlacement(pod);
 }
 
-export function isResultlessPod(pod: PodResponse): boolean {
-  return podSideCount(pod) > 2 && isWalkoverPod(pod);
+export function podHasNoResult(pod: PodResponse): boolean {
+  return isResultlessPod(pod.members, teamsOf(pod.members));
 }
 
 export function podForDisplay(pod: PodResponse): PodResponse {
-  if (!isResultlessPod(pod)) {
+  if (!podHasNoResult(pod)) {
     return pod;
   }
   return {
@@ -123,7 +124,7 @@ export function podScoreLine(pod: PodResponse): string {
   if (!first || !second) {
     return ordered.map((member) => member.displayName).join(` ${m.tournaments_pod_vs()} `);
   }
-  if (first.placement === null || isResultlessPod(pod)) {
+  if (first.placement === null || podHasNoResult(pod)) {
     return m.tournaments_lib_pod_score_vs({
       first: first.displayName,
       second: second.displayName,

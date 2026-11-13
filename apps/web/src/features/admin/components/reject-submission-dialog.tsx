@@ -104,7 +104,8 @@ export function RejectSubmissionDialog({
             <Button
               type="submit"
               variant="destructive"
-              disabled={rejectSubmission.isPending || !ready}
+              disabled={!ready}
+              pending={rejectSubmission.isPending}
             >
               Reject
             </Button>

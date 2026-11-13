@@ -2,6 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 
 import { Heading } from "@/components/heading";
+import { MiniCardArt } from "@/components/mini-card-art";
 import { TextLink } from "@/components/ui/text-link";
 import type { FeatureChapter } from "@/features/marketing/lib/features-chapters";
 import { chapterAnchor } from "@/features/marketing/lib/features-chapters";
@@ -11,7 +12,6 @@ import { m } from "@/paraglide/messages.js";
 import { ClipFrame } from "./clip-frame";
 import { SectionRule } from "./feature-section";
 import { smoothAnchorClick } from "./features-nav";
-import { MiniCardArt } from "./vignette-parts";
 
 const SPREAD_CARD_WIDTH = 100;
 

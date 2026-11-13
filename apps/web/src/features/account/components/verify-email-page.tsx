@@ -88,19 +88,21 @@ export function VerifyEmailPage() {
         </Field>
         <Field>
           <Button
+            pending={verifying}
             className="w-full"
             disabled={otp.length < OTP_LENGTH || verifying}
             onClick={() => void handleVerify(otp)}
           >
-            {verifying ? m.auth_verify_verifying() : m.auth_verify_submit()}
+            {m.auth_verify_submit()}
           </Button>
           <Button
+            pending={resending}
             type="button"
             variant="link-muted"
             disabled={resending}
             onClick={() => void handleResend()}
           >
-            {resending ? m.auth_verify_sending() : m.auth_verify_resend()}
+            {m.auth_verify_resend()}
           </Button>
         </Field>
         <p className="text-muted-foreground text-center text-sm">

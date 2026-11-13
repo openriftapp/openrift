@@ -31,6 +31,7 @@ import {
 import { showRelaxedAddToast } from "@/features/decks/lib/workbench-add-toast";
 import { relaxedMoveOutcome, workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import { useShiftHeld } from "@/hooks/use-shift-held";
 import { asDragData } from "@/lib/dnd-data";
 
 const DRAG_ACTIVATION = { distance: 8 };
@@ -91,32 +92,10 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     keywords: readonly string[];
     preferredPrintingId: string | null;
   } | null>(null);
-  const [shiftHeld, setShiftHeld] = useState(false);
+  const shiftHeld = useShiftHeld();
   const activeNodeRef = useRef<HTMLElement | null>(null);
   const pointerRef = useRef({ x: 0, y: 0 });
   const scrollRafRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (!dragInfo) {
-      return;
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(true);
-      }
-    };
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(false);
-      }
-    };
-    globalThis.addEventListener("keydown", handleKeyDown);
-    globalThis.addEventListener("keyup", handleKeyUp);
-    return () => {
-      globalThis.removeEventListener("keydown", handleKeyDown);
-      globalThis.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [dragInfo]);
 
   // DragOverlay has pointer-events: none, so the cursor would otherwise reflect whatever is underneath.
   useEffect(() => {
@@ -201,7 +180,6 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
         keywords: [],
         preferredPrintingId: data.preferredPrintingId,
       });
-      setShiftHeld(false);
     } else if (data?.type === "browser-card") {
       setDragInfo({
         cardId: data.card.cardId,
@@ -222,7 +200,6 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const handleDragEnd = (event: DragEndEvent) => {
     const moveAll = shiftHeld;
     setDragInfo(null);
-    setShiftHeld(false);
     activeNodeRef.current = null;
 
     const activeData = asDragData<AnyDragData>(event.active.data.current, DECK_DRAG_TYPES);

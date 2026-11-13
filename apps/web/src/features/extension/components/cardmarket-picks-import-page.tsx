@@ -12,6 +12,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { SettingsSection } from "@/components/layout/settings-section";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CountPill } from "@/components/ui/count-pill";
@@ -268,9 +269,7 @@ function PicksEditor({
             message={m.extension_picks_picked_from}
             inputs={{ count: matchedEntries.length, seller }}
             markup={{
-              strong: ({ children }) => (
-                <span className="text-foreground font-medium">{children}</span>
-              ),
+              strong: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -298,7 +297,7 @@ function PicksEditor({
           skippedCount={skippedCount}
         />
         <Button disabled={!canSave} pending={isSaving} onClick={() => void handleSave()}>
-          {isSaving ? m.common_saving() : m.extension_picks_save({ count: summary.totalCards })}
+          {m.extension_picks_save({ count: summary.totalCards })}
         </Button>
       </Callout>
     </div>

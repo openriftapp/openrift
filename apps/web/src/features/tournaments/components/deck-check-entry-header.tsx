@@ -1,9 +1,11 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type {
   DeckCheckEntryCardResponse,
   DeckCheckEntryDetailResponse,
+  DeckCheckEntryState,
+  DeckCheckReviewOutcome,
 } from "@openrift/shared/types/api/deck-check";
 import { WellKnown } from "@openrift/shared/well-known";
-import { Link } from "@tanstack/react-router";
 import {
   BanIcon,
   CheckIcon,
@@ -21,7 +23,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { PageTopBarIconButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
-import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
@@ -36,18 +37,25 @@ import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
 import { FormatStateBadge } from "@/features/decks/components/deck-format-badge";
+import { DeckIdentityLine } from "@/features/decks/components/deck-identity-line";
 import { FannedPreview, typeCountSummary } from "@/features/decks/components/deck-tile";
 import { DeckCheckStateBadge } from "@/features/tournaments/components/deck-check-state-badge";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import {
+  TournamentBreadcrumbBar,
+  tournamentDecksCrumb,
+} from "@/features/tournaments/components/tournament-detail-frame";
 import { useDraftRevision } from "@/features/tournaments/hooks/use-draft-revision";
 import {
   useDenyTournamentDeckCheckUnlock,
   useUnlinkTournamentDeckCheckEntry,
   useUpdateTournamentDeckCheckEntry,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
-import { useTournamentDetail } from "@/features/tournaments/hooks/use-tournaments";
 import { canRequestChanges, primaryActionFor } from "@/features/tournaments/lib/deck-check-actions";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
+import { memberName } from "@/lib/member-name";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -60,20 +68,10 @@ export function DeckEntryTopBar({
   entry?: DeckCheckEntryDetailResponse["entry"];
   actions?: ReactNode;
 }) {
-  const { data: tournament } = useTournamentDetail(tournamentId);
   return (
-    <TopBarBreadcrumbBar
-      segments={[
-        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-        {
-          label: tournament.name,
-          link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
-        },
-        {
-          label: m.nav_decks(),
-          link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
-        },
-      ]}
+    <TournamentBreadcrumbBar
+      id={tournamentId}
+      trail={[tournamentDecksCrumb(tournamentId)]}
       title={entry?.playerName ?? m.tournaments_deck_check_entry_fallback_title()}
       actions={
         entry || actions ? (
@@ -102,10 +100,7 @@ export function EntryTopBarActions({
   onDelete,
 }: {
   entry: DeckCheckEntryDetailResponse["entry"];
-  transition: (
-    state: "editable" | "submitted" | "approved" | "checked" | "withdrawn",
-    reviewOutcome?: "ok" | "issue",
-  ) => void;
+  transition: (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => void;
   pending: boolean;
   canManage: boolean;
   onEdit: () => void;
@@ -189,10 +184,7 @@ export function EntryHeader({
   tournamentId: string;
   entryId: string;
   detail: DeckCheckEntryDetailResponse;
-  transition: (
-    state: "editable" | "submitted" | "approved" | "checked" | "withdrawn",
-    reviewOutcome?: "ok" | "issue",
-  ) => void;
+  transition: (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => void;
   pending: boolean;
 }) {
   const { entry } = detail;
@@ -308,7 +300,7 @@ function EntryMetaGrid({ entry }: { entry: DeckCheckEntryDetailResponse["entry"]
           <span className="flex items-center gap-1">
             <Link2Icon className="size-3.5 shrink-0" />
             {m.tournaments_deck_check_linked_to({
-              name: entry.claimedUserName ?? m.tournaments_deck_check_linked_unnamed_account(),
+              name: memberName(entry.claimedUserName),
             })}
             {entry.claimSource === "self_submit"
               ? m.tournaments_deck_check_self_submitted_suffix()
@@ -407,6 +399,18 @@ export function PlayerMessageField({
   const { dirty, markEdited, beginSave } = useDraftRevision();
   const value = dirty ? message : (entry.playerMessage ?? "");
 
+  const save = async () => {
+    const onSaved = beginSave();
+    const playerMessage = value.trim() || null;
+    if (
+      await runReportedMutation(() =>
+        updateEntry.mutateAsync({ tournamentId, entryId, playerMessage }),
+      )
+    ) {
+      onSaved();
+    }
+  };
+
   return (
     <div className="flex flex-col gap-1.5">
       <Textarea
@@ -419,56 +423,74 @@ export function PlayerMessageField({
         maxLength={2000}
         rows={2}
       />
+      <SaveError error={updateEntry.error} />
       {dirty ? (
         <Button
           size="sm"
           variant="outline"
           className="self-end"
-          disabled={updateEntry.isPending}
-          onClick={() => {
-            updateEntry.mutate(
-              { tournamentId, entryId, playerMessage: value.trim() || null },
-              { onSuccess: beginSave() },
-            );
-          }}
+          pending={updateEntry.isPending}
+          onClick={() => void save()}
         >
-          {updateEntry.isPending ? m.common_saving() : m.tournaments_deck_check_save_message()}
+          {m.tournaments_deck_check_save_message()}
         </Button>
       ) : null}
     </div>
   );
 }
 
-export function StatsSummary({ detail }: { detail: DeckCheckEntryDetailResponse }) {
+export function DeckCheckStatsSummary({
+  cards,
+  typeCounts,
+  format,
+  isValid,
+  domainDistribution,
+}: {
+  cards: DeckCheckEntryCardResponse[];
+  typeCounts: DeckCheckEntryDetailResponse["typeCounts"];
+  format: string | null;
+  isValid: boolean;
+  domainDistribution: DeckCheckEntryDetailResponse["domainDistribution"];
+}) {
   const { getPreferredPrinting } = usePreferredPrinting();
 
-  const legendLine = detail.cards.find((card) => card.zone === WellKnown.deckZone.LEGEND);
-  const championLine = detail.cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION);
-  const legendDomains = legendLine?.resolvedCardId
-    ? getPreferredPrinting(legendLine.resolvedCardId)?.card.domains
-    : undefined;
-  const typeSummary = typeCountSummary(detail.typeCounts);
-  const subtitle = [legendLine?.rawName, championLine?.rawName].filter(Boolean).join(" / ");
+  const resolvedCard = (line: DeckCheckEntryCardResponse | undefined) =>
+    line?.resolvedCardId ? getPreferredPrinting(line.resolvedCardId)?.card : undefined;
+  const legendLine = cards.find((card) => card.zone === WellKnown.deckZone.LEGEND);
+  const championLine = cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION);
+  const legendCard = resolvedCard(legendLine);
+  const championCard = resolvedCard(championLine);
+  const unresolved =
+    (legendLine !== undefined && legendCard === undefined) ||
+    (championLine !== undefined && championCard === undefined);
+  const typeSummary = typeCountSummary(typeCounts);
 
   return (
     <div className="flex flex-col gap-2">
-      {subtitle ? <p className="text-muted-foreground truncate text-sm">{subtitle}</p> : null}
+      {unresolved ? (
+        <p className="text-muted-foreground truncate text-sm">
+          {[
+            legendCard ? legendDisplayName(legendCard) : legendLine?.rawName,
+            championCard ? championCard.name : championLine?.rawName,
+          ]
+            .filter(Boolean)
+            .join(" / ")}
+        </p>
+      ) : (
+        <DeckIdentityLine legendCard={legendCard} championCard={championCard} className="text-sm" />
+      )}
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1">
-          {legendDomains?.map((domain) => (
+          {legendCard?.domains.map((domain) => (
             <DomainIcon key={domain} domain={domain} />
           ))}
           {typeSummary ? (
             <span className="text-muted-foreground text-2xs ml-1">{typeSummary}</span>
           ) : null}
         </span>
-        {detail.event.format ? (
-          <FormatStateBadge format={detail.event.format} isValid={detail.violations.length === 0} />
-        ) : null}
+        {format ? <FormatStateBadge format={format} isValid={isValid} /> : null}
       </div>
-      {detail.domainDistribution.length > 0 ? (
-        <DeckDomainBar distribution={detail.domainDistribution} />
-      ) : null}
+      {domainDistribution.length > 0 ? <DeckDomainBar distribution={domainDistribution} /> : null}
     </div>
   );
 }

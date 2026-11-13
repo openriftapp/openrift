@@ -19,9 +19,17 @@ import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import type { BracketMatch } from "@/features/tournaments/lib/cut-bracket-display";
-import { buildBracketColumns, isHigherSeed } from "@/features/tournaments/lib/cut-bracket-display";
+import {
+  buildBracketColumns,
+  isHigherSeed,
+  seedsByPlayer,
+} from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
-import { groupLabelByPlayer, isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
+import {
+  groupLabelByPlayer,
+  isDoubleForfeitPod,
+  isWalkoverPod,
+} from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
 import { pairingLabel } from "@/features/tournaments/lib/tournament-display";
@@ -115,7 +123,11 @@ function Match({
     <BracketMatchCard
       isFinal={isFinal}
       label={cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}
-      aside={pairingLabel(match.podNumber)}
+      aside={
+        pod !== null && isDoubleForfeitPod(pod)
+          ? m.tournaments_pod_double_forfeit()
+          : pairingLabel(match.podNumber)
+      }
     >
       {pod === null
         ? (
@@ -148,9 +160,7 @@ export function CutBracketCompact({
   const context: SeatContext = {
     cutSize,
     groupByPlayer: groupLabelByPlayer(groupStage.groups),
-    seedByPlayer: new Map(
-      groupStage.ranking.flatMap((row) => (row.seed === null ? [] : [[row.playerId, row.seed]])),
-    ),
+    seedByPlayer: seedsByPlayer(groupStage),
     legendByPlayer: legendsByPlayer(groupStage),
     placeByPlayer: new Map(
       (groupStage.finalStandings ?? []).map((row) => [row.playerId, row.place] as const),

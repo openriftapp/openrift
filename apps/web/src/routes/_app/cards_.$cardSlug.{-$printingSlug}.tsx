@@ -7,7 +7,7 @@ import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import { cardPath } from "@openrift/shared/site-paths";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
-import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
 import { RouteErrorFallback } from "@/components/error-message";
@@ -24,20 +24,16 @@ import { fetchPricesForSeo, pricesQueryOptions } from "@/features/cards/lib/pric
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import { lenient } from "@/lib/lenient-param";
+import { sideSearchParam } from "@/lib/route-search";
 import { breadcrumbJsonLd, productJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { cardShareImageUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
 const cardDetailSearchSchema = z.object({
   printingId: lenient(z.string()),
-  side: lenient(
-    z.pipe(
-      z.transform((value) => (Number(value) === 2 ? 2 : undefined)),
-      z.optional(z.literal(2)),
-    ),
-  ),
+  side: sideSearchParam,
 });
 
 interface CardDetailLoaderData {
@@ -122,25 +118,21 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     };
   },
   loader: async ({ context, params }): Promise<CardDetailLoaderData> => {
-    let data: CardDetailPayload;
-    let init: Awaited<ReturnType<typeof initQueryOptions.queryFn & object>>;
-    try {
-      // select: undefined keeps the raw response; the enriched shape drops fields
-      // the JSON-LD below still needs.
-      [data, init] = await Promise.all([
+    // select: undefined keeps the raw response; the enriched shape drops fields
+    // the JSON-LD below still needs.
+    const [data, init]: [
+      CardDetailPayload,
+      Awaited<ReturnType<typeof initQueryOptions.queryFn & object>>,
+    ] = await notFoundOnSentinel(
+      Promise.all([
         context.queryClient.query({
           ...cardDetailQueryOptions(params.cardSlug),
           select: undefined,
           staleTime: "static",
         }),
         context.queryClient.query({ ...initQueryOptions, select: undefined, staleTime: "static" }),
-      ]);
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      ]),
+    );
     // Printings get renumbered, and the old slug must 301 rather than render the
     // language-preferred fallback: a 200 keeps the dead URL in search indexes.
     if (

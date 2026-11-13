@@ -7,7 +7,8 @@ import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/group-banners")({
   head: () => adminSeoHead("Group Banners"),
-  loader: ({ context }) => context.queryClient.query(groupBannersQueryOptions),
+  loader: ({ context }) =>
+    context.queryClient.query({ ...groupBannersQueryOptions, staleTime: "static" }),
   pendingComponent: AdminPending,
   errorComponent: RouteErrorFallback,
 });

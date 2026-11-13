@@ -1,3 +1,7 @@
+import type {
+  DeckCheckEntryState,
+  DeckCheckReviewOutcome,
+} from "@openrift/shared/types/api/deck-check";
 import { useNavigate } from "@tanstack/react-router";
 import { ExpandIcon, PlusIcon, ShrinkIcon } from "lucide-react";
 import { useState } from "react";
@@ -29,7 +33,7 @@ import {
   EntryPreview,
   EntryTopBarActions,
   PlayerMessageField,
-  StatsSummary,
+  DeckCheckStatsSummary,
 } from "@/features/tournaments/components/deck-check-entry-header";
 import {
   ChangeBanner,
@@ -108,10 +112,7 @@ export function TournamentDeckCheckEntry({
   }
 
   // Folds in any unsaved notes so they survive advancing the entry's state.
-  const transition = (
-    state: "editable" | "submitted" | "approved" | "checked" | "withdrawn",
-    reviewOutcome?: "ok" | "issue",
-  ) => {
+  const transition = (state: DeckCheckEntryState, reviewOutcome?: DeckCheckReviewOutcome) => {
     setState.mutate(
       {
         tournamentId,
@@ -184,7 +185,15 @@ export function TournamentDeckCheckEntry({
         <div className="flex flex-col gap-4 md:flex-row">
           {listHidden ? null : <EntryPreview cards={detail.cards} />}
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            {listHidden ? null : <StatsSummary detail={detail} />}
+            {listHidden ? null : (
+              <DeckCheckStatsSummary
+                cards={detail.cards}
+                typeCounts={detail.typeCounts}
+                format={detail.event.format}
+                isValid={detail.violations.length === 0}
+                domainDistribution={detail.domainDistribution}
+              />
+            )}
             <Textarea
               value={notesDirty ? notes : (detail.entry.notes ?? "")}
               onChange={(event) => {
@@ -299,7 +308,6 @@ export function TournamentDeckCheckEntry({
           title={m.tournaments_deck_check_delete_entry_title()}
           description={m.tournaments_deck_check_delete_entry_description()}
           confirmLabel={m.common_delete()}
-          pendingLabel={m.tournaments_deck_check_deleting()}
           isPending={deleteEntry.isPending}
           onConfirm={() => void handleDelete()}
         />

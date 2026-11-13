@@ -1,21 +1,12 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
-import { Suspense, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogCancel,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
 import { TextLink } from "@/components/ui/text-link";
+import {
+  ShareWithGroupDialog,
+  ShareWithGroupPicker,
+} from "@/features/groups/components/share-with-group-dialog";
 import {
   useFriendGroupShareableCollections,
   useShareCollectionWithFriendGroup,
@@ -27,137 +18,67 @@ export function ShareCollectionsWithGroupDialog({
   groupName,
   open,
   onOpenChange,
-  cancelLabel = m.common_cancel(),
-  preselectAll = false,
 }: {
   slug: string;
   groupName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  cancelLabel?: string;
-  preselectAll?: boolean;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.share_collections_dialog_title({ group: groupName })}</DialogTitle>
-          <DialogDescription>{m.share_collections_dialog_description()}</DialogDescription>
-        </DialogHeader>
-        <Suspense
-          fallback={
-            <div className="text-muted-foreground py-4 text-sm">
-              {m.share_collections_dialog_loading()}
-            </div>
-          }
-        >
-          <ShareCollectionsBody
-            slug={slug}
-            onOpenChange={onOpenChange}
-            cancelLabel={cancelLabel}
-            preselectAll={preselectAll}
-          />
-        </Suspense>
-      </DialogContent>
-    </Dialog>
+    <ShareWithGroupDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={m.share_collections_dialog_title({ group: groupName })}
+      description={m.share_collections_dialog_description()}
+      loadingLabel={m.share_collections_dialog_loading()}
+    >
+      <ShareCollectionsBody slug={slug} onOpenChange={onOpenChange} />
+    </ShareWithGroupDialog>
   );
 }
 
 function ShareCollectionsBody({
   slug,
   onOpenChange,
-  cancelLabel,
-  preselectAll,
 }: {
   slug: string;
   onOpenChange: (open: boolean) => void;
-  cancelLabel: string;
-  preselectAll: boolean;
 }) {
   const { data } = useFriendGroupShareableCollections(slug);
   const share = useShareCollectionWithFriendGroup();
-
   const candidates = data.items.filter((item) => item.sharedAt === null);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(preselectAll ? candidates.map((item) => item.collectionId) : []),
-  );
-
-  if (candidates.length === 0) {
-    return (
-      <>
-        <p className="text-muted-foreground">
-          {data.items.length === 0 ? (
-            <ParaglideMessage
-              message={m.share_collections_dialog_none}
-              markup={{
-                link: ({ children }) => (
-                  <TextLink variant="muted" render={<Link to="/collections" />}>
-                    {children}
-                  </TextLink>
-                ),
-              }}
-            />
-          ) : (
-            m.share_collections_dialog_all_shared()
-          )}
-        </p>
-        <DialogFooter>
-          <DialogCancel>{m.common_close()}</DialogCancel>
-        </DialogFooter>
-      </>
-    );
-  }
-
-  const handleShare = async () => {
-    const toShare = candidates.filter((item) => selectedIds.has(item.collectionId));
-    await Promise.allSettled(
-      toShare.map((item) => share.mutateAsync({ slug, collectionId: item.collectionId })),
-    );
-    onOpenChange(false);
-  };
-
   return (
-    <DialogForm onSubmit={() => void handleShare()}>
-      <ul className="flex flex-col gap-2">
-        {candidates.map((item) => {
-          const checkboxId = `share-collection-${item.collectionId}`;
-          const isSelected = selectedIds.has(item.collectionId);
-          return (
-            <li key={item.collectionId} className="flex items-center gap-3">
-              <Checkbox
-                id={checkboxId}
-                checked={isSelected}
-                disabled={share.isPending}
-                onCheckedChange={(checked) => {
-                  setSelectedIds((prev) => {
-                    const next = new Set(prev);
-                    if (checked === false) {
-                      next.delete(item.collectionId);
-                    } else {
-                      next.add(item.collectionId);
-                    }
-                    return next;
-                  });
-                }}
-              />
-              <label
-                htmlFor={checkboxId}
-                className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
-              >
-                <BookOpenIcon className="text-muted-foreground size-4 shrink-0" />
-                <span className="truncate font-medium">{item.collectionName}</span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-      <DialogFooter>
-        <DialogCancel disabled={share.isPending}>{cancelLabel}</DialogCancel>
-        <Button type="submit" disabled={share.isPending || selectedIds.size === 0}>
-          {m.share_collections_dialog_submit({ count: selectedIds.size })}
-        </Button>
-      </DialogFooter>
-    </DialogForm>
+    <ShareWithGroupPicker
+      items={candidates.map((item) => ({
+        id: item.collectionId,
+        name: item.collectionName,
+        icon: BookOpenIcon,
+      }))}
+      flow="manage"
+      idPrefix="share-collection"
+      emptyMessage={
+        data.items.length === 0 ? (
+          <ParaglideMessage
+            message={m.share_collections_dialog_none}
+            markup={{
+              link: ({ children }) => (
+                <TextLink variant="muted" render={<Link to="/collections" />}>
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
+        ) : (
+          m.share_collections_dialog_all_shared()
+        )
+      }
+      submitLabel={(count) => m.share_collections_dialog_submit({ count })}
+      isPending={share.isPending}
+      onShare={(ids) =>
+        Promise.allSettled(ids.map((collectionId) => share.mutateAsync({ slug, collectionId })))
+      }
+      onOpenChange={onOpenChange}
+    />
   );
 }

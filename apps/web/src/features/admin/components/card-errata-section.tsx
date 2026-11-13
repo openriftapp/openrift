@@ -186,7 +186,6 @@ export function CardErrataSection({
         title={`Remove the ${labelFor(removing ?? "")} errata?`}
         description="Printings in this language fall back to the text printed on them."
         confirmLabel="Remove errata"
-        pendingLabel="Removing…"
         isPending={deleteErrata.isPending}
         onConfirm={() => {
           if (removing !== null) {

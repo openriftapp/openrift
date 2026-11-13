@@ -6,13 +6,16 @@ import { EmptyState } from "@/components/empty-state";
 import { ArchiveListsBand } from "@/features/tournaments/components/archive-lists-band";
 import { TournamentDeckCheckEntries } from "@/features/tournaments/components/deck-check-event-page";
 import { DeckCheckIngestGuide } from "@/features/tournaments/components/deck-check-ingest-guide";
-import { canCheckDecks, canManageTournament } from "@/features/tournaments/lib/tournament-display";
+import {
+  canManageTournament,
+  isTournamentStaff,
+} from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
 /** The entrant list comes from a staff-only endpoint; gate on host/organizer/judge here. */
 export function TournamentDeckCheckTab({ detail }: { detail: TournamentDetailResponse }) {
   const canManage = canManageTournament(detail.myRoles);
-  if (!canCheckDecks(detail.myRoles)) {
+  if (!isTournamentStaff(detail.myRoles)) {
     return (
       <EmptyState
         icon={ShieldCheckIcon}

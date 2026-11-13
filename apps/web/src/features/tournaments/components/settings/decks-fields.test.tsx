@@ -2,41 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
-
-import {
-  AllowDeckEditsField,
-  DeckDeadlineField,
-  DeckSubmissionField,
-  parseDeadlineInput,
-} from "./decks-fields";
-
-describe("parseDeadlineInput", () => {
-  it("treats both parts blank as no deadline", () => {
-    expect(parseDeadlineInput("", "", null)).toEqual({
-      closeAt: null,
-      incomplete: false,
-      afterEnd: false,
-    });
-  });
-
-  it("combines a full date and time into a UTC instant", () => {
-    expect(parseDeadlineInput("2026-06-10", "18:00", null).closeAt).toBe(
-      combineLocalDateTimeToUtc("2026-06-10", "18:00"),
-    );
-  });
-
-  it("flags a half-filled deadline", () => {
-    expect(parseDeadlineInput("2026-06-10", "", null).incomplete).toBe(true);
-  });
-
-  it("flags a deadline after the end, and skips the check without one", () => {
-    const endsAt = combineLocalDateTimeToUtc("2026-06-10", "12:00");
-    expect(parseDeadlineInput("2026-06-10", "13:00", endsAt).afterEnd).toBe(true);
-    expect(parseDeadlineInput("2026-06-10", "12:00", endsAt).afterEnd).toBe(false);
-    expect(parseDeadlineInput("2026-06-10", "13:00", null).afterEnd).toBe(false);
-  });
-});
+import { AllowDeckEditsField, DeckDeadlineField, DeckSubmissionField } from "./decks-fields";
 
 describe("DeckSubmissionField", () => {
   it("reports a picked policy", async () => {

@@ -1,5 +1,6 @@
 import type { ErrorCode } from "@openrift/shared/error-codes";
 import { ORPCError } from "@orpc/client";
+import { notFound } from "@tanstack/react-router";
 
 /**
  * Thrown by {@link fetchApi} on a non-ok response. The prototype does not
@@ -68,6 +69,14 @@ export async function orNotFound<T>(promise: Promise<T>): Promise<T> {
     throw error instanceof ORPCError && error.defined && error.code === "NOT_FOUND"
       ? notFoundError()
       : error;
+  }
+}
+
+export async function notFoundOnSentinel<T>(promise: Promise<T>): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    throw isNotFoundSentinel(error) ? notFound() : error;
   }
 }
 

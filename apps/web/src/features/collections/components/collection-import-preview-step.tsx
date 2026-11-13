@@ -229,7 +229,7 @@ export function CollectionImportPreviewStep({
             disabled={!canImport}
             pending={isImporting}
           >
-            {isImporting ? m.collections_import_importing() : importLabel}
+            {importLabel}
           </Button>
           {needsAttentionCount > 0 && !isImporting && (
             <span className="text-muted-foreground text-sm">

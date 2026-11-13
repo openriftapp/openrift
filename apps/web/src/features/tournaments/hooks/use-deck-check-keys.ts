@@ -59,6 +59,7 @@ export function useMintMyDeckCheckKey() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
     mutationFn: (vars: { label: string }) => mintMyKeyFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: () => [deckCheckKeys.mine(userId)],
   });
 }
@@ -67,6 +68,7 @@ export function useRenameMyDeckCheckKey() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
     mutationFn: (vars: { keyId: string; label: string }) => renameMyKeyFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: () => [deckCheckKeys.mine(userId)],
   });
 }
@@ -135,6 +137,7 @@ export function useMintOrgDeckCheckKey() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
     mutationFn: (vars: { orgId: string; label: string }) => mintOrgKeyFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => [deckCheckKeys.org(userId, vars.orgId)],
   });
 }
@@ -144,6 +147,7 @@ export function useRenameOrgDeckCheckKey() {
   return useMutationWithInvalidation({
     mutationFn: (vars: { orgId: string; keyId: string; label: string }) =>
       renameOrgKeyFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => [deckCheckKeys.org(userId, vars.orgId)],
   });
 }

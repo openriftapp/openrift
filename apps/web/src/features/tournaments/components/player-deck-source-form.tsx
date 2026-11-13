@@ -5,30 +5,26 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { useDecks } from "@/features/decks/hooks/use-decks";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import type { SharingConsent } from "@/features/tournaments/components/sharing-consent-fields";
+import { SharingConsentFields } from "@/features/tournaments/components/sharing-consent-fields";
 import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
 import { m } from "@/paraglide/messages.js";
 
-export interface DeckSourceInput {
+export interface DeckSourceInput extends SharingConsent {
   deckId?: string;
   deckCode?: string;
   cards?: { name: string; quantity: number; section: string }[];
-  allowDeckPublishing: boolean;
-  allowNameSharing: boolean;
-  allowRiotIdSharing: boolean;
 }
 
 const NO_DECK = "__none__";
 
-type DeckSource = Omit<
-  DeckSourceInput,
-  "allowDeckPublishing" | "allowNameSharing" | "allowRiotIdSharing"
->;
+type DeckSource = Omit<DeckSourceInput, keyof SharingConsent>;
 
 function pasteToInput(paste: string): DeckSource | null {
   const trimmed = paste.trim();
@@ -44,8 +40,8 @@ function pasteToInput(paste: string): DeckSource | null {
 
 export function PlayerDeckSourceForm({
   submitLabel,
-  pendingLabel,
   isSubmitting,
+  error,
   onSubmit,
   onPreview,
   preview,
@@ -55,8 +51,8 @@ export function PlayerDeckSourceForm({
   initialAllowRiotIdSharing = true,
 }: {
   submitLabel: string;
-  pendingLabel: string;
   isSubmitting: boolean;
+  error?: unknown;
   onSubmit: (input: DeckSourceInput) => void;
   onPreview: (input: DeckSourceInput) => void;
   preview: DeckCheckSubmissionResultResponse | null;
@@ -68,9 +64,11 @@ export function PlayerDeckSourceForm({
   const { data: allDecks } = useDecks();
   const [deckId, setDeckId] = useState(NO_DECK);
   const [deckCode, setDeckCode] = useState("");
-  const [allowDeckPublishing, setAllowDeckPublishing] = useState(initialAllowDeckPublishing);
-  const [allowNameSharing, setAllowNameSharing] = useState(initialAllowNameSharing);
-  const [allowRiotIdSharing, setAllowRiotIdSharing] = useState(initialAllowRiotIdSharing);
+  const [consent, setConsent] = useState<SharingConsent>({
+    allowDeckPublishing: initialAllowDeckPublishing,
+    allowNameSharing: initialAllowNameSharing,
+    allowRiotIdSharing: initialAllowRiotIdSharing,
+  });
 
   const decks = allDecks.filter((item) => item.deck.archivedAt === null);
   const deckItems = [
@@ -80,9 +78,7 @@ export function PlayerDeckSourceForm({
 
   // The sources are mutually exclusive; touching one clears the other.
   const source: DeckSource | null = deckId === NO_DECK ? pasteToInput(deckCode) : { deckId };
-  const input: DeckSourceInput | null = source
-    ? { ...source, allowDeckPublishing, allowNameSharing, allowRiotIdSharing }
-    : null;
+  const input: DeckSourceInput | null = source ? { ...source, ...consent } : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -136,64 +132,33 @@ export function PlayerDeckSourceForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>{m.tournaments_deck_check_public_sharing()}</Label>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="player-deck-publish"
-            checked={allowDeckPublishing}
-            onCheckedChange={(checked) => setAllowDeckPublishing(checked === true)}
-          />
-          <Label htmlFor="player-deck-publish" className="font-normal">
-            {m.tournaments_player_deck_publish_consent()}
-          </Label>
-        </div>
-        <div className="ml-6 flex items-center gap-2">
-          <Checkbox
-            id="player-deck-share-name"
-            checked={allowNameSharing}
-            disabled={!allowDeckPublishing}
-            onCheckedChange={(checked) => setAllowNameSharing(checked === true)}
-          />
-          <Label
-            htmlFor="player-deck-share-name"
-            className="font-normal data-[disabled]:opacity-50"
-            data-disabled={!allowDeckPublishing || undefined}
-          >
-            {m.tournaments_player_deck_publish_name()}
-          </Label>
-        </div>
-        <div className="ml-6 flex items-center gap-2">
-          <Checkbox
-            id="player-deck-share-riot-id"
-            checked={allowRiotIdSharing}
-            disabled={!allowDeckPublishing}
-            onCheckedChange={(checked) => setAllowRiotIdSharing(checked === true)}
-          />
-          <Label
-            htmlFor="player-deck-share-riot-id"
-            className="font-normal data-[disabled]:opacity-50"
-            data-disabled={!allowDeckPublishing || undefined}
-          >
-            {m.tournaments_player_deck_publish_riot_id()}
-          </Label>
-        </div>
+        <SharingConsentFields
+          idPrefix="player-deck"
+          value={consent}
+          labels={{
+            publish: m.tournaments_player_deck_publish_consent(),
+            name: m.tournaments_player_deck_publish_name(),
+            riotId: m.tournaments_player_deck_publish_riot_id(),
+          }}
+          onChange={(patch) => setConsent((current) => ({ ...current, ...patch }))}
+        />
         <p className="text-muted-foreground text-sm">{m.tournaments_player_deck_sharing_note()}</p>
       </div>
 
       {preview ? <PreviewSummary preview={preview} /> : null}
+      <SaveError error={error} />
 
       <div className="flex items-center justify-end gap-2">
         <Button
           variant="outline"
-          disabled={!input || isPreviewing}
+          disabled={!input}
+          pending={isPreviewing}
           onClick={() => input && onPreview(input)}
         >
-          {isPreviewing
-            ? m.tournaments_player_deck_checking()
-            : m.tournaments_player_deck_preview()}
+          {m.tournaments_player_deck_preview()}
         </Button>
-        <Button disabled={!input || isSubmitting} onClick={() => input && onSubmit(input)}>
-          {isSubmitting ? pendingLabel : submitLabel}
+        <Button disabled={!input} pending={isSubmitting} onClick={() => input && onSubmit(input)}>
+          {submitLabel}
         </Button>
       </div>
     </div>

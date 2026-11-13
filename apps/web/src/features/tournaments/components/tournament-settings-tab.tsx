@@ -17,15 +17,21 @@ import { RegionsSection } from "@/features/tournaments/components/settings/regio
 import { ScheduleSection } from "@/features/tournaments/components/settings/schedule-section";
 import { SignupLinksSection } from "@/features/tournaments/components/settings/signup-links-section";
 import { UvsgamesSection } from "@/features/tournaments/components/settings/uvsgames-section";
-import { hasPairing } from "@/features/tournaments/lib/tournament-display";
+import {
+  hasPairing,
+  isTournamentHost,
+  regionsSectionVisible,
+} from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
 function buildTocItems({
   isHost,
   runsRounds,
+  showRegions,
 }: {
   isHost: boolean;
   runsRounds: boolean;
+  showRegions: boolean;
 }): PageTocItem[] {
   return [
     { id: "general", label: m.tournaments_settings_toc_general() },
@@ -41,10 +47,10 @@ function buildTocItems({
     { id: "pairings-decks", label: m.tournaments_settings_toc_pairings_decks() },
     { id: "pairings", label: m.tournaments_settings_toc_format(), level: 1 },
     ...(runsRounds
-      ? [
-          { id: "points", label: m.tournaments_standings_col_points(), level: 1 },
-          { id: "regions", label: m.tournaments_region_overview_heading(), level: 1 },
-        ]
+      ? [{ id: "points", label: m.tournaments_standings_col_points(), level: 1 }]
+      : []),
+    ...(showRegions
+      ? [{ id: "regions", label: m.tournaments_region_overview_heading(), level: 1 }]
       : []),
     { id: "decks", label: m.tournaments_section_decks(), level: 1 },
     { id: "sharing", label: m.tournaments_settings_toc_sharing() },
@@ -58,13 +64,14 @@ function buildTocItems({
 
 export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResponse }) {
   const runsRounds = hasPairing(detail.pairingStyle);
-  const isHost = detail.myRoles.includes("host");
+  const isHost = isTournamentHost(detail.myRoles);
+  const showRegions = regionsSectionVisible(detail);
   const effectiveState = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
   const locked = effectiveState === "cancelled";
   const canEndEarly = effectiveState !== "completed" && effectiveState !== "cancelled";
 
   return (
-    <SettingsLayout toc={buildTocItems({ isHost, runsRounds })}>
+    <SettingsLayout toc={buildTocItems({ isHost, runsRounds, showRegions })}>
       <SettingsGroup id="general" title={m.tournaments_settings_toc_general()}>
         <NameSection detail={detail} locked={locked} />
 
@@ -82,9 +89,7 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
       <SettingsGroup id="pairings-decks" title={m.tournaments_settings_toc_pairings_decks()}>
         <FormatSection detail={detail} locked={locked} />
         {runsRounds ? <PointsSection detail={detail} locked={locked} /> : null}
-        {runsRounds && detail.playMode !== "2v2" ? (
-          <RegionsSection detail={detail} locked={locked} />
-        ) : null}
+        {showRegions ? <RegionsSection detail={detail} locked={locked} /> : null}
         <DecksSection detail={detail} locked={locked} />
       </SettingsGroup>
 

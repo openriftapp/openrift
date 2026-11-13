@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "react";
 
+import { MOBILE_QUERY as PORTRAIT_QUERY } from "@/lib/media-query";
+
 export type ScanLayout = "boxed" | "portrait" | "landscape";
 
 // 600px keeps laptops/tablets boxed; the largest common tablet-in-landscape
 // short side is well above that, the largest phone (~430px) well below.
 const LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 600px)";
-
-const PORTRAIT_QUERY = "(max-width: 767px)";
 
 function queryList(query: string): MediaQueryList | null {
   return typeof globalThis.matchMedia === "function" ? globalThis.matchMedia(query) : null;

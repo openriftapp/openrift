@@ -4,9 +4,12 @@ import { Fragment, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChangedRemotelyNotice } from "@/features/tournaments/components/pod-result-form";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { swissPointsPreview, swissResultPresets } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface SwissResultFormProps {
@@ -17,8 +20,9 @@ interface SwissResultFormProps {
   matchFormat: TournamentMatchFormat;
   winPoints: number;
   drawPoints: number;
-  onSubmit: (results: { playerId: string; gamePoints: number }[]) => Promise<void> | void;
+  onSubmit: (results: PodResultEntry[]) => void;
   submitting: boolean;
+  error?: unknown;
   onCancel?: () => void;
 }
 
@@ -31,6 +35,7 @@ export function SwissResultForm({
   drawPoints,
   onSubmit,
   submitting,
+  error,
   onCancel,
 }: SwissResultFormProps) {
   const groups = teamMatch
@@ -50,20 +55,23 @@ export function SwissResultForm({
       preset.gamePoints[1] === stored2,
   );
   const [selected, setSelected] = useState<number | null>(storedIndex === -1 ? null : storedIndex);
+  const { changedRemotely, acceptLatest } = useResultBaseline(pod);
   const chosen = selected === null ? null : (presets[selected] ?? null);
   const preview = chosen ? swissPointsPreview(chosen.gamePoints, winPoints, drawPoints) : null;
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!chosen || !side1 || !side2) {
       return;
     }
-    const results = [
+    onSubmit([
       ...side1.map((member) => ({ playerId: member.playerId, gamePoints: chosen.gamePoints[0] })),
       ...side2.map((member) => ({ playerId: member.playerId, gamePoints: chosen.gamePoints[1] })),
-    ];
-    await runReportedMutation(async () => {
-      await onSubmit(results);
-    });
+    ]);
+  }
+
+  function loadLatest() {
+    acceptLatest();
+    setSelected(storedIndex === -1 ? null : storedIndex);
   }
 
   if (!side1 || !side2 || groups.length !== 2) {
@@ -161,14 +169,16 @@ export function SwissResultForm({
           </span>
         </div>
       ) : null}
+      {changedRemotely ? <ChangedRemotelyNotice match onShowLatest={loadLatest} /> : null}
+      <SaveError error={error} />
       <div className="flex justify-end gap-2">
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             {m.common_cancel()}
           </Button>
         ) : null}
-        <Button onClick={() => void handleSubmit()} disabled={selected === null || submitting}>
-          {submitting ? m.common_saving() : m.tournaments_submit_save_result()}
+        <Button onClick={handleSubmit} disabled={selected === null} pending={submitting}>
+          {m.tournaments_pod_save_result()}
         </Button>
       </div>
     </div>

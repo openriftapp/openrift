@@ -40,6 +40,13 @@ describe("matchesPickerQuery", () => {
   it("folds accents and apostrophes on both sides", () => {
     expect(matchesPickerQuery({ value: "x", label: "Kai’Sa Évolution" }, "kai'sa evo")).toBe(true);
   });
+
+  it("matches every word in any order, across label and keywords", () => {
+    const ahri = { value: "ahri", label: "Ahri, Alluring", keywords: "OGN-066" };
+    expect(matchesPickerQuery(ahri, "alluring ahri")).toBe(true);
+    expect(matchesPickerQuery(ahri, "066 ahri")).toBe(true);
+    expect(matchesPickerQuery(ahri, "ahri teemo")).toBe(false);
+  });
 });
 
 describe("ComboboxPicker", () => {
@@ -394,6 +401,16 @@ describe("ComboboxPicker free text", () => {
     const rows = await screen.findAllByRole("option");
     expect(rows.map((row) => row.textContent)).toEqual(["Origins"]);
     expect(rows[0]).not.toHaveAttribute("aria-selected", "true");
+  });
+
+  it("offers no create row for an accent variant of an existing option", async () => {
+    const user = userEvent.setup();
+    render(<FreeText />);
+
+    await user.type(screen.getByRole("combobox", { name: "Source" }), "Orígins");
+
+    const rows = await screen.findAllByRole("option");
+    expect(rows.map((row) => row.textContent)).toEqual(["Origins"]);
   });
 
   it("takes the typed text as the value and keeps it on close", async () => {

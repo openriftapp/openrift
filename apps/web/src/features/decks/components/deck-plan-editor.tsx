@@ -478,11 +478,12 @@ export function DeckPlanEditor({
         </Button>
       )}
       <Button
+        pending={savePlan.isPending}
         size="sm"
         onClick={() => savePlan.mutate({ deckId, plan: planDraftToSaveInput(draft) })}
         disabled={!isDirty || savePlan.isPending}
       >
-        {savePlan.isPending ? m.common_saving() : m.decks_plan_save_plan()}
+        {m.decks_plan_save_plan()}
       </Button>
     </>
   );
@@ -676,7 +677,6 @@ export function DeckPlanEditor({
         title={m.decks_plan_clear_confirm_title()}
         description={m.decks_plan_clear_confirm_description()}
         confirmLabel={m.decks_plan_clear_plan()}
-        pendingLabel={m.decks_plan_clearing()}
         isPending={savePlan.isPending}
         onConfirm={() => {
           const empty = createEmptyPlanDraft();

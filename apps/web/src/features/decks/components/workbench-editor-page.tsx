@@ -68,6 +68,7 @@ import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSetOwnFeatureFlag } from "@/hooks/use-own-feature-flag";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSession, useUserId } from "@/hooks/use-session";
+import { prefersReducedMotion } from "@/lib/media-query";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
@@ -285,7 +286,7 @@ function WorkbenchContent({
     if (!useCommandPaletteStore.getState().quickAddOpen) {
       region?.focus({ preventScroll: true });
     }
-    if (!globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    if (!prefersReducedMotion()) {
       region?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "ease-out" });
     }
   }, [mode]);

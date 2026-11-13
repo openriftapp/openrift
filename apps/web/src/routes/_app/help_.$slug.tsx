@@ -1,28 +1,38 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
+import { NotFoundFallback } from "@/components/error-message";
 import { helpArticles } from "@/features/marketing/components/articles";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
-import { articleJsonLd, breadcrumbJsonLd, seoHead } from "@/lib/seo";
+import { requireFeature } from "@/lib/feature-flags";
+import { articleJsonLd, breadcrumbJsonLd, privateSeoHead, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
-function slugToTitle(slug: string) {
-  return slug.replaceAll("-", " ").replaceAll(/\b\w/gu, (char) => char.toUpperCase());
+interface HelpArticleLoaderData {
+  served: true;
 }
 
 export const Route = createFileRoute("/_app/help_/$slug")({
-  head: ({ params }) => {
+  loader: async ({ params, context }): Promise<HelpArticleLoaderData> => {
+    const article = helpArticles.get(params.slug);
+    if (!article) {
+      throw notFound();
+    }
+    if (article.featureFlag) {
+      await requireFeature(context.queryClient, article.featureFlag);
+    }
+    return { served: true };
+  },
+  head: ({ params, loaderData }) => {
     const siteUrl = getSiteUrl();
     const article = helpArticles.get(params.slug);
+    if (!article || !(loaderData as HelpArticleLoaderData | undefined)?.served) {
+      return privateSeoHead("Help");
+    }
     const head = seoHead({
       siteUrl,
-      title: article ? `${article.title} - Help` : `${slugToTitle(params.slug)} - Help`,
-      description: article?.description ?? `Help article: ${slugToTitle(params.slug)}.`,
+      title: `${article.title} - Help`,
+      description: article.description,
       path: `/help/${params.slug}`,
     });
-    if (!article) {
-      return head;
-    }
     const articlePath = `/help/${article.slug}`;
     return {
       ...head,
@@ -40,19 +50,5 @@ export const Route = createFileRoute("/_app/help_/$slug")({
       ],
     };
   },
-  loader: async ({ params, context }) => {
-    const article = helpArticles.get(params.slug);
-    if (!article) {
-      throw notFound();
-    }
-    if (article.featureFlag) {
-      const flags = (await context.queryClient.query({
-        ...featureFlagsQueryOptions,
-        staleTime: "static",
-      })) as FeatureFlags;
-      if (!featureEnabled(flags, article.featureFlag)) {
-        throw notFound();
-      }
-    }
-  },
+  notFoundComponent: NotFoundFallback,
 });

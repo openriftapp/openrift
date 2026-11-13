@@ -44,13 +44,9 @@ export function SharedDeckPage() {
       }
       heroActions={
         <>
-          <Button onClick={() => void handleClone()} disabled={cloneMutation.isPending}>
+          <Button onClick={() => void handleClone()} pending={cloneMutation.isPending}>
             <CopyIcon />
-            {cloneMutation.isPending
-              ? m.decks_share_copying()
-              : isLoggedIn
-                ? m.decks_share_copy_to_my_decks()
-                : m.decks_share_sign_in_to_copy()}
+            {isLoggedIn ? m.decks_share_copy_to_my_decks() : m.decks_share_sign_in_to_copy()}
           </Button>
           <PublicDeckActionsMenu
             deckId={data.deck.id}

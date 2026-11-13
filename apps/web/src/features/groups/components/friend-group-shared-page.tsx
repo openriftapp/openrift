@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { PlusIcon, Share2Icon } from "lucide-react";
 import { Suspense, useState } from "react";
 
+import { CardFan, CardFanOutline } from "@/components/card-fan";
 import { CoverBand } from "@/components/cover-band";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import { Pressable } from "@/components/ui/pressable";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
-import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { printingArt } from "@/features/cards/lib/card-meta";
 import { CreateCollectionDialog } from "@/features/collections/components/create-collection-dialog";

@@ -2,6 +2,7 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/layout/settings-section";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { HostField } from "@/features/tournaments/components/settings/host-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -39,6 +40,7 @@ export function HostSection({
         className="max-w-sm"
         onChange={(value) => void changeHost(value)}
       />
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

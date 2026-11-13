@@ -4,16 +4,19 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { SignedOutAuthButtons } from "@/components/signed-out-cta";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import {
+  TokenLandingCard,
+  TokenLandingPage,
+} from "@/features/tournaments/components/token-landing-card";
 import { useClaimStaffInvite } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentStaffInviteLanding } from "@/features/tournaments/hooks/use-tournaments";
 import { staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
 import { useUserId } from "@/hooks/use-session";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function StaffInviteAction({
@@ -83,47 +86,36 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
   }
 
   return (
-    <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.tournaments_staff_invite_title()}</PageTopBarTitle>
-        </PageTopBar>
-      </PageTopBarSticky>
-      <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{data.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-muted-foreground">
-              <ParaglideMessage
-                message={m.tournaments_staff_invite_hosted}
-                inputs={{ host: data.hostDisplayName, role: roleLabel }}
-                markup={{
-                  strong: ({ children }) => (
-                    <span className="text-foreground font-medium">{children}</span>
-                  ),
-                }}
-              />
-            </p>
-            <StaffInviteAction
-              alreadyStaff={data.alreadyStaff}
-              role={data.role}
-              signedIn={Boolean(userId)}
-              pending={claim.isPending}
-              onConfirm={() => void handleConfirm()}
+    <TokenLandingPage pageTitle={m.tournaments_staff_invite_title()}>
+      <TokenLandingCard
+        title={data.name}
+        meta={
+          <p className="text-muted-foreground">
+            <ParaglideMessage
+              message={m.tournaments_staff_invite_hosted}
+              inputs={{ host: data.hostDisplayName, role: roleLabel }}
+              markup={{ strong: PROSE_MARKUP.strong }}
             />
-            {userId ? (
-              <Link
-                to="/tournaments"
-                className={buttonVariants({ variant: "ghost", className: "w-fit" })}
-              >
-                {m.tournaments_staff_invite_go_to_tournaments()}
-              </Link>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-    </>
+          </p>
+        }
+      >
+        <StaffInviteAction
+          alreadyStaff={data.alreadyStaff}
+          role={data.role}
+          signedIn={Boolean(userId)}
+          pending={claim.isPending}
+          onConfirm={() => void handleConfirm()}
+        />
+        <SaveError error={claim.error} />
+        {userId ? (
+          <Link
+            to="/tournaments"
+            className={buttonVariants({ variant: "ghost", className: "w-fit" })}
+          >
+            {m.tournaments_staff_invite_go_to_tournaments()}
+          </Link>
+        ) : null}
+      </TokenLandingCard>
+    </TokenLandingPage>
   );
 }

@@ -7,7 +7,7 @@ import { serverCacheKeys, siteSettingsKeys } from "@/lib/query-keys";
 import { serverCache } from "./server-cache";
 import { apiOrpcClient } from "./server-fns/orpc-client";
 
-export type SiteSettings = Record<string, string>;
+type SiteSettings = Record<string, string>;
 
 const fetchSiteSettings = createServerFn({ method: "GET" }).handler(() =>
   serverCache.query({
@@ -21,6 +21,6 @@ const fetchSiteSettings = createServerFn({ method: "GET" }).handler(() =>
 
 export const siteSettingsQueryOptions = queryOptions({
   queryKey: siteSettingsKeys.all,
-  queryFn: () => fetchSiteSettings(),
+  queryFn: (): Promise<SiteSettings> => fetchSiteSettings(),
   staleTime: 5 * 60 * 1000, // 5 minutes
 });

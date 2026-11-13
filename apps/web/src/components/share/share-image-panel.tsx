@@ -1,11 +1,6 @@
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
-import {
-  ImageDownIcon,
-  Loader2Icon,
-  RectangleHorizontalIcon,
-  RectangleVerticalIcon,
-} from "lucide-react";
+import { ImageDownIcon, RectangleHorizontalIcon, RectangleVerticalIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useShareImagePreview } from "@/hooks/use-share-image-preview";
@@ -136,7 +132,7 @@ export function ShareImagePanel({
           ) : null}
           {preview.loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2Icon className="text-muted-foreground size-5 animate-spin" />
+              <Spinner className="text-muted-foreground size-5" />
             </div>
           ) : null}
           {preview.error === undefined ? null : (
@@ -232,18 +228,9 @@ export function ShareImagePanel({
         </div>
       )}
 
-      <Button className="self-start" onClick={() => void handleDownload()} disabled={downloading}>
-        {downloading ? (
-          <>
-            <Loader2Icon className="size-4 animate-spin" />
-            {m.share_image_preparing()}
-          </>
-        ) : (
-          <>
-            <ImageDownIcon className="size-4" />
-            {m.share_image_download()}
-          </>
-        )}
+      <Button className="self-start" onClick={() => void handleDownload()} pending={downloading}>
+        <ImageDownIcon className="size-4" />
+        {m.share_image_download()}
       </Button>
     </div>
   );

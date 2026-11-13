@@ -3,35 +3,26 @@
 // these helpers so the grouping rules can't drift apart.
 
 import type { PodMemberResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
+import type { TournamentParticipantResponse } from "@openrift/shared/types/api/tournament";
 
 export function teamDisplayName(memberNames: readonly string[]): string {
   return memberNames.join(" & ");
 }
 
 export function groupPodMembersByTeam(members: PodMemberResponse[]): PodMemberResponse[][] {
-  const groups = new Map<string, PodMemberResponse[]>();
-  for (const [index, member] of members.entries()) {
-    const key = member.teamId ?? `solo-${index}`;
-    const group = groups.get(key) ?? [];
-    group.push(member);
-    groups.set(key, group);
-  }
-  return [...groups.values()];
+  const groups = Map.groupBy(members.entries(), ([index, member]) => member.teamId ?? index);
+  return [...groups.values()].map((group) => group.map(([, member]) => member));
 }
 
 export function teamNamesById(
   rows: readonly { teamId: string | null; displayName: string }[],
 ): Map<string, string> {
-  const names = new Map<string, string[]>();
-  for (const row of rows) {
-    if (row.teamId === null) {
-      continue;
-    }
-    const list = names.get(row.teamId) ?? [];
-    list.push(row.displayName);
-    names.set(row.teamId, list);
-  }
-  return new Map([...names.entries()].map(([teamId, list]) => [teamId, teamDisplayName(list)]));
+  return new Map(
+    [...participantsByTeam(rows)].map(([teamId, members]) => [
+      teamId,
+      teamDisplayName(members.map((member) => member.displayName)),
+    ]),
+  );
 }
 
 // Fixed teams share every stat by construction, so the first row of each team
@@ -57,4 +48,38 @@ export function collapseTeamStandings(standings: readonly PodStandingRow[]): Pod
     });
   }
   return rows;
+}
+
+export function participantsByTeam<T extends { teamId: string | null }>(
+  participants: readonly T[],
+): Map<string, T[]> {
+  return Map.groupBy(
+    participants.filter(
+      (participant): participant is T & { teamId: string } => participant.teamId !== null,
+    ),
+    (participant) => participant.teamId,
+  );
+}
+
+export function unteamedActivePlayers<
+  T extends Pick<TournamentParticipantResponse, "status" | "teamId">,
+>(participants: readonly T[]): T[] {
+  return participants.filter(
+    (participant) => participant.status === "active" && participant.teamId === null,
+  );
+}
+
+export function teammateNamesById(
+  participants: readonly Pick<TournamentParticipantResponse, "id" | "teamId" | "displayName">[],
+): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const members of participantsByTeam(participants).values()) {
+    for (const member of members) {
+      const teammate = members.find((other) => other.id !== member.id);
+      if (teammate) {
+        names.set(member.id, teammate.displayName);
+      }
+    }
+  }
+  return names;
 }

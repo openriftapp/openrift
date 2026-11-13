@@ -4,6 +4,7 @@ import type { DeckResponse } from "@openrift/shared/types/api/deck";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -42,7 +43,7 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
           <ParaglideMessage
             message={m.decks_format_tag_none_available_body}
             inputs={{ category: config.category }}
-            markup={{ code: ({ children }) => <code>{children}</code> }}
+            markup={{ code: PROSE_MARKUP.code }}
           />
         </AlertDescription>
       </Alert>
@@ -80,15 +81,13 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
           onChange={setSelected}
         />
       </div>
-      <Button disabled={selected.length === 0 || isPending} onClick={handleConfirm}>
-        {isPending
-          ? m.common_saving()
-          : selected.length > 1
-            ? m.decks_format_tag_start_building_count({
-                count: selected.length,
-                nounPlural: config.nounPlural,
-              })
-            : m.decks_format_tag_start_building()}
+      <Button disabled={selected.length === 0} pending={isPending} onClick={handleConfirm}>
+        {selected.length > 1
+          ? m.decks_format_tag_start_building_count({
+              count: selected.length,
+              nounPlural: config.nounPlural,
+            })
+          : m.decks_format_tag_start_building()}
       </Button>
     </Callout>
   );

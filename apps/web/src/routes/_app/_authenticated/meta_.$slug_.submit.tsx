@@ -9,13 +9,12 @@ import {
 } from "@/features/meta/lib/meta-queries";
 import { parseMetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import { initQueryOptions } from "@/lib/init-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 /** An unknown slug renders the picker; it does not 404. */
 export const Route = createFileRoute("/_app/_authenticated/meta_/$slug_/submit")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Send a decklist", noIndex: true }),
+  head: () => privateSeoHead("Send a decklist"),
   validateSearch: parseMetaSubmitSearch,
   loaderDeps: ({ search }) => ({ deck: search.deck }),
   loader: async ({ context, deps, params }) => {

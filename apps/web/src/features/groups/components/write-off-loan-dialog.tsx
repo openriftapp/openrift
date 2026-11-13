@@ -64,7 +64,7 @@ export function WriteOffLoanDialog({
 
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" variant="destructive" disabled={pending}>
+            <Button type="submit" variant="destructive" pending={pending}>
               {m.loans_write_off_confirm()}
             </Button>
           </DialogFooter>

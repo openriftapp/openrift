@@ -1,4 +1,3 @@
-import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { RulesPage } from "@/features/rules/components/rules-page";
@@ -8,10 +7,6 @@ export const Route = createLazyFileRoute("/_app/rules_/$kind_/$version")({
 });
 
 function RulesVersionPage() {
-  const { kind, language, version } = Route.useLoaderData() as {
-    kind: RuleKind;
-    language: RuleLanguage;
-    version: string;
-  };
+  const { kind, language, version } = Route.useLoaderData();
   return <RulesPage kind={kind} language={language} version={version} />;
 }

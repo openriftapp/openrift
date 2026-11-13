@@ -1,7 +1,6 @@
 import type {
   TournamentDeckSubmission,
   TournamentListLockMode,
-  TournamentPlayMode,
 } from "@openrift/shared/types/api/tournament";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -14,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { useFriendGroups } from "@/features/groups/hooks/use-friend-groups";
 import type { GroupCutSettings } from "@/features/tournaments/components/group-cut-settings-fields";
 import { GroupCutSettingsFields } from "@/features/tournaments/components/group-cut-settings-fields";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   AllowDeckEditsField,
   DeckDeadlineField,
   DeckSubmissionField,
-  parseDeadlineInput,
 } from "@/features/tournaments/components/settings/decks-fields";
 import {
   PlayModeField,
@@ -37,12 +36,18 @@ import type { ScheduleInput } from "@/features/tournaments/components/settings/s
 import { ScheduleFields } from "@/features/tournaments/components/settings/schedule-fields";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { useCreateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
-import type { TournamentRoundsChoice } from "@/features/tournaments/lib/tournament-display";
+import type {
+  TournamentFormatState,
+  TournamentRoundsChoice,
+} from "@/features/tournaments/lib/tournament-display";
 import {
+  applyFormatChange,
   hasPairing,
-  isGroupCutChoice,
-  pairingFromRoundsChoice,
+  parseDeadlineInput,
   parseScheduleInput,
+  regionsAvailable,
+  restorePairings,
+  roundsChoiceFor,
 } from "@/features/tournaments/lib/tournament-display";
 import { localTimeZoneLabel, splitUtcToLocalDateTime } from "@/lib/date-time-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -64,11 +69,15 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
 
   const [name, setName] = useState("");
   const [hostValue, setHostValue] = useState("user");
-  const [pairingsEnabled, setPairingsEnabled] = useState(true);
-  const [roundsChoice, setRoundsChoice] = useState<TournamentRoundsChoice>("pod");
-  const [playMode, setPlayMode] = useState<TournamentPlayMode>("1v1");
+  const [formatState, setFormatState] = useState<TournamentFormatState>({
+    playMode: "1v1",
+    pairingStyle: "pod",
+    matchFormat: "bo1",
+    format: "rounds",
+    regionsEnabled: false,
+  });
+  const [lastRoundsChoice, setLastRoundsChoice] = useState<TournamentRoundsChoice | null>(null);
   const [points, setPoints] = useState<PointsInput>({ win: "3", draw: "1", bye: "3" });
-  const [regionsEnabled, setRegionsEnabled] = useState(false);
   const [groupCut, setGroupCut] = useState<GroupCutSettings>({
     cutSize: 8,
     groupsSelfPaced: true,
@@ -90,28 +99,13 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
   const [lockMode, setLockMode] = useState<TournamentListLockMode>("at_deadline");
 
   const wantsDeck = deckSubmission !== "none";
-  const { pairingStyle, matchFormat, format } = pairingsEnabled
-    ? pairingFromRoundsChoice(roundsChoice)
-    : { pairingStyle: "none" as const, matchFormat: "bo1" as const, format: "rounds" as const };
+  const { playMode, pairingStyle, matchFormat, format, regionsEnabled } = formatState;
   const runsRounds = hasPairing(pairingStyle);
+  const roundsChoice = roundsChoiceFor(pairingStyle, matchFormat, format);
   const isSwiss = pairingStyle === "swiss";
   const isGroupCut = format === "group_cut";
   const isTeams = playMode === "2v2";
-
-  function handlePlayModeChange(value: TournamentPlayMode) {
-    setPlayMode(value);
-    if (value === "2v2" && (roundsChoice === "pod" || isGroupCutChoice(roundsChoice))) {
-      setRoundsChoice("swiss-bo1");
-    }
-  }
-
-  function handleRoundsChoiceChange(value: TournamentRoundsChoice) {
-    setRoundsChoice(value);
-    if (isGroupCutChoice(value)) {
-      setPlayMode("1v1");
-      setRegionsEnabled(false);
-    }
-  }
+  const showRegions = regionsAvailable(formatState);
   const winPoints = parsePointsInput(points.win);
   const drawPoints = parsePointsInput(points.draw);
   const byePoints = parsePointsInput(points.bye);
@@ -138,8 +132,6 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
         : ({ type: "organization", orgId: hostValue } as const);
     const linkedGroupId = groupId === "none" ? null : groupId;
     const listLockMode = wantsDeck ? lockMode : undefined;
-    // Must be built before the try block: the React Compiler bails out of
-    // conditional value blocks inside try/catch.
     const payload = {
       name: name.trim(),
       host,
@@ -154,7 +146,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
       winPoints: isSwiss ? (winPoints ?? undefined) : undefined,
       drawPoints: isSwiss ? (drawPoints ?? undefined) : undefined,
       byePoints: runsRounds ? (byePoints ?? undefined) : undefined,
-      regionsEnabled: runsRounds && !isTeams ? regionsEnabled : undefined,
+      regionsEnabled: showRegions ? regionsEnabled : undefined,
       startsAt,
       endsAt,
       deckSubmission,
@@ -217,7 +209,13 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
             description={m.tournaments_new_format_description()}
             contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
           >
-            <PlayModeField value={playMode} groupCut={isGroupCut} onChange={handlePlayModeChange} />
+            <PlayModeField
+              value={playMode}
+              groupCut={isGroupCut}
+              onChange={(value) =>
+                setFormatState((current) => applyFormatChange(current, { playMode: value }))
+              }
+            />
           </SettingsSection>
 
           <SettingsSection
@@ -227,15 +225,24 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
             <SwitchField
               id="t-pairings"
               label={m.tournaments_new_pairings_enable()}
-              checked={pairingsEnabled}
-              onCheckedChange={setPairingsEnabled}
+              checked={runsRounds}
+              onCheckedChange={(pairingsEnabled) => {
+                if (pairingsEnabled) {
+                  setFormatState((current) => restorePairings(current, lastRoundsChoice));
+                  return;
+                }
+                setLastRoundsChoice(roundsChoice);
+                setFormatState((current) => applyFormatChange(current, { pairingsEnabled }));
+              }}
             />
-            {runsRounds ? (
+            {roundsChoice ? (
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <RoundsField
                   value={roundsChoice}
                   teams={isTeams}
-                  onChange={handleRoundsChoiceChange}
+                  onChange={(value) =>
+                    setFormatState((current) => applyFormatChange(current, { roundsChoice: value }))
+                  }
                 />
                 <PointsFields
                   value={points}
@@ -273,7 +280,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
           </SettingsSection>
         </SettingsGroup>
 
-        {runsRounds && !isTeams && !isGroupCut ? (
+        {showRegions ? (
           <SettingsGroup
             id="custom"
             title={m.tournaments_new_custom_group()}
@@ -288,7 +295,9 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                 id="t-regions"
                 label={m.tournaments_settings_regions_toggle()}
                 checked={regionsEnabled}
-                onCheckedChange={setRegionsEnabled}
+                onCheckedChange={(checked) =>
+                  setFormatState((current) => ({ ...current, regionsEnabled: checked }))
+                }
               />
             </SettingsSection>
           </SettingsGroup>
@@ -308,6 +317,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
           </SettingsSection>
         </SettingsGroup>
 
+        <SaveError error={createTournament.error} />
         <div className="flex items-center gap-2">
           <Button
             onClick={() => void handleCreate()}

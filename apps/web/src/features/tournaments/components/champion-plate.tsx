@@ -1,5 +1,5 @@
 import { legendNameParts } from "@openrift/shared/card-name";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type {
   PodStandingRow,
   PodTournamentDetailResponse,
@@ -69,7 +69,7 @@ function ChampionText({
       <Eyebrow variant="gold" as="span">
         {m.tournaments_champion_label()}
       </Eyebrow>
-      {name === null ? null : <p className="font-heading text-xl font-semibold">{name}</p>}
+      {name === null ? null : <p className="font-heading font-semibold">{name}</p>}
       {legend}
       {record === null ? null : (
         <p className="font-heading text-border-accent text-2xl leading-none font-bold tabular-nums">
@@ -115,6 +115,10 @@ function PlateBody({ champion }: { champion: Champion }) {
         {art === null ? null : (
           <ImgWithFallback
             src={art}
+            srcSet={
+              image === undefined ? undefined : imageSrcSet(image.imageId, ["120w", "240w", "400w"])
+            }
+            sizes="80px"
             alt=""
             aria-hidden="true"
             loading="lazy"

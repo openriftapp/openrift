@@ -4,8 +4,7 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { metaEventPageQueryOptions, metaSubmitEventQuery } from "@/features/meta/lib/meta-queries";
 import { initQueryOptions } from "@/lib/init-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 /**
  * Entry point for a decklist without a slug; `/meta/$slug/submit` requires
@@ -13,7 +12,7 @@ import { getSiteUrl } from "@/lib/site-config";
  */
 export const Route = createFileRoute("/_app/_authenticated/meta_/submit")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Send a decklist", noIndex: true }),
+  head: () => privateSeoHead("Send a decklist"),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),

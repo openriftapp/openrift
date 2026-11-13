@@ -1,3 +1,5 @@
+import { matchesMediaQuery } from "@/lib/media-query";
+
 export type InstallGuide =
   | "ios-safari"
   | "ios-safari-legacy"
@@ -71,7 +73,7 @@ export function isStandaloneDisplay(): boolean {
     return false;
   }
   const iosStandalone = (globalThis.navigator as { standalone?: boolean } | undefined)?.standalone;
-  return iosStandalone === true || globalThis.matchMedia("(display-mode: standalone)").matches;
+  return iosStandalone === true || matchesMediaQuery("(display-mode: standalone)");
 }
 
 // `x-safari-` is undocumented and some Android apps block `intent:` links,

@@ -30,19 +30,13 @@ import { StatStrip } from "@/components/ui/stat-strip";
 import type { LegendTarget } from "@/features/tournaments/components/legend-search-dialog";
 import { LegendSearchDialog } from "@/features/tournaments/components/legend-search-dialog";
 import { MissingRegionsBand } from "@/features/tournaments/components/missing-regions-band";
-import type {
-  ParticipantAction,
-  ParticipantTarget,
-} from "@/features/tournaments/components/participant-row";
+import type { ParticipantTarget } from "@/features/tournaments/components/participant-row";
 import {
   ParticipantRow,
   participantMissesRegion,
 } from "@/features/tournaments/components/participant-row";
-import {
-  TeamsSection,
-  teammateNamesById,
-  unteamedActivePlayers,
-} from "@/features/tournaments/components/teams-section";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import { TeamsSection } from "@/features/tournaments/components/teams-section";
 import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import {
   useAddParticipant,
@@ -50,8 +44,14 @@ import {
   useUpdateParticipant,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
-import { canCheckDecks, canManageTournament } from "@/features/tournaments/lib/tournament-display";
+import { teammateNamesById, unteamedActivePlayers } from "@/features/tournaments/lib/team-display";
+import type { ParticipantAction } from "@/features/tournaments/lib/tournament-display";
+import {
+  canManageTournament,
+  isTournamentStaff,
+} from "@/features/tournaments/lib/tournament-display";
 import { useCustomTagList } from "@/hooks/use-enums";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -88,9 +88,9 @@ export function TournamentParticipantsTab({
   detail: TournamentDetailResponse;
 }) {
   const manage = canManageTournament(detail.myRoles);
-  const canAssignRegion = detail.regionsEnabled && canCheckDecks(detail.myRoles);
+  const canAssignRegion = detail.regionsEnabled && isTournamentStaff(detail.myRoles);
   const groupCut = detail.format === "group_cut";
-  const canAssignLegend = groupCut && !detail.hasRounds && canCheckDecks(detail.myRoles);
+  const canAssignLegend = groupCut && !detail.hasRounds && isTournamentStaff(detail.myRoles);
   const { data } = useTournamentParticipants(id);
   const participants = data.items;
   const updateParticipant = useUpdateParticipant();
@@ -118,6 +118,26 @@ export function TournamentParticipantsTab({
   >(null);
   const [removeTarget, setRemoveTarget] = useState<ParticipantTarget | null>(null);
   const [legendTarget, setLegendTarget] = useState<LegendTarget | null>(null);
+
+  function openRename(target: ParticipantTarget | null) {
+    updateParticipant.reset();
+    setRenameTarget(target);
+  }
+
+  function openRegion(target: (ParticipantTarget & { region: string }) | null) {
+    updateParticipant.reset();
+    setRegionTarget(target);
+  }
+
+  function openFixedTable(target: (ParticipantTarget & { fixedTable: string }) | null) {
+    updateParticipant.reset();
+    setFixedTableTarget(target);
+  }
+
+  function openLegend(target: LegendTarget | null) {
+    updateParticipant.reset();
+    setLegendTarget(target);
+  }
 
   const missingRegionPlayers = participants.filter((participant) =>
     participantMissesRegion(participant, detail.regionsEnabled),
@@ -182,6 +202,20 @@ export function TournamentParticipantsTab({
     void runReportedMutation(() => participantAction.mutateAsync({ id, participantId, action }));
   }
 
+  async function handleRemove() {
+    if (!removeTarget) {
+      return;
+    }
+    const participantId = removeTarget.participantId;
+    if (
+      await runReportedMutation(() =>
+        participantAction.mutateAsync({ id, participantId, action: "remove" }),
+      )
+    ) {
+      setRemoveTarget(null);
+    }
+  }
+
   const groups = rosterGroups()
     .map((group) => ({
       ...group,
@@ -237,7 +271,7 @@ export function TournamentParticipantsTab({
     if (!fixedTableTarget) {
       return;
     }
-    const parsed = parseFixedTable(fixedTableTarget.fixedTable);
+    const parsed = parseIntegerInput(fixedTableTarget.fixedTable, 1, 999);
     if (parsed === undefined) {
       return;
     }
@@ -257,7 +291,7 @@ export function TournamentParticipantsTab({
   return (
     <div className="flex flex-col gap-6">
       {canAssignRegion && missingRegionPlayers.length > 0 ? (
-        <MissingRegionsBand players={missingRegionPlayers} onSetRegion={setRegionTarget} />
+        <MissingRegionsBand players={missingRegionPlayers} onSetRegion={openRegion} />
       ) : null}
 
       {teamMode ? <TeamsSection id={id} participants={participants} manage={manage} /> : null}
@@ -309,10 +343,10 @@ export function TournamentParticipantsTab({
                   deckWithdrawn={entryByParticipant.get(participant.id)?.state === "withdrawn"}
                   actionPending={participantAction.isPending}
                   onAction={fireAction}
-                  onRename={setRenameTarget}
-                  onSetLegend={setLegendTarget}
-                  onSetRegion={setRegionTarget}
-                  onSetFixedTable={setFixedTableTarget}
+                  onRename={openRename}
+                  onSetLegend={openLegend}
+                  onSetRegion={openRegion}
+                  onSetFixedTable={openFixedTable}
                   onRemove={setRemoveTarget}
                 />
               ))}
@@ -335,6 +369,7 @@ export function TournamentParticipantsTab({
               }
               aria-label={m.tournaments_roster_rename_aria()}
             />
+            <SaveError error={updateParticipant.error} />
             <DialogFooter>
               <DialogCancel />
               <Button
@@ -364,6 +399,7 @@ export function TournamentParticipantsTab({
                 setRegionTarget((prev) => (prev ? { ...prev, region: value } : prev))
               }
             />
+            <SaveError error={updateParticipant.error} />
             <DialogFooter>
               <DialogCancel />
               <Button type="submit" pending={updateParticipant.isPending}>
@@ -402,11 +438,14 @@ export function TournamentParticipantsTab({
               placeholder={m.tournaments_roster_fixed_table_placeholder()}
               aria-label={m.tournaments_roster_fixed_table_aria()}
             />
+            <SaveError error={updateParticipant.error} />
             <DialogFooter>
               <DialogCancel />
               <Button
                 type="submit"
-                disabled={parseFixedTable(fixedTableTarget?.fixedTable ?? "") === undefined}
+                disabled={
+                  parseIntegerInput(fixedTableTarget?.fixedTable ?? "", 1, 999) === undefined
+                }
                 pending={updateParticipant.isPending}
               >
                 {m.common_save()}
@@ -419,6 +458,7 @@ export function TournamentParticipantsTab({
       <LegendSearchDialog
         target={legendTarget}
         pending={updateParticipant.isPending}
+        error={updateParticipant.error}
         onOpenChange={(open) => !open && setLegendTarget(null)}
         onPick={(participantId, legendCardId) => void handleSetLegend(participantId, legendCardId)}
       />
@@ -429,28 +469,11 @@ export function TournamentParticipantsTab({
         title={m.tournaments_roster_remove_title({ name: removeTarget?.name ?? "" })}
         description={m.tournaments_roster_remove_description()}
         confirmLabel={m.tournaments_roster_remove()}
-        onConfirm={() => {
-          if (removeTarget) {
-            fireAction(removeTarget.participantId, "remove");
-            setRemoveTarget(null);
-          }
-        }}
+        isPending={participantAction.isPending}
+        onConfirm={() => void handleRemove()}
       />
     </div>
   );
-}
-
-// Empty clears the fixed table (null); undefined means the draft is invalid.
-function parseFixedTable(draft: string): number | null | undefined {
-  const trimmed = draft.trim();
-  if (trimmed === "") {
-    return null;
-  }
-  const parsed = Number(trimmed);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 999) {
-    return undefined;
-  }
-  return parsed;
 }
 
 function RegionSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -486,9 +509,14 @@ export function AddParticipantButton({ id }: { id: string }) {
     }
   }
 
+  function openDialog() {
+    addParticipant.reset();
+    setOpen(true);
+  }
+
   return (
     <>
-      <PageTopBarPrimaryButton onClick={() => setOpen(true)}>
+      <PageTopBarPrimaryButton onClick={openDialog}>
         <UserPlusIcon className="size-4" />
         {m.tournaments_roster_add_player()}
       </PageTopBarPrimaryButton>
@@ -506,6 +534,7 @@ export function AddParticipantButton({ id }: { id: string }) {
               placeholder={m.tournaments_roster_player_name()}
               aria-label={m.tournaments_roster_player_name()}
             />
+            <SaveError error={addParticipant.error} />
             <DialogFooter>
               <DialogCancel />
               <Button type="submit" disabled={!name.trim()} pending={addParticipant.isPending}>

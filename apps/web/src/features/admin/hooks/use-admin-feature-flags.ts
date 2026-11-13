@@ -1,0 +1,107 @@
+import { adminFeatureFlagsContract } from "@openrift/shared/contracts/admin/feature-flags";
+import type { MutationMeta } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
+
+import {
+  adminFeatureFlagOverridesQueryOptions,
+  adminFeatureFlagsQueryOptions,
+} from "@/features/admin/lib/admin-feature-flags-queries";
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { featureFlagsKeys } from "@/lib/query-keys";
+import { withCookies } from "@/lib/server-fns/middleware";
+import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+
+export function useFeatureFlags() {
+  return useSuspenseQuery(adminFeatureFlagsQueryOptions);
+}
+
+const toggleFeatureFlagFn = createServerFn({ method: "POST" })
+  .validator((input: { key: string; enabled: boolean }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminFeatureFlagsContract, context.cookie).update({
+      key: data.key,
+      enabled: data.enabled,
+    });
+  });
+
+export function useToggleFeatureFlag() {
+  return useMutationWithInvalidation({
+    mutationFn: (vars: { key: string; enabled: boolean }) => toggleFeatureFlagFn({ data: vars }),
+    invalidates: [adminKeys.featureFlags, featureFlagsKeys.all],
+  });
+}
+
+const createFeatureFlagFn = createServerFn({ method: "POST" })
+  .validator((input: { key: string; description?: string | null; enabled?: boolean }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminFeatureFlagsContract, context.cookie).create(data);
+  });
+
+export function useCreateFeatureFlag(meta?: MutationMeta) {
+  return useMutationWithInvalidation({
+    meta,
+    mutationFn: (vars: { key: string; description?: string | null; enabled?: boolean }) =>
+      createFeatureFlagFn({ data: vars }),
+    invalidates: [adminKeys.featureFlags, featureFlagsKeys.all],
+  });
+}
+
+const deleteFeatureFlagFn = createServerFn({ method: "POST" })
+  .validator((input: { key: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminFeatureFlagsContract, context.cookie).remove({ key: data.key });
+  });
+
+export function useDeleteFeatureFlag() {
+  return useMutationWithInvalidation({
+    mutationFn: (key: string) => deleteFeatureFlagFn({ data: { key } }),
+    invalidates: [adminKeys.featureFlags, featureFlagsKeys.all],
+  });
+}
+
+export function useFeatureFlagOverrides() {
+  return useSuspenseQuery(adminFeatureFlagOverridesQueryOptions);
+}
+
+const upsertFeatureFlagOverrideFn = createServerFn({ method: "POST" })
+  .validator((input: { userId: string; flagKey: string; enabled: boolean }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminFeatureFlagsContract, context.cookie).upsertOverride({
+      id: data.userId,
+      key: data.flagKey,
+      enabled: data.enabled,
+    });
+  });
+
+export function useUpsertFeatureFlagOverride(meta?: MutationMeta) {
+  return useMutationWithInvalidation({
+    meta,
+    mutationFn: (vars: { userId: string; flagKey: string; enabled: boolean }) =>
+      upsertFeatureFlagOverrideFn({ data: vars }),
+    invalidates: [adminKeys.featureFlagOverrides, featureFlagsKeys.all],
+  });
+}
+
+const deleteFeatureFlagOverrideFn = createServerFn({ method: "POST" })
+  .validator((input: { userId: string; flagKey: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminFeatureFlagsContract, context.cookie).removeOverride({
+      id: data.userId,
+      key: data.flagKey,
+    });
+  });
+
+export function useDeleteFeatureFlagOverride() {
+  return useMutationWithInvalidation({
+    mutationFn: (vars: { userId: string; flagKey: string }) =>
+      deleteFeatureFlagOverrideFn({ data: vars }),
+    invalidates: [adminKeys.featureFlagOverrides, featureFlagsKeys.all],
+  });
+}

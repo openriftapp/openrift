@@ -3,7 +3,7 @@ import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
 import { ArtBandBackdrop } from "@/components/art-band-backdrop";
-import { CardFan } from "@/features/cards/components/card-fan";
+import { CardFan } from "@/components/card-fan";
 import { MetaEventHeading, MetaFinishRow } from "@/features/meta/components/meta-event-row";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { cn } from "@/lib/utils";

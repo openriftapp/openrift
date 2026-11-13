@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adminSeoHead,
   articleJsonLd,
+  cardJsonLdItems,
   collectionPageJsonLd,
   organizationJsonLd,
+  privateSeoHead,
   productJsonLd,
   seoHead,
   toAbsoluteUrl,
@@ -387,5 +390,42 @@ describe("articleJsonLd", () => {
     );
     expect(json.datePublished).toBe("2026-01-01");
     expect(json.dateModified).toBe("2026-04-26");
+  });
+});
+
+describe("privateSeoHead", () => {
+  it("keeps a private page out of search and drops the social tags", () => {
+    const { meta, links } = privateSeoHead("Trades");
+
+    expect(meta).toContainEqual({ title: "Trades - OpenRift" });
+    expect(meta).toContainEqual({ name: "robots", content: "noindex, nofollow" });
+    expect(meta.some((entry) => entry.property === "og:title")).toBe(false);
+    expect(links).toEqual([]);
+  });
+
+  it("is what admin pages use under their prefix", () => {
+    expect(adminSeoHead("Jobs")).toEqual(privateSeoHead("Admin · Jobs"));
+  });
+});
+
+describe("cardJsonLdItems", () => {
+  const cards = {
+    jinx: { name: "Jinx", types: [], tags: [], slug: "jinx-loose-cannon" },
+    teemo: { name: "Teemo", types: [], tags: [], slug: "teemo-scout" },
+  };
+
+  it("lists each card once, in the order its first printing appears", () => {
+    const printings = [{ cardId: "teemo" }, { cardId: "jinx" }, { cardId: "teemo" }];
+
+    expect(cardJsonLdItems(printings, cards)).toEqual([
+      { name: "Teemo", url: "/cards/teemo-scout" },
+      { name: "Jinx", url: "/cards/jinx-loose-cannon" },
+    ]);
+  });
+
+  it("skips a printing whose card is missing from the payload", () => {
+    expect(cardJsonLdItems([{ cardId: "ghost" }, { cardId: "jinx" }], cards)).toEqual([
+      { name: "Jinx", url: "/cards/jinx-loose-cannon" },
+    ]);
   });
 });

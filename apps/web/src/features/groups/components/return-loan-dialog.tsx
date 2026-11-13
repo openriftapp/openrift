@@ -57,7 +57,7 @@ export function ReturnLoanDialog({
 
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               {m.loans_mark_returned()}
             </Button>
           </DialogFooter>

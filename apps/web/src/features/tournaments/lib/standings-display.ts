@@ -1,7 +1,8 @@
 import { formatRecord } from "@openrift/shared/meta-standings";
 import { placementsFromGamePoints } from "@openrift/shared/pairing/points";
-import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
+import type { GroupStageView, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -81,4 +82,27 @@ export function formatPlayerRecord(row: PodStandingRow, swiss: boolean): string 
 
 export function formatMatchRecord(row: { wins: number; losses: number; draws: number }): string {
   return formatRecord(row.wins, row.losses, row.draws) ?? "";
+}
+
+export type PlayerAvatar = Pick<PodStandingRow, "image" | "gravatarHash">;
+
+export function avatarsByPlayer(standings: readonly PodStandingRow[]): Map<string, PlayerAvatar> {
+  return new Map(
+    standings.map((row) => [row.playerId, { image: row.image, gravatarHash: row.gravatarHash }]),
+  );
+}
+
+export function standingsRowClass({ dropped, leader }: { dropped: boolean; leader: boolean }) {
+  return cn(dropped && "opacity-50", leader && "bg-border-accent/5");
+}
+
+export function standingsVariant(pairingStyle: string): "pod" | "swiss" {
+  return pairingStyle === "swiss" ? "swiss" : "pod";
+}
+
+export function isGroupCutStandings(
+  format: string,
+  groupStage: GroupStageView | null,
+): groupStage is GroupStageView {
+  return format === "group_cut" && groupStage !== null;
 }

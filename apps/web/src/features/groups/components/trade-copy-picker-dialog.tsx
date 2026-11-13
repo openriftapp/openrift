@@ -277,7 +277,7 @@ function CopyPickerBody({
           <Button variant="outline" disabled={pending} onClick={onCancel}>
             {m.common_cancel()}
           </Button>
-          <Button type="submit" disabled={pending || !ready}>
+          <Button type="submit" disabled={!ready} pending={pending}>
             {confirmLabel}
           </Button>
         </div>

@@ -3,6 +3,7 @@ import type { EffectiveTournamentState } from "@openrift/shared/tournament-lifec
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type {
   OrganizationRole,
+  TournamentDetailResponse,
   TournamentDeckPhase,
   TournamentDeckSubmission,
   TournamentFormat,
@@ -16,7 +17,8 @@ import type {
   TournamentViewerRole,
 } from "@openrift/shared/types/api/tournament";
 
-import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
+import { combineLocalDateTimeToUtc, parseOptionalLocalInstant } from "@/lib/date-time-input";
+import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
 export function deckSubmissionLabels(): Record<TournamentDeckSubmission, string> {
@@ -120,6 +122,87 @@ export function hasPairing(style: TournamentPairingStyle): boolean {
   return style !== "none";
 }
 
+export interface TournamentFormatState {
+  playMode: TournamentPlayMode;
+  pairingStyle: TournamentPairingStyle;
+  matchFormat: TournamentMatchFormat;
+  format: TournamentFormat;
+  regionsEnabled: boolean;
+}
+
+export type TournamentFormatChange =
+  | { playMode: TournamentPlayMode }
+  | { roundsChoice: TournamentRoundsChoice }
+  | { pairingsEnabled: boolean };
+
+export function applyFormatChange(
+  current: TournamentFormatState,
+  change: TournamentFormatChange,
+): TournamentFormatState {
+  if ("playMode" in change) {
+    if (change.playMode === "1v1") {
+      return { ...current, playMode: "1v1" };
+    }
+    const leavesPod =
+      hasPairing(current.pairingStyle) &&
+      (current.pairingStyle === "pod" || current.format === "group_cut");
+    return {
+      ...current,
+      playMode: "2v2",
+      ...(leavesPod ? { pairingStyle: "swiss", matchFormat: "bo1", format: "rounds" } : {}),
+      regionsEnabled: false,
+    };
+  }
+  if ("roundsChoice" in change) {
+    const next = { ...current, ...pairingFromRoundsChoice(change.roundsChoice) };
+    return next.format === "group_cut" ? { ...next, playMode: "1v1", regionsEnabled: false } : next;
+  }
+  if (!change.pairingsEnabled) {
+    return { ...current, pairingStyle: "none", format: "rounds" };
+  }
+  return {
+    ...current,
+    pairingStyle: current.playMode === "2v2" ? "swiss" : "pod",
+    matchFormat: "bo1",
+    format: "rounds",
+  };
+}
+
+export function restorePairings(
+  current: TournamentFormatState,
+  lastChoice: TournamentRoundsChoice | null,
+): TournamentFormatState {
+  const fitsTeams = lastChoice === "swiss-bo1" || lastChoice === "swiss-bo3";
+  if (lastChoice === null || (current.playMode === "2v2" && !fitsTeams)) {
+    return applyFormatChange(current, { pairingsEnabled: true });
+  }
+  return applyFormatChange(current, { roundsChoice: lastChoice });
+}
+
+export function formatChangePatch(
+  current: TournamentFormatState,
+  change: TournamentFormatChange,
+): Partial<TournamentFormatState> {
+  const next = applyFormatChange(current, change);
+  const patch: Partial<TournamentFormatState> = {};
+  for (const key of Object.keys(next) as (keyof TournamentFormatState)[]) {
+    if (next[key] !== current[key]) {
+      Object.assign(patch, { [key]: next[key] });
+    }
+  }
+  return patch;
+}
+
+export function regionsAvailable(
+  tournament: Pick<TournamentFormatState, "pairingStyle" | "playMode" | "format">,
+): boolean {
+  return (
+    hasPairing(tournament.pairingStyle) &&
+    tournament.playMode !== "2v2" &&
+    tournament.format !== "group_cut"
+  );
+}
+
 // Keyed on the pairing's own seat count, not the tournament's pairing style:
 // the pod engine seats a 2-player pod when the field forces one, and that
 // pairing is a match no matter which engine drew it.
@@ -193,14 +276,58 @@ export function isTournamentHost(myRoles: readonly TournamentViewerRole[]): bool
   return myRoles.includes("host");
 }
 
-export function canCheckDecks(myRoles: readonly TournamentViewerRole[]): boolean {
-  return myRoles.includes("host") || myRoles.includes("organizer") || myRoles.includes("judge");
-}
-
 // Fetching the staff-gated API surfaces (the participant roster with its claim
 // links) as a plain participant 403s, so gate on this first.
 export function isTournamentStaff(myRoles: readonly TournamentViewerRole[]): boolean {
   return myRoles.includes("host") || myRoles.includes("organizer") || myRoles.includes("judge");
+}
+
+export function regionsSectionVisible(
+  tournament: Pick<
+    TournamentFormatState,
+    "pairingStyle" | "playMode" | "format" | "regionsEnabled"
+  >,
+): boolean {
+  return regionsAvailable(tournament) || tournament.regionsEnabled;
+}
+
+export function canOpenDeckCheck(
+  detail: Pick<TournamentDetailResponse, "deckSubmission" | "myRoles">,
+): boolean {
+  return detail.deckSubmission !== "none" && isTournamentStaff(detail.myRoles);
+}
+
+export type ParticipantAction =
+  | "drop"
+  | "reactivate"
+  | "approve"
+  | "deny"
+  | "remove"
+  | "unlink"
+  | "reissue";
+
+type TournamentTokenKind = "report" | "submit" | "staff-invite" | "claim";
+
+export function tournamentTokenUrl(kind: TournamentTokenKind, token: string): string {
+  return `${getSiteUrl()}/tournaments/${kind}/${token}`;
+}
+
+export function tournamentKindLabel(
+  tournament: Pick<TournamentDetailResponse, "playMode" | "pairingStyle" | "format">,
+): string {
+  if (tournament.playMode === "2v2") {
+    return m.tournaments_hero_kind_2v2();
+  }
+  if (tournament.format === "group_cut") {
+    return m.tournaments_hero_kind_group_cut();
+  }
+  if (tournament.pairingStyle === "pod") {
+    return m.tournaments_hero_kind_pod();
+  }
+  if (tournament.pairingStyle === "swiss") {
+    return m.tournaments_hero_kind_swiss();
+  }
+  return m.tournaments_hero_kind_default();
 }
 
 export interface ParsedScheduleInput {
@@ -220,9 +347,10 @@ export function parseScheduleInput(
 ): ParsedScheduleInput {
   const startsAt = combineLocalDateTimeToUtc(startDate, startTime);
   const startTouched = startDate !== "" || startTime !== "";
-  const endTouched = endDate !== "" || endTime !== "";
-  const endsAt = endTouched ? combineLocalDateTimeToUtc(endDate, endTime) : null;
-  const endIncomplete = endTouched && endsAt === null;
+  const { instant: endsAt, incomplete: endIncomplete } = parseOptionalLocalInstant(
+    endDate,
+    endTime,
+  );
   const endBeforeStart = endsAt !== null && startsAt !== null && endsAt < startsAt;
   return {
     startsAt,
@@ -231,6 +359,26 @@ export function parseScheduleInput(
     endIncomplete,
     endBeforeStart,
     scheduleInvalid: startsAt === null || endIncomplete || endBeforeStart,
+  };
+}
+
+interface ParsedDeadlineInput {
+  closeAt: string | null;
+  incomplete: boolean;
+  afterEnd: boolean;
+}
+
+/** Both parts blank means no deadline; `endsAt` null skips the after-end check. */
+export function parseDeadlineInput(
+  date: string,
+  time: string,
+  endsAt: string | null,
+): ParsedDeadlineInput {
+  const { instant: closeAt, incomplete } = parseOptionalLocalInstant(date, time);
+  return {
+    closeAt,
+    incomplete,
+    afterEnd: closeAt !== null && endsAt !== null && Date.parse(closeAt) > Date.parse(endsAt),
   };
 }
 

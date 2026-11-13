@@ -10,29 +10,8 @@ import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { deckSubmissionItems } from "@/features/tournaments/lib/tournament-display";
-import { combineLocalDateTimeToUtc, localTimeZoneLabel } from "@/lib/date-time-input";
+import { localTimeZoneLabel } from "@/lib/date-time-input";
 import { m } from "@/paraglide/messages.js";
-
-export interface ParsedDeadlineInput {
-  closeAt: string | null;
-  incomplete: boolean;
-  afterEnd: boolean;
-}
-
-/** Both parts blank means no deadline; `endsAt` null skips the after-end check. */
-export function parseDeadlineInput(
-  date: string,
-  time: string,
-  endsAt: string | null,
-): ParsedDeadlineInput {
-  const touched = date !== "" || time !== "";
-  const closeAt = touched ? combineLocalDateTimeToUtc(date, time) : null;
-  return {
-    closeAt,
-    incomplete: touched && closeAt === null,
-    afterEnd: closeAt !== null && endsAt !== null && new Date(closeAt) > new Date(endsAt),
-  };
-}
 
 export function DeckSubmissionField({
   value,

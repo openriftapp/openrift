@@ -1,5 +1,7 @@
-import type { Palette } from "@openrift/shared/types/api/preferences";
+import type { Palette, Theme } from "@openrift/shared/types/api/preferences";
 import { PALETTES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+
+import { DARK_SCHEME_QUERY, matchesMediaQuery } from "./media-query";
 
 // The client-side resolver here MUST NOT fetch over HTTP: root beforeLoad runs on every
 // navigation, including search-param-only ones, and a network round trip would block it.
@@ -10,26 +12,30 @@ export function resolveThemeFromCookie(
   raw: string | null | undefined,
   systemDark = false,
 ): "light" | "dark" {
+  const preference = themePreference(raw);
+  if (preference === "auto") {
+    return systemDark ? "dark" : "light";
+  }
+  return preference;
+}
+
+function themePreference(raw: string | null | undefined): Theme {
   if (!raw) {
-    return "dark";
+    return PREFERENCE_DEFAULTS.theme;
   }
   try {
     const parsed = JSON.parse(raw) as { state?: { preference?: unknown } } | null;
     const preference = parsed?.state?.preference;
-    if (preference === "light") {
-      return "light";
-    }
-    if (preference === "auto") {
-      return systemDark ? "dark" : "light";
-    }
-    return "dark";
+    return preference === "light" || preference === "dark" || preference === "auto"
+      ? preference
+      : PREFERENCE_DEFAULTS.theme;
   } catch {
-    return "dark";
+    return PREFERENCE_DEFAULTS.theme;
   }
 }
 
 export function systemPrefersDark(): boolean {
-  return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+  return matchesMediaQuery(DARK_SCHEME_QUERY);
 }
 
 // Unknown values are clamped so untrusted cookie content never reaches the DOM.
@@ -71,7 +77,8 @@ export const SHELL_PREFS_SCRIPT = [
   "var p=m&&JSON.parse(decodeURIComponent(m[1]));return p&&p.state&&p.state.preference",
   "}catch(e){return null}}",
   'var t=r("theme");',
-  'd.classList.toggle("dark",t==="auto"?typeof matchMedia==="function"&&matchMedia("(prefers-color-scheme: dark)").matches:t!=="light");',
+  `if(t!=="light"&&t!=="dark"&&t!=="auto")t=${JSON.stringify(PREFERENCE_DEFAULTS.theme)};`,
+  `d.classList.toggle("dark",t==="auto"?typeof matchMedia==="function"&&matchMedia(${JSON.stringify(DARK_SCHEME_QUERY)}).matches:t==="dark");`,
   'var p=r("palette");',
   `d.setAttribute("data-palette",${JSON.stringify(PALETTES)}.indexOf(p)<0?${JSON.stringify(PREFERENCE_DEFAULTS.palette)}:p)`,
   "})()",

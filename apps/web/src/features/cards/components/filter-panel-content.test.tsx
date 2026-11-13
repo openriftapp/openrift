@@ -503,7 +503,7 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
     await user.click(more);
     expect(getByText("OGS")).not.toBeNull();
     expect(getByText("ARC")).not.toBeNull();
-    await user.click(getByRole("button", { name: "Show less" }));
+    await user.click(getByRole("button", { name: "Show fewer" }));
     expect(queryByText("OGS")).toBeNull();
   });
 

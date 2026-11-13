@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
-import { requireScanner } from "@/features/scan/lib/scanner-flag";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { requireFeature } from "@/lib/feature-flags";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/scan_/report")({
   // data-only: the journal it reports on lives in this device's localStorage.
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Scan report", noIndex: true }),
-  beforeLoad: async ({ context }) => {
-    await requireScanner(context.queryClient);
-  },
+  head: () => privateSeoHead("Scan report"),
+  beforeLoad: ({ context }) => requireFeature(context.queryClient, "scanner"),
   errorComponent: RouteErrorFallback,
+  notFoundComponent: NotFoundFallback,
 });

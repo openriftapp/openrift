@@ -13,7 +13,6 @@ import { ExternalLinkIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
-import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,11 +23,14 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
 import {
+  TournamentBreadcrumbBar,
+  tournamentDecksCrumb,
+} from "@/features/tournaments/components/tournament-detail-frame";
+import {
   useRefreshTournamentArchiveLists,
   useSendTournamentArchiveLists,
   useTournamentArchiveLists,
 } from "@/features/tournaments/hooks/use-tournament-archive-lists";
-import { useTournamentDetail } from "@/features/tournaments/hooks/use-tournaments";
 import {
   canForceArchiveList,
   planArchiveListSend,
@@ -95,20 +97,10 @@ function ArchiveTopBar({
   tournamentId: string;
   onReload?: () => void;
 }) {
-  const { data: tournament } = useTournamentDetail(tournamentId);
   return (
-    <TopBarBreadcrumbBar
-      segments={[
-        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-        {
-          label: tournament.name,
-          link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
-        },
-        {
-          label: m.nav_decks(),
-          link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
-        },
-      ]}
+    <TournamentBreadcrumbBar
+      id={tournamentId}
+      trail={[tournamentDecksCrumb(tournamentId)]}
       title={m.tournaments_archive_title()}
       actions={
         onReload ? (

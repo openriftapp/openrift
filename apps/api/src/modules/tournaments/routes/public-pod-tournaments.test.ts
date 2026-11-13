@@ -49,6 +49,8 @@ const dbTournament = {
   id: TOURNAMENT_ID,
   name: "Friday Night Pods",
   status: "running" as const,
+  startsAt: new Date("2026-11-13T18:00:00Z"),
+  endsAt: null as Date | null,
   currentRound: 2,
   scoringScheme: "standard" as const,
   byePoints: 3,
@@ -114,6 +116,8 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
     const json = await readJson(res);
     expect(json.tournamentName).toBe("Friday Night Pods");
     expect(json.status).toBe("running");
+    expect(json.startsAt).toBe("2026-11-13T18:00:00.000Z");
+    expect(json.endsAt).toBeNull();
     expect(json.currentRound).toBe(2);
     expect(json.scoringScheme).toBe("standard");
     expect(json.byePoints).toBe(3);
@@ -121,6 +125,30 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
     expect(json.standings[0].playerId).toBe(playerIds[0]);
     expect(json.rounds).toEqual([]);
     expect(json.canSubmit).toBe(true);
+  });
+
+  it("carries each player's Legend card and nothing else about the roster", async () => {
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
+    mockPodTournamentsRepo.listPlayers.mockResolvedValue([
+      {
+        id: playerIds[0],
+        userId: "u-1",
+        displayName: "Ashe",
+        status: "active",
+        legendCardId: "jinx",
+      },
+      {
+        id: playerIds[1],
+        userId: "u-2",
+        displayName: "Braum",
+        status: "active",
+        legendCardId: null,
+      },
+    ]);
+
+    const res = await app.request(`/api/v1/pod-tournaments/report/${TOKEN}`);
+    const json = await readJson(res);
+    expect(json.playerLegends).toEqual([{ playerId: playerIds[0], legendCardId: "jinx" }]);
   });
 
   it("serves the report for a cancelled tournament, even though it isn't one of the three primary pod statuses", async () => {

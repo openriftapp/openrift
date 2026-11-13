@@ -13,7 +13,7 @@ import {
   useStartGroupStageRound,
   useSubmitTournamentResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
+import { bracketMode, cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupUnits } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -81,7 +81,10 @@ export function GroupCutPairingsSection({
         snapshot={data.openRoundSnapshot}
         mode="cut"
         podLabel={(index) =>
-          `${cutMatchShortLabel(tournament.cutSize, openCutRound.roundNumber, index + 1)} · Table ${index + 1}`
+          m.tournaments_cut_match_table_label({
+            match: cutMatchShortLabel(tournament.cutSize, openCutRound.roundNumber, index + 1),
+            number: index + 1,
+          })
         }
         onClose={() => setEditingCut(false)}
       />
@@ -89,7 +92,7 @@ export function GroupCutPairingsSection({
   let bracket: ReactNode = null;
   if (editor === null && bracketRounds.length > 0) {
     bracket =
-      completed || !staff ? (
+      bracketMode({ completed, canEnter: staff }) === "compact" ? (
         <CutBracketCompact
           rounds={bracketRounds}
           cutSize={tournament.cutSize}
@@ -105,9 +108,7 @@ export function GroupCutPairingsSection({
           winPoints={tournament.winPoints}
           drawPoints={tournament.drawPoints}
           canEnterResult={(round) => !completed && round.status === "reporting"}
-          onSubmitResult={async (podId, results) => {
-            await submitResult.mutateAsync({ id, podId, results });
-          }}
+          onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
         />
       );
   }
@@ -218,9 +219,7 @@ export function GroupCutPairingsSection({
           winPoints={tournament.winPoints}
           drawPoints={tournament.drawPoints}
           canEnterResult={!completed}
-          onSubmitResult={async (podId, results) => {
-            await submitResult.mutateAsync({ id, podId, results });
-          }}
+          onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
           onStartUnit={
             staff && tournament.groupsSelfPaced
               ? (unit) =>

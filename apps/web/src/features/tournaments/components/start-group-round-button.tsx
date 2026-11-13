@@ -37,7 +37,10 @@ export function StartGroupRoundButton({
       description={m.tournaments_start_round_confirm_description()}
       confirmLabel={label}
       trigger={
-        <AlertDialogTrigger disabled={disabled || pending} render={<Button size={size} />}>
+        <AlertDialogTrigger
+          disabled={disabled || pending}
+          render={<Button size={size} pending={pending} />}
+        >
           <PlayIcon />
           {label}
         </AlertDialogTrigger>

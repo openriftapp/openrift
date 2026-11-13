@@ -90,8 +90,12 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
                   aria-invalid={fieldState.invalid}
                   className="flex-1"
                 />
-                <Button type="submit" disabled={loading || watchedName.trim() === defaultName}>
-                  {loading ? m.common_saving() : m.common_save()}
+                <Button
+                  pending={loading}
+                  type="submit"
+                  disabled={loading || watchedName.trim() === defaultName}
+                >
+                  {m.common_save()}
                 </Button>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -157,8 +161,12 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
                   aria-invalid={fieldState.invalid}
                   className="flex-1"
                 />
-                <Button type="submit" disabled={loading || watchedRiotId.trim() === defaultRiotId}>
-                  {loading ? m.common_saving() : m.common_save()}
+                <Button
+                  pending={loading}
+                  type="submit"
+                  disabled={loading || watchedRiotId.trim() === defaultRiotId}
+                >
+                  {m.common_save()}
                 </Button>
               </div>
               <FieldDescription>{m.profile_account_riot_description()}</FieldDescription>
@@ -314,10 +322,11 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               className="flex-1"
             />
             <Button
+              pending={loading}
               disabled={loading || !newEmail.trim()}
               onClick={() => void handleSendToCurrentEmail()}
             >
-              {loading ? m.profile_account_sending() : m.profile_account_send_code()}
+              {m.profile_account_send_code()}
             </Button>
           </div>
         </Field>
@@ -333,21 +342,23 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
           </div>
           <Field>
             <Button
+              pending={loading}
               disabled={otp.length < OTP_LENGTH || loading}
               onClick={() => void handleVerifyCurrentEmail()}
             >
-              {loading ? m.profile_account_verifying() : m.profile_account_verify()}
+              {m.profile_account_verify()}
             </Button>
           </Field>
           <div className="flex justify-center gap-4">
             <Button
+              pending={resending}
               type="button"
               variant="link-muted"
               className="h-auto px-0 text-sm"
               disabled={resending}
               onClick={() => void handleResend()}
             >
-              {resending ? m.profile_account_sending() : m.profile_account_resend()}
+              {m.profile_account_resend()}
             </Button>
             <Button
               type="button"
@@ -371,10 +382,11 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
           </div>
           <Field>
             <Button
+              pending={loading}
               disabled={otp.length < OTP_LENGTH || loading}
               onClick={() => void handleVerifyNewEmail()}
             >
-              {loading ? m.profile_account_confirming() : m.profile_account_confirm()}
+              {m.profile_account_confirm()}
             </Button>
           </Field>
           <div className="flex justify-center">

@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { ActionBand } from "@/components/ui/action-band";
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -21,6 +20,7 @@ import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CommandEmpty, CommandGroup } from "@/components/ui/command";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TextLink } from "@/components/ui/text-link";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
@@ -28,6 +28,12 @@ import { teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+interface ByeUnit {
+  key: string;
+  label: string;
+  memberIds: [string, ...string[]];
+}
 
 function PlayerAvatarChip({
   name,
@@ -88,34 +94,35 @@ export function GenerateRoundControls({
   const byeCountById = new Map(standings.map((row) => [row.playerId, row.byeCount]));
   const nameById = new Map(players.map((player) => [player.id, player.displayName]));
 
-  const byeUnits: { key: string; label: string; memberIds: [string, ...string[]] }[] = [];
-  if (teamMode) {
-    const byTeam = new Map<string, PodPlayerResponse[]>();
-    for (const player of activePlayers) {
-      if (player.teamId === null) {
-        byeUnits.push({ key: player.id, label: player.displayName, memberIds: [player.id] });
-        continue;
-      }
-      const members = byTeam.get(player.teamId) ?? [];
-      members.push(player);
-      byTeam.set(player.teamId, members);
-    }
-    for (const [teamId, members] of byTeam) {
-      const [lead, ...rest] = members;
-      if (lead === undefined) {
-        continue;
-      }
-      byeUnits.push({
-        key: teamId,
-        label: teamDisplayName(members.map((member) => member.displayName)),
-        memberIds: [lead.id, ...rest.map((member) => member.id)],
-      });
-    }
-  } else {
-    for (const player of activePlayers) {
-      byeUnits.push({ key: player.id, label: player.displayName, memberIds: [player.id] });
-    }
-  }
+  const soloUnit = (player: PodPlayerResponse): ByeUnit => ({
+    key: player.id,
+    label: player.displayName,
+    memberIds: [player.id],
+  });
+  const byeUnits: ByeUnit[] = teamMode
+    ? [
+        ...activePlayers
+          .filter((player) => player.teamId === null)
+          .map((player) => soloUnit(player)),
+        ...[
+          ...Map.groupBy(
+            activePlayers.filter((player) => player.teamId !== null),
+            (player) => player.teamId ?? "",
+          ),
+        ].flatMap(([teamId, members]): ByeUnit[] => {
+          const [lead, ...rest] = members;
+          return lead === undefined
+            ? []
+            : [
+                {
+                  key: teamId,
+                  label: teamDisplayName(members.map((member) => member.displayName)),
+                  memberIds: [lead.id, ...rest.map((member) => member.id)],
+                },
+              ];
+        }),
+      ]
+    : activePlayers.map((player) => soloUnit(player));
   const unitChecked = (unit: { memberIds: string[] }) =>
     unit.memberIds.every((memberId) => byeIds.includes(memberId));
   const selectedUnits = byeUnits.filter((unit) => unitChecked(unit));
@@ -142,30 +149,19 @@ export function GenerateRoundControls({
     );
   }
 
-  // Dropping is immediate, unlike a bye: it applies straight away, not staged
-  // until the round is generated.
   async function setDropped(player: PodPlayerResponse, dropped: boolean) {
-    // Resolved before the try: React Compiler cannot lower a conditional that
-    // sits inside a try/catch.
     const action = dropped ? "drop" : "reactivate";
-    const message = dropped
-      ? m.tournaments_pairings_dropped_toast({ name: player.displayName })
-      : m.tournaments_pairings_reactivated_toast({ name: player.displayName });
     // A dropped player can't be seated, so they can't hold a bye either. In
     // 2v2 the server drops the whole team, so the teammate's bye goes too.
     const goneIds =
       teamMode && player.teamId !== null
         ? players.filter((row) => row.teamId === player.teamId).map((row) => row.id)
         : [player.id];
-    if (
-      await runReportedMutation(() =>
-        participantAction.mutateAsync({ id, participantId: player.id, action }),
-      )
-    ) {
-      if (dropped) {
-        setByeIds((current) => current.filter((byeId) => !goneIds.includes(byeId)));
-      }
-      toast.success(message);
+    const ok = await runReportedMutation(() =>
+      participantAction.mutateAsync({ id, participantId: player.id, action }),
+    );
+    if (ok && dropped) {
+      setByeIds((current) => current.filter((byeId) => !goneIds.includes(byeId)));
     }
   }
 
@@ -197,7 +193,11 @@ export function GenerateRoundControls({
             })
       }
       action={
-        <Button disabled={generateRound.isPending || blocked} onClick={() => void generate()}>
+        <Button
+          disabled={blocked}
+          pending={generateRound.isPending}
+          onClick={() => void generate()}
+        >
           {isFirstRound
             ? m.tournaments_pairings_generate_round_one()
             : m.tournaments_pairings_generate_next_round()}
@@ -364,9 +364,9 @@ export function GenerateRoundControls({
               }}
               markup={{
                 link: ({ children }) => (
-                  <Link to="/tournaments/$id/participants" params={{ id }}>
+                  <TextLink render={<Link to="/tournaments/$id/participants" params={{ id }} />}>
                     {children}
-                  </Link>
+                  </TextLink>
                 ),
               }}
             />
@@ -390,9 +390,9 @@ export function GenerateRoundControls({
               }}
               markup={{
                 link: ({ children }) => (
-                  <Link to="/tournaments/$id/participants" params={{ id }}>
+                  <TextLink render={<Link to="/tournaments/$id/participants" params={{ id }} />}>
                     {children}
-                  </Link>
+                  </TextLink>
                 ),
               }}
             />

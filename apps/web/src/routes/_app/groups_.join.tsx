@@ -3,8 +3,7 @@ import { z } from "zod/mini";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { lenient } from "@/lib/lenient-param";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 const searchSchema = z.object({
   code: lenient(z.string()),
@@ -14,7 +13,7 @@ const searchSchema = z.object({
 // leads to before asking anyone to sign in. Requesting to join still needs an account.
 export const Route = createFileRoute("/_app/groups_/join")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Join group", noIndex: true }),
-  validateSearch: (search) => searchSchema.parse(search),
+  head: () => privateSeoHead("Join group"),
+  validateSearch: searchSchema,
   errorComponent: RouteErrorFallback,
 });

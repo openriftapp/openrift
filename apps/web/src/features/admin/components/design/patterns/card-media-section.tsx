@@ -1,3 +1,4 @@
+import { CardFan, CardFanOutline } from "@/components/card-fan";
 import { CoverBand } from "@/components/cover-band";
 import {
   DemoGroup,
@@ -8,7 +9,6 @@ import {
 import type { DesignGroup } from "@/features/admin/components/design/design-sections";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
-import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 
 const GROUPS = {

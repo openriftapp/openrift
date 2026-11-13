@@ -13,6 +13,7 @@ import {
   useTournamentSubmissionPage,
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function PlayerSubmitDeckSection({ token }: { token: string }) {
@@ -50,8 +51,11 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
             : null;
 
   const submit = async (input: DeckSourceInput) => {
-    const result = await submitDeck.mutateAsync({ token, ...input });
-    if (result.entryId) {
+    let result: Awaited<ReturnType<typeof submitDeck.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await submitDeck.mutateAsync({ token, ...input });
+    });
+    if (ok && result?.entryId) {
       void navigate({ to: "/tournaments/$id/my-deck", params: { id: result.tournamentId } });
     }
   };
@@ -90,8 +94,8 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
                 ? m.tournaments_submit_replace_my_deck()
                 : m.tournaments_submit_submit_deck()
             }
-            pendingLabel={m.tournaments_submit_submitting()}
             isSubmitting={submitDeck.isPending}
+            error={submitDeck.error}
             onSubmit={(input) => void submit(input)}
             onPreview={(input) => preview.mutate({ token, ...input })}
             preview={preview.data ?? null}

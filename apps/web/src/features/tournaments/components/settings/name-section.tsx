@@ -2,6 +2,7 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { NameField } from "@/features/tournaments/components/settings/name-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
@@ -38,6 +39,7 @@ export function NameSection({
           {m.common_save()}
         </Button>
       </div>
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

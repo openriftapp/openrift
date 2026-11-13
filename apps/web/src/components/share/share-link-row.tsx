@@ -40,9 +40,7 @@ export function ShareLinkRow({
         )}
         {actions}
       </CopyField>
-      {qrOpen && !hideQr ? (
-        <QrCode value={url} label={m.share_link_qr_label({ label: label.toLowerCase() })} />
-      ) : null}
+      {qrOpen && !hideQr ? <QrCode value={url} label={m.share_link_qr_label({ label })} /> : null}
     </div>
   );
 }

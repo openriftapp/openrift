@@ -4,7 +4,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { cookieStorage } from "@/lib/cookie-storage";
+import { DARK_SCHEME_QUERY } from "@/lib/media-query";
 import { sanitizeThemePreference } from "@/lib/sanitize-preferences";
+import { systemPrefersDark } from "@/lib/shell-prefs";
 
 type ResolvedTheme = "light" | "dark";
 
@@ -17,16 +19,9 @@ interface ThemeState {
   reset: () => void;
 }
 
-function getSystemTheme(): ResolvedTheme {
-  if (typeof matchMedia !== "function") {
-    return "light";
-  }
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
 function resolveTheme(preference: Theme | null): ResolvedTheme {
   const effective = preference ?? PREFERENCE_DEFAULTS.theme;
-  return effective === "auto" ? getSystemTheme() : effective;
+  return effective === "auto" ? (systemPrefersDark() ? "dark" : "light") : effective;
 }
 
 function applyTheme(theme: ResolvedTheme) {
@@ -90,11 +85,11 @@ if (typeof document !== "undefined") {
   applyTheme(useThemeStore.getState().theme);
 
   if (typeof matchMedia === "function") {
-    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    matchMedia(DARK_SCHEME_QUERY).addEventListener("change", () => {
       const { preference } = useThemeStore.getState();
       const effective = preference ?? PREFERENCE_DEFAULTS.theme;
       if (effective === "auto") {
-        const resolved = getSystemTheme();
+        const resolved = systemPrefersDark() ? "dark" : "light";
         applyTheme(resolved);
         useThemeStore.setState({ theme: resolved });
       }

@@ -1,4 +1,5 @@
-import type { QueryClient } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { isNotFound } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/server-cache", async () => {
@@ -7,7 +8,8 @@ vi.mock("@/lib/server-cache", async () => {
 });
 
 // Must import after mocks so they take effect.
-const { loadFeatureFlags } = await import("./feature-flags");
+const { featureFlagsQueryOptions, loadFeatureFlags, requireFeature } =
+  await import("./feature-flags");
 const { serverCache } = (await import("./server-cache")) as { serverCache: QueryClient };
 
 const SESSION_COOKIE = "better-auth.session_token=abc123; theme=dark";
@@ -87,5 +89,35 @@ describe("loadFeatureFlags", () => {
     expect(a).toEqual({ "public-flag": true });
     expect(b).toEqual({ "public-flag": true });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("requireFeature", () => {
+  function clientWithFlags(flags: Record<string, boolean>): QueryClient {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(featureFlagsQueryOptions.queryKey, flags);
+    return queryClient;
+  }
+
+  it("lets the route load while the feature is on", async () => {
+    await expect(
+      requireFeature(clientWithFlags({ scanner: true }), "scanner"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("shows the not-found page while the feature is off", async () => {
+    const thrown = await requireFeature(clientWithFlags({ scanner: false }), "scanner").catch(
+      (error: unknown) => error,
+    );
+
+    expect(isNotFound(thrown)).toBe(true);
+  });
+
+  it("shows the not-found page when the API sent no such flag", async () => {
+    const thrown = await requireFeature(clientWithFlags({}), "glossary").catch(
+      (error: unknown) => error,
+    );
+
+    expect(isNotFound(thrown)).toBe(true);
   });
 });

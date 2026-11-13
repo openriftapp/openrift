@@ -16,10 +16,11 @@ interface MockListItem {
 let currentItems: MockListItem[] = [];
 
 const shareMutateAsync = vi.fn().mockResolvedValue(undefined);
+let sharePending = false;
 
 vi.mock("@/features/groups/hooks/use-friend-group-sharing", () => ({
   useFriendGroupShareableLists: () => ({ data: { items: currentItems } }),
-  useShareListWithFriendGroup: () => ({ mutateAsync: shareMutateAsync, isPending: false }),
+  useShareListWithFriendGroup: () => ({ mutateAsync: shareMutateAsync, isPending: sharePending }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -34,13 +35,14 @@ const { ShareListsWithGroupDialog } = await import("./share-lists-with-group-dia
 
 const onOpenChange = vi.fn();
 
-function renderDialog(props?: { preselectAll?: boolean }) {
+function renderDialog(props?: { flow?: "prompt" | "manage" }) {
   return render(
     <ShareListsWithGroupDialog
       slug="bothfeld"
       groupName="Bothfeld Connection"
       open
       onOpenChange={onOpenChange}
+      flow="prompt"
       {...props}
     />,
   );
@@ -76,11 +78,12 @@ describe("ShareListsWithGroupDialog", () => {
     expect(screen.getByRole("checkbox", { name: /For Trade/u })).toBeChecked();
   });
 
-  it("starts empty when preselectAll is off, as for a deliberate Share more", () => {
-    renderDialog({ preselectAll: false });
+  it("starts empty and offers Cancel in the manage flow, as for a deliberate Share more", () => {
+    renderDialog({ flow: "manage" });
     expect(screen.getByRole("checkbox", { name: /My Wants/u })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: /For Trade/u })).not.toBeChecked();
     expect(screen.getByRole("button", { name: /^Share/u })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 
   it("shares every selected list on confirm and closes", async () => {
@@ -114,6 +117,15 @@ describe("ShareListsWithGroupDialog", () => {
 
     expect(shareMutateAsync).not.toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
+  });
+
+  it("shows the share button as busy while the shares run", () => {
+    sharePending = true;
+    renderDialog();
+    const share = screen.getByRole("button", { name: /^Share/u });
+    expect(share).toBeDisabled();
+    expect(share).toHaveAttribute("aria-busy", "true");
+    sharePending = false;
   });
 
   it("disables the share button when nothing is selected", async () => {

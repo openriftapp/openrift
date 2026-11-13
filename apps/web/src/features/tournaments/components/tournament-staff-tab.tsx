@@ -16,10 +16,8 @@ import {
 import type { ComponentType, SVGProps } from "react";
 import { useState } from "react";
 
-import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
-import { ShareLinkRow } from "@/components/share/share-link-row";
 import { ActionBand } from "@/components/ui/action-band";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,15 +43,22 @@ import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import { TokenLinkControl } from "@/features/tournaments/components/settings/token-link-control";
 import {
   useAddTournamentStaff,
   useRemoveTournamentStaff,
   useSetTournamentStaffInvite,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentStaffCandidates } from "@/features/tournaments/hooks/use-tournaments";
-import { isTournamentHost, staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
+import {
+  isTournamentHost,
+  organizationRoleLabels,
+  staffRoleLabels,
+  tournamentTokenUrl,
+} from "@/features/tournaments/lib/tournament-display";
+import { memberName } from "@/lib/member-name";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
 function roleItems(): { value: TournamentStaffRole; label: string }[] {
@@ -62,14 +67,6 @@ function roleItems(): { value: TournamentStaffRole; label: string }[] {
     { value: "organizer", label: labels.organizer },
     { value: "judge", label: labels.judge },
   ];
-}
-
-function orgRoleLabels(): Record<"owner" | "manager" | "judge", string> {
-  return {
-    owner: m.tournaments_staff_org_role_owner(),
-    manager: m.tournaments_staff_org_role_manager(),
-    judge: m.tournaments_lib_staff_role_judge(),
-  };
 }
 
 function roleSections(): Record<
@@ -189,13 +186,13 @@ function StaffRow({
 
   return (
     <RowListItem>
-      <PlayerChip name={member.name ?? member.userId} className="flex-1">
+      <PlayerChip name={memberName(member.name)} className="flex-1">
         {member.source === "organization" && member.orgRole ? (
           <Badge
             variant="subtle"
             className="shrink-0"
             title={m.tournaments_staff_org_role_title({
-              role: orgRoleLabels()[member.orgRole],
+              role: organizationRoleLabels()[member.orgRole],
               org: detail.host.displayName,
             })}
           >
@@ -265,19 +262,8 @@ function StaffInviteRow({
   token: string | null;
 }) {
   const setInvite = useSetTournamentStaffInvite();
-  const [disableOpen, setDisableOpen] = useState(false);
   const judge = staffRole === "judge";
   const roleLabel = staffRoleLabels()[staffRole];
-  const url = token ? `${getSiteUrl()}/tournaments/staff-invite/${token}` : null;
-
-  async function run(enabled: boolean) {
-    await runReportedMutation(() => setInvite.mutateAsync({ id, role: staffRole, enabled }));
-  }
-
-  async function handleDisable() {
-    await run(false);
-    setDisableOpen(false);
-  }
 
   return (
     <Callout variant="inset" className="flex flex-col gap-2">
@@ -285,68 +271,39 @@ function StaffInviteRow({
         <Badge variant="outline" className="shrink-0">
           {roleLabel}
         </Badge>
-        {url ? null : (
-          <>
-            <span className="text-muted-foreground text-xs">
-              {m.tournaments_staff_no_link_yet()}
-            </span>
-            <Button
-              size="sm"
-              className="ml-auto"
-              aria-label={
-                judge
-                  ? m.tournaments_staff_create_link_aria_judge()
-                  : m.tournaments_staff_create_link_aria_organizer()
-              }
-              pending={setInvite.isPending}
-              onClick={() => void run(true)}
-            >
-              {m.tournaments_staff_create_link()}
-            </Button>
-          </>
+        {token ? null : (
+          <span className="text-muted-foreground text-xs">{m.tournaments_staff_no_link_yet()}</span>
         )}
       </div>
-      {url ? (
-        <>
-          <ShareLinkRow
-            url={url}
-            label={m.tournaments_staff_invite_link_label({ role: roleLabel })}
-            actions={
-              <Button
-                variant="ghost"
-                className="text-destructive"
-                aria-label={
-                  judge
-                    ? m.tournaments_staff_disable_aria_judge()
-                    : m.tournaments_staff_disable_aria_organizer()
-                }
-                disabled={setInvite.isPending}
-                onClick={() => setDisableOpen(true)}
-              >
-                {m.tournaments_staff_disable()}
-              </Button>
-            }
-          />
-          <ConfirmActionDialog
-            open={disableOpen}
-            onOpenChange={setDisableOpen}
-            title={
-              judge
-                ? m.tournaments_staff_disable_title_judge()
-                : m.tournaments_staff_disable_title_organizer()
-            }
-            description={
-              judge
-                ? m.tournaments_staff_disable_description_judge()
-                : m.tournaments_staff_disable_description_organizer()
-            }
-            confirmLabel={m.tournaments_staff_disable_link()}
-            pendingLabel={m.tournaments_staff_disabling()}
-            isPending={setInvite.isPending}
-            onConfirm={() => void handleDisable()}
-          />
-        </>
-      ) : null}
+      <TokenLinkControl
+        url={token ? tournamentTokenUrl("staff-invite", token) : null}
+        label={m.tournaments_staff_invite_link_label({ role: roleLabel })}
+        enableLabel={m.tournaments_staff_create_link()}
+        enableAriaLabel={
+          judge
+            ? m.tournaments_staff_create_link_aria_judge()
+            : m.tournaments_staff_create_link_aria_organizer()
+        }
+        disableLabel={m.tournaments_staff_disable()}
+        disableAriaLabel={
+          judge
+            ? m.tournaments_staff_disable_aria_judge()
+            : m.tournaments_staff_disable_aria_organizer()
+        }
+        disableTitle={
+          judge
+            ? m.tournaments_staff_disable_title_judge()
+            : m.tournaments_staff_disable_title_organizer()
+        }
+        disableDescription={
+          judge
+            ? m.tournaments_staff_disable_description_judge()
+            : m.tournaments_staff_disable_description_organizer()
+        }
+        disableConfirmLabel={m.tournaments_staff_disable_link()}
+        pending={setInvite.isPending}
+        onSet={(enabled) => setInvite.mutateAsync({ id, role: staffRole, enabled })}
+      />
     </Callout>
   );
 }
@@ -382,7 +339,7 @@ function AddStaffDialog({
 
   const items = (candidates?.items ?? []).map((candidate) => ({
     value: candidate.userId,
-    label: `${candidate.name ?? m.tournaments_staff_candidate_unnamed()}${
+    label: `${memberName(candidate.name)}${
       candidate.source === "participant" ? m.tournaments_staff_candidate_participant_suffix() : ""
     }`,
   }));
@@ -402,6 +359,8 @@ function AddStaffDialog({
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setUserId("");
+        } else {
+          addStaff.reset();
         }
         onOpenChange(nextOpen);
       }}
@@ -444,6 +403,7 @@ function AddStaffDialog({
                 />
               )}
             </div>
+            <SaveError error={addStaff.error} />
           </div>
           <DialogFooter>
             <DialogCancel />

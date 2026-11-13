@@ -78,7 +78,7 @@ export default function HowToPlayArticle() {
         </p>
 
         <Callout className="mt-3">
-          <Eyebrow>{m.help_how_to_play_board_eyebrow()}</Eyebrow>
+          <Eyebrow className="mb-3">{m.help_how_to_play_board_eyebrow()}</Eyebrow>
           <div className="bg-background flex h-56 items-center justify-center rounded-md">
             <span className="text-muted-foreground text-sm">
               {m.help_how_to_play_board_diagram()}

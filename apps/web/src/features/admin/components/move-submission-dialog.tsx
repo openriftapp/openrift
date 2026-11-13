@@ -107,7 +107,7 @@ function MoveSubmissionForm({
 
       <DialogFooter>
         <DialogCancel />
-        <Button type="submit" disabled={cardId === null || moveSubmission.isPending}>
+        <Button type="submit" disabled={cardId === null} pending={moveSubmission.isPending}>
           Move
         </Button>
       </DialogFooter>

@@ -321,13 +321,8 @@ export function CreateListDialog({
               />
               <Button
                 type="submit"
-                disabled={
-                  !name.trim() ||
-                  createList.isPending ||
-                  bulkAdd.isPending ||
-                  shareWithGroup.isPending ||
-                  absoluteNeedsAmount
-                }
+                disabled={!name.trim() || absoluteNeedsAmount}
+                pending={createList.isPending || bulkAdd.isPending || shareWithGroup.isPending}
               >
                 {m.common_create()}
               </Button>

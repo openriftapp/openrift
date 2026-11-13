@@ -6,10 +6,12 @@
 
 - feat(Collection): **Choose which copies a tradelist keeps** — copies you mark as kept fill a rule's keep count (copies you excluded before now count too), a rule can keep plain versions first, and a card's details show what the rules keep and offer.
 - feat(Trades): **Open trades marked on cards** — cards with an open request or offer are marked on the trades page, and other members' rows name that trade.
+- feat(Tournaments): **Fuller report links** — shared report links show each player's round-by-round run, their Legend and the best finish per Legend.
 - fix(Decks): **Deck counts match everywhere** — a deck's card count leaves out Overflow on every page, share image and in the Discord bot, progress figures are labelled "required", and adding a rune at 12 swaps one out from quick add and drag too.
 - fix(Prices): **Totals say what is missing** — deck, list, meta deck and trade totals use your preferred languages first, fall back to any language, and show how many cards have no price.
 - fix(Decks): **Copied decks open with their cards** — copying a meta or shared deck, duplicating a deck or making a variant could open the new deck empty until you reloaded.
 - fix(Trades): **Live trades stay in suggestions** — a suggestion you already traded on keeps its row with the trade's status, even when the trade runs through another group.
+- fix(Tournaments): **Errors stay in the form** — a failed save shows its reason in the form and keeps it open, and result forms warn when someone else saved first.
 
 ### Other
 
@@ -37,6 +39,13 @@
 - fix(Cards): **Close an empty detail panel** — the card detail panel has its close button before you pick a card too.
 - fix(Cards): **Owned buttons stay under the toolbar** — the plus and minus buttons next to "Owned" in a card's details no longer show through the toolbar when you scroll.
 - fix(App): **Bad links recover** — a mistyped filter or page number in a link loads the page with defaults.
+- fix(App): **Missing pages show not found** — unknown contribute cards, expired invite links, unshared group lists and pages that are switched off show the not-found page.
+- fix(App): **Dates, pickers and saving buttons** — a date like Feb 31 is rejected, pickers find an entry from its words in any order, and buttons keep their label with a spinner while saving.
+- fix(App): **Create account first** — where signed-out visitors see both buttons, "Create account" is the main one, and the deck claim page offers it too.
+- fix(Tournaments): **One look for standings** — every standings list shows avatars, tints first place and dims dropped players, and running events say "In progress" on every page.
+- fix(Tournaments): **Both forfeited in the bracket** — the compact cut bracket names a double forfeit, and unnamed staff read "Unnamed member".
+- fix(Tournaments): **Deck pages follow the zone order** — deck check and My deck list zones in the same order as the deck pages, and My deck refreshes while a check is open.
+- fix(Tournaments): **Format changes agree** — the create wizard and the settings page apply the same rules when you switch format, team mode or pairings.
 - fix(App): **Readable connection errors** — when an action cannot reach the server, the message says so on every page.
 - fix(Cards): **Lent and traded copies in your language** — the lines about lent, borrowed and traded copies on a card are translated.
 - fix(Contribute): **One error message** — a failed correction or image upload shows its error once, next to the form.

@@ -53,7 +53,7 @@ describe("ShareLinkRow", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Show QR code" }));
 
-    expect(screen.getByRole("img", { name: "QR code for the share link" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Share link QR code" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Hide QR code" }));
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
@@ -61,9 +61,7 @@ describe("ShareLinkRow", () => {
   it("renders the QR expanded when the surface asks for it", () => {
     render(<ShareLinkRow url={URL} label="Registration link" defaultQrOpen />);
 
-    expect(
-      screen.getByRole("img", { name: "QR code for the registration link" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Registration link QR code" })).toBeInTheDocument();
   });
 
   it("drops the QR affordance entirely when hidden", () => {

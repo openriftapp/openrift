@@ -1,9 +1,9 @@
 import type { ComponentProps } from "react";
 
+import { accentGlow } from "@/lib/accent-wash";
 import { cn } from "@/lib/utils";
 
-const COVER_BAND_GLOW =
-  "radial-gradient(120% 90% at 50% 115%, color-mix(in oklab, var(--border-accent) 22%, transparent), transparent 70%)";
+const COVER_BAND_GLOW = accentGlow(22);
 
 /**
  * The visual band at the top of a showcase tile — a muted strip with a warm

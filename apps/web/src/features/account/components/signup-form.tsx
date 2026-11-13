@@ -133,8 +133,8 @@ export function SignupForm({
             )}
           />
           <Field>
-            <Button type="submit" disabled={loading}>
-              {loading ? m.auth_signing_up() : m.common_sign_up()}
+            <Button pending={loading} type="submit" disabled={loading}>
+              {m.common_sign_up()}
             </Button>
           </Field>
         </FieldGroup>

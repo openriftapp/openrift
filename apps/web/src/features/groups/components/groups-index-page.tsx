@@ -39,12 +39,13 @@ import {
   useFriendGroupMatchPanels,
   useFriendGroups,
 } from "@/features/groups/hooks/use-friend-groups";
-import { GROUP_BANNER_FRAME, GROUP_BANNER_WASH } from "@/features/groups/lib/banner-frame";
+import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
 import { tradeVolumeLabel } from "@/features/groups/lib/friend-group-activity";
 import { deriveGroupSlug, groupSlugError } from "@/features/groups/lib/group-slug";
 import type { GroupSuggestionStrip } from "@/features/groups/lib/trade-derivation";
 import { groupSuggestionStripsBySlug } from "@/features/groups/lib/trade-derivation";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { TILE_WASH } from "@/lib/accent-wash";
 import { markdownTeaser } from "@/lib/markdown-teaser";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
@@ -85,7 +86,7 @@ function GroupTileBanner({ url, position }: { url: string | null; position: numb
     <div
       aria-hidden="true"
       className={cn(GROUP_BANNER_FRAME, "-mx-5 -mt-5 overflow-hidden")}
-      style={url ? undefined : { backgroundImage: GROUP_BANNER_WASH }}
+      style={url ? undefined : { backgroundImage: TILE_WASH }}
     >
       {url ? (
         <img
@@ -207,9 +208,8 @@ function CreateGroupDialog({
           <DialogFooter>
             <Button
               type="submit"
-              disabled={
-                !name.trim() || !effectiveSlug || Boolean(slugError) || createGroup.isPending
-              }
+              disabled={!name.trim() || !effectiveSlug || Boolean(slugError)}
+              pending={createGroup.isPending}
             >
               {m.common_create()}
             </Button>
@@ -387,6 +387,7 @@ export function GroupsIndexPage() {
       </div>
       {shareWithGroup && (
         <ShareListsWithGroupDialog
+          flow="prompt"
           slug={shareWithGroup.slug}
           groupName={shareWithGroup.name}
           open

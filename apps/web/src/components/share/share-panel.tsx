@@ -265,8 +265,6 @@ export function SharePanel({
           title={m.share_stop_confirm_title()}
           description={m.share_stop_confirm_description()}
           confirmLabel={m.share_stop_sharing()}
-          pendingLabel={m.share_stop_pending()}
-          isPending={link.stopping ?? false}
           onConfirm={() => {
             link.onStop?.();
             setConfirmStopOpen(false);

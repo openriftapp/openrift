@@ -6,9 +6,9 @@ import { ChevronRightIcon } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { accentGlow } from "@/components/ui/podium";
 import { RowList } from "@/components/ui/row-list";
 import { StatFigure } from "@/components/ui/stat-figure";
 import { TextLink } from "@/components/ui/text-link";
@@ -22,6 +22,7 @@ import { describeEventStructure } from "@/features/meta/lib/meta-event-structure
 import { formatRank, metaOpponentFinishLine } from "@/features/meta/lib/meta-format";
 import { metaRunRecord } from "@/features/meta/lib/meta-player-run";
 import { useDomainColors } from "@/hooks/use-domain-colors";
+import { FINAL_GLOW } from "@/lib/accent-wash";
 import { bracketRoundLabel, bracketRoundShortLabel } from "@/lib/bracket-round-label";
 import { deckGlowStyle } from "@/lib/domain";
 import { formatCount } from "@/lib/format";
@@ -30,8 +31,6 @@ import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/$slug_/players_/$key");
-
-const FINAL_GLOW = accentGlow(12);
 
 const ROW_GRID = "items-center gap-x-3.5";
 const SWISS_GRID = `grid grid-cols-[2.75rem_3.5rem_minmax(0,1fr)_10.5rem_7rem_6rem] ${ROW_GRID}`;
@@ -145,9 +144,7 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
                 message={m.meta_run_finished}
                 inputs={{ finish }}
                 markup={{
-                  strong: ({ children }) => (
-                    <span className="text-foreground font-medium">{children}</span>
-                  ),
+                  strong: PROSE_MARKUP.strong,
                 }}
               />
             </p>

@@ -2,6 +2,7 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/layout/settings-section";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { GroupField } from "@/features/tournaments/components/settings/group-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -40,6 +41,7 @@ export function GroupSection({
         className="max-w-sm"
         onChange={(value) => void changeGroup(value)}
       />
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

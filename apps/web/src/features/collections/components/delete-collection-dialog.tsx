@@ -32,7 +32,6 @@ export function DeleteCollectionDialog({
         </>
       }
       confirmLabel={m.common_delete()}
-      pendingLabel={m.common_deleting()}
       onConfirm={onConfirm}
       isPending={isPending}
     />

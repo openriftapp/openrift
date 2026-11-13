@@ -151,7 +151,7 @@ function CreateDeckDialog({
             {!userId && <LocalDeckSaveNote />}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={!name.trim() || createDeck.isPending}>
+            <Button type="submit" disabled={!name.trim()} pending={createDeck.isPending}>
               {m.common_create()}
             </Button>
           </DialogFooter>

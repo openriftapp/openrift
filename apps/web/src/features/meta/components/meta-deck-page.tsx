@@ -107,16 +107,16 @@ export function MetaDeckPage({ token }: { token: string }) {
   const copyButtonContent = (
     <>
       <CopyIcon />
-      <span className="hidden sm:inline">{copyPending ? m.meta_deck_copying() : copyLabel}</span>
-      <span className="sm:hidden">{copyPending ? m.meta_deck_copying() : m.common_copy()}</span>
+      <span className="hidden sm:inline">{copyLabel}</span>
+      <span className="sm:hidden">{m.common_copy()}</span>
     </>
   );
   const copyButton =
     copyOptions.length === 0 ? (
       <PageTopBarPrimaryButton
         onClick={() => handleCopyToMyDecks([])}
-        disabled={copyPending}
-        aria-label={copyPending ? m.meta_deck_copying() : copyLabel}
+        pending={copyPending}
+        aria-label={copyLabel}
       >
         {copyButtonContent}
       </PageTopBarPrimaryButton>
@@ -124,8 +124,8 @@ export function MetaDeckPage({ token }: { token: string }) {
       <ButtonGroup>
         <PageTopBarPrimaryButton
           onClick={() => handleCopyToMyDecks([])}
-          disabled={copyPending}
-          aria-label={copyPending ? m.meta_deck_copying() : copyLabel}
+          pending={copyPending}
+          aria-label={copyLabel}
         >
           {copyButtonContent}
         </PageTopBarPrimaryButton>

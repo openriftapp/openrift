@@ -9,7 +9,6 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogCancel,
@@ -28,12 +27,17 @@ import { PrintingThumbnail } from "@/features/cards/components/printing-option-c
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCardSearchIndex } from "@/features/cards/hooks/use-search-index";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import type { SharingConsent } from "@/features/tournaments/components/sharing-consent-fields";
+import { SharingConsentFields } from "@/features/tournaments/components/sharing-consent-fields";
 import {
   useAddTournamentDeckCheckCard,
   useFixTournamentDeckCheckCard,
   useUpdateTournamentDeckCheckEntry,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
+import { parseIntegerInput } from "@/lib/integer-input";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function EditPlayerDialog({
@@ -51,9 +55,7 @@ export function EditPlayerDialog({
 }) {
   const [playerName, setPlayerName] = useState(entry.playerName);
   const [riotId, setRiotId] = useState(entry.riotId ?? "");
-  const [allowDeckPublishing, setAllowDeckPublishing] = useState(entry.allowDeckPublishing);
-  const [allowNameSharing, setAllowNameSharing] = useState(entry.allowNameSharing);
-  const [allowRiotIdSharing, setAllowRiotIdSharing] = useState(entry.allowRiotIdSharing);
+  const [consent, setConsent] = useState<SharingConsent>(() => consentOf(entry));
   const updateEntry = useUpdateTournamentDeckCheckEntry();
 
   // Seeds on the open transition, not on `entry`: BaseUI's Dialog only fires
@@ -64,9 +66,7 @@ export function EditPlayerDialog({
     if (open) {
       setPlayerName(entry.playerName);
       setRiotId(entry.riotId ?? "");
-      setAllowDeckPublishing(entry.allowDeckPublishing);
-      setAllowNameSharing(entry.allowNameSharing);
-      setAllowRiotIdSharing(entry.allowRiotIdSharing);
+      setConsent(consentOf(entry));
     }
   }
 
@@ -75,20 +75,22 @@ export function EditPlayerDialog({
     if (!name) {
       return;
     }
-    await updateEntry.mutateAsync({
-      tournamentId,
-      entryId,
-      playerName: name,
-      riotId: riotId.trim() || null,
-      allowDeckPublishing,
-      allowNameSharing,
-      allowRiotIdSharing,
-    });
-    onOpenChange(false);
+    const patch = { tournamentId, entryId, playerName: name, riotId: riotId.trim() || null };
+    if (await runReportedMutation(() => updateEntry.mutateAsync({ ...patch, ...consent }))) {
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          updateEntry.reset();
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent>
         <DialogForm onSubmit={() => void handleSave()}>
           <DialogHeader>
@@ -114,60 +116,36 @@ export function EditPlayerDialog({
                 placeholder="Player#EUW"
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label>{m.tournaments_deck_check_public_sharing()}</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="deck-check-publish"
-                  checked={allowDeckPublishing}
-                  onCheckedChange={(checked) => setAllowDeckPublishing(checked === true)}
-                />
-                <Label htmlFor="deck-check-publish" className="font-normal">
-                  {m.tournaments_deck_check_publish_deck()}
-                </Label>
-              </div>
-              <div className="ml-6 flex items-center gap-2">
-                <Checkbox
-                  id="deck-check-share-name"
-                  checked={allowNameSharing}
-                  disabled={!allowDeckPublishing}
-                  onCheckedChange={(checked) => setAllowNameSharing(checked === true)}
-                />
-                <Label
-                  htmlFor="deck-check-share-name"
-                  className="font-normal data-[disabled]:opacity-50"
-                  data-disabled={!allowDeckPublishing || undefined}
-                >
-                  {m.tournaments_deck_check_publish_name()}
-                </Label>
-              </div>
-              <div className="ml-6 flex items-center gap-2">
-                <Checkbox
-                  id="deck-check-share-riot-id"
-                  checked={allowRiotIdSharing}
-                  disabled={!allowDeckPublishing}
-                  onCheckedChange={(checked) => setAllowRiotIdSharing(checked === true)}
-                />
-                <Label
-                  htmlFor="deck-check-share-riot-id"
-                  className="font-normal data-[disabled]:opacity-50"
-                  data-disabled={!allowDeckPublishing || undefined}
-                >
-                  {m.tournaments_deck_check_publish_riot_id()}
-                </Label>
-              </div>
-            </div>
+            <SharingConsentFields
+              idPrefix="deck-check"
+              value={consent}
+              labels={{
+                publish: m.tournaments_deck_check_publish_deck(),
+                name: m.tournaments_deck_check_publish_name(),
+                riotId: m.tournaments_deck_check_publish_riot_id(),
+              }}
+              onChange={(patch) => setConsent((current) => ({ ...current, ...patch }))}
+            />
           </div>
+          <SaveError error={updateEntry.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={updateEntry.isPending || !playerName.trim()}>
-              {updateEntry.isPending ? m.common_saving() : m.common_save()}
+            <Button type="submit" disabled={!playerName.trim()} pending={updateEntry.isPending}>
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
       </DialogContent>
     </Dialog>
   );
+}
+
+function consentOf(entry: DeckCheckEntryDetailResponse["entry"]): SharingConsent {
+  return {
+    allowDeckPublishing: entry.allowDeckPublishing,
+    allowNameSharing: entry.allowNameSharing,
+    allowRiotIdSharing: entry.allowRiotIdSharing,
+  };
 }
 
 function CardNameSearchField({
@@ -249,17 +227,15 @@ export function FixCardDialog({
 
   const zoneChanged = section !== card.zone;
   const splittable = zoneChanged && card.quantity > 1;
-  const parsedCopies = Number(copies);
-  const copiesValid =
-    !splittable ||
-    (Number.isInteger(parsedCopies) && parsedCopies >= 1 && parsedCopies <= card.quantity);
+  const parsedCopies = parseIntegerInput(copies, 1, card.quantity) ?? undefined;
+  const copiesValid = !splittable || parsedCopies !== undefined;
 
   const handleSave = async () => {
     const trimmed = name.trim();
     if (!trimmed || !copiesValid) {
       return;
     }
-    await fixCard.mutateAsync({
+    const fix = {
       tournamentId,
       entryId,
       cardId: card.id,
@@ -268,12 +244,22 @@ export function FixCardDialog({
       // leaves the original provider section string untouched.
       section: zoneChanged ? section : undefined,
       copies: splittable ? parsedCopies : undefined,
-    });
-    onOpenChange(false);
+    };
+    if (await runReportedMutation(() => fixCard.mutateAsync(fix))) {
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          fixCard.reset();
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent>
         <DialogForm onSubmit={() => void handleSave()}>
           <DialogHeader>
@@ -333,23 +319,28 @@ export function FixCardDialog({
             </div>
             {splittable ? (
               <p className="text-muted-foreground text-sm">
-                {parsedCopies >= card.quantity
+                {parsedCopies === card.quantity
                   ? m.tournaments_deck_check_moves_all({
                       count: card.quantity,
                       zone: enumLabel(zoneLabels, section),
                     })
                   : m.tournaments_deck_check_moves_some({
-                      moved: copiesValid ? parsedCopies : "?",
+                      moved: parsedCopies ?? "?",
                       count: card.quantity,
                       zone: enumLabel(zoneLabels, card.zone),
                     })}
               </p>
             ) : null}
           </div>
+          <SaveError error={fixCard.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={fixCard.isPending || !name.trim() || !copiesValid}>
-              {fixCard.isPending ? m.common_saving() : m.common_save()}
+            <Button
+              type="submit"
+              disabled={!name.trim() || !copiesValid}
+              pending={fixCard.isPending}
+            >
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -374,32 +365,31 @@ export function AddCardDialog({
   const [quantity, setQuantity] = useState("1");
   const [section, setSection] = useState<string>(WellKnown.deckZone.MAIN);
   const addCard = useAddTournamentDeckCheckCard();
+  const parsedQuantity = parseIntegerInput(quantity, 1, 99) ?? undefined;
 
   const handleAdd = async () => {
     const trimmed = name.trim();
-    const parsedQuantity = Number(quantity);
-    if (
-      !trimmed ||
-      !Number.isInteger(parsedQuantity) ||
-      parsedQuantity < 1 ||
-      parsedQuantity > 99
-    ) {
+    if (!trimmed || parsedQuantity === undefined) {
       return;
     }
-    await addCard.mutateAsync({
-      tournamentId,
-      entryId,
-      name: trimmed,
-      quantity: parsedQuantity,
-      section,
-    });
-    setName("");
-    setQuantity("1");
-    onOpenChange(false);
+    const card = { tournamentId, entryId, name: trimmed, quantity: parsedQuantity, section };
+    if (await runReportedMutation(() => addCard.mutateAsync(card))) {
+      setName("");
+      setQuantity("1");
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          addCard.reset();
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent>
         <DialogForm onSubmit={() => void handleAdd()}>
           <DialogHeader>
@@ -436,12 +426,15 @@ export function AddCardDialog({
               </div>
             </div>
           </div>
+          <SaveError error={addCard.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={addCard.isPending || !name.trim()}>
-              {addCard.isPending
-                ? m.tournaments_deck_check_adding()
-                : m.tournaments_deck_check_add()}
+            <Button
+              type="submit"
+              disabled={!name.trim() || parsedQuantity === undefined}
+              pending={addCard.isPending}
+            >
+              {m.tournaments_deck_check_add()}
             </Button>
           </DialogFooter>
         </DialogForm>

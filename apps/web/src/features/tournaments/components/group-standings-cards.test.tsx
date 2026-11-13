@@ -80,7 +80,7 @@ function phoneList(container: HTMLElement) {
 
 describe("GroupStandingsCard", () => {
   it("names the group and counts its players", () => {
-    render(<GroupStandingsCard group={makeGroup()} />);
+    render(<GroupStandingsCard avatars={new Map()} group={makeGroup()} />);
     expect(screen.getByText("Group A")).toBeInTheDocument();
     expect(screen.getByText("4 players")).toBeInTheDocument();
   });
@@ -88,6 +88,7 @@ describe("GroupStandingsCard", () => {
   it("explains the cross-group match on a paired 3-player group", () => {
     render(
       <GroupStandingsCard
+        avatars={new Map()}
         group={makeGroup({
           playerIds: ["p1", "p2", "p3"],
           pairedGroupId: "g-E",
@@ -104,6 +105,7 @@ describe("GroupStandingsCard", () => {
   it("shows the Legend and the game win rate for each row", () => {
     render(
       <GroupStandingsCard
+        avatars={new Map()}
         group={makeGroup({
           standings: [
             makeRow("p1", 1, {
@@ -130,6 +132,7 @@ describe("GroupStandingsCard", () => {
   it("names the tier that put a row below the one above it", () => {
     render(
       <GroupStandingsCard
+        avatars={new Map()}
         group={makeGroup({
           standings: [makeRow("p1", 1), makeRow("p2", 2, { decidedBy: "h2h" })],
         })}
@@ -140,7 +143,7 @@ describe("GroupStandingsCard", () => {
   });
 
   it("leaves the tier column blank when the points differ", () => {
-    render(<GroupStandingsCard group={makeGroup()} />);
+    render(<GroupStandingsCard avatars={new Map()} group={makeGroup()} />);
     expect(screen.queryByText("H2H")).not.toBeInTheDocument();
     expect(screen.queryByText("Draw")).not.toBeInTheDocument();
   });
@@ -148,6 +151,7 @@ describe("GroupStandingsCard", () => {
   it("flags a tie that still needs a meta share", () => {
     render(
       <GroupStandingsCard
+        avatars={new Map()}
         group={makeGroup({
           standings: [makeRow("p1", 1), makeRow("p2", 1, { decidedBy: "meta_pending" })],
         })}
@@ -159,6 +163,7 @@ describe("GroupStandingsCard", () => {
   it("marks a dropped player", () => {
     render(
       <GroupStandingsCard
+        avatars={new Map()}
         group={makeGroup({ standings: [makeRow("p1", 1, { status: "dropped" })] })}
       />,
     );
@@ -168,6 +173,7 @@ describe("GroupStandingsCard", () => {
   it("keeps rank, record, game win rate and points on the phone list", () => {
     const { container } = render(
       <GroupStandingsCard
+        avatars={new Map()}
         group={makeGroup({
           standings: [
             makeRow("p1", 1, {
@@ -244,6 +250,7 @@ describe("CutSeedsCard", () => {
   function renderCard(overrides: Partial<GroupStageView> = {}, legendTiebreak = false) {
     return render(
       <CutSeedsCard
+        avatars={new Map()}
         groupStage={makeStage({ ranking, ...overrides })}
         cutSize={4}
         legendTiebreak={legendTiebreak}
@@ -328,7 +335,12 @@ describe("CutSeedsCard", () => {
 
   it("renders nothing before anyone has qualified", () => {
     const { container } = render(
-      <CutSeedsCard groupStage={makeStage()} cutSize={8} legendTiebreak={false} />,
+      <CutSeedsCard
+        avatars={new Map()}
+        groupStage={makeStage()}
+        cutSize={8}
+        legendTiebreak={false}
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });

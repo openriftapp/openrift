@@ -141,7 +141,6 @@ export function MoveToListDialog({
             pending={isPending}
             confirm={{
               label: isCopy ? m.common_copy() : m.lists_entry_move_confirm(),
-              pendingLabel: isCopy ? m.lists_copy_pending() : m.lists_entry_move_pending(),
               onConfirm: proceed,
             }}
           />

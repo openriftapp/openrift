@@ -117,9 +117,7 @@ export function ContributeSubmitBar({
             disabled={submit.isSuccess}
           >
             <SendIcon className="size-4" />
-            {submit.isPending
-              ? m.contribute_submit_pending()
-              : (submitLabel ?? m.contribute_submit_default())}
+            {submitLabel ?? m.contribute_submit_default()}
           </Button>
           <p className="text-muted-foreground text-sm">{m.contribute_submit_footnote()}</p>
         </div>

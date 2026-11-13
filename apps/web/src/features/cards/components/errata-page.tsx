@@ -103,7 +103,7 @@ function GroupSection({
     <section id={group.id} aria-labelledby={headingId} className="scroll-mt-40">
       <div className="border-foreground flex flex-wrap items-end justify-between gap-3 border-b-2 pb-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <Eyebrow as="p" className="text-warning mb-0 text-xs">
+          <Eyebrow as="p" className="text-warning text-xs">
             {announcement === null
               ? m.errata_unannounced_eyebrow()
               : formatMonthYear(announcement.publishedOn, DATE_WORDS)}

@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
-import { accentGlow } from "@/components/ui/podium";
 import { RankBand } from "@/components/ui/rank-band";
+import { FINAL_GLOW } from "@/lib/accent-wash";
 import { cn } from "@/lib/utils";
-
-const FINAL_GLOW = accentGlow(12);
 
 const MARK_SLOT = "flex h-11 w-16 shrink-0 items-center justify-center";
 

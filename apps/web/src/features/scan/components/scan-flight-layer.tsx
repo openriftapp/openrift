@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 
 import { planFlight } from "@/features/scan/lib/scan-flight";
 import type { FlightRect } from "@/features/scan/lib/scan-flight";
+import { prefersReducedMotion } from "@/lib/media-query";
 
 /** One card in flight from the camera guide to the session tray. */
 export interface ScanFlight {
@@ -15,13 +16,6 @@ const MAX_CONCURRENT_FLIGHTS = 4;
 const FLIGHT_EASING = "cubic-bezier(0.34, 1.24, 0.64, 1)";
 const FADE_START = 0.6;
 const FINISH_GRACE_MS = 400;
-
-function prefersReducedMotion(): boolean {
-  if (typeof globalThis.matchMedia !== "function") {
-    return false;
-  }
-  return globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 function fallbackTargetRect(source: FlightRect): FlightRect {
   const width = source.width * 0.35;

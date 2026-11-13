@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { m } from "@/paraglide/messages.js";
@@ -46,7 +47,7 @@ export default function TierListsArticle() {
         <p className="text-muted-foreground">
           <ParaglideMessage
             message={m.help_tier_lists_share_intro}
-            markup={{ strong: ({ children }) => <span className="font-medium">{children}</span> }}
+            markup={{ strong: PROSE_MARKUP.strong }}
           />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

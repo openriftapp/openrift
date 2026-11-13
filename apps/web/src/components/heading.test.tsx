@@ -73,11 +73,16 @@ describe("Eyebrow", () => {
     expect(heading.className).toContain("text-muted-foreground");
   });
 
+  it("carries no outer margin of its own", () => {
+    render(<Eyebrow>Details</Eyebrow>);
+    expect(screen.getByRole("heading", { level: 4 }).className).not.toMatch(/\bm[btyl]?-/u);
+  });
+
   it("merges user className with default styles", () => {
-    render(<Eyebrow className="mb-0">Details</Eyebrow>);
+    render(<Eyebrow className="mb-3">Details</Eyebrow>);
     const heading = screen.getByRole("heading", { level: 4 });
     expect(heading.className).toContain("uppercase");
-    expect(heading.className).toContain("mb-0");
+    expect(heading.className).toContain("mb-3");
   });
 
   it("renders the gold kicker as a span when asked", () => {

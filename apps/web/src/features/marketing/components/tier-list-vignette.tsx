@@ -1,10 +1,11 @@
 import { TIER_LABEL_INK, tierColor } from "@openrift/shared/tier-colors";
 import type { ReactNode } from "react";
 
+import { MiniCardArt } from "@/components/mini-card-art";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { MiniCardArt, Swap, Vignette, VignetteHeading } from "./vignette-parts";
+import { Swap, Vignette, VignetteHeading } from "./vignette-parts";
 
 const TILE = "w-11 shrink-0";
 

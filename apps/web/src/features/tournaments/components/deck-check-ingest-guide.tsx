@@ -6,6 +6,7 @@ import { Disclosure } from "@/components/disclosure";
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { Code } from "@/components/ui/code";
 import { TextLink } from "@/components/ui/text-link";
+import { tournamentTokenUrl } from "@/features/tournaments/lib/tournament-display";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
@@ -43,7 +44,7 @@ function buildExampleResponse(tournamentId: string): string {
     {
       "externalId": "1234",
       "entryId": "019eb565-3d55-7d21-8d86-e9b6939a2c2f",
-      "claimUrl": "${getSiteUrl()}/tournaments/claim/8f3c2a…"
+      "claimUrl": "${tournamentTokenUrl("claim", "8f3c2a…")}"
     }
   ]
 }`;

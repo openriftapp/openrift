@@ -1,6 +1,8 @@
 import type { PodRoundResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
+import type { ReactNode } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
@@ -22,17 +24,54 @@ import {
   formatScore,
   podWinsHint,
   rankedStandings,
+  standingsRowClass,
 } from "@/features/tournaments/lib/standings-display";
+import type { PlayerAvatar } from "@/features/tournaments/lib/standings-display";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+export function StandingsIdentity({
+  name,
+  avatar,
+  region = null,
+  dropped = false,
+  children,
+}: {
+  name: string;
+  avatar?: PlayerAvatar;
+  region?: string | null;
+  dropped?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <PlayerChip
+      name={name}
+      image={avatar?.image}
+      gravatarHash={avatar?.gravatarHash}
+      region={region}
+      dropped={dropped}
+    >
+      {children}
+    </PlayerChip>
+  );
+}
+
+export function SeedBadge({ seed }: { seed: number | null }) {
+  if (seed === null) {
+    return null;
+  }
+  return (
+    <Badge variant="outline" className="tabular-nums">
+      #{seed}
+    </Badge>
+  );
+}
 
 function PlayerIdentity({ row, regionsEnabled }: { row: PodStandingRow; regionsEnabled: boolean }) {
   return (
-    <PlayerChip
+    <StandingsIdentity
       name={row.displayName}
-      image={row.image}
-      gravatarHash={row.gravatarHash}
+      avatar={row}
       region={regionsEnabled ? row.region : null}
       dropped={row.status === "dropped"}
     />
@@ -83,10 +122,7 @@ export function StandingsTable({
         {ranked.map(({ row, rank }) => (
           <RowListItem
             key={row.playerId}
-            className={cn(
-              row.status === "dropped" && "opacity-50",
-              rank === 1 && "bg-border-accent/5",
-            )}
+            className={standingsRowClass({ dropped: row.status === "dropped", leader: rank === 1 })}
           >
             <StandingsRankCell rank={rank} />
             <div className="min-w-0 flex-1">
@@ -159,10 +195,10 @@ export function StandingsTable({
             {ranked.map(({ row, rank }) => (
               <TableRow
                 key={row.playerId}
-                className={cn(
-                  row.status === "dropped" && "opacity-50",
-                  rank === 1 && "bg-border-accent/5",
-                )}
+                className={standingsRowClass({
+                  dropped: row.status === "dropped",
+                  leader: rank === 1,
+                })}
               >
                 <TableCell>
                   <StandingsRankCell rank={rank} />

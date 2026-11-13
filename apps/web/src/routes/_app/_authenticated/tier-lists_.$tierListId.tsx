@@ -1,13 +1,12 @@
-import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
-import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierListId")({
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
   // The builder hosts a full card browser (the pool), so it carries the shared
   // filter search params like /cards and the deck editor do.
   validateSearch: filterSearchSchema,
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Tier list", noIndex: true }),
+  head: () => privateSeoHead("Tier list"),
   beforeLoad: ({ search, location, params }) => {
     const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
     if (cleaned) {
@@ -28,17 +27,12 @@ export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierList
     }
   },
   loader: async ({ context, params }) => {
-    try {
-      await context.queryClient.query({
+    await notFoundOnSentinel(
+      context.queryClient.query({
         ...tierListQueryOptions(context.userId, params.tierListId),
         staleTime: "static",
-      });
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      }),
+    );
   },
   errorComponent: RouteErrorFallback,
   notFoundComponent: () => (

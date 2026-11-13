@@ -86,10 +86,10 @@ export function MediaSection() {
       >
         <SwatchRow label="Sizes" hint="224 suits a code meant to be scanned across a table.">
           <Swatch label="160 (default)">
-            <QrCode value={demoShareUrl} />
+            <QrCode value={demoShareUrl} label="Share link QR code" />
           </Swatch>
           <Swatch label="224">
-            <QrCode value={demoShareUrl} size={224} />
+            <QrCode value={demoShareUrl} size={224} label="Share link QR code" />
           </Swatch>
         </SwatchRow>
       </DemoGroup>

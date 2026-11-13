@@ -6,8 +6,7 @@ import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 interface DeckImportSearch {
   replaceDeckId?: string;
@@ -46,7 +45,7 @@ export const Route = createFileRoute("/_app/decks/import")({
     return result;
   },
   loaderDeps: ({ search }) => ({ replaceDeckId: search.replaceDeckId }),
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Import Deck", noIndex: true }),
+  head: () => privateSeoHead("Import Deck"),
   // Replace mode only preloads the server stores: a browser-local target lives
   // in the local store, and asking the server about it would 404.
   loader: async ({ context, deps }) => {

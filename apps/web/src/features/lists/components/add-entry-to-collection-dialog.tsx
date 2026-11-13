@@ -142,8 +142,8 @@ export function AddEntryToCollectionDialogBody({
         <Button variant="outline" onClick={onCancel} disabled={isPending}>
           {m.common_cancel()}
         </Button>
-        <Button type="submit" disabled={!canConfirm}>
-          {isPending ? m.lists_add_to_collection_pending() : m.lists_add_to_collection_confirm()}
+        <Button pending={isPending} type="submit" disabled={!canConfirm}>
+          {m.lists_add_to_collection_confirm()}
         </Button>
       </div>
     </DialogForm>
@@ -276,10 +276,8 @@ export function AddEntriesToCollectionDialogBody({
         <Button variant="outline" onClick={onCancel} disabled={isPending}>
           {m.common_cancel()}
         </Button>
-        <Button type="submit" disabled={!canConfirm}>
-          {isPending
-            ? m.lists_add_to_collection_pending()
-            : m.lists_add_to_collection_confirm_multi({ count: total })}
+        <Button type="submit" disabled={!canConfirm} pending={isPending}>
+          {m.lists_add_to_collection_confirm_multi({ count: total })}
         </Button>
       </div>
     </DialogForm>

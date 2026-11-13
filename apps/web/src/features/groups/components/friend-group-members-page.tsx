@@ -283,8 +283,7 @@ function SelfShareNudge({ slug, groupName }: { slug: string; groupName: string }
         groupName={groupName}
         open={open}
         onOpenChange={setOpen}
-        cancelLabel={m.common_cancel()}
-        preselectAll={false}
+        flow="manage"
       />
     </>
   );

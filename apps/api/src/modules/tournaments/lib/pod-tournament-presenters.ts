@@ -1,13 +1,8 @@
+import { isResultlessPod, teamsOf } from "@openrift/shared/pairing/pod-result";
 import type { PodResponse, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
 
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
-import {
-  isResultlessPod,
-  podSizeOf,
-  pointsForPod,
-  pointsForTeamPod,
-  teamsOf,
-} from "../repositories/pod-points.js";
+import { podSizeOf, pointsForPod, pointsForTeamPod } from "../repositories/pod-points.js";
 import type { PodMemberRow, PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
 import type { Pod, PodScoring } from "../repositories/pod-tournaments-shared.js";
 

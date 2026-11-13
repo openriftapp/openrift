@@ -1,5 +1,9 @@
 // SEO utilities for generating Open Graph, Twitter Card, and canonical meta tags.
 
+import type { CardNameParts } from "@openrift/shared/card-name";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { cardPath } from "@openrift/shared/site-paths";
+
 import { getSiteUrl } from "./site-config";
 
 const SITE_NAME = "OpenRift";
@@ -95,12 +99,12 @@ export function seoHead(options: SeoOptions) {
   return { meta, links };
 }
 
+export function privateSeoHead(title: string) {
+  return seoHead({ siteUrl: getSiteUrl(), title, noIndex: true });
+}
+
 export function adminSeoHead(title: string) {
-  return seoHead({
-    siteUrl: getSiteUrl(),
-    title: `Admin · ${title}`,
-    noIndex: true,
-  });
+  return privateSeoHead(`Admin · ${title}`);
 }
 
 // Enables the sitelinks search box in Google search results.
@@ -260,6 +264,23 @@ interface CollectionPageJsonLdOptions {
   description: string;
   path: string;
   items?: readonly CollectionItem[];
+}
+
+export function cardJsonLdItems(
+  printings: readonly { cardId: string }[],
+  cards: Readonly<Record<string, CardNameParts & { slug: string }>>,
+): { name: string; url: string }[] {
+  const seenCardIds = new Set<string>();
+  const items: { name: string; url: string }[] = [];
+  for (const printing of printings) {
+    const card = cards[printing.cardId];
+    if (seenCardIds.has(printing.cardId) || !card) {
+      continue;
+    }
+    seenCardIds.add(printing.cardId);
+    items.push({ name: legendDisplayName(card), url: cardPath(card.slug) });
+  }
+  return items;
 }
 
 export function collectionPageJsonLd(options: CollectionPageJsonLdOptions) {

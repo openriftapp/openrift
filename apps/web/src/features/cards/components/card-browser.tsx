@@ -1,6 +1,6 @@
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useSearch } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -47,6 +47,8 @@ import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
+
+const cardsRouteApi = getRouteApi("/_app/cards");
 
 const CARD_BROWSER_HIDDEN_LOGGED_IN: ReadonlySet<string> = new Set(["customTags"]);
 const CARD_BROWSER_HIDDEN_LOGGED_OUT: ReadonlySet<string> = new Set(["owned", "customTags"]);
@@ -219,7 +221,7 @@ export function CardBrowser() {
   const inCardsView = view === "cards";
   const findBy = selectionFindBy(view, groupBy);
 
-  const { printingId: linkedPrintingId } = useSearch({ from: "/_app/cards" });
+  const { printingId: linkedPrintingId } = cardsRouteApi.useSearch();
   useCardDeepLink({ linkedPrintingId, printingsById, items });
 
   const handleGridCardClick = (printing: Printing) => {

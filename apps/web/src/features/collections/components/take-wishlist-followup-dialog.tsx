@@ -107,7 +107,7 @@ export function TakeWishlistFollowUpDialog({
                 ? m.collections_dialog_take_wishlist_keep()
                 : m.collections_dialog_take_wishlist_keep_all()}
             </Button>
-            <Button type="submit" disabled={isPending || selectedIds.size === 0}>
+            <Button type="submit" disabled={selectedIds.size === 0} pending={isPending}>
               {single
                 ? m.collections_dialog_take_wishlist_remove_from({
                     list: entries[0]?.listName ?? "",

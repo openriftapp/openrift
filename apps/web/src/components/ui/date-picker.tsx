@@ -9,29 +9,8 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatLocalDate, parseLocalDate } from "@/lib/date-time-input";
 import { m } from "@/paraglide/messages.js";
-
-const ISO_RE = /^\d{4}-\d{2}-\d{2}$/u;
-
-function formatIso(date: Date): string {
-  const y = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${month}-${d}`;
-}
-
-function parseIso(value: string): Date {
-  const [y = NaN, month = NaN, d = NaN] = value.split("-").map(Number);
-  return new Date(y, month - 1, d, 12);
-}
-
-function isValidIso(value: string): boolean {
-  if (!ISO_RE.test(value)) {
-    return false;
-  }
-  const d = parseIso(value);
-  return !isNaN(d.getTime());
-}
 
 interface DatePickerProps {
   value?: string | null;
@@ -52,7 +31,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value ?? "");
-  const [month, setMonth] = useState<Date | undefined>(value ? parseIso(value) : undefined);
+  const [month, setMonth] = useState<Date | undefined>(parseLocalDate(value ?? "") ?? undefined);
 
   // The input renders local text state so partial typing survives, but that
   // means an external value change after mount (e.g. the create wizard's
@@ -64,11 +43,11 @@ export function DatePicker({
     setLastValue(value);
     if ((value ?? "") !== text) {
       setText(value ?? "");
-      setMonth(value ? parseIso(value) : undefined);
+      setMonth(parseLocalDate(value ?? "") ?? undefined);
     }
   }
 
-  const selected = value ? parseIso(value) : undefined;
+  const selected = parseLocalDate(value ?? "") ?? undefined;
 
   function handleTextChange(raw: string) {
     setText(raw);
@@ -76,16 +55,16 @@ export function DatePicker({
       onClear();
       return;
     }
-    if (isValidIso(raw)) {
-      const d = parseIso(raw);
-      setMonth(d);
-      onValueChange?.(formatIso(d));
+    const day = parseLocalDate(raw);
+    if (day !== null) {
+      setMonth(day);
+      onValueChange?.(raw);
     }
   }
 
   function handleCalendarSelect(day: Date | undefined) {
     if (day) {
-      const iso = formatIso(day);
+      const iso = formatLocalDate(day);
       setText(iso);
       onValueChange?.(iso);
       setOpen(false);

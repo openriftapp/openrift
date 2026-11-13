@@ -1,4 +1,4 @@
-import { matchesTextPhrase } from "@openrift/shared/search-fold";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { Command as CommandPrimitive } from "cmdk";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useLayoutEffect, useRef } from "react";
@@ -28,13 +28,13 @@ const PICKER_ROW_SELECTED =
  * hits. Uniform scores (1/0) keep the rows in their original order instead of
  * cmdk's score-based reordering.
  *
- * @returns 1 when a keyword contains the query (or the query is empty), else 0.
+ * @returns 1 when every query word appears in some keyword (or the query is empty), else 0.
  */
 function keywordFilter(_value: string, search: string, keywords?: string[]): number {
   if (!search.trim()) {
     return 1;
   }
-  return keywords !== undefined && matchesTextPhrase(search, keywords) ? 1 : 0;
+  return keywords !== undefined && matchesTextQuery(search, keywords) ? 1 : 0;
 }
 
 /**
@@ -206,7 +206,7 @@ export function PickerGroup({
     <CommandGroup
       heading={label}
       className={cn(
-        "**:[[cmdk-group-heading]]:text-2xs p-0 **:[[cmdk-group-heading]]:px-1.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-0.5 **:[[cmdk-group-heading]]:tracking-wide **:[[cmdk-group-heading]]:uppercase",
+        "p-0 **:[[cmdk-group-heading]]:px-1.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-0.5",
         className,
       )}
     >

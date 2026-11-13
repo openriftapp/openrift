@@ -678,5 +678,72 @@ describe("TournamentOverviewTab", () => {
       expect(screen.getByRole("link", { name: /My deck/u })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /^Decks/u })).toBeInTheDocument();
     });
+
+    it("names the issue state the way the deck page does", () => {
+      render(
+        <TournamentOverviewTab
+          id="t-1"
+          detail={makeDetail({
+            ...PLAYER,
+            myDeckEntry: makeMyDeck({ state: "submitted", reviewOutcome: "issue" }),
+          })}
+        />,
+      );
+
+      const tile = screen.getByRole("link", { name: /My deck/u });
+      expect(within(tile).getByText("Submitted · issue")).toBeInTheDocument();
+    });
+
+    it("leads with the changes request on a returned deck", () => {
+      render(
+        <TournamentOverviewTab
+          id="t-1"
+          detail={makeDetail({
+            ...PLAYER,
+            myDeckEntry: makeMyDeck({ state: "editable", reviewOutcome: "issue" }),
+          })}
+        />,
+      );
+
+      const tile = screen.getByRole("link", { name: /My deck/u });
+      expect(within(tile).getByText("Changes requested")).toBeInTheDocument();
+    });
+  });
+
+  it("names a staff member without a name as an unnamed member", () => {
+    render(
+      <TournamentOverviewTab
+        id="t-1"
+        detail={makeDetail({
+          staff: [
+            {
+              userId: "u-1",
+              name: null,
+              role: "judge",
+              source: "grant",
+              orgRole: null,
+              addedAt: "2026-07-01T10:00:00Z",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Unnamed member")).toBeInTheDocument();
+  });
+
+  it("rounds averaged scores on the throne", () => {
+    runState = makeRunState({
+      standings: [
+        makeStanding("p1", 9.5),
+        makeStanding("p2", 6),
+        makeStanding("p3", 4),
+        makeStanding("p4", 1.756),
+      ],
+    });
+    render(<TournamentOverviewTab id="t-1" detail={makeDetail()} />);
+
+    const throne = screen.getByRole("link", { name: /Full table/u });
+    expect(within(throne).getByText("1.76")).toBeInTheDocument();
   });
 });

@@ -3,19 +3,21 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Building2Icon, CalendarIcon, LinkIcon, UsersIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
-import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SignedOutAuthButtons } from "@/components/signed-out-cta";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeckCheckInfoCardSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import {
+  TokenLandingCard,
+  TokenLandingPage,
+} from "@/features/tournaments/components/token-landing-card";
 import {
   useClaimLanding,
   useClaimTournamentDeck,
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { useUserId } from "@/hooks/use-session";
-import { useSignInSearch } from "@/hooks/use-sign-in-search";
-import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function PlayerClaimPage({ token }: { token: string }) {
@@ -23,22 +25,14 @@ export function PlayerClaimPage({ token }: { token: string }) {
   const claim = useClaimTournamentDeck();
   const userId = useUserId();
   const navigate = useNavigate();
-  const signIn = useSignInSearch();
 
   if (isPending) {
     return (
-      <div>
-        <PageTopBarSticky width="capped">
-          <PageTopBar>
-            <PageTopBarTitle>{m.tournaments_claim_page_title_loading()}</PageTopBarTitle>
-          </PageTopBar>
-        </PageTopBarSticky>
-        <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-4", PAGE_PADDING)}>
-          <DeckCheckInfoCardSkeleton />
-          <Skeleton className="h-4 w-full max-w-md" />
-          <Skeleton className="h-9 w-32" />
-        </div>
-      </div>
+      <TokenLandingPage pageTitle={m.tournaments_claim_page_title_loading()}>
+        <DeckCheckInfoCardSkeleton />
+        <Skeleton className="h-4 w-full max-w-md" />
+        <Skeleton className="h-9 w-32" />
+      </TokenLandingPage>
     );
   }
   if (isError || !data) {
@@ -53,9 +47,15 @@ export function PlayerClaimPage({ token }: { token: string }) {
   }
 
   const onConfirm = async () => {
-    const result = await claim.mutateAsync(token);
-    // Only route on a successful (or idempotent) claim; refusals — conflict,
-    // blocked, duplicate — stay on the page and render their explanation.
+    let result: Awaited<ReturnType<typeof claim.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await claim.mutateAsync(token);
+    });
+    if (!ok || !result) {
+      return;
+    }
+    // Only route on a successful (or idempotent) claim; refusals (conflict,
+    // blocked, duplicate) stay on the page and render their explanation.
     if (
       (result.status === "claimed" || result.status === "already") &&
       result.tournamentId !== null
@@ -70,18 +70,11 @@ export function PlayerClaimPage({ token }: { token: string }) {
   const outcome = claim.data?.status;
 
   return (
-    <div>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.tournaments_claim_page_title()}</PageTopBarTitle>
-        </PageTopBar>
-      </PageTopBarSticky>
-      <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-4", PAGE_PADDING)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{data.tournamentName}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+    <TokenLandingPage pageTitle={m.tournaments_claim_page_title()}>
+      <TokenLandingCard
+        title={data.tournamentName}
+        meta={
+          <div className="flex flex-col gap-2">
             <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span className="flex items-center gap-1.5">
                 <CalendarIcon className="size-4 shrink-0" />
@@ -102,9 +95,9 @@ export function PlayerClaimPage({ token }: { token: string }) {
               {m.tournaments_claim_your_spot_label()}{" "}
               <span className="font-medium">{data.participantName}</span>
             </p>
-          </CardContent>
-        </Card>
-
+          </div>
+        }
+      >
         {outcome === "conflict" ? (
           <p className="text-muted-foreground">{m.tournaments_claim_conflict()}</p>
         ) : outcome === "blocked" ? (
@@ -134,27 +127,20 @@ export function PlayerClaimPage({ token }: { token: string }) {
                 : m.tournaments_claim_link_with_deck()}
               {userId ? "" : m.tournaments_claim_sign_in_note()}
             </p>
-            <div>
-              {userId ? (
-                <Button onClick={() => void onConfirm()} disabled={claim.isPending}>
-                  {claim.isPending
-                    ? m.tournaments_claim_claiming()
-                    : m.tournaments_claim_claim_spot()}
-                </Button>
-              ) : (
-                <Link rel="nofollow" {...signIn} className={buttonVariants()}>
-                  {m.tournaments_claim_sign_in_to_claim()}
-                </Link>
-              )}
-            </div>
-            {claim.isError ? (
-              <Alert variant="destructive">
-                <AlertDescription>{m.tournaments_claim_error()}</AlertDescription>
-              </Alert>
-            ) : null}
+            {userId ? (
+              <Button className="w-fit" onClick={() => void onConfirm()} pending={claim.isPending}>
+                {m.tournaments_claim_claim_spot()}
+              </Button>
+            ) : (
+              <SignedOutAuthButtons
+                source="tournament-claim"
+                signInLabel={m.tournaments_claim_sign_in_to_claim()}
+              />
+            )}
+            <SaveError error={claim.error} />
           </>
         )}
-      </div>
-    </div>
+      </TokenLandingCard>
+    </TokenLandingPage>
   );
 }

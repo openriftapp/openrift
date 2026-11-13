@@ -125,7 +125,7 @@ export function DeckHomeCollectionDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={updateDeck.isPending}>
+            <Button type="submit" pending={updateDeck.isPending}>
               {m.common_save()}
             </Button>
           </DialogFooter>

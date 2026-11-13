@@ -1,7 +1,9 @@
 import { CrownIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { RANK_CROWN_CLASS, rankChipToneClass } from "@/components/ui/rank-band";
 import { UserAvatar } from "@/components/user-avatar";
+import { accentGlow } from "@/lib/accent-wash";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -19,16 +21,6 @@ import { m } from "@/paraglide/messages.js";
 // the claim — the caller has already resolved the tie-break for the raised
 // seat, and passes the deciding number as `hint`.
 
-/**
- * The accent wash CoverBand and the heroes use, at the strength a surface wants
- * it. Exported so anything else that marks a winner reaches for this rather than
- * pasting a gradient that nearly matches. `strength` is the percentage of the
- * accent mixed into the wash.
- */
-export function accentGlow(strength: number): string {
-  return `radial-gradient(120% 90% at 50% 115%, color-mix(in oklab, var(--border-accent) ${strength}%, transparent), transparent 70%)`;
-}
-
 /** The winner's seat glow. */
 const SEAT_GLOW = accentGlow(24);
 
@@ -44,11 +36,6 @@ export interface PodiumSeat {
   /** The supporting line — wins, or the tie-break that decided the seat. */
   hint?: ReactNode;
 }
-
-const MEDAL_CLASS: Record<number, string> = {
-  2: "bg-muted-foreground/40 text-foreground",
-  3: "bg-amber-800/45 text-foreground dark:bg-amber-800/60",
-};
 
 // Over artwork the wash a plate sits on is the card, not the page, so the
 // translucent silver and bronze turn to mud and their theme-following
@@ -68,16 +55,15 @@ const MEDAL_ON_ART_TEXT_CLASS: Record<number, string> = {
 
 /** The winner's crown tint, per surface: over art it needs its own shadow. */
 const CROWN_CLASS: Record<MedalVariant, string> = {
-  flat: "text-amber-500 dark:text-amber-400",
+  flat: RANK_CROWN_CLASS,
   onArt: "text-amber-300 drop-shadow-[0_1px_2px_rgb(0_0_0/0.7)]",
 };
 
-/** @returns The medal tint for a rank, falling back to the neutral chip. */
 function medalClass(rank: number, variant: MedalVariant): string {
   if (variant === "onArt") {
     return MEDAL_ON_ART_CLASS[rank] ?? "bg-zinc-800 text-zinc-100";
   }
-  return MEDAL_CLASS[rank] ?? "bg-muted text-muted-foreground";
+  return cn("border", rankChipToneClass(rank));
 }
 
 /**

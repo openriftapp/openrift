@@ -15,10 +15,23 @@ vi.mock("@/features/tournaments/hooks/use-tournaments", () => ({
   useTournamentParticipants: () => ({ data: { items: participants } }),
 }));
 
+let updateParticipantError: unknown = null;
+let addParticipantError: unknown = null;
+
 vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
-  useAddParticipant: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useAddParticipant: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+    error: addParticipantError,
+    reset: vi.fn(),
+  }),
   useParticipantAction: () => ({ mutateAsync: participantActionMutateAsync, isPending: false }),
-  useUpdateParticipant: () => ({ mutateAsync: updateParticipantMutateAsync, isPending: false }),
+  useUpdateParticipant: () => ({
+    mutateAsync: updateParticipantMutateAsync,
+    isPending: false,
+    error: updateParticipantError,
+    reset: vi.fn(),
+  }),
 }));
 
 const useTournamentDeckCheckEntries = vi.fn((_id: string, _enabled?: boolean) => ({
@@ -26,6 +39,10 @@ const useTournamentDeckCheckEntries = vi.fn((_id: string, _enabled?: boolean) =>
 }));
 vi.mock("@/features/tournaments/hooks/use-tournament-deck-check", () => ({
   useTournamentDeckCheckEntries,
+}));
+
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ printingsByCardId: new Map() }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({
@@ -51,7 +68,8 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children }: { to: string; children?: ReactNode }) => <a href={to}>{children}</a>,
 }));
 
-const { TournamentParticipantsTab } = await import("./tournament-participants-tab");
+const { AddParticipantButton, TournamentParticipantsTab } =
+  await import("./tournament-participants-tab");
 
 function makeParticipant(
   id: string,
@@ -104,6 +122,8 @@ function missingRegionsBand(): HTMLElement {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  updateParticipantError = null;
+  addParticipantError = null;
   useTournamentDeckCheckEntries.mockReturnValue({ data: undefined });
   participants = [];
 });
@@ -360,5 +380,48 @@ describe("TournamentParticipantsTab deck-check query gating", () => {
   it("disables the entries query for viewers without manage rights", () => {
     renderTab(makeDetail({ deckSubmission: "required", myRoles: [] }));
     expect(useTournamentDeckCheckEntries).toHaveBeenCalledWith("tournament-1", false);
+  });
+});
+
+describe("TournamentParticipantsTab dialogs", () => {
+  it("keeps the remove confirm open when removing fails", async () => {
+    participantActionMutateAsync.mockRejectedValueOnce(new Error("offline"));
+    const user = userEvent.setup();
+    participants = [makeParticipant("p1", { displayName: "Ashe" })];
+    renderTab();
+
+    await user.click(screen.getByRole("button", { name: "Participant actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Remove/u }));
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+
+    expect(participantActionMutateAsync).toHaveBeenCalledWith({
+      id: "tournament-1",
+      participantId: "p1",
+      action: "remove",
+    });
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("shows a failed rename inside the dialog", async () => {
+    updateParticipantError = new Error("That name is taken.");
+    const user = userEvent.setup();
+    participants = [makeParticipant("p1", { displayName: "Ashe" })];
+    renderTab();
+
+    await user.click(screen.getByRole("button", { name: "Participant actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Rename/u }));
+
+    expect(await screen.findByText("That name is taken.")).toBeInTheDocument();
+  });
+
+  it("shows a failed add inside the dialog", async () => {
+    addParticipantError = new Error("The roster is full.");
+    const user = userEvent.setup();
+    render(<AddParticipantButton id="tournament-1" />);
+
+    await user.click(screen.getByRole("button", { name: /Add player/u }));
+
+    expect(await screen.findByText("The roster is full.")).toBeInTheDocument();
   });
 });

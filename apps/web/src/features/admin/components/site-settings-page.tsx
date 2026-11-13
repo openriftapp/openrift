@@ -2,13 +2,13 @@ import type { SiteSettingResponse } from "@openrift/shared/types/api/admin";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Eyebrow } from "@/components/heading";
 import { SettingsRow } from "@/components/layout/settings-row";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
@@ -19,14 +19,14 @@ import type {
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
-import { isValidKebabKey } from "@/features/admin/lib/admin-slug";
-import { useHydrated } from "@/hooks/use-hydrated";
 import {
   useCreateSiteSetting,
   useDeleteSiteSetting,
   useSiteSettings,
   useUpdateSiteSetting,
-} from "@/hooks/use-site-settings";
+} from "@/features/admin/hooks/use-admin-site-settings";
+import { isValidKebabKey } from "@/features/admin/lib/admin-slug";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
@@ -273,7 +273,7 @@ export function SiteSettingsPage() {
 
       {missingKnown.length > 0 && (
         <div className="flex flex-col gap-2">
-          <Eyebrow className="mb-0">Available settings</Eyebrow>
+          <SectionHeading as="h2">Available settings</SectionHeading>
           <RowList>
             {missingKnown.map((known) => (
               <KnownSettingRow
@@ -293,7 +293,7 @@ export function SiteSettingsPage() {
       )}
 
       <div className="flex flex-col gap-2">
-        <Eyebrow className="mb-0">Analytics (this browser)</Eyebrow>
+        <SectionHeading as="h2">Analytics (this browser)</SectionHeading>
         <AnalyticsExclusionPanel />
       </div>
     </div>

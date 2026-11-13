@@ -8,9 +8,8 @@ import { parseCompareSide, queryDeckLink } from "@/features/decks/lib/deck-compa
 import { requireSession } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { lenient } from "@/lib/lenient-param";
-import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 
 // Not a uuid check: either side may be a local deck id or a `meta:`/`share:`
 // deck link, and either may be missing (a comparison opened from a deck menu
@@ -23,7 +22,7 @@ const compareSearchSchema = z.object({
 export const Route = createFileRoute("/_app/decks/compare")({
   ssr: false,
   validateSearch: compareSearchSchema,
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Compare decks", noIndex: true }),
+  head: () => privateSeoHead("Compare decks"),
   loaderDeps: ({ search }) => ({ from: search.from, to: search.to }),
   // Local decks and deck links need no session; local sides resolve
   // client-side from the store.
@@ -53,14 +52,7 @@ export const Route = createFileRoute("/_app/decks/compare")({
         links.push(queryDeckLink(context.queryClient, side.kind, side.token));
       }
     }
-    try {
-      await Promise.all(links);
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+    await notFoundOnSentinel(Promise.all(links));
     if (serverIds.length === 0) {
       return;
     }

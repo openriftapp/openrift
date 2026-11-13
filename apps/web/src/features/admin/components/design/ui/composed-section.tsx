@@ -62,7 +62,6 @@ export function ComposedSection() {
             title="Delete Jinx Aggro?"
             description="The deck and its plans are removed. Cards in your collection stay untouched."
             confirmLabel="Delete"
-            pendingLabel="Deleting…"
             trigger={<Button variant="destructive" />}
             onConfirm={async () => {
               await sleep(800);

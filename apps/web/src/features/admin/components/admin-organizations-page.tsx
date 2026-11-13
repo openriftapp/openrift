@@ -110,7 +110,11 @@ function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
           </div>
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={!slug.trim() || !name.trim() || updateOrg.isPending}>
+            <Button
+              type="submit"
+              disabled={!slug.trim() || !name.trim()}
+              pending={updateOrg.isPending}
+            >
               Save
             </Button>
           </DialogFooter>

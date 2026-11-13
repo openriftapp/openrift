@@ -20,4 +20,12 @@ describe("toggleVariants", () => {
       ]),
     );
   });
+
+  it("darkens a pressed control's border like a pressed Button", () => {
+    const classes = toggleVariants({ variant: "control" }).split(/\s+/u);
+    expect(classes).toStrictEqual(
+      expect.arrayContaining(["border", "aria-pressed:border-foreground/50"]),
+    );
+    expect(classes.filter((cls) => cls.includes("data-[state=on]"))).toStrictEqual([]);
+  });
 });

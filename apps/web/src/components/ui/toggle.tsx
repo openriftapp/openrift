@@ -4,11 +4,11 @@ import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 
+import { CONTROL_FILL } from "@/components/ui/button"; // custom: shared control ladder
 import { cn } from "@/lib/utils";
 
-// custom: one neutral ladder on foreground alpha, correct in both themes
-const CONTROL_FILL =
-  "border border-input bg-foreground/5 hover:bg-foreground/10 aria-pressed:bg-foreground/16 data-[state=on]:bg-foreground/16 aria-pressed:hover:bg-foreground/24 data-[state=on]:hover:bg-foreground/24";
+// custom: Button's control ladder; Toggle has no base border width, so it adds `border`
+const TOGGLE_CONTROL_FILL = `border ${CONTROL_FILL}`;
 
 const toggleVariants = cva(
   // custom: ring-2 focus ring — app-wide focus width (scaffold ships ring-3)
@@ -20,9 +20,9 @@ const toggleVariants = cva(
         default: "bg-transparent hover:bg-muted aria-pressed:bg-muted data-[state=on]:bg-muted",
         // custom: outline runs the control ladder too. Its bg-muted pressed fill sat on a
         // transparent (dark input/30) rest, which left the pressed segment nearly invisible
-        outline: CONTROL_FILL,
+        outline: TOGGLE_CONTROL_FILL,
         // custom: matches Button's `control` variant — see docs/design-language.md
-        control: CONTROL_FILL,
+        control: TOGGLE_CONTROL_FILL,
       },
       size: {
         // custom: touch-aware heights from --control-h / --control-h-sm (index.css)

@@ -10,77 +10,43 @@ import {
   ExternalLinkIcon,
   UsersIcon,
 } from "lucide-react";
-import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
+import { MetaItem } from "@/components/ui/meta-item";
 import { TextLink } from "@/components/ui/text-link";
 import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar-cluster";
 import {
   deckSubmissionLabels,
   effectiveStateLabels,
+  tournamentKindLabel,
 } from "@/features/tournaments/lib/tournament-display";
+import { HERO_WASH } from "@/lib/accent-wash";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-const HERO_WASH = [
-  "radial-gradient(90% 130% at 85% 10%, color-mix(in oklab, var(--border-accent) 26%, transparent), transparent 62%)",
-  "radial-gradient(70% 120% at 65% 100%, color-mix(in oklab, var(--violet) 14%, transparent), transparent 65%)",
-  "linear-gradient(color-mix(in oklab, var(--muted) 50%, var(--background)), var(--background))",
-].join(", ");
-
-/** in_progress renders as "Live", overriding the effective-state label. */
-function heroKicker(detail: TournamentDetailResponse): string {
-  const kind =
-    detail.playMode === "2v2"
-      ? m.tournaments_hero_kind_2v2()
-      : detail.pairingStyle === "pod"
-        ? m.tournaments_hero_kind_pod()
-        : detail.pairingStyle === "swiss"
-          ? m.tournaments_hero_kind_swiss()
-          : m.tournaments_hero_kind_default();
-  const state = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
-  const stateLabel =
-    state === "in_progress" ? m.tournaments_hero_live() : effectiveStateLabels()[state];
-  return `${kind} · ${stateLabel}`;
-}
-
-function MetaItem({
-  icon: Icon,
-  children,
-}: {
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
-  children: ReactNode;
-}): ReactNode {
-  return (
-    <span className="text-muted-foreground flex min-w-0 items-center gap-1.5">
-      <Icon className="size-4 shrink-0" />
-      <span className="truncate">{children}</span>
-    </span>
-  );
-}
-
 export function TournamentHero({ detail }: { detail: TournamentDetailResponse }) {
   const state = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
+  const orgId = detail.host.type === "organization" ? detail.host.orgId : null;
 
   return (
     <div className={cn(PAGE_WIDTH.capped, "px-safe pt-4")}>
       <section className="relative overflow-hidden" style={{ backgroundImage: HERO_WASH }}>
         <div className="flex items-end gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 py-6 pl-5">
-            <Eyebrow variant="kicker">{heroKicker(detail)}</Eyebrow>
+            <Eyebrow variant="kicker">{tournamentKindLabel(detail)}</Eyebrow>
             <Heading level={1} className="text-3xl text-balance">
               {detail.name}
             </Heading>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <MetaItem icon={CalendarIcon}>{formatDayTimeLocal(detail.startsAt)}</MetaItem>
-              <MetaItem icon={Building2Icon}>
-                {detail.host.type === "organization" && detail.host.orgSlug ? (
+              <MetaItem icon={CalendarIcon} truncate className="text-muted-foreground">
+                {formatDayTimeLocal(detail.startsAt)}
+              </MetaItem>
+              <MetaItem icon={Building2Icon} truncate className="text-muted-foreground">
+                {orgId ? (
                   <TextLink
                     variant="inherit"
-                    render={
-                      <Link to="/organizations/$id" params={{ id: detail.host.orgId ?? "" }} />
-                    }
+                    render={<Link to="/organizations/$id" params={{ id: orgId }} />}
                   >
                     {detail.host.displayName}
                   </TextLink>
@@ -88,18 +54,18 @@ export function TournamentHero({ detail }: { detail: TournamentDetailResponse })
                   detail.host.displayName
                 )}
               </MetaItem>
-              {detail.groupSlug ? (
-                <MetaItem icon={UsersIcon}>
+              {detail.groupSlug && detail.groupName ? (
+                <MetaItem icon={UsersIcon} truncate className="text-muted-foreground">
                   <TextLink
                     variant="inherit"
                     render={<Link to="/groups/$slug" params={{ slug: detail.groupSlug }} />}
                   >
-                    {detail.groupName ?? detail.groupSlug}
+                    {detail.groupName}
                   </TextLink>
                 </MetaItem>
               ) : null}
               {detail.uvsgamesEventId ? (
-                <MetaItem icon={ExternalLinkIcon}>
+                <MetaItem icon={ExternalLinkIcon} truncate className="text-muted-foreground">
                   <TextLink
                     variant="inherit"
                     href={uvsgamesEventUrl(detail.uvsgamesEventId)}
@@ -111,7 +77,7 @@ export function TournamentHero({ detail }: { detail: TournamentDetailResponse })
                 </MetaItem>
               ) : null}
               {detail.metaEventSlug ? (
-                <MetaItem icon={ArchiveIcon}>
+                <MetaItem icon={ArchiveIcon} truncate className="text-muted-foreground">
                   <TextLink
                     variant="inherit"
                     render={<Link to="/meta/$slug" params={{ slug: detail.metaEventSlug }} />}

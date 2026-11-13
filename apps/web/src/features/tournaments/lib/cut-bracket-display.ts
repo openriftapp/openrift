@@ -1,6 +1,10 @@
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { CutSize } from "@openrift/shared/pairing/group-cut-types";
-import type { PodResponse, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
+import type {
+  GroupStageView,
+  PodResponse,
+  PodRoundResponse,
+} from "@openrift/shared/types/api/pod-tournament";
 
 import { cutMatchShortLabel, cutRoundLabels } from "./group-cut-display";
 
@@ -54,7 +58,25 @@ export function buildBracketColumns(
 }
 
 export function cutRounds(rounds: readonly PodRoundResponse[]): PodRoundResponse[] {
-  return rounds.filter((round) => round.roundNumber > GROUP_STAGE_ROUNDS);
+  return rounds
+    .filter((round) => round.roundNumber > GROUP_STAGE_ROUNDS)
+    .toSorted((a, b) => a.roundNumber - b.roundNumber);
+}
+
+export function seedsByPlayer(groupStage: Pick<GroupStageView, "ranking">): Map<string, number> {
+  return new Map(
+    groupStage.ranking.flatMap((row) => (row.seed === null ? [] : [[row.playerId, row.seed]])),
+  );
+}
+
+export function bracketMode({
+  completed,
+  canEnter,
+}: {
+  completed: boolean;
+  canEnter: boolean;
+}): "compact" | "editable" {
+  return completed || !canEnter ? "compact" : "editable";
 }
 
 export function groupStageRounds(rounds: readonly PodRoundResponse[]): PodRoundResponse[] {

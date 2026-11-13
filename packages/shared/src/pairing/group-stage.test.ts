@@ -4,6 +4,7 @@ import { mulberry32 } from "../random";
 import type { GroupPlan, GroupPlanGroup } from "./group-cut-types";
 import {
   InvalidGroupCountError,
+  groupCountProblem,
   groupUnits,
   pairUnits,
   podsOfUnit,
@@ -73,6 +74,22 @@ function expectValidStructure(plan: GroupPlan, playerIds: readonly string[]): vo
   expect(seated).toHaveLength(playerIds.length);
   expect(seated.toSorted()).toEqual([...playerIds].toSorted());
 }
+
+describe("groupCountProblem", () => {
+  it("names a field below six players as too few", () => {
+    expect(groupCountProblem(4)).toBe("too_few");
+    expect(groupCountProblem(5)).toBe("too_few");
+  });
+
+  it("names an odd field of six or more as odd", () => {
+    expect(groupCountProblem(7)).toBe("odd");
+  });
+
+  it("accepts every even field from six up", () => {
+    expect(groupCountProblem(6)).toBeNull();
+    expect(groupCountProblem(16)).toBeNull();
+  });
+});
 
 describe("validateGroupCount", () => {
   it.each([16, 18, 20, 22, 24, 26, 28, 30, 32])("accepts %i players", (count) => {

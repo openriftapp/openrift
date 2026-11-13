@@ -48,7 +48,7 @@ export function OpenRoundBand({
       action={
         <span className="flex items-center gap-2">
           <Badge variant="warning">{m.tournaments_round_band_reporting()}</Badge>
-          <Button size="sm" disabled={!allReported || finalizing} onClick={onFinalize}>
+          <Button size="sm" disabled={!allReported} pending={finalizing} onClick={onFinalize}>
             {m.tournaments_round_band_finalize()}
           </Button>
         </span>

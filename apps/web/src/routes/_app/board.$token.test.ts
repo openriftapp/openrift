@@ -60,5 +60,6 @@ describe("/board/$token head", () => {
 
     expect(headTitle(head)).toBe("Board state - OpenRift");
     expect(headMeta(head, "robots")).toBe("noindex, nofollow");
+    expect(headCanonical(head)).toBeUndefined();
   });
 });

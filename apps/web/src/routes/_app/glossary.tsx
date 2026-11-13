@@ -1,38 +1,37 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { querySearchSchema } from "@/features/rules/lib/rules-search-schema";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { requireFeature } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
-import { seoHead } from "@/lib/seo";
+import { privateSeoHead, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
+
+interface GlossaryLoaderData {
+  served: true;
+}
 
 export const Route = createFileRoute("/_app/glossary")({
   validateSearch: querySearchSchema,
-  head: () =>
-    seoHead({
-      siteUrl: getSiteUrl(),
-      title: "Glossary",
-      description:
-        "Riftbound symbols, keywords, and shorthand. Each keyword links into the official rules.",
-      path: "/glossary",
-    }),
-  beforeLoad: async ({ context }) => {
-    const flags = (await context.queryClient.query({
-      ...featureFlagsQueryOptions,
-      staleTime: "static",
-    })) as FeatureFlags;
-    if (!featureEnabled(flags, "glossary")) {
-      throw redirect({ to: "/cards" });
-    }
-  },
-  loader: async ({ context }) => {
+  beforeLoad: ({ context }) => requireFeature(context.queryClient, "glossary"),
+  loader: async ({ context }): Promise<GlossaryLoaderData> => {
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
     ]);
+    return { served: true };
   },
+  head: ({ loaderData }) =>
+    (loaderData as GlossaryLoaderData | undefined)?.served
+      ? seoHead({
+          siteUrl: getSiteUrl(),
+          title: "Glossary",
+          description:
+            "Riftbound symbols, keywords, and shorthand. Each keyword links into the official rules.",
+          path: "/glossary",
+        })
+      : privateSeoHead("Glossary"),
   errorComponent: RouteErrorFallback,
+  notFoundComponent: NotFoundFallback,
 });

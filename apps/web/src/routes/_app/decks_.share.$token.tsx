@@ -1,7 +1,7 @@
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { deckShareDescription, deckShareTitle } from "@openrift/shared/share-titles";
 import type { PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
@@ -48,23 +48,18 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<SharedDeckHeadData> => {
-    try {
-      const [data, init] = await Promise.all([
+    const [data, init] = await notFoundOnSentinel(
+      Promise.all([
         context.queryClient.query({ ...publicDeckQueryOptions(params.token), staleTime: "static" }),
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-      ]);
-      const { name, format, description, updatedAt } = data.deck;
-      return {
-        deck: { name, description, updatedAt },
-        formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), format),
-        owner: { displayName: data.owner.displayName },
-      };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      ]),
+    );
+    const { name, format, description, updatedAt } = data.deck;
+    return {
+      deck: { name, description, updatedAt },
+      formatLabel: enumLabel(labelMap(init.enums.deckFormats ?? []), format),
+      owner: { displayName: data.owner.displayName },
+    };
   },
   pendingComponent: SharedDeckPending,
   errorComponent: RouteErrorFallback,

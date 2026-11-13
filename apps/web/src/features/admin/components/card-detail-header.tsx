@@ -69,7 +69,7 @@ export function CardDetailHeader({
   const checkAllLabel = (
     <>
       <CheckCheckIcon />
-      {isCheckingAll ? "Checking…" : "Check all & next"}
+      Check all & next
       <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
         Ctrl ⇧ ↵
       </Kbd>
@@ -182,7 +182,6 @@ export function CardDetailHeader({
         title={`Delete card "${canonicalName}"?`}
         description="This deletes the card and all its printings. This cannot be undone."
         confirmLabel="Delete card"
-        pendingLabel="Deleting…"
         isPending={deleteCardMutation.isPending}
         onConfirm={() =>
           deleteCardMutation.mutate(card.id, {

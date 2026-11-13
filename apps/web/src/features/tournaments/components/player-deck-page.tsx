@@ -4,7 +4,6 @@ import type {
   DeckCheckEntryCardResponse,
   PlayerDeckCheckEntryDetailResponse,
 } from "@openrift/shared/types/api/deck-check";
-import { WellKnown } from "@openrift/shared/well-known";
 import { useNavigate } from "@tanstack/react-router";
 import { FileQuestionIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
@@ -27,10 +26,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CardCell } from "@/features/cards/components/card-cell";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
-import { FormatStateBadge } from "@/features/decks/components/deck-format-badge";
-import { typeCountSummary } from "@/features/decks/components/deck-tile";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
+import { UnmatchedCardCell } from "@/features/tournaments/components/deck-check-checklist";
+import { DeckCheckStatsSummary } from "@/features/tournaments/components/deck-check-entry-header";
 import { DeckCheckCardZonesSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
 import { DeckCheckStateBadge } from "@/features/tournaments/components/deck-check-state-badge";
 import { PlayerDeckSourceForm } from "@/features/tournaments/components/player-deck-source-form";
@@ -47,6 +45,7 @@ import {
 import { deckCardsFromCheckEntry } from "@/features/tournaments/lib/deck-check-save";
 import { resolvedSide } from "@/features/tournaments/lib/deck-check-side";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 const PLAYER_CELL_WIDTH = 150;
@@ -181,7 +180,13 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
         </Alert>
       ) : null}
 
-      <DeckMetaSummary data={data} />
+      <DeckCheckStatsSummary
+        cards={data.cards}
+        typeCounts={data.typeCounts}
+        format={data.entry.format}
+        isValid={data.violations.length === 0}
+        domainDistribution={data.domainDistribution}
+      />
       <PlayerCardGrid cards={data.cards} />
     </div>
   );
@@ -203,42 +208,10 @@ function sharingSummary(allowPublish: boolean, allowName: boolean, allowRiotId: 
   return m.tournaments_my_deck_sharing_anonymous();
 }
 
-function DeckMetaSummary({ data }: { data: PlayerDeckCheckEntryDetailResponse }) {
-  const typeSummary = typeCountSummary(data.typeCounts);
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        {typeSummary ? (
-          <span className="text-muted-foreground text-2xs">{typeSummary}</span>
-        ) : (
-          <span />
-        )}
-        {data.entry.format ? (
-          <FormatStateBadge format={data.entry.format} isValid={data.violations.length === 0} />
-        ) : null}
-      </div>
-      {data.domainDistribution.length > 0 ? (
-        <DeckDomainBar distribution={data.domainDistribution} />
-      ) : null}
-    </div>
-  );
-}
-
-function PlayerCardGrid({ cards }: { cards: DeckCheckEntryCardResponse[] }) {
-  const { zoneLabels } = useZoneOrder();
+export function PlayerCardGrid({ cards }: { cards: DeckCheckEntryCardResponse[] }) {
+  const { zoneOrder, zoneLabels } = useZoneOrder();
   const cardsByZone = Map.groupBy(cards, (card) => card.zone);
-  const zones = (
-    [
-      WellKnown.deckZone.LEGEND,
-      WellKnown.deckZone.LEGEND_OPTIONS,
-      WellKnown.deckZone.CHAMPION,
-      WellKnown.deckZone.BATTLEFIELD,
-      WellKnown.deckZone.MAIN,
-      WellKnown.deckZone.SIDEBOARD,
-      WellKnown.deckZone.OVERFLOW,
-      WellKnown.deckZone.RUNES,
-    ] as const
-  ).filter((zone) => cardsByZone.has(zone));
+  const zones = zoneOrder.filter((zone) => cardsByZone.has(zone));
 
   return (
     <div className="flex flex-col gap-6">
@@ -278,16 +251,7 @@ function PlayerCardCell({ card }: { card: DeckCheckEntryCardResponse }) {
   const printing = resolvedSide(card, printingsById, printingsByCardId);
 
   if (!printing || card.matchStatus !== "matched") {
-    return (
-      <div className="border-warning/40 bg-warning-soft flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed p-2 text-left text-sm">
-        <span className="font-medium break-all">{card.rawName}</span>
-        <span className="text-muted-foreground">
-          {card.matchStatus === "ambiguous"
-            ? m.tournaments_deck_check_several_matches()
-            : m.tournaments_deck_check_not_in_catalog()}
-        </span>
-      </div>
-    );
+    return <UnmatchedCardCell card={card} />;
   }
 
   return (
@@ -302,54 +266,49 @@ function PlayerCardCell({ card }: { card: DeckCheckEntryCardResponse }) {
   );
 }
 
-function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse }) {
+export function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse }) {
   const createDeck = useCreateDeck();
   const saveDeckCards = useSaveDeckCards();
   const navigate = useNavigate();
   const { formats } = useDeckFormatList();
-  const [isSaving, setIsSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const { cards, skippedCount } = deckCardsFromCheckEntry(data.cards);
   if (cards.length === 0) {
     return null;
   }
 
-  const save = () => {
-    setIsSaving(true);
+  const save = async () => {
     const name = data.entry.eventName;
-    createDeck.mutate(
-      { name, format: data.entry.format ?? formats[0]?.slug ?? "" },
-      {
-        onSuccess: (deck) => {
-          saveDeckCards.mutate(
-            { deckId: deck.id, cards },
-            {
-              onSuccess: () => {
-                toast.success(
-                  skippedCount > 0
-                    ? m.tournaments_my_deck_saved_toast_skipped({
-                        name,
-                        count: skippedCount,
-                      })
-                    : m.tournaments_my_deck_saved_toast({ name }),
-                );
-                void navigate({ to: "/decks/$deckId", params: { deckId: deck.id } });
-              },
-              onError: () => {
-                setIsSaving(false);
-              },
-            },
-          );
-        },
-        onError: () => {
-          setIsSaving(false);
-        },
-      },
+    const format = data.entry.format ?? formats[0]?.slug ?? "";
+    setSaving(true);
+    let deckId: string | undefined;
+    const created = await runReportedMutation(async () => {
+      const deck = await createDeck.mutateAsync({ name, format });
+      deckId = deck.id;
+    });
+    if (!created || deckId === undefined) {
+      setSaving(false);
+      return;
+    }
+    const savedDeckId = deckId;
+    const saved = await runReportedMutation(() =>
+      saveDeckCards.mutateAsync({ deckId: savedDeckId, cards }),
     );
+    if (!saved) {
+      setSaving(false);
+      return;
+    }
+    toast.success(
+      skippedCount > 0
+        ? m.tournaments_my_deck_saved_toast_skipped({ name, count: skippedCount })
+        : m.tournaments_my_deck_saved_toast({ name }),
+    );
+    void navigate({ to: "/decks/$deckId", params: { deckId: savedDeckId } });
   };
 
   return (
-    <PageTopBarButton pending={isSaving} onClick={save}>
+    <PageTopBarButton pending={saving} onClick={() => void save()}>
       {m.tournaments_my_deck_save_to_decks()}
     </PageTopBarButton>
   );
@@ -428,14 +387,20 @@ function ReplaceDeckButton({
   const preview = usePreviewTournamentDeck();
 
   const submit = async (input: DeckSourceInput) => {
-    await edit.mutateAsync({ entryId, tournamentId, ...input });
-    preview.reset();
-    setOpen(false);
+    if (await runReportedMutation(() => edit.mutateAsync({ entryId, tournamentId, ...input }))) {
+      preview.reset();
+      setOpen(false);
+    }
   };
 
   return (
     <>
-      <PageTopBarButton onClick={() => setOpen(true)}>
+      <PageTopBarButton
+        onClick={() => {
+          edit.reset();
+          setOpen(true);
+        }}
+      >
         {m.tournaments_my_deck_replace_deck()}
       </PageTopBarButton>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -446,8 +411,8 @@ function ReplaceDeckButton({
           </DialogHeader>
           <PlayerDeckSourceForm
             submitLabel={m.tournaments_my_deck_replace_deck()}
-            pendingLabel={m.tournaments_my_deck_replacing()}
             isSubmitting={edit.isPending}
+            error={edit.error}
             onSubmit={(input) => void submit(input)}
             onPreview={(input) => preview.mutate({ entryId, ...input })}
             preview={preview.data ?? null}

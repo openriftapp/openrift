@@ -135,7 +135,7 @@ function ContactChipCompact({ method }: { method: ContactMethod }) {
       </PopoverTrigger>
       <PopoverContent className="w-60">
         <div className="flex flex-col gap-0.5">
-          <Eyebrow as="span" className="mb-0 text-xs">
+          <Eyebrow as="span" className="text-xs">
             {label}
           </Eyebrow>
           <span className="break-all select-all">{method.value}</span>

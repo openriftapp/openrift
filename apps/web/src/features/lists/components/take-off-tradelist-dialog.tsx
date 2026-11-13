@@ -155,17 +155,9 @@ export function TakeOffTradelistDialog({
               type="submit"
               variant={sold ? "destructive" : "default"}
               disabled={confirmDisabled}
-              pending={sold && membershipsLoading}
+              pending={(sold && membershipsLoading) || isPending}
             >
-              {sold && membershipsLoading
-                ? m.lists_entry_takeoff_checking()
-                : isPending
-                  ? sold
-                    ? m.common_removing()
-                    : m.lists_entry_takeoff_takingoff()
-                  : sold
-                    ? m.lists_entry_takeoff_remove({ count })
-                    : m.lists_entry_take_off()}
+              {sold ? m.lists_entry_takeoff_remove({ count }) : m.lists_entry_take_off()}
             </Button>
           </AlertDialogFooter>
         </DialogForm>

@@ -5,12 +5,11 @@ import {
   loadTournamentDetail,
   redirectToTournamentOverview,
 } from "@/features/tournaments/lib/tournament-route-guards";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/my-deck")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "My deck", noIndex: true }),
+  head: () => privateSeoHead("My deck"),
   loader: async ({ context, params }) => {
     const detail = await loadTournamentDetail(context.queryClient, context.userId, params.id);
     // No staff role check: holding an entry is the whole gate, so a judge

@@ -133,8 +133,12 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
                     max: PROFILE_BIO_MAX_LENGTH,
                   })}
                 </FieldDescription>
-                <Button type="submit" disabled={loading || watchedBio.trim() === defaultBio}>
-                  {loading ? m.common_saving() : m.common_save()}
+                <Button
+                  pending={loading}
+                  type="submit"
+                  disabled={loading || watchedBio.trim() === defaultBio}
+                >
+                  {m.common_save()}
                 </Button>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

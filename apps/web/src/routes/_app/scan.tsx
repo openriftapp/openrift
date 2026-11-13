@@ -1,31 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
+import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions, ensureCatalogComplete } from "@/features/cards/lib/catalog-queries";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { loadCollection } from "@/features/collections/lib/collection-load";
-import { requireScanner } from "@/features/scan/lib/scanner-flag";
 import { sessionQueryOptions } from "@/lib/auth-session";
-import { seoHead } from "@/lib/seo";
+import { requireFeature } from "@/lib/feature-flags";
+import { privateSeoHead, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
+
+interface ScanLoaderData {
+  served: true;
+}
 
 export const Route = createFileRoute("/_app/scan")({
   // false: the camera stream and the collection live queries exist only in the browser.
   ssr: false,
   staticData: { hideFooter: true },
-  head: () =>
-    seoHead({
-      siteUrl: getSiteUrl(),
-      title: "Scan cards",
-      description:
-        "Scan Riftbound cards with your phone or webcam. Cards are recognised on your device, and you can add them to a collection once you sign in.",
-      path: "/scan",
-      noIndex: true,
-    }),
-  beforeLoad: async ({ context }) => {
-    await requireScanner(context.queryClient);
-  },
-  loader: async ({ context }) => {
+  beforeLoad: ({ context }) => requireFeature(context.queryClient, "scanner"),
+  loader: async ({ context }): Promise<ScanLoaderData> => {
     const preloadCollections = async () => {
       const session = await context.queryClient.query({
         ...sessionQueryOptions(),
@@ -46,7 +39,20 @@ export const Route = createFileRoute("/_app/scan")({
     // must match printings of ANY language, so pull the remaining ones now
     // (no-op when complete) without blocking the route transition on them.
     void ensureCatalogComplete(context.queryClient);
+    return { served: true };
   },
-  pendingComponent: CollectionPending,
+  head: ({ loaderData }) =>
+    (loaderData as ScanLoaderData | undefined)?.served
+      ? seoHead({
+          siteUrl: getSiteUrl(),
+          title: "Scan cards",
+          description:
+            "Scan Riftbound cards with your phone or webcam. Cards are recognised on your device, and you can add them to a collection once you sign in.",
+          path: "/scan",
+          noIndex: true,
+        })
+      : privateSeoHead("Scan cards"),
+  pendingComponent: () => <CollectionPending width="capped" />,
   errorComponent: RouteErrorFallback,
+  notFoundComponent: NotFoundFallback,
 });

@@ -68,6 +68,7 @@ import {
   useUpdateDeskPrinting,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
@@ -118,8 +119,8 @@ type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
 export function PrintingRecord({ printingId }: { printingId: string }) {
   const { data: access, isPending } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
-  const canReview = isAdmin || (access?.sections ?? []).includes("card-review");
-  const canDesk = isAdmin || (access?.sections ?? []).includes("printing-desk");
+  const canReview = hasAdminSection(access, "card-review");
+  const canDesk = hasAdminSection(access, "printing-desk");
 
   if (isPending) {
     return <Skeleton className="m-4 h-96" />;
@@ -800,7 +801,6 @@ function PrintingActionsMenu({ printing }: { printing: DeskPrintingRow }) {
         title={`Delete printing "${deskPrintingName(printing)}"?`}
         description="This cannot be undone."
         confirmLabel="Delete"
-        pendingLabel="Deleting…"
         isPending={deletePrinting.isPending}
         onConfirm={() =>
           deletePrinting.mutate(printing.printingId, {

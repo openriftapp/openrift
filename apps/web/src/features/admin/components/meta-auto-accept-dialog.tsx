@@ -22,9 +22,9 @@ import {
   useMetaSyncSettings,
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
+import { parseIntegerInput } from "@/lib/integer-input";
 
 /** The auto-accept rule form's editable shape. */
 interface RulesDraft {

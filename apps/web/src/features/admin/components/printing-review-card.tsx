@@ -367,7 +367,6 @@ export function PrintingReviewCard({
         title={`Delete printing "${printingLabel}"?`}
         description="This cannot be undone."
         confirmLabel="Delete"
-        pendingLabel="Deleting…"
         isPending={deletePrintingMutation.isPending}
         onConfirm={() =>
           deletePrintingMutation.mutate(printingId, { onSuccess: () => setDeleteOpen(false) })

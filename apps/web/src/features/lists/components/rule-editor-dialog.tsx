@@ -111,7 +111,7 @@ export function RuleEditorDialog({
 
           <DialogFooter>
             <DialogCancel disabled={updateList.isPending} />
-            <Button type="submit" disabled={updateList.isPending}>
+            <Button type="submit" pending={updateList.isPending}>
               {m.common_save()}
             </Button>
           </DialogFooter>

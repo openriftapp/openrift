@@ -17,8 +17,8 @@ import type {
   ClosestPrinting,
 } from "@/features/admin/lib/attention-items";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { CardText } from "@/features/cards/components/card-text";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
 

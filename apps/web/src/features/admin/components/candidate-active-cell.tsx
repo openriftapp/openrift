@@ -24,8 +24,8 @@ import {
   resolveLabel,
 } from "@/features/admin/components/candidate-field-defs";
 import { CardTextExpandDialog } from "@/features/admin/components/card-text-expand-dialog";
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { CardText } from "@/features/cards/components/card-text";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { cn } from "@/lib/utils";
 
 export function CandidateActiveCell<TKey extends string>({

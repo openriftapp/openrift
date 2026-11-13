@@ -1,7 +1,7 @@
 import type { SetReleases } from "@openrift/shared/set-release";
 import type { AdminSetResponse } from "@openrift/shared/types/api/admin";
 
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
+import { parseIntegerInput } from "@/lib/integer-input";
 
 export interface SetDraftFields {
   name: string;

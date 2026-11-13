@@ -129,7 +129,8 @@ export function SubmissionResolutionDialog({
             <Button
               type="submit"
               variant={mode === "reject" ? "destructive" : "default"}
-              disabled={setResolution.isPending || blocked}
+              disabled={blocked}
+              pending={setResolution.isPending}
             >
               {mode === "reject" ? "Reject" : "Save"}
             </Button>

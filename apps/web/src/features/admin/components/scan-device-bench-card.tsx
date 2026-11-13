@@ -3,7 +3,7 @@ import type { BenchRun } from "@openrift/shared/scan/bench-score";
 import { summarize } from "@openrift/shared/scan/bench-score";
 import type { CardLabels } from "@openrift/shared/scan/labels";
 import { countNoun } from "@openrift/shared/strings";
-import { GaugeIcon, LoaderIcon, SaveIcon, TimerIcon } from "lucide-react";
+import { GaugeIcon, SaveIcon, TimerIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -124,9 +124,10 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => void runJob("bench", runBench, setRun)}
-            disabled={running || !assets || !labels}
+            disabled={!assets || !labels}
+            pending={running}
           >
-            {running ? <LoaderIcon className="animate-spin" /> : <GaugeIcon />}
+            <GaugeIcon />
             Run bench
           </Button>
           <Button

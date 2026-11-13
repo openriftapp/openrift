@@ -26,7 +26,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
+import type { SeatGroup } from "@/features/tournaments/lib/group-seat-editor";
+import { swapSeats } from "@/features/tournaments/lib/group-seat-editor";
+import { refocusMenuTrigger } from "@/features/tournaments/lib/pod-pairing-editor";
 import { asDragData } from "@/lib/dnd-data";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
@@ -39,49 +43,34 @@ interface SeatDragData {
 
 const SEAT_TYPES = ["group-seat"] as const satisfies readonly SeatDragData["type"][];
 
-export interface SeatGroup {
-  label: string;
-  pairedGroupLabel: string | null;
-  playerIds: string[];
-}
-
-/** Swaps the seats of two players, within one group or across two. */
-export function swapSeats(groups: readonly SeatGroup[], a: string, b: string): SeatGroup[] {
-  if (a === b) {
-    return [...groups];
-  }
-  return groups.map((group) => ({
-    ...group,
-    playerIds: group.playerIds.map((playerId) =>
-      playerId === a ? b : playerId === b ? a : playerId,
-    ),
-  }));
-}
-
 function scheduleHint(size: number): string {
   return size === 4 ? m.tournaments_group_seats_hint_four() : m.tournaments_group_seats_hint_five();
 }
 
 function SeatChip({ playerId, name }: { playerId: string; name: string }) {
-  const draggable = useDraggable({
+  const {
+    setNodeRef: setDragRef,
+    listeners,
+    isDragging,
+  } = useDraggable({
     id: `seat:${playerId}`,
     data: { type: "group-seat", playerId } satisfies SeatDragData,
   });
-  const droppable = useDroppable({
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `seat-target:${playerId}`,
     data: { type: "group-seat", playerId } satisfies SeatDragData,
   });
   return (
     <span
       ref={(node) => {
-        draggable.setNodeRef(node);
-        droppable.setNodeRef(node);
+        setDragRef(node);
+        setDropRef(node);
       }}
-      {...draggable.listeners}
+      {...listeners}
       className={cn(
         "bg-background flex cursor-grab touch-none items-center gap-1.5 rounded-md border px-2 py-1 text-sm",
-        draggable.isDragging && "opacity-40",
-        droppable.isOver && !draggable.isDragging && "ring-primary ring-2",
+        isDragging && "opacity-40",
+        isOver && !isDragging && "ring-primary ring-2",
       )}
     >
       <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
@@ -188,8 +177,7 @@ export function GroupSeatEditor({
   // no trigger left to land on.
   function handleMenuSwap(playerId: string, otherId: string) {
     flushSync(() => applySwap(playerId, otherId));
-    const triggers = rootRef.current?.querySelectorAll<HTMLElement>("[data-swap-player]") ?? [];
-    [...triggers].find((trigger) => trigger.dataset.swapPlayer === playerId)?.focus();
+    refocusMenuTrigger(rootRef.current, "swapPlayer", playerId);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -267,14 +255,13 @@ export function GroupSeatEditor({
             <p key={size}>{scheduleHint(size)}</p>
           ))}
         </div>
+        <SaveError error={replace.error} />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={replace.isPending}>
             {m.common_cancel()}
           </Button>
-          <Button onClick={() => void handleSave()} disabled={replace.isPending}>
-            {replace.isPending
-              ? m.tournaments_pairing_editor_saving()
-              : m.tournaments_seat_editor_save()}
+          <Button onClick={() => void handleSave()} pending={replace.isPending}>
+            {m.tournaments_seat_editor_save()}
           </Button>
         </div>
       </div>

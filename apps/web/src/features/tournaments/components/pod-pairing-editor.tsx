@@ -12,7 +12,6 @@ import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { evaluatePod } from "@openrift/shared/pairing/evaluate";
 import { assignTableNumbers } from "@openrift/shared/pairing/table-assignment";
 import { buildTeamUnits } from "@openrift/shared/pairing/team-units";
-import type { Pod } from "@openrift/shared/pairing/types";
 import type { PairingWarning } from "@openrift/shared/pairing/warnings";
 import { computePairingWarnings } from "@openrift/shared/pairing/warnings";
 import type {
@@ -35,6 +34,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   useReplaceCutPairing,
   useReplaceTournamentPairing,
@@ -43,7 +43,9 @@ import {
   movePlayer,
   moveTargets,
   participantIds,
+  refocusMenuTrigger,
   seedFromRound,
+  snapshotToPlayers,
   toPayload,
   validatePartition,
 } from "@/features/tournaments/lib/pod-pairing-editor";
@@ -58,7 +60,7 @@ import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { snapshotToPlayers, WarningList } from "./pairing-warnings";
+import { WarningList } from "./pairing-warnings";
 
 interface PodPlayerDragData {
   type: "pod-player";
@@ -72,14 +74,6 @@ interface PodSeatDropData {
 
 const POD_DRAG_TYPES = ["pod-player"] as const satisfies readonly PodPlayerDragData["type"][];
 const POD_DROP_TYPES = ["pod-seat"] as const satisfies readonly PodSeatDropData["type"][];
-
-// The engine reads size only for the `=== 3` checks, so a transient 5-player
-// pod stays runtime-safe even though the type is narrowed to 2 | 3 | 4.
-function toEnginePods(state: EditorState): Pod[] {
-  return state.pods
-    .filter((pod) => pod.playerIds.length > 0)
-    .map((pod) => ({ size: pod.playerIds.length as 2 | 3 | 4, playerIds: pod.playerIds }));
-}
 
 /**
  * Drag-and-drop editor for the open round's pairing. Pods flex in size; a save
@@ -139,7 +133,7 @@ export function PodPairingEditor({
 
   const expected = participantIds(seedState);
   const validation = validatePartition(state, expected, mode);
-  const enginePods = toEnginePods(state);
+  const enginePods = toPayload(state).pods;
   // Previews the table assignment the save will produce. Fixed tables are per
   // player and don't steer team units.
   const fixedTables = new Map(
@@ -183,7 +177,7 @@ export function PodPairingEditor({
   // has no trigger left to land on.
   function handleMenuMove(playerId: string, target: MoveTarget) {
     flushSync(() => applyMove(playerId, target));
-    focusMoveTrigger(rootRef.current, playerId);
+    refocusMenuTrigger(rootRef.current, "movePlayer", playerId);
   }
 
   // Named by the event's style, not seat count like pairingLabel(): a match
@@ -236,8 +230,10 @@ export function PodPairingEditor({
     : [];
   const errors = [
     ...validation.errors,
-    ...seatedNonTeamIds.map(
-      (unitId) => `${nameById.get(unitId) ?? "A player"} has no team and can only sit out.`,
+    ...seatedNonTeamIds.map((unitId) =>
+      m.tournaments_pairing_editor_no_team_sits_out({
+        name: nameById.get(unitId) ?? m.tournaments_pairings_fallback_player(),
+      }),
     ),
   ];
   const canSave = validation.ok && seatedNonTeamIds.length === 0;
@@ -351,12 +347,13 @@ export function PodPairingEditor({
             </AlertDescription>
           </Alert>
         ) : null}
+        <SaveError error={replace.error ?? replaceCut.error} />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             {m.common_cancel()}
           </Button>
-          <Button onClick={() => void handleSave()} disabled={!canSave || saving}>
-            {saving ? m.tournaments_pairing_editor_saving() : m.tournaments_pairing_editor_save()}
+          <Button onClick={() => void handleSave()} disabled={!canSave} pending={saving}>
+            {m.tournaments_pairing_editor_save()}
           </Button>
         </div>
       </div>
@@ -403,11 +400,6 @@ interface MoveOption {
   key: string;
   label: string;
   target: MoveTarget;
-}
-
-function focusMoveTrigger(root: HTMLElement | null, playerId: string) {
-  const triggers = root?.querySelectorAll<HTMLElement>("[data-move-player]") ?? [];
-  [...triggers].find((trigger) => trigger.dataset.movePlayer === playerId)?.focus();
 }
 
 function ChipContent({ name, score }: { name: string; score: number }) {

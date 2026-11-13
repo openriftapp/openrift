@@ -1,4 +1,4 @@
-import { ChevronDownIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon, SwordsIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { Area, AreaChart } from "recharts";
 
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ChartContainer } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { MetaItem } from "@/components/ui/meta-item";
 import { Pager } from "@/components/ui/pager";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -56,6 +57,7 @@ const GROUPS = {
   scroll: { id: "data-scroll", title: "Scroll & dividers" },
   chart: { id: "data-chart", title: "Chart" },
   pager: { id: "data-pager", title: "Pager" },
+  metaItem: { id: "data-meta-item", title: "Meta item" },
 } as const;
 
 export const DATA_GROUPS: readonly DesignGroup[] = Object.values(GROUPS);
@@ -196,6 +198,18 @@ export function DataSection() {
           <div className="flex flex-col gap-4">
             <PagerDemo totalPages={4} />
             <PagerDemo totalPages={42} />
+          </div>
+        </DemoRow>
+      </DemoGroup>
+
+      <DemoGroup {...GROUPS.metaItem} hint="An icon fact in a hero or profile header line.">
+        <DemoRow label="MetaItem">
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <MetaItem icon={CalendarIcon}>Saturday, 14:00</MetaItem>
+            <MetaItem icon={UsersIcon}>24 players</MetaItem>
+            <MetaItem icon={SwordsIcon} truncate className="max-w-40">
+              Summoner Skirmish at the Piltover Hextech Guild
+            </MetaItem>
           </div>
         </DemoRow>
       </DemoGroup>

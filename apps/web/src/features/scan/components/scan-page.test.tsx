@@ -20,6 +20,10 @@ vi.mock("@tanstack/react-router", () => ({
     to: string;
     search?: { redirect?: string };
   }) => <a href={`${to}?redirect=${search?.redirect ?? ""}`}>{children}</a>,
+  useLocation: (opts?: { select?: (location: { href: string }) => unknown }) => {
+    const location = { href: "/scan" };
+    return opts?.select ? opts.select(location) : location;
+  },
 }));
 
 vi.mock("@/hooks/use-session", () => ({

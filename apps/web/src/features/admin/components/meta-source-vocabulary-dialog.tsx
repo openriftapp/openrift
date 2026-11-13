@@ -39,11 +39,11 @@ import {
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
 import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { runningRunId } from "@/features/admin/lib/meta-catalog-display";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { formatCount } from "@/lib/format";
+import { parseIntegerInput } from "@/lib/integer-input";
 
 const UNMAPPED = "__unmapped";
 
@@ -228,10 +228,11 @@ function RetierHint() {
       <Button
         variant="outline"
         size="sm"
-        disabled={run.isPending || running}
+        disabled={run.isPending}
+        pending={running}
         onClick={() => void run.start("runRetier", "Reapply tier rules")}
       >
-        {running ? "Reapplying…" : "Reapply tier rules"}
+        Reapply tier rules
       </Button>
     </div>
   );

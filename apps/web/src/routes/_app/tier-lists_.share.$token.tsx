@@ -1,6 +1,6 @@
 import { tierListShareDescription } from "@openrift/shared/share-titles";
 import type { PublicTierListDetailResponse } from "@openrift/shared/types/api/tier-list";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicTierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { shareImageVersion, tierListShareImageUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
@@ -49,23 +49,18 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<SharedTierListHeadData> => {
-    try {
-      const data = await context.queryClient.query({
+    const data = await notFoundOnSentinel(
+      context.queryClient.query({
         ...publicTierListQueryOptions(params.token),
         staleTime: "static",
-      });
-      const { title, description, updatedAt, tiers } = data.tierList;
-      return {
-        tierList: { title, description, updatedAt },
-        owner: { displayName: data.owner.displayName },
-        rankedCount: tiers.reduce((sum, tier) => sum + tier.cards.length, 0),
-      };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      }),
+    );
+    const { title, description, updatedAt, tiers } = data.tierList;
+    return {
+      tierList: { title, description, updatedAt },
+      owner: { displayName: data.owner.displayName },
+      rankedCount: tiers.reduce((sum, tier) => sum + tier.cards.length, 0),
+    };
   },
   pendingComponent: SharedTierListPending,
   errorComponent: RouteErrorFallback,

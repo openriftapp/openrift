@@ -2,12 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { friendGroupsQueryOptions } from "@/features/groups/lib/friend-groups-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/groups/")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Groups", noIndex: true }),
+  head: () => privateSeoHead("Groups"),
   loader: async ({ context }) => {
     await context.queryClient.query({
       ...friendGroupsQueryOptions(context.userId),

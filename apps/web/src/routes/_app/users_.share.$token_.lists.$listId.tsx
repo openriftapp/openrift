@@ -1,6 +1,6 @@
 import { listShareDescription, listShareTitle } from "@openrift/shared/share-titles";
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
-import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { publicUserBundleListQueryOptions } from "@/features/groups/lib/user-share-queries";
 import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { bundleShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
@@ -51,19 +51,14 @@ export const Route = createFileRoute("/_app/users_/share/$token_/lists/$listId")
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params }): Promise<SharedListHeadData> => {
-    try {
-      const data = await context.queryClient.query({
+    const data = await notFoundOnSentinel(
+      context.queryClient.query({
         ...publicUserBundleListQueryOptions(params.token, params.listId),
         staleTime: "static",
-      });
-      const { name, intent, updatedAt } = data.list;
-      return { list: { name, intent, updatedAt }, owner: { displayName: data.owner.displayName } };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      }),
+    );
+    const { name, intent, updatedAt } = data.list;
+    return { list: { name, intent, updatedAt }, owner: { displayName: data.owner.displayName } };
   },
   pendingComponent: BundleListPending,
   errorComponent: RouteErrorFallback,

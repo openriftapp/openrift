@@ -20,6 +20,7 @@ import type { SimpleSelectItem } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { TextLink } from "@/components/ui/text-link";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
+import { themeLabels } from "@/features/account/lib/theme-labels";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -223,12 +224,11 @@ function DisplayLocalePicker() {
   );
 }
 
+const THEME_VALUES: readonly Theme[] = ["auto", "light", "dark"];
+
 function themeOptions(): { value: Theme; label: string }[] {
-  return [
-    { value: "auto", label: m.profile_display_theme_auto() },
-    { value: "light", label: m.profile_display_theme_light() },
-    { value: "dark", label: m.profile_display_theme_dark() },
-  ];
+  const labels = themeLabels();
+  return THEME_VALUES.map((value) => ({ value, label: labels[value] }));
 }
 
 function ThemePicker({

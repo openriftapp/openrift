@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrganizationPage } from "./organization-page";
 
-const { addMutateAsync, removeMutateAsync } = vi.hoisted(() => ({
+const { addMutateAsync, removeMutateAsync, extraMembers } = vi.hoisted(() => ({
   addMutateAsync: vi.fn((): Promise<unknown> => Promise.resolve()),
   removeMutateAsync: vi.fn((): Promise<unknown> => Promise.resolve()),
+  extraMembers: [] as { userId: string; name: string | null; role: string; joinedAt: string }[],
 }));
 
 vi.mock("@/features/tournaments/hooks/use-organizations", () => ({
@@ -27,10 +28,16 @@ vi.mock("@/features/tournaments/hooks/use-organizations", () => ({
           role: "manager",
           joinedAt: "2026-06-01T10:00:00.000Z",
         },
+        ...extraMembers,
       ],
     },
   }),
-  useAddOrganizationMember: () => ({ mutateAsync: addMutateAsync, isPending: false }),
+  useAddOrganizationMember: () => ({
+    mutateAsync: addMutateAsync,
+    isPending: false,
+    error: null,
+    reset: vi.fn(),
+  }),
   useRemoveOrganizationMember: () => ({ mutateAsync: removeMutateAsync, isPending: false }),
   useUpdateOrganizationMemberRole: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
@@ -39,6 +46,22 @@ vi.mock("@/features/tournaments/hooks/use-organizations", () => ({
 vi.mock("@/features/tournaments/components/deck-check-keys-section", () => ({
   OrgDeckCheckKeysSection: () => <div>keys-section</div>,
 }));
+
+describe("OrganizationPage member names", () => {
+  it("names a member without a display name as unnamed, never by user id", () => {
+    extraMembers.push({
+      userId: "member-2",
+      name: null,
+      role: "judge",
+      joinedAt: "2026-06-01T10:00:00.000Z",
+    });
+    render(<OrganizationPage id="org-1" />);
+    extraMembers.length = 0;
+
+    expect(screen.getByText("Unnamed member")).toBeInTheDocument();
+    expect(screen.queryByText("member-2")).not.toBeInTheDocument();
+  });
+});
 
 describe("OrganizationPage member removal", () => {
   beforeEach(() => {

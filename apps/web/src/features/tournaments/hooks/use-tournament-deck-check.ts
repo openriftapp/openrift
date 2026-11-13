@@ -1,12 +1,15 @@
 import { tournamentDeckCheckContract } from "@openrift/shared/contracts/tournament-deck-check";
 import type {
   DeckCheckEntryDetailResponse,
+  DeckCheckEntryState,
   DeckCheckEventDetailResponse,
+  DeckCheckReviewOutcome,
 } from "@openrift/shared/types/api/deck-check";
 import { isDefinedError, safe } from "@orpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { deckCheckEntriesRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
 import { deckCheckEntryInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentDeckCheckKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -43,7 +46,7 @@ export function useTournamentDeckCheckEntries(tournamentId: string, enabled = tr
     queryFn: () => fetchEntries({ data: tournamentId }),
     enabled,
     staleTime: 0,
-    refetchInterval: POLL_INTERVAL_MS,
+    refetchInterval: (query) => deckCheckEntriesRefetchInterval(query.state.data),
     refetchOnWindowFocus: true,
   });
 }
@@ -77,8 +80,8 @@ const setEntryStateFn = createServerFn({ method: "POST" })
     (input: {
       tournamentId: string;
       entryId: string;
-      state: "editable" | "submitted" | "approved" | "checked" | "withdrawn";
-      reviewOutcome?: "ok" | "issue" | null;
+      state: DeckCheckEntryState;
+      reviewOutcome?: DeckCheckReviewOutcome | null;
       notes?: string | null;
       playerMessage?: string | null;
     }) => input,
@@ -210,6 +213,7 @@ export function useCreateTournamentDeckCheckEntry() {
   return useMutationWithInvalidation({
     mutationFn: (vars: Parameters<typeof createEntryFn>[0]["data"]) =>
       createEntryFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => deckCheckEntryInvalidationKeys(userId, vars),
   });
 }
@@ -237,6 +241,7 @@ export function useUpdateTournamentDeckCheckEntry() {
   return useMutationWithInvalidation({
     mutationFn: (vars: Parameters<typeof updateEntryFn>[0]["data"]) =>
       updateEntryFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => deckCheckEntryInvalidationKeys(userId, vars),
   });
 }
@@ -269,6 +274,7 @@ export function useAddTournamentDeckCheckCard() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
     mutationFn: (vars: Parameters<typeof addCardFn>[0]["data"]) => addCardFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => deckCheckEntryInvalidationKeys(userId, vars),
   });
 }
@@ -277,6 +283,7 @@ export function useFixTournamentDeckCheckCard() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation({
     mutationFn: (vars: Parameters<typeof renameCardFn>[0]["data"]) => renameCardFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => deckCheckEntryInvalidationKeys(userId, vars),
   });
 }
@@ -286,6 +293,7 @@ export function useApplyTournamentDeckCheckZoneFixes() {
   return useMutationWithInvalidation({
     mutationFn: (vars: { tournamentId: string; entryId: string; cardIds: string[] }) =>
       applyZoneFixesFn({ data: vars }),
+    meta: { inlineError: true },
     invalidates: (vars) => deckCheckEntryInvalidationKeys(userId, vars),
   });
 }

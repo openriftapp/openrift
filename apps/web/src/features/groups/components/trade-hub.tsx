@@ -67,7 +67,7 @@ function TradeSuggestionRows({
     <ul className="flex flex-col gap-1.5">
       {rows.map((row) => (
         <li key={row.key} className="flex items-center gap-3">
-          <Eyebrow as="span" className="text-success mb-0 w-32 shrink-0 text-xs">
+          <Eyebrow as="span" className="text-success w-32 shrink-0 text-xs">
             {row.label}
           </Eyebrow>
           <CardArtThumbStack
@@ -187,8 +187,7 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
             groupName={groupName}
             open={open}
             onOpenChange={setOpen}
-            cancelLabel={m.common_cancel()}
-            preselectAll={false}
+            flow="manage"
           />
         </>
       )}

@@ -20,14 +20,14 @@ export function SettingsRow({
     <div className={cn("flex items-start justify-between gap-4", className)}>
       <div
         className={cn(
-          "flex min-h-8 min-w-0 flex-col gap-0.5",
+          "flex min-h-(--control-h) min-w-0 flex-col gap-0.5",
           description ? "pt-1.5" : "justify-center",
         )}
       >
         <Label htmlFor={htmlFor}>{label}</Label>
         {description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
       </div>
-      <div className="flex min-h-8 shrink-0 items-center gap-1.5">{children}</div>
+      <div className="flex min-h-(--control-h) shrink-0 items-center gap-1.5">{children}</div>
     </div>
   );
 }

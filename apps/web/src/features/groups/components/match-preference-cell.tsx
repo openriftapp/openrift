@@ -41,7 +41,7 @@ export function MatchPreferenceCell({
   const typeNode = pref.tradeType ? tradeTypeLabel(pref.tradeType) : null;
   return (
     <div className="flex min-w-0 flex-col gap-0.5 px-2 py-1">
-      <Eyebrow as="span" className="text-2xs mb-0">
+      <Eyebrow as="span" className="text-2xs">
         {label}
       </Eyebrow>
       <span className="text-xs whitespace-nowrap">

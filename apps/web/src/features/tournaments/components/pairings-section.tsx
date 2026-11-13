@@ -125,9 +125,7 @@ export function PodPairingsSection({
         snapshot={data.openRoundSnapshot}
         warningsExpanded={warningsExpanded}
         canEnterResult={() => !completed}
-        onSubmitResult={async (podId, results) => {
-          await submitResult.mutateAsync({ id, podId, results });
-        }}
+        onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
         renderRoundActions={(round) => {
           if (round.status !== "reporting") {
             return null;

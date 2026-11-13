@@ -53,7 +53,7 @@ export function LegendFinishTile({
             <div className="flex min-w-0 flex-col">
               <span className="min-w-0 truncate font-medium">{player}</span>
               {detail === undefined || detail === null ? null : (
-                <span className="text-muted-foreground tabular-nums">{detail}</span>
+                <span className="text-muted-foreground truncate tabular-nums">{detail}</span>
               )}
             </div>
             {action === undefined || action === null ? null : (

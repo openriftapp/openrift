@@ -18,28 +18,29 @@ import { ActionBand } from "@/components/ui/action-band";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
-import type { PodiumSeat } from "@/components/ui/podium";
 import { Podium } from "@/components/ui/podium";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TextLink } from "@/components/ui/text-link";
 import { ChampionPlate } from "@/features/tournaments/components/champion-plate";
-import { finalStandingsSeats } from "@/features/tournaments/components/final-standings-display";
+import { deckCheckStateBadges } from "@/features/tournaments/components/deck-check-state-badge";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { finalStandingsSeats, podiumSeats } from "@/features/tournaments/components/podium-seats";
 import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import {
   formatPlayerRecord,
+  formatScore,
   podWinsHint,
   standingRanks,
 } from "@/features/tournaments/lib/standings-display";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
 import {
-  canCheckDecks,
   canManageTournament,
+  canOpenDeckCheck,
   hasPairing,
   isTournamentStaff,
   pairingLabel,
@@ -48,6 +49,7 @@ import {
 } from "@/features/tournaments/lib/tournament-display";
 import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { memberName } from "@/lib/member-name";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -129,24 +131,11 @@ function MyDeckTile({
       tone="violet"
       accent={needsViewer}
       label={m.tournaments_section_my_deck()}
-      value={myDeckStateLabels()[entry.state]}
+      value={deckCheckStateBadges(entry.state, entry.reviewOutcome, "player")[0]?.label}
       valueClassName="truncate text-lg"
       hint={hint}
     />
   );
-}
-
-function myDeckStateLabels(): Record<
-  NonNullable<TournamentDetailResponse["myDeckEntry"]>["state"],
-  string
-> {
-  return {
-    editable: m.tournaments_overview_my_deck_state_editable(),
-    submitted: m.tournaments_overview_my_deck_state_submitted(),
-    approved: m.tournaments_overview_my_deck_state_approved(),
-    checked: m.tournaments_overview_my_deck_state_checked(),
-    withdrawn: m.tournaments_overview_my_deck_state_withdrawn(),
-  };
 }
 
 function ParticipantsTile({
@@ -224,7 +213,7 @@ function JoinRequestsSection({
                   )
                 }
               >
-                {m.tournaments_overview_approve()}
+                {m.tournaments_participant_approve()}
               </Button>
               <Button
                 size="sm"
@@ -241,7 +230,7 @@ function JoinRequestsSection({
                   )
                 }
               >
-                {m.tournaments_overview_deny()}
+                {m.tournaments_participant_deny()}
               </Button>
             </span>
           </RowListItem>
@@ -358,23 +347,15 @@ function ThroneModule({
   pairingStyle: TournamentDetailResponse["pairingStyle"];
   playMode: TournamentDetailResponse["playMode"];
 }) {
-  // Rank is not row position: players level on points share one (1, 1, 3);
-  // the rule lives in standingRanks so this throne and the Standings page agree.
   const rows = playMode === "2v2" ? collapseTeamStandings(run.standings) : run.standings;
   const played = rows.filter((row) => row.roundsPlayed > 0);
   const ranks = standingRanks(played);
   const ranked = played.map((row, index) => ({ row, rank: ranks[index] ?? index + 1 }));
   const swiss = pairingStyle === "swiss";
   const finalRows = run.groupStage?.finalStandings ?? null;
-  const seats: PodiumSeat[] =
+  const seats =
     finalRows === null
-      ? ranked.slice(0, 3).map(({ row, rank }) => ({
-          key: row.playerId,
-          rank,
-          name: row.displayName,
-          score: row.score,
-          hint: formatPlayerRecord(row, swiss),
-        }))
+      ? podiumSeats(rows, swiss)
       : finalStandingsSeats(finalRows, run.standings, run.tournament.cutSize);
   const byPlayer = new Map(rows.map((row) => [row.playerId, row]));
   const trailing =
@@ -427,7 +408,7 @@ function ThroneModule({
                   {formatPlayerRecord(row, swiss)}
                 </span>
                 <span className="font-heading w-8 shrink-0 text-right font-semibold tabular-nums">
-                  {row.score}
+                  {formatScore(row.score)}
                 </span>
               </li>
             ))}
@@ -538,10 +519,7 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
       <RowList>
         {detail.staff.map((member) => (
           <RowListItem key={`${member.userId}:${member.role}`}>
-            <PlayerChip
-              name={member.name ?? m.tournaments_overview_staff_unnamed()}
-              className="flex-1 text-sm"
-            />
+            <PlayerChip name={memberName(member.name)} className="flex-1 text-sm" />
             <span className="text-muted-foreground shrink-0 text-xs">
               {staffRoleLabels()[member.role]}
             </span>
@@ -654,7 +632,7 @@ function OverviewTabBody({
 }) {
   const manage = canManageTournament(detail.myRoles);
   const runsRounds = hasPairing(detail.pairingStyle);
-  const showDecks = detail.deckSubmission !== "none" && canCheckDecks(detail.myRoles);
+  const showDecks = canOpenDeckCheck(detail);
   const myDeck = detail.myDeckEntry;
 
   return (

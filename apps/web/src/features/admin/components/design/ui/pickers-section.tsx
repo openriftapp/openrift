@@ -1,4 +1,4 @@
-import { matchesTextPhrase } from "@openrift/shared/search-fold";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import { CheckIcon, FolderIcon, HeartIcon, SwordsIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -124,7 +124,7 @@ const EVENT_SUGGESTIONS: ComboboxPickerOption[] = [
 const SEARCH_MIN = 2;
 
 function searchLegends(query: string): ComboboxPickerOption[] {
-  return LEGEND_OPTIONS.filter((option) => matchesTextPhrase(query, [option.label]));
+  return LEGEND_OPTIONS.filter((option) => matchesTextQuery(query, [option.label]));
 }
 
 const DIALOG_LISTS: PickerOption[] = [
@@ -568,7 +568,6 @@ function PickerListGroup() {
         emptyText="No collections yet."
         confirm={{
           label: "Move",
-          pendingLabel: "Moving…",
           onConfirm: (value) => {
             setMoveOpen(false);
             toast(`Moved to ${listName(DIALOG_LISTS, value)} (demo only)`);

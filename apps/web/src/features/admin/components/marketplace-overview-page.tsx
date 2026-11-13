@@ -75,7 +75,6 @@ function PriceSection({
             title={`Clear all ${label} price data?`}
             description="This will delete all price sources, snapshots, and staging data. Prices will be repopulated on the next refresh."
             confirmLabel="Clear"
-            pendingLabel="Clearing…"
             onConfirm={() => clearMutation.mutateAsync()}
           >
             Clear

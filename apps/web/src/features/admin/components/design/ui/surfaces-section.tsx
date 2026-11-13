@@ -31,7 +31,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
-import { CardList, CardListRow, CardRow } from "@/components/ui/card-list";
+import { CardList, CardRow } from "@/components/ui/card-list";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,28 +168,6 @@ export function SurfacesSection() {
               </CardRow>
             ))}
           </ul>
-        </DemoRow>
-        <DemoRow label="CardListRow" hint="The middle row below is painted in its hover state.">
-          <CardList className="w-full max-w-sm">
-            {[
-              { name: "Jinx, Loose Cannon", meta: "OGN-042 · Origins", hovered: false },
-              { name: "Vi, Enforcer", meta: "OGN-118 · Origins", hovered: true },
-              { name: "Ekko, Time Winder", meta: "OGN-077 · Origins", hovered: false },
-            ].map((row) => (
-              <li key={row.name}>
-                <CardListRow
-                  render={<Link to="/admin/design/components" hash="surfaces-card-list" />}
-                  className={cn(row.hovered && "bg-muted/50")}
-                >
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-medium">{row.name}</span>
-                    <span className="text-muted-foreground truncate text-xs">{row.meta}</span>
-                  </span>
-                  <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
-                </CardListRow>
-              </li>
-            ))}
-          </CardList>
         </DemoRow>
       </DemoGroup>
 

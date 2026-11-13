@@ -1,22 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RouteErrorFallback } from "@/components/error-message";
-import { requireBoardStatesFlag } from "@/features/board-states/lib/board-states-flag";
+import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { requireFeature } from "@/lib/feature-flags";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/board-states_/new")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "New board state", noIndex: true }),
-  beforeLoad: async ({ context }) => {
-    await requireBoardStatesFlag(context.queryClient);
-  },
+  head: () => privateSeoHead("New board state"),
+  beforeLoad: ({ context }) => requireFeature(context.queryClient, "board-states"),
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.query(ruleVersionsQueryOptions("core")),
-      context.queryClient.query(ruleVersionsQueryOptions("tournament")),
+      context.queryClient.query({ ...ruleVersionsQueryOptions("core"), staleTime: "static" }),
+      context.queryClient.query({ ...ruleVersionsQueryOptions("tournament"), staleTime: "static" }),
     ]);
   },
   errorComponent: RouteErrorFallback,
+  notFoundComponent: NotFoundFallback,
 });

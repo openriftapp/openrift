@@ -96,7 +96,7 @@ export function ErrataUploadPage() {
             onClick={handlePreview}
           >
             <EyeIcon className="size-4" />
-            {upload.isPending && preview === null ? "Previewing…" : "Preview"}
+            Preview
           </Button>
           <Button
             disabled={!entries || !preview || upload.isPending}
@@ -104,7 +104,7 @@ export function ErrataUploadPage() {
             onClick={handleApply}
           >
             <UploadIcon className="size-4" />
-            {upload.isPending && preview !== null ? "Applying…" : "Apply"}
+            Apply
           </Button>
         </div>
 

@@ -4,6 +4,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react";
 import * as React from "react";
 
+import { POPUP_GROUP_LABEL } from "@/components/ui/popup-group-label"; // custom: shared group-label recipe
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -107,8 +108,9 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
     <SelectPrimitive.GroupLabel
       data-slot="select-label"
       className={cn(
+        POPUP_GROUP_LABEL, // custom: the app's one group-label style
         // custom: px-2 py-1.5 label — popup rows sit on the h-8 rhythm, not below it
-        "text-muted-foreground px-2 py-1.5 text-xs",
+        "px-2 py-1.5",
         className,
       )}
       {...props}

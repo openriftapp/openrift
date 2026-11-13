@@ -1,4 +1,4 @@
-import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
+import type { GroupStageView, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,9 +6,30 @@ import {
   formatMatchRecord,
   formatPlayerRecord,
   formatScore,
+  isGroupCutStandings,
   rankedStandings,
   standingRanks,
+  standingsVariant,
 } from "./standings-display";
+
+describe("standingsVariant", () => {
+  it("uses the Swiss columns only for Swiss pairing", () => {
+    expect(standingsVariant("swiss")).toBe("swiss");
+    expect(standingsVariant("pod")).toBe("pod");
+    expect(standingsVariant("none")).toBe("pod");
+  });
+});
+
+describe("isGroupCutStandings", () => {
+  it("takes the group cut view as soon as a group stage exists, drawn or not", () => {
+    const drawn = { groups: [{}] } as GroupStageView;
+    const undrawn = { groups: [] } as unknown as GroupStageView;
+    expect(isGroupCutStandings("group_cut", drawn)).toBe(true);
+    expect(isGroupCutStandings("group_cut", undrawn)).toBe(true);
+    expect(isGroupCutStandings("group_cut", null)).toBe(false);
+    expect(isGroupCutStandings("rounds", drawn)).toBe(false);
+  });
+});
 
 function makeRow(playerId: string, overrides: Partial<PodStandingRow> = {}): PodStandingRow {
   return {

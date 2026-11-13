@@ -23,6 +23,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Label } from "@/components/ui/label";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   useApplyTournamentDeckCheckZoneFixes,
   useReResolveTournamentDeckCheck,
@@ -188,8 +189,13 @@ function FixZonesDialog({
     if (cardIds.length === 0) {
       return;
     }
-    await applyZoneFixes.mutateAsync({ tournamentId, entryId, cardIds });
-    onOpenChange(false);
+    if (
+      await runReportedMutation(() =>
+        applyZoneFixes.mutateAsync({ tournamentId, entryId, cardIds }),
+      )
+    ) {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -198,6 +204,8 @@ function FixZonesDialog({
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setSelected(new Set(suggestions.map((suggestion) => suggestion.cardId)));
+        } else {
+          applyZoneFixes.reset();
         }
         onOpenChange(nextOpen);
       }}
@@ -239,12 +247,11 @@ function FixZonesDialog({
               </li>
             ))}
           </ul>
+          <SaveError error={applyZoneFixes.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={applyZoneFixes.isPending || selected.size === 0}>
-              {applyZoneFixes.isPending
-                ? m.tournaments_deck_check_applying()
-                : m.tournaments_deck_check_move_count({ count: selected.size })}
+            <Button type="submit" disabled={selected.size === 0} pending={applyZoneFixes.isPending}>
+              {m.tournaments_deck_check_move_count({ count: selected.size })}
             </Button>
           </DialogFooter>
         </DialogForm>

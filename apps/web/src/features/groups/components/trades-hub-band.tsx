@@ -35,7 +35,7 @@ function ShelfRow({
       <Eyebrow
         as="span"
         className={cn(
-          "mb-0 text-xs sm:w-32 sm:shrink-0",
+          "text-xs sm:w-32 sm:shrink-0",
           row.tone === "warning" ? "text-warning" : "text-success",
         )}
       >

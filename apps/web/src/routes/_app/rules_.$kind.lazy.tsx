@@ -1,4 +1,3 @@
-import type { RuleKind } from "@openrift/shared/types/api/rules";
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { RulesPage } from "@/features/rules/components/rules-page";
@@ -10,6 +9,6 @@ export const Route = createLazyFileRoute("/_app/rules_/$kind")({
 function RulesEmptyPage() {
   // Reached only when no versions exist yet for this kind — the loader
   // redirects to the latest version otherwise.
-  const { kind } = Route.useLoaderData() as { kind: RuleKind };
+  const { kind } = Route.useLoaderData();
   return <RulesPage kind={kind} version={null} />;
 }

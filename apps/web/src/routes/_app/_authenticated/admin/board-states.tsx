@@ -7,7 +7,8 @@ import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/board-states")({
   head: () => adminSeoHead("Board States"),
-  loader: ({ context }) => context.queryClient.query(adminBoardStatesQueryOptions),
+  loader: ({ context }) =>
+    context.queryClient.query({ ...adminBoardStatesQueryOptions, staleTime: "static" }),
   pendingComponent: AdminPending,
   errorComponent: RouteErrorFallback,
 });

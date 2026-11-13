@@ -122,7 +122,7 @@ export function DeckVariantCreateForm({
       <Button variant="outline" onClick={onCancel}>
         {m.common_cancel()}
       </Button>
-      <Button type="submit" disabled={draft.trim().length === 0 || createVariant.isPending}>
+      <Button type="submit" disabled={draft.trim().length === 0} pending={createVariant.isPending}>
         {m.decks_dialog_variant_create_submit()}
       </Button>
     </>

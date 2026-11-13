@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod/mini";
 
-import { authSearchSchema, roundSearchSchema } from "./route-search";
+import { authSearchSchema, roundSearchSchema, sideSearchParam } from "./route-search";
 
 describe("authSearchSchema", () => {
   it("keeps a same-origin redirect and the email", () => {
@@ -38,5 +39,20 @@ describe("roundSearchSchema", () => {
 
   it.each([0, -1, 1.5, "abc", "", undefined, null])("drops %o", (round) => {
     expect(roundSearchSchema({ round })).toEqual({});
+  });
+});
+
+describe("sideSearchParam", () => {
+  const schema = z.object({ side: sideSearchParam });
+
+  it("keeps the second face however the URL spells it", () => {
+    expect(schema.parse({ side: 2 })).toEqual({ side: 2 });
+    expect(schema.parse({ side: "2" })).toEqual({ side: 2 });
+  });
+
+  it("drops any other value instead of failing the page", () => {
+    expect(schema.parse({ side: "1" }).side).toBeUndefined();
+    expect(schema.parse({ side: null }).side).toBeUndefined();
+    expect(schema.parse({})).toEqual({});
   });
 });

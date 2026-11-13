@@ -1,12 +1,18 @@
-import type { PodResponse, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
+import type {
+  GroupStageView,
+  PodResponse,
+  PodRoundResponse,
+} from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
 import {
+  bracketMode,
   buildBracketColumns,
   cutRounds,
   defaultBracketRound,
   groupStageRounds,
   isHigherSeed,
+  seedsByPlayer,
 } from "./cut-bracket-display";
 
 function makePod(podNumber: number): PodResponse {
@@ -72,6 +78,31 @@ describe("round split", () => {
     const rounds = [makeRound(1, [1]), makeRound(3, [1]), makeRound(4, [1]), makeRound(5, [1])];
     expect(groupStageRounds(rounds).map((round) => round.roundNumber)).toEqual([1, 3]);
     expect(cutRounds(rounds).map((round) => round.roundNumber)).toEqual([4, 5]);
+  });
+
+  it("orders the cut rounds by number whatever order they arrive in", () => {
+    const rounds = [makeRound(6, [1]), makeRound(4, [1, 2]), makeRound(5, [1])];
+    expect(cutRounds(rounds).map((round) => round.roundNumber)).toEqual([4, 5, 6]);
+  });
+});
+
+describe("bracketMode", () => {
+  it("shows the read-only bracket once the event is finished or the viewer cannot enter", () => {
+    expect(bracketMode({ completed: true, canEnter: true })).toBe("compact");
+    expect(bracketMode({ completed: false, canEnter: false })).toBe("compact");
+    expect(bracketMode({ completed: false, canEnter: true })).toBe("editable");
+  });
+});
+
+describe("seedsByPlayer", () => {
+  it("maps seeded players and skips unseeded ones", () => {
+    const seeds = seedsByPlayer({
+      ranking: [
+        { playerId: "a", seed: 1 },
+        { playerId: "b", seed: null },
+      ] as GroupStageView["ranking"],
+    });
+    expect([...seeds]).toEqual([["a", 1]]);
   });
 });
 

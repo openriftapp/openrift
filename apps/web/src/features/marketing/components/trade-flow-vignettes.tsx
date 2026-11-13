@@ -1,12 +1,13 @@
 import { ArrowDownLeftIcon, ArrowUpRightIcon, CheckIcon, ZapIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { MiniCardArt } from "@/components/mini-card-art";
 import { UserAvatar } from "@/components/user-avatar";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { ArtStrip, MiniCardArt, Vignette, VignetteHeading } from "./vignette-parts";
+import { ArtStrip, Vignette, VignetteHeading } from "./vignette-parts";
 
 // Hand-built from plain markup like the rest of these vignettes (see
 // vignette-parts.tsx): the real components pull in filter stores and data

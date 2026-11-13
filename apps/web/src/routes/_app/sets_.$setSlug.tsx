@@ -1,12 +1,10 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
-import { cardPath } from "@openrift/shared/site-paths";
 import type { SetDetailResponse } from "@openrift/shared/types/api/catalog";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { publicSetDetailQueryOptions } from "@/features/cards/lib/public-sets-queries";
-import { breadcrumbJsonLd, collectionPageJsonLd, seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { breadcrumbJsonLd, cardJsonLdItems, collectionPageJsonLd, seoHead } from "@/lib/seo";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
 interface JsonLdItem {
@@ -27,7 +25,7 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
     const siteUrl = getSiteUrl();
     const data = loaderData as SetHeadData | undefined;
     if (!data) {
-      return seoHead({ siteUrl, title: "Set" });
+      return seoHead({ siteUrl, title: "Set", noIndex: true });
     }
 
     const setPath = `/sets/${data.slug}`;
@@ -59,37 +57,18 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship every printing twice.
   loader: async ({ context, params }): Promise<SetHeadData> => {
-    let data: SetDetailResponse;
-    try {
-      data = await context.queryClient.query({
+    const data: SetDetailResponse = await notFoundOnSentinel(
+      context.queryClient.query({
         ...publicSetDetailQueryOptions(params.setSlug),
         staleTime: "static",
-      });
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
-    const seenCardIds = new Set<string>();
-    const items: JsonLdItem[] = [];
-    for (const printing of data.printings) {
-      if (seenCardIds.has(printing.cardId)) {
-        continue;
-      }
-      seenCardIds.add(printing.cardId);
-      const card = data.cards[printing.cardId];
-      if (!card) {
-        continue;
-      }
-      items.push({ name: legendDisplayName(card), url: cardPath(card.slug) });
-    }
+      }),
+    );
     return {
       slug: data.set.slug,
       name: data.set.name,
-      cardCount: seenCardIds.size,
+      cardCount: new Set(data.printings.map((p) => p.cardId)).size,
       printingCount: new Set(data.printings.map((p) => p.printingId)).size,
-      items,
+      items: cardJsonLdItems(data.printings, data.cards),
     };
   },
   component: () => null,

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { cardSearchLeading } from "@/features/cards/components/printing-option-content";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { m } from "@/paraglide/messages.js";
 
 export interface LegendTarget {
@@ -29,11 +30,13 @@ const isLegend = (card: Card): boolean => card.types.includes(WellKnown.cardType
 export function LegendSearchDialog({
   target,
   pending,
+  error,
   onOpenChange,
   onPick,
 }: {
   target: LegendTarget | null;
   pending: boolean;
+  error?: unknown;
   onOpenChange: (open: boolean) => void;
   onPick: (participantId: string, legendCardId: string | null) => void;
 }) {
@@ -53,6 +56,7 @@ export function LegendSearchDialog({
             <LegendSearch onPick={(legendCardId) => onPick(target.participantId, legendCardId)} />
           </Suspense>
         ) : null}
+        <SaveError error={error} />
         <DialogFooter>
           <DialogCancel />
           {target?.legendName ? (

@@ -211,7 +211,6 @@ function PickerCreateRow({
 
 interface PickerConfirm {
   label: string | ((selected: string | null) => string);
-  pendingLabel: string;
   disabledFor?: (selected: string) => boolean;
   onConfirm: (value: string) => void;
 }
@@ -288,8 +287,8 @@ export function PickerDialogBody({
       <div className="flex justify-end gap-2 pt-2">
         <Cancel disabled={pending}>{m.common_cancel()}</Cancel>
         {confirm ? (
-          <Button type="submit" disabled={confirmDisabled}>
-            {pending ? confirm.pendingLabel : confirmLabel}
+          <Button type="submit" disabled={confirmDisabled} pending={pending}>
+            {confirmLabel}
           </Button>
         ) : null}
       </div>

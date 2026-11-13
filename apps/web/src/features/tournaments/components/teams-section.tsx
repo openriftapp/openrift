@@ -15,7 +15,11 @@ import {
   useCreateTeam,
   useDissolveTeam,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
-import { teamDisplayName } from "@/features/tournaments/lib/team-display";
+import {
+  participantsByTeam,
+  teamDisplayName,
+  unteamedActivePlayers,
+} from "@/features/tournaments/lib/team-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -40,23 +44,12 @@ export function TeamsSection({
   const roster = participants.filter(
     (participant) => participant.status === "active" || participant.status === "dropped",
   );
-  const byTeam = new Map<string, TournamentParticipantResponse[]>();
-  for (const participant of roster) {
-    if (participant.teamId === null) {
-      continue;
-    }
-    const members = byTeam.get(participant.teamId) ?? [];
-    members.push(participant);
-    byTeam.set(participant.teamId, members);
-  }
-  const teams = [...byTeam.entries()].map(([teamId, members]) => ({
+  const teams = [...participantsByTeam(roster)].map(([teamId, members]) => ({
     teamId,
     members,
     dropped: members.every((member) => member.status === "dropped"),
   }));
-  const unteamed = participants.filter(
-    (participant) => participant.status === "active" && participant.teamId === null,
-  );
+  const unteamed = unteamedActivePlayers(participants);
   const [soleUnteamed] = unteamed;
   const pickable = (excludeId: string) => unteamed.filter((player) => player.id !== excludeId);
 
@@ -177,31 +170,4 @@ function TeamMemberPicker({
       />
     </div>
   );
-}
-
-export function unteamedActivePlayers(
-  participants: readonly TournamentParticipantResponse[],
-): TournamentParticipantResponse[] {
-  return participants.filter(
-    (participant) => participant.status === "active" && participant.teamId === null,
-  );
-}
-
-/** Participants without a team, or whose partner left the roster, are absent from the map. */
-export function teammateNamesById(
-  participants: readonly TournamentParticipantResponse[],
-): Map<string, string> {
-  const names = new Map<string, string>();
-  for (const participant of participants) {
-    if (participant.teamId === null) {
-      continue;
-    }
-    const teammate = participants.find(
-      (other) => other.teamId === participant.teamId && other.id !== participant.id,
-    );
-    if (teammate) {
-      names.set(participant.id, teammate.displayName);
-    }
-  }
-  return names;
 }

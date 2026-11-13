@@ -1,23 +1,14 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { notFound, redirect } from "@tanstack/react-router";
+import { redirect } from "@tanstack/react-router";
 
 import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { tournamentDetailQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 
-/** Converts the server fn's NOT_FOUND sentinel into the router's notFound. */
-export async function loadTournamentDetail(queryClient: QueryClient, userId: string, id: string) {
-  try {
-    return await queryClient.query({
-      ...tournamentDetailQueryOptions(userId, id),
-      staleTime: "static",
-    });
-  } catch (error) {
-    if (isNotFoundSentinel(error)) {
-      throw notFound();
-    }
-    throw error;
-  }
+export function loadTournamentDetail(queryClient: QueryClient, userId: string, id: string) {
+  return notFoundOnSentinel(
+    queryClient.query({ ...tournamentDetailQueryOptions(userId, id), staleTime: "static" }),
+  );
 }
 
 export function loadTournamentRunState(queryClient: QueryClient, userId: string, id: string) {

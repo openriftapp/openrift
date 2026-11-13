@@ -189,7 +189,7 @@ function ProductAddBody({
             (selectedId === NEW_COLLECTION_OPTION && newName.trim().length === 0)
           }
         >
-          {pending ? m.products_add_pending() : m.products_add_to_collection()}
+          {m.products_add_to_collection()}
         </Button>
       </DialogFooter>
     </DialogForm>

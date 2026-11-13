@@ -1,14 +1,14 @@
 import { boardShareDescription } from "@openrift/shared/share-titles";
 import type { PublicBoardStateDetailResponse } from "@openrift/shared/types/api/board-state";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
-import { requireBoardStatesFlag } from "@/features/board-states/lib/board-states-flag";
 import { publicBoardStateQueryOptions } from "@/features/board-states/lib/board-states-queries";
-import { seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { requireFeature } from "@/lib/feature-flags";
+import { privateSeoHead, seoHead } from "@/lib/seo";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { boardStateShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
@@ -19,12 +19,28 @@ interface BoardStateHeadData {
 }
 
 export const Route = createFileRoute("/_app/board/$token")({
+  beforeLoad: ({ context }) => requireFeature(context.queryClient, "board-states"),
+  // Returns only what head reads: loader data is dehydrated beside the query
+  // cache, and returning the whole response would ship it twice.
+  loader: async ({ context, params }): Promise<BoardStateHeadData> => {
+    const data = await notFoundOnSentinel(
+      context.queryClient.query({
+        ...publicBoardStateQueryOptions(params.token),
+        staleTime: "static",
+      }),
+    );
+    const { title, summary, updatedAt } = data.boardState;
+    return {
+      boardState: { title, summary, updatedAt },
+      owner: { displayName: data.owner.displayName },
+    };
+  },
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/board/${params.token}`;
     const data = loaderData as BoardStateHeadData | undefined;
     if (!data) {
-      return seoHead({ siteUrl, title: "Board state", path, unlisted: true });
+      return privateSeoHead("Board state");
     }
     return seoHead({
       siteUrl,
@@ -38,27 +54,6 @@ export const Route = createFileRoute("/_app/board/$token")({
       ),
       unlisted: true,
     });
-  },
-  // Returns only what head reads: loader data is dehydrated beside the query
-  // cache, and returning the whole response would ship it twice.
-  loader: async ({ context, params }): Promise<BoardStateHeadData> => {
-    await requireBoardStatesFlag(context.queryClient);
-    try {
-      const data = await context.queryClient.query({
-        ...publicBoardStateQueryOptions(params.token),
-        staleTime: "static",
-      });
-      const { title, summary, updatedAt } = data.boardState;
-      return {
-        boardState: { title, summary, updatedAt },
-        owner: { displayName: data.owner.displayName },
-      };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
   },
   errorComponent: RouteErrorFallback,
   notFoundComponent: () => (

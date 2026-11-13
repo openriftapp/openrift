@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
+import { MiniCardArt } from "@/components/mini-card-art";
 import { OrnamentRule } from "@/components/ui/ornament";
-import { MiniCardArt } from "@/features/marketing/components/vignette-parts";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
 // Hand-authored layout primitive: the alternative to PageTopBar for a page
@@ -105,12 +106,7 @@ export function PageHeroStats({
   return (
     <dl className={cn("mt-3 flex flex-wrap gap-x-9 gap-y-3", className)}>
       {stats.map((stat) => (
-        <div key={stat.key} className="flex flex-col-reverse gap-0.5">
-          <dt className="text-muted-foreground text-sm">{stat.label}</dt>
-          <dd className="font-heading text-3xl leading-none font-bold tabular-nums">
-            {stat.value}
-          </dd>
-        </div>
+        <StatFigure key={stat.key} as="dl-item" size="hero" label={stat.label} value={stat.value} />
       ))}
     </dl>
   );

@@ -1,11 +1,9 @@
-import { enumLabel } from "@openrift/shared/enum-label";
-import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import type {
   TournamentSummaryResponse,
   TournamentWinner,
 } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
-import { CalendarIcon, LayersIcon, TrophyIcon, UsersIcon } from "lucide-react";
+import { TrophyIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { CardContent } from "@/components/ui/card";
@@ -13,8 +11,11 @@ import { CardLink } from "@/components/ui/card-link";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
-import { tournamentContextLabel } from "@/features/tournaments/lib/tournament-display";
-import { useDeckFormatList } from "@/hooks/use-enums";
+import { TournamentMetaLine } from "@/features/tournaments/components/tournament-meta-line";
+import {
+  effectiveStateLabels,
+  tournamentContextLabel,
+} from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
 function WinnerChip({ winner }: { winner: TournamentWinner }) {
@@ -39,7 +40,6 @@ function PastEventCard({
   tournament: TournamentSummaryResponse;
   showContext: boolean;
 }) {
-  const { labels: formatLabels } = useDeckFormatList();
   return (
     <CardLink render={<Link to="/tournaments/$id" params={{ id: tournament.id }} />}>
       <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -47,7 +47,7 @@ function PastEventCard({
           <span className="flex items-center gap-2">
             <span className="truncate text-base font-medium">{tournament.name}</span>
             {tournament.status === "cancelled" ? (
-              <Badge variant="neutral">{m.tournaments_past_events_cancelled()}</Badge>
+              <Badge variant="neutral">{effectiveStateLabels().cancelled}</Badge>
             ) : null}
             {showContext && tournamentContextLabel(tournament) ? (
               <Badge variant="outline" className="max-sm:hidden">
@@ -55,22 +55,7 @@ function PastEventCard({
               </Badge>
             ) : null}
           </span>
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm">
-            <span className="flex items-center gap-1.5">
-              <CalendarIcon className="size-4 shrink-0" />
-              {formatDayTimeLocal(tournament.startsAt)}
-            </span>
-            {tournament.deckFormat ? (
-              <span className="flex items-center gap-1.5">
-                <LayersIcon className="size-4 shrink-0" />
-                {enumLabel(formatLabels, tournament.deckFormat)}
-              </span>
-            ) : null}
-            <span className="flex items-center gap-1.5">
-              <UsersIcon className="size-4 shrink-0" />
-              {m.tournaments_card_participants({ count: tournament.participantCount })}
-            </span>
-          </div>
+          <TournamentMetaLine tournament={tournament} className="text-sm" />
         </div>
         <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           {tournament.winner ? <WinnerChip winner={tournament.winner} /> : null}

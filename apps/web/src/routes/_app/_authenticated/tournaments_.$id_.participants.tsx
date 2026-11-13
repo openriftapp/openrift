@@ -7,12 +7,11 @@ import {
   redirectToTournamentOverview,
 } from "@/features/tournaments/lib/tournament-route-guards";
 import { tournamentParticipantsQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/participants")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Participants", noIndex: true }),
+  head: () => privateSeoHead("Participants"),
   loader: async ({ context, params }) => {
     // The roster's API endpoint is staff-only; a plain participant lands on
     // the overview.

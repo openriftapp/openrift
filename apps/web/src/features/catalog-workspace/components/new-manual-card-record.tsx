@@ -18,7 +18,6 @@ import { useUploadPrintingImage } from "@/features/admin/hooks/use-admin-image-m
 import { useCreateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { parseIntegerFields, parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { catalogKeys, cardsKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { draftImageLabel } from "@/features/catalog-workspace/components/creation/creation-images";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
@@ -40,6 +39,7 @@ import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order"
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
+import { parseIntegerFields, parseIntegerInput } from "@/lib/integer-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 

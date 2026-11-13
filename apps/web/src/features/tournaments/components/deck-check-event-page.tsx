@@ -48,6 +48,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { DeckCheckListSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
 import { DeckCheckStateBadge } from "@/features/tournaments/components/deck-check-state-badge";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   useCreateTournamentDeckCheckEntry,
   useDeleteTournamentDeckCheckEntry,
@@ -344,7 +345,6 @@ function EntryRowMenu({
         title={m.tournaments_deck_check_delete_entry_title()}
         description={m.tournaments_deck_check_delete_entry_description()}
         confirmLabel={m.common_delete()}
-        pendingLabel={m.tournaments_deck_check_deleting()}
         isPending={deleteEntry.isPending}
         onConfirm={() => void handleDelete()}
       />
@@ -383,6 +383,7 @@ function AddDeckDialog({
   }));
 
   const parsed = parseManualDecklist(decklist);
+  const warnings = decklist.trim() === "" ? [] : parsed.warnings;
   const perZone = [...Map.groupBy(parsed.cards, (card) => card.section).entries()].map(
     ([section, cards]) => ({
       section,
@@ -399,11 +400,14 @@ function AddDeckDialog({
     if (!participantId) {
       return;
     }
-    await createEntry.mutateAsync({
-      tournamentId,
-      participantId,
-      cards: parsed.cards,
-    });
+    const cards = parsed.cards;
+    if (
+      !(await runReportedMutation(() =>
+        createEntry.mutateAsync({ tournamentId, participantId, cards }),
+      ))
+    ) {
+      return;
+    }
     toast.success(m.tournaments_deck_check_deck_added_toast());
     reset();
     onOpenChange(false);
@@ -419,6 +423,7 @@ function AddDeckDialog({
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
           reset();
+          createEntry.reset();
         }
         onOpenChange(nextOpen);
       }}
@@ -459,9 +464,7 @@ function AddDeckDialog({
                 onChange={(event) => setDecklist(event.target.value)}
                 rows={10}
                 className="font-mono"
-                placeholder={
-                  "Champion:\n1 Some Champion\nMain:\n3 Some Card\nSideboard:\n2 Tech Card"
-                }
+                placeholder={m.tournaments_deck_check_decklist_placeholder()}
               />
               <p className="text-muted-foreground text-sm">
                 <ParaglideMessage
@@ -477,19 +480,18 @@ function AddDeckDialog({
                     .join(" · ")}
                 </p>
               ) : null}
-              {parsed.warnings.map((warning) => (
+              {warnings.map((warning) => (
                 <p key={warning} className="text-destructive text-sm">
                   {warning}
                 </p>
               ))}
             </div>
           </div>
+          <SaveError error={createEntry.error} />
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={createEntry.isPending || !participantId}>
-              {createEntry.isPending
-                ? m.tournaments_deck_check_adding()
-                : m.tournaments_deck_check_add_deck()}
+            <Button type="submit" disabled={!participantId} pending={createEntry.isPending}>
+              {m.tournaments_deck_check_add_deck()}
             </Button>
           </DialogFooter>
         </DialogForm>

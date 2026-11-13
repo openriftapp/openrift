@@ -1,9 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { isRedirect } from "@tanstack/react-router";
+import { isNotFound } from "@tanstack/react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { headCanonical, headMeta, runRouteHead } from "@/test/route-head";
 
 const { getCollectionsCollection, preload } = vi.hoisted(() => {
   const preloadFn = vi.fn(() => Promise.resolve());
@@ -63,9 +64,9 @@ describe("/scan route", () => {
     await expect(runBeforeLoad(clientFor({ session: null }))).resolves.toBeUndefined();
   });
 
-  it("still redirects away when the scanner is unavailable", async () => {
+  it("shows the not-found page while the scanner is unavailable", async () => {
     await expect(runBeforeLoad(clientFor({ session: null, scanner: false }))).rejects.toSatisfy(
-      (value: unknown) => isRedirect(value),
+      (value: unknown) => isNotFound(value),
     );
   });
 
@@ -82,5 +83,20 @@ describe("/scan route", () => {
 
     expect(getCollectionsCollection).toHaveBeenCalledWith(queryClient, "user-1");
     expect(preload).toHaveBeenCalledOnce();
+  });
+});
+
+describe("/scan head", () => {
+  it("names the canonical page while the scanner is served", () => {
+    expect(headCanonical(runRouteHead(Route, {}, { served: true }))).toBe(
+      "http://localhost:5173/scan",
+    );
+  });
+
+  it("drops the canonical link from the not-found page while the scanner is unavailable", () => {
+    const head = runRouteHead(Route, {}, undefined);
+
+    expect(headMeta(head, "robots")).toBe("noindex, nofollow");
+    expect(headCanonical(head)).toBeUndefined();
   });
 });

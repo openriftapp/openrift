@@ -7,32 +7,50 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRank } from "@/features/meta/lib/meta-format";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import { useResultBaseline } from "@/features/tournaments/hooks/use-result-baseline";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { m } from "@/paraglide/messages.js";
 
 interface PodResultFormProps {
   pod: PodResponse;
   scheme: PodScoringScheme;
-  onSubmit: (results: { playerId: string; gamePoints: number }[]) => Promise<void> | void;
+  onSubmit: (results: PodResultEntry[]) => void;
   submitting: boolean;
+  error?: unknown;
   onCancel?: () => void;
 }
 
-/** Parses a controlled points input to a whole, non-negative game-point count. */
-export function parsePoints(value: string): number | null {
-  if (value.trim() === "") {
-    return null;
-  }
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+export function ChangedRemotelyNotice({
+  match = false,
+  onShowLatest,
+}: {
+  match?: boolean;
+  onShowLatest: () => void;
+}) {
+  return (
+    <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+      <span className="flex items-center gap-1.5">
+        <TriangleAlertIcon className="text-warning size-4 shrink-0" />
+        {match ? m.tournaments_match_changed_remotely() : m.tournaments_pod_changed_remotely()}
+      </span>
+      <Button variant="outline" size="sm" onClick={onShowLatest}>
+        {m.tournaments_pod_show_latest()}
+      </Button>
+    </div>
+  );
 }
 
-/**
- * Result entry for one pod: raw game points per player, with derived placement
- * and scheme points previewed live once every value is entered.
- */
-export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: PodResultFormProps) {
+export function PodResultForm({
+  pod,
+  scheme,
+  onSubmit,
+  submitting,
+  error,
+  onCancel,
+}: PodResultFormProps) {
   const [points, setPoints] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       pod.members.map((member) => [
@@ -41,20 +59,13 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
       ]),
     ),
   );
-  // Snapshot at open (or last sync); a mismatch against the current pod means
-  // someone else saved mid-edit.
-  const [serverBaseline, setServerBaseline] = useState<Record<string, number | null>>(() =>
-    Object.fromEntries(pod.members.map((member) => [member.playerId, member.gamePoints])),
+  const { changedRemotely, acceptLatest } = useResultBaseline(pod);
+  const parsed = pod.members.map(
+    (member) => parseIntegerInput(points[member.playerId] ?? "", 0) ?? null,
   );
-  const changedRemotely = pod.members.some(
-    (member) => serverBaseline[member.playerId] !== member.gamePoints,
-  );
-  const parsed = pod.members.map((member) => parsePoints(points[member.playerId] ?? ""));
 
   function loadLatest() {
-    setServerBaseline(
-      Object.fromEntries(pod.members.map((member) => [member.playerId, member.gamePoints])),
-    );
+    acceptLatest();
     setPoints(
       Object.fromEntries(
         pod.members.map((member) => [
@@ -71,17 +82,16 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
   const previewPoints =
     placements && pod.size !== 2 ? pointsForPlacements(placements, pod.size, scheme) : null;
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!allSet) {
       return;
     }
-    const results = pod.members.map((member, index) => ({
-      playerId: member.playerId,
-      gamePoints: parsed[index] as number,
-    }));
-    await runReportedMutation(async () => {
-      await onSubmit(results);
-    });
+    onSubmit(
+      pod.members.map((member, index) => ({
+        playerId: member.playerId,
+        gamePoints: parsed[index] as number,
+      })),
+    );
   }
 
   return (
@@ -120,25 +130,16 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
         </div>
       ))}
       <p className="text-muted-foreground">{m.tournaments_pod_points_hint()}</p>
-      {changedRemotely ? (
-        <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5">
-            <TriangleAlertIcon className="text-warning size-4 shrink-0" />
-            {m.tournaments_pod_changed_remotely()}
-          </span>
-          <Button variant="outline" size="sm" onClick={loadLatest}>
-            {m.tournaments_pod_show_latest()}
-          </Button>
-        </div>
-      ) : null}
+      {changedRemotely ? <ChangedRemotelyNotice onShowLatest={loadLatest} /> : null}
+      <SaveError error={error} />
       <div className="flex justify-end gap-2">
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             {m.common_cancel()}
           </Button>
         ) : null}
-        <Button onClick={() => void handleSubmit()} disabled={!allSet || submitting}>
-          {submitting ? m.tournaments_pod_saving() : m.tournaments_pod_save_result()}
+        <Button onClick={handleSubmit} disabled={!allSet} pending={submitting}>
+          {m.tournaments_pod_save_result()}
         </Button>
       </div>
     </div>

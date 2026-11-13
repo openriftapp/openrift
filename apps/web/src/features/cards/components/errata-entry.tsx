@@ -15,6 +15,7 @@ import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { diffCardText } from "@/features/cards/lib/errata-diff";
 import { errataEntryAnchor } from "@/features/cards/lib/errata-list";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
+import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { htmlLangTag } from "@/lib/language-tag";
 import { m } from "@/paraglide/messages.js";
@@ -50,7 +51,8 @@ function sourceNote(entry: ErrataEntryData): string | null {
 }
 
 export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: ErrataView }) {
-  const { labels, domainColors } = useEnumOrders();
+  const { labels } = useEnumOrders();
+  const domainColors = useDomainColors();
   const languageLabels = useLanguageLabels();
   const isEnglish = entry.language === WellKnown.language.EN;
   const name = legendDisplayName(entry.card);

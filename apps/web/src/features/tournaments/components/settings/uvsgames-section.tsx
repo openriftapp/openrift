@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import { useUvsgamesSuggestions } from "@/features/tournaments/hooks/use-tournament-archive-lists";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
@@ -90,6 +91,7 @@ export function UvsgamesSection({
           </TextLink>
         )}
       </div>
+      <SaveError error={updateTournament.error} />
       {offered.length > 0 && !locked ? (
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground text-sm">

@@ -56,7 +56,6 @@ function ResetCollectionsAction() {
         title={m.profile_danger_reset_dialog_title()}
         description={m.profile_danger_reset_dialog_description({ word: RESET_CONFIRM_WORD })}
         confirmLabel={m.profile_danger_reset_title()}
-        pendingLabel={m.profile_danger_reset_pending()}
         confirmPhrase={RESET_CONFIRM_WORD}
         onConfirm={handleReset}
       >
@@ -147,7 +146,7 @@ function DeleteAccountAction() {
             <AlertDialogFooter>
               <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
               <Button type="submit" variant="destructive" pending={loading}>
-                {loading ? m.common_deleting() : m.profile_danger_delete_title()}
+                {m.profile_danger_delete_title()}
               </Button>
             </AlertDialogFooter>
           </DialogForm>

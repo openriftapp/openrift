@@ -55,10 +55,8 @@ export function TakeConfirmDialog({
           )}
           <div className="flex justify-end gap-2 pt-2">
             <DialogCancel disabled={isPending} />
-            <Button type="submit" disabled={isPending}>
-              {isPending
-                ? m.collections_dialog_take_pending()
-                : m.collections_dialog_take({ count: quantity })}
+            <Button type="submit" pending={isPending}>
+              {m.collections_dialog_take({ count: quantity })}
             </Button>
           </div>
         </DialogForm>

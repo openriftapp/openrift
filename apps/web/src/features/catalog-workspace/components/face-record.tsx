@@ -38,6 +38,7 @@ import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useDeskCardPrintings, useDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
@@ -91,7 +92,7 @@ const FACE_FIELDS = COMPARABLE_PRINTING_FIELDS.filter((field) => !isPrintingLeve
 export function FaceRecord({ cardSlug, faceId }: { cardSlug: string; faceId: string }) {
   const { data: access, isPending } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
-  const canReview = isAdmin || (access?.sections ?? []).includes("card-review");
+  const canReview = hasAdminSection(access, "card-review");
 
   if (isPending) {
     return <Skeleton className="m-4 h-96" />;

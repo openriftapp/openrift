@@ -6,16 +6,16 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import { Label } from "@/components/ui/label";
+import { SaveError } from "@/features/tournaments/components/save-error";
 import {
   AllowDeckEditsField,
   DeckDeadlineField,
   DeckSubmissionField,
-  parseDeadlineInput,
 } from "@/features/tournaments/components/settings/decks-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
-import { deckPhaseLabels } from "@/features/tournaments/lib/tournament-display";
+import { deckPhaseLabels, parseDeadlineInput } from "@/features/tournaments/lib/tournament-display";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
-import { splitUtcToLocalDateTime } from "@/lib/date-time-input";
+import { sameInstant, splitUtcToLocalDateTime } from "@/lib/date-time-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -40,11 +40,7 @@ export function DecksSection({
     afterEnd: closeAfterEnd,
   } = parseDeadlineInput(closeDate, closeTime, detail.endsAt);
   const closeInvalid = closeIncomplete || closeAfterEnd;
-  const closeChanged =
-    (nextCloseAt === null) !== (detail.submissionsCloseAt === null) ||
-    (nextCloseAt !== null &&
-      detail.submissionsCloseAt !== null &&
-      new Date(nextCloseAt).getTime() !== new Date(detail.submissionsCloseAt).getTime());
+  const closeChanged = !sameInstant(nextCloseAt, detail.submissionsCloseAt);
 
   return (
     <SettingsSection
@@ -132,6 +128,7 @@ export function DecksSection({
           </div>
         </>
       ) : null}
+      <SaveError error={updateTournament.error} />
     </SettingsSection>
   );
 }

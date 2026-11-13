@@ -1,4 +1,4 @@
-import { matchesTextPhrase } from "@openrift/shared/search-fold";
+import { foldForSearch, matchesTextQuery } from "@openrift/shared/search-fold";
 import { ChevronRightIcon } from "lucide-react";
 import type { FocusEvent, KeyboardEvent, ReactElement, ReactNode, Ref } from "react";
 import { Fragment, useState } from "react";
@@ -15,6 +15,7 @@ import {
   ComboboxSeparator,
   ComboboxTrigger,
 } from "@/components/ui/combobox";
+import { POPUP_GROUP_LABEL } from "@/components/ui/popup-group-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -115,7 +116,7 @@ const CREATE_ACTION = "\u0000create";
 const TYPED_REASONS = new Set(["input-change", "input-paste", "clear-press"]);
 
 export function matchesPickerQuery(option: ComboboxPickerOption, query: string): boolean {
-  return matchesTextPhrase(query, [`${option.label} ${option.keywords ?? ""}`]);
+  return matchesTextQuery(query, [option.label, option.keywords]);
 }
 
 export function summarizePickerSelection(
@@ -241,7 +242,7 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
             label: () => createLabel(typed),
             visible: () =>
               typed !== "" &&
-              !options.some((option) => option.label.toLowerCase() === typed.toLowerCase()),
+              !options.some((option) => foldForSearch(option.label) === foldForSearch(typed)),
             onSelect: () => {
               if (!props.multiple) {
                 props.onChange(typed);
@@ -433,7 +434,7 @@ export function ComboboxPicker(props: ComboboxPickerProps) {
               <Fragment key={value}>
                 {lead.separator && <ComboboxSeparator />}
                 {lead.header !== undefined && (
-                  <div className="text-muted-foreground px-2 py-1.5 text-xs">{lead.header}</div>
+                  <div className={cn(POPUP_GROUP_LABEL, "px-2 py-1.5")}>{lead.header}</div>
                 )}
                 {item}
               </Fragment>

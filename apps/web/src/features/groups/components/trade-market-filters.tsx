@@ -2,10 +2,9 @@ import type { TradeSuggestionDismissal } from "@openrift/shared/types/api/card-t
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, EyeOffIcon } from "lucide-react";
 
+import { Disclosure } from "@/components/disclosure";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CountPill } from "@/components/ui/count-pill";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { UserAvatar } from "@/components/user-avatar";
@@ -146,43 +145,38 @@ export function HiddenSuggestions({
   }
   const names = namesByUser(groups);
   return (
-    <Collapsible className="flex flex-col gap-3">
-      <SectionHeading as="h3">
-        <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
-          <EyeOffIcon className="size-4 shrink-0" />
-          {m.trades_market_hidden({ count: dismissals.length })}
-          <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
-        </CollapsibleTrigger>
-      </SectionHeading>
-      <CollapsibleContent>
-        <ul className="flex flex-col">
-          {dismissals.map((dismissal) => {
-            const printing = printingsById[dismissal.printingId];
-            const card = printing === undefined ? "" : printingDisplayName(printing);
-            const name = memberName(names.get(dismissal.counterpartyUserId));
-            return (
-              <li
-                key={`${dismissal.direction}:${dismissal.counterpartyUserId}:${dismissal.printingId}`}
-                className="flex items-center gap-3 border-b py-2 last:border-b-0"
+    <Disclosure
+      variant="heading"
+      icon={EyeOffIcon}
+      title={m.trades_market_hidden({ count: dismissals.length })}
+    >
+      <ul className="flex flex-col">
+        {dismissals.map((dismissal) => {
+          const printing = printingsById[dismissal.printingId];
+          const card = printing === undefined ? "" : printingDisplayName(printing);
+          const name = memberName(names.get(dismissal.counterpartyUserId));
+          return (
+            <li
+              key={`${dismissal.direction}:${dismissal.counterpartyUserId}:${dismissal.printingId}`}
+              className="flex items-center gap-3 border-b py-2 last:border-b-0"
+            >
+              <span className="min-w-0 flex-1 truncate">
+                {dismissal.direction === "incoming"
+                  ? m.trades_market_hidden_incoming({ card, name })
+                  : m.trades_market_hidden_outgoing({ card, name })}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={restore.isPending}
+                onClick={() => restore.mutate(dismissal)}
               >
-                <span className="min-w-0 flex-1 truncate">
-                  {dismissal.direction === "incoming"
-                    ? m.trades_market_hidden_incoming({ card, name })
-                    : m.trades_market_hidden_outgoing({ card, name })}
-                </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={restore.isPending}
-                  onClick={() => restore.mutate(dismissal)}
-                >
-                  {m.trades_market_show_again()}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      </CollapsibleContent>
-    </Collapsible>
+                {m.trades_market_show_again()}
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+    </Disclosure>
   );
 }

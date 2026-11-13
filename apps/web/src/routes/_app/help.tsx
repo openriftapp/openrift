@@ -1,17 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { visibleHelpArticles } from "@/features/marketing/components/articles";
-import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { faqPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/help")({
   loader: async ({ context }) => {
-    const flags = (await context.queryClient.query({
+    const flags = await context.queryClient.query({
       ...featureFlagsQueryOptions,
       staleTime: "static",
-    })) as FeatureFlags;
+    });
     return {
       articles: visibleHelpArticles(flags).map(({ title, description }) => ({
         title,

@@ -3,13 +3,14 @@ import { PackageIcon, SearchIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
+import { MiniCardArt } from "@/components/mini-card-art";
 import { Button } from "@/components/ui/button";
 import { CountPill } from "@/components/ui/count-pill";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
-import { MiniCardArt, Vignette } from "./vignette-parts";
+import { Vignette } from "./vignette-parts";
 
 const DOMAINS = [
   { slug: "fury", label: "Fury", share: 0.169 },

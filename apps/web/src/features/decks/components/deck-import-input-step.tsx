@@ -7,6 +7,7 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { TextLink } from "@/components/ui/text-link";
@@ -109,12 +110,7 @@ export function DeckImportInputStep({
                     : m.collections_import_deck_replace_this_deck(),
                 }}
                 markup={{
-                  strong: ({ children }) =>
-                    replaceDeckName ? (
-                      <strong className="text-foreground">{children}</strong>
-                    ) : (
-                      children
-                    ),
+                  strong: replaceDeckName ? PROSE_MARKUP.strong : ({ children }) => children,
                 }}
               />
             </>

@@ -18,19 +18,7 @@ export const Route = createFileRoute("/_app/rules_/$kind")({
   // Before `head`, not after: a `head` that reads route data in between breaks
   // the builder's inference chain and the loader's `deps` collapses to `{}`.
   loaderDeps: ({ search }) => ({ q: search.q, lang: search.lang }),
-  head: ({ params }) => {
-    if (!VALID_RULE_KINDS.has(params.kind as RuleKind)) {
-      return {};
-    }
-    const kind = params.kind as RuleKind;
-    return seoHead({
-      siteUrl: getSiteUrl(),
-      title: ruleKindTitle(kind),
-      description: ruleKindDescription(kind),
-      path: `/rules/${kind}`,
-    });
-  },
-  loader: async ({ params, context, location, deps }) => {
+  loader: async ({ params, context, location, deps }): Promise<{ kind: RuleKind }> => {
     if (!VALID_RULE_KINDS.has(params.kind as RuleKind)) {
       throw notFound();
     }
@@ -63,6 +51,18 @@ export const Route = createFileRoute("/_app/rules_/$kind")({
       });
     }
     return { kind };
+  },
+  head: ({ params }) => {
+    if (!VALID_RULE_KINDS.has(params.kind as RuleKind)) {
+      return {};
+    }
+    const kind = params.kind as RuleKind;
+    return seoHead({
+      siteUrl: getSiteUrl(),
+      title: ruleKindTitle(kind),
+      description: ruleKindDescription(kind),
+      path: `/rules/${kind}`,
+    });
   },
   errorComponent: RouteErrorFallback,
 });

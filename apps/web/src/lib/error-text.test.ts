@@ -60,10 +60,13 @@ describe("thrownMessage", () => {
     expect(thrownMessage("boom")).toBe("boom");
   });
 
+  it("returns a thrown number as text", () => {
+    expect(thrownMessage(7)).toBe("7");
+  });
+
   it("returns an empty string for anything else", () => {
     expect(thrownMessage({ message: 42 })).toBe("");
     expect(thrownMessage(null)).toBe("");
     expect(thrownMessage(undefined)).toBe("");
-    expect(thrownMessage(7)).toBe("");
   });
 });

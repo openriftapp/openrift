@@ -263,7 +263,8 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
               <DialogCancel />
               <Button
                 type="submit"
-                disabled={resolve.isPending || blocksSubmit(status, trimmedNote, reason)}
+                disabled={blocksSubmit(status, trimmedNote, reason)}
+                pending={resolve.isPending}
               >
                 Send outcome
               </Button>

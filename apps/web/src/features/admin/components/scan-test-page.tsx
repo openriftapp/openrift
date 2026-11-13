@@ -7,7 +7,6 @@ import {
   CameraOffIcon,
   CircleIcon,
   CircleXIcon,
-  LoaderIcon,
   RotateCcwIcon,
   SaveIcon,
   SquareIcon,
@@ -321,10 +320,10 @@ function ServingCard({ serving }: { serving: ScanServing }) {
         <div>
           <Button
             onClick={() => void rebuild.start()}
-            disabled={rebuild.running}
+            pending={rebuild.running}
             variant="secondary"
           >
-            {rebuild.running ? <LoaderIcon className="animate-spin" /> : <RotateCcwIcon />}
+            <RotateCcwIcon />
             Rebuild bank
           </Button>
         </div>

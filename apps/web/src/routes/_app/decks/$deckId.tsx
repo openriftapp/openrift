@@ -8,8 +8,7 @@ import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/decks/$deckId")({
   ssr: false,
@@ -25,7 +24,7 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
       });
     }
   },
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Deck Editor", noIndex: true }),
+  head: () => privateSeoHead("Deck Editor"),
   staticData: { hideFooter: true },
   // Auth is optional: a browser-local deck needs no server fetch; a server id
   // with no session redirects to /login, preserving `redirect` for the return.

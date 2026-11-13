@@ -221,7 +221,7 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form={FORM_ID} disabled={isPending}>
+          <Button type="submit" form={FORM_ID} pending={isPending}>
             {event ? "Save" : "Create event"}
           </Button>
         </DialogFooter>

@@ -2,8 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { tradeSheetQueryOptions } from "@/features/groups/lib/card-trades-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/trades/$userId")({
   ssr: "data-only",
@@ -12,7 +11,7 @@ export const Route = createFileRoute("/_app/_authenticated/trades/$userId")({
   validateSearch: (search: Record<string, unknown>) => ({
     from: typeof search.from === "string" && search.from.length > 0 ? search.from : undefined,
   }),
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Trade sheet", noIndex: true }),
+  head: () => privateSeoHead("Trade sheet"),
   loader: async ({ context, params }) => {
     await context.queryClient.query({
       ...tradeSheetQueryOptions(context.userId, params.userId),

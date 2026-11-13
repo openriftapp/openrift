@@ -1,12 +1,12 @@
 import type { PodReportResponse } from "@openrift/shared/types/api/pod-tournament";
-import { toast } from "sonner";
 
 import {
   useStartReportGroupRound,
   useSubmitTournamentReportPlayerResult,
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
+import { bracketMode, cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { reportAcceptsResults, reportCanEdit } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
@@ -25,19 +25,13 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     : undefined;
   const swiss = data.pairingStyle === "swiss";
   const showEntryHint = reportAcceptsResults(data);
-  const canSubmit = data.canSubmit;
   const canEdit = reportCanEdit(data);
   const groupStage = data.groupStage;
 
-  async function submit(podId: string, results: { playerId: string; gamePoints: number }[]) {
-    await submitResult.mutateAsync({ podId, results });
-    toast.success(m.tournaments_report_result_submitted());
-  }
-
-  async function submitPlayer(podId: string, playerId: string, gamePoints: number) {
-    await submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
-    toast.success(m.tournaments_report_score_saved());
-  }
+  const submit = (podId: string, results: PodResultEntry[]) =>
+    submitResult.mutateAsync({ podId, results });
+  const submitPlayer = (podId: string, playerId: string, gamePoints: number) =>
+    submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
 
   if (data.format === "group_cut" && groupStage !== null && groupStage.groups.length > 0) {
     const bracketRounds = cutRounds(data.rounds);
@@ -46,7 +40,8 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
         {showEntryHint ? (
           <p className="text-muted-foreground text-sm">{m.tournaments_report_enter_games_won()}</p>
         ) : null}
-        {bracketRounds.length > 0 && !canSubmit ? (
+        {bracketRounds.length > 0 &&
+        bracketMode({ completed: data.status === "completed", canEnter: canEdit }) === "compact" ? (
           <CutBracketCompact
             rounds={bracketRounds}
             cutSize={data.cutSize}

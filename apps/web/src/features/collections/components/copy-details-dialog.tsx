@@ -476,8 +476,12 @@ function CopyEditor({
         >
           {m.common_cancel()}
         </Button>
-        <Button type="submit" disabled={!canSave || updateCopies.isPending}>
-          {updateCopies.isPending ? m.common_saving() : m.common_save()}
+        <Button
+          pending={updateCopies.isPending}
+          type="submit"
+          disabled={!canSave || updateCopies.isPending}
+        >
+          {m.common_save()}
         </Button>
       </DialogFooter>
     </DialogForm>

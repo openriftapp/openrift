@@ -1,4 +1,4 @@
-import { DownloadIcon, Loader2Icon } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -35,8 +35,8 @@ export function ShareQrPanel({ url, label, filename }: ShareQrPanelProps) {
   return (
     <div className="flex flex-col items-start gap-4">
       <QrCode value={url} size={200} label={label} />
-      <Button variant="outline" onClick={() => void handleDownload()} disabled={downloading}>
-        {downloading ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />}
+      <Button variant="outline" onClick={() => void handleDownload()} pending={downloading}>
+        <DownloadIcon />
         {m.share_qr_download_png()}
       </Button>
     </div>

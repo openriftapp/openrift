@@ -31,8 +31,16 @@ vi.mock("@/hooks/use-session", () => ({
   },
 }));
 
-const { useClaimStaffInvite, useRequestJoinTournament } =
-  await import("./use-tournament-mutations");
+const {
+  useAddParticipant,
+  useAddTournamentStaff,
+  useClaimStaffInvite,
+  useCreateTournament,
+  useParticipantAction,
+  useRequestJoinTournament,
+  useUpdateParticipant,
+  useUpdateTournament,
+} = await import("./use-tournament-mutations");
 
 function stubFetch(payload: unknown) {
   vi.stubGlobal(
@@ -47,7 +55,7 @@ function setup() {
   function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   }
-  return { invalidateSpy, wrapper: Wrapper };
+  return { client, invalidateSpy, wrapper: Wrapper };
 }
 
 beforeEach(() => {
@@ -134,5 +142,49 @@ describe("useClaimStaffInvite", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["tournaments", "user-1"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["tournaments", "user-1", "t-1"] });
+  });
+});
+
+describe("inline error meta", () => {
+  async function metaAfterRun(run: () => Promise<unknown>, client: QueryClient) {
+    await act(async () => {
+      await run().catch(() => null);
+    });
+    return client.getMutationCache().getAll()[0]?.options.meta;
+  }
+
+  it("marks the form and dialog mutations for inline errors", async () => {
+    currentUserId = "user-1";
+    stubFetch({});
+    const hooks: (() => { mutateAsync: (variables: never) => Promise<unknown> })[] = [
+      () => useUpdateTournament(),
+      () => useAddParticipant(),
+      () => useUpdateParticipant(),
+      () => useAddTournamentStaff(),
+      () => useCreateTournament(),
+      () => useRequestJoinTournament(),
+      () => useClaimStaffInvite(),
+    ];
+    for (const hook of hooks) {
+      const { client, wrapper } = setup();
+      const { result } = renderHook(hook, { wrapper });
+      const meta = await metaAfterRun(
+        () => (result.current.mutateAsync as (v: unknown) => Promise<unknown>)({ id: "t-1" }),
+        client,
+      );
+      expect(meta).toEqual({ inlineError: true });
+    }
+  });
+
+  it("leaves page-button participant actions on the toast", async () => {
+    currentUserId = "user-1";
+    stubFetch({});
+    const { client, wrapper } = setup();
+    const { result } = renderHook(() => useParticipantAction(), { wrapper });
+    const meta = await metaAfterRun(
+      () => result.current.mutateAsync({ id: "t-1", participantId: "p-1", action: "drop" }),
+      client,
+    );
+    expect(meta).toEqual({ inlineError: false });
   });
 });

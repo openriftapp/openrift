@@ -22,7 +22,6 @@ import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-querie
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useLanguages } from "@/features/admin/hooks/use-languages";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { printingFormDefaults } from "@/features/cards/lib/printing-form-defaults";
@@ -30,6 +29,7 @@ import { CardTextInput } from "@/features/contribute/components/card-text-input"
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
+import { parseIntegerInput } from "@/lib/integer-input";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/cards_/$cardSlug_/printings/create");
 

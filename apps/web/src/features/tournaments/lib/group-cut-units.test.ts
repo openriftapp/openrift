@@ -10,7 +10,7 @@ import {
   groupUnits,
   isCrossGroupPod,
   isDoubleForfeitPod,
-  isResultlessPod,
+  podHasNoResult,
   podForDisplay,
   isWalkoverPod,
   podScoreLine,
@@ -200,12 +200,21 @@ describe("double forfeit by pod size", () => {
   });
 
   it("treats a 3 or 4 player pod on one placement without games as having no result", () => {
-    expect(isResultlessPod(unplayedPod(3))).toBe(true);
-    expect(isResultlessPod(unplayedPod(4))).toBe(true);
-    expect(isResultlessPod(unplayedPod(2))).toBe(false);
+    expect(podHasNoResult(unplayedPod(3))).toBe(true);
+    expect(podHasNoResult(unplayedPod(4))).toBe(true);
+    expect(podHasNoResult(unplayedPod(2))).toBe(false);
     expect(podScoreLine(unplayedPod(2))).toBe("P1 and P2 both forfeited");
     expect(podScoreLine(unplayedPod(3))).toBe("P1 vs P2");
     expect(podScoreLine(unplayedPod(4))).toBe("P1 vs P2");
+  });
+
+  it("treats a pending 3 player pod as having no result, like the API", () => {
+    const pending = makePod("x", 1, [
+      makeMember("p1", { placement: null, gamePoints: null }),
+      makeMember("p2", { placement: null, gamePoints: null }),
+      makeMember("p3", { placement: null, gamePoints: null }),
+    ]);
+    expect(podHasNoResult(pending)).toBe(true);
   });
 });
 

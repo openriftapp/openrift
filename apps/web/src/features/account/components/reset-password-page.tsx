@@ -145,8 +145,8 @@ export function ResetPasswordPage() {
                 />
               </Field>
               <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? m.auth_reset_sending() : m.auth_reset_send_code()}
+                <Button pending={loading} type="submit" className="w-full" disabled={loading}>
+                  {m.auth_reset_send_code()}
                 </Button>
               </Field>
             </FieldGroup>
@@ -188,19 +188,21 @@ export function ResetPasswordPage() {
               </Field>
               <Field>
                 <Button
+                  pending={loading}
                   type="submit"
                   className="w-full"
                   disabled={otp.length < OTP_LENGTH || !newPassword || loading}
                 >
-                  {loading ? m.auth_reset_resetting() : m.auth_reset_submit()}
+                  {m.auth_reset_submit()}
                 </Button>
                 <Button
+                  pending={resending}
                   type="button"
                   variant="link-muted"
                   disabled={resending}
                   onClick={() => void handleResend()}
                 >
-                  {resending ? m.auth_reset_sending() : m.auth_reset_resend()}
+                  {m.auth_reset_resend()}
                 </Button>
                 <p className="text-muted-foreground text-sm">{m.auth_reset_spam_hint()}</p>
               </Field>

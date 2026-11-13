@@ -288,7 +288,7 @@ export function SourceUploadDialog({
             pending={upload.isPending}
             onClick={handleUpload}
           >
-            {upload.isPending ? "Uploading…" : "Upload"}
+            Upload
           </Button>
 
           {upload.isSuccess && <UploadSummary data={upload.data} />}

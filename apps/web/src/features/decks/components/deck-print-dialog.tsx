@@ -536,7 +536,7 @@ function RegistrationPrintPanel({
         disabled={cards.length === 0}
       >
         <FileTextIcon className="size-4" />
-        {generating ? m.decks_dialog_print_generating() : m.decks_dialog_print_download_pdf()}
+        {m.decks_dialog_print_download_pdf()}
       </Button>
     </div>
   );
@@ -608,7 +608,7 @@ function DeckSheetPrintPanel({
       )}
       <Button className="self-start" onClick={() => void handleDownload()} pending={downloading}>
         <PrinterIcon className="size-4" />
-        {downloading ? m.decks_dialog_print_preparing() : m.decks_dialog_print_download_pdf()}
+        {m.decks_dialog_print_download_pdf()}
       </Button>
     </div>
   );

@@ -3,8 +3,9 @@ import { Link } from "@tanstack/react-router";
 import { SettingsIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { PageTopBarButton } from "@/components/layout/page-top-bar";
+import type { TopBarCrumb } from "@/components/layout/top-bar-breadcrumb";
 import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
-import { buttonVariants } from "@/components/ui/button";
 import { TournamentHero } from "@/features/tournaments/components/tournament-hero";
 import { useTournamentDetail } from "@/features/tournaments/hooks/use-tournaments";
 import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
@@ -36,6 +37,46 @@ function tournamentSectionLabels(): Record<TournamentSection, string> {
   };
 }
 
+export function TournamentBreadcrumbBar({
+  id,
+  trail = [],
+  title,
+  actions,
+  children,
+}: {
+  id: string;
+  trail?: TopBarCrumb[];
+  title?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
+  const { data } = useTournamentDetail(id);
+  const atTournament = title === undefined && trail.length === 0;
+
+  return (
+    <TopBarBreadcrumbBar
+      segments={[
+        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
+        atTournament
+          ? { label: data.name }
+          : { label: data.name, link: <Link to="/tournaments/$id" params={{ id }} /> },
+        ...trail,
+      ]}
+      title={title}
+      actions={actions}
+    >
+      {children}
+    </TopBarBreadcrumbBar>
+  );
+}
+
+export function tournamentDecksCrumb(id: string): TopBarCrumb {
+  return {
+    label: m.nav_decks(),
+    link: <Link to="/tournaments/$id/decks" params={{ id }} />,
+  };
+}
+
 /**
  * The overview has no title in its bar: the hero below is the title row, so
  * the bar keeps only the breadcrumb trail and the organizers' Settings shortcut.
@@ -52,21 +93,14 @@ export function TournamentOverviewFrame({
 
   return (
     <>
-      <TopBarBreadcrumbBar
-        segments={[
-          { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-          { label: data.name },
-        ]}
+      <TournamentBreadcrumbBar
+        id={id}
         actions={
           manage ? (
-            <Link
-              to="/tournaments/$id/settings"
-              params={{ id }}
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              <SettingsIcon className="size-4" />
+            <PageTopBarButton render={<Link to="/tournaments/$id/settings" params={{ id }} />}>
+              <SettingsIcon />
               {m.tournaments_section_settings()}
-            </Link>
+            </PageTopBarButton>
           ) : undefined
         }
       />
@@ -92,17 +126,10 @@ export function TournamentSectionFrame({
   const { data } = useTournamentDetail(id);
 
   return (
-    <TopBarBreadcrumbBar
-      segments={[
-        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-        { label: data.name, link: <Link to="/tournaments/$id" params={{ id }} /> },
-      ]}
-      title={tournamentSectionLabels()[section]}
-      actions={actions}
-    >
+    <TournamentBreadcrumbBar id={id} title={tournamentSectionLabels()[section]} actions={actions}>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         {render(data)}
       </div>
-    </TopBarBreadcrumbBar>
+    </TournamentBreadcrumbBar>
   );
 }

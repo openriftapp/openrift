@@ -20,8 +20,15 @@ export class InvalidGroupCountError extends Error {
 }
 
 /** Valid counts are 4n (n >= 2) and 4n + 2 (n >= 1): every even count from 6 up. */
+export function groupCountProblem(count: number): "too_few" | "odd" | null {
+  if (!Number.isInteger(count) || count < MIN_PLAYERS) {
+    return "too_few";
+  }
+  return count % 2 === 0 ? null : "odd";
+}
+
 export function validateGroupCount(count: number): void {
-  if (!Number.isInteger(count) || count < MIN_PLAYERS || count % 2 !== 0) {
+  if (groupCountProblem(count) !== null) {
     throw new InvalidGroupCountError(count);
   }
 }

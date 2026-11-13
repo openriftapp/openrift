@@ -15,7 +15,7 @@ vi.mock("@/features/collections/hooks/use-collections", () => ({
   useCollections: () => ({ data: [] }),
 }));
 
-vi.mock("@/features/cards/components/card-fan", () => ({
+vi.mock("@/components/card-fan", () => ({
   CardFan: () => <div data-testid="card-fan" />,
   CardFanOutline: () => <div data-testid="card-fan-outline" />,
 }));

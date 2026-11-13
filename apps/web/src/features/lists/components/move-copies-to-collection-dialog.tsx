@@ -115,7 +115,6 @@ export function MoveCopiesToCollectionDialog({
                   ? m.lists_move_to_collection_none()
                   : m.lists_move_to_collection_confirm({ count });
               },
-              pendingLabel: m.collections_dialog_move_pending(),
               disabledFor: (selected: string) => !isReady || toMoveInto(selected).length === 0,
               onConfirm: handleMove,
             },

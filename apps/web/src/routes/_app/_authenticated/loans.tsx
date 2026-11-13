@@ -2,12 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/loans")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Lending", noIndex: true }),
+  head: () => privateSeoHead("Lending"),
   loader: async ({ context }) => {
     await context.queryClient.query({ ...loansQueryOptions(context.userId), staleTime: "static" });
   },

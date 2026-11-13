@@ -8,13 +8,14 @@ import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { CardFan, CardFanOutline } from "@/components/card-fan";
 import { CoverBand } from "@/components/cover-band";
+import { EmptyState } from "@/components/empty-state";
 import { Heading } from "@/components/heading";
 import { PageHero, PageHeroCardFan } from "@/components/layout/page-hero";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
-import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { ProductAddDialog } from "@/features/cards/components/product-add-dialog";
 import { useProductsList } from "@/features/cards/hooks/use-products";
 import { groupProductsBySet } from "@/features/cards/lib/group-products-by-set";
@@ -81,15 +82,11 @@ function ProductTile({
 
 function ProductsEmptyState() {
   return (
-    <div className="flex flex-col items-center gap-1.5 pt-10 pb-6 text-center">
-      <div aria-hidden="true" className="relative h-32 w-64 overflow-hidden">
-        <CardFanOutline />
-      </div>
-      <Heading className="mt-2">{m.products_empty_title()}</Heading>
-      <Link to="/contribute" className={buttonVariants({ className: "mt-3" })}>
+    <EmptyState title={m.products_empty_title()}>
+      <Link to="/contribute" className={buttonVariants()}>
         {m.products_empty_cta()}
       </Link>
-    </div>
+    </EmptyState>
   );
 }
 

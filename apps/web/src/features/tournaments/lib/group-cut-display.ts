@@ -1,5 +1,6 @@
 import { CUT_SIZES, GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { CutSize } from "@openrift/shared/pairing/group-cut-types";
+import { groupCountProblem } from "@openrift/shared/pairing/group-stage";
 import type {
   GroupCutTierView,
   GroupQualificationRowView,
@@ -39,13 +40,23 @@ export interface GroupCountCheck {
 }
 
 export function checkGroupPlayerCount(activeCount: number): GroupCountCheck {
-  if (activeCount < 6) {
+  const problem = groupCountProblem(activeCount);
+  if (problem === "too_few") {
     return { valid: false, message: m.tournaments_lib_group_count_min() };
   }
-  if (activeCount % 2 === 1) {
+  if (problem === "odd") {
     return { valid: false, message: m.tournaments_lib_group_count_even() };
   }
   return { valid: true, message: null };
+}
+
+export function cutStageIndex(
+  cutSize: CutSize,
+  roundNumber: number,
+  stageCount: number,
+): number | null {
+  const index = stageCount - Math.log2(cutSize) + roundNumber - GROUP_STAGE_ROUNDS - 1;
+  return roundNumber > GROUP_STAGE_ROUNDS && index >= 0 && index < stageCount ? index : null;
 }
 
 /** Ordered from the first cut round to the final, sized for the cut. */
@@ -55,8 +66,10 @@ export function cutRoundLabels(cutSize: CutSize): string[] {
 
 /** `roundNumber` is the tournament round; the group stage owns 1 to 3. */
 export function cutRoundLabel(cutSize: CutSize, roundNumber: number): string {
+  const labels = cutRoundLabels(cutSize);
+  const index = cutStageIndex(cutSize, roundNumber, labels.length);
   return (
-    cutRoundLabels(cutSize)[roundNumber - GROUP_STAGE_ROUNDS - 1] ??
+    (index === null ? undefined : labels[index]) ??
     m.tournaments_round_band_round({ number: roundNumber })
   );
 }
@@ -68,8 +81,9 @@ export function cutRoundGenerateLabel(cutSize: CutSize, roundNumber: number): st
     m.tournaments_cut_generate_semi(),
     m.tournaments_cut_generate_final(),
   ];
+  const index = cutStageIndex(cutSize, roundNumber, all.length);
   return (
-    all.slice(all.length - Math.log2(cutSize))[roundNumber - GROUP_STAGE_ROUNDS - 1] ??
+    (index === null ? undefined : all[index]) ??
     m.tournaments_cut_generate_round_number({ number: roundNumber })
   );
 }

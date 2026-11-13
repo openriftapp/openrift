@@ -299,7 +299,7 @@ export function ManageDeckFoldersDialog({
                   onChange={(event) => setNewName(event.target.value)}
                   placeholder={m.decks_dialog_folders_new_placeholder()}
                 />
-                <Button type="submit" disabled={newName.trim() === "" || create.isPending}>
+                <Button type="submit" disabled={newName.trim() === ""} pending={create.isPending}>
                   {m.common_create()}
                 </Button>
               </div>

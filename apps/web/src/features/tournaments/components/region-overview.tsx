@@ -14,10 +14,6 @@ function barWidth(avgScore: number, topAvgScore: number): string {
   return `${Math.max(0, (avgScore / topAvgScore) * 100)}%`;
 }
 
-/**
- * The region leaderboard: regions ranked by average points, as bars against
- * the leading region. Renders nothing while no player has a region yet.
- */
 function RegionName({ region }: { region: string }) {
   const regionLabel = useRegionLabel();
   return <span className="truncate font-medium">{regionLabel(region)}</span>;

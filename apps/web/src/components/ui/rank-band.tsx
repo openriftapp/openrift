@@ -8,8 +8,10 @@ type RankBandTone = "gold" | "silver" | "bronze" | "muted" | "plain";
 
 type RankBandLayout = "chip" | "band";
 
+export const RANK_CROWN_CLASS = "text-amber-700 dark:text-amber-300";
+
 const CHIP_TONE_CLASS: Record<RankBandTone, string> = {
-  gold: "border-amber-500/60 bg-amber-500/16 text-amber-700 dark:text-amber-300",
+  gold: `border-amber-500/60 bg-amber-500/16 ${RANK_CROWN_CLASS}`,
   silver: "border-zinc-400/60 bg-zinc-400/16 text-zinc-700 dark:text-zinc-200",
   bronze: "border-amber-700/60 bg-amber-700/16 text-amber-800 dark:text-orange-300",
   muted: "border-border bg-muted text-muted-foreground",
@@ -59,6 +61,10 @@ export function rankBandTone(rank: number, filled: boolean): RankBandTone {
     return "bronze";
   }
   return filled ? "muted" : "plain";
+}
+
+export function rankChipToneClass(rank: number): string {
+  return CHIP_TONE_CLASS[rankBandTone(rank, true)];
 }
 
 export function rankBandRingClass(tone: RankBandTone): string {

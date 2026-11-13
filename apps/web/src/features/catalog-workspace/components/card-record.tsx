@@ -212,7 +212,6 @@ function CardMenu({
         title={`Delete card "${card.name}"?`}
         description="This deletes the card and all its printings. This cannot be undone."
         confirmLabel="Delete card"
-        pendingLabel="Deleting…"
         destructive
         isPending={deleteCard.isPending}
         onConfirm={() =>

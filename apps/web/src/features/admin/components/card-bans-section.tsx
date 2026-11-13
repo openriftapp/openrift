@@ -143,7 +143,6 @@ export function CardBansSection({ cardId }: { cardId: string }) {
         title={`Lift the ${removing?.formatName ?? ""} ban?`}
         description="The card counts as legal in that format again as soon as this is removed."
         confirmLabel="Remove ban"
-        pendingLabel="Removing…"
         isPending={removeBan.isPending}
         onConfirm={confirmRemove}
       />

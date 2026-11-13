@@ -19,6 +19,9 @@ export function thrownMessage(thrown: unknown): string {
     const { message } = thrown as { message?: unknown };
     return typeof message === "string" ? message : "";
   }
+  if (typeof thrown === "number") {
+    return String(thrown);
+  }
   return typeof thrown === "string" ? thrown : "";
 }
 

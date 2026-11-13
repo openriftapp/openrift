@@ -1,7 +1,5 @@
-import type {
-  PodReportResponse,
-  PodTournamentStatus,
-} from "@openrift/shared/types/api/pod-tournament";
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
+import type { PodReportResponse } from "@openrift/shared/types/api/pod-tournament";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
@@ -9,17 +7,9 @@ import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layo
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTournamentReport } from "@/features/tournaments/hooks/use-tournament-run";
+import { effectiveStateLabels } from "@/features/tournaments/lib/tournament-display";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-function statusLabels(): Record<PodTournamentStatus, string> {
-  return {
-    setup: m.tournaments_report_status_setup(),
-    running: m.tournaments_lib_state_in_progress(),
-    completed: m.tournaments_lib_state_completed(),
-    cancelled: m.tournaments_lib_state_cancelled(),
-  };
-}
 
 export type ReportTab = "rounds" | "standings";
 
@@ -63,12 +53,16 @@ export function TournamentReportFrame({
         <PageTopBar>
           <PageTopBarTitle>{data.tournamentName}</PageTopBarTitle>
           <Badge variant="secondary" className="shrink-0">
-            {statusLabels()[data.status]}
+            {
+              effectiveStateLabels()[
+                effectiveTournamentState(data.startsAt, data.endsAt, data.status)
+              ]
+            }
           </Badge>
           {live ? (
             <Badge variant="success" className="shrink-0" title={m.tournaments_report_live_title()}>
               <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-current" />
-              {m.tournaments_hero_live()}
+              {m.tournaments_report_live()}
             </Badge>
           ) : null}
         </PageTopBar>

@@ -1,20 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { canCheckDecks } from "@/features/tournaments/lib/tournament-display";
+import { canOpenDeckCheck } from "@/features/tournaments/lib/tournament-display";
 import {
   loadTournamentDetail,
   redirectToTournamentOverview,
 } from "@/features/tournaments/lib/tournament-route-guards";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/decks")({
   ssr: "data-only",
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Deck check", noIndex: true }),
+  head: () => privateSeoHead("Deck check"),
   loader: async ({ context, params }) => {
     const detail = await loadTournamentDetail(context.queryClient, context.userId, params.id);
-    if (!(detail.deckSubmission !== "none" && canCheckDecks(detail.myRoles))) {
+    if (!canOpenDeckCheck(detail)) {
       redirectToTournamentOverview(params.id);
     }
   },

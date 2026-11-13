@@ -6,11 +6,10 @@ import {
   ADMIN_SECTION_ROUTES,
   adminSectionsForPathname,
 } from "@/features/admin/lib/admin-sections";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin")({
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Admin", noIndex: true }),
+  head: () => privateSeoHead("Admin"),
   ssr: false,
   staticData: { hideFooter: true },
   errorComponent: RouteErrorFallback,

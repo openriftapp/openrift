@@ -5,18 +5,12 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { lenient } from "@/lib/lenient-param";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/stage_/source/$token")({
   // Outside `_app` on purpose: this is the OBS browser source, so it carries no
   // header, footer or background. The token in the path is the only guard, so it's noindexed.
-  head: () =>
-    seoHead({
-      siteUrl: getSiteUrl(),
-      title: "Stage source",
-      noIndex: true,
-    }),
+  head: () => privateSeoHead("Stage source"),
   // Falls back to undefined on a bad value: a browser source is added once and left
   // alone for months, and a typo in the URL must not break it.
   validateSearch: z.object({

@@ -2,11 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
-import { seoHead } from "@/lib/seo";
-import { getSiteUrl } from "@/lib/site-config";
+import { privateSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/profile")({
-  head: () => seoHead({ siteUrl: getSiteUrl(), title: "Profile", noIndex: true }),
+  head: () => privateSeoHead("Profile"),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.query({

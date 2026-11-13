@@ -1,0 +1,9 @@
+import { createLazyFileRoute } from "@tanstack/react-router";
+
+import { ContributePrintingCorrectionPage } from "@/features/contribute/components/contribute-printing-correction-page";
+
+export const Route = createLazyFileRoute(
+  "/_app/_authenticated/contribute_/card_/$cardSlug_/printing_/$printingId",
+)({
+  component: ContributePrintingCorrectionPage,
+});

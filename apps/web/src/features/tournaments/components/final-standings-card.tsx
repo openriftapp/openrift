@@ -18,14 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
-import {
-  exitLabel,
-  finalStandingsSeats,
-} from "@/features/tournaments/components/final-standings-display";
-import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { exitLabel, finalStandingsSeats } from "@/features/tournaments/components/podium-seats";
 import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
+import { SeedBadge, StandingsIdentity } from "@/features/tournaments/components/standings-table";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
+import { standingsRowClass } from "@/features/tournaments/lib/standings-display";
 import { m } from "@/paraglide/messages.js";
 
 import { TournamentLegend } from "./tournament-legend";
@@ -47,13 +45,20 @@ export function FinalStandingsCard({
   cutSize,
   rounds,
   legendByPlayer,
+  standings,
 }: {
   rows: FinalStandingRow[];
   cutSize: CutSize;
   rounds: PodRoundResponse[];
   legendByPlayer: ReadonlyMap<string, PlayerLegend>;
+  standings: readonly PodStandingRow[];
 }) {
-  const showLegend = rows.some((row) => legendByPlayer.get(row.playerId)?.legendName);
+  const showLegend = rows.some((row) => {
+    const legend = legendByPlayer.get(row.playerId);
+    return legend !== undefined && (legend.legendCardId !== null || legend.legendName !== null);
+  });
+  const standingByPlayer = new Map(standings.map((row) => [row.playerId, row]));
+  const dropped = (playerId: string) => standingByPlayer.get(playerId)?.status === "dropped";
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -63,30 +68,29 @@ export function FinalStandingsCard({
         </p>
       </div>
       <RowList variant="divided" className="sm:hidden">
-        {rows.map((row) => {
-          const legend = legendByPlayer.get(row.playerId);
-          return (
-            <RowListItem key={row.playerId}>
-              <StandingsRankCell rank={row.place} />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <PlayerChip name={row.displayName} />
-                {legend?.legendName ? (
-                  <TournamentLegend
-                    legendCardId={legend.legendCardId}
-                    fallback={legend}
-                    className="text-sm"
-                  />
-                ) : null}
-                <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
-                  <span>{exitLabel(row, cutSize)}</span>
-                  {row.seed === null ? null : <span className="tabular-nums">#{row.seed}</span>}
-                  <Badge variant="neutral">{row.groupLabel}</Badge>
-                </div>
-                <MetaRunStrip rounds={playerRunRounds(rounds, row.playerId, true)} />
+        {rows.map((row) => (
+          <RowListItem
+            key={row.playerId}
+            className={standingsRowClass({
+              dropped: dropped(row.playerId),
+              leader: row.place === 1,
+            })}
+          >
+            <StandingsRankCell rank={row.place} />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <StandingsIdentity
+                name={row.displayName}
+                avatar={standingByPlayer.get(row.playerId)}
+                dropped={dropped(row.playerId)}
+              />
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
+                <span>{exitLabel(row, cutSize)}</span>
+                <SeedBadge seed={row.seed} />
+                <Badge variant="neutral">{row.groupLabel}</Badge>
               </div>
-            </RowListItem>
-          );
-        })}
+            </div>
+          </RowListItem>
+        ))}
       </RowList>
       <div className="hidden sm:block">
         <Table>
@@ -106,12 +110,22 @@ export function FinalStandingsCard({
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.playerId}>
+              <TableRow
+                key={row.playerId}
+                className={standingsRowClass({
+                  dropped: dropped(row.playerId),
+                  leader: row.place === 1,
+                })}
+              >
                 <TableCell>
                   <StandingsRankCell rank={row.place} />
                 </TableCell>
                 <TableCell>
-                  <PlayerChip name={row.displayName} />
+                  <StandingsIdentity
+                    name={row.displayName}
+                    avatar={standingByPlayer.get(row.playerId)}
+                    dropped={dropped(row.playerId)}
+                  />
                 </TableCell>
                 {showLegend ? (
                   <TableCell>
@@ -126,8 +140,8 @@ export function FinalStandingsCard({
                   <MetaRunStrip rounds={playerRunRounds(rounds, row.playerId, true)} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">{exitLabel(row, cutSize)}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {row.seed === null ? "" : `#${row.seed}`}
+                <TableCell className="text-right">
+                  <SeedBadge seed={row.seed} />
                 </TableCell>
                 <TableCell>
                   <Badge variant="neutral">{row.groupLabel}</Badge>

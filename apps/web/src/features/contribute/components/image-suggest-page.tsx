@@ -13,7 +13,9 @@ import { ImageSuggestForm } from "@/features/contribute/components/image-suggest
 import { useEnumOrders } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
-const routeApi = getRouteApi("/_app/contribute_/card_/$cardSlug_/printing_/$printingId_/image");
+const routeApi = getRouteApi(
+  "/_app/_authenticated/contribute_/card_/$cardSlug_/printing_/$printingId_/image",
+);
 
 export function ImageSuggestPage() {
   const { cardSlug, printingId } = routeApi.useParams();

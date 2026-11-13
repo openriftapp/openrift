@@ -1,4 +1,4 @@
-import type { DisplayLocale, Theme } from "@openrift/shared/types/api/preferences";
+import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 import { DISPLAY_LOCALES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useMatch, useRouter } from "@tanstack/react-router";
@@ -23,6 +23,7 @@ import {
   badgeAriaLabel,
   keepsSearch,
   SignInRequiredDialog,
+  useNavFlags,
   splitTabletNav,
   visibleMoreSections,
   visiblePrimaryItems,
@@ -53,9 +54,9 @@ import {
 } from "@/components/ui/navigation-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
+import { themeLabels } from "@/features/account/lib/theme-labels";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useBadges } from "@/features/groups/hooks/use-badges";
-import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useGravatarHash } from "@/hooks/use-gravatar-hash";
 import { useSession } from "@/hooks/use-session";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
@@ -68,12 +69,6 @@ import { getLocale } from "@/paraglide/runtime.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { leaveAsSignedOut, loadClientStateReset } from "@/stores/leave-as-signed-out";
 import { useThemeStore } from "@/stores/theme-store";
-
-const THEME_LABELS: Record<Theme, () => string> = {
-  auto: m.profile_display_theme_auto,
-  light: m.profile_display_theme_light,
-  dark: m.profile_display_theme_dark,
-};
 
 function LogoLink({ className }: { className?: string }) {
   const isHome = useMatch({ from: "/_app/cards", shouldThrow: false });
@@ -422,9 +417,7 @@ export function UserMenuItems({
       <DropdownMenuItem closeOnClick={false} onClick={toggleTheme}>
         {darkMode ? <MoonIcon className="size-4" /> : <SunIcon className="size-4" />}
         {m.profile_display_theme()}
-        <span className="text-muted-foreground ml-auto pl-4">
-          {THEME_LABELS[themePreference]()}
-        </span>
+        <span className="text-muted-foreground ml-auto pl-4">{themeLabels()[themePreference]}</span>
       </DropdownMenuItem>
       {isLoggedIn && <DropdownMenuSeparator />}
       {isLoggedIn && (
@@ -523,16 +516,9 @@ function HeaderSearchButton() {
 
 export function Header() {
   const { data: session, isPending } = useSession();
-  const glossaryEnabled = useFeatureEnabled("glossary");
-  const boardStatesEnabled = useFeatureEnabled("board-states");
-  const scannerEnabled = useFeatureEnabled("scanner");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<LockedFeatureKey | null>(null);
-  const navFlags: NavFlags = {
-    glossary: glossaryEnabled,
-    "board-states": boardStatesEnabled,
-    scanner: scannerEnabled,
-  };
+  const navFlags = useNavFlags();
   const isLoggedIn = Boolean(session?.user);
   const { data: badges } = useBadges();
   const loansBadge = badges?.loans.total ?? 0;

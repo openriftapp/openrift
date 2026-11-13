@@ -145,13 +145,9 @@ export function DisposeDialog({
               type="submit"
               variant="destructive"
               disabled={confirmDisabled}
-              pending={membershipsLoading}
+              pending={membershipsLoading || isPending}
             >
-              {membershipsLoading
-                ? m.collections_dialog_dispose_checking_lists()
-                : isPending
-                  ? m.common_removing()
-                  : m.collections_dialog_dispose_confirm({ count: quantity })}
+              {m.collections_dialog_dispose_confirm({ count: quantity })}
             </Button>
           </div>
         </DialogForm>

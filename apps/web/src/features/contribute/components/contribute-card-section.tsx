@@ -1,9 +1,8 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { SettingsSection } from "@/components/layout/settings-section";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CatalogCardPicker } from "@/features/cards/components/catalog-card-picker";
@@ -86,98 +85,95 @@ export function ContributeCardSection({
         />
       </FieldRow>
 
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger
-          render={
-            <ExpandToggle expanded={open} className="text-muted-foreground hover:text-foreground">
-              {m.contribute_card_details()}
-            </ExpandToggle>
-          }
-        />
-        <CollapsibleContent className="mt-6 flex flex-col gap-4">
-          <FieldRow label={m.contribute_field_domains()} field="card.domains">
+      <Disclosure
+        variant="plain"
+        title={m.contribute_card_details()}
+        open={open}
+        onOpenChange={setOpen}
+        contentClassName="pt-6 flex flex-col gap-4"
+      >
+        <FieldRow label={m.contribute_field_domains()} field="card.domains">
+          <ToggleGroup
+            multiple
+            variant="outline"
+            spacing={0}
+            value={form.card.domains}
+            onValueChange={(next) => setCardField("domains", next)}
+          >
+            {orders.domains.map((slug) => {
+              const selected = form.card.domains.includes(slug);
+              const disabled = !selected && domainDisabled.has(slug);
+              return (
+                <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
+                  <DomainIcon domain={slug} decorative className="size-4 shrink-0" />
+                  {enumLabel(labels.domains, slug)}
+                </ToggleGroupItem>
+              );
+            })}
+          </ToggleGroup>
+        </FieldRow>
+        <FieldRow label={m.contribute_field_types()} field="card.types">
+          <ToggleGroup
+            multiple
+            variant="outline"
+            spacing={0}
+            value={form.card.types}
+            onValueChange={(next) => setCardField("types", next)}
+          >
+            {orders.cardTypes.map((slug) => (
+              <ToggleGroupItem key={slug} value={slug}>
+                {enumLabel(labels.cardTypes, slug)}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </FieldRow>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FieldRow label={m.contribute_field_supertypes()}>
             <ToggleGroup
               multiple
               variant="outline"
               spacing={0}
-              value={form.card.domains}
-              onValueChange={(next) => setCardField("domains", next)}
+              value={form.card.superTypes}
+              onValueChange={(next) => setCardField("superTypes", next)}
             >
-              {orders.domains.map((slug) => {
-                const selected = form.card.domains.includes(slug);
-                const disabled = !selected && domainDisabled.has(slug);
-                return (
-                  <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
-                    <DomainIcon domain={slug} decorative className="size-4 shrink-0" />
-                    {enumLabel(labels.domains, slug)}
-                  </ToggleGroupItem>
-                );
-              })}
-            </ToggleGroup>
-          </FieldRow>
-          <FieldRow label={m.contribute_field_types()} field="card.types">
-            <ToggleGroup
-              multiple
-              variant="outline"
-              spacing={0}
-              value={form.card.types}
-              onValueChange={(next) => setCardField("types", next)}
-            >
-              {orders.cardTypes.map((slug) => (
+              {orders.superTypes.map((slug) => (
                 <ToggleGroupItem key={slug} value={slug}>
-                  {enumLabel(labels.cardTypes, slug)}
+                  {enumLabel(labels.superTypes, slug)}
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
           </FieldRow>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FieldRow label={m.contribute_field_supertypes()}>
-              <ToggleGroup
-                multiple
-                variant="outline"
-                spacing={0}
-                value={form.card.superTypes}
-                onValueChange={(next) => setCardField("superTypes", next)}
-              >
-                {orders.superTypes.map((slug) => (
-                  <ToggleGroupItem key={slug} value={slug}>
-                    {enumLabel(labels.superTypes, slug)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </FieldRow>
-          </div>
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <FieldRow label={m.contribute_field_might()} field="card.might">
-              <NumberInput value={form.card.might} onChange={(v) => setCardField("might", v)} />
-            </FieldRow>
-            <FieldRow label={m.contribute_field_energy()} field="card.energy">
-              <NumberInput value={form.card.energy} onChange={(v) => setCardField("energy", v)} />
-            </FieldRow>
-            <FieldRow label={m.contribute_field_power()} field="card.power">
-              <NumberInput value={form.card.power} onChange={(v) => setCardField("power", v)} />
-            </FieldRow>
-            <FieldRow label={m.contribute_field_might_bonus()} field="card.mightBonus">
-              <NumberInput
-                value={form.card.mightBonus}
-                onChange={(v) => setCardField("mightBonus", v)}
-              />
-            </FieldRow>
-          </div>
-          <FieldRow
-            label={m.contribute_field_tags()}
-            hint={m.contribute_field_tags_hint()}
-            field="card.tags"
-          >
-            <ChipInput
-              value={form.card.tags}
-              onChange={(v) => setCardField("tags", v)}
-              placeholder="Poro"
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <FieldRow label={m.contribute_field_might()} field="card.might">
+            <NumberInput value={form.card.might} onChange={(v) => setCardField("might", v)} />
+          </FieldRow>
+          <FieldRow label={m.contribute_field_energy()} field="card.energy">
+            <NumberInput value={form.card.energy} onChange={(v) => setCardField("energy", v)} />
+          </FieldRow>
+          <FieldRow label={m.contribute_field_power()} field="card.power">
+            <NumberInput value={form.card.power} onChange={(v) => setCardField("power", v)} />
+          </FieldRow>
+          <FieldRow label={m.contribute_field_might_bonus()} field="card.mightBonus">
+            <NumberInput
+              value={form.card.mightBonus}
+              onChange={(v) => setCardField("mightBonus", v)}
             />
           </FieldRow>
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
+        <FieldRow
+          label={m.contribute_field_tags()}
+          hint={m.contribute_field_tags_hint()}
+          field="card.tags"
+        >
+          <ChipInput
+            value={form.card.tags}
+            onChange={(v) => setCardField("tags", v)}
+            placeholder="Poro"
+          />
+        </FieldRow>
+      </Disclosure>
     </SettingsSection>
   );
 }

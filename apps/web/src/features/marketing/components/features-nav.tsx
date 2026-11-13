@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
 import type { FeatureChapter } from "@/features/marketing/lib/features-chapters";
 import { chapterAnchor } from "@/features/marketing/lib/features-chapters";
+import { prefersReducedMotion } from "@/lib/media-query";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -84,7 +85,7 @@ export function smoothAnchorClick(event: MouseEvent<HTMLAnchorElement>) {
   }
   event.preventDefault();
   history.pushState(null, "", hash);
-  if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (prefersReducedMotion()) {
     jumpScrollTo(target);
     return;
   }

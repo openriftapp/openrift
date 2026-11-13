@@ -12,10 +12,10 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
-import { parseIntegerFields, parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
+import { parseIntegerFields, parseIntegerInput } from "@/lib/integer-input";
 
 type NumField = "might" | "energy" | "power" | "mightBonus";
 

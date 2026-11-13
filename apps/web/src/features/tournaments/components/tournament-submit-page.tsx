@@ -4,16 +4,18 @@ import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { SignedOutAuthButtons } from "@/components/signed-out-cta";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerSubmitDeckSection } from "@/features/tournaments/components/player-submit-page";
+import { SaveError } from "@/features/tournaments/components/save-error";
+import {
+  TokenLandingCard,
+  TokenLandingPage,
+} from "@/features/tournaments/components/token-landing-card";
 import { useRequestJoinTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentSubmitLanding } from "@/features/tournaments/hooks/use-tournaments";
 import { useUserId } from "@/hooks/use-session";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function SignedOutJoinState({ data }: { data: PublicTournamentLandingResponse }) {
@@ -98,51 +100,44 @@ export function TournamentSubmitPage({ token }: { token: string }) {
     Boolean(userId) && data.deckExpected && (data.selfRegistrationOpen || data.viewerIsParticipant);
 
   return (
-    <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.tournaments_submit_title()}</PageTopBarTitle>
-        </PageTopBar>
-      </PageTopBarSticky>
-      <div className={cn("flex flex-col gap-6 pt-3", PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{data.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-muted-foreground">
-              {m.tournaments_submit_hosted_by({ host: data.hostDisplayName })}
-            </p>
-            {data.deckExpected && canSubmitDeck ? (
-              <p className="text-muted-foreground text-sm">
-                {data.selfRegistrationOpen
-                  ? m.tournaments_submit_deck_expected_register()
-                  : m.tournaments_submit_deck_below()}
-              </p>
-            ) : null}
-            {userId ? (
-              <>
-                <SignedInJoinState
-                  data={data}
-                  joined={joined}
-                  pending={requestJoin.isPending}
-                  onJoin={() => void handleJoin()}
-                />
-                <Link
-                  to="/tournaments"
-                  className={buttonVariants({ variant: "ghost", className: "w-fit" })}
-                >
-                  {m.tournaments_staff_invite_go_to_tournaments()}
-                </Link>
-              </>
-            ) : (
-              <SignedOutJoinState data={data} />
-            )}
-          </CardContent>
-        </Card>
+    <TokenLandingPage pageTitle={m.tournaments_submit_title()}>
+      <TokenLandingCard
+        title={data.name}
+        meta={
+          <p className="text-muted-foreground">
+            {m.tournaments_submit_hosted_by({ host: data.hostDisplayName })}
+          </p>
+        }
+      >
+        {data.deckExpected && canSubmitDeck ? (
+          <p className="text-muted-foreground text-sm">
+            {data.selfRegistrationOpen
+              ? m.tournaments_submit_deck_expected_register()
+              : m.tournaments_submit_deck_below()}
+          </p>
+        ) : null}
+        {userId ? (
+          <>
+            <SignedInJoinState
+              data={data}
+              joined={joined}
+              pending={requestJoin.isPending}
+              onJoin={() => void handleJoin()}
+            />
+            <SaveError error={requestJoin.error} />
+            <Link
+              to="/tournaments"
+              className={buttonVariants({ variant: "ghost", className: "w-fit" })}
+            >
+              {m.tournaments_staff_invite_go_to_tournaments()}
+            </Link>
+          </>
+        ) : (
+          <SignedOutJoinState data={data} />
+        )}
+      </TokenLandingCard>
 
-        {canSubmitDeck ? <PlayerSubmitDeckSection token={token} /> : null}
-      </div>
-    </>
+      {canSubmitDeck ? <PlayerSubmitDeckSection token={token} /> : null}
+    </TokenLandingPage>
   );
 }

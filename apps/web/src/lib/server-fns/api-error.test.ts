@@ -1,4 +1,5 @@
 import { ORPCError } from "@orpc/client";
+import { isNotFound } from "@tanstack/react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -10,6 +11,7 @@ import {
   isSessionExpiredError,
   isNotFoundSentinel,
   notFoundError,
+  notFoundOnSentinel,
   orNotFound,
 } from "./api-error";
 
@@ -98,6 +100,36 @@ describe("orNotFound", () => {
     const error = new ORPCError("FORBIDDEN", { defined: true });
 
     await expect(orNotFound(Promise.reject(error))).rejects.toBe(error);
+  });
+});
+
+describe("notFoundOnSentinel", () => {
+  it("resolves the value of a query that succeeds", async () => {
+    await expect(notFoundOnSentinel(Promise.resolve({ id: "card-1" }))).resolves.toEqual({
+      id: "card-1",
+    });
+  });
+
+  it("turns the sentinel into the router's not-found, so the page renders as a 404", async () => {
+    const thrown = await notFoundOnSentinel(Promise.reject(notFoundError())).catch(
+      (error: unknown) => error,
+    );
+
+    expect(isNotFound(thrown)).toBe(true);
+  });
+
+  it("matches the sentinel after the server-function boundary dropped its status", async () => {
+    const thrown = await notFoundOnSentinel(Promise.reject(new Error("NOT_FOUND"))).catch(
+      (error: unknown) => error,
+    );
+
+    expect(isNotFound(thrown)).toBe(true);
+  });
+
+  it("passes any other failure through unchanged", async () => {
+    const failure = new Error("Boom");
+
+    await expect(notFoundOnSentinel(Promise.reject(failure))).rejects.toBe(failure);
   });
 });
 

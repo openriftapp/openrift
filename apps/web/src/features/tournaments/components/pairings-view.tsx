@@ -29,17 +29,13 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { snapshotToPlayers } from "@/features/tournaments/lib/pod-pairing-editor";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
 import { isAllMatchRound } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
-import { snapshotToPlayers } from "./pairing-warnings";
 import { PodCard } from "./pod-card";
-
-interface PodResultEntry {
-  playerId: string;
-  gamePoints: number;
-}
 
 interface PairingsViewProps {
   rounds: PodRoundResponse[];
@@ -54,8 +50,8 @@ interface PairingsViewProps {
   snapshot?: PodSnapshotPlayer[] | null;
   warningsExpanded?: boolean;
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<void>;
-  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
+  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
   renderRoundActions?: (round: PodRoundResponse) => ReactNode;
   emptyMessage: string;
   emptyDescription?: string;
@@ -354,7 +350,9 @@ function ByesSection({
                 ) : null}
               </PlayerChip>
               <span className="font-semibold tabular-nums">
-                {byePoints > 0 ? `+${byePoints} bye` : "sat out · 0"}
+                {byePoints > 0
+                  ? m.tournaments_pairings_bye_points({ points: byePoints })
+                  : m.tournaments_pairings_bye_sat_out()}
               </span>
             </RowListItem>
           );

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, CameraIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { CardFanOutline } from "@/components/card-fan";
 import { PAGE_HERO_EYEBROW_CLASS, PageHero } from "@/components/layout/page-hero";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -46,21 +47,14 @@ export function ContributeHero({
 }
 
 function HeroCardFan() {
-  const sideCardClass =
-    "aspect-card absolute bottom-0 left-1/2 w-32 origin-bottom -translate-x-1/2 rounded-md border border-dashed bg-card/60";
   return (
     <div className="relative hidden h-56 w-72 shrink-0 md:block" aria-hidden="true">
-      <span className={cn(sideCardClass, "-rotate-12")} />
-      <span className={cn(sideCardClass, "rotate-12")} />
-      <span
-        className={cn(
-          sideCardClass,
-          "border-muted-foreground/40 bg-card text-muted-foreground flex flex-col items-center justify-center gap-2",
-        )}
-      >
-        <CameraIcon className="size-5" />
-        <span className="text-xs">{m.contribute_hero_photo_placeholder()}</span>
-      </span>
+      <CardFanOutline
+        size="lg"
+        anchor="flush"
+        icon={CameraIcon}
+        caption={m.contribute_hero_photo_placeholder()}
+      />
     </div>
   );
 }

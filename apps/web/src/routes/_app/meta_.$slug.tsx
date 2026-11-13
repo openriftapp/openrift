@@ -1,6 +1,6 @@
 import { pluralize } from "@openrift/shared/strings";
 import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import {
 } from "@/features/meta/lib/meta-standings-search";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -48,32 +48,29 @@ export const Route = createFileRoute("/_app/meta_/$slug")({
   // Returns the event alone: loader data is dehydrated beside the query cache,
   // and returning the whole response would ship the standings twice.
   loader: async ({ context, params, deps, location }): Promise<MetaEventDetail> => {
-    try {
-      const [, detail] = await Promise.all([
+    const [, detail] = await notFoundOnSentinel(
+      Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
         context.queryClient.query({ ...metaEventQueryOptions(params.slug), staleTime: "static" }),
-      ]);
-      const total = detail.standings.total;
-      const unnarrowed = metaStandingsQueryOptions(params.slug, standingsPageQuery({}, total));
-      if (context.queryClient.getQueryData(unnarrowed.queryKey) === undefined) {
-        context.queryClient.setQueryData(unnarrowed.queryKey, detail.standings);
-      }
-      // Page and size are read from the location, deliberately outside the deps.
-      const landed = metaStandingsSearchSchema.parse(location.search);
-      await context.queryClient.query({
+      ]),
+    );
+    const total = detail.standings.total;
+    const unnarrowed = metaStandingsQueryOptions(params.slug, standingsPageQuery({}, total));
+    if (context.queryClient.getQueryData(unnarrowed.queryKey) === undefined) {
+      context.queryClient.setQueryData(unnarrowed.queryKey, detail.standings);
+    }
+    // Page and size are read from the location, deliberately outside the deps.
+    const landed = metaStandingsSearchSchema.parse(location.search);
+    await notFoundOnSentinel(
+      context.queryClient.query({
         ...metaStandingsQueryOptions(
           params.slug,
           standingsPageQuery({ ...deps, page: landed.page, per: landed.per }, total),
         ),
         staleTime: "static",
-      });
-      return detail.event;
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      }),
+    );
+    return detail.event;
   },
   pendingComponent: MetaEventPending,
   errorComponent: RouteErrorFallback,

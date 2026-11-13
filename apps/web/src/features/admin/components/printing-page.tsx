@@ -74,6 +74,7 @@ import {
   useUpdateDeskImage,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import type { DeskFaceOption } from "@/features/admin/lib/desk-face-options";
 import { deskFaceOptions, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
@@ -111,7 +112,7 @@ export function PrintingPage({ printingId }: { printingId: string }) {
   const { data: channelData } = useDistributionChannels();
 
   const isAdmin = access?.isAdmin === true;
-  const canOpenCardPages = isAdmin || (access?.sections ?? []).includes("card-review");
+  const canOpenCardPages = hasAdminSection(access, "card-review");
   const printing = data.printing;
   const faces = printingFaces(printing);
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
@@ -366,7 +367,6 @@ function PrintingActionsMenu({ printing }: { printing: DeskPrintingRow }) {
         title={`Delete printing "${name}"?`}
         description="This cannot be undone."
         confirmLabel="Delete"
-        pendingLabel="Deleting…"
         isPending={deletePrinting.isPending}
         onConfirm={() =>
           deletePrinting.mutate(printing.printingId, {

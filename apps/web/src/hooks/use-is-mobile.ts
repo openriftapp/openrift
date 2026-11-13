@@ -1,5 +1,4 @@
 import { createMediaQueryHook } from "@/hooks/create-media-query-hook";
+import { MOBILE_QUERY } from "@/lib/media-query";
 
-const MOBILE_BREAKPOINT = 768;
-
-export const useIsMobile = createMediaQueryHook(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`, false);
+export const useIsMobile = createMediaQueryHook(MOBILE_QUERY, false);

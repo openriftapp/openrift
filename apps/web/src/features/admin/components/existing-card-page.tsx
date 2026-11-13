@@ -1,9 +1,11 @@
-import { useParams, useSearch } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 
 import { ExistingCardDetailPage } from "@/features/admin/components/existing-card-detail-page";
 
+const routeApi = getRouteApi("/_app/_authenticated/admin/cards_/$cardSlug");
+
 export function ExistingCardPage() {
-  const { cardSlug } = useParams({ from: "/_app/_authenticated/admin/cards_/$cardSlug" });
+  const { cardSlug } = routeApi.useParams();
   const {
     section,
     face,
@@ -14,9 +16,7 @@ export function ExistingCardPage() {
     set,
     status,
     priceScope,
-  } = useSearch({
-    from: "/_app/_authenticated/admin/cards_/$cardSlug",
-  });
+  } = routeApi.useSearch();
   return (
     <ExistingCardDetailPage
       key={cardSlug}

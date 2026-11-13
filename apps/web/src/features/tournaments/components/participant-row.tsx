@@ -18,6 +18,7 @@ import {
   UsersIcon,
   XIcon,
 } from "lucide-react";
+import { Suspense } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,21 +32,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { RegionBadge } from "@/features/tournaments/components/region-badge";
-import { participantStatusLabels } from "@/features/tournaments/lib/tournament-display";
+import { legendNameFor } from "@/features/tournaments/lib/player-run";
+import type { ParticipantAction } from "@/features/tournaments/lib/tournament-display";
+import {
+  participantStatusLabels,
+  tournamentTokenUrl,
+} from "@/features/tournaments/lib/tournament-display";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-export type ParticipantAction =
-  | "drop"
-  | "reactivate"
-  | "approve"
-  | "deny"
-  | "remove"
-  | "unlink"
-  | "reissue";
 
 export interface ParticipantTarget {
   participantId: string;
@@ -68,6 +65,26 @@ function participantMissesLegend(
 
 function statusBadgeVariant(status: TournamentParticipantResponse["status"]) {
   return status === "active" ? ("secondary" as const) : ("outline" as const);
+}
+
+function LegendBadge({ name }: { name: string | null }) {
+  return (
+    <Badge variant="subtle">
+      <CrownIcon className="size-3" />
+      {name ?? m.tournaments_legend_unknown()}
+    </Badge>
+  );
+}
+
+function ResolvedLegendBadge({
+  legendCardId,
+  serverName,
+}: {
+  legendCardId: string;
+  serverName: string | null;
+}) {
+  const { printingsByCardId } = useCards();
+  return <LegendBadge name={legendNameFor(printingsByCardId, legendCardId, serverName)} />;
 }
 
 export interface ParticipantRowProps {
@@ -124,7 +141,7 @@ export function ParticipantRow({
     if (!token) {
       return;
     }
-    if (await copy(`${getSiteUrl()}/tournaments/claim/${token}`)) {
+    if (await copy(tournamentTokenUrl("claim", token))) {
       toast.success(m.tournaments_participant_claim_link_copied());
     } else {
       toast.error(m.tournaments_participant_claim_link_copy_failed());
@@ -164,11 +181,13 @@ export function ParticipantRow({
             {m.tournaments_group_heading({ label: participant.groupLabel })}
           </Badge>
         )}
-        {participant.legendName ? (
-          <Badge variant="subtle">
-            <CrownIcon className="size-3" />
-            {participant.legendName}
-          </Badge>
+        {participant.legendCardId ? (
+          <Suspense fallback={<LegendBadge name={participant.legendName} />}>
+            <ResolvedLegendBadge
+              legendCardId={participant.legendCardId}
+              serverName={participant.legendName}
+            />
+          </Suspense>
         ) : missesLegend ? (
           <Badge variant="neutral">
             <CrownIcon className="size-3" />

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   bestFinishPerLegend,
+  legendNameFor,
   latestSnapshotRound,
   legendsByPlayer,
   playerRunRounds,
@@ -123,13 +124,13 @@ describe("latestSnapshotRound", () => {
 });
 
 describe("bestFinishPerLegend", () => {
-  it("keeps the best-placed player per Legend, counts its players, and skips players without one", () => {
+  it("keeps the best-placed player per Legend with their record, and skips players without one", () => {
     const finishes = bestFinishPerLegend(
       [
-        { playerId: "p3", displayName: "P3", place: 3 },
-        { playerId: "p1", displayName: "P1", place: 1 },
-        { playerId: "p2", displayName: "P2", place: 2 },
-        { playerId: "p4", displayName: "P4", place: 4 },
+        { playerId: "p3", displayName: "P3", place: 3, record: "1-2-0" },
+        { playerId: "p1", displayName: "P1", place: 1, record: "3-0-0" },
+        { playerId: "p2", displayName: "P2", place: 2, record: "2-1-0" },
+        { playerId: "p4", displayName: "P4", place: 4, record: "0-3-0" },
       ],
       new Map([
         ["p1", "jinx"],
@@ -139,9 +140,16 @@ describe("bestFinishPerLegend", () => {
       ]),
     );
     expect(finishes).toEqual([
-      { legendCardId: "jinx", playerId: "p1", displayName: "P1", place: 1, playerCount: 2 },
-      { legendCardId: "sett", playerId: "p3", displayName: "P3", place: 3, playerCount: 1 },
+      { legendCardId: "jinx", playerId: "p1", displayName: "P1", place: 1, record: "3-0-0" },
+      { legendCardId: "sett", playerId: "p3", displayName: "P3", place: 3, record: "1-2-0" },
     ]);
+  });
+});
+
+describe("legendNameFor", () => {
+  it("falls back to the server name, then to an unknown Legend, never the card id", () => {
+    expect(legendNameFor(new Map(), "jinx", "Jinx, Loose Cannon")).toBe("Jinx, Loose Cannon");
+    expect(legendNameFor(new Map(), "jinx", null)).toBe("Unknown Legend");
   });
 });
 

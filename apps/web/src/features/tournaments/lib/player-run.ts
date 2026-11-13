@@ -1,12 +1,15 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type {
   GroupStageView,
   PodResponse,
   PodRoundResponse,
 } from "@openrift/shared/types/api/pod-tournament";
+import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { RunOutcome, RunRound } from "@/features/meta/lib/run-outcome";
-import { isDoubleForfeitPod, isResultlessPod } from "@/features/tournaments/lib/group-cut-units";
+import { isDoubleForfeitPod, podHasNoResult } from "@/features/tournaments/lib/group-cut-units";
+import { m } from "@/paraglide/messages.js";
 
 export interface PlayerLegend {
   legendCardId: string | null;
@@ -34,7 +37,7 @@ export function legendsByPlayer(groupStage: GroupStageView | null): Map<string, 
 function outcomeOf(pod: PodResponse, playerId: string): RunOutcome {
   const { members } = pod;
   const own = members.find((member) => member.playerId === playerId)?.placement ?? null;
-  if (own === null || isResultlessPod(pod)) {
+  if (own === null || podHasNoResult(pod)) {
     return "unknown";
   }
   if (isDoubleForfeitPod(pod)) {
@@ -113,26 +116,32 @@ export interface LegendFinish {
   playerId: string;
   displayName: string;
   place: number;
-  playerCount: number;
+  record: string;
 }
 
 /** One entry per Legend, carrying the best-placed player who brought it, in place order. */
 export function bestFinishPerLegend(
-  places: readonly { playerId: string; displayName: string; place: number }[],
+  places: readonly { playerId: string; displayName: string; place: number; record: string }[],
   legendByPlayer: ReadonlyMap<string, string | null>,
 ): LegendFinish[] {
   const best = new Map<string, LegendFinish>();
   for (const entry of places.toSorted((a, b) => a.place - b.place)) {
     const legendCardId = legendByPlayer.get(entry.playerId) ?? null;
-    if (legendCardId === null) {
-      continue;
-    }
-    const existing = best.get(legendCardId);
-    if (existing === undefined) {
-      best.set(legendCardId, { legendCardId, ...entry, playerCount: 1 });
-    } else {
-      existing.playerCount += 1;
+    if (legendCardId !== null && !best.has(legendCardId)) {
+      best.set(legendCardId, { legendCardId, ...entry });
     }
   }
   return [...best.values()];
+}
+
+export function legendNameFor(
+  printingsByCardId: ReadonlyMap<string, readonly Printing[]>,
+  legendCardId: string | null,
+  serverName: string | null,
+): string {
+  const card = legendCardId === null ? undefined : printingsByCardId.get(legendCardId)?.[0]?.card;
+  if (card !== undefined) {
+    return legendDisplayName(card);
+  }
+  return serverName ?? m.tournaments_legend_unknown();
 }

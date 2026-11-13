@@ -72,4 +72,8 @@ describe("/sets/$setSlug head", () => {
   it("falls back to a bare title for a set that does not exist", () => {
     expect(headTitle(runRouteHead(Route, PARAMS, undefined))).toBe("Set - OpenRift");
   });
+
+  it("keeps a set that does not exist out of search results", () => {
+    expect(headMeta(runRouteHead(Route, PARAMS, undefined), "robots")).toBe("noindex, nofollow");
+  });
 });

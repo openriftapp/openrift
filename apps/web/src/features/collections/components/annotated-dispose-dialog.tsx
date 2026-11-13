@@ -1,15 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { DialogForm } from "@/components/ui/dialog-form";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import type { PendingAnnotatedDispose } from "@/features/collections/hooks/use-quick-add-actions";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -65,37 +57,29 @@ export function AnnotatedDisposeDialog({
   const { labels } = useEnumOrders();
   const details = pending ? recordedDetails(pending.copy, labels) : [];
   return (
-    <AlertDialog
+    <ConfirmActionDialog
       open={pending !== null}
       onOpenChange={(open) => {
         if (!open) {
           onCancel();
         }
       }}
-    >
-      <AlertDialogContent>
-        <DialogForm onSubmit={onConfirm}>
-          <AlertDialogTitle>{m.collections_dialog_annotated_title()}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {pending
-              ? details.length > 0
-                ? m.collections_dialog_annotated_body_with_details({
-                    card: printingDisplayName(pending.printing),
-                    details: details.join(", "),
-                  })
-                : m.collections_dialog_annotated_body({
-                    card: printingDisplayName(pending.printing),
-                  })
-              : ""}
-          </AlertDialogDescription>
-          <div className="flex justify-end gap-2 pt-2">
-            <AlertDialogCancel disabled={isPending}>{m.common_cancel()}</AlertDialogCancel>
-            <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending ? m.common_removing() : m.collections_dialog_annotated_confirm()}
-            </Button>
-          </div>
-        </DialogForm>
-      </AlertDialogContent>
-    </AlertDialog>
+      title={m.collections_dialog_annotated_title()}
+      description={
+        pending
+          ? details.length > 0
+            ? m.collections_dialog_annotated_body_with_details({
+                card: printingDisplayName(pending.printing),
+                details: details.join(", "),
+              })
+            : m.collections_dialog_annotated_body({
+                card: printingDisplayName(pending.printing),
+              })
+          : ""
+      }
+      confirmLabel={m.collections_dialog_annotated_confirm()}
+      isPending={isPending}
+      onConfirm={onConfirm}
+    />
   );
 }

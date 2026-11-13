@@ -1,7 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { DeckCheckStateBadge } from "./deck-check-state-badge";
+import { DeckCheckStateBadge, deckCheckStateBadges } from "./deck-check-state-badge";
+
+describe("deckCheckStateBadges", () => {
+  it("leads with the changes request on a returned deck", () => {
+    expect(deckCheckStateBadges("editable", "issue", "player").map((b) => b.label)).toEqual([
+      "Changes requested",
+      "Not submitted",
+    ]);
+  });
+
+  it("names the issue states for players too", () => {
+    expect(deckCheckStateBadges("checked", "issue", "player")[0]?.label).toBe("Checked · issue");
+  });
+});
 
 describe("DeckCheckStateBadge", () => {
   it("tells a player their submitted deck has an issue", () => {

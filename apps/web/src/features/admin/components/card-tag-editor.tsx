@@ -133,7 +133,7 @@ function CardTagToggleList({
       <p className="text-sm font-medium">{cardName}</p>
       {[...tagsByCategory.entries()].map(([categoryLabel, group]) => (
         <div key={categoryLabel} className="space-y-1">
-          <Eyebrow as="p" className="mb-0 font-mono text-xs">
+          <Eyebrow as="p" className="font-mono text-xs">
             {categoryLabel}
           </Eyebrow>
           <div className="flex flex-wrap gap-2">
@@ -157,8 +157,8 @@ function CardTagToggleList({
       {tags.length === 0 && (
         <p className="text-muted-foreground text-sm">No tags exist yet — create one above.</p>
       )}
-      <Button disabled={!dirty || mutation.isPending} onClick={() => void save()}>
-        {mutation.isPending ? "Saving…" : "Save"}
+      <Button disabled={!dirty} pending={mutation.isPending} onClick={() => void save()}>
+        Save
       </Button>
     </div>
   );

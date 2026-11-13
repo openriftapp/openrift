@@ -1,25 +1,22 @@
-import { enumLabel } from "@openrift/shared/enum-label";
-import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
-import { CalendarIcon, LayersIcon, TrophyIcon, UsersIcon } from "lucide-react";
+import { TrophyIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
+import { TournamentMetaLine } from "@/features/tournaments/components/tournament-meta-line";
 import {
   effectiveStateLabels,
   primaryViewerRole,
   viewerRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";
-import { useDeckFormatList } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
 export function TournamentCard({ tournament }: { tournament: TournamentSummaryResponse }) {
   const role = primaryViewerRole(tournament.myRoles);
   const state = effectiveTournamentState(tournament.startsAt, tournament.endsAt, tournament.status);
-  const { labels: formatLabels } = useDeckFormatList();
   return (
     <CardLink render={<Link to="/tournaments/$id" params={{ id: tournament.id }} />}>
       <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -27,22 +24,7 @@ export function TournamentCard({ tournament }: { tournament: TournamentSummaryRe
           <TrophyIcon className="text-muted-foreground size-5 shrink-0" />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="truncate text-base font-medium">{tournament.name}</span>
-            <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-0.5">
-              <span className="flex items-center gap-1.5">
-                <CalendarIcon className="size-4 shrink-0" />
-                {formatDayTimeLocal(tournament.startsAt)}
-              </span>
-              {tournament.deckFormat ? (
-                <span className="flex items-center gap-1.5">
-                  <LayersIcon className="size-4 shrink-0" />
-                  {enumLabel(formatLabels, tournament.deckFormat)}
-                </span>
-              ) : null}
-              <span className="flex items-center gap-1.5">
-                <UsersIcon className="size-4 shrink-0" />
-                {m.tournaments_card_participants({ count: tournament.participantCount })}
-              </span>
-            </div>
+            <TournamentMetaLine tournament={tournament} />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">

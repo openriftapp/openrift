@@ -19,8 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
+import { SeedBadge, StandingsIdentity } from "@/features/tournaments/components/standings-table";
 import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
 import {
   cutLineExplanation,
@@ -29,7 +29,8 @@ import {
   groupCutTierLabels,
   groupPlaceLabel,
 } from "@/features/tournaments/lib/group-cut-display";
-import { formatMatchRecord } from "@/features/tournaments/lib/standings-display";
+import type { PlayerAvatar } from "@/features/tournaments/lib/standings-display";
+import { formatMatchRecord, standingsRowClass } from "@/features/tournaments/lib/standings-display";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -40,17 +41,6 @@ function DecidedByBadge({ tier }: { tier: GroupCutTierView | null }) {
   return (
     <Badge variant={tier === "meta_pending" ? "warning" : "neutral"}>
       {groupCutTierLabels()[tier]}
-    </Badge>
-  );
-}
-
-function SeedBadge({ seed }: { seed: number | null }) {
-  if (seed === null) {
-    return null;
-  }
-  return (
-    <Badge variant="outline" className="tabular-nums">
-      #{seed}
     </Badge>
   );
 }
@@ -71,7 +61,13 @@ function groupDescription(group: GroupStageGroupView): string {
     : m.tournaments_group_cross_group_suffix({ players });
 }
 
-export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
+export function GroupStandingsCard({
+  group,
+  avatars,
+}: {
+  group: GroupStageGroupView;
+  avatars: ReadonlyMap<string, PlayerAvatar>;
+}) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -87,17 +83,20 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
       </div>
       <RowList variant="divided" className="sm:hidden">
         {group.standings.map((row) => (
-          <RowListItem key={row.playerId} className={cn(row.status === "dropped" && "opacity-50")}>
+          <RowListItem
+            key={row.playerId}
+            className={standingsRowClass({
+              dropped: row.status === "dropped",
+              leader: row.place === 1,
+            })}
+          >
             <StandingsRankCell rank={row.place} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <PlayerChip name={row.displayName} dropped={row.status === "dropped"} />
-              {row.legendCardId === null && row.legendName === null ? null : (
-                <TournamentLegend
-                  legendCardId={row.legendCardId}
-                  fallback={row}
-                  className="text-sm"
-                />
-              )}
+              <StandingsIdentity
+                name={row.displayName}
+                avatar={avatars.get(row.playerId)}
+                dropped={row.status === "dropped"}
+              />
               <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
                 <span className="tabular-nums">{formatMatchRecord(row)}</span>
                 <GwRate rate={row.gameWinRate} />
@@ -123,12 +122,22 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
           </TableHeader>
           <TableBody>
             {group.standings.map((row) => (
-              <TableRow key={row.playerId} className={cn(row.status === "dropped" && "opacity-50")}>
+              <TableRow
+                key={row.playerId}
+                className={standingsRowClass({
+                  dropped: row.status === "dropped",
+                  leader: row.place === 1,
+                })}
+              >
                 <TableCell>
                   <StandingsRankCell rank={row.place} />
                 </TableCell>
                 <TableCell>
-                  <PlayerChip name={row.displayName} dropped={row.status === "dropped"} />
+                  <StandingsIdentity
+                    name={row.displayName}
+                    avatar={avatars.get(row.playerId)}
+                    dropped={row.status === "dropped"}
+                  />
                 </TableCell>
                 <TableCell>
                   <TournamentLegend
@@ -191,9 +200,11 @@ function PlaceTierChips({
 function PlaceTierTable({
   rows,
   legendTiebreak,
+  avatars,
 }: {
   rows: readonly GroupQualificationRowView[];
   legendTiebreak: boolean;
+  avatars: ReadonlyMap<string, PlayerAvatar>;
 }) {
   const firstOutIndex = rows.findIndex((row) => !row.qualified);
   const isCutLine = (index: number) => index === firstOutIndex && index > 0;
@@ -214,9 +225,9 @@ function PlaceTierTable({
           >
             <SeedBadge seed={row.seed} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <PlayerChip name={row.displayName}>
+              <StandingsIdentity name={row.displayName} avatar={avatars.get(row.playerId)}>
                 <Badge variant="neutral">{row.groupLabel}</Badge>
-              </PlayerChip>
+              </StandingsIdentity>
               <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
                 <span className="tabular-nums" title={m.tournaments_group_col_mw()}>
                   {m.tournaments_group_col_mw()} {formatWinRate(row.matchWinRate)}
@@ -274,7 +285,7 @@ function PlaceTierTable({
                   <SeedBadge seed={row.seed} />
                 </TableCell>
                 <TableCell>
-                  <PlayerChip name={row.displayName} />
+                  <StandingsIdentity name={row.displayName} avatar={avatars.get(row.playerId)} />
                 </TableCell>
                 <TableCell>
                   <Badge variant="neutral">{row.groupLabel}</Badge>
@@ -311,10 +322,12 @@ export function CutSeedsCard({
   groupStage,
   cutSize,
   legendTiebreak,
+  avatars,
 }: {
   groupStage: GroupStageView;
   cutSize: number;
   legendTiebreak: boolean;
+  avatars: ReadonlyMap<string, PlayerAvatar>;
 }) {
   const { ranking } = groupStage;
   if (!ranking.some((row) => row.qualified)) {
@@ -347,7 +360,14 @@ export function CutSeedsCard({
       {tiers.map((rows) => {
         const place = rows[0]?.place ?? 0;
         if (firstOut !== undefined && place === firstOut.place) {
-          return <PlaceTierTable key={place} rows={rows} legendTiebreak={legendTiebreak} />;
+          return (
+            <PlaceTierTable
+              key={place}
+              rows={rows}
+              legendTiebreak={legendTiebreak}
+              avatars={avatars}
+            />
+          );
         }
         return <PlaceTierChips key={place} rows={rows} qualified={rows[0]?.qualified ?? false} />;
       })}

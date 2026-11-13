@@ -205,7 +205,7 @@ function DiffPane({
       {title && (
         <Eyebrow
           as="p"
-          className={cn("mb-0 text-xs", tone === "old" ? "text-muted-foreground" : "text-success")}
+          className={cn("text-xs", tone === "old" ? "text-muted-foreground" : "text-success")}
         >
           {title}
         </Eyebrow>

@@ -107,10 +107,7 @@ export function ErrataPane({
     >
       <Eyebrow
         as="p"
-        className={cn(
-          "mb-0 text-xs",
-          tone === "printed" ? "text-muted-foreground" : "text-warning",
-        )}
+        className={cn("text-xs", tone === "printed" ? "text-muted-foreground" : "text-warning")}
       >
         {title}
       </Eyebrow>

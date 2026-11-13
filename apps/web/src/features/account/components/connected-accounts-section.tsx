@@ -103,14 +103,13 @@ export function ConnectedAccountsSection() {
                       render={
                         <Button
                           variant="outline"
-                          disabled={isOnlyAccount || actionLoading === provider.id}
+                          disabled={isOnlyAccount}
+                          pending={actionLoading === provider.id}
                           onClick={() => void handleUnlink(provider.id)}
                         />
                       }
                     >
-                      {actionLoading === provider.id
-                        ? m.profile_connected_unlinking()
-                        : m.profile_connected_unlink()}
+                      {m.profile_connected_unlink()}
                     </TooltipTrigger>
                     {isOnlyAccount && (
                       <TooltipContent>{m.profile_connected_last_account()}</TooltipContent>

@@ -150,7 +150,7 @@ export function LendCardDialog({
 
           <DialogFooter>
             <DialogCancel />
-            <Button type="submit" disabled={createLoan.isPending || !canConfirm}>
+            <Button type="submit" disabled={!canConfirm} pending={createLoan.isPending}>
               {m.loans_lend_confirm()}
             </Button>
           </DialogFooter>

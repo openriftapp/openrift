@@ -8,6 +8,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { SettingsSection } from "@/components/layout/settings-section";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -71,7 +72,7 @@ function SetPasswordCard({ currentEmail }: { currentEmail: string }) {
           <ParaglideMessage
             message={m.profile_password_set_hint}
             inputs={{ email: currentEmail }}
-            markup={{ strong: ({ children }) => <strong>{children}</strong> }}
+            markup={{ strong: PROSE_MARKUP.strong }}
           />
         </FieldDescription>
         <Field>
@@ -178,8 +179,8 @@ function ChangePasswordCard() {
             )}
           />
           <Field>
-            <Button type="submit" disabled={loading}>
-              {loading ? m.profile_password_submit_pending() : m.profile_password_submit()}
+            <Button pending={loading} type="submit" disabled={loading}>
+              {m.profile_password_submit()}
             </Button>
           </Field>
           {success && (

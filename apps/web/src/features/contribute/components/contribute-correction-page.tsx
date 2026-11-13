@@ -3,6 +3,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { ContributeForm } from "@/features/contribute/components/contribute-form";
 import {
@@ -12,7 +13,7 @@ import {
 import { prefillFromCard } from "@/features/contribute/lib/contribute-json";
 import { m } from "@/paraglide/messages.js";
 
-const routeApi = getRouteApi("/_app/contribute_/card_/$cardSlug");
+const routeApi = getRouteApi("/_app/_authenticated/contribute_/card_/$cardSlug");
 
 export function ContributeCorrectionPage() {
   const { cardSlug } = routeApi.useParams();
@@ -29,7 +30,7 @@ export function ContributeCorrectionPage() {
         <ParaglideMessage
           message={m.contribute_page_correction_lead}
           inputs={{ card: legendDisplayName(data.card) }}
-          markup={{ strong: ({ children }) => <span className="font-medium">{children}</span> }}
+          markup={{ strong: PROSE_MARKUP.strong }}
         />
       }
     >

@@ -17,21 +17,18 @@ import {
   buildBracketColumns,
   defaultBracketRound,
   isHigherSeed,
+  seedsByPlayer,
 } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupLabelByPlayer } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
+import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
 import { TournamentLegend } from "./tournament-legend";
-
-interface PodResultEntry {
-  playerId: string;
-  gamePoints: number;
-}
 
 export function CutBracketView({
   rounds,
@@ -54,16 +51,14 @@ export function CutBracketView({
   winPoints: number;
   drawPoints: number;
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
-  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<void>;
-  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
+  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<unknown>;
+  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<unknown>;
   completed?: boolean;
 }) {
   const columns = buildBracketColumns(rounds, cutSize);
   const [pickedRound, setPickedRound] = useState<number | null>(null);
   const selectedRound = pickedRound ?? defaultBracketRound(columns, rounds, completed);
-  const seedByPlayer = new Map(
-    groupStage.ranking.flatMap((row) => (row.seed === null ? [] : [[row.playerId, row.seed]])),
-  );
+  const seedByPlayer = seedsByPlayer(groupStage);
   const groupByPlayer = groupLabelByPlayer(groupStage.groups);
   const legendByPlayer = legendsByPlayer(groupStage);
   const roundByNumber = new Map(rounds.map((round) => [round.roundNumber, round]));

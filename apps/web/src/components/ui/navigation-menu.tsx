@@ -2,6 +2,7 @@ import { NavigationMenu as NavigationMenuPrimitive } from "@base-ui/react/naviga
 import { cva } from "class-variance-authority";
 import { ChevronDownIcon } from "lucide-react";
 
+import { POPUP_GROUP_LABEL } from "@/components/ui/popup-group-label"; // custom: shared group-label recipe
 import { cn } from "@/lib/utils";
 
 function NavigationMenu({
@@ -137,7 +138,7 @@ function NavigationMenuLink({ className, ...props }: NavigationMenuPrimitive.Lin
 
 // custom: section label inside NavigationMenuContent, styled like DropdownMenuLabel
 function NavigationMenuLabel({ className, ...props }: React.ComponentProps<"div">) {
-  const labelClass = "text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase"; // custom:
+  const labelClass = cn(POPUP_GROUP_LABEL, "px-2 pb-1"); // custom:
   return (
     // custom:
     <div

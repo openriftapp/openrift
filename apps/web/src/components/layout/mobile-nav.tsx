@@ -25,7 +25,7 @@ const MOBILE_NAV_ITEM_CLASS =
   "text-muted-foreground hover:bg-muted hover:text-foreground flex items-center gap-3 rounded-lg px-3 py-2.5 text-base data-[status=active]:font-semibold data-[status=active]:text-foreground";
 
 const MOBILE_NAV_CELL_CLASS =
-  "text-muted-foreground hover:bg-muted hover:text-foreground flex h-11 min-w-0 items-center gap-2 rounded-lg px-2.5 text-left text-sm leading-tight data-[status=active]:font-semibold data-[status=active]:text-foreground";
+  "text-muted-foreground hover:bg-muted hover:text-foreground flex h-(--control-h) min-w-0 items-center gap-2 rounded-lg px-2.5 text-left text-sm leading-tight data-[status=active]:font-semibold data-[status=active]:text-foreground";
 
 function MobileNavItem({
   item,

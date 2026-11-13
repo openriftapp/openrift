@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 export function Disclosure({
   title,
   variant = "boxed",
+  open: controlledOpen,
   defaultOpen = false,
   icon,
   count,
@@ -25,6 +26,7 @@ export function Disclosure({
 }: {
   title: ReactNode;
   variant?: "boxed" | "plain" | "heading";
+  open?: boolean;
   defaultOpen?: boolean;
   /** `heading` only: a leading icon chip inside the trigger. */
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
@@ -36,9 +38,10 @@ export function Disclosure({
   onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+    setUncontrolledOpen(nextOpen);
     onOpenChange?.(nextOpen);
   };
 

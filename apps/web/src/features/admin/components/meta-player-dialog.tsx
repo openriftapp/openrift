@@ -534,7 +534,7 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" pending={isPending}>
               {player ? "Save" : "Add player"}
             </Button>
           </DialogFooter>

@@ -4,6 +4,7 @@ import { useId } from "react";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { parseIntegerInput } from "@/lib/integer-input";
 import { m } from "@/paraglide/messages.js";
 
 export interface PointsInput {
@@ -13,8 +14,7 @@ export interface PointsInput {
 }
 
 export function parsePointsInput(text: string): number | null {
-  const trimmed = text.trim();
-  return /^\d{1,2}$/u.test(trimmed) ? Number(trimmed) : null;
+  return parseIntegerInput(text, 0, 99) ?? null;
 }
 
 /** Win and draw only count under Swiss; the bye always does. */

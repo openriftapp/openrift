@@ -21,7 +21,7 @@ describe("QrCode", () => {
     const matrix = qrMatrix(SHARE_URL);
     const dark = matrix.flat().filter(Boolean).length;
     const drawn =
-      svgOf(<QrCode value={SHARE_URL} />)
+      svgOf(<QrCode value={SHARE_URL} label="Join link QR code" />)
         .querySelector("path")
         ?.getAttribute("d") ?? "";
     // Runs are merged, so count the modules each `h<n>` run covers.
@@ -36,21 +36,27 @@ describe("QrCode", () => {
   it("bakes in a quiet zone so a tight layout cannot crowd the code", () => {
     const extent = qrMatrix(SHARE_URL).length + QR_MARGIN * 2;
 
-    expect(svgOf(<QrCode value={SHARE_URL} />).getAttribute("viewBox")).toBe(
-      `0 0 ${extent} ${extent}`,
-    );
+    expect(
+      svgOf(<QrCode value={SHARE_URL} label="Join link QR code" />).getAttribute("viewBox"),
+    ).toBe(`0 0 ${extent} ${extent}`);
   });
 
   it("keeps the code on a light plate so it scans in either theme", () => {
-    const { container } = render(<QrCode value={SHARE_URL} />);
+    const { container } = render(<QrCode value={SHARE_URL} label="Join link QR code" />);
     const plate = container.firstElementChild;
 
     expect(plate?.className).toContain("bg-white");
   });
 
   it("renders at the requested size and defaults to 160", () => {
-    expect(svgOf(<QrCode value={SHARE_URL} size={224} />).getAttribute("width")).toBe("224");
-    expect(svgOf(<QrCode value={SHARE_URL} />).getAttribute("width")).toBe("160");
+    expect(
+      svgOf(<QrCode value={SHARE_URL} size={224} label="Join link QR code" />).getAttribute(
+        "width",
+      ),
+    ).toBe("224");
+    expect(
+      svgOf(<QrCode value={SHARE_URL} label="Join link QR code" />).getAttribute("width"),
+    ).toBe("160");
   });
 
   it("names the code for screen readers", () => {
@@ -58,11 +64,12 @@ describe("QrCode", () => {
 
     expect(svg.getAttribute("role")).toBe("img");
     expect(svg.getAttribute("aria-label")).toBe("QR code for the join link");
-    expect(svgOf(<QrCode value={SHARE_URL} />).getAttribute("aria-label")).toBe("QR code");
   });
 
   it("merges a caller class onto the plate without dropping the plate's own", () => {
-    const { container } = render(<QrCode value={SHARE_URL} className="mx-auto" />);
+    const { container } = render(
+      <QrCode value={SHARE_URL} label="Join link QR code" className="mx-auto" />,
+    );
     const plate = container.firstElementChild;
 
     expect(plate?.className).toContain("mx-auto");

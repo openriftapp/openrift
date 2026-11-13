@@ -74,7 +74,7 @@ export function CardChecklist({
   tickLocked: boolean;
   onStale: () => void;
 }) {
-  const { zoneLabels } = useZoneOrder();
+  const { zoneOrder, zoneLabels } = useZoneOrder();
   const { orders } = useEnumOrders();
   const { printingsById, printingsByCardId, sets } = useCards();
   const isMobile = useIsMobile();
@@ -113,25 +113,11 @@ export function CardChecklist({
   const zoneCards = (zone: DeckCheckEntryCardResponse["zone"]) =>
     sortDeckCheckCards(cardsByZone.get(zone) ?? [], sortBy, sortDir, identify, orders.domains);
 
-  const flowZones = (
-    [
-      WellKnown.deckZone.LEGEND,
-      WellKnown.deckZone.LEGEND_OPTIONS,
-      WellKnown.deckZone.CHAMPION,
-      WellKnown.deckZone.BATTLEFIELD,
-    ] as const
-  ).filter((zone) => cardsByZone.has(zone));
-  const stackedZones = (
-    [
-      WellKnown.deckZone.MAIN,
-      WellKnown.deckZone.SIDEBOARD,
-      WellKnown.deckZone.OVERFLOW,
-      WellKnown.deckZone.RUNES,
-    ] as const
-  ).filter((zone) => cardsByZone.has(zone));
+  const orderedZones = zoneOrder.filter((zone) => cardsByZone.has(zone));
+  const flowZones = orderedZones.filter((zone) => isFlowZone(zone));
+  const stackedZones = orderedZones.filter((zone) => !isFlowZone(zone));
 
   if (displayMode === "list") {
-    const orderedZones = [...flowZones, ...stackedZones];
     return (
       <div ref={previewContainerRef} className="relative flex flex-col gap-6">
         <HoveredCardPreview
@@ -204,6 +190,15 @@ export function CardChecklist({
         />
       ))}
     </div>
+  );
+}
+
+function isFlowZone(zone: string): boolean {
+  return (
+    zone === WellKnown.deckZone.LEGEND ||
+    zone === WellKnown.deckZone.LEGEND_OPTIONS ||
+    zone === WellKnown.deckZone.CHAMPION ||
+    zone === WellKnown.deckZone.BATTLEFIELD
   );
 }
 
@@ -361,12 +356,14 @@ function ZoneSection({
 
 function RemoveCopyDialog({
   card,
+  name,
   open,
   onOpenChange,
   pending,
   onConfirm,
 }: {
   card: DeckCheckEntryCardResponse;
+  name: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pending: boolean;
@@ -376,14 +373,13 @@ function RemoveCopyDialog({
     <ConfirmActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={m.tournaments_deck_check_remove_title({ name: card.rawName })}
+      title={m.tournaments_deck_check_remove_title({ name })}
       description={
         card.quantity > 1
           ? m.tournaments_deck_check_remove_only_copy()
           : m.tournaments_deck_check_remove_whole_card()
       }
       confirmLabel={m.tournaments_deck_check_remove_confirm()}
-      pendingLabel={m.tournaments_deck_check_remove_pending()}
       isPending={pending}
       onConfirm={onConfirm}
     />
@@ -457,11 +453,7 @@ function ChecklistRow({
           {name}
         </span>
         {matched ? null : (
-          <span className="text-muted-foreground shrink-0 text-sm">
-            {card.matchStatus === "ambiguous"
-              ? m.tournaments_deck_check_several_matches()
-              : m.tournaments_deck_check_not_in_catalog()}
-          </span>
+          <span className="text-muted-foreground shrink-0 text-sm">{unmatchedReason(card)}</span>
         )}
         {card.quantity > 1 ? (
           <span className="text-muted-foreground text-2xs shrink-0">
@@ -500,7 +492,7 @@ function ChecklistRow({
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={m.tournaments_deck_check_remove_copy({ name: card.rawName })}
+              aria-label={m.tournaments_deck_check_remove_copy({ name })}
               className="text-muted-foreground hover:text-destructive"
               onClick={() => setRemoveOpen(true)}
             >
@@ -511,6 +503,7 @@ function ChecklistRow({
       )}
       <RemoveCopyDialog
         card={card}
+        name={name}
         open={removeOpen}
         onOpenChange={setRemoveOpen}
         pending={removePending}
@@ -548,6 +541,9 @@ function ChecklistCell({
   const { found, toggle, removeOpen, setRemoveOpen, remove, removePending } =
     useChecklistCopyActions({ tournamentId, entryId, card, copyIndex, tickLocked, onStale });
   const [fixOpen, setFixOpen] = useState(false);
+  const printing = resolvedSide(card, printingsById, printingsByCardId);
+  const matched = printing !== undefined && card.matchStatus === "matched";
+  const name = matched ? legendDisplayName(printing.card) : card.rawName;
 
   const foundOverlay = found ? <SelectionStamp tone="success" /> : null;
 
@@ -561,7 +557,7 @@ function ChecklistCell({
                 <StripActionButton
                   variant="ghost"
                   className="text-muted-foreground hover:text-foreground gap-1 font-medium"
-                  aria-label={m.tournaments_deck_check_edit_card({ name: card.rawName })}
+                  aria-label={m.tournaments_deck_check_edit_card({ name })}
                   onClick={() => setFixOpen(true)}
                 >
                   <PencilIcon className="size-3" />
@@ -571,7 +567,7 @@ function ChecklistCell({
               {locked ? null : (
                 <StripIconButton
                   className="text-muted-foreground hover:text-destructive"
-                  aria-label={m.tournaments_deck_check_remove_copy({ name: card.rawName })}
+                  aria-label={m.tournaments_deck_check_remove_copy({ name })}
                   onClick={() => setRemoveOpen(true)}
                 >
                   <XIcon />
@@ -593,6 +589,7 @@ function ChecklistCell({
         {locked ? null : (
           <RemoveCopyDialog
             card={card}
+            name={name}
             open={removeOpen}
             onOpenChange={setRemoveOpen}
             pending={removePending}
@@ -602,29 +599,12 @@ function ChecklistCell({
       </>
     );
 
-  const printing = resolvedSide(card, printingsById, printingsByCardId);
-
-  if (!printing || card.matchStatus !== "matched") {
+  if (!matched) {
     return (
       <div>
         {actionStrip}
         <div className="relative">
-          <Pressable
-            role="checkbox"
-            aria-checked={found}
-            onClick={toggle}
-            className={cn(
-              "border-warning/40 bg-warning-soft flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed p-2 text-sm",
-              found && "opacity-60",
-            )}
-          >
-            <span className="font-medium break-all">{card.rawName}</span>
-            <span className="text-muted-foreground">
-              {card.matchStatus === "ambiguous"
-                ? m.tournaments_deck_check_several_matches()
-                : m.tournaments_deck_check_not_in_catalog()}
-            </span>
-          </Pressable>
+          <UnmatchedCardCell card={card} found={found} onToggle={toggle} />
           {foundOverlay}
         </div>
       </div>
@@ -643,5 +623,40 @@ function ChecklistCell({
       imageOverlay={foundOverlay}
       dimmed={found}
     />
+  );
+}
+
+function unmatchedReason(card: DeckCheckEntryCardResponse): string {
+  return card.matchStatus === "ambiguous"
+    ? m.tournaments_deck_check_several_matches()
+    : m.tournaments_deck_check_not_in_catalog();
+}
+
+export function UnmatchedCardCell({
+  card,
+  found = false,
+  onToggle,
+}: {
+  card: DeckCheckEntryCardResponse;
+  found?: boolean;
+  onToggle?: () => void;
+}) {
+  const className = cn(
+    "border-warning/40 bg-warning-soft flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed p-2 text-left text-sm",
+    found && "opacity-60",
+  );
+  const content = (
+    <>
+      <span className="font-medium break-all">{card.rawName}</span>
+      <span className="text-muted-foreground">{unmatchedReason(card)}</span>
+    </>
+  );
+  if (onToggle === undefined) {
+    return <div className={className}>{content}</div>;
+  }
+  return (
+    <Pressable role="checkbox" aria-checked={found} onClick={onToggle} className={className}>
+      {content}
+    </Pressable>
   );
 }

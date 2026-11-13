@@ -25,7 +25,7 @@ export default function GroupsArticle() {
       <p className="text-muted-foreground">{m.help_groups_intro()}</p>
 
       <Callout>
-        <Eyebrow>{m.help_groups_glance_eyebrow()}</Eyebrow>
+        <Eyebrow className="mb-3">{m.help_groups_glance_eyebrow()}</Eyebrow>
         <div className="bg-background flex flex-col gap-3 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <span className="text-base font-semibold">Tuesday Night Crew</span>

@@ -106,8 +106,11 @@ export function useGraderList(): { slug: string; label: string }[] {
 
 export function useMarkerList(): { slug: string; label: string; description: string | null }[] {
   const { data } = useSuspenseQuery(initQueryOptions);
-  const rows = (data.enums.markers ?? []).toSorted((a, b) => a.sortOrder - b.sortOrder);
-  return rows.map((row) => ({ slug: row.slug, label: row.label, description: row.description }));
+  return sorted(data.enums.markers ?? []).map((row) => ({
+    slug: row.slug,
+    label: row.label,
+    description: row.description,
+  }));
 }
 
 /**
@@ -151,7 +154,6 @@ export function useTagCategories(): {
 export function useEnumOrders(): {
   orders: EnumOrders;
   labels: EnumLabels;
-  domainColors: Record<string, string>;
   rarityColors: Record<string, string>;
 } {
   const { data } = useSuspenseQuery(initQueryOptions);
@@ -179,7 +181,6 @@ export function useEnumOrders(): {
       conditions: sortedLabelMap(d.conditions ?? []),
       graders: sortedLabelMap(d.graders ?? []),
     },
-    domainColors: colorMap(d.domains ?? []),
     rarityColors: colorMap(d.rarities ?? []),
   };
 }

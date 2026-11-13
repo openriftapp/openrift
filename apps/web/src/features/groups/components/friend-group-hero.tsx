@@ -3,18 +3,19 @@ import { Link } from "@tanstack/react-router";
 import { SettingsIcon } from "lucide-react";
 import { Fragment } from "react";
 
+import { CardFan, CardFanOutline } from "@/components/card-fan";
 import { Eyebrow, Heading } from "@/components/heading";
 import { MarkdownText } from "@/components/markdown-text";
 import { buttonVariants } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
-import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { printingArt } from "@/features/cards/lib/card-meta";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useFriendGroupActivity } from "@/features/groups/hooks/use-friend-groups";
 import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
+import { HERO_WASH } from "@/lib/accent-wash";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -25,12 +26,6 @@ interface HeroStat {
   to: "/groups/$slug/members" | "/groups/$slug/shared" | "/groups/$slug/trades";
   label: string;
 }
-
-const HERO_WASH = [
-  "radial-gradient(90% 130% at 85% 10%, color-mix(in oklab, var(--border-accent) 26%, transparent), transparent 62%)",
-  "radial-gradient(70% 120% at 65% 100%, color-mix(in oklab, oklch(0.5 0.11 300) 14%, transparent), transparent 65%)",
-  "linear-gradient(color-mix(in oklab, var(--muted) 50%, var(--background)), var(--background))",
-].join(", ");
 
 export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {
   const { data: activity } = useFriendGroupActivity(slug);

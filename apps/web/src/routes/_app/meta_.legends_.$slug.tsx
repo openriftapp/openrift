@@ -1,7 +1,7 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import { pluralize } from "@openrift/shared/strings";
 import type { MetaLegendDetailResponse } from "@openrift/shared/types/api/meta";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import { metaDecksQueryOptions, metaLegendQueryOptions } from "@/features/meta/l
 import { deriveSetEras, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
-import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { notFoundOnSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -64,34 +64,29 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
   // Returns only what head reads: loader data is dehydrated beside the query
   // cache, and returning the whole response would ship it twice.
   loader: async ({ context, params, deps }): Promise<MetaLegendHeadData> => {
-    try {
-      const [sets] = await Promise.all([
-        context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
-        context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-      ]);
-      const query = metaScopeQueryFromScope(deps, deriveSetEras(sets.sets));
-      const legend = await context.queryClient.query({
+    const [sets] = await Promise.all([
+      context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
+      context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+    ]);
+    const query = metaScopeQueryFromScope(deps, deriveSetEras(sets.sets));
+    const legend = await notFoundOnSentinel(
+      context.queryClient.query({
         ...metaLegendQueryOptions(params.slug, query),
         staleTime: "static",
-      });
-      await context.queryClient.query({
-        ...metaDecksQueryOptions({
-          ...query,
-          legend: legend.legend.cardId,
-          limit: DECK_GRID_LIMIT,
-        }),
-        staleTime: "static",
-      });
-      return {
-        legend: { name: legend.legend.name, imageId: legend.legend.imageId },
-        counts: { finishes: legend.counts.finishes },
-      };
-    } catch (error) {
-      if (isNotFoundSentinel(error)) {
-        throw notFound();
-      }
-      throw error;
-    }
+      }),
+    );
+    await context.queryClient.query({
+      ...metaDecksQueryOptions({
+        ...query,
+        legend: legend.legend.cardId,
+        limit: DECK_GRID_LIMIT,
+      }),
+      staleTime: "static",
+    });
+    return {
+      legend: { name: legend.legend.name, imageId: legend.legend.imageId },
+      counts: { finishes: legend.counts.finishes },
+    };
   },
   pendingComponent: MetaLegendPending,
   errorComponent: RouteErrorFallback,

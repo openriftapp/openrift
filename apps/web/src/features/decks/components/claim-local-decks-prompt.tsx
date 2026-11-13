@@ -123,10 +123,8 @@ export function ClaimLocalDecksPrompt() {
             <Button variant="ghost" onClick={() => setDismissed(true)} disabled={importing}>
               {m.decks_dialog_claim_not_now()}
             </Button>
-            <Button type="submit" disabled={importing || selectedDecks.length === 0}>
-              {importing
-                ? m.decks_dialog_claim_importing()
-                : m.decks_dialog_claim_submit({ count: selectedDecks.length })}
+            <Button type="submit" disabled={selectedDecks.length === 0} pending={importing}>
+              {m.decks_dialog_claim_submit({ count: selectedDecks.length })}
             </Button>
           </DialogFooter>
         </DialogForm>

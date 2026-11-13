@@ -4,6 +4,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { ChevronRightIcon, CheckIcon } from "lucide-react";
 import * as React from "react";
 
+import { POPUP_GROUP_LABEL } from "@/components/ui/popup-group-label"; // custom: shared group-label recipe
 import { cn } from "@/lib/utils";
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
@@ -69,8 +70,8 @@ function DropdownMenuLabel({
       data-inset={inset}
       className={cn(
         // custom: px-2 py-1.5 label — popup rows sit on the h-8 rhythm, not below it
-        // custom: muted uppercase tracking-wide, the app's one group-label style
-        "text-muted-foreground px-2 py-1.5 text-xs font-medium tracking-wide uppercase data-inset:pl-7",
+        POPUP_GROUP_LABEL, // custom: muted uppercase tracking-wide, the app's one group-label style
+        "px-2 py-1.5 data-inset:pl-7",
         className,
       )}
       {...props}
