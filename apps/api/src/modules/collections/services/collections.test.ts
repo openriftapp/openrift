@@ -27,6 +27,7 @@ function createMockRepos(
   const moveCopiesBetweenCollections = vi.fn(async () => {});
   const deleteByIdForUser = vi.fn(async () => {});
   const listCopiesInCollection = vi.fn(async () => copies);
+  const removeCollectionFromRules = vi.fn(async () => {});
 
   const repos = {
     collections: {
@@ -41,11 +42,13 @@ function createMockRepos(
     cardTrades: {
       listPendingPrintingIdsForGiver: vi.fn(async () => []),
     },
+    lists: { removeCollectionFromRules },
   } as unknown as Repos;
 
   return {
     repos,
     listCopiesInCollection,
+    removeCollectionFromRules,
     moveCopiesBetweenCollections,
     deleteByIdForUser,
   };
@@ -57,9 +60,8 @@ describe("deleteCollection", () => {
   });
 
   it("deletes an empty collection without moving copies", async () => {
-    const { repos, moveCopiesBetweenCollections, deleteByIdForUser } = createMockRepos({
-      copies: [],
-    });
+    const { repos, moveCopiesBetweenCollections, deleteByIdForUser, removeCollectionFromRules } =
+      createMockRepos({ copies: [] });
     const transact = mockTransact(repos);
 
     await deleteCollection(
@@ -76,6 +78,7 @@ describe("deleteCollection", () => {
 
     expect(moveCopiesBetweenCollections).not.toHaveBeenCalled();
     expect(deleteByIdForUser).toHaveBeenCalledWith("col-1", "user-1");
+    expect(removeCollectionFromRules).toHaveBeenCalledWith("user-1", "col-1");
   });
 
   it("moves copies to target collection before deleting", async () => {

@@ -12,6 +12,7 @@ export interface DraftRule {
   keepPerCard: RuleQuantity;
   keepPer: TradeKeepPer;
   collectionIds: string[] | null;
+  collectionIdsExclude: string[];
   excludeIds: string[];
   excludeCopyIds: string[];
   netOwned: boolean;
@@ -29,6 +30,7 @@ export function emptyDraft(languages: string[] = []): DraftRule {
     keepPerCard: DEFAULT_KEEP,
     keepPer: "card",
     collectionIds: null,
+    collectionIdsExclude: [],
     excludeIds: [],
     excludeCopyIds: [],
     netOwned: false,
@@ -55,6 +57,7 @@ export function draftFromRule(rule: ListRule): DraftRule {
     keepPerCard: rule.keepPerCard,
     keepPer: rule.keepPer ?? "card",
     collectionIds: rule.collectionIds,
+    collectionIdsExclude: rule.collectionIdsExclude ?? [],
     excludeCopyIds: rule.excludeCopyIds,
   };
 }
@@ -80,6 +83,9 @@ export function serializeRules(rules: DraftRule[], kind: ListKind): ListRule[] {
           filter: rule.filter,
           priceMarketplace,
           collectionIds: rule.collectionIds,
+          ...(rule.collectionIdsExclude.length > 0 && {
+            collectionIdsExclude: rule.collectionIdsExclude,
+          }),
           keepPerCard: rule.keepPerCard,
           keepPer: rule.keepPer,
           excludeCopyIds: rule.excludeCopyIds,

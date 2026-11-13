@@ -89,6 +89,7 @@ const repos = {
     deleteTradeEntriesForCopies: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
     listIdsWithEntries: vi.fn(() => Promise.resolve([])),
     deleteEmptyWithoutRules: vi.fn(() => Promise.resolve(0)),
+    removeCollectionFromRules: vi.fn(() => Promise.resolve()),
   },
   cardTrades: {
     filterReservedCopyIds: vi.fn(() => Promise.resolve([])),

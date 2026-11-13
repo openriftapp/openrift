@@ -11,6 +11,7 @@
 
 ### Other
 
+- feat(Collection): **Exclude collections from trade rules** — a tradelist rule can leave out chosen collections, so a new collection is covered without editing the rule.
 - feat(Cards): **Calmer selected card** — the card you opened is marked by a gold ring and a light tint inside its tile, and in the deck editor cards already in your deck get a gold frame on the art.
 - feat(Collection): **Ctrl+A selects every card** — in a collection or list, Ctrl+A (Cmd+A on Mac) switches to managing cards with everything shown selected.
 - feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.

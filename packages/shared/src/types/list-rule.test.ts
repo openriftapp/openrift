@@ -7,6 +7,7 @@ import {
   normalizeListRules,
   ruleCombineMatchesKind,
   ruleKindForListKind,
+  rulesWithoutCollection,
   TRADE_RULE_COMBINES,
   WISH_RULE_COMBINES,
 } from "./list-rule";
@@ -120,5 +121,38 @@ describe("ruleCombineMatchesKind", () => {
     for (const combine of WISH_RULE_COMBINES) {
       expect(ruleCombineMatchesKind(combine, "copy")).toBe(false);
     }
+  });
+});
+
+describe("rulesWithoutCollection", () => {
+  const trade = (
+    collectionIds: string[] | null,
+    collectionIdsExclude?: string[],
+  ): ListRules[number] => ({
+    kind: "trade",
+    filter: EMPTY_CARD_FILTERS,
+    collectionIds,
+    collectionIdsExclude,
+    keepPerCard: { mode: "fixed", n: 0 },
+    excludeCopyIds: [],
+  });
+
+  it("returns null when no rule names the collection", () => {
+    expect(rulesWithoutCollection([trade(null), trade(["col-2"], ["col-3"])], "col-1")).toBeNull();
+  });
+
+  it("strips the collection from include and exclude lists", () => {
+    expect(rulesWithoutCollection([trade(["col-1", "col-2"], ["col-1"])], "col-1")).toEqual([
+      trade(["col-2"], []),
+    ]);
+  });
+
+  it("keeps an emptied include list at [] so the rule still matches nothing", () => {
+    expect(rulesWithoutCollection([trade(["col-1"])], "col-1")).toEqual([trade([])]);
+  });
+
+  it("parses a trade rule with and without excluded collections", () => {
+    expect(listRulesSchema.safeParse([trade(null)]).success).toBe(true);
+    expect(listRulesSchema.safeParse([trade(null, ["col-1"])]).success).toBe(true);
   });
 });

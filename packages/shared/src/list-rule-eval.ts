@@ -395,9 +395,11 @@ function tradeRulePools(
     ),
   );
   const excludedCopies = new Set(rule.excludeCopyIds);
+  const excludedCollections = new Set(rule.collectionIdsExclude);
   const candidates = (ctx.ownedCopies ?? []).filter(
     (copy) =>
       (rule.collectionIds === null || rule.collectionIds.includes(copy.collectionId)) &&
+      !excludedCollections.has(copy.collectionId) &&
       passing.has(`${copy.printingId}:${copy.cardId}`) &&
       !excludedCopies.has(copy.copyId),
   );

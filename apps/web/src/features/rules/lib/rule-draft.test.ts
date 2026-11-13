@@ -109,6 +109,7 @@ describe("draftFromRule", () => {
         keepPerCard: { mode: "playset", multiplier: 1 },
         keepPer: "printing",
         collectionIds: ["collection-1"],
+        collectionIdsExclude: ["collection-2"],
         excludeCopyIds: ["copy-1"],
       }),
     );
@@ -117,8 +118,13 @@ describe("draftFromRule", () => {
       keepPerCard: { mode: "playset", multiplier: 1 },
       keepPer: "printing",
       collectionIds: ["collection-1"],
+      collectionIdsExclude: ["collection-2"],
       excludeCopyIds: ["copy-1"],
     });
+  });
+
+  it("drafts a stored trade rule without excluded collections to an empty list", () => {
+    expect(draftFromRule(tradeRule()).collectionIdsExclude).toEqual([]);
   });
 
   it("falls back to per-card keeping when a trade rule omits keepPer", () => {
@@ -166,6 +172,13 @@ describe("serializeRules", () => {
       keepPer: "printing",
       excludeCopyIds: [],
     });
+  });
+
+  it("writes excluded collections only when there are some", () => {
+    const [plain] = serializeRules([emptyDraft()], "copy");
+    expect(plain).not.toHaveProperty("collectionIdsExclude");
+    const [scoped] = serializeRules([{ ...emptyDraft(), collectionIdsExclude: ["col-1"] }], "copy");
+    expect(scoped).toMatchObject({ collectionIdsExclude: ["col-1"] });
   });
 
   it("drops the marketplace when the filter carries no price bound", () => {

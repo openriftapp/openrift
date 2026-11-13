@@ -34,6 +34,7 @@ export const tradeRuleSchema = z.object({
   filter: cardFiltersSchema,
   priceMarketplace: z.optional(marketplaceEnum),
   collectionIds: z.array(z.string()).nullable(),
+  collectionIdsExclude: z.array(z.string()).optional(),
   keepPerCard: ruleQuantitySchema,
   keepPer: tradeKeepPerSchema.optional(),
   excludeCopyIds: z.array(z.string()),
@@ -98,6 +99,28 @@ function normalizeRuleFilter(filter: CardFilters): CardFilters {
 
 export function normalizeListRules(rules: ListRules): ListRules {
   return rules.map((rule) => ({ ...rule, filter: normalizeRuleFilter(rule.filter) }));
+}
+
+/** Null when no trade rule names the collection. */
+export function rulesWithoutCollection(rules: ListRules, collectionId: string): ListRules | null {
+  let changed = false;
+  const next = rules.map((rule) => {
+    if (rule.kind !== "trade") {
+      return rule;
+    }
+    const included = rule.collectionIds?.filter((id) => id !== collectionId) ?? null;
+    const excluded = rule.collectionIdsExclude?.filter((id) => id !== collectionId);
+    if (
+      included?.length === rule.collectionIds?.length &&
+      excluded?.length === rule.collectionIdsExclude?.length
+    ) {
+      return rule;
+    }
+    changed = true;
+    // An emptied include list stays [] (matches nothing): null would widen the rule to every collection.
+    return { ...rule, collectionIds: included, collectionIdsExclude: excluded };
+  });
+  return changed ? next : null;
 }
 
 // The jsonb column arrives already decoded by postgres.js, so no JSON.parse

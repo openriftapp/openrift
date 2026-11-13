@@ -28,7 +28,7 @@ export interface RuleEditorState {
   setKeepPer: (index: number, keepPer: TradeKeepPer) => void;
   setNetOwned: (index: number, netOwned: boolean) => void;
   setCountSpecialVersions: (index: number, countSpecialVersions: boolean) => void;
-  setCollectionIds: (index: number, collectionIds: string[] | null) => void;
+  setCollectionScope: (index: number, included: string[], excluded: string[]) => void;
   toggleExcludeId: (index: number, id: string) => void;
   toggleExcludeCopyId: (index: number, copyId: string) => void;
   reset: () => void;
@@ -89,9 +89,13 @@ export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
       rules: patchRule(state.rules, index, (rule) => ({ ...rule, countSpecialVersions })),
     })),
 
-  setCollectionIds: (index, collectionIds) =>
+  setCollectionScope: (index, included, excluded) =>
     set((state) => ({
-      rules: patchRule(state.rules, index, (rule) => ({ ...rule, collectionIds })),
+      rules: patchRule(state.rules, index, (rule) => ({
+        ...rule,
+        collectionIds: included.length === 0 ? null : included,
+        collectionIdsExclude: excluded,
+      })),
     })),
 
   toggleExcludeId: (index, id) =>

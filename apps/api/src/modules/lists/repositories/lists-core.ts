@@ -1,5 +1,6 @@
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { ListRuleCombine, ListRules } from "@openrift/shared/types/list-rule";
+import { hydrateListRules, rulesWithoutCollection } from "@openrift/shared/types/list-rule";
 import type { Insertable, Kysely, Selectable, SqlBool, Updateable } from "kysely";
 import { sql } from "kysely";
 
@@ -138,6 +139,22 @@ export function listsCoreRepo(db: Kysely<Database>) {
         .where("userId", "=", userId)
         .executeTakeFirst();
       return result.numDeletedRows > 0n;
+    },
+
+    async removeCollectionFromRules(userId: string, collectionId: string): Promise<void> {
+      const rows = await db
+        .selectFrom("lists")
+        .select(["id", "rules"])
+        .where("userId", "=", userId)
+        .where("kind", "=", "copy")
+        .where(sql<boolean>`jsonb_array_length(rules) > 0`)
+        .execute();
+      for (const row of rows) {
+        const rules = rulesWithoutCollection(hydrateListRules(row.rules), collectionId);
+        if (rules) {
+          await db.updateTable("lists").set({ rules }).where("id", "=", row.id).execute();
+        }
+      }
     },
 
     /**

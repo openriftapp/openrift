@@ -16,6 +16,7 @@ function draft(overrides: Partial<DraftRule> = {}): DraftRule {
     keepPerCard: { mode: "fixed", n: 0 },
     keepPer: "card",
     collectionIds: null,
+    collectionIdsExclude: [],
     excludeIds: [],
     excludeCopyIds: [],
     netOwned: false,
@@ -121,7 +122,7 @@ describe("useRuleEditorStore", () => {
     const store = useRuleEditorStore.getState();
     store.addRule();
     store.setKeepPerCard(0, { mode: "playset", multiplier: 2 });
-    store.setCollectionIds(0, ["col-1"]);
+    store.setCollectionScope(0, ["col-1"], []);
 
     expect(useRuleEditorStore.getState().buildRules("copy")).toEqual([
       {
@@ -133,6 +134,15 @@ describe("useRuleEditorStore", () => {
         excludeCopyIds: [],
       },
     ]);
+  });
+
+  it("setCollectionScope stores excluded collections and clears an empty include list to null", () => {
+    const store = useRuleEditorStore.getState();
+    store.addRule();
+    store.setCollectionScope(0, [], ["col-2"]);
+
+    const [rule] = useRuleEditorStore.getState().buildRules("copy");
+    expect(rule).toMatchObject({ collectionIds: null, collectionIdsExclude: ["col-2"] });
   });
 
   it("round-trips keepPer on trade rules and defaults it to card", () => {

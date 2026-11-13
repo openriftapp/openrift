@@ -460,6 +460,37 @@ describe("evaluateListRule — trade", () => {
     expect(out.map((e) => e.copyId)).toEqual(["cp1"]);
   });
 
+  it("skips copies in collectionIdsExclude", () => {
+    const ownedCopies = [
+      ownedCopy({ copyId: "cp1", printingId: "p1", cardId: "c1", collectionId: "col-1" }),
+      ownedCopy({ copyId: "cp2", printingId: "p1", cardId: "c1", collectionId: "col-2" }),
+    ];
+    const out = evaluateListRule(tradeRule({ collectionIdsExclude: ["col-1"] }), "copy", {
+      catalog,
+      ownedCopies,
+    });
+    expect(out.map((e) => e.copyId)).toEqual(["cp2"]);
+  });
+
+  it("applies excluded collections on top of included ones and keeps only in-scope copies", () => {
+    const ownedCopies = [
+      ownedCopy({ copyId: "cp1", printingId: "p1", cardId: "c1", collectionId: "col-1" }),
+      ownedCopy({ copyId: "cp2", printingId: "p1", cardId: "c1", collectionId: "col-2" }),
+      ownedCopy({ copyId: "cp3", printingId: "p1", cardId: "c1", collectionId: "col-2" }),
+    ];
+    const out = evaluateListRule(
+      tradeRule({
+        collectionIds: ["col-1", "col-2"],
+        collectionIdsExclude: ["col-1"],
+        keepPerCard: { mode: "fixed", n: 1 },
+      }),
+      "copy",
+      { catalog, ownedCopies },
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]?.copyId).not.toBe("cp1");
+  });
+
   it("honors excludeCopyIds", () => {
     const ownedCopies = [
       ownedCopy({ copyId: "cp1", printingId: "p1", cardId: "c1" }),

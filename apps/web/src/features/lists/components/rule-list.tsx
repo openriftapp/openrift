@@ -22,6 +22,7 @@ import { rulePresetsFor } from "@/features/rules/lib/rule-presets";
 import type { RuleWording } from "@/features/rules/lib/rule-wording";
 import { netOwnedHint, ruleCountLabel } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
+import { dimensionSign, flipSignedValues, toggleSignedValue } from "@/lib/filter-sign";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -206,11 +207,12 @@ function RuleFields({
   const setKeepPer = useRuleEditorStore((state) => state.setKeepPer);
   const setNetOwned = useRuleEditorStore((state) => state.setNetOwned);
   const setCountSpecialVersions = useRuleEditorStore((state) => state.setCountSpecialVersions);
-  const setCollectionIds = useRuleEditorStore((state) => state.setCollectionIds);
+  const setCollectionScope = useRuleEditorStore((state) => state.setCollectionScope);
 
   if (!rule) {
     return null;
   }
+  const collectionsIncluded = rule.collectionIds ?? [];
 
   return (
     <>
@@ -229,8 +231,22 @@ function RuleFields({
             placeholder={m.lists_rule_collections_placeholder()}
             label={m.lists_rule_collections_label()}
             options={collectionOptions}
-            selected={rule.collectionIds ?? []}
-            onChange={(next) => setCollectionIds(index, next.length === 0 ? null : next)}
+            selected={collectionsIncluded}
+            excluded={rule.collectionIdsExclude}
+            sign={dimensionSign(collectionsIncluded, rule.collectionIdsExclude)}
+            onSignedToggle={(toggled, sign) => {
+              const next = toggleSignedValue(
+                collectionsIncluded,
+                rule.collectionIdsExclude,
+                toggled,
+                sign,
+              );
+              setCollectionScope(index, next.included, next.excluded);
+            }}
+            onSignFlip={() => {
+              const next = flipSignedValues(collectionsIncluded, rule.collectionIdsExclude);
+              setCollectionScope(index, next.included, next.excluded);
+            }}
           />
         </FilterRow>
       )}

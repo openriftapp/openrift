@@ -48,6 +48,7 @@ async function deleteCollectionInTransaction(
 
   // Events snapshot id and name, not an FK: deleting the collection must not erase history that references it.
   await trxRepos.collections.deleteByIdForUser(collectionId, userId);
+  await trxRepos.lists.removeCollectionFromRules(userId, collectionId);
 
   // A trade-list rule can pick copies by collection, so the move to the inbox can shrink supply.
   await sweepUnfillableTrades(
