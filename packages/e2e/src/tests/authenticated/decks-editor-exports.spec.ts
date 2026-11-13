@@ -178,7 +178,7 @@ test.describe("deck editor exports", () => {
         (route) => route.abort(),
       );
 
-      await page.getByRole("button", { name: "Edit Main Deck", exact: true }).first().click();
+      await page.getByRole("button", { name: "Edit Main", exact: true }).first().click();
       await page.getByPlaceholder(/search/iu).fill("Annie, Fiery");
       // Scope to the card tile: the sidebar adds a duplicate "Add to deck"
       // button once the optimistic update lands.

@@ -86,7 +86,7 @@ async function apiAddCopiesToInbox(page: Page, printingId: string, count: number
 
 function statsHeader(page: Page) {
   // The Stats trigger has no test id; match its accessible name pattern.
-  return page.getByRole("button", { name: /^Stats\b.*\bcards$/u }).first();
+  return page.getByRole("button", { name: /^Stats\b.*\bin main deck$/u }).first();
 }
 
 // The sidebar Stats panel only shows while a zone is active; the deck editor
@@ -94,7 +94,7 @@ function statsHeader(page: Page) {
 async function activateSidebarPanels(page: Page): Promise<void> {
   // Retry in case the sidebar hasn't finished hydrating yet.
   await expect(async () => {
-    await page.getByRole("button", { name: "Edit Main Deck", exact: true }).first().click();
+    await page.getByRole("button", { name: "Edit Main", exact: true }).first().click();
     await expect(statsHeader(page)).toBeVisible({
       timeout: 2000,
     });
@@ -128,7 +128,7 @@ test.describe("deck editor panels", () => {
       await gotoDeckWithPanels(page, deckId);
       const header = statsHeader(page);
       await expect(header).toBeVisible({ timeout: 15_000 });
-      await expect(header).toContainText("0 cards");
+      await expect(header).toContainText("0 in main deck");
 
       // DomainBar renders null at zero cards: no tooltip triggers.
       await expect(header.locator('[data-slot="tooltip-trigger"]')).toHaveCount(0);
@@ -147,7 +147,7 @@ test.describe("deck editor panels", () => {
       await gotoDeckWithPanels(page, deckId);
       const header = statsHeader(page);
       await expect(header).toBeVisible({ timeout: 15_000 });
-      await expect(header).toContainText("3 cards");
+      await expect(header).toContainText("3 in main deck");
 
       const segment = header.locator('[data-slot="tooltip-trigger"]').first();
       await expect(segment).toBeVisible();
@@ -290,7 +290,7 @@ test.describe("deck editor panels", () => {
         /(?:tcgplayer\.com|cardtrader\.com|cardmarket\.com)/u,
       );
 
-      await expect(dialog.getByText("Main Deck", { exact: true })).toHaveCount(1);
+      await expect(dialog.getByText("Main", { exact: true })).toHaveCount(1);
 
       const copyButton = dialog.getByRole("button", { name: "Copy list" });
       await copyButton.click();
@@ -349,11 +349,11 @@ test.describe("deck editor panels", () => {
         .first()
         .click();
       // Clicking the zone closes the drawer; re-open it to inspect the panel.
-      await page.getByRole("button", { name: "Edit Main Deck", exact: true }).first().click();
+      await page.getByRole("button", { name: "Edit Main", exact: true }).first().click();
       // Title renders as "Main Deck(3)" with no textual whitespace before the
       // count (the span has margin, not a space), so match an optional space.
       await page
-        .getByRole("button", { name: /^Main Deck\s*\(\d+\)/u })
+        .getByRole("button", { name: /^Main\s*\(\d+\)/u })
         .first()
         .click();
 

@@ -86,11 +86,11 @@ async function readDeckCards(
 }
 
 const ZONE_SLUGS: Record<string, string> = {
-  "Main Deck": "main",
+  Main: "main",
   Sideboard: "sideboard",
   Runes: "runes",
-  Battlefields: "battlefield",
-  "Chosen Champion": "champion",
+  Battlefield: "battlefield",
+  Champion: "champion",
   Overflow: "overflow",
   Legend: "legend",
 };
@@ -178,21 +178,21 @@ test.describe("deck editor zones + drag-drop", () => {
 
       for (const label of [
         "Legend",
-        "Chosen Champion",
+        "Champion",
         "Runes",
-        "Battlefields",
-        "Main Deck",
+        "Battlefield",
+        "Main",
         "Sideboard",
         "Overflow",
       ]) {
         await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
       }
 
-      const mainSection = zoneSection(page, "Main Deck");
+      const mainSection = zoneSection(page, "Main");
       await expect(mainSection.getByText(unit.name, { exact: false })).toBeVisible();
 
       // The chevron's accessible name flips with the state it will move to.
-      const chevron = mainSection.getByRole("button", { name: /(?:Collapse|Expand) Main Deck/u });
+      const chevron = mainSection.getByRole("button", { name: /(?:Collapse|Expand) Main/u });
       await chevron.click();
       await expect(mainSection.getByText(unit.name, { exact: false })).toBeHidden();
       await chevron.click();
@@ -244,11 +244,11 @@ test.describe("deck editor zones + drag-drop", () => {
       await page.goto(`/decks/${deckId}`);
       await expect(page.getByText(/Constructed/u).first()).toBeVisible({ timeout: 15_000 });
 
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchBrowserFor(page, unit.name);
 
       const tile = browserCardTile(page, unit.name);
-      const mainSection = zoneSection(page, "Main Deck");
+      const mainSection = zoneSection(page, "Main");
 
       await dndDrag(page, tile, mainSection);
 
@@ -278,11 +278,11 @@ test.describe("deck editor zones + drag-drop", () => {
       });
 
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchBrowserFor(page, unit.name);
 
       const tile = browserCardTile(page, unit.name);
-      const mainSection = zoneSection(page, "Main Deck");
+      const mainSection = zoneSection(page, "Main");
       await dndDragWithShift(page, tile, mainSection);
 
       await expect
@@ -349,7 +349,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await seedDeckCards(page.request, deckA, [{ cardId: unit.id, zone: "main", quantity: 2 }]);
 
       await page.goto(`/decks/${deckA}`);
-      const mainA = zoneSection(page, "Main Deck");
+      const mainA = zoneSection(page, "Main");
       const sideboardA = zoneSection(page, "Sideboard");
       await expect(deckCardRow(mainA, unit.name)).toBeVisible({ timeout: 15_000 });
 
@@ -375,7 +375,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await seedDeckCards(page.request, deckB, [{ cardId: unit.id, zone: "main", quantity: 2 }]);
 
       await page.goto(`/decks/${deckB}`);
-      const mainB = zoneSection(page, "Main Deck");
+      const mainB = zoneSection(page, "Main");
       const overflowB = zoneSection(page, "Overflow");
       await expect(deckCardRow(mainB, unit.name)).toBeVisible({ timeout: 15_000 });
 
@@ -409,7 +409,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await seedDeckCards(page.request, deckId, [{ cardId: unit.id, zone: "main", quantity: 2 }]);
 
       await page.goto(`/decks/${deckId}`);
-      const main = zoneSection(page, "Main Deck");
+      const main = zoneSection(page, "Main");
       await expect(deckCardRow(main, unit.name)).toBeVisible({ timeout: 15_000 });
 
       await dndDrag(page, deckCardRow(main, unit.name), main);
@@ -436,10 +436,10 @@ test.describe("deck editor zones + drag-drop", () => {
       await seedDeckCards(page.request, deckId, [{ cardId: unit.id, zone: "main", quantity: 2 }]);
 
       await page.goto(`/decks/${deckId}`);
-      const main = zoneSection(page, "Main Deck");
+      const main = zoneSection(page, "Main");
       await expect(deckCardRow(main, unit.name)).toBeVisible({ timeout: 15_000 });
 
-      for (const label of ["Runes", "Battlefields", "Chosen Champion"]) {
+      for (const label of ["Runes", "Battlefield", "Champion"]) {
         const target = zoneSection(page, label);
         await dndDrag(page, deckCardRow(main, unit.name), target);
       }
@@ -466,7 +466,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await seedDeckCards(page.request, deckA, [{ cardId: unit.id, zone: "main", quantity: 2 }]);
 
       await page.goto(`/decks/${deckA}`);
-      const mainA = zoneSection(page, "Main Deck");
+      const mainA = zoneSection(page, "Main");
       await expect(deckCardRow(mainA, unit.name)).toBeVisible({ timeout: 15_000 });
 
       const viewport = page.viewportSize();
@@ -498,7 +498,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await seedDeckCards(page.request, deckB, [{ cardId: unit.id, zone: "main", quantity: 2 }]);
 
       await page.goto(`/decks/${deckB}`);
-      const mainB = zoneSection(page, "Main Deck");
+      const mainB = zoneSection(page, "Main");
       const rowB = deckCardRow(mainB, unit.name);
       await expect(rowB).toBeVisible({ timeout: 15_000 });
 
@@ -541,11 +541,11 @@ test.describe("deck editor zones + drag-drop", () => {
       });
 
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchBrowserFor(page, unit.name);
 
       const tile = browserCardTile(page, unit.name);
-      const mainSection = zoneSection(page, "Main Deck");
+      const mainSection = zoneSection(page, "Main");
 
       // page.mouse works in viewport coordinates, so the tile has to be on
       // screen before its box is read.
@@ -598,7 +598,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await mobileTitle.click();
       await expect(page.getByRole("heading", { name: "Deck Zones" })).toBeVisible();
 
-      const main = zoneSection(page, "Main Deck");
+      const main = zoneSection(page, "Main");
       const sideboard = zoneSection(page, "Sideboard");
       const row = deckCardRow(main, unit.name);
       await expect(row).toBeVisible();

@@ -223,10 +223,10 @@ test.describe("deck editor shell", () => {
       // Zone order comes from the init query: assert presence, not order.
       for (const label of [
         "Legend",
-        "Chosen Champion",
+        "Champion",
         "Runes",
-        "Battlefields",
-        "Main Deck",
+        "Battlefield",
+        "Main",
         "Sideboard",
         "Overflow",
       ]) {

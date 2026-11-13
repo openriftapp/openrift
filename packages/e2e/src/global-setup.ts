@@ -163,6 +163,11 @@ export default async function globalSetup(_config: FullConfig) {
       // auth.setup + login tests do several sign-in/sign-up calls in quick
       // succession, which would trip the prod 10/min limit.
       DISABLE_AUTH_RATE_LIMIT: "1",
+      // Placeholder OAuth apps so link-social builds a redirect; tests abort it.
+      GOOGLE_CLIENT_ID: "e2e-google-client",
+      GOOGLE_CLIENT_SECRET: "e2e-google-secret",
+      DISCORD_CLIENT_ID: "e2e-discord-client",
+      DISCORD_CLIENT_SECRET: "e2e-discord-secret",
     },
   });
 

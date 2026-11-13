@@ -118,11 +118,11 @@ async function searchFor(page: Page, query: string) {
 }
 
 const ZONE_SLUGS: Record<string, string> = {
-  "Main Deck": "main",
+  Main: "main",
   Sideboard: "sideboard",
   Runes: "runes",
-  Battlefields: "battlefield",
-  "Chosen Champion": "champion",
+  Battlefield: "battlefield",
+  Champion: "champion",
   Overflow: "overflow",
   Legend: "legend",
 };
@@ -176,7 +176,7 @@ test.describe("deck editor card browser", () => {
       const deckId = await createDeckViaApi(page, `Browser Panel ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
 
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await waitForCardsLoaded(page);
 
       const searchInput = page.getByPlaceholder(/search/iu);
@@ -191,7 +191,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Browser Search ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await waitForCardsLoaded(page);
 
       await expect(page.getByRole("img", { name: "Garen, Rugged" })).toBeVisible();
@@ -211,7 +211,7 @@ test.describe("deck editor card browser", () => {
       // The removable active-filter chips only render in the mobile layout.
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(`/decks/${deckId}`);
-      await activateZoneMobile(page, "Main Deck");
+      await activateZoneMobile(page, "Main");
 
       // Wait for the zone's pre-seeded type filter to apply, not a specific card;
       // the grid is virtualized, so Annie can be off-screen until it narrows.
@@ -238,7 +238,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Strip Empty ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -256,7 +256,7 @@ test.describe("deck editor card browser", () => {
       await addCopyViaApi(page, ANNIE_FIERY_PRINTING_NORMAL, 2);
 
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -274,7 +274,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Add Remove ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -290,7 +290,7 @@ test.describe("deck editor card browser", () => {
       await addCardButton(tile).click();
       await expect(row.getByTitle("1 in deck")).toBeVisible();
 
-      await expect(zoneCount(page, "Main Deck")).toHaveText("1/39");
+      await expect(zoneCount(page, "Main")).toHaveText("1/39");
 
       // "1/56" is the completion chip (required cards across all zones), not
       // the format badge, which belongs to the hero and is scrolled past here.
@@ -325,7 +325,7 @@ test.describe("deck editor card browser", () => {
       await addCardButton(tile).click();
 
       await expect(zoneCount(page, "Sideboard")).toHaveText("1");
-      await expect(zoneCount(page, "Main Deck")).toHaveText("0/39");
+      await expect(zoneCount(page, "Main")).toHaveText("0/39");
 
       await addCardButton(tile).click();
       await expect(zoneCount(page, "Sideboard")).toHaveText("2");
@@ -341,7 +341,7 @@ test.describe("deck editor card browser", () => {
       // Constructed caps a card at 3 copies across main/sideboard/overflow/champion.
       const constructedId = await createDeckViaApi(page, `Max Cstr ${Date.now()}`);
       await page.goto(`/decks/${constructedId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -359,7 +359,7 @@ test.describe("deck editor card browser", () => {
       // Freeform decks skip COPY_LIMIT_ZONES entirely, so the add button never disables.
       const freeformId = await createDeckViaApi(page, `Max Free ${Date.now()}`, "freeform");
       await page.goto(`/decks/${freeformId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -381,7 +381,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Shift Add ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -407,7 +407,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Shift Rm ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -433,7 +433,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Detail Pane ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -455,7 +455,7 @@ test.describe("deck editor card browser", () => {
       userEmail = await createAndLogin(page);
       const deckId = await createDeckViaApi(page, `Save Cycle ${Date.now()}`);
       await page.goto(`/decks/${deckId}`);
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,
@@ -477,7 +477,7 @@ test.describe("deck editor card browser", () => {
       await expect(page.getByText("1/56", { exact: true })).toBeVisible();
 
       await page.reload();
-      await activateZone(page, "Main Deck");
+      await activateZone(page, "Main");
       await searchFor(page, "Annie, Fiery");
       await expect(page.getByRole("img", { name: "Annie, Fiery" }).first()).toBeVisible({
         timeout: 5000,

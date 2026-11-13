@@ -1,3 +1,4 @@
+import { truncateAtWord } from "@openrift/shared/card-text";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { ALL_MARKETPLACES, EUR_MARKETPLACES } from "@openrift/shared/types/pricing";
 import type { Page } from "@playwright/test";
@@ -173,7 +174,7 @@ function buildExpectedDescription(detail: CardDetailFixture, priceLine: string |
       .trim();
     if (cleaned.length > 0) {
       const remaining = META - parts.join(" ").length - 1;
-      parts.push(cleaned.length > remaining ? `${cleaned.slice(0, remaining - 3)}...` : cleaned);
+      parts.push(truncateAtWord(cleaned, remaining));
     }
   }
   return parts.join(" ");

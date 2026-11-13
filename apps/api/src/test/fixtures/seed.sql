@@ -26,7 +26,7 @@ INSERT INTO card_types (slug, label, sort_order, is_well_known) VALUES
   ('legend', 'Legend', 0, TRUE),
   ('unit', 'Unit', 1, TRUE),
   ('rune', 'Rune', 2, TRUE),
-  ('spell', 'Spell', 3, FALSE),
+  ('spell', 'Spell', 3, TRUE),
   ('gear', 'Gear', 4, TRUE),
   ('battlefield', 'Battlefield', 5, TRUE),
   ('other', 'Other', 6, TRUE)

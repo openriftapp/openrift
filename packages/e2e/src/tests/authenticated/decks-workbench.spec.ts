@@ -151,9 +151,7 @@ test.describe("deck builder beta", () => {
       .click();
     await expect(deckColumn(page).getByText("Annie, Fiery")).toBeVisible();
     await expect(
-      detail
-        .getByRole("group", { name: "Zone to edit" })
-        .getByRole("button", { name: "Main Deck · 1" }),
+      detail.getByRole("group", { name: "Zone to edit" }).getByRole("button", { name: "Main · 1" }),
     ).toBeVisible();
 
     await page.keyboard.press("Escape");
@@ -224,9 +222,9 @@ test.describe("deck builder beta", () => {
 
     await page.goto(`/decks/${deckId}?editor=build&target=main`);
     await page.getByRole("button", { name: "Open deck zones" }).click({ timeout: 15_000 });
-    await expect(page.getByText("Adding to Main Deck. Tap another zone to switch.")).toBeVisible();
+    await expect(page.getByText("Adding to Main. Tap another zone to switch.")).toBeVisible();
     await page.goBack();
-    await expect(page.getByText("Adding to Main Deck. Tap another zone to switch.")).toBeHidden();
+    await expect(page.getByText("Adding to Main. Tap another zone to switch.")).toBeHidden();
     expect(new URL(page.url()).pathname).toBe(`/decks/${deckId}`);
     await page.getByRole("button", { name: "Done" }).click();
     await expect(page.getByRole("button", { name: "Edit", exact: true }).first()).toBeVisible();
