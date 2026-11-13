@@ -40,6 +40,11 @@ describe("CardDetailActions", () => {
     expect(screen.getByRole("button", { name: "Wishlist Chaos Rune" })).toBeInTheDocument();
   });
 
+  it("keeps the stepper's z-index from painting over sticky bars", () => {
+    render(<CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />);
+    expect(screen.getByTestId("stepper").closest(".isolate")).not.toBeNull();
+  });
+
   it("labels the stepper as owned", () => {
     render(<CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />);
     expect(screen.getByText("Owned")).toBeInTheDocument();

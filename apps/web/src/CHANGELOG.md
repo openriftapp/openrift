@@ -18,6 +18,7 @@
 - fix(Groups): **Clear answer for groups you are not in** — opening a group you do not belong to shows the not-found page.
 - fix(Trades): **Past trades** — the trade sheet's history lists declined and cancelled trades under "past trades".
 - fix(Tournaments): **Returned decks marked for staff** — staff see "Changes requested" next to "Editing" when a deck was sent back.
+- fix(Cards): **Owned buttons stay under the toolbar** — the plus and minus buttons next to "Owned" in a card's details no longer show through the toolbar when you scroll.
 - fix(App): **Bad links recover** — a mistyped filter or page number in a link loads the page with defaults.
 
 ## 2026-11-12

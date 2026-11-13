@@ -31,7 +31,7 @@ export function CardDetailActions({
   addLabel?: string;
 }) {
   return (
-    <div className="bg-card flex h-10 items-center justify-between gap-2 rounded-lg border pr-1 pl-3">
+    <div className="bg-card isolate flex h-10 items-center justify-between gap-2 rounded-lg border pr-1 pl-3">
       <span className="text-muted-foreground text-sm">{m.cards_label_owned()}</span>
       <div className="flex items-center gap-2">
         <div className="w-28">
