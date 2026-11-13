@@ -176,4 +176,18 @@ describe("a deck deleted on another device", () => {
       ["deck-2", "card-z"],
     ]);
   });
+
+  it("keeps a new deck's cards while the decks store has not caught up with it", async () => {
+    decksOnServer("deck-1");
+    serve({ items: [card("deck-1", "card-a")], syncedXid: "1000" });
+    await getDeckCardsCollection(queryClient, userId).preload();
+
+    serve({ items: [card("deck-new", "card-b")], touchedDeckIds: ["deck-new"], syncedXid: "2000" });
+    await resync();
+
+    expect(storedCards()).toEqual([
+      ["deck-1", "card-a"],
+      ["deck-new", "card-b"],
+    ]);
+  });
 });

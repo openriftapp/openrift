@@ -141,10 +141,12 @@ export function getDeckCardsCollection(
         if (previous === undefined || touchedDeckIds === undefined) {
           return items;
         }
-        const merged = mergeDeckCardsDelta(previous, items, touchedDeckIds);
-        // A deck deleted elsewhere returns neither rows nor a touched id.
+        // A deck deleted elsewhere returns neither rows nor a touched id. Only earlier rows are
+        // checked: the decks list refetches in parallel and can still lack a deck this read delivered.
         const liveDeckIds = syncedDeckIds(queryClient, userId);
-        return liveDeckIds === undefined ? merged : dropCardsOfMissingDecks(merged, liveDeckIds);
+        const kept =
+          liveDeckIds === undefined ? previous : dropCardsOfMissingDecks(previous, liveDeckIds);
+        return mergeDeckCardsDelta(kept, items, touchedDeckIds);
       },
       getKey: (row) => deckCardRowKey(row),
       onInsert: async ({ transaction, collection: rows }) => {
