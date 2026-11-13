@@ -8,6 +8,7 @@ function renderStepper(props: Partial<Parameters<typeof QuickAddStepper>[0]> = {
   render(
     <QuickAddStepper
       count={3}
+      selected={false}
       changed={false}
       incrementIcon={<PlusIcon />}
       incrementLabel="Add Yasuo"
@@ -38,6 +39,16 @@ describe("QuickAddStepper", () => {
     expect(classes).toContain("text-muted-foreground");
     expect(classes).toContain("group-data-[selected=true]:text-foreground/80");
     expect(classes.some((name) => name.includes("success"))).toBe(false);
+  });
+
+  it("fills the increment button only on the selected row", () => {
+    renderStepper({ selected: true });
+    expect(screen.getByRole("button", { name: "Add Yasuo" }).className).toContain("bg-primary");
+  });
+
+  it("outlines the increment button on unselected rows", () => {
+    renderStepper({ selected: false });
+    expect(screen.getByRole("button", { name: "Add Yasuo" }).className).not.toContain("bg-primary");
   });
 
   it("shows the count between the buttons", () => {

@@ -4,8 +4,12 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+export const QUICK_ADD_SELECTED_ROW_CLASS =
+  "bg-primary/10 text-foreground ring-1 ring-primary/60 ring-inset";
+
 interface QuickAddStepperProps {
   count: number;
+  selected: boolean;
   changed: boolean;
   incrementIcon: ReactNode;
   incrementLabel: string;
@@ -19,6 +23,7 @@ interface QuickAddStepperProps {
 
 export function QuickAddStepper({
   count,
+  selected,
   changed,
   incrementIcon,
   incrementLabel,
@@ -59,6 +64,7 @@ export function QuickAddStepper({
         tabIndex={-1}
         onMouseDown={onMouseDown}
         size="icon-xs"
+        variant={selected ? "default" : "outline"}
         onClick={onIncrement}
         disabled={incrementDisabled}
         aria-label={incrementLabel}

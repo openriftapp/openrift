@@ -15,6 +15,7 @@
 - feat(Collection): **Ctrl+A selects every card** — in a collection or list, Ctrl+A (Cmd+A on Mac) switches to managing cards with everything shown selected.
 - feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.
 - feat(Trades): **Owned count in the trade panel** — a card's trade panel shows how many copies you own, and how many of them are this printing.
+- fix(Collection): **Visible selection in quick add** — the selected card and printing were hard to spot and now get a gold tint and ring, and only their add button is filled.
 - fix(Cards): **One price per marketplace** — the price charts on a card page plot the same figure as the price chip.
 - fix(Cards): **Card page art matches the grid** — the large image on a card page shows the foil effect, the preview ribbon and the suggest-image notice, and follows your show-images setting.
 - fix(Collection): **Completion never rounds up to 100%** — partial sets show 99%, and spells and gear without power count as 0 in the power chart.

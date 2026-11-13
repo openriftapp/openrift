@@ -45,7 +45,7 @@ import { useDisplayStore } from "@/stores/display-store";
 
 import { AnnotatedDisposeDialog } from "./annotated-dispose-dialog";
 import { QuickAddPreview } from "./quick-add-preview";
-import { QuickAddStepper } from "./quick-add-stepper";
+import { QUICK_ADD_SELECTED_ROW_CLASS, QuickAddStepper } from "./quick-add-stepper";
 
 interface QuickAddPaletteProps {
   open: boolean;
@@ -456,7 +456,11 @@ function PaletteInner({
                 data-selected={isSelected || isExpanded}
                 className={cn(
                   "group flex w-full items-center gap-3 px-3 py-2 text-sm transition-colors",
-                  isSelected || isExpanded ? "bg-muted text-foreground" : "hover:bg-muted",
+                  isSelected
+                    ? QUICK_ADD_SELECTED_ROW_CLASS
+                    : isExpanded
+                      ? "bg-muted text-foreground"
+                      : "hover:bg-muted",
                 )}
                 onMouseDown={keepInputFocus}
                 onClick={() => {
@@ -512,7 +516,7 @@ function PaletteInner({
                         data-selected={isPrintingSelected}
                         className={cn(
                           "group rounded-md transition-colors",
-                          isPrintingSelected && "bg-muted text-foreground",
+                          isPrintingSelected && QUICK_ADD_SELECTED_ROW_CLASS,
                         )}
                         onMouseEnter={() => setExpandedIndex(printingIndex)}
                       >
@@ -532,6 +536,7 @@ function PaletteInner({
                           )}
                           {inMoveMode ? (
                             <QuickAddStepper
+                              selected={isPrintingSelected}
                               count={movableForPrinting}
                               changed={movedThisSession > 0}
                               incrementIcon={<ArrowRightIcon />}
@@ -549,6 +554,7 @@ function PaletteInner({
                             />
                           ) : (
                             <QuickAddStepper
+                              selected={isPrintingSelected}
                               count={ownedForPrinting}
                               changed={sessionAdded > 0}
                               incrementIcon={<PlusIcon />}

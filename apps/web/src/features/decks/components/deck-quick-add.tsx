@@ -21,7 +21,10 @@ import { Kbd } from "@/components/ui/kbd";
 import { Pressable } from "@/components/ui/pressable";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { QuickAddPreview } from "@/features/collections/components/quick-add-preview";
-import { QuickAddStepper } from "@/features/collections/components/quick-add-stepper";
+import {
+  QUICK_ADD_SELECTED_ROW_CLASS,
+  QuickAddStepper,
+} from "@/features/collections/components/quick-add-stepper";
 import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
 import { useDeckUndo } from "@/features/decks/components/deck-undo-controls";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
@@ -142,12 +145,14 @@ function keepInputFocus(event: React.MouseEvent) {
 // buttons cannot be one: it renders as a plain container instead.
 function CardRowShell({
   selected,
+  expanded,
   pressable,
   onPress,
   onMouseEnter,
   children,
 }: {
   selected: boolean;
+  expanded: boolean;
   pressable: boolean;
   onPress: () => void;
   onMouseEnter: () => void;
@@ -155,18 +160,23 @@ function CardRowShell({
 }) {
   const className = cn(
     "group flex w-full items-center gap-3 px-3 py-2 text-sm transition-colors",
-    selected ? "bg-muted text-foreground" : "hover:bg-muted",
+    selected
+      ? QUICK_ADD_SELECTED_ROW_CLASS
+      : expanded
+        ? "bg-muted text-foreground"
+        : "hover:bg-muted",
   );
+  const highlighted = selected || expanded;
   if (!pressable) {
     return (
-      <div data-selected={selected} className={className} onMouseEnter={onMouseEnter}>
+      <div data-selected={highlighted} className={className} onMouseEnter={onMouseEnter}>
         {children}
       </div>
     );
   }
   return (
     <Pressable
-      data-selected={selected}
+      data-selected={highlighted}
       className={className}
       onMouseDown={keepInputFocus}
       onClick={onPress}
@@ -454,7 +464,8 @@ function QuickAddInner({
           return (
             <div key={card.cardId}>
               <CardRowShell
-                selected={isSelected || isExpanded}
+                selected={isSelected}
+                expanded={isExpanded}
                 pressable={targets.length > 1}
                 onPress={() => {
                   setSelectedIndex(index);
@@ -493,6 +504,7 @@ function QuickAddInner({
                   />
                 ) : rowDefault && rowDefault.kind === "add" ? (
                   <QuickAddStepper
+                    selected={isSelected}
                     count={rowDefault.count}
                     changed={rowDefault.count > 0}
                     incrementIcon={<PlusIcon />}
@@ -522,7 +534,7 @@ function QuickAddInner({
                     const zoneClassName = cn(
                       "group flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                       isTargetSelected && !target.disabled
-                        ? "bg-muted text-foreground"
+                        ? QUICK_ADD_SELECTED_ROW_CLASS
                         : "hover:bg-muted",
                       target.disabled && "text-muted-foreground opacity-60",
                     );
@@ -553,6 +565,7 @@ function QuickAddInner({
                           <span className="shrink-0 text-xs">{m.decks_editor_full()}</span>
                         )}
                         <QuickAddStepper
+                          selected={isTargetSelected && !target.disabled}
                           count={target.count}
                           changed={target.count > 0}
                           incrementIcon={<PlusIcon />}
