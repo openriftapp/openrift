@@ -67,6 +67,22 @@ export function liveTradeFor(
   return index.get(liveTradeKey(match.counterpartyUserId, match.printingId, viewerRole(direction)));
 }
 
+export function liveTradesForCard(
+  trades: readonly CardTradeResponse[],
+  cardId: string,
+  direction: MatchDirection,
+  exceptTradeIds: readonly string[] = [],
+): CardTradeResponse[] {
+  const role = viewerRole(direction);
+  return trades.filter(
+    (trade) =>
+      trade.cardId === cardId &&
+      trade.role === role &&
+      !exceptTradeIds.includes(trade.id) &&
+      isLiveCardTradeStatus(trade.status),
+  );
+}
+
 /** Reserved trades are already netted server-side; this only covers the pending window. */
 export function withoutLiveTradeMatches<
   TMatch extends { counterpartyUserId: string; printingId: string },

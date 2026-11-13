@@ -13,7 +13,11 @@ export interface TradeMarketGroup {
   outgoing: readonly (FriendGroupMatchRow & { liveOnly?: boolean })[];
 }
 
-type TradeMarketRow = FriendGroupMatchRow & { groupSlug: string; liveOnly?: boolean };
+type TradeMarketRow = FriendGroupMatchRow & {
+  groupSlug: string;
+  groupName: string;
+  liveOnly?: boolean;
+};
 
 export interface TradeMarketSource {
   userId: string;
@@ -68,7 +72,7 @@ function collect(
         card = { printingId: row.printingId, cardId: row.cardId, sources: new Map(), rows: [] };
         byPrinting.set(key, card);
       }
-      card.rows.push({ ...row, groupSlug: group.slug });
+      card.rows.push({ ...row, groupSlug: group.slug, groupName: group.name });
       const source = card.sources.get(row.counterpartyUserId);
       if (source === undefined) {
         card.sources.set(row.counterpartyUserId, {

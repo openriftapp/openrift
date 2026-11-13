@@ -30,8 +30,13 @@ vi.mock("@tanstack/react-router", () => ({
   },
 }));
 
-const { bulkTradeRequests, compareMatchTradeGroups, groupTradeMatches, resolveMatchRows } =
-  await import("./match-row-card");
+const {
+  bulkTradeRequests,
+  compareMatchTradeGroups,
+  groupTradeMatches,
+  mergeAcrossGroups,
+  resolveMatchRows,
+} = await import("./match-row-card");
 type DirectedMatch = Parameters<typeof groupTradeMatches>[0][number];
 type AggregatedMatch = Omit<DirectedMatch, "direction">;
 type MatchTradeGroup = ReturnType<typeof groupTradeMatches>[number];
@@ -273,5 +278,45 @@ describe("compareMatchTradeGroups", () => {
       makeGroup({ setIndex: Number.MAX_SAFE_INTEGER, shortCode: "", cardName: "Ahri" }),
     ].toSorted(compareMatchTradeGroups);
     expect(sorted.map((group) => group.cardName)).toEqual(["Ahri", "Zed"]);
+  });
+});
+
+describe("mergeAcrossGroups", () => {
+  const copyOne = makeMatch().copies[0]!;
+  const copyTwo = { ...copyOne, copyId: "copy-2" };
+
+  it("shows a copy shared into two groups once", () => {
+    const merged = mergeAcrossGroups([
+      makeDirected({ groupSlug: "rift-crew", groupName: "Rift Crew" }),
+      makeDirected({ groupSlug: "summoner-skirmish", groupName: "Summoner Skirmish" }),
+    ]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]!.availableCount).toBe(1);
+    expect(merged[0]!.copies.map((copy) => copy.copyId)).toEqual(["copy-1"]);
+    expect(merged[0]!.groupChoices.map((choice) => choice.groupSlug)).toEqual([
+      "rift-crew",
+      "summoner-skirmish",
+    ]);
+  });
+
+  it("counts copies from different groups together and offers the fuller group first", () => {
+    const merged = mergeAcrossGroups([
+      makeDirected({ groupSlug: "rift-crew" }),
+      makeDirected({
+        groupSlug: "summoner-skirmish",
+        availableCount: 2,
+        copies: [copyOne, copyTwo],
+      }),
+    ]);
+    expect(merged[0]!.availableCount).toBe(2);
+    expect(merged[0]!.groupChoices[0].groupSlug).toBe("summoner-skirmish");
+  });
+
+  it("keeps different members apart", () => {
+    const merged = mergeAcrossGroups([
+      makeDirected({ groupSlug: "rift-crew" }),
+      makeDirected({ groupSlug: "summoner-skirmish", counterpartyUserId: "user-2" }),
+    ]);
+    expect(merged).toHaveLength(2);
   });
 });

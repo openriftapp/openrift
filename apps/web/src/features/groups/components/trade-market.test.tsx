@@ -1,3 +1,4 @@
+import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -89,6 +90,43 @@ const wanted = [
   wantedCard({ key: "printing:p-jinx", cardId: "c-jinx", printingId: "p-jinx", quantity: 1 }),
 ];
 
+let currentTrades: CardTradeResponse[] = [];
+
+function pendingRequest(cardId: string): CardTradeResponse {
+  return {
+    id: "trade-1",
+    groupId: "group-1",
+    groupSlug: "summoner-skirmish",
+    groupName: "Summoner Skirmish",
+    role: "receiver",
+    initiator: "receiver",
+    counterparty: {
+      userId: "user-mara",
+      name: "Mara",
+      image: null,
+      gravatarHash: "hash",
+      contactMethods: [],
+    },
+    printingId: "p-other",
+    cardId,
+    quantity: 1,
+    status: "pending",
+    createdAt: "2026-11-01T10:00:00.000Z",
+    updatedAt: "2026-11-01T10:00:00.000Z",
+    acceptedAt: null,
+    completedAt: null,
+    closedAt: null,
+    expiresAt: null,
+    viewerSyncAppliedAt: null,
+    counterpartySyncAppliedAt: null,
+    viewerWishEntryId: null,
+    actionNeeded: "cancel",
+  };
+}
+
+vi.mock("@/features/groups/hooks/use-card-trades", () => ({
+  useUserTrades: () => ({ data: { items: currentTrades } }),
+}));
 vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "user-1" }));
 vi.mock("@/features/groups/hooks/use-trade-market", () => ({
   useTradeMarket: () => ({
@@ -168,6 +206,7 @@ beforeEach(() => {
 
 afterEach(() => {
   currentMarket = market;
+  currentTrades = [];
   resetStore();
   vi.restoreAllMocks();
 });
@@ -239,6 +278,22 @@ describe("TradeMarket", () => {
     );
     rerender(<TradeMarket />);
     expect(screen.getByText("sources:1")).toBeTruthy();
+  });
+
+  it("marks a card already requested from anyone, in any printing", () => {
+    render(<TradeMarket />);
+    expect(screen.queryByText("Requested")).toBeNull();
+
+    currentTrades = [pendingRequest("c-jinx")];
+    render(<TradeMarket />);
+    expect(screen.getByText("Requested")).toBeTruthy();
+  });
+
+  it("marks a card someone offered the viewer without calling it requested", () => {
+    currentTrades = [{ ...pendingRequest("c-jinx"), initiator: "giver" }];
+    render(<TradeMarket />);
+    expect(screen.getByText("In a trade")).toBeTruthy();
+    expect(screen.queryByText("Requested")).toBeNull();
   });
 
   it("narrows the grid by the search", () => {

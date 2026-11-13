@@ -18,12 +18,14 @@ import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
+import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { MatchPersonList } from "@/features/groups/components/match-row-card";
 import { useDismissSuggestions } from "@/features/groups/hooks/use-trade-dismissals";
 import type { TradeMarketCard } from "@/features/groups/lib/trade-market";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -45,8 +47,14 @@ function SheetCardHeader({
   price: string | null;
   listLine: string | null;
 }) {
-  const { sets } = useCards();
+  const { sets, printingsByCardId } = useCards();
   const { labels } = useEnumOrders();
+  const hydrated = useHydrated();
+  const cardPrintingIds = (printingsByCardId.get(printing.cardId) ?? [printing]).map(
+    (entry) => entry.printingId,
+  );
+  const { data: owned } = useOwnedCountsForPrintings(cardPrintingIds, hydrated);
+  const ownedOfPrinting = owned?.totals[printing.printingId] ?? 0;
   const name = legendDisplayName(printing.card);
   const setName = sets.find((set) => set.id === printing.setId)?.name ?? printing.setId;
   return (
@@ -72,6 +80,16 @@ function SheetCardHeader({
         {price === null ? null : (
           <p className="text-muted-foreground text-sm">
             {m.trades_market_cardtrader_estimate({ price })}
+          </p>
+        )}
+        {owned === undefined ? null : (
+          <p className="text-muted-foreground text-sm">
+            {owned.total === ownedOfPrinting
+              ? m.trades_market_you_own({ count: owned.total })
+              : m.trades_market_you_own_split({
+                  count: owned.total,
+                  printingCount: ownedOfPrinting,
+                })}
           </p>
         )}
         {listLine === null ? null : <p className="text-muted-foreground text-sm">{listLine}</p>}

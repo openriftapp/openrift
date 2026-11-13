@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import type { SimpleSelectItem } from "@/components/ui/simple-select";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import type { MatchCopyDetail } from "@/features/groups/lib/trade-derivation";
 import { matchCopyConditionLabel, maxTradeQuantity } from "@/features/groups/lib/trade-derivation";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -31,7 +33,19 @@ interface RequestTradeDialogProps {
   pending: boolean;
   copies?: readonly RequestableCopy[];
   canExceedWish?: boolean;
+  groupPicker?: {
+    items: readonly SimpleSelectItem[];
+    value: string;
+    onChange: (groupSlug: string) => void;
+  };
   onConfirm: (quantity: number, copyIds?: string[]) => void;
+}
+
+function initialCopySelection(
+  copies: readonly RequestableCopy[] | undefined,
+  quantity: number,
+): Set<string> {
+  return new Set(copies?.slice(0, Math.max(1, quantity)).map((copy) => copy.copyId));
 }
 
 function CopyChoices({
@@ -102,6 +116,7 @@ export function RequestTradeDialog({
   pending,
   copies,
   canExceedWish = false,
+  groupPicker,
   onConfirm,
 }: RequestTradeDialogProps) {
   const { labels } = useEnumOrders();
@@ -113,14 +128,25 @@ export function RequestTradeDialog({
       ? new Set(copies.map((copy) => matchCopyConditionLabel(copy, labels) ?? "")).size > 1 ||
         copies.some((copy) => copy.notesPublic !== null)
       : false;
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(copies?.slice(0, Math.max(1, defaultQuantity)).map((copy) => copy.copyId)),
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() =>
+    initialCopySelection(copies, defaultQuantity),
   );
-  const requested = pickable ? selectedIds.size : quantity;
+  const groupLabelId = useId();
+  const [selectionGroup, setSelectionGroup] = useState(groupPicker?.value);
+  if (selectionGroup !== groupPicker?.value) {
+    setSelectionGroup(groupPicker?.value);
+    setQuantity(Math.max(1, defaultQuantity));
+    setSelectedIds(initialCopySelection(copies, defaultQuantity));
+  }
+  const liveSelectedIds = new Set(
+    (copies ?? []).filter((copy) => selectedIds.has(copy.copyId)).map((copy) => copy.copyId),
+  );
+  const liveQuantity = Math.min(quantity, Math.max(1, maxQuantity));
+  const requested = pickable ? liveSelectedIds.size : liveQuantity;
 
   const title = mode === "request" ? m.trades_request_card_title() : m.trades_offer_card_title();
   const verb = mode === "request" ? m.trades_send_request() : m.trades_send_offer();
-  const ready = pickable ? selectedIds.size > 0 : maxQuantity > 0;
+  const ready = pickable ? liveSelectedIds.size > 0 : maxQuantity > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,13 +156,11 @@ export function RequestTradeDialog({
             if (!ready) {
               return;
             }
-            if (pickable && copies !== undefined) {
-              const copyIds = copies
-                .filter((copy) => selectedIds.has(copy.copyId))
-                .map((copy) => copy.copyId);
+            if (pickable) {
+              const copyIds = [...liveSelectedIds];
               onConfirm(copyIds.length, copyIds);
             } else {
-              onConfirm(quantity);
+              onConfirm(liveQuantity);
             }
           }}
         >
@@ -149,6 +173,20 @@ export function RequestTradeDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {groupPicker === undefined ? null : (
+            <div className="flex items-center justify-between gap-4 py-2">
+              <span id={groupLabelId}>{m.trades_request_group()}</span>
+              <SimpleSelect
+                items={groupPicker.items}
+                value={groupPicker.value}
+                onChange={(groupSlug) => groupPicker.onChange(groupSlug)}
+                aria-labelledby={groupLabelId}
+                disabled={pending}
+                className="min-w-0 sm:w-56"
+              />
+            </div>
+          )}
+
           {pickable && copies !== undefined ? (
             <div className="flex flex-col gap-2 py-2">
               <span>
@@ -158,7 +196,7 @@ export function RequestTradeDialog({
               </span>
               <CopyChoices
                 copies={copies}
-                selectedIds={selectedIds}
+                selectedIds={liveSelectedIds}
                 max={Math.max(1, maxQuantity)}
                 disabled={pending}
                 onChange={setSelectedIds}
@@ -175,7 +213,7 @@ export function RequestTradeDialog({
               <div className="flex items-center justify-between gap-4 py-2">
                 <span>{m.trades_how_many()}</span>
                 <QuantityStepper
-                  value={quantity}
+                  value={liveQuantity}
                   onValueChange={setQuantity}
                   max={Math.max(1, maxQuantity)}
                   editable

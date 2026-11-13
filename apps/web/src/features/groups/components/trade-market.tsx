@@ -1,7 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { Link } from "@tanstack/react-router";
-import { ShoppingCartIcon } from "lucide-react";
+import { ClockIcon, ShoppingCartIcon } from "lucide-react";
 import { useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
@@ -25,10 +25,12 @@ import {
 } from "@/features/groups/components/trade-market-filters";
 import type { TradeMarketSelection } from "@/features/groups/components/trade-market-sheet";
 import { TradeMarketSheet } from "@/features/groups/components/trade-market-sheet";
+import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useTradeMarket } from "@/features/groups/hooks/use-trade-market";
 import { useWantedCards } from "@/features/groups/hooks/use-wanted-cards";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
 import { cartFor, cartItemForWanted, cartTotal } from "@/features/groups/lib/buy-cart";
+import { liveTradesForCard } from "@/features/groups/lib/trade-derivation";
 import type { TradeMarketCard } from "@/features/groups/lib/trade-market";
 import {
   filterMarketByGroup,
@@ -149,6 +151,8 @@ export function TradeMarket() {
   };
 
   const { market, groups, marketGroups, dismissals } = useTradeMarket();
+  const { data: userTrades } = useUserTrades();
+  const userTradeItems = userTrades?.items ?? [];
   const [tab, setTab] = useState<MarketTab>("get");
   const [groupSlug, setGroupSlug] = useState<string | null>(null);
   const [personId, setPersonId] = useState<string | null>(null);
@@ -357,6 +361,8 @@ export function TradeMarket() {
                 if (printing === undefined) {
                   return null;
                 }
+                const liveTrades = liveTradesForCard(userTradeItems, card.cardId, card.direction);
+                const viewerStarted = liveTrades.some((trade) => trade.initiator === trade.role);
                 return (
                   <CardThumbnail
                     key={`${card.direction}:${card.printingId}:${card.cardId}`}
@@ -365,6 +371,18 @@ export function TradeMarket() {
                     display={display}
                     sizes={GRID_SIZES}
                     view="printings"
+                    imageOverlay={
+                      liveTrades.length > 0 ? (
+                        <Badge variant="warning" className={BADGE_POSITION}>
+                          <ClockIcon />
+                          {viewerStarted
+                            ? card.direction === "incoming"
+                              ? m.trades_market_tile_requested()
+                              : m.trades_market_tile_offered()
+                            : m.trades_market_tile_in_trade()}
+                        </Badge>
+                      ) : undefined
+                    }
                     selected={
                       picked?.kind === "market" &&
                       picked.printingId === card.printingId &&

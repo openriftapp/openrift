@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Trades): **Open trades marked on cards** — cards with an open request or offer are marked on the trades page, and other members' rows name that trade.
 - fix(Decks): **Deck counts match everywhere** — a deck's card count leaves out Overflow on every page, share image and in the Discord bot, progress figures are labelled "required", and adding a rune at 12 swaps one out from quick add and drag too.
 - fix(Prices): **Totals say what is missing** — deck, list, meta deck and trade totals use your preferred languages first, fall back to any language, and show how many cards have no price.
 - fix(Trades): **Live trades stay in suggestions** — a suggestion you already traded on keeps its row with the trade's status, even when the trade runs through another group.
@@ -12,11 +13,14 @@
 
 - feat(Cards): **Calmer selected card** — the card you opened is marked by a gold ring and a light tint inside its tile, and in the deck editor cards already in your deck get a gold frame on the art.
 - feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.
+- feat(Trades): **Owned count in the trade panel** — a card's trade panel shows how many copies you own, and how many of them are this printing.
 - fix(Cards): **One price per marketplace** — the price charts on a card page plot the same figure as the price chip.
 - fix(Cards): **Card page art matches the grid** — the large image on a card page shows the foil effect, the preview ribbon and the suggest-image notice, and follows your show-images setting.
 - fix(Collection): **Completion never rounds up to 100%** — partial sets show 99%, and spells and gear without power count as 0 in the power chart.
 - fix(Lists): **Euro prices in list exports** — a euro price in a shared list text keeps its euro sign in a dollar list.
 - fix(Groups): **Clear answer for groups you are not in** — opening a group you do not belong to shows the not-found page.
+- fix(Trades): **One row per member** — a member you share several groups with appears once in a card's trade panel, and a request asks which group to use.
+- fix(Trades): **No request for a copy that is gone** — a copy you ticked that was traded away meanwhile is unticked, so the request can no longer fail with zero copies.
 - fix(Trades): **Past trades** — the trade sheet's history lists declined and cancelled trades under "past trades".
 - fix(Tournaments): **Returned decks marked for staff** — staff see "Changes requested" next to "Editing" when a deck was sent back.
 - fix(Cards): **Owned buttons stay under the toolbar** — the plus and minus buttons next to "Owned" in a card's details no longer show through the toolbar when you scroll.

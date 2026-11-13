@@ -18,6 +18,7 @@ import {
   groupTradeAnnotationsByPrinting,
   groupTradesByCounterparty,
   liveOnlyMatchRows,
+  liveTradesForCard,
   matchCopyConditionLabel,
   matchSuggestionKey,
   maxTradeQuantity,
@@ -67,6 +68,33 @@ function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRespons
     ...overrides,
   };
 }
+
+describe("liveTradesForCard", () => {
+  it("finds a live request for any printing of the card", () => {
+    const trades = [
+      stubTrade({ id: "a", printingId: "printing-foil" }),
+      stubTrade({ id: "b", cardId: "card-2" }),
+    ];
+    expect(liveTradesForCard(trades, "card-1", "incoming").map((trade) => trade.id)).toEqual(["a"]);
+  });
+
+  it("skips the trades a row already shows", () => {
+    const trades = [stubTrade({ id: "a" }), stubTrade({ id: "b" })];
+    expect(liveTradesForCard(trades, "card-1", "incoming", ["a"]).map((trade) => trade.id)).toEqual(
+      ["b"],
+    );
+  });
+
+  it("ignores closed trades and the other direction", () => {
+    const trades = [
+      stubTrade({ id: "a", status: "declined" }),
+      stubTrade({ id: "b", role: "giver" }),
+      stubTrade({ id: "c", status: "reserved" }),
+    ];
+    expect(liveTradesForCard(trades, "card-1", "incoming").map((trade) => trade.id)).toEqual(["c"]);
+    expect(liveTradesForCard(trades, "card-1", "outgoing").map((trade) => trade.id)).toEqual(["b"]);
+  });
+});
 
 describe("tradeSection", () => {
   it("buckets a request awaiting the viewer into action-needed", () => {

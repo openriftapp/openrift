@@ -1,6 +1,6 @@
 import { formatRelativeTime, DAY_MS } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import type { CardTradeStatus } from "@openrift/shared/types/api/card-trade";
+import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
 import { ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, CheckIcon, ClockIcon } from "lucide-react";
@@ -14,6 +14,7 @@ import { usePrices } from "@/features/cards/hooks/use-prices";
 import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
 import { DATE_WORDS } from "@/lib/date-words";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
+import { memberName } from "@/lib/member-name";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -227,6 +228,47 @@ export function TradeExpiry({
     >
       <ClockIcon className="size-3" />
       {label}
+    </span>
+  );
+}
+
+function liveTradeElsewhereText(trade: CardTradeResponse): string {
+  const name = memberName(trade.counterparty.name);
+  const count = trade.quantity;
+  const pending = trade.status === "pending";
+  const sent = trade.initiator === trade.role;
+  if (trade.role === "receiver") {
+    if (sent) {
+      return pending
+        ? m.trades_live_elsewhere_sent_request_pending({ name, count })
+        : m.trades_live_elsewhere_sent_request_accepted({ name, count });
+    }
+    return pending
+      ? m.trades_live_elsewhere_got_offer_pending({ name, count })
+      : m.trades_live_elsewhere_got_offer_accepted({ name, count });
+  }
+  if (sent) {
+    return pending
+      ? m.trades_live_elsewhere_sent_offer_pending({ name, count })
+      : m.trades_live_elsewhere_sent_offer_accepted({ name, count });
+  }
+  return pending
+    ? m.trades_live_elsewhere_got_request_pending({ name, count })
+    : m.trades_live_elsewhere_got_request_accepted({ name, count });
+}
+
+export function LiveTradesElsewhereLine({ trades }: { trades: readonly CardTradeResponse[] }) {
+  if (trades.length === 0) {
+    return null;
+  }
+  return (
+    <span className="text-warning flex items-start gap-1.5 text-sm font-medium">
+      <ClockIcon className="mt-0.5 size-3.5 shrink-0" />
+      <span className="flex min-w-0 flex-col">
+        {trades.map((trade) => (
+          <span key={trade.id}>{liveTradeElsewhereText(trade)}</span>
+        ))}
+      </span>
     </span>
   );
 }

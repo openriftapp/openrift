@@ -40,6 +40,7 @@ import {
   groupMatchCopyConditions,
   liveTradeFor,
   liveTradeIndex,
+  liveTradesForCard,
   summarizeMatchCopies,
 } from "@/features/groups/lib/trade-derivation";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
@@ -62,6 +63,7 @@ import type { RequestableCopy } from "./request-trade-dialog";
 import { RequestTradeDialog } from "./request-trade-dialog";
 import {
   CardMetaLine,
+  LiveTradesElsewhereLine,
   TradeDirectionIcon,
   TradePerCopyPrice,
   TradeStatusBadge,
@@ -69,19 +71,26 @@ import {
 
 const DIRECTION_ORDER: Record<MatchDirection, number> = { incoming: 0, outgoing: 1 };
 
-export type MatchTradeListRow = FriendGroupMatchRow & { groupSlug?: string; liveOnly?: boolean };
+export type MatchTradeListRow = FriendGroupMatchRow & {
+  groupSlug?: string;
+  groupName?: string;
+  liveOnly?: boolean;
+};
 
 function MatchRowTradeAction({
   match,
   liveTrade,
 }: {
-  match: DirectedMatch;
+  match: DirectedMatch | PersonMatch;
   liveTrade?: CardTradeResponse;
 }) {
   const [open, setOpen] = useState(false);
   const createTrade = useCreateTrade();
-
-  const groupSlug = match.groupSlug;
+  const groupChoices: PersonMatch["groupChoices"] =
+    "groupChoices" in match ? match.groupChoices : [match];
+  const [chosenSlug, setChosenSlug] = useState(groupChoices[0].groupSlug);
+  const choice = groupChoices.find((option) => option.groupSlug === chosenSlug) ?? groupChoices[0];
+  const groupSlug = choice.groupSlug;
 
   if (liveTrade !== undefined) {
     return (
@@ -112,10 +121,22 @@ function MatchRowTradeAction({
         onOpenChange={setOpen}
         mode={incoming ? "request" : "offer"}
         cardName={match.cardName}
-        availableCount={match.availableCount}
+        availableCount={choice.availableCount}
         demandQuantity={match.buyQuantity}
         pending={createTrade.isPending}
-        copies={incoming ? match.copies : undefined}
+        copies={incoming ? choice.copies : undefined}
+        groupPicker={
+          groupChoices.length < 2
+            ? undefined
+            : {
+                items: groupChoices.map((option) => ({
+                  value: option.groupSlug,
+                  label: `${option.groupName ?? option.groupSlug} · ${m.trades_market_person_available({ count: option.availableCount })}`,
+                })),
+                value: groupSlug,
+                onChange: setChosenSlug,
+              }
+        }
         canExceedWish={incoming && match.buyEntryId !== null}
         onConfirm={(quantity, copyIds) => {
           createTrade.mutate(
@@ -136,8 +157,27 @@ function MatchRowTradeAction({
   );
 }
 
+function MatchLiveTradesElsewhere({
+  cardId,
+  direction,
+  shownTrades,
+}: {
+  cardId: string;
+  direction: MatchDirection;
+  shownTrades: readonly (CardTradeResponse | undefined)[];
+}) {
+  const { data: userTrades } = useUserTrades();
+  const shownIds = shownTrades.flatMap((trade) => (trade === undefined ? [] : [trade.id]));
+  return (
+    <LiveTradesElsewhereLine
+      trades={liveTradesForCard(userTrades?.items ?? [], cardId, direction, shownIds)}
+    />
+  );
+}
+
 interface ResolvedMatchRow extends FriendGroupMatchRow {
   groupSlug: string;
+  groupName?: string;
   liveOnly?: boolean;
   cardSlug: string;
   shortCode: string;
@@ -154,6 +194,10 @@ export interface AggregatedMatch extends ResolvedMatchRow {
 
 interface DirectedMatch extends AggregatedMatch {
   direction: MatchDirection;
+}
+
+export interface PersonMatch extends DirectedMatch {
+  groupChoices: [DirectedMatch, ...DirectedMatch[]];
 }
 
 export function resolveMatchRows(
@@ -384,6 +428,11 @@ function MatchRow({
             counterpartyListNames={[match.counterpartyListName]}
           />
           <PriceVsEstimateLine match={match} pref={counterpartyPref} />
+          <MatchLiveTradesElsewhere
+            cardId={match.cardId}
+            direction={match.direction}
+            shownTrades={[liveTrade]}
+          />
         </div>
       </div>
 
@@ -409,6 +458,26 @@ function MatchRow({
       ) : null}
     </li>
   );
+}
+
+export function mergeAcrossGroups(matches: readonly DirectedMatch[]): PersonMatch[] {
+  const merged = new Map<string, PersonMatch>();
+  for (const match of matches) {
+    const key = `${match.direction}\0${match.counterpartyUserId}\0${match.buyEntryId}\0${match.cardId}\0${match.counterpartyListId}\0${match.printingId}`;
+    const existing = merged.get(key);
+    if (existing === undefined) {
+      merged.set(key, { ...match, copies: [...match.copies], groupChoices: [match] });
+      continue;
+    }
+    existing.groupChoices.push(match);
+    const seen = new Set(existing.copies.map((copy) => copy.copyId));
+    existing.copies.push(...match.copies.filter((copy) => !seen.has(copy.copyId)));
+    existing.availableCount = existing.copies.length;
+  }
+  return [...merged.values()].map((match) => {
+    const sorted = match.groupChoices.toSorted((a, b) => b.availableCount - a.availableCount);
+    return { ...match, groupChoices: [sorted[0] ?? match.groupChoices[0], ...sorted.slice(1)] };
+  });
 }
 
 function aggregateMatches(rows: ResolvedMatchRow[]): AggregatedMatch[] {
@@ -527,9 +596,10 @@ function MatchTradeRowGroup({
   const pricesVary =
     variantPrices.length > 0 && Math.min(...variantPrices) !== Math.max(...variantPrices);
 
-  const variantStatuses = group.variants.map(
-    (variant) => liveTradeFor(liveTrades, variant, variant.direction)?.status,
+  const variantTrades = group.variants.map((variant) =>
+    liveTradeFor(liveTrades, variant, variant.direction),
   );
+  const variantStatuses = variantTrades.map((trade) => trade?.status);
   const headerStatus: CardTradeStatus | null = variantStatuses.includes("reserved")
     ? "reserved"
     : variantStatuses.includes("pending")
@@ -586,6 +656,11 @@ function MatchTradeRowGroup({
               direction={group.direction}
               listNames={group.variants.map((variant) => variant.viewerListName)}
               counterpartyListNames={group.variants.map((variant) => variant.counterpartyListName)}
+            />
+            <MatchLiveTradesElsewhere
+              cardId={group.cardId}
+              direction={group.direction}
+              shownTrades={variantTrades}
             />
           </span>
 
@@ -740,7 +815,7 @@ function MatchPersonRow({
   onHide,
   hidePending,
 }: {
-  match: DirectedMatch;
+  match: PersonMatch;
   marketplaceInfos: Record<Marketplace, MarketplaceLink> | null;
   liveTrade?: CardTradeResponse;
   onHide?: () => void;
@@ -775,6 +850,11 @@ function MatchPersonRow({
           searchQuery={match.cardName}
         />
         <PriceVsEstimateLine match={match} pref={pref} />
+        <MatchLiveTradesElsewhere
+          cardId={match.cardId}
+          direction={match.direction}
+          shownTrades={[liveTrade]}
+        />
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {onHide === undefined ? null : (
@@ -814,15 +894,17 @@ export function MatchPersonList({
   const liveTrades = liveTradeIndex(userTrades?.items ?? []);
   const printingIds = [...new Set(rows.map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
-  const matches = aggregateMatches(
-    resolveMatchRows(rows, cardsById, printingsById, sets, groupSlug, printingsByCardId),
-  ).map((match): DirectedMatch => ({ ...match, direction }));
+  const matches = mergeAcrossGroups(
+    aggregateMatches(
+      resolveMatchRows(rows, cardsById, printingsById, sets, groupSlug, printingsByCardId),
+    ).map((match): DirectedMatch => ({ ...match, direction })),
+  );
 
   return (
     <ul className="flex flex-col">
       {matches.map((match) => (
         <MatchPersonRow
-          key={`${match.groupSlug}:${match.buyEntryId}:${match.counterpartyListId}:${match.printingId}`}
+          key={`${match.counterpartyUserId}:${match.buyEntryId}:${match.counterpartyListId}:${match.printingId}`}
           match={match}
           marketplaceInfos={marketplaceInfo?.links[match.printingId] ?? null}
           liveTrade={liveTradeFor(liveTrades, match, match.direction)}

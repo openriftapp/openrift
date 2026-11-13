@@ -119,4 +119,79 @@ describe("RequestTradeDialog", () => {
 
     expect(screen.queryByRole("checkbox")).toBeNull();
   });
+
+  it("never sends a picked copy that is no longer available", async () => {
+    const onConfirm = vi.fn();
+    const props = {
+      open: true,
+      onOpenChange: () => {},
+      mode: "request" as const,
+      cardName: "Teemo, Scout",
+      demandQuantity: 1,
+      pending: false,
+      onConfirm,
+    };
+    const { rerender } = render(
+      <RequestTradeDialog
+        {...props}
+        availableCount={2}
+        copies={[copy("copy-nm", "near-mint"), copy("copy-lp", "light-played")]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("checkbox", { name: "Light Played" }));
+
+    rerender(
+      <RequestTradeDialog
+        {...props}
+        availableCount={2}
+        copies={[copy("copy-nm", "near-mint"), copy("copy-lp-2", "light-played")]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send request" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("shows no group choice without a picker", () => {
+    renderDialog({ copies: [copy("copy-nm", "near-mint")] });
+
+    expect(screen.queryByText("Group")).toBeNull();
+  });
+
+  it("resets the picked copies when the group changes", async () => {
+    const groupItems = [
+      { value: "rift-crew", label: "Rift Crew" },
+      { value: "summoner-skirmish", label: "Summoner Skirmish" },
+    ];
+    const pickerProps = {
+      open: true,
+      onOpenChange: () => {},
+      mode: "request" as const,
+      cardName: "Teemo, Scout",
+      demandQuantity: 1,
+      pending: false,
+      onConfirm: () => {},
+    };
+    const { rerender } = render(
+      <RequestTradeDialog
+        {...pickerProps}
+        availableCount={2}
+        copies={[copy("copy-nm", "near-mint"), copy("copy-lp", "light-played")]}
+        groupPicker={{ items: groupItems, value: "rift-crew", onChange: () => {} }}
+      />,
+    );
+    expect(screen.getByText("Group")).toBeTruthy();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Light Played" }));
+
+    rerender(
+      <RequestTradeDialog
+        {...pickerProps}
+        availableCount={2}
+        copies={[copy("copy-nm", "near-mint"), copy("copy-lp", "light-played")]}
+        groupPicker={{ items: groupItems, value: "summoner-skirmish", onChange: () => {} }}
+      />,
+    );
+    const boxes = screen.getAllByRole("checkbox");
+    expect(boxes.map((box) => box.getAttribute("aria-checked"))).toEqual(["true", "false"]);
+  });
 });
