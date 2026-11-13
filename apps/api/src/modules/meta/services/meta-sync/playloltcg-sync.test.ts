@@ -117,7 +117,7 @@ function dueRow(overrides: Partial<PlayloltcgRecheckRow> = {}): PlayloltcgRechec
 
 function fakeDeps(options: {
   rows?: Record<string, unknown[]>;
-  overflowing?: boolean;
+  overflowOn?: string;
   blockOn?: string;
   throttleOn?: string;
   shopsFail?: boolean;
@@ -157,9 +157,11 @@ function fakeDeps(options: {
       if (options.throttleOn === startTime) {
         return Promise.reject(new SourceThrottledError(path));
       }
-      const items = options.overflowing
-        ? FULL_PAGE
-        : (options.rows?.[`${startTime}..${endTime}`] ?? []);
+      const overflows =
+        options.overflowOn !== undefined &&
+        startTime <= options.overflowOn &&
+        options.overflowOn <= endTime;
+      const items = overflows ? FULL_PAGE : (options.rows?.[`${startTime}..${endTime}`] ?? []);
       return Promise.resolve({ items: items as T[], total: null });
     },
   } as unknown as PlayloltcgClient;
@@ -269,7 +271,7 @@ describe("syncPlayloltcgCatalog", () => {
   });
 
   it("does not flag rows missing on a run that could not read the whole window", async () => {
-    const { deps, missing } = fakeDeps({ overflowing: true });
+    const { deps, missing } = fakeDeps({ overflowOn: "2026-08-30" });
 
     const result = await syncPlayloltcgCatalog(deps);
 
