@@ -16,6 +16,7 @@
 - feat(Decks): **Upcoming and 2v2 bans on deck cards** — card art in the deck editor and on shared and meta decks carries the same ban ribbons as the card browser, including bans that take effect later and bans for one format such as 2v2.
 - feat(Decks): **Deck boxes on collapsed variants** — a deck with variants shows which deck box its variants are stored in before you expand it, and its menu links to each box.
 - feat(Collection): **Exclude collections from trade rules** — a tradelist rule can leave out chosen collections, so a new collection is covered without editing the rule.
+- feat(Meta): **Large card preview in event decklists** — hovering a card in an expanded decklist on an event page shows it as a large image, and the strip lists the legend and champion, the battlefields, the main deck and the sideboard as separate groups.
 - feat(Meta): **Missing cards on partial lists** — event standings show what the known cards of a partial list would cost you, marked with a "+" since the rest of the list is unknown.
 - feat(Cards): **Calmer selected card** — the card you opened is marked by a gold ring and a light tint inside its tile, and in the deck editor cards already in your deck get a gold frame on the art.
 - feat(Collection): **Ctrl+A selects every card** — in a collection or list, Ctrl+A (Cmd+A on Mac) switches to managing cards with everything shown selected.

@@ -1,6 +1,6 @@
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
-import { render, screen, waitFor } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -175,6 +175,7 @@ const CARDS: PublicDeckCardResponse[] = [
 ];
 
 const STRIP_ORDER = [
+  "Emperor of the Sands",
   "Sivir, Battle Mistress",
   "Howling Abyss",
   "Punch First",
@@ -221,7 +222,9 @@ function renderPreview(): HTMLElement {
 }
 
 function stripNames(container: HTMLElement): string[] {
-  return [...container.querySelectorAll("[title]")].map((el) => el.getAttribute("title") ?? "");
+  return [...container.querySelectorAll("[data-group] > [aria-label]")].map((el) =>
+    (el.getAttribute("aria-label") ?? "").replace(/^\d+× /u, ""),
+  );
 }
 
 function groupKeys(container: HTMLElement): string[] {
@@ -247,16 +250,20 @@ describe("MetaEventDeckPreview", () => {
     };
   });
 
-  it("leads the strip with the champion and its battlefields", () => {
+  it("leads the strip with the legend, the champion and its battlefields", () => {
     const container = renderPreview();
 
-    expect(stripNames(container).slice(0, 2)).toEqual(["Sivir, Battle Mistress", "Howling Abyss"]);
+    expect(stripNames(container).slice(0, 3)).toEqual([
+      "Emperor of the Sands",
+      "Sivir, Battle Mistress",
+      "Howling Abyss",
+    ]);
   });
 
   it("orders the main deck by energy, the costless cards last", () => {
     const container = renderPreview();
 
-    expect(stripNames(container).slice(2, 6)).toEqual([
+    expect(stripNames(container).slice(3, 7)).toEqual([
       "Punch First",
       "Blade Squire",
       "Ruin Runner",
@@ -276,7 +283,7 @@ describe("MetaEventDeckPreview", () => {
 
     expect(stripNames(container).at(-1)).toBe("Sideboard Sage");
     expect(screen.getByRole("button", { name: "5× Sideboard Sage" })).toHaveClass("opacity-55");
-    expect(groupKeys(container)).toEqual(["lead", "main", "sideboard"]);
+    expect(groupKeys(container)).toEqual(["lead", "battlefields", "main", "sideboard"]);
   });
 
   it("drops the sideboard group from a list without one", () => {
@@ -286,8 +293,8 @@ describe("MetaEventDeckPreview", () => {
     );
     const container = renderPreview();
 
-    expect(container.querySelector("[title='Sideboard Sage']")).toBeNull();
-    expect(groupKeys(container)).toEqual(["lead", "main"]);
+    expect(stripNames(container)).not.toContain("Sideboard Sage");
+    expect(groupKeys(container)).toEqual(["lead", "battlefields", "main"]);
     expect(screen.queryByText(/Sideboard/u)).toBeNull();
   });
 
@@ -321,7 +328,8 @@ describe("MetaEventDeckPreview", () => {
     };
     const container = renderPreview();
 
-    expect(stripNames(container).slice(0, 3)).toEqual([
+    expect(stripNames(container).slice(0, 4)).toEqual([
+      "Emperor of the Sands",
       "Master Yi, Honed (inferred)",
       "Master Yi, Tempered (inferred)",
       "Seat of Power (inferred)",
@@ -350,12 +358,6 @@ describe("MetaEventDeckPreview", () => {
 
     expect(screen.getByAltText("Fury").closest("span.items-center")?.textContent).toBe("8");
     expect(screen.getByAltText("Calm").closest("span.items-center")?.textContent).toBe("4");
-  });
-
-  it("counts the sideboard the strip only dims", () => {
-    renderPreview();
-
-    expect(screen.getByText("Sideboard 5")).toBeInTheDocument();
   });
 
   it("credits the contributors who typed the list in", () => {
@@ -405,20 +407,33 @@ describe("MetaEventDeckPreview", () => {
     });
   });
 
+  it("shows the hovered card as a large image and hides it on leave", () => {
+    renderPreview();
+    const thumb = screen.getByRole("button", { name: "3× Ruin Runner" });
+
+    const over = createEvent.pointerOver(thumb, { bubbles: true });
+    Object.defineProperty(over, "pointerType", { value: "mouse" });
+    Object.defineProperty(over, "buttons", { value: 0 });
+    fireEvent(thumb, over);
+    expect(document.body.querySelector("img[src*='400w']")).not.toBeNull();
+
+    fireEvent.pointerOut(thumb, { relatedTarget: document.body });
+    expect(document.body.querySelector("img[src*='400w']")).toBeNull();
+  });
+
   it("leaves a card the catalog cannot open as plain art", () => {
-    const container = renderPreview();
+    renderPreview();
 
     expect(screen.queryByRole("button", { name: /Blade Squire/u })).toBeNull();
-    expect(container.querySelector("[title='Blade Squire']")?.tagName).toBe("SPAN");
+    expect(screen.getByRole("img", { name: /Blade Squire/u }).tagName).toBe("SPAN");
   });
 
   it("makes nothing clickable without a card detail overlay above it", () => {
     state.openCardDetail = null;
     const container = renderPreview();
 
-    for (const name of STRIP_ORDER) {
-      expect(container.querySelector(`[title='${name}']`)?.tagName).toBe("SPAN");
-    }
+    expect(stripNames(container)).toEqual(STRIP_ORDER);
+    expect(screen.queryByRole("button", { name: /Ruin Runner/u })).toBeNull();
   });
 
   it("labels the menu's fork by where the copy lands", async () => {

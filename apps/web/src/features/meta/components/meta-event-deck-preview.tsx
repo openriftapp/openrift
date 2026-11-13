@@ -35,6 +35,7 @@ import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-comp
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { deckCardDetailKeys } from "@/features/meta/lib/meta-deck-side-keys";
 import { inferredCards, inferredSummary } from "@/features/meta/lib/meta-inferred";
+import { useCardHoverPreview } from "@/features/rules/components/rule-card-preview";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,12 @@ function StripCard({
   const printingId = detailKey;
   const name = inferred ? m.meta_inferred_card_label({ name: card.cardName }) : card.cardName;
   const label = card.quantity > 1 ? `${card.quantity}× ${name}` : name;
+  const landscape = getOrientation(card.cardTypes) === "landscape";
+  const previewProps = {
+    "aria-label": label,
+    "data-card-image": card.imageId ?? undefined,
+    "data-card-landscape": landscape ? "" : undefined,
+  };
   const art = (
     <>
       <CardArtThumb
@@ -85,7 +92,7 @@ function StripCard({
         domains={card.domains}
         className={sideboard ? "w-7" : "w-9"}
         loading="lazy"
-        landscape={getOrientation(card.cardTypes) === "landscape"}
+        landscape={landscape}
       />
       {card.quantity > 1 && (
         <span
@@ -109,7 +116,7 @@ function StripCard({
 
   if (!openCardDetail || printingId === null) {
     return (
-      <span className={className} title={name}>
+      <span role="img" className={className} {...previewProps}>
         {art}
       </span>
     );
@@ -117,8 +124,7 @@ function StripCard({
   return (
     <Pressable
       className={className}
-      aria-label={label}
-      title={name}
+      {...previewProps}
       onClick={() => openCardDetail({ printingId, sequence })}
     >
       {art}
@@ -134,6 +140,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const hydrated = useHydrated();
   const signIn = useSignInSearch();
   const [owned, setOwned] = useState<MetaOwnedCards>();
+  const cardPreview = useCardHoverPreview("[data-card-image]");
   const bandFor = (card: PublicDeckCardResponse) =>
     owned === undefined
       ? undefined
@@ -148,8 +155,11 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const guessedIds = new Set(guessed.map((card) => `${card.zone}:${card.cardId}`));
   const isGuessed = (card: PublicDeckCardResponse) => guessedIds.has(`${card.zone}:${card.cardId}`);
   const lead = [
+    ...zoneCards(data.cards, WellKnown.deckZone.LEGEND),
     ...zoneCards(data.cards, WellKnown.deckZone.CHAMPION),
     ...zoneCards(guessed, WellKnown.deckZone.CHAMPION),
+  ];
+  const battlefields = [
     ...zoneCards(data.cards, WellKnown.deckZone.BATTLEFIELD),
     ...zoneCards(guessed, WellKnown.deckZone.BATTLEFIELD),
   ];
@@ -160,22 +170,26 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
     (unknown.get(WellKnown.deckZone.CHAMPION) ?? 0) - (data.inferred?.champions.length ? 1 : 0);
   const openBattlefields =
     (unknown.get(WellKnown.deckZone.BATTLEFIELD) ?? 0) - (data.inferred?.battlefield ? 1 : 0);
-  const unknownSlots = Math.max(0, openChampion) + Math.max(0, openBattlefields);
   const groups = [
-    { key: "lead", cards: lead, sideboard: false, unknownSlots },
+    { key: "lead", cards: lead, sideboard: false, unknownSlots: Math.max(0, openChampion) },
+    {
+      key: "battlefields",
+      cards: battlefields,
+      sideboard: false,
+      unknownSlots: Math.max(0, openBattlefields),
+    },
     { key: "main", cards: main, sideboard: false, unknownSlots: 0 },
     { key: "sideboard", cards: sideboard, sideboard: true, unknownSlots: 0 },
   ].filter((group) => group.cards.length > 0 || group.unknownSlots > 0);
   const detailKeyOf = deckCardDetailKeys(data.catalog.printings);
   const detailKeyFor = (card: PublicDeckCardResponse) =>
     detailKeyOf({ cardId: card.cardId, printingId: printingIdOf(card) });
-  const sequence = [...lead, ...main, ...sideboard]
+  const sequence = [...lead, ...battlefields, ...main, ...sideboard]
     .map((card) => detailKeyFor(card))
     .filter((id) => id !== null);
 
   const types = deckTypeSplit(data.cards);
   const runes = deckRuneSplit(data.cards);
-  const sideboardCount = sideboard.reduce((sum, card) => sum + card.quantity, 0);
   const missing = describeIncompleteList(data.deck.format, unknown);
 
   return (
@@ -185,7 +199,13 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
           <MetaOwnedCardsBridge onChange={setOwned} />
         </Suspense>
       )}
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-1.5">
+      <div
+        className="flex flex-wrap items-end gap-x-4 gap-y-1.5"
+        onPointerOver={cardPreview.handlePointerOver}
+        onPointerOut={cardPreview.handlePointerOut}
+        onPointerDown={cardPreview.handlePointerDown}
+      >
+        {cardPreview.preview}
         {groups.map((group) => (
           <div key={group.key} data-group={group.key} className="flex flex-wrap items-end gap-1">
             {group.cards.map((card) => (
@@ -195,8 +215,8 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 detailKey={detailKeyFor(card)}
                 sequence={sequence}
                 sideboard={group.sideboard}
-                inferred={group.key === "lead" && isGuessed(card)}
-                band={group.key === "lead" && isGuessed(card) ? undefined : bandFor(card)}
+                inferred={isGuessed(card)}
+                band={isGuessed(card) ? undefined : bandFor(card)}
               />
             ))}
             {Array.from({ length: group.unknownSlots }, (_, index) => (
@@ -229,11 +249,6 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 <span className="tabular-nums">{rune.count}</span>
               </span>
             ))}
-          </span>
-        )}
-        {sideboardCount > 0 && (
-          <span className="tabular-nums">
-            {m.meta_deck_preview_sideboard({ count: String(sideboardCount) })}
           </span>
         )}
         {missing !== null && <span>{missing}</span>}
