@@ -3,7 +3,6 @@ import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Collection, PendingMutation, Transaction } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
 import { getCopiesCollection } from "@/features/collections/lib/copies-collection";
 import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
@@ -93,7 +92,6 @@ async function persistDelete(
   const copies = getCopiesCollection(context.queryClient, context.userId);
   const moved = copies.toArray.filter((copy) => copy.collectionId === id);
   if (inboxId !== undefined && moved.length > 0) {
-    startSyncIfNeeded(copies);
     await writeSkippingMissing(
       moved.map((copy) => ({ id: copy.id, collectionId: inboxId, groupId: null })),
       (rows) => copies.utils.writeUpdate(rows),
@@ -128,7 +126,7 @@ async function persistInOrder(
   }
 }
 
-/** Sends a transaction's collection writes to the API; the adapter's refetch brings the confirmed rows back. */
+/** Sends a transaction's collection writes to the API; the handler's refetch brings the confirmed rows back. */
 export async function persistCollectionMutations(
   collection: CollectionsCollection,
   mutations: readonly PendingMutation<CollectionResponse>[],

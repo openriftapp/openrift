@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { v7 as uuidv7 } from "uuid";
 
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { useDeckFoldersCollection } from "@/features/decks/hooks/use-decks-collections";
 import {
   getDeckFoldersCollection,
@@ -32,7 +33,7 @@ export function useDeckFolders(): { data: DeckFolderResponse[] | undefined } {
 
 async function loadedFolders(queryClient: QueryClient, userId: string) {
   const collection = getDeckFoldersCollection(queryClient, userId);
-  await collection.preload();
+  await loadCollection(collection);
   return collection;
 }
 
@@ -107,7 +108,7 @@ export function useSetDeckFolders() {
   return useMutation({
     mutationFn: async ({ id, folderIds }: { id: string; folderIds: string[] }) => {
       const decks = getDecksCollection(queryClient, userId);
-      await decks.preload();
+      await loadCollection(decks);
       if (!decks.has(id)) {
         return;
       }

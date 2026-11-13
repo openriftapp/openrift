@@ -13,7 +13,6 @@ import type { Collection, PendingMutation, Transaction } from "@tanstack/react-d
 import { createTransaction } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
 import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
@@ -305,7 +304,6 @@ export async function persistDeckMutations(
   mutations: readonly PendingMutation<DeckListItemResponse>[],
   context: DecksWriteContext,
 ): Promise<void> {
-  startSyncIfNeeded(collection);
   const settleRefetchRace = watchForRefetchRace(
     context.queryClient,
     decksKeys.syncedStore(context.userId),
@@ -404,7 +402,6 @@ export async function persistDeckCardMutations(
   mutations: readonly PendingMutation<DeckCardWithDeckResponse>[],
   context: DecksWriteContext,
 ): Promise<void> {
-  startSyncIfNeeded(collection);
   const settleRefetchRace = watchForRefetchRace(
     context.queryClient,
     decksKeys.cardsStore(context.userId),
@@ -481,7 +478,7 @@ export function saveDeckCards(
   return transaction;
 }
 
-/** Sends a transaction's folder writes to the API; the adapter's refetch brings the confirmed rows back. */
+/** Sends a transaction's folder writes to the API; the handler's refetch brings the confirmed rows back. */
 export async function persistDeckFolderMutations(
   mutations: readonly PendingMutation<DeckFolderResponse>[],
   context: DecksWriteContext,

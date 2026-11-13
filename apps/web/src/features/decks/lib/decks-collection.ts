@@ -1,6 +1,5 @@
 // Collection identity is tied to (queryClient, userId): a user change evicts the previous
-// entry and marks it orphaned. cleanup() is never called directly; TanStack DB's auto-GC
-// fires it once subscriberCount hits 0.
+// entry, which is cleaned up once its last reader detaches.
 
 import { deckFoldersContract } from "@openrift/shared/contracts/deck-folders";
 import { decksContract } from "@openrift/shared/contracts/decks";
@@ -14,7 +13,8 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { BasicIndex, createCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import { watchFailedLoad } from "@/features/collections/lib/collection-load-failure";
 import { dropCardsOfMissingDecks, mergeDeckCardsDelta } from "@/features/decks/lib/deck-card-rows";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
 import type {
@@ -29,6 +29,7 @@ import {
   persistDeckMutations,
 } from "@/features/decks/lib/decks-write";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { m } from "@/paraglide/messages.js";
 
 interface CacheEntry<T> {
   userId: string;
@@ -51,6 +52,7 @@ export function getDecksCollection(queryClient: QueryClient, userId: string): De
   }
   if (existing) {
     markOrphaned(existing.collection, `decks:${existing.userId}`);
+    cleanupWhenIdle(existing.collection);
   }
 
   const context = { queryClient, userId };
@@ -71,19 +73,17 @@ export function getDecksCollection(queryClient: QueryClient, userId: string): De
       getKey: (row) => row.deck.id,
       onInsert: async ({ transaction, collection: rows }) => {
         await persistDeckMutations(rows, transaction.mutations, context);
-        return { refetch: false };
       },
       onUpdate: async ({ transaction, collection: rows }) => {
         await persistDeckMutations(rows, transaction.mutations, context);
-        return { refetch: false };
       },
       onDelete: async ({ transaction, collection: rows }) => {
         await persistDeckMutations(rows, transaction.mutations, context);
-        return { refetch: false };
       },
     }),
   );
 
+  watchFailedLoad(collection, m.sync_load_failed_decks);
   decksCache.set(queryClient, { userId, collection });
   return collection;
 }
@@ -98,6 +98,7 @@ export function getDeckCardsCollection(
   }
   if (existing) {
     markOrphaned(existing.collection, `deck-cards:${existing.userId}`);
+    cleanupWhenIdle(existing.collection);
   }
 
   const context = { queryClient, userId };
@@ -151,20 +152,18 @@ export function getDeckCardsCollection(
       getKey: (row) => deckCardRowKey(row),
       onInsert: async ({ transaction, collection: rows }) => {
         await persistDeckCardMutations(rows, transaction.mutations, context);
-        return { refetch: false };
       },
       onUpdate: async ({ transaction, collection: rows }) => {
         await persistDeckCardMutations(rows, transaction.mutations, context);
-        return { refetch: false };
       },
       onDelete: async ({ transaction, collection: rows }) => {
         await persistDeckCardMutations(rows, transaction.mutations, context);
-        return { refetch: false };
       },
     }),
   );
   collection.createIndex((row) => row.deckId, { indexType: BasicIndex });
 
+  watchFailedLoad(collection, m.sync_load_failed_deck_cards);
   cardsCache.set(queryClient, { userId, collection });
   return collection;
 }
@@ -179,6 +178,7 @@ export function getDeckFoldersCollection(
   }
   if (existing) {
     markOrphaned(existing.collection, `deck-folders:${existing.userId}`);
+    cleanupWhenIdle(existing.collection);
   }
 
   const context = { queryClient, userId };
@@ -196,18 +196,22 @@ export function getDeckFoldersCollection(
         return response.items;
       },
       getKey: (row) => row.id,
-      onInsert: async ({ transaction }) => {
+      onInsert: async ({ transaction, collection: folders }) => {
         await persistDeckFolderMutations(transaction.mutations, context);
+        await folders.utils.refetch();
       },
-      onUpdate: async ({ transaction }) => {
+      onUpdate: async ({ transaction, collection: folders }) => {
         await persistDeckFolderMutations(transaction.mutations, context);
+        await folders.utils.refetch();
       },
-      onDelete: async ({ transaction }) => {
+      onDelete: async ({ transaction, collection: folders }) => {
         await persistDeckFolderMutations(transaction.mutations, context);
+        await folders.utils.refetch();
       },
     }),
   );
 
+  watchFailedLoad(collection, m.sync_load_failed_deck_folders);
   foldersCache.set(queryClient, { userId, collection });
   return collection;
 }

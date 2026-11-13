@@ -43,6 +43,21 @@ describe("cleanupWhenIdle", () => {
     await vi.waitFor(() => expect(cleanupSpy).toHaveBeenCalledTimes(1));
   });
 
+  it("waits for the next detach when cleanup() rejects because a reader attached", async () => {
+    const collection = createLocalOnly();
+    const cleanupSpy = vi
+      .spyOn(collection, "cleanup")
+      .mockRejectedValueOnce(new Error("CollectionHasSubscribersError"));
+
+    cleanupWhenIdle(collection);
+    await vi.waitFor(() => expect(cleanupSpy).toHaveBeenCalledTimes(1));
+
+    const subscription = collection.subscribeChanges(() => {});
+    subscription.unsubscribe();
+
+    await vi.waitFor(() => expect(cleanupSpy).toHaveBeenCalledTimes(2));
+  });
+
   it("is a no-op when called against an already-cleaned-up collection", async () => {
     const collection = createLocalOnly();
     await collection.cleanup();

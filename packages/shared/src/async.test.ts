@@ -10,7 +10,7 @@ describe("sleep", () => {
   it("resolves only after the given delay", async () => {
     vi.useFakeTimers();
     const settled = vi.fn<() => void>();
-    void sleep(1000).then(settled, settled);
+    void sleep(1000).finally(settled);
     await vi.advanceTimersByTimeAsync(999);
     expect(settled).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);

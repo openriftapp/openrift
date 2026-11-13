@@ -136,10 +136,9 @@ export function ConfirmActionButton({
 
   async function handleConfirm() {
     setPending(true);
-    const succeeded = await onConfirm().then(
-      () => true,
-      () => false,
-    );
+    const succeeded = await onConfirm()
+      .then(() => true)
+      .catch(() => false);
     setPending(false);
     if (succeeded) {
       setOpen(false);

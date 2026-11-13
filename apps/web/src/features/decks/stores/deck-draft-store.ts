@@ -4,6 +4,7 @@ import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db
 import type { QueryClient } from "@tanstack/react-query";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { PlanDraft } from "@/features/decks/lib/deck-plan";
@@ -102,7 +103,7 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
 
   try {
     const collection = getDeckCardsCollection(queryClient, userId);
-    await collection.preload();
+    await loadCollection(collection);
     await withTimeout(
       saveDeckCards(collection, entry.deckId, cards, { queryClient, userId }).when("settled"),
       { label: m.decks_editor_timeout_save(), abortController: controller },

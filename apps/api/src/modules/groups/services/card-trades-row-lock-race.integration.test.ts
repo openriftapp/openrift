@@ -136,10 +136,9 @@ describe.skipIf(!ctx)(
           .where("id", "=", tradeId)
           .forUpdate()
           .execute();
-        result = run().then(
-          (value) => ({ status: "fulfilled", value }) as const,
-          (error: unknown) => ({ status: "rejected", reason: error }) as const,
-        );
+        result = run()
+          .then((value) => ({ status: "fulfilled", value }) as const)
+          .catch((error: unknown) => ({ status: "rejected", reason: error }) as const);
         await waitForTradeLockWait();
         await write(trx);
       });

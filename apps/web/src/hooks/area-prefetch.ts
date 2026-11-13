@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { getCollectionsCollection } from "@/features/collections/lib/collections-collection";
 import { getCopiesCollection } from "@/features/collections/lib/copies-collection";
 import {
@@ -12,13 +13,13 @@ import { listsQueryOptions } from "@/features/lists/lib/lists-queries";
 
 export function prefetchAreas(queryClient: QueryClient, userId: string): void {
   void Promise.allSettled([
-    getDecksCollection(queryClient, userId).preload(),
-    getDeckCardsCollection(queryClient, userId).preload(),
-    getDeckFoldersCollection(queryClient, userId).preload(),
-    getCollectionsCollection(queryClient, userId).preload(),
+    loadCollection(getDecksCollection(queryClient, userId)),
+    loadCollection(getDeckCardsCollection(queryClient, userId)),
+    loadCollection(getDeckFoldersCollection(queryClient, userId)),
+    loadCollection(getCollectionsCollection(queryClient, userId)),
     queryClient.query(listsQueryOptions(userId)),
     queryClient.query(listsQueryOptions(userId, "wish")),
     queryClient.query(friendGroupsQueryOptions(userId)),
-    getCopiesCollection(queryClient, userId).preload(),
+    loadCollection(getCopiesCollection(queryClient, userId)),
   ]);
 }

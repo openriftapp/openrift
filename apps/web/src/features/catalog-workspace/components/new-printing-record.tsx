@@ -241,12 +241,8 @@ function NewPrintingBody({
       return;
     }
     accepting.current = true;
-    const release = () => {
+    await acceptDraft(draft).finally(() => {
       accepting.current = false;
-    };
-    await acceptDraft(draft).then(release, (error: unknown) => {
-      release();
-      throw error;
     });
   };
 

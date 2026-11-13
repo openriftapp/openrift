@@ -2,6 +2,7 @@ import { isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -65,8 +66,8 @@ export const Route = createFileRoute("/_app/decks/import")({
         const { getDeckCardsCollection, getDecksCollection } =
           await import("@/features/decks/lib/decks-collection");
         await Promise.all([
-          getDecksCollection(context.queryClient, session.user.id).preload(),
-          getDeckCardsCollection(context.queryClient, session.user.id).preload(),
+          loadCollection(getDecksCollection(context.queryClient, session.user.id)),
+          loadCollection(getDeckCardsCollection(context.queryClient, session.user.id)),
         ]);
       }
     }

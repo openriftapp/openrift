@@ -13,7 +13,7 @@ import { v7 as uuidv7 } from "uuid";
 
 import { useCollectionsCollection } from "@/features/collections/hooks/use-collections-collection";
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
-import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { getCollectionsCollection } from "@/features/collections/lib/collections-collection";
 import { compareCollections } from "@/features/collections/lib/collections-order";
 import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-queries";
@@ -102,7 +102,7 @@ export function useCollectionsList(): CollectionResponse[] | undefined {
 
 async function loadedCollections(queryClient: QueryClient, userId: string) {
   const collection = getCollectionsCollection(queryClient, userId);
-  await collection.preload();
+  await loadCollection(collection);
   return collection;
 }
 
@@ -347,7 +347,6 @@ export function useResetCollections() {
       if (copiesCollection) {
         const personal = copiesCollection.toArray.filter((copy) => copy.groupId === null);
         if (personal.length > 0) {
-          startSyncIfNeeded(copiesCollection);
           await copiesCollection.utils.writeDelete(personal.map((copy) => copy.id));
         }
       }

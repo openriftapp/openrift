@@ -22,6 +22,7 @@
 - feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.
 - feat(Decks): **Owned counts when changing printing** — the change-printing menu in the deck editor and tier lists marks each printing with how many copies you own.
 - feat(Trades): **Owned count in the trade panel** — a card's trade panel shows how many copies you own, and how many of them are this printing.
+- feat(App): **Retry for failed loads** — if your decks or collections fail to load, a toast offers Retry, and the app tries again when you return to the tab or reconnect.
 - fix(Collection): **Visible selection in quick add** — the selected card and printing were hard to spot and now get a gold tint and ring, and only their add button is filled.
 - fix(Cards): **One price per marketplace** — the price charts on a card page plot the same figure as the price chip.
 - fix(Cards): **Card page art matches the grid** — the large image on a card page shows the foil effect, the preview ribbon and the suggest-image notice, and follows your show-images setting.

@@ -1,7 +1,5 @@
-// QueryCollections auto-GC once subscriberCount hits zero. Never call cleanup() on one manually:
-// it races a live query's [Live Query Error] during the React-commit gap.
-// LocalOnlyCollections have gcTime: 0 and never auto-GC; cleanupWhenIdle calls cleanup() reactively
-// when subscriberCount transitions to 0.
+// cleanup() rejects while a reader is attached, so evicted stores go through cleanupWhenIdle.
+// LocalOnlyCollections have gcTime: 0 and never auto-GC; QueryCollections would only after gcTime.
 
 import type { Collection } from "@tanstack/react-db";
 
@@ -41,23 +39,27 @@ export function cleanupWhenIdle(collection: AnyCollection): void {
     return;
   }
   if (collection.subscriberCount === 0) {
-    void collection.cleanup();
+    void cleanupOrWait(collection);
     return;
   }
-  let done = false;
-  const off = collection.on("subscribers:change", (event) => {
-    if (done || event.subscriberCount > 0) {
-      return;
-    }
-    done = true;
-    off();
-    void collection.cleanup();
-  });
+  waitForIdle(collection);
 }
 
-/** A direct write needs a sync session, which an idle or collected store only has once sync starts. */
-export function startSyncIfNeeded(collection: AnyCollection): void {
-  if (collection.status === "idle" || collection.status === "cleaned-up") {
-    collection.startSyncImmediate();
+async function cleanupOrWait(collection: AnyCollection): Promise<void> {
+  try {
+    await collection.cleanup();
+  } catch {
+    // A reader that attached first makes cleanup() reject with CollectionHasSubscribersError.
+    waitForIdle(collection);
   }
+}
+
+function waitForIdle(collection: AnyCollection): void {
+  const off = collection.on("subscribers:change", (event) => {
+    if (event.subscriberCount > 0) {
+      return;
+    }
+    off();
+    void cleanupOrWait(collection);
+  });
 }

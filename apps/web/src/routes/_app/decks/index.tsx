@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckListSearchSchema } from "@/features/decks/lib/deck-list-search";
 import { sessionQueryOptions } from "@/lib/auth-session";
@@ -31,8 +32,8 @@ export const Route = createFileRoute("/_app/decks/")({
       const { getDeckCardsCollection, getDecksCollection } =
         await import("@/features/decks/lib/decks-collection");
       await Promise.all([
-        getDecksCollection(context.queryClient, session.user.id).preload(),
-        getDeckCardsCollection(context.queryClient, session.user.id).preload(),
+        loadCollection(getDecksCollection(context.queryClient, session.user.id)),
+        loadCollection(getDeckCardsCollection(context.queryClient, session.user.id)),
       ]);
     }
   },

@@ -6,6 +6,7 @@ import {
   collectionDetailSearchSchema,
 } from "@/features/cards/lib/search-schemas";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/_app/_authenticated/collections/$collecti
     const { getCollectionsCollection } =
       await import("@/features/collections/lib/collections-collection");
     const collections = getCollectionsCollection(context.queryClient, context.userId);
-    await collections.preload();
+    await loadCollection(collections);
     if (!collections.has(params.collectionId)) {
       throw notFound();
     }

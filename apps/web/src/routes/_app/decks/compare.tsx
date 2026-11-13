@@ -2,6 +2,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { parseCompareSide, queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import { requireSession } from "@/lib/auth-session";
@@ -68,8 +69,8 @@ export const Route = createFileRoute("/_app/decks/compare")({
       await import("@/features/decks/lib/decks-collection");
     const decks = getDecksCollection(context.queryClient, userId);
     await Promise.all([
-      decks.preload(),
-      getDeckCardsCollection(context.queryClient, userId).preload(),
+      loadCollection(decks),
+      loadCollection(getDeckCardsCollection(context.queryClient, userId)),
     ]);
     if (serverIds.some((id) => !decks.has(id))) {
       throw notFound();

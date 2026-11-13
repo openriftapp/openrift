@@ -3,6 +3,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
@@ -63,8 +64,8 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
     const { deckInStore, getDeckCardsCollection, getDecksCollection, refreshDeckStores } =
       await import("@/features/decks/lib/decks-collection");
     await Promise.all([
-      getDecksCollection(context.queryClient, userId).preload(),
-      getDeckCardsCollection(context.queryClient, userId).preload(),
+      loadCollection(getDecksCollection(context.queryClient, userId)),
+      loadCollection(getDeckCardsCollection(context.queryClient, userId)),
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...customTagsQueryOptions, staleTime: "static" }),
     ]);

@@ -18,6 +18,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { useDeckList } from "@/features/decks/hooks/use-decks";
 import { deckCardsForDeck } from "@/features/decks/lib/deck-card-rows";
 import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
@@ -103,7 +104,7 @@ async function loadDeckCards(queryClient: QueryClient, userId: string, deckId: s
   try {
     const { getDeckCardsCollection } = await import("@/features/decks/lib/decks-collection");
     const collection = getDeckCardsCollection(queryClient, userId);
-    await collection.preload();
+    await loadCollection(collection);
     return deckCardsForDeck(collection.toArray, deckId);
   } catch {
     toast.error(m.stage_queue_source_deck_error());

@@ -16,7 +16,6 @@ import type {
 import type { Collection, PendingMutation, Transaction } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
 import {
   collectionEventsKeys,
   collectionsKeys,
@@ -468,7 +467,6 @@ export async function persistCopyMutations(
   mutations: readonly PendingMutation<CopyResponse>[],
   context: CopiesWriteContext,
 ): Promise<void> {
-  startSyncIfNeeded(collection);
   const settleRefetchRace = watchForRefetchRace(
     context.queryClient,
     copiesKeys.syncedStore(context.userId),

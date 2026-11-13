@@ -1,5 +1,5 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { eq, pooledLiveQueries, useLiveQuery } from "@tanstack/react-db";
 
 import { useCollectionsCollection } from "@/features/collections/hooks/use-collections-collection";
 
@@ -18,6 +18,7 @@ export function useHomeCollection(collectionId?: string | null): CollectionRespo
             .from({ collection: collectionsCollection })
             .where(({ collection }) => eq(collection.id, collectionId))
             .findOne(),
+    pool: pooledLiveQueries,
   });
   if (!isReady) {
     return undefined;

@@ -5,6 +5,7 @@ import { z } from "zod/mini";
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
@@ -85,8 +86,8 @@ export const Route = createFileRoute("/_app/stage")({
     const { getDeckCardsCollection, getDecksCollection } =
       await import("@/features/decks/lib/decks-collection");
     await Promise.all([
-      getDecksCollection(context.queryClient, session.user.id).preload(),
-      getDeckCardsCollection(context.queryClient, session.user.id).preload(),
+      loadCollection(getDecksCollection(context.queryClient, session.user.id)),
+      loadCollection(getDeckCardsCollection(context.queryClient, session.user.id)),
     ]);
     return null;
   },

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions, ensureCatalogComplete } from "@/features/cards/lib/catalog-queries";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import { requireScanner } from "@/features/scan/lib/scanner-flag";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { seoHead } from "@/lib/seo";
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/_app/scan")({
       }
       const { getCollectionsCollection } =
         await import("@/features/collections/lib/collections-collection");
-      await getCollectionsCollection(context.queryClient, session.user.id).preload();
+      await loadCollection(getCollectionsCollection(context.queryClient, session.user.id));
     };
     await Promise.all([
       context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),

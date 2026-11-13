@@ -1,4 +1,4 @@
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { eq, pooledLiveQueries, useLiveQuery } from "@tanstack/react-db";
 
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 import { getLocalDecksCollection } from "@/features/decks/lib/local-decks-collection";
@@ -18,6 +18,7 @@ export function useLocalDeck(deckId: string): LocalDeck | undefined {
       globalThis.window === undefined
         ? null
         : q.from({ deck: getLocalDecksCollection() }).where(({ deck }) => eq(deck.id, deckId)),
+    pool: pooledLiveQueries,
   });
   return data?.[0];
 }

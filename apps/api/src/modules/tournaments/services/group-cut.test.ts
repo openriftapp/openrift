@@ -100,10 +100,7 @@ function mockRepos(input: MockInput) {
 }
 
 async function failureOf(action: Promise<unknown>): Promise<AppError> {
-  const caught: unknown = await action.then(
-    () => null,
-    (error: unknown) => error,
-  );
+  const caught: unknown = await action.then(() => null).catch((error: unknown) => error);
   expect(caught).toBeInstanceOf(AppError);
   return caught as AppError;
 }

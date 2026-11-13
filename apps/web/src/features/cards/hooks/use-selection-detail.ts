@@ -38,7 +38,7 @@ export function useCardDetailNavigation({
 
   // selectedIndex can go stale against `items` (list shrinks/reorders while open),
   // so neighbors are bounds-checked against the current array, not just the index.
-  const prevItem = selectedIndex > 0 ? items[selectedIndex - 1] : undefined;
+  const prevItem = items[selectedIndex - 1];
   const handlePrevCard = prevItem
     ? () => navigateToIndex(selectedIndex - 1, prevItem.printing)
     : undefined;

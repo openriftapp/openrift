@@ -28,7 +28,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { createServerFn } from "@tanstack/react-start";
 import { v7 as uuidv7 } from "uuid";
 
-import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
+import { loadCollection } from "@/features/collections/lib/collection-load";
 import {
   useDeckCardsCollection,
   useDecksCollection,
@@ -94,7 +94,7 @@ export function useDeckCardsFor(
 
 async function loadedDecks(queryClient: QueryClient, userId: string) {
   const collection = getDecksCollection(queryClient, userId);
-  await collection.preload();
+  await loadCollection(collection);
   return collection;
 }
 
@@ -263,7 +263,6 @@ export function useDeleteDeck() {
         .filter((row) => row.deckId === deckId)
         .map((row) => deckCardRowKey(row));
       if (keys.length > 0) {
-        startSyncIfNeeded(cards);
         await cards.utils.writeDelete(keys);
       }
     },
@@ -291,7 +290,7 @@ export function useSaveDeckCards() {
         return;
       }
       const collection = getDeckCardsCollection(queryClient, userId);
-      await collection.preload();
+      await loadCollection(collection);
       await applyDeckCards(collection, deckId, cards, { queryClient, userId }).when("settled");
       resetDeckDraft(queryClient, userId, deckId);
     },

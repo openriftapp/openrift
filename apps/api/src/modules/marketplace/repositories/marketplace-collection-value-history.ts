@@ -358,7 +358,7 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
           idx--;
         }
         priceCursor.set(printingId, idx);
-        const day = idx < 0 ? undefined : days[idx];
+        const day = days[idx];
         if (day === undefined) {
           return undefined;
         }

@@ -1,6 +1,5 @@
 // Collection identity is tied to (queryClient, userId): a user change evicts the previous
-// entry and marks it orphaned. cleanup() is never called directly; TanStack DB's auto-GC
-// fires it once subscriberCount hits 0.
+// entry, which is cleaned up once its last reader detaches.
 
 import type { CollectionResponse, CopyResponse } from "@openrift/shared/types/api/collection";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
@@ -8,11 +7,13 @@ import type { Collection } from "@tanstack/react-db";
 import { BasicIndex, createCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import { watchFailedLoad } from "@/features/collections/lib/collection-load-failure";
 import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { mergeCopiesDelta } from "@/features/collections/lib/copies-delta";
 import { fetchCopies } from "@/features/collections/lib/copies-query";
 import { persistCopyMutations } from "@/features/collections/lib/copies-write";
+import { m } from "@/paraglide/messages.js";
 
 interface CacheEntry {
   userId: string;
@@ -39,6 +40,7 @@ export function getCopiesCollection(
   }
   if (existing) {
     markOrphaned(existing.collection, `copies:${existing.userId}`);
+    cleanupWhenIdle(existing.collection);
   }
 
   const context = { queryClient, userId };
@@ -92,21 +94,19 @@ export function getCopiesCollection(
       getKey: (copy) => copy.id,
       onInsert: async ({ transaction, collection: copies }) => {
         await persistCopyMutations(copies, transaction.mutations, context);
-        return { refetch: false };
       },
       onUpdate: async ({ transaction, collection: copies }) => {
         await persistCopyMutations(copies, transaction.mutations, context);
-        return { refetch: false };
       },
       onDelete: async ({ transaction, collection: copies }) => {
         await persistCopyMutations(copies, transaction.mutations, context);
-        return { refetch: false };
       },
     }),
   );
   collection.createIndex((row) => row.collectionId, { indexType: BasicIndex });
   collection.createIndex((row) => row.printingId, { indexType: BasicIndex });
 
+  watchFailedLoad(collection, m.sync_load_failed_copies);
   cache.set(queryClient, { userId, collection });
   return collection;
 }

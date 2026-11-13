@@ -11,18 +11,16 @@ export function useBoxedDecks(
 ): (BoxedDeck & { collectionId: string })[] {
   const stored = storedDecksShown(deck, family);
   const collectionIds = [...new Set(stored.map((entry) => entry.collectionId))];
-  const idsKey = collectionIds.join(",");
   const collectionsCollection = useCollectionsCollection();
   // No store to read during SSR.
-  const { data } = useLiveQuery(
-    (q) =>
+  const { data } = useLiveQuery({
+    query: (q) =>
       globalThis.window === undefined || !collectionsCollection || collectionIds.length === 0
         ? null
         : q
             .from({ collection: collectionsCollection })
             .where(({ collection }) => inArray(collection.id, collectionIds)),
-    [collectionsCollection, idsKey],
-  );
+  });
   const nameById = new Map((data ?? []).map((collection) => [collection.id, collection.name]));
   return stored.flatMap((entry) => {
     const boxName = nameById.get(entry.collectionId);
