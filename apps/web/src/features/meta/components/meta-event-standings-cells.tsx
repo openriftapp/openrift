@@ -44,6 +44,9 @@ export function RankCell({
 
 function MissingLine({ cost }: { cost: MetaDeckCost }) {
   const format = useMetaPriceFormat();
+  if (cost.knownToComplete !== undefined) {
+    return <PartialMissingLine amount={cost.knownToComplete} unpriced={cost.unpricedMissing} />;
+  }
   if (cost.owned === undefined || cost.needed === 0) {
     return null;
   }
@@ -59,6 +62,19 @@ function MissingLine({ cost }: { cost: MetaDeckCost }) {
     <span className="text-muted-foreground text-xs">
       {m.meta_standings_missing_value({ amount: format(cost.toComplete) })}
       {cost.unpricedMissing > 0 && ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
+    </span>
+  );
+}
+
+function PartialMissingLine({ amount, unpriced }: { amount: number; unpriced: number }) {
+  const format = useMetaPriceFormat();
+  if (amount === 0 && unpriced === 0) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground/70 text-xs">
+      {m.meta_standings_missing_value_partial({ amount: format(amount) })}
+      {unpriced > 0 && ` ${m.common_unpriced({ count: unpriced })}`}
     </span>
   );
 }

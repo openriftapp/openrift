@@ -10569,6 +10569,7 @@
   ],
   "meta_run_finished": "最終 {#strong}{finish}{/strong}",
   "meta_standings_missing_value": "缺 {amount}",
+  "meta_standings_missing_value_partial": "缺 {amount}+",
   "decks_hero_value_suffix": "價值",
   "lists_toast_removed_from_list": [
     {

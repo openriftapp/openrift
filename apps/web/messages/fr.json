@@ -10576,6 +10576,7 @@
   ],
   "meta_run_finished": "résultat : {#strong}{finish}{/strong}",
   "meta_standings_missing_value": "{amount} manquants",
+  "meta_standings_missing_value_partial": "{amount}+ manquants",
   "decks_hero_value_suffix": "de valeur",
   "lists_toast_removed_from_list": [
     {

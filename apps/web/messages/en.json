@@ -10580,6 +10580,7 @@
   ],
   "meta_run_finished": "finished {#strong}{finish}{/strong}",
   "meta_standings_missing_value": "{amount} missing",
+  "meta_standings_missing_value_partial": "{amount}+ missing",
   "decks_hero_value_suffix": "value",
   "lists_toast_removed_from_list": [
     {

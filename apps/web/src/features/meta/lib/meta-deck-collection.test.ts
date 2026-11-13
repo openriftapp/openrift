@@ -211,14 +211,11 @@ describe("metaDeckCosts", () => {
     });
   });
 
-  it("gives a partial list no value, ownership or cost to complete", () => {
+  it("gives a partial list no value or ownership, only a known cost to complete", () => {
     const costs = metaDeckCosts(decks, {
       includeSideboard: false,
-      prices,
-      ownedByCardId: new Map([
-        ["card-a", 3],
-        ["card-b", 1],
-      ]),
+      prices: new Map([["card-a", 2]]),
+      ownedByCardId: new Map([["card-a", 1]]),
       partialDeckIds: new Set(["deck-1"]),
     });
     expect(costs.get("deck-1")).toEqual({
@@ -227,8 +224,19 @@ describe("metaDeckCosts", () => {
       value: undefined,
       toComplete: undefined,
       unpriced: 0,
-      unpricedMissing: 0,
+      unpricedMissing: 1,
+      knownToComplete: 4,
     });
+  });
+
+  it("leaves the known cost of a partial list unset without a collection", () => {
+    const costs = metaDeckCosts(decks, {
+      includeSideboard: false,
+      prices,
+      partialDeckIds: new Set(["deck-1"]),
+    });
+    expect(costs.get("deck-1")?.knownToComplete).toBeUndefined();
+    expect(costs.get("deck-1")?.unpricedMissing).toBe(0);
   });
 
   it("still prices a full list when another deck is partial", () => {

@@ -18,6 +18,7 @@ export interface MetaDeckCost {
   toComplete: number | undefined;
   unpriced: number;
   unpricedMissing: number;
+  knownToComplete?: number;
 }
 
 // A pair naming a card outside the pool is dropped, as is a trailing index without a quantity.
@@ -114,6 +115,8 @@ export function metaDeckCosts(
       valueRows.push({ price, quantity });
       missingRows.push({ price, quantity: quantity - held });
     }
+    const withCollection = options.ownedByCardId !== undefined;
+    const toComplete = priceTotal(missingRows);
     if (options.partialDeckIds?.has(deckId)) {
       byDeck.set(deckId, {
         needed,
@@ -121,13 +124,12 @@ export function metaDeckCosts(
         value: undefined,
         toComplete: undefined,
         unpriced: 0,
-        unpricedMissing: 0,
+        unpricedMissing: withCollection ? toComplete.unpriced : 0,
+        knownToComplete: withCollection ? toComplete.value : undefined,
       });
       continue;
     }
-    const withCollection = options.ownedByCardId !== undefined;
     const value = priceTotal(valueRows);
-    const toComplete = priceTotal(missingRows);
     byDeck.set(deckId, {
       needed,
       owned: withCollection ? owned : undefined,
