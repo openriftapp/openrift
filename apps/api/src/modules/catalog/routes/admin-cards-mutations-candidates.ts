@@ -1,5 +1,6 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
@@ -244,7 +245,7 @@ export const adminCardMutationsCandidatesRouter = {
   }),
 
   checkMatchingCandidates: os.checkMatchingCandidates.handler(async ({ context }) => {
-    const started = await requireScheduler(context.scheduler).runNow("candidates.check_matching");
+    const started = await requireScheduler(context.scheduler).runNow(JOB_KIND.checkMatching);
 
     if (started.status === "running") {
       await recordAdminEvent(context.repos, context.userId, {

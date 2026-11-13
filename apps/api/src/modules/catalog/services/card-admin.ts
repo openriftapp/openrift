@@ -1,7 +1,5 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
 import type { Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
@@ -79,10 +77,6 @@ function throwIfBlocked(blockers: CardDeleteBlockers): void {
     const detail = blocking
       .map(([source, count]) => `${BLOCKER_LABELS[source as keyof CardDeleteBlockers]} (${count})`)
       .join(", ");
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      `Card cannot be deleted, it is still referenced by: ${detail}`,
-    );
+    throw conflict(`Card cannot be deleted, it is still referenced by: ${detail}`);
   }
 }

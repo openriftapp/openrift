@@ -75,6 +75,7 @@ const ITEM: DeckListItemResponse = {
   requiredProgress: 40,
   requiredTotal: 40,
   totalValueCents: null,
+  unpricedCardCount: null,
   missingCount: null,
   folderIds: ["f1", "f2", "f3"],
   familyName: null,

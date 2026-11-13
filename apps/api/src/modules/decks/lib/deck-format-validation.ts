@@ -1,9 +1,8 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 
 /** Rejects a format not in `deck_formats`, before the FK turns it into a raw constraint violation. */
 export async function assertKnownFormat(
@@ -12,7 +11,7 @@ export async function assertKnownFormat(
 ): Promise<void> {
   const row = await deckFormats.getBySlug(format);
   if (!row) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Unknown deck format: ${format}`);
+    throw badRequest(`Unknown deck format: ${format}`);
   }
 }
 
@@ -29,43 +28,27 @@ export async function validateFormatConfig(
   if (format === WellKnown.deckFormat.CUSTOM_REGION) {
     const raw = config.tagSlugs;
     if (!Array.isArray(raw) || raw.length === 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "formatConfig.tagSlugs must be a non-empty array for Custom - Region decks",
-      );
+      throw badRequest("formatConfig.tagSlugs must be a non-empty array for Custom - Region decks");
     }
     const slugs = [
       ...new Set(raw.filter((slug): slug is string => typeof slug === "string" && slug !== "")),
     ];
     if (slugs.length !== raw.length) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "formatConfig.tagSlugs must contain unique non-empty strings",
-      );
+      throw badRequest("formatConfig.tagSlugs must contain unique non-empty strings");
     }
     const tags = await customTagsRepo.listBySlugs(slugs);
     const tagBySlug = new Map(tags.map((tag) => [tag.slug, tag]));
     for (const slug of slugs) {
       const tag = tagBySlug.get(slug);
       if (!tag) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Unknown custom tag slug: ${slug}`);
+        throw badRequest(`Unknown custom tag slug: ${slug}`);
       }
       if (tag.category !== "region") {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          `Custom tag "${slug}" is not in the region category`,
-        );
+        throw badRequest(`Custom tag "${slug}" is not in the region category`);
       }
     }
     return { tagSlugs: slugs };
   }
 
-  throw new AppError(
-    400,
-    ERROR_CODES.BAD_REQUEST,
-    `Format "${format}" does not accept format_config`,
-  );
+  throw badRequest(`Format "${format}" does not accept format_config`);
 }

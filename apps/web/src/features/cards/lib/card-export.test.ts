@@ -7,7 +7,8 @@ const html2canvas = vi.fn();
 
 vi.mock("html2canvas-pro", () => ({ html2canvas }));
 
-const { CARD_EXPORT_WIDTH, exportCardImage, waitForRender } = await import("./card-export");
+const { CARD_EXPORT_WIDTH, exportCardImage } = await import("./card-export");
+const { waitForRender } = await import("@/lib/html-capture");
 
 const PNG = new Blob(["png"], { type: "image/png" });
 

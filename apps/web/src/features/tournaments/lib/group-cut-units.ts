@@ -1,8 +1,5 @@
-import type {
-  GroupStageGroupView,
-  PodResponse,
-  PodRoundResponse,
-} from "@openrift/shared/types/api/pod-tournament";
+import { pairUnits } from "@openrift/shared/pairing/group-stage";
+import type { GroupStageGroupView, PodResponse } from "@openrift/shared/types/api/pod-tournament";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -23,32 +20,22 @@ function unitLabel(labels: readonly string[]): string {
 }
 
 export function groupUnits(groups: readonly GroupStageGroupView[]): GroupUnit[] {
-  const byId = new Map(groups.map((group) => [group.id, group]));
-  const taken = new Set<string>();
-  const units: GroupUnit[] = [];
-  for (const group of groups) {
-    if (taken.has(group.id)) {
-      continue;
-    }
-    taken.add(group.id);
-    const partner = group.pairedGroupId === null ? undefined : byId.get(group.pairedGroupId);
-    const members = partner === undefined ? [group] : [group, partner];
-    if (partner) {
-      taken.add(partner.id);
-    }
-    units.push({
-      key: members.map((member) => member.id).join("+"),
-      label: unitLabel(members.map((member) => member.label)),
-      groups: members,
-      playerIds: members.flatMap((member) => member.playerIds),
-      roundsStarted: Math.max(...members.map((member) => member.roundsStarted)),
-      currentRoundReported: members.every((member) => member.currentRoundReported),
-      canStartNextRound: members.every((member) => member.canStartNextRound),
-      done: members.every((member) => member.done),
-      paired: members.length > 1,
-    });
-  }
-  return units;
+  return pairUnits(
+    groups,
+    (group) => group.id,
+    (group) => group.pairedGroupId,
+    "solo",
+  ).map((members) => ({
+    key: members.map((member) => member.id).join("+"),
+    label: unitLabel(members.map((member) => member.label)),
+    groups: members,
+    playerIds: members.flatMap((member) => member.playerIds),
+    roundsStarted: Math.max(...members.map((member) => member.roundsStarted)),
+    currentRoundReported: members.every((member) => member.currentRoundReported),
+    canStartNextRound: members.every((member) => member.canStartNextRound),
+    done: members.every((member) => member.done),
+    paired: members.length > 1,
+  }));
 }
 
 /** "Group C (round 2), Group D · E (round 3)": the groups the cut waits on. */
@@ -75,11 +62,6 @@ export function groupLabelByPlayer(groups: readonly GroupStageGroupView[]): Map<
     }
   }
   return byPlayer;
-}
-
-export function podsOfUnit(round: PodRoundResponse, unit: GroupUnit): PodResponse[] {
-  const inUnit = new Set(unit.playerIds);
-  return round.pods.filter((pod) => pod.members.some((member) => inUnit.has(member.playerId)));
 }
 
 /** The two players sit in different groups, which only the paired pair does. */

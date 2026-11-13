@@ -110,12 +110,14 @@ function Owned({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Market
         ) : (
           <>
             <span>{m.meta_deck_owned_ratio({ owned: cost.owned, needed: cost.needed })}</span>
-            {cost.toComplete !== undefined && cost.toComplete > 0 && (
+            {cost.toComplete !== undefined && (cost.toComplete > 0 || cost.unpricedMissing > 0) && (
               <span>
                 <span className="text-foreground font-semibold">
                   {compactFormatterForMarketplace(marketplace)(cost.toComplete)}
                 </span>{" "}
                 {m.meta_deck_to_complete()}
+                {cost.unpricedMissing > 0 &&
+                  ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
               </span>
             )}
           </>
@@ -148,7 +150,14 @@ export function MetaDeckIndexRow({
 }) {
   const record = formatRecord(deck.wins, deck.losses, deck.draws);
   const value = cost?.value;
-  const priced = value === undefined ? null : compactFormatterForMarketplace(marketplace)(value);
+  const unpricedNote =
+    cost !== undefined && cost.unpriced > 0
+      ? ` ${m.common_unpriced({ count: cost.unpriced })}`
+      : "";
+  const priced =
+    value === undefined
+      ? null
+      : `${compactFormatterForMarketplace(marketplace)(value)}${unpricedNote}`;
 
   return (
     <div className="group hover:bg-muted/50 focus-within:ring-ring/50 relative -mx-2 rounded-md px-2 py-2.5 focus-within:ring-2 focus-within:ring-inset">
@@ -271,6 +280,8 @@ export function MetaDeckIndexRow({
                         {compactFormatterForMarketplace(marketplace)(cost.toComplete)}
                       </span>{" "}
                       {m.meta_deck_to_complete()}
+                      {cost.unpricedMissing > 0 &&
+                        ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
                     </>
                   )
                 )}

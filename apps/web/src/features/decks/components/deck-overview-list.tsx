@@ -40,7 +40,7 @@ import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
 import { orderByBattlefieldPlan } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { copyRowGroups, groupDeckCards } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
@@ -382,7 +382,7 @@ export function DeckOverviewList({
               perCopy,
             ).map(({ card, copyIndex }) => (
               <ListRow
-                key={`${getDeckCardKey(card)}-${copyIndex ?? "all"}`}
+                key={`${deckCardKey(card)}-${copyIndex ?? "all"}`}
                 card={card}
                 copyIndex={copyIndex}
                 entry={sortContext.getEntry(card)}
@@ -595,7 +595,7 @@ function GroupedRows({
           <DeckCardGroupHeader group={group} groupBy={groupBy} count={count} className="px-2" />
           {rows.map(({ card, copyIndex }) => (
             <ListRow
-              key={`${getDeckCardKey(card)}-${copyIndex ?? "all"}`}
+              key={`${deckCardKey(card)}-${copyIndex ?? "all"}`}
               card={card}
               copyIndex={copyIndex}
               entry={sortContext.getEntry(card)}
@@ -730,7 +730,10 @@ export function DeckListRow({
         dimmed && "opacity-30 transition-opacity",
       )}
       {...cardHoverProps(onHoverCard, card.cardId, hoverPrintingId)}
-      {...rowActivateProps(onCardClick ? () => onCardClick(card) : undefined)}
+      {...rowActivateProps(
+        onCardClick ? () => onCardClick(card) : undefined,
+        m.decks_card_row_view_details({ card: displayName }),
+      )}
       {...dragProps}
     >
       <CardMiniRow

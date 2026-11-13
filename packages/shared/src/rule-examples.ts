@@ -1,4 +1,5 @@
 import { cardPath } from "./site-paths.js";
+import { escapeRegExp } from "./strings.js";
 import type { RuleLanguage } from "./types/api/rules.js";
 
 export interface RuleSection {
@@ -41,10 +42,6 @@ export function ruleExampleText(content: string, language: RuleLanguage = "en"):
     .filter((section) => section.kind === "example")
     .map((section) => section.content)
     .join("\n");
-}
-
-function escapeRegex(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 }
 
 // Korean attaches particles to a name ("말괄량이에는"); any other Hangul after it means a longer word.
@@ -106,7 +103,7 @@ export function cardMentionPattern(
   }
   const end = MENTION_END[language] ?? String.raw`(?![\p{L}\p{N}])`;
   return new RegExp(
-    String.raw`(?<![\p{L}\p{N}])(?:${sorted.map((name) => escapeRegex(name)).join("|")})${end}`,
+    String.raw`(?<![\p{L}\p{N}])(?:${sorted.map((name) => escapeRegExp(name)).join("|")})${end}`,
     "gu",
   );
 }

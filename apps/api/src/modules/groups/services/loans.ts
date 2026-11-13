@@ -1,9 +1,9 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { pluralize } from "@openrift/shared/strings";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import type { AppError } from "../../../errors.js";
+import { badRequest, conflict } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
@@ -21,12 +21,12 @@ export interface CreateLoanInput {
 
 function tooFewOutstanding(count: number): AppError {
   const noun = pluralize(count, "copy is", "copies are");
-  return new AppError(400, ERROR_CODES.BAD_REQUEST, `Only ${count} ${noun} still out on this loan`);
+  return badRequest(`Only ${count} ${noun} still out on this loan`);
 }
 
 function tooFewAvailable(count: number): AppError {
   const noun = pluralize(count, "copy is", "copies are");
-  return new AppError(409, ERROR_CODES.CONFLICT, `Only ${count} ${noun} still available`);
+  return conflict(`Only ${count} ${noun} still available`);
 }
 
 async function reloadDto(repos: Repos, loanId: string, userId: string): Promise<LoanResponse> {
@@ -63,14 +63,10 @@ export function createLoan(transact: Transact, input: CreateLoanInput): Promise<
     // Must throw inside the promise, not synchronously: tests and future
     // in-process callers expect a rejection here.
     if ((borrowerUserId === undefined) === (borrowerName === undefined)) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Set exactly one of borrowerUserId or borrowerName",
-      );
+      throw badRequest("Set exactly one of borrowerUserId or borrowerName");
     }
     if (borrowerUserId === lenderUserId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "You cannot lend to yourself");
+      throw badRequest("You cannot lend to yourself");
     }
     if (borrowerUserId !== undefined) {
       const shared = await trxRepos.loans.isCoMember(lenderUserId, borrowerUserId);
@@ -142,7 +138,7 @@ export function returnLoanCopies(
 
     const updated = await trxRepos.loans.recordReturn(loanId, userId, count);
     if (updated === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+      throw conflict("Loan state has changed");
     }
     await trxRepos.loans.releasePins(loanId, count);
 
@@ -160,7 +156,7 @@ export function declareLoanReturn(
   return transact(async (trxRepos) => {
     const loan = await requireBorrowerLoan(trxRepos, loanId, userId);
     if (loan.status !== "active" || loan.acknowledgedAt === null) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
+      throw conflict("Loan is not active");
     }
 
     const outstanding = loan.quantity - loan.returnedQuantity;
@@ -170,7 +166,7 @@ export function declareLoanReturn(
 
     const updated = await trxRepos.loans.recordBorrowerReturn(loanId, userId, count);
     if (updated === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+      throw conflict("Loan state has changed");
     }
     await trxRepos.loans.releasePins(loanId, count);
 
@@ -189,7 +185,7 @@ export function confirmBorrowerReturn(
 
     const updated = await trxRepos.loans.clearBorrowerReturn(loanId, userId);
     if (updated === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "No declared return to review");
+      throw conflict("No declared return to review");
     }
 
     return reloadDto(trxRepos, loanId, userId);
@@ -209,12 +205,12 @@ export function reopenBorrowerReturn(
     const loan = await requireLenderLoan(trxRepos, loanId, userId);
     const count = loan.borrowerReturnedQuantity;
     if (count === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "No declared return to review");
+      throw conflict("No declared return to review");
     }
 
     const updated = await trxRepos.loans.undoBorrowerReturn(loanId, userId, count);
     if (updated === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+      throw conflict("Loan state has changed");
     }
 
     const unclaimed = await trxRepos.loans.listUnclaimedCopyIds(userId, loan.printingId);
@@ -226,7 +222,7 @@ export function reopenBorrowerReturn(
       await trxRepos.loans.pinCopies(loanId, availableCopyIds.slice(0, count));
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+        throw conflict("Loan state has changed");
       }
       throw error;
     }
@@ -246,7 +242,7 @@ export function writeOffLoan(
 
     const updated = await trxRepos.loans.markWrittenOff(loanId, userId);
     if (updated === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+      throw conflict("Loan state has changed");
     }
 
     const pinned = await trxRepos.loans.listPinnedCopyIds(loanId);
@@ -270,7 +266,7 @@ export function acknowledgeLoan(
     const updated = await trxRepos.loans.acknowledge(loanId, userId);
     if (updated === 0) {
       await requireBorrowerLoan(trxRepos, loanId, userId);
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
+      throw conflict("Loan is not active");
     }
     return reloadDto(trxRepos, loanId, userId);
   });
@@ -285,7 +281,7 @@ export function rejectLoan(
     const updated = await trxRepos.loans.reject(loanId, userId);
     if (updated === 0) {
       await requireBorrowerLoan(trxRepos, loanId, userId);
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
+      throw conflict("Loan is not active");
     }
     return reloadDto(trxRepos, loanId, userId);
   });

@@ -1,5 +1,4 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { parseGroupShopKey } from "@openrift/shared/group-shops";
 import type {
   FriendGroupShopEventsResponse,
@@ -8,7 +7,7 @@ import type {
 } from "@openrift/shared/types/api/friend-group";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -61,11 +60,7 @@ export const friendGroupsShopsRouter = {
       await trxRepos.friendGroupShops.lockShops(ctx.group.id);
       const count = await trxRepos.friendGroupShops.countShops(ctx.group.id);
       if (count >= MAX_SHOPS_PER_GROUP) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          `A group can follow at most ${MAX_SHOPS_PER_GROUP} shops`,
-        );
+        throw conflict(`A group can follow at most ${MAX_SHOPS_PER_GROUP} shops`);
       }
       await trxRepos.friendGroupShops.linkShop({
         groupId: ctx.group.id,

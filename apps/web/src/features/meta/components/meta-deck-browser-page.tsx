@@ -1,5 +1,4 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { META_PAGE_SIZES } from "@openrift/shared/meta-query";
 import type { MetaDeckSummary, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
@@ -25,7 +24,11 @@ import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-
 import { MetaDeckFilterControls } from "@/features/meta/components/meta-deck-filter-controls";
 import { deckIndexGrid, MetaDeckIndexRow } from "@/features/meta/components/meta-deck-index-row";
 import { MetaEventHeading } from "@/features/meta/components/meta-event-row";
-import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
+import {
+  IndexSortButton,
+  IndexSortHeader,
+} from "@/features/meta/components/meta-index-sort-button";
+import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { useMetaDeckFacets, useMetaDecks } from "@/features/meta/hooks/use-meta";
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
@@ -324,42 +327,18 @@ function MetaDeckBrowser({
               label={m.meta_browser_pages_aria()}
               scrollTargetId={DECK_LIST_ID}
             />
-            <DeckPageSizePicker
-              value={filters.perPage}
+            <MetaPageSizePicker
+              value={filters.perPage as MetaPageSizeValue}
+              isDefault={filters.perPage === DEFAULT_DECK_PAGE_SIZE}
               total={total}
+              itemLabel={(size) => m.meta_browser_per_page({ size })}
+              ariaLabel={m.meta_browser_per_page_aria()}
               onChange={handlePerPageChange}
             />
           </div>
         )}
       </div>
     </div>
-  );
-}
-
-function DeckPageSizePicker({
-  value,
-  total,
-  onChange,
-}: {
-  value: number;
-  total: number;
-  onChange: (value: MetaPageSizeValue) => void;
-}) {
-  if (total <= META_PAGE_SIZES[0] && value === DEFAULT_DECK_PAGE_SIZE) {
-    return null;
-  }
-  return (
-    <SimpleSelect
-      items={META_PAGE_SIZES.map((size) => ({
-        value: String(size),
-        label: m.meta_browser_per_page({ size: String(size) }),
-      }))}
-      value={String(value)}
-      onChange={(next) => onChange(Number(next) as MetaPageSizeValue)}
-      label={m.meta_browser_per_page_aria()}
-      renderValue={(item) => item.value}
-      className="w-36"
-    />
   );
 }
 
@@ -459,12 +438,7 @@ function SortHeader({
   onSort: (column: MetaDeckSort) => void;
 }) {
   return (
-    <div
-      className={cn(
-        deckIndexGrid(grouped, withCollection),
-        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
-      )}
-    >
+    <IndexSortHeader grid={deckIndexGrid(grouped, withCollection)}>
       <SortButton column="finish" sort={sort} direction={direction} onSort={onSort}>
         {m.meta_filter_finish()}
       </SortButton>
@@ -487,7 +461,7 @@ function SortHeader({
           {m.meta_cost_to_complete()}
         </SortButton>
       )}
-    </div>
+    </IndexSortHeader>
   );
 }
 

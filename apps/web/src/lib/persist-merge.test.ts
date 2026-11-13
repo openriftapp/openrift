@@ -6,6 +6,7 @@ import {
   pickEnum,
   pickEnumArray,
   pickNumber,
+  pickNullableString,
   pickString,
   pickStringArray,
 } from "./persist-merge";
@@ -17,6 +18,14 @@ describe("pickBoolean", () => {
     expect(pickBoolean("true")).toBeUndefined();
     expect(pickBoolean(1)).toBeUndefined();
     expect(pickBoolean(undefined)).toBeUndefined();
+  });
+});
+
+describe("pickNullableString", () => {
+  it("keeps a stored null and rejects other non-strings", () => {
+    expect(pickNullableString(null, {})).toBeNull();
+    expect(pickNullableString("EN", {})).toBe("EN");
+    expect(pickNullableString(7, {})).toBeUndefined();
   });
 });
 

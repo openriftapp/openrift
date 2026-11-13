@@ -16,7 +16,7 @@ import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import type { CopyViewFor } from "@/features/decks/lib/deck-overview-derive";
@@ -326,13 +326,13 @@ export function ZoneTile({
               copy?.thumbnail ?? getThumbnail(card.cardId, card.preferredPrintingId);
             return (
               <ZoneThumb
-                key={`${getDeckCardKey(card)}-${copyIndex ?? "stack"}`}
+                key={`${deckCardKey(card)}-${copyIndex ?? "stack"}`}
                 deckId={deckId}
                 card={card}
-                band={bandByCardKey.get(getDeckCardKey(card))}
-                priceText={copy ? copy.priceText : priceTextByCardKey.get(getDeckCardKey(card))}
+                band={bandByCardKey.get(deckCardKey(card))}
+                priceText={copy ? copy.priceText : priceTextByCardKey.get(deckCardKey(card))}
                 caption={planTags?.get(card.cardId)?.label}
-                addRoom={addRoomByCardKey.get(getDeckCardKey(card)) ?? 0}
+                addRoom={addRoomByCardKey.get(deckCardKey(card)) ?? 0}
                 hoverPrintingId={
                   copy?.printingId ?? resolveHoverPrintingId(card.cardId, card.preferredPrintingId)
                 }

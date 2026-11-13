@@ -25,6 +25,7 @@ import {
 } from "./lib/locale-entry";
 import { applyPageCacheControl } from "./lib/page-cache";
 import { fetchApiJson } from "./lib/server-fns/fetch-api";
+import { getSiteUrl } from "./lib/site-config";
 import type { SitemapInput } from "./lib/sitemap";
 import { latestChangelogDate, latestErrataDate } from "./lib/sitemap";
 import { createSitemapResponder } from "./lib/sitemap-response";
@@ -33,11 +34,6 @@ import { paraglideMiddleware } from "./paraglide/server.js";
 const LOG_SSR_TIMINGS = process.env.LOG_SSR_TIMINGS === "true";
 
 const CHANGELOG_DATE = latestChangelogDate(changelogMd);
-
-function getSiteUrl(): string {
-  // Must stay in sync with runtime-config.ts.
-  return process.env.SITE_URL ?? "http://localhost:5173";
-}
 
 async function sitemapInput(): Promise<SitemapInput> {
   const [data, sets, errata] = await Promise.all([

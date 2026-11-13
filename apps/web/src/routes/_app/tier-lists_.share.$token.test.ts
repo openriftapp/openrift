@@ -35,7 +35,7 @@ describe("/tier-lists/share/$token head", () => {
       "A Riftbound tier list by Teemo Scout, ranking 3 cards.",
     );
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/tier-lists/share/TIER123/image.png?v=1785578400000",
+      "http://localhost:5173/api/v1/tier-lists/share/TIER123/image.png?v=1785578400000-r2",
     );
     expect(headCanonical(head)).toBe("http://localhost:5173/tier-lists/share/TIER123");
   });

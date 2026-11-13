@@ -1,4 +1,4 @@
-import { totalQuantity } from "@openrift/shared/deck-rules";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -95,7 +95,7 @@ export function ClaimLocalDecksPrompt() {
 
           <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {list.map((deck) => {
-              const totalCards = totalQuantity(deck.cards);
+              const totalCards = deckCardCount(deck.cards);
               return (
                 <li key={deck.id}>
                   <label className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md p-2">

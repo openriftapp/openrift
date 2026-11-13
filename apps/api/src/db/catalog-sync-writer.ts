@@ -1,7 +1,9 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Kysely, Transaction } from "kysely";
 import { sql } from "kysely";
 
 import type { CatalogSync, PricesSync, RulesSync } from "./catalog-sync.js";
+import { planPricesSync, SYNC_GROUP_ID } from "./catalog-sync.js";
 import type { Database } from "./tables.js";
 
 const CHUNK_SIZE = 1000;
@@ -224,8 +226,11 @@ export async function writeRulesSync(database: Kysely<Database>, rows: RulesSync
   });
 }
 
-export async function writePricesSync(database: Kysely<Database>, rows: PricesSync): Promise<void> {
-  await database.transaction().execute(async (trx) => {
+export async function writePricesSync(
+  database: Kysely<Database>,
+  rows: PricesSync,
+): Promise<{ skippedProducts: number }> {
+  const skippedProducts = await database.transaction().execute(async (trx) => {
     await upsertChunked(
       trx,
       "marketplaceGroups",
@@ -233,21 +238,48 @@ export async function writePricesSync(database: Kysely<Database>, rows: PricesSy
       ["marketplace", "groupId"],
       ["name"],
     );
+    const externalIds = [...new Set(rows.products.map((product) => product.externalId))];
+    const existing = await trx
+      .selectFrom("marketplaceProducts")
+      .select(["id", "marketplace", "externalId", "finish", "language", "groupId"])
+      .where((eb) =>
+        eb.or([
+          eb("groupId", "=", SYNC_GROUP_ID),
+          sql<boolean>`external_id = ANY(${externalIds}::int[])`,
+        ]),
+      )
+      .execute();
+    const plan = planPricesSync(rows, existing);
+
+    for (const chunk of chunks(plan.staleProductIds)) {
+      await trx
+        .deleteFrom("marketplaceProductVariants")
+        .where("marketplaceProductId", "in", chunk)
+        .execute();
+      await trx.deleteFrom("marketplaceProducts").where("id", "in", chunk).execute();
+    }
+
     const productIds = new Map<string, string>();
-    for (const chunk of chunks(rows.products)) {
-      const inserted = await trx
+    for (const chunk of chunks(plan.products)) {
+      const written = await trx
         .insertInto("marketplaceProducts")
         .values(chunk.map(({ skuKey: _skuKey, ...product }) => product))
         .onConflict((oc) =>
           oc
             .columns(["marketplace", "externalId", "finish", "language"])
-            .doUpdateSet((eb) => ({ productName: eb.ref("excluded.productName") })),
+            .doUpdateSet((eb) => ({ productName: eb.ref("excluded.productName") }))
+            .where("marketplaceProducts.groupId", "=", SYNC_GROUP_ID),
         )
         .returning(["id", "marketplace", "externalId", "finish", "language"])
         .execute();
-      for (const product of inserted) {
+      for (const product of written) {
         productIds.set(
-          `${product.marketplace}|${product.externalId}|${product.finish}|${product.language}`,
+          marketplaceSkuKey(
+            product.marketplace,
+            product.externalId,
+            product.finish,
+            product.language,
+          ),
           product.id,
         );
       }
@@ -257,7 +289,7 @@ export async function writePricesSync(database: Kysely<Database>, rows: PricesSy
     await upsertChunked(
       trx,
       "marketplaceProductVariants",
-      rows.variants.map(({ skuKey, printingId }) => ({
+      plan.variants.map(({ skuKey, printingId }) => ({
         marketplaceProductId: productId(skuKey),
         printingId,
       })),
@@ -268,14 +300,16 @@ export async function writePricesSync(database: Kysely<Database>, rows: PricesSy
       "marketplaceProductPrices",
       "marketplaceProductId",
       [...productIds.values()],
-      rows.prices.map(({ skuKey, ...price }) => ({
+      plan.prices.map(({ skuKey, ...price }) => ({
         ...price,
         marketplaceProductId: productId(skuKey),
       })),
     );
+    return plan.skippedProducts;
   });
 
   // The latest view reads the daily view, so the daily one refreshes first.
   await sql`REFRESH MATERIALIZED VIEW mv_daily_printing_prices`.execute(database);
   await sql`REFRESH MATERIALIZED VIEW mv_latest_printing_prices`.execute(database);
+  return { skippedProducts };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  escapeRegExp,
   countNoun,
   capitalize,
   emptyToNull,
@@ -222,5 +223,12 @@ describe("isUuid", () => {
     expect(isUuid("my-org")).toBe(false);
     expect(isUuid("0190b4a0-1c2d-7e3f-8a4b-5c6d7e8f9a0")).toBe(false);
     expect(isUuid("")).toBe(false);
+  });
+});
+
+describe("escapeRegExp", () => {
+  it("matches a literal that contains every regex metacharacter", () => {
+    const literal = String.raw`a.b*c+d?e^f$g{h}i(j)k|l[m]n\o`;
+    expect(new RegExp(`^${escapeRegExp(literal)}$`, "u").test(literal)).toBe(true);
   });
 });

@@ -208,17 +208,17 @@ export function DeckHero({
         ? m.decks_overview_hero_missing({ count: requiredZoneMissing })
         : m.decks_overview_hero_missing_side({ count: sideboardMissing });
   const hasMissingValue =
-    ownershipData?.missingValueCents !== undefined && ownershipData.missingValueCents > 0;
+    ownershipData?.missingValue !== undefined && ownershipData.missingValue > 0;
   const hasValueSplit =
-    ownershipData?.mainValueCents !== undefined &&
-    ownershipData.sideboardValueCents !== undefined &&
-    ownershipData.sideboardValueCents > 0;
+    ownershipData?.mainValue !== undefined &&
+    ownershipData.sideboardValue !== undefined &&
+    ownershipData.sideboardValue > 0;
   // Headline prices the cheapest acceptable printing; a pinned premium
   // printing only shows here as "At shown printings" in the popover.
   const asDisplayedDiffers =
-    ownershipData?.deckValueCents !== undefined &&
-    ownershipData.asDisplayedValueCents !== undefined &&
-    ownershipData.asDisplayedValueCents !== ownershipData.deckValueCents;
+    ownershipData?.deckValue !== undefined &&
+    ownershipData.asDisplayedValue !== undefined &&
+    ownershipData.asDisplayedValue !== ownershipData.deckValue;
   const hasValueBreakdown = hasValueSplit || hasMissingValue || asDisplayedDiffers;
 
   const formatBadge = (
@@ -398,7 +398,7 @@ export function DeckHero({
                     )}
 
                     {!hideValue &&
-                      ownershipData?.deckValueCents !== undefined &&
+                      ownershipData?.deckValue !== undefined &&
                       (showSignIn && onViewMissing ? (
                         <Button
                           type="button"
@@ -407,9 +407,7 @@ export function DeckHero({
                           onClick={onViewMissing}
                           className={chipButtonClass()}
                         >
-                          <span className="tabular-nums">
-                            {fmtPrice(ownershipData.deckValueCents)}
-                          </span>
+                          <span className="tabular-nums">{fmtPrice(ownershipData.deckValue)}</span>
                           <span className="text-muted-foreground">
                             {"· "}
                             {m.decks_overview_hero_view_prices()}
@@ -428,10 +426,15 @@ export function DeckHero({
                               />
                             }
                           >
-                            {fmtPrice(ownershipData.deckValueCents)}
+                            {fmtPrice(ownershipData.deckValue)}
                             <span className="text-muted-foreground">
                               {m.decks_hero_value_suffix()}
                             </span>
+                            {ownershipData.unpricedCount > 0 && (
+                              <span className="text-muted-foreground">
+                                {` ${m.common_unpriced({ count: ownershipData.unpricedCount })}`}
+                              </span>
+                            )}
                           </PopoverTrigger>
                           <PopoverContent
                             side="bottom"
@@ -446,7 +449,7 @@ export function DeckHero({
                                       {m.decks_overview_main_deck()}
                                     </dt>
                                     <dd className="tabular-nums">
-                                      {fmtPrice(ownershipData.mainValueCents ?? 0)}
+                                      {fmtPrice(ownershipData.mainValue ?? 0)}
                                     </dd>
                                   </div>
                                   <div className="flex justify-between gap-6">
@@ -454,7 +457,7 @@ export function DeckHero({
                                       {m.decks_overview_sideboard()}
                                     </dt>
                                     <dd className="tabular-nums">
-                                      {fmtPrice(ownershipData.sideboardValueCents ?? 0)}
+                                      {fmtPrice(ownershipData.sideboardValue ?? 0)}
                                     </dd>
                                   </div>
                                 </>
@@ -465,7 +468,7 @@ export function DeckHero({
                                     {m.decks_overview_hero_as_shown()}
                                   </dt>
                                   <dd className="tabular-nums">
-                                    {fmtPrice(ownershipData.asDisplayedValueCents ?? 0)}
+                                    {fmtPrice(ownershipData.asDisplayedValue ?? 0)}
                                   </dd>
                                 </div>
                               )}
@@ -475,7 +478,7 @@ export function DeckHero({
                                     {m.decks_overview_hero_to_complete()}
                                   </dt>
                                   <dd className="tabular-nums">
-                                    {fmtPrice(ownershipData.missingValueCents ?? 0)}
+                                    {fmtPrice(ownershipData.missingValue ?? 0)}
                                   </dd>
                                 </div>
                               )}
@@ -484,10 +487,15 @@ export function DeckHero({
                         </Popover>
                       ) : (
                         <span className={cn(CHIP_CLASS, "tabular-nums")}>
-                          {fmtPrice(ownershipData.deckValueCents)}
+                          {fmtPrice(ownershipData.deckValue)}
                           <span className="text-muted-foreground">
                             {m.decks_hero_value_suffix()}
                           </span>
+                          {ownershipData.unpricedCount > 0 && (
+                            <span className="text-muted-foreground">
+                              {` ${m.common_unpriced({ count: ownershipData.unpricedCount })}`}
+                            </span>
+                          )}
                         </span>
                       ))}
                   </>

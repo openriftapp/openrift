@@ -12,23 +12,24 @@ import { CARD_ISSUES } from "@/features/admin/lib/admin-search-values";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { unifiedMappingsSummaryQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
+import { lenient } from "@/lib/lenient-param";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/cards")({
   head: () => adminSeoHead("Cards"),
   validateSearch: z.object({
-    set: z.optional(z.string()),
+    set: lenient(z.string()),
     // "cards", "candidates" and "unmatched" are older values, kept so a stale
     // bookmark still validates.
-    tab: z.optional(z.enum(["attention", "drafts", "cards", "candidates", "unmatched"])),
-    q: z.optional(z.string()),
-    tableSort: z.optional(z.string()),
-    issue: z.optional(z.enum(CARD_ISSUES)),
+    tab: lenient(z.enum(["attention", "drafts", "cards", "candidates", "unmatched"])),
+    q: lenient(z.string()),
+    tableSort: lenient(z.string()),
+    issue: lenient(z.enum(CARD_ISSUES)),
     // Older filter params, still read so old links keep filtering.
-    status: z.optional(z.enum(["unchecked", "new-printings", "prices-to-assign"])),
+    status: lenient(z.enum(["unchecked", "new-printings", "prices-to-assign"])),
     // Only meaningful while `issue` is "unlinked-products", e.g. "cardtrader:FR".
-    priceScope: z.optional(z.string()),
-    source: z.optional(z.enum(["usersubmission"])),
+    priceScope: lenient(z.string()),
+    source: lenient(z.enum(["usersubmission"])),
   }),
   loader: async ({ context }) => {
     // Unified mappings are a marketplace endpoint that card-review grant

@@ -4,6 +4,7 @@ import type {
   OverlayPlateFields,
   OverlayPlatePosition,
 } from "@openrift/shared/contracts/overlay";
+import { OVERLAY_SCALE } from "@openrift/shared/overlay-scale";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
@@ -158,9 +159,9 @@ export function OverlaySettingsPanel({
           <Label>{m.stage_overlay_card_size_label({ scale: shownScale })}</Label>
           <Slider
             aria-label={m.stage_card_size()}
-            min={20}
-            max={100}
-            step={5}
+            min={OVERLAY_SCALE.min}
+            max={OVERLAY_SCALE.max}
+            step={OVERLAY_SCALE.step}
             value={[shownScale]}
             onValueChange={(value) => {
               const next = Array.isArray(value) ? value[0] : value;
@@ -243,7 +244,7 @@ export function OverlaySettingsPanel({
             id="overlay-qr-url"
             type="url"
             defaultValue={payload.qrUrl ?? ""}
-            placeholder="https://openrift.app/decks/share/…"
+            placeholder={`${getSiteUrl()}/decks/share/…`}
             onBlur={(event) => {
               const next = event.target.value.trim();
               const current = payload.qrUrl ?? "";

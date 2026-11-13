@@ -1,6 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
-import type { DeckZone } from "@openrift/shared/types/enums";
+import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -44,12 +44,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { DeckUndoControls } from "@/features/decks/components/deck-undo-controls";
 import { LocalDeckBadge } from "@/features/decks/components/local-save-hint";
 import type { DeckEditorDialog } from "@/features/decks/hooks/use-deck-editor-dialogs";
-import {
-  useEncodeDeckCards,
-  useExportDeck,
-  useUpdateDeck,
-  useUpdateDeckMeta,
-} from "@/features/decks/hooks/use-decks";
+import { useDeckMenuActions } from "@/features/decks/hooks/use-deck-menu-actions";
+import { useEncodeDeckCards, useExportDeck, useUpdateDeck } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
@@ -87,16 +83,13 @@ export function DeckEditorTopBar({
   const { zoneLabels } = useZoneOrder();
   const navigate = useNavigate();
   const openQuickAdd = useCommandPaletteStore((state) => state.openQuickAdd);
-  const { update: updateDeckMeta } = useUpdateDeckMeta(deckId);
   const updateDeck = useUpdateDeck();
   const exportDeck = useExportDeck();
   const encodeDeck = useEncodeDeckCards();
   const { formats } = useDeckFormatList();
   const otherFormats = formats.filter((entry) => entry.slug !== deck.format);
 
-  const handleFormatChange = (slug: string) => {
-    updateDeckMeta({ format: slug });
-  };
+  const { duplicate, changeFormat } = useDeckMenuActions({ id: deckId, name: deck.name });
 
   const handlePlayOnRiftAtlas = () => {
     // Open the placeholder tab synchronously so it survives the popup blocker
@@ -247,6 +240,10 @@ export function DeckEditorTopBar({
               <PencilIcon className="size-4" />
               {isLocal ? m.common_rename() : m.decks_editor_menu_name_description()}
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={duplicate}>
+              <CopyIcon className="size-4" />
+              {m.decks_menu_duplicate()}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog("cover")}>
               <ImageIcon className="size-4" />
               {m.decks_editor_menu_change_cover()}
@@ -303,7 +300,7 @@ export function DeckEditorTopBar({
                   {otherFormats.map((entry) => (
                     <DropdownMenuItem
                       key={entry.slug}
-                      onClick={() => handleFormatChange(entry.slug)}
+                      onClick={() => changeFormat(entry.slug as DeckFormat, entry.label)}
                     >
                       {entry.label}
                     </DropdownMenuItem>

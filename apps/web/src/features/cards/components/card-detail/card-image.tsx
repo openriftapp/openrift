@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
@@ -21,9 +21,11 @@ export function CardImage({
   showShimmer,
   sizes = "(min-width: 768px) 376px, 100vw",
   loading,
+  frame = "portrait",
 }: {
   printing: Printing;
   orientation: "portrait" | "landscape";
+  frame?: "portrait" | "native";
   showImages?: boolean;
   showFoil: boolean;
   showShimmer: boolean;
@@ -71,20 +73,21 @@ export function CardImage({
       }
     }
   };
+  const lyingDown = frame === "native" && orientation === "landscape";
   return (
     <div className="relative">
       <div
         style={{
-          // "5% / 3.6%" keeps corners circular on the non-square card (63/88 aspect);
-          // a plain percentage radius would render elliptical.
-          borderRadius: "5% / 3.6%",
+          // A percentage radius renders elliptical on a non-square card; the
+          // pair keeps the corners circular, swapped for a card lying down.
+          borderRadius: lyingDown ? "3.6% / 5%" : "5% / 3.6%",
         }}
       >
         <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>
           {shown ? (
             <>
-              <div className="aspect-card" />
-              {needsCssRotation(orientation) ? (
+              <div className={lyingDown ? "aspect-card-landscape" : "aspect-card"} />
+              {needsCssRotation(orientation) && !lyingDown ? (
                 <div
                   className={cn(
                     "absolute top-1/2 left-1/2 overflow-hidden transition-opacity duration-300",
@@ -95,7 +98,7 @@ export function CardImage({
                   <img
                     ref={coverCachedResult}
                     src={shown.src}
-                    srcSet={`${imageUrl(shown.imageId, "400w")} 400w, ${imageUrl(shown.imageId, "full")} 800w`}
+                    srcSet={imageSrcSet(shown.imageId, ["400w", "full"])}
                     sizes={sizes}
                     width={558}
                     height={400}
@@ -111,10 +114,10 @@ export function CardImage({
                 <img
                   ref={coverCachedResult}
                   src={shown.src}
-                  srcSet={`${imageUrl(shown.imageId, "400w")} 400w, ${imageUrl(shown.imageId, "full")} 800w`}
+                  srcSet={imageSrcSet(shown.imageId, ["400w", "full"])}
                   sizes={sizes}
-                  width={400}
-                  height={558}
+                  width={lyingDown ? 558 : 400}
+                  height={lyingDown ? 400 : 558}
                   loading={loading}
                   fetchPriority={loading ? "auto" : "high"}
                   alt={legendDisplayName(card)}

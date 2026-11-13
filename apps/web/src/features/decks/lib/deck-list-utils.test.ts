@@ -75,6 +75,7 @@ function makeItem(overrides: DeckOverrides = {}): DeckListItemWithNames {
     requiredProgress: overrides.totalCards ?? 40,
     requiredTotal: 56,
     totalValueCents: overrides.totalValueCents ?? null,
+    unpricedCardCount: null,
     missingCount: overrides.missingCount ?? null,
     folderIds: overrides.folderIds ?? [],
     familyName: overrides.familyName ?? null,

@@ -60,8 +60,8 @@ export function TradesHubBand({ slug, data }: { slug: string; data: FriendGroupD
   const liveTrades = allTradesData?.items ?? trades;
   const shelf = buildTradeShelf({
     needsYou: trades.filter((trade) => needsViewerAction(trade)),
-    incoming: withoutLiveTradeMatches(matches.othersHaveYourWants, liveTrades),
-    outgoing: withoutLiveTradeMatches(matches.othersWantYourHaves, liveTrades),
+    incoming: withoutLiveTradeMatches(matches.othersHaveYourWants, liveTrades, "incoming"),
+    outgoing: withoutLiveTradeMatches(matches.othersWantYourHaves, liveTrades, "outgoing"),
   });
 
   const needsAction = shelf.waitingPeople > 0;

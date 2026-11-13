@@ -1,6 +1,7 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import { publicDecksContract } from "@openrift/shared/contracts/public-decks";
+import { EMPTY_DECK_LIST_SUMMARY } from "@openrift/shared/deck-list-summary";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
   DeckCardWithDeckResponse,
@@ -41,7 +42,7 @@ import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-key
 import type { DeckBulkChange } from "@/features/decks/lib/decks-write";
 import {
   bulkUpdateDecks,
-  deckCardKey,
+  deckCardRowKey,
   decksNeedingChange,
   saveDeckCards as applyDeckCards,
   updateDeck,
@@ -130,18 +131,7 @@ function newDeckRow(input: {
       isPrimary: false,
       isDraft: false,
     },
-    legendCardId: null,
-    championCardId: null,
-    totalCards: 0,
-    typeCounts: [],
-    domainDistribution: [],
-    isValid: false,
-    requiredProgress: 0,
-    requiredTotal: 0,
-    totalValueCents: null,
-    missingCount: null,
-    folderIds: [],
-    familyName: null,
+    ...EMPTY_DECK_LIST_SUMMARY,
   };
 }
 
@@ -193,7 +183,7 @@ const noDecks = createCollection(
 const noDeckCards = createCollection(
   localOnlyCollectionOptions<DeckCardWithDeckResponse>({
     id: "deck-cards:none",
-    getKey: (row) => deckCardKey(row),
+    getKey: (row) => deckCardRowKey(row),
   }),
 );
 
@@ -271,7 +261,7 @@ export function useDeleteDeck() {
       const cards = getDeckCardsCollection(queryClient, userId);
       const keys = cards.toArray
         .filter((row) => row.deckId === deckId)
-        .map((row) => deckCardKey(row));
+        .map((row) => deckCardRowKey(row));
       if (keys.length > 0) {
         startSyncIfNeeded(cards);
         await cards.utils.writeDelete(keys);
@@ -653,6 +643,30 @@ export function useCloneSharedDeck() {
     mutationFn: async (input: CloneSharedDeckInput): Promise<DeckCloneResponse> => {
       const cloned = await cloneSharedDeckFn({ data: input });
       // A clone lands a new deck and its cards; awaited because the caller navigates to it.
+      if (userId) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) }),
+          queryClient.invalidateQueries({ queryKey: decksKeys.cardsStore(userId) }),
+        ]);
+      }
+      return cloned;
+    },
+  });
+}
+
+const cloneDeckFn = createServerFn({ method: "POST" })
+  .validator((deckId: string) => deckId)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<DeckResponse> =>
+    apiOrpcClient(decksContract, context.cookie).clone({ id: data }),
+  );
+
+export function useCloneDeck() {
+  const userId = useUserId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (deckId: string): Promise<DeckResponse> => {
+      const cloned = await cloneDeckFn({ data: deckId });
       if (userId) {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) }),

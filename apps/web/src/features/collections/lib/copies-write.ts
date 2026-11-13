@@ -30,6 +30,7 @@ import {
   tradeCancelConsentOf,
 } from "@/features/groups/lib/trade-cancel-conflict";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
+import { mutationTag } from "@/lib/mutation-metadata";
 import { watchForRefetchRace } from "@/lib/refetch-race";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { UserDeclinedError } from "@/lib/user-declined-error";
@@ -49,7 +50,7 @@ interface PendingInsert {
 }
 
 const pendingInsertsByCollection = new WeakMap<CopiesCollection, Map<string, PendingInsert>>();
-const metadataPatches = new WeakMap<object, CopyMetadataPatch>();
+const metadataPatches = mutationTag<CopyMetadataPatch>();
 
 function pendingInsertsOf(collection: CopiesCollection): Map<string, PendingInsert> {
   const existing = pendingInsertsByCollection.get(collection);
@@ -132,9 +133,7 @@ export function updateCopyMetadata(
   patch: CopyMetadataPatch,
 ): Transaction {
   const applied = definedCopyMetadataFields(normalizeCopyMetadataPatch(patch));
-  const metadata = {};
-  metadataPatches.set(metadata, applied);
-  return collection.update(copyIds, { metadata }, (drafts) => {
+  return collection.update(copyIds, { metadata: metadataPatches.tag(applied) }, (drafts) => {
     for (const draft of drafts) {
       Object.assign(draft, applied);
     }
@@ -250,9 +249,7 @@ function addCopyInput(copy: CopyResponse) {
 }
 
 function metadataPatchOf(mutation: PendingMutation<CopyResponse>): CopyMetadataPatch {
-  const { metadata } = mutation;
-  const registered =
-    typeof metadata === "object" && metadata !== null ? metadataPatches.get(metadata) : undefined;
+  const registered = metadataPatches.read(mutation.metadata);
   if (registered) {
     return registered;
   }

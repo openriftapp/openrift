@@ -10,9 +10,11 @@ export const PLAYER_COLOR: Record<BoardPlayer, string> = {
 };
 
 /** Card frame, upright and on its side; the outer box keeps the rotated footprint. */
-export const CARD_UPRIGHT = "h-[calc(var(--board-card-w)*1.4)] w-[var(--board-card-w)]";
-export const CARD_TURNED = "h-[var(--board-card-w)] w-[calc(var(--board-card-w)*1.4)]";
-export const CARD_ROW_HEIGHT = "h-[calc(var(--board-card-w)*1.4+1.4rem)]";
+export const CARD_UPRIGHT =
+  "h-[calc(var(--board-card-w)*var(--aspect-card-landscape))] w-[var(--board-card-w)]";
+export const CARD_TURNED =
+  "h-[var(--board-card-w)] w-[calc(var(--board-card-w)*var(--aspect-card-landscape))]";
+export const CARD_ROW_HEIGHT = "h-[calc(var(--board-card-w)*var(--aspect-card-landscape)+1.4rem)]";
 /** The card browser's corner radius, so every mini card rounds in scale with its size. */
 export const CARD_CORNER_STYLE = { borderRadius: CARD_BORDER_RADIUS } as const;
 /** The same radius on a card lying sideways (battlefields). */
@@ -25,4 +27,8 @@ export function zoneEdge(owner: BoardPlayer): string {
 
 export function seatInk(owner: BoardPlayer): string {
   return `color-mix(in oklab, ${PLAYER_COLOR[owner]} 55%, white)`;
+}
+
+export function seatColumns(count: number): string {
+  return `repeat(${count}, minmax(min-content, 1fr))`;
 }

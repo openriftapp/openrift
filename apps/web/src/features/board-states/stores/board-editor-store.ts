@@ -27,7 +27,8 @@ import {
 } from "@openrift/shared/board-state";
 import { create } from "zustand";
 
-import { isHiddenZone, nextChainId, nextPieceId } from "@/features/board-states/lib/board-layout";
+import { isHiddenZone, nextChainId, nextPieceId } from "@/features/board-states/lib/board-rules";
+import { clamp } from "@/lib/math";
 
 const HISTORY_LIMIT = 50;
 const RECENT_LIMIT = 8;
@@ -100,10 +101,6 @@ interface BoardEditorState {
   addChainEntry: (entry: Omit<BoardChainEntry, "id">) => string | null;
   updateChainEntry: (id: string, patch: Partial<Omit<BoardChainEntry, "id">>) => void;
   removeChainEntry: (id: string) => void;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 function nextKeywords(keywords: string[], keyword: string): string[] {

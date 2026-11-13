@@ -21,8 +21,8 @@ const META_EVENT_INDEX_HOLDINGS = [...META_EVENT_HOLDINGS, "all"] as const;
 
 export type MetaEventIndexHoldings = (typeof META_EVENT_INDEX_HOLDINGS)[number];
 
-const DEFAULT_EVENT_SORT: MetaEventIndexSort = "date";
-const DEFAULT_EVENT_DIRECTION: MetaEventIndexSortDirection = "desc";
+export const DEFAULT_EVENT_SORT: MetaEventIndexSort = "date";
+export const DEFAULT_EVENT_DIRECTION: MetaEventIndexSortDirection = "desc";
 
 export const DEFAULT_EVENT_PAGE_SIZE = 50;
 

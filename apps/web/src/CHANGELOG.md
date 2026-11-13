@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-11-13
+
+### Highlights
+
+- fix(Decks): **Deck counts match everywhere** — a deck's card count leaves out Overflow on every page, share image and in the Discord bot, progress figures are labelled "required", and adding a rune at 12 swaps one out from quick add and drag too.
+- fix(Prices): **Totals say what is missing** — deck, list, meta deck and trade totals use your preferred languages first, fall back to any language, and show how many cards have no price.
+- fix(Trades): **Live trades stay in suggestions** — a suggestion you already traded on keeps its row with the trade's status, even when the trade runs through another group.
+
+### Other
+
+- feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.
+- fix(Cards): **One price per marketplace** — the price charts on a card page plot the same figure as the price chip.
+- fix(Cards): **Card page art matches the grid** — the large image on a card page shows the foil effect, the preview ribbon and the suggest-image notice, and follows your show-images setting.
+- fix(Collection): **Completion never rounds up to 100%** — partial sets show 99%, and spells and gear without power count as 0 in the power chart.
+- fix(Lists): **Euro prices in list exports** — a euro price in a shared list text keeps its euro sign in a dollar list.
+- fix(Groups): **Clear answer for groups you are not in** — opening a group you do not belong to shows the not-found page.
+- fix(Trades): **Past trades** — the trade sheet's history lists declined and cancelled trades under "past trades".
+- fix(Tournaments): **Returned decks marked for staff** — staff see "Changes requested" next to "Editing" when a deck was sent back.
+- fix(App): **Bad links recover** — a mistyped filter or page number in a link loads the page with defaults.
+
 ## 2026-11-12
 
 ### Highlights

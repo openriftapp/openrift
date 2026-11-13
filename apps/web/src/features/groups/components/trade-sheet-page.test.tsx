@@ -1,9 +1,16 @@
-import type { CardTradeSheetResponse } from "@openrift/shared/types/api/card-trade";
+import type {
+  CardTradeResponse,
+  CardTradeSheetResponse,
+} from "@openrift/shared/types/api/card-trade";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { stubPrinting } from "@/test/factories";
+
 const sheet = vi.hoisted(() => ({ current: null as CardTradeSheetResponse | null }));
+const userTrades = vi.hoisted(() => ({ items: [] as CardTradeResponse[] }));
+const catalog = vi.hoisted(() => ({ printingsById: {} as Record<string, unknown> }));
 
 const groupDetail = vi.hoisted(() => ({
   shares: [{ userId: "member-1", listIntent: "trade" }] as {
@@ -15,7 +22,7 @@ const groupDetail = vi.hoisted(() => ({
 
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   useTradeSheet: () => ({ data: sheet.current }),
-  useUserTrades: () => ({ data: { items: [] } }),
+  useUserTrades: () => ({ data: userTrades }),
 }));
 
 vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
@@ -23,7 +30,7 @@ vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
 }));
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
-  useCards: () => ({ printingsById: {} }),
+  useCards: () => ({ printingsById: catalog.printingsById, printingsByCardId: new Map() }),
 }));
 
 vi.mock("@/features/cards/components/card-detail-opener", () => ({
@@ -133,6 +140,78 @@ describe("TradeSheetPage", () => {
   beforeEach(() => {
     groupDetail.shares = [{ userId: "member-1", listIntent: "trade" }];
     groupDetail.collectionShares = [];
+    userTrades.items = [];
+    catalog.printingsById = {};
+  });
+
+  it("titles the history fold for every closed trade it lists, not only completed ones", () => {
+    sheet.current = makeSheet();
+    const closed = (id: string, status: CardTradeResponse["status"]) =>
+      ({
+        id,
+        status,
+        role: "receiver",
+        quantity: 1,
+        cardId: "card-1",
+        printingId: "printing-1",
+        groupId: "group-1",
+        groupSlug: "allerlei-spielerei",
+        actionNeeded: null,
+        viewerSyncAppliedAt: null,
+        updatedAt: "2026-11-01T00:00:00.000Z",
+        counterparty: { userId: "member-1", name: "Ezreal", image: null, gravatarHash: "hash" },
+      }) as CardTradeResponse;
+    userTrades.items = [
+      closed("t-1", "declined"),
+      closed("t-2", "cancelled"),
+      closed("t-3", "completed"),
+    ];
+    render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
+
+    expect(screen.getByText("3 past trades")).toBeInTheDocument();
+    expect(screen.queryByText(/completed trades/u)).toBeNull();
+  });
+
+  it("keeps a reserved trade's card in the suggestions when the server netted its match away", () => {
+    sheet.current = makeSheet();
+    catalog.printingsById = {
+      "printing-1": stubPrinting({ printingId: "printing-1", cardId: "card-1" }),
+    };
+    userTrades.items = [
+      {
+        id: "trade-9",
+        status: "reserved",
+        actionNeeded: "settle",
+        viewerSyncAppliedAt: null,
+        role: "receiver",
+        quantity: 2,
+        cardId: "card-1",
+        printingId: "printing-1",
+        groupId: "group-1",
+        groupSlug: "allerlei-spielerei",
+        viewerWishEntryId: null,
+        counterparty: { userId: "member-1", name: "Ezreal", image: null, gravatarHash: "hash" },
+      } as CardTradeResponse,
+    ];
+    render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
+
+    expect(screen.getByText("match rows")).toBeInTheDocument();
+  });
+
+  it("keeps a suggestion that already has a live trade on the sheet", () => {
+    sheet.current = makeSheet({ othersHaveYourWants: [makeMatch()] });
+    userTrades.items = [
+      {
+        status: "pending",
+        role: "receiver",
+        printingId: "printing-1",
+        groupSlug: "another-group",
+        counterparty: { userId: "member-1" },
+      } as CardTradeResponse,
+    ];
+    render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
+
+    expect(screen.getByText("match rows")).toBeInTheDocument();
   });
 
   it("keeps the shared-lists link on a sheet that has suggestions", () => {

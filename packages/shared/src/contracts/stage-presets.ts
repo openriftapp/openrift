@@ -1,6 +1,7 @@
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
+import { OVERLAY_SCALE } from "../overlay-scale.js";
 import { authedRoute } from "./_base.js";
 import { nameField } from "./fields.js";
 import {
@@ -20,7 +21,7 @@ export const stagePresetConfigSchema = z.object({
   plateFields: overlayPlateFieldsSchema.partial().optional(),
   qrUrl: z.url().max(2000).nullish(),
   corner: overlayCornerSchema.optional(),
-  scale: z.number().int().min(20).max(100).optional(),
+  scale: z.number().int().min(OVERLAY_SCALE.min).max(OVERLAY_SCALE.max).optional(),
   cardScale: z.number().min(0.4).max(1).optional(),
   showText: z.boolean().optional(),
   ground: stageGroundSchema.optional(),

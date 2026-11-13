@@ -98,14 +98,7 @@ export function sortMetaLegendEntries(
   });
 }
 
-export function nextLegendSort(
-  current: { sort: MetaLegendIndexSort; direction: MetaLegendIndexSortDirection },
-  column: MetaLegendIndexSort,
-): { sort: MetaLegendIndexSort; direction: MetaLegendIndexSortDirection } {
-  if (current.sort === column) {
-    return { sort: column, direction: current.direction === "asc" ? "desc" : "asc" };
-  }
-  return { sort: column, direction: DESCENDING_FIRST.has(column) ? "desc" : "asc" };
-}
-
-const DESCENDING_FIRST = new Set<MetaLegendIndexSort>(["decklists", "finishes"]);
+export const LEGEND_SORT_DESCENDING_FIRST: ReadonlySet<MetaLegendIndexSort> = new Set([
+  "decklists",
+  "finishes",
+]);

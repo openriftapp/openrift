@@ -389,7 +389,7 @@ describe.skipIf(!ctx)("marketplaceRepo (integration)", () => {
     expect(snaps).toEqual([]);
   });
 
-  it("returns latest prices with printingId and marketCents", async () => {
+  it("returns latest prices with printingId and headlineCents", async () => {
     const prices = await repo.latestPrices();
 
     // We inserted snapshots for our TCG product, so it should appear
@@ -403,15 +403,15 @@ describe.skipIf(!ctx)("marketplaceRepo (integration)", () => {
     );
     expect(anniePrice).toBeDefined();
     // The latest snapshot is snap2 with marketCents=120
-    expect(anniePrice!.marketCents).toBe(120);
+    expect(anniePrice!.headlineCents).toBe(120);
   });
 
-  it("each row has printingId and marketCents fields", async () => {
+  it("each row has printingId and headlineCents fields", async () => {
     const prices = await repo.latestPrices();
 
     for (const p of prices) {
       expect(p.printingId).toBeDefined();
-      expect(typeof p.marketCents).toBe("number");
+      expect(typeof p.headlineCents).toBe("number");
     }
   });
 
@@ -420,26 +420,26 @@ describe.skipIf(!ctx)("marketplaceRepo (integration)", () => {
 
     // The SC printing is cheaper (100), but the viewer only collects EN.
     // (The showcase printings sit at 900, so they can't win either.)
-    expect(values.get(langDeckId)).toBe(500);
+    expect(values.get(langDeckId)).toEqual({ totalValueCents: 500, unpricedCount: 0 });
   });
 
   it("picks the cheaper printing when its language is requested too", async () => {
     const values = await repo.deckValues(userId, mpLang, ["EN", "SC"]);
 
-    expect(values.get(langDeckId)).toBe(100);
+    expect(values.get(langDeckId)?.totalValueCents).toBe(100);
   });
 
   it("falls back to any language when nothing is priced in the requested ones", async () => {
     const values = await repo.deckValues(userId, mpLang, ["FR"]);
 
-    expect(values.get(langDeckId)).toBe(100);
+    expect(values.get(langDeckId)?.totalValueCents).toBe(100);
   });
 
   it("prices at the plain cheapest printing when no languages are given", async () => {
     const empty = await repo.deckValues(userId, mpLang, []);
     const absent = await repo.deckValues(userId, mpLang);
 
-    expect(empty.get(langDeckId)).toBe(100);
-    expect(absent.get(langDeckId)).toBe(100);
+    expect(empty.get(langDeckId)?.totalValueCents).toBe(100);
+    expect(absent.get(langDeckId)?.totalValueCents).toBe(100);
   });
 });

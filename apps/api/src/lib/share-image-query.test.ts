@@ -30,4 +30,10 @@ describe("parseShareImageQuery", () => {
   it("ignores an out-of-range scale", () => {
     expect(parseShareImageQuery(queryOf({ scale: "9" })).scale).toBe(1);
   });
+
+  it("reads only size=hq on a public token URL", () => {
+    expect(parseShareImageQuery(queryOf({ scale: "3" }), "public").scale).toBe(1);
+    expect(parseShareImageQuery(queryOf({ scale: "2" }), "public").scale).toBe(1);
+    expect(parseShareImageQuery(queryOf({ size: "hq" }), "public").scale).toBe(2);
+  });
 });

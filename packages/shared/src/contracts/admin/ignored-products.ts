@@ -16,14 +16,14 @@ const IP = "/api/admin/v1/ignored-products";
 export const ignoredProductSchema = z.discriminatedUnion("level", [
   z.object({
     level: z.literal("product"),
-    marketplace: z.string(),
+    marketplace: marketplaceEnum,
     externalId: z.number(),
     productName: z.string(),
     createdAt: isoDateTime,
   }),
   z.object({
     level: z.literal("variant"),
-    marketplace: z.string(),
+    marketplace: marketplaceEnum,
     externalId: z.number(),
     finish: z.string(),
     language: z.string().nullable(),

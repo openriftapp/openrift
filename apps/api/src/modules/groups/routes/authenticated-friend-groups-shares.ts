@@ -1,5 +1,4 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   FriendGroupShareableCollectionsResponse,
   FriendGroupShareableListsResponse,
@@ -8,7 +7,7 @@ import type {
 } from "@openrift/shared/types/api/friend-group";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -150,7 +149,7 @@ export const friendGroupsSharesRouter = {
     // a 500 from the DB.
     const access = await collections.getAccessForUser(input.collectionId, viewerId);
     if (!access || access.collection.userId !== viewerId) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Collection not found or not yours to share");
+      throw notFound("Collection not found or not yours to share");
     }
 
     await friendGroups.shareCollection(ctx.group.id, input.collectionId, viewerId);
@@ -164,7 +163,7 @@ export const friendGroupsSharesRouter = {
 
     const access = await collections.getAccessForUser(input.collectionId, viewerId);
     if (!access || access.collection.userId !== viewerId) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Collection not found");
+      throw notFound("Collection not found");
     }
 
     await friendGroups.unshareCollection(ctx.group.id, input.collectionId);

@@ -1,22 +1,19 @@
+import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Io } from "../../../io.js";
-import type { Child, Element } from "../../system/services/share-image-core.js";
+import type { Child } from "../../system/services/share-image-core.js";
 import {
-  CARD_ASPECT,
   COLORS,
   cardTile,
   element,
   qrDataUri,
-  qrMark,
   renderTreeToPng,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
-import type { DeckCanvas } from "./deck-image-canvas.js";
-import { VERTICAL, resultLineElement, titleTypeHeight } from "./deck-image-canvas.js";
+import { VERTICAL, deckTitleBlock, titleTypeHeight } from "./deck-image-canvas.js";
 import type { DeckImageInput } from "./deck-image-parts.js";
 import {
-  BATTLEFIELD_ASPECT,
   BODY_GAP,
   GAP,
   SECTION_HEADER_H,
@@ -30,7 +27,6 @@ import {
   packGrid,
   runeCountsByDomain,
   splitDeckZones,
-  truncateTitle,
   zoneHeading,
 } from "./deck-image-parts.js";
 
@@ -45,114 +41,12 @@ const VERTICAL_MAX_GRID_TILE_W = 300;
 /** Ceilings for the vertical full-width bands, so a two-card sideboard is not a hero row. */
 const VERTICAL_MAX_BAND_TILE_H = 200;
 const VERTICAL_MAX_SIDEBOARD_TILE_H = 220;
-/**
- * The vertical title has its own full-width line, but the type is larger and
- * the canvas narrower than landscape, so the cap lands in a similar place.
- */
-const VERTICAL_TITLE_MAX_CHARS = 32;
 
 function fitRowTileH(count: number, areaW: number, aspect: number, maxH: number): number {
   if (count === 0) {
     return 0;
   }
   return Math.max(1, Math.floor(Math.min(maxH, (areaW - (count - 1) * GAP) / count / aspect)));
-}
-
-function verticalTitleBlock(
-  input: DeckImageInput,
-  canvas: DeckCanvas,
-  metaLabel: string,
-  domainIcons: readonly Element[],
-  qrUri: string | null,
-  blockH: number,
-): Element {
-  const type = element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      flexGrow: 1,
-      // The QR can set this block taller than the type lines fill on their own.
-      height: titleTypeHeight(input, canvas),
-    },
-    element(
-      "div",
-      {
-        display: "flex",
-        fontSize: canvas.titleSize,
-        lineHeight: 1,
-        fontWeight: 700,
-        color: COLORS.text,
-        whiteSpace: "nowrap",
-      },
-      truncateTitle(input.deckName, VERTICAL_TITLE_MAX_CHARS),
-    ),
-    element(
-      "div",
-      { display: "flex", flexDirection: "row", alignItems: "center", marginTop: 14 },
-      input.ownerName
-        ? element(
-            "div",
-            {
-              display: "flex",
-              fontSize: canvas.bylineSize,
-              lineHeight: 1,
-              fontWeight: 600,
-              color: COLORS.gold,
-            },
-            `by ${input.ownerName}`,
-          )
-        : false,
-      element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
-      element(
-        "div",
-        {
-          display: "flex",
-          fontSize: canvas.metaSize,
-          lineHeight: 1,
-          color: COLORS.muted,
-          // Both runs pin lineHeight 1 and the row centres its children, so
-          // neither sits on the other's baseline and no correction applies —
-          // unlike the landscape title, whose runs share one bottom edge.
-        },
-        metaLabel,
-      ),
-      domainIcons.length > 0
-        ? element(
-            "div",
-            {
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              marginLeft: 14,
-              gap: 6,
-            },
-            ...domainIcons,
-          )
-        : false,
-    ),
-    input.resultLine === undefined ? false : resultLineElement(input.resultLine, canvas, 12),
-  );
-
-  return element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      height: blockH,
-      flexShrink: 0,
-    },
-    type,
-    qrUri
-      ? element(
-          "div",
-          { display: "flex", flexShrink: 0, marginLeft: BODY_GAP },
-          qrMark(qrUri, canvas.headerQr),
-        )
-      : false,
-  );
 }
 
 /**
@@ -174,7 +68,7 @@ export async function renderVerticalDeckImage(
   const titleH = input.shareUrl ? Math.max(typeH, canvas.headerQr) : typeH;
   const bodyH = canvasH - canvas.pad * 2 - titleH - GAP;
   const hasFooterMark = Boolean(input.siteHost);
-  const footerH = hasFooterMark ? canvas.footerLabelH : 0;
+  const footerH = hasFooterMark ? canvas.footerH : 0;
 
   const bfCount = battlefields.length;
   const runeCount = runeCards.length;
@@ -203,7 +97,7 @@ export async function renderVerticalDeckImage(
   const bandOptionW = Math.floor(bandOptionH * CARD_ASPECT);
   const bfRuneAvailH = bandAvailH - bandOptionH;
   const bandBfWidthCap = bandBf
-    ? fitRowTileH(bfCount, identityRightW, BATTLEFIELD_ASPECT, Number.POSITIVE_INFINITY)
+    ? fitRowTileH(bfCount, identityRightW, LANDSCAPE_CARD_ASPECT, Number.POSITIVE_INFINITY)
     : 0;
   const bandRuneWidthCap = bandRunes
     ? fitRowTileH(runeCount, identityRightW, CARD_ASPECT, Number.POSITIVE_INFINITY)
@@ -221,7 +115,7 @@ export async function renderVerticalDeckImage(
   const lowerRunes = !hasIdentityBand && runeCount > 0;
   const hasSideboard = sideboard.length > 0;
   const lowerBfH = lowerBf
-    ? fitRowTileH(bfCount, innerW, BATTLEFIELD_ASPECT, VERTICAL_MAX_BAND_TILE_H)
+    ? fitRowTileH(bfCount, innerW, LANDSCAPE_CARD_ASPECT, VERTICAL_MAX_BAND_TILE_H)
     : 0;
   const lowerRuneH = lowerRunes
     ? fitRowTileH(runeCount, innerW, CARD_ASPECT, VERTICAL_MAX_BAND_TILE_H)
@@ -251,7 +145,7 @@ export async function renderVerticalDeckImage(
       : null;
 
   const bfTileH = bandBf ? bandBfH : lowerBfH;
-  const bfTileW = Math.floor(bfTileH * BATTLEFIELD_ASPECT);
+  const bfTileW = Math.floor(bfTileH * LANDSCAPE_CARD_ASPECT);
   const runeTileH = bandRunes ? bandRuneH : lowerRuneH;
   const runeTileW = Math.floor(runeTileH * CARD_ASPECT);
   const sideboardTileW = Math.floor(sideboardTileH * CARD_ASPECT);
@@ -452,10 +346,10 @@ export async function renderVerticalDeckImage(
       overflow: "hidden",
     },
     deckHeroBackdrop(backdropUri, canvasW, canvasH),
-    verticalTitleBlock(
+    deckTitleBlock(
       input,
       canvas,
-      deckMetaLabel(input.formatLabel, zones.mainCardCount, zones.sideboardCount),
+      deckMetaLabel(input.formatLabel, zones.cardCount),
       domainIconElements(domainUris, canvas.domainIcon),
       qrUri,
       titleH,

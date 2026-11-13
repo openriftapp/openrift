@@ -6,8 +6,9 @@ import {
   insertCard,
   insertPrintings,
 } from "../../../../test/integration-context.js";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import { priceRefreshRepo } from "../../repositories/price-refresh.js";
-import type { PriceUpsertConfig, StagingRow } from "./types.js";
+import type { PriceUpsertConfig } from "./types.js";
 import { upsertPriceData } from "./upsert.js";
 
 const USER_ID = "a0000000-0022-4000-a000-000000000001";
@@ -171,6 +172,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         makeStagingRow(94_101, "normal", {
           marketCents: 100,
           lowCents: 50,
+          zeroLowCents: null,
           trendCents: 80,
           avg1Cents: 90,
           avg7Cents: 85,
@@ -189,6 +191,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         makeStagingRow(94_101, "normal", {
           marketCents: 100,
           lowCents: 50,
+          zeroLowCents: null,
           trendCents: 80,
           avg1Cents: 90,
           avg7Cents: 85,
@@ -207,6 +210,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         makeStagingRow(94_101, "normal", {
           marketCents: 200,
           lowCents: 100,
+          zeroLowCents: null,
           trendCents: 180,
           avg1Cents: 190,
           avg7Cents: 185,
@@ -224,6 +228,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         makeStagingRow(99_001, "normal", {
           marketCents: 50,
           lowCents: 25,
+          zeroLowCents: null,
           trendCents: 40,
           avg1Cents: 45,
           avg7Cents: 42,
@@ -232,6 +237,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         makeStagingRow(99_001, "normal", {
           marketCents: 60,
           lowCents: 30,
+          zeroLowCents: null,
           trendCents: 50,
           avg1Cents: 55,
           avg7Cents: 52,
@@ -249,6 +255,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         makeStagingRow(99_999, "normal", {
           marketCents: 100,
           lowCents: 50,
+          zeroLowCents: null,
           trendCents: 80,
           avg1Cents: 90,
           avg7Cents: 85,

@@ -11,6 +11,7 @@ export const WellKnown = {
     RUNE: "rune",
     BATTLEFIELD: "battlefield",
     UNIT: "unit",
+    SPELL: "spell",
     GEAR: "gear",
     OTHER: "other",
   },

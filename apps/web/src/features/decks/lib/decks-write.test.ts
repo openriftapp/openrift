@@ -9,7 +9,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getDeckCardsCollection, getDecksCollection } from "./decks-collection";
-import { bulkUpdateDecks, deckCardKey, saveDeckCards, updateDeck } from "./decks-write";
+import { bulkUpdateDecks, deckCardRowKey, saveDeckCards, updateDeck } from "./decks-write";
 
 const userId = "user-1";
 
@@ -67,6 +67,7 @@ function stubDeckRow(overrides: Partial<DeckResponse> = {}): DeckListItemRespons
     requiredProgress: 0,
     requiredTotal: 0,
     totalValueCents: null,
+    unpricedCardCount: null,
     missingCount: null,
     folderIds: [],
   } as unknown as DeckListItemResponse;
@@ -403,7 +404,7 @@ describe("persisting deck card writes", () => {
     expect(sentCards()).toEqual([card("card-a", 3), card("card-b", 1)]);
     await vi.waitFor(() => {
       expect(
-        collection.get(deckCardKey({ deckId: "deck-1", ...card("card-b", 1) }))?.quantity,
+        collection.get(deckCardRowKey({ deckId: "deck-1", ...card("card-b", 1) }))?.quantity,
       ).toBe(1);
     });
   });
@@ -415,7 +416,7 @@ describe("persisting deck card writes", () => {
     ]);
 
     await collection
-      .update(deckCardKey({ deckId: "deck-1", ...card("card-a", 1) }), (draft) => {
+      .update(deckCardRowKey({ deckId: "deck-1", ...card("card-a", 1) }), (draft) => {
         draft.quantity = 3;
       })
       .when("settled");
@@ -436,7 +437,7 @@ describe("persisting deck card writes", () => {
       { deckId: "deck-1", ...card("card-a", 1) },
       { deckId: "deck-1", ...card("card-b", 1) },
     ]);
-    const deleted = deckCardKey({ deckId: "deck-1", ...card("card-b", 1) });
+    const deleted = deckCardRowKey({ deckId: "deck-1", ...card("card-b", 1) });
 
     await collection.delete(deleted).when("settled");
 

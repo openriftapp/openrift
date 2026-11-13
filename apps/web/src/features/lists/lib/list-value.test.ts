@@ -79,6 +79,7 @@ describe("computeListValue", () => {
       prices: stubPriceLookup({}),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
+      languages: [],
     });
     expect(result).toEqual({ value: 0, unpriced: 0 });
   });
@@ -94,6 +95,7 @@ describe("computeListValue", () => {
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
+      languages: [],
     });
     expect(result).toEqual({ value: 1.5 * 2 + 4 * 3, unpriced: 0 });
   });
@@ -108,6 +110,7 @@ describe("computeListValue", () => {
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
+      languages: [],
     });
     expect(result).toEqual({ value: 3, unpriced: 5 });
   });
@@ -126,8 +129,40 @@ describe("computeListValue", () => {
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map([[cardId, [cheap, mid, pricey]]]),
+      languages: [],
     });
     expect(result).toEqual({ value: 1.25 * 4, unpriced: 0 });
+  });
+
+  it("prices a card at its cheapest preferred-language printing, even when another is cheaper", () => {
+    const cardId = "card-a";
+    const english = stubPrinting({ cardId, language: "EN" });
+    const chinese = stubPrinting({ cardId, language: "ZH" });
+    const result = computeListValue({
+      entries: [cardEntry(cardId, 2)],
+      prices: stubPriceLookup({
+        [english.printingId]: { cardtrader: 3 },
+        [chinese.printingId]: { cardtrader: 1 },
+      }),
+      marketplace: "cardtrader",
+      printingsByCardId: new Map([[cardId, [english, chinese]]]),
+      languages: ["EN"],
+    });
+    expect(result).toEqual({ value: 6, unpriced: 0 });
+  });
+
+  it("falls back to any language when no preferred-language printing is priced", () => {
+    const cardId = "card-a";
+    const english = stubPrinting({ cardId, language: "EN" });
+    const chinese = stubPrinting({ cardId, language: "ZH" });
+    const result = computeListValue({
+      entries: [cardEntry(cardId, 2)],
+      prices: stubPriceLookup({ [chinese.printingId]: { cardtrader: 1 } }),
+      marketplace: "cardtrader",
+      printingsByCardId: new Map([[cardId, [english, chinese]]]),
+      languages: ["EN"],
+    });
+    expect(result).toEqual({ value: 2, unpriced: 0 });
   });
 
   it("treats a card-kind entry as unpriced when no printing in the map has a price", () => {
@@ -139,16 +174,18 @@ describe("computeListValue", () => {
       prices: stubPriceLookup({}),
       marketplace: "cardtrader",
       printingsByCardId: new Map([[cardId, [a, b]]]),
+      languages: [],
     });
     expect(result).toEqual({ value: 0, unpriced: 2 });
   });
 
-  it("treats a card-kind entry as unpriced when the card isn't in the map (filtered out by language)", () => {
+  it("treats a card-kind entry as unpriced when the card isn't in the map", () => {
     const result = computeListValue({
       entries: [cardEntry("missing-card", 3)],
       prices: stubPriceLookup({}),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
+      languages: [],
     });
     expect(result).toEqual({ value: 0, unpriced: 3 });
   });
@@ -163,6 +200,7 @@ describe("computeListValue", () => {
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
+      languages: [],
     });
     expect(result).toEqual({ value: 2, unpriced: 1 });
   });
@@ -178,6 +216,7 @@ describe("computeListValue", () => {
         prices: lookup,
         marketplace: "tcgplayer",
         printingsByCardId: new Map(),
+        languages: [],
       }),
     ).toEqual({ value: 5, unpriced: 0 });
     expect(
@@ -186,6 +225,7 @@ describe("computeListValue", () => {
         prices: lookup,
         marketplace: "cardmarket",
         printingsByCardId: new Map(),
+        languages: [],
       }),
     ).toEqual({ value: 4, unpriced: 0 });
   });
@@ -203,6 +243,7 @@ describe("computeListValue", () => {
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map([[cardId, [cardP]]]),
+      languages: [],
     });
     expect(result).toEqual({ value: 0.5 * 2 + 2 * 3, unpriced: 1 });
   });

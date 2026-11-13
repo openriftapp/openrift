@@ -3,6 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { FacesTable } from "../../../db/tables/catalog.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /**
  * ADR-020 pair merge: builds double-sided printings and moves everything that pointed at a
@@ -474,7 +475,7 @@ export async function applyPairMerge(
   db: Kysely<Database>,
   list: PairMergeList,
 ): Promise<PairMergeReport> {
-  return await db.transaction().execute(async (trx) => {
+  return await inTransaction(db, async (trx) => {
     // Holds off writes that reference the side printings until they are moved and deleted.
     const sourceSlugs = list.printings.flatMap((entry) =>
       entry.sides.filter((side) => typeof side === "string"),

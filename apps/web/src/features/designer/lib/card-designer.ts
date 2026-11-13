@@ -3,15 +3,10 @@
  * the html2canvas export and clipboard plumbing live in `card-export.ts`.
  */
 
-const ATTRIBUTION = "openrift.app";
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 
 export const CARD_MIN_ZOOM = 1;
 export const CARD_MAX_ZOOM = 4;
-
-const CARD_ASPECT_W = 63;
-const CARD_ASPECT_H = 88;
-
-export const CARD_ASPECT = CARD_ASPECT_W / CARD_ASPECT_H;
 
 /** px */
 const MAX_IMAGE_EDGE = 2000;
@@ -34,12 +29,12 @@ export interface BackgroundLayout {
   topPct: number;
 }
 
-export function buildAttribution(artist?: string, includeBrand = true): string {
+export function buildAttribution(artist: string | undefined, brand: string | null): string {
   const trimmed = artist?.trim() ?? "";
-  if (!includeBrand) {
+  if (brand === null) {
     return trimmed;
   }
-  return trimmed ? `${trimmed} · ${ATTRIBUTION}` : ATTRIBUTION;
+  return trimmed ? `${trimmed} · ${brand}` : brand;
 }
 
 export function coverScale(aspect?: number | null): CoverScale {

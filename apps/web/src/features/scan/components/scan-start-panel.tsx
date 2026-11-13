@@ -12,7 +12,7 @@ import { m } from "@/paraglide/messages.js";
 
 const BRACKET_SIZE = "18%";
 // Same geometry as centeredGuideQuad: 70% of the height, capped at 90% of the width.
-const FRAME_SIZE = "aspect-[63/88] w-[min(90%,calc(70cqh*63/88))]";
+const FRAME_SIZE = "aspect-card w-[min(90%,calc(70cqh*var(--aspect-card)))]";
 
 function ScanTips({ className }: { className?: string }) {
   const tips = [

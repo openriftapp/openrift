@@ -74,7 +74,7 @@ import {
   describeZone,
   pieceName,
 } from "@/features/board-states/lib/board-labels";
-import { pieceKindForCardTypes, zoneCardRule } from "@/features/board-states/lib/board-layout";
+import { pieceKindForCardTypes, zoneCardRule } from "@/features/board-states/lib/board-rules";
 import { CARD_CORNER_STYLE, LANDSCAPE_CORNER_STYLE } from "@/features/board-states/lib/board-style";
 import { useBoardEditorStore } from "@/features/board-states/stores/board-editor-store";
 import { useCardCandidates } from "@/features/cards/hooks/use-card-candidates";

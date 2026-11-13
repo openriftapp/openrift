@@ -1,6 +1,4 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
-import { AppError } from "./errors.js";
+import { badRequest } from "./errors.js";
 
 /** `T` has no default: an untyped update target would make the `keyof T` column allowlist vacuous. */
 export type FieldMapping<T> = Record<
@@ -27,7 +25,7 @@ export function buildPatchUpdates<T>(
   }
 
   if (Object.keys(updates).length === 0) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "No fields to update");
+    throw badRequest("No fields to update");
   }
 
   return updates;

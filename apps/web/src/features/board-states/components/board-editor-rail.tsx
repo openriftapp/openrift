@@ -28,7 +28,7 @@ import { pieceMarks } from "@/features/board-states/components/board-editor-piec
 import type { BoardPieceActions } from "@/features/board-states/hooks/use-board-editor-piece-actions";
 import type { NewPieceDragData } from "@/features/board-states/lib/board-editor-drag";
 import { describeZone, pieceName } from "@/features/board-states/lib/board-labels";
-import { pieceKindForCardTypes } from "@/features/board-states/lib/board-layout";
+import { pieceKindForCardTypes } from "@/features/board-states/lib/board-rules";
 import { PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { CatalogPrintingVariantLine } from "@/features/cards/components/printing-row";

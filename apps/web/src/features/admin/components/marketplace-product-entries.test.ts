@@ -1,5 +1,5 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
 import type {
   MarketplaceAssignmentResponse,
   StagedProductResponse,
@@ -48,6 +48,7 @@ function staged(overrides: Partial<StagedProductResponse> = {}): StagedProductRe
     language: "EN",
     marketCents: 100,
     lowCents: null,
+    zeroLowCents: null,
     midCents: null,
     highCents: null,
     trendCents: null,
@@ -355,7 +356,7 @@ describe("collectStrongMappings", () => {
       tcgplayer: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
     });
     const suggestions = new Map<string, ProductSuggestion[]>([
-      [productSuggestionKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 100 }]],
+      [marketplaceSkuKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 100 }]],
     ]);
     expect(collectStrongMappings(g, suggestions).tcgplayer).toEqual([]);
   });
@@ -365,7 +366,7 @@ describe("collectStrongMappings", () => {
       tcgplayer: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
     });
     const suggestions = new Map<string, ProductSuggestion[]>([
-      [productSuggestionKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
+      [marketplaceSkuKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
     ]);
     expect(collectStrongMappings(g, suggestions).tcgplayer).toEqual([
       { externalId: 1, finish: "normal", language: "EN", printingId: "p-1" },
@@ -382,7 +383,7 @@ describe("collectStrongMappings", () => {
       },
     });
     const suggestions = new Map<string, ProductSuggestion[]>([
-      [productSuggestionKey("cardtrader", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
+      [marketplaceSkuKey("cardtrader", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
     ]);
     expect(collectStrongMappings(g, suggestions).cardtrader).toEqual([]);
   });
@@ -399,7 +400,7 @@ describe("collectStrongMappings", () => {
     });
     const suggestions = new Map<string, ProductSuggestion[]>([
       [
-        productSuggestionKey("cardmarket", 99, "normal", null),
+        marketplaceSkuKey("cardmarket", 99, "normal", null),
         [
           { printingId: "p-en", score: 150 },
           { printingId: "p-sc", score: 150 },
@@ -422,8 +423,8 @@ describe("collectStrongMappings", () => {
       },
     });
     const suggestions = new Map<string, ProductSuggestion[]>([
-      [productSuggestionKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
-      [productSuggestionKey("cardmarket", 2, "normal", null), [{ printingId: "p-1", score: 200 }]],
+      [marketplaceSkuKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
+      [marketplaceSkuKey("cardmarket", 2, "normal", null), [{ printingId: "p-1", score: 200 }]],
     ]);
     const result = collectStrongMappings(g, suggestions);
     expect(result.tcgplayer).toHaveLength(1);
@@ -448,13 +449,10 @@ describe("collectWeakMappings", () => {
     });
     const suggestions = new Map<string, ProductSuggestion[]>([
       [
-        productSuggestionKey("cardmarket", 1, "normal", null),
+        marketplaceSkuKey("cardmarket", 1, "normal", null),
         [{ printingId: "p-foil", score: 50, isWeak: true }],
       ],
-      [
-        productSuggestionKey("tcgplayer", 2, "normal", "EN"),
-        [{ printingId: "p-foil", score: 200 }],
-      ],
+      [marketplaceSkuKey("tcgplayer", 2, "normal", "EN"), [{ printingId: "p-foil", score: 200 }]],
     ]);
     const result = collectWeakMappings(g, suggestions);
     expect(result.cardmarket).toEqual([

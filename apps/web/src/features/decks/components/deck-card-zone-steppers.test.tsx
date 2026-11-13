@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type * as UseEnums from "@/hooks/use-enums";
 import { stubDeckBuilderCard } from "@/test/factories";
 
@@ -23,6 +23,7 @@ describe("DeckCardZoneSteppers", () => {
       <DeckCardZoneSteppers
         entries={[buccaneer]}
         isFreeform={false}
+        canIncrement={() => true}
         onAdd={onAdd}
         onRemove={onRemove}
       />,
@@ -49,12 +50,13 @@ describe("DeckCardZoneSteppers", () => {
       <DeckCardZoneSteppers
         entries={[plain, foil]}
         isFreeform={false}
+        canIncrement={() => true}
         onAdd={vi.fn()}
         onRemove={vi.fn()}
         printingLabels={
           new Map([
-            [getDeckCardKey(plain), "Standard"],
-            [getDeckCardKey(foil), "Foil"],
+            [deckCardKey(plain), "Standard"],
+            [deckCardKey(foil), "Foil"],
           ])
         }
       />,
@@ -68,6 +70,7 @@ describe("DeckCardZoneSteppers", () => {
       <DeckCardZoneSteppers
         entries={[stubDeckBuilderCard({ cardName: "Jinx", zone: "legend", quantity: 1 })]}
         isFreeform={false}
+        canIncrement={() => true}
         onAdd={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -80,8 +83,30 @@ describe("DeckCardZoneSteppers", () => {
 
   it("renders nothing when the card is not in the deck", () => {
     const { container } = render(
-      <DeckCardZoneSteppers entries={[]} isFreeform={false} onAdd={vi.fn()} onRemove={vi.fn()} />,
+      <DeckCardZoneSteppers
+        entries={[]}
+        isFreeform={false}
+        canIncrement={() => true}
+        onAdd={vi.fn()}
+        onRemove={vi.fn()}
+      />,
     );
     expect(container.firstChild).toBeNull();
+  });
+
+  it("disables the plus button when the deck has no room for another copy", () => {
+    const runes = stubDeckBuilderCard({ cardName: "Fury Rune", zone: "runes", quantity: 12 });
+    render(
+      <DeckCardZoneSteppers
+        entries={[runes]}
+        isFreeform={false}
+        canIncrement={() => false}
+        onAdd={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Add one copy of Fury Rune" }).hasAttribute("disabled"),
+    ).toBe(true);
   });
 });

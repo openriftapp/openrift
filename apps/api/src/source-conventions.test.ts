@@ -150,4 +150,68 @@ describe("source conventions", () => {
       ]),
     ).toEqual([]);
   });
+
+  it("bylines a share image only through the shared title block", () => {
+    expect(
+      filesMatching("modules", /`by \$\{/u, [
+        "modules/system/services/share-image-frame.ts",
+      ]).filter((file) => file.includes("image")),
+    ).toEqual([]);
+  });
+
+  it("takes the card aspect ratio from the shared constant", () => {
+    expect(filesMatching(".", /\b0\.71\d\b|ASPECT\s*=\s*1\.4\b/u, [])).toEqual([]);
+  });
+
+  it("reads share-image size and QR params only through parseShareImageQuery", () => {
+    expect(
+      filesMatching(".", /c\.req\.query\("(?:size|qr|scale)"\)/u, [
+        "modules/catalog/routes/admin-printing-post-image.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("throws the four common errors through the error helpers", () => {
+    expect(filesMatching(".", /new AppError\(\s*(?:400|403|404|409)\b/u, ["errors.ts"])).toEqual(
+      [],
+    );
+  });
+
+  it("names the site host only through the configured origin", () => {
+    expect(filesMatching(".", /(?<!@)openrift\.app/u, [])).toEqual([]);
+  });
+
+  it("builds marketplace SKU keys only through skuKey and marketplaceSkuKey", () => {
+    expect(filesMatching(".", /\$\{[^}`]*externalId\}::\$\{[^}`]*finish\}::/u, [])).toEqual([]);
+  });
+
+  it("records an admin event in every write handler of the marketplace admin routes", () => {
+    const files = [
+      ...sourceFiles("modules/marketplace/routes").filter((file) =>
+        path.basename(file).startsWith("admin-"),
+      ),
+      "modules/candidates/routes/admin-staging-card-overrides.ts",
+    ];
+    const handler = /\bos\.(?<name>\w+)\.handler\(/gu;
+    const silent: string[] = [];
+    let writers = 0;
+    for (const file of files) {
+      const source = readFileSync(path.join(SRC, file), "utf-8");
+      const starts = [...source.matchAll(handler)];
+      for (const [index, match] of starts.entries()) {
+        const name = match.groups?.name ?? "";
+        if (["list", "summary", "card"].includes(name)) {
+          continue;
+        }
+        writers += 1;
+        const body = source.slice(match.index, starts[index + 1]?.index ?? source.length);
+        if (!/\brecordAdminEvents?\(/u.test(body)) {
+          silent.push(`${file}#${name}`);
+        }
+      }
+    }
+
+    expect(writers).toBeGreaterThan(0);
+    expect(silent).toEqual([]);
+  });
 });

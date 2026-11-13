@@ -1,20 +1,18 @@
+import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Io } from "../../../io.js";
 import {
-  CARD_ASPECT,
   COLORS,
   cardTile,
   element,
   qrDataUri,
-  qrMark,
   renderTreeToPng,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
-import { LANDSCAPE, resultLineElement, titleTypeHeight } from "./deck-image-canvas.js";
+import { LANDSCAPE, deckTitleBlock, titleTypeHeight } from "./deck-image-canvas.js";
 import type { DeckImageInput } from "./deck-image-parts.js";
 import {
-  BATTLEFIELD_ASPECT,
   BODY_GAP,
   GAP,
   SECTION_HEADER_H,
@@ -29,7 +27,6 @@ import {
   packGrid,
   runeCountsByDomain,
   splitDeckZones,
-  truncateTitle,
   zoneHeading,
 } from "./deck-image-parts.js";
 
@@ -51,7 +48,6 @@ export async function renderLandscapeDeckImage(
   const { width: canvasW, height: canvasH } = canvas;
   const zones = splitDeckZones(input.cards);
   const { legend, legendOptions, runes, runeCards, battlefields, sideboard, gridCards } = zones;
-  const { mainCardCount, sideboardCount } = zones;
 
   const hasLeftPanel = legend !== null;
   const leftW = hasLeftPanel ? LANDSCAPE_LEFT_W : 0;
@@ -82,7 +78,7 @@ export async function renderLandscapeDeckImage(
   const hasBottomRow = bottomRowScalable || willHaveFooter;
 
   const bandGaps = hasSideboard && hasBottomRow ? GAP : 0;
-  const bottomRowFixedH = hasBottomRow && !bottomRowScalable ? canvas.footerLabelH : 0;
+  const bottomRowFixedH = hasBottomRow && !bottomRowScalable ? canvas.footerH : 0;
   const bandFixedH =
     (hasSideboard ? SECTION_HEADER_H : 0) +
     (bottomRowScalable ? SECTION_HEADER_H : 0) +
@@ -117,7 +113,7 @@ export async function renderLandscapeDeckImage(
   // Host-label width is overestimated at 12px/char (20px font) to keep it off the clipped right edge.
   const footerMarkW = input.siteHost ? input.siteHost.length * 12 : 0;
   const bottomRowAvailW = rightW - (footerMarkW > 0 ? footerMarkW + BODY_GAP : 0);
-  const bottomUnitW = bfCount * BATTLEFIELD_ASPECT + runeCount * CARD_ASPECT;
+  const bottomUnitW = bfCount * LANDSCAPE_CARD_ASPECT + runeCount * CARD_ASPECT;
   const bottomGapsW =
     Math.max(0, bfCount - 1) * GAP +
     Math.max(0, runeCount - 1) * GAP +
@@ -135,7 +131,7 @@ export async function renderLandscapeDeckImage(
     : 0;
   const runeTileH = bottomTileH;
   const sideboardTileW = Math.floor(sideboardTileH * CARD_ASPECT);
-  const battlefieldTileW = Math.floor(bottomTileH * BATTLEFIELD_ASPECT);
+  const battlefieldTileW = Math.floor(bottomTileH * LANDSCAPE_CARD_ASPECT);
   const runeTileW = Math.floor(runeTileH * CARD_ASPECT);
 
   const domains = runeCountsByDomain(runes).map((entry) => entry.domain);
@@ -184,91 +180,13 @@ export async function renderLandscapeDeckImage(
   const hasFooterMark = Boolean(input.siteHost);
 
   const domainIcons = domainIconElements(domainUris, canvas.domainIcon);
-  const titleTypeRow = element(
-    "div",
-    // The type group keeps its own height and is centred in the row by the
-    // row's `alignItems`, so growing the row for the QR does not drag the
-    // title down to sit on the row's bottom edge.
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "baseline",
-      ...(input.resultLine === undefined ? { flexGrow: 1 } : {}),
-    },
-    element(
-      "div",
-      {
-        display: "flex",
-        flexShrink: 1,
-        fontSize: canvas.titleSize,
-        lineHeight: 1,
-        fontWeight: 700,
-        color: COLORS.text,
-        maxWidth: 560,
-        whiteSpace: "nowrap",
-      },
-      truncateTitle(input.deckName),
-    ),
-    input.ownerName
-      ? element(
-          "div",
-          {
-            display: "flex",
-            flexShrink: 0,
-            marginLeft: 12,
-            fontSize: canvas.bylineSize,
-            lineHeight: 1,
-            fontWeight: 600,
-            color: COLORS.gold,
-          },
-          // "by Name", not "· Name": the middle-dot glyph floats off the title baseline at this size.
-          `by ${input.ownerName}`,
-        )
-      : false,
-    element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
-    // The group's baseline is the metadata run's, and the glyphs centre on that run.
-    element(
-      "div",
-      { display: "flex", flexDirection: "row", alignItems: "center", flexShrink: 0 },
-      element(
-        "div",
-        { display: "flex", fontSize: canvas.metaSize, lineHeight: 1, color: COLORS.muted },
-        deckMetaLabel(input.formatLabel, mainCardCount, sideboardCount),
-      ),
-      domainIcons.length > 0
-        ? element(
-            "div",
-            { display: "flex", flexDirection: "row", alignItems: "center", marginLeft: 14, gap: 6 },
-            ...domainIcons,
-          )
-        : false,
-    ),
-  );
-
-  const titleRow = element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      height: titleH,
-      marginBottom: GAP,
-    },
-    input.resultLine === undefined
-      ? titleTypeRow
-      : element(
-          "div",
-          { display: "flex", flexDirection: "column", flexGrow: 1 },
-          titleTypeRow,
-          resultLineElement(input.resultLine, canvas, 10),
-        ),
-    qrUri
-      ? element(
-          "div",
-          { display: "flex", flexShrink: 0, marginLeft: BODY_GAP },
-          qrMark(qrUri, canvas.headerQr),
-        )
-      : false,
+  const titleRow = deckTitleBlock(
+    input,
+    canvas,
+    deckMetaLabel(input.formatLabel, zones.cardCount),
+    domainIcons,
+    qrUri,
+    titleH,
   );
 
   const leftPanel =
@@ -432,6 +350,7 @@ export async function renderLandscapeDeckImage(
     },
     heroBackdrop,
     titleRow,
+    element("div", { display: "flex", height: GAP, flexShrink: 0 }),
     body,
   );
 

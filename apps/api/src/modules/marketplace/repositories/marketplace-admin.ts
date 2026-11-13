@@ -1,3 +1,4 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { MarketplaceGroupKind } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Kysely } from "kysely";
@@ -82,6 +83,30 @@ export function marketplaceAdminRepo(db: Kysely<Database>) {
       }
 
       return query.execute();
+    },
+
+    getGroup(marketplace: Marketplace, groupId: number) {
+      return db
+        .selectFrom("marketplaceGroups")
+        .select(["name", "groupKind", "setId"])
+        .where("marketplace", "=", marketplace)
+        .where("groupId", "=", groupId)
+        .executeTakeFirst();
+    },
+
+    cardSlugsForPrintings(
+      printingIds: readonly string[],
+    ): Promise<{ printingId: string; cardSlug: string }[]> {
+      if (printingIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("printings as p")
+        .innerJoin("faces as f", "f.id", "p.face1Id")
+        .innerJoin("cards as c", "c.id", "f.cardId")
+        .select(["p.id as printingId", "c.slug as cardSlug"])
+        .where("p.id", "in", [...printingIds])
+        .execute();
     },
 
     async updateGroup(
@@ -193,7 +218,7 @@ export function marketplaceAdminRepo(db: Kysely<Database>) {
         externalId: number;
         finish: string;
         language: string | null;
-      }): string => `${v.marketplace}::${v.externalId}::${v.finish}::${v.language ?? ""}`;
+      }): string => marketplaceSkuKey(v.marketplace, v.externalId, v.finish, v.language);
 
       const productSeed = values.map((v) => ({
         marketplace: v.marketplace,
@@ -338,22 +363,25 @@ export function marketplaceAdminRepo(db: Kysely<Database>) {
     },
 
     /** No-op if the SKU has no override. */
-    async deleteStagingCardOverride(
+    deleteStagingCardOverride(
       marketplace: Marketplace,
       externalId: number,
       finish: string,
       language: string | null,
-    ): Promise<void> {
-      await db
-        .deleteFrom("marketplaceProductCardOverrides as ov")
-        .using("marketplaceProducts as mp")
-        .whereRef("ov.marketplaceProductId", "=", "mp.id")
-        .where("mp.marketplace", "=", marketplace)
-        .where("mp.externalId", "=", externalId)
-        .where("mp.finish", "=", finish)
-        // `is not distinct from`, not `=`: CM/TCG store a NULL language.
-        .where("mp.language", "is not distinct from", language)
-        .execute();
+    ): Promise<{ cardId: string } | undefined> {
+      return (
+        db
+          .deleteFrom("marketplaceProductCardOverrides as ov")
+          .using("marketplaceProducts as mp")
+          .whereRef("ov.marketplaceProductId", "=", "mp.id")
+          .where("mp.marketplace", "=", marketplace)
+          .where("mp.externalId", "=", externalId)
+          .where("mp.finish", "=", finish)
+          // `is not distinct from`, not `=`: CM/TCG store a NULL language.
+          .where("mp.language", "is not distinct from", language)
+          .returning("ov.cardId")
+          .executeTakeFirst()
+      );
     },
 
     /** `marketplace_product_prices` is FK-cascaded from products, so deletes must run in dependency order. */

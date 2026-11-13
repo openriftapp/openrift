@@ -12,6 +12,7 @@ import {
   sendWithTradeCancelConsent,
   tradeCancelConsentOf,
 } from "@/features/groups/lib/trade-cancel-conflict";
+import { mutationTag } from "@/lib/mutation-metadata";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export type CollectionsCollection = Collection<CollectionResponse, string | number>;
@@ -21,7 +22,7 @@ export interface CollectionsWriteContext {
   userId: string;
 }
 
-const reorders = new WeakMap<object, readonly string[]>();
+const reorders = mutationTag<readonly string[]>();
 
 /** Rows missing from `orderedIds`, such as group collections, keep their place. */
 export function reorderCollections(
@@ -29,9 +30,7 @@ export function reorderCollections(
   orderedIds: readonly string[],
 ): Transaction {
   const present = orderedIds.filter((id) => collection.has(id));
-  const metadata = {};
-  reorders.set(metadata, orderedIds);
-  return collection.update(present, { metadata }, (drafts) => {
+  return collection.update(present, { metadata: reorders.tag(orderedIds) }, (drafts) => {
     for (const [index, draft] of drafts.entries()) {
       draft.sortOrder = index;
     }
@@ -39,8 +38,7 @@ export function reorderCollections(
 }
 
 function reorderOf(mutation: PendingMutation<CollectionResponse>): readonly string[] | undefined {
-  const { metadata } = mutation;
-  return typeof metadata === "object" && metadata !== null ? reorders.get(metadata) : undefined;
+  return reorders.read(mutation.metadata);
 }
 
 async function persistCreate(row: CollectionResponse): Promise<void> {

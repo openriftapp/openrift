@@ -77,12 +77,14 @@ function OwnedRow({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Mar
         ) : (
           <>
             <span>{m.meta_deck_owned_of({ owned: cost.owned, needed: cost.needed })}</span>
-            {toComplete !== undefined && toComplete > 0 && (
+            {toComplete !== undefined && (toComplete > 0 || cost.unpricedMissing > 0) && (
               <span>
                 <span className="text-foreground font-semibold">
                   {compactFormatterForMarketplace(marketplace)(toComplete)}
                 </span>{" "}
                 {m.meta_deck_to_complete()}
+                {cost.unpricedMissing > 0 &&
+                  ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
               </span>
             )}
           </>
@@ -113,6 +115,7 @@ export function MetaArchiveDeckTile({
 }) {
   const record = formatRecord(deck.wins, deck.losses, deck.draws);
   const value = cost?.value;
+  const unpriced = cost?.unpriced ?? 0;
 
   return (
     <MetaDeckFrame deck={deck} label={deckLabel(deck)} className="flex flex-col overflow-hidden">
@@ -130,9 +133,10 @@ export function MetaArchiveDeckTile({
           soloLegend
         />
         <PlacementPlate deck={deck} fieldSize={fieldSize} />
-        {value !== undefined && (
+        {value !== undefined && (value > 0 || unpriced > 0) && (
           <span className={cn(PLATE_CLASS, "top-2 right-2 px-2 py-0.5")}>
-            {compactFormatterForMarketplace(marketplace)(value)}
+            {value > 0 && compactFormatterForMarketplace(marketplace)(value)}
+            {unpriced > 0 && ` ${m.common_unpriced({ count: unpriced })}`}
           </span>
         )}
       </div>

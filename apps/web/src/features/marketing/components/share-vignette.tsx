@@ -2,6 +2,7 @@ import { CheckIcon, CopyIcon, QrCodeIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { QrCode } from "@/components/ui/qr-code";
+import { OFFICIAL_HOST } from "@/lib/official-host";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -10,7 +11,7 @@ import { ClipFrame } from "./clip-frame";
 const DECK_NAME = "Yasuo Aggro";
 const AUTHOR = "Mira";
 
-const SHARE_URL = "https://openrift.app/decks/share/AbCdEf123456";
+const SHARE_URL = `https://${OFFICIAL_HOST}/decks/share/AbCdEf123456`;
 
 // The share image's own palette, which satori bakes in because it cannot read
 // the app's oklch tokens. See the og-image pipeline in apps/api.
@@ -26,7 +27,7 @@ const OG = {
 function OgTile({ quantity }: { quantity?: number }) {
   return (
     <span
-      className="relative block aspect-[0.715] rounded-[3px]"
+      className="aspect-card relative block rounded-[3px]"
       style={{ background: OG.surface, border: `1px solid ${OG.surfaceBorder}` }}
     >
       {quantity !== undefined && (
@@ -60,7 +61,7 @@ function OgImage() {
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
         <span
-          className="aspect-[0.715] h-full rounded-[3px]"
+          className="aspect-card h-full rounded-[3px]"
           style={{ background: OG.surface, border: `1px solid ${OG.surfaceBorder}` }}
         />
         <div className="grid min-w-0 flex-1 grid-cols-6 gap-1">
@@ -73,7 +74,7 @@ function OgImage() {
         </div>
       </div>
       <span className="text-2xs shrink-0 font-semibold" style={{ color: OG.muted }}>
-        openrift.app
+        {OFFICIAL_HOST}
       </span>
     </div>
   );

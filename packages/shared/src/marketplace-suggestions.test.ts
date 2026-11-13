@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { computeProductSuggestions, productSuggestionKey } from "./marketplace-suggestions.js";
+import { marketplaceSkuKey } from "./marketplace-sku-key.js";
+import { computeProductSuggestions } from "./marketplace-suggestions.js";
 import type {
   MarketplaceAssignmentResponse,
   StagedProductResponse,
@@ -40,6 +41,7 @@ function staged(overrides: Partial<StagedProductResponse> = {}): StagedProductRe
     language: "EN",
     marketCents: 100,
     lowCents: null,
+    zeroLowCents: null,
     midCents: null,
     highCents: null,
     trendCents: null,
@@ -124,7 +126,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    const key = productSuggestionKey("tcgplayer", 101, "normal", "EN");
+    const key = marketplaceSkuKey("tcgplayer", 101, "normal", "EN");
     expect(result.get(key)?.[0]?.printingId).toBe("p-normal");
   });
 
@@ -170,12 +172,12 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 500, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-normal");
-    expect(
-      result.get(productSuggestionKey("cardmarket", 500, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-normal");
+    expect(result.get(marketplaceSkuKey("tcgplayer", 500, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-normal",
+    );
+    expect(result.get(marketplaceSkuKey("cardmarket", 500, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-normal",
+    );
   });
 
   it("does not suggest a CardTrader product across a language mismatch", () => {
@@ -206,7 +208,7 @@ describe("computeProductSuggestions", () => {
       }),
     );
     expect(
-      result.get(productSuggestionKey("cardtrader", 379_529, "foil", "SC"))?.[0]?.printingId,
+      result.get(marketplaceSkuKey("cardtrader", 379_529, "foil", "SC"))?.[0]?.printingId,
     ).toBe("p-sc");
   });
 
@@ -222,7 +224,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardmarket", 888, "foil", "EN"))?.[0]?.printingId).toBe(
+    expect(result.get(marketplaceSkuKey("cardmarket", 888, "foil", "EN"))?.[0]?.printingId).toBe(
       "p-sc",
     );
   });
@@ -239,7 +241,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("tcgplayer", 888, "foil", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("tcgplayer", 888, "foil", "EN"))).toBeUndefined();
   });
 
   it("suggests only the EN sibling for a language-aggregate TCG product", () => {
@@ -261,7 +263,7 @@ describe("computeProductSuggestions", () => {
       }),
     );
     const suggested = result
-      .get(productSuggestionKey("tcgplayer", 847_346, "normal", null))
+      .get(marketplaceSkuKey("tcgplayer", 847_346, "normal", null))
       ?.map((s) => s.printingId);
     expect(suggested).toEqual(["p-en"]);
   });
@@ -276,7 +278,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    const entry = result.get(productSuggestionKey("tcgplayer", 801, "foil", "EN"));
+    const entry = result.get(marketplaceSkuKey("tcgplayer", 801, "foil", "EN"));
     expect(entry?.[0]?.printingId).toBe("p-metal");
   });
 
@@ -294,8 +296,8 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("tcgplayer", 900, "foil", "EN"))).toBeUndefined();
-    expect(result.get(productSuggestionKey("tcgplayer", 901, "foil", "EN"))?.[0]?.printingId).toBe(
+    expect(result.get(marketplaceSkuKey("tcgplayer", 900, "foil", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("tcgplayer", 901, "foil", "EN"))?.[0]?.printingId).toBe(
       "p-metal",
     );
   });
@@ -311,7 +313,7 @@ describe("computeProductSuggestions", () => {
       }),
     );
     expect(
-      result.get(productSuggestionKey("tcgplayer", 910, "foil", "EN"))?.map((s) => s.printingId),
+      result.get(marketplaceSkuKey("tcgplayer", 910, "foil", "EN"))?.map((s) => s.printingId),
     ).toEqual(["p-md"]);
   });
 
@@ -340,7 +342,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardmarket", 872_479, "normal", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("cardmarket", 872_479, "normal", "EN"))).toBeUndefined();
   });
 
   it("still suggests when only one printing matches a Cardmarket product", () => {
@@ -355,7 +357,7 @@ describe("computeProductSuggestions", () => {
     );
     expect(
       result
-        .get(productSuggestionKey("cardmarket", 872_479, "normal", "EN"))
+        .get(marketplaceSkuKey("cardmarket", 872_479, "normal", "EN"))
         ?.map((s) => s.printingId),
     ).toEqual(["p-en"]);
   });
@@ -379,7 +381,7 @@ describe("computeProductSuggestions", () => {
       }),
     );
     const suggested = result
-      .get(productSuggestionKey("cardmarket", 847_346, "normal", null))
+      .get(marketplaceSkuKey("cardmarket", 847_346, "normal", null))
       ?.map((s) => s.printingId)
       .toSorted();
     expect(suggested).toEqual(["p-en", "p-sc"]);
@@ -445,7 +447,7 @@ describe("computeProductSuggestions", () => {
       ),
     );
     expect(
-      result.get(productSuggestionKey("cardtrader", 345_503, "foil", "SC"))?.[0]?.printingId,
+      result.get(marketplaceSkuKey("cardtrader", 345_503, "foil", "SC"))?.[0]?.printingId,
     ).toBe("p-302-sc-signed");
   });
 
@@ -483,7 +485,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardtrader", 111, "foil", "SC"))?.[0]?.printingId).toBe(
+    expect(result.get(marketplaceSkuKey("cardtrader", 111, "foil", "SC"))?.[0]?.printingId).toBe(
       "p-normal-signed",
     );
   });
@@ -520,7 +522,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardtrader", 222, "foil", "SC"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("cardtrader", 222, "foil", "SC"))).toBeUndefined();
   });
 
   it("does not propagate cross-language evidence across marketplaces", () => {
@@ -540,7 +542,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("tcgplayer", 333, "foil", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("tcgplayer", 333, "foil", "EN"))).toBeUndefined();
   });
 
   it("prefers a promo printing over a basic one when the group is tagged 'special'", () => {
@@ -557,12 +559,12 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 1000, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-promo");
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 1001, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-regular");
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1000, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-promo",
+    );
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1001, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-regular",
+    );
   });
 
   it("disambiguates a basic-named product away from a promo printing when group is 'basic'", () => {
@@ -575,7 +577,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("tcgplayer", 1100, "normal", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1100, "normal", "EN"))).toBeUndefined();
   });
 
   it("resolves CT normal vs altart per language using price-rank (Miss Fortune scenario)", () => {
@@ -637,16 +639,16 @@ describe("computeProductSuggestions", () => {
       }),
     );
     expect(
-      result.get(productSuggestionKey("cardtrader", 345_385, "foil", "EN"))?.[0]?.printingId,
+      result.get(marketplaceSkuKey("cardtrader", 345_385, "foil", "EN"))?.[0]?.printingId,
     ).toBe("p-n-en");
     expect(
-      result.get(productSuggestionKey("cardtrader", 345_385, "foil", "SC"))?.[0]?.printingId,
+      result.get(marketplaceSkuKey("cardtrader", 345_385, "foil", "SC"))?.[0]?.printingId,
     ).toBe("p-n-sc");
     expect(
-      result.get(productSuggestionKey("cardtrader", 345_386, "foil", "EN"))?.[0]?.printingId,
+      result.get(marketplaceSkuKey("cardtrader", 345_386, "foil", "EN"))?.[0]?.printingId,
     ).toBe("p-a-en");
     expect(
-      result.get(productSuggestionKey("cardtrader", 345_386, "foil", "SC"))?.[0]?.printingId,
+      result.get(marketplaceSkuKey("cardtrader", 345_386, "foil", "SC"))?.[0]?.printingId,
     ).toBe("p-a-sc");
   });
 
@@ -694,7 +696,7 @@ describe("computeProductSuggestions", () => {
       }),
     );
     const suggested = result
-      .get(productSuggestionKey("cardmarket", 1301, "normal", null))
+      .get(marketplaceSkuKey("cardmarket", 1301, "normal", null))
       ?.map((s) => s.printingId)
       .toSorted();
     expect(suggested).toEqual(["p-alt-en", "p-alt-sc"]);
@@ -728,12 +730,12 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 1200, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-normal");
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 1201, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-alt");
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1200, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-normal",
+    );
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1201, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-alt",
+    );
   });
 
   it("disqualifies printings whose set doesn't match the product's group setSlug", () => {
@@ -773,9 +775,9 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 1310, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-ogn");
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1310, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-ogn",
+    );
   });
 
   it("ignores the set filter when the group's setSlug is null (no scoping)", () => {
@@ -795,9 +797,9 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(
-      result.get(productSuggestionKey("tcgplayer", 1320, "normal", "EN"))?.[0]?.printingId,
-    ).toBe("p-sfd");
+    expect(result.get(marketplaceSkuKey("tcgplayer", 1320, "normal", "EN"))?.[0]?.printingId).toBe(
+      "p-sfd",
+    );
   });
 
   it("skips the sibling fan-out when the tied printings aren't actually siblings", () => {
@@ -814,7 +816,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardmarket", 123, "normal", null))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("cardmarket", 123, "normal", null))).toBeUndefined();
   });
 
   it("emits a weak (amber) suggestion when a CM SKU has no matching printing finish but a sibling SKU is assigned", () => {
@@ -828,7 +830,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    const weak = result.get(productSuggestionKey("cardmarket", 555, "normal", "EN"));
+    const weak = result.get(marketplaceSkuKey("cardmarket", 555, "normal", "EN"));
     expect(weak).toEqual([{ printingId: "p-foil", score: 50, isWeak: true }]);
   });
 
@@ -845,7 +847,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardmarket", 556, "normal", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("cardmarket", 556, "normal", "EN"))).toBeUndefined();
   });
 
   it("does not emit a weak suggestion when only a different-externalId sibling is assigned", () => {
@@ -858,7 +860,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardmarket", 557, "normal", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("cardmarket", 557, "normal", "EN"))).toBeUndefined();
   });
 
   it("mirrors every sibling printing when one externalId fans out to multiple printings", () => {
@@ -885,7 +887,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    const weak = result.get(productSuggestionKey("cardmarket", 558, "normal", null));
+    const weak = result.get(marketplaceSkuKey("cardmarket", 558, "normal", null));
     expect(weak?.map((s) => s.printingId).toSorted()).toEqual(["p-en-foil", "p-sc-foil"]);
     expect(weak?.every((s) => s.isWeak === true)).toBe(true);
   });
@@ -914,7 +916,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    const weak = result.get(productSuggestionKey("tcgplayer", 558, "normal", null));
+    const weak = result.get(marketplaceSkuKey("tcgplayer", 558, "normal", null));
     expect(weak?.map((s) => s.printingId)).toEqual(["p-en-foil"]);
   });
 
@@ -928,7 +930,7 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    const entry = result.get(productSuggestionKey("cardmarket", 559, "normal", "EN"));
+    const entry = result.get(marketplaceSkuKey("cardmarket", 559, "normal", "EN"));
     expect(entry?.[0]?.isWeak).toBeUndefined();
     expect(entry?.[0]?.score).toBeGreaterThanOrEqual(100);
   });
@@ -945,6 +947,6 @@ describe("computeProductSuggestions", () => {
         },
       }),
     );
-    expect(result.get(productSuggestionKey("cardtrader", 560, "normal", "EN"))).toBeUndefined();
+    expect(result.get(marketplaceSkuKey("cardtrader", 560, "normal", "EN"))).toBeUndefined();
   });
 });

@@ -11,7 +11,7 @@ import type {
   DeckBoxPlan,
 } from "@/features/decks/lib/deck-box";
 import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { resetIdCounter, stubCopy, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 const BOX = "box-collection";
@@ -69,7 +69,7 @@ function inputFor({
     languageOrder: ["EN", "DE"],
     conditionOrder: CONDITIONS,
     slotCopyIds: new Map(
-      Object.entries(picks).map(([index, copyId]) => [`${getDeckCardKey(card)}:${index}`, copyId]),
+      Object.entries(picks).map(([index, copyId]) => [`${deckCardKey(card)}:${index}`, copyId]),
     ),
   };
 }

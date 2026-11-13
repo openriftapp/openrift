@@ -1,3 +1,4 @@
+import { mulberry32 } from "../random";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
 
 const CARD_WIDTH = 384;
@@ -12,23 +13,12 @@ export function blankFrame(width = CARD_WIDTH, height = CARD_HEIGHT): RgbaImage 
   return { data, width, height };
 }
 
-function seededRandom(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d_2b_79_f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-  };
-}
-
 /** Bilinear value noise: one seed lines up with itself under the aligned check, two seeds do not. */
 export function cardTexture(seed: number): RgbaImage {
   const cellsX = 12;
   const cellsY = 16;
-  const random = seededRandom(seed);
-  const grid = Array.from({ length: (cellsX + 1) * (cellsY + 1) }, () => random());
+  const random = mulberry32(seed);
+  const grid = Array.from({ length: (cellsX + 1) * (cellsY + 1) }, () => random.next());
   const image = blankFrame();
   for (let y = 0; y < CARD_HEIGHT; y++) {
     const gy = (y / CARD_HEIGHT) * cellsY;

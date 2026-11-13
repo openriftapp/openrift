@@ -22,7 +22,7 @@ export function PrintingImageBox({
 }) {
   const boxClass = cn(
     "bg-muted/30 inline-flex w-full items-center justify-center overflow-hidden rounded-md border",
-    landscape ? "aspect-[88/63]" : "aspect-card",
+    landscape ? "aspect-card-landscape" : "aspect-card",
     className,
   );
   const placeholder = (

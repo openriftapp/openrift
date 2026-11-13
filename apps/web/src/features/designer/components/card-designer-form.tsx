@@ -20,6 +20,7 @@ import {
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { computeDomainDisabled } from "@/lib/domain";
+import { getSiteHost } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -180,7 +181,10 @@ export function CardDesignerForm() {
         </FieldRow>
       </div>
 
-      <SettingsRow label={m.designer_attribution_label()} htmlFor="card-designer-attribution">
+      <SettingsRow
+        label={m.designer_attribution_label({ host: getSiteHost() })}
+        htmlFor="card-designer-attribution"
+      >
         <Switch
           id="card-designer-attribution"
           checked={showAttribution}

@@ -5,18 +5,13 @@
  */
 
 import type { Logger } from "@openrift/shared/logger";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import type { Repos } from "../../../../deps.js";
+import type { PriceColumns, StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
-import { skuKey } from "../../repositories/price-refresh.js";
-import type {
-  GroupRow,
-  PriceColumns,
-  PriceUpsertConfig,
-  StagingRow,
-  UpsertCounts,
-} from "./types.js";
+import type { GroupRow, PriceUpsertConfig, UpsertCounts } from "./types.js";
 
 const BATCH_SIZE = 200;
 

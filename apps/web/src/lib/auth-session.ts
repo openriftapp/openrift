@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { fetchApi } from "./server-fns/fetch-api";
 import { withCookies } from "./server-fns/middleware";
+import { hasSessionCookie } from "./session-cookie";
 
 interface SessionUser {
   id: string;
@@ -49,13 +50,6 @@ export function toClientSession(body: { user?: SessionUser | null } | null): Ses
       updatedAt: user.updatedAt,
     },
   };
-}
-
-// Matches both the dev name and the `__Secure-` prefixed production name.
-const SESSION_COOKIE = /(?:^|;\s*)(?:__Secure-)?better-auth\.session_token=[^;\s]/u;
-
-export function hasSessionCookie(cookie: string): boolean {
-  return SESSION_COOKIE.test(cookie);
 }
 
 const getServerSession = createServerFn({ method: "GET" })

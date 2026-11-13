@@ -1,8 +1,9 @@
 import { formatCents, moneyFormatOptions } from "@openrift/shared/money";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
+import type { Currency } from "@openrift/shared/types/api/trade-preferences";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { EUR_MARKETPLACES } from "@openrift/shared/types/pricing";
+import { MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { EnumLabels } from "@/lib/enum-labels";
@@ -63,8 +64,6 @@ function numberFormat(key: string, options: Intl.NumberFormatOptions): Intl.Numb
 export function formatCount(value: number): string {
   return numberFormat("count", {}).format(value);
 }
-
-type Currency = "USD" | "EUR";
 
 function currencyFormat(currency: Currency, fractionDigits: number): Intl.NumberFormat {
   return numberFormat(
@@ -129,14 +128,18 @@ function formatPriceCompactEur(value?: number | null): string {
   return value === null || value === undefined ? "--" : formatMoneyCompact(value, "EUR");
 }
 
+export function formatterForCurrency(currency: Currency): (v?: number | null) => string {
+  return currency === "EUR" ? formatPriceEur : formatPrice;
+}
+
 export function formatterForMarketplace(marketplace: Marketplace): (v?: number | null) => string {
-  return EUR_MARKETPLACES.has(marketplace) ? formatPriceEur : formatPrice;
+  return formatterForCurrency(MARKETPLACE_CURRENCY[marketplace]);
 }
 
 export function compactFormatterForMarketplace(
   marketplace: Marketplace,
 ): (v?: number | null) => string {
-  return EUR_MARKETPLACES.has(marketplace) ? formatPriceCompactEur : formatPriceCompact;
+  return MARKETPLACE_CURRENCY[marketplace] === "EUR" ? formatPriceCompactEur : formatPriceCompact;
 }
 
 export interface PriceChangeParts {

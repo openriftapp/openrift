@@ -1,4 +1,3 @@
-import { META_PAGE_SIZES } from "@openrift/shared/meta-query";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { getRouteApi } from "@tanstack/react-router";
 import { TrophyIcon } from "lucide-react";
@@ -16,14 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList } from "@/components/ui/row-list";
-import { SimpleSelect } from "@/components/ui/simple-select";
 import { FilterDropdownChip } from "@/features/cards/components/compact-filter-bar";
 import { MetaDecklistsToggle } from "@/features/meta/components/meta-decklists-toggle";
 import {
   EVENT_INDEX_GRID,
   MetaEventIndexRow,
 } from "@/features/meta/components/meta-event-index-row";
-import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
+import {
+  IndexSortButton,
+  IndexSortHeader,
+} from "@/features/meta/components/meta-index-sort-button";
+import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { MetaScopeBar, ScopeSelect } from "@/features/meta/components/meta-scope-bar";
 import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import {
@@ -38,7 +40,7 @@ import {
   facetPresenceFrom,
   holdingsCountsFrom,
   metaEventCountries,
-  nextEventSort,
+  EVENT_SORT_DESCENDING_FIRST,
 } from "@/features/meta/lib/meta-events-index";
 import type {
   MetaEventIndexHoldings,
@@ -46,12 +48,16 @@ import type {
   MetaEventIndexSortDirection,
 } from "@/features/meta/lib/meta-events-search";
 import {
+  DEFAULT_EVENT_DIRECTION,
   DEFAULT_EVENT_PAGE_SIZE,
+  DEFAULT_EVENT_SORT,
   eventIndexHoldings,
   eventPageOrder,
   eventPageSlice,
 } from "@/features/meta/lib/meta-events-search";
 import { metaShownLabel } from "@/features/meta/lib/meta-format";
+import { metaIndexSearchWriter } from "@/features/meta/lib/meta-index-search";
+import { nextIndexSort, sortSearchPatch } from "@/features/meta/lib/meta-index-sort";
 import { metaPageCount } from "@/features/meta/lib/meta-paging";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
@@ -59,7 +65,6 @@ import {
   eraCounts,
   metaEventFilterQuery,
   metaScopeQueryFromScope,
-  nextScopeSearch,
   scopeKey,
 } from "@/features/meta/lib/meta-scope";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
@@ -93,12 +98,10 @@ export function MetaEventsPage() {
   const { data: counts } = useMetaCounts();
 
   // Every narrowing changes which events the pages hold, so it opens the first one.
-  const setSearchParams = (patch: Record<string, unknown>) => {
-    void navigate({
-      search: (prev) => nextScopeSearch({ ...prev, page: undefined }, patch),
-      replace: true,
-    });
-  };
+  const { setSearchParams, commitQuery } = metaIndexSearchWriter(
+    (update, replace) => void navigate({ search: update, replace }),
+    { resetPage: true },
+  );
 
   const [eraPickerOpen, setEraPickerOpen] = useState(false);
   const setScope = (patch: Partial<MetaScope>) => setSearchParams(patch);
@@ -111,10 +114,12 @@ export function MetaEventsPage() {
       playersMax: undefined,
     });
   const setSort = (column: MetaEventIndexSort) => {
-    const next = nextEventSort({ sort, direction }, column);
-    setSearchParams({ by: next.sort, dir: next.direction });
+    const next = nextIndexSort({ sort, direction }, column, EVENT_SORT_DESCENDING_FIRST);
+    setSearchParams(
+      sortSearchPatch(next, { sort: DEFAULT_EVENT_SORT, direction: DEFAULT_EVENT_DIRECTION }),
+      true,
+    );
   };
-  const commitQuery = (value: string) => setSearchParams({ q: value === "" ? undefined : value });
 
   const events = data.events;
   const matched = data.total;
@@ -254,11 +259,17 @@ export function MetaEventsPage() {
                     label={m.meta_events_pages_aria()}
                     scrollTargetId={EVENT_LIST_ID}
                   />
-                  <EventPageSizePicker
+                  <MetaPageSizePicker
                     value={perPage}
+                    isDefault={perPage === DEFAULT_EVENT_PAGE_SIZE}
                     total={matched}
+                    itemLabel={(size) => m.meta_events_per_page({ size })}
+                    ariaLabel={m.meta_events_per_page_aria()}
                     onChange={(per) =>
-                      setSearchParams({ per: per === DEFAULT_EVENT_PAGE_SIZE ? undefined : per })
+                      setSearchParams(
+                        { per: per === DEFAULT_EVENT_PAGE_SIZE ? undefined : per },
+                        true,
+                      )
                     }
                   />
                 </div>
@@ -423,33 +434,6 @@ function EventList({ events }: { events: MetaEventSummary[] }) {
   );
 }
 
-function EventPageSizePicker({
-  value,
-  total,
-  onChange,
-}: {
-  value: number;
-  total: number;
-  onChange: (value: number) => void;
-}) {
-  if (total <= META_PAGE_SIZES[0] && value === DEFAULT_EVENT_PAGE_SIZE) {
-    return null;
-  }
-  return (
-    <SimpleSelect
-      items={META_PAGE_SIZES.map((size) => ({
-        value: String(size),
-        label: m.meta_events_per_page({ size: String(size) }),
-      }))}
-      value={String(value)}
-      onChange={(next) => onChange(Number(next))}
-      label={m.meta_events_per_page_aria()}
-      renderValue={(item) => item.value}
-      className="w-36"
-    />
-  );
-}
-
 function SortHeader({
   sort,
   direction,
@@ -460,12 +444,7 @@ function SortHeader({
   onSort: (column: MetaEventIndexSort) => void;
 }) {
   return (
-    <div
-      className={cn(
-        EVENT_INDEX_GRID,
-        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
-      )}
-    >
+    <IndexSortHeader grid={EVENT_INDEX_GRID}>
       <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>
         {m.meta_col_date()}
       </SortButton>
@@ -485,7 +464,7 @@ function SortHeader({
         {m.meta_events_col_decks()}
       </SortButton>
       <span>{m.meta_events_winner()}</span>
-    </div>
+    </IndexSortHeader>
   );
 }
 

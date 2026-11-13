@@ -2700,6 +2700,7 @@
   "decks_menu_delete_version": "Delete version",
   "decks_menu_duplicate": "Duplicate",
   "decks_menu_duplicated": "Duplicated \"{name}\".",
+  "decks_menu_format_changed": "Format changed to {format}.",
   "decks_menu_export": "Export…",
   "decks_menu_make_primary": "Make primary",
   "decks_menu_manage_folders": "Manage folders…",
@@ -2722,6 +2723,7 @@
   "decks_editor_add_card_to_zone": "Add {card} to {zone}",
   "decks_editor_add_card_tooltip": "Add a card (Ctrl+K)",
   "decks_editor_add_one_copy": "Add one copy of {card}",
+  "decks_editor_add_blocked": "{card}, no room in this zone",
   "decks_editor_add_to_deck": "Add to deck",
   "decks_editor_bench_empty": "Draw a sample hand to see how the deck opens.",
   "decks_editor_choose": "Choose",
@@ -2809,7 +2811,7 @@
   "decks_editor_printing_standard": "Standard",
   "decks_editor_power": "Power {power}",
   "decks_editor_power_with_domains": "Power {power} ({domains})",
-  "decks_editor_progress_cards": "{progress}/{total} cards",
+  "decks_editor_required_progress": "{progress}/{total} required",
   "decks_editor_quantity": "Quantity",
   "decks_editor_quick_add_empty": "Type a card name to add it to the deck",
   "decks_editor_quick_add_input_aria": "Add a card to the deck",
@@ -3488,7 +3490,7 @@
   "decks_stats_power": "Power",
   "decks_stats_rarity": "Rarity",
   "decks_stats_title": "Stats",
-  "decks_stats_total_cards": "{count} cards",
+  "decks_stats_main_deck_cards": "{count} in main deck",
   "decks_stats_turn_one_play": "Turn-1 play {first} · {second}",
   "decks_stats_turn_one_play_hint": "The chance your opening hand holds a turn-one play. First number: going first (a unit or gear at 2 energy or less). Second: going second (3 or less). Spells don't count, there's nothing to react to yet.",
   "decks_stats_turn_one_play_label": "Turn-1 play",
@@ -3722,6 +3724,7 @@
   "decks_share_gone_description": "The deck's owner may have stopped sharing it, or the link wasn't copied completely.",
   "decks_share_gone_action": "Go to your decks",
   "decks_card_menu_view_details": "View details",
+  "decks_card_row_view_details": "View details for {card}",
   "decks_card_menu_switch": "Pick a different {zone}",
   "decks_card_menu_plan_battlefields": "Choose battlefields per game in the plan",
   "decks_card_menu_move_to": "Move to",
@@ -3901,8 +3904,6 @@
   "trade_pref_amount_label": "Amount",
   "trade_pref_accepts_label": "Accepts",
   "trade_pref_amount_placeholder": "e.g. 4 or 4.50",
-  "trade_pref_currency_eur": "Euro (EUR)",
-  "trade_pref_currency_usd": "US Dollar (USD)",
   "trade_pref_no_preference": "No preference (negotiate)",
   "trade_pref_negotiate": "Negotiate",
   "trade_pref_list_default": "List default ({value})",
@@ -4314,6 +4315,7 @@
   "share_image_dimensions": "{width} × {height} pixels",
   "share_image_download": "Download image",
   "share_image_error": "Couldn't prepare the image. Please try again.",
+  "share_image_rate_limited": "Too many images in a short time. Wait a moment, then try again.",
   "share_image_preparing": "Preparing…",
   "share_image_preview_alt": "Preview of {title}",
   "share_image_qr_missing_link": "The code needs a share link to point at, so the image leaves it out until you create one.",
@@ -4667,13 +4669,13 @@
       }
     }
   ],
-  "trades_completed": [
+  "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} completed trade",
-        "countPlural=*": "{count} completed trades"
+        "countPlural=one": "{count} past trade",
+        "countPlural=*": "{count} past trades"
       }
     }
   ],
@@ -5380,7 +5382,7 @@
   "designer_rarity_placeholder": "Pick a rarity",
   "designer_field_code": "Code",
   "designer_field_artist": "Artist",
-  "designer_attribution_label": "Add openrift.app to help spread the word",
+  "designer_attribution_label": "Add {host} to help spread the word",
   "designer_background_upload": "Upload background image",
   "designer_background_replace": "Replace background image",
   "designer_background_zoom": "Zoom",
@@ -10031,6 +10033,7 @@
       }
     }
   ],
+  "trades_match_promised": "{count} promised",
   "trades_match_variants": "{count} variants",
   "trades_match_price": "Price",
   "trades_match_they_pay": "They'd pay",

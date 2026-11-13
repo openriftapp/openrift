@@ -16,6 +16,6 @@ describe("/groups/$slug/lists/$listId search", () => {
   });
 
   it("drops a malformed member instead of failing the list", () => {
-    expect(validateSearch.parse({ fromUser: 3 }).fromUser).toBeUndefined();
+    expect(validateSearch.parse({ fromUser: true }).fromUser).toBeUndefined();
   });
 });

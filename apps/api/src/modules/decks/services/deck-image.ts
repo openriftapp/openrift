@@ -10,7 +10,7 @@ import { renderVerticalDeckImage } from "./deck-image-vertical.js";
 // Re-exported so the routes, the oEmbed handler, and the tests keep importing
 // the deck image's public surface from one module.
 export type { DeckImageCard, DeckImageCardRef, DeckImageInput } from "./deck-image-parts.js";
-export { splitDeckZones, truncateTitle } from "./deck-image-parts.js";
+export { splitDeckZones } from "./deck-image-parts.js";
 
 /** Honors the pinned cover face the same way the web resolves it. */
 export async function resolveCoverImageId(

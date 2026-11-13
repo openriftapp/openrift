@@ -141,6 +141,28 @@ describe("CardImage hero (responsive image)", () => {
     expect(img.getAttribute("height")).toBe("400");
   });
 
+  it("keeps a landscape card lying down in the native frame instead of turning it", () => {
+    const printing = stubPrinting({
+      images: [stubFrontImage],
+      card: { name: "Landscape Card", types: ["battlefield"] },
+    });
+    const { getByAltText, container } = render(
+      <CardImage
+        printing={printing}
+        orientation="landscape"
+        frame="native"
+        showImages
+        showFoil={false}
+        showShimmer={false}
+      />,
+      { wrapper: makeWrapper() },
+    );
+    const img = getByAltText("Landscape Card");
+    expect(img.parentElement?.style.transform ?? "").not.toContain("rotate");
+    expect(container.querySelector(".aspect-card-landscape")).not.toBeNull();
+    expect(img.getAttribute("width")).toBe("558");
+  });
+
   it("swaps to placeholder art when the hero image fails to load", () => {
     const printing = stubPrinting({
       images: [stubFrontImage],

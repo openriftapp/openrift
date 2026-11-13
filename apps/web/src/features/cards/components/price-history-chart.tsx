@@ -1,4 +1,4 @@
-import { formatShortDayYear, DAY_MS } from "@openrift/shared/format-date";
+import { formatShortDayYear } from "@openrift/shared/format-date";
 import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { CircleXIcon } from "lucide-react";
@@ -20,7 +20,12 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
-import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
+import {
+  availableTimeRanges,
+  effectiveTimeRange,
+  snapshotSpanDays,
+  timeRangeLabel,
+} from "@/features/cards/lib/price-history-chart-constants";
 import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import {
   formatTickDate,
@@ -37,13 +42,16 @@ function headlineLabel(source: Marketplace): string {
   if (source === "cardtrader") {
     return m.card_detail_chart_zero();
   }
-  return source === "cardnexus" ? m.card_detail_chart_low() : m.card_detail_chart_market();
+  return source === "tcgplayer" ? m.card_detail_chart_market() : m.card_detail_chart_low();
 }
 
 function buildChartConfig(source: Marketplace) {
   return {
     value: { label: headlineLabel(source), color: "var(--chart-1)" },
-    low: { label: m.card_detail_chart_low(), color: "var(--chart-2)" },
+    secondary: {
+      label: source === "cardmarket" ? m.card_detail_chart_market() : m.card_detail_chart_low(),
+      color: "var(--chart-2)",
+    },
   } satisfies ChartConfig;
 }
 
@@ -72,37 +80,22 @@ export function PriceHistoryChart({
 
   const { data: allData } = usePriceHistory(printingId, "all");
 
-  const allSnapshots = allData?.[source]?.snapshots;
-  const spanSnapshots = allSnapshots && allSnapshots.length >= 2 ? allSnapshots : undefined;
-  const firstSnapshot = spanSnapshots?.[0];
-  const lastSnapshot = spanSnapshots?.at(-1);
-  const dataSpanDays =
-    firstSnapshot && lastSnapshot
-      ? Math.round(
-          (new Date(lastSnapshot.date).getTime() - new Date(firstSnapshot.date).getTime()) / DAY_MS,
-        )
-      : null;
-
-  const availableRanges = TIME_RANGES.filter(
-    (tr) =>
-      (ranges === undefined || ranges.includes(tr.value)) &&
-      (tr.days === 0 || dataSpanDays === null || dataSpanDays >= tr.days),
+  const availableRanges = availableTimeRanges(
+    snapshotSpanDays(allData?.[source]?.snapshots),
+    ranges,
   );
-
-  const effectiveRange = availableRanges.some((tr) => tr.value === range)
-    ? range
-    : ("all" as TimeRange);
+  const effectiveRange = effectiveTimeRange(range, availableRanges);
 
   const { data, isLoading, error } = usePriceHistory(printingId, effectiveRange);
 
   const currencyFormatter = formatterForMarketplace(source);
   const sourceData = data?.[source];
   const rawSnapshots: AnySnapshot[] = sourceData?.snapshots ?? [];
-  const snapshots = rawSnapshots.map((s) => priceHistoryPoint(s));
+  const snapshots = rawSnapshots.map((s) => priceHistoryPoint(source, s));
 
   const lastPoint = lastValuePoint(snapshots);
   const tickWithYear = spansYears(snapshots);
-  const hasLow = snapshots.some((s) => s.low !== null);
+  const hasSecondary = snapshots.some((s) => s.secondary !== null);
   const chartConfig = buildChartConfig(source);
 
   return (
@@ -232,7 +225,7 @@ export function PriceHistoryChart({
                           style={{ backgroundColor: `var(--color-${name})` }}
                         />
                         <span className="text-muted-foreground">
-                          {chartConfig[name === "low" ? "low" : "value"].label}
+                          {chartConfig[name === "secondary" ? "secondary" : "value"].label}
                         </span>
                         <span className="text-foreground ml-auto font-mono font-medium tabular-nums">
                           {currencyFormatter(value)}
@@ -272,11 +265,11 @@ export function PriceHistoryChart({
                 }}
               />
             )}
-            {hasLow && (
+            {hasSecondary && (
               <Line
-                dataKey="low"
+                dataKey="secondary"
                 type="monotone"
-                stroke="var(--color-low)"
+                stroke="var(--color-secondary)"
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
                 dot={false}

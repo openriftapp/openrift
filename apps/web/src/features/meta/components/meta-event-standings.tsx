@@ -1,5 +1,5 @@
 import { todayUtc } from "@openrift/shared/format-date";
-import { META_PAGE_SIZES, STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
+import { STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { cutSizeOf } from "@openrift/shared/meta-standings";
 import type {
   MetaEventField,
@@ -29,6 +29,7 @@ import {
   PhoneStandings,
 } from "@/features/meta/components/meta-event-standings-body";
 import { MetaListShapeKey } from "@/features/meta/components/meta-list-shape-bar";
+import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { useMetaStandings } from "@/features/meta/hooks/use-meta";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
@@ -40,7 +41,7 @@ import {
 } from "@/features/meta/lib/meta-event-standings";
 import { describeEventProgress } from "@/features/meta/lib/meta-event-structure";
 import type { MetaPageSize } from "@/features/meta/lib/meta-paging";
-import { META_PAGE_ALL, metaPageCount } from "@/features/meta/lib/meta-paging";
+import { metaPageCount } from "@/features/meta/lib/meta-paging";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import {
   costMatchesBounds,
@@ -115,11 +116,11 @@ export function MetaEventStandings({
   // one the reader chose in place.
   const [narrowedToLists, setNarrowedToLists] = useState(false);
 
-  const setView = (patch: Partial<MetaStandingsSearch>) => {
+  const setView = (patch: Partial<MetaStandingsSearch>, replace = false) => {
     void navigate({
       // A narrowing changes which entries the pages hold, so it opens the first one.
       search: (prev) => ({ ...prev, page: undefined, ...patch }),
-      replace: true,
+      replace,
     });
   };
 
@@ -127,7 +128,7 @@ export function MetaEventStandings({
   const narrowToLists = () => {
     if (search.list !== "with") {
       setNarrowedToLists(true);
-      setView({ list: "with" });
+      setView({ list: "with" }, true);
     }
   };
   const { data, isError, isPlaceholderData, refetch } = useMetaStandings(
@@ -233,7 +234,7 @@ export function MetaEventStandings({
             {showSearch && (
               <StandingsSearch
                 value={search.q ?? ""}
-                onCommit={(next) => setView({ q: next === "" ? undefined : next })}
+                onCommit={(next) => setView({ q: next === "" ? undefined : next }, true)}
               />
             )}
             {showLegendFilter && (
@@ -341,50 +342,22 @@ export function MetaEventStandings({
                 label={m.meta_standings_pages_aria()}
                 scrollTargetId={STANDINGS_ID}
               />
-              <PageSizePicker
-                value={(search.per as MetaPageSize | undefined) ?? null}
+              <MetaPageSizePicker<MetaPageSize>
+                value={(search.per as MetaPageSize | undefined) ?? STANDINGS_PAGE_SIZE}
+                isDefault={search.per === undefined}
                 total={page.total}
-                onChange={(per) => setView({ per: per === STANDINGS_PAGE_SIZE ? undefined : per })}
+                allLabel={m.meta_standings_per_all()}
+                itemLabel={(size) => m.meta_standings_per_page({ size })}
+                ariaLabel={m.meta_standings_per_page_aria()}
+                onChange={(per) =>
+                  setView({ per: per === STANDINGS_PAGE_SIZE ? undefined : per }, true)
+                }
               />
             </div>
           )}
         </div>
       </section>
     </CardDetailOverlayProvider>
-  );
-}
-
-function PageSizePicker({
-  value,
-  total,
-  onChange,
-}: {
-  value: MetaPageSize | null;
-  total: number;
-  onChange: (value: MetaPageSize | undefined) => void;
-}) {
-  const items: Record<string, string> = {
-    ...Object.fromEntries(META_PAGE_SIZES.map((size) => [String(size), String(size)])),
-    [META_PAGE_ALL]: m.meta_standings_per_all(),
-  };
-
-  if (total <= META_PAGE_SIZES[0] && value === null) {
-    return null;
-  }
-  return (
-    <SimpleSelect
-      items={Object.entries(items).map(([key, label]) => ({
-        value: key,
-        label: m.meta_standings_per_page({ size: label }),
-      }))}
-      value={String(value ?? STANDINGS_PAGE_SIZE)}
-      onChange={(picked) =>
-        onChange(picked === META_PAGE_ALL ? META_PAGE_ALL : (Number(picked) as MetaPageSize))
-      }
-      label={m.meta_standings_per_page_aria()}
-      renderValue={(item) => items[item.value]}
-      className="w-36"
-    />
   );
 }
 

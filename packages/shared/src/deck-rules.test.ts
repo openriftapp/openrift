@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { DeckCard, DeckState } from "./deck-rules";
 import {
   battlefieldAllTypeBattlefield,
+  deckCardCount,
   totalQuantity,
   battlefieldExactlyThree,
   battlefieldNoDuplicates,
@@ -1704,6 +1705,19 @@ describe("validateDeck for custom-region", () => {
     ];
     const violations = validateDeck(makeState(cards, "custom-region", { tagSlugs }));
     expect(violations.filter((v) => v.code === "SIGNATURE_CHAMPION_COPIES")).toEqual([]);
+  });
+});
+
+describe("deckCardCount", () => {
+  it("counts every zone except overflow", () => {
+    expect(
+      deckCardCount([
+        { zone: "main", quantity: 3 },
+        { zone: "runes", quantity: 12 },
+        { zone: "sideboard", quantity: 2 },
+        { zone: "overflow", quantity: 5 },
+      ]),
+    ).toBe(17);
   });
 });
 

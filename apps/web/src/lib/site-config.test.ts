@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getIsPreview, getSiteUrl } from "./site-config";
+import { getIsPreview, getSiteHost, getSiteUrl } from "./site-config";
 
 function setRobots(content: string) {
   const meta = document.createElement("meta");
@@ -35,6 +35,19 @@ describe("getSiteUrl", () => {
     vi.stubEnv("SITE_URL", undefined);
 
     expect(getSiteUrl()).toBe("http://localhost:5173");
+  });
+});
+
+describe("getSiteHost", () => {
+  it("returns the host of the running site, port included", () => {
+    expect(getSiteHost()).toBe("localhost:3000");
+  });
+
+  it("returns the host of SITE_URL on the server", () => {
+    vi.stubGlobal("window", undefined);
+    vi.stubEnv("SITE_URL", "https://cards.example.test");
+
+    expect(getSiteHost()).toBe("cards.example.test");
   });
 });
 

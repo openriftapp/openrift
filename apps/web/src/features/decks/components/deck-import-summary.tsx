@@ -1,4 +1,4 @@
-import { totalQuantity, validateDeck } from "@openrift/shared/deck-rules";
+import { deckCardCount, validateDeck } from "@openrift/shared/deck-rules";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat } from "@openrift/shared/types/enums";
@@ -76,7 +76,7 @@ export function DeckImportSummary({
     cards: builderCards.map((card) => toRuleEngineCard(card, customTagAssignments)),
     championIdentifierTags,
   });
-  const totalCards = totalQuantity(builderCards);
+  const totalCards = deckCardCount(builderCards);
   const { progress: requiredProgress, total: requiredTotal } = requiredZoneProgress(
     builderCards,
     format,
@@ -119,7 +119,7 @@ export function DeckImportSummary({
         ) : (
           <div className="space-y-2">
             <p className="text-muted-foreground text-sm">{m.decks_import_sign_in_hint()}</p>
-            {ownershipData?.deckValueCents !== undefined && (
+            {ownershipData?.deckValue !== undefined && (
               <Button
                 variant="outline"
                 size="sm"
@@ -127,7 +127,7 @@ export function DeckImportSummary({
                 onClick={() => setMissingOpen(true)}
               >
                 <TagIcon className="size-3.5" />
-                {formatterForMarketplace(marketplace)(ownershipData.deckValueCents)}
+                {formatterForMarketplace(marketplace)(ownershipData.deckValue)}
                 <span className="text-muted-foreground">{m.decks_import_view_prices()}</span>
               </Button>
             )}
@@ -152,7 +152,7 @@ export function DeckImportSummary({
           open={missingOpen}
           onOpenChange={setMissingOpen}
           missingCards={ownershipData.missingCards}
-          totalMissingValue={ownershipData.missingValueCents}
+          totalMissingValue={ownershipData.missingValue}
           marketplace={marketplace}
           mode={isLoggedIn ? "missing" : "prices"}
           deckName={deckName}

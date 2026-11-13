@@ -1,5 +1,6 @@
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { pluralize } from "@openrift/shared/strings";
 import type { RehostImageResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
@@ -37,7 +38,6 @@ import {
 } from "@/features/admin/lib/missing-images";
 import { useLanguageList } from "@/hooks/use-enums";
 
-const REGENERATE_KIND = "images.regenerate";
 const ALL_LANGUAGES = "__all";
 
 const BYTE_UNITS = ["B", "KB", "MB", "GB"] as const;
@@ -178,7 +178,7 @@ function ErrorsList({ errors }: { errors: string[] }) {
 
 function ManageSection() {
   const { data: status, refetch } = useRehostStatus();
-  const { data: latestRegenRun } = useLatestJobRun(REGENERATE_KIND);
+  const { data: latestRegenRun } = useLatestJobRun(JOB_KIND.regenerateImages);
 
   const rehostMutation = useRehostImages(() => void refetch());
   const regenMutation = useRegenerateImages();

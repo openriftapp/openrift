@@ -18,7 +18,7 @@ describe("deckEditorSearchSchema", () => {
   });
 
   it("drops a non-string target", () => {
-    expect(deckEditorSearchSchema.parse({ target: 3 }).target).toBeUndefined();
+    expect(deckEditorSearchSchema.parse({ target: true }).target).toBeUndefined();
   });
 
   it("leaves both unset when absent", () => {

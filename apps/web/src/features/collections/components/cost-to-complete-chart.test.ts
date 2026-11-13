@@ -28,6 +28,7 @@ function compute(countMode: "cards" | "copies") {
     countMode,
     prices: stubPriceLookup({ pair: { cardtrader: 100 } }),
     marketplace: "cardtrader",
+    languages: [],
   });
 }
 
@@ -46,4 +47,26 @@ describe("computeCostToComplete", () => {
     expect(data.totalCost).toBe(300);
     expect(data.curve.at(-1)?.percent).toBe(100);
   });
+
+  it.each(["cards", "copies"] as const)(
+    "prices a missing card at its preferred-language printing in %s mode",
+    (countMode) => {
+      const card = { name: "Teemo", slug: "teemo", types: ["unit" as const] };
+      const english = stubPrinting({ printingId: "en", cardId: "teemo", language: "EN", card });
+      const chinese = stubPrinting({ printingId: "zh", cardId: "teemo", language: "ZH", card });
+
+      const data = computeCostToComplete({
+        allPrintings: [english, chinese],
+        stacks: [],
+        scope: {},
+        customTagAssignments: {},
+        countMode,
+        prices: stubPriceLookup({ en: { cardtrader: 3 }, zh: { cardtrader: 1 } }),
+        marketplace: "cardtrader",
+        languages: ["EN"],
+      });
+
+      expect(data.curve[1]?.itemPrice).toBe(3);
+    },
+  );
 });

@@ -15,12 +15,14 @@ describe("jobRunsSearchSchema", () => {
     expect(jobRunsSearchSchema.parse({ page: "2" }).page).toBe(2);
   });
 
-  it("rejects a page below one", () => {
-    expect(jobRunsSearchSchema.safeParse({ page: "0" }).success).toBe(false);
+  it("falls back to the default for a page below one", () => {
+    expect(jobRunsSearchSchema.parse({ page: "0", runKind: "kept" })).toEqual({ runKind: "kept" });
   });
 
-  it("rejects a fractional page", () => {
-    expect(jobRunsSearchSchema.safeParse({ page: "2.5" }).success).toBe(false);
+  it("falls back to the default for a fractional page", () => {
+    expect(jobRunsSearchSchema.parse({ page: "2.5", runKind: "kept" })).toEqual({
+      runKind: "kept",
+    });
   });
 
   it("accepts every trigger", () => {
@@ -29,8 +31,10 @@ describe("jobRunsSearchSchema", () => {
     }
   });
 
-  it("rejects an unknown trigger", () => {
-    expect(jobRunsSearchSchema.safeParse({ runTrigger: "manual" }).success).toBe(false);
+  it("falls back to the default for an unknown trigger", () => {
+    expect(jobRunsSearchSchema.parse({ runTrigger: "manual", runKind: "kept" })).toEqual({
+      runKind: "kept",
+    });
   });
 
   it("accepts every status", () => {
@@ -39,8 +43,10 @@ describe("jobRunsSearchSchema", () => {
     }
   });
 
-  it("rejects an unknown status", () => {
-    expect(jobRunsSearchSchema.safeParse({ runStatus: "pending" }).success).toBe(false);
+  it("falls back to the default for an unknown status", () => {
+    expect(jobRunsSearchSchema.parse({ runStatus: "pending", runKind: "kept" })).toEqual({
+      runKind: "kept",
+    });
   });
 
   it("accepts every activity", () => {
@@ -49,8 +55,10 @@ describe("jobRunsSearchSchema", () => {
     }
   });
 
-  it("rejects an unknown activity", () => {
-    expect(jobRunsSearchSchema.safeParse({ runActivity: "skipped" }).success).toBe(false);
+  it("falls back to the default for an unknown activity", () => {
+    expect(jobRunsSearchSchema.parse({ runActivity: "skipped", runKind: "kept" })).toEqual({
+      runKind: "kept",
+    });
   });
 
   it("passes the kind and prefix through untouched", () => {

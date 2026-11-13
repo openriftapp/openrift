@@ -51,6 +51,13 @@ vi.mock("@/features/decks/hooks/use-decks", async (importOriginal) => ({
   useSetDeckArchived: () => noopMutation,
   useSetDeckPinned: () => noopMutation,
   useUpdateDeck: () => noopMutation,
+  useCloneDeck: () => noopMutation,
+  useUpdateDeckMeta: () => ({ update: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@/features/decks/hooks/use-local-decks", () => ({
+  useLocalDeck: () => ({ cards: [] }),
+  useIsLocalDeck: () => false,
 }));
 
 vi.mock("@/features/decks/hooks/use-deck-folders", () => ({
@@ -58,7 +65,14 @@ vi.mock("@/features/decks/hooks/use-deck-folders", () => ({
   useSetDeckFolders: () => noopMutation,
 }));
 
-vi.mock("@/hooks/use-enums", () => ({ useDeckFormatList: () => ({ formats: [] }) }));
+vi.mock("@/hooks/use-enums", () => ({
+  useDeckFormatList: () => ({
+    formats: [
+      { slug: "constructed", label: "Constructed" },
+      { slug: "freeform", label: "Freeform" },
+    ],
+  }),
+}));
 
 vi.mock("@/features/cards/hooks/use-cards", async () => {
   const { stubCard } = await import("@/test/factories");
@@ -128,6 +142,7 @@ const ITEM = {
   requiredProgress: 3,
   requiredTotal: 3,
   totalValueCents: null,
+  unpricedCardCount: null,
   missingCount: null,
   folderIds: [],
   familyName: null,
@@ -147,14 +162,14 @@ describe("DeckActionsMenu", () => {
   });
 
   it("reads no cards until a dialog that needs them opens", () => {
-    render(<DeckActionsMenu item={ITEM} />);
+    render(<DeckActionsMenu item={ITEM} source="server" />);
 
     expect(dialogProps.export?.cards).toBeUndefined();
   });
 
   it("hands the export dialog this deck's cards and no other deck's", async () => {
     const user = userEvent.setup();
-    render(<DeckActionsMenu item={ITEM} />);
+    render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Export…" }));
@@ -169,7 +184,7 @@ describe("DeckActionsMenu", () => {
   it("keeps the delete confirmation open until the delete succeeds", async () => {
     const user = userEvent.setup();
     noopMutation.mutate.mockClear();
-    render(<DeckActionsMenu item={ITEM} />);
+    render(<DeckActionsMenu item={ITEM} source="server" />);
 
     await user.click(screen.getByRole("button", { name: "Deck actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
@@ -184,5 +199,26 @@ describe("DeckActionsMenu", () => {
     await waitFor(() => {
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("offers duplicate and change format on a browser-local deck, without account actions", async () => {
+    const user = userEvent.setup();
+    render(<DeckActionsMenu item={ITEM} source="local" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Duplicate" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Pin" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Archive" })).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Change format" })).toBeInTheDocument();
+  });
+
+  it("offers duplicate on a server deck", async () => {
+    const user = userEvent.setup();
+    noopMutation.mutate.mockClear();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
+    expect(noopMutation.mutate).toHaveBeenCalledWith("deck-own", expect.anything());
   });
 });

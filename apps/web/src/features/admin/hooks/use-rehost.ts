@@ -1,4 +1,5 @@
 import { adminImagesContract } from "@openrift/shared/contracts/admin/images";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type {
   BrokenImagesResponse,
   LowResImagesResponse,
@@ -127,7 +128,7 @@ export function useMissingImages() {
 }
 
 const REGENERATE_INVALIDATES = [
-  adminKeys.jobRunsByKind("images.regenerate"),
+  adminKeys.jobRunsByKind(JOB_KIND.regenerateImages),
   adminKeys.jobRuns,
 ] as const;
 

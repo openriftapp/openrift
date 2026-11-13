@@ -2,9 +2,6 @@
 // can predict row heights without measuring. Update the matching constant here
 // when a class changes.
 
-// Keep in sync with the `--aspect-card` (63/88) CSS var and card-designer's `CARD_ASPECT`.
-export const CARD_ASPECT_INVERSE = 88 / 63;
-
 // Keep in sync with the server share-image radius (apps/api/.../share-image-core.ts `cardRadiusPx`).
 export const CARD_BORDER_RADIUS = "5% / 3.6%";
 

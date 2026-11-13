@@ -2,7 +2,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { errataForLanguage } from "@openrift/shared/errata";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -42,10 +42,6 @@ const PROMO_MARKER_SLUG = "promo";
 
 function promoMarkerLabel(printing: Printing): string | undefined {
   return printing.markers.find((marker) => marker.slug === PROMO_MARKER_SLUG)?.label;
-}
-
-function cardSrcSet(imageId: string): string {
-  return `${imageUrl(imageId, "120w")} 120w, ${imageUrl(imageId, "240w")} 240w, ${imageUrl(imageId, "400w")} 400w, ${imageUrl(imageId, "full")} 800w`;
 }
 
 export const AFTER_BORDER =
@@ -283,7 +279,7 @@ function CardImageContent({
         <>
           <CardArtImage
             thumbnailUrl={shownFallback.url}
-            srcSet={cardSrcSet(shownFallback.imageId)}
+            srcSet={imageSrcSet(shownFallback.imageId)}
             sizes={sizes}
             alt={alt}
             rotated={rotated}
@@ -350,6 +346,7 @@ interface CardThumbnailProps {
   dragData?: Record<string, unknown>;
   /** Required when dragData is set. */
   dragId?: string;
+  dragBlockedLabel?: string;
   banDisplay?: "label" | "overlay" | "none";
   belowLabel?: ReactNode;
   imageOverlay?: ReactNode;
@@ -476,6 +473,7 @@ function ImageLink({
 function DraggableTileWrapper({
   dragId,
   dragData,
+  blockedLabel,
   className,
   onMouseEnter,
   onMouseLeave,
@@ -485,6 +483,7 @@ function DraggableTileWrapper({
 }: {
   dragId: string;
   dragData: Record<string, unknown>;
+  blockedLabel?: string;
   className: string;
   onMouseEnter: (() => void) | undefined;
   onMouseLeave: (() => void) | undefined;
@@ -497,7 +496,7 @@ function DraggableTileWrapper({
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: dragId,
     data: dragData,
-    disabled: !enableDrag,
+    disabled: !enableDrag || blockedLabel !== undefined,
   });
   return (
     <div
@@ -508,6 +507,7 @@ function DraggableTileWrapper({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       {...(enableDrag ? { ...listeners, ...attributes } : {})}
+      aria-label={enableDrag ? blockedLabel : undefined}
     >
       {children}
     </div>
@@ -534,6 +534,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   dimmed,
   dragData,
   dragId,
+  dragBlockedLabel,
   banDisplay = "label",
   belowLabel,
   imageOverlay,
@@ -548,7 +549,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   // `card` object would block React Compiler from memoizing it and its JSX.
   const orientation = getOrientation(printing.card.types);
   const thumbnailUrl = showImages && frontImage ? imageUrl(frontImage.imageId, "400w") : null;
-  const srcSet = showImages && frontImage ? cardSrcSet(frontImage.imageId) : undefined;
+  const srcSet = showImages && frontImage ? imageSrcSet(frontImage.imageId) : undefined;
   const fallbackArt = fallbackArtStep(
     printing,
     showImages ? display.getFallbackArt(printing) : null,
@@ -686,7 +687,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                 {showSiblingFaces && (
                   <CardImageContent
                     thumbnailUrl={siblingImageId === null ? null : imageUrl(siblingImageId, "400w")}
-                    srcSet={siblingImageId === null ? undefined : cardSrcSet(siblingImageId)}
+                    srcSet={siblingImageId === null ? undefined : imageSrcSet(siblingImageId)}
                     sizes={siblingSizes}
                     alt=""
                     priority={false}
@@ -893,6 +894,7 @@ export const CardThumbnail = memo(function CardThumbnail({
       <DraggableTileWrapper
         dragId={dragId ?? `card-${printing.printingId}`}
         dragData={dragData}
+        blockedLabel={dragBlockedLabel}
         className={wrapperClassName}
         onMouseEnter={fanMouseEnter}
         onMouseLeave={fanMouseLeave}

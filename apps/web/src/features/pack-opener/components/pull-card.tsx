@@ -1,6 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { PackPull } from "@openrift/shared/pack-opener/types";
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -81,7 +81,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
             >
               <img
                 src={imageUrl(shownImage.imageId, "240w")}
-                srcSet={`${imageUrl(shownImage.imageId, "240w")} 240w, ${imageUrl(shownImage.imageId, "400w")} 400w`}
+                srcSet={imageSrcSet(shownImage.imageId, ["240w", "400w"])}
                 sizes="(max-width: 640px) 40vw, 160px"
                 alt={displayName}
                 loading="lazy"
@@ -92,7 +92,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
           ) : (
             <img
               src={imageUrl(shownImage.imageId, "240w")}
-              srcSet={`${imageUrl(shownImage.imageId, "240w")} 240w, ${imageUrl(shownImage.imageId, "400w")} 400w`}
+              srcSet={imageSrcSet(shownImage.imageId, ["240w", "400w"])}
               sizes="(max-width: 640px) 40vw, 160px"
               alt={displayName}
               loading="lazy"

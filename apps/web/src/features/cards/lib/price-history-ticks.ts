@@ -29,9 +29,9 @@ export function lastValuePoint<T extends { value: number | null }>(
 }
 
 export function lastValueLabelPosition(
-  points: readonly { value: number | null; low: number | null }[],
+  points: readonly { value: number | null; secondary: number | null }[],
   lastValue: number,
 ): "top" | "bottom" {
-  const high = Math.max(...points.flatMap((point) => [point.value ?? 0, point.low ?? 0]));
+  const high = Math.max(...points.flatMap((point) => [point.value ?? 0, point.secondary ?? 0]));
   return high > 0 && lastValue / high >= LABEL_FLIP_RATIO ? "bottom" : "top";
 }

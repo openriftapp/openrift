@@ -1,11 +1,9 @@
+import { escapeRegExp } from "./strings.js";
+
 interface FixTypographyOptions {
   italicParens?: boolean;
   keywordGlyphs?: boolean;
   costKeywords?: readonly string[];
-}
-
-function escapeRegExp(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 }
 
 export function fixTypography(text: string, options?: FixTypographyOptions): string;

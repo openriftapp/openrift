@@ -55,7 +55,7 @@ export interface BuildCardShareInputArgs {
   printings: readonly PrintingRow[];
   images: readonly { printingId: string; side: number; imageId: string }[];
   sets: readonly { id: string; name: string }[];
-  prices: readonly { printingId: string; marketplace: string; marketCents: number }[];
+  prices: readonly { printingId: string; marketplace: string; headlineCents: number }[];
   labels: Labels;
   printingSlug?: string;
   siteHost?: string;
@@ -110,7 +110,7 @@ export function buildCardShareInput(args: BuildCardShareInputArgs): CardShareIma
       ? [
           {
             label: marketplaceLabel(marketplace),
-            value: formatCents(row.marketCents, MARKETPLACE_CURRENCY[marketplace]),
+            value: formatCents(row.headlineCents, MARKETPLACE_CURRENCY[marketplace]),
           },
         ]
       : [];

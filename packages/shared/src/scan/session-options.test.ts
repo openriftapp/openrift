@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CARD_ASPECT } from "../card-orientation";
 import type { EmbedBank } from "./embed";
 import {
   DEFAULT_SESSION_OPTIONS,
@@ -7,7 +8,6 @@ import {
   gatesForBank,
   gatesForEmbedDim,
 } from "./session-options";
-import { CARD_ASPECT } from "./types";
 
 function bankOf(dim: number, count: number): EmbedBank {
   return {

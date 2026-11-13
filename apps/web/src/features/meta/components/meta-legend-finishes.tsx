@@ -4,20 +4,10 @@ import type { MetaLegendFinish } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { Heading } from "@/components/heading";
-import { ShowMoreButton } from "@/components/show-more-button";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RankBand } from "@/components/ui/rank-band";
-import { RowList } from "@/components/ui/row-list";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
+import { MetaFinishesSection } from "@/features/meta/components/meta-finishes-section";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { formatRank } from "@/features/meta/lib/meta-format";
@@ -148,7 +138,6 @@ function FinishPhoneRow({ finish, canSubmit }: { finish: MetaLegendFinish; canSu
   );
 }
 
-/** `narrowed` only picks the empty-state message: "nothing on record" vs "nothing in this scope". */
 export function MetaLegendFinishes({
   best,
   finishes,
@@ -166,69 +155,36 @@ export function MetaLegendFinishes({
 }) {
   const canSubmit = useUserId() !== null;
   const [view, setView] = useState<MetaFinishesView>("best");
-
-  if (total === 0) {
-    return (
-      <section className="flex flex-col gap-3">
-        <Heading>{m.meta_finishes_heading()}</Heading>
-        <Empty>
-          <EmptyHeader>
-            <EmptyDescription>
-              {narrowed ? m.meta_finishes_legend_scope_empty() : m.meta_finishes_legend_empty()}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </section>
-    );
-  }
-
   const rows = view === "best" ? best : finishes;
-  const remaining = total - rows.length;
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Heading>{m.meta_finishes_heading()}</Heading>
-        {total > best.length && (
-          <ShowMoreButton
-            placement="heading"
-            count={total}
-            expanded={view === "all"}
-            onClick={() => setView(view === "best" ? "all" : "best")}
-          />
-        )}
-      </div>
-
-      <div>
-        <Table variant="divided" className="hidden table-fixed sm:table">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">{m.meta_standings_col_rank()}</TableHead>
-              <TableHead>{m.meta_finishes_col_event()}</TableHead>
-              <TableHead className="w-24">{m.meta_finishes_col_tier()}</TableHead>
-              <TableHead className="w-40">{m.meta_standings_col_player()}</TableHead>
-              <TableHead className="w-20 text-right">{m.meta_finishes_col_record()}</TableHead>
-              <TableHead className="w-24 text-right">{m.meta_standings_decklist()}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((finish) => (
-              <FinishTableRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
-            ))}
-          </TableBody>
-        </Table>
-        <RowList variant="divided" className="sm:hidden">
-          {rows.map((finish) => (
-            <FinishPhoneRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
-          ))}
-        </RowList>
-
-        {view === "all" && remaining > 0 && (
-          <ShowMoreButton pending={loadingMore} onClick={onShowMore}>
-            {m.meta_finishes_more({ count: remaining })}
-          </ShowMoreButton>
-        )}
-      </div>
-    </section>
+    <MetaFinishesSection
+      total={total}
+      emptyMessage={
+        narrowed ? m.meta_finishes_legend_scope_empty() : m.meta_finishes_legend_empty()
+      }
+      canExpand={total > best.length}
+      expanded={view === "all"}
+      onToggleExpanded={() => setView(view === "best" ? "all" : "best")}
+      remaining={total - rows.length}
+      loadingMore={loadingMore}
+      onShowMore={onShowMore}
+      columns={
+        <>
+          <TableHead className="w-20">{m.meta_standings_col_rank()}</TableHead>
+          <TableHead>{m.meta_finishes_col_event()}</TableHead>
+          <TableHead className="w-24">{m.meta_finishes_col_tier()}</TableHead>
+          <TableHead className="w-40">{m.meta_standings_col_player()}</TableHead>
+          <TableHead className="w-20 text-right">{m.meta_finishes_col_record()}</TableHead>
+          <TableHead className="w-24 text-right">{m.meta_standings_decklist()}</TableHead>
+        </>
+      }
+      tableRows={rows.map((finish) => (
+        <FinishTableRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
+      ))}
+      phoneRows={rows.map((finish) => (
+        <FinishPhoneRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
+      ))}
+    />
   );
 }

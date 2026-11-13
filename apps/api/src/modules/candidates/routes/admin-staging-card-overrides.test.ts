@@ -10,12 +10,19 @@ const mockMktAdmin = {
   deleteStagingCardOverride: vi.fn(),
 };
 
+const mockCatalogMutations = { getCardById: vi.fn() };
+const mockAdminEvents = { insert: vi.fn(), insertMany: vi.fn() };
+
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { marketplaceAdmin: mockMktAdmin } as never);
+  c.set("repos", {
+    marketplaceAdmin: mockMktAdmin,
+    catalogMutations: mockCatalogMutations,
+    adminEvents: mockAdminEvents,
+  } as never);
   await next();
 });
 registerRouterForTest(app, adminStagingCardOverridesRouter);
@@ -48,6 +55,62 @@ describe("POST /staging-card-overrides", () => {
       language: "EN",
       cardId: "00000000-0000-4000-a000-000000000031",
     });
+  });
+
+  it("records the assignment in the admin history under the card", async () => {
+    mockMktAdmin.upsertStagingCardOverride.mockResolvedValue(undefined);
+    mockCatalogMutations.getCardById.mockResolvedValue({
+      id: "00000000-0000-4000-a000-000000000031",
+      name: "Fire Dragon",
+      slug: "fire-dragon",
+    });
+
+    await app.request("/api/admin/v1/staging-card-overrides", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        marketplace: "cardmarket",
+        externalId: 67_890,
+        finish: "foil",
+        language: null,
+        cardId: "00000000-0000-4000-a000-000000000031",
+      }),
+    });
+
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        actorUserId: USER_ID,
+        action: "marketplace-variant.assign-card",
+        entityId: "cardmarket::67890::foil::",
+        entityLabel: "Fire Dragon",
+        cardSlug: "fire-dragon",
+      }),
+    ]);
+  });
+
+  it("records the unassignment under the card the listing pointed at", async () => {
+    mockMktAdmin.deleteStagingCardOverride.mockResolvedValue({
+      cardId: "00000000-0000-4000-a000-000000000031",
+    });
+    mockCatalogMutations.getCardById.mockResolvedValue({
+      id: "00000000-0000-4000-a000-000000000031",
+      name: "Fire Dragon",
+      slug: "fire-dragon",
+    });
+
+    await app.request(
+      "/api/admin/v1/staging-card-overrides?marketplace=cardmarket&externalId=67890&finish=foil",
+      { method: "DELETE" },
+    );
+
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        action: "marketplace-variant.unassign-card",
+        entityLabel: "Fire Dragon",
+        cardSlug: "fire-dragon",
+        oldValues: expect.objectContaining({ cardId: "00000000-0000-4000-a000-000000000031" }),
+      }),
+    ]);
   });
 
   it("returns 204 with a null language", async () => {

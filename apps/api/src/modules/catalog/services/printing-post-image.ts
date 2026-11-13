@@ -1,3 +1,4 @@
+import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
 import {
   POST_IMAGE_ASPECTS,
   POST_IMAGE_LABEL_TEXT,
@@ -8,7 +9,6 @@ import type { PostImageAspect, PostImageLabel } from "@openrift/shared/printing-
 import type { Io } from "../../../io.js";
 import {
   blurredArtBackdropDataUri,
-  CARD_ASPECT,
   COLORS,
   elideTitle,
   element,
@@ -16,6 +16,7 @@ import {
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
 import type { Element } from "../../system/services/share-image-core.js";
+import { hostLabel, shareCanvas } from "../../system/services/share-image-frame.js";
 
 export interface PrintingPostImageInput {
   cardName: string;
@@ -89,7 +90,6 @@ const CANVASES: Record<PostImageAspect, PostCanvas> = {
 
 const GAP = 28;
 const SCRIM = "rgba(12,13,18,0.68)";
-const LANDSCAPE_ASPECT = 1 / CARD_ASPECT;
 const DOT = " · ";
 // resvg panics building the filter region for a wide blur over a large node,
 // so these do not scale with the photo.
@@ -230,8 +230,8 @@ function bottomStrip(canvas: PostCanvas, input: PrintingPostImageInput): Element
       input.siteHost
         ? element(
             "div",
-            { display: "flex", marginLeft: canvas.creditSize, color: COLORS.gold, fontWeight: 600 },
-            input.siteHost,
+            { display: "flex", marginLeft: canvas.creditSize },
+            hostLabel(input.siteHost, canvas.creditSize, COLORS.gold),
           )
         : null,
     ),
@@ -255,7 +255,7 @@ export async function renderPrintingPostImage(
   const availW = canvasW - canvas.pad * 2;
   const availH = canvasH - canvas.pad * 2 - ribbonH - stripH - GAP * 2;
 
-  const photoAspect = input.orientation === "landscape" ? LANDSCAPE_ASPECT : CARD_ASPECT;
+  const photoAspect = input.orientation === "landscape" ? LANDSCAPE_CARD_ASPECT : CARD_ASPECT;
   const photoH = Math.floor(Math.min(availH, availW / photoAspect));
   const photoW = Math.floor(photoH * photoAspect);
 
@@ -316,22 +316,7 @@ export async function renderPrintingPostImage(
     bottomStrip(canvas, input),
   );
 
-  const root = element(
-    "div",
-    {
-      display: "flex",
-      position: "relative",
-      width: canvasW,
-      height: canvasH,
-      backgroundColor: COLORS.background,
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
-    },
-    backdrop,
-    scrim,
-    content,
-  );
+  const root = shareCanvas(canvasW, canvasH, { position: "relative" }, backdrop, scrim, content);
 
   return await renderTreeToPng(io, root, canvasW, canvasH, scale);
 }

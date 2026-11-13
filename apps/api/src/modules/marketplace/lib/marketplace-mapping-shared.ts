@@ -1,3 +1,4 @@
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { MarketplaceGroupKind, StagedProductResponse } from "@openrift/shared/types/api/admin";
 
 import type { MarketplaceConfig, ProductInfo, StagingRow } from "./marketplace-configs.js";
@@ -18,7 +19,7 @@ export async function buildStagedRowMapping(
   if (mappedPrintingIds.size > 0) {
     const mappedRows = await config.priceQuery([...mappedPrintingIds]);
     for (const row of mappedRows) {
-      const key = `${row.printingId}::${row.externalId}::${row.finish}::${row.language ?? ""}`;
+      const key = `${row.printingId}::${skuKey(row.externalId, row.finish, row.language)}`;
       if (!mappedProductInfo.has(key)) {
         mappedProductInfo.set(key, config.mapPriceRow(row));
       }

@@ -2,9 +2,10 @@
 // version must change whenever the underlying content changes.
 
 import type { ShareImageQuery } from "@openrift/shared/share-image-params";
-import { shareImageQueryParams } from "@openrift/shared/share-image-params";
+import { shareImageVersionParam, shareImageQueryParams } from "@openrift/shared/share-image-params";
 
 import { downloadBlob } from "@/lib/download";
+import { m } from "@/paraglide/messages.js";
 
 const API_BASE = "/api/v1";
 
@@ -26,11 +27,11 @@ export function shareImageVersion(isoTimestamp: string | undefined): number {
 }
 
 export function listShareImageUrl(siteUrl: string, shareToken: string, version: number): string {
-  return `${siteUrl}${API_BASE}/lists/share/${shareToken}/image.png?v=${version}`;
+  return `${siteUrl}${API_BASE}/lists/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`;
 }
 
 export function errataShareImageUrl(siteUrl: string, version: number): string {
-  return `${siteUrl}${API_BASE}/errata/image.png?v=${version}`;
+  return `${siteUrl}${API_BASE}/errata/image.png?v=${shareImageVersionParam(version)}`;
 }
 
 export function developersShareImageUrl(siteUrl: string): string {
@@ -74,7 +75,7 @@ export function listOwnerImageUrl(
   options: ShareImageOptions = {},
 ): string {
   return withParams(
-    `${siteUrl}${API_BASE}/lists/${listId}/image.png?v=${version}`,
+    `${siteUrl}${API_BASE}/lists/${listId}/image.png?v=${shareImageVersionParam(version)}`,
     shareImageQueryParams(options),
   );
 }
@@ -99,7 +100,7 @@ export function deckShareImageUrl(
   options: DeckImageOptions = {},
 ): string {
   return withParams(
-    `${siteUrl}${API_BASE}/decks/share/${shareToken}/image.png?v=${version}`,
+    `${siteUrl}${API_BASE}/decks/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`,
     shareImageQueryParams(options),
   );
 }
@@ -125,7 +126,7 @@ export function tierListShareImageUrl(
   version: number,
   size?: "hq",
 ): string {
-  const base = `${siteUrl}${API_BASE}/tier-lists/share/${shareToken}/image.png?v=${version}`;
+  const base = `${siteUrl}${API_BASE}/tier-lists/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`;
   return size === "hq" ? `${base}&size=hq` : base;
 }
 
@@ -135,7 +136,7 @@ export function boardStateShareImageUrl(
   version: number,
   size?: "hq",
 ): string {
-  const base = `${siteUrl}${API_BASE}/board-states/share/${shareToken}/image.png?v=${version}`;
+  const base = `${siteUrl}${API_BASE}/board-states/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`;
   return size === "hq" ? `${base}&size=hq` : base;
 }
 
@@ -159,7 +160,7 @@ export function bundleShareImageUrl(
   options: ShareImageOptions = {},
 ): string {
   return withParams(
-    `${siteUrl}${API_BASE}/users/share/${shareToken}/image.png?v=${version}`,
+    `${siteUrl}${API_BASE}/users/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`,
     shareImageQueryParams(options),
   );
 }
@@ -171,7 +172,7 @@ export function collectionShareImageUrl(
   shareToken: string,
   version: number | string,
 ): string {
-  return `${siteUrl}${API_BASE}/collections/share/${shareToken}/image.png?v=${version}`;
+  return `${siteUrl}${API_BASE}/collections/share/${shareToken}/image.png?v=${shareImageVersionParam(version)}`;
 }
 
 // Downloads via fetch + object URL, not `<a download>` on the image URL directly,
@@ -196,7 +197,8 @@ export async function fetchImageBlobFromPost(url: string, body: unknown): Promis
 
 async function readImageBlob(response: Response): Promise<Blob> {
   if (!response.ok) {
-    throw new Error(`Image request failed: ${response.status}`);
+    const message = response.status === 429 ? m.share_image_rate_limited() : m.share_image_error();
+    throw Object.assign(new Error(message), { status: response.status });
   }
   return await response.blob();
 }

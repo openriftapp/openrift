@@ -403,7 +403,7 @@ export function DeckCardRow({
           className={cn(baseClass, "hover:bg-muted/50 w-full cursor-pointer")}
           style={domainTint}
           onContextMenu={onContextMenu}
-          {...rowActivateProps(onClick)}
+          {...rowActivateProps(onClick, m.decks_card_row_view_details({ card: cardName }))}
         >
           {content}
         </div>

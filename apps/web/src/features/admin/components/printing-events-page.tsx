@@ -1,6 +1,7 @@
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import type { PrintingEventView } from "@openrift/shared/contracts/admin/printing-events";
 import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { RotateCcwIcon, SendIcon } from "lucide-react";
@@ -31,7 +32,6 @@ import {
 import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import {
-  FLUSH_PRINTING_EVENTS_KIND,
   isFlushPrintingEventsResult,
   useAdminPrintingEvents,
   useFlushPrintingEvents,
@@ -44,7 +44,7 @@ import { PRINTING_EVENTS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/flush-
 export function PrintingEventsPage() {
   const { data, refetch, isFetching, dataUpdatedAt } = useAdminPrintingEvents();
   const flush = useFlushPrintingEvents();
-  const latestRun = useLatestJobRun(FLUSH_PRINTING_EVENTS_KIND);
+  const latestRun = useLatestJobRun(JOB_KIND.flushPrintingEvents);
   const retry = useRetryPrintingEvents();
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 

@@ -11,11 +11,13 @@ export function CardDetailArt({
   showImages,
   sizes,
   loading,
+  frame,
 }: {
   printing: Printing;
   showImages?: boolean;
   sizes?: string;
   loading?: "lazy";
+  frame?: "portrait" | "native";
 }) {
   const { card } = printing;
   const orientation = getOrientation(card.types);
@@ -31,6 +33,7 @@ export function CardDetailArt({
       showShimmer={showFoil}
       sizes={sizes}
       loading={loading}
+      frame={frame}
     />
   );
 }

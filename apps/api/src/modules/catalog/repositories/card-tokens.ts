@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import type { TokenCardName } from "../lib/card-tokens.js";
 import { findTokenReferences } from "../lib/card-tokens.js";
 
@@ -144,7 +145,7 @@ export function cardTokensRepo(db: Kysely<Database>) {
         }))
         .filter((row) => row.tokenCardIds.length > 0);
 
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("cardTokens").where("source", "=", "derived").execute();
 
         const values = derived.flatMap(({ cardId, tokenCardIds }) =>

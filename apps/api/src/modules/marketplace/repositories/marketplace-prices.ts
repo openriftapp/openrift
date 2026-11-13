@@ -83,10 +83,10 @@ async function selectSources(
  */
 export function marketplacePricesRepo(db: Kysely<Database>) {
   return {
-    latestPrices(): Promise<{ printingId: string; marketplace: string; marketCents: number }[]> {
+    latestPrices(): Promise<{ printingId: string; marketplace: string; headlineCents: number }[]> {
       return db
         .selectFrom("mvLatestPrintingPrices")
-        .select(["printingId", "marketplace", "headlineCents as marketCents"])
+        .select(["printingId", "marketplace", "headlineCents"])
         .execute();
     },
 
@@ -111,13 +111,13 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
 
     latestPricesForPrintings(
       printingIds: string[],
-    ): Promise<{ printingId: string; marketplace: string; marketCents: number }[]> {
+    ): Promise<{ printingId: string; marketplace: string; headlineCents: number }[]> {
       if (printingIds.length === 0) {
         return Promise.resolve([]);
       }
       return db
         .selectFrom("mvLatestPrintingPrices")
-        .select(["printingId", "marketplace", "headlineCents as marketCents"])
+        .select(["printingId", "marketplace", "headlineCents"])
         .where("printingId", "in", printingIds)
         .execute();
     },
@@ -184,9 +184,9 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
       userId: string,
       marketplace: string,
       languages?: readonly string[],
-    ): Promise<Map<string, number>> {
+    ): Promise<Map<string, { totalValueCents: number; unpricedCount: number }>> {
       const preferredLanguages = [...(languages ?? [])];
-      const rows = await sql<{ deckId: string; totalValueCents: number }>`
+      const rows = await sql<{ deckId: string; totalValueCents: number; unpricedCount: number }>`
         WITH priced AS (
           SELECT dc.deck_id, dc.card_id, dc.quantity, cheapest.printing_id, cheapest.headline_cents
           FROM deck_cards dc
@@ -219,13 +219,23 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
         )
         SELECT
           decks.deck_id AS "deckId",
-          COALESCE(SUM(per_printing.value_cents), 0)::int AS "totalValueCents"
+          COALESCE(SUM(per_printing.value_cents), 0)::int AS "totalValueCents",
+          (
+            SELECT COALESCE(SUM(unpriced.quantity), 0)::int
+            FROM priced unpriced
+            WHERE unpriced.deck_id = decks.deck_id AND unpriced.printing_id IS NULL
+          ) AS "unpricedCount"
         FROM (SELECT DISTINCT deck_id FROM priced) decks
         LEFT JOIN per_printing ON per_printing.deck_id = decks.deck_id
         GROUP BY decks.deck_id
       `.execute(db);
 
-      return new Map(rows.rows.map((row) => [row.deckId, row.totalValueCents]));
+      return new Map(
+        rows.rows.map((row) => [
+          row.deckId,
+          { totalValueCents: row.totalValueCents, unpricedCount: row.unpricedCount },
+        ]),
+      );
     },
 
     /**

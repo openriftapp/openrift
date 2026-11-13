@@ -1,15 +1,24 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
-import type { DeckZone } from "@openrift/shared/types/enums";
+import type { CardType, DeckZone } from "@openrift/shared/types/enums";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { stubDeckBuilderCard } from "@/test/factories";
 
+const actions = vi.hoisted(() => ({
+  addCard: vi.fn(),
+  increments: new Map<string, (event: { shiftKey: boolean }) => void>(),
+}));
+
 vi.mock("@/features/decks/hooks/use-deck-zone-drop", () => ({
   useDeckZoneDrop: () => ({ dropRef: vi.fn(), isOver: false, dropDisabled: false }),
 }));
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
-  useDeckBuilderActions: () => ({ addCard: vi.fn(), removeCard: vi.fn(), setQuantity: vi.fn() }),
+  useDeckBuilderActions: () => ({
+    addCard: actions.addCard,
+    removeCard: vi.fn(),
+    setQuantity: vi.fn(),
+  }),
   useDeckCards: () => [],
 }));
 vi.mock("@/features/decks/hooks/use-decks", () => ({
@@ -49,20 +58,25 @@ vi.mock("@/features/decks/components/deck-card-row", () => ({
   }: {
     card: { cardName: string };
     controlMode: string;
-    onIncrement?: () => void;
+    onIncrement?: (event: { shiftKey: boolean }) => void;
     hasViolation?: boolean;
     planTag?: string;
-  }) => (
-    <div
-      data-testid="deck-card-row"
-      data-plan-tag={planTag ?? ""}
-      data-control-mode={controlMode}
-      data-can-increment={String(onIncrement !== undefined)}
-      data-has-violation={String(hasViolation === true)}
-    >
-      {card.cardName}
-    </div>
-  ),
+  }) => {
+    if (onIncrement) {
+      actions.increments.set(card.cardName, onIncrement);
+    }
+    return (
+      <div
+        data-testid="deck-card-row"
+        data-plan-tag={planTag ?? ""}
+        data-control-mode={controlMode}
+        data-can-increment={String(onIncrement !== undefined)}
+        data-has-violation={String(hasViolation === true)}
+      >
+        {card.cardName}
+      </div>
+    );
+  },
 }));
 
 import { DeckZoneSection } from "./deck-zone-section";
@@ -98,6 +112,19 @@ function renderSection({
 }
 
 describe("DeckZoneSection", () => {
+  it("adds three runes on a shift-click in the workbench, where the rune cap only warns", () => {
+    actions.addCard.mockClear();
+    const runes = stubDeckBuilderCard({
+      cardName: "Fury Rune",
+      zone: "runes" as DeckZone,
+      cardType: "rune" as CardType,
+      quantity: 12,
+    });
+    renderSection({ zone: "runes" as DeckZone, cards: [runes], workbench: true });
+    actions.increments.get("Fury Rune")?.({ shiftKey: true });
+    expect(actions.addCard).toHaveBeenCalledWith(runes, "runes", 3);
+  });
+
   it("offers no extra legends without a card that grants them", () => {
     renderSection({
       zone: "legend-options",

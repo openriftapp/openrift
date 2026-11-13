@@ -3,7 +3,6 @@ import type { MetaEventFacetsResponse } from "@openrift/shared/types/api/meta";
 import type {
   MetaEventIndexHoldings,
   MetaEventIndexSort,
-  MetaEventIndexSortDirection,
 } from "@/features/meta/lib/meta-events-search";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import type { ScopeFacetCounts, ScopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
@@ -78,14 +77,8 @@ export function metaEventCountries(
   return [...codes].sort((left, right) => left.localeCompare(right));
 }
 
-export function nextEventSort(
-  current: { sort: MetaEventIndexSort; direction: MetaEventIndexSortDirection },
-  column: MetaEventIndexSort,
-): { sort: MetaEventIndexSort; direction: MetaEventIndexSortDirection } {
-  if (current.sort === column) {
-    return { sort: column, direction: current.direction === "asc" ? "desc" : "asc" };
-  }
-  return { sort: column, direction: DESCENDING_FIRST.has(column) ? "desc" : "asc" };
-}
-
-const DESCENDING_FIRST = new Set<MetaEventIndexSort>(["date", "players", "decks"]);
+export const EVENT_SORT_DESCENDING_FIRST: ReadonlySet<MetaEventIndexSort> = new Set([
+  "date",
+  "players",
+  "decks",
+]);

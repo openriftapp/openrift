@@ -2,6 +2,7 @@
 import "@tanstack/react-start/server-only";
 import { getCookie, getRequest } from "@tanstack/react-start/server";
 
+import { hasSessionCookie } from "@/lib/session-cookie";
 import { baseLocale, cookieName } from "@/paraglide/runtime.js";
 
 const PUBLIC_PAGE_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600";
@@ -56,14 +57,6 @@ function isCacheablePublicPath(pathname: string): boolean {
   return PREFIX_PATHS.some((prefix) => pathname.startsWith(prefix));
 }
 
-function hasSessionCookie(request: Request): boolean {
-  const cookie = request.headers.get("cookie");
-  if (!cookie) {
-    return false;
-  }
-  return /better-auth\.session_token/u.test(cookie);
-}
-
 // Locale lives in a cookie, not the URL, so a translated page must never be
 // stored under the plain URL and served to everyone behind it.
 function hasNonBaseLocaleCookie(request: Request): boolean {
@@ -79,7 +72,7 @@ function isAnonymousRequest(request: Request): boolean {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return false;
   }
-  return !hasSessionCookie(request) && !hasNonBaseLocaleCookie(request);
+  return !hasSessionCookie(request.headers.get("cookie")) && !hasNonBaseLocaleCookie(request);
 }
 
 function isAnonymousCacheable(request: Request, response: Response): boolean {

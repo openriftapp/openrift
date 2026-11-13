@@ -4,8 +4,8 @@
 export const PORTRAIT_THUMB_STYLE: React.CSSProperties = { width: "var(--deck-card-w, 7.5rem)" };
 
 export const LANDSCAPE_THUMB_STYLE: React.CSSProperties = {
-  width: "calc(var(--deck-card-w, 7.5rem) * 88 / 63)",
+  width: "calc(var(--deck-card-w, 7.5rem) * var(--aspect-card-landscape))",
 };
 
 export const PORTRAIT_THUMB_CLASS = "aspect-card max-w-full";
-export const LANDSCAPE_THUMB_CLASS = "aspect-[88/63] max-w-full";
+export const LANDSCAPE_THUMB_CLASS = "aspect-card-landscape max-w-full";

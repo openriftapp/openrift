@@ -1,7 +1,7 @@
 import { WellKnown } from "@openrift/shared/well-known";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import {
   buildAddRoom,
   copyOwnershipStatus,
@@ -22,13 +22,13 @@ describe("buildAddRoom", () => {
   it("leaves room up to the three-copy cap in the main deck", () => {
     const card = stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, quantity: 1 });
     const room = buildAddRoom([card], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(card))).toBe(2);
+    expect(room.get(deckCardKey(card))).toBe(2);
   });
 
   it("closes the entry once the copy cap is reached", () => {
     const card = stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, quantity: 3 });
     const room = buildAddRoom([card], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(card))).toBe(0);
+    expect(room.get(deckCardKey(card))).toBe(0);
   });
 
   it("counts copies of the same card across the capped zones", () => {
@@ -39,26 +39,26 @@ describe("buildAddRoom", () => {
       quantity: 1,
     });
     const room = buildAddRoom([main, sideboard], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(main))).toBe(0);
-    expect(room.get(getDeckCardKey(sideboard))).toBe(0);
+    expect(room.get(deckCardKey(main))).toBe(0);
+    expect(room.get(deckCardKey(sideboard))).toBe(0);
   });
 
   it("leaves overflow uncapped", () => {
     const card = stubDeckBuilderCard({ zone: WellKnown.deckZone.OVERFLOW, quantity: 9 });
     const room = buildAddRoom([card], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(card))).toBe(Number.POSITIVE_INFINITY);
+    expect(room.get(deckCardKey(card))).toBe(Number.POSITIVE_INFINITY);
   });
 
   it("leaves the zones without a stepper uncapped", () => {
     const legend = stubDeckBuilderCard({ zone: WellKnown.deckZone.LEGEND, cardType: "legend" });
     const room = buildAddRoom([legend], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(legend))).toBe(Number.POSITIVE_INFINITY);
+    expect(room.get(deckCardKey(legend))).toBe(Number.POSITIVE_INFINITY);
   });
 
   it("opens every zone in freeform, which validates nothing", () => {
     const card = stubDeckBuilderCard({ zone: WellKnown.deckZone.MAIN, quantity: 3 });
     const room = buildAddRoom([card], WellKnown.deckFormat.FREEFORM);
-    expect(room.get(getDeckCardKey(card))).toBe(Number.POSITIVE_INFINITY);
+    expect(room.get(deckCardKey(card))).toBe(Number.POSITIVE_INFINITY);
   });
 
   it("leaves runes room up to the twelve-rune target", () => {
@@ -68,7 +68,7 @@ describe("buildAddRoom", () => {
       quantity: 5,
     });
     const room = buildAddRoom([rune], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(rune))).toBe(7);
+    expect(room.get(deckCardKey(rune))).toBe(7);
   });
 
   it("closes runes at the target when no swap is available", () => {
@@ -78,7 +78,7 @@ describe("buildAddRoom", () => {
       quantity: 12,
     });
     const room = buildAddRoom([rune], WellKnown.deckFormat.CONSTRUCTED);
-    expect(room.get(getDeckCardKey(rune))).toBe(0);
+    expect(room.get(deckCardKey(rune))).toBe(0);
   });
 });
 

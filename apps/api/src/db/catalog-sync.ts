@@ -1,9 +1,13 @@
 import { imageRehostedUrl } from "@openrift/shared/image-url";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
+import { headlineColumn } from "@openrift/shared/price-headline";
 import type { CatalogPrintingSideValue, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { MarketplaceLinksResponse, PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { RulesListResponse, RuleVersionResponse } from "@openrift/shared/types/api/rules";
 import type { ArtVariant, CardSize, Finish, Rarity } from "@openrift/shared/types/enums";
+import type { Marketplace } from "@openrift/shared/types/pricing";
+import { ALL_MARKETPLACES, LANGUAGE_KEYED_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Insertable } from "kysely";
 
@@ -368,18 +372,24 @@ export function buildRulesSync(
   };
 }
 
-const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader", "cardnexus"] as const;
-
-// mv_daily_printing_prices reads market cents for these and low cents for the rest.
-const MARKET_HEADLINE = new Set<string>(["tcgplayer", "cardnexus"]);
-
-const SYNC_GROUP_ID = 0;
+export const SYNC_GROUP_ID = 0;
 
 export interface PricesSync {
   groups: Row<"marketplaceGroups">[];
   products: (Omit<Row<"marketplaceProducts">, "id"> & { skuKey: string })[];
   variants: { skuKey: string; printingId: string }[];
   prices: (Omit<Row<"marketplaceProductPrices">, "marketplaceProductId"> & { skuKey: string })[];
+}
+
+function headlineRow(
+  marketplace: Marketplace,
+  cents: number,
+): { marketCents: number } | { lowCents: number } | { zeroLowCents: number } {
+  const column = headlineColumn(marketplace);
+  if (column === "market") {
+    return { marketCents: cents };
+  }
+  return column === "zeroLow" ? { zeroLowCents: cents } : { lowCents: cents };
 }
 
 export function buildPricesSync(
@@ -399,13 +409,14 @@ export function buildPricesSync(
       continue;
     }
     const card = catalog.cards[printing.cardId];
-    for (const marketplace of MARKETPLACES) {
+    for (const marketplace of ALL_MARKETPLACES) {
       const cents = byMarketplace[marketplace];
       const externalId = info[marketplace].productId;
       if (cents === undefined || externalId === null) {
         continue;
       }
-      const skuKey = `${marketplace}|${externalId}|${printing.finish}|${printing.language}`;
+      const language = LANGUAGE_KEYED_MARKETPLACES.has(marketplace) ? printing.language : null;
+      const skuKey = marketplaceSkuKey(marketplace, externalId, printing.finish, language);
       if (!products.has(skuKey)) {
         products.set(skuKey, {
           skuKey,
@@ -414,12 +425,12 @@ export function buildPricesSync(
           groupId: SYNC_GROUP_ID,
           productName: card?.name ?? printing.shortCode,
           finish: printing.finish,
-          language: printing.language,
+          language,
         });
         priceRows.set(skuKey, {
           skuKey,
           recordedAt: today,
-          ...(MARKET_HEADLINE.has(marketplace) ? { marketCents: cents } : { lowCents: cents }),
+          ...headlineRow(marketplace, cents),
         });
       }
       variants.push({ skuKey, printingId });
@@ -436,5 +447,69 @@ export function buildPricesSync(
     products: [...products.values()],
     variants,
     prices: [...priceRows.values()],
+  };
+}
+
+export interface ExistingMarketplaceProduct {
+  id: string;
+  marketplace: string;
+  externalId: number;
+  finish: string;
+  language: string | null;
+  groupId: number;
+}
+
+export interface PricesSyncPlan {
+  products: PricesSync["products"];
+  variants: PricesSync["variants"];
+  prices: PricesSync["prices"];
+  staleProductIds: string[];
+  skippedProducts: number;
+}
+
+/**
+ * The sync only touches products in its own group: a product the regular refresh already
+ * holds under the same key is skipped with its variants and prices, never overwritten.
+ */
+export function planPricesSync(
+  rows: PricesSync,
+  existing: readonly ExistingMarketplaceProduct[],
+): PricesSyncPlan {
+  const existingByKey = new Map(
+    existing.map((product) => [
+      marketplaceSkuKey(product.marketplace, product.externalId, product.finish, product.language),
+      product,
+    ]),
+  );
+  const foreign = new Set(
+    rows.products
+      .filter((product) => {
+        const match = existingByKey.get(product.skuKey);
+        return match !== undefined && match.groupId !== SYNC_GROUP_ID;
+      })
+      .map((product) => product.skuKey),
+  );
+  const kept = new Set(
+    rows.products.filter((product) => !foreign.has(product.skuKey)).map((p) => p.skuKey),
+  );
+  return {
+    products: rows.products.filter((product) => kept.has(product.skuKey)),
+    variants: rows.variants.filter((variant) => kept.has(variant.skuKey)),
+    prices: rows.prices.filter((price) => kept.has(price.skuKey)),
+    staleProductIds: existing
+      .filter(
+        (product) =>
+          product.groupId === SYNC_GROUP_ID &&
+          !kept.has(
+            marketplaceSkuKey(
+              product.marketplace,
+              product.externalId,
+              product.finish,
+              product.language,
+            ),
+          ),
+      )
+      .map((product) => product.id),
+    skippedProducts: foreign.size,
   };
 }

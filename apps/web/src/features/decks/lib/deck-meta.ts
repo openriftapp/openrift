@@ -28,7 +28,13 @@ export function deckMetaParts(
   formatPrice: (cents: number) => string,
   boxName?: string | null,
 ): DeckMetaPart[] {
-  const { deck, totalValueCents, missingCount } = item;
+  const { deck, totalValueCents, unpricedCardCount, missingCount } = item;
+  const valueText =
+    totalValueCents !== null && totalValueCents > 0 ? formatPrice(totalValueCents) : null;
+  const unpricedText =
+    unpricedCardCount !== null && unpricedCardCount > 0
+      ? m.common_unpriced({ count: unpricedCardCount })
+      : null;
   const createdDate = formatDay(deck.createdAt);
   const updatedDate = formatDay(deck.updatedAt);
 
@@ -41,7 +47,7 @@ export function deckMetaParts(
     },
     {
       key: "value",
-      text: totalValueCents !== null && totalValueCents > 0 ? formatPrice(totalValueCents) : null,
+      text: [valueText, unpricedText].filter((text) => text !== null).join(" ") || null,
     },
     {
       key: "updated",

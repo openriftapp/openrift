@@ -23,6 +23,7 @@ import {
 import { fetchPricesForSeo, pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
+import { lenient } from "@/lib/lenient-param";
 import { breadcrumbJsonLd, productJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
 import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { cardShareImageUrl } from "@/lib/share-image";
@@ -30,8 +31,8 @@ import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
 const cardDetailSearchSchema = z.object({
-  printingId: z.optional(z.string()),
-  side: z.optional(
+  printingId: lenient(z.string()),
+  side: lenient(
     z.pipe(
       z.transform((value) => (Number(value) === 2 ? 2 : undefined)),
       z.optional(z.literal(2)),

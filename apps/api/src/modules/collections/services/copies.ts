@@ -1,12 +1,11 @@
 import { MAX_COPIES_PER_REQUEST } from "@openrift/shared/contracts/copies";
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import { normalizeCopyMetadataPatch } from "@openrift/shared/copy-metadata";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createLogger } from "@openrift/shared/logger";
 import type { CopyLink, CopyMetadataPatch } from "@openrift/shared/types/api/collection";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict, forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { ensureInbox } from "../../groups/services/inbox.js";
 import type { TradeCancelConsent } from "../../groups/services/trade-supply.js";
@@ -61,11 +60,7 @@ export async function addCopies(
   if (explicitIds.length > 0) {
     const writable = await repos.collections.filterWritableByViewer(explicitIds, userId);
     if (writable.length !== explicitIds.length) {
-      throw new AppError(
-        403,
-        ERROR_CODES.FORBIDDEN,
-        "One or more collections are not writable by you",
-      );
+      throw forbidden("One or more collections are not writable by you");
     }
   }
 
@@ -115,7 +110,7 @@ export async function addCopies(
         replayed.collectionId === (item.collectionId ?? inboxId) &&
         replayed.printingId === item.printingId;
       if (!sameCopy) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "One or more copy ids are already taken");
+        throw conflict("One or more copy ids are already taken");
       }
       return replayed;
     });
@@ -215,7 +210,7 @@ async function resolveMoveTarget(
 ): Promise<MoveTarget> {
   const targetWritable = await repos.collections.filterWritableByViewer([toCollectionId], userId);
   if (targetWritable.length === 0) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+    throw notFound("Target collection not found");
   }
   const targetMeta = await repos.collections.listIdNameGroupByIds([toCollectionId]);
   const target = targetMeta[0];
@@ -231,7 +226,7 @@ async function moveCopiesInTransaction(
   consent: TradeCancelConsent,
 ): Promise<void> {
   if (!(await trxRepos.collections.lockAsMoveTarget(target.id))) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+    throw notFound("Target collection not found");
   }
   await trxRepos.copies.lockByIds(copyIds);
   const copies = await loadWritableCopies(trxRepos, userId, copyIds);
@@ -239,9 +234,7 @@ async function moveCopiesInTransaction(
   if (target.groupId !== null) {
     const reserved = await trxRepos.cardTrades.filterReservedCopyIds(copyIds);
     if (reserved.length > 0) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "This card is reserved in a trade. It can only move between your own collections.",
       );
     }
@@ -395,9 +388,7 @@ export async function disposeCopiesUnswept(
       // cancel only accepts pending/reserved, so pointing at it would name an
       // impossible remedy. Resolving or skipping the sync releases those.
       const live = pins.some((pin) => pin.status === "pending" || pin.status === "reserved");
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         live
           ? "This card is reserved in an active trade — cancel the trade to free it."
           : "This card is still reserved by a completed trade. Resolve or skip that trade's sync to free it.",
@@ -405,11 +396,7 @@ export async function disposeCopiesUnswept(
     }
     const loaned = await trxRepos.loans.filterLoanedCopyIds(copyIds);
     if (loaned.length > 0) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "This card is lent out — mark the loan returned or written off to free it.",
-      );
+      throw conflict("This card is lent out — mark the loan returned or written off to free it.");
     }
   }
 

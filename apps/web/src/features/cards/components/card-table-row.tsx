@@ -325,7 +325,7 @@ export function CardTableRow({
 
   return (
     <div
-      {...rowActivateProps(handleClick)}
+      {...rowActivateProps(handleClick, cardName)}
       role="row"
       data-printing-id={printing.printingId}
       data-side-key={sideKey(printing)}

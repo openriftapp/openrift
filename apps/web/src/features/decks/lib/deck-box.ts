@@ -8,7 +8,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 export interface DeckBoxCard {
   cardId: string;
@@ -460,7 +460,7 @@ export function computeDeckBoxPlan({
     if (!isCountedZone(card.zone)) {
       continue;
     }
-    const cardKey = getDeckCardKey(card);
+    const cardKey = deckCardKey(card);
     for (let index = 0; index < card.quantity; index++) {
       emptySlots.push({ key: `${cardKey}:${index}`, cardId: card.cardId, cardKey });
     }

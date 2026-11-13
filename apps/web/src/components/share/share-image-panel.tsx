@@ -15,8 +15,10 @@ import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useShareImagePreview } from "@/hooks/use-share-image-preview";
 import type { DownloadName } from "@/lib/download";
 import { downloadFilename } from "@/lib/download";
+import { errorStatus } from "@/lib/server-fns/api-error";
 import type { ShareImageRenderChoice } from "@/lib/share-image";
 import { downloadImageFromUrl } from "@/lib/share-image";
 import { m } from "@/paraglide/messages.js";
@@ -79,18 +81,16 @@ export function ShareImagePanel({
   const [scale, setScale] = useState(defaultScale(aspects[0] ?? "landscape", scales));
   const [qrOn, setQrOn] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [previewLoaded, setPreviewLoaded] = useState(false);
 
   const canvas = SHARE_IMAGE_CANVAS[aspect];
   const withQr = qrOn && qrAvailable;
   const showPreview = download === undefined;
 
-  const previewUrl = buildUrl({ aspect, scale: 1, qr: withQr });
+  const preview = useShareImagePreview(buildUrl({ aspect, scale: 1, qr: withQr }));
 
   const chooseAspect = (next: ShareImageAspect) => {
     setAspect(next);
     setScale(defaultScale(next, scales));
-    setPreviewLoaded(false);
   };
 
   const handleDownload = async () => {
@@ -105,11 +105,13 @@ export function ShareImagePanel({
     try {
       await run;
       setDownloading(false);
-    } catch {
+    } catch (error) {
       // Not a mutation, so it never reaches the global mutation error handler.
       // Flag reset here and above, not in `finally`: React Compiler can't lower it.
       setDownloading(false);
-      toast.error(m.share_image_error());
+      toast.error(
+        errorStatus(error) === 429 ? m.share_image_rate_limited() : m.share_image_error(),
+      );
     }
   };
 
@@ -122,17 +124,27 @@ export function ShareImagePanel({
           className="mx-auto w-full max-w-sm overflow-hidden p-0"
           style={{ aspectRatio: `${canvas.width} / ${canvas.height}` }}
         >
-          <img
-            // Keyed on the URL so an aspect/QR change remounts and re-shows the spinner.
-            key={previewUrl}
-            src={previewUrl}
-            alt={m.share_image_preview_alt({ title })}
-            className="size-full object-contain"
-            onLoad={() => setPreviewLoaded(true)}
-          />
-          {previewLoaded ? null : (
+          {preview.error === undefined ? (
+            <img
+              key={preview.key}
+              src={preview.src}
+              alt={m.share_image_preview_alt({ title })}
+              className="size-full object-contain"
+              onLoad={() => preview.onLoad()}
+              onError={() => preview.onError()}
+            />
+          ) : null}
+          {preview.loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2Icon className="text-muted-foreground size-5 animate-spin" />
+            </div>
+          ) : null}
+          {preview.error === undefined ? null : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+              <p className="text-muted-foreground text-sm">{preview.error}</p>
+              <Button variant="outline" size="sm" onClick={() => preview.retry()}>
+                {m.common_retry()}
+              </Button>
             </div>
           )}
         </Callout>

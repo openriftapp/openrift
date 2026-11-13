@@ -1,13 +1,10 @@
 import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import {
-  computeProductSuggestions,
-  productSuggestionKey,
-} from "@openrift/shared/marketplace-suggestions";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
+import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
-import type { Marketplace } from "@openrift/shared/types/pricing";
 import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 import type { ListingSku } from "@openrift/shared/workspace-listing-key";
 import { parseListingOwnerId } from "@openrift/shared/workspace-listing-key";
@@ -26,12 +23,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductLink } from "@/features/admin/components/price-mappings-utils";
-import {
-  CM_CONFIG,
-  CN_CONFIG,
-  CT_CONFIG,
-  TCG_CONFIG,
-} from "@/features/admin/components/source-configs";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useUnifiedIgnoreProducts,
@@ -39,7 +30,7 @@ import {
   useUnifiedSaveMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
+import { listingPriceCents, SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -61,13 +52,6 @@ import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspa
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
 import { formatCentsInLocale } from "@/lib/format";
-
-const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
-  tcgplayer: TCG_CONFIG,
-  cardmarket: CM_CONFIG,
-  cardtrader: CT_CONFIG,
-  cardnexus: CN_CONFIG,
-};
 
 const MAX_MATCHES = 8;
 const MIN_QUERY_LENGTH = 3;
@@ -130,15 +114,15 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
     group === null
       ? []
       : (computeProductSuggestions(group).get(
-          productSuggestionKey(sku.marketplace, sku.externalId, sku.finish, sku.language),
+          marketplaceSkuKey(sku.marketplace, sku.externalId, sku.finish, sku.language),
         ) ?? []);
   const scoreById = new Map(suggestions.map((entry) => [entry.printingId, entry.score]));
   const candidates: Candidate[] = (group?.printings ?? [])
     .filter((printing) => marketplaceCarriesLanguage(sku.marketplace, printing.language))
     .map((printing) => ({ printing, score: scoreById.get(printing.printingId) ?? null }))
     .toSorted((a, b) => (b.score ?? -1) - (a.score ?? -1));
-  const price = product?.lowCents ?? product?.marketCents ?? null;
-  const config = CONFIG_BY_MARKETPLACE[sku.marketplace];
+  const price = product === null ? null : listingPriceCents(sku.marketplace, product);
+  const config = SOURCE_CONFIGS[sku.marketplace];
   const skuValues = { externalId: sku.externalId, finish: sku.finish, language: sku.language };
 
   const record = product?.productName ?? item.cardName;

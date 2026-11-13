@@ -6,7 +6,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 
 import { Pane } from "@/components/layout/panes";
 import { CatalogSubsetProvider } from "@/features/cards/components/catalog-subset-provider";
-import type { HoverOrigin } from "@/features/cards/components/hovered-card-preview";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import {
@@ -16,6 +15,7 @@ import {
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
+import type { HoverOrigin } from "@/features/cards/lib/hover-dock";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
 import { DeckOverview } from "@/features/decks/components/deck-overview";
@@ -255,7 +255,7 @@ function PublicDeckContent({
           open={missingOpen}
           onOpenChange={setMissingOpen}
           missingCards={ownershipData.missingCards}
-          totalMissingValue={ownershipData.missingValueCents}
+          totalMissingValue={ownershipData.missingValue}
           marketplace={marketplace}
           mode={isLoggedIn ? "missing" : "prices"}
           deckName={data.deck.name}

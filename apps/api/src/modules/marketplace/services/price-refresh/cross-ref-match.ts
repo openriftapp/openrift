@@ -1,4 +1,5 @@
 import type { Logger } from "@openrift/shared/logger";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import type { Repos } from "../../../../deps.js";
@@ -72,7 +73,7 @@ export async function autoMatchByCrossReference(
   // product whose other languages are already bound.
   const existingOwnSources = await repos.priceRefresh.existingSourcesByMarketplaces([marketplace]);
   const existingKeys = new Set(
-    existingOwnSources.map((s) => `${s.externalId}::${s.finish}::${s.language ?? ""}`),
+    existingOwnSources.map((s) => skuKey(s.externalId, s.finish, s.language)),
   );
 
   const toInsert: Parameters<Repos["priceRefresh"]["batchInsertProductVariants"]>[0] = [];
@@ -103,7 +104,7 @@ export async function autoMatchByCrossReference(
       if (!sibling) {
         continue;
       }
-      const key = `${candidate.externalId}::${finish}::${language}`;
+      const key = skuKey(candidate.externalId, finish, language);
       if (emitted.has(key) || existingKeys.has(key)) {
         continue;
       }

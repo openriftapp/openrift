@@ -4,7 +4,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { m } from "@/paraglide/messages.js";
 
@@ -45,7 +45,7 @@ export function buildRarityByCardKey(
   for (const card of cards) {
     const rarity = resolveRarity(card);
     if (rarity !== undefined) {
-      rarities.set(getDeckCardKey(card), rarity);
+      rarities.set(deckCardKey(card), rarity);
     }
   }
   return rarities;
@@ -82,7 +82,7 @@ export function buildRarityRows(
     if (!LENS_ZONES.has(card.zone)) {
       continue;
     }
-    const rarity = rarityByCardKey.get(getDeckCardKey(card));
+    const rarity = rarityByCardKey.get(deckCardKey(card));
     if (rarity === undefined) {
       continue;
     }
@@ -111,7 +111,7 @@ export function buildOwnershipRows(
     if (!LENS_ZONES.has(card.zone)) {
       continue;
     }
-    const segments = segmentsByCardKey.get(getDeckCardKey(card));
+    const segments = segmentsByCardKey.get(deckCardKey(card));
     if (!segments) {
       continue;
     }
@@ -136,8 +136,8 @@ export function rarityFocusKeys(
 ): Set<string> {
   const keys = new Set<string>();
   for (const card of cards) {
-    if (LENS_ZONES.has(card.zone) && rarityByCardKey.get(getDeckCardKey(card)) === rarity) {
-      keys.add(getDeckCardKey(card));
+    if (LENS_ZONES.has(card.zone) && rarityByCardKey.get(deckCardKey(card)) === rarity) {
+      keys.add(deckCardKey(card));
     }
   }
   return keys;
@@ -154,14 +154,14 @@ export function ownershipFocusKeys(
     if (!LENS_ZONES.has(card.zone)) {
       continue;
     }
-    const segments = segmentsByCardKey.get(getDeckCardKey(card));
+    const segments = segmentsByCardKey.get(deckCardKey(card));
     // Mirrors buildOwnershipRows: locked copies belong to the missing class.
     const count =
       ownershipClass === "missing"
         ? (segments?.missing ?? 0) + (segments?.locked ?? 0)
         : (segments?.[ownershipClass] ?? 0);
     if (count > 0) {
-      keys.add(getDeckCardKey(card));
+      keys.add(deckCardKey(card));
     }
   }
   return keys;

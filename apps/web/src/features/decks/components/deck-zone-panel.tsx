@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { totalQuantity } from "@openrift/shared/deck-rules";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
@@ -53,7 +53,6 @@ function PanelIdentityHeader({
   const legendDomains = legend?.domains ?? [];
   const { progress, total } = requiredZoneProgress(cards, format);
   const isFreeform = format === WellKnown.deckFormat.FREEFORM;
-  const zoneQuantity = totalQuantity(cards);
   const isComplete = !isFreeform && progress === total && violationCount === 0;
 
   const legendImage = legend
@@ -120,8 +119,8 @@ function PanelIdentityHeader({
             )}
           >
             {isFreeform
-              ? m.common_cards({ count: zoneQuantity })
-              : m.decks_editor_progress_cards({ progress, total })}
+              ? m.common_cards({ count: deckCardCount(cards) })
+              : m.decks_editor_required_progress({ progress, total })}
           </p>
         </div>
       </div>
@@ -129,7 +128,7 @@ function PanelIdentityHeader({
           decoration. */}
       <DomainBar
         data={stats.domainDistribution}
-        total={stats.totalCards}
+        total={stats.mainDeckCards}
         colors={domainColors}
         interactive={false}
         className="relative h-0.5"

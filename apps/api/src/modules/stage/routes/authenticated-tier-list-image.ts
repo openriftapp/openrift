@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
+import { ownerImageRateLimit } from "../../../lib/image-rate-limit.js";
 import { parseShareImageQuery } from "../../../lib/share-image-query.js";
 import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
@@ -19,7 +20,7 @@ export const tierListImageRoute = new Hono<{ Variables: Variables }>()
   .basePath("/tier-lists")
   // requireAuth is scoped to this route, not the `/tier-lists` sub-app, so it
   // doesn't 401 the public `/tier-lists/share/{token}` og:image.
-  .get("/:id/image.png", requireAuth, async (c) => {
+  .get("/:id/image.png", requireAuth, ownerImageRateLimit, async (c) => {
     const repos = c.get("repos");
     const config = c.get("config");
     const userId = getUserId(c);

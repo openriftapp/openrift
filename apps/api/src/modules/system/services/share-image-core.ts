@@ -20,8 +20,6 @@ export const COLORS = {
   gold: "#cdac6e",
 } as const;
 
-export const CARD_ASPECT = 0.715;
-
 export const TILE_BORDER = 1;
 
 export const QR_SIZE = 84;

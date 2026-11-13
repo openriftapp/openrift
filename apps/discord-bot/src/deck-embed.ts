@@ -3,6 +3,7 @@ import { buildCodeIndex } from "@openrift/shared/card-search";
 import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import type { ResolvedDeckCodeRow } from "@openrift/shared/deck-code-resolve";
 import { resolveDeckCodeEntries } from "@openrift/shared/deck-code-resolve";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckImageBody } from "@openrift/shared/share-image-params";
 import { deckImportPath } from "@openrift/shared/site-paths";
@@ -38,7 +39,9 @@ export function resolveDeckEntries(
   return {
     rows,
     unknownCodes,
-    totalCards: rows.reduce((sum, row) => sum + row.entry.quantity, 0),
+    totalCards: deckCardCount(
+      rows.map((row) => ({ zone: row.zone, quantity: row.entry.quantity })),
+    ),
   };
 }
 

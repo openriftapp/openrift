@@ -338,7 +338,7 @@ describe("metaScopeSearchSchema", () => {
   });
 
   it("drops a bad value instead of throwing, so a stale bookmark still loads", () => {
-    expect(metaScopeSearchSchema.parse({ era: 7, tiers: 3, countries: ["de"] })).toEqual({
+    expect(metaScopeSearchSchema.parse({ era: true, tiers: true, countries: ["de"] })).toEqual({
       era: undefined,
       tiers: undefined,
       countries: ["de"],

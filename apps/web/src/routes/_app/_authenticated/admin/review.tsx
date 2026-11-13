@@ -6,13 +6,14 @@ import { AdminPending } from "@/features/admin/components/admin-route-components
 import { REVIEW_FILTERS } from "@/features/admin/lib/admin-search-values";
 import { reviewQueueQueryOptions } from "@/features/admin/lib/catalog-review-queries";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
+import { lenient } from "@/lib/lenient-param";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/review")({
   head: () => adminSeoHead("Review"),
   validateSearch: z.object({
-    filter: z.optional(z.enum(REVIEW_FILTERS)),
-    q: z.optional(z.string()),
+    filter: lenient(z.enum(REVIEW_FILTERS)),
+    q: lenient(z.string()),
   }),
   loader: async ({ context }) => {
     await Promise.all([

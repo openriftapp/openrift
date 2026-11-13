@@ -1,8 +1,8 @@
+import { CARD_ASPECT } from "../card-orientation";
 import type { AcceptOptions } from "./accept";
 import type { EmbedBank } from "./embed";
 import { bankEmbedDim } from "./embed";
 import type { Quad } from "./types";
-import { CARD_ASPECT } from "./types";
 
 export const SESSION_UNWARP_WIDTH = 384;
 export const SESSION_UNWARP_HEIGHT = 528;

@@ -215,10 +215,10 @@ describe("PublicDeckActionsMenu", () => {
     };
     expect(image.qrAvailable).toBe(true);
     expect(image.buildUrl({ aspect: "vertical", scale: 2, qr: false })).toBe(
-      `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}&size=hq&aspect=vertical&qr=0`,
+      `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}-r2&size=hq&aspect=vertical&qr=0`,
     );
     expect(image.buildUrl({ aspect: "landscape", scale: 1, qr: true })).toBe(
-      `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}`,
+      `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}-r2`,
     );
   });
 

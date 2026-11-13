@@ -8,12 +8,11 @@ import type {
   WorkspaceTrustedCardsPreview,
   WorkspaceTrustedPrintingsPreview,
 } from "@openrift/shared/contracts/admin/catalog-workspace-batch";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { errorMessage } from "@openrift/shared/strings";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { forbidden } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import {
@@ -67,7 +66,7 @@ interface MutationContext {
 
 function assertAdmin(access: AdminAccess | null): void {
   if (access?.isAdmin !== true) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
+    throw forbidden("Forbidden");
   }
 }
 
@@ -254,7 +253,7 @@ interface StrongListing extends WorkspaceSuggestedListing {
 /** A listing with several strong suggestions is ambiguous and left for a person. */
 export function strongListings(listings: UnassignedListings): StrongListing[] {
   const byKey = Map.groupBy(listings.suggested, (listing) =>
-    productSuggestionKey(listing.marketplace, listing.externalId, listing.finish, listing.language),
+    marketplaceSkuKey(listing.marketplace, listing.externalId, listing.finish, listing.language),
   );
   const out: StrongListing[] = [];
   for (const [listingKey, suggestions] of byKey) {

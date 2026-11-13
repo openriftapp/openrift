@@ -1,4 +1,5 @@
 import { adminPrintingEventsContract } from "@openrift/shared/contracts/admin/printing-events";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { JobRunStartedResponse } from "@openrift/shared/types/api/admin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -20,8 +21,6 @@ export interface FlushPrintingEventsResult {
   failures?: WebhookFailure[];
 }
 
-export const FLUSH_PRINTING_EVENTS_KIND = "discord.flush_printing_events";
-
 const flushPrintingEventsFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context }): Promise<JobRunStartedResponse> =>
@@ -36,7 +35,7 @@ export function useFlushPrintingEvents() {
       // Surface the new running row immediately and refresh the queue list
       // once the flush completes; the run-poll hook drives intermediate state.
       void queryClient.invalidateQueries({
-        queryKey: adminKeys.jobRunsByKind(FLUSH_PRINTING_EVENTS_KIND),
+        queryKey: adminKeys.jobRunsByKind(JOB_KIND.flushPrintingEvents),
       });
       void queryClient.invalidateQueries({ queryKey: adminKeys.printingEvents });
     },

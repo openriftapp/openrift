@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MARKETPLACE_CONFIGS } from "@/features/admin/components/marketplace-product-entries";
 import { ProductLink } from "@/features/admin/components/price-mappings-utils";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
@@ -28,6 +27,7 @@ import {
   useUnifiedSaveMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { listingPriceCents, SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { ListingPrintingCombobox } from "@/features/catalog-workspace/components/listing-record";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
@@ -255,7 +255,7 @@ function ListingLine({
   const ignoreProduct = useUnifiedIgnoreProducts(marketplace);
   const [assigning, setAssigning] = useState(false);
   const pending = disabled || save.isPending || ignoreVariant.isPending || ignoreProduct.isPending;
-  const price = product.lowCents ?? product.marketCents;
+  const price = listingPriceCents(marketplace, product);
   const { announce } = useWorkspaceUndo();
   const doneWith = (entry: WorkspaceUndoEntry) => ({
     onSuccess: () => {
@@ -270,7 +270,7 @@ function ListingLine({
         <Badge variant="outline">{marketplaceLabel(marketplace)}</Badge>
         <span className="min-w-0 flex-1 break-words">
           <ProductLink
-            config={MARKETPLACE_CONFIGS[marketplace]}
+            config={SOURCE_CONFIGS[marketplace]}
             externalId={product.externalId}
             language={product.language}
           >

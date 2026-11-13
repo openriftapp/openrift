@@ -395,7 +395,7 @@ describe("AttentionChangeList", () => {
     const frames = [...document.querySelectorAll("img")].map((img) => img.parentElement);
     expect(frames).toHaveLength(2);
     for (const frame of frames) {
-      expect(frame).toHaveClass("aspect-[88/63]");
+      expect(frame).toHaveClass("aspect-card-landscape");
       expect(frame).not.toHaveClass("aspect-card");
     }
   });

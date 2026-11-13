@@ -1,3 +1,4 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { describe, expect, it } from "vitest";
 
 import { defaultIo } from "../../../io.js";
@@ -300,7 +301,9 @@ describe("bestGridForArea", () => {
         const rows = Math.ceil(count / cols);
         const byWidth = (V_AREA_W - (cols - 1) * V_GAP) / cols;
         const byHeight = (V_AREA_H - (rows - 1) * V_GAP) / rows;
-        const cellW = Math.floor(Math.floor(Math.min(byHeight, byWidth / 0.715)) * 0.715);
+        const cellW = Math.floor(
+          Math.floor(Math.min(byHeight, byWidth / CARD_ASPECT)) * CARD_ASPECT,
+        );
         expect(best.cellW).toBeGreaterThanOrEqual(cellW);
       }
     }
@@ -320,5 +323,5 @@ function computeGridForTest(count: number, areaW: number, areaH: number): number
   const cols = Math.ceil(count / rows);
   const cellWByWidth = (areaW - (cols - 1) * 12) / cols;
   const cellHByHeight = (areaH - (rows - 1) * 12) / rows;
-  return Math.floor(Math.floor(Math.min(cellHByHeight, cellWByWidth / 0.715)) * 0.715);
+  return Math.floor(Math.floor(Math.min(cellHByHeight, cellWByWidth / CARD_ASPECT)) * CARD_ASPECT);
 }

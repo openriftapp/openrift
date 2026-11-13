@@ -1,3 +1,4 @@
+import { isRecord } from "../type-guards";
 /** `--set path=value` overrides for a replay: parsed from argv and merged into a plan. */
 
 export type SetValue = number | boolean | null;
@@ -8,10 +9,6 @@ export interface OptionSet {
 }
 
 type OptionRecord = Record<string, unknown>;
-
-function isRecord(value: unknown): value is OptionRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 function parseSetValue(raw: string, arg: string): SetValue {
   if (raw === "true" || raw === "false") {

@@ -1,11 +1,14 @@
 /** Reads one persisted field; `undefined` keeps the store's current value. */
-export type FieldPicker<T> = (value: unknown) => T | undefined;
+export type FieldPicker<T> = (value: unknown, persisted?: Record<string, unknown>) => T | undefined;
 
 export const pickBoolean: FieldPicker<boolean> = (value) =>
   typeof value === "boolean" ? value : undefined;
 
 export const pickString: FieldPicker<string> = (value) =>
   typeof value === "string" ? value : undefined;
+
+export const pickNullableString: FieldPicker<string | null> = (value) =>
+  typeof value === "string" || value === null ? value : undefined;
 
 export const pickNumber: FieldPicker<number> = (value) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -43,7 +46,7 @@ export function mergeFields<S extends object>(spec: { [K in keyof S]?: FieldPick
     const raw = persisted as Record<string, unknown>;
     const next = { ...current };
     for (const key of Object.keys(spec) as (keyof S & string)[]) {
-      const picked = spec[key]?.(raw[key]);
+      const picked = spec[key]?.(raw[key], raw);
       if (picked !== undefined) {
         next[key] = picked;
       }

@@ -10,8 +10,8 @@ import type {
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs";
-import type { ScheduledJobKind } from "@openrift/shared/contracts/admin/job-schedules";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -549,8 +549,6 @@ export function useCheckProvider() {
   });
 }
 
-const CHECK_MATCHING_JOB_KIND: ScheduledJobKind = "candidates.check_matching";
-
 const checkMatchingCandidatesFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context }) =>
@@ -561,7 +559,7 @@ const listCheckMatchingRunsFn = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(async ({ context }): Promise<JobRunView[]> => {
     const { runs } = await apiOrpcClient(adminJobRunsContract, context.cookie).list({
-      kind: CHECK_MATCHING_JOB_KIND,
+      kind: JOB_KIND.checkMatching,
       limit: 5,
     });
     return runs;

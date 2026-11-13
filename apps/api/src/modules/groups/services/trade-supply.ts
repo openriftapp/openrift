@@ -1,14 +1,14 @@
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { pluralize } from "@openrift/shared/strings";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import type { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { claimCopiesForOffers } from "../repositories/trade-offer-claims.js";
 
 export function tooFewAvailable(count: number): AppError {
   const noun = pluralize(count, "copy is", "copies are");
-  return new AppError(409, ERROR_CODES.CONFLICT, `Only ${count} ${noun} still available`);
+  return conflict(`Only ${count} ${noun} still available`);
 }
 
 /**

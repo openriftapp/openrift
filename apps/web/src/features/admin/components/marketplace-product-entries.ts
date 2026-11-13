@@ -1,9 +1,6 @@
-import { HOUR_MS } from "@openrift/shared/format-date";
+import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import {
-  productSuggestionKey,
-  STRONG_MATCH_THRESHOLD,
-} from "@openrift/shared/marketplace-suggestions";
+import { STRONG_MATCH_THRESHOLD } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
   AdminMarketplaceName,
@@ -13,28 +10,11 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 
-import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
-
-import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
-
 export interface PrintingAssignment {
   externalId: number;
   finish: string;
   language: string | null;
   printingId: string;
-}
-
-export const MARKETPLACE_CONFIGS: Record<AdminMarketplaceName, SourceMappingConfig> = {
-  tcgplayer: TCG_CONFIG,
-  cardmarket: CM_CONFIG,
-  cardtrader: CT_CONFIG,
-  cardnexus: CN_CONFIG,
-};
-
-const STALE_THRESHOLD_MS = 48 * HOUR_MS;
-
-export function isStaleRecord(recordedAt: Date): boolean {
-  return Date.now() - recordedAt.getTime() > STALE_THRESHOLD_MS;
 }
 
 export interface MarketplaceHandlers {
@@ -132,7 +112,7 @@ export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[]
     const { stagedProducts, assignedProducts, assignments = [] } = group[marketplace];
     const seen = new Set<string>();
     for (const product of [...stagedProducts, ...assignedProducts]) {
-      const dedupeKey = `${product.externalId}::${product.finish}::${product.language}`;
+      const dedupeKey = skuKey(product.externalId, product.finish, product.language);
       if (seen.has(dedupeKey)) {
         continue;
       }
@@ -216,7 +196,7 @@ export function collectStrongMappings(
     if (entry.isAssigned) {
       continue;
     }
-    const key = productSuggestionKey(
+    const key = marketplaceSkuKey(
       entry.marketplace,
       entry.product.externalId,
       entry.product.finish,
@@ -251,7 +231,7 @@ export function collectWeakMappings(
     if (entry.isAssigned) {
       continue;
     }
-    const key = productSuggestionKey(
+    const key = marketplaceSkuKey(
       entry.marketplace,
       entry.product.externalId,
       entry.product.finish,

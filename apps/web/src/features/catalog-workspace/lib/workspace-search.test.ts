@@ -22,7 +22,9 @@ describe("printingPrefillSearchSchema", () => {
   });
 
   it("drops empty and non-string values", () => {
-    expect(printingPrefillSearchSchema.parse({ card: "", language: 3, finish: null })).toEqual({});
+    expect(printingPrefillSearchSchema.parse({ card: "", language: true, finish: null })).toEqual(
+      {},
+    );
   });
 });
 

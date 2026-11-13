@@ -39,7 +39,7 @@ import { useDeckBox } from "@/features/decks/hooks/use-deck-box";
 import type { DeckBoxCard, DeckBoxCopy, DeckBoxSlot } from "@/features/decks/lib/deck-box";
 import { toBoxCardFromDeck } from "@/features/decks/lib/deck-box";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -174,7 +174,7 @@ export function DeckBoxTab({
   const rowsFor = (card: DeckBuilderCard) => {
     const boxCard = toBoxCardFromDeck(card);
     const siblings = plan.siblingPrintingsByCardId.get(card.cardId) ?? [];
-    return (slotsByCardKey.get(getDeckCardKey(card)) ?? []).map((slot) => (
+    return (slotsByCardKey.get(deckCardKey(card)) ?? []).map((slot) => (
       <SlotRow
         key={slot.key}
         card={boxCard}
@@ -336,7 +336,7 @@ function ZoneSection({
   rowsFor: (card: DeckBuilderCard) => React.ReactNode;
 }) {
   const { zoneLabels } = useZoneOrder();
-  const zoneSlots = cards.flatMap((card) => slotsByCardKey.get(getDeckCardKey(card)) ?? []);
+  const zoneSlots = cards.flatMap((card) => slotsByCardKey.get(deckCardKey(card)) ?? []);
   const inBox = zoneSlots.filter((slot) => slot.state === "in-box").length;
   const groups = GROUPED_ZONES.has(zone) ? groupCards(cards) : null;
 

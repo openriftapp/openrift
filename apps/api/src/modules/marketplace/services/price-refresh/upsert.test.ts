@@ -2,8 +2,9 @@ import type { Logger } from "@openrift/shared/logger";
 import { describe, expect, it } from "vitest";
 
 import type { Repos } from "../../../../deps";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh";
-import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types";
+import type { GroupRow, PriceUpsertConfig } from "./types";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert";
 
 function makeMockLogger(): { log: Logger; messages: string[] } {

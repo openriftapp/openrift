@@ -1,8 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { totalQuantity } from "@openrift/shared/deck-rules";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { LabelMap } from "@openrift/shared/enum-label";
-import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -15,7 +14,7 @@ import {
   ClipboardPasteIcon,
   XIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   PageTopBar,
@@ -46,6 +45,7 @@ import { DeckComparePasteDialog } from "@/features/decks/components/deck-compare
 import type { DeckIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckMiniIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
 import { useDeckCardsFor, useDeckList } from "@/features/decks/hooks/use-decks";
 import { useLocalDeck, useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { CompareSide } from "@/features/decks/lib/deck-compare-side";
@@ -406,7 +406,7 @@ function localIdentity(deck: LocalDeck): DeckIdentity {
     name: deck.name,
     legendCardId: deck.cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
     championCardId: deck.cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
-    cardCount: totalQuantity(deck.cards),
+    cardCount: deckCardCount(deck.cards),
     updatedAt: deck.updatedAt,
   };
 }
@@ -416,7 +416,7 @@ function cardsIdentity(name: string, cards: readonly OwnDeckCard[]): DeckIdentit
     name,
     legendCardId: cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
     championCardId: cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
-    cardCount: totalQuantity(cards),
+    cardCount: deckCardCount(cards),
   };
 }
 
@@ -474,11 +474,13 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
   const [pastedFrom, setPastedFrom] = useState<PastedCompareSource | null>(null);
   const [pastedTo, setPastedTo] = useState<PastedCompareSource | null>(null);
   const [pasteFor, setPasteFor] = useState<SideKey | null>(null);
-  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { hoveredCard, containerRef, handleHoverMain } = useDeckHoverPreview({
+    mainOrigin: "main",
+    disabled: isMobile,
+  });
   const { cardsById } = useCards();
   const { getPreferredPrinting } = usePreferredPrinting();
   const { labels } = useEnumOrders();
@@ -611,18 +613,6 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     });
   };
 
-  const hoveredPrinting =
-    hoveredCardId !== null && !isMobile ? (getPreferredPrinting(hoveredCardId) ?? null) : null;
-  const hoveredImage = hoveredPrinting?.images[0] ?? null;
-  const hoveredCard =
-    hoveredPrinting && hoveredImage
-      ? {
-          thumbnailUrl: imageUrl(hoveredImage.imageId, "400w"),
-          fullUrl: imageUrl(hoveredImage.imageId, "full"),
-          landscape: getOrientation(hoveredPrinting.card.types) === "landscape",
-        }
-      : null;
-
   return (
     <>
       <PageTopBarSticky width="capped">
@@ -736,7 +726,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
                         printing: getPreferredPrinting(row.cardId),
                       }}
                       display={display}
-                      onHover={setHoveredCardId}
+                      onHover={handleHoverMain}
                     />
                   ))}
                 </section>

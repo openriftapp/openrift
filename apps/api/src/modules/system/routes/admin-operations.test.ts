@@ -30,6 +30,8 @@ const mockJobRuns = {
   purgeOlderThan: vi.fn(),
 };
 
+const mockAdminEvents = { insert: vi.fn() };
+
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const mockScheduler = { runNow: vi.fn() };
 let schedulerRunning = true;
@@ -44,6 +46,7 @@ app.use("*", async (c, next) => {
     catalog: mockCatalog,
     cardTokens: mockCardTokens,
     jobRuns: mockJobRuns,
+    adminEvents: mockAdminEvents,
   } as never);
   await next();
 });
@@ -73,6 +76,31 @@ describe("POST /api/admin/v1/clear-prices", () => {
       deleted: { prices: 10, variants: 15, products: 20 },
     });
     expect(mockMktAdmin.clearPriceData).toHaveBeenCalledWith("tcgplayer");
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith({
+      actorUserId: USER_ID,
+      action: "marketplace.clear-prices",
+      entityType: "marketplace",
+      entityId: "tcgplayer",
+      newValues: { deleted: { prices: 10, variants: 15, products: 20 } },
+    });
+  });
+
+  it("still reports the cleared rows when the audit write fails", async () => {
+    mockMktAdmin.clearPriceData.mockResolvedValue({ prices: 3, variants: 2, products: 1 });
+    mockAdminEvents.insert.mockRejectedValue(new Error("audit table locked"));
+
+    const res = await app.request("/api/admin/v1/clear-prices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marketplace: "cardtrader" }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({
+      marketplace: "cardtrader",
+      deleted: { prices: 3, variants: 2, products: 1 },
+    });
+    expect(mockMktAdmin.clearPriceData).toHaveBeenCalledWith("cardtrader");
   });
 
   it("works with cardmarket marketplace", async () => {

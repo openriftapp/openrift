@@ -287,7 +287,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
         links: [{ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Guide" }],
         isPinned: true,
       });
-      await decks.setShareToken(source.id, userId, "dvsharetok01", true);
+      await decks.setShare(source.id, userId, "dvsharetok01", true);
 
       const copy = await copyOf(source.id, {});
       expect(copy.description).toBe("Budget build");

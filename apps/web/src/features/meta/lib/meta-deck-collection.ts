@@ -1,6 +1,5 @@
-import type { PriceLookup } from "@openrift/shared/types/api/pricing";
+import { priceTotal } from "@openrift/shared/card-price";
 import type { MetaListStatus } from "@openrift/shared/types/enums";
-import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { ownershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
@@ -17,6 +16,8 @@ export interface MetaDeckCost {
   owned: number | undefined;
   value: number | undefined;
   toComplete: number | undefined;
+  unpriced: number;
+  unpricedMissing: number;
 }
 
 // A pair naming a card outside the pool is dropped, as is a trailing index without a quantity.
@@ -68,36 +69,6 @@ export function ownedCountsByCardId(
   return owned;
 }
 
-/** Currency major units. A card with no priced printing has no entry. */
-export function cheapestPriceByCardId(
-  printingsByCardId: ReadonlyMap<string, readonly { printingId: string; language: string }[]>,
-  prices: PriceLookup,
-  marketplace: Marketplace,
-  languageOrder: readonly string[],
-): Map<string, number> {
-  const cheapest = new Map<string, number>();
-  for (const [cardId, printings] of printingsByCardId) {
-    const pools = [
-      printings.filter((printing) => languageOrder.includes(printing.language)),
-      printings,
-    ];
-    for (const pool of pools) {
-      let best: number | undefined;
-      for (const printing of pool) {
-        const price = prices.get(printing.printingId, marketplace);
-        if (price !== undefined && (best === undefined || price < best)) {
-          best = price;
-        }
-      }
-      if (best !== undefined) {
-        cheapest.set(cardId, best);
-        break;
-      }
-    }
-  }
-  return cheapest;
-}
-
 function scopedQuantities(cards: MetaDeckCards, includeSideboard: boolean): Map<string, number> {
   const quantities = new Map(cards.main);
   if (includeSideboard) {
@@ -133,35 +104,37 @@ export function metaDeckCosts(
   for (const [deckId, cards] of decks) {
     let needed = 0;
     let owned = 0;
-    let value: number | undefined = 0;
-    let toComplete: number | undefined = 0;
+    const valueRows: { price: number | undefined; quantity: number }[] = [];
+    const missingRows: { price: number | undefined; quantity: number }[] = [];
     for (const [cardId, quantity] of scopedQuantities(cards, options.includeSideboard)) {
       const price = options.prices.get(cardId);
       const held = Math.min(quantity, options.ownedByCardId?.get(cardId) ?? 0);
       needed += quantity;
       owned += held;
-      if (price === undefined) {
-        value = undefined;
-      } else if (value !== undefined) {
-        value += price * quantity;
-      }
-      const missing = quantity - held;
-      if (price === undefined && missing > 0) {
-        toComplete = undefined;
-      } else if (toComplete !== undefined && price !== undefined) {
-        toComplete += price * missing;
-      }
+      valueRows.push({ price, quantity });
+      missingRows.push({ price, quantity: quantity - held });
     }
     if (options.partialDeckIds?.has(deckId)) {
-      byDeck.set(deckId, { needed, owned: undefined, value: undefined, toComplete: undefined });
+      byDeck.set(deckId, {
+        needed,
+        owned: undefined,
+        value: undefined,
+        toComplete: undefined,
+        unpriced: 0,
+        unpricedMissing: 0,
+      });
       continue;
     }
     const withCollection = options.ownedByCardId !== undefined;
+    const value = priceTotal(valueRows);
+    const toComplete = priceTotal(missingRows);
     byDeck.set(deckId, {
       needed,
       owned: withCollection ? owned : undefined,
-      value,
-      toComplete: withCollection ? toComplete : undefined,
+      value: value.value,
+      toComplete: withCollection ? toComplete.value : undefined,
+      unpriced: value.unpriced,
+      unpricedMissing: withCollection ? toComplete.unpriced : 0,
     });
   }
   return byDeck;

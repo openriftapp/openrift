@@ -10,13 +10,13 @@ import {
   adminMetaCatalogContract,
   isResumableCheckpoint,
 } from "@openrift/shared/contracts/admin/meta-catalog";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createLogger } from "@openrift/shared/logger";
 import type { InferSchemaOutput } from "@orpc/contract";
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import type { AppError } from "../../../errors.js";
+import { badRequest, conflict } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import {
   PLAYLOLTCG_PROVIDER,
@@ -575,7 +575,7 @@ async function requireMirrored<TKey, TRow extends MirroredEvent, TDeps>(
 }
 
 function alreadyTriaged(): AppError {
-  return new AppError(409, ERROR_CODES.CONFLICT, "This event is already published or dismissed.");
+  return conflict("This event is already published or dismissed.");
 }
 
 async function claimAccept<TRow extends MirroredEvent, TDeps>(
@@ -681,11 +681,7 @@ function fetchHandler<TKeyInput, TKey, TRow extends MirroredEvent, TDeps>(
   return async ({ input, context }: { input: TKeyInput; context: ApiContext }) => {
     const row = await requireMirrored(source, context, source.keyOf(input));
     if (row.metaEventId === null) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Publish this event before collecting its results.",
-      );
+      throw badRequest("Publish this event before collecting its results.");
     }
     return await source.fetchEvent(context, row);
   };

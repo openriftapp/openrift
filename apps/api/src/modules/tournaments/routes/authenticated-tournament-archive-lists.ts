@@ -1,5 +1,4 @@
 import { tournamentArchiveListsContract } from "@openrift/shared/contracts/tournament-archive-lists";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { HOUR_MS } from "@openrift/shared/format-date";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type {
@@ -9,7 +8,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { createMetaSyncDeps } from "../../meta/services/meta-sync/index.js";
@@ -103,7 +102,7 @@ async function buildState(
 
 function requireLinked(tournament: Tournament): string {
   if (tournament.uvsgamesEventId === null) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Link the UVS Games event first.");
+    throw conflict("Link the UVS Games event first.");
   }
   return tournament.uvsgamesEventId;
 }
@@ -139,7 +138,7 @@ export const tournamentArchiveListsRouter = {
     const tournament = await loadManaged(context, input.id);
     const uvsgamesEventId = requireLinked(tournament);
     if (!isCompleted(tournament, new Date())) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Lists can be sent once the tournament ends.");
+      throw conflict("Lists can be sent once the tournament ends.");
     }
 
     const entries =

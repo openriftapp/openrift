@@ -4,6 +4,7 @@ import { z } from "zod/mini";
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { requireSession } from "@/lib/auth-session";
+import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -11,7 +12,7 @@ export const Route = createFileRoute(
   "/_app/contribute_/card_/$cardSlug_/printing_/$printingId_/image",
 )({
   validateSearch: z.object({
-    side: z.optional(
+    side: lenient(
       z.pipe(
         z.transform((value) => (Number(value) === 2 ? 2 : undefined)),
         z.optional(z.literal(2)),

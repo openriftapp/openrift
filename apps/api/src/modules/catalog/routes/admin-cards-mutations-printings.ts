@@ -1,8 +1,7 @@
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -123,7 +122,7 @@ export const adminCardMutationsPrintingsRouter = {
       // Without candidate ids this is de-facto manual printing creation
       // (createPrinting), which the card-review section excludes.
       if (candidatePrintingIds.length === 0) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
+        throw forbidden("Forbidden");
       }
       await assertCandidatePrintingsInScope(
         context.repos.candidateCards,

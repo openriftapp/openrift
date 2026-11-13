@@ -1,7 +1,7 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, conflict } from "../../../errors.js";
 import type { SubmissionWindow } from "../lib/deck-check-deadline.js";
 import {
   changeSummaryFor,
@@ -116,19 +116,13 @@ export async function applyJudgeTransition(
   input: JudgeTransitionInput,
 ): Promise<DeckCheckEntry> {
   if (entry.state === "withdrawn" && input.state !== "submitted") {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "Entry is withdrawn. Restore it to submitted before other changes.",
-    );
+    throw conflict("Entry is withdrawn. Restore it to submitted before other changes.");
   }
 
   const annotations = {
     ...(input.notes === undefined ? {} : { notes: input.notes }),
     ...(input.playerMessage === undefined ? {} : { playerMessage: input.playerMessage }),
   };
-  const conflict = (message: string): AppError => new AppError(409, ERROR_CODES.CONFLICT, message);
-
   switch (input.state) {
     case "approved": {
       if (entry.state !== "submitted") {

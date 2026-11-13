@@ -4,7 +4,7 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { MiddlewareHandler } from "hono";
 
 import type { Repos } from "../deps.js";
-import { AppError } from "../errors.js";
+import { AppError, forbidden } from "../errors.js";
 import type { Variables } from "../types.js";
 import { sectionAllowsRequest } from "./admin-section-paths.js";
 import { resolveSession } from "./load-session.js";
@@ -62,7 +62,7 @@ export const requireAdmin: MiddlewareHandler<{ Variables: Variables }> = async (
       (path === ME_PATH ||
         access.sections.some((section) => sectionAllowsRequest(section, method, path)));
     if (!allowed) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
+      throw forbidden("Forbidden");
     }
   }
 

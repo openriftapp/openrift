@@ -1,6 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
@@ -26,7 +26,7 @@ function PreviewArt({ printing }: { printing: Printing }) {
     return <div className="bg-muted aspect-card w-full rounded-lg" />;
   }
   const src = imageUrl(frontImage.imageId, "400w");
-  const srcSet = `${imageUrl(frontImage.imageId, "120w")} 120w, ${imageUrl(frontImage.imageId, "240w")} 240w, ${imageUrl(frontImage.imageId, "400w")} 400w, ${imageUrl(frontImage.imageId, "full")} 800w`;
+  const srcSet = imageSrcSet(frontImage.imageId);
   if (!rotated) {
     return (
       <img

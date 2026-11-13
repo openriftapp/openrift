@@ -66,7 +66,7 @@ describe("DeckPrintDialog", () => {
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
     expect(fetchImageBlobMock).toHaveBeenCalledWith(
-      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42&size=hq",
+      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42-r2&size=hq",
     );
     expect(fetchImageBlobFromPostMock).not.toHaveBeenCalled();
   });
@@ -87,7 +87,7 @@ describe("DeckPrintDialog", () => {
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
     expect(fetchImageBlobMock).toHaveBeenCalledWith(
-      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42&size=hq&qr=0",
+      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42-r2&size=hq&qr=0",
     );
   });
 

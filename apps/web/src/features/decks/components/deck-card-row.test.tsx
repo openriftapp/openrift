@@ -188,6 +188,20 @@ describe("DeckCardRow", () => {
     return container.querySelector(String.raw`.group\/card`)?.getAttribute("style") ?? "";
   }
 
+  it("names a clickable row for its details, leaving the copy count to the plus and minus buttons", () => {
+    render(
+      <DeckCardRow
+        card={stubDeckBuilderCard({ cardName: "Iron Ballista", quantity: 2 })}
+        onClick={() => {}}
+        onIncrement={() => {}}
+        onDecrement={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "View details for Iron Ballista" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add one copy of Iron Ballista" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove one copy of Iron Ballista" })).toBeTruthy();
+  });
+
   it("tints the row in its domain colour", () => {
     expect(rowStyle(renderRow().container)).toContain("background-color");
   });

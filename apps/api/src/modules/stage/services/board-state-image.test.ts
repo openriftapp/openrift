@@ -3,16 +3,14 @@ import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state
 import { describe, expect, it } from "vitest";
 
 import { defaultIo } from "../../../io.js";
+import { textsOf } from "../../../test/share-image-tree.js";
 import {
+  boardStateTree,
   chainEntryText,
   keywordsFit,
-  measurePieceHeight,
-  pieceNumerals,
   pieceText,
-  piecesIn,
+  readableBadges,
   renderBoardStateImage,
-  seatSlots,
-  seatsFor,
 } from "./board-state-image.js";
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -52,101 +50,10 @@ const allZones = {
   score: true,
 };
 
-describe("seatsFor", () => {
-  it("seats B on top and A at the bottom for two players", () => {
-    expect(seatsFor(2)).toEqual({ top: ["B"], bottom: ["A"] });
-  });
-
-  it("adds C to the bottom for three players", () => {
-    expect(seatsFor(3)).toEqual({ top: ["B"], bottom: ["A", "C"] });
-  });
-
-  it("adds D to the top for four players", () => {
-    expect(seatsFor(4)).toEqual({ top: ["B", "D"], bottom: ["A", "C"] });
-  });
-});
-
-describe("seatSlots", () => {
-  it("runs the top seat's row in the opposite direction", () => {
-    expect(seatSlots(doc({ zones: allZones }))).toEqual([
-      "runeDeck",
-      "runes",
-      "champion",
-      "legend",
-      "base",
-      "deck",
-      "trash",
-      "banishment",
-    ]);
-  });
-
-  it("drops hidden zones and both decks, and never seats the hand", () => {
-    const document = doc({
-      zones: {
-        ...allZones,
-        runes: false,
-        trash: false,
-        champion: false,
-        deck: false,
-        banishment: false,
-      },
-    });
-    expect(seatSlots(document)).toEqual(["legend", "base"]);
-  });
-});
-
-describe("pieceNumerals", () => {
-  it("numbers only the pieces that share a name", () => {
-    const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Ashe" };
-    const numerals = pieceNumerals([
-      piece({ id: "p1", card }),
-      piece({ id: "p2", card: { ...card, name: "Vi" } }),
-      piece({ id: "p3", card }),
-    ]);
-    expect([...numerals]).toEqual([
-      ["p1", 1],
-      ["p3", 2],
-    ]);
-  });
-});
-
-describe("piecesIn", () => {
-  const pieces = [
-    piece({ id: "p1", owner: "A", zone: { kind: "battlefield", index: 0 } }),
-    piece({ id: "p2", owner: "B", zone: { kind: "battlefield", index: 0 } }),
-    piece({ id: "p3", owner: "A", zone: { kind: "battlefield", index: 1 } }),
-    piece({ id: "p4", owner: "A", zone: { kind: "hand" } }),
-  ];
-
-  it("filters battlefield pieces by index and owner", () => {
-    expect(
-      piecesIn(pieces, { kind: "battlefield", index: 0 }, ["A"]).map((found) => found.id),
-    ).toEqual(["p1"]);
-  });
-
-  it("matches player zones by kind", () => {
-    expect(piecesIn(pieces, { kind: "hand" }, ["A", "B"]).map((found) => found.id)).toEqual(["p4"]);
-  });
-
-  it("keeps a battlefield's facedown zone apart from the battlefield and from other facedown zones", () => {
-    const hidden = [
-      ...pieces,
-      piece({ id: "p5", zone: { kind: "facedown", index: 0 }, facedown: true }),
-      piece({ id: "p6", zone: { kind: "facedown", index: 1 }, facedown: true }),
-    ];
-    expect(
-      piecesIn(hidden, { kind: "facedown", index: 0 }, ["A"]).map((found) => found.id),
-    ).toEqual(["p5"]);
-    expect(
-      piecesIn(hidden, { kind: "battlefield", index: 0 }, ["A"]).map((found) => found.id),
-    ).toEqual(["p1"]);
-  });
-});
-
 describe("chainEntryText", () => {
   const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Yasuo, Remorseful" };
 
-  it("prefers the label, then the card, then the source piece's card, then the type", () => {
+  it("prefers the label, then the card, then the source piece's card, then the type label", () => {
     const source = piece({ id: "p1", card });
     expect(
       chainEntryText(
@@ -161,33 +68,30 @@ describe("chainEntryText", () => {
       chainEntryText({ id: "c1", owner: "A", type: "triggered", source: "p1" }, [source]),
     ).toBe("Yasuo, Remorseful");
     expect(chainEntryText({ id: "c1", owner: "A", type: "activated", source: "p9" }, [])).toBe(
-      "activated",
+      "Activated ability",
     );
   });
 });
 
 describe("pieceText", () => {
-  it("prefers the card name, then the label, then the piece kind", () => {
+  it("names a piece by its card, else by its kind label, never by its badge label", () => {
     const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Jinx" };
     expect(pieceText(piece({ card, label: "x" }), 20)).toBe("Jinx");
-    expect(pieceText(piece({ label: "Token" }), 20)).toBe("Token");
-    expect(pieceText(piece(), 20)).toBe("unit");
+    expect(pieceText(piece({ label: "Copy" }), 20)).toBe("Unit");
+    expect(pieceText(piece({ kind: "token" }), 20)).toBe("Token");
   });
 });
 
-describe("measurePieceHeight", () => {
-  it("clamps to the minimum when many rows share a short board", () => {
-    const document = doc({ zones: allZones, battlefields: [{ card: null }] });
-    expect(measurePieceHeight(document, 100)).toBe(24);
+describe("readableBadges", () => {
+  it("keeps a tag that fits and elides one that keeps five letters", () => {
+    expect(readableBadges(piece({ label: "Copy", keywords: ["Deflect"] }), 6)).toEqual([
+      "Copy",
+      "Defle…",
+    ]);
   });
 
-  it("clamps to the maximum when the board is nearly empty", () => {
-    expect(
-      measurePieceHeight(
-        doc({ zones: { ...allZones, runes: false, hand: false, trash: false } }),
-        2000,
-      ),
-    ).toBe(72);
+  it("drops a tag that would shrink below a recognisable stem", () => {
+    expect(readableBadges(piece({ label: "Hidden", keywords: ["Tank"] }), 4)).toEqual(["Tank"]);
   });
 });
 
@@ -251,5 +155,41 @@ describe("renderBoardStateImage", () => {
     const meta = await defaultIo.sharp(png).metadata();
     expect(meta.width).toBe(1200);
     expect(meta.height).toBe(630);
+  });
+});
+
+describe("boardStateTree", () => {
+  const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Fury Rune" };
+  const document = doc({
+    zones: allZones,
+    steps: [
+      {
+        ...emptyBoardStep(2),
+        pieces: [
+          piece({ id: "r1", kind: "rune", zone: { kind: "runes" }, card }),
+          piece({ id: "r2", kind: "rune", zone: { kind: "runes" }, card }),
+        ],
+      },
+    ],
+  });
+
+  it("never numbers runes that share a name", () => {
+    const texts = textsOf(boardStateTree({ title: "Lethal", document }));
+    expect(texts.filter((text) => text === "1" || text === "2")).toEqual([]);
+  });
+
+  it("captions a seat zone with the owner first", () => {
+    const texts = textsOf(boardStateTree({ title: "Lethal", document }));
+    expect(texts).toContain("A · Runes");
+    expect(texts).toContain("B · Hand");
+  });
+
+  it("names the owner when there is one and omits the byline otherwise", () => {
+    expect(textsOf(boardStateTree({ title: "Lethal", ownerName: "Poro", document }))).toContain(
+      "by Poro",
+    );
+    expect(
+      textsOf(boardStateTree({ title: "Lethal", document })).some((text) => text.startsWith("by ")),
+    ).toBe(false);
   });
 });

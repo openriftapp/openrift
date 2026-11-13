@@ -1,4 +1,4 @@
-import { copyLimitFor, RUNE_TARGET } from "@openrift/shared/deck-rules";
+import { copyLimitFor } from "@openrift/shared/deck-rules";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -6,10 +6,10 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
-  canAddRune,
   COPY_LIMIT_ZONES,
   copyLimitTotal,
-  getDeckCardKey,
+  deckCardKey,
+  runeAddRoom,
 } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
@@ -34,19 +34,14 @@ export const NO_ADD_ROOM: ReadonlyMap<string, number> = new Map();
 export function buildAddRoom(cards: DeckBuilderCard[], format: DeckFormat): Map<string, number> {
   const room = new Map<string, number>();
   const freeform = format === WellKnown.deckFormat.FREEFORM;
-  const runeTotal = cards.reduce(
-    (sum, card) => (card.zone === WellKnown.deckZone.RUNES ? sum + card.quantity : sum),
-    0,
-  );
   for (const card of cards) {
-    const key = getDeckCardKey(card);
+    const key = deckCardKey(card);
     if (freeform || !STEPPER_ZONES.has(card.zone)) {
       room.set(key, Number.POSITIVE_INFINITY);
       continue;
     }
     if (card.zone === WellKnown.deckZone.RUNES) {
-      // canAddRune still allows a one-copy swap at the rune target on a two-domain legend.
-      room.set(key, canAddRune(card, cards) ? Math.max(1, RUNE_TARGET - runeTotal) : 0);
+      room.set(key, runeAddRoom(card, cards));
       continue;
     }
     if (COPY_LIMIT_ZONES.has(card.zone)) {
@@ -76,7 +71,7 @@ export function buildPriceTexts(
         ? priceMap.get(owned.id, marketplace)
         : (entry?.cheapestPrice ?? entry?.displayPrice);
     if (cents !== undefined) {
-      texts.set(getDeckCardKey(card), fmtPrice(cents));
+      texts.set(deckCardKey(card), fmtPrice(cents));
     }
   }
   return texts;

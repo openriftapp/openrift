@@ -4,11 +4,13 @@ import { describe, expect, it } from "vitest";
 import {
   metaLegendCountries,
   metaScopedCountries,
-  nextLegendSort,
+  LEGEND_SORT_DESCENDING_FIRST,
   searchMetaLegendEntries,
   sortMetaLegendEntries,
 } from "@/features/meta/lib/meta-legend-page";
 import { ERA_ALL } from "@/features/meta/lib/meta-scope";
+
+import { nextIndexSort } from "./meta-index-sort";
 
 type FinishOverrides = Partial<Omit<MetaLegendFinish, "event">> & {
   event?: Partial<MetaLegendFinish["event"]>;
@@ -211,9 +213,11 @@ describe("sortMetaLegendEntries", () => {
   });
 });
 
-describe("nextLegendSort", () => {
+describe("nextIndexSort with LEGEND_SORT_DESCENDING_FIRST", () => {
   it("flips the direction on the active column", () => {
-    expect(nextLegendSort({ sort: "name", direction: "asc" }, "name")).toEqual({
+    expect(
+      nextIndexSort({ sort: "name", direction: "asc" }, "name", LEGEND_SORT_DESCENDING_FIRST),
+    ).toEqual({
       sort: "name",
       direction: "desc",
     });
@@ -221,8 +225,17 @@ describe("nextLegendSort", () => {
 
   it("starts a new column at its most interesting order", () => {
     const from = { sort: "name", direction: "asc" } as const;
-    expect(nextLegendSort(from, "best")).toEqual({ sort: "best", direction: "asc" });
-    expect(nextLegendSort(from, "decklists")).toEqual({ sort: "decklists", direction: "desc" });
-    expect(nextLegendSort(from, "finishes")).toEqual({ sort: "finishes", direction: "desc" });
+    expect(nextIndexSort(from, "best", LEGEND_SORT_DESCENDING_FIRST)).toEqual({
+      sort: "best",
+      direction: "asc",
+    });
+    expect(nextIndexSort(from, "decklists", LEGEND_SORT_DESCENDING_FIRST)).toEqual({
+      sort: "decklists",
+      direction: "desc",
+    });
+    expect(nextIndexSort(from, "finishes", LEGEND_SORT_DESCENDING_FIRST)).toEqual({
+      sort: "finishes",
+      direction: "desc",
+    });
   });
 });

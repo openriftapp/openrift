@@ -117,6 +117,7 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
         recordedAt: new Date("2026-03-15T10:00:00Z"),
         marketCents: 350,
         lowCents: 200,
+        zeroLowCents: null,
         midCents: 280,
         highCents: 500,
         trendCents: null,

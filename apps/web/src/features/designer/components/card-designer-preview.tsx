@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { backgroundLayout, buildAttribution } from "@/features/designer/lib/card-designer";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
+import { getSiteHost } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 interface DragState {
@@ -112,7 +113,7 @@ export function CardDesignerPreview({
         flavorText={card.flavorText || null}
         rarity={card.rarity ?? undefined}
         publicCode={card.publicCode || undefined}
-        artist={buildAttribution(card.artist, showAttribution)}
+        artist={buildAttribution(card.artist, showAttribution ? getSiteHost() : null)}
         backgroundImageUrl={background.dataUrl ?? undefined}
         backgroundImageStyle={backgroundImageStyle}
         tintIcons={forExport}

@@ -1,3 +1,4 @@
+import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
@@ -35,11 +36,6 @@ const PRICE_EXCLUDED_SET = {
 export interface LoadedIgnoredKeys {
   productIds: Set<number>;
   variantKeys: Set<string>;
-}
-
-/** Cardmarket and TCGPlayer store NULL language; CT stores the real language. */
-export function skuKey(externalId: number, finish: string, language: string | null): string {
-  return `${externalId}::${finish}::${language ?? ""}`;
 }
 
 export function priceRefreshRepo(db: Db) {
@@ -259,19 +255,17 @@ export function priceRefreshRepo(db: Db) {
         )
         .execute();
 
-      // Keyed with the marketplace, unlike `skuKey`: two marketplaces can hand
-      // out the same external id, which would otherwise collapse onto one key.
-      const productKey = (v: {
-        marketplace: Marketplace;
-        externalId: number;
-        finish: string;
-        language: string | null;
-      }): string => `${v.marketplace}::${skuKey(v.externalId, v.finish, v.language)}`;
-
-      const productIdByKey = new Map(products.map((p) => [productKey(p), p.id]));
+      const productIdByKey = new Map(
+        products.map((p) => [
+          marketplaceSkuKey(p.marketplace, p.externalId, p.finish, p.language),
+          p.id,
+        ]),
+      );
 
       const variantRows = values.map((v) => {
-        const productId = productIdByKey.get(productKey(v));
+        const productId = productIdByKey.get(
+          marketplaceSkuKey(v.marketplace, v.externalId, v.finish, v.language),
+        );
         if (!productId) {
           throw new Error(
             `batchInsertProductVariants: missing product id for ${v.marketplace} ${v.externalId} ${v.finish}/${v.language ?? "NULL"}`,

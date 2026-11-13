@@ -724,7 +724,7 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       ])
       .execute();
     const values = await marketplacePricesRepo(db).deckValues(USER_ID, "cardtrader", []);
-    expect(values.get(deck!.id)).toBe(200);
+    expect(values.get(deck!.id)?.totalValueCents).toBe(200);
 
     await db
       .updateTable("cards")

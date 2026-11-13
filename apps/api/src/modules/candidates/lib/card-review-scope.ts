@@ -1,6 +1,4 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
-import { AppError } from "../../../errors.js";
+import { forbidden } from "../../../errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { providerSettingsRepo } from "../../marketplace/repositories/provider-settings.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
@@ -28,7 +26,7 @@ export function assertProvidersInScope(
   }
   for (const provider of providers) {
     if (!scope.has(provider)) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
+      throw forbidden("Forbidden");
     }
   }
 }
@@ -41,7 +39,7 @@ export function assertSomeProviderInScope(
     return;
   }
   if (!providers.some((provider) => scope.has(provider))) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
+    throw forbidden("Forbidden");
   }
 }
 

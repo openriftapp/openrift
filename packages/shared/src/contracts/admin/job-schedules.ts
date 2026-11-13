@@ -1,4 +1,4 @@
-import { JOB_STATUSES } from "@openrift/shared/job-run-kinds";
+import { JOB_KIND, JOB_STATUSES } from "@openrift/shared/job-run-kinds";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
@@ -15,13 +15,13 @@ export const SCHEDULED_JOB_KINDS = [
   "cardtrader.refresh",
   "cardnexus.refresh",
   "discord.post_changelog",
-  "discord.flush_printing_events",
+  JOB_KIND.flushPrintingEvents,
   "job_runs.cleanup",
   "submission_uploads.sweep",
   "copy_deletions.sweep",
   "images.fingerprint",
   "images.rehost_retry",
-  "candidates.check_matching",
+  JOB_KIND.checkMatching,
   "card_trades.expire_pending",
   "email.trade_match_digest",
   "email.flush_trade_requests",
@@ -34,7 +34,7 @@ export const SCHEDULED_JOB_KINDS = [
   "meta.playriftbound_sync",
   "meta.playriftbound_recheck",
   "meta.infer_slots",
-  "scan.rebuild_bank",
+  JOB_KIND.rebuildScanBank,
 ] as const;
 
 export const scheduledJobKindSchema = z.enum(SCHEDULED_JOB_KINDS);

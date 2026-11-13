@@ -67,6 +67,27 @@ export function adminEventsRepo(db: Kysely<Database>) {
   }
 
   return {
+    async insertMany(events: readonly AdminEventInsert[]): Promise<void> {
+      if (events.length === 0) {
+        return;
+      }
+      await db
+        .insertInto("adminEvents")
+        .values(
+          events.map((event) => ({
+            actorUserId: event.actorUserId,
+            action: event.action,
+            entityType: event.entityType,
+            entityId: event.entityId ?? null,
+            entityLabel: event.entityLabel ?? null,
+            cardSlug: event.cardSlug ?? null,
+            oldValues: event.oldValues ?? null,
+            newValues: event.newValues ?? null,
+          })),
+        )
+        .execute();
+    },
+
     async insert(event: AdminEventInsert): Promise<void> {
       await db
         .insertInto("adminEvents")

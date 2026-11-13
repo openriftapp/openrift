@@ -1,5 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -40,7 +40,7 @@ function SetCover({ set }: { set: SetListEntry }) {
         {/* fallback null: the spacer above already matches the no-cover tile. */}
         <ImgWithFallback
           src={imageUrl(set.coverImageId, "400w")}
-          srcSet={`${imageUrl(set.coverImageId, "400w")} 400w, ${imageUrl(set.coverImageId, "full")} 800w`}
+          srcSet={imageSrcSet(set.coverImageId, ["400w", "full"])}
           sizes="144px"
           alt={set.name}
           loading="lazy"

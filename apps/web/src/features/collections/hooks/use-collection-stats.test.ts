@@ -86,7 +86,6 @@ describe("computeCollectionStats", () => {
     expect(stats.totalCopies).toBe(0);
     expect(stats.uniqueCards).toBe(0);
     expect(stats.uniquePrintings).toBe(0);
-    expect(stats.completionPercent).toBe(0);
     expect(stats.domainDistribution).toEqual([]);
     expect(stats.energyCurve).toEqual([]);
     expect(stats.powerCurve).toEqual([]);
@@ -129,7 +128,6 @@ describe("computeCollectionStats", () => {
     expect(stats.totalCopies).toBe(3);
     expect(stats.uniqueCards).toBe(1);
     expect(stats.uniquePrintings).toBe(1);
-    expect(stats.completionPercent).toBeCloseTo((1 / 50) * 100);
     expect(stats.totalCardsInGame).toBe(50);
   });
 
@@ -253,18 +251,27 @@ describe("computeCollectionStats", () => {
     ]);
   });
 
-  it("handles zero total cards without NaN", () => {
+  it("counts a unit without power as 0 and leaves runes out of power stats", () => {
     const stats = computeCollectionStats({
-      stacks: [],
-      totalCopies: 0,
-      sets: [],
+      stacks: [
+        stubStack({
+          copyCount: 2,
+          card: { slug: "poro", domains: ["fury"] as Domain[], types: ["unit"], power: null },
+        }),
+        stubStack({
+          copyCount: 12,
+          card: { slug: "fury-rune", domains: ["fury"] as Domain[], types: ["rune"], power: null },
+        }),
+      ],
+      totalCopies: 14,
+      sets: [stubSet()],
       prices: EMPTY_PRICE_LOOKUP,
       marketplace: "tcgplayer",
       orders: ORDERS,
     });
 
-    expect(stats.completionPercent).toBe(0);
-    expect(Number.isNaN(stats.completionPercent)).toBe(false);
+    expect(stats.powerCurve).toEqual([{ power: "0", fury: 2 }]);
+    expect(stats.averagePower).toBe(0);
   });
 });
 

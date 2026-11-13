@@ -3,6 +3,7 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { toIgnoredProductResponse } from "../lib/ignored-product-presenters.js";
 
 const os = implement(adminIgnoredProductsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -40,6 +41,15 @@ export const adminIgnoredProductsRouter = {
 
       if (values.length > 0) {
         await mktAdmin.insertIgnoredProducts(values);
+        await recordAdminEvent(context.repos, context.userId, {
+          action: "marketplace-product.ignore",
+          entityType: "marketplace-product",
+          entityId: input.marketplace,
+          newValues: {
+            marketplace: input.marketplace,
+            externalIds: values.map((value) => value.externalId),
+          },
+        });
       }
       return { ignored: values.length };
     }
@@ -56,6 +66,19 @@ export const adminIgnoredProductsRouter = {
 
     if (values.length > 0) {
       await mktAdmin.insertIgnoredVariants(values);
+      await recordAdminEvent(context.repos, context.userId, {
+        action: "marketplace-variant.ignore",
+        entityType: "marketplace-variant",
+        entityId: input.marketplace,
+        newValues: {
+          marketplace: input.marketplace,
+          variants: values.map(({ externalId, finish, language }) => ({
+            externalId,
+            finish,
+            language,
+          })),
+        },
+      });
     }
     return { ignored: values.length };
   }),
@@ -64,21 +87,29 @@ export const adminIgnoredProductsRouter = {
     const { marketplaceAdmin: mktAdmin } = context.repos;
 
     if (input.level === "product") {
-      const deleted = await mktAdmin.deleteIgnoredProducts(
-        input.marketplace,
-        input.products.map((p) => p.externalId),
-      );
+      const externalIds = input.products.map((p) => p.externalId);
+      const deleted = await mktAdmin.deleteIgnoredProducts(input.marketplace, externalIds);
+      await recordAdminEvent(context.repos, context.userId, {
+        action: "marketplace-product.unignore",
+        entityType: "marketplace-product",
+        entityId: input.marketplace,
+        oldValues: { marketplace: input.marketplace, externalIds },
+      });
       return { unignored: deleted };
     }
 
-    const deleted = await mktAdmin.deleteIgnoredVariants(
-      input.marketplace,
-      input.products.map((p) => ({
-        externalId: p.externalId,
-        finish: p.finish,
-        language: p.language,
-      })),
-    );
+    const variants = input.products.map((p) => ({
+      externalId: p.externalId,
+      finish: p.finish,
+      language: p.language,
+    }));
+    const deleted = await mktAdmin.deleteIgnoredVariants(input.marketplace, variants);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "marketplace-variant.unignore",
+      entityType: "marketplace-variant",
+      entityId: input.marketplace,
+      oldValues: { marketplace: input.marketplace, variants },
+    });
     return { unignored: deleted };
   }),
 };

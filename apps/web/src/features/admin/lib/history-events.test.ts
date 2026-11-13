@@ -22,6 +22,18 @@ describe("historyKind", () => {
     expect(historyKind("provider.delete-candidates")).toBe("sources");
     expect(historyKind("ban.add")).toBe("edits");
   });
+
+  it("files marketplace listing and source-setting changes under sources", () => {
+    expect(historyKind("marketplace-variant.map")).toBe("sources");
+    expect(historyKind("marketplace.clear-prices")).toBe("sources");
+    expect(historyKind("provider-setting.update")).toBe("sources");
+  });
+
+  it("describes a marketplace listing link in words", () => {
+    expect(historySentence(makeAuditEvent({ action: "marketplace-variant.map" }))).toBe(
+      "Linked a marketplace listing to a printing",
+    );
+  });
 });
 
 describe("historySentence", () => {

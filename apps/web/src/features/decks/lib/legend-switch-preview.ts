@@ -64,10 +64,8 @@ function incrementOrInsert(
   zone: DeckZone,
   quantity: number,
 ): DeckBuilderCard[] {
-  const key = deckCardKey(card.cardId, zone, null);
-  const existing = cards.find(
-    (entry) => deckCardKey(entry.cardId, entry.zone, entry.preferredPrintingId) === key,
-  );
+  const key = deckCardKey({ cardId: card.cardId, zone, preferredPrintingId: null });
+  const existing = cards.find((entry) => deckCardKey(entry) === key);
   if (existing) {
     return cards.map((entry) =>
       entry === existing ? { ...entry, quantity: entry.quantity + quantity } : entry,
@@ -104,12 +102,12 @@ function autoPopulateRunes(
   return [...entries.values()];
 }
 
-/** Mirrors `setLegendAction` with `refill: true` and no Overflow move, on a plain array. */
-export function simulateLegendSwitch(
+export function legendSwitchCards(
   cards: DeckBuilderCard[],
   legend: DeckBuilderCard,
   runesByDomain: Map<string, DeckBuilderCard[]>,
   format: DeckFormat,
+  options: { refill: boolean },
 ): DeckBuilderCard[] {
   if (format === WellKnown.deckFormat.FREEFORM) {
     const existing = cards.find(
@@ -136,6 +134,9 @@ export function simulateLegendSwitch(
 
   const hasRunes = after.some((card) => card.zone === WellKnown.deckZone.RUNES);
   if (hasRunes) {
+    if (!options.refill) {
+      return after;
+    }
     for (const [domain, quantity] of runeRefillPlan(after, legend.domains)) {
       const [catalogRune] = runesByDomain.get(domain) ?? [];
       if (catalogRune) {
@@ -182,7 +183,7 @@ export function previewLegendSwitch(
   runesByDomain: Map<string, DeckBuilderCard[]>,
   context: LegendSwitchContext,
 ): LegendSwitchPreview {
-  const after = simulateLegendSwitch(cards, legend, runesByDomain, context.format);
+  const after = legendSwitchCards(cards, legend, runesByDomain, context.format, { refill: true });
   const validate = (deck: DeckBuilderCard[]) =>
     validateDeck({
       format: context.format,

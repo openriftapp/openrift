@@ -9,6 +9,24 @@ export function imageUrl(imageId: string, variant: ImageVariant): string {
   return `/media/cards/${imageId}-${variant}.webp`;
 }
 
+const IMAGE_VARIANT_WIDTH: Record<ImageVariant, number> = {
+  "120w": 120,
+  "240w": 240,
+  "400w": 400,
+  full: 800,
+};
+
+const ALL_VARIANTS: readonly ImageVariant[] = ["120w", "240w", "400w", "full"];
+
+export function imageSrcSet(
+  imageId: string,
+  variants: readonly ImageVariant[] = ALL_VARIANTS,
+): string {
+  return variants
+    .map((variant) => `${imageUrl(imageId, variant)} ${IMAGE_VARIANT_WIDTH[variant]}w`)
+    .join(", ");
+}
+
 /** Directory prefix under `media/cards/`: the id's last 2 hex chars, matching the rehoster's on-disk layout. */
 export function imageShardDir(imageId: string): string {
   return imageId.slice(-2);

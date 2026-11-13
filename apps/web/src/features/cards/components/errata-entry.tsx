@@ -2,7 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ErrataEntry as ErrataEntryData } from "@openrift/shared/contracts/errata";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
@@ -77,7 +77,7 @@ export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: Err
         {entry.printing?.imageId ? (
           <ImgWithFallback
             src={imageUrl(entry.printing.imageId, "240w")}
-            srcSet={`${imageUrl(entry.printing.imageId, "240w")} 240w, ${imageUrl(entry.printing.imageId, "400w")} 400w`}
+            srcSet={imageSrcSet(entry.printing.imageId, ["240w", "400w"])}
             sizes="96px"
             alt=""
             loading="lazy"

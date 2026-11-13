@@ -8,10 +8,9 @@ import type {
   WorkspaceSameDifferenceInput,
   WorkspaceSameDifferenceResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace-bulk";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { assertProvidersInScope, reviewableProviderScope } from "../lib/card-review-scope.js";
@@ -25,7 +24,7 @@ function parseValue(raw: string): unknown {
   try {
     return JSON.parse(raw) as unknown;
   } catch {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Invalid value");
+    throw badRequest("Invalid value");
   }
 }
 

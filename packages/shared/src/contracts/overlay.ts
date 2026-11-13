@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { OVERLAY_SCALE } from "../overlay-scale.js";
 import { authedRoute } from "./_base.js";
 import { tierRowSchema } from "./tier-lists.js";
 
@@ -41,7 +42,7 @@ export const overlayPayloadSchema = z.object({
   plateFields: overlayPlateFieldsSchema,
   qrUrl: z.url().max(2000).nullable(),
   corner: overlayCornerSchema,
-  scale: z.number().int().min(20).max(100),
+  scale: z.number().int().min(OVERLAY_SCALE.min).max(OVERLAY_SCALE.max),
 });
 
 export const overlayStateResponseSchema = z.object({
@@ -63,7 +64,7 @@ const overlayDressingShape = {
   plateFields: overlayPlateFieldsSchema.partial().optional(),
   qrUrl: z.url().max(2000).nullish(),
   corner: overlayCornerSchema.optional(),
-  scale: z.number().int().min(20).max(100).optional(),
+  scale: z.number().int().min(OVERLAY_SCALE.min).max(OVERLAY_SCALE.max).optional(),
 };
 
 export const overlayPushSchema = z.object({

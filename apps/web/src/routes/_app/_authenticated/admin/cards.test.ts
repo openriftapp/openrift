@@ -30,7 +30,11 @@ describe("/admin/cards search", () => {
     });
   });
 
-  it("rejects an unknown tab", () => {
-    expect(() => validateSearch.parse({ tab: "nonsense" })).toThrow();
+  it("falls back to the default tab and keeps the rest of the search", () => {
+    expect(validateSearch.parse({ tab: "nonsense", q: "jinx" })).toEqual({ q: "jinx" });
+  });
+
+  it("keeps an all-number query the router parsed as a number", () => {
+    expect(validateSearch.parse({ q: 123 })).toEqual({ q: "123" });
   });
 });

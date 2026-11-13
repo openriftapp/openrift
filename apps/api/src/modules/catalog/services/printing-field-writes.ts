@@ -1,13 +1,13 @@
 import type { AcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
 import { printingFieldRules } from "@openrift/shared/db-field-rules";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 import type { ReleasePrecision, SetRelease } from "@openrift/shared/set-release";
 import { normalizeToPeriodStart, parseReleaseInput } from "@openrift/shared/set-release";
 import { z } from "zod";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import type { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { asFieldWriteError, validateFieldValue } from "../lib/field-values.js";
 import { updatePrintingDistributionChannels, updatePrintingMarkers } from "./printing-admin.js";
@@ -50,7 +50,7 @@ const releasePairSchema = z.object({
 });
 
 function invalidRelease(message: string): AppError {
-  return new AppError(400, ERROR_CODES.BAD_REQUEST, message);
+  return badRequest(message);
 }
 
 /** A bare date keeps the printing's precision. Both columns are written together because

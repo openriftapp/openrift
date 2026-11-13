@@ -31,7 +31,7 @@ describe("deckListSearchSchema", () => {
 
   it("drops wrongly-typed values instead of throwing", () => {
     const parsed = deckListSearchSchema.parse({
-      search: 42,
+      search: true,
       domains: "fury",
       archived: "yes",
     });

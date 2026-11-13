@@ -26,13 +26,18 @@ export function cardHoverProps(
   };
 }
 
-export function rowActivateProps(onActivate?: () => void): React.HTMLAttributes<HTMLElement> {
+/** Pass `label` when the row holds its own buttons, or their labels become the row's name. */
+export function rowActivateProps(
+  onActivate?: () => void,
+  label?: string,
+): React.HTMLAttributes<HTMLElement> {
   if (!onActivate) {
     return {};
   }
   return {
     role: "button",
     tabIndex: 0,
+    "aria-label": label,
     onClick: onActivate,
     onKeyDown: (event) => {
       // Ignores keydowns bubbled from a nested control (tick, menu) to avoid double-activating the row.

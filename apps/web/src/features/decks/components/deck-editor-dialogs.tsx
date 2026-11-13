@@ -160,7 +160,7 @@ export function DeckEditorDialogs({
           open={open.missing}
           onOpenChange={(next) => setDialogOpen("missing", next)}
           missingCards={ownershipData.missingCards}
-          totalMissingValue={ownershipData.missingValueCents}
+          totalMissingValue={ownershipData.missingValue}
           marketplace={marketplace}
           deckName={deck.name}
         />

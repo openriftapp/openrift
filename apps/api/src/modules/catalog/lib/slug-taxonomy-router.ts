@@ -1,8 +1,7 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertFound, assertSlugAvailable, assertValidReorder } from "../../../lib/assertions.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import type { SlugTaxonomyRepo, SlugTaxonomyTable } from "../repositories/slug-taxonomy.js";
@@ -97,15 +96,11 @@ export function createKeyedTaxonomyHandlers<Row, Key extends TaxonomyKeyColumn>(
       assertFound(existing, notFoundMessage(key));
 
       if (guardWellKnown && (existing as { isWellKnown: boolean }).isWellKnown) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, `Cannot delete a well-known ${entityLower}`);
+        throw conflict(`Cannot delete a well-known ${entityLower}`);
       }
 
       if (await repoOf(context).isInUse(key)) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          `Cannot delete: ${entityLower} is in use by ${inUseBy}`,
-        );
+        throw conflict(`Cannot delete: ${entityLower} is in use by ${inUseBy}`);
       }
 
       await deleteByKey(context, key);

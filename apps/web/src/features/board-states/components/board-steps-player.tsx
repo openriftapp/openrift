@@ -10,7 +10,7 @@ import { BoardCaptionText } from "@/features/board-states/components/board-capti
 import { cardImageId } from "@/features/board-states/components/board-card-parts";
 import { BoardView } from "@/features/board-states/components/board-view";
 import { CHAIN_TYPE_LABEL, chainEntryLabel } from "@/features/board-states/lib/board-labels";
-import { longestChain } from "@/features/board-states/lib/board-layout";
+import { longestChain } from "@/features/board-states/lib/board-rules";
 import { CARD_CORNER_STYLE, PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCardHoverPreview } from "@/features/rules/components/rule-card-preview";

@@ -3,10 +3,9 @@ import {
   adminMetaCatalogContract,
   isCatalogCheckpoint,
 } from "@openrift/shared/contracts/admin/meta-catalog";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { AppError, badRequest, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -195,11 +194,7 @@ export const adminMetaCatalogRouter = {
     if (input.mappedFormat !== null) {
       const known = await context.repos.deckFormats.getBySlug(input.mappedFormat);
       if (!known) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          `Unknown deck format "${input.mappedFormat}"`,
-        );
+        throw badRequest(`Unknown deck format "${input.mappedFormat}"`);
       }
     }
     const existing = await context.repos.uvsgamesEvents.formatByName(input.sourceFormat);
@@ -305,7 +300,7 @@ export const adminMetaCatalogRouter = {
     const { source, job } = input;
     const kind = CANCELLABLE_KINDS[`${source}:${job}`];
     if (kind === undefined) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, `${source} runs no ${job}`);
+      throw badRequest(`${source} runs no ${job}`);
     }
     const running = await context.repos.jobRuns.getRunning(kind);
     assertFound(running, `No ${job} is running`);
@@ -316,11 +311,7 @@ export const adminMetaCatalogRouter = {
       if (!isCatalogCheckpoint(current)) {
         // The crawl has not written its first heartbeat yet to read the flag
         // out of. A retry in a few seconds lands.
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          "Job is still initializing. Try again shortly.",
-        );
+        throw conflict("Job is still initializing. Try again shortly.");
       }
     }
     await context.repos.jobRuns.requestCancel(running.id);

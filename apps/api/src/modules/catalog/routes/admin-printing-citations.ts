@@ -1,9 +1,8 @@
 import { adminPrintingCitationsContract } from "@openrift/shared/contracts/admin/printing-citations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { AdminPrintingCitation } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -47,11 +46,7 @@ async function assertCitationAuthor(
   if (editable.has(citationId)) {
     return;
   }
-  throw new AppError(
-    403,
-    ERROR_CODES.FORBIDDEN,
-    "Only the admin can change a link you did not add",
-  );
+  throw forbidden("Only the admin can change a link you did not add");
 }
 
 /**
@@ -60,7 +55,7 @@ async function assertCitationAuthor(
  */
 function asDuplicateLinkConflict(error: unknown): unknown {
   if (isUniqueViolationOn(error, "uq_printing_citations_url")) {
-    return new AppError(409, ERROR_CODES.CONFLICT, "That link is already cited on this printing.");
+    return conflict("That link is already cited on this printing.");
   }
   return error;
 }

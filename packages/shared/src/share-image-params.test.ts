@@ -7,6 +7,7 @@ import {
   qrFromQuery,
   scaleFromQuery,
   shareImageQueryParams,
+  shareImageVersionParam,
 } from "./share-image-params.js";
 
 describe("shareImageQueryParams", () => {
@@ -124,5 +125,12 @@ describe("deckImageBodySchema", () => {
   it("rejects missing cards or a card without a zone", () => {
     expect(deckImageBodySchema.safeParse({}).success).toBe(false);
     expect(deckImageBodySchema.safeParse({ cards: [{ cardId: "c" }] }).success).toBe(false);
+  });
+});
+
+describe("shareImageVersionParam", () => {
+  it("adds the renderer revision to the content version", () => {
+    expect(shareImageVersionParam(42)).toBe("42-r2");
+    expect(shareImageVersionParam("1700-3")).toBe("1700-3-r2");
   });
 });

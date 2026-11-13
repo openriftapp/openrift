@@ -27,12 +27,19 @@ const mockMarketplaceMapping = {
   pricesByMarketplace: vi.fn(),
 };
 
+const mockMarketplaceAdmin = { cardSlugsForPrintings: vi.fn() };
+const mockAdminEvents = { insert: vi.fn(), insertMany: vi.fn() };
+
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { marketplaceMapping: mockMarketplaceMapping } as never);
+  c.set("repos", {
+    marketplaceMapping: mockMarketplaceMapping,
+    marketplaceAdmin: mockMarketplaceAdmin,
+    adminEvents: mockAdminEvents,
+  } as never);
   c.set("transact", vi.fn() as never);
   await next();
 });
@@ -128,10 +135,65 @@ describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
 describe("POST /api/admin/v1/marketplace-mappings", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockMarketplaceAdmin.cardSlugsForPrintings.mockResolvedValue([]);
+  });
+
+  it("records the saved mappings in one batch, matching the full listing key", async () => {
+    const saved = {
+      printingId: "00000000-0000-4000-a000-000000000001",
+      externalId: 12_345,
+      finish: "normal",
+      language: "EN",
+    };
+    const skippedSibling = {
+      ...saved,
+      printingId: "00000000-0000-4000-a000-000000000002",
+      finish: "foil",
+    };
+    mockSaveMappings.mockResolvedValue({
+      saved: 1,
+      skipped: [{ externalId: 12_345, reason: "missing" }],
+      applied: [saved],
+    });
+    mockMarketplaceAdmin.cardSlugsForPrintings.mockResolvedValue([
+      { printingId: saved.printingId, cardSlug: "fire-dragon" },
+    ]);
+
+    await app.request("/api/admin/v1/marketplace-mappings?marketplace=cardtrader", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mappings: [saved, skippedSibling] }),
+    });
+
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledTimes(1);
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      {
+        actorUserId: USER_ID,
+        action: "marketplace-variant.map",
+        entityType: "marketplace-variant",
+        entityId: "cardtrader::12345::normal::EN",
+        cardSlug: "fire-dragon",
+        newValues: { marketplace: "cardtrader", ...saved },
+      },
+    ]);
+  });
+
+  it("still answers with the save result when the audit write fails", async () => {
+    mockSaveMappings.mockResolvedValue({ saved: 0, skipped: [], applied: [] });
+    mockMarketplaceAdmin.cardSlugsForPrintings.mockRejectedValue(new Error("db down"));
+
+    const res = await app.request("/api/admin/v1/marketplace-mappings?marketplace=cardtrader", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mappings: [] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ saved: 0, skipped: [] });
   });
 
   it("returns 200 with save result for tcgplayer", async () => {
-    mockSaveMappings.mockResolvedValue({ saved: 2, skipped: [] });
+    mockSaveMappings.mockResolvedValue({ saved: 2, skipped: [], applied: [] });
 
     const res = await app.request("/api/admin/v1/marketplace-mappings?marketplace=tcgplayer", {
       method: "POST",
@@ -162,7 +224,7 @@ describe("POST /api/admin/v1/marketplace-mappings", () => {
   });
 
   it("returns 200 with save result for cardmarket", async () => {
-    mockSaveMappings.mockResolvedValue({ saved: 1, skipped: [] });
+    mockSaveMappings.mockResolvedValue({ saved: 1, skipped: [], applied: [] });
 
     const res = await app.request("/api/admin/v1/marketplace-mappings?marketplace=cardmarket", {
       method: "POST",
@@ -188,6 +250,7 @@ describe("POST /api/admin/v1/marketplace-mappings", () => {
     mockSaveMappings.mockResolvedValue({
       saved: 0,
       skipped: [{ externalId: 12_345, reason: "printing not found" }],
+      applied: [],
     });
 
     const res = await app.request("/api/admin/v1/marketplace-mappings?marketplace=tcgplayer", {
@@ -234,6 +297,7 @@ describe("POST /api/admin/v1/marketplace-mappings", () => {
 describe("DELETE /api/admin/v1/marketplace-mappings", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockMarketplaceAdmin.cardSlugsForPrintings.mockResolvedValue([]);
   });
 
   it("returns 204 when printing is unmapped", async () => {

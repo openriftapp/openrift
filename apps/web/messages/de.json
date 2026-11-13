@@ -2700,6 +2700,7 @@
   "decks_menu_delete_version": "Version löschen",
   "decks_menu_duplicate": "Duplizieren",
   "decks_menu_duplicated": "\"{name}\" dupliziert.",
+  "decks_menu_format_changed": "Format zu {format} geändert.",
   "decks_menu_export": "Exportieren…",
   "decks_menu_make_primary": "Als Haupt-Deck setzen",
   "decks_menu_manage_folders": "Ordner verwalten…",
@@ -2722,6 +2723,7 @@
   "decks_editor_add_card_to_zone": "{card} zu {zone} hinzufügen",
   "decks_editor_add_card_tooltip": "Eine Karte hinzufügen (Strg+K)",
   "decks_editor_add_one_copy": "Ein Exemplar von {card} hinzufügen",
+  "decks_editor_add_blocked": "{card}, kein Platz in diesem Bereich",
   "decks_editor_add_to_deck": "Zum Deck hinzufügen",
   "decks_editor_bench_empty": "Zieh eine Beispielhand, um zu sehen, wie das Deck startet.",
   "decks_editor_choose": "Wählen",
@@ -2808,7 +2810,7 @@
   "decks_editor_printing_standard": "Standard",
   "decks_editor_power": "Stärke {power}",
   "decks_editor_power_with_domains": "Stärke {power} ({domains})",
-  "decks_editor_progress_cards": "{progress}/{total} Karten",
+  "decks_editor_required_progress": "{progress}/{total} erforderlich",
   "decks_editor_quantity": "Anzahl",
   "decks_editor_quick_add_empty": "Tippe einen Kartennamen, um sie zum Deck hinzuzufügen",
   "decks_editor_quick_add_input_aria": "Eine Karte zum Deck hinzufügen",
@@ -3486,7 +3488,7 @@
   "decks_stats_power": "Power",
   "decks_stats_rarity": "Seltenheit",
   "decks_stats_title": "Statistik",
-  "decks_stats_total_cards": "{count} Karten",
+  "decks_stats_main_deck_cards": "{count} im Hauptdeck",
   "decks_stats_turn_one_play": "Zug-1-Spielzug {first} · {second}",
   "decks_stats_turn_one_play_hint": "Die Chance, dass deine Starthand einen Zug-1-Spielzug enthält. Erste Zahl: als Erster (eine Einheit oder Ausrüstung für 2 Energie oder weniger). Zweite: als Zweiter (3 oder weniger). Zauber zählen nicht, da es noch nichts gibt, worauf man reagieren könnte.",
   "decks_stats_turn_one_play_label": "Zug-1-Spielzug",
@@ -3716,6 +3718,7 @@
   "decks_share_gone_description": "Vielleicht wird dieses Deck nicht mehr geteilt, oder der Link wurde nicht vollständig kopiert.",
   "decks_share_gone_action": "Zu deinen Decks",
   "decks_card_menu_view_details": "Details ansehen",
+  "decks_card_row_view_details": "Details zu {card} ansehen",
   "decks_card_menu_switch": "Andere Karte als {zone} wählen",
   "decks_card_menu_plan_battlefields": "Schlachtfelder pro Spiel im Plan wählen",
   "decks_card_menu_move_to": "Verschieben nach",
@@ -3895,8 +3898,6 @@
   "trade_pref_amount_label": "Betrag",
   "trade_pref_accepts_label": "Nimmt",
   "trade_pref_amount_placeholder": "z. B. 4 oder 4,50",
-  "trade_pref_currency_eur": "Euro (EUR)",
-  "trade_pref_currency_usd": "US-Dollar (USD)",
   "trade_pref_no_preference": "Keine Vorgabe (verhandelbar)",
   "trade_pref_negotiate": "Verhandelbar",
   "trade_pref_list_default": "Listenvorgabe ({value})",
@@ -4308,6 +4309,7 @@
   "share_image_dimensions": "{width} × {height} Pixel",
   "share_image_download": "Bild herunterladen",
   "share_image_error": "Das Bild konnte nicht erstellt werden. Bitte versuche es erneut.",
+  "share_image_rate_limited": "Zu viele Bilder in kurzer Zeit. Warte einen Moment und versuche es dann erneut.",
   "share_image_preparing": "Wird vorbereitet…",
   "share_image_preview_alt": "Vorschau von {title}",
   "share_image_qr_missing_link": "Der Code braucht einen Share-Link als Ziel, deshalb lässt das Bild ihn weg, bis du einen erstellst.",
@@ -4661,13 +4663,13 @@
       }
     }
   ],
-  "trades_completed": [
+  "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} abgeschlossener Tausch",
-        "countPlural=*": "{count} abgeschlossene Tauschgeschäfte"
+        "countPlural=one": "{count} vergangener Tausch",
+        "countPlural=*": "{count} vergangene Tauschgeschäfte"
       }
     }
   ],
@@ -5374,7 +5376,7 @@
   "designer_rarity_placeholder": "Seltenheit wählen",
   "designer_field_code": "Code",
   "designer_field_artist": "Illustration",
-  "designer_attribution_label": "openrift.app hinzufügen und OpenRift bekannter machen",
+  "designer_attribution_label": "{host} hinzufügen und OpenRift bekannter machen",
   "designer_background_upload": "Hintergrundbild hochladen",
   "designer_background_replace": "Hintergrundbild ersetzen",
   "designer_background_zoom": "Zoom",
@@ -10025,6 +10027,7 @@
       }
     }
   ],
+  "trades_match_promised": "{count} zugesagt",
   "trades_match_variants": "{count} Varianten",
   "trades_match_price": "Preis",
   "trades_match_they_pay": "Würde zahlen",

@@ -1,14 +1,13 @@
 import type { Marketplace } from "@openrift/shared/types/pricing";
+import { MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 
 import type { Repos } from "../../../deps.js";
 import type { marketplaceMappingRepo } from "../repositories/marketplace-mapping.js";
 
-export interface ProductInfo {
-  productName: string | null;
+export interface PriceColumns {
   marketCents: number | null;
   lowCents: number | null;
-  currency: string;
-  recordedAt: string;
+  zeroLowCents: number | null;
   midCents: number | null;
   highCents: number | null;
   trendCents: number | null;
@@ -17,15 +16,10 @@ export interface ProductInfo {
   avg30Cents: number | null;
 }
 
-interface PriceColumns {
-  marketCents: number | null;
-  lowCents: number | null;
-  midCents: number | null;
-  highCents: number | null;
-  trendCents: number | null;
-  avg1Cents: number | null;
-  avg7Cents: number | null;
-  avg30Cents: number | null;
+export interface ProductInfo extends PriceColumns {
+  productName: string | null;
+  currency: string;
+  recordedAt: string;
 }
 
 export interface StagingRow extends PriceColumns {
@@ -55,22 +49,29 @@ export interface MarketplaceConfig {
   mapPriceRow: (row: MappedPriceRow) => ProductInfo;
 }
 
-function createMarketplaceConfig(opts: {
-  marketplace: Marketplace;
-  currency: string;
-  mapPrices: (row: PriceColumns) => Omit<ProductInfo, "productName" | "recordedAt">;
-  repo: ReturnType<typeof marketplaceMappingRepo>;
-}): MarketplaceConfig {
-  const { marketplace, mapPrices, repo } = opts;
+function createMarketplaceConfig(
+  marketplace: Marketplace,
+  repo: ReturnType<typeof marketplaceMappingRepo>,
+): MarketplaceConfig {
+  const currency = MARKETPLACE_CURRENCY[marketplace];
+  const mapPrices = (row: PriceColumns): Omit<ProductInfo, "productName" | "recordedAt"> => ({
+    marketCents: row.marketCents,
+    lowCents: row.lowCents,
+    zeroLowCents: row.zeroLowCents,
+    currency,
+    midCents: row.midCents,
+    highCents: row.highCents,
+    trendCents: row.trendCents,
+    avg1Cents: row.avg1Cents,
+    avg7Cents: row.avg7Cents,
+    avg30Cents: row.avg30Cents,
+  });
 
   return {
     marketplace,
-    currency: opts.currency,
-
+    currency,
     mapStagingPrices: mapPrices,
-
     priceQuery: (printingIds) => repo.pricesByMarketplace(marketplace, printingIds),
-
     mapPriceRow: (row) => ({
       productName: row.productName,
       recordedAt: row.recordedAt.toISOString(),
@@ -79,82 +80,14 @@ function createMarketplaceConfig(opts: {
   };
 }
 
-const tcgMapPrices = (row: PriceColumns) => ({
-  marketCents: row.marketCents,
-  lowCents: row.lowCents,
-  currency: "USD",
-  midCents: row.midCents,
-  highCents: row.highCents,
-  trendCents: row.trendCents,
-  avg1Cents: row.avg1Cents,
-  avg7Cents: row.avg7Cents,
-  avg30Cents: row.avg30Cents,
-});
-
-const cmMapPrices = (row: PriceColumns) => ({
-  marketCents: row.marketCents,
-  lowCents: row.lowCents,
-  currency: "EUR",
-  midCents: row.midCents,
-  highCents: row.highCents,
-  trendCents: row.trendCents,
-  avg1Cents: row.avg1Cents,
-  avg7Cents: row.avg7Cents,
-  avg30Cents: row.avg30Cents,
-});
-
-const ctMapPrices = (row: PriceColumns) => ({
-  marketCents: row.marketCents,
-  lowCents: row.lowCents,
-  currency: "EUR",
-  midCents: row.midCents,
-  highCents: row.highCents,
-  trendCents: row.trendCents,
-  avg1Cents: row.avg1Cents,
-  avg7Cents: row.avg7Cents,
-  avg30Cents: row.avg30Cents,
-});
-
-const cnMapPrices = (row: PriceColumns) => ({
-  marketCents: row.marketCents,
-  lowCents: row.lowCents,
-  currency: "EUR",
-  midCents: row.midCents,
-  highCents: row.highCents,
-  trendCents: row.trendCents,
-  avg1Cents: row.avg1Cents,
-  avg7Cents: row.avg7Cents,
-  avg30Cents: row.avg30Cents,
-});
-
 export type MarketplaceConfigs = Record<Marketplace, MarketplaceConfig>;
 
 export function createMarketplaceConfigs(repos: Repos): MarketplaceConfigs {
   const repo = repos.marketplaceMapping;
   return {
-    tcgplayer: createMarketplaceConfig({
-      marketplace: "tcgplayer",
-      currency: "USD",
-      mapPrices: tcgMapPrices,
-      repo,
-    }),
-    cardmarket: createMarketplaceConfig({
-      marketplace: "cardmarket",
-      currency: "EUR",
-      mapPrices: cmMapPrices,
-      repo,
-    }),
-    cardtrader: createMarketplaceConfig({
-      marketplace: "cardtrader",
-      currency: "EUR",
-      mapPrices: ctMapPrices,
-      repo,
-    }),
-    cardnexus: createMarketplaceConfig({
-      marketplace: "cardnexus",
-      currency: "EUR",
-      mapPrices: cnMapPrices,
-      repo,
-    }),
+    tcgplayer: createMarketplaceConfig("tcgplayer", repo),
+    cardmarket: createMarketplaceConfig("cardmarket", repo),
+    cardtrader: createMarketplaceConfig("cardtrader", repo),
+    cardnexus: createMarketplaceConfig("cardnexus", repo),
   };
 }

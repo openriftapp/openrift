@@ -126,7 +126,7 @@ function PrintingTable(props: MatrixProps & { selectedSideKey: string; stats?: C
 }
 
 const CELL_GRID =
-  "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-3 sm:w-[min(calc(var(--cols)*36rem),calc(100cqw-20rem),calc(var(--cols)*(100dvh-12rem)*0.716))] sm:shrink-0";
+  "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-3 sm:w-[min(calc(var(--cols)*36rem),calc(100cqw-20rem),calc(var(--cols)*(100dvh-12rem)*var(--aspect-card)))] sm:shrink-0";
 
 function PrintingMatrix({
   languages,

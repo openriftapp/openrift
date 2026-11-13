@@ -1,8 +1,7 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { MetaEventOverlayField, MetaOverlayStatus } from "@openrift/shared/types/enums";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { TOURNAMENT_LIST_PROVIDER, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
 import { META_NAME_MAX, META_PLAYER_NAME_MAX } from "../lib/meta-event-naming.js";
 import {
@@ -170,18 +169,10 @@ export async function sendTournamentLists(
     await repos.meta.lockTournamentLists(args.uvsgamesEventId);
     const target = await loadTournamentListTarget(repos, args.uvsgamesEventId);
     if (target === null) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "Load the UVS Games standings before sending lists.",
-      );
+      throw conflict("Load the UVS Games standings before sending lists.");
     }
     if (target.event.displayStatus !== COMPLETE) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "UVS Games has not published the final standings for this event yet.",
-      );
+      throw conflict("UVS Games has not published the final standings for this event yet.");
     }
     const note = `Sent from the OpenRift tournament "${args.tournamentName}".`;
     const listNote = (standing: TournamentListStanding): string =>

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { Io } from "../../../io.js";
 import { defaultIo } from "../../../io.js";
-import { CARD_RADIUS_FRACTION, cardRadiusPx, tileArtDataUri } from "./share-image-core.js";
+import {
+  CARD_RADIUS_FRACTION,
+  cardRadiusPx,
+  elideTitle,
+  tileArtDataUri,
+} from "./share-image-core.js";
 
 describe("cardRadiusPx", () => {
   it("rounds to 5% of the tile's short edge", () => {
@@ -62,5 +67,21 @@ describe("tileArtDataUri", () => {
     const raw = await decode(await tileArtDataUri(await landscapeArtIo(), "id", 102, 72, 1));
     expect(pixel(raw, 20, 35)).toEqual([255, 0, 0]);
     expect(pixel(raw, 80, 35)).toEqual([0, 0, 255]);
+  });
+});
+
+describe("elideTitle", () => {
+  it("leaves a title within the cap untouched", () => {
+    expect(elideTitle("Azir UNL - Current", 34)).toBe("Azir UNL - Current");
+  });
+
+  it("elides an overlong title to the cap with a single ellipsis", () => {
+    const result = elideTitle("A".repeat(40), 34);
+    expect(result).toHaveLength(34);
+    expect(result.endsWith("…")).toBe(true);
+  });
+
+  it("trims trailing space before the ellipsis", () => {
+    expect(elideTitle(`${"word ".repeat(8)}tail`, 34)).not.toContain(" …");
   });
 });

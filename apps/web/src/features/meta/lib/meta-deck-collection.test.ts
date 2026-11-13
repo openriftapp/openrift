@@ -1,8 +1,6 @@
-import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import { describe, expect, it } from "vitest";
 
 import {
-  cheapestPriceByCardId,
   decodeMetaDeckCardIndex,
   metaCardOwnershipBand,
   metaDeckCosts,
@@ -90,55 +88,6 @@ describe("ownedCountsByCardId", () => {
   });
 });
 
-describe("cheapestPriceByCardId", () => {
-  const printings = new Map([
-    [
-      "card-a",
-      [
-        { printingId: "print-en", language: "en" },
-        { printingId: "print-en-alt", language: "en" },
-        { printingId: "print-de", language: "de" },
-      ],
-    ],
-    ["card-b", [{ printingId: "print-b-fr", language: "fr" }]],
-    ["card-c", [{ printingId: "print-c", language: "en" }]],
-  ]);
-
-  it("takes the cheapest printing in the reader's languages", () => {
-    const prices = priceLookupFromMap({
-      "print-en": { cardtrader: 500 },
-      "print-en-alt": { cardtrader: 250 },
-      "print-de": { cardtrader: 100 },
-    });
-    expect(cheapestPriceByCardId(printings, prices, "cardtrader", ["en"]).get("card-a")).toBe(2.5);
-  });
-
-  it("falls back to any language for a card none of them is priced in", () => {
-    const prices = priceLookupFromMap({ "print-b-fr": { cardtrader: 400 } });
-    expect(cheapestPriceByCardId(printings, prices, "cardtrader", ["en"]).get("card-b")).toBe(4);
-  });
-
-  it("prefers a language printing over a cheaper one outside them", () => {
-    const prices = priceLookupFromMap({
-      "print-en": { cardtrader: 500 },
-      "print-de": { cardtrader: 100 },
-    });
-    expect(cheapestPriceByCardId(printings, prices, "cardtrader", ["en"]).get("card-a")).toBe(5);
-  });
-
-  it("leaves out a card no printing of is priced", () => {
-    const prices = priceLookupFromMap({ "print-en": { cardtrader: 500 } });
-    expect(cheapestPriceByCardId(printings, prices, "cardtrader", ["en"]).has("card-c")).toBe(
-      false,
-    );
-  });
-
-  it("reads the marketplace it was asked for", () => {
-    const prices = priceLookupFromMap({ "print-c": { cardtrader: 500, cardmarket: 300 } });
-    expect(cheapestPriceByCardId(printings, prices, "cardmarket", ["en"]).get("card-c")).toBe(3);
-  });
-});
-
 describe("metaDeckCosts", () => {
   const decks = new Map([
     [
@@ -164,6 +113,8 @@ describe("metaDeckCosts", () => {
       owned: undefined,
       value: 16,
       toComplete: undefined,
+      unpriced: 0,
+      unpricedMissing: 0,
     });
   });
 
@@ -179,7 +130,14 @@ describe("metaDeckCosts", () => {
       prices,
       ownedByCardId: new Map([["card-a", 2]]),
     });
-    expect(costs.get("deck-1")).toEqual({ needed: 4, owned: 2, value: 16, toComplete: 12 });
+    expect(costs.get("deck-1")).toEqual({
+      needed: 4,
+      owned: 2,
+      value: 16,
+      toComplete: 12,
+      unpriced: 0,
+      unpricedMissing: 0,
+    });
   });
 
   it("caps a card's owned copies at what the list plays", () => {
@@ -201,14 +159,18 @@ describe("metaDeckCosts", () => {
     expect(costs.get("deck-1")?.owned).toBe(5);
   });
 
-  it("has no value when one of the list's cards is unpriced", () => {
+  it("values the priced cards and counts the unpriced ones", () => {
     const costs = metaDeckCosts(decks, {
       includeSideboard: false,
       prices: new Map([["card-a", 2]]),
       ownedByCardId: new Map(),
     });
-    expect(costs.get("deck-1")?.value).toBeUndefined();
-    expect(costs.get("deck-1")?.toComplete).toBeUndefined();
+    expect(costs.get("deck-1")).toMatchObject({
+      value: 6,
+      unpriced: 1,
+      toComplete: 6,
+      unpricedMissing: 1,
+    });
   });
 
   it("still costs a completion when the unpriced card is one the reader owns", () => {
@@ -217,8 +179,8 @@ describe("metaDeckCosts", () => {
       prices: new Map([["card-a", 2]]),
       ownedByCardId: new Map([["card-b", 1]]),
     });
-    expect(costs.get("deck-1")?.value).toBeUndefined();
-    expect(costs.get("deck-1")?.toComplete).toBe(6);
+    expect(costs.get("deck-1")).toMatchObject({ value: 6, unpriced: 1, toComplete: 6 });
+    expect(costs.get("deck-1")?.unpricedMissing).toBe(0);
   });
 
   it("costs nothing to complete a list the reader already holds", () => {
@@ -239,7 +201,14 @@ describe("metaDeckCosts", () => {
       prices,
       ownedByCardId: new Map(),
     });
-    expect(costs.get("deck-1")).toEqual({ needed: 0, owned: 0, value: 0, toComplete: 0 });
+    expect(costs.get("deck-1")).toEqual({
+      needed: 0,
+      owned: 0,
+      value: 0,
+      toComplete: 0,
+      unpriced: 0,
+      unpricedMissing: 0,
+    });
   });
 
   it("gives a partial list no value, ownership or cost to complete", () => {
@@ -257,6 +226,8 @@ describe("metaDeckCosts", () => {
       owned: undefined,
       value: undefined,
       toComplete: undefined,
+      unpriced: 0,
+      unpricedMissing: 0,
     });
   });
 

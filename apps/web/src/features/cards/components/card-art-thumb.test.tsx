@@ -160,9 +160,9 @@ describe("CardArtThumb", () => {
       const { container } = render(<CardArtThumb shape="strip" src="/x-120w.webp" />);
 
       const frame = container.querySelector("span");
-      // 88/63 is the inverse of --aspect-card, so battlefield art fills it exactly.
-      expect(frame?.className).toContain("aspect-[88/63]");
-      expect(frame?.className).not.toContain("aspect-card");
+      const classes = frame?.className.split(" ") ?? [];
+      expect(classes).toContain("aspect-card-landscape");
+      expect(classes).not.toContain("aspect-card");
       expect(frame?.className).toContain("h-6");
     });
 

@@ -44,6 +44,10 @@ export function totalQuantity(cards: readonly { quantity: number }[]): number {
   return cards.reduce((sum, card) => sum + card.quantity, 0);
 }
 
+export function deckCardCount(cards: readonly { zone: string; quantity: number }[]): number {
+  return totalQuantity(cards.filter((card) => card.zone !== WellKnown.deckZone.OVERFLOW));
+}
+
 export const UNLIMITED_COPIES = 0;
 
 export const RUNE_TARGET = 12;

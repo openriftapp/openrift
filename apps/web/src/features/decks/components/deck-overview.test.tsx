@@ -45,7 +45,7 @@ vi.mock("@/features/collections/hooks/use-home-collection", () => ({
   useHomeCollection: () => undefined,
 }));
 vi.mock("@/features/decks/hooks/use-deck-stats", () => ({
-  useDeckStats: () => ({ domainDistribution: [], totalCards: 0 }),
+  useDeckStats: () => ({ domainDistribution: [], mainDeckCards: 0 }),
 }));
 vi.mock("@/features/cards/components/options-bar", () => ({
   MobileOptionsDrawer: () => null,

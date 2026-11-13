@@ -30,8 +30,6 @@ import type { scanIndexRepo } from "../repositories/scan-index.js";
 type CatalogRepo = ReturnType<typeof catalogRepo>;
 type ScanIndexRepo = ReturnType<typeof scanIndexRepo>;
 
-export const REBUILD_SCAN_BANK_KIND = "scan.rebuild_bank";
-
 /** Where the scanner's served artifacts live (nginx serves /media/ as-is). */
 const SCAN_MEDIA_DIR = join(MEDIA_DIR, "scan");
 

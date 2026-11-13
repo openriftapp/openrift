@@ -44,9 +44,9 @@ describe("spansYears", () => {
 
 describe("lastValueLabelPosition", () => {
   const points = [
-    { value: 2, low: 1 },
-    { value: 10, low: 8 },
-    { value: null, low: null },
+    { value: 2, secondary: 1 },
+    { value: 10, secondary: 8 },
+    { value: null, secondary: null },
   ];
 
   it("keeps the label above a line that ends low in the range", () => {
@@ -59,12 +59,12 @@ describe("lastValueLabelPosition", () => {
     expect(lastValueLabelPosition(points, 10)).toBe("bottom");
   });
 
-  it("counts the low series toward the high", () => {
-    expect(lastValueLabelPosition([{ value: 5, low: 20 }], 5)).toBe("top");
+  it("counts the second series toward the high", () => {
+    expect(lastValueLabelPosition([{ value: 5, secondary: 20 }], 5)).toBe("top");
   });
 
   it("keeps the label above when every price is zero", () => {
-    expect(lastValueLabelPosition([{ value: 0, low: null }], 0)).toBe("top");
+    expect(lastValueLabelPosition([{ value: 0, secondary: null }], 0)).toBe("top");
   });
 });
 

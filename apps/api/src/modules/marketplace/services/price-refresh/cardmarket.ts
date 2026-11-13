@@ -5,17 +5,20 @@
  */
 
 import type { Logger } from "@openrift/shared/logger";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import { toCents } from "@openrift/shared/money";
+import { headlinePrice } from "@openrift/shared/price-headline";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
 import { fetchJson } from "../../../../lib/http.js";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
+import type { GroupRow, PriceUpsertConfig } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
 const UPSERT_CONFIG: PriceUpsertConfig = {
@@ -100,8 +103,8 @@ function buildCardmarketStaging(
     const normalMarket = toCents(pg.avg);
     const normalLow = toCents(pg.low);
     if (
-      (normalMarket !== null || normalLow !== null) &&
-      !ignoredKeys.variantKeys.has(`${product.idProduct}::normal::`)
+      headlinePrice("cardmarket", { market: normalMarket, low: normalLow }) !== null &&
+      !ignoredKeys.variantKeys.has(skuKey(product.idProduct, WellKnown.finish.NORMAL, null))
     ) {
       allStaging.push({
         externalId: product.idProduct,
@@ -124,8 +127,8 @@ function buildCardmarketStaging(
     const foilMarket = toCents(pg["avg-foil"]);
     const foilLow = toCents(pg["low-foil"]);
     if (
-      (foilMarket !== null || foilLow !== null) &&
-      !ignoredKeys.variantKeys.has(`${product.idProduct}::foil::`)
+      headlinePrice("cardmarket", { market: foilMarket, low: foilLow }) !== null &&
+      !ignoredKeys.variantKeys.has(skuKey(product.idProduct, WellKnown.finish.FOIL, null))
     ) {
       allStaging.push({
         externalId: product.idProduct,

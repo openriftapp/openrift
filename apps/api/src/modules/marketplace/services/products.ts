@@ -1,7 +1,5 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { ProductContentRow, ProductWithCounts } from "../repositories/products.js";
 
@@ -17,11 +15,7 @@ async function resolveListContents(
   const list = await repos.lists.getByIdForUser(listId, userId);
   assertFound(list, "List not found");
   if (list.kind !== "printing") {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "Only printing lists can be snapshotted into a product",
-    );
+    throw badRequest("Only printing lists can be snapshotted into a product");
   }
 
   const entries = await repos.lists.entriesWithDetails(listId, "printing", userId);
@@ -33,7 +27,7 @@ async function resolveListContents(
     byPrinting.set(entry.printingId, (byPrinting.get(entry.printingId) ?? 0) + entry.quantity);
   }
   if (byPrinting.size === 0) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "List has no printings to snapshot");
+    throw badRequest("List has no printings to snapshot");
   }
 
   return [...byPrinting].map(([printingId, quantity]) => ({ printingId, quantity }));
@@ -53,7 +47,7 @@ export async function createProductFromList(
   },
 ): Promise<ProductWithCounts> {
   if (await repos.products.slugTaken(input.slug)) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, `Slug "${input.slug}" already in use`);
+    throw conflict(`Slug "${input.slug}" already in use`);
   }
   const setId = input.setId ?? null;
   const setRef = setId === null ? null : await repos.sets.getRef(setId);

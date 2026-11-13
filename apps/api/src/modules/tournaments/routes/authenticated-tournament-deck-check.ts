@@ -8,7 +8,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, conflict, forbidden, notFound } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -45,7 +45,7 @@ async function authorizeJudge(
     "judge",
   ]);
   if (!allowed) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Judges only");
+    throw forbidden("Judges only");
   }
   return event;
 }
@@ -80,11 +80,7 @@ async function loadEntryForWrite(
  */
 function requireListVisible(entry: DeckCheckEntry): void {
   if (entry.state === "editable") {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "The player is editing this list. It becomes visible once submitted.",
-    );
+    throw conflict("The player is editing this list. It becomes visible once submitted.");
   }
 }
 
@@ -117,22 +113,18 @@ export const tournamentDeckCheckRouter = {
       const repos = context.repos;
       const event = await authorizeJudge(repos, input.tournamentId, context.userId);
       if (event.status === "archived") {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          "Event is archived. Un-archive it before adding decks.",
-        );
+        throw conflict("Event is archived. Un-archive it before adding decks.");
       }
       const participant = await repos.tournaments.getParticipantById(input.participantId);
       if (!participant || participant.tournamentId !== event.id) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Participant not found");
+        throw notFound("Participant not found");
       }
       // No unique constraint on participant_id; the has-deck check re-runs under a
       // participant row lock to close the judge-double-click race.
       const created = await context.transact(async (trxRepos) => {
         await trxRepos.tournaments.lockParticipant(participant.id);
         if (await trxRepos.deckCheck.participantHasDeck(participant.id)) {
-          throw new AppError(409, ERROR_CODES.CONFLICT, "This participant already has a deck");
+          throw conflict("This participant already has a deck");
         }
         return createManualDeckCheckEntry(trxRepos, event.id, {
           participantId: participant.id,
@@ -363,7 +355,7 @@ export const tournamentDeckCheckRouter = {
     );
     if (!stored) {
       // The card row was replaced by a re-import while the judge had the entry open.
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Card list changed. Reload the entry.");
+      throw conflict("Card list changed. Reload the entry.");
     }
   }),
 

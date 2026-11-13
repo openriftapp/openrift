@@ -14,6 +14,7 @@ function stagedProduct(overrides: Partial<StagedProductResponse> = {}): StagedPr
     language: "EN",
     marketCents: null,
     lowCents: null,
+    zeroLowCents: null,
     currency: "USD",
     recordedAt: "2026-01-01T00:00:00Z",
     midCents: null,

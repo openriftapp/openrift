@@ -217,7 +217,7 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     expect(await repo.getByIdForUser(list.id, userId)).toBeUndefined();
   });
 
-  it("setShareToken sets and clears the public share state", async () => {
+  it("setShare sets and clears the public share state", async () => {
     const list = await repo.create({
       userId,
       name: "Shareable",
@@ -226,14 +226,14 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     });
     createdListIds.push(list.id);
 
-    const shared = await repo.setShareToken(list.id, userId, "tok-abc", true);
+    const shared = await repo.setShare(list.id, userId, "tok-abc", true);
     expect(shared?.isPublic).toBe(true);
     expect(shared?.shareToken).toBe("tok-abc");
 
     const found = await repo.getByShareToken("tok-abc");
     expect(found?.list.id).toBe(list.id);
 
-    const unshared = await repo.setShareToken(list.id, userId, null, false);
+    const unshared = await repo.setShare(list.id, userId, null, false);
     expect(unshared?.isPublic).toBe(false);
     expect(unshared?.shareToken).toBeNull();
     expect(await repo.getByShareToken("tok-abc")).toBeUndefined();

@@ -15,12 +15,14 @@ const mockMktAdmin = {
   deleteIgnoredVariants: vi.fn(),
 };
 
+const mockAdminEvents = { insert: vi.fn() };
+
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { marketplaceAdmin: mockMktAdmin } as never);
+  c.set("repos", { marketplaceAdmin: mockMktAdmin, adminEvents: mockAdminEvents } as never);
   await next();
 });
 registerRouterForTest(app, adminIgnoredProductsRouter);
@@ -120,6 +122,13 @@ describe("POST /api/admin/v1/ignored-products (L2)", () => {
       },
     ]);
     expect(mockMktAdmin.insertIgnoredVariants).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith({
+      actorUserId: USER_ID,
+      action: "marketplace-product.ignore",
+      entityType: "marketplace-product",
+      entityId: "tcgplayer",
+      newValues: { marketplace: "tcgplayer", externalIds: [12_345, 67_890] },
+    });
   });
 
   it("filters out products not found in staging", async () => {

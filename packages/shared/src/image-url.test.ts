@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { imageRehostedUrl, imageShardDir, imageUrl } from "./image-url.js";
+import { imageRehostedUrl, imageShardDir, imageSrcSet, imageUrl } from "./image-url.js";
 
 describe("imageUrl", () => {
   it("names the file by id and variant with no shard directory", () => {
@@ -31,6 +31,20 @@ describe("imageRehostedUrl", () => {
   it("places the id under its shard directory", () => {
     expect(imageRehostedUrl("00594247-a18a-4efd-8998-105449a4cf40")).toBe(
       "/media/cards/40/00594247-a18a-4efd-8998-105449a4cf40",
+    );
+  });
+});
+
+describe("imageSrcSet", () => {
+  it("lists every variant with its pixel width, full as 800w", () => {
+    expect(imageSrcSet("abc")).toBe(
+      "/media/cards/abc-120w.webp 120w, /media/cards/abc-240w.webp 240w, /media/cards/abc-400w.webp 400w, /media/cards/abc-full.webp 800w",
+    );
+  });
+
+  it("lists only the variants asked for, in order", () => {
+    expect(imageSrcSet("abc", ["400w", "full"])).toBe(
+      "/media/cards/abc-400w.webp 400w, /media/cards/abc-full.webp 800w",
     );
   });
 });

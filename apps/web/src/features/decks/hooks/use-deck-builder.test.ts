@@ -4,7 +4,7 @@ import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { canAddRune, getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { canAddRune, deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
@@ -28,7 +28,7 @@ function createDraftCollection(initial: DeckBuilderCard[] = []): DeckCollection 
   return createCollection(
     localOnlyCollectionOptions<DeckBuilderCard>({
       id: `test-${Math.random().toString(36).slice(2)}`,
-      getKey: getDeckCardKey,
+      getKey: deckCardKey,
       initialData: initial,
     }),
   );

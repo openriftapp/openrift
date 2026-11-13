@@ -1,4 +1,4 @@
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { PrintingImage } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
@@ -28,7 +28,6 @@ import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
 import { DeckSelectMark } from "./deck-select-mark";
 import { DraftBadge, FamilyFrontLine, VariantCountToggle } from "./deck-variant-controls";
-import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
 
 function CardPreviewImage({
@@ -49,7 +48,7 @@ function CardPreviewImage({
   return (
     <ImgWithFallback
       src={imageUrl(image.imageId, "240w")}
-      srcSet={`${imageUrl(image.imageId, "120w")} 120w, ${imageUrl(image.imageId, "240w")} 240w, ${imageUrl(image.imageId, "400w")} 400w, ${imageUrl(image.imageId, "full")} 800w`}
+      srcSet={imageSrcSet(image.imageId)}
       sizes={sizes}
       alt={alt}
       loading="lazy"
@@ -287,7 +286,7 @@ export function DeckTile({
       style={gradientStyle}
     >
       <div className="bg-background/60 absolute top-2 right-2 z-10 rounded-md backdrop-blur-sm">
-        {isLocal ? <LocalDeckActionsMenu item={item} /> : <DeckActionsMenu item={item} />}
+        <DeckActionsMenu item={item} source={isLocal ? "local" : "server"} />
       </div>
 
       <div className="max-sm:hidden">

@@ -1,3 +1,4 @@
+import { cheapestPriceByCard } from "@openrift/shared/card-price";
 import type { MetaDeckCardsQuery } from "@openrift/shared/types/api/meta";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -6,7 +7,6 @@ import { useBuildableCount } from "@/features/meta/hooks/use-buildable-count";
 import { useMetaDeckCards } from "@/features/meta/hooks/use-meta";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import {
-  cheapestPriceByCardId,
   decodeMetaDeckCardIndex,
   metaDeckCosts,
   ownedCountsByCardId,
@@ -35,7 +35,7 @@ export function useMetaDeckCosts(
   }
   return metaDeckCosts(decodeMetaDeckCardIndex(index), {
     includeSideboard,
-    prices: cheapestPriceByCardId(printingsByCardId, prices, marketplace, languageOrder),
+    prices: cheapestPriceByCard(printingsByCardId, prices, marketplace, languageOrder),
     ownedByCardId:
       ownedByPrinting === undefined
         ? undefined

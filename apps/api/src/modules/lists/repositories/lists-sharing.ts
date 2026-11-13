@@ -21,7 +21,7 @@ export function listsSharingRepo(db: Kysely<Database>) {
       return selectShareState(db, "lists", id, userId);
     },
 
-    setShareToken(
+    setShare(
       id: string,
       userId: string,
       shareToken: string | null,

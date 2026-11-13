@@ -5,7 +5,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
@@ -26,8 +26,10 @@ export function DeckCardZoneSteppers({
   onAdd,
   onRemove,
   printingLabels,
+  canIncrement,
 }: {
   entries: readonly DeckBuilderCard[];
+  canIncrement: (entry: DeckBuilderCard) => boolean;
   printingLabels?: ReadonlyMap<string, string>;
   isFreeform: boolean;
   onAdd: (entry: DeckBuilderCard) => void;
@@ -40,13 +42,13 @@ export function DeckCardZoneSteppers({
   return (
     <ul className="grid w-fit grid-cols-[auto_auto] items-center gap-x-4 gap-y-1">
       {entries.map((entry) => (
-        <li key={getDeckCardKey(entry)} className="contents">
+        <li key={deckCardKey(entry)} className="contents">
           <span>
             {enumLabel(zoneLabels, entry.zone)}
-            {printingLabels?.has(getDeckCardKey(entry)) && (
+            {printingLabels?.has(deckCardKey(entry)) && (
               <span className="text-muted-foreground">
                 {" · "}
-                {printingLabels.get(getDeckCardKey(entry))}
+                {printingLabels.get(deckCardKey(entry))}
               </span>
             )}
           </span>
@@ -58,7 +60,9 @@ export function DeckCardZoneSteppers({
             incrementLabel={m.decks_editor_add_one_copy({ card: displayNameOf(entry) })}
             onDecrement={() => onRemove(entry)}
             onIncrement={
-              !isFreeform && ONE_COPY_ZONES.has(entry.zone) ? undefined : () => onAdd(entry)
+              (!isFreeform && ONE_COPY_ZONES.has(entry.zone)) || !canIncrement(entry)
+                ? undefined
+                : () => onAdd(entry)
             }
           />
         </li>

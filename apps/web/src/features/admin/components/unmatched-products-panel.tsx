@@ -1,4 +1,5 @@
-import { formatDayTime, HOUR_MS } from "@openrift/shared/format-date";
+import { formatDayTime } from "@openrift/shared/format-date";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
   AssignableCardResponse,
@@ -38,27 +39,18 @@ import {
   useUnifiedMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
-import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
+import {
+  isStaleRecord,
+  listingPriceCents,
+  SOURCE_CONFIGS,
+} from "@/features/admin/lib/marketplace-sources";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 import { formatCentsInLocale } from "@/lib/format";
 
 import { ProductLink } from "./price-mappings-utils";
-import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
 
-const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
-  tcgplayer: TCG_CONFIG,
-  cardmarket: CM_CONFIG,
-  cardtrader: CT_CONFIG,
-  cardnexus: CN_CONFIG,
-};
-
-const STALE_THRESHOLD_MS = 48 * HOUR_MS;
 const COLUMN_COUNT = 7;
-
-function isStaleRecord(recordedAt: Date): boolean {
-  return Date.now() - recordedAt.getTime() > STALE_THRESHOLD_MS;
-}
 
 interface UnmatchedRow {
   marketplace: Marketplace;
@@ -237,7 +229,12 @@ export function UnmatchedProductsPanel() {
             <TableBody>
               {sortedRows.map((row, index) => {
                 const { marketplace, product } = row;
-                const key = `${marketplace}::${product.externalId}::${product.finish}::${product.language}`;
+                const key = marketplaceSkuKey(
+                  marketplace,
+                  product.externalId,
+                  product.finish,
+                  product.language,
+                );
                 const prevRow = sortedRows[index - 1];
                 const isFirstOfMarketplace = !prevRow || prevRow.marketplace !== marketplace;
                 const mutations = mutationsFor(marketplace);
@@ -245,7 +242,7 @@ export function UnmatchedProductsPanel() {
                   <React.Fragment key={key}>
                     {isFirstOfMarketplace && (
                       <AdminTableGroupRow colSpan={COLUMN_COUNT}>
-                        {CONFIG_BY_MARKETPLACE[marketplace].displayName}
+                        {SOURCE_CONFIGS[marketplace].displayName}
                       </AdminTableGroupRow>
                     )}
                     <UnmatchedProductRow
@@ -303,12 +300,11 @@ function UnmatchedProductRow({
   const [showAssign, setShowAssign] = useState(false);
   const [cardSearchQuery, setCardSearchQuery] = useState("");
 
-  const config = CONFIG_BY_MARKETPLACE[marketplace];
+  const config = SOURCE_CONFIGS[marketplace];
   const recordedAt = new Date(product.recordedAt);
   const isStale = isStaleRecord(recordedAt);
-  const priceCents = product.marketCents ?? product.lowCents;
-  const priceDisplay =
-    priceCents && priceCents > 0 ? formatCentsInLocale(priceCents, product.currency) : "";
+  const priceCents = listingPriceCents(marketplace, product);
+  const priceDisplay = priceCents === null ? "" : formatCentsInLocale(priceCents, product.currency);
 
   const filteredResults = useAssignableCardSearch(allCards, cardSearchQuery);
 

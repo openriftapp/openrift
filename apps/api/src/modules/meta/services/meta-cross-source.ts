@@ -1,9 +1,8 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { MetaCrossSourceReview, MetaCrossSourceRow } from "@openrift/shared/types/api/meta";
 import type { MetaCrossSourceState } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, notFound } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { MIRROR_PROVIDERS } from "../../../lib/meta-providers.js";
 import { resolvedStandingName } from "../lib/meta-event-naming.js";
@@ -133,25 +132,19 @@ export async function linkMetaCrossSourcePlayers(
       continue;
     }
     if (!playerIds.has(decision.metaEventPlayerId)) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "That standings row no longer exists.");
+      throw notFound("That standings row no longer exists.");
     }
     // A row promotion already minted for this identity duplicates the one
     // being linked to; promotion never deletes a published row.
     const minted = mintedFor.get(decision.sourceIdentity);
     if (minted !== undefined && minted !== decision.metaEventPlayerId) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "This entry already has its own archived standings row. Delete that row first, then link.",
       );
     }
     const rowKey = `${decision.provider}:${decision.metaEventPlayerId}`;
     if (claimed.has(rowKey)) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "Another entry of this source is already linked to that standings row.",
-      );
+      throw conflict("Another entry of this source is already linked to that standings row.");
     }
     claimed.set(rowKey, decision.sourceIdentity);
   }
@@ -168,11 +161,7 @@ export async function unlinkMetaCrossSourcePlayer(
 ): Promise<void> {
   const sources = await repos.meta.sourcesForEvent(metaEventId);
   if (sources.some((source) => source.provider === provider && source.contributes)) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "This source is being read. Stop reading it first, then revise the link.",
-    );
+    throw conflict("This source is being read. Stop reading it first, then revise the link.");
   }
   assertExisted(
     await repos.metaPlayerLinks.remove(metaEventId, provider, sourceIdentity),
@@ -189,11 +178,7 @@ export async function setMetaEventSourceContributes(
   const source = await repos.meta.eventSourceById(sourceId);
   assertFound(source, "That citation no longer exists.");
   if (source.provider === null || !MIRROR_PROVIDERS.has(source.provider)) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "Only a crawled source has standings to contribute.",
-    );
+    throw badRequest("Only a crawled source has standings to contribute.");
   }
   if (contributes) {
     const review = await metaCrossSourceReview(repos, source.metaEventId);
@@ -201,9 +186,7 @@ export async function setMetaEventSourceContributes(
       (row) => row.provider === source.provider && row.state === "unreviewed",
     ).length;
     if (outstanding > 0) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         `${outstanding} of this source's entries are not linked yet. Settle them first.`,
       );
     }

@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { priceTotal } from "@openrift/shared/card-price";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayLocal, formatTimeLocal } from "@openrift/shared/format-date";
 import type { CollectionEventResponse } from "@openrift/shared/types/api/collection-event";
@@ -272,28 +273,18 @@ function DaySummary({
   formatPrice: (v?: number | null) => string;
 }) {
   const prices = usePrices();
-  let added = 0;
-  let removed = 0;
-  let moved = 0;
-  let addedValue = 0;
-  let removedValue = 0;
-
-  for (const e of events) {
-    const price = prices.get(e.printingId, marketplace);
-    if (e.action === "added") {
-      added++;
-      if (price) {
-        addedValue += price;
-      }
-    } else if (e.action === "removed") {
-      removed++;
-      if (price) {
-        removedValue += price;
-      }
-    } else {
-      moved++;
-    }
-  }
+  const counted = (action: CollectionEventResponse["action"]) =>
+    events
+      .filter((event) => event.action === action)
+      .map((event) => ({ price: prices.get(event.printingId, marketplace), quantity: 1 }));
+  const addedRows = counted("added");
+  const removedRows = counted("removed");
+  const added = addedRows.length;
+  const removed = removedRows.length;
+  const moved = events.length - added - removed;
+  const addedValue = priceTotal(addedRows);
+  const removedValue = priceTotal(removedRows);
+  const unpriced = addedValue.unpriced + removedValue.unpriced;
 
   const parts: string[] = [];
   if (added > 0) {
@@ -306,7 +297,7 @@ function DaySummary({
     parts.push(m.collections_activity_summary_moved({ count: moved }));
   }
 
-  const netValue = Math.round((addedValue - removedValue) * 100) / 100;
+  const netValue = Math.round((addedValue.value - removedValue.value) * 100) / 100;
 
   return (
     <div className="text-muted-foreground flex items-center gap-2 text-xs">
@@ -317,6 +308,7 @@ function DaySummary({
           {formatPrice(netValue)}
         </span>
       )}
+      {unpriced > 0 && <span>{m.common_unpriced({ count: unpriced })}</span>}
     </div>
   );
 }

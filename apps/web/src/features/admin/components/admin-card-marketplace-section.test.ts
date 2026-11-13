@@ -40,6 +40,7 @@ function staged(overrides: Partial<StagedProductResponse> = {}): StagedProductRe
     language: "EN",
     marketCents: 100,
     lowCents: null,
+    zeroLowCents: null,
     midCents: null,
     highCents: null,
     trendCents: null,

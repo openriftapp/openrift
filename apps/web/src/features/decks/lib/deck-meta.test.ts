@@ -41,6 +41,7 @@ function stubItem(overrides: Partial<DeckListItemResponse> = {}): DeckListItemRe
     requiredProgress: 54,
     requiredTotal: 56,
     totalValueCents: 14_230,
+    unpricedCardCount: null,
     missingCount: 4,
     ...overrides,
   } as DeckListItemResponse;
@@ -106,6 +107,17 @@ describe("deckMetaParts", () => {
       part(deckMetaParts(stubItem({ totalValueCents: null }), price), "value").text,
     ).toBeNull();
     expect(part(deckMetaParts(stubItem({ totalValueCents: 0 }), price), "value").text).toBeNull();
+  });
+
+  it("notes the cards that have no price beside the value", () => {
+    expect(
+      part(deckMetaParts(stubItem({ totalValueCents: 1250, unpricedCardCount: 3 }), price), "value")
+        .text,
+    ).toBe(`${price(1250)} (3 unpriced)`);
+    expect(
+      part(deckMetaParts(stubItem({ totalValueCents: 0, unpricedCardCount: 3 }), price), "value")
+        .text,
+    ).toBe("(3 unpriced)");
   });
 
   it("leaves an empty deck with only its date", () => {

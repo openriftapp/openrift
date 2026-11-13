@@ -1,11 +1,12 @@
 import { adminScanContract } from "@openrift/shared/contracts/admin/scan";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { createLogger } from "@openrift/shared/logger";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { runJobAsync } from "../../system/services/run-job.js";
-import { REBUILD_SCAN_BANK_KIND, rebuildScanBank } from "../services/scan-bank.js";
+import { rebuildScanBank } from "../services/scan-bank.js";
 
 const log = createLogger("admin");
 
@@ -17,7 +18,7 @@ export const adminScanRouter = {
 
     return await runJobAsync(
       { repos, log },
-      REBUILD_SCAN_BANK_KIND,
+      JOB_KIND.rebuildScanBank,
       "admin",
       () =>
         rebuildScanBank({

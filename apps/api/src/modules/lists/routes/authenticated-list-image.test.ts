@@ -120,3 +120,30 @@ describe("listImageRoute render params", () => {
     expect(scale).toBe(3);
   });
 });
+
+describe("listImageRoute rate limit", () => {
+  it("answers the 31st render in a minute for one owner with a JSON 429", async () => {
+    mockListsRepo.getByIdForUser.mockResolvedValue({
+      id: "abc",
+      name: "My wishlist",
+      intent: "buy",
+      kind: "card",
+    });
+    const app = buildApp({ user: { id: "user-limited", name: "Owner" } });
+
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < 31; attempt += 1) {
+      const res = await app.request("/api/v1/lists/abc/image.png");
+      statuses.push(res.status);
+      if (res.status === 429) {
+        expect(await readJson(res)).toEqual({
+          error: "Too many image requests. Try again in a minute.",
+          code: "RATE_LIMITED",
+        });
+      }
+    }
+
+    expect(statuses.filter((status) => status === 429)).toHaveLength(1);
+    expect(statuses.at(-1)).toBe(429);
+  });
+});

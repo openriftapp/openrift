@@ -1,10 +1,9 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createRoleRank } from "@openrift/shared/friend-group-roles";
 import { isUuid } from "@openrift/shared/strings";
 import type { OrganizationRole } from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { Organization, OrganizationMember } from "../repositories/organizations.js";
 
@@ -48,7 +47,7 @@ export async function requireOrgRole(
 ): Promise<OrganizationMember> {
   const membership = await repos.organizations.getMembership(orgId, userId);
   if (!membership || !hasOrgRole(membership.role, minimum)) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, ORG_ROLE_MINIMUM_MESSAGE[minimum]);
+    throw forbidden(ORG_ROLE_MINIMUM_MESSAGE[minimum]);
   }
   return membership;
 }
@@ -61,10 +60,6 @@ export async function assertNotLastOwner(trxRepos: Repos, orgId: string): Promis
   await trxRepos.organizations.lockForUpdate(orgId);
   const owners = await trxRepos.organizations.countOwners(orgId);
   if (owners <= 1) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "An organization must keep at least one owner",
-    );
+    throw badRequest("An organization must keep at least one owner");
   }
 }

@@ -9,6 +9,19 @@ const log = createLogger("admin-audit");
  * Best-effort: a failed write only logs a warning. The audit log must never
  * break or roll back the mutation it describes.
  */
+export async function recordAdminEvents(
+  repos: Pick<Repos, "adminEvents">,
+  actorUserId: string,
+  build: () => Promise<Omit<AdminEventInsert, "actorUserId">[]>,
+): Promise<void> {
+  try {
+    const events = await build();
+    await repos.adminEvents.insertMany(events.map((event) => ({ actorUserId, ...event })));
+  } catch (error) {
+    log.warn({ error }, "audit event batch write failed");
+  }
+}
+
 export async function recordAdminEvent(
   repos: Pick<Repos, "adminEvents">,
   actorUserId: string,

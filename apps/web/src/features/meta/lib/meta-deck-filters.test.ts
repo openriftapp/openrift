@@ -10,9 +10,10 @@ import {
   hasActiveMetaDeckFilters,
   metaDeckQueryFromFilters,
   metaDeckSortPresets,
-  nextDeckSort,
+  DECK_SORT_DESCENDING_FIRST,
   sortMetaDecks,
 } from "./meta-deck-filters";
+import { nextIndexSort } from "./meta-index-sort";
 import type { MetaEra } from "./meta-scope";
 import { ERA_ALL, ERA_CUSTOM } from "./meta-scope";
 
@@ -32,9 +33,19 @@ const EMPTY: MetaDeckFilterValues = {
 };
 
 const COSTS = new Map([
-  ["a", { needed: 40, owned: 40, value: 120, toComplete: 0 }],
-  ["b", { needed: 40, owned: 20, value: 60, toComplete: 25 }],
-  ["c", { needed: 40, owned: 0, value: undefined, toComplete: undefined }],
+  ["a", { needed: 40, owned: 40, value: 120, toComplete: 0, unpriced: 0, unpricedMissing: 0 }],
+  ["b", { needed: 40, owned: 20, value: 60, toComplete: 25, unpriced: 0, unpricedMissing: 0 }],
+  [
+    "c",
+    {
+      needed: 40,
+      owned: 0,
+      value: undefined,
+      toComplete: undefined,
+      unpriced: 0,
+      unpricedMissing: 0,
+    },
+  ],
 ]);
 
 const COST_EMPTY = { maxCost: null, valueMin: null, valueMax: null };
@@ -224,20 +235,26 @@ describe("sortMetaDecks", () => {
   });
 });
 
-describe("nextDeckSort", () => {
+describe("nextIndexSort with DECK_SORT_DESCENDING_FIRST", () => {
   it("flips the direction of the column already sorted by", () => {
-    expect(nextDeckSort({ sort: "date", direction: "desc" }, "date")).toEqual({
+    expect(
+      nextIndexSort({ sort: "date", direction: "desc" }, "date", DECK_SORT_DESCENDING_FIRST),
+    ).toEqual({
       sort: "date",
       direction: "asc",
     });
   });
 
   it("opens a new column on newest, best or cheapest first", () => {
-    expect(nextDeckSort({ sort: "finish", direction: "asc" }, "date")).toEqual({
+    expect(
+      nextIndexSort({ sort: "finish", direction: "asc" }, "date", DECK_SORT_DESCENDING_FIRST),
+    ).toEqual({
       sort: "date",
       direction: "desc",
     });
-    expect(nextDeckSort({ sort: "date", direction: "desc" }, "cost")).toEqual({
+    expect(
+      nextIndexSort({ sort: "date", direction: "desc" }, "cost", DECK_SORT_DESCENDING_FIRST),
+    ).toEqual({
       sort: "cost",
       direction: "asc",
     });

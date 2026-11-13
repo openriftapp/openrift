@@ -10,7 +10,7 @@ import {
 } from "@openrift/shared/types/api/preferences";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
-import type { CardType, Domain } from "@openrift/shared/types/enums";
+import type { CardType } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -21,19 +21,15 @@ import { printingArt } from "@/features/cards/lib/card-meta";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useStackedCopies } from "@/features/collections/hooks/use-stacked-copies";
+import type { CardStats } from "@/features/collections/lib/card-stats";
+import { computeCardStats } from "@/features/collections/lib/card-stats";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { stackCardName, stackSides } from "@/features/collections/lib/stacked-entry";
 import type {
   CompletionCountMode,
   CompletionGroupBy,
-  DomainCombo,
-  DomainCount,
-  EnergyCostCount,
-  PowerCount,
   RarityCount,
-  TypeCount,
 } from "@/features/collections/lib/stat-types";
-import { comboKey, sortCombos } from "@/features/collections/lib/stat-types";
 import { statsScopePredicate } from "@/features/collections/lib/stats-scope";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatterForMarketplace } from "@/lib/format";
@@ -61,26 +57,16 @@ export interface PricedCard {
   landscape: boolean;
 }
 
-export interface CollectionStats {
+export interface CollectionStats extends CardStats {
   totalCopies: number;
   uniqueCards: number;
   uniquePrintings: number;
   totalPrintingsInGame: number;
   estimatedValue: number;
   unpricedCount: number;
-  completionPercent: number;
   totalCardsInGame: number;
   mostExpensivePrintings: PricedCard[];
-  domainDistribution: DomainCount[];
   rarityDistribution: RarityCount[];
-  energyCurve: EnergyCostCount[];
-  energyCurveStacks: DomainCombo[];
-  averageEnergy: number | null;
-  powerCurve: PowerCount[];
-  powerCurveStacks: DomainCombo[];
-  averagePower: number | null;
-  typeBreakdown: TypeCount[];
-  typeBreakdownDomains: Domain[];
   formatPrice: (value?: number | null) => string;
   marketplace: Marketplace;
 }
@@ -396,18 +382,6 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
   const uniquePrintings = uniquePrintingIds.size;
   const totalCardsInGame = sets.reduce((sum, set) => sum + set.cardCount, 0);
   const totalPrintingsInGame = sets.reduce((sum, set) => sum + set.printingCount, 0);
-  const completionPercent = totalCardsInGame > 0 ? (uniqueCards / totalCardsInGame) * 100 : 0;
-
-  const domainCounts = new Map<string, number>();
-  for (const stack of stacks) {
-    const quantity = stack.copyIds.length;
-    for (const domain of stack.printing.card.domains) {
-      domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + quantity);
-    }
-  }
-  const domainDistribution: DomainCount[] = orders.domains
-    .filter((domain) => domainCounts.has(domain))
-    .map((domain) => ({ domain: domain as Domain, count: domainCounts.get(domain) ?? 0 }));
 
   const rarityCounts = new Map<string, number>();
   for (const stack of stacks) {
@@ -418,139 +392,16 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
     .filter((rarity) => rarityCounts.has(rarity))
     .map((rarity) => ({ rarity, count: rarityCounts.get(rarity) ?? 0 }));
 
-  const energyByCombo = new Map<number, Map<string, number>>();
-  const energyComboSet = new Set<string>();
-
-  for (const stack of stacks) {
-    const energy = stack.printing.card.energy;
-    if (energy === null || energy === undefined) {
-      continue;
-    }
-    const key = comboKey(stack.printing.card.domains, orders.domains);
-    energyComboSet.add(key);
-    let comboMap = energyByCombo.get(energy);
-    if (!comboMap) {
-      comboMap = new Map();
-      energyByCombo.set(energy, comboMap);
-    }
-    comboMap.set(key, (comboMap.get(key) ?? 0) + stack.copyIds.length);
-  }
-
-  const energyCurveStacks = sortCombos(energyComboSet, orders.domains);
-  const allEnergyValues = [...energyByCombo.keys()];
-  const energyCurve: EnergyCostCount[] = [];
-  if (allEnergyValues.length > 0) {
-    const energyMin = Math.min(...allEnergyValues);
-    const energyMax = Math.max(...allEnergyValues);
-    for (let value = energyMin; value <= energyMax; value++) {
-      const comboMap = energyByCombo.get(value);
-      const entry: EnergyCostCount = { energy: String(value) };
-      for (const combo of energyCurveStacks) {
-        entry[combo.key] = comboMap?.get(combo.key) ?? 0;
-      }
-      energyCurve.push(entry);
-    }
-  }
-
-  let energySum = 0;
-  let energyCount = 0;
-  for (const stack of stacks) {
-    const energy = stack.printing.card.energy;
-    if (energy !== null && energy !== undefined) {
-      energySum += energy * stack.copyIds.length;
-      energyCount += stack.copyIds.length;
-    }
-  }
-  const averageEnergy = energyCount > 0 ? energySum / energyCount : null;
-
-  const powerByCombo = new Map<number, Map<string, number>>();
-  const powerComboSet = new Set<string>();
-
-  for (const stack of stacks) {
-    const power = stack.printing.card.power;
-    if (power === null || power === undefined) {
-      continue;
-    }
-    const key = comboKey(stack.printing.card.domains, orders.domains);
-    powerComboSet.add(key);
-    let comboMap = powerByCombo.get(power);
-    if (!comboMap) {
-      comboMap = new Map();
-      powerByCombo.set(power, comboMap);
-    }
-    comboMap.set(key, (comboMap.get(key) ?? 0) + stack.copyIds.length);
-  }
-
-  const powerCurveStacks = sortCombos(powerComboSet, orders.domains);
-
-  let powerSum = 0;
-  let powerCount = 0;
-  for (const stack of stacks) {
-    const power = stack.printing.card.power;
-    if (power !== null && power !== undefined) {
-      powerSum += power * stack.copyIds.length;
-      powerCount += stack.copyIds.length;
-    }
-  }
-  const averagePower = powerCount > 0 ? powerSum / powerCount : null;
-
-  const allPowerValues = [...powerByCombo.keys()];
-  const powerCurve: PowerCount[] = [];
-  if (allPowerValues.length > 0) {
-    const powerMin = Math.min(...allPowerValues);
-    const powerMax = Math.max(...allPowerValues);
-    for (let value = powerMin; value <= powerMax; value++) {
-      const comboMap = powerByCombo.get(value);
-      const entry: PowerCount = { power: String(value) };
-      for (const combo of powerCurveStacks) {
-        entry[combo.key] = comboMap?.get(combo.key) ?? 0;
-      }
-      powerCurve.push(entry);
-    }
-  }
-
-  const typeByDomain = new Map<string, Map<Domain, number>>();
-  const typeTotal = new Map<string, number>();
-
-  // Multi-type cards count under each of their types, like the domain
-  // breakdown, so totals can exceed the collection size.
-  for (const stack of stacks) {
-    const quantity = stack.copyIds.length;
-    for (const cardType of stack.printing.card.types) {
-      let domainMap = typeByDomain.get(cardType);
-      if (!domainMap) {
-        domainMap = new Map();
-        typeByDomain.set(cardType, domainMap);
-      }
-      for (const domain of stack.printing.card.domains) {
-        domainMap.set(domain, (domainMap.get(domain) ?? 0) + quantity);
-      }
-      typeTotal.set(cardType, (typeTotal.get(cardType) ?? 0) + quantity);
-    }
-  }
-
-  const typeDomainSet = new Set<Domain>();
-  for (const domainMap of typeByDomain.values()) {
-    for (const domain of domainMap.keys()) {
-      typeDomainSet.add(domain);
-    }
-  }
-
-  const typeBreakdownDomains = orders.domains.filter((domain) =>
-    typeDomainSet.has(domain as Domain),
-  ) as Domain[];
-
-  const allTypes = new Set(typeByDomain.keys());
-  const typeBreakdown: TypeCount[] = orders.cardTypes
-    .filter((cardType) => allTypes.has(cardType))
-    .map((cardType) => {
-      const domainMap = typeByDomain.get(cardType);
-      const entry: TypeCount = { type: cardType, total: typeTotal.get(cardType) ?? 0 };
-      for (const domain of typeBreakdownDomains) {
-        entry[domain] = domainMap?.get(domain) ?? 0;
-      }
-      return entry;
-    });
+  const cardStats = computeCardStats(
+    stacks.map((stack) => ({
+      quantity: stack.copyIds.length,
+      domains: stack.printing.card.domains,
+      cardTypes: stack.printing.card.types,
+      energy: stack.printing.card.energy,
+      power: stack.printing.card.power,
+    })),
+    orders,
+  );
 
   return {
     totalCopies,
@@ -559,19 +410,10 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
     totalPrintingsInGame,
     estimatedValue,
     unpricedCount,
-    completionPercent,
     totalCardsInGame,
     mostExpensivePrintings,
-    domainDistribution,
+    ...cardStats,
     rarityDistribution,
-    energyCurve,
-    energyCurveStacks,
-    averageEnergy,
-    powerCurve,
-    powerCurveStacks,
-    averagePower,
-    typeBreakdown,
-    typeBreakdownDomains,
     marketplace,
   };
 }

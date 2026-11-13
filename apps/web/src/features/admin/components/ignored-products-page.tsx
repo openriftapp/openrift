@@ -2,7 +2,6 @@ import { formatDayTime } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { pluralize } from "@openrift/shared/strings";
 import type { IgnoredProductResponse } from "@openrift/shared/types/api/admin";
-import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Undo2Icon } from "lucide-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
@@ -16,8 +15,7 @@ import {
   useIgnoredProducts,
   useUnignoreProduct,
 } from "@/features/admin/hooks/use-ignored-products";
-
-import { CM_CONFIG, TCG_CONFIG } from "./source-configs";
+import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 
 function LevelCell({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
   if (!row) {
@@ -52,7 +50,7 @@ function ExternalIdCell({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
   if (!row) {
     return null;
   }
-  const config = row.marketplace === "tcgplayer" ? TCG_CONFIG : CM_CONFIG;
+  const config = SOURCE_CONFIGS[row.marketplace];
   return (
     <TextLink
       className="font-mono underline"
@@ -107,12 +105,12 @@ function UnignoreAction({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
           row.level === "product"
             ? {
                 level: "product",
-                marketplace: row.marketplace as Marketplace,
+                marketplace: row.marketplace,
                 externalId: row.externalId,
               }
             : {
                 level: "variant",
-                marketplace: row.marketplace as Marketplace,
+                marketplace: row.marketplace,
                 externalId: row.externalId,
                 finish: row.finish,
                 language: row.language,

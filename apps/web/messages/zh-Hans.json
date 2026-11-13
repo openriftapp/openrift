@@ -2700,6 +2700,7 @@
   "decks_menu_delete_version": "删除版本",
   "decks_menu_duplicate": "创建副本",
   "decks_menu_duplicated": "已创建“{name}”的副本。",
+  "decks_menu_format_changed": "格式已改为{format}。",
   "decks_menu_export": "导出…",
   "decks_menu_make_primary": "设为主要",
   "decks_menu_manage_folders": "管理文件夹…",
@@ -2722,6 +2723,7 @@
   "decks_editor_add_card_to_zone": "将{card}添加到{zone}",
   "decks_editor_add_card_tooltip": "添加卡牌（Ctrl+K）",
   "decks_editor_add_one_copy": "添加一张{card}",
+  "decks_editor_add_blocked": "{card}，此区域已无空位",
   "decks_editor_add_to_deck": "添加到卡组",
   "decks_editor_bench_empty": "抽一手起手牌，看看这副卡组怎么开局。",
   "decks_editor_choose": "选择",
@@ -2808,7 +2810,7 @@
   "decks_editor_printing_standard": "标准",
   "decks_editor_power": "符能{power}",
   "decks_editor_power_with_domains": "符能{power}（{domains}）",
-  "decks_editor_progress_cards": "{progress}/{total}张牌",
+  "decks_editor_required_progress": "必需 {progress}/{total}",
   "decks_editor_quantity": "数量",
   "decks_editor_quick_add_empty": "输入卡牌名称即可添加到卡组",
   "decks_editor_quick_add_input_aria": "向卡组添加卡牌",
@@ -3486,7 +3488,7 @@
   "decks_stats_power": "符能",
   "decks_stats_rarity": "稀有度",
   "decks_stats_title": "统计",
-  "decks_stats_total_cards": "{count}张牌",
+  "decks_stats_main_deck_cards": "主牌组{count}张",
   "decks_stats_turn_one_play": "首回合行动 {first} · {second}",
   "decks_stats_turn_one_play_hint": "你的起手牌中有首回合可用行动的概率。第一个数字：先手（2点法力及以下的单位或装备）。第二个：后手（3点及以下）。法术不算，此时还没有可以反应的目标。",
   "decks_stats_turn_one_play_label": "首回合行动",
@@ -3716,6 +3718,7 @@
   "decks_share_gone_description": "卡组的主人可能已停止分享，也可能是链接没有复制完整。",
   "decks_share_gone_action": "前往我的卡组",
   "decks_card_menu_view_details": "查看详情",
+  "decks_card_row_view_details": "查看{card}的详情",
   "decks_card_menu_switch": "选择其他{zone}",
   "decks_card_menu_plan_battlefields": "在计划中按对局选择战场",
   "decks_card_menu_move_to": "移动到",
@@ -3895,8 +3898,6 @@
   "trade_pref_amount_label": "金额",
   "trade_pref_accepts_label": "接受",
   "trade_pref_amount_placeholder": "例如 4 或 4.50",
-  "trade_pref_currency_eur": "欧元（EUR）",
-  "trade_pref_currency_usd": "美元（USD）",
   "trade_pref_no_preference": "无偏好（面议）",
   "trade_pref_negotiate": "面议",
   "trade_pref_list_default": "清单默认（{value}）",
@@ -4308,6 +4309,7 @@
   "share_image_dimensions": "{width} × {height} 像素",
   "share_image_download": "下载图片",
   "share_image_error": "无法准备图片。请重试。",
+  "share_image_rate_limited": "短时间内请求的图片过多。请稍等片刻再试。",
   "share_image_preparing": "准备中…",
   "share_image_preview_alt": "{title} 的预览",
   "share_image_qr_missing_link": "二维码需要一个分享链接作为指向，所以在你创建链接之前，图片里不会包含它。",
@@ -4660,13 +4662,13 @@
       }
     }
   ],
-  "trades_completed": [
+  "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} 笔已完成的交换",
-        "countPlural=*": "{count} 笔已完成的交换"
+        "countPlural=one": "{count} 笔过往交换",
+        "countPlural=*": "{count} 笔过往交换"
       }
     }
   ],
@@ -5373,7 +5375,7 @@
   "designer_rarity_placeholder": "选择稀有度",
   "designer_field_code": "编号",
   "designer_field_artist": "画师",
-  "designer_attribution_label": "加上 openrift.app，帮忙宣传一下",
+  "designer_attribution_label": "加上 {host}，帮忙宣传一下",
   "designer_background_upload": "上传背景图片",
   "designer_background_replace": "替换背景图片",
   "designer_background_zoom": "缩放",
@@ -10027,6 +10029,7 @@
       }
     }
   ],
+  "trades_match_promised": "已约定{count}张",
   "trades_match_variants": "{count} 个变体",
   "trades_match_price": "价格",
   "trades_match_they_pay": "对方出价",

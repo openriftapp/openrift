@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { cheapestPricedPrinting } from "@openrift/shared/card-price";
 import { getPlaysetSize } from "@openrift/shared/playset";
 import { countPrintings, uniquePrintings } from "@openrift/shared/printing-side";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
@@ -22,14 +23,20 @@ import {
   filterByScope,
   filterStacksByScope,
 } from "@/features/collections/hooks/use-collection-stats";
+import {
+  flooredPercent,
+  formatCompletionPercent,
+} from "@/features/collections/lib/completion-percent";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import type { CompletionCountMode } from "@/features/collections/lib/stat-types";
+import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 interface CurvePoint {
   cost: number;
   percent: number;
+  owned: number;
   label?: string;
   itemPrice?: number;
   art?: PrintingArt;
@@ -45,6 +52,8 @@ export interface CostToCompleteData {
   curve: CurvePoint[];
   milestones: MilestonePoint[];
   startPercent: number;
+  ownedItems: number;
+  totalItems: number;
   maxPricedPercent: number;
   totalCost: number;
   unpricedMissing: number;
@@ -61,11 +70,12 @@ interface ComputeInput {
   countMode: CompletionCountMode;
   prices: PriceLookup;
   marketplace: Marketplace;
+  languages: readonly string[];
 }
 
 export function computeCostToComplete(input: ComputeInput): CostToCompleteData {
   "use memo";
-  const { allPrintings, stacks, scope, countMode, prices, marketplace } = input;
+  const { allPrintings, stacks, scope, countMode, prices, marketplace, languages } = input;
 
   const scopedPrintings = filterByScope(allPrintings, scope, input.customTagAssignments);
   const scopedStacks = filterStacksByScope(stacks, scope, input.customTagAssignments);
@@ -74,9 +84,9 @@ export function computeCostToComplete(input: ComputeInput): CostToCompleteData {
     return computeForPrintings(scopedPrintings, scopedStacks, prices, marketplace);
   }
   if (countMode === "copies") {
-    return computeForCopies(scopedPrintings, scopedStacks, prices, marketplace);
+    return computeForCopies(scopedPrintings, scopedStacks, prices, marketplace, languages);
   }
-  return computeForCards(scopedPrintings, scopedStacks, prices, marketplace);
+  return computeForCards(scopedPrintings, scopedStacks, prices, marketplace, languages);
 }
 
 function computeForCards(
@@ -84,6 +94,7 @@ function computeForCards(
   stacks: StackedEntry[],
   prices: PriceLookup,
   marketplace: Marketplace,
+  languages: readonly string[],
 ): CostToCompleteData {
   const allCardSlugs = new Set<string>();
   for (const printing of scopedPrintings) {
@@ -111,17 +122,11 @@ function computeForCards(
     }
     handled.add(slug);
     const cardPrintings = printingsByCard.get(slug) ?? [];
-    let cheapest: number | undefined;
-    let cheapestPrinting: Printing | undefined;
-    let cardName = slug;
-    for (const printing of cardPrintings) {
-      cardName = legendDisplayName(printing.card);
-      const price = prices.get(printing.printingId, marketplace);
-      if (price !== undefined && (cheapest === undefined || price < cheapest)) {
-        cheapest = price;
-        cheapestPrinting = printing;
-      }
-    }
+    const lastPrinting = cardPrintings.at(-1);
+    const cardName = lastPrinting ? legendDisplayName(lastPrinting.card) : slug;
+    const cheapestEntry = cheapestPricedPrinting(cardPrintings, prices, marketplace, languages);
+    const cheapest = cheapestEntry?.price;
+    const cheapestPrinting = cheapestEntry?.printing;
     if (cheapest === undefined) {
       unpricedMissing++;
       continue;
@@ -188,6 +193,7 @@ function computeForCopies(
   stacks: StackedEntry[],
   prices: PriceLookup,
   marketplace: Marketplace,
+  languages: readonly string[],
 ): CostToCompleteData {
   const allCardSlugs = new Map<string, { name: string; types: CardType[]; keywords: string[] }>();
   for (const printing of scopedPrintings) {
@@ -245,16 +251,14 @@ function computeForCopies(
       continue;
     }
 
-    const cardPrintings = printingsByCard.get(slug) ?? [];
-    let cheapest: number | undefined;
-    let cheapestPrinting: Printing | undefined;
-    for (const printing of cardPrintings) {
-      const price = prices.get(printing.printingId, marketplace);
-      if (price !== undefined && (cheapest === undefined || price < cheapest)) {
-        cheapest = price;
-        cheapestPrinting = printing;
-      }
-    }
+    const cheapestEntry = cheapestPricedPrinting(
+      printingsByCard.get(slug) ?? [],
+      prices,
+      marketplace,
+      languages,
+    );
+    const cheapest = cheapestEntry?.price;
+    const cheapestPrinting = cheapestEntry?.printing;
 
     if (cheapest === undefined) {
       unpricedMissing += missing;
@@ -297,7 +301,7 @@ function buildCurve(
 
   const startPercent = totalItems > 0 ? (ownedItems / totalItems) * 100 : 0;
 
-  const curve: CurvePoint[] = [{ cost: 0, percent: startPercent }];
+  const curve: CurvePoint[] = [{ cost: 0, percent: startPercent, owned: ownedItems }];
 
   let cumulativeCost = 0;
   let currentOwned = ownedItems;
@@ -309,6 +313,7 @@ function buildCurve(
     curve.push({
       cost: cumulativeCost,
       percent,
+      owned: currentOwned,
       label: item.label,
       itemPrice: item.price,
       art: item.art,
@@ -338,6 +343,8 @@ function buildCurve(
     curve,
     milestones,
     startPercent,
+    ownedItems,
+    totalItems,
     maxPricedPercent,
     totalCost: cumulativeCost,
     unpricedMissing,
@@ -396,10 +403,12 @@ function CostToCompleteTooltipContent({
   active,
   payload,
   formatPrice,
+  totalItems,
 }: {
   active?: boolean;
   payload?: { payload: CurvePoint }[];
   formatPrice: (value: number) => string;
+  totalItems: number;
 }) {
   const [firstEntry] = payload ?? [];
   if (!active || firstEntry === undefined) {
@@ -427,7 +436,9 @@ function CostToCompleteTooltipContent({
         <div className="text-muted-foreground space-y-0.5">
           <p>
             {m.collections_stats_cost_tooltip_completion()}{" "}
-            <span className="text-foreground font-medium">{point.percent.toFixed(1)}%</span>
+            <span className="text-foreground font-medium">
+              {formatCompletionPercent(point.owned, totalItems)}
+            </span>
           </p>
           {point.itemPrice !== undefined && (
             <p>
@@ -475,6 +486,7 @@ export function CostToCompleteChart({
 }: CostToCompleteChartProps) {
   const formatPrice = compactFormatterForMarketplace(marketplace);
   const chartConfig = buildChartConfig();
+  const languages = useEffectiveLanguageOrder();
 
   const data = computeCostToComplete({
     allPrintings,
@@ -484,6 +496,7 @@ export function CostToCompleteChart({
     countMode,
     prices,
     marketplace,
+    languages,
   });
 
   if (data.curve.length <= 1) {
@@ -550,7 +563,12 @@ export function CostToCompleteChart({
           />
           <ChartTooltip
             cursor={{ stroke: "var(--color-border)", strokeDasharray: "4 4" }}
-            content={<CostToCompleteTooltipContent formatPrice={formatPrice} />}
+            content={
+              <CostToCompleteTooltipContent
+                formatPrice={formatPrice}
+                totalItems={data.totalItems}
+              />
+            }
           />
           <Area
             dataKey="percent"
@@ -589,7 +607,9 @@ export function CostToCompleteChart({
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span className="text-muted-foreground flex items-center gap-1.5">
           <span className="bg-primary inline-block size-2.5 rounded-full" />
-          {m.collections_stats_cost_you_are_here({ percent: data.startPercent.toFixed(1) })}
+          {m.collections_stats_cost_you_are_here({
+            percent: flooredPercent(data.ownedItems, data.totalItems, 1),
+          })}
         </span>
         <span className="text-muted-foreground">
           {m.collections_stats_cost_total({ price: formatPrice(data.totalCost) })}

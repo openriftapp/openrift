@@ -1,6 +1,6 @@
+import { arrowZoneKey } from "@openrift/shared/board-layout";
 import type { BoardPlayer, BoardZoneRef } from "@openrift/shared/board-state";
 
-import { arrowZoneKey } from "@/features/board-states/lib/board-layout";
 import { seatInk, zoneEdge } from "@/features/board-states/lib/board-style";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

@@ -1,7 +1,6 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { TagCategoryResponse } from "@openrift/shared/types/api/admin";
 
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertSlugFreeForRename } from "./taxonomy-assertions.js";
@@ -92,11 +91,7 @@ export function createTagCategoryHandlers(config: TagCategoryHandlersConfig): Ta
       const { id } = input;
       assertFound(await repo.getById(id), notFoundMessage);
       if (await repo.isInUse(id)) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          "Category is in use by one or more tags — reassign them first",
-        );
+        throw conflict("Category is in use by one or more tags — reassign them first");
       }
       await repo.deleteById(id);
     },

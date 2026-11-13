@@ -1,5 +1,7 @@
 export type DockSide = "left" | "right";
 
+export type HoverOrigin = "sidebar" | "main" | "main-right";
+
 /** Past this many px from the midline, the dock switches sides, so a cursor near center doesn't flap it. */
 const DOCK_DEADBAND_PX = 48;
 

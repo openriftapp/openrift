@@ -1,5 +1,6 @@
 import { adminImagesContract } from "@openrift/shared/contracts/admin/images";
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { createLogger } from "@openrift/shared/logger";
 import type { RegenerateImagesCheckpoint } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
@@ -7,12 +8,7 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { runJobAsync } from "../../system/services/run-job.js";
-import {
-  REGENERATE_IMAGES_KIND,
-  refetchImages,
-  rehostImages,
-  runRegenerateImagesJob,
-} from "../services/images/jobs.js";
+import { refetchImages, rehostImages, runRegenerateImagesJob } from "../services/images/jobs.js";
 import {
   cleanupOrphanedFiles,
   findBrokenImages,
@@ -41,7 +37,7 @@ export const adminImagesRouter = {
     // whole catalog, which scansOnly is meant to avoid.
     let resumeFrom: { runId: string; checkpoint: RegenerateImagesCheckpoint } | undefined;
     if (!reset && !scansOnly) {
-      const prior = await repos.jobRuns.getLatestForResume(REGENERATE_IMAGES_KIND);
+      const prior = await repos.jobRuns.getLatestForResume(JOB_KIND.regenerateImages);
       if (
         prior?.status === "failed" &&
         isRegenerateImagesCheckpoint(prior.result) &&
@@ -53,7 +49,7 @@ export const adminImagesRouter = {
 
     return await runJobAsync(
       { repos, log },
-      REGENERATE_IMAGES_KIND,
+      JOB_KIND.regenerateImages,
       "admin",
       (runId) =>
         runRegenerateImagesJob(
@@ -70,7 +66,7 @@ export const adminImagesRouter = {
 
   cancelRegenerate: os.cancelRegenerate.handler(async ({ context, errors }) => {
     const { jobRuns } = context.repos;
-    const running = await jobRuns.getRunning(REGENERATE_IMAGES_KIND);
+    const running = await jobRuns.getRunning(JOB_KIND.regenerateImages);
     if (!running) {
       throw errors.NOT_FOUND({ message: "No regenerate-images job is running" });
     }

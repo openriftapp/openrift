@@ -138,24 +138,61 @@ describe("MetaArchiveDeckTile", () => {
   });
 
   it("pins what the list is worth over the art", () => {
-    render(tile({ cost: { needed: 40, owned: undefined, value: 120, toComplete: undefined } }));
+    render(
+      tile({
+        cost: {
+          needed: 40,
+          owned: undefined,
+          value: 120,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      }),
+    );
     expect(screen.getByText("€120")).toBeInTheDocument();
   });
 
   it("counts the reader's own cards and what the rest would cost", () => {
-    render(tile({ cost: { needed: 40, owned: 34, value: 120, toComplete: 30 } }));
+    render(
+      tile({
+        cost: {
+          needed: 40,
+          owned: 34,
+          value: 120,
+          toComplete: 30,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      }),
+    );
     expect(screen.getByText("34 of 40 owned")).toBeInTheDocument();
     expect(screen.getByText("€30").parentElement).toHaveTextContent("€30 to complete");
   });
 
   it("says a fully owned list is buildable", () => {
-    render(tile({ cost: { needed: 40, owned: 40, value: 120, toComplete: 0 } }));
+    render(
+      tile({
+        cost: { needed: 40, owned: 40, value: 120, toComplete: 0, unpriced: 0, unpricedMissing: 0 },
+      }),
+    );
     expect(screen.getByText("All 40 owned")).toBeInTheDocument();
     expect(screen.getByText("Buildable")).toBeInTheDocument();
   });
 
   it("counts nothing for a reader with no collection loaded", () => {
-    render(tile({ cost: { needed: 40, owned: undefined, value: 120, toComplete: undefined } }));
+    render(
+      tile({
+        cost: {
+          needed: 40,
+          owned: undefined,
+          value: 120,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      }),
+    );
     expect(screen.queryByText(/owned/u)).not.toBeInTheDocument();
   });
 

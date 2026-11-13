@@ -1,3 +1,5 @@
+import type { PriceTotal } from "@openrift/shared/card-price";
+import { priceTotal } from "@openrift/shared/card-price";
 import {
   cardTradeLivePhaseRank,
   cardTradeState,
@@ -10,6 +12,7 @@ import type {
   CardTradeResponse,
 } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
+import type { Printing } from "@openrift/shared/types/catalog";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -31,29 +34,121 @@ export function tradeSection(trade: CardTradeResponse): TradeSection {
   }
 }
 
-function liveTradeKey(counterpartyUserId: string, printingId: string): string {
-  return `${counterpartyUserId}:${printingId}`;
+function liveTradeKey(
+  counterpartyUserId: string,
+  printingId: string,
+  role: CardTradeResponse["role"],
+): string {
+  return `${counterpartyUserId}\0${printingId}\0${role}`;
 }
 
-/**
- * Matches on (counterparty, printing) across all groups. Reserved trades are
- * already netted server-side; this only covers the pending window.
- */
-export function withoutLiveTradeMatches<
-  TMatch extends { counterpartyUserId: string; printingId: string },
->(matches: readonly TMatch[], trades: readonly CardTradeResponse[]): TMatch[] {
-  // Closing an account cancels the trades that account was in, so a live
-  // trade with a null counterparty can't happen; treat it as history.
-  const live = new Set<string>();
+function viewerRole(direction: MatchDirection): CardTradeResponse["role"] {
+  return direction === "incoming" ? "receiver" : "giver";
+}
+
+export function liveTradeIndex(
+  trades: readonly CardTradeResponse[],
+): ReadonlyMap<string, CardTradeResponse> {
+  const index = new Map<string, CardTradeResponse>();
   for (const trade of trades) {
     const counterpartyUserId = trade.counterparty.userId;
     if (isLiveCardTradeStatus(trade.status) && counterpartyUserId !== null) {
-      live.add(liveTradeKey(counterpartyUserId, trade.printingId));
+      index.set(liveTradeKey(counterpartyUserId, trade.printingId, trade.role), trade);
     }
   }
-  return matches.filter(
-    (match) => !live.has(liveTradeKey(match.counterpartyUserId, match.printingId)),
-  );
+  return index;
+}
+
+export function liveTradeFor(
+  index: ReadonlyMap<string, CardTradeResponse>,
+  match: { counterpartyUserId: string; printingId: string },
+  direction: MatchDirection,
+): CardTradeResponse | undefined {
+  return index.get(liveTradeKey(match.counterpartyUserId, match.printingId, viewerRole(direction)));
+}
+
+/** Reserved trades are already netted server-side; this only covers the pending window. */
+export function withoutLiveTradeMatches<
+  TMatch extends { counterpartyUserId: string; printingId: string },
+>(
+  matches: readonly TMatch[],
+  trades: readonly CardTradeResponse[],
+  direction: MatchDirection,
+): TMatch[] {
+  const index = liveTradeIndex(trades);
+  return matches.filter((match) => liveTradeFor(index, match, direction) === undefined);
+}
+
+const NO_PREFERENCE: FriendGroupMatchRow["sellPref"] = {
+  pricePref: null,
+  priceAbsoluteCents: null,
+  tradeType: null,
+  currency: null,
+};
+
+export type LiveOnlyMatchRow = FriendGroupMatchRow & {
+  groupId: string;
+  groupSlug: string;
+  liveOnly: true;
+};
+
+export function liveOnlyMatchRows(
+  trades: readonly CardTradeResponse[],
+  matches: readonly { counterpartyUserId: string; printingId: string }[],
+  direction: MatchDirection,
+  printingOf: (trade: CardTradeResponse) => Printing | undefined,
+): LiveOnlyMatchRow[] {
+  const shown = new Set(matches.map((match) => `${match.counterpartyUserId}\0${match.printingId}`));
+  const rows: LiveOnlyMatchRow[] = [];
+  for (const trade of trades) {
+    const counterpartyUserId = trade.counterparty.userId;
+    const printing = printingOf(trade);
+    if (
+      !isLiveCardTradeStatus(trade.status) ||
+      trade.role !== viewerRole(direction) ||
+      counterpartyUserId === null ||
+      trade.groupId === null ||
+      trade.groupSlug === null ||
+      printing === undefined ||
+      shown.has(`${counterpartyUserId}\0${trade.printingId}`)
+    ) {
+      continue;
+    }
+    shown.add(`${counterpartyUserId}\0${trade.printingId}`);
+    rows.push({
+      counterpartyUserId,
+      counterpartyName: trade.counterparty.name,
+      counterpartyImage: trade.counterparty.image,
+      counterpartyGravatarHash: trade.counterparty.gravatarHash,
+      counterpartyListId: `trade:${trade.id}`,
+      counterpartyListName: "",
+      viewerListName: "",
+      sellEntryId: null,
+      sellListId: "",
+      copyId: "",
+      condition: null,
+      grader: null,
+      grade: null,
+      notesPublic: null,
+      printingId: trade.printingId,
+      cardId: trade.cardId,
+      cardName: printing.card.name,
+      setId: printing.setId,
+      rarity: printing.rarity,
+      finish: printing.finish,
+      imageId: printing.images[0]?.imageId ?? null,
+      buyEntryId: trade.viewerWishEntryId ?? `trade:${trade.id}`,
+      buyListId: "",
+      buyEntryKind: "printing",
+      buyQuantity: trade.quantity,
+      sellPref: NO_PREFERENCE,
+      buyPref: NO_PREFERENCE,
+      groupId: trade.groupId,
+      groupSlug: trade.groupSlug,
+      liveOnly: true,
+    });
+  }
+  return rows;
 }
 
 export interface MemberTradeBuckets {
@@ -158,8 +253,14 @@ export function groupSuggestionStripsBySlug<TMatch extends MatchSuggestionFields
     groups.map((group) => [
       group.slug,
       {
-        incoming: suggestionStrip(withoutLiveTradeMatches(group.incoming, trades), "incoming"),
-        outgoing: suggestionStrip(withoutLiveTradeMatches(group.outgoing, trades), "outgoing"),
+        incoming: suggestionStrip(
+          withoutLiveTradeMatches(group.incoming, trades, "incoming"),
+          "incoming",
+        ),
+        outgoing: suggestionStrip(
+          withoutLiveTradeMatches(group.outgoing, trades, "outgoing"),
+          "outgoing",
+        ),
       },
     ]),
   );
@@ -368,32 +469,20 @@ export function groupTradesByCounterparty(
   );
 }
 
-/** hasGet/hasGive distinguish a genuine zero total from an all-unpriced side. */
 export interface TradeValueSplit {
-  get: number;
-  give: number;
-  hasGet: boolean;
-  hasGive: boolean;
+  get: PriceTotal;
+  give: PriceTotal;
 }
 
 export function sumTradeValues(
   trades: readonly CardTradeResponse[],
   unitPrice: (printingId: string) => number | undefined,
 ): TradeValueSplit {
-  const split: TradeValueSplit = { get: 0, give: 0, hasGet: false, hasGive: false };
-  for (const trade of trades) {
-    const unit = unitPrice(trade.printingId);
-    if (unit === undefined) {
-      continue;
-    }
-    const value = unit * trade.quantity;
-    if (trade.role === "receiver") {
-      split.get += value;
-      split.hasGet = true;
-    } else {
-      split.give += value;
-      split.hasGive = true;
-    }
-  }
-  return split;
+  const side = (receiving: boolean) =>
+    priceTotal(
+      trades
+        .filter((trade) => (trade.role === "receiver") === receiving)
+        .map((trade) => ({ price: unitPrice(trade.printingId), quantity: trade.quantity })),
+    );
+  return { get: side(true), give: side(false) };
 }

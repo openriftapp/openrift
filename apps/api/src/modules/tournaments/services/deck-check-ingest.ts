@@ -16,7 +16,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { z } from "zod";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { sha256Hex } from "../../../lib/hash.js";
 import { generateShareToken } from "../../../lib/share-token.js";
@@ -82,11 +82,7 @@ export async function ingestDeckCheckPush(
   assertFound(event, "Unknown tournament id. Create the deck-check tournament in OpenRift first.");
   await repos.deckCheck.lockIngest(event.id);
   if (event.status === "archived") {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "Event is archived. Un-archive it before pushing.",
-    );
+    throw conflict("Event is archived. Un-archive it before pushing.");
   }
 
   // The self-submission namespace is reserved: a provider must never upsert

@@ -1,6 +1,7 @@
 import { priceRefreshResponseSchema } from "@openrift/shared/contracts/admin/job-results";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { formatRelativeTime } from "@openrift/shared/format-date";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
@@ -17,7 +18,6 @@ import { useJobSchedules } from "@/features/admin/hooks/use-job-schedules";
 import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
 import { useMarketplaceGroups } from "@/features/admin/hooks/use-marketplace-groups";
 import {
-  SIBLING_VARIANT_BACKFILL_KIND,
   useBackfillSiblingVariants,
   useSiblingVariantDrift,
 } from "@/features/admin/hooks/use-sibling-variants";
@@ -156,7 +156,7 @@ export function backfillSucceededText(result: JobRunView["result"]): string {
  */
 function SiblingVariantSection() {
   const backfill = useBackfillSiblingVariants();
-  const latestRun = useLatestJobRun(SIBLING_VARIANT_BACKFILL_KIND);
+  const latestRun = useLatestJobRun(JOB_KIND.backfillSiblingVariants);
   const isRunning = backfill.isPending || latestRun.data?.status === "running";
   const drift = useSiblingVariantDrift(isRunning);
 

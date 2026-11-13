@@ -173,6 +173,9 @@ function MissingCardsDialogBody({
       .join("\n");
 
   const totalMissing = sorted.reduce((sum, card) => sum + card.shortfall, 0);
+  const unpricedMissing = sorted
+    .filter((card) => (card.cheapestPrice ?? card.displayPrice) === undefined)
+    .reduce((sum, card) => sum + card.shortfall, 0);
 
   const handoff = marketplaceHandoff(
     marketplace,
@@ -302,7 +305,14 @@ function MissingCardsDialogBody({
         {totalMissingValue !== undefined && (
           <div className="text-muted-foreground flex items-center justify-between px-2 pt-4 text-sm">
             <span>{m.decks_overview_missing_total()}</span>
-            <span className="text-foreground font-medium">{fmt(totalMissingValue)}</span>
+            <span className="text-foreground font-medium">
+              {fmt(totalMissingValue)}
+              {unpricedMissing > 0 && (
+                <span className="text-muted-foreground font-normal">
+                  {` ${m.common_unpriced({ count: unpricedMissing })}`}
+                </span>
+              )}
+            </span>
           </div>
         )}
 

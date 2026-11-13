@@ -72,7 +72,7 @@ export const pricesRouter = {
         entry = {};
         prices[row.printingId] = entry;
       }
-      entry[row.marketplace as Marketplace] = row.marketCents;
+      entry[row.marketplace as Marketplace] = row.headlineCents;
     }
 
     return { prices, currencies: MARKETPLACE_CURRENCY };
@@ -108,7 +108,7 @@ export const pricesRouter = {
       ]);
       const links = linksFromSources(sources, [printingId])[printingId] ?? emptyLinks();
       const priceOf = (source: Marketplace): number | null =>
-        priceRows.find((row) => row.marketplace === source)?.marketCents ?? null;
+        priceRows.find((row) => row.marketplace === source)?.headlineCents ?? null;
       const variantOf = (source: Marketplace): string | undefined =>
         sources.find((s) => s.marketplace === source)?.variantId;
 

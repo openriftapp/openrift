@@ -17,21 +17,21 @@ describe("metaSearchSchema", () => {
     }
   });
 
-  it("rejects an unknown tab", () => {
-    expect(metaSearchSchema.safeParse({ tab: "archive" }).success).toBe(false);
+  it("falls back to the default for an unknown tab", () => {
+    expect(metaSearchSchema.parse({ tab: "archive", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("coerces the page number out of the URL string", () => {
     expect(metaSearchSchema.parse({ page: "3" }).page).toBe(3);
   });
 
-  it("rejects a page below one", () => {
-    expect(metaSearchSchema.safeParse({ page: "0" }).success).toBe(false);
-    expect(metaSearchSchema.safeParse({ page: "-1" }).success).toBe(false);
+  it("falls back to the default for a page below one", () => {
+    expect(metaSearchSchema.parse({ page: "0", q: "kept" })).toEqual({ q: "kept" });
+    expect(metaSearchSchema.parse({ page: "-1", q: "kept" })).toEqual({ q: "kept" });
   });
 
-  it("rejects a fractional page", () => {
-    expect(metaSearchSchema.safeParse({ page: "1.5" }).success).toBe(false);
+  it("falls back to the default for a fractional page", () => {
+    expect(metaSearchSchema.parse({ page: "1.5", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("accepts every catalogue provider as the source", () => {
@@ -40,8 +40,8 @@ describe("metaSearchSchema", () => {
     }
   });
 
-  it("rejects an unknown source", () => {
-    expect(metaSearchSchema.safeParse({ source: "melee" }).success).toBe(false);
+  it("falls back to the default for an unknown source", () => {
+    expect(metaSearchSchema.parse({ source: "melee", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("accepts the triage states and the any escape hatch", () => {
@@ -50,17 +50,17 @@ describe("metaSearchSchema", () => {
     }
   });
 
-  it("rejects an unknown triage state", () => {
-    expect(metaSearchSchema.safeParse({ triage: "pending" }).success).toBe(false);
+  it("falls back to the default for an unknown triage state", () => {
+    expect(metaSearchSchema.parse({ triage: "pending", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("coerces a playloltcg status out of the URL string", () => {
     expect(metaSearchSchema.parse({ plStatus: "3" }).plStatus).toBe(3);
   });
 
-  it("rejects a playloltcg status outside the known set", () => {
-    expect(metaSearchSchema.safeParse({ plStatus: "9" }).success).toBe(false);
-    expect(metaSearchSchema.safeParse({ plStatus: "0" }).success).toBe(false);
+  it("falls back to the default for a playloltcg status outside the known set", () => {
+    expect(metaSearchSchema.parse({ plStatus: "9", q: "kept" })).toEqual({ q: "kept" });
+    expect(metaSearchSchema.parse({ plStatus: "0", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("accepts the catalogue sort columns and directions", () => {
@@ -68,8 +68,8 @@ describe("metaSearchSchema", () => {
     expect(parsed).toMatchObject({ eventSort: "playerCount", eventDir: "desc" });
   });
 
-  it("rejects a sort column that is not a catalogue column", () => {
-    expect(metaSearchSchema.safeParse({ eventSort: "createdAt" }).success).toBe(false);
+  it("falls back to the default for a sort column that is not a catalogue column", () => {
+    expect(metaSearchSchema.parse({ eventSort: "createdAt", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("accepts the live sort columns and directions", () => {
@@ -77,8 +77,8 @@ describe("metaSearchSchema", () => {
     expect(parsed).toMatchObject({ liveSort: "eventDate", liveDir: "asc" });
   });
 
-  it("rejects a catalogue sort column on the live tab", () => {
-    expect(metaSearchSchema.safeParse({ liveSort: "startAt" }).success).toBe(false);
+  it("falls back to the default for a catalogue sort column on the live tab", () => {
+    expect(metaSearchSchema.parse({ liveSort: "startAt", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("accepts the non-provider live sources", () => {
@@ -91,8 +91,8 @@ describe("metaSearchSchema", () => {
     expect(metaSearchSchema.parse({ minPlayers: "0" }).minPlayers).toBe(0);
   });
 
-  it("rejects a negative minimum player count", () => {
-    expect(metaSearchSchema.safeParse({ minPlayers: "-5" }).success).toBe(false);
+  it("falls back to the default for a negative minimum player count", () => {
+    expect(metaSearchSchema.parse({ minPlayers: "-5", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("keeps the boolean toggles as booleans", () => {
@@ -110,8 +110,8 @@ describe("metaSearchSchema", () => {
     });
   });
 
-  it("rejects a stringified boolean toggle", () => {
-    expect(metaSearchSchema.safeParse({ decklists: "true" }).success).toBe(false);
+  it("falls back to the default for a stringified boolean toggle", () => {
+    expect(metaSearchSchema.parse({ decklists: "true", q: "kept" })).toEqual({ q: "kept" });
   });
 
   it("passes the free-text params through untouched", () => {

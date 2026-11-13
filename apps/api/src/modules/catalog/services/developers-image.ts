@@ -12,6 +12,7 @@ import {
   svgToPngDataUri,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
+import { shareCanvas } from "../../system/services/share-image-frame.js";
 import type { DevelopersImageInput, DevelopersShowcase } from "./developers-image-input.js";
 
 const ACCENT = "#3ee0cf";
@@ -119,7 +120,7 @@ function codeLine(indent: boolean, ...children: Child[]): Element {
   );
 }
 
-function codePanel(fields: Field[], siteHost: string): Element {
+function codePanel(fields: Field[], siteHost: string | undefined): Element {
   const lines = fields.map((field) =>
     codeLine(true, element("span", { color: ACCENT }, `"${field.key}"`), ": ", ...field.value, ","),
   );
@@ -142,7 +143,11 @@ function codePanel(fields: Field[], siteHost: string): Element {
       lineHeight: `${CODE_LINE}px`,
       whiteSpace: "pre",
     },
-    codeLine(false, element("span", { color: MUTED }, "$ "), `curl ${siteHost}/api/v1/catalog`),
+    codeLine(
+      false,
+      element("span", { color: MUTED }, "$ "),
+      `curl ${siteHost ?? ""}/api/v1/catalog`,
+    ),
     element("div", { display: "flex", height: PROMPT_GAP }),
     codeLine(false, "{"),
     ...lines,
@@ -208,7 +213,6 @@ export async function renderDevelopersImage(
   scale = 1,
 ): Promise<Buffer> {
   const { width, height } = SHARE_IMAGE_CANVAS.landscape;
-  const siteHost = input.siteHost ?? "openrift.app";
   const fields = input.showcase ? showcaseFields(input.showcase) : [];
 
   const [logo, showcaseArt, ...backdropArts] = await Promise.all([
@@ -230,18 +234,10 @@ export async function renderDevelopersImage(
       : null;
 
   const { stats } = input;
-  const root = element(
-    "div",
-    {
-      display: "flex",
-      position: "relative",
-      width,
-      height,
-      backgroundColor: BACKGROUND,
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
-    },
+  const root = shareCanvas(
+    width,
+    height,
+    { position: "relative", backgroundColor: BACKGROUND },
     ...backdropArts.map((art, index) => {
       const box = BACKDROPS[index];
       return box ? placedCard(art, "", { ...box }, box.shade) : null;
@@ -291,7 +287,7 @@ export async function renderDevelopersImage(
       pill("No API key"),
       pill("JSON"),
     ),
-    codePanel(fields, siteHost),
+    codePanel(fields, input.siteHost),
     element(
       "div",
       { display: "flex", position: "absolute", left: PAD, top: 592, fontSize: 20, color: MUTED },

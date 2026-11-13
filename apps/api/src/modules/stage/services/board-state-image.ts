@@ -1,17 +1,21 @@
+import type { BoardSeats } from "@openrift/shared/board-layout";
+import {
+  BOARD_ZONE_LABEL_EN,
+  CHAIN_TYPE_LABEL_EN,
+  PIECE_KIND_LABEL_EN,
+  pieceNumerals,
+  piecesAt,
+  seatsFor,
+} from "@openrift/shared/board-layout";
 import type {
   BoardChainEntry,
   BoardDocument,
   BoardPiece,
   BoardPlayer,
   BoardZoneRef,
-  PlayerZoneKind,
 } from "@openrift/shared/board-state";
-import {
-  chainEntryName,
-  isDeckZone,
-  sameZone,
-  shownBattlefields,
-} from "@openrift/shared/board-state";
+import { chainEntryName, isDeckZone, shownBattlefields } from "@openrift/shared/board-state";
+import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
@@ -22,18 +26,28 @@ import {
   elideTitle,
   renderTreeToPng,
 } from "../../system/services/share-image-core.js";
+import {
+  SHARE_TYPE,
+  hostFooter,
+  shareCanvas,
+  titleBlock,
+} from "../../system/services/share-image-frame.js";
+import type { BoardPlan, SeatPlan, SlotBox } from "../lib/board-image-layout.js";
+import {
+  BOARD_GAP,
+  LABEL_H,
+  MAX_LABEL_SIZE,
+  SEAT_INSET,
+  SEAT_ROW_GAP,
+  SLOT_GAP,
+  planBoardImage,
+  tileWidth,
+} from "../lib/board-image-layout.js";
 
-const PAD = 24;
-const GAP = 8;
-const TITLE_H = 44;
-const TITLE_SIZE = 32;
-const TITLE_MAX_CHARS = 52;
-const FOOTER_H = 24;
+const { pad: PAD, titleH: TITLE_H, footerH: FOOTER_H } = SHARE_TYPE.landscape;
+const GAP = BOARD_GAP;
 const CHAIN_H = 40;
-const ZONE_LABEL_SIZE = 11;
-const PIECE_ASPECT = 0.715;
-const BATTLEFIELD_W = 150;
-const BATTLEFIELD_ASPECT = 1.4;
+const MIN_FRAME_W = 110;
 const KEYWORD_COLOR = "#707070";
 
 /** Hex equivalents of the web board's oklch player colors; satori has no oklch. */
@@ -49,84 +63,27 @@ const FELT = "#143c3e";
 const FELT_EDGE = "#0c2729";
 const FELT_LINE = "rgba(255,255,255,0.35)";
 
-type SeatZone = Exclude<PlayerZoneKind, "hand">;
-
-const SEAT_ORDER: readonly SeatZone[] = [
-  "runeDeck",
-  "runes",
-  "champion",
-  "legend",
-  "base",
-  "deck",
-  "trash",
-  "banishment",
-];
-
-const SLOT_LABEL: Partial<Record<SeatZone, string>> = {
-  runeDeck: "rune deck",
-};
-
 export interface BoardStateImageInput {
   title: string;
+  ownerName?: string;
   document: BoardDocument;
   siteHost?: string;
 }
 
-export interface BoardSeats {
-  top: BoardPlayer[];
-  bottom: BoardPlayer[];
-}
-
-export function seatsFor(playerCount: number): BoardSeats {
-  if (playerCount >= 4) {
-    return { top: ["B", "D"], bottom: ["A", "C"] };
-  }
-  if (playerCount === 3) {
-    return { top: ["B"], bottom: ["A", "C"] };
-  }
-  return { top: ["B"], bottom: ["A"] };
-}
-
-export function seatSlots(document: BoardDocument): SeatZone[] {
-  return SEAT_ORDER.filter((zone) =>
-    zone === "deck" || zone === "runeDeck" ? document.zones.deck : document.zones[zone],
-  );
-}
-
-export function piecesIn(
-  pieces: readonly BoardPiece[],
-  zone: BoardZoneRef,
-  owners: readonly BoardPlayer[],
-): BoardPiece[] {
-  return pieces.filter((piece) => owners.includes(piece.owner) && sameZone(piece.zone, zone));
-}
-
 export function pieceText(piece: BoardPiece, max: number): string {
-  return elideTitle(piece.card?.name ?? piece.label ?? piece.kind, max);
+  return elideTitle(piece.card?.name ?? PIECE_KIND_LABEL_EN[piece.kind], max);
 }
 
 export function chainEntryText(entry: BoardChainEntry, pieces: readonly BoardPiece[]): string {
-  return chainEntryName(entry, pieces) ?? entry.type;
+  return chainEntryName(entry, pieces) ?? CHAIN_TYPE_LABEL_EN[entry.type];
 }
 
-/** Numerals for pieces whose name is shared by another piece, 1-based in piece order. */
-export function pieceNumerals(pieces: readonly BoardPiece[]): Map<string, number> {
-  const groups = Map.groupBy(pieces, (piece) => piece.card?.name ?? `kind:${piece.kind}`);
-  const numerals = new Map<string, number>();
-  for (const group of groups.values()) {
-    if (group.length < 2) {
-      continue;
-    }
-    group.forEach((piece, index) => numerals.set(piece.id, index + 1));
-  }
-  return numerals;
-}
+const MIN_BADGE_CHARS = 5;
 
-/** Units: one seat row and one hand strip per side, two for the battlefield halves. */
-export function measurePieceHeight(document: BoardDocument, boardH: number): number {
-  const units = 2 + (document.zones.hand ? 2 : 0) + (document.battlefields.length > 0 ? 2 : 0);
-  const unitH = boardH / Math.max(1, units);
-  return Math.max(24, Math.min(72, Math.floor(unitH - ZONE_LABEL_SIZE - 14)));
+export function readableBadges(piece: BoardPiece, maxChars: number): string[] {
+  return [...(piece.label === undefined ? [] : [piece.label]), ...piece.keywords]
+    .filter((badge) => badge.length <= maxChars || maxChars >= MIN_BADGE_CHARS)
+    .map((badge) => elideTitle(badge, maxChars));
 }
 
 /** The keyword row is drawn only when the name keeps one full line; 10px is the tile's border and padding. */
@@ -135,22 +92,29 @@ export function keywordsFit(piece: BoardPiece, tileH: number, fontSize: number):
   return tileH - 10 >= rows * fontSize * 1.2 + fontSize * 1.1;
 }
 
-function upperLabel(text: string, color = "rgba(255,255,255,0.5)"): Element {
+function upperLabel(
+  text: string,
+  fontSize = MAX_LABEL_SIZE,
+  color = "rgba(255,255,255,0.5)",
+): Element {
   return element(
     "div",
     {
       display: "flex",
-      fontSize: ZONE_LABEL_SIZE,
+      height: LABEL_H,
+      alignItems: "center",
+      fontSize,
       fontWeight: 700,
       letterSpacing: 1,
       color,
       textTransform: "uppercase",
+      whiteSpace: "nowrap",
     },
     text,
   );
 }
 
-function keywordBadge(keyword: string, fontSize: number): Element {
+function keywordBadge(text: string, fontSize: number): Element {
   return element(
     "div",
     {
@@ -163,7 +127,7 @@ function keywordBadge(keyword: string, fontSize: number): Element {
       paddingRight: 2,
       textTransform: "uppercase",
     },
-    elideTitle(keyword, 12),
+    text,
   );
 }
 
@@ -172,9 +136,10 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
   if (piece.facedown) {
     return cardBack(pieceH, piece.highlight ? COLORS.gold : color);
   }
-  const width = Math.round(piece.exhausted ? pieceH : pieceH * PIECE_ASPECT);
-  const height = Math.round(piece.exhausted ? pieceH * PIECE_ASPECT : pieceH);
+  const width = tileWidth(piece, pieceH);
+  const height = Math.round(piece.exhausted ? pieceH * CARD_ASPECT : pieceH);
   const fontSize = Math.max(8, Math.round(pieceH / 5.5));
+  const badges = readableBadges(piece, Math.floor((width - 10) / (fontSize * 0.62)));
   return element(
     "div",
     {
@@ -225,7 +190,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
       },
       pieceText(piece, Math.max(6, Math.floor((width / fontSize) * 2.5))),
     ),
-    piece.keywords.length > 0 &&
+    badges.length > 0 &&
       keywordsFit(piece, height, fontSize) &&
       element(
         "div",
@@ -237,7 +202,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
           height: Math.ceil(fontSize * 1.2),
           overflow: "hidden",
         },
-        ...piece.keywords.slice(0, 2).map((keyword) => keywordBadge(keyword, fontSize)),
+        ...badges.slice(0, 2).map((badge) => keywordBadge(badge, fontSize)),
       ),
     element(
       "div",
@@ -281,7 +246,7 @@ function cardBack(pieceH: number, color: string): Element {
   return element("div", {
     display: "flex",
     flexShrink: 0,
-    width: Math.round(pieceH * PIECE_ASPECT),
+    width: Math.round(pieceH * CARD_ASPECT),
     height: Math.round(pieceH),
     borderRadius: 4,
     backgroundColor: FELT_EDGE,
@@ -290,54 +255,61 @@ function cardBack(pieceH: number, color: string): Element {
 }
 
 function seatSlotBox(
-  zone: SeatZone,
+  box: SlotBox,
   player: BoardPlayer,
   pieces: readonly BoardPiece[],
   pieceH: number,
   numerals: Map<string, number>,
 ): Element {
   const color = PLAYER_COLORS[player];
-  const held = piecesIn(pieces, { kind: zone }, [player]);
+  const held = piecesAt({ pieces }, { kind: box.zone }, player);
   return element(
     "div",
     {
       display: "flex",
       flexDirection: "column",
-      flexGrow: zone === "base" ? 1 : 0,
       flexShrink: 0,
+      width: box.width,
       padding: 4,
       gap: 2,
       borderRadius: 6,
       border: `1px dashed ${FELT_LINE}`,
       overflow: "hidden",
     },
-    upperLabel(`${SLOT_LABEL[zone] ?? zone} ${player}`),
-    isDeckZone({ kind: zone }) && held.length === 0
+    upperLabel(box.label, box.labelSize),
+    isDeckZone({ kind: box.zone }) && held.length === 0
       ? cardBack(pieceH, color)
       : pieceRow(held, pieceH, numerals),
   );
 }
 
 function seatBlock(
+  seat: SeatPlan,
+  plan: BoardPlan,
   pieces: readonly BoardPiece[],
-  player: BoardPlayer,
-  slots: readonly SeatZone[],
-  pieceH: number,
   numerals: Map<string, number>,
 ): Element {
+  const rows = Array.from({ length: plan.slotRows }, (_, row) =>
+    seat.slots.filter((box) => box.row === row),
+  );
   return element(
     "div",
     {
       display: "flex",
-      flexDirection: "row",
-      flexGrow: 1,
-      flexBasis: 0,
-      gap: 4,
-      paddingLeft: 6,
-      borderLeft: `3px solid ${PLAYER_COLORS[player]}`,
-      overflow: "hidden",
+      flexDirection: "column",
+      flexShrink: 0,
+      width: seat.width,
+      gap: SEAT_ROW_GAP,
+      paddingLeft: SEAT_INSET - 3,
+      borderLeft: `3px solid ${PLAYER_COLORS[seat.player]}`,
     },
-    ...slots.map((zone) => seatSlotBox(zone, player, pieces, pieceH, numerals)),
+    ...rows.map((boxes) =>
+      element(
+        "div",
+        { display: "flex", flexDirection: "row", height: plan.rowH, gap: SLOT_GAP },
+        ...boxes.map((box) => seatSlotBox(box, seat.player, pieces, plan.pieceH, numerals)),
+      ),
+    ),
   );
 }
 
@@ -346,6 +318,7 @@ function handStrip(
   pieces: readonly BoardPiece[],
   players: readonly BoardPlayer[],
   pieceH: number,
+  handH: number,
   numerals: Map<string, number>,
 ): Child {
   if (!document.zones.hand) {
@@ -353,7 +326,7 @@ function handStrip(
   }
   return element(
     "div",
-    { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
+    { display: "flex", flexDirection: "row", flexShrink: 0, height: handH, gap: GAP },
     ...players.map((player) =>
       element(
         "div",
@@ -365,8 +338,8 @@ function handStrip(
           gap: 2,
           overflow: "hidden",
         },
-        upperLabel(`hand ${player}`),
-        pieceRow(piecesIn(pieces, { kind: "hand" }, [player]), pieceH, numerals),
+        upperLabel(`${player} · ${BOARD_ZONE_LABEL_EN.hand}`),
+        pieceRow(piecesAt({ pieces }, { kind: "hand" }, player), pieceH, numerals),
       ),
     ),
   );
@@ -378,12 +351,12 @@ function battlefieldRow(
   seats: BoardSeats,
   pieceH: number,
   halfH: number,
+  frameH: number,
   numerals: Map<string, number>,
 ): Child {
   if (document.battlefields.length === 0) {
     return false;
   }
-  const frameH = Math.round(BATTLEFIELD_W / BATTLEFIELD_ASPECT);
   const half = (players: readonly BoardPlayer[], zone: BoardZoneRef) =>
     element(
       "div",
@@ -400,7 +373,7 @@ function battlefieldRow(
             borderLeft: `2px solid ${PLAYER_COLORS[player]}`,
             overflow: "hidden",
           },
-          pieceRow(piecesIn(pieces, zone, [player]), pieceH, numerals),
+          pieceRow(piecesAt({ pieces }, zone, player), pieceH, numerals),
         ),
       ),
     );
@@ -438,13 +411,14 @@ function battlefieldRow(
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: BATTLEFIELD_W,
+              width: Math.max(MIN_FRAME_W, Math.round(frameH * LANDSCAPE_CARD_ASPECT)),
               height: frameH,
-              padding: 6,
+              padding: 4,
               borderRadius: 6,
               backgroundColor: "rgba(0,0,0,0.4)",
               border: `1px solid ${COLORS.gold}`,
-              fontSize: 13,
+              fontSize: Math.min(13, Math.max(9, Math.round(frameH / 4))),
+              lineHeight: 1.1,
               fontWeight: 700,
               color: COLORS.gold,
               textAlign: "center",
@@ -452,8 +426,8 @@ function battlefieldRow(
             },
             elideTitle(battlefield?.card?.name ?? `Battlefield ${index + 1}`, 34),
           ),
-          ...piecesIn(pieces, { kind: "facedown", index }, [...seats.top, ...seats.bottom]).map(
-            (piece) => pieceTile(piece, Math.min(pieceH, frameH)),
+          ...piecesAt({ pieces }, { kind: "facedown", index }).map((piece) =>
+            pieceTile(piece, Math.min(pieceH, frameH)),
           ),
         ),
         half(seats.bottom, zone),
@@ -483,7 +457,7 @@ function chainRow(document: BoardDocument): Child {
       border: "1px solid rgba(255,255,255,0.12)",
       overflow: "hidden",
     },
-    upperLabel("chain"),
+    upperLabel(BOARD_ZONE_LABEL_EN.chain),
     ...chain.map((entry) =>
       element(
         "div",
@@ -522,11 +496,7 @@ function chainRow(document: BoardDocument): Child {
   );
 }
 
-export function renderBoardStateImage(
-  io: Io,
-  input: BoardStateImageInput,
-  scale = 1,
-): Promise<Buffer> {
+export function boardStateTree(input: BoardStateImageInput): Element {
   const { width, height } = SHARE_IMAGE_CANVAS.landscape;
   const { document } = input;
   const step = document.steps[0];
@@ -536,25 +506,18 @@ export function renderBoardStateImage(
   const hasFooter = Boolean(input.siteHost);
   const chainH = document.zones.chain ? CHAIN_H + GAP : 0;
   const boardH = height - PAD * 2 - TITLE_H - GAP - chainH - (hasFooter ? FOOTER_H + GAP : 0);
-  const pieceH = measurePieceHeight(document, boardH);
-  const rowH = pieceH + ZONE_LABEL_SIZE + 18;
-  const handH = document.zones.hand ? pieceH + ZONE_LABEL_SIZE + 6 : 0;
-  const frameH = Math.round(BATTLEFIELD_W / BATTLEFIELD_ASPECT);
-  const halfH = Math.max(
-    pieceH + 4,
-    Math.floor((boardH - 2 * rowH - 2 * handH - frameH - GAP * 6) / 2),
-  );
+  const plan = planBoardImage(document, seats, { width: width - PAD * 2, height: boardH });
+  const { pieceH, handH, halfH, frameH } = plan;
 
   const side = (which: "top" | "bottom"): Element => {
-    const slots = seatSlots(document);
     const players = seats[which];
     const rows: Child[] = [
       element(
         "div",
-        { display: "flex", flexDirection: "row", flexShrink: 0, height: rowH, gap: GAP },
-        ...players.map((player) => seatBlock(pieces, player, slots, pieceH, numerals)),
+        { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
+        ...plan.seats[which].map((seat) => seatBlock(seat, plan, pieces, numerals)),
       ),
-      handStrip(document, pieces, players, pieceH, numerals),
+      handStrip(document, pieces, players, pieceH, handH, numerals),
     ];
     return element(
       "div",
@@ -575,56 +538,43 @@ export function renderBoardStateImage(
     },
     chainRow(document),
     side("top"),
-    battlefieldRow(document, pieces, seats, pieceH, halfH, numerals),
+    battlefieldRow(document, pieces, seats, pieceH, halfH, frameH, numerals),
     side("bottom"),
   );
 
-  const root = element(
-    "div",
+  return shareCanvas(
+    width,
+    height,
     {
-      display: "flex",
       flexDirection: "column",
-      width,
-      height,
       padding: PAD,
       backgroundColor: FELT,
       backgroundImage:
         "radial-gradient(80% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 65%)",
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
     },
-    element(
-      "div",
-      {
-        display: "flex",
-        alignItems: "center",
-        height: TITLE_H,
-        flexShrink: 0,
-        fontSize: TITLE_SIZE,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-      },
-      elideTitle(input.title, TITLE_MAX_CHARS),
-    ),
+    titleBlock({
+      aspect: "landscape",
+      title: input.title,
+      ownerName: input.ownerName,
+      height: TITLE_H,
+    }),
     element("div", { display: "flex", height: GAP, flexShrink: 0 }),
     board,
     hasFooter &&
-      element(
-        "div",
-        {
-          display: "flex",
-          alignItems: "center",
-          height: FOOTER_H,
-          marginTop: GAP,
-          flexShrink: 0,
-          fontSize: 20,
-          fontWeight: 600,
-          color: "rgba(255,255,255,0.6)",
-        },
-        input.siteHost ?? "",
-      ),
+      hostFooter({
+        siteHost: input.siteHost,
+        aspect: "landscape",
+        marginTop: GAP,
+        color: "rgba(255,255,255,0.6)",
+      }),
   );
+}
 
-  return renderTreeToPng(io, root, width, height, scale);
+export function renderBoardStateImage(
+  io: Io,
+  input: BoardStateImageInput,
+  scale = 1,
+): Promise<Buffer> {
+  const { width, height } = SHARE_IMAGE_CANVAS.landscape;
+  return renderTreeToPng(io, boardStateTree(input), width, height, scale);
 }

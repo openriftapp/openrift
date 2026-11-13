@@ -17,6 +17,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Pressable } from "@/components/ui/pressable";
 import { textLinkVariants } from "@/components/ui/text-link";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import {
+  isStaleRecord,
+  listingPriceCents,
+  SOURCE_CONFIGS,
+} from "@/features/admin/lib/marketplace-sources";
 import { nameBeyondCardName } from "@/features/admin/lib/name-suffix";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
@@ -25,11 +30,7 @@ import { formatCentsInLocale } from "@/lib/format";
 
 import { PrintingLabel } from "./marketplace-printing-label";
 import type { MarketplaceHandlers, MarketplaceTableRow } from "./marketplace-product-entries";
-import {
-  displayedProductLanguage,
-  isStaleRecord,
-  MARKETPLACE_CONFIGS,
-} from "./marketplace-product-entries";
+import { displayedProductLanguage } from "./marketplace-product-entries";
 import { AssignToPrintingButton, RowActions } from "./marketplace-row-actions";
 import { SuggestionChip } from "./marketplace-suggestion-chip";
 import { ProductLink } from "./price-mappings-utils";
@@ -53,7 +54,7 @@ export function ProductCell({ row, cardName }: CellProps & { cardName: string })
       ) : (
         <span aria-hidden className="inline-block size-3.5 shrink-0" />
       )}
-      <ProductLink config={MARKETPLACE_CONFIGS[marketplace]} externalId={product.externalId}>
+      <ProductLink config={SOURCE_CONFIGS[marketplace]} externalId={product.externalId}>
         #{product.externalId}
       </ProductLink>
       {beyondCardName !== "" && (
@@ -94,8 +95,8 @@ export function PriceCell({ row }: CellProps) {
   if (!row) {
     return null;
   }
-  const { product } = row.entry;
-  const priceCents = product.marketCents ?? product.lowCents;
+  const { marketplace, product } = row.entry;
+  const priceCents = listingPriceCents(marketplace, product);
 
   return (
     <span className="flex items-center justify-end gap-1 tabular-nums">
@@ -104,9 +105,7 @@ export function PriceCell({ row }: CellProps) {
           <AlertTriangleIcon className="text-destructive size-3.5" />
         </span>
       )}
-      <span>
-        {priceCents && priceCents > 0 ? formatCentsInLocale(priceCents, product.currency) : ""}
-      </span>
+      <span>{priceCents === null ? "" : formatCentsInLocale(priceCents, product.currency)}</span>
     </span>
   );
 }

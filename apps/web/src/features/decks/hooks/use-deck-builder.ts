@@ -31,7 +31,7 @@ import {
   runeTotalOf,
   toRuleEngineCard,
 } from "@/features/decks/lib/deck-builder-card";
-import { runeRefillPlan } from "@/features/decks/lib/legend-switch-preview";
+import { legendSwitchCards } from "@/features/decks/lib/legend-switch-preview";
 import type { RelaxedAddOutcome } from "@/features/decks/lib/workbench-add-toast";
 import {
   dismissRemovalToast,
@@ -107,11 +107,11 @@ function rebalanceRunes(
     if (!otherRune) {
       return undefined;
     }
-    const key = deckCardKey(
-      otherRune.cardId,
-      WellKnown.deckZone.RUNES,
-      otherRune.preferredPrintingId,
-    );
+    const key = deckCardKey({
+      cardId: otherRune.cardId,
+      zone: WellKnown.deckZone.RUNES,
+      preferredPrintingId: otherRune.preferredPrintingId,
+    });
     if (otherRune.quantity > 1) {
       collection.update(key, (draft) => {
         draft.quantity -= 1;
@@ -129,11 +129,11 @@ function rebalanceRunes(
   );
   if (existingOther) {
     collection.update(
-      deckCardKey(
-        existingOther.cardId,
-        WellKnown.deckZone.RUNES,
-        existingOther.preferredPrintingId,
-      ),
+      deckCardKey({
+        cardId: existingOther.cardId,
+        zone: WellKnown.deckZone.RUNES,
+        preferredPrintingId: existingOther.preferredPrintingId,
+      }),
       (draft) => {
         draft.quantity += 1;
       },
@@ -159,7 +159,11 @@ function incrementOrInsert(
   preferredPrintingId: string | null,
   addQty: number,
 ): void {
-  const key = deckCardKey(card.cardId, zone, preferredPrintingId);
+  const key = deckCardKey({
+    cardId: card.cardId,
+    zone,
+    preferredPrintingId,
+  });
   const existing = collection.get(key);
   if (existing) {
     collection.update(key, (draft) => {
@@ -194,7 +198,13 @@ export function addCardAction(
     // Constructed: single-card zones replace whatever is there, across any printing.
     for (const existing of allCards(collection)) {
       if (existing.zone === zone) {
-        collection.delete(deckCardKey(existing.cardId, zone, existing.preferredPrintingId));
+        collection.delete(
+          deckCardKey({
+            cardId: existing.cardId,
+            zone,
+            preferredPrintingId: existing.preferredPrintingId,
+          }),
+        );
       }
     }
     collection.insert({ ...card, zone, quantity: 1, preferredPrintingId });
@@ -280,7 +290,11 @@ export function addCardAction(
       );
       if (existing) {
         collection.update(
-          deckCardKey(card.cardId, WellKnown.deckZone.RUNES, preferredPrintingId),
+          deckCardKey({
+            cardId: card.cardId,
+            zone: WellKnown.deckZone.RUNES,
+            preferredPrintingId,
+          }),
           (draft) => {
             draft.quantity += 1;
           },
@@ -342,11 +356,15 @@ export function removeCardAction(
   const target =
     preferredPrintingId === undefined
       ? findRowForCardInZone(allCards(collection), cardId, zone)
-      : collection.get(deckCardKey(cardId, zone, preferredPrintingId));
+      : collection.get(deckCardKey({ cardId, zone, preferredPrintingId }));
   if (!target) {
     return;
   }
-  const key = deckCardKey(target.cardId, target.zone, target.preferredPrintingId);
+  const key = deckCardKey({
+    cardId: target.cardId,
+    zone: target.zone,
+    preferredPrintingId: target.preferredPrintingId,
+  });
   if (target.quantity > 1) {
     collection.update(key, (draft) => {
       draft.quantity -= 1;
@@ -375,7 +393,13 @@ export function undoRelaxedAddAction(
 ): void {
   const { card, zone, swappedOut } = outcome;
   if (outcome.rule === "runeSwap" && swappedOut) {
-    const row = collection.get(deckCardKey(card.cardId, zone, card.preferredPrintingId));
+    const row = collection.get(
+      deckCardKey({
+        cardId: card.cardId,
+        zone,
+        preferredPrintingId: card.preferredPrintingId,
+      }),
+    );
     if (row) {
       setQuantityAction(collection, row.cardId, zone, row.quantity - 1, row.preferredPrintingId);
     }
@@ -422,7 +446,13 @@ function moveIntoSingleSlot(
     return;
   }
   for (const existing of existingInZone) {
-    collection.delete(deckCardKey(existing.cardId, toZone, existing.preferredPrintingId));
+    collection.delete(
+      deckCardKey({
+        cardId: existing.cardId,
+        zone: toZone,
+        preferredPrintingId: existing.preferredPrintingId,
+      }),
+    );
   }
   if (source.quantity > 1) {
     collection.update(sourceKey, (draft) => {
@@ -442,7 +472,11 @@ export function moveCardAction(
   preferredPrintingId: string | null,
   format: DeckFormat,
 ): void {
-  const sourceKey = deckCardKey(cardId, fromZone, preferredPrintingId);
+  const sourceKey = deckCardKey({
+    cardId,
+    zone: fromZone,
+    preferredPrintingId,
+  });
   const source = collection.get(sourceKey);
   if (!source || !isCardAllowedInZone(source, toZone)) {
     return;
@@ -452,7 +486,11 @@ export function moveCardAction(
     moveIntoSingleSlot(collection, source, sourceKey, toZone);
     return;
   }
-  const targetKey = deckCardKey(cardId, toZone, preferredPrintingId);
+  const targetKey = deckCardKey({
+    cardId,
+    zone: toZone,
+    preferredPrintingId,
+  });
   const target = collection.get(targetKey);
 
   collection.delete(sourceKey);
@@ -473,7 +511,11 @@ export function moveOneCardAction(
   preferredPrintingId: string | null,
   format: DeckFormat,
 ): void {
-  const sourceKey = deckCardKey(cardId, fromZone, preferredPrintingId);
+  const sourceKey = deckCardKey({
+    cardId,
+    zone: fromZone,
+    preferredPrintingId,
+  });
   const source = collection.get(sourceKey);
   if (!source || !isCardAllowedInZone(source, toZone)) {
     return;
@@ -491,7 +533,11 @@ export function moveOneCardAction(
     collection.delete(sourceKey);
   }
 
-  const targetKey = deckCardKey(cardId, toZone, preferredPrintingId);
+  const targetKey = deckCardKey({
+    cardId,
+    zone: toZone,
+    preferredPrintingId,
+  });
   const target = collection.get(targetKey);
   if (target) {
     collection.update(targetKey, (draft) => {
@@ -516,11 +562,15 @@ export function setQuantityAction(
   const target =
     preferredPrintingId === undefined
       ? findRowForCardInZone(allCards(collection), cardId, zone)
-      : collection.get(deckCardKey(cardId, zone, preferredPrintingId));
+      : collection.get(deckCardKey({ cardId, zone, preferredPrintingId }));
   if (!target) {
     return;
   }
-  const key = deckCardKey(target.cardId, target.zone, target.preferredPrintingId);
+  const key = deckCardKey({
+    cardId: target.cardId,
+    zone: target.zone,
+    preferredPrintingId: target.preferredPrintingId,
+  });
   if (quantity <= 0) {
     collection.delete(key);
     return;
@@ -542,7 +592,11 @@ export function changePreferredPrintingAction(
   if (fromPrintingId === toPrintingId) {
     return;
   }
-  const sourceKey = deckCardKey(cardId, zone, fromPrintingId);
+  const sourceKey = deckCardKey({
+    cardId,
+    zone,
+    preferredPrintingId: fromPrintingId,
+  });
   const source = collection.get(sourceKey);
   if (!source) {
     return;
@@ -557,7 +611,7 @@ export function changePreferredPrintingAction(
     });
   }
 
-  const targetKey = deckCardKey(cardId, zone, toPrintingId);
+  const targetKey = deckCardKey({ cardId, zone, preferredPrintingId: toPrintingId });
   const target = collection.get(targetKey);
   if (target) {
     collection.update(targetKey, (draft) => {
@@ -568,6 +622,30 @@ export function changePreferredPrintingAction(
   }
 }
 
+function replaceDeckCards(
+  collection: DeckCollection,
+  before: readonly DeckBuilderCard[],
+  after: readonly DeckBuilderCard[],
+): void {
+  const afterByKey = new Map(after.map((card) => [deckCardKey(card), card]));
+  const beforeByKey = new Map(before.map((card) => [deckCardKey(card), card]));
+  for (const key of beforeByKey.keys()) {
+    if (!afterByKey.has(key)) {
+      collection.delete(key);
+    }
+  }
+  for (const [key, card] of afterByKey) {
+    const existing = beforeByKey.get(key);
+    if (existing === undefined) {
+      collection.insert(card);
+    } else if (existing.quantity !== card.quantity) {
+      collection.update(key, (draft) => {
+        draft.quantity = card.quantity;
+      });
+    }
+  }
+}
+
 export function setLegendAction(
   collection: DeckCollection,
   card: DeckBuilderCard,
@@ -575,118 +653,31 @@ export function setLegendAction(
   format: DeckFormat,
   options?: { refill?: boolean; moveOffColorToOverflow?: boolean },
 ): void {
-  if (format === WellKnown.deckFormat.FREEFORM) {
-    // Freeform: legends are a multi-card zone, no rune autofill or domain swap.
-    incrementOrInsert(collection, card, WellKnown.deckZone.LEGEND, card.preferredPrintingId, 1);
+  const before = allCards(collection);
+  replaceDeckCards(
+    collection,
+    before,
+    legendSwitchCards(before, card, runesByDomain, format, { refill: options?.refill === true }),
+  );
+  if (format === WellKnown.deckFormat.FREEFORM || !options?.moveOffColorToOverflow) {
     return;
   }
-  const cards = allCards(collection);
-
-  for (const existing of cards) {
-    if (existing.zone === WellKnown.deckZone.LEGEND) {
-      collection.delete(
-        deckCardKey(existing.cardId, WellKnown.deckZone.LEGEND, existing.preferredPrintingId),
+  const allowed = new Set([...card.domains, WellKnown.domain.NEUTRAL, WellKnown.domain.COLORLESS]);
+  for (const entry of allCards(collection)) {
+    const offColor = entry.domains.some((domain) => !allowed.has(domain));
+    if (
+      offColor &&
+      (entry.zone === WellKnown.deckZone.MAIN || entry.zone === WellKnown.deckZone.SIDEBOARD)
+    ) {
+      moveCardAction(
+        collection,
+        entry.cardId,
+        entry.zone,
+        WellKnown.deckZone.OVERFLOW,
+        entry.preferredPrintingId,
+        format,
       );
     }
-  }
-  collection.insert({
-    ...card,
-    zone: WellKnown.deckZone.LEGEND,
-    quantity: 1,
-    preferredPrintingId: card.preferredPrintingId,
-  });
-
-  // Drop runes that don't match the new legend's domains.
-  const legendDomainSet = new Set(card.domains);
-  const runesAfter = allCards(collection).filter(
-    (entry) => entry.zone === WellKnown.deckZone.RUNES,
-  );
-  const incompatibleRunes = runesAfter.filter(
-    (entry) => !entry.domains.every((domain) => legendDomainSet.has(domain)),
-  );
-  for (const rune of incompatibleRunes) {
-    collection.delete(deckCardKey(rune.cardId, WellKnown.deckZone.RUNES, rune.preferredPrintingId));
-  }
-
-  if (options?.moveOffColorToOverflow) {
-    const allowed = new Set([
-      ...card.domains,
-      WellKnown.domain.NEUTRAL,
-      WellKnown.domain.COLORLESS,
-    ]);
-    for (const entry of allCards(collection)) {
-      const offColor = entry.domains.some((domain) => !allowed.has(domain));
-      if (
-        offColor &&
-        (entry.zone === WellKnown.deckZone.MAIN || entry.zone === WellKnown.deckZone.SIDEBOARD)
-      ) {
-        moveCardAction(
-          collection,
-          entry.cardId,
-          entry.zone,
-          WellKnown.deckZone.OVERFLOW,
-          entry.preferredPrintingId,
-          format,
-        );
-      }
-    }
-  }
-
-  const remainingRunes = allCards(collection).filter(
-    (entry) => entry.zone === WellKnown.deckZone.RUNES,
-  );
-  if (remainingRunes.length > 0 && options?.refill) {
-    for (const [domain, quantity] of runeRefillPlan(allCards(collection), card.domains)) {
-      const [catalogRune] = runesByDomain.get(domain) ?? [];
-      if (catalogRune) {
-        incrementOrInsert(collection, catalogRune, WellKnown.deckZone.RUNES, null, quantity);
-      }
-    }
-    return;
-  }
-  if (remainingRunes.length > 0 || card.domains.length < 2) {
-    return;
-  }
-
-  // Auto-populate: split the rune target evenly per domain, grouping by cardId
-  // so each unique rune gets a single entry.
-  const runeEntries = new Map<string, DeckBuilderCard>();
-  const fillDomain = (domain: string, target: number): void => {
-    const runes = runesByDomain.get(domain) ?? [];
-    if (runes.length === 0) {
-      return;
-    }
-    let remaining = target;
-    let index = 0;
-    while (remaining > 0) {
-      const rune = runes[index % runes.length];
-      if (!rune) {
-        break;
-      }
-      const already = runeEntries.get(rune.cardId);
-      if (already) {
-        already.quantity += 1;
-      } else {
-        runeEntries.set(rune.cardId, {
-          ...rune,
-          zone: WellKnown.deckZone.RUNES,
-          quantity: 1,
-          preferredPrintingId: null,
-        });
-      }
-      remaining -= 1;
-      index += 1;
-    }
-  };
-  const [firstDomain, secondDomain] = card.domains;
-  if (firstDomain !== undefined) {
-    fillDomain(firstDomain, RUNE_TARGET / 2);
-  }
-  if (secondDomain !== undefined) {
-    fillDomain(secondDomain, RUNE_TARGET / 2);
-  }
-  for (const rune of runeEntries.values()) {
-    collection.insert(rune);
   }
 }
 
@@ -789,7 +780,7 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
     const removed =
       preferredPrintingId === undefined
         ? findRowForCardInZone(allCards(collection), cardId, zone)
-        : collection.get(deckCardKey(cardId, zone, preferredPrintingId));
+        : collection.get(deckCardKey({ cardId, zone, preferredPrintingId }));
     const offerUndo = relaxed && removed !== undefined && (allCopies || removed.quantity <= 1);
     edit(apply, { separate: offerUndo });
     if (!offerUndo || removed === undefined) {

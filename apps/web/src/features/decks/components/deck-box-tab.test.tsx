@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBoxPlan } from "@/features/decks/lib/deck-box";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { stubDeckBuilderCard } from "@/test/factories";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -138,7 +138,7 @@ describe("DeckBoxTab", () => {
         {
           key: "slot-1",
           cardId: "card-1",
-          cardKey: getDeckCardKey(deckCard),
+          cardKey: deckCardKey(deckCard),
           state: "available",
           copy: shelfCopy,
           alternatives: [{ key: "alt-1", copy: binderCopy, count: 1 }],

@@ -1,8 +1,7 @@
 import { adminMetaSubmissionsContract } from "@openrift/shared/contracts/admin/meta-submissions";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -25,9 +24,7 @@ async function requireUnsettled(
   const submission = await repos.metaSubmissions.byId(id);
   assertFound(submission, "Submission not found");
   if (submission.status === "accepted") {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
+    throw conflict(
       "That submission was already accepted. Unlink its candidate to take the deck back.",
     );
   }

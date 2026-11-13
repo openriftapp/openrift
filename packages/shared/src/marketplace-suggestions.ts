@@ -1,4 +1,5 @@
 import { normalizeNameForIdentity } from "./card-name.js";
+import { marketplaceSkuKey, skuKey } from "./marketplace-sku-key.js";
 import type {
   AdminMarketplaceName,
   MappingGroupHeader,
@@ -184,7 +185,7 @@ function computeSuggestions(
   // Language is part of the key: on CardTrader two products can share an
   // (externalId, finish) pair but differ in language (EN vs SC SKUs).
   const productKey = (product: StagedProductResponse): string =>
-    `${product.externalId}|${product.finish}|${product.language ?? ""}`;
+    skuKey(product.externalId, product.finish, product.language);
   // This 2-tuple key is used where evidence is meant to carry across
   // languages (cross-language and price-rank hints).
   const productKey2 = (product: StagedProductResponse): string =>
@@ -315,15 +316,6 @@ export interface ProductSuggestion {
   isWeak?: boolean;
 }
 
-export function productSuggestionKey(
-  marketplace: AdminMarketplaceName,
-  externalId: number,
-  finish: string,
-  language: string | null,
-): string {
-  return `${marketplace}::${externalId}::${finish}::${language ?? ""}`;
-}
-
 /**
  * Inverts `computeSuggestions` into a per-product map for the card-detail
  * marketplace view, run once per marketplace.
@@ -335,7 +327,7 @@ export function computeProductSuggestions(
   for (const marketplace of ALL_MARKETPLACES) {
     const perPrinting = computeSuggestions(toMarketplaceGroup(group, marketplace), marketplace);
     for (const [printingId, { product, score }] of perPrinting) {
-      const key = productSuggestionKey(
+      const key = marketplaceSkuKey(
         marketplace,
         product.externalId,
         product.finish,
@@ -390,11 +382,11 @@ function computeWeakProductSuggestions(
     }
 
     const assignedKeys = new Set(
-      assignedProducts.map((p) => `${p.externalId}|${p.finish}|${p.language ?? ""}`),
+      assignedProducts.map((p) => skuKey(p.externalId, p.finish, p.language)),
     );
 
     for (const product of stagedProducts) {
-      const productKey = `${product.externalId}|${product.finish}|${product.language ?? ""}`;
+      const productKey = skuKey(product.externalId, product.finish, product.language);
       if (assignedKeys.has(productKey)) {
         continue;
       }
@@ -405,7 +397,7 @@ function computeWeakProductSuggestions(
       if (sibling === undefined || sibling.size === 0) {
         continue;
       }
-      const key = productSuggestionKey(
+      const key = marketplaceSkuKey(
         marketplace,
         product.externalId,
         product.finish,

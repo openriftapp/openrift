@@ -4,6 +4,7 @@ import type { CardTradeLiveAnnotation } from "@openrift/shared/types/api/card-tr
 import type { ORPCError } from "@orpc/client";
 import { isDefinedError } from "@orpc/client";
 
+import { mutationTag } from "@/lib/mutation-metadata";
 import { UserDeclinedError } from "@/lib/user-declined-error";
 
 export type CancelledTrade = TradeCancelConflictData["trades"][number];
@@ -37,20 +38,11 @@ export interface TradeCancelConsent {
   ask: (trades: CancelledTrade[]) => Promise<boolean>;
 }
 
-const consentsByMetadata = new WeakMap<object, TradeCancelConsent>();
+const consentTag = mutationTag<TradeCancelConsent>();
 
-/** Mutation metadata that carries `consent` to the collection's persist handler. */
-export function tradeCancelConsentMetadata(consent: TradeCancelConsent): Record<string, unknown> {
-  const metadata = {};
-  consentsByMetadata.set(metadata, consent);
-  return metadata;
-}
+export const tradeCancelConsentMetadata = consentTag.tag;
 
-export function tradeCancelConsentOf(metadata: unknown): TradeCancelConsent | undefined {
-  return typeof metadata === "object" && metadata !== null
-    ? consentsByMetadata.get(metadata)
-    : undefined;
-}
+export const tradeCancelConsentOf = consentTag.read;
 
 /**
  * Sends every confirmed id with each call. A refusal naming trades not yet confirmed asks about

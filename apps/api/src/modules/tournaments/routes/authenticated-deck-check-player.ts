@@ -1,6 +1,5 @@
 import { deckCheckPlayerContract } from "@openrift/shared/contracts/deck-check-player";
 import { SELF_SUBMIT_EXTERNAL_ID_PREFIX } from "@openrift/shared/deck-check";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   DeckCheckClaimResultResponse,
   DeckCheckEntryCardResponse,
@@ -11,7 +10,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isoOrNull } from "../../../lib/iso-date.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -189,9 +188,7 @@ async function loadSubmissionEventForUser(
   if (!event.allowSelfSubmission) {
     const participant = await repos.tournaments.getParticipantByUser(event.id, userId);
     if (!participant) {
-      throw new AppError(
-        403,
-        ERROR_CODES.FORBIDDEN,
+      throw forbidden(
         "Self-registration is closed for this event. Claim your spot with the link the organizer sent you, then submit your deck.",
       );
     }
@@ -221,24 +218,16 @@ async function persistSubmission(
   const linked = found && (await repos.deckCheck.getEntryForUpdate(event.id, found.id));
   if (linked) {
     if (linked.state === "withdrawn") {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "Your entry was withdrawn by the organizer. Contact a judge.",
-      );
+      throw conflict("Your entry was withdrawn by the organizer. Contact a judge.");
     }
     if (linked.state === "approved" || linked.state === "checked") {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "Your deck was already reviewed by a judge. Ask for it to be unlocked from your deck page.",
       );
     }
     if (linked.state === "submitted" && event.listLockMode === "on_submit") {
       // Submitting was the delivery (TR 401.3): the link cannot replace it.
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "Your deck is already submitted. Ask for it to be unlocked from your deck page.",
       );
     }
@@ -254,11 +243,7 @@ async function persistSubmission(
     `${SELF_SUBMIT_EXTERNAL_ID_PREFIX}${userId}`,
   );
   if (orphan) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "A judge detached your previous submission. Contact a judge.",
-    );
+    throw conflict("A judge detached your previous submission. Contact a judge.");
   }
 
   const account = await repos.deckCheck.getUserAccount(userId);
@@ -290,12 +275,10 @@ export const deckCheckPlayerRouter = {
 
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
       if (!submissionWindowOpen(event)) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Submissions closed. Contact a judge.");
+        throw conflict("Submissions closed. Contact a judge.");
       }
       if (row.state !== "editable" && !input.dryRun) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
+        throw conflict(
           row.state === "withdrawn"
             ? "Your entry was withdrawn by the organizer. Contact a judge."
             : "Your deck is locked. Unlock it before editing.",
@@ -320,11 +303,7 @@ export const deckCheckPlayerRouter = {
         // entry as it is, not as it was.
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
         if (!fresh || fresh.state !== "editable") {
-          throw new AppError(
-            409,
-            ERROR_CODES.CONFLICT,
-            "Your deck is locked. Unlock it before editing.",
-          );
+          throw conflict("Your deck is locked. Unlock it before editing.");
         }
         return applyPlayerList(txRepos, fresh, lines, cardRows, {
           allowDeckPublishing: input.allowDeckPublishing,
@@ -357,17 +336,17 @@ export const deckCheckPlayerRouter = {
           await settleExpiredEditableEntries(repos, event);
           return buildPlayerDetail(repos, row, event);
         }
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Submissions closed. Contact a judge.");
+        throw conflict("Submissions closed. Contact a judge.");
       }
       if (row.state !== "editable") {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Only an editable deck can be submitted");
+        throw conflict("Only an editable deck can be submitted");
       }
       const submitted = await context.transact(async (txRepos) => {
         // Re-load under the row lock — the state above may be stale, and a
         // judge transition committed in the gap must not be overwritten.
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
         if (!fresh || fresh.state !== "editable") {
-          throw new AppError(409, ERROR_CODES.CONFLICT, "Only an editable deck can be submitted");
+          throw conflict("Only an editable deck can be submitted");
         }
         return submitEntryList(txRepos, fresh);
       });
@@ -381,7 +360,7 @@ export const deckCheckPlayerRouter = {
       const userId = context.userId;
       const { row, event } = await loadOwnEntry(repos, userId, input.entryId);
       if (!submissionWindowOpen(event)) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Submissions closed. Contact a judge.");
+        throw conflict("Submissions closed. Contact a judge.");
       }
       if (row.state === "submitted" && event.listLockMode === "at_deadline") {
         // Self-service in the lenient mode: delivery only happens when the
@@ -392,11 +371,7 @@ export const deckCheckPlayerRouter = {
           // not be silently reverted by a stale self-unlock.
           const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, row.id);
           if (!fresh || fresh.state !== "submitted") {
-            throw new AppError(
-              409,
-              ERROR_CODES.CONFLICT,
-              "The deck's state changed in the meantime. Reload and try again.",
-            );
+            throw conflict("The deck's state changed in the meantime. Reload and try again.");
           }
           return unlockEntryToEditable(txRepos, fresh, { keepExistingBaseline: true });
         });
@@ -409,9 +384,7 @@ export const deckCheckPlayerRouter = {
         });
         return buildPlayerDetail(repos, { ...row, ...requested }, event);
       }
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         row.state === "editable"
           ? "Your deck is already editable"
           : "Contact a judge to unlock this deck",
@@ -486,7 +459,7 @@ export const deckCheckPlayerRouter = {
       }
 
       if (!submissionWindowOpen(event)) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Submissions are closed");
+        throw conflict("Submissions are closed");
       }
       const entry = await retryOnClaimTokenCollision(() =>
         context.transact((txRepos) =>

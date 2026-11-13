@@ -2,7 +2,7 @@ import { labelMapOf } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import {
   entryPrintingLabels,
   printingRowLabel,
@@ -40,8 +40,8 @@ describe("entryPrintingLabels", () => {
       preferredPrintingId: "rampage-default",
     });
     const labels = labelsFor([plain, pinned], { "rampage-default": standard });
-    expect(labels.get(getDeckCardKey(plain))).toBe("Default");
-    expect(labels.get(getDeckCardKey(pinned))).toBe("Standard");
+    expect(labels.get(deckCardKey(plain))).toBe("Default");
+    expect(labels.get(deckCardKey(pinned))).toBe("Standard");
   });
 
   it("names the finish when only the finish differs", () => {
@@ -55,8 +55,8 @@ describe("entryPrintingLabels", () => {
       "rampage-default": standard,
       "rampage-foil": foil,
     });
-    expect(labels.get(getDeckCardKey(plain))).toBe("Default");
-    expect(labels.get(getDeckCardKey(pinned))).toBe("Foil");
+    expect(labels.get(deckCardKey(plain))).toBe("Default");
+    expect(labels.get(deckCardKey(pinned))).toBe("Foil");
   });
 
   it("names the set code when the codes differ", () => {
@@ -71,8 +71,8 @@ describe("entryPrintingLabels", () => {
       "rampage-default": standard,
       "rampage-unl": reprint,
     });
-    expect(labels.get(getDeckCardKey(plain))).toBe("Default");
-    expect(labels.get(getDeckCardKey(pinned))).toBe("UNL-012");
+    expect(labels.get(deckCardKey(plain))).toBe("Default");
+    expect(labels.get(deckCardKey(pinned))).toBe("UNL-012");
   });
 
   it("leaves a card alone when the zone holds it once", () => {

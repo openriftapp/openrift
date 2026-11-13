@@ -397,7 +397,7 @@ export function collectionsRepo(db: Kysely<Database>) {
      * No user scoping. Caller must verify admin access first via
      * `getAccessForUser`.
      */
-    setShareTokenById(
+    setShare(
       id: string,
       shareToken: string | null,
       isPublic: boolean,

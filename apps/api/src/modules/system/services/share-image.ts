@@ -1,21 +1,28 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "./share-image-core.js";
 import {
-  CARD_ASPECT,
   COLORS,
   QR_SIZE,
   cardRadiusPx,
   cardTile,
   element,
-  elideTitle,
   qrDataUri,
   qrMark,
   renderTreeToPng,
   tileArtDataUri,
 } from "./share-image-core.js";
+import {
+  GOLD_GLOW,
+  SHARE_TYPE,
+  hostFooter,
+  shareCanvas,
+  titleAreaHeight,
+  titleBlock,
+} from "./share-image-frame.js";
 
 /**
  * Server-rendered share images for lists, collections and user bundles.
@@ -24,29 +31,14 @@ import {
  */
 
 const { width: WIDTH, height: HEIGHT } = SHARE_IMAGE_CANVAS.landscape;
-const PAD = 24;
+const { pad: PAD, titleH: TITLE_H } = SHARE_TYPE.landscape;
 const GAP = 10;
-const TITLE_H = 52;
 const FOOTER_H = QR_SIZE;
-const FOOTER_LABEL_H = 26;
 const GRID_GAP = 12;
 const MAX_TILES = 12;
-const TITLE_MAX_CHARS = 46;
-
-const TITLE_SIZE = 34;
-const BYLINE_SIZE = 22;
-const META_SIZE = 20;
 
 const { width: V_WIDTH, height: V_HEIGHT } = SHARE_IMAGE_CANVAS.vertical;
-const V_PAD = 28;
-const V_TITLE_H = 92;
-const V_TITLE_SIZE = 46;
-const V_BYLINE_SIZE = 28;
-const V_META_SIZE = 26;
-const V_TITLE_MAX_CHARS = 30;
-const V_HEADER_QR = 132;
-const V_FOOTER_H = 32;
-const V_FOOTER_FONT = 24;
+const { pad: V_PAD, headerQr: V_HEADER_QR, footerH: V_FOOTER_H } = SHARE_TYPE.vertical;
 const V_GRID_GAP = 14;
 const V_MAX_TILES = 20;
 
@@ -208,136 +200,8 @@ function countLabel(input: ShareImageInput): string {
   return `${input.totalCount} ${input.totalCount === 1 ? input.unit.one : input.unit.many}`;
 }
 
-function titleRow(input: ShareImageInput): Element {
-  const runs = element(
-    "div",
-    { display: "flex", flexDirection: "row", alignItems: "baseline", flexGrow: 1 },
-    element(
-      "div",
-      {
-        display: "flex",
-        flexShrink: 1,
-        fontSize: TITLE_SIZE,
-        lineHeight: 1,
-        fontWeight: 700,
-        color: COLORS.text,
-        whiteSpace: "nowrap",
-      },
-      elideTitle(input.title, TITLE_MAX_CHARS),
-    ),
-    input.ownerName
-      ? element(
-          "div",
-          {
-            display: "flex",
-            flexShrink: 0,
-            marginLeft: 12,
-            fontSize: BYLINE_SIZE,
-            lineHeight: 1,
-            fontWeight: 600,
-            color: COLORS.gold,
-          },
-          `by ${input.ownerName}`,
-        )
-      : false,
-    element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
-    element(
-      "div",
-      {
-        display: "flex",
-        flexShrink: 0,
-        fontSize: META_SIZE,
-        lineHeight: 1,
-        color: COLORS.muted,
-      },
-      `${input.intentLabel} · ${countLabel(input)}`,
-    ),
-  );
-
-  return element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      height: TITLE_H,
-      flexShrink: 0,
-    },
-    runs,
-  );
-}
-
-function verticalTitleBlock(input: ShareImageInput, qrUri: string | null, blockH: number): Element {
-  const type = element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      flexGrow: 1,
-      height: V_TITLE_H,
-    },
-    element(
-      "div",
-      {
-        display: "flex",
-        fontSize: V_TITLE_SIZE,
-        lineHeight: 1,
-        fontWeight: 700,
-        color: COLORS.text,
-        whiteSpace: "nowrap",
-      },
-      elideTitle(input.title, V_TITLE_MAX_CHARS),
-    ),
-    element(
-      "div",
-      { display: "flex", flexDirection: "row", alignItems: "center", marginTop: 14 },
-      input.ownerName
-        ? element(
-            "div",
-            {
-              display: "flex",
-              fontSize: V_BYLINE_SIZE,
-              lineHeight: 1,
-              fontWeight: 600,
-              color: COLORS.gold,
-            },
-            `by ${input.ownerName}`,
-          )
-        : false,
-      element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
-      // No baseline correction needed: both runs pin lineHeight 1 and the row centers its children.
-      element(
-        "div",
-        {
-          display: "flex",
-          fontSize: V_META_SIZE,
-          lineHeight: 1,
-          color: COLORS.muted,
-        },
-        `${input.intentLabel} · ${countLabel(input)}`,
-      ),
-    ),
-  );
-
-  return element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      height: blockH,
-      flexShrink: 0,
-    },
-    type,
-    qrUri
-      ? element(
-          "div",
-          { display: "flex", flexShrink: 0, marginLeft: 16 },
-          qrMark(qrUri, V_HEADER_QR),
-        )
-      : false,
-  );
+function metaLabel(input: ShareImageInput): string {
+  return `${input.intentLabel} · ${countLabel(input)}`;
 }
 
 interface ShownCards {
@@ -383,7 +247,7 @@ async function renderLandscapeShareImage(
   const areaW = WIDTH - PAD * 2;
   const fullAreaH = HEIGHT - PAD * 2 - TITLE_H - GAP;
   const placement = markPlacement(shown.length, overflow, hasMark, areaW, fullAreaH, withQr);
-  const footerH = withQr ? FOOTER_H : FOOTER_LABEL_H;
+  const footerH = withQr ? FOOTER_H : SHARE_TYPE.landscape.footerH;
 
   const cellCount = shown.length + (placement === "tile" || placement === "cell" ? 1 : 0);
   const areaH = placement === "footer" ? fullAreaH - footerH - GAP : fullAreaH;
@@ -429,43 +293,25 @@ async function renderLandscapeShareImage(
 
   const footer: Child =
     placement === "footer" &&
-    element(
-      "div",
-      {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        height: footerH,
-        marginTop: GAP,
-        flexShrink: 0,
-      },
-      input.siteHost
-        ? element(
-            "div",
-            { display: "flex", fontSize: 20, fontWeight: 600, color: COLORS.muted },
-            input.siteHost,
-          )
-        : false,
-      element("div", { display: "flex", flexGrow: 1 }),
-      qrUri ? qrMark(qrUri) : false,
-    );
+    hostFooter({
+      siteHost: input.siteHost,
+      aspect: "landscape",
+      marginTop: GAP,
+      height: footerH,
+      trailing: qrUri ? qrMark(qrUri) : false,
+    });
 
-  const root = element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "column",
-      width: WIDTH,
-      height: HEIGHT,
-      padding: PAD,
-      backgroundColor: COLORS.background,
-      backgroundImage:
-        "radial-gradient(80% 120% at 0% 0%, rgba(205,172,110,0.14) 0%, transparent 60%)",
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
-    },
-    titleRow(input),
+  const root = shareCanvas(
+    WIDTH,
+    HEIGHT,
+    { flexDirection: "column", padding: PAD, backgroundImage: GOLD_GLOW },
+    titleBlock({
+      aspect: "landscape",
+      title: input.title,
+      ownerName: input.ownerName,
+      meta: metaLabel(input),
+      height: TITLE_H,
+    }),
     element("div", { display: "flex", height: GAP, flexShrink: 0 }),
     gridArea,
     footer,
@@ -485,7 +331,7 @@ async function renderVerticalShareImage(
 
   const hasQr = withQr && Boolean(input.shareUrl);
   const hasFooter = Boolean(input.siteHost);
-  const titleH = hasQr ? Math.max(V_TITLE_H, V_HEADER_QR) : V_TITLE_H;
+  const titleH = titleAreaHeight("vertical", hasQr);
   const areaW = V_WIDTH - V_PAD * 2;
   const areaH = V_HEIGHT - V_PAD * 2 - titleH - GAP - (hasFooter ? V_FOOTER_H + GAP : 0);
 
@@ -526,42 +372,20 @@ async function renderVerticalShareImage(
   );
 
   const footer: Child =
-    hasFooter &&
-    element(
-      "div",
-      {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        height: V_FOOTER_H,
-        marginTop: GAP,
-        flexShrink: 0,
-      },
-      input.siteHost
-        ? element(
-            "div",
-            { display: "flex", fontSize: V_FOOTER_FONT, fontWeight: 600, color: COLORS.muted },
-            input.siteHost,
-          )
-        : false,
-    );
+    hasFooter && hostFooter({ siteHost: input.siteHost, aspect: "vertical", marginTop: GAP });
 
-  const root = element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "column",
-      width: V_WIDTH,
-      height: V_HEIGHT,
-      padding: V_PAD,
-      backgroundColor: COLORS.background,
-      backgroundImage:
-        "radial-gradient(80% 120% at 0% 0%, rgba(205,172,110,0.14) 0%, transparent 60%)",
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
-    },
-    verticalTitleBlock(input, qrUri, titleH),
+  const root = shareCanvas(
+    V_WIDTH,
+    V_HEIGHT,
+    { flexDirection: "column", padding: V_PAD, backgroundImage: GOLD_GLOW },
+    titleBlock({
+      aspect: "vertical",
+      title: input.title,
+      ownerName: input.ownerName,
+      meta: metaLabel(input),
+      qrUri,
+      height: titleH,
+    }),
     element("div", { display: "flex", height: GAP, flexShrink: 0 }),
     gridArea,
     footer,

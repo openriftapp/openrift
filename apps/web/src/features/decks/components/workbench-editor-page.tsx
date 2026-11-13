@@ -1,7 +1,5 @@
-import { getOrientation } from "@openrift/shared/card-orientation";
 import { totalQuantity } from "@openrift/shared/deck-rules";
 import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
-import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,7 +20,6 @@ import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdow
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
-import type { HoverOrigin } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import {
@@ -49,6 +46,7 @@ import { WorkbenchAddAnnouncer } from "@/features/decks/components/workbench-zon
 import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dialogs";
+import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
@@ -369,41 +367,17 @@ function WorkbenchContent({
     useSelectionStore.getState().selectCard(printing, deckItems, "card", { zone: card.zone });
   };
 
-  const [hovered, setHovered] = useState<{
-    id: string;
-    origin: HoverOrigin;
-    preferredPrintingId: string | null;
-  } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const setHoveredSidebar = (id: string | null, preferredPrintingId?: string | null) =>
-    setHovered(
-      id ? { id, origin: "sidebar", preferredPrintingId: preferredPrintingId ?? null } : null,
-    );
-  const setHoveredMain = (id: string | null, preferredPrintingId?: string | null) =>
-    setHovered(
-      id
-        ? {
-            id,
-            origin: mode === "deck" ? "main-right" : "main",
-            preferredPrintingId: preferredPrintingId ?? null,
-          }
-        : null,
-    );
-  const suppressHoverPreview =
-    detailOpen && (hovered?.origin === "main" || hovered?.origin === "main-right");
-  const hoveredPrinting =
-    hovered && !isMobile && !suppressHoverPreview
-      ? (getPreferredPrinting(hovered.id, hovered.preferredPrintingId) ?? null)
-      : null;
-  const hoveredFrontImage = hoveredPrinting?.images[0] ?? null;
-  const hoveredCard =
-    hoveredPrinting && hoveredFrontImage
-      ? {
-          thumbnailUrl: imageUrl(hoveredFrontImage.imageId, "400w"),
-          fullUrl: imageUrl(hoveredFrontImage.imageId, "full"),
-          landscape: getOrientation(hoveredPrinting.card.types) === "landscape",
-        }
-      : null;
+  const {
+    hoveredCard,
+    origin: hoverOrigin,
+    containerRef,
+    handleHoverSidebar,
+    handleHoverMain,
+  } = useDeckHoverPreview({
+    mainOrigin: mode === "deck" ? "main-right" : "main",
+    disabled: isMobile,
+    suppressMain: detailOpen,
+  });
 
   const zonePanel = (inDrawer: boolean) => (
     <DeckZonePanel
@@ -411,7 +385,7 @@ function WorkbenchContent({
       onZoneClick={setZone}
       onZoneAdd={setZone}
       onOpenPlan={isLocal ? undefined : handleOpenPlan}
-      onHoverCard={setHoveredSidebar}
+      onHoverCard={handleHoverSidebar}
       ownershipData={ownershipData}
       hideStats
       hideIdentityHeader={inDrawer}
@@ -452,7 +426,7 @@ function WorkbenchContent({
       marketplace={marketplace}
       onZoneClick={setZone}
       onViewMissing={() => dialogs.openDialog("missing")}
-      onHoverCard={setHoveredMain}
+      onHoverCard={handleHoverMain}
       onOverviewCardClick={handleOverviewCardClick}
       onEditDescription={isLocal ? undefined : () => dialogs.openDialog("details")}
       variantRailSlot={isLocal ? undefined : <DeckVariantRail deckId={deckId} />}
@@ -537,7 +511,7 @@ function WorkbenchContent({
           )}
           <HoveredCardPreview
             hoveredCard={hoveredCard}
-            origin={hovered?.origin ?? "sidebar"}
+            origin={hoverOrigin}
             containerRef={containerRef}
           />
           <div className="flex min-w-0 flex-1 flex-col pb-3">

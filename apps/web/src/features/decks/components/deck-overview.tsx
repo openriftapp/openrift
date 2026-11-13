@@ -1,5 +1,5 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
-import { totalQuantity, validateDeck } from "@openrift/shared/deck-rules";
+import { deckCardCount, totalQuantity, validateDeck } from "@openrift/shared/deck-rules";
 import { isZoneShown, requiredZoneProgress, zoneExpected } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -547,7 +547,7 @@ export function DeckOverview({
           name={deck.name}
           format={deck.format}
           violations={violations}
-          totalCards={totalCards}
+          totalCards={deckCardCount(cards)}
           requiredProgress={requiredProgress}
           requiredTotal={requiredTotal}
           legend={legendCard}
@@ -557,7 +557,7 @@ export function DeckOverview({
             coverThumb ? { thumbnail: coverThumb, position: deck.coverPosition ?? null } : undefined
           }
           domainDistribution={stats.domainDistribution}
-          domainTotal={stats.totalCards}
+          domainTotal={stats.mainDeckCards}
           ownershipData={ownershipData}
           hideValue={hideDeckValue}
           marketplace={marketplace}

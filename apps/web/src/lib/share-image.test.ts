@@ -80,7 +80,7 @@ describe("cardShareImageUrl", () => {
 describe("listShareImageUrl", () => {
   it("builds an absolute /api/v1 list image URL with the version param", () => {
     expect(listShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/lists/share/tok123/image.png?v=42",
+      "https://openrift.app/api/v1/lists/share/tok123/image.png?v=42-r2",
     );
   });
 });
@@ -96,20 +96,20 @@ describe("developersShareImageUrl", () => {
 describe("listOwnerImageUrl", () => {
   it("builds the owner-authenticated list image URL by list id", () => {
     expect(listOwnerImageUrl("https://openrift.app", "list-1", 42)).toBe(
-      "https://openrift.app/api/v1/lists/list-1/image.png?v=42",
+      "https://openrift.app/api/v1/lists/list-1/image.png?v=42-r2",
     );
   });
 
   it("appends size=hq for the high-resolution download variant", () => {
     expect(listOwnerImageUrl("https://openrift.app", "list-1", 42, { size: "hq" })).toBe(
-      "https://openrift.app/api/v1/lists/list-1/image.png?v=42&size=hq",
+      "https://openrift.app/api/v1/lists/list-1/image.png?v=42-r2&size=hq",
     );
   });
 
   it("appends aspect and qr like the deck routes", () => {
     expect(
       listOwnerImageUrl("https://openrift.app", "list-1", 42, { aspect: "vertical", qr: false }),
-    ).toBe("https://openrift.app/api/v1/lists/list-1/image.png?v=42&aspect=vertical&qr=0");
+    ).toBe("https://openrift.app/api/v1/lists/list-1/image.png?v=42-r2&aspect=vertical&qr=0");
   });
 });
 
@@ -134,13 +134,13 @@ describe("collectionOwnerImageUrl", () => {
 describe("deckShareImageUrl", () => {
   it("builds an absolute /api/v1 deck image URL with the version param", () => {
     expect(deckShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42",
+      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42-r2",
     );
   });
 
   it("appends size=hq for the high-resolution download variant", () => {
     expect(deckShareImageUrl("https://openrift.app", "tok123", 42, { size: "hq" })).toBe(
-      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42&size=hq",
+      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42-r2&size=hq",
     );
   });
 
@@ -152,7 +152,7 @@ describe("deckShareImageUrl", () => {
         qr: false,
       }),
     ).toBe(
-      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42&size=hq&aspect=vertical&qr=0",
+      "https://openrift.app/api/v1/decks/share/tok123/image.png?v=42-r2&size=hq&aspect=vertical&qr=0",
     );
   });
 
@@ -162,7 +162,7 @@ describe("deckShareImageUrl", () => {
         aspect: "landscape",
         qr: true,
       }),
-    ).toBe("https://openrift.app/api/v1/decks/share/tok123/image.png?v=42");
+    ).toBe("https://openrift.app/api/v1/decks/share/tok123/image.png?v=42-r2");
   });
 });
 
@@ -214,13 +214,13 @@ describe("deckOwnerImageUrl", () => {
 describe("boardStateShareImageUrl", () => {
   it("builds an absolute /api/v1 board state image URL with the version param", () => {
     expect(boardStateShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42",
+      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42-r2",
     );
   });
 
   it("appends size=hq for the high-resolution download variant", () => {
     expect(boardStateShareImageUrl("https://openrift.app", "tok123", 42, "hq")).toBe(
-      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42&size=hq",
+      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42-r2&size=hq",
     );
   });
 });
@@ -228,13 +228,13 @@ describe("boardStateShareImageUrl", () => {
 describe("tierListShareImageUrl", () => {
   it("builds an absolute /api/v1 tier list image URL with the version param", () => {
     expect(tierListShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/tier-lists/share/tok123/image.png?v=42",
+      "https://openrift.app/api/v1/tier-lists/share/tok123/image.png?v=42-r2",
     );
   });
 
   it("appends size=hq for the high-resolution download variant", () => {
     expect(tierListShareImageUrl("https://openrift.app", "tok123", 42, "hq")).toBe(
-      "https://openrift.app/api/v1/tier-lists/share/tok123/image.png?v=42&size=hq",
+      "https://openrift.app/api/v1/tier-lists/share/tok123/image.png?v=42-r2&size=hq",
     );
   });
 });
@@ -307,33 +307,33 @@ describe("deckImageFromCardsUrl", () => {
 describe("bundleShareImageUrl", () => {
   it("builds an absolute /api/v1 bundle image URL with the version param", () => {
     expect(bundleShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/users/share/tok123/image.png?v=42",
+      "https://openrift.app/api/v1/users/share/tok123/image.png?v=42-r2",
     );
   });
 
   it("accepts a composite string version (epoch-count) for membership-aware busting", () => {
     expect(bundleShareImageUrl("https://openrift.app", "tok123", "1700-3")).toBe(
-      "https://openrift.app/api/v1/users/share/tok123/image.png?v=1700-3",
+      "https://openrift.app/api/v1/users/share/tok123/image.png?v=1700-3-r2",
     );
   });
 
   it("appends aspect and qr like the other grid routes", () => {
     expect(
       bundleShareImageUrl("https://openrift.app", "tok123", 42, { aspect: "vertical", qr: false }),
-    ).toBe("https://openrift.app/api/v1/users/share/tok123/image.png?v=42&aspect=vertical&qr=0");
+    ).toBe("https://openrift.app/api/v1/users/share/tok123/image.png?v=42-r2&aspect=vertical&qr=0");
   });
 });
 
 describe("collectionShareImageUrl", () => {
   it("builds an absolute /api/v1 collection image URL with the version param", () => {
     expect(collectionShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
-      "https://openrift.app/api/v1/collections/share/tok123/image.png?v=42",
+      "https://openrift.app/api/v1/collections/share/tok123/image.png?v=42-r2",
     );
   });
 
   it("accepts a composite updatedAt-copyCount version (so adds/removes bust the cache)", () => {
     expect(collectionShareImageUrl("https://openrift.app", "tok123", "1700-12")).toBe(
-      "https://openrift.app/api/v1/collections/share/tok123/image.png?v=1700-12",
+      "https://openrift.app/api/v1/collections/share/tok123/image.png?v=1700-12-r2",
     );
   });
 });
@@ -372,9 +372,9 @@ describe("downloadImageFromUrl", () => {
       "fetch",
       vi.fn(() => Promise.resolve({ ok: false, status: 500 })),
     );
-    await expect(downloadImageFromUrl("https://example.test/img.png", "x.png")).rejects.toThrow(
-      /500/u,
-    );
+    await expect(
+      downloadImageFromUrl("https://example.test/img.png", "x.png"),
+    ).rejects.toMatchObject({ status: 500 });
   });
 });
 
@@ -417,6 +417,21 @@ describe("downloadImageFromPost", () => {
     );
     await expect(
       downloadImageFromPost("https://example.test/decks/image", {}, "x.png"),
-    ).rejects.toThrow(/400/u);
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "Couldn't prepare the image. Please try again.",
+    });
+  });
+
+  it("tells the viewer to wait when the render is rate-limited", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve({ ok: false, status: 429 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      downloadImageFromUrl("https://example.test/decks/d1/image.png", "x.png"),
+    ).rejects.toMatchObject({
+      status: 429,
+      message: "Too many images in a short time. Wait a moment, then try again.",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });

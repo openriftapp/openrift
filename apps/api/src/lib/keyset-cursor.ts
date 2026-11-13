@@ -1,6 +1,4 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
-import { AppError } from "../errors.js";
+import { badRequest } from "../errors.js";
 
 const CURSOR_SEPARATOR = "_";
 
@@ -21,7 +19,7 @@ export function parseKeysetCursor(cursor: string): { time: Date; id: string | nu
   if (Number.isNaN(time.getTime())) {
     // keysetCursorSchema already rejects invalid cursors before this runs;
     // this is a backstop for any caller passing one through unvalidated.
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Invalid cursor");
+    throw badRequest("Invalid cursor");
   }
   return {
     time,

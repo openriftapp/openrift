@@ -35,7 +35,7 @@ describe("metaLegendsSearchSchema", () => {
   });
 
   it("drops a non-string query instead of failing", () => {
-    expect(metaLegendsSearchSchema.parse({ q: 5 }).q).toBeUndefined();
+    expect(metaLegendsSearchSchema.parse({ q: true }).q).toBeUndefined();
   });
 
   it("carries the scope params the archive pages share", () => {

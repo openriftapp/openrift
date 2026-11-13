@@ -14,11 +14,16 @@ export function DeckCheckStateBadge({
 }) {
   if (state === "editable") {
     return (
-      <Badge variant="outline">
-        {audience === "staff"
-          ? m.tournaments_deck_check_state_editing()
-          : m.tournaments_my_deck_state_not_submitted()}
-      </Badge>
+      <>
+        {reviewOutcome === "issue" ? (
+          <Badge variant="destructive">{m.tournaments_my_deck_changes_requested()}</Badge>
+        ) : null}
+        <Badge variant="outline">
+          {audience === "staff"
+            ? m.tournaments_deck_check_state_editing()
+            : m.tournaments_my_deck_state_not_submitted()}
+        </Badge>
+      </>
     );
   }
   if (state === "approved") {

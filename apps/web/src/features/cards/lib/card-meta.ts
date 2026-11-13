@@ -7,9 +7,10 @@ import type { LabelMap } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
+import type { Currency } from "@openrift/shared/types/api/trade-preferences";
 import type { Printing } from "@openrift/shared/types/catalog";
 
-import { formatPrice, formatPriceEur } from "@/lib/format";
+import { formatterForCurrency } from "@/lib/format";
 
 type MetaPrinting = Pick<
   Printing,
@@ -21,7 +22,7 @@ const META_DESCRIPTION_LIMIT = 155;
 /** Per-marketplace price aggregate precomputed by the card-detail loader for SSR meta tags. */
 export interface CardMarketplaceOffer {
   seller: string;
-  currency: string;
+  currency: Currency;
   priceLow: number;
   priceHigh: number;
   offerCount: number;
@@ -34,9 +35,7 @@ export function buildCardPriceLine(offers: readonly CardMarketplaceOffer[]): str
   if (!offer) {
     return null;
   }
-  const formatted =
-    offer.currency === "EUR" ? formatPriceEur(offer.priceLow) : formatPrice(offer.priceLow);
-  return `Prices from ${formatted} (${offer.seller}).`;
+  return `Prices from ${formatterForCurrency(offer.currency)(offer.priceLow)} (${offer.seller}).`;
 }
 
 // Mirrors the page component's own preferredPrinting call, so the SSR

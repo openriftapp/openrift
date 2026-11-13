@@ -20,6 +20,19 @@ describe("DeckCheckStateBadge", () => {
     expect(screen.getByText("Not submitted")).toBeInTheDocument();
   });
 
+  it("marks a returned deck as changes requested for staff and players alike", () => {
+    const { unmount } = render(
+      <DeckCheckStateBadge state="editable" reviewOutcome="issue" audience="staff" />,
+    );
+    expect(screen.getByText("Changes requested")).toBeInTheDocument();
+    expect(screen.getByText("Editing")).toBeInTheDocument();
+    unmount();
+
+    render(<DeckCheckStateBadge state="editable" reviewOutcome="issue" audience="player" />);
+    expect(screen.getByText("Changes requested")).toBeInTheDocument();
+    expect(screen.getByText("Not submitted")).toBeInTheDocument();
+  });
+
   it("shows the same checked wording to staff and players", () => {
     render(<DeckCheckStateBadge state="checked" reviewOutcome="issue" audience="player" />);
     expect(screen.getByText("Checked · issue")).toBeInTheDocument();

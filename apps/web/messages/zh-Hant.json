@@ -2700,6 +2700,7 @@
   "decks_menu_delete_version": "刪除版本",
   "decks_menu_duplicate": "建立複本",
   "decks_menu_duplicated": "已建立「{name}」的複本。",
+  "decks_menu_format_changed": "格式已改為{format}。",
   "decks_menu_export": "匯出…",
   "decks_menu_make_primary": "設為主要",
   "decks_menu_manage_folders": "管理資料夾…",
@@ -2722,6 +2723,7 @@
   "decks_editor_add_card_to_zone": "將 {card} 加入 {zone}",
   "decks_editor_add_card_tooltip": "新增卡牌（Ctrl+K）",
   "decks_editor_add_one_copy": "新增一張 {card}",
+  "decks_editor_add_blocked": "{card}，此區域已無空位",
   "decks_editor_add_to_deck": "加入牌組",
   "decks_editor_bench_empty": "抽一手範例牌，看看這副牌組的開局。",
   "decks_editor_choose": "選擇",
@@ -2808,7 +2810,7 @@
   "decks_editor_printing_standard": "標準",
   "decks_editor_power": "符能 {power}",
   "decks_editor_power_with_domains": "符能 {power}（{domains}）",
-  "decks_editor_progress_cards": "{progress}/{total} 張卡牌",
+  "decks_editor_required_progress": "必需 {progress}/{total}",
   "decks_editor_quantity": "數量",
   "decks_editor_quick_add_empty": "輸入卡牌名稱即可加入牌組",
   "decks_editor_quick_add_input_aria": "將卡牌加入牌組",
@@ -3486,7 +3488,7 @@
   "decks_stats_power": "符能",
   "decks_stats_rarity": "稀有度",
   "decks_stats_title": "統計",
-  "decks_stats_total_cards": "{count} 張卡牌",
+  "decks_stats_main_deck_cards": "主牌組 {count} 張",
   "decks_stats_turn_one_play": "第 1 回合動作 {first} · {second}",
   "decks_stats_turn_one_play_hint": "你的起手牌中握有第 1 回合可打出之牌的機率。第一個數字：先手（2 能量以下的單位或裝備）。第二個：後手（3 以下）。法術不算，因為那時還沒有東西可以反應。",
   "decks_stats_turn_one_play_label": "第 1 回合動作",
@@ -3716,6 +3718,7 @@
   "decks_share_gone_description": "牌組的擁有者可能已停止分享，或是連結沒有完整複製。",
   "decks_share_gone_action": "前往你的牌組",
   "decks_card_menu_view_details": "查看詳細資料",
+  "decks_card_row_view_details": "查看{card}的詳情",
   "decks_card_menu_switch": "選擇其他{zone}",
   "decks_card_menu_plan_battlefields": "在計畫中按對局選擇戰場",
   "decks_card_menu_move_to": "移動到",
@@ -3895,8 +3898,6 @@
   "trade_pref_amount_label": "金額",
   "trade_pref_accepts_label": "接受",
   "trade_pref_amount_placeholder": "例如 4 或 4.50",
-  "trade_pref_currency_eur": "歐元（EUR）",
-  "trade_pref_currency_usd": "美元（USD）",
   "trade_pref_no_preference": "沒有偏好（面議）",
   "trade_pref_negotiate": "面議",
   "trade_pref_list_default": "清單預設（{value}）",
@@ -4308,6 +4309,7 @@
   "share_image_dimensions": "{width} × {height} 像素",
   "share_image_download": "下載圖片",
   "share_image_error": "無法產生圖片。請再試一次。",
+  "share_image_rate_limited": "短時間內請求的圖片過多。請稍候片刻再試。",
   "share_image_preparing": "準備中…",
   "share_image_preview_alt": "{title} 的預覽",
   "share_image_qr_missing_link": "這組 QR code 需要有分享連結才能指向，因此在你建立連結之前，圖片會先省略它。",
@@ -4660,13 +4662,13 @@
       }
     }
   ],
-  "trades_completed": [
+  "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} 筆已完成的交換",
-        "countPlural=*": "{count} 筆已完成的交換"
+        "countPlural=one": "{count} 筆過往交換",
+        "countPlural=*": "{count} 筆過往交換"
       }
     }
   ],
@@ -5373,7 +5375,7 @@
   "designer_rarity_placeholder": "選擇稀有度",
   "designer_field_code": "編號",
   "designer_field_artist": "繪師",
-  "designer_attribution_label": "加上 openrift.app，幫忙推廣",
+  "designer_attribution_label": "加上 {host}，幫忙推廣",
   "designer_background_upload": "上傳背景圖片",
   "designer_background_replace": "更換背景圖片",
   "designer_background_zoom": "縮放",
@@ -10027,6 +10029,7 @@
       }
     }
   ],
+  "trades_match_promised": "已約定{count}張",
   "trades_match_variants": "{count} 個變體",
   "trades_match_price": "價格",
   "trades_match_they_pay": "對方出價",

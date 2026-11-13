@@ -88,7 +88,7 @@ describe("GET /api/v1/oembed", () => {
       author_name: "drawphasetcg",
       provider_name: "OpenRift",
       provider_url: "https://openrift.app",
-      url: `https://openrift.app/api/v1/decks/share/tok-deck/image.png?v=${NOW_MS}`,
+      url: `https://openrift.app/api/v1/decks/share/tok-deck/image.png?v=${NOW_MS}-r2`,
       width: 1200,
       height: 630,
     });
@@ -108,7 +108,7 @@ describe("GET /api/v1/oembed", () => {
     expect(body.type).toBe("photo");
     expect(body.title).toBe("My Binder (collection)");
     expect(body.url).toBe(
-      `https://openrift.app/api/v1/collections/share/tok-col/image.png?v=${NOW_MS}-7`,
+      `https://openrift.app/api/v1/collections/share/tok-col/image.png?v=${NOW_MS}-7-r2`,
     );
   });
 
@@ -123,7 +123,9 @@ describe("GET /api/v1/oembed", () => {
 
     const body = await readJson(res);
     expect(body.title).toBe("Holiday Targets (Tradelist)");
-    expect(body.url).toBe(`https://openrift.app/api/v1/lists/share/tok-list/image.png?v=${NOW_MS}`);
+    expect(body.url).toBe(
+      `https://openrift.app/api/v1/lists/share/tok-list/image.png?v=${NOW_MS}-r2`,
+    );
   });
 
   it("titles an organize list without the internal intent word", async () => {
@@ -181,7 +183,7 @@ describe("GET /api/v1/oembed", () => {
       type: "photo",
       title: "Origins power ranking (tier list)",
       author_name: "drawphasetcg",
-      url: `https://openrift.app/api/v1/tier-lists/share/tok-tier/image.png?v=${NOW_MS}`,
+      url: `https://openrift.app/api/v1/tier-lists/share/tok-tier/image.png?v=${NOW_MS}-r2`,
       width: 1200,
       height: 630,
     });
@@ -211,7 +213,7 @@ describe("GET /api/v1/oembed", () => {
     const body = await readJson(res);
     expect(body.title).toBe("Alice's wishlists and tradelists");
     expect(body.url).toBe(
-      `https://openrift.app/api/v1/users/share/tok-bundle/image.png?v=${NOW_MS}-2`,
+      `https://openrift.app/api/v1/users/share/tok-bundle/image.png?v=${NOW_MS}-2-r2`,
     );
     expect(mockUserSharesRepo.listsForOwner).toHaveBeenCalledWith("u1", null);
   });

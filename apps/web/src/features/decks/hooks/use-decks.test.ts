@@ -121,6 +121,7 @@ describe("useCreateDeck", () => {
       requiredProgress: 0,
       requiredTotal: 0,
       totalValueCents: null,
+      unpricedCardCount: null,
       missingCount: null,
       folderIds: [],
     } as unknown as DeckListItemResponse;
@@ -228,6 +229,7 @@ describe("useBulkUpdateDecks", () => {
       requiredProgress: 0,
       requiredTotal: 0,
       totalValueCents: null,
+      unpricedCardCount: null,
       missingCount: null,
       folderIds,
     } as unknown as DeckListItemResponse;
@@ -356,6 +358,7 @@ describe("a deck read from the stores", () => {
       requiredProgress: 0,
       requiredTotal: 0,
       totalValueCents: null,
+      unpricedCardCount: null,
       missingCount: null,
       folderIds: [],
     } as unknown as DeckListItemResponse;

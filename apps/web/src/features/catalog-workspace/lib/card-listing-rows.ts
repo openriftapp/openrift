@@ -1,8 +1,6 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import {
-  productSuggestionKey,
-  STRONG_MATCH_THRESHOLD,
-} from "@openrift/shared/marketplace-suggestions";
+import { STRONG_MATCH_THRESHOLD } from "@openrift/shared/marketplace-suggestions";
 import type {
   AdminMarketplaceName,
   StagedProductResponse,
@@ -105,7 +103,7 @@ export function buildCardListings(
     const { marketplace, product } = entry;
     const ranked = (
       suggestions.get(
-        productSuggestionKey(marketplace, product.externalId, product.finish, product.language),
+        marketplaceSkuKey(marketplace, product.externalId, product.finish, product.language),
       ) ?? []
     ).toSorted((a, b) => b.score - a.score);
     const [best] = ranked.filter((suggestion) => printingById.has(suggestion.printingId));

@@ -4,7 +4,7 @@ import type {
   TradeType,
 } from "@openrift/shared/types/api/trade-preferences";
 
-import { formatMoney } from "@/lib/format";
+import { formatCentsInLocale } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 export function pricePrefLabel(pref: TradePricePref): string {
@@ -89,5 +89,5 @@ export function formatAbsolutePrice(
   if (cents === null || currency === null) {
     return null;
   }
-  return formatMoney(cents / 100, currency);
+  return formatCentsInLocale(cents, currency);
 }

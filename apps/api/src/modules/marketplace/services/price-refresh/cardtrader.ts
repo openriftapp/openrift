@@ -1,17 +1,20 @@
 import { todayUtc } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
+import { headlinePrice } from "@openrift/shared/price-headline";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
 import { fetchJson } from "../../../../lib/http.js";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
+import type { GroupRow, PriceUpsertConfig } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
 const UPSERT_CONFIG: PriceUpsertConfig = {
@@ -199,7 +202,7 @@ async function fetchCardtraderData(
           zeroListings.length > 0
             ? zeroListings.reduce((min, p) => (p.price_cents < min.price_cents ? p : min))
             : null;
-        prices.set(`${id}::${finish}::${language}`, {
+        prices.set(skuKey(id, finish, language), {
           blueprintId: id,
           name: cheapest.name_en,
           finish,
@@ -234,10 +237,18 @@ function buildCardtraderStaging(
       continue;
     }
     for (const price of prices.values()) {
-      if (price.blueprintId !== bp.id || price.minPriceCents <= 0) {
+      if (price.blueprintId !== bp.id) {
         continue;
       }
-      if (ignoredKeys.variantKeys.has(`${bp.id}::${price.finish}::${price.language}`)) {
+      const lowCents = price.minPriceCents > 0 ? price.minPriceCents : null;
+      const zeroLowCents =
+        price.minZeroPriceCents !== null && price.minZeroPriceCents > 0
+          ? price.minZeroPriceCents
+          : null;
+      if (headlinePrice("cardtrader", { low: lowCents, zeroLow: zeroLowCents }) === null) {
+        continue;
+      }
+      if (ignoredKeys.variantKeys.has(skuKey(bp.id, price.finish, price.language))) {
         continue;
       }
       allStaging.push({
@@ -248,8 +259,8 @@ function buildCardtraderStaging(
         language: price.language,
         recordedAt,
         marketCents: null,
-        lowCents: price.minPriceCents,
-        zeroLowCents: price.minZeroPriceCents,
+        lowCents,
+        zeroLowCents,
         midCents: null,
         highCents: null,
         trendCents: null,

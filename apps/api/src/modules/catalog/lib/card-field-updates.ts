@@ -1,9 +1,8 @@
 import type { AcceptCardField } from "@openrift/shared/contracts/admin/card-mutations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Updateable } from "kysely";
 
 import type { CardsTable } from "../../../db/tables/catalog.js";
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 
 export function cardUpdateFor(
   field: Exclude<AcceptCardField, "domains" | "superTypes" | "types">,
@@ -39,11 +38,7 @@ export function cardUpdateFor(
     }
     default: {
       const unhandled: never = field;
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Unsupported card field: ${String(unhandled)}`,
-      );
+      throw badRequest(`Unsupported card field: ${String(unhandled)}`);
     }
   }
 }

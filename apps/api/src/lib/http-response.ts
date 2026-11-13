@@ -16,7 +16,13 @@ export function jsonError(
   return c.json(body, status);
 }
 
-export function pngResponse(png: Buffer, cacheControl = "private, no-store"): Response {
+export const IMAGE_CACHE = {
+  versioned: "public, immutable, max-age=31536000",
+  daily: "public, max-age=86400",
+  private: "private, no-store",
+} as const;
+
+export function pngResponse(png: Buffer, cacheControl: string = IMAGE_CACHE.private): Response {
   return new Response(png, {
     status: 200,
     headers: { "Content-Type": "image/png", "Cache-Control": cacheControl },

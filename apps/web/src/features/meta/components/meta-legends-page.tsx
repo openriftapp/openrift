@@ -17,7 +17,10 @@ import { RankBand } from "@/components/ui/rank-band";
 import { RowList, RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
-import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
+import {
+  IndexSortButton,
+  IndexSortHeader,
+} from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
@@ -25,9 +28,11 @@ import { useMetaLegends } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import { metaEventCountries } from "@/features/meta/lib/meta-events-index";
 import { formatRank, metaShownLabel } from "@/features/meta/lib/meta-format";
+import { metaIndexSearchWriter } from "@/features/meta/lib/meta-index-search";
+import { nextIndexSort, sortSearchPatch } from "@/features/meta/lib/meta-index-sort";
 import type { MetaLegendIndexEntry } from "@/features/meta/lib/meta-legend-page";
 import {
-  nextLegendSort,
+  LEGEND_SORT_DESCENDING_FIRST,
   searchMetaLegendEntries,
   sortMetaLegendEntries,
 } from "@/features/meta/lib/meta-legend-page";
@@ -37,11 +42,7 @@ import {
   DEFAULT_LEGEND_SORT,
 } from "@/features/meta/lib/meta-legends-search";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
-import {
-  CLEARED_SCOPE,
-  metaScopeQueryFromScope,
-  nextScopeSearch,
-} from "@/features/meta/lib/meta-scope";
+import { CLEARED_SCOPE, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { formatCount } from "@/lib/format";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -199,12 +200,7 @@ function SortHeader({
   onSort: (column: MetaLegendIndexSort) => void;
 }) {
   return (
-    <div
-      className={cn(
-        LEGEND_INDEX_GRID,
-        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold md:grid",
-      )}
-    >
+    <IndexSortHeader grid={LEGEND_INDEX_GRID} from="md">
       <span />
       <SortButton column="name" sort={sort} direction={direction} onSort={onSort}>
         {m.meta_standings_col_legend()}
@@ -218,7 +214,7 @@ function SortHeader({
       <SortButton column="finishes" sort={sort} direction={direction} onSort={onSort} align="end">
         {m.meta_legends_col_finishes()}
       </SortButton>
-    </div>
+    </IndexSortHeader>
   );
 }
 
@@ -232,18 +228,21 @@ export function MetaLegendsPage() {
   const sort = search.by ?? DEFAULT_LEGEND_SORT;
   const direction = search.dir ?? DEFAULT_LEGEND_DIRECTION;
 
-  const setSearchParams = (patch: Record<string, unknown>) => {
-    void navigate({ search: (prev) => nextScopeSearch(prev, patch), replace: true });
-  };
+  const { setSearchParams, commitQuery } = metaIndexSearchWriter(
+    (update, replace) => void navigate({ search: update, replace }),
+    { resetPage: false },
+  );
 
   const [eraPickerOpen, setEraPickerOpen] = useState(false);
   const setScope = (patch: Partial<MetaScope>) => setSearchParams(patch);
   const clearScope = () => setSearchParams({ ...CLEARED_SCOPE, q: undefined });
   const setSort = (column: MetaLegendIndexSort) => {
-    const next = nextLegendSort({ sort, direction }, column);
-    setSearchParams({ by: next.sort, dir: next.direction });
+    const next = nextIndexSort({ sort, direction }, column, LEGEND_SORT_DESCENDING_FIRST);
+    setSearchParams(
+      sortSearchPatch(next, { sort: DEFAULT_LEGEND_SORT, direction: DEFAULT_LEGEND_DIRECTION }),
+      true,
+    );
   };
-  const commitQuery = (value: string) => setSearchParams({ q: value === "" ? undefined : value });
 
   const entries = sortMetaLegendEntries(
     searchMetaLegendEntries(data.legends, search.q),

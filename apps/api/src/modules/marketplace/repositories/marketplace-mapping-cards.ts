@@ -260,6 +260,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
         groupSetSlug: string | null;
         marketCents: number | null;
         lowCents: number | null;
+        zeroLowCents: number | null;
         midCents: number | null;
         highCents: number | null;
         trendCents: number | null;
@@ -313,6 +314,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
             mp.group_id,
             latest.market_cents,
             latest.low_cents,
+            latest.zero_low_cents,
             latest.mid_cents,
             latest.high_cents,
             latest.trend_cents,
@@ -357,6 +359,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
           gs.slug as "groupSetSlug",
           m.market_cents as "marketCents",
           m.low_cents as "lowCents",
+          m.zero_low_cents as "zeroLowCents",
           m.mid_cents as "midCents",
           m.high_cents as "highCents",
           m.trend_cents as "trendCents",

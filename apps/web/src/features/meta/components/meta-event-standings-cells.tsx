@@ -52,12 +52,13 @@ function MissingLine({ cost }: { cost: MetaDeckCost }) {
       <span className="text-border-accent text-xs font-medium">{m.meta_deck_buildable()}</span>
     );
   }
-  if (cost.toComplete === undefined || cost.toComplete === 0) {
+  if (cost.toComplete === undefined || (cost.toComplete === 0 && cost.unpricedMissing === 0)) {
     return null;
   }
   return (
     <span className="text-muted-foreground text-xs">
       {m.meta_standings_missing_value({ amount: format(cost.toComplete) })}
+      {cost.unpricedMissing > 0 && ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
     </span>
   );
 }
@@ -78,7 +79,12 @@ export function DeckValue({
   }
   return (
     <div className={cn("flex flex-col items-end gap-0.5 leading-tight tabular-nums", className)}>
-      {cost.value !== undefined && <span>{format(cost.value)}</span>}
+      {cost.value !== undefined && (cost.value > 0 || cost.unpriced > 0) && (
+        <span>
+          {cost.value > 0 && format(cost.value)}
+          {cost.unpriced > 0 && ` ${m.common_unpriced({ count: cost.unpriced })}`}
+        </span>
+      )}
       <MissingLine cost={cost} />
     </div>
   );

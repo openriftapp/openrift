@@ -1,6 +1,6 @@
+import { CARD_ASPECT } from "../card-orientation";
 import { applyHomography, computeHomography } from "./geometry";
 import type { Matrix3, Point, Quad, RgbaImage } from "./types";
-import { CARD_ASPECT } from "./types";
 
 /** Pixels. */
 const MAX_STRAIGHTENED_EDGE = 2400;

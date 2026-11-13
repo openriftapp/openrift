@@ -26,7 +26,7 @@ describe("/users/share/$token/lists/$listId head", () => {
     expect(headTitle(head)).toBe("Haves (Tradelist) - OpenRift");
     expect(headMeta(head, "description")).toBe("A Riftbound tradelist shared by Teemo Scout.");
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/users/share/BUNDLE123/image.png?v=1785578400000",
+      "http://localhost:5173/api/v1/users/share/BUNDLE123/image.png?v=1785578400000-r2",
     );
     expect(headCanonical(head)).toBe("http://localhost:5173/users/share/BUNDLE123/lists/list-1");
   });

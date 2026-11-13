@@ -4,11 +4,7 @@ import type {
   TradePricePref,
   TradeType,
 } from "@openrift/shared/types/api/trade-preferences";
-import {
-  CURRENCIES,
-  TRADE_PRICE_PREFS,
-  TRADE_TYPES,
-} from "@openrift/shared/types/api/trade-preferences";
+import { TRADE_PRICE_PREFS, TRADE_TYPES } from "@openrift/shared/types/api/trade-preferences";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,17 +16,11 @@ import {
   tradeTypeLabel,
 } from "@/features/groups/lib/trade-preference-labels";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
+import { currencySelectItems, isCurrency } from "@/lib/currency-items";
 import { m } from "@/paraglide/messages.js";
 
 const PRICE_PREF_NONE = "__none__";
 const TRADE_TYPE_NONE = "__none__";
-
-function currencyItems(): { value: Currency; label: string }[] {
-  return CURRENCIES.map((value) => ({
-    value,
-    label: value === "EUR" ? m.trade_pref_currency_eur() : m.trade_pref_currency_usd(),
-  }));
-}
 
 export interface TradePreferenceEditorProps {
   value: TradePreference;
@@ -71,7 +61,7 @@ export function TradePreferenceEditor({
 
   // listDefault undefined means this editor edits the list defaults themselves;
   // only show inheritance labels when a listDefault to inherit from is given.
-  const currencyOptions = currencyItems();
+  const currencyOptions = currencySelectItems();
   const pricePrefNoneLabel =
     listDefault === undefined
       ? m.trade_pref_no_preference()
@@ -176,8 +166,8 @@ export function TradePreferenceEditor({
             items={currencyOptions}
             value={currency ?? "EUR"}
             onChange={(next) => {
-              if (CURRENCIES.includes(next as Currency)) {
-                onCurrencyChange?.(next as Currency);
+              if (isCurrency(next)) {
+                onCurrencyChange?.(next);
               }
             }}
             className="min-w-0 flex-1"

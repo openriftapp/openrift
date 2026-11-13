@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/shops")
   ssr: "data-only",
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Shop events", noIndex: true }),
   loader: async ({ context, location, params }) => {
-    await Promise.all([
+    const [detail, data] = await Promise.allSettled([
       ensureFriendGroupDetailCanonical({
         queryClient: context.queryClient,
         userId: context.userId,
@@ -22,6 +22,12 @@ export const Route = createFileRoute("/_app/_authenticated/groups/$slug_/shops")
         staleTime: "static",
       }),
     ]);
+    if (detail.status === "rejected") {
+      throw detail.reason;
+    }
+    if (data.status === "rejected") {
+      throw data.reason;
+    }
   },
   errorComponent: RouteErrorFallback,
 });

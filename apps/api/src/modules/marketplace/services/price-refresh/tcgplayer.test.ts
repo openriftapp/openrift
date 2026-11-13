@@ -4,10 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Repos } from "../../../../deps";
 import type { Fetch } from "../../../../io";
 import * as fetchMod from "../../../../lib/http";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import * as logMod from "./log";
 import { refreshTcgplayerPrices } from "./tcgplayer";
 import { PRICE_FETCH_RETRIES } from "./types";
-import type { StagingRow, UpsertCounts } from "./types";
+import type { UpsertCounts } from "./types";
 import * as upsertMod from "./upsert";
 
 const stubFetch: Fetch = (() => {
@@ -336,28 +337,31 @@ describe("refreshTcgplayerPrices", () => {
       expect(staging.find((r) => r.finish === "foil")).toBeDefined();
     });
 
-    it("skips entries with null marketPrice", async () => {
+    it.each([
+      ["null", PRICE_ICE_NULL_MARKET],
+      ["zero", PRICE_ICE_ZERO_MARKET],
+    ])("keeps an entry with a %s market price when it has a low price", async (_label, price) => {
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
       setupFetchJson(fetchJsonSpy, {
         groups: [GROUP_A],
         productsByGroup: new Map([[101, [PRODUCT_ICE]]]),
-        pricesByGroup: new Map([[101, [PRICE_ICE_NULL_MARKET]]]),
+        pricesByGroup: new Map([[101, [price]]]),
       });
 
       await refreshTcgplayerPrices(stubFetch, repos, log);
 
       const staging = upsertStaging(upsertSpy);
-      expect(staging).toHaveLength(0);
+      expect(staging).toEqual([expect.objectContaining({ marketCents: null, lowCents: 10 })]);
     });
 
-    it("skips entries with zero marketPrice", async () => {
+    it("skips entries with neither a market nor a low price", async () => {
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
       setupFetchJson(fetchJsonSpy, {
         groups: [GROUP_A],
         productsByGroup: new Map([[101, [PRODUCT_ICE]]]),
-        pricesByGroup: new Map([[101, [PRICE_ICE_ZERO_MARKET]]]),
+        pricesByGroup: new Map([[101, [{ ...PRICE_ICE_NULL_MARKET, lowPrice: null }]]]),
       });
 
       await refreshTcgplayerPrices(stubFetch, repos, log);

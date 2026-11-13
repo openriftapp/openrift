@@ -1,24 +1,20 @@
 import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
 import { labelMap } from "@openrift/shared/enum-label";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import {
-  aspectFromQuery,
-  deckImageBodySchema,
-  qrFromQuery,
-} from "@openrift/shared/share-image-params";
+import { deckImageBodySchema } from "@openrift/shared/share-image-params";
 import { userBundleShareTitle } from "@openrift/shared/share-titles";
 import { cardPath } from "@openrift/shared/site-paths";
 import { pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { rateLimiter } from "hono-rate-limiter";
 import { bodyLimit } from "hono/body-limit";
 
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { clientAddress } from "../../../lib/client-address.js";
-import { jsonError, pngResponse } from "../../../lib/http-response.js";
+import { IMAGE_CACHE, jsonError, pngResponse } from "../../../lib/http-response.js";
+import { imageRateLimit } from "../../../lib/image-rate-limit.js";
+import { parseShareImageQuery } from "../../../lib/share-image-query.js";
 import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import type { Variables } from "../../../types.js";
@@ -36,7 +32,7 @@ import { buildCards, buildListShareInput, topByQuantity } from "../../lists/serv
 import { metaDeckImageFraming } from "../../meta/lib/meta-share-image.js";
 import { buildTierListImageRows } from "../../stage/services/tier-list-image.js";
 import { renderImage } from "../services/render-pool.js";
-import type { ShareImageCard, ShareImageOptions } from "../services/share-image.js";
+import type { ShareImageCard } from "../services/share-image.js";
 
 /**
  * No `loadSession`: images are cached immutably for anonymous crawlers, so
@@ -45,13 +41,8 @@ import type { ShareImageCard, ShareImageOptions } from "../services/share-image.
  * edge cache key.
  */
 
-/** Long immutable cache: the `?v=` version makes each URL content-addressed. */
-const IMAGE_CACHE_CONTROL = "public, immutable, max-age=31536000";
-
 /** Card images carry prices, which refresh daily; their URLs have no version. */
-const CARD_IMAGE_CACHE_CONTROL = "public, max-age=86400";
-
-const DEVELOPERS_IMAGE_CACHE_CONTROL = "public, max-age=86400";
+const CARD_IMAGE_CACHE_CONTROL = IMAGE_CACHE.daily;
 
 const MAX_RENDER_CARD_ROWS = 300;
 
@@ -68,19 +59,9 @@ const RENDERS_PER_MINUTE = 10;
 // above the pool's throughput. An unfurler fetches a given link once.
 const SHARE_IMAGE_RENDERS_PER_MINUTE = 20;
 
-const renderRateLimit = rateLimiter<{ Variables: Variables }>({
-  windowMs: 60_000,
-  limit: RENDERS_PER_MINUTE,
-  standardHeaders: "draft-6",
-  keyGenerator: clientAddress,
-});
+const renderRateLimit = imageRateLimit(RENDERS_PER_MINUTE, "ip");
 
-const shareImageRateLimit = rateLimiter<{ Variables: Variables }>({
-  windowMs: 60_000,
-  limit: SHARE_IMAGE_RENDERS_PER_MINUTE,
-  standardHeaders: "draft-6",
-  keyGenerator: clientAddress,
-});
+const shareImageRateLimit = imageRateLimit(SHARE_IMAGE_RENDERS_PER_MINUTE, "ip");
 
 // Throwing routes the rejection through `app.onError`, so it answers with the
 // same `ApiErrorResponse` envelope as every other error on this route.
@@ -91,13 +72,13 @@ const renderBodyLimit = bodyLimit({
   },
 });
 
-/**
- * `?aspect=vertical` selects the 9:16 export, `?qr=0` a plate with no
- * scannable code. An og:image URL never carries either, so the crawler's
- * cached entry is untouched and each variant is its own immutable cache entry.
- */
-function imageOptions(aspect: string | undefined, qr: string | undefined): ShareImageOptions {
-  return { aspect: aspectFromQuery(aspect), qr: qrFromQuery(qr) };
+function publicQuery(c: Context<{ Variables: Variables }>) {
+  return parseShareImageQuery((name) => c.req.query(name), "public");
+}
+
+function shareJobQuery(c: Context<{ Variables: Variables }>) {
+  const { scale, aspect, qr } = publicQuery(c);
+  return { scale, options: { aspect, qr } };
 }
 
 /**
@@ -154,12 +135,8 @@ async function cardImage(
   });
   assertFound(input, "Not found");
 
-  const png = await renderImage({
-    kind: "card",
-    input,
-    scale: c.req.query("size") === "hq" ? 2 : 1,
-    qr: qrFromQuery(c.req.query("qr")),
-  });
+  const { scale, qr } = publicQuery(c);
+  const png = await renderImage({ kind: "card", input, scale, qr });
   return pngResponse(png, CARD_IMAGE_CACHE_CONTROL);
 }
 
@@ -194,11 +171,10 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const png = await renderImage({
       kind: "share",
       input,
-      scale: c.req.query("size") === "hq" ? 2 : 1,
-      options: imageOptions(c.req.query("aspect"), c.req.query("qr")),
+      ...shareJobQuery(c),
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/users/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -231,11 +207,10 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
         siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl: shareUrlFromOrigin(config.siteOrigin, `/users/share/${token}`),
       },
-      scale: c.req.query("size") === "hq" ? 2 : 1,
-      options: imageOptions(c.req.query("aspect"), c.req.query("qr")),
+      ...shareJobQuery(c),
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/collections/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -259,11 +234,10 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const png = await renderImage({
       kind: "share",
       input,
-      scale: c.req.query("size") === "hq" ? 2 : 1,
-      options: imageOptions(c.req.query("aspect"), c.req.query("qr")),
+      ...shareJobQuery(c),
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/decks/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -282,13 +256,9 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       ? metaDeckImageFraming(metaContext, splitDeckZones(cards).legend?.cardName ?? null)
       : null;
 
-    // HQ is capped at 2x: rasterize cost grows super-linearly with pixels.
-    const scale = c.req.query("size") === "hq" ? 2 : 1;
-    const aspect = aspectFromQuery(c.req.query("aspect"));
+    const { scale, aspect, qr } = publicQuery(c);
     const path = archive ? `/meta/decks/${token}` : `/decks/share/${token}`;
-    const shareUrl = qrFromQuery(c.req.query("qr"))
-      ? shareUrlFromOrigin(config.siteOrigin, path)
-      : undefined;
+    const shareUrl = qr ? shareUrlFromOrigin(config.siteOrigin, path) : undefined;
 
     const png = await renderImage({
       kind: "deck",
@@ -307,7 +277,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       aspect,
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/tier-lists/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -321,9 +291,8 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     assertFound(found, "Not found");
 
     const rows = await buildTierListImageRows(repos, found.tierList.tiers);
-    const scale = c.req.query("size") === "hq" ? 2 : 1;
-    const aspect = aspectFromQuery(c.req.query("aspect"));
-    const shareUrl = qrFromQuery(c.req.query("qr"))
+    const { scale, aspect, qr } = publicQuery(c);
+    const shareUrl = qr
       ? shareUrlFromOrigin(config.siteOrigin, `/tier-lists/share/${token}`)
       : undefined;
 
@@ -340,7 +309,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       aspect,
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/board-states/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -354,13 +323,14 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       kind: "boardState",
       input: {
         title: found.boardState.title,
+        ownerName: bylineName(found.ownerName),
         document: found.boardState.document,
         siteHost: siteHostFromOrigin(config.siteOrigin),
       },
-      scale: c.req.query("size") === "hq" ? 2 : 1,
+      scale: publicQuery(c).scale,
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/errata/image.png", shareImageRateLimit, async (c) => {
@@ -387,10 +357,10 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
         updateCount: announcements.length,
         siteHost: siteHostFromOrigin(config.siteOrigin),
       },
-      scale: c.req.query("size") === "hq" ? 2 : 1,
+      scale: publicQuery(c).scale,
     });
 
-    return pngResponse(png, IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.versioned);
   })
 
   .get("/developers/image.png", shareImageRateLimit, async (c) => {
@@ -398,10 +368,10 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const png = await renderImage({
       kind: "developers",
       input: buildDevelopersImageInput(catalog, siteHostFromOrigin(c.get("config").siteOrigin)),
-      scale: c.req.query("size") === "hq" ? 2 : 1,
+      scale: publicQuery(c).scale,
     });
 
-    return pngResponse(png, DEVELOPERS_IMAGE_CACHE_CONTROL);
+    return pngResponse(png, IMAGE_CACHE.daily);
   })
 
   // Browser-local decks have no server row or session; saved decks use the
@@ -427,14 +397,13 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       zone: card.zone,
     }));
 
-    const scale = c.req.query("size") === "hq" ? 2 : 1;
-    const aspect = aspectFromQuery(c.req.query("aspect"));
+    const { scale, aspect } = publicQuery(c);
     const imageCards = await buildDeckImageCardsFromRefs(repos, refs, { skipUnknown: true });
     const png = await renderImage({
       kind: "deck",
       input: {
         deckName: body.deckName ? body.deckName.slice(0, MAX_RENDER_TEXT_LENGTH) : "Deck",
-        ownerName: body.ownerName ? body.ownerName.slice(0, MAX_RENDER_TEXT_LENGTH) : undefined,
+        ownerName: bylineName(body.ownerName)?.slice(0, MAX_RENDER_TEXT_LENGTH),
         formatLabel: await deckFormatLabel(
           repos.deckFormats,
           body.format

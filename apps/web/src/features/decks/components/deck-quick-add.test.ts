@@ -107,6 +107,44 @@ describe("buildTargets", () => {
     expect(targets[0]).toMatchObject({ zone: WellKnown.deckZone.RUNES, disabled: true });
   });
 
+  it("keeps the rune zone open at 12 when a two-domain legend lets the add swap a rune out", () => {
+    const rune = stubDeckBuilderCard({
+      cardTypes: ["rune" as CardType],
+      domains: ["fury"] as Domain[],
+      energy: null,
+    });
+    const runes = (domain: string) =>
+      stubDeckBuilderCard({
+        cardTypes: ["rune" as CardType],
+        zone: "runes" as DeckZone,
+        domains: [domain] as Domain[],
+        quantity: 6,
+      });
+    const targets = buildTargets(
+      rune,
+      [legendInDeck(["fury", "calm"] as Domain[]), runes("fury"), runes("calm")],
+      CONSTRUCTED,
+      TEST_ZONE_LABELS,
+    );
+    expect(targets[0]).toMatchObject({ zone: WellKnown.deckZone.RUNES, disabled: false });
+  });
+
+  it("disables the rune zone at 12 when the deck has no legend to swap against", () => {
+    const rune = stubDeckBuilderCard({
+      cardTypes: ["rune" as CardType],
+      domains: ["fury"] as Domain[],
+      energy: null,
+    });
+    const fullRunes = stubDeckBuilderCard({
+      cardTypes: ["rune" as CardType],
+      zone: "runes" as DeckZone,
+      domains: ["fury"] as Domain[],
+      quantity: 12,
+    });
+    const targets = buildTargets(rune, [fullRunes], CONSTRUCTED, TEST_ZONE_LABELS);
+    expect(targets[0]).toMatchObject({ zone: WellKnown.deckZone.RUNES, disabled: true });
+  });
+
   it("disables a duplicate battlefield", () => {
     const battlefield = stubDeckBuilderCard({ cardTypes: ["battlefield" as CardType] });
     const inDeck = stubDeckBuilderCard({

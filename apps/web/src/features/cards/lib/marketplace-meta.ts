@@ -1,6 +1,8 @@
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
+import { MARKETPLACE_ICONS } from "@/lib/marketplace-icons";
+
 interface MarketplaceMeta {
   label: string;
   icon: string;
@@ -8,13 +10,6 @@ interface MarketplaceMeta {
   productUrl: (productId: number, language?: string | null) => string;
   isAffiliate: boolean;
 }
-
-const MARKETPLACE_ICONS: Record<Marketplace, string> = {
-  tcgplayer: "/images/external/tcgplayer-38x28.webp",
-  cardmarket: "/images/external/cardmarket-20x28.webp",
-  cardtrader: "/images/external/cardtrader-20x28.webp",
-  cardnexus: "/images/external/cardnexus-28x28.webp",
-};
 
 export const MARKETPLACE_META: Record<Marketplace, MarketplaceMeta> = Object.fromEntries(
   Object.entries(MARKETPLACE_LINKS).map(([marketplace, links]) => [

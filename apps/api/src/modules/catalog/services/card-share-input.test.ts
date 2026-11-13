@@ -44,10 +44,10 @@ function args(overrides: Partial<BuildCardShareInputArgs> = {}): BuildCardShareI
     ],
     sets: [{ id: "set-ogn", name: "Origins" }],
     prices: [
-      { printingId: "p-en", marketplace: "tcgplayer", marketCents: 24 },
-      { printingId: "p-en", marketplace: "cardtrader", marketCents: 18 },
-      { printingId: "p-en", marketplace: "cardmarket", marketCents: 99 },
-      { printingId: "p-kr", marketplace: "cardtrader", marketCents: 50 },
+      { printingId: "p-en", marketplace: "tcgplayer", headlineCents: 24 },
+      { printingId: "p-en", marketplace: "cardtrader", headlineCents: 18 },
+      { printingId: "p-en", marketplace: "cardmarket", headlineCents: 99 },
+      { printingId: "p-kr", marketplace: "cardtrader", headlineCents: 50 },
     ],
     labels: {
       domains: labelMapOf({ fury: "Fury" }),

@@ -1,7 +1,7 @@
 import { isCountedZone } from "@openrift/shared/deck-zones";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -66,7 +66,7 @@ export interface OwnershipBandSources {
   availableByCardId: Record<string, number>;
   lockedByCardId: Record<string, number>;
   borrowedByCardId: Record<string, number>;
-  /** Keyed by {@link getDeckCardKey}, resolved through the same helper as the thumbnail. */
+  /** Keyed by {@link deckCardKey}, resolved through the same helper as the thumbnail. */
   displayedPrintingIdByCardKey: Record<string, string>;
   ownedPrintingIdsByCardId: Record<string, readonly string[]>;
 }
@@ -114,7 +114,7 @@ export function collectOwnershipBandSources(
     }
     const displayed = resolvePrinting(card.cardId, card.preferredPrintingId);
     if (displayed) {
-      displayedPrintingIdByCardKey[getDeckCardKey(card)] = displayed.printingId;
+      displayedPrintingIdByCardKey[deckCardKey(card)] = displayed.printingId;
     }
   }
   return {
@@ -224,16 +224,16 @@ export function buildOwnershipCopies(
     const owned = preferOwned ? ownedPrintingByCardId?.get(card.cardId) : undefined;
     const displayedId = owned?.imageId
       ? owned.id
-      : sources.displayedPrintingIdByCardKey[getDeckCardKey(card)];
+      : sources.displayedPrintingIdByCardKey[deckCardKey(card)];
     const cardLeft =
       (sources.availableByCardId[card.cardId] ?? 0) - (claimedByCard.get(card.cardId) ?? 0);
     const printingLeft = displayedId
       ? (sources.availableByPrinting[displayedId] ?? 0) - (claimedByPrinting.get(displayedId) ?? 0)
       : 0;
     const exact = Math.max(0, Math.min(card.quantity, printingLeft, cardLeft));
-    exactByCardKey.set(getDeckCardKey(card), exact);
+    exactByCardKey.set(deckCardKey(card), exact);
     if (displayedId) {
-      displayedIdByCardKey.set(getDeckCardKey(card), displayedId);
+      displayedIdByCardKey.set(deckCardKey(card), displayedId);
     }
     if (exact > 0 && displayedId) {
       claimedByPrinting.set(displayedId, (claimedByPrinting.get(displayedId) ?? 0) + exact);
@@ -246,7 +246,7 @@ export function buildOwnershipCopies(
   const bands = new Map<string, OwnershipBandSegments>();
   const otherPrintingIdsByCardKey = new Map<string, string[]>();
   for (const card of ordered) {
-    const key = getDeckCardKey(card);
+    const key = deckCardKey(card);
     const cardLeft =
       (sources.availableByCardId[card.cardId] ?? 0) - (claimedByCard.get(card.cardId) ?? 0);
     const borrowedLeft =
@@ -304,7 +304,7 @@ export function copyPrintingId(
   card: DeckBuilderCard,
   copyIndex: number,
 ): string | undefined {
-  const key = getDeckCardKey(card);
+  const key = deckCardKey(card);
   const band = copies.bands.get(key);
   if (!band || copyIndex < band.exact) {
     return undefined;

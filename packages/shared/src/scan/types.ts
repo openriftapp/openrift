@@ -46,9 +46,6 @@ export type Matrix3 = readonly [
   number,
 ];
 
-/** 63mm x 88mm */
-export const CARD_ASPECT = 63 / 88;
-
 /** A card-shaped quadrilateral proposed by one of the detectors. */
 export interface CardCandidate {
   quad: Quad;

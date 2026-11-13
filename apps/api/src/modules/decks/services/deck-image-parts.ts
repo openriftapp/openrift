@@ -1,3 +1,5 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import { DEFAULT_DOMAIN_COLORS, DOMAIN_COLOR_FALLBACK } from "@openrift/shared/domain-colors";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
@@ -7,11 +9,9 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
-  CARD_ASPECT,
   COLORS,
   blurredArtBackdropDataUri,
   element,
-  elideTitle,
   svgToPngDataUri,
 } from "../../system/services/share-image-core.js";
 
@@ -26,8 +26,6 @@ import {
 export const GAP = 10;
 /** Gap between the two columns of a side-by-side band. */
 export const BODY_GAP = 16;
-/** Battlefield art is landscape; its tiles use this aspect. */
-export const BATTLEFIELD_ASPECT = 1.4;
 /** Section header (label + underline) reserved height, for area math. */
 export const SECTION_HEADER_H = 23;
 /** Battlefields shown (decks rarely exceed three). */
@@ -54,7 +52,7 @@ export interface DeckImageInput {
   /** What the list scored, e.g. "1st of 3,283 · Summoner Skirmish Wuhan"; set for an archive entry only. */
   resultLine?: string;
   cards: readonly DeckImageCard[];
-  /** Host shown in the footer (e.g. "openrift.app"); omitted when empty. */
+  /** Host shown in the footer; omitted when empty. */
   siteHost?: string;
   /** Absolute deck share URL encoded in the QR; the QR is dropped when absent. */
   shareUrl?: string;
@@ -73,15 +71,6 @@ export interface DeckImageCardRef {
   zone: string;
 }
 
-/** Longest deck title kept before eliding; bounds the title so it never runs into
- * the right-aligned format/count. Shorter than the tier list's cap because this
- * row also carries the domain glyphs. */
-const TITLE_MAX_CHARS = 34;
-
-export function truncateTitle(title: string, max = TITLE_MAX_CHARS): string {
-  return elideTitle(title, max);
-}
-
 function byEnergyThenName(left: DeckImageCard, right: DeckImageCard): number {
   return (left.energy ?? 99) - (right.energy ?? 99) || left.cardName.localeCompare(right.cardName);
 }
@@ -97,9 +86,7 @@ export interface DeckZones {
   sideboard: DeckImageCard[];
   /** Champions first (the deck's identity units), then the rest by cost. */
   gridCards: DeckImageCard[];
-  /** Champions + main copies, excluding overflow. */
-  mainCardCount: number;
-  sideboardCount: number;
+  cardCount: number;
 }
 
 export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
@@ -118,12 +105,6 @@ export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
     .filter((card) => card.zone === zone.MAIN || card.zone === zone.OVERFLOW)
     .sort(byEnergyThenName);
   const gridCards = [...champions, ...mainline];
-  // Conventional deck size: champions + main only, reported separately from the
-  // sideboard. Overflow copies still show in the grid but are not counted (nor are
-  // legend, battlefields, or runes).
-  const mainCardCount = gridCards
-    .filter((card) => card.zone !== zone.OVERFLOW)
-    .reduce((sum, card) => sum + card.quantity, 0);
   const runeCards = [...runes].sort(
     (left, right) => right.quantity - left.quantity || left.cardName.localeCompare(right.cardName),
   );
@@ -136,8 +117,7 @@ export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
     battlefields,
     sideboard,
     gridCards,
-    mainCardCount,
-    sideboardCount: sideboard.reduce((sum, card) => sum + card.quantity, 0),
+    cardCount: deckCardCount(cards),
   };
 }
 
@@ -153,15 +133,8 @@ export function legendOptionTileSize(
   return { tileW: Math.floor(tileH * CARD_ASPECT), tileH };
 }
 
-/** The "Constructed · 30 + 2 cards" metadata line. */
-export function deckMetaLabel(
-  formatLabel: string,
-  mainCardCount: number,
-  sideboardCount: number,
-): string {
-  const total = mainCardCount + sideboardCount;
-  const counts = `${mainCardCount}${sideboardCount > 0 ? ` + ${sideboardCount}` : ""}`;
-  return `${formatLabel} · ${counts} ${pluralize(total, "card", "cards")}`;
+export function deckMetaLabel(formatLabel: string, cardCount: number): string {
+  return `${formatLabel} · ${cardCount} ${pluralize(cardCount, "card", "cards")}`;
 }
 
 export interface PackedGrid {

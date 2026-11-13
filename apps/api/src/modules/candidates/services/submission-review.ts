@@ -3,12 +3,11 @@ import type {
   AcceptPrintingBody,
   AcceptPrintingField,
 } from "@openrift/shared/contracts/admin/card-mutations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 
 import type { CardSubmissionReason, CardSubmissionStatus } from "../../../db/tables/candidates.js";
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, notFound } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { buildSizedPrintingLinkKey } from "../../../lib/printing-link-key.js";
@@ -138,7 +137,7 @@ async function loadOpenSubmission(
 ): Promise<CardSubmissionRow | null> {
   const submission = await repos.cardSubmissions.getByCandidateCardId(candidateCardId);
   if (submission && submission.status !== "pending") {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Submission already settled");
+    throw conflict("Submission already settled");
   }
   return submission;
 }
@@ -195,10 +194,10 @@ async function partitionNewPrintings(
       continue;
     }
     seen.add(key);
-    const conflict = await newPrintingConflict(repos, identity);
-    if (conflict) {
+    const identityConflict = await newPrintingConflict(repos, identity);
+    if (identityConflict) {
       collided = true;
-      skipped.push({ candidatePrintingId: pick.candidatePrintingId, reason: conflict });
+      skipped.push({ candidatePrintingId: pick.candidatePrintingId, reason: identityConflict });
       continue;
     }
     const faceConflict = await facePrintedFieldConflict(repos, cardId, {
@@ -221,7 +220,7 @@ async function attachCandidateImage(trx: Repos, args: ImagePick): Promise<string
   assertFound(candidatePrinting, "Candidate printing not found");
   const { imageUrl } = candidatePrinting;
   if (!imageUrl) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Candidate printing has no image URL");
+    throw badRequest("Candidate printing has no image URL");
   }
   const face = await faceForNewImage(
     trx,
@@ -259,14 +258,12 @@ export async function acceptSubmission(
     cardFields.length + printingFields.length + usableNewPrintings.length + images.length;
   // A skip is not a decision: settling here would close the submission on nothing.
   if (pickCount === 0 && skipped.length > 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       `Nothing could be applied. ${skipped.map((entry) => entry.reason).join("; ")}`,
     );
   }
   if (!liveCard && pickCount > 0) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "No live card for this submission");
+    throw notFound("No live card for this submission");
   }
 
   const created: NewPrinting[] = [];
@@ -419,7 +416,7 @@ export async function moveSubmission(
   const card = await repos.catalogMutations.getFullCardById(cardId);
   assertFound(card, "Card not found");
   if (card.normName === candidate.normName) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Submission is already on this card");
+    throw badRequest("Submission is already on this card");
   }
 
   await transact(async (trx) => {

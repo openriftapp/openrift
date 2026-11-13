@@ -1,7 +1,7 @@
 // ERROR_CODES + ErrorCode are the single source of truth for the `{ error,
 // code }` envelope — shared by the API and the web app — so they live in
 // @openrift/shared. Import them from there directly (not via this module);
-// errors.ts owns only the server-side AppError + codeForStatus.
+// errors.ts owns the server-side AppError, its helpers and codeForStatus.
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ErrorCode } from "@openrift/shared/error-codes";
 
@@ -17,6 +17,22 @@ export class AppError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+export function badRequest(message: string, details?: unknown): AppError {
+  return new AppError(400, ERROR_CODES.BAD_REQUEST, message, details);
+}
+
+export function forbidden(message: string, details?: unknown): AppError {
+  return new AppError(403, ERROR_CODES.FORBIDDEN, message, details);
+}
+
+export function notFound(message: string, details?: unknown): AppError {
+  return new AppError(404, ERROR_CODES.NOT_FOUND, message, details);
+}
+
+export function conflict(message: string, details?: unknown): AppError {
+  return new AppError(409, ERROR_CODES.CONFLICT, message, details);
 }
 
 const STATUS_TO_CODE: Readonly<Record<number, ErrorCode>> = {

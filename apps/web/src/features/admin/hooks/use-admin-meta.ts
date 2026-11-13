@@ -2,7 +2,7 @@ import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
 import type { AdminMetaEventList, AdminMetaEventSource } from "@openrift/shared/types/api/meta";
 import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
-import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { AdminMetaEventQueryParams } from "@/features/admin/lib/admin-meta-queries";
@@ -48,11 +48,12 @@ const searchMetaEvents = createServerFn({ method: "GET" })
     ),
   );
 
-export function useMetaEventSearch(search: string) {
+export function useAdminMetaEventSearch(search: string) {
   return useQuery({
     queryKey: adminKeys.meta.eventSearch(search),
     queryFn: () => searchMetaEvents({ data: search }),
     staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 

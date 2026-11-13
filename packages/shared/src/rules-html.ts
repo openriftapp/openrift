@@ -14,7 +14,7 @@ import {
   RULE_GLYPHS,
   ruleUsesYVariable,
 } from "./rules-markdown.js";
-import { escapeHtml } from "./strings.js";
+import { escapeHtml, isUuid } from "./strings.js";
 import type { RuleLanguage } from "./types/api/rules.js";
 
 export interface CardMentions {
@@ -35,7 +35,6 @@ const FORMATTING_TAGS = new Set(["em", "strong", "code"]);
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/iu;
 const KEYWORD_POINTS = new Set(["left", "right", "both"]);
 const GLYPH_NAMES: ReadonlySet<string> = new Set([...Object.values(RULE_GLYPHS), "energy"]);
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const CARD_HREF_PREFIX = "/cards/";
 
 function addCardImages(
@@ -102,7 +101,7 @@ function serialize(node: HastNode, blockTags: ReadonlySet<string>): string {
     const external = href.startsWith("https://") ? ' target="_blank" rel="noreferrer"' : "";
     const cardImage = node.properties?.["data-card-image"];
     const preview =
-      typeof cardImage === "string" && UUID_REGEX.test(cardImage)
+      typeof cardImage === "string" && isUuid(cardImage)
         ? ` data-card-image="${cardImage}"${node.properties?.["data-card-landscape"] === true ? " data-card-landscape" : ""}`
         : "";
     return `<a href="${escapeHtml(href)}"${external}${preview}>${inner}</a>`;

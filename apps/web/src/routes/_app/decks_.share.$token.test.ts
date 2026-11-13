@@ -44,7 +44,7 @@ describe("/decks/share/$token head", () => {
       "A Constructed Riftbound deck shared by Teemo Scout.",
     );
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/decks/share/DECK123/image.png?v=1785578400000",
+      "http://localhost:5173/api/v1/decks/share/DECK123/image.png?v=1785578400000-r2",
     );
     expect(headMeta(head, "robots")).toBe("noindex, nofollow");
     expect(headCanonical(head)).toBe("http://localhost:5173/decks/share/DECK123");

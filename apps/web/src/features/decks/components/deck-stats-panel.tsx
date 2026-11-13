@@ -123,12 +123,12 @@ export function DeckStatsPanel({ deckId }: { deckId: string }) {
       >
         <DomainBar
           data={stats.domainDistribution}
-          total={stats.totalCards}
+          total={stats.mainDeckCards}
           colors={domainColors}
           className="mx-1"
         />
         <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-          {m.decks_stats_total_cards({ count: stats.totalCards })}
+          {m.decks_stats_main_deck_cards({ count: stats.mainDeckCards })}
         </span>
       </DeckZoneHeader>
 

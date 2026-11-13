@@ -28,7 +28,7 @@ function stubStats(): ReturnType<typeof useDeckStats> {
       { type: "gear", total: 3 },
     ],
     typeBreakdownDomains: [],
-    totalCards: 34,
+    mainDeckCards: 34,
   };
 }
 

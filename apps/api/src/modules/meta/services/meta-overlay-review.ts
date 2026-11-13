@@ -1,4 +1,3 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { stringifyUnknown } from "@openrift/shared/strings";
 import type {
   MetaOverlayBulkAcceptResult,
@@ -17,7 +16,7 @@ import type { Insertable } from "kysely";
 
 import type { MetaEventPlayerOverlaysTable } from "../../../db/tables/meta.js";
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isoOrNull } from "../../../lib/iso-date.js";
 import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
@@ -112,9 +111,7 @@ export async function acceptMetaEventOverlay(
       // The check runs before anything is written: a failed validation must leave
       // the overlay pending, not accepted with no live event behind it.
       if (overlay.name === null || overlay.eventDate === null || overlay.format === null) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
+        throw badRequest(
           "A proposed event needs a name, a date and a format before it can be accepted.",
         );
       }
@@ -214,9 +211,7 @@ export async function moveMetaEventOverlay(
     const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
     assertFound(overlay, "That overlay no longer exists.");
     if (overlay.provider === null || overlay.externalId === null) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
+      throw badRequest(
         "Only a provider's upload can be moved; a person's overlay is a correction to one event.",
       );
     }
@@ -304,7 +299,7 @@ export async function revertMetaUpload(
       eventExternalId,
     ]);
     if (eventOverlay === undefined && players.length === 0) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No upload with that source key exists.");
+      throw notFound("No upload with that source key exists.");
     }
 
     const affected = new Set<string>();
@@ -407,19 +402,15 @@ export async function applyMetaEventCorrection(
     await trx.ingest.lockUserSubmissions(found.userId);
     const submission = (await trx.metaSubmissions.byId(submissionId)) ?? found;
     if (submission.kind !== "event_correction") {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "That submission is not an event correction.",
-      );
+      throw badRequest("That submission is not an event correction.");
     }
     if (submission.status !== "pending") {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "That correction is already settled.");
+      throw conflict("That correction is already settled.");
     }
     const eventId = submission.metaEventId;
     const live = eventId === null ? undefined : await trx.meta.eventById(eventId);
     if (eventId === null || live === undefined) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "The event this correction is about is gone.");
+      throw conflict("The event this correction is about is gone.");
     }
 
     const proposed = Object.entries(submission.fieldEdits ?? {}).filter(
@@ -436,9 +427,7 @@ export async function applyMetaEventCorrection(
     const redundant = redundantClaims(offered, columns, live as unknown as Record<string, unknown>);
     const claimedFields = offered.filter((field) => !redundant.includes(field));
     if (claimedFields.length === 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
+      throw badRequest(
         "The event already shows these values. Resolve it as already in the archive.",
       );
     }
@@ -519,36 +508,28 @@ function coerceEventField(
     }
     const parsed = Number(trimmed);
     if (!Number.isInteger(parsed) || parsed <= 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Player count must be a positive whole number.",
-      );
+      throw badRequest("Player count must be a positive whole number.");
     }
     return { playerCount: parsed };
   }
 
   if (field === "tier") {
     if (empty || !(META_EVENT_TIERS as readonly string[]).includes(trimmed)) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Tier must be one of ${META_EVENT_TIERS.join(", ")}.`,
-      );
+      throw badRequest(`Tier must be one of ${META_EVENT_TIERS.join(", ")}.`);
     }
     return { tier: trimmed };
   }
 
   if (field === "eventDate") {
     if (empty || !/^\d{4}-\d{2}-\d{2}$/u.test(trimmed)) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The date must be YYYY-MM-DD.");
+      throw badRequest("The date must be YYYY-MM-DD.");
     }
     return { eventDate: trimmed };
   }
 
   // name and format have a NOT NULL constraint on the live row.
   if ((field === "name" || field === "format") && empty) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `An event must keep its ${field}.`);
+    throw badRequest(`An event must keep its ${field}.`);
   }
 
   return { [field]: empty ? null : trimmed };
@@ -618,11 +599,7 @@ export async function writeMetaPlayerOverlayFields(
       const rows = await repos.meta.rawStandingsForEvent(metaEventId);
       const row = rows.find((candidate) => candidate.id === metaEventPlayerId);
       if (row?.uvsgamesPlayerId === null) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "This entry has no source name to fall back to, so it must keep a name.",
-        );
+        throw badRequest("This entry has no source name to fall back to, so it must keep a name.");
       }
     }
 
@@ -709,7 +686,7 @@ async function toOverlayLines(
   return cards.map((card, lineNumber) => {
     const cardName = names.get(card.cardId);
     if (cardName === undefined) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A card in the list no longer exists.");
+      throw badRequest("A card in the list no longer exists.");
     }
     return {
       lineNumber,
@@ -793,9 +770,7 @@ async function loadPlayerAccept(
     metaEventId = (await repos.meta.eventIdForPlayer(metaEventPlayerId)) ?? metaEventId;
   }
   if (metaEventId === null) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
+    throw conflict(
       "This entry belongs to an event that has not been accepted yet. Accept the event first.",
     );
   }
@@ -852,11 +827,7 @@ async function narrowPlayerClaims(
   // claimed.length === 0 means the anchor already dropped every claim as
   // redundant: a finished accept, not an empty mask.
   if (remaining.length === 0 && claimed.length > 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "An accept that keeps no claim is a reject. Reject the row instead.",
-    );
+    throw badRequest("An accept that keeps no claim is a reject. Reject the row instead.");
   }
   if (remaining.length === claimed.length) {
     return;

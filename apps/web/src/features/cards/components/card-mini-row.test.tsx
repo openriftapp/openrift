@@ -10,7 +10,7 @@ describe("CardMiniRow", () => {
     const { container } = render(<CardMiniRow src="/x-120w.webp" />);
 
     const frame = container.querySelector("span span");
-    expect(frame?.className).toContain("aspect-[88/63]");
+    expect(frame?.className).toContain("aspect-card-landscape");
     expect(container.querySelector("img")?.getAttribute("src")).toBe("/x-120w.webp");
   });
 

@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { cheapestPricedPrinting } from "@openrift/shared/card-price";
 import { REQUIRED_ZONES, isCountedZone } from "@openrift/shared/deck-zones";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import { ownedTotalsByCard, sideKey } from "@openrift/shared/printing-side";
@@ -149,12 +150,14 @@ export function computeDeckOwnership(
   let requiredZoneMissing = 0;
   let sideboardMissing = 0;
   let hasPrices = false;
-  let deckValueCents = 0;
-  let asDisplayedValueCents = 0;
-  let mainValueCents = 0;
-  let sideboardValueCents = 0;
-  let missingValueCents = 0;
-  let missingAsDisplayedValueCents = 0;
+  let deckValue = 0;
+  let asDisplayedValue = 0;
+  let mainValue = 0;
+  let sideboardValue = 0;
+  let missingValue = 0;
+  let missingAsDisplayedValue = 0;
+  let unpricedCount = 0;
+  let missingUnpricedCount = 0;
 
   const valued: {
     zone: DeckZone;
@@ -231,26 +234,9 @@ export function computeDeckOwnership(
       : undefined;
     const displayPrinting = resolvedPrinting ? toOwnershipPrinting(resolvedPrinting) : undefined;
 
-    let cheapestPrice: number | undefined;
-    let cheapestResolved: Printing | undefined;
-    {
-      const pools = [
-        candidates.filter((candidate) => languageOrder.includes(candidate.language)),
-        candidates,
-      ];
-      for (const pool of pools) {
-        for (const candidate of pool) {
-          const price = prices.get(candidate.printingId, marketplace);
-          if (price !== undefined && (cheapestPrice === undefined || price < cheapestPrice)) {
-            cheapestPrice = price;
-            cheapestResolved = candidate;
-          }
-        }
-        if (cheapestPrice !== undefined) {
-          break;
-        }
-      }
-    }
+    const cheapest = cheapestPricedPrinting(candidates, prices, marketplace, languageOrder);
+    const cheapestPrice = cheapest?.price;
+    const cheapestResolved = cheapest?.printing;
     const cheapestPrinting = cheapestResolved ? toOwnershipPrinting(cheapestResolved) : undefined;
 
     const entry: CardOwnership = {
@@ -353,24 +339,25 @@ export function computeDeckOwnership(
   );
   valued.forEach((row, index) => {
     const { valuePerCopy, displayPrice } = row;
-    if (valuePerCopy !== undefined) {
+    if (valuePerCopy === undefined) {
+      unpricedCount += row.quantity;
+      missingUnpricedCount += row.shortfall;
+    } else {
       hasPrices = true;
       const value = valueCovered[index] ? 0 : valuePerCopy * row.quantity;
       const missing = missingCovered[index] ? 0 : valuePerCopy * row.shortfall;
-      deckValueCents += value;
+      deckValue += value;
       if (row.zone === WellKnown.deckZone.SIDEBOARD) {
-        sideboardValueCents += value;
+        sideboardValue += value;
       } else {
-        mainValueCents += value;
+        mainValue += value;
       }
-      missingValueCents += missing;
+      missingValue += missing;
     }
     if (displayPrice !== undefined) {
       hasPrices = true;
-      asDisplayedValueCents += displayCovered[index] ? 0 : displayPrice * row.quantity;
-      missingAsDisplayedValueCents += displayMissingCovered[index]
-        ? 0
-        : displayPrice * row.shortfall;
+      asDisplayedValue += displayCovered[index] ? 0 : displayPrice * row.quantity;
+      missingAsDisplayedValue += displayMissingCovered[index] ? 0 : displayPrice * row.shortfall;
     }
   });
 
@@ -387,12 +374,14 @@ export function computeDeckOwnership(
     missingCount,
     requiredZoneMissing,
     sideboardMissing,
-    deckValueCents: hasPrices ? deckValueCents : undefined,
-    mainValueCents: hasPrices ? mainValueCents : undefined,
-    sideboardValueCents: hasPrices ? sideboardValueCents : undefined,
-    asDisplayedValueCents: hasPrices ? asDisplayedValueCents : undefined,
-    missingValueCents: hasPrices ? missingValueCents : undefined,
-    missingAsDisplayedValueCents: hasPrices ? missingAsDisplayedValueCents : undefined,
+    deckValue: hasPrices ? deckValue : undefined,
+    mainValue: hasPrices ? mainValue : undefined,
+    sideboardValue: hasPrices ? sideboardValue : undefined,
+    asDisplayedValue: hasPrices ? asDisplayedValue : undefined,
+    missingValue: hasPrices ? missingValue : undefined,
+    missingAsDisplayedValue: hasPrices ? missingAsDisplayedValue : undefined,
+    unpricedCount,
+    missingUnpricedCount,
     missingCards,
   };
 }

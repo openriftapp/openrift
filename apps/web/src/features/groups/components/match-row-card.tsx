@@ -28,11 +28,7 @@ import {
   MatchPreferenceCell,
   MatchPreferenceText,
 } from "@/features/groups/components/match-preference-cell";
-import {
-  useCreateTrade,
-  useDeclineTrade,
-  useUserTrades,
-} from "@/features/groups/hooks/use-card-trades";
+import { useCreateTrade, useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { fixedPriceVsEstimate } from "@/features/groups/lib/price-vs-estimate";
 import type { MatchCopyDetail, MatchDirection } from "@/features/groups/lib/trade-derivation";
 import {
@@ -42,6 +38,8 @@ import {
   matchSuggestionKey,
   maxTradeQuantity,
   groupMatchCopyConditions,
+  liveTradeFor,
+  liveTradeIndex,
   summarizeMatchCopies,
 } from "@/features/groups/lib/trade-derivation";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
@@ -62,7 +60,6 @@ import { useDisplayStore } from "@/stores/display-store";
 import { AvailableCopiesPopover } from "./available-copies-popover";
 import type { RequestableCopy } from "./request-trade-dialog";
 import { RequestTradeDialog } from "./request-trade-dialog";
-import { TradeCopyPickerDialog, useTradeAcceptFlow } from "./trade-copy-picker-dialog";
 import {
   CardMetaLine,
   TradeDirectionIcon,
@@ -72,11 +69,7 @@ import {
 
 const DIRECTION_ORDER: Record<MatchDirection, number> = { incoming: 0, outgoing: 1 };
 
-export type MatchTradeListRow = FriendGroupMatchRow & { groupSlug?: string };
-
-function liveTradeKey(groupSlug: string, counterpartyUserId: string, printingId: string): string {
-  return `${groupSlug}\0${counterpartyUserId}\0${printingId}`;
-}
+export type MatchTradeListRow = FriendGroupMatchRow & { groupSlug?: string; liveOnly?: boolean };
 
 function MatchRowTradeAction({
   match,
@@ -87,43 +80,18 @@ function MatchRowTradeAction({
 }) {
   const [open, setOpen] = useState(false);
   const createTrade = useCreateTrade();
-  const acceptFlow = useTradeAcceptFlow();
-  const declineTrade = useDeclineTrade();
 
   const groupSlug = match.groupSlug;
 
   if (liveTrade !== undefined) {
-    if (liveTrade.actionNeeded === "accept-or-decline") {
-      const busy = acceptFlow.busy || declineTrade.isPending;
-      return (
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => declineTrade.mutate({ tradeId: liveTrade.id, groupSlug })}
-          >
-            {m.trades_decline()}
-          </Button>
-          <Button
-            size="sm"
-            disabled={busy}
-            onClick={() =>
-              acceptFlow.start({
-                tradeId: liveTrade.id,
-                groupSlug,
-                role: liveTrade.role,
-                cardName: match.cardName,
-              })
-            }
-          >
-            {m.trades_accept()}
-          </Button>
-          <TradeCopyPickerDialog flow={acceptFlow} />
-        </div>
-      );
-    }
-    return <TradeStatusBadge status={liveTrade.status} />;
+    return (
+      <TradeStatusBadge
+        status={liveTrade.status}
+        awaitingViewer={liveTrade.actionNeeded === "accept-or-decline"}
+        viewerSettled={liveTrade.viewerSyncAppliedAt !== null}
+        className="min-w-0 shrink"
+      />
+    );
   }
 
   const incoming = match.direction === "incoming";
@@ -170,6 +138,7 @@ function MatchRowTradeAction({
 
 interface ResolvedMatchRow extends FriendGroupMatchRow {
   groupSlug: string;
+  liveOnly?: boolean;
   cardSlug: string;
   shortCode: string;
   setIndex: number;
@@ -224,18 +193,25 @@ function MatchRowMeta({ match }: { match: DirectedMatch }) {
       printing={match.printing}
       rarity={match.rarity}
       trailing={
-        <>
-          <span>· {m.trades_match_wanted({ count: match.buyQuantity })}</span>
-          {match.direction === "outgoing" ? (
-            <>
-              <span>·</span>
-              <AvailableCopiesPopover cardId={match.cardId} availableCount={match.availableCount} />
-            </>
-          ) : (
-            <span>· {m.trades_market_person_available({ count: match.availableCount })}</span>
-          )}
-          <TradePerCopyPrice printingId={match.printingId} />
-        </>
+        match.liveOnly === true ? (
+          <span>· {m.trades_match_promised({ count: match.buyQuantity })}</span>
+        ) : (
+          <>
+            <span>· {m.trades_match_wanted({ count: match.buyQuantity })}</span>
+            {match.direction === "outgoing" ? (
+              <>
+                <span>·</span>
+                <AvailableCopiesPopover
+                  cardId={match.cardId}
+                  availableCount={match.availableCount}
+                />
+              </>
+            ) : (
+              <span>· {m.trades_market_person_available({ count: match.availableCount })}</span>
+            )}
+            <TradePerCopyPrice printingId={match.printingId} />
+          </>
+        )
       }
     />
   );
@@ -447,7 +423,9 @@ function aggregateMatches(rows: ResolvedMatchRow[]): AggregatedMatch[] {
       notesPublic: row.notesPublic,
     };
     const existing = aggregated.get(key);
-    if (existing) {
+    if (row.liveOnly === true) {
+      aggregated.set(key, { ...row, availableCount: 0, copies: [] });
+    } else if (existing) {
       existing.availableCount += 1;
       existing.copies.push(copy);
     } else {
@@ -527,11 +505,11 @@ export function compareMatchTradeGroups(a: MatchTradeGroup, b: MatchTradeGroup):
 function MatchTradeRowGroup({
   group,
   infosByPrinting,
-  liveTradeByKey,
+  liveTrades,
 }: {
   group: MatchTradeGroup;
   infosByPrinting: Record<string, Record<Marketplace, MarketplaceLink>>;
-  liveTradeByKey: Map<string, CardTradeResponse>;
+  liveTrades: ReadonlyMap<string, CardTradeResponse>;
 }) {
   const expanded = useMatchVariantsFoldStore((state) => state.expanded.has(group.foldId));
   const toggle = useMatchVariantsFoldStore((state) => state.toggle);
@@ -550,10 +528,7 @@ function MatchTradeRowGroup({
     variantPrices.length > 0 && Math.min(...variantPrices) !== Math.max(...variantPrices);
 
   const variantStatuses = group.variants.map(
-    (variant) =>
-      liveTradeByKey.get(
-        liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
-      )?.status,
+    (variant) => liveTradeFor(liveTrades, variant, variant.direction)?.status,
   );
   const headerStatus: CardTradeStatus | null = variantStatuses.includes("reserved")
     ? "reserved"
@@ -640,9 +615,7 @@ function MatchTradeRowGroup({
               key={`${variant.counterpartyListId}\0${variant.printingId}`}
               match={variant}
               marketplaceInfos={infosByPrinting[variant.printingId] ?? null}
-              liveTrade={liveTradeByKey.get(
-                liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
-              )}
+              liveTrade={liveTradeFor(liveTrades, variant, variant.direction)}
             />
           ))
         : null}
@@ -653,19 +626,15 @@ function MatchTradeRowGroup({
 function MatchGroupItem({
   group,
   infosByPrinting,
-  liveTradeByKey,
+  liveTrades,
 }: {
   group: MatchTradeGroup;
   infosByPrinting: Record<string, Record<Marketplace, MarketplaceLink>>;
-  liveTradeByKey: Map<string, CardTradeResponse>;
+  liveTrades: ReadonlyMap<string, CardTradeResponse>;
 }) {
   if (group.variants.length > 1) {
     return (
-      <MatchTradeRowGroup
-        group={group}
-        infosByPrinting={infosByPrinting}
-        liveTradeByKey={liveTradeByKey}
-      />
+      <MatchTradeRowGroup group={group} infosByPrinting={infosByPrinting} liveTrades={liveTrades} />
     );
   }
   const variant = group.variants[0];
@@ -674,9 +643,7 @@ function MatchGroupItem({
       <MatchRow
         match={variant}
         marketplaceInfos={infosByPrinting[variant.printingId] ?? null}
-        liveTrade={liveTradeByKey.get(
-          liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
-        )}
+        liveTrade={liveTradeFor(liveTrades, variant, variant.direction)}
       />
     </CardList>
   );
@@ -690,27 +657,25 @@ interface MatchTradeListProps {
 
 function isBulkRequestable(
   group: MatchTradeGroup,
-  liveTradeByKey: ReadonlyMap<string, CardTradeResponse>,
+  liveTrades: ReadonlyMap<string, CardTradeResponse>,
 ): boolean {
   const variant = group.variants[0];
   return (
     group.direction === "incoming" &&
     group.variants.length === 1 &&
     maxTradeQuantity(group.buyQuantity, group.totalAvailable) > 0 &&
-    !liveTradeByKey.has(
-      liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
-    )
+    liveTradeFor(liveTrades, variant, variant.direction) === undefined
   );
 }
 
 /** One request per printing: a double-sided printing wished for under both cards asks for the larger count. */
 export function bulkTradeRequests(
   groups: readonly MatchTradeGroup[],
-  liveTradeByKey: ReadonlyMap<string, CardTradeResponse>,
+  liveTrades: ReadonlyMap<string, CardTradeResponse>,
 ): { variant: DirectedMatch; quantity: number }[] {
   const byPrinting = new Map<string, { variant: DirectedMatch; quantity: number }>();
   for (const group of groups) {
-    if (!isBulkRequestable(group, liveTradeByKey)) {
+    if (!isBulkRequestable(group, liveTrades)) {
       continue;
     }
     const variant = group.variants[0];
@@ -726,15 +691,15 @@ export function bulkTradeRequests(
 
 function BulkRequestRow({
   groups,
-  liveTradeByKey,
+  liveTrades,
 }: {
   groups: MatchTradeGroup[];
-  liveTradeByKey: ReadonlyMap<string, CardTradeResponse>;
+  liveTrades: ReadonlyMap<string, CardTradeResponse>;
 }) {
   const createTrade = useCreateTrade();
   const { refetch: refetchUserTrades } = useUserTrades();
   const [pending, setPending] = useState(false);
-  const requests = bulkTradeRequests(groups, liveTradeByKey);
+  const requests = bulkTradeRequests(groups, liveTrades);
   if (requests.length < 2) {
     return null;
   }
@@ -768,35 +733,6 @@ function BulkRequestRow({
   );
 }
 
-function useLiveTradeByKey(
-  rows: readonly MatchTradeListRow[],
-  groupSlug: string,
-): Map<string, CardTradeResponse> {
-  const { data: userTrades } = useUserTrades();
-  const listGroupSlugs = new Set<string>([groupSlug]);
-  for (const row of rows) {
-    if (row.groupSlug !== undefined) {
-      listGroupSlugs.add(row.groupSlug);
-    }
-  }
-  const liveTradeByKey = new Map<string, CardTradeResponse>();
-  for (const trade of userTrades?.items ?? []) {
-    // counterpartyUserId/groupSlug can be null once a trade finishes; the
-    // checks here confirm a live trade always still has both.
-    const counterpartyUserId = trade.counterparty.userId;
-    const tradeGroupSlug = trade.groupSlug;
-    if (
-      tradeGroupSlug !== null &&
-      listGroupSlugs.has(tradeGroupSlug) &&
-      counterpartyUserId !== null &&
-      (trade.status === "pending" || trade.status === "reserved")
-    ) {
-      liveTradeByKey.set(liveTradeKey(tradeGroupSlug, counterpartyUserId, trade.printingId), trade);
-    }
-  }
-  return liveTradeByKey;
-}
-
 function MatchPersonRow({
   match,
   marketplaceInfos,
@@ -824,9 +760,11 @@ function MatchPersonRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate font-medium">{name}</span>
         <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm">
-          {incoming
-            ? m.trades_market_person_available({ count: match.availableCount })
-            : m.trades_market_person_wants({ count: match.buyQuantity })}
+          {match.liveOnly === true
+            ? m.trades_match_promised({ count: match.buyQuantity })
+            : incoming
+              ? m.trades_market_person_available({ count: match.availableCount })
+              : m.trades_market_person_wants({ count: match.buyQuantity })}
           {incoming ? <MatchCopyConditionPills copies={match.copies} /> : null}
         </span>
         {incoming ? <MatchCopyNotesLine copies={match.copies} /> : null}
@@ -872,7 +810,8 @@ export function MatchPersonList({
   hidePending?: boolean;
 }) {
   const { cardsById, printingsById, printingsByCardId, sets } = useCards();
-  const liveTradeByKey = useLiveTradeByKey(rows, groupSlug);
+  const { data: userTrades } = useUserTrades();
+  const liveTrades = liveTradeIndex(userTrades?.items ?? []);
   const printingIds = [...new Set(rows.map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
   const matches = aggregateMatches(
@@ -886,9 +825,7 @@ export function MatchPersonList({
           key={`${match.groupSlug}:${match.buyEntryId}:${match.counterpartyListId}:${match.printingId}`}
           match={match}
           marketplaceInfos={marketplaceInfo?.links[match.printingId] ?? null}
-          liveTrade={liveTradeByKey.get(
-            liveTradeKey(match.groupSlug, match.counterpartyUserId, match.printingId),
-          )}
+          liveTrade={liveTradeFor(liveTrades, match, match.direction)}
           onHide={onHide === undefined ? undefined : () => onHide(match.counterpartyUserId)}
           hidePending={hidePending}
         />
@@ -899,7 +836,8 @@ export function MatchPersonList({
 
 export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeListProps) {
   const { cardsById, printingsById, printingsByCardId, sets } = useCards();
-  const liveTradeByKey = useLiveTradeByKey([...incoming, ...outgoing], groupSlug);
+  const { data: userTrades } = useUserTrades();
+  const liveTrades = liveTradeIndex(userTrades?.items ?? []);
 
   const printingIds = [...new Set([...incoming, ...outgoing].map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
@@ -917,13 +855,13 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
 
   return (
     <div className="@container flex flex-col gap-2">
-      <BulkRequestRow groups={groups} liveTradeByKey={liveTradeByKey} />
+      <BulkRequestRow groups={groups} liveTrades={liveTrades} />
       {groups.map((group) => (
         <MatchGroupItem
           key={group.foldId}
           group={group}
           infosByPrinting={infosByPrinting}
-          liveTradeByKey={liveTradeByKey}
+          liveTrades={liveTrades}
         />
       ))}
     </div>

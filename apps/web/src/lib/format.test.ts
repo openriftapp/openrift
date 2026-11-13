@@ -6,6 +6,8 @@ import type { EnumLabels } from "@/lib/enum-labels";
 import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import {
+  formatterForCurrency,
+  formatterForMarketplace,
   describePriceChange,
   formatCardId,
   formatCentsInLocale,
@@ -267,6 +269,20 @@ describe("formatPriceEur", () => {
 
   it("uses comma as decimal separator", () => {
     expect(formatPriceEur(1.23)).toBe("\u20AC1.23");
+  });
+});
+
+describe("formatterForCurrency", () => {
+  it("formats in the given currency", () => {
+    expect(formatterForCurrency("EUR")(4.5)).toBe("\u20AC4.50");
+    expect(formatterForCurrency("USD")(4.5)).toBe("$4.50");
+  });
+});
+
+describe("formatterForMarketplace", () => {
+  it("formats in the marketplace's own currency", () => {
+    expect(formatterForMarketplace("cardnexus")(1)).toBe("\u20AC1.00");
+    expect(formatterForMarketplace("tcgplayer")(1)).toBe("$1.00");
   });
 });
 

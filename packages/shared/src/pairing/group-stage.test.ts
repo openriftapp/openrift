@@ -5,6 +5,8 @@ import type { GroupPlan, GroupPlanGroup } from "./group-cut-types";
 import {
   InvalidGroupCountError,
   groupUnits,
+  pairUnits,
+  podsOfUnit,
   planGroups,
   unitRoundPairs,
   validateGroupCount,
@@ -397,5 +399,61 @@ describe("unitRoundPairs", () => {
         1,
       ),
     ).toThrow(/not a 3-player group/u);
+  });
+});
+
+describe("podsOfUnit", () => {
+  const pod = (id: string, playerIds: string[]) => ({
+    id,
+    members: playerIds.map((playerId) => ({ playerId })),
+  });
+
+  it("keeps only the pods its players sit in", () => {
+    const pods = [
+      pod("pod-1", ["p1", "p2"]),
+      pod("pod-2", ["p3", "p4"]),
+      pod("pod-3", ["p9", "p8"]),
+    ];
+    expect(podsOfUnit(pods, new Set(["p1", "p2", "p3", "p4"])).map((entry) => entry.id)).toEqual([
+      "pod-1",
+      "pod-2",
+    ]);
+  });
+
+  it("gives a pod across two paired groups to their shared unit and no other", () => {
+    const plan = planGroups(players(18), mulberry32(2));
+    const units = groupUnits(plan);
+    const paired = units.find((unit) => unit.length === 2);
+    const solo = units.find((unit) => unit.length === 1);
+    const [first, second] = paired ?? [];
+    const crossPod = pod("cross", [first?.playerIds[0] ?? "", second?.playerIds[0] ?? ""]);
+    const playersOf = (unit: (typeof units)[number] | undefined) =>
+      new Set((unit ?? []).flatMap((group) => group.playerIds));
+    expect(podsOfUnit([crossPod], playersOf(paired)).map((entry) => entry.id)).toEqual(["cross"]);
+    expect(podsOfUnit([crossPod], playersOf(solo))).toEqual([]);
+  });
+
+  it("gives an empty pod to no unit", () => {
+    expect(podsOfUnit([pod("pod-1", [])], new Set(["p1"]))).toEqual([]);
+  });
+});
+
+describe("pairUnits", () => {
+  const groups = [
+    { key: "A", partner: "B" },
+    { key: "B", partner: "A" },
+    { key: "C", partner: "Z" },
+  ];
+  const keyOf = (group: { key: string }) => group.key;
+  const partnerOf = (group: { partner: string | null }) => group.partner;
+
+  it("throws on an unknown partner when asked to", () => {
+    expect(() => pairUnits(groups, keyOf, partnerOf, "throw")).toThrow(/unknown group/u);
+  });
+
+  it("keeps a group with an unknown partner on its own when asked to", () => {
+    expect(
+      pairUnits(groups, keyOf, partnerOf, "solo").map((unit) => unit.map((group) => group.key)),
+    ).toEqual([["A", "B"], ["C"]]);
   });
 });

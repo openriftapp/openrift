@@ -2,7 +2,6 @@ import type {
   DeskCreateInput,
   DeskUpdateInput,
 } from "@openrift/shared/contracts/admin/printing-desk";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { appendSetTotal } from "@openrift/shared/fix-typography";
 import { isTbaCode, tbaPublicCode, tbaShortCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
@@ -12,7 +11,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { PrintingsTable } from "../../../db/tables/catalog.js";
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
@@ -37,11 +36,7 @@ interface DeskRelease {
 function normalizeRelease(release: DeskRelease): DeskRelease {
   const { releasedAt, releasePrecision } = release;
   if ((releasedAt === null) !== (releasePrecision === null)) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "Set both a release date and a precision, or neither.",
-    );
+    throw badRequest("Set both a release date and a precision, or neither.");
   }
   const normalized = normalizeToPeriodStart({ releasedAt, precision: releasePrecision });
   return { releasedAt: normalized.releasedAt, releasePrecision: normalized.precision };
@@ -70,11 +65,7 @@ export async function assertDeskPrintingScope(
   if (await repos.adminEvents.wasPrintingCreatedBy(printingId, userId)) {
     return;
   }
-  throw new AppError(
-    403,
-    ERROR_CODES.FORBIDDEN,
-    "Only the admin can change a printing outside the desk",
-  );
+  throw forbidden("Only the admin can change a printing outside the desk");
 }
 
 /** A side shown on several printings is shared by all of them, so each must be in scope. */
@@ -130,7 +121,7 @@ export async function assertPrintingSideScope(
   assertFound(links, "Printing not found");
   const faceId = face === "back" ? links.face2Id : links.face1Id;
   if (faceId === null) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "That printing has no second face");
+    throw badRequest("That printing has no second face");
   }
   await assertFaceScope(repos, adminAccess, userId, faceId);
 }
@@ -152,11 +143,7 @@ export async function assertDeskImageFileScope(
   if (added.every(Boolean)) {
     return;
   }
-  throw new AppError(
-    403,
-    ERROR_CODES.FORBIDDEN,
-    "Only the admin can change an image on a printing outside the desk",
-  );
+  throw forbidden("Only the admin can change an image on a printing outside the desk");
 }
 
 export async function imagesDeletableBy(
@@ -181,11 +168,7 @@ export async function assertImageUploader(
   if (deletable.has(imageId)) {
     return;
   }
-  throw new AppError(
-    403,
-    ERROR_CODES.FORBIDDEN,
-    "Only the admin can delete an image you did not upload",
-  );
+  throw forbidden("Only the admin can delete an image you did not upload");
 }
 
 type CreateRepos = Pick<Repos, "adminEvents" | "catalogMutations" | "printingDesk" | "sets">;
@@ -210,16 +193,12 @@ export async function createDeskPrinting(
 
   const artist = fields.artist ?? base?.artist;
   if (!artist) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "This card has no printing to copy from; artist is required.",
-    );
+    throw badRequest("This card has no printing to copy from; artist is required.");
   }
 
   const shortCode = codeTba ? tbaShortCode(set.slug, card.slug) : fields.shortCode;
   if (!shortCode) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A short code is required.");
+    throw badRequest("A short code is required.");
   }
 
   const release = normalizeRelease({
@@ -316,9 +295,7 @@ async function assertNoUserReferences(
   const counts = await repos.printingDesk.userReferenceCounts(printingId);
   const held = Object.entries(counts).filter(([, count]) => count > 0);
   if (held.length > 0) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
+    throw conflict(
       `This printing has ${held.map(([noun, count]) => `${count} ${REFERENCE_NOUNS[noun as keyof typeof counts]}`).join(", ")}. Changing its faces would change what they are.`,
     );
   }
@@ -356,10 +333,10 @@ export async function setDeskSecondSide(
       // The row lock holds off new copies and trades until the change commits.
       const locked = await trxRepos.printingDesk.lockFaceLinks(printingId);
       if (faceId === locked.face1Id) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two faces must be different");
+        throw badRequest("The two faces must be different");
       }
       if (locked.face2Id !== null) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Remove the current second face first");
+        throw badRequest("Remove the current second face first");
       }
       await assertNoUserReferences(trxRepos, printingId);
       await trxRepos.printingDesk.setSecondFace(printingId, faceId);
@@ -397,7 +374,7 @@ export async function removeDeskSide(
     await transact(async (trxRepos) => {
       const locked = await trxRepos.printingDesk.lockFaceLinks(printingId);
       if (locked.face2Id === null || (faceId !== locked.face1Id && faceId !== locked.face2Id)) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "That face is not on the printing");
+        throw badRequest("That face is not on the printing");
       }
       await assertNoUserReferences(trxRepos, printingId);
       // A side left on no printing is deleted, which would clear the decks using it as a cover.
@@ -405,9 +382,7 @@ export async function removeDeskSide(
       const onlyHere = showing.length <= 1;
       const covers = onlyHere ? await trxRepos.printingDesk.deckCoversShowingFace(faceId) : 0;
       if (covers > 0) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
+        throw conflict(
           `${covers} ${pluralize(covers, "deck uses", "decks use")} this face as a cover.`,
         );
       }

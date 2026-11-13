@@ -1,5 +1,4 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   FriendGroupDetailResponse,
   FriendGroupListResponse,
@@ -7,7 +6,7 @@ import type {
 } from "@openrift/shared/types/api/friend-group";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
@@ -33,7 +32,7 @@ async function rejectTakenSlug<T>(write: () => Promise<T>): Promise<T> {
     return await write();
   } catch (error) {
     if (isUniqueViolationOn(error, "friend_groups_slug_key")) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Slug already in use");
+      throw conflict("Slug already in use");
     }
     throw error;
   }
@@ -60,7 +59,7 @@ export const friendGroupsCoreRouter = {
     const { friendGroups } = context.repos;
 
     if (await friendGroups.getBySlug(input.slug)) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Slug already in use");
+      throw conflict("Slug already in use");
     }
 
     const group = await rejectTakenSlug(() =>
@@ -90,7 +89,7 @@ export const friendGroupsCoreRouter = {
 
     const existingMembership = await friendGroups.getMembership(group.id, viewerId);
     if (existingMembership) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "You are already a member of that group");
+      throw conflict("You are already a member of that group");
     }
 
     const created = await friendGroups.createInvite(group.id, viewerId, "request");
@@ -204,7 +203,7 @@ export const friendGroupsCoreRouter = {
       // not block taking a freed slug (current slugs win on lookup anyway).
       const existing = await friendGroups.getBySlug(body.slug);
       if (existing) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Slug already in use");
+        throw conflict("Slug already in use");
       }
     }
 

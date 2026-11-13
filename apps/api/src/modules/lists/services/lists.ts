@@ -1,18 +1,13 @@
 import type { MoveListEntriesResolution } from "@openrift/shared/contracts/lists";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ListIntent, ListKind, ListMoveResponse } from "@openrift/shared/types/api/list";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { sweepGiverTradesInGroups } from "../../groups/services/trade-supply.js";
 import type { MoveEntry, NewEntryValues } from "../repositories/lists-entries.js";
 
 const KIND_RANK: Record<ListKind, number> = { card: 0, printing: 1, copy: 2 };
-
-function badRequest(message: string): AppError {
-  return new AppError(400, ERROR_CODES.BAD_REQUEST, message);
-}
 
 async function groupIdsSharingLists(repos: Repos, listIds: readonly string[]): Promise<string[]> {
   const groupIds: string[] = [];

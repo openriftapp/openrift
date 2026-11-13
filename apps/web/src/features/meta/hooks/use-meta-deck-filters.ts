@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 
-import { nextDeckSort } from "@/features/meta/lib/meta-deck-filters";
+import { DECK_SORT_DESCENDING_FIRST } from "@/features/meta/lib/meta-deck-filters";
 import type {
   MetaDeckSearch,
   MetaDeckSort,
@@ -11,6 +11,7 @@ import {
   DEFAULT_DECK_PAGE_SIZE,
   DEFAULT_DECK_SORT,
 } from "@/features/meta/lib/meta-deck-search";
+import { nextIndexSort, sortSearchPatch } from "@/features/meta/lib/meta-index-sort";
 import type { MetaPageSizeValue } from "@/features/meta/lib/meta-paging";
 import type { MetaScope, MetaScopeControls } from "@/features/meta/lib/meta-scope";
 import { CLEARED_SCOPE, nextScopeSearch } from "@/features/meta/lib/meta-scope";
@@ -75,13 +76,7 @@ export function useMetaDeckFilters(): MetaDeckFilterState &
 
   const writeSort = (next: { sort: MetaDeckSort; direction: MetaDeckSortDirection }) =>
     update(
-      {
-        by: next.sort === DEFAULT_DECK_SORT ? undefined : next.sort,
-        dir:
-          next.sort === DEFAULT_DECK_SORT && next.direction === DEFAULT_DECK_DIRECTION
-            ? undefined
-            : next.direction,
-      },
+      sortSearchPatch(next, { sort: DEFAULT_DECK_SORT, direction: DEFAULT_DECK_DIRECTION }),
       true,
     );
 
@@ -107,7 +102,7 @@ export function useMetaDeckFilters(): MetaDeckFilterState &
         search: (prev) => ({ ...prev, page: page === 1 ? undefined : page }),
         resetScroll: false,
       }),
-    setPerPage: (size) => update({ per: size === DEFAULT_DECK_PAGE_SIZE ? undefined : size }),
+    setPerPage: (size) => update({ per: size === DEFAULT_DECK_PAGE_SIZE ? undefined : size }, true),
     toggleEvent: (value) => update({ events: toggle(events, value) }),
     toggleLegend: (value) => update({ legends: toggle(legends, value) }),
     setEvents: (values) => update({ events: values }),
@@ -118,7 +113,8 @@ export function useMetaDeckFilters(): MetaDeckFilterState &
     setIncludeSideboard: (value) => update({ side: value ? true : undefined }),
     setValueRange: (value) =>
       update({ valueMin: value.min ?? undefined, valueMax: value.max ?? undefined }),
-    sortBy: (column) => writeSort(nextDeckSort({ sort, direction }, column)),
+    sortBy: (column) =>
+      writeSort(nextIndexSort({ sort, direction }, column, DECK_SORT_DESCENDING_FIRST)),
     setSort: (nextSort, nextDirection) => writeSort({ sort: nextSort, direction: nextDirection }),
     clearCostFilters: () => update({ cost: undefined, valueMin: undefined, valueMax: undefined }),
     clearAllFilters: () =>

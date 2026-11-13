@@ -6,8 +6,10 @@ import {
   facetPresenceFrom,
   holdingsCountsFrom,
   metaEventCountries,
-  nextEventSort,
+  EVENT_SORT_DESCENDING_FIRST,
 } from "@/features/meta/lib/meta-events-index";
+
+import { nextIndexSort } from "./meta-index-sort";
 
 function facets(overrides: Partial<MetaEventFacetsResponse> = {}): MetaEventFacetsResponse {
   return {
@@ -91,9 +93,11 @@ describe("metaEventCountries", () => {
   });
 });
 
-describe("nextEventSort", () => {
+describe("nextIndexSort with EVENT_SORT_DESCENDING_FIRST", () => {
   it("flips the direction on the active column", () => {
-    expect(nextEventSort({ sort: "date", direction: "desc" }, "date")).toEqual({
+    expect(
+      nextIndexSort({ sort: "date", direction: "desc" }, "date", EVENT_SORT_DESCENDING_FIRST),
+    ).toEqual({
       sort: "date",
       direction: "asc",
     });
@@ -102,8 +106,17 @@ describe("nextEventSort", () => {
   it("starts a new column at its most interesting order", () => {
     const from = { sort: "name", direction: "asc" } as const;
 
-    expect(nextEventSort(from, "players")).toEqual({ sort: "players", direction: "desc" });
-    expect(nextEventSort(from, "decks")).toEqual({ sort: "decks", direction: "desc" });
-    expect(nextEventSort(from, "country")).toEqual({ sort: "country", direction: "asc" });
+    expect(nextIndexSort(from, "players", EVENT_SORT_DESCENDING_FIRST)).toEqual({
+      sort: "players",
+      direction: "desc",
+    });
+    expect(nextIndexSort(from, "decks", EVENT_SORT_DESCENDING_FIRST)).toEqual({
+      sort: "decks",
+      direction: "desc",
+    });
+    expect(nextIndexSort(from, "country", EVENT_SORT_DESCENDING_FIRST)).toEqual({
+      sort: "country",
+      direction: "asc",
+    });
   });
 });

@@ -17,7 +17,7 @@ type CardArtThumbShape = "card" | "strip" | "square";
 
 const FRAME_CLASS: Record<CardArtThumbShape, string> = {
   card: "bg-muted aspect-card",
-  strip: "bg-muted/30 aspect-[88/63] h-6 rounded-sm border",
+  strip: "bg-muted/30 aspect-card-landscape h-6 rounded-sm border",
   square: "bg-muted/30 ring-border aspect-square size-6 rounded-sm ring-1 ring-inset",
 };
 

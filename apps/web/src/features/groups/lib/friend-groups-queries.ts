@@ -6,11 +6,11 @@ import type {
 import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import type { ParsedLocation } from "@tanstack/react-router";
-import { redirect } from "@tanstack/react-router";
+import { notFound, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
-import { orNotFound } from "@/lib/server-fns/api-error";
+import { isNotFoundSentinel, orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -43,7 +43,8 @@ export function friendGroupDetailQueryOptions(userId: string, slug: string) {
 
 /**
  * Redirects to the canonical slug when the API resolved a rename alias, so
- * bookmarks and trade-email links survive a group rename.
+ * bookmarks and trade-email links survive a group rename. A group the viewer
+ * cannot see is the router's not-found page.
  */
 export async function ensureFriendGroupDetailCanonical(options: {
   queryClient: QueryClient;
@@ -52,10 +53,11 @@ export async function ensureFriendGroupDetailCanonical(options: {
   location: ParsedLocation;
 }): Promise<FriendGroupDetailResponse> {
   const { queryClient, userId, slug, location } = options;
-  const detail = await queryClient.query({
-    ...friendGroupDetailQueryOptions(userId, slug),
-    staleTime: "static",
-  });
+  const detail = await queryClient
+    .query({ ...friendGroupDetailQueryOptions(userId, slug), staleTime: "static" })
+    .catch((error: unknown) => {
+      throw isNotFoundSentinel(error) ? notFound() : error;
+    });
   const canonical = detail.group.slug;
   if (canonical !== slug) {
     throw redirect({

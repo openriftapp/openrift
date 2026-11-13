@@ -1,5 +1,5 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
-import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import { zoneExpected } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -31,16 +31,15 @@ import {
 } from "@/features/decks/lib/battlefield-plan-tags";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
-  canAddRune,
-  COPY_LIMIT_ZONES,
-  copyLimitTotal,
-  getDeckCardKey,
+  canIncrementDeckEntry,
+  deckCardKey,
+  runeAddRoom,
 } from "@/features/decks/lib/deck-builder-card";
 import {
   compareGroupedCards,
   GROUPED_ZONES,
   TYPE_GROUP_ORDER,
-} from "@/features/decks/lib/deck-card-order";
+} from "@/features/decks/lib/deck-card-sort";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { zoneAddLabel, zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
@@ -183,7 +182,7 @@ export function DeckZoneSection({
     const entry = ownership?.byCardZone.get(`${card.cardId}:${zone}`);
     return (
       <DeckCardPrintingMenu
-        key={getDeckCardKey(card)}
+        key={deckCardKey(card)}
         deckId={deckId}
         card={card}
         onViewCard={workbench ? () => handleCardClick(card) : undefined}
@@ -195,7 +194,7 @@ export function DeckZoneSection({
           hasViolation={!workbench && cardViolations.has(card.cardId)}
           violationMessage={workbench ? undefined : cardViolations.get(card.cardId)}
           planTag={planTags.get(card.cardId)?.label}
-          printingLabel={printingLabels.get(getDeckCardKey(card))}
+          printingLabel={printingLabels.get(deckCardKey(card))}
           shortfall={entry?.shortfall}
           locked={entry?.locked}
           lockedReason={entry && entry.locked > 0 ? lockedReasonText(entry) : undefined}
@@ -214,13 +213,18 @@ export function DeckZoneSection({
           onIncrement={
             isSingleCard ||
             isUniqueOnly ||
-            (!workbench &&
-              !isFreeform &&
-              ((COPY_LIMIT_ZONES.has(zone) &&
-                copyLimitTotal(allCards, card.cardId) >= copyLimitFor(card)) ||
-                (zone === WellKnown.deckZone.RUNES && !canAddRune(card, allCards))))
+            !canIncrementDeckEntry(card, allCards, { freeform: isFreeform, relaxed: workbench })
               ? undefined
-              : (event) => addCard(card, zone, event.shiftKey ? 3 : undefined)
+              : (event) =>
+                  addCard(
+                    card,
+                    zone,
+                    event.shiftKey
+                      ? zone === WellKnown.deckZone.RUNES && !workbench && !isFreeform
+                        ? runeAddRoom(card, allCards)
+                        : 3
+                      : undefined,
+                  )
           }
           menuButton={workbench}
           onDecrement={(event) => {

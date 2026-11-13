@@ -1,4 +1,5 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Pressable } from "@/components/ui/pressable";
 import { cn } from "@/lib/utils";
@@ -39,5 +40,27 @@ export function IndexSortButton<TColumn extends string>({
       <span className="truncate">{children}</span>
       {active && <Arrow className="size-3 shrink-0" />}
     </Pressable>
+  );
+}
+
+export function IndexSortHeader({
+  grid,
+  from = "sm",
+  children,
+}: {
+  grid: string;
+  from?: "sm" | "md";
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        grid,
+        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold",
+        from === "md" ? "md:grid" : "sm:grid",
+      )}
+    >
+      {children}
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { describe, expect, it } from "vitest";
 
 import { defaultIo } from "../../../io.js";
@@ -8,7 +9,6 @@ import {
   measureBoard,
   measureWrappedBoard,
   renderTierListImage,
-  truncateTierListTitle,
 } from "./tier-list-image.js";
 
 // Exercises the real pipeline (font load + QR + satori + resvg). No DB or
@@ -181,7 +181,7 @@ describe("renderTierListImage", () => {
 describe("measureBoard", () => {
   it("gives every row the same tile size", () => {
     const metrics = measureBoard(5, 11, 1152, 454);
-    expect(metrics.tileW).toBe(Math.floor(metrics.tileH * 0.715));
+    expect(metrics.tileW).toBe(Math.floor(metrics.tileH * CARD_ASPECT));
     expect(metrics.tileH).toBeGreaterThan(0);
   });
 
@@ -329,18 +329,5 @@ describe("fitRowLabel", () => {
 
   it("still shows three characters on a very short row", () => {
     expect(fitRowLabel("Broken", 20)).toBe("Bro");
-  });
-});
-
-describe("truncateTierListTitle", () => {
-  it("leaves a short title alone", () => {
-    expect(truncateTierListTitle("Origins tier list")).toBe("Origins tier list");
-  });
-
-  it("elides a title past the cap", () => {
-    const long = "Every single common and uncommon in Origins ranked for limited";
-    const result = truncateTierListTitle(long);
-    expect(result).toHaveLength(46);
-    expect(result.endsWith("…")).toBe(true);
   });
 });

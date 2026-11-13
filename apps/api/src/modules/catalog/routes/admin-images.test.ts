@@ -1,3 +1,4 @@
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,12 +6,7 @@ import type { Repos } from "../../../deps.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
-import {
-  REGENERATE_IMAGES_KIND,
-  rehostImages,
-  runRegenerateImagesJob,
-  refetchImages,
-} from "../services/images/jobs.js";
+import { rehostImages, runRegenerateImagesJob, refetchImages } from "../services/images/jobs.js";
 import {
   cleanupOrphanedFiles,
   findBrokenImages,
@@ -141,10 +137,10 @@ describe("POST /api/admin/v1/regenerate-images", () => {
     const json = await readJson(res);
     expect(json).toEqual({ runId: RUN_TEST, status: "running" });
     expect(mockJobRuns.start).toHaveBeenCalledWith({
-      kind: REGENERATE_IMAGES_KIND,
+      kind: JOB_KIND.regenerateImages,
       trigger: "admin",
     });
-    expect(mockJobRuns.getLatestForResume).toHaveBeenCalledWith(REGENERATE_IMAGES_KIND);
+    expect(mockJobRuns.getLatestForResume).toHaveBeenCalledWith(JOB_KIND.regenerateImages);
   });
 
   it("returns already_running when a regenerate job is already in flight", async () => {
@@ -159,7 +155,7 @@ describe("POST /api/admin/v1/regenerate-images", () => {
   it("does NOT pass resumeFrom when ?reset=true is present, even if a failed prior run exists", async () => {
     mockJobRuns.getLatestForResume.mockResolvedValue({
       id: "prior-failed",
-      kind: REGENERATE_IMAGES_KIND,
+      kind: JOB_KIND.regenerateImages,
       trigger: "admin",
       status: "failed",
       startedAt: new Date(),

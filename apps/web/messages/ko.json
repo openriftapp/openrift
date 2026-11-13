@@ -2700,6 +2700,7 @@
   "decks_menu_delete_version": "버전 삭제",
   "decks_menu_duplicate": "복제",
   "decks_menu_duplicated": "\"{name}\"을(를) 복제했습니다.",
+  "decks_menu_format_changed": "형식을 {format}(으)로 변경했습니다.",
   "decks_menu_export": "내보내기…",
   "decks_menu_make_primary": "대표로 지정",
   "decks_menu_manage_folders": "폴더 관리…",
@@ -2722,6 +2723,7 @@
   "decks_editor_add_card_to_zone": "{zone}에 {card} 추가",
   "decks_editor_add_card_tooltip": "카드 추가 (Ctrl+K)",
   "decks_editor_add_one_copy": "{card} 한 장 추가",
+  "decks_editor_add_blocked": "{card}, 이 영역에 자리가 없습니다",
   "decks_editor_add_to_deck": "덱에 추가",
   "decks_editor_bench_empty": "샘플 패를 뽑아 덱의 시작 패를 확인해 보세요.",
   "decks_editor_choose": "선택",
@@ -2808,7 +2810,7 @@
   "decks_editor_printing_standard": "일반",
   "decks_editor_power": "힘 {power}",
   "decks_editor_power_with_domains": "힘 {power} ({domains})",
-  "decks_editor_progress_cards": "카드 {progress}/{total}장",
+  "decks_editor_required_progress": "필수 {progress}/{total}",
   "decks_editor_quantity": "수량",
   "decks_editor_quick_add_empty": "카드 이름을 입력해 덱에 추가하세요",
   "decks_editor_quick_add_input_aria": "덱에 카드 추가",
@@ -3486,7 +3488,7 @@
   "decks_stats_power": "힘",
   "decks_stats_rarity": "희귀도",
   "decks_stats_title": "통계",
-  "decks_stats_total_cards": "카드 {count}장",
+  "decks_stats_main_deck_cards": "메인 덱 {count}장",
   "decks_stats_turn_one_play": "1턴 플레이 {first} · {second}",
   "decks_stats_turn_one_play_hint": "시작 패에 1턴 플레이가 잡힐 확률입니다. 앞 숫자는 선공(에너지 2 이하의 유닛 또는 도구), 뒤 숫자는 후공(3 이하)입니다. 아직 반응할 대상이 없으므로 주문은 제외합니다.",
   "decks_stats_turn_one_play_label": "1턴 플레이",
@@ -3716,6 +3718,7 @@
   "decks_share_gone_description": "덱 소유자가 공유를 중단했거나, 링크가 온전히 복사되지 않았을 수 있습니다.",
   "decks_share_gone_action": "내 덱으로 이동",
   "decks_card_menu_view_details": "상세 보기",
+  "decks_card_row_view_details": "{card} 상세 보기",
   "decks_card_menu_switch": "다른 {zone} 고르기",
   "decks_card_menu_plan_battlefields": "플랜에서 게임별 전장 고르기",
   "decks_card_menu_move_to": "이동 위치",
@@ -3895,8 +3898,6 @@
   "trade_pref_amount_label": "금액",
   "trade_pref_accepts_label": "수락 방식",
   "trade_pref_amount_placeholder": "예: 4 또는 4.50",
-  "trade_pref_currency_eur": "유로 (EUR)",
-  "trade_pref_currency_usd": "미국 달러 (USD)",
   "trade_pref_no_preference": "선호 없음 (협의)",
   "trade_pref_negotiate": "협의",
   "trade_pref_list_default": "목록 기본값 ({value})",
@@ -4308,6 +4309,7 @@
   "share_image_dimensions": "{width} × {height} 픽셀",
   "share_image_download": "이미지 다운로드",
   "share_image_error": "이미지를 준비하지 못했습니다. 다시 시도해 주세요.",
+  "share_image_rate_limited": "짧은 시간에 이미지를 너무 많이 요청했습니다. 잠시 후 다시 시도해 주세요.",
   "share_image_preparing": "준비 중…",
   "share_image_preview_alt": "{title} 미리보기",
   "share_image_qr_missing_link": "코드가 가리킬 공유 링크가 필요하므로, 링크를 만들기 전까지는 이미지에 코드가 들어가지 않습니다.",
@@ -4660,13 +4662,13 @@
       }
     }
   ],
-  "trades_completed": [
+  "trades_past_trades": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "완료된 교환 {count}건",
-        "countPlural=*": "완료된 교환 {count}건"
+        "countPlural=one": "지난 교환 {count}건",
+        "countPlural=*": "지난 교환 {count}건"
       }
     }
   ],
@@ -5373,7 +5375,7 @@
   "designer_rarity_placeholder": "희귀도 선택",
   "designer_field_code": "코드",
   "designer_field_artist": "아티스트",
-  "designer_attribution_label": "openrift.app 표기를 넣어 널리 알리기",
+  "designer_attribution_label": "{host} 표기를 넣어 널리 알리기",
   "designer_background_upload": "배경 이미지 업로드",
   "designer_background_replace": "배경 이미지 교체",
   "designer_background_zoom": "확대/축소",
@@ -10027,6 +10029,7 @@
       }
     }
   ],
+  "trades_match_promised": "{count}장 약속됨",
   "trades_match_variants": "변형 {count}개",
   "trades_match_price": "가격",
   "trades_match_they_pay": "상대 희망가",

@@ -56,6 +56,12 @@ describe("rowActivateProps", () => {
     expect(props.tabIndex).toBe(0);
   });
 
+  it("names the row when given a label", () => {
+    expect(rowActivateProps(() => {}, "View details for Jinx")["aria-label"]).toBe(
+      "View details for Jinx",
+    );
+  });
+
   it("activates on click", () => {
     const onActivate = vi.fn();
     rowActivateProps(onActivate).onClick?.({} as React.MouseEvent<HTMLElement>);

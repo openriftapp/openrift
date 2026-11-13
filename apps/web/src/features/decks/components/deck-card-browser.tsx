@@ -1,10 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import {
-  copyLimitFor,
-  formatHasSideboard,
-  RUNE_TARGET,
-  totalQuantity,
-} from "@openrift/shared/deck-rules";
+import { copyLimitFor, formatHasSideboard } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -79,12 +74,13 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   buildDeckQuantityByCell,
   deckCellKey,
-  canAddRune,
   catalogCardToDeckBuilderCard,
   cellPreferredPrintingId,
   COPY_LIMIT_ZONES,
   isBattlefieldZoneFull,
+  canIncrementDeckEntry,
   isDeckZoneFullForDrag,
+  runeAddRoom,
 } from "@/features/decks/lib/deck-builder-card";
 import {
   deckDetailControlsApply,
@@ -145,7 +141,7 @@ interface DeckActionsCellProps {
   activeZone: DeckZone;
   isMaxReached: (item: CardViewerItem) => boolean;
   shiftHeld: boolean;
-  runeTotal: number;
+  runeRoomFor: (printing: Printing) => number;
   copyLimitTotalByCard: Map<string, number>;
   handleQuickAdd: (printing: Printing, event: { shiftKey?: boolean }) => void;
   handleRemove: (printing: Printing, event: { shiftKey?: boolean }) => void;
@@ -180,7 +176,7 @@ function DeckActionsCell({
   activeZone,
   isMaxReached,
   shiftHeld,
-  runeTotal,
+  runeRoomFor,
   copyLimitTotalByCard,
   handleQuickAdd,
   handleRemove,
@@ -208,7 +204,7 @@ function DeckActionsCell({
       shiftHeld={shiftHeld}
       remainingCount={
         activeZone === WellKnown.deckZone.RUNES
-          ? Math.max(0, RUNE_TARGET - runeTotal)
+          ? runeRoomFor(printing)
           : copyRemainderFor(printing.card, copyLimitTotalByCard.get(cardId) ?? 0)
       }
       onQuickAdd={handleQuickAdd}
@@ -600,7 +596,7 @@ function DeckCardBrowserInner({
         ? isFreeform
           ? 3
           : activeZone === WellKnown.deckZone.RUNES
-            ? Math.max(0, RUNE_TARGET - runeTotal)
+            ? runeAddRoom(builderCard, deckCards)
             : 3
         : undefined;
       addCard(builderCard, activeZone, count);
@@ -651,13 +647,14 @@ function DeckCardBrowserInner({
     }
   }
 
-  const runeTotal = totalQuantity(
-    deckCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
-  );
+  const runeRoomFor = (printing: Printing) => runeAddRoom(printing.card, deckCards);
 
   useRowActionHandlers("deck", {
     onRowClick: handleCardClick,
   });
+
+  const canIncrementEntry = (entry: DeckBuilderCard) =>
+    canIncrementDeckEntry(entry, deckCards, { freeform: isFreeform, relaxed: workbench });
 
   const isMaxReached = (item: CardViewerItem): boolean => {
     if (isFreeform) {
@@ -667,15 +664,13 @@ function DeckCardBrowserInner({
     if (isSingleSlotZone(activeZone)) {
       return deckCards.some((card) => card.cardId === cardId && card.zone === activeZone);
     }
-    if (activeZone === WellKnown.deckZone.RUNES) {
-      return !canAddRune(catalogCardToDeckBuilderCard(cardId, item.printing.card), deckCards);
-    }
     return isDeckZoneFullForDrag({
       zone: activeZone,
       draggedCard: {
         cardId,
         maxCopiesOverride: item.printing.card.maxCopiesOverride,
         keywords: item.printing.card.keywords,
+        domains: item.printing.card.domains,
       },
       fromZone: null,
       allCards: deckCards,
@@ -735,6 +730,7 @@ function DeckCardBrowserInner({
           entries={deckEntries}
           printingLabels={entryPrintingLabelsFor(deckEntries)}
           isFreeform={isFreeform}
+          canIncrement={canIncrementEntry}
           onAdd={(entry) => addCard(entry, entry.zone)}
           onRemove={(entry) => removeCard(entry.cardId, entry.zone, entry.preferredPrintingId)}
         />
@@ -796,6 +792,7 @@ function DeckCardBrowserInner({
                 entries={plan.looseEntries}
                 printingLabels={entryPrintingLabelsFor(plan.looseEntries)}
                 isFreeform={isFreeform}
+                canIncrement={canIncrementEntry}
                 onAdd={(entry) => addCard(entry, entry.zone)}
                 onRemove={(entry) =>
                   removeCard(entry.cardId, entry.zone, entry.preferredPrintingId)
@@ -884,7 +881,7 @@ function DeckCardBrowserInner({
           isFreeform
             ? undefined
             : activeZone === WellKnown.deckZone.RUNES
-              ? Math.max(0, RUNE_TARGET - runeTotal)
+              ? runeRoomFor(printing)
               : copyRemainderFor(printing.card, copyLimitTotalByCard.get(cardId) ?? 0)
         }
         onQuickAdd={handleQuickAdd}
@@ -931,6 +928,11 @@ function DeckCardBrowserInner({
           },
         }}
         dragId={`browser-card-${sideKey(item.printing)}`}
+        dragBlockedLabel={
+          !workbench && isMaxReached(item)
+            ? m.decks_editor_add_blocked({ card: legendDisplayName(item.printing.card) })
+            : undefined
+        }
         strip={deckStripFor(item.printing)}
         contextMenu={<DeckCardDetailMenu onViewDetail={() => handleCardClick(item.printing)} />}
       />
@@ -1031,7 +1033,7 @@ function DeckCardBrowserInner({
                 activeZone={activeZone}
                 isMaxReached={isMaxReached}
                 shiftHeld={shiftHeld}
-                runeTotal={runeTotal}
+                runeRoomFor={runeRoomFor}
                 copyLimitTotalByCard={copyLimitTotalByCard}
                 handleQuickAdd={handleQuickAdd}
                 handleRemove={handleRemove}

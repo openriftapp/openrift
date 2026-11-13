@@ -1,7 +1,5 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { CollectionAccess } from "../repositories/collections.js";
 
@@ -25,7 +23,7 @@ export async function requireCollectionAdmin(
 ): Promise<CollectionAccess> {
   const access = await loadCollectionAccess(repos, collectionId, userId);
   if (!access.viewerCanAdmin) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, `Only admins can ${action}`);
+    throw forbidden(`Only admins can ${action}`);
   }
   return access;
 }
@@ -40,12 +38,12 @@ export async function loadWritableCopies(
 ): Promise<CopyWithCollection[]> {
   const copies = await repos.copies.listWithCollectionContext(copyIds);
   if (copies.length !== copyIds.length) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "One or more copies not found");
+    throw notFound("One or more copies not found");
   }
   const sourceIds = [...new Set(copies.map((row) => row.collectionId))];
   const writableSources = await repos.collections.filterWritableByViewer(sourceIds, userId);
   if (writableSources.length !== sourceIds.length) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "One or more copies are not writable by you");
+    throw forbidden("One or more copies are not writable by you");
   }
   return copies;
 }

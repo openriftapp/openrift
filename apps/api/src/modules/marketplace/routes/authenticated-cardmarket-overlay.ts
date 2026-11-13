@@ -1,4 +1,5 @@
 import { cardmarketOverlayContract } from "@openrift/shared/contracts/cardmarket-overlay";
+import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -23,7 +24,12 @@ export const cardmarketOverlayRouter = {
     );
     const wants = entriesPerList.flatMap((entries) => overlayWantsFromEntries(entries));
 
-    const products = await context.repos.cardmarketOverlay.productCounts(wants, context.userId);
+    const prefs = await context.repos.userPreferences.getByUserId(context.userId);
+    const products = await context.repos.cardmarketOverlay.productCounts(
+      wants,
+      context.userId,
+      prefs?.data?.languages ?? PREFERENCE_DEFAULTS.languages,
+    );
     return {
       lists: lists.map((list, index) => ({
         id: list.id,

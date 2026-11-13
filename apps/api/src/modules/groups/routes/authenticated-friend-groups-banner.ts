@@ -5,7 +5,7 @@ import { implement } from "@orpc/server";
 import type { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 
-import { AppError } from "../../../errors.js";
+import { notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -53,7 +53,7 @@ export const friendGroupsBannerRouter = {
       });
       if (!written) {
         await deleteGroupBanner(context.io, result.url);
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
+        throw notFound("Group not found");
       }
 
       await deleteGroupBanner(context.io, written.previous.bannerUrl);

@@ -37,7 +37,7 @@ describe("/collections/share/$token head", () => {
       "A Riftbound card collection shared by Teemo Scout.",
     );
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/collections/share/COLL123/image.png?v=1785578400000-12",
+      "http://localhost:5173/api/v1/collections/share/COLL123/image.png?v=1785578400000-12-r2",
     );
     expect(headCanonical(head)).toBe("http://localhost:5173/collections/share/COLL123");
   });

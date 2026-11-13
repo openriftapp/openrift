@@ -4,7 +4,6 @@ import { decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   DeckCardsListResponse,
   DeckDetailResponse,
@@ -26,7 +25,7 @@ import { implement } from "@orpc/server";
 import type { z } from "zod";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
@@ -62,19 +61,11 @@ async function validateDeckPlan(
   const seen = new Set<string>();
   for (const matchup of body.matchups) {
     if (matchup.opponentCardId === null && matchup.opponentLabel === "") {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "A matchup needs an opponent: link a card or enter a name",
-      );
+      throw badRequest("A matchup needs an opponent: link a card or enter a name");
     }
     const key = JSON.stringify([matchup.opponentCardId, matchup.opponentLabel]);
     if (seen.has(key)) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Duplicate matchup: the same opponent appears twice",
-      );
+      throw badRequest("Duplicate matchup: the same opponent appears twice");
     }
     seen.add(key);
   }
@@ -97,14 +88,14 @@ async function validateDeckPlan(
   const typesById = new Map(rows.map((row) => [row.id, row.types]));
   for (const id of allIds) {
     if (!typesById.has(id)) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Unknown card: ${id}`);
+      throw badRequest(`Unknown card: ${id}`);
     }
   }
   // The opponent card may be any type — no Legend constraint. Only battlefields
   // are type-checked, since they must come from the deck's battlefield zone.
   for (const id of new Set(battlefieldIds)) {
     if (!typesById.get(id)?.includes(WellKnown.cardType.BATTLEFIELD)) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Card ${id} is not a Battlefield`);
+      throw badRequest(`Card ${id} is not a Battlefield`);
     }
   }
 }
@@ -258,7 +249,8 @@ export const decksRouter = {
         isValid,
         requiredProgress,
         requiredTotal,
-        totalValueCents: deckValueMap.get(row.id) ?? null,
+        totalValueCents: deckValueMap.get(row.id)?.totalValueCents ?? null,
+        unpricedCardCount: deckValueMap.get(row.id)?.unpricedCount ?? null,
         missingCount,
         folderIds: folderIdsByDeck.get(row.id) ?? [],
         familyName: row.familyId === null ? null : (familyNames.get(row.familyId) ?? null),
@@ -426,11 +418,7 @@ export const decksRouter = {
       );
     } catch (error) {
       if (isForeignKeyViolation(error)) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "A preferred printing must show its card on one side",
-        );
+        throw badRequest("A preferred printing must show its card on one side");
       }
       throw error;
     }
@@ -639,7 +627,7 @@ export const decksRouter = {
     const userId = context.userId;
     return await enableShare({
       read: () => decks.getShareState(input.id, userId),
-      write: (token) => decks.setShareToken(input.id, userId, token, true),
+      write: (token) => decks.setShare(input.id, userId, token, true),
     });
   }),
 
@@ -647,7 +635,7 @@ export const decksRouter = {
     const { decks } = context.repos;
     const userId = context.userId;
 
-    const updated = await decks.setShareToken(input.id, userId, null, false);
+    const updated = await decks.setShare(input.id, userId, null, false);
     assertFound(updated, "Not found");
   }),
 
@@ -659,7 +647,7 @@ export const decksRouter = {
     if (extraIds.length > 0) {
       const known = await catalog.cardsByIds(extraIds);
       if (known.length !== extraIds.length) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Unknown card in extraCards");
+        throw badRequest("Unknown card in extraCards");
       }
     }
 

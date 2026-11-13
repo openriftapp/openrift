@@ -1,4 +1,13 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import type { SeatZone } from "@openrift/shared/board-layout";
+import {
+  arrowZoneKey,
+  occupiedZones,
+  pieceNumerals,
+  piecesAt,
+  seatSlots,
+  seatsFor,
+} from "@openrift/shared/board-layout";
 import type {
   BoardDocument,
   BoardPiece,
@@ -45,24 +54,19 @@ import {
 } from "@/features/board-states/components/board-status";
 import { EmptyZoneStrip, ZoneLabel } from "@/features/board-states/components/board-zone-labels";
 import { pieceName, ZONE_LABEL } from "@/features/board-states/lib/board-labels";
-import type { SeatZone } from "@/features/board-states/lib/board-layout";
 import {
-  arrowZoneKey,
   boardWidthUnits,
   grantedLegendSlots,
-  occupiedZones,
-  pieceNumerals,
-  piecesAt,
-  seatSlots,
-  seatsFor,
+  runeZoneMinWidth,
   zoneAcceptsMore,
-} from "@/features/board-states/lib/board-layout";
+} from "@/features/board-states/lib/board-rules";
 import {
   CARD_CORNER_STYLE,
   CARD_ROW_HEIGHT,
   CARD_TURNED,
   CARD_UPRIGHT,
   PLAYER_COLOR,
+  seatColumns,
   seatInk,
   zoneEdge,
 } from "@/features/board-states/lib/board-style";
@@ -324,7 +328,7 @@ function SeatSide({
     <div className="flex flex-col gap-1.5">
       <div
         className="grid gap-2 sm:gap-4"
-        style={{ gridTemplateColumns: `repeat(${players.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: seatColumns(players.length) }}
       >
         {players.map((player) => (
           <div
@@ -398,7 +402,7 @@ function DeckZone({
       owner={owner}
       interaction={context.interaction}
       mirrored={mirrored}
-      className="min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border bg-black/15"
+      className="min-h-[calc(var(--board-card-w)*var(--aspect-card-landscape)+1.4rem)] border bg-black/15"
       style={{ borderColor: zoneEdge(owner) }}
     >
       <ZoneLabel text={ZONE_LABEL[kind]()} owner={owner} mirrored={mirrored} />
@@ -454,11 +458,7 @@ function DroppableZoneFrame(props: ZoneFrameProps) {
   return (
     <div
       ref={setNodeRef}
-      className={cn(
-        "flex min-w-0",
-        props.fill && "flex-1",
-        isOver && "ring-ring rounded-md ring-2",
-      )}
+      className={cn("flex", props.fill && "flex-1", isOver && "ring-ring rounded-md ring-2")}
     >
       <ZoneFrameBody {...props} className={cn(props.className, "flex-1")} />
     </div>
@@ -475,7 +475,7 @@ function ZoneFrameBody({
   children,
 }: ZoneFrameProps) {
   const classes = cn(
-    "flex min-w-0 gap-1 rounded-md p-1 text-left",
+    "flex gap-1 rounded-md p-1 text-left",
     mirrored ? "flex-row-reverse" : "flex-row",
     className,
   );
@@ -537,13 +537,17 @@ function PlayerZone({
       mirrored={mirrored}
       fill={kind === "base"}
       className={cn(
-        "min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border",
+        "min-h-[calc(var(--board-card-w)*var(--aspect-card-landscape)+1.4rem)] border",
         "bg-black/15",
         kind === "base" && "min-w-[calc(var(--board-card-w)*2.9)]",
-        kind === "runes" && "min-w-[calc(var(--board-card-w)*2.3)]",
         kind !== "base" && kind !== "runes" && "w-auto min-w-[calc(var(--board-card-w)+1.8rem)]",
       )}
-      style={{ borderColor: zoneEdge(owner) }}
+      style={{
+        borderColor: zoneEdge(owner),
+        ...(kind === "runes"
+          ? { minWidth: runeZoneMinWidth(piecesAt(context.step, zone, owner)) }
+          : {}),
+      }}
     >
       <ZoneLabel text={ZONE_LABEL[kind]()} owner={owner} mirrored={mirrored} />
       <PieceRow
@@ -594,7 +598,7 @@ function HandStrip({
       mirrored={mirrored}
       fill
       className={cn(
-        "min-h-[calc(var(--board-card-w)*1.4+0.5rem)] items-center border",
+        "min-h-[calc(var(--board-card-w)*var(--aspect-card-landscape)+0.5rem)] items-center border",
         "bg-black/15",
         context.viewer && "min-w-[calc(var(--board-card-w)*2.9)]",
       )}
@@ -806,7 +810,7 @@ function PieceRow({
     return null;
   }
   return (
-    <div className={cn("flex flex-wrap items-end", overlap ? "gap-y-1.5" : "gap-1.5")}>
+    <div className={cn("flex items-end", overlap ? "flex-nowrap" : "flex-wrap gap-1.5")}>
       {pieces.map((piece, index) => (
         <span
           key={piece.id}

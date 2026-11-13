@@ -13,7 +13,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { inferZone } from "@openrift/shared/zone-inference";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { sha256Hex } from "../../../lib/hash.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
@@ -352,11 +352,7 @@ export async function createSelfSubmittedEntry(
   });
   await repos.tournaments.lockParticipant(participant.id);
   if (await repos.deckCheck.participantHasDeck(participant.id)) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "A judge already entered a deck for your spot. Contact a judge.",
-    );
+    throw conflict("A judge already entered a deck for your spot. Contact a judge.");
   }
   const entry = await repos.deckCheck.createEntry({
     tournamentId: event.id,

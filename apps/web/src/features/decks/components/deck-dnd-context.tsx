@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { copyLimitFor, RUNE_TARGET, totalQuantity } from "@openrift/shared/deck-rules";
+import { copyLimitFor } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
@@ -20,7 +20,7 @@ import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
-import { copyLimitTotal } from "@/features/decks/lib/deck-builder-card";
+import { copyLimitTotal, runeAddRoom } from "@/features/decks/lib/deck-builder-card";
 import type { AnyDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
 import {
   DECK_DRAG_TYPES,
@@ -272,10 +272,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       }
       if (moveAll) {
         if (overData.zone === WellKnown.deckZone.RUNES) {
-          const runeTotal = totalQuantity(
-            deckCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
-          );
-          actions.addCard(activeData.card, overData.zone, Math.max(0, RUNE_TARGET - runeTotal));
+          actions.addCard(activeData.card, overData.zone, runeAddRoom(activeData.card, deckCards));
         } else {
           // Unlimited-override cards have no cap, so a shift-drop adds a chunk of 3 (matching shift-click).
           const limit = copyLimitFor(activeData.card);

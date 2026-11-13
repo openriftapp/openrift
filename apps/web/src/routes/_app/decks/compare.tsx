@@ -6,6 +6,7 @@ import { DeckPending } from "@/features/decks/components/deck-pending";
 import { parseCompareSide, queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import { requireSession } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
+import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
 import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
@@ -14,8 +15,8 @@ import { getSiteUrl } from "@/lib/site-config";
 // deck link, and either may be missing (a comparison opened from a deck menu
 // starts with only one deck).
 const compareSearchSchema = z.object({
-  from: z.optional(z.string()),
-  to: z.optional(z.string()),
+  from: lenient(z.string()),
+  to: lenient(z.string()),
 });
 
 export const Route = createFileRoute("/_app/decks/compare")({

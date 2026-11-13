@@ -48,7 +48,7 @@ const HISTORY_KEY = "printingLightbox";
 const MAX_COLUMNS = 5;
 const TILE_SIZES = "(min-width: 640px) 54vh, 100vw";
 const TILE_WIDTH_CLASS =
-  "w-[min(calc(100vw_-_3rem),calc((100dvh_-_13rem)_*_0.716))] sm:w-[min(calc(75dvh_*_0.716),calc((100dvh_-_13rem)_*_0.716),calc((100vw_-_4rem_-_(var(--tile-columns)_-_1)_*_1.5rem)_/_var(--tile-columns)))]";
+  "w-[min(calc(100vw_-_3rem),calc((100dvh_-_13rem)_*_var(--aspect-card)))] sm:w-[min(calc(75dvh_*_var(--aspect-card)),calc((100dvh_-_13rem)_*_var(--aspect-card)),calc((100vw_-_4rem_-_(var(--tile-columns)_-_1)_*_1.5rem)_/_var(--tile-columns)))]";
 const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
 
 function columnsFor(count: number): number {

@@ -1,3 +1,5 @@
+import { isUuid } from "@openrift/shared/strings";
+
 import type { MetaDeckSubmissionKind } from "@/features/meta/lib/meta-submission-copy";
 
 /**
@@ -25,8 +27,6 @@ const MAX_LEGEND_NAME = 120;
 const MAX_DECK_TOKEN = 64;
 
 const MAX_CARD_ID = 64;
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 const ASKS = new Set<string>(["completion", "correction"]);
 
@@ -83,9 +83,7 @@ export function parseMetaSubmitSearch(search: Record<string, unknown>): MetaSubm
   return {
     player: text(search.player, MAX_PLAYER_NAME),
     playerId:
-      typeof search.playerId === "string" && UUID_PATTERN.test(search.playerId)
-        ? search.playerId
-        : undefined,
+      typeof search.playerId === "string" && isUuid(search.playerId) ? search.playerId : undefined,
     rank: wholeCount(search.rank),
     cut: search.cut === true ? true : undefined,
     wins: wholeCount(search.wins),

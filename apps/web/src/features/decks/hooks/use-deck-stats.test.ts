@@ -48,7 +48,7 @@ describe("useDeckStats", () => {
       averagePower: null,
       typeBreakdown: [],
       typeBreakdownDomains: [],
-      totalCards: 0,
+      mainDeckCards: 0,
     });
   });
 
@@ -64,7 +64,7 @@ describe("useDeckStats", () => {
         card({ zone: "battlefield" as DeckZone }),
       ]);
 
-      expect(stats.totalCards).toBe(2);
+      expect(stats.mainDeckCards).toBe(2);
       expect(stats.domainDistribution).toEqual([{ domain: "fury", count: 2 }]);
       expect(stats.typeBreakdown).toEqual([{ type: "unit", total: 2, fury: 2 }]);
     });
@@ -72,7 +72,7 @@ describe("useDeckStats", () => {
     it("returns empty stats when no card sits in a main zone", () => {
       const stats = statsFor([card({ zone: "sideboard" as DeckZone })]);
 
-      expect(stats.totalCards).toBe(0);
+      expect(stats.mainDeckCards).toBe(0);
       expect(stats.energyCurve).toEqual([]);
       expect(stats.powerCurve).toEqual([]);
       expect(stats.averageEnergy).toBeNull();
@@ -90,7 +90,7 @@ describe("useDeckStats", () => {
       ]);
 
       expect(stats.typeBreakdown).toEqual([{ type: "unit", total: 1, fury: 1 }]);
-      expect(stats.totalCards).toBe(4);
+      expect(stats.mainDeckCards).toBe(4);
       expect(stats.energyCurve).toEqual([{ energy: "2", fury: 4 }]);
     });
 
@@ -101,7 +101,7 @@ describe("useDeckStats", () => {
         { type: "unit", total: 2, fury: 2 },
         { type: "spell", total: 2, fury: 2 },
       ]);
-      expect(stats.totalCards).toBe(2);
+      expect(stats.mainDeckCards).toBe(2);
     });
 
     it("skips the excluded type of a card that also has a kept type", () => {
@@ -137,7 +137,7 @@ describe("useDeckStats", () => {
       const stats = statsFor([card({ cardTypes: ["contraption"] as CardType[] })]);
 
       expect(stats.typeBreakdown).toEqual([]);
-      expect(stats.totalCards).toBe(1);
+      expect(stats.mainDeckCards).toBe(1);
     });
   });
 
@@ -149,7 +149,7 @@ describe("useDeckStats", () => {
         { domain: "fury", count: 3 },
         { domain: "calm", count: 3 },
       ]);
-      expect(stats.totalCards).toBe(3);
+      expect(stats.mainDeckCards).toBe(3);
     });
 
     it("orders domains by the enum order, not by first appearance or count", () => {
@@ -209,7 +209,7 @@ describe("useDeckStats", () => {
 
       expect(stats.energyCurve).toEqual([{ energy: "2", fury: 1 }]);
       expect(stats.averageEnergy).toBe(2);
-      expect(stats.totalCards).toBe(2);
+      expect(stats.mainDeckCards).toBe(2);
       expect(stats.domainDistribution).toEqual([{ domain: "fury", count: 2 }]);
     });
 
@@ -229,6 +229,16 @@ describe("useDeckStats", () => {
   });
 
   describe("power curve", () => {
+    it("leaves a card that is not a unit, spell or gear out of power stats", () => {
+      const stats = statsFor([
+        card({ power: null, cardType: "other" as CardType }),
+        card({ power: 2 }),
+      ]);
+
+      expect(stats.powerCurve).toEqual([{ power: "2", fury: 1 }]);
+      expect(stats.averagePower).toBe(2);
+    });
+
     it("treats a missing power as zero", () => {
       const stats = statsFor([card({ power: null }), card({ power: 2 })]);
 
@@ -305,7 +315,7 @@ describe("useDeckStats", () => {
         card({ domains: ["fury", "calm"] as Domain[], energy: 2, power: 4, quantity: 3 }),
       ]);
 
-      expect(stats.totalCards).toBe(3);
+      expect(stats.mainDeckCards).toBe(3);
       expect(stats.domainDistribution).toEqual([
         { domain: "fury", count: 3 },
         { domain: "calm", count: 3 },

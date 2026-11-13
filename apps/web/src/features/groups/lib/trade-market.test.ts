@@ -1,4 +1,3 @@
-import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 import { describe, expect, it } from "vitest";
 
@@ -8,6 +7,7 @@ import {
   buildTradeMarket,
   filterMarketByGroup,
   filterMarketByPerson,
+  openSuggestionCount,
   marketDismissals,
   marketPeople,
   sortByValue,
@@ -57,57 +57,21 @@ function stubGroup(overrides: Partial<TradeMarketGroup> = {}): TradeMarketGroup 
   };
 }
 
-function stubLiveTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
-  return {
-    id: "trade-1",
-    groupId: "group-1",
-    groupSlug: "summoner-skirmish",
-    groupName: "Summoner Skirmish",
-    role: "receiver",
-    initiator: "receiver",
-    counterparty: {
-      userId: "user-2",
-      name: "Robin",
-      image: null,
-      gravatarHash: "hash",
-      contactMethods: [],
-    },
-    printingId: "printing-1",
-    cardId: "card-1",
-    quantity: 1,
-    status: "pending",
-    createdAt: "2026-08-01T10:00:00.000Z",
-    updatedAt: "2026-08-01T10:00:00.000Z",
-    acceptedAt: null,
-    completedAt: null,
-    closedAt: null,
-    expiresAt: null,
-    viewerSyncAppliedAt: null,
-    counterpartySyncAppliedAt: null,
-    viewerWishEntryId: null,
-    actionNeeded: null,
-    ...overrides,
-  };
-}
-
 describe("buildTradeMarket", () => {
   it("pools one printing's copies from several people and groups into one card", () => {
-    const market = buildTradeMarket(
-      [
-        stubGroup({
-          incoming: [
-            stubRow({ copyId: "copy-1" }),
-            stubRow({ copyId: "copy-2", counterpartyUserId: "user-3", counterpartyName: "Kai" }),
-          ],
-        }),
-        stubGroup({
-          slug: "piltover-league",
-          name: "Piltover League",
-          incoming: [stubRow({ copyId: "copy-3" })],
-        }),
-      ],
-      [],
-    );
+    const market = buildTradeMarket([
+      stubGroup({
+        incoming: [
+          stubRow({ copyId: "copy-1" }),
+          stubRow({ copyId: "copy-2", counterpartyUserId: "user-3", counterpartyName: "Kai" }),
+        ],
+      }),
+      stubGroup({
+        slug: "piltover-league",
+        name: "Piltover League",
+        incoming: [stubRow({ copyId: "copy-3" })],
+      }),
+    ]);
     expect(market.incoming).toHaveLength(1);
     const [card] = market.incoming;
     expect(card?.rows.map((row) => row.groupSlug)).toEqual([
@@ -122,39 +86,39 @@ describe("buildTradeMarket", () => {
   });
 
   it("keeps printings of the same card apart", () => {
-    const market = buildTradeMarket(
-      [stubGroup({ incoming: [stubRow(), stubRow({ printingId: "printing-2" })] })],
-      [],
-    );
+    const market = buildTradeMarket([
+      stubGroup({ incoming: [stubRow(), stubRow({ printingId: "printing-2" })] }),
+    ]);
     expect(market.incoming.map((card) => card.printingId)).toEqual(["printing-1", "printing-2"]);
   });
 
   it("gives a double-sided printing a card per side it was matched for", () => {
-    const market = buildTradeMarket(
-      [
-        stubGroup({
-          incoming: [
-            stubRow({ printingId: "pair", cardId: "bird" }),
-            stubRow({ printingId: "pair", cardId: "gold", copyId: "copy-2" }),
-          ],
-        }),
-      ],
-      [],
-    );
+    const market = buildTradeMarket([
+      stubGroup({
+        incoming: [
+          stubRow({ printingId: "pair", cardId: "bird" }),
+          stubRow({ printingId: "pair", cardId: "gold", copyId: "copy-2" }),
+        ],
+      }),
+    ]);
     expect(market.incoming.map((card) => card.cardId)).toEqual(["bird", "gold"]);
   });
 
-  it("drops rows a live trade already covers", () => {
-    const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })], [stubLiveTrade()]);
-    expect(market.incoming).toEqual([]);
+  it("keeps a person's row on the card whatever trade they already have going", () => {
+    const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })]);
+    expect(filterMarketByPerson(market.incoming, "user-2")).toHaveLength(1);
+    expect(market.incoming[0]?.sources.map((source) => source.userId)).toEqual(["user-2"]);
   });
+});
 
-  it("keeps rows whose trade with that person is already finished", () => {
-    const market = buildTradeMarket(
-      [stubGroup({ incoming: [stubRow()] })],
-      [stubLiveTrade({ status: "completed" })],
-    );
+describe("openSuggestionCount", () => {
+  it("shows a card held only by a live trade without counting it", () => {
+    const market = buildTradeMarket([
+      stubGroup({ incoming: [{ ...stubRow(), liveOnly: true }], outgoing: [stubRow()] }),
+    ]);
     expect(market.incoming).toHaveLength(1);
+    expect(openSuggestionCount(market.incoming)).toBe(0);
+    expect(openSuggestionCount(market.outgoing)).toBe(1);
   });
 });
 
@@ -166,7 +130,6 @@ describe("dismissed suggestions", () => {
           outgoing: [stubRow(), stubRow({ counterpartyUserId: "user-3", counterpartyName: "Kai" })],
         }),
       ],
-      [],
       dismissalKeys([
         { direction: "outgoing", counterpartyUserId: "user-2", printingId: "printing-1" },
       ]),
@@ -177,7 +140,6 @@ describe("dismissed suggestions", () => {
   it("only hides the dismissed direction", () => {
     const market = buildTradeMarket(
       [stubGroup({ incoming: [stubRow()] })],
-      [],
       dismissalKeys([
         { direction: "outgoing", counterpartyUserId: "user-2", printingId: "printing-1" },
       ]),
@@ -187,21 +149,18 @@ describe("dismissed suggestions", () => {
 });
 
 describe("people", () => {
-  const market = buildTradeMarket(
-    [
-      stubGroup({
-        incoming: [stubRow(), stubRow({ printingId: "printing-2" })],
-        outgoing: [
-          stubRow({
-            printingId: "printing-3",
-            counterpartyUserId: "user-3",
-            counterpartyName: "Kai",
-          }),
-        ],
-      }),
-    ],
-    [],
-  );
+  const market = buildTradeMarket([
+    stubGroup({
+      incoming: [stubRow(), stubRow({ printingId: "printing-2" })],
+      outgoing: [
+        stubRow({
+          printingId: "printing-3",
+          counterpartyUserId: "user-3",
+          counterpartyName: "Kai",
+        }),
+      ],
+    }),
+  ]);
 
   it("lists everyone on either side, most cards first", () => {
     expect(marketPeople(market).map((person) => [person.userId, person.cardCount])).toEqual([
@@ -231,17 +190,14 @@ describe("people", () => {
 });
 
 describe("filterMarketByGroup", () => {
-  const market = buildTradeMarket(
-    [
-      stubGroup({ incoming: [stubRow()], outgoing: [stubRow({ printingId: "printing-9" })] }),
-      stubGroup({
-        slug: "piltover-league",
-        name: "Piltover League",
-        incoming: [stubRow({ counterpartyUserId: "user-3" })],
-      }),
-    ],
-    [],
-  );
+  const market = buildTradeMarket([
+    stubGroup({ incoming: [stubRow()], outgoing: [stubRow({ printingId: "printing-9" })] }),
+    stubGroup({
+      slug: "piltover-league",
+      name: "Piltover League",
+      incoming: [stubRow({ counterpartyUserId: "user-3" })],
+    }),
+  ]);
 
   it("returns every card for no group", () => {
     expect(filterMarketByGroup(market.incoming, null)).toHaveLength(1);
@@ -278,24 +234,21 @@ describe("sortByValue", () => {
 });
 
 describe("wantedSources", () => {
-  const market = buildTradeMarket(
-    [
-      stubGroup({
-        incoming: [
-          stubRow(),
-          stubRow({ printingId: "printing-2", copyId: "copy-2" }),
-          stubRow({
-            counterpartyUserId: "user-3",
-            counterpartyName: "Kai",
-            printingId: "printing-2",
-            copyId: "copy-3",
-          }),
-          stubRow({ cardId: "card-2", printingId: "printing-3", copyId: "copy-4" }),
-        ],
-      }),
-    ],
-    [],
-  );
+  const market = buildTradeMarket([
+    stubGroup({
+      incoming: [
+        stubRow(),
+        stubRow({ printingId: "printing-2", copyId: "copy-2" }),
+        stubRow({
+          counterpartyUserId: "user-3",
+          counterpartyName: "Kai",
+          printingId: "printing-2",
+          copyId: "copy-3",
+        }),
+        stubRow({ cardId: "card-2", printingId: "printing-3", copyId: "copy-4" }),
+      ],
+    }),
+  ]);
 
   it("collects each person once across every printing of a card wish", () => {
     expect(

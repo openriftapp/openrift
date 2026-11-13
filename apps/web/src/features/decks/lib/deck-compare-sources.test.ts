@@ -58,6 +58,7 @@ function serverDeck(overrides: {
     requiredProgress: 40,
     requiredTotal: 40,
     totalValueCents: null,
+    unpricedCardCount: null,
     missingCount: null,
     folderIds: [],
     familyName: null,
@@ -135,7 +136,7 @@ describe("collectCompareDeckOptions", () => {
     expect(options.map((option) => option.id)).toEqual(["srv-2"]);
   });
 
-  it("carries the server card count and sums the local one across zones", () => {
+  it("carries the server card count and sums the local one across zones but overflow", () => {
     const options = collectCompareDeckOptions(
       "open-deck",
       [serverDeck({ id: "srv-1", name: "Ahri Mid", totalCards: 41 })],
@@ -147,6 +148,7 @@ describe("collectCompareDeckOptions", () => {
             { zone: "legend", cardId: "legend-1", quantity: 1, preferredPrintingId: null },
             { zone: "main", cardId: "unit-1", quantity: 3, preferredPrintingId: null },
             { zone: "runes", cardId: "rune-1", quantity: 12, preferredPrintingId: null },
+            { zone: "overflow", cardId: "unit-2", quantity: 4, preferredPrintingId: null },
           ],
         }),
       ],

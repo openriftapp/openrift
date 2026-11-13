@@ -499,6 +499,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --breakpoint-xxwide: 160rem;
   --container-max-xxwide: 160rem;
   --aspect-card: 63 / 88; /* standard playing card (63×88mm) */
+  --aspect-card-landscape: 88 / 63;
   /* /features vignettes for the deck box, variants, rules and match tracker.
      Each vignette runs one slow loop; the call sites render the loop's opening
      state as their base classes, so motion-reduce keeps a whole, honest UI. */

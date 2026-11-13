@@ -1,4 +1,3 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
 import type { RequiredAcceptPrintingField } from "@openrift/shared/printing-accept";
 import { REQUIRED_ACCEPT_PRINTING_FIELDS, resolveFinish } from "@openrift/shared/printing-accept";
@@ -7,7 +6,7 @@ import type { ArtVariant, CardSize, Finish, Rarity } from "@openrift/shared/type
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isForeignKeyViolation, isUniqueViolationOn } from "../../../lib/pg-errors.js";
@@ -60,11 +59,7 @@ export async function updatePrintingMarkers(
     const known = new Set(markerRows.map((m) => m.slug));
     const missing = newSlugs.filter((s) => !known.has(s));
     if (missing.length > 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Unknown marker slug(s): ${missing.join(", ")}`,
-      );
+      throw badRequest(`Unknown marker slug(s): ${missing.join(", ")}`);
     }
 
     await trxRepos.markers.setForPrinting(
@@ -95,11 +90,7 @@ export async function updatePrintingDistributionChannels(
   const known = new Set(channelRows.map((c) => c.slug));
   const missing = newSlugs.filter((s) => !known.has(s));
   if (missing.length > 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Unknown distribution channel slug(s): ${missing.join(", ")}`,
-    );
+    throw badRequest(`Unknown distribution channel slug(s): ${missing.join(", ")}`);
   }
 
   await repos.distributionChannels.setForPrinting(
@@ -162,11 +153,7 @@ function throwIfPrintingBlocked(blockers: PrintingDeleteBlockers): void {
           `${PRINTING_BLOCKER_LABELS[source as keyof PrintingDeleteBlockers]} (${count})`,
       )
       .join(", ");
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      `Printing cannot be deleted, it is still referenced by: ${detail}`,
-    );
+    throw conflict(`Printing cannot be deleted, it is still referenced by: ${detail}`);
   }
 }
 
@@ -393,9 +380,7 @@ export function asPrintingIdentityConflict(error: unknown, identity?: PrintingId
   if (!PRINTING_IDENTITY_CONSTRAINTS.some((name) => isUniqueViolationOn(error, name))) {
     return error;
   }
-  return new AppError(
-    409,
-    ERROR_CODES.CONFLICT,
+  return conflict(
     identity
       ? existingPrintingMessage(identity)
       : "Another printing already has that code, finish, size, language and marker combination.",
@@ -468,9 +453,7 @@ export async function insertNewPrinting(
   const missingFields = REQUIRED_ACCEPT_PRINTING_FIELDS.filter((field) => !required[field]);
   const { setId } = printingFields;
   if (missingFields.length > 0 || !setId || !artist) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       `A printing needs ${missingFields.join(", ")}; a missing finish is inferred from the rarity`,
     );
   }
@@ -483,7 +466,7 @@ export async function insertNewPrinting(
   const known = await loadKnownPrintingRefs(trx, channelSlugs);
   const unknown = unknownPrintingRefs({ ...printingFields, finish: required.finish }, known);
   if (unknown.length > 0) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Printing ${describeUnknownRefs(unknown)}`);
+    throw badRequest(`Printing ${describeUnknownRefs(unknown)}`);
   }
   const normalizedRarity = knownRarity(known, printingFields.rarity) as Rarity;
   const channelRows = await trx.distributionChannels.listBySlugs(channelSlugs);
@@ -499,13 +482,13 @@ export async function insertNewPrinting(
     assertFound(await mut.findFaceById(secondFaceId), "Second face not found");
     const firstFace = await mut.findFaceIdByIdentity(faceIdentity);
     if (firstFace?.id === secondFaceId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two faces must be different");
+      throw badRequest("The two faces must be different");
     }
   }
 
-  const conflict = await newPrintingConflict(trx, identity, secondFaceId);
-  if (conflict) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, conflict);
+  const identityConflict = await newPrintingConflict(trx, identity, secondFaceId);
+  if (identityConflict) {
+    throw conflict(identityConflict);
   }
 
   await trx.sets.upsert(setId, printingFields.setName ?? setId);
@@ -514,7 +497,7 @@ export async function insertNewPrinting(
     rarity: normalizedRarity,
   });
   if (faceConflict) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, faceConflict);
+    throw conflict(faceConflict);
   }
   const printed = await printedFaceValues(trx, printingFields, normalizedRarity, artist);
 

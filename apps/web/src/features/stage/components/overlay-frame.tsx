@@ -7,6 +7,7 @@ import type {
   OverlayPlatePosition,
 } from "@openrift/shared/contracts/overlay";
 import { imageUrl } from "@openrift/shared/image-url";
+import { OVERLAY_SCALE } from "@openrift/shared/overlay-scale";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect, useState } from "react";
 
@@ -16,7 +17,8 @@ import { TierBoard } from "@/features/stage/components/tier-board";
 import type { OverlayBoardScene } from "@/features/stage/lib/overlay-board-scene";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { loadImage } from "@/lib/load-image";
-import { getSiteUrl } from "@/lib/site-config";
+import { clamp } from "@/lib/math";
+import { getSiteHost } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -107,7 +109,9 @@ const BOARD_TILE_WIDTH = { min: 44, max: 110 };
 
 /** Maps the scene's `scale` (20-100, a card's height as a percentage) onto a board tile width. */
 export function boardTileWidth(scale: number): number {
-  const along = (Math.min(Math.max(scale, 20), 100) - 20) / 80;
+  const along =
+    (clamp(scale, OVERLAY_SCALE.min, OVERLAY_SCALE.max) - OVERLAY_SCALE.min) /
+    (OVERLAY_SCALE.max - OVERLAY_SCALE.min);
   return Math.round(BOARD_TILE_WIDTH.min + along * (BOARD_TILE_WIDTH.max - BOARD_TILE_WIDTH.min));
 }
 
@@ -140,9 +144,7 @@ function OverlayFooter({ qrUrl }: { qrUrl: string | null }) {
   return (
     <div className="flex items-end gap-3">
       {qrUrl && <QrCode value={qrUrl} size={92} label={m.stage_overlay_qr_alt()} />}
-      <span className="pb-1 font-mono text-sm tracking-widest text-white/45">
-        {new URL(getSiteUrl()).host}
-      </span>
+      <span className="pb-1 font-mono text-sm tracking-widest text-white/45">{getSiteHost()}</span>
     </div>
   );
 }

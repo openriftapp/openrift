@@ -4,10 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Repos } from "../../../../deps";
 import type { Fetch } from "../../../../io";
 import * as fetchMod from "../../../../lib/http";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import { refreshCardmarketPrices } from "./cardmarket";
 import * as logMod from "./log";
 import { PRICE_FETCH_RETRIES } from "./types";
-import type { StagingRow, UpsertCounts } from "./types";
+import type { UpsertCounts } from "./types";
 import * as upsertMod from "./upsert";
 
 const stubFetch: Fetch = (() => {

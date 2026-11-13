@@ -78,7 +78,7 @@ const catalog = {
 
 const mockMarketplace = {
   latestPrices: vi.fn(() =>
-    Promise.resolve([{ printingId: "jinx-1", marketplace: "tcgplayer", marketCents: 150 }]),
+    Promise.resolve([{ printingId: "jinx-1", marketplace: "tcgplayer", headlineCents: 150 }]),
   ),
 };
 

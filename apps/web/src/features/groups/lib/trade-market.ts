@@ -1,11 +1,7 @@
-import type {
-  CardTradeResponse,
-  TradeSuggestionDismissal,
-} from "@openrift/shared/types/api/card-trade";
+import type { TradeSuggestionDismissal } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 
 import type { MatchDirection } from "./trade-derivation";
-import { withoutLiveTradeMatches } from "./trade-derivation";
 import { dismissalKey } from "./trade-dismissals";
 import type { WantedCard } from "./wanted-cards";
 import { wantedMatchesPrinting } from "./wanted-cards";
@@ -13,11 +9,11 @@ import { wantedMatchesPrinting } from "./wanted-cards";
 export interface TradeMarketGroup {
   slug: string;
   name: string;
-  incoming: readonly FriendGroupMatchRow[];
-  outgoing: readonly FriendGroupMatchRow[];
+  incoming: readonly (FriendGroupMatchRow & { liveOnly?: boolean })[];
+  outgoing: readonly (FriendGroupMatchRow & { liveOnly?: boolean })[];
 }
 
-type TradeMarketRow = FriendGroupMatchRow & { groupSlug: string };
+type TradeMarketRow = FriendGroupMatchRow & { groupSlug: string; liveOnly?: boolean };
 
 export interface TradeMarketSource {
   userId: string;
@@ -49,16 +45,12 @@ interface MutableCard {
 
 function collect(
   groups: readonly TradeMarketGroup[],
-  trades: readonly CardTradeResponse[],
   direction: MatchDirection,
   dismissed: ReadonlySet<string>,
 ): Map<string, MutableCard> {
   const byPrinting = new Map<string, MutableCard>();
   for (const group of groups) {
-    const rows = withoutLiveTradeMatches(
-      direction === "incoming" ? group.incoming : group.outgoing,
-      trades,
-    ).filter(
+    const rows = (direction === "incoming" ? group.incoming : group.outgoing).filter(
       (row) =>
         !dismissed.has(
           dismissalKey({
@@ -104,14 +96,13 @@ function finish(cards: Map<string, MutableCard>, direction: MatchDirection): Tra
   }));
 }
 
-/** One entry per printing, card and direction, pooled across groups; live trades already cover their rows. */
+/** One entry per printing, card and direction, pooled across groups. */
 export function buildTradeMarket(
   groups: readonly TradeMarketGroup[],
-  trades: readonly CardTradeResponse[],
   dismissed: ReadonlySet<string> = new Set(),
 ): TradeMarket {
-  const incoming = collect(groups, trades, "incoming", dismissed);
-  const outgoing = collect(groups, trades, "outgoing", dismissed);
+  const incoming = collect(groups, "incoming", dismissed);
+  const outgoing = collect(groups, "outgoing", dismissed);
   return {
     incoming: finish(incoming, "incoming"),
     outgoing: finish(outgoing, "outgoing"),
@@ -123,15 +114,11 @@ function narrowCard(
   keep: (row: TradeMarketRow) => boolean,
 ): TradeMarketCard | null {
   const rows = card.rows.filter((row) => keep(row));
+  const userIds = new Set(rows.map((row) => row.counterpartyUserId));
   if (rows.length === 0) {
     return null;
   }
-  const userIds = new Set(rows.map((row) => row.counterpartyUserId));
-  return {
-    ...card,
-    rows,
-    sources: card.sources.filter((source) => userIds.has(source.userId)),
-  };
+  return { ...card, rows, sources: card.sources.filter((source) => userIds.has(source.userId)) };
 }
 
 export function filterMarketByGroup(
@@ -243,4 +230,8 @@ export function wantedSources(
     }
   }
   return [...byUser.values()];
+}
+
+export function openSuggestionCount(cards: readonly TradeMarketCard[]): number {
+  return cards.filter((card) => card.rows.some((row) => row.liveOnly !== true)).length;
 }

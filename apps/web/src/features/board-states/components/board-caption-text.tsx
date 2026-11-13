@@ -1,3 +1,4 @@
+import { pieceNumerals } from "@openrift/shared/board-layout";
 import type {
   BoardChainEntry,
   BoardPiece,
@@ -12,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
 import { splitCaption } from "@/features/board-states/lib/board-caption";
 import { chainEntryLabel, pieceName } from "@/features/board-states/lib/board-labels";
-import { pieceNumerals } from "@/features/board-states/lib/board-layout";
 import { PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import type { KnownRules } from "@/features/rules/hooks/use-known-rules";
 import { cn } from "@/lib/utils";

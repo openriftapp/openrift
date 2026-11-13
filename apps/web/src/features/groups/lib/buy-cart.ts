@@ -1,3 +1,4 @@
+import { priceTotal } from "@openrift/shared/card-price";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 
 import type { WantedCard, WishDecrement } from "./wanted-cards";
@@ -63,17 +64,13 @@ export function cartTotal(
   items: readonly BuyCartItem[],
   priceOf: (printingId: string) => number | undefined,
 ): { total: number; unpriced: number } {
-  let total = 0;
-  let unpriced = 0;
-  for (const item of cartPurchaseItems(items)) {
-    const price = priceOf(item.printingId);
-    if (price === undefined) {
-      unpriced += item.quantity;
-    } else {
-      total += price * item.quantity;
-    }
-  }
-  return { total, unpriced };
+  const { value, unpriced } = priceTotal(
+    cartPurchaseItems(items).map((item) => ({
+      price: priceOf(item.printingId),
+      quantity: item.quantity,
+    })),
+  );
+  return { total: value, unpriced };
 }
 
 const COPIES_PER_REQUEST = 500;

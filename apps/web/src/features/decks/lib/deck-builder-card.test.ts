@@ -17,6 +17,8 @@ import {
   isCardAllowedInZone,
   isCardBanned,
   isDeckZoneFullForDrag,
+  canIncrementDeckEntry,
+  runeAddRoom,
   toBuilderCardFromPublic,
 } from "./deck-builder-card";
 
@@ -148,11 +150,11 @@ describe("isCardAllowedInZone", () => {
 describe("copyLimitTotal", () => {
   it("sums main, sideboard and champion copies and skips overflow", () => {
     const cards = [
-      { cardId: "x", zone: "champion" as DeckZone, quantity: 1 },
-      { cardId: "x", zone: "main" as DeckZone, quantity: 2 },
-      { cardId: "x", zone: "sideboard" as DeckZone, quantity: 1 },
-      { cardId: "x", zone: "overflow" as DeckZone, quantity: 5 },
-      { cardId: "y", zone: "main" as DeckZone, quantity: 3 },
+      { cardId: "x", zone: "champion" as DeckZone, quantity: 1, domains: [] },
+      { cardId: "x", zone: "main" as DeckZone, quantity: 2, domains: [] },
+      { cardId: "x", zone: "sideboard" as DeckZone, quantity: 1, domains: [] },
+      { cardId: "x", zone: "overflow" as DeckZone, quantity: 5, domains: [] },
+      { cardId: "y", zone: "main" as DeckZone, quantity: 3, domains: [] },
     ];
     expect(copyLimitTotal(cards, "x")).toBe(4);
   });
@@ -185,17 +187,19 @@ describe("isDeckZoneFullForDrag", () => {
       cardId: "neeko",
       zone: "main" as DeckZone,
       quantity: 1,
+      domains: [],
       additionalLegendCount: 3,
     };
     const option = (id: string) => ({
       cardId: id,
       zone: "legend-options" as DeckZone,
       quantity: 1,
+      domains: [],
     });
     const dropLegend = (allCards: Parameters<typeof isDeckZoneFullForDrag>[0]["allCards"]) =>
       isDeckZoneFullForDrag({
         zone: "legend-options",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -219,11 +223,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("rejects a second copy of a Unique card from outside the copy-limit zones", () => {
-    const allCards = [{ cardId, zone: "sideboard" as DeckZone, quantity: 1 }];
+    const allCards = [{ cardId, zone: "sideboard" as DeckZone, quantity: 1, domains: [] }];
     const drop = (relaxed: boolean) =>
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: ["Unique"] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: ["Unique"], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -234,11 +238,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("allows dropping back into the source zone when at the 3-copy cap", () => {
-    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 3 }];
+    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 3, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "main",
         allCards,
         format: "constructed",
@@ -248,13 +252,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("allows cross-zone moves between copy-limit zones at the cap", () => {
     const allCards = [
-      { cardId, zone: "main" as DeckZone, quantity: 2 },
-      { cardId, zone: "sideboard" as DeckZone, quantity: 1 },
+      { cardId, zone: "main" as DeckZone, quantity: 2, domains: [] },
+      { cardId, zone: "sideboard" as DeckZone, quantity: 1, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "sideboard",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "main",
         allCards,
         format: "constructed",
@@ -264,13 +268,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("blocks browser-card adds to capped zones when the cross-zone total is at the cap", () => {
     const allCards = [
-      { cardId, zone: "main" as DeckZone, quantity: 2 },
-      { cardId, zone: "sideboard" as DeckZone, quantity: 1 },
+      { cardId, zone: "main" as DeckZone, quantity: 2, domains: [] },
+      { cardId, zone: "sideboard" as DeckZone, quantity: 1, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -280,13 +284,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("blocks moves from overflow into a capped zone that is already at the cap", () => {
     const allCards = [
-      { cardId, zone: "main" as DeckZone, quantity: 3 },
-      { cardId, zone: "overflow" as DeckZone, quantity: 1 },
+      { cardId, zone: "main" as DeckZone, quantity: 3, domains: [] },
+      { cardId, zone: "overflow" as DeckZone, quantity: 1, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "overflow",
         allCards,
         format: "constructed",
@@ -296,13 +300,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("allows moves from main to sideboard at the cap — both are copy-limit zones", () => {
     const allCards = [
-      { cardId, zone: "main" as DeckZone, quantity: 3 },
-      { cardId, zone: "sideboard" as DeckZone, quantity: 0 },
+      { cardId, zone: "main" as DeckZone, quantity: 3, domains: [] },
+      { cardId, zone: "sideboard" as DeckZone, quantity: 0, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "sideboard",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "main",
         allCards,
         format: "constructed",
@@ -311,11 +315,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("allows browser-card adds past 3 copies for cards with the unlimited override", () => {
-    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 17 }];
+    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 17, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: 0, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: 0, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -325,13 +329,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("never blocks browser-card adds into overflow — it is an unlimited parking zone", () => {
     const allCards = [
-      { cardId, zone: "main" as DeckZone, quantity: 3 },
-      { cardId, zone: "overflow" as DeckZone, quantity: 5 },
+      { cardId, zone: "main" as DeckZone, quantity: 3, domains: [] },
+      { cardId, zone: "overflow" as DeckZone, quantity: 5, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "overflow",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -340,11 +344,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("ignores overflow copies when capping a capped zone", () => {
-    const allCards = [{ cardId, zone: "overflow" as DeckZone, quantity: 3 }];
+    const allCards = [{ cardId, zone: "overflow" as DeckZone, quantity: 3, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -353,11 +357,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("allows browser-card adds below the cap", () => {
-    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 2 }];
+    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 2, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -366,11 +370,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("blocks battlefield drops when the card already sits in battlefield", () => {
-    const allCards = [{ cardId, zone: "battlefield" as DeckZone, quantity: 1 }];
+    const allCards = [{ cardId, zone: "battlefield" as DeckZone, quantity: 1, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "battlefield",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -379,11 +383,13 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("blocks battlefield drops in custom-region once any battlefield is placed", () => {
-    const allCards = [{ cardId: "other-bf", zone: "battlefield" as DeckZone, quantity: 1 }];
+    const allCards = [
+      { cardId: "other-bf", zone: "battlefield" as DeckZone, quantity: 1, domains: [] },
+    ];
     expect(
       isDeckZoneFullForDrag({
         zone: "battlefield",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "custom-region",
@@ -392,11 +398,13 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("allows a second unique battlefield drop in constructed", () => {
-    const allCards = [{ cardId: "other-bf", zone: "battlefield" as DeckZone, quantity: 1 }];
+    const allCards = [
+      { cardId: "other-bf", zone: "battlefield" as DeckZone, quantity: 1, domains: [] },
+    ];
     expect(
       isDeckZoneFullForDrag({
         zone: "battlefield",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -409,13 +417,17 @@ describe("isDeckZoneFullForDrag", () => {
       cardId: id,
       zone: "battlefield" as DeckZone,
       quantity: 1,
+      domains: [],
     }));
     const dropBattlefield = (fromZone: DeckZone | null, relaxed?: boolean) =>
       isDeckZoneFullForDrag({
         zone: "battlefield",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone,
-        allCards: [...threeFielded, { cardId, zone: "overflow" as DeckZone, quantity: 1 }],
+        allCards: [
+          ...threeFielded,
+          { cardId, zone: "overflow" as DeckZone, quantity: 1, domains: [] },
+        ],
         format: "constructed",
         relaxed,
       });
@@ -435,13 +447,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("counts the champion zone toward the copy cap", () => {
     const allCards = [
-      { cardId, zone: "champion" as DeckZone, quantity: 1 },
-      { cardId, zone: "main" as DeckZone, quantity: 2 },
+      { cardId, zone: "champion" as DeckZone, quantity: 1, domains: [] },
+      { cardId, zone: "main" as DeckZone, quantity: 2, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -453,7 +465,7 @@ describe("isDeckZoneFullForDrag", () => {
     expect(
       isDeckZoneFullForDrag({
         zone: "sideboard",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards: [],
         format: "custom-region",
@@ -464,13 +476,13 @@ describe("isDeckZoneFullForDrag", () => {
 
   it("blocks moving a battlefield from overflow in custom-region when the zone is occupied", () => {
     const allCards = [
-      { cardId: "other-bf", zone: "battlefield" as DeckZone, quantity: 1 },
-      { cardId, zone: "overflow" as DeckZone, quantity: 1 },
+      { cardId: "other-bf", zone: "battlefield" as DeckZone, quantity: 1, domains: [] },
+      { cardId, zone: "overflow" as DeckZone, quantity: 1, domains: [] },
     ];
     expect(
       isDeckZoneFullForDrag({
         zone: "battlefield",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "overflow",
         allCards,
         format: "custom-region",
@@ -482,7 +494,7 @@ describe("isDeckZoneFullForDrag", () => {
     expect(
       isDeckZoneFullForDrag({
         zone: "sideboard",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards: [],
         format: "custom-region",
@@ -491,20 +503,20 @@ describe("isDeckZoneFullForDrag", () => {
     expect(
       isDeckZoneFullForDrag({
         zone: "sideboard",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "main",
-        allCards: [{ cardId, zone: "main" as DeckZone, quantity: 1 }],
+        allCards: [{ cardId, zone: "main" as DeckZone, quantity: 1, domains: [] }],
         format: "custom-region",
       }),
     ).toBe(true);
   });
 
   it("allows dropping a stranded custom-region sideboard card back into its source zone", () => {
-    const allCards = [{ cardId, zone: "sideboard" as DeckZone, quantity: 1 }];
+    const allCards = [{ cardId, zone: "sideboard" as DeckZone, quantity: 1, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "sideboard",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: "sideboard",
         allCards,
         format: "custom-region",
@@ -512,16 +524,62 @@ describe("isDeckZoneFullForDrag", () => {
     ).toBe(false);
   });
 
+  it("swaps a rune in at 12 when the legend's other domain has a rune to give up", () => {
+    const allCards = [
+      { cardId: "legend", zone: "legend" as DeckZone, quantity: 1, domains: ["fury", "calm"] },
+      { cardId: "fury-rune", zone: "runes" as DeckZone, quantity: 6, domains: ["fury"] },
+      { cardId: "calm-rune", zone: "runes" as DeckZone, quantity: 6, domains: ["calm"] },
+    ];
+    expect(
+      isDeckZoneFullForDrag({
+        zone: "runes",
+        draggedCard: {
+          cardId: "fury-rune",
+          maxCopiesOverride: null,
+          keywords: [],
+          domains: ["fury"],
+        },
+        fromZone: null,
+        allCards,
+        format: "constructed",
+      }),
+    ).toBe(false);
+    expect(runeAddRoom({ domains: ["fury"] }, allCards)).toBe(1);
+  });
+
+  it("gives no rune room at 12 without a two-domain legend", () => {
+    const allCards = [
+      { cardId: "fury-rune", zone: "runes" as DeckZone, quantity: 12, domains: ["fury"] },
+    ];
+    expect(runeAddRoom({ domains: ["fury"] }, allCards)).toBe(0);
+  });
+
+  it("gives no rune room at 12 under a single-domain legend", () => {
+    const allCards = [
+      { cardId: "legend", zone: "legend" as DeckZone, quantity: 1, domains: ["fury"] },
+      { cardId: "fury-rune", zone: "runes" as DeckZone, quantity: 12, domains: ["fury"] },
+    ];
+    expect(runeAddRoom({ domains: ["fury"] }, allCards)).toBe(0);
+  });
+
+  it("gives the remaining rune slots below 12", () => {
+    const allCards = [
+      { cardId: "fury-rune", zone: "runes" as DeckZone, quantity: 8, domains: ["fury"] },
+    ];
+    expect(runeAddRoom({ domains: ["fury"] }, allCards)).toBe(4);
+  });
+
   it("blocks rune drops when the rune zone holds 12 cards", () => {
     const allCards = Array.from({ length: 12 }, (_, index) => ({
       cardId: `rune-${index}`,
       zone: "runes" as DeckZone,
       quantity: 1,
+      domains: [],
     }));
     expect(
       isDeckZoneFullForDrag({
         zone: "runes",
-        draggedCard: { cardId: "rune-new", maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId: "rune-new", maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "constructed",
@@ -533,7 +591,7 @@ describe("isDeckZoneFullForDrag", () => {
     expect(
       isDeckZoneFullForDrag({
         zone: "legend",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards: [],
         format: "constructed",
@@ -542,11 +600,11 @@ describe("isDeckZoneFullForDrag", () => {
   });
 
   it("returns false for any zone in freeform format", () => {
-    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 3 }];
+    const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 3, domains: [] }];
     expect(
       isDeckZoneFullForDrag({
         zone: "main",
-        draggedCard: { cardId, maxCopiesOverride: null, keywords: [] },
+        draggedCard: { cardId, maxCopiesOverride: null, keywords: [], domains: [] },
         fromZone: null,
         allCards,
         format: "freeform",
@@ -830,5 +888,23 @@ describe("toBuilderCardFromPublic", () => {
     expect(builderCard).not.toHaveProperty("imageId");
     expect(builderCard).not.toHaveProperty("shortCode");
     expect(builderCard).not.toHaveProperty("cardSlug");
+  });
+});
+
+describe("canIncrementDeckEntry", () => {
+  const runes = stubDeckBuilderCard({ zone: "runes" as DeckZone, cardType: "rune", quantity: 12 });
+
+  it("blocks a 13th rune when the deck has no legend to swap against", () => {
+    expect(canIncrementDeckEntry(runes, [runes], { freeform: false, relaxed: false })).toBe(false);
+  });
+
+  it("lets the workbench and Freeform go over the cap", () => {
+    expect(canIncrementDeckEntry(runes, [runes], { freeform: false, relaxed: true })).toBe(true);
+    expect(canIncrementDeckEntry(runes, [runes], { freeform: true, relaxed: false })).toBe(true);
+  });
+
+  it("blocks a fourth copy in the main deck", () => {
+    const unit = stubDeckBuilderCard({ zone: "main" as DeckZone, quantity: 3 });
+    expect(canIncrementDeckEntry(unit, [unit], { freeform: false, relaxed: false })).toBe(false);
   });
 });

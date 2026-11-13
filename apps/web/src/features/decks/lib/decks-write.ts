@@ -1,5 +1,6 @@
 import { deckFoldersContract } from "@openrift/shared/contracts/deck-folders";
 import { decksContract } from "@openrift/shared/contracts/decks";
+import { EMPTY_DECK_LIST_SUMMARY } from "@openrift/shared/deck-list-summary";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
   DeckCardWithDeckResponse,
@@ -14,7 +15,9 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
 import { writeSkippingMissing } from "@/features/collections/lib/copies-write";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
+import { mutationTag } from "@/lib/mutation-metadata";
 import { watchForRefetchRace } from "@/lib/refetch-race";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -27,24 +30,24 @@ export interface DecksWriteContext {
   userId: string;
 }
 
-export function deckCardKey(row: {
+export function deckCardRowKey(row: {
   deckId: string;
   cardId: string;
   zone: string;
   preferredPrintingId: string | null;
 }): string {
-  return `${row.deckId}|${row.cardId}|${row.zone}|${row.preferredPrintingId ?? ""}`;
+  return `${row.deckId}|${deckCardKey(row)}`;
 }
 
-const reorders = new WeakMap<object, readonly string[]>();
-const deckPatches = new WeakMap<object, Record<string, unknown>>();
+const reorders = mutationTag<readonly string[]>();
+const deckPatches = mutationTag<Record<string, unknown>>();
 
 export type DeckBulkChange =
   | { kind: "archive"; archived: boolean }
   | { kind: "addToFolder"; folderId: string }
   | { kind: "removeFromFolder"; folderId: string };
 
-const bulkChanges = new WeakMap<object, DeckBulkChange>();
+const bulkChanges = mutationTag<DeckBulkChange>();
 
 function needsBulkChange(row: DeckListItemResponse, change: DeckBulkChange): boolean {
   if (change.kind === "archive") {
@@ -76,10 +79,8 @@ export function bulkUpdateDecks(
   if (ids.length === 0) {
     return undefined;
   }
-  const metadata = {};
-  bulkChanges.set(metadata, change);
   const archivedAt = new Date().toISOString();
-  return collection.update(ids, { metadata }, (drafts) => {
+  return collection.update(ids, { metadata: bulkChanges.tag(change) }, (drafts) => {
     for (const draft of drafts) {
       if (change.kind === "archive") {
         draft.deck = { ...draft.deck, archivedAt: change.archived ? archivedAt : null };
@@ -93,8 +94,7 @@ export function bulkUpdateDecks(
 }
 
 function bulkChangeOf(mutation: PendingMutation<DeckListItemResponse>): DeckBulkChange | undefined {
-  const { metadata } = mutation;
-  return typeof metadata === "object" && metadata !== null ? bulkChanges.get(metadata) : undefined;
+  return bulkChanges.read(mutation.metadata);
 }
 
 function summaryFieldsOf(patch: Record<string, unknown>): Partial<DeckListItemResponse["deck"]> {
@@ -115,9 +115,7 @@ export function updateDeck(
   deckId: string,
   patch: Record<string, unknown>,
 ): Transaction {
-  const metadata = {};
-  deckPatches.set(metadata, patch);
-  return collection.update(deckId, { metadata }, (draft) => {
+  return collection.update(deckId, { metadata: deckPatches.tag(patch) }, (draft) => {
     draft.deck = { ...draft.deck, ...summaryFieldsOf(patch) };
   });
 }
@@ -125,8 +123,7 @@ export function updateDeck(
 function patchOf(
   mutation: PendingMutation<DeckListItemResponse>,
 ): Record<string, unknown> | undefined {
-  const { metadata } = mutation;
-  return typeof metadata === "object" && metadata !== null ? deckPatches.get(metadata) : undefined;
+  return deckPatches.read(mutation.metadata);
 }
 
 /** Folders missing from `orderedIds` keep their place, as the API's reorder does. */
@@ -135,9 +132,7 @@ export function reorderDeckFolders(
   orderedIds: readonly string[],
 ): Transaction {
   const present = orderedIds.filter((id) => collection.has(id));
-  const metadata = {};
-  reorders.set(metadata, orderedIds);
-  return collection.update(present, { metadata }, (drafts) => {
+  return collection.update(present, { metadata: reorders.tag(orderedIds) }, (drafts) => {
     for (const [index, draft] of drafts.entries()) {
       draft.sortOrder = index;
     }
@@ -145,8 +140,7 @@ export function reorderDeckFolders(
 }
 
 function reorderOf(mutation: PendingMutation<DeckFolderResponse>): readonly string[] | undefined {
-  const { metadata } = mutation;
-  return typeof metadata === "object" && metadata !== null ? reorders.get(metadata) : undefined;
+  return reorders.read(mutation.metadata);
 }
 
 function listItemFor(deck: DeckResponse): DeckListItemResponse {
@@ -175,18 +169,7 @@ function listItemFor(deck: DeckResponse): DeckListItemResponse {
       isPrimary: deck.isPrimary,
       isDraft: deck.isDraft,
     },
-    legendCardId: null,
-    championCardId: null,
-    totalCards: 0,
-    typeCounts: [],
-    domainDistribution: [],
-    isValid: false,
-    requiredProgress: 0,
-    requiredTotal: 0,
-    totalValueCents: null,
-    missingCount: null,
-    folderIds: [],
-    familyName: null,
+    ...EMPTY_DECK_LIST_SUMMARY,
   };
 }
 
@@ -383,7 +366,7 @@ function rowsOfDeck(
   const rows = new Map<string, DeckCardWithDeckResponse>();
   for (const row of collection.toArray) {
     if (row.deckId === deckId) {
-      rows.set(deckCardKey(row), row);
+      rows.set(deckCardRowKey(row), row);
     }
   }
   for (const mutation of mutations) {
@@ -391,10 +374,10 @@ function rowsOfDeck(
       continue;
     }
     if ("deckId" in mutation.original) {
-      rows.delete(deckCardKey(mutation.original));
+      rows.delete(deckCardRowKey(mutation.original));
     }
     if (mutation.type !== "delete") {
-      rows.set(deckCardKey(mutation.modified), mutation.modified);
+      rows.set(deckCardRowKey(mutation.modified), mutation.modified);
     }
   }
   return [...rows.values()];
@@ -406,10 +389,10 @@ function goneKeys(
   deckId: string,
   storedKeys: ReadonlySet<string>,
 ): string[] {
-  const keys = new Set(rows.map((row) => deckCardKey(row)));
+  const keys = new Set(rows.map((row) => deckCardRowKey(row)));
   for (const mutation of mutations) {
     if ("deckId" in mutation.original && mutation.original.deckId === deckId) {
-      keys.add(deckCardKey(mutation.original));
+      keys.add(deckCardRowKey(mutation.original));
     }
   }
   return [...keys].filter((key) => !storedKeys.has(key));
@@ -440,7 +423,7 @@ export async function persistDeckCardMutations(
         })),
       });
       const stored = cards.map((card) => ({ deckId, ...card }));
-      const storedKeys = new Set(stored.map((card) => deckCardKey(card)));
+      const storedKeys = new Set(stored.map((card) => deckCardRowKey(card)));
       const gone = goneKeys(rows, mutations, deckId, storedKeys);
       await collection.utils.writeUpsert(stored);
       if (gone.length > 0) {
@@ -470,7 +453,7 @@ export function saveDeckCards(
   }[],
   context: DecksWriteContext,
 ): Transaction<DeckCardWithDeckResponse> {
-  const incoming = new Map(cards.map((card) => [deckCardKey({ deckId, ...card }), card]));
+  const incoming = new Map(cards.map((card) => [deckCardRowKey({ deckId, ...card }), card]));
   const existing = collection.toArray.filter((row) => row.deckId === deckId);
   const transaction = createTransaction<DeckCardWithDeckResponse>({
     mutationFn: ({ transaction: batch }) =>
@@ -478,7 +461,7 @@ export function saveDeckCards(
   });
   transaction.mutate(() => {
     for (const row of existing) {
-      const key = deckCardKey(row);
+      const key = deckCardRowKey(row);
       const card = incoming.get(key);
       if (!card) {
         collection.delete(key);

@@ -34,7 +34,7 @@ vi.mock("@/features/decks/hooks/use-decks", () => ({
   }),
 }));
 vi.mock("@/features/decks/hooks/use-deck-stats", () => ({
-  useDeckStats: () => ({ domainDistribution: [], totalCards: 0 }),
+  useDeckStats: () => ({ domainDistribution: [], mainDeckCards: 0 }),
 }));
 vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({ getPreferredFrontImage: () => undefined }),
@@ -74,20 +74,20 @@ describe("DeckZonePanelHeader", () => {
     deck.cards = [stubDeckBuilderCard({ zone: "main", quantity: 10 })];
     render(<DeckZonePanelHeader deckId="deck-1" />);
     expect(screen.getByText("Jinx Fury Aggro")).toBeInTheDocument();
-    expect(screen.getByText("10/56 cards")).toHaveClass("text-muted-foreground");
+    expect(screen.getByText("10/56 required")).toHaveClass("text-muted-foreground");
   });
 
   it("marks a complete, valid deck as done", () => {
     deck.cards = fullDeck();
     render(<DeckZonePanelHeader deckId="deck-1" />);
-    expect(screen.getByText("56/56 cards")).toHaveClass("text-success");
+    expect(screen.getByText("56/56 required")).toHaveClass("text-success");
   });
 
   it("flags a deck with rule violations", () => {
     deck.cards = fullDeck();
     deck.violations = [{ code: "copy-limit", message: "Too many copies", zone: "main" }];
     render(<DeckZonePanelHeader deckId="deck-1" />);
-    expect(screen.getByText("56/56 cards")).toHaveClass("text-destructive");
+    expect(screen.getByText("56/56 required")).toHaveClass("text-destructive");
   });
 
   it("counts plain cards for a freeform deck", () => {

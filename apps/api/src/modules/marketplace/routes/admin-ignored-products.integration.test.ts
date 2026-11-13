@@ -54,6 +54,7 @@ if (ctx) {
       recordedAt: new Date(),
       marketCents: 100,
       lowCents: 50,
+      zeroLowCents: null,
       midCents: null,
       highCents: null,
       trendCents: null,

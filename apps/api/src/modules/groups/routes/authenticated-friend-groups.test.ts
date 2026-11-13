@@ -869,7 +869,7 @@ describe("friend-groups route", () => {
     expect(deleteInvite).toHaveBeenCalledWith(group.id, OTHER_ID);
   });
 
-  it("POST /{slug}/invites/{userId}/accept rejects the requester approving their own request", async () => {
+  it("POST /{slug}/invites/{userId}/accept answers a non-member approving their own request with 404", async () => {
     const { app } = makeApp({
       friendGroups: {
         getBySlug: vi.fn(() => Promise.resolve(group)),
@@ -888,7 +888,7 @@ describe("friend-groups route", () => {
     const res = await app.request(`/api/v1/friend-groups/playgroup/invites/${USER_ID}/accept`, {
       method: "POST",
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
   it("POST /{slug}/lists shares a list owned by the viewer", async () => {

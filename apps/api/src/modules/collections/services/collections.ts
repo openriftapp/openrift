@@ -1,9 +1,8 @@
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ResetCollectionsResponse } from "@openrift/shared/types/api/collection";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { keyBatches } from "../../../lib/bind-batches.js";
 import type { TradeCancelConsent } from "../../groups/services/trade-supply.js";
 import { previewTradeCancels } from "../../groups/services/trade-supply.js";
@@ -178,17 +177,13 @@ async function resetCollectionsInTransaction(
     await trxRepos.copies.lockByIds(batch);
     const reserved = await trxRepos.cardTrades.filterReservedCopyIds(batch);
     if (reserved.length > 0) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "Some of your cards are reserved in active trades — cancel those trades first.",
       );
     }
     const loaned = await trxRepos.loans.filterLoanedCopyIds(batch);
     if (loaned.length > 0) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "Some of your cards are lent out — mark those loans returned or written off first.",
       );
     }

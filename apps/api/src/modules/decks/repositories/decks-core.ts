@@ -330,7 +330,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
       return selectShareState(db, "decks", id, userId);
     },
 
-    setShareToken(
+    setShare(
       id: string,
       userId: string,
       shareToken: string | null,

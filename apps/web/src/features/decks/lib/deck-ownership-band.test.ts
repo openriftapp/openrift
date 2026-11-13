@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
 import {
   buildOwnershipCopies,
@@ -548,7 +548,7 @@ describe("buildOwnershipCopies", () => {
       owned,
       true,
     );
-    expect(copies.bands.get(getDeckCardKey(stack))).toMatchObject({ exact: 2, other: 1 });
+    expect(copies.bands.get(deckCardKey(stack))).toMatchObject({ exact: 2, other: 1 });
     expect(copyPrintingId(copies, stack, 0)).toBeUndefined();
     expect(copyPrintingId(copies, stack, 1)).toBeUndefined();
     expect(copyPrintingId(copies, stack, 2)).toBe(FOIL);

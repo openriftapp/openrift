@@ -24,7 +24,7 @@ const mockCollectionsRepo = {
   moveCopiesBetweenCollections: vi.fn(() => Promise.resolve()),
   deleteByIdForUser: vi.fn(() => Promise.resolve()),
   deleteById: vi.fn(() => Promise.resolve()),
-  setShareTokenById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  setShare: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   nextPersonalSortOrder: vi.fn(() => Promise.resolve(0)),
   lockSortOrder: vi.fn(async () => undefined),
   idForPurpose: vi.fn(() => Promise.resolve(undefined as string | undefined)),
@@ -620,12 +620,12 @@ describe("GET /api/v1/collections/:id/copies", () => {
 describe("POST /api/v1/collections/:id/share", () => {
   beforeEach(() => {
     mockCollectionsRepo.getAccessForUser.mockReset();
-    mockCollectionsRepo.setShareTokenById.mockReset();
+    mockCollectionsRepo.setShare.mockReset();
   });
 
   it("returns 200 with a fresh share token and isPublic=true", async () => {
     mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
-    mockCollectionsRepo.setShareTokenById.mockImplementation(async (...args: unknown[]) => ({
+    mockCollectionsRepo.setShare.mockImplementation(async (...args: unknown[]) => ({
       ...dbCollection,
       isPublic: true,
       shareToken: args[1] as string,
@@ -637,7 +637,7 @@ describe("POST /api/v1/collections/:id/share", () => {
     const json = await readJson(res);
     expect(json.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
     expect(json.isPublic).toBe(true);
-    expect(mockCollectionsRepo.setShareTokenById).toHaveBeenCalledWith(
+    expect(mockCollectionsRepo.setShare).toHaveBeenCalledWith(
       dbCollection.id,
       json.shareToken,
       true,
@@ -646,7 +646,7 @@ describe("POST /api/v1/collections/:id/share", () => {
 
   it("retries with a new token when the first one collides", async () => {
     mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
-    mockCollectionsRepo.setShareTokenById
+    mockCollectionsRepo.setShare
       .mockRejectedValueOnce(Object.assign(new Error("duplicate key"), { code: "23505" }))
       .mockResolvedValueOnce({ ...dbCollection, isPublic: true });
     const res = await app.request(`/api/v1/collections/${dbCollection.id}/share`, {
@@ -654,8 +654,8 @@ describe("POST /api/v1/collections/:id/share", () => {
     });
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(mockCollectionsRepo.setShareTokenById).toHaveBeenCalledTimes(2);
-    expect(mockCollectionsRepo.setShareTokenById).toHaveBeenLastCalledWith(
+    expect(mockCollectionsRepo.setShare).toHaveBeenCalledTimes(2);
+    expect(mockCollectionsRepo.setShare).toHaveBeenLastCalledWith(
       dbCollection.id,
       json.shareToken,
       true,
@@ -682,12 +682,12 @@ describe("POST /api/v1/collections/:id/share", () => {
 describe("DELETE /api/v1/collections/:id/share", () => {
   beforeEach(() => {
     mockCollectionsRepo.getAccessForUser.mockReset();
-    mockCollectionsRepo.setShareTokenById.mockReset();
+    mockCollectionsRepo.setShare.mockReset();
   });
 
   it("returns 204 and nulls the token + isPublic=false", async () => {
     mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
-    mockCollectionsRepo.setShareTokenById.mockResolvedValue({
+    mockCollectionsRepo.setShare.mockResolvedValue({
       ...dbCollection,
       isPublic: false,
       shareToken: null,
@@ -696,11 +696,7 @@ describe("DELETE /api/v1/collections/:id/share", () => {
       method: "DELETE",
     });
     expect(res.status).toBe(204);
-    expect(mockCollectionsRepo.setShareTokenById).toHaveBeenCalledWith(
-      dbCollection.id,
-      null,
-      false,
-    );
+    expect(mockCollectionsRepo.setShare).toHaveBeenCalledWith(dbCollection.id, null, false);
   });
 
   it("returns 404 when the collection is not accessible", async () => {

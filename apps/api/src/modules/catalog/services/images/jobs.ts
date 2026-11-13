@@ -1,7 +1,6 @@
 import { join } from "node:path";
 
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
 import { errorMessage } from "@openrift/shared/strings";
@@ -11,7 +10,7 @@ import type {
   RefetchImagesResponse,
 } from "@openrift/shared/types/api/admin";
 
-import { AppError } from "../../../../errors.js";
+import { badRequest, conflict } from "../../../../errors.js";
 import type { Io } from "../../../../io.js";
 import { assertFound } from "../../../../lib/assertions.js";
 import type { jobRunsRepo } from "../../../system/repositories/job-runs.js";
@@ -28,8 +27,6 @@ import {
 
 type PrintingImagesRepo = ReturnType<typeof printingImagesRepo>;
 type JobRunsRepo = ReturnType<typeof jobRunsRepo>;
-
-export const REGENERATE_IMAGES_KIND = "images.regenerate";
 
 export interface RehostOutcome {
   status: "rehosted" | "already-rehosted" | "skipped" | "failed";
@@ -110,14 +107,10 @@ export async function rehostImageFileOrThrow(
 ): Promise<void> {
   const outcome = await rehostImageFile(io, repo, imageFileId, options);
   if (outcome.status === "failed") {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Could not rehost the image: ${outcome.error ?? "unknown error"}`,
-    );
+    throw badRequest(`Could not rehost the image: ${outcome.error ?? "unknown error"}`);
   }
   if (outcome.status === "skipped") {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image has no original URL to rehost");
+    throw badRequest("Image has no original URL to rehost");
   }
 }
 
@@ -446,22 +439,18 @@ export async function unrehostImageFile(
   const image = await repo.getImageFileById(imageFileId);
   assertFound(image, "Image file not found");
   if (!image.rehostedUrl) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image is not rehosted");
+    throw badRequest("Image is not rehosted");
   }
   if (await repo.isActiveImageFile(imageFileId)) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Deactivate the image first");
+    throw conflict("Deactivate the image first");
   }
   if (await repo.isPinnedFallbackFile(imageFileId)) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Unpin the fallback art first");
+    throw conflict("Unpin the fallback art first");
   }
   // image_files requires original_url or rehosted_url, and an upload has no
   // original to fall back to.
   if (!image.originalUrl) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "Cannot un-rehost: image has no original URL to fall back to",
-    );
+    throw badRequest("Cannot un-rehost: image has no original URL to fall back to");
   }
   await repo.clearPendingForFile(imageFileId);
   await repo.clearRehostFailure(imageFileId);

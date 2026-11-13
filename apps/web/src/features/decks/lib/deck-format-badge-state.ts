@@ -1,5 +1,7 @@
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { m } from "@/paraglide/messages.js";
+
 export type DeckFormatBadgeKind = "draft" | "invalid" | "building" | "settled";
 
 export interface DeckFormatBadgeState {
@@ -24,7 +26,7 @@ export function deckFormatBadgeState({
   const isFreeform = format === WellKnown.deckFormat.FREEFORM;
   const progress =
     requiredTotal > 0 && requiredProgress < requiredTotal
-      ? `${requiredProgress}/${requiredTotal}`
+      ? m.decks_editor_required_progress({ progress: requiredProgress, total: requiredTotal })
       : undefined;
 
   if (totalCards === 0) {

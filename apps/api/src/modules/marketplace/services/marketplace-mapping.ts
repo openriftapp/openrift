@@ -1,4 +1,5 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type {
   MappingGroupHeader,
   MappingPrintingResponse,
@@ -139,7 +140,7 @@ export function matchStagedProducts<
   const matchedStagingKeys = new Set<string>();
 
   for (const row of uniqueStaged) {
-    const stagingKey = `${row.externalId}::${row.finish}::${row.language}`;
+    const stagingKey = skuKey(row.externalId, row.finish, row.language);
 
     const override = overrideMap.get(stagingKey);
     if (override) {
@@ -177,7 +178,7 @@ export function matchStagedProducts<
   // "Daughter of the Void", or "Master Yi Wuju Bladesman" contains the base
   // of "Wuju Bladesman - Starter" (baseName strips the " - Starter" suffix).
   for (const row of uniqueStaged) {
-    const stagingKey = `${row.externalId}::${row.finish}::${row.language}`;
+    const stagingKey = skuKey(row.externalId, row.finish, row.language);
     if (matchedStagingKeys.has(stagingKey)) {
       continue;
     }
@@ -213,7 +214,7 @@ export function buildResponseGroups(
     const key = group.cardId;
     const stagedProducts = (stagedByCard.get(key) ?? []).map((row) =>
       mapStagedRow(row, {
-        isOverride: overrideMap.has(`${row.externalId}::${row.finish}::${row.language}`),
+        isOverride: overrideMap.has(skuKey(row.externalId, row.finish, row.language)),
       }),
     );
 
@@ -232,7 +233,7 @@ export function buildResponseGroups(
       if (p.externalId === null || p.productFinish === null) {
         continue;
       }
-      const dedupKey = `${p.externalId}::${p.printingId}::${p.productFinish}::${p.sourceLanguage ?? ""}`;
+      const dedupKey = `${p.printingId}::${skuKey(p.externalId, p.productFinish, p.sourceLanguage)}`;
       if (seenAssignment.has(dedupKey)) {
         continue;
       }
@@ -251,13 +252,13 @@ export function buildResponseGroups(
       if (p.externalId === null || p.productFinish === null) {
         continue;
       }
-      const dedupKey = `${p.externalId}::${p.productFinish}::${p.sourceLanguage ?? ""}`;
+      const dedupKey = skuKey(p.externalId, p.productFinish, p.sourceLanguage);
       if (seenAssigned.has(dedupKey)) {
         continue;
       }
       seenAssigned.add(dedupKey);
       const info = mappedProductInfo.get(
-        `${p.printingId}::${p.externalId}::${p.productFinish}::${p.sourceLanguage ?? ""}`,
+        `${p.printingId}::${skuKey(p.externalId, p.productFinish, p.sourceLanguage)}`,
       );
       if (info) {
         assignedProducts.push({
@@ -267,6 +268,7 @@ export function buildResponseGroups(
           language: p.sourceLanguage,
           marketCents: info.marketCents,
           lowCents: info.lowCents,
+          zeroLowCents: info.zeroLowCents,
           currency: info.currency,
           recordedAt: info.recordedAt,
           midCents: info.midCents,
@@ -293,8 +295,6 @@ export function buildResponseGroups(
     // bound it's gone from staged regardless of which printing language took
     // it. Per-language marketplaces (CT) still see both foil/EN and foil/SC
     // as independent SKUs.
-    const skuKey = (externalId: number, finish: string, language: string | null): string =>
-      `${externalId}::${finish}::${language ?? ""}`;
     const assignedKeys = new Set(
       assignedProducts.map((p) => skuKey(p.externalId, p.finish, p.language)),
     );
@@ -355,7 +355,7 @@ export async function getMappingOverview(
 
   const ignoredProductIds = new Set(ignoredProductRows.map((r) => r.externalId));
   const ignoredVariantKeys = new Set(
-    ignoredVariantRows.map((r) => `${r.externalId}::${r.finish}::${r.language}`),
+    ignoredVariantRows.map((r) => skuKey(r.externalId, r.finish, r.language)),
   );
   // `language` is null on CM/TCG, and both sides of the comparison stringify
   // it the same way, so a null-language SKU still matches its ignore entry.
@@ -365,7 +365,7 @@ export async function getMappingOverview(
     language: string | null;
   }): boolean =>
     ignoredProductIds.has(row.externalId) ||
-    ignoredVariantKeys.has(`${row.externalId}::${row.finish}::${row.language}`);
+    ignoredVariantKeys.has(skuKey(row.externalId, row.finish, row.language));
 
   // allStaging returns one row per distinct variant (latest snapshot), so only
   // the ignored filter is needed here.
@@ -384,7 +384,7 @@ export async function getMappingOverview(
 
   const overrideMap = new Map<string, { cardId: string }>();
   for (const row of overrideRows) {
-    overrideMap.set(`${row.externalId}::${row.finish}::${row.language}`, {
+    overrideMap.set(skuKey(row.externalId, row.finish, row.language), {
       cardId: row.cardId,
     });
   }
@@ -414,7 +414,7 @@ export async function getMappingOverview(
   );
 
   const unmatchedProducts = uniqueStaged
-    .filter((row) => !matchedStagingKeys.has(`${row.externalId}::${row.finish}::${row.language}`))
+    .filter((row) => !matchedStagingKeys.has(skuKey(row.externalId, row.finish, row.language)))
     .map((row) => mapStagedRow(row));
 
   // Ignored products / variants: look up group from staging data. L2 ignores
@@ -426,7 +426,7 @@ export async function getMappingOverview(
     if (row.externalId === null) {
       continue;
     }
-    const key = `${row.externalId}::${row.finish}::${row.language}`;
+    const key = skuKey(row.externalId, row.finish, row.language);
     if (!groupByExternal.has(key)) {
       groupByExternal.set(key, row.groupId);
     }
@@ -438,6 +438,7 @@ export async function getMappingOverview(
   const emptyPrices = {
     marketCents: 0,
     lowCents: null as number | null,
+    zeroLowCents: null as number | null,
     midCents: null as number | null,
     highCents: null as number | null,
     trendCents: null as number | null,
@@ -463,7 +464,7 @@ export async function getMappingOverview(
       };
     }),
     ...ignoredVariantRows.map((r) => {
-      const gid = groupByExternal.get(`${r.externalId}::${r.finish}::${r.language}`);
+      const gid = groupByExternal.get(skuKey(r.externalId, r.finish, r.language));
       return {
         level: "variant" as const,
         externalId: r.externalId,
@@ -524,15 +525,17 @@ export async function saveMappings(
   transact: Transact,
   config: MarketplaceConfig,
   mappings: SaveMappingInput[],
-): Promise<{ saved: number; skipped: { externalId: number; reason: string }[] }> {
+): Promise<{
+  saved: number;
+  skipped: { externalId: number; reason: string }[];
+  applied: SaveMappingInput[];
+}> {
   if (mappings.length === 0) {
-    return { saved: 0, skipped: [] };
+    return { saved: 0, skipped: [], applied: [] };
   }
 
   const skipped: { externalId: number; reason: string }[] = [];
-
-  const skuKey = (externalId: number, finish: string, language: string | null): string =>
-    `${externalId}::${finish}::${language ?? ""}`;
+  const applied: SaveMappingInput[] = [];
 
   const saved = await transact(async (trxRepos) => {
     const repo = trxRepos.marketplaceMapping;
@@ -576,6 +579,7 @@ export async function saveMappings(
         skipped.push({ externalId: m.externalId, reason });
         continue;
       }
+      applied.push(m);
       upsertValues.push({
         marketplace: config.marketplace,
         printingId: m.printingId,
@@ -600,7 +604,7 @@ export async function saveMappings(
     return upsertValues.length;
   });
 
-  return { saved, skipped };
+  return { saved, skipped, applied };
 }
 
 export async function unmapPrinting(

@@ -209,6 +209,7 @@ function lineHeightMm(fontSize: number): number {
 
 function drawFooterMark(
   doc: jsPDF,
+  host: string,
   centerX: number,
   topY: number,
   height: number,
@@ -216,7 +217,6 @@ function drawFooterMark(
   logoDataUrl: string | null,
   color: readonly [number, number, number],
 ): void {
-  const host = "openrift.app";
   doc.setFont("helvetica", "normal");
   doc.setFontSize(fontSize);
   const markSize = logoDataUrl ? height : 0;
@@ -305,6 +305,7 @@ function drawSheet(
   const footerTop = y + height - metrics.pad - footerHeight;
   drawFooterMark(
     doc,
+    new URL(options.shareUrl).host,
     centerX,
     footerTop,
     footerHeight,

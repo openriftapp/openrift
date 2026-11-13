@@ -3,7 +3,13 @@ import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import { describe, expect, it } from "vitest";
 
-import { buildCatalogSync, buildPricesSync, buildRulesSync } from "./catalog-sync.js";
+import type { PricesSync } from "./catalog-sync.js";
+import {
+  buildCatalogSync,
+  buildPricesSync,
+  buildRulesSync,
+  planPricesSync,
+} from "./catalog-sync.js";
 
 const SET_ID = "00000000-0000-7000-8000-000000000001";
 const CARD_ID = "00000000-0000-7000-8000-000000000002";
@@ -426,8 +432,8 @@ describe("buildPricesSync", () => {
     [PRINTING_ID]: {
       tcgplayer: { available: true, productId: 11, url: null },
       cardmarket: { available: true, productId: 22, url: null },
-      cardtrader: missing,
-      cardnexus: missing,
+      cardtrader: { available: true, productId: 33, url: null },
+      cardnexus: { available: true, productId: 44, url: null },
     },
     [SECOND_PRINTING_ID]: {
       tcgplayer: { available: true, productId: 11, url: null },
@@ -437,25 +443,50 @@ describe("buildPricesSync", () => {
     },
   };
 
-  it("puts the headline in the column the price view reads", () => {
+  it("puts the headline in the column the regular refresh writes", () => {
     const rows = buildPricesSync(
-      { prices: { [PRINTING_ID]: { tcgplayer: 450, cardmarket: 380 } }, currencies },
+      {
+        prices: {
+          [PRINTING_ID]: { tcgplayer: 450, cardmarket: 380, cardtrader: 300, cardnexus: 290 },
+        },
+        currencies,
+      },
+      infos,
+      catalog,
+      TODAY,
+    );
+
+    expect(rows.prices).toEqual([
+      { skuKey: "cardtrader::33::normal::EN", recordedAt: TODAY, zeroLowCents: 300 },
+      { skuKey: "tcgplayer::11::normal::", recordedAt: TODAY, marketCents: 450 },
+      { skuKey: "cardmarket::22::normal::", recordedAt: TODAY, lowCents: 380 },
+      { skuKey: "cardnexus::44::normal::EN", recordedAt: TODAY, lowCents: 290 },
+    ]);
+  });
+
+  it("keys products by language only on the marketplaces that split SKUs by language", () => {
+    const rows = buildPricesSync(
+      {
+        prices: {
+          [PRINTING_ID]: { tcgplayer: 450, cardmarket: 380, cardtrader: 300, cardnexus: 290 },
+        },
+        currencies,
+      },
       infos,
       catalog,
       TODAY,
     );
 
     expect(rows.products).toEqual([
+      expect.objectContaining({ marketplace: "cardtrader", externalId: 33, language: "EN" }),
       expect.objectContaining({
         marketplace: "tcgplayer",
         externalId: 11,
         productName: "Test Unit",
+        language: null,
       }),
-      expect.objectContaining({ marketplace: "cardmarket", externalId: 22 }),
-    ]);
-    expect(rows.prices).toEqual([
-      { skuKey: "tcgplayer|11|normal|EN", recordedAt: TODAY, marketCents: 450 },
-      { skuKey: "cardmarket|22|normal|EN", recordedAt: TODAY, lowCents: 380 },
+      expect.objectContaining({ marketplace: "cardmarket", externalId: 22, language: null }),
+      expect.objectContaining({ marketplace: "cardnexus", externalId: 44, language: "EN" }),
     ]);
   });
 
@@ -472,8 +503,8 @@ describe("buildPricesSync", () => {
 
     expect(rows.products).toHaveLength(1);
     expect(rows.variants).toEqual([
-      { skuKey: "tcgplayer|11|normal|EN", printingId: PRINTING_ID },
-      { skuKey: "tcgplayer|11|normal|EN", printingId: SECOND_PRINTING_ID },
+      { skuKey: "tcgplayer::11::normal::", printingId: PRINTING_ID },
+      { skuKey: "tcgplayer::11::normal::", printingId: SECOND_PRINTING_ID },
     ]);
   });
 
@@ -481,7 +512,7 @@ describe("buildPricesSync", () => {
     const rows = buildPricesSync(
       {
         prices: {
-          [PRINTING_ID]: { cardtrader: 300 },
+          [SECOND_PRINTING_ID]: { cardtrader: 300 },
           "00000000-0000-7000-8000-0000000000ff": { tcgplayer: 100 },
         },
         currencies,
@@ -492,5 +523,79 @@ describe("buildPricesSync", () => {
     );
 
     expect(rows).toEqual({ groups: [], products: [], variants: [], prices: [] });
+  });
+});
+
+describe("planPricesSync", () => {
+  const TODAY = new Date("2026-05-10T00:00:00.000Z");
+  const rows: PricesSync = {
+    groups: [],
+    products: [
+      {
+        skuKey: "tcgplayer::11::normal::",
+        marketplace: "tcgplayer",
+        externalId: 11,
+        groupId: 0,
+        productName: "Teemo",
+        finish: "normal",
+        language: null,
+      },
+      {
+        skuKey: "cardmarket::22::normal::",
+        marketplace: "cardmarket",
+        externalId: 22,
+        groupId: 0,
+        productName: "Jinx",
+        finish: "normal",
+        language: null,
+      },
+    ],
+    variants: [
+      { skuKey: "tcgplayer::11::normal::", printingId: "p-1" },
+      { skuKey: "cardmarket::22::normal::", printingId: "p-2" },
+    ],
+    prices: [
+      { skuKey: "tcgplayer::11::normal::", recordedAt: TODAY, marketCents: 450 },
+      { skuKey: "cardmarket::22::normal::", recordedAt: TODAY, lowCents: 380 },
+    ],
+  };
+  const product = (id: string, marketplace: string, externalId: number, groupId: number) => ({
+    id,
+    marketplace,
+    externalId,
+    finish: "normal",
+    language: null,
+    groupId,
+  });
+
+  it("skips a product the regular refresh already holds, with its variants and prices", () => {
+    const plan = planPricesSync(rows, [product("refresh-owned", "cardmarket", 22, 3421)]);
+
+    expect(plan.products.map((entry) => entry.skuKey)).toEqual(["tcgplayer::11::normal::"]);
+    expect(plan.variants).toEqual([{ skuKey: "tcgplayer::11::normal::", printingId: "p-1" }]);
+    expect(plan.prices.map((entry) => entry.skuKey)).toEqual(["tcgplayer::11::normal::"]);
+    expect(plan.staleProductIds).toEqual([]);
+    expect(plan.skippedProducts).toBe(1);
+  });
+
+  it("deletes only the sync's own products the source no longer lists", () => {
+    const plan = planPricesSync(rows, [
+      product("stale-sync", "tcgplayer", 99, 0),
+      product("refresh-other", "tcgplayer", 98, 7),
+    ]);
+
+    expect(plan.staleProductIds).toEqual(["stale-sync"]);
+  });
+
+  it("plans the same writes again on a second run over its own products", () => {
+    const plan = planPricesSync(rows, [
+      product("sync-11", "tcgplayer", 11, 0),
+      product("sync-22", "cardmarket", 22, 0),
+    ]);
+
+    expect(plan.products).toEqual(rows.products);
+    expect(plan.prices).toEqual(rows.prices);
+    expect(plan.staleProductIds).toEqual([]);
+    expect(plan.skippedProducts).toBe(0);
   });
 });

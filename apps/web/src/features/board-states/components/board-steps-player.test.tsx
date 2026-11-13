@@ -137,3 +137,35 @@ describe("BoardStepsPlayer", () => {
     expect(screen.getByText("The Drake survives.")).toBeInTheDocument();
   });
 });
+
+describe("rune pool on a four-player board", () => {
+  it("keeps the stacked runes on one line so a wrapped rune never hangs outside its zone", () => {
+    const rune = { cardId: "019a0000-0000-7000-8000-000000000004", name: "Fury Rune" };
+    const document = emptyBoardDocument();
+    const pieces = Array.from({ length: 6 }, (_, index) =>
+      piece({
+        id: `r${index}`,
+        owner: "A",
+        kind: "rune",
+        card: rune,
+        zone: { kind: "runes" },
+        exhausted: index % 2 === 0,
+      }),
+    );
+    render(
+      <BoardStepsPlayer
+        document={{ ...document, playerCount: 4, steps: [{ ...emptyBoardStep(4), pieces }] }}
+        pins={pins}
+        activeStep={0}
+        onStep={vi.fn()}
+      />,
+    );
+    const [first] = screen.getAllByText("Fury Rune");
+    const row = first?.closest("div.items-end");
+    expect(row).not.toBeNull();
+    expect(row).not.toHaveClass("flex-wrap");
+    expect(first?.closest("[data-board-zone='runes-A']")).not.toHaveClass("min-w-0");
+    const seatGrid = first?.closest("[data-board-zone='runes-A']")?.closest(".grid");
+    expect((seatGrid as HTMLElement | null)?.style.gridTemplateColumns).toContain("min-content");
+  });
+});

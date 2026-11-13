@@ -1,12 +1,10 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import { getOrientation } from "@openrift/shared/card-orientation";
 import { totalQuantity } from "@openrift/shared/deck-rules";
 import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
-import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { useQueryClient } from "@tanstack/react-query";
 import { CornerLeftUpIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Footer } from "@/components/layout/footer";
@@ -22,7 +20,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
-import type { HoverOrigin } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
@@ -43,6 +40,7 @@ import { WorkbenchOptInBanner } from "@/features/decks/components/workbench-opt-
 import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dialogs";
+import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
@@ -265,49 +263,19 @@ function DeckEditorContent({
     }
   };
 
-  const [hovered, setHovered] = useState<{
-    id: string;
-    origin: HoverOrigin;
-    preferredPrintingId: string | null;
-  } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const setHoveredSidebar = (id: string | null, preferredPrintingId?: string | null) =>
-    setHovered(
-      id ? { id, origin: "sidebar", preferredPrintingId: preferredPrintingId ?? null } : null,
-    );
   // Overview hovers dock the preview at the right edge ("main-right") instead
   // of chasing the cursor; the zone browser keeps the cursor-following float.
-  const setHoveredMain = (id: string | null, preferredPrintingId?: string | null) => {
-    const overviewShowing = activeZone === null;
-    setHovered(
-      id
-        ? {
-            id,
-            origin: overviewShowing ? "main-right" : "main",
-            preferredPrintingId: preferredPrintingId ?? null,
-          }
-        : null,
-    );
-  };
-
-  // Suppresses the main/overview hover preview while a card is shown (docked
-  // pane or modal); `detailOpen` tracks the shown card, not pane presence.
-  const suppressHoverPreview =
-    detailOpen && (hovered?.origin === "main" || hovered?.origin === "main-right");
-  const hoveredPrinting =
-    hovered && !isMobile && !suppressHoverPreview
-      ? (getPreferredPrinting(hovered.id, hovered.preferredPrintingId) ?? null)
-      : null;
-  const hoveredFrontImage = hoveredPrinting?.images[0] ?? null;
-  const hoveredCard =
-    hoveredPrinting && hoveredFrontImage
-      ? {
-          thumbnailUrl: imageUrl(hoveredFrontImage.imageId, "400w"),
-          fullUrl: imageUrl(hoveredFrontImage.imageId, "full"),
-          landscape: getOrientation(hoveredPrinting.card.types) === "landscape",
-        }
-      : null;
+  const {
+    hoveredCard,
+    origin: hoverOrigin,
+    containerRef,
+    handleHoverSidebar,
+    handleHoverMain,
+  } = useDeckHoverPreview({
+    mainOrigin: activeZone === null ? "main-right" : "main",
+    disabled: isMobile,
+    suppressMain: detailOpen,
+  });
 
   const handleZoneAdd = (zone: DeckZone) => {
     if (zone !== activeZone) {
@@ -337,7 +305,7 @@ function DeckEditorContent({
       onZoneAdd={handleZoneAdd}
       onOverviewClick={handleOverviewClick}
       onOpenPlan={isLocal ? undefined : handleOpenPlan}
-      onHoverCard={setHoveredSidebar}
+      onHoverCard={handleHoverSidebar}
       ownershipData={ownershipData}
       hideStats={activeZone === null}
       hideIdentityHeader={inDrawer}
@@ -402,7 +370,7 @@ function DeckEditorContent({
 
           <HoveredCardPreview
             hoveredCard={hoveredCard}
-            origin={hovered?.origin ?? "sidebar"}
+            origin={hoverOrigin}
             containerRef={containerRef}
           />
 
@@ -442,7 +410,7 @@ function DeckEditorContent({
                   marketplace={marketplace}
                   onZoneClick={handleZoneClick}
                   onViewMissing={() => dialogs.openDialog("missing")}
-                  onHoverCard={setHoveredMain}
+                  onHoverCard={handleHoverMain}
                   onOverviewCardClick={handleOverviewCardClick}
                   onEditDescription={isLocal ? undefined : () => dialogs.openDialog("details")}
                   // Variant families are server-only, so a local deck gets no

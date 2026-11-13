@@ -1,9 +1,8 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { slugifyName } from "@openrift/shared/strings";
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, notFound } from "../../../errors.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
 import { acceptCandidateGroups } from "./accept-candidate-printings.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
@@ -27,18 +26,10 @@ export async function acceptFavoriteNewCard(
   const [primaryCandidate] = favoriteCandidates;
 
   if (!primaryCandidate) {
-    throw new AppError(
-      404,
-      ERROR_CODES.NOT_FOUND,
-      "No favorite-provider source found for this card",
-    );
+    throw notFound("No favorite-provider source found for this card");
   }
   if (primaryCandidate.types.length === 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "The favorite-provider source has no card type",
-    );
+    throw badRequest("The favorite-provider source has no card type");
   }
 
   const cardSlug = slugifyName(primaryCandidate.name);

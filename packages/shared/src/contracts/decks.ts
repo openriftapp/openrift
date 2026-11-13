@@ -198,6 +198,7 @@ export const deckListItemResponseSchema = z.object({
   requiredProgress: z.number().int(),
   requiredTotal: z.number().int(),
   totalValueCents: z.number().int().nullable(),
+  unpricedCardCount: z.number().int().nullable(),
   missingCount: z.number().int().nullable(),
   folderIds: z.array(z.string()),
   familyName: z.string().nullable(),

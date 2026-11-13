@@ -1,4 +1,8 @@
-import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
+import {
+  EMPTY_DECK_LIST_SUMMARY,
+  isValidInDeckList,
+  summarizeDeckCards,
+} from "@openrift/shared/deck-list-summary";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
@@ -64,16 +68,10 @@ export function localDeckToListItem(
       isPrimary: false,
       isDraft: false,
     },
+    ...EMPTY_DECK_LIST_SUMMARY,
     ...stats,
     isValid,
     requiredProgress,
     requiredTotal,
-    totalValueCents: null,
-    // Browser-local decks have no server inventory to diff against.
-    missingCount: null,
-    // Folders are a server-side, per-user feature; a browser-local deck is
-    // never filed in one.
-    folderIds: [],
-    familyName: null,
   };
 }

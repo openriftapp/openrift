@@ -928,3 +928,32 @@ describe("CardThumbnail card page link", () => {
     expect(getByRole("button")).toBeInTheDocument();
   });
 });
+
+describe("CardThumbnail drag tile", () => {
+  function renderTile(dragBlockedLabel?: string) {
+    return render(
+      <CardThumbnail
+        printing={stubPrinting()}
+        onClick={() => {}}
+        display={baseDisplay}
+        dragData={{ type: "browser-card" }}
+        dragId="tile-1"
+        dragBlockedLabel={dragBlockedLabel}
+        aboveCard={<button type="button">Add to deck</button>}
+      />,
+      { wrapper: makeWrapper() },
+    );
+  }
+
+  it("marks a tile the deck has no room for as disabled and names it for the card", () => {
+    const { getByRole } = renderTile("Fury Rune, no room in this zone");
+    const tile = getByRole("button", { name: "Fury Rune, no room in this zone" });
+    expect(tile.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("leaves an addable tile enabled", () => {
+    const { container } = renderTile();
+    const tile = container.querySelector('[aria-roledescription="draggable"]');
+    expect(tile?.getAttribute("aria-disabled")).toBe("false");
+  });
+});

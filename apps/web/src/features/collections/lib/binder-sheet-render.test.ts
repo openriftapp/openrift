@@ -64,6 +64,16 @@ describe("buildBinderSheetDoc", () => {
     expect(doc.getNumberOfPages()).toBe(1);
   });
 
+  it("signs the footer with the host the share link points at", async () => {
+    const doc = await buildBinderSheetDoc({
+      ...BASE,
+      shareUrl: "https://cards.example.test/users/share/k3n8vq7m2p4x",
+    });
+    const content = (doc.internal as unknown as { pages: string[][] }).pages.flat().join("\n");
+    expect(content).toContain("(cards.example.test)");
+    expect(content).not.toContain("openrift.app");
+  });
+
   it("still renders when the title and subtitle are blank", async () => {
     const doc = await buildBinderSheetDoc({ ...BASE, title: "", subtitle: "" });
     expect(doc.getNumberOfPages()).toBe(1);

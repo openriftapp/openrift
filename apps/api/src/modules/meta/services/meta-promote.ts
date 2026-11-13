@@ -1,7 +1,6 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import type { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { loadCardNameIndex } from "../../candidates/services/candidate-links.js";
 import { metaEventSlugCandidates } from "../lib/meta-event-naming.js";
@@ -257,11 +256,7 @@ async function createEventWithFreshSlug(
 }
 
 function slugExhausted(name: string): AppError {
-  return new AppError(
-    409,
-    ERROR_CODES.CONFLICT,
-    `Could not find a free slug for "${name}". Rename the event, or add it by hand.`,
-  );
+  return conflict(`Could not find a free slug for "${name}". Rename the event, or add it by hand.`);
 }
 
 function mintSlugId(): string {

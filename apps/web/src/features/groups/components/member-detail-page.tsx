@@ -93,8 +93,16 @@ function MemberTradeSection({
   // Drops suggestions that already have a live trade with this member, so a
   // suggestion and the trade it became aren't counted twice.
   const liveTrades = allTradesData?.items ?? tradesData?.items ?? [];
-  const incomingMatches = withoutLiveTradeMatches(sheet.othersHaveYourWants, liveTrades);
-  const outgoingMatches = withoutLiveTradeMatches(sheet.othersWantYourHaves, liveTrades);
+  const incomingMatches = withoutLiveTradeMatches(
+    sheet.othersHaveYourWants,
+    liveTrades,
+    "incoming",
+  );
+  const outgoingMatches = withoutLiveTradeMatches(
+    sheet.othersWantYourHaves,
+    liveTrades,
+    "outgoing",
+  );
   const { active, actionNeeded } = bucketMemberTrades(liveTrades, userId);
   const tradedCount = liveTrades.filter(
     (trade) => trade.counterparty.userId === userId && isTradedCardTrade(trade),

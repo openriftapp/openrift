@@ -8,10 +8,8 @@ import type {
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import {
-  computeProductSuggestions,
-  productSuggestionKey,
-} from "@openrift/shared/marketplace-suggestions";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
+import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { ReleasePrecision } from "@openrift/shared/set-release";
 import {
@@ -201,7 +199,7 @@ function PrintingRecordBody({
           collectEntries(group),
           computeProductSuggestions(group),
           (entry) =>
-            productSuggestionKey(
+            marketplaceSkuKey(
               entry.marketplace,
               entry.product.externalId,
               entry.product.finish,

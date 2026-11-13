@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { SCAN_ZOOMS } from "@/features/scan/lib/scan-zoom";
+import type { FieldPicker } from "@/lib/persist-merge";
+import { mergeFields, pickBoolean, pickNullableString } from "@/lib/persist-merge";
 
 const DEFAULT_SCAN_LANGUAGE = "EN";
 
@@ -24,19 +26,14 @@ function isScanZoom(value: unknown): value is number {
   return SCAN_ZOOMS.some((zoom) => zoom === value);
 }
 
-function mergeDestination(raw: Record<string, unknown>, current: string | null): string | null {
-  if (typeof raw.destinationCollectionId === "string") {
-    return raw.destinationCollectionId;
+const pickDestination: FieldPicker<string | null> = (value, persisted) => {
+  const stored = pickNullableString(value, persisted);
+  if (stored !== undefined) {
+    return stored;
   }
-  if (raw.destinationCollectionId === null) {
-    return null;
-  }
-  const legacy = raw.targetCollectionId;
-  if (typeof legacy === "string" && legacy !== LEGACY_IDENTIFY_ONLY) {
-    return legacy;
-  }
-  return current;
-}
+  const legacy = persisted?.targetCollectionId;
+  return typeof legacy === "string" && legacy !== LEGACY_IDENTIFY_ONLY ? legacy : undefined;
+};
 
 export const useScanPrefsStore = create<ScanPrefsState>()(
   persist(
@@ -61,22 +58,13 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
         tapToScan: state.tapToScan,
         zoom: state.zoom,
       }),
-      merge: (persisted, current) => {
-        const raw = (persisted as Record<string, unknown>) ?? {};
-        // null is a stored value here ("any language"), not a missing one.
-        const language =
-          typeof raw.cardLanguage === "string" || raw.cardLanguage === null
-            ? raw.cardLanguage
-            : current.cardLanguage;
-        return {
-          ...current,
-          muted: typeof raw.muted === "boolean" ? raw.muted : current.muted,
-          destinationCollectionId: mergeDestination(raw, current.destinationCollectionId),
-          cardLanguage: language,
-          tapToScan: typeof raw.tapToScan === "boolean" ? raw.tapToScan : current.tapToScan,
-          zoom: isScanZoom(raw.zoom) ? raw.zoom : current.zoom,
-        };
-      },
+      merge: mergeFields<ScanPrefsState>({
+        muted: pickBoolean,
+        destinationCollectionId: pickDestination,
+        cardLanguage: pickNullableString,
+        tapToScan: pickBoolean,
+        zoom: (value) => (isScanZoom(value) ? value : undefined),
+      }),
     },
   ),
 );

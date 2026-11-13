@@ -10,7 +10,7 @@ import type {
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { useQuery } from "@tanstack/react-query";
 
-import { hasTurnState, scoreHolder } from "@/features/board-states/lib/board-layout";
+import { hasTurnState, scoreHolder } from "@/features/board-states/lib/board-rules";
 import { PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { getFilterIconPath } from "@/lib/icons";

@@ -1,16 +1,17 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import { pluralize } from "@openrift/shared/strings";
 
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
 import {
-  CARD_ASPECT,
   COLORS,
   cardTile,
   element,
   renderTreeToPng,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
+import { hostLabel, shareCanvas } from "../../system/services/share-image-frame.js";
 
 export interface ErrataImageInput {
   cards: { cardName: string; imageId: string | null }[];
@@ -111,27 +112,17 @@ export async function renderErrataImage(
       stat(input.updateCount, pluralize(input.updateCount, "errata update", "errata updates")),
     ),
     input.siteHost &&
-      element(
-        "div",
-        { display: "flex", marginTop: 10, fontSize: 22, fontWeight: 600, color: COLORS.muted },
-        input.siteHost,
-      ),
+      element("div", { display: "flex", marginTop: 10 }, hostLabel(input.siteHost, 22)),
   );
 
-  const root = element(
-    "div",
+  const root = shareCanvas(
+    width,
+    height,
     {
-      display: "flex",
-      width,
-      height,
       paddingLeft: PAD,
       paddingRight: PAD / 2,
-      backgroundColor: COLORS.background,
       backgroundImage:
         "radial-gradient(60% 80% at 78% 50%, rgba(205,172,110,0.22) 0%, transparent 70%)",
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
     },
     text,
     fan,

@@ -2,19 +2,14 @@ import type {
   WorkspaceEventsResponse,
   WorkspaceHistoryInput,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 
-import { AppError } from "../../../errors.js";
+import { forbidden, notFound } from "../../../errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { toWorkspaceEvent } from "../lib/workspace-presenters.js";
 import type { WorkspaceRepos } from "./workspace-queue.js";
 import { isDeskOnly } from "./workspace-queue.js";
 
 const HISTORY_LIMIT = 200;
-
-function notFound(): AppError {
-  return new AppError(404, ERROR_CODES.NOT_FOUND, "Not found");
-}
 
 async function resolveTarget(
   repos: Pick<WorkspaceRepos, "workspaceRecords">,
@@ -23,20 +18,20 @@ async function resolveTarget(
   if (input.printingId !== undefined) {
     const faceIds = await repos.workspaceRecords.printingFaceIds(input.printingId);
     if (faceIds === null) {
-      throw notFound();
+      throw notFound("Not found");
     }
     return { printingIds: [input.printingId], faceIds };
   }
   const { faceId } = input;
   if (faceId === undefined) {
-    throw notFound();
+    throw notFound("Not found");
   }
   const [exists, printingIds] = await Promise.all([
     repos.workspaceRecords.faceExists(faceId),
     repos.workspaceRecords.facePrintingIds(faceId),
   ]);
   if (!exists) {
-    throw notFound();
+    throw notFound("Not found");
   }
   return { printingIds, faceIds: [faceId] };
 }
@@ -54,7 +49,7 @@ export async function listWorkspaceHistory(
     if (options.input.faceId !== undefined) {
       return { events: [] };
     }
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
+    throw forbidden("Forbidden");
   }
   const rows = await repos.workspaceRecords.eventsOnPrintings(
     target.printingIds,

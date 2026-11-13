@@ -17,7 +17,7 @@ const mockListsRepo = {
   create: vi.fn(() => Promise.resolve({} as object)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
-  setShareToken: vi.fn((..._args: Parameters<Repos["lists"]["setShareToken"]>) =>
+  setShare: vi.fn((..._args: Parameters<Repos["lists"]["setShare"]>) =>
     Promise.resolve(undefined as object | undefined),
   ),
   getShareState: vi.fn(() =>
@@ -789,13 +789,13 @@ describe("DELETE /api/v1/lists/:id/entries/:itemId", () => {
 
 describe("POST /api/v1/lists/:id/share", () => {
   beforeEach(() => {
-    mockListsRepo.setShareToken.mockReset();
+    mockListsRepo.setShare.mockReset();
     mockListsRepo.getShareState.mockReset();
   });
 
   it("mints a fresh share token + isPublic=true when not yet shared", async () => {
     mockListsRepo.getShareState.mockResolvedValue({ shareToken: null, isPublic: false });
-    mockListsRepo.setShareToken.mockResolvedValue({
+    mockListsRepo.setShare.mockResolvedValue({
       ...dbList,
       isPublic: true,
       shareToken: "stub",
@@ -805,8 +805,8 @@ describe("POST /api/v1/lists/:id/share", () => {
     const json = await readJson(res);
     expect(json.isPublic).toBe(true);
     expect(typeof json.shareToken).toBe("string");
-    expect(mockListsRepo.setShareToken).toHaveBeenCalled();
-    const args = mockListsRepo.setShareToken.mock.calls[0] ?? [];
+    expect(mockListsRepo.setShare).toHaveBeenCalled();
+    const args = mockListsRepo.setShare.mock.calls[0] ?? [];
     expect(args[0]).toBe(LIST_ID);
     expect(args[1]).toBe(USER_ID);
     expect(typeof args[2]).toBe("string");
@@ -820,17 +820,17 @@ describe("POST /api/v1/lists/:id/share", () => {
     const json = await readJson(res);
     expect(json.shareToken).toBe("existing");
     expect(json.isPublic).toBe(true);
-    expect(mockListsRepo.setShareToken).not.toHaveBeenCalled();
+    expect(mockListsRepo.setShare).not.toHaveBeenCalled();
   });
 
   it("re-publishes a list that kept its token but is not public", async () => {
     mockListsRepo.getShareState.mockResolvedValue({ shareToken: "existing", isPublic: false });
-    mockListsRepo.setShareToken.mockResolvedValue({ ...dbList, isPublic: true, shareToken: "x" });
+    mockListsRepo.setShare.mockResolvedValue({ ...dbList, isPublic: true, shareToken: "x" });
     const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "POST" });
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.isPublic).toBe(true);
-    expect(mockListsRepo.setShareToken).toHaveBeenCalled();
+    expect(mockListsRepo.setShare).toHaveBeenCalled();
   });
 
   it("returns 404 when not owned", async () => {
@@ -868,18 +868,18 @@ describe("GET /api/v1/lists/:id/share", () => {
 
 describe("DELETE /api/v1/lists/:id/share", () => {
   beforeEach(() => {
-    mockListsRepo.setShareToken.mockReset();
+    mockListsRepo.setShare.mockReset();
   });
 
   it("returns 204 and nulls the token / isPublic", async () => {
-    mockListsRepo.setShareToken.mockResolvedValue(dbList);
+    mockListsRepo.setShare.mockResolvedValue(dbList);
     const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "DELETE" });
     expect(res.status).toBe(204);
-    expect(mockListsRepo.setShareToken).toHaveBeenCalledWith(LIST_ID, USER_ID, null, false);
+    expect(mockListsRepo.setShare).toHaveBeenCalledWith(LIST_ID, USER_ID, null, false);
   });
 
   it("returns 404 when not owned", async () => {
-    mockListsRepo.setShareToken.mockResolvedValue(undefined);
+    mockListsRepo.setShare.mockResolvedValue(undefined);
     const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "DELETE" });
     expect(res.status).toBe(404);
   });

@@ -12,7 +12,7 @@ describe("/stage/source/$token search", () => {
   });
 
   it("drops a malformed preset instead of breaking the source", () => {
-    expect(validateSearch.parse({ preset: 7 })).toEqual({ preset: undefined });
+    expect(validateSearch.parse({ preset: true })).toEqual({ preset: undefined });
   });
 
   it("drops params it does not own", () => {

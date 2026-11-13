@@ -1,13 +1,11 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { getOrientation } from "@openrift/shared/card-orientation";
+import { CARD_ASPECT, getOrientation } from "@openrift/shared/card-orientation";
 
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { cn } from "@/lib/utils";
 import { TIER_TILE_WIDTHS, useDisplayStore } from "@/stores/display-store";
-
-const TILE_ASPECT = 88 / 63;
 
 const ROW_PADDING = 8;
 
@@ -21,7 +19,7 @@ export function useTierTileWidth(): number {
  * taller than a full one, which read as the ladder twitching as cards landed.
  */
 export function tierRowMinHeight(tileWidth: number): number {
-  return tileWidth * TILE_ASPECT + ROW_PADDING;
+  return tileWidth / CARD_ASPECT + ROW_PADDING;
 }
 
 interface TierCardTileProps {

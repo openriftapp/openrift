@@ -1,5 +1,6 @@
 import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import type { DeckResponse, PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -268,7 +269,9 @@ export function useDeckImportFlow() {
   const toVerifyCount = visibleBuckets.filter((bucket) => bucket === "to-verify").length;
   const needsAttentionCount = visibleBuckets.filter((bucket) => bucket === "need-attention").length;
   const skippedCount = skippedIndices.size;
-  const totalCards = importableEntries.reduce((sum, entry) => sum + entry.entry.quantity, 0);
+  const totalCards = deckCardCount(
+    importableEntries.map((entry) => ({ zone: entry.zone, quantity: entry.entry.quantity })),
+  );
 
   const executeReplace = () => {
     if (replaceTarget.mode === "none") {

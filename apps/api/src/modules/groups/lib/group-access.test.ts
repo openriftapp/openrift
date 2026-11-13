@@ -66,8 +66,14 @@ describe("requireRole", () => {
     }
   });
 
-  it("rejects a non-member with 403", () => {
-    expect(() => requireRole(undefined, "member")).toThrow(AppError);
+  it("answers a non-member with 404, since the group is not theirs to see", () => {
+    expect.assertions(2);
+    try {
+      requireRole(undefined, "admin");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppError);
+      expect((error as AppError).status).toBe(404);
+    }
   });
 });
 

@@ -1,12 +1,11 @@
 import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta";
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
 import type { MetaEventOverlayField, MetaListStatus } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertExisted, assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
 import {
   PLAYLOLTCG_PROVIDER,
@@ -141,7 +140,7 @@ async function rejectTakenEventSlug<T>(slug: string, write: () => Promise<T>): P
     return await write();
   } catch (error) {
     if (isUniqueViolationOn(error, "uq_meta_events_slug")) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Event "${slug}" already exists`);
+      throw conflict(`Event "${slug}" already exists`);
     }
     throw error;
   }
@@ -226,7 +225,7 @@ export const adminMetaRouter = {
     const { meta } = context.repos;
     const clash = await meta.eventBySlug(input.slug);
     if (clash && clash.id !== input.id) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Event "${input.slug}" already exists`);
+      throw conflict(`Event "${input.slug}" already exists`);
     }
     assertExisted(
       await rejectTakenEventSlug(input.slug, () =>
@@ -381,9 +380,7 @@ export const adminMetaRouter = {
     // deleting it here would leave a linked source with no credit and no way to
     // get one back short of a relink.
     if (existing.provider !== null) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "That citation belongs to a linked source. Unlink its candidate to remove it.",
       );
     }

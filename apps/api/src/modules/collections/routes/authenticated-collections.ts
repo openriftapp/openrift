@@ -1,6 +1,5 @@
 import { collectionsContract } from "@openrift/shared/contracts/collections";
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   ClearCollectionResponse,
   CollectionListResponse,
@@ -15,7 +14,7 @@ import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
 import type { CollectionsTable } from "../../../db/tables/collections.js";
-import { AppError } from "../../../errors.js";
+import { conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { keysetPage } from "../../../lib/keyset-cursor.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
@@ -109,7 +108,7 @@ async function planCollectionDelete(
   );
   const { collection } = access;
   if (collection.isInbox) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Cannot delete inbox collection");
+    throw conflict("Cannot delete inbox collection");
   }
   if (collection.groupId) {
     return "group";
@@ -285,11 +284,7 @@ export const collectionsRouter = {
         await trxRepos.collections.lockById(input.id);
         const copies = await trxRepos.collections.listCopiesInCollection(input.id);
         if (copies.length > 0) {
-          throw new AppError(
-            409,
-            ERROR_CODES.CONFLICT,
-            "Empty the shared collection before deleting it",
-          );
+          throw conflict("Empty the shared collection before deleting it");
         }
         await trxRepos.collections.deleteById(input.id);
       });
@@ -361,7 +356,7 @@ export const collectionsRouter = {
     );
     return enableShare({
       read: () => Promise.resolve(collection),
-      write: (token) => collections.setShareTokenById(input.id, token, true),
+      write: (token) => collections.setShare(input.id, token, true),
     });
   }),
 
@@ -389,7 +384,7 @@ export const collectionsRouter = {
       "unshare this collection",
     );
 
-    const updated = await collections.setShareTokenById(input.id, null, false);
+    const updated = await collections.setShare(input.id, null, false);
     assertFound(updated, "Not found");
   }),
 

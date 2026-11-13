@@ -1,10 +1,8 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-
-import { AppError } from "../errors.js";
+import { badRequest, conflict, notFound } from "../errors.js";
 
 export function assertFound<T>(value: T | null | undefined, message: string): asserts value is T {
   if (value === null || value === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, message);
+    throw notFound(message);
   }
 }
 
@@ -14,7 +12,7 @@ export function assertSlugAvailable(
   entityName: string,
 ): void {
   if (existing !== null && existing !== undefined) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, `${entityName} "${identifier}" already exists`);
+    throw conflict(`${entityName} "${identifier}" already exists`);
   }
 }
 
@@ -33,31 +31,23 @@ export function assertValidReorder<Row>(
 
   const uniqueKeys = new Set(keys);
   if (uniqueKeys.size !== keys.length) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Duplicate ${keyNoun} in reorder list.`);
+    throw badRequest(`Duplicate ${keyNoun} in reorder list.`);
   }
 
   if (keys.length !== rows.length) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Expected ${rows.length} ${keyNoun}, got ${keys.length}.`,
-    );
+    throw badRequest(`Expected ${rows.length} ${keyNoun}, got ${keys.length}.`);
   }
 
   const knownKeys = new Set(rows.map((row) => keyOf(row)));
   const unknown = keys.filter((key) => !knownKeys.has(key));
   if (unknown.length > 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Unknown ${unknownLabel}: ${unknown.join(", ")}`,
-    );
+    throw badRequest(`Unknown ${unknownLabel}: ${unknown.join(", ")}`);
   }
 }
 
 export function assertExisted(existed: boolean, message: string): void {
   if (!existed) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, message);
+    throw notFound(message);
   }
 }
 
@@ -66,7 +56,7 @@ export function assertUpdated(
   message: string,
 ): void {
   if (!result || result.numUpdatedRows === 0n) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, message);
+    throw notFound(message);
   }
 }
 
@@ -75,6 +65,6 @@ export function assertDeleted(
   message: string,
 ): void {
   if (!result || result.numDeletedRows === 0n) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, message);
+    throw notFound(message);
   }
 }

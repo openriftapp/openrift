@@ -111,12 +111,12 @@ type SubmissionDialog = {
 
 function CardThumb({ url, className }: { url: string | null; className: string }) {
   return url === null ? (
-    <div className={cn("bg-muted aspect-[63/88] min-w-0 shrink-0 rounded-sm", className)} />
+    <div className={cn("bg-muted aspect-card min-w-0 shrink-0 rounded-sm", className)} />
   ) : (
     <img
       src={url}
       alt=""
-      className={cn("aspect-[63/88] min-w-0 shrink-0 rounded-sm object-cover", className)}
+      className={cn("aspect-card min-w-0 shrink-0 rounded-sm object-cover", className)}
     />
   );
 }

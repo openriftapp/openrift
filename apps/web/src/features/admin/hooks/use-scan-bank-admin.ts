@@ -1,4 +1,5 @@
 import { adminScanContract } from "@openrift/shared/contracts/admin/scan";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { JobRunStartedResponse } from "@openrift/shared/types/api/admin";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -7,8 +8,6 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { scanKeys } from "@/features/scan/lib/scan-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-export const REBUILD_SCAN_BANK_KIND = "scan.rebuild_bank";
 
 const rebuildScanBankFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
@@ -22,7 +21,7 @@ export function useRebuildScanBank() {
     mutationFn: () => rebuildScanBankFn(),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: adminKeys.jobRunsByKind(REBUILD_SCAN_BANK_KIND),
+        queryKey: adminKeys.jobRunsByKind(JOB_KIND.rebuildScanBank),
       });
       void queryClient.invalidateQueries({ queryKey: scanKeys.manifest });
     },

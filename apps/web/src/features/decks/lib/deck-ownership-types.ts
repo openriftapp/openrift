@@ -46,11 +46,13 @@ export interface DeckOwnershipData {
   missingCount: number;
   requiredZoneMissing: number;
   sideboardMissing: number;
-  deckValueCents: number | undefined;
-  mainValueCents: number | undefined;
-  sideboardValueCents: number | undefined;
-  asDisplayedValueCents: number | undefined;
-  missingValueCents: number | undefined;
-  missingAsDisplayedValueCents: number | undefined;
+  deckValue: number | undefined;
+  mainValue: number | undefined;
+  sideboardValue: number | undefined;
+  asDisplayedValue: number | undefined;
+  missingValue: number | undefined;
+  missingAsDisplayedValue: number | undefined;
+  unpricedCount: number;
+  missingUnpricedCount: number;
   missingCards: CardOwnership[];
 }

@@ -33,7 +33,7 @@ describe("/board/$token head", () => {
     expect(headTitle(head)).toBe("Lethal on turn five? - OpenRift");
     expect(headMeta(head, "description")).toBe("A Riftbound board state by Teemo Scout.");
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/board-states/share/BOARD123/image.png?v=1785578400000",
+      "http://localhost:5173/api/v1/board-states/share/BOARD123/image.png?v=1785578400000-r2",
     );
     expect(headCanonical(head)).toBe("http://localhost:5173/board/BOARD123");
   });

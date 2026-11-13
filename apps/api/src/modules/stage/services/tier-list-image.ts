@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import { pluralize } from "@openrift/shared/strings";
@@ -8,88 +9,51 @@ import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
-  CARD_ASPECT,
   COLORS,
   TILE_BORDER,
   cardRadiusPx,
   cardTile,
   element,
-  elideTitle,
   qrDataUri,
-  qrMark,
   renderTreeToPng,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
+import {
+  GOLD_GLOW,
+  SHARE_TYPE,
+  hostFooter,
+  shareCanvas,
+  titleAreaHeight,
+  titleBlock,
+} from "../../system/services/share-image-frame.js";
 
 /**
  * Unranked cards never reach this renderer; empty rows are still drawn.
  * The vertical canvas rows size to their wrapped content, not an even split.
  */
 
-const PAD = 24;
 const GAP = 10;
 
 const TILE_GAP = 4;
-
-const FOOTER_H = 26;
 
 const ROW_GAP = 8;
 const ROW_PAD = 5;
 const MIN_TILE_H = 12;
 const LABEL_W = 58;
 
-const TITLE_MAX_CHARS = 46;
-
-const TITLE_SIZE = 34;
-const BYLINE_SIZE = 22;
-const META_SIZE = 20;
-
 interface TierCanvas {
   width: number;
   height: number;
-  pad: number;
   labelW: number;
-  titleSize: number;
-  bylineSize: number;
-  metaSize: number;
-  titleMaxChars: number;
-  titleH: number;
-  headerQr: number;
   maxLines: number;
 }
 
-const LANDSCAPE: TierCanvas = {
-  ...SHARE_IMAGE_CANVAS.landscape,
-  pad: PAD,
-  labelW: LABEL_W,
-  titleSize: TITLE_SIZE,
-  bylineSize: BYLINE_SIZE,
-  metaSize: META_SIZE,
-  titleMaxChars: TITLE_MAX_CHARS,
-  titleH: 52,
-  headerQr: 104,
-  maxLines: 1,
-};
+const LANDSCAPE: TierCanvas = { ...SHARE_IMAGE_CANVAS.landscape, labelW: LABEL_W, maxLines: 1 };
 
-const VERTICAL: TierCanvas = {
-  ...SHARE_IMAGE_CANVAS.vertical,
-  pad: 28,
-  labelW: 88,
-  titleSize: 46,
-  bylineSize: 28,
-  metaSize: 26,
-  titleMaxChars: 30,
-  titleH: 92,
-  headerQr: 132,
-  maxLines: 3,
-};
+const VERTICAL: TierCanvas = { ...SHARE_IMAGE_CANVAS.vertical, labelW: 88, maxLines: 3 };
 
 function canvasFor(aspect: ShareImageAspect): TierCanvas {
   return aspect === "vertical" ? VERTICAL : LANDSCAPE;
-}
-
-export function truncateTierListTitle(title: string, max = TITLE_MAX_CHARS): string {
-  return elideTitle(title, max);
 }
 
 export interface TierListImageEntry {
@@ -460,154 +424,6 @@ function rankedLabel(rankedCount: number): string {
   return `${rankedCount} ${pluralize(rankedCount, "card", "cards")} ranked`;
 }
 
-/**
- * Title and byline share a baseline in their own group; the count is a
- * separate cluster since the spacer between them has no baseline to align against.
- */
-function landscapeTitle(
-  input: TierListImageInput,
-  canvas: TierCanvas,
-  rankedCount: number,
-): Element {
-  return element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      height: canvas.titleH,
-      flexGrow: 1,
-    },
-    element(
-      "div",
-      { display: "flex", flexDirection: "row", alignItems: "baseline", flexGrow: 1 },
-      element(
-        "div",
-        {
-          display: "flex",
-          flexShrink: 1,
-          fontSize: canvas.titleSize,
-          lineHeight: 1,
-          fontWeight: 700,
-          color: COLORS.text,
-          whiteSpace: "nowrap",
-        },
-        truncateTierListTitle(input.title, canvas.titleMaxChars),
-      ),
-      input.ownerName
-        ? element(
-            "div",
-            {
-              display: "flex",
-              flexShrink: 0,
-              marginLeft: 12,
-              fontSize: canvas.bylineSize,
-              lineHeight: 1,
-              fontWeight: 600,
-              color: COLORS.gold,
-            },
-            `by ${input.ownerName}`,
-          )
-        : false,
-      element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
-      element(
-        "div",
-        {
-          display: "flex",
-          flexShrink: 0,
-          fontSize: canvas.metaSize,
-          lineHeight: 1,
-          color: COLORS.muted,
-        },
-        rankedLabel(rankedCount),
-      ),
-    ),
-  );
-}
-
-function verticalTitle(
-  input: TierListImageInput,
-  canvas: TierCanvas,
-  rankedCount: number,
-): Element {
-  return element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      height: canvas.titleH,
-      flexGrow: 1,
-    },
-    element(
-      "div",
-      {
-        display: "flex",
-        fontSize: canvas.titleSize,
-        lineHeight: 1,
-        fontWeight: 700,
-        color: COLORS.text,
-        whiteSpace: "nowrap",
-      },
-      truncateTierListTitle(input.title, canvas.titleMaxChars),
-    ),
-    element(
-      "div",
-      {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 14,
-      },
-      input.ownerName
-        ? element(
-            "div",
-            {
-              display: "flex",
-              fontSize: canvas.bylineSize,
-              lineHeight: 1,
-              fontWeight: 600,
-              color: COLORS.gold,
-            },
-            `by ${input.ownerName}`,
-          )
-        : false,
-      element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
-      element(
-        "div",
-        {
-          display: "flex",
-          fontSize: canvas.metaSize,
-          lineHeight: 1,
-          color: COLORS.muted,
-        },
-        rankedLabel(rankedCount),
-      ),
-    ),
-  );
-}
-
-function titleArea(typeBlock: Element, qrUri: string | null, canvas: TierCanvas): Element {
-  return element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      height: qrUri ? Math.max(canvas.titleH, canvas.headerQr) : canvas.titleH,
-      flexShrink: 0,
-    },
-    typeBlock,
-    qrUri
-      ? element(
-          "div",
-          { display: "flex", flexShrink: 0, marginLeft: 16 },
-          qrMark(qrUri, canvas.headerQr),
-        )
-      : false,
-  );
-}
-
 function boardArtUris(
   io: Io,
   rows: readonly TierListImageRow[],
@@ -637,11 +453,12 @@ export async function renderTierListImage(
   const rows = input.rows;
   const rankedCount = countRanked(rows);
 
-  const innerW = canvas.width - canvas.pad * 2;
+  const type = SHARE_TYPE[aspect];
+  const innerW = canvas.width - type.pad * 2;
   const hasFooter = Boolean(input.siteHost);
-  const titleAreaH = input.shareUrl ? Math.max(canvas.titleH, canvas.headerQr) : canvas.titleH;
+  const titleAreaH = titleAreaHeight(aspect, Boolean(input.shareUrl));
   const boardH =
-    canvas.height - canvas.pad * 2 - titleAreaH - GAP - (hasFooter ? FOOTER_H + GAP : 0);
+    canvas.height - type.pad * 2 - titleAreaH - GAP - (hasFooter ? type.footerH + GAP : 0);
 
   const vertical = aspect === "vertical";
   const fullestRow = rows.reduce((most, row) => Math.max(most, row.cards.length), 0);
@@ -666,16 +483,17 @@ export async function renderTierListImage(
       wrapped?.tileH ?? flat.tileH,
       scale,
     ),
-    input.shareUrl ? qrDataUri(input.shareUrl, scale, canvas.headerQr) : Promise.resolve(null),
+    input.shareUrl ? qrDataUri(input.shareUrl, scale, type.headerQr) : Promise.resolve(null),
   ]);
 
-  const titleRow = titleArea(
-    vertical
-      ? verticalTitle(input, canvas, rankedCount)
-      : landscapeTitle(input, canvas, rankedCount),
+  const titleRow = titleBlock({
+    aspect,
+    title: input.title,
+    ownerName: input.ownerName,
+    meta: rankedLabel(rankedCount),
     qrUri,
-    canvas,
-  );
+    height: titleAreaH,
+  });
 
   const board = element(
     "div",
@@ -701,46 +519,12 @@ export async function renderTierListImage(
   );
 
   const footer: Child =
-    hasFooter &&
-    element(
-      "div",
-      {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        height: FOOTER_H,
-        marginTop: GAP,
-        flexShrink: 0,
-      },
-      input.siteHost
-        ? element(
-            "div",
-            {
-              display: "flex",
-              fontSize: vertical ? 24 : 20,
-              fontWeight: 600,
-              color: COLORS.muted,
-            },
-            input.siteHost,
-          )
-        : false,
-    );
+    hasFooter && hostFooter({ siteHost: input.siteHost, aspect, marginTop: GAP });
 
-  const root = element(
-    "div",
-    {
-      display: "flex",
-      flexDirection: "column",
-      width: canvas.width,
-      height: canvas.height,
-      padding: canvas.pad,
-      backgroundColor: COLORS.background,
-      backgroundImage:
-        "radial-gradient(80% 120% at 0% 0%, rgba(205,172,110,0.14) 0%, transparent 60%)",
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
-    },
+  const root = shareCanvas(
+    canvas.width,
+    canvas.height,
+    { flexDirection: "column", padding: type.pad, backgroundImage: GOLD_GLOW },
     titleRow,
     element("div", { display: "flex", height: GAP, flexShrink: 0 }),
     board,

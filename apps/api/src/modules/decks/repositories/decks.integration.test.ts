@@ -172,15 +172,15 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     expect(state).toEqual({ shareToken: null, isPublic: false });
   });
 
-  it("getShareState reflects a shared deck after setShareToken", async () => {
+  it("getShareState reflects a shared deck after setShare", async () => {
     const deckId = createdDeckIds[0]!;
-    await repo.setShareToken(deckId, userId, "AbCdEfGhIjKl", true);
+    await repo.setShare(deckId, userId, "AbCdEfGhIjKl", true);
 
     const state = await repo.getShareState(deckId, userId);
     expect(state).toEqual({ shareToken: "AbCdEfGhIjKl", isPublic: true });
 
     // Reset so later tests see the deck unshared again.
-    await repo.setShareToken(deckId, userId, null, false);
+    await repo.setShare(deckId, userId, null, false);
   });
 
   it("getShareState returns undefined for a deck owned by another user", async () => {
@@ -270,15 +270,15 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
 
   it("keeps the first live share token when two enables race", async () => {
     const deckId = createdDeckIds[1]!;
-    await repo.setShareToken(deckId, userId, null, false);
+    await repo.setShare(deckId, userId, null, false);
 
     const [first, second] = await Promise.all([
-      repo.setShareToken(deckId, userId, "raceTokenAAA", true),
-      repo.setShareToken(deckId, userId, "raceTokenBBB", true),
+      repo.setShare(deckId, userId, "raceTokenAAA", true),
+      repo.setShare(deckId, userId, "raceTokenBBB", true),
     ]);
 
     expect(first?.shareToken).toBe(second?.shareToken);
-    await repo.setShareToken(deckId, userId, null, false);
+    await repo.setShare(deckId, userId, null, false);
   });
 
   it("lets concurrent replaces of the same deck's cards all succeed", async () => {

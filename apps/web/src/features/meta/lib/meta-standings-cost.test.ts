@@ -13,14 +13,37 @@ import {
 
 const ANY: StandingsCostBounds = { maxCost: null, valueRange: { min: null, max: null } };
 
-const OWNED: MetaDeckCost = { needed: 40, owned: 40, value: 120, toComplete: 0 };
-const PARTLY_OWNED: MetaDeckCost = { needed: 40, owned: 20, value: 60, toComplete: 25 };
-const UNPRICED: MetaDeckCost = { needed: 40, owned: 0, value: undefined, toComplete: undefined };
+const OWNED: MetaDeckCost = {
+  needed: 40,
+  owned: 40,
+  value: 120,
+  toComplete: 0,
+  unpriced: 0,
+  unpricedMissing: 0,
+};
+const PARTLY_OWNED: MetaDeckCost = {
+  needed: 40,
+  owned: 20,
+  value: 60,
+  toComplete: 25,
+  unpriced: 0,
+  unpricedMissing: 0,
+};
+const UNPRICED: MetaDeckCost = {
+  needed: 40,
+  owned: 0,
+  value: undefined,
+  toComplete: undefined,
+  unpriced: 0,
+  unpricedMissing: 0,
+};
 const SIGNED_OUT: MetaDeckCost = {
   needed: 40,
   owned: undefined,
   value: 200,
   toComplete: undefined,
+  unpriced: 0,
+  unpricedMissing: 0,
 };
 
 function player(overrides: Partial<MetaEventPlayer> = {}): MetaEventPlayer {
@@ -55,7 +78,10 @@ const COSTS = new Map<string, MetaDeckCost>([
   ["owned", OWNED],
   ["partly", PARTLY_OWNED],
   ["unpriced", UNPRICED],
-  ["elsewhere", { needed: 40, owned: 0, value: 900, toComplete: 900 }],
+  [
+    "elsewhere",
+    { needed: 40, owned: 0, value: 900, toComplete: 900, unpriced: 0, unpricedMissing: 0 },
+  ],
 ]);
 
 describe("isCostFilterActive", () => {

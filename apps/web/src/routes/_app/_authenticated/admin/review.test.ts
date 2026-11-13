@@ -18,7 +18,11 @@ describe("/admin/review search", () => {
     expect(validateSearch.parse({})).toEqual({});
   });
 
-  it("rejects an unknown filter", () => {
-    expect(() => validateSearch.parse({ filter: "everything" })).toThrow();
+  it("falls back to the default filter and keeps the query", () => {
+    expect(validateSearch.parse({ filter: "everything", q: "ahri" })).toEqual({ q: "ahri" });
+  });
+
+  it("keeps an all-number query the router parsed as a number", () => {
+    expect(validateSearch.parse({ q: 123 })).toEqual({ q: "123" });
   });
 });

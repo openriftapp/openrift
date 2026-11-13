@@ -74,12 +74,28 @@ const ACTION_SENTENCES: Record<string, string> = {
   "image.set-needs-trim": "Flagged an image for trimming",
   "image.unrehost": "Dropped the local copy of an image",
   "image.upload": "Uploaded an image",
+  "marketplace-group.update": "Edited a marketplace group",
+  "marketplace-product.ignore": "Ignored marketplace products",
+  "marketplace-product.unignore": "Stopped ignoring marketplace products",
+  "marketplace-variant.assign-card": "Assigned a marketplace listing to this card",
+  "marketplace-variant.ignore": "Ignored marketplace listings",
+  "marketplace-variant.map": "Linked a marketplace listing to a printing",
+  "marketplace-variant.unassign-card": "Unassigned a marketplace listing from its card",
+  "marketplace-variant.unignore": "Stopped ignoring marketplace listings",
+  "marketplace-variant.unmap": "Unlinked a marketplace listing from a printing",
+  "marketplace.clear-prices": "Cleared a marketplace's price data",
   "printing.accept": "Added a printing",
   "printing.accept-favorites": "Added printings from trusted sources",
   "printing.create": "Added a printing",
   "printing.delete": "Deleted a printing",
   "printing.fallback-art": "Changed the stand-in art",
   "printing.update": "Edited a printing",
+  "product.create": "Created a product",
+  "product.delete": "Deleted a product",
+  "product.resync": "Refreshed a product's contents from its list",
+  "product.update": "Edited a product",
+  "provider-setting.reorder": "Reordered the sources",
+  "provider-setting.update": "Edited a source's settings",
   "provider.delete-candidates": "Removed a source's data",
 };
 
@@ -106,7 +122,9 @@ export function historyKind(action: string): HistoryKind {
     action.startsWith("candidate-card.") ||
     action.startsWith("candidate-printing.") ||
     action.startsWith("candidates.") ||
-    action.startsWith("provider.")
+    action.startsWith("provider.") ||
+    action.startsWith("provider-setting.") ||
+    action.startsWith("marketplace")
   ) {
     return "sources";
   }

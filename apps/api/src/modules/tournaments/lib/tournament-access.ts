@@ -1,8 +1,7 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { TournamentHostType } from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { forbidden, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import { hasOrgRole, loadOrg, requireOrgRole } from "./org-access.js";
@@ -65,7 +64,7 @@ export async function requireManage(
 ): Promise<void> {
   const allowed = await repos.tournaments.isHostOrStaff(tournament.id, userId, ["organizer"]);
   if (!allowed) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Host or organizer only");
+    throw forbidden("Host or organizer only");
   }
 }
 
@@ -85,7 +84,7 @@ export async function requireStaff(
     "judge",
   ]);
   if (!allowed) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Host, organizer, or judge only");
+    throw forbidden("Host, organizer, or judge only");
   }
 }
 
@@ -96,7 +95,7 @@ export async function requireHost(
   userId: string,
 ): Promise<void> {
   if (!(await isHost(repos, tournament, userId))) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Host only");
+    throw forbidden("Host only");
   }
 }
 
@@ -107,7 +106,7 @@ export async function loadParticipant(
 ): Promise<TournamentParticipant> {
   const participant = await repos.tournaments.getParticipantById(participantId);
   if (!participant || participant.tournamentId !== tournamentId) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Participant not found");
+    throw notFound("Participant not found");
   }
   return participant;
 }

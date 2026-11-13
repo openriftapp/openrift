@@ -1,4 +1,5 @@
-import { imageUrl } from "@openrift/shared/image-url";
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { CSSProperties, ComponentType, SVGProps } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
@@ -87,8 +88,7 @@ function fanCardStyle(
   cardWidth: number,
   anchor: "bottom" | "center",
 ): CSSProperties {
-  // The aspect-card ratio is 63/88, so the height is width * 88 / 63.
-  const verticalCenter = anchor === "center" ? { marginTop: (-cardWidth * 88) / 63 / 2 } : {};
+  const verticalCenter = anchor === "center" ? { marginTop: -cardWidth / CARD_ASPECT / 2 } : {};
   return {
     width: cardWidth,
     zIndex: slot.z,
@@ -112,7 +112,7 @@ function coverSources(
   }
   return {
     src: imageUrl(cover.imageId, variant),
-    srcSet: `${imageUrl(cover.imageId, "120w")} 120w, ${imageUrl(cover.imageId, "240w")} 240w, ${imageUrl(cover.imageId, "400w")} 400w`,
+    srcSet: imageSrcSet(cover.imageId, ["120w", "240w", "400w"]),
     sizes: `${cardWidth}px`,
   };
 }

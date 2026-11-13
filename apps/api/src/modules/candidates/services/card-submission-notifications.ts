@@ -1,10 +1,10 @@
 import type { IngestCard } from "@openrift/shared/contracts/admin/card-mutations";
 
 import type { Repos } from "../../../deps.js";
+import { sendChannelEmail } from "../../../email.js";
 import type { EmailDeps } from "../../../email.js";
 import { buildCardSubmissionAlertEmail } from "../../../emails/card-submission-emails.js";
 import type { CardSubmissionPrintingLine } from "../../../emails/card-submission-emails.js";
-import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
 
 export interface CardSubmissionAlert {
   submitterUserId: string;
@@ -58,39 +58,18 @@ export async function notifyAdminsOfCardSubmission(
     const printings = printingLines(submission.card);
 
     for (const recipient of recipients) {
-      const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-        deps.appBaseUrl,
-        deps.unsubscribeSecret,
-        recipient.userId,
-        "cardSubmissions",
+      await sendChannelEmail(deps, recipient, "cardSubmissions", ({ unsubscribeUrl }) =>
+        buildCardSubmissionAlertEmail({
+          recipientName: recipient.name,
+          submitterName: submitter?.name ?? null,
+          submitterEmail: submitter?.email ?? submission.submitterUserId,
+          cardName: submission.card.name,
+          printings,
+          note: submission.note,
+          reviewUrl: url,
+          unsubscribeUrl,
+        }),
       );
-      const { subject, html } = buildCardSubmissionAlertEmail({
-        recipientName: recipient.name,
-        submitterName: submitter?.name ?? null,
-        // The submitter row is gone only if the account vanished between the
-        // insert and here; the id keeps the email useful either way.
-        submitterEmail: submitter?.email ?? submission.submitterUserId,
-        cardName: submission.card.name,
-        printings,
-        note: submission.note,
-        reviewUrl: url,
-        unsubscribeUrl: pageUrl,
-      });
-
-      // Send per-admin: a shared To: line would leak other admins' addresses.
-      try {
-        await deps.sendEmail({
-          to: recipient.email,
-          subject,
-          html,
-          listUnsubscribeUrl: oneClickUrl,
-        });
-      } catch (error) {
-        deps.log.error(
-          { err: error, recipientUserId: recipient.userId },
-          "Failed to send card-submission admin email",
-        );
-      }
     }
   } catch (error) {
     deps.log.error(

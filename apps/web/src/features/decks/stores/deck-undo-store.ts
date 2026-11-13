@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 /**
  * Edits landing within this window of the previous record collapse into one
@@ -27,8 +27,8 @@ export function sameDeckCards(
   if (before.length !== after.length) {
     return false;
   }
-  const quantities = new Map(before.map((card) => [getDeckCardKey(card), card.quantity]));
-  return after.every((card) => quantities.get(getDeckCardKey(card)) === card.quantity);
+  const quantities = new Map(before.map((card) => [deckCardKey(card), card.quantity]));
+  return after.every((card) => quantities.get(deckCardKey(card)) === card.quantity);
 }
 
 interface DeckUndoState {

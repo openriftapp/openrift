@@ -4,7 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 export function printingRowLabel(
   printing: Printing,
@@ -37,7 +37,7 @@ export function entryPrintingLabels(
       new Set(siblings.map((printing) => distinctPrintingCode(printing))).size > 1;
     for (const { entry, printing } of resolved) {
       if (entry.preferredPrintingId === null) {
-        result.set(getDeckCardKey(entry), defaultLabel);
+        result.set(deckCardKey(entry), defaultLabel);
         continue;
       }
       if (!printing) {
@@ -49,7 +49,7 @@ export function entryPrintingLabels(
         ...(language ? [language] : []),
         ...rest,
       ];
-      result.set(getDeckCardKey(entry), parts.length > 0 ? parts.join(" · ") : standardLabel);
+      result.set(deckCardKey(entry), parts.length > 0 ? parts.join(" · ") : standardLabel);
     }
   }
   return result;

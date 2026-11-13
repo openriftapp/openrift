@@ -417,8 +417,14 @@ describe("MetaDeckBrowserPage", () => {
     captured.eventCount = 7;
     captured.archiveTotal = 6266;
     captured.costs = new Map([
-      ["winner", { owned: 40, needed: 40, value: 120, toComplete: 0 }],
-      ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
+      [
+        "winner",
+        { owned: 40, needed: 40, value: 120, toComplete: 0, unpriced: 0, unpricedMissing: 0 },
+      ],
+      [
+        "eighth",
+        { owned: 4, needed: 40, value: 120, toComplete: 95, unpriced: 0, unpricedMissing: 0 },
+      ],
     ]);
     render(<MetaDeckBrowserPage />);
     expect(screen.getAllByText("1 deck on this page").length).toBe(1);
@@ -432,8 +438,28 @@ describe("MetaDeckBrowserPage", () => {
     captured.eventCount = 7;
     captured.archiveTotal = 6266;
     captured.costs = new Map([
-      ["winner", { owned: undefined, needed: 40, value: 120, toComplete: undefined }],
-      ["eighth", { owned: undefined, needed: 40, value: 60, toComplete: undefined }],
+      [
+        "winner",
+        {
+          owned: undefined,
+          needed: 40,
+          value: 120,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
+      [
+        "eighth",
+        {
+          owned: undefined,
+          needed: 40,
+          value: 60,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
     ]);
     render(<MetaDeckBrowserPage />);
     expect(screen.getAllByText("1 deck on this page").length).toBe(1);
@@ -447,8 +473,14 @@ describe("MetaDeckBrowserPage", () => {
     captured.eventCount = 7;
     captured.archiveTotal = 6266;
     captured.costs = new Map([
-      ["winner", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
-      ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
+      [
+        "winner",
+        { owned: 4, needed: 40, value: 120, toComplete: 95, unpriced: 0, unpricedMissing: 0 },
+      ],
+      [
+        "eighth",
+        { owned: 4, needed: 40, value: 120, toComplete: 95, unpriced: 0, unpricedMissing: 0 },
+      ],
     ]);
     render(<MetaDeckBrowserPage />);
     expect(screen.getAllByText("0 decks on this page").length).toBe(1);
@@ -462,7 +494,12 @@ describe("MetaDeckBrowserPage", () => {
     captured.total = 60;
     captured.eventCount = 7;
     captured.archiveTotal = 6266;
-    captured.costs = new Map([["winner", { owned: 40, needed: 40, value: 120, toComplete: 0 }]]);
+    captured.costs = new Map([
+      [
+        "winner",
+        { owned: 40, needed: 40, value: 120, toComplete: 0, unpriced: 0, unpricedMissing: 0 },
+      ],
+    ]);
     render(<MetaDeckBrowserPage />);
     expect(seen(/^60 of 6,266 archived decks · /u)).toBe(true);
     expect(seen("60 of 6,266 archived decks · 7 events")).toBe(true);
@@ -543,8 +580,14 @@ describe("MetaDeckBrowserPage", () => {
     captured.signedIn = true;
     captured.search = { all: true, by: "cost", dir: "asc" };
     captured.costs = new Map([
-      ["winner", { owned: 10, needed: 40, value: 120, toComplete: 90 }],
-      ["eighth", { owned: 38, needed: 40, value: 60, toComplete: 5 }],
+      [
+        "winner",
+        { owned: 10, needed: 40, value: 120, toComplete: 90, unpriced: 0, unpricedMissing: 0 },
+      ],
+      [
+        "eighth",
+        { owned: 38, needed: 40, value: 60, toComplete: 5, unpriced: 0, unpricedMissing: 0 },
+      ],
     ]);
     render(<MetaDeckBrowserPage />);
     const rows = screen.getAllByRole("listitem");
@@ -579,7 +622,12 @@ describe("MetaDeckBrowserPage", () => {
 
   it("counts the reader's own cards on each row once the collection is in", () => {
     captured.signedIn = true;
-    captured.costs = new Map([["winner", { owned: 34, needed: 40, value: 120, toComplete: 30 }]]);
+    captured.costs = new Map([
+      [
+        "winner",
+        { owned: 34, needed: 40, value: 120, toComplete: 30, unpriced: 0, unpricedMissing: 0 },
+      ],
+    ]);
     render(<MetaDeckBrowserPage />);
     expect(seen("34/40 owned")).toBe(true);
     expect(screen.getAllByText("€120").length).toBeGreaterThan(0);
@@ -589,8 +637,14 @@ describe("MetaDeckBrowserPage", () => {
     captured.signedIn = true;
     captured.search = { all: true, cost: 0 };
     captured.costs = new Map([
-      ["winner", { owned: 40, needed: 40, value: 120, toComplete: 0 }],
-      ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
+      [
+        "winner",
+        { owned: 40, needed: 40, value: 120, toComplete: 0, unpriced: 0, unpricedMissing: 0 },
+      ],
+      [
+        "eighth",
+        { owned: 4, needed: 40, value: 120, toComplete: 95, unpriced: 0, unpricedMissing: 0 },
+      ],
     ]);
     render(<MetaDeckBrowserPage />);
     expect(seen("Nova")).toBe(true);
@@ -607,8 +661,28 @@ describe("MetaDeckBrowserPage", () => {
   it("never narrows a signed-out reader by a cost they cannot be measured against", () => {
     captured.search = { all: true, cost: 0 };
     captured.costs = new Map([
-      ["winner", { owned: undefined, needed: 40, value: 120, toComplete: undefined }],
-      ["eighth", { owned: undefined, needed: 40, value: 120, toComplete: undefined }],
+      [
+        "winner",
+        {
+          owned: undefined,
+          needed: 40,
+          value: 120,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
+      [
+        "eighth",
+        {
+          owned: undefined,
+          needed: 40,
+          value: 120,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
     ]);
     render(<MetaDeckBrowserPage />);
     expect(seen("Nova")).toBe(true);

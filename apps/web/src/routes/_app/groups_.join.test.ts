@@ -15,7 +15,11 @@ describe("/groups/join search", () => {
     expect(validateSearch({})).toEqual({});
   });
 
-  it("rejects a code that is not a string", () => {
-    expect(() => validateSearch({ code: 42 })).toThrow();
+  it("drops a code that is not text", () => {
+    expect(validateSearch({ code: true })).toEqual({});
+  });
+
+  it("keeps an all-number code the router parsed as a number", () => {
+    expect(validateSearch({ code: 4242 })).toEqual({ code: "4242" });
   });
 });

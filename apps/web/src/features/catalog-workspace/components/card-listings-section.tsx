@@ -22,7 +22,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { IgnoredProductsNote } from "@/features/admin/components/ignored-products-note";
 import { PrintingLabel } from "@/features/admin/components/marketplace-printing-label";
-import { MARKETPLACE_CONFIGS } from "@/features/admin/components/marketplace-product-entries";
 import { ProductLink } from "@/features/admin/components/price-mappings-utils";
 import { PrintingPairNamesContext } from "@/features/admin/components/printing-pair-names";
 import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
@@ -34,6 +33,7 @@ import {
   useUnifiedUnassignFromCard,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
@@ -173,7 +173,7 @@ function ListingRow({
       <Badge variant="outline">{marketplaceLabel(marketplace)}</Badge>
       <span className="min-w-0 flex-1 break-words">
         <ProductLink
-          config={MARKETPLACE_CONFIGS[marketplace]}
+          config={SOURCE_CONFIGS[marketplace]}
           externalId={product.externalId}
           language={product.language}
         >

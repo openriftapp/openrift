@@ -29,6 +29,10 @@ export const stagedProductResponseSchema = z.object({
     .number()
     .nullable()
     .meta({ examples: [325] }),
+  zeroLowCents: z
+    .number()
+    .nullable()
+    .meta({ examples: [310] }),
   currency: z.string().meta({ examples: ["USD"] }),
   recordedAt: z.string().meta({ examples: ["2026-04-01T12:00:00.000Z"] }),
   midCents: z

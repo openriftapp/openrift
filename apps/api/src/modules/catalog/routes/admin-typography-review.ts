@@ -1,13 +1,12 @@
 import type { TypographyTarget } from "@openrift/shared/contracts/admin/typography-review";
 import { adminTypographyReviewContract } from "@openrift/shared/contracts/admin/typography-review";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import { WellKnown } from "@openrift/shared/well-known";
 import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
 import type { FacesTable } from "../../../db/tables/catalog.js";
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 
@@ -59,11 +58,7 @@ function printingUpdateFor(
     }
     default: {
       const unhandled: never = field;
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Unsupported printing field: ${String(unhandled)}`,
-      );
+      throw badRequest(`Unsupported printing field: ${String(unhandled)}`);
     }
   }
 }

@@ -1,3 +1,4 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { MARKETPLACE_PRINTING_LANGUAGES } from "@openrift/shared/types/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Kysely } from "kysely";
@@ -118,7 +119,7 @@ export function marketplaceMappingVariantsRepo(db: Db) {
         }
       >();
       for (const v of values) {
-        const key = `${v.marketplace}::${v.externalId}::${v.finish}::${v.language ?? ""}`;
+        const key = marketplaceSkuKey(v.marketplace, v.externalId, v.finish, v.language);
         if (!productRowsByKey.has(key)) {
           productRowsByKey.set(key, {
             marketplace: v.marketplace,
@@ -154,14 +155,14 @@ export function marketplaceMappingVariantsRepo(db: Db) {
 
       const productIdByKey = new Map(
         products.map((p) => [
-          `${p.marketplace}::${p.externalId}::${p.finish}::${p.language ?? ""}`,
+          marketplaceSkuKey(p.marketplace, p.externalId, p.finish, p.language),
           p.id,
         ]),
       );
 
       const variantRows = values.map((v) => {
         const productId = productIdByKey.get(
-          `${v.marketplace}::${v.externalId}::${v.finish}::${v.language ?? ""}`,
+          marketplaceSkuKey(v.marketplace, v.externalId, v.finish, v.language),
         );
         if (!productId) {
           throw new Error(

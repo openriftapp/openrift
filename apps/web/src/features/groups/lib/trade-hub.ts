@@ -233,19 +233,19 @@ export function buildTradeHubCards<
   TMatch extends MatchSuggestionFields,
 >(input: TradeHubCardsInput<TMember, TMatch>): TradeHubCard<TMember>[] {
   const incomingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.incoming, input.allTrades),
+    withoutLiveTradeMatches(input.incoming, input.allTrades, "incoming"),
     (match) => match.counterpartyUserId,
   );
   const outgoingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.outgoing, input.allTrades),
+    withoutLiveTradeMatches(input.outgoing, input.allTrades, "outgoing"),
     (match) => match.counterpartyUserId,
   );
   const elsewhereIncomingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.elsewhereIncoming, input.allTrades),
+    withoutLiveTradeMatches(input.elsewhereIncoming, input.allTrades, "incoming"),
     (match) => match.counterpartyUserId,
   );
   const elsewhereOutgoingByPerson = Map.groupBy(
-    withoutLiveTradeMatches(input.elsewhereOutgoing, input.allTrades),
+    withoutLiveTradeMatches(input.elsewhereOutgoing, input.allTrades, "outgoing"),
     (match) => match.counterpartyUserId,
   );
   const tradesByPerson = Map.groupBy(input.groupTrades, (trade) => trade.counterparty.userId);

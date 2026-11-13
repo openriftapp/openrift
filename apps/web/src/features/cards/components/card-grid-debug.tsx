@@ -1,9 +1,9 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
 import {
   BUTTON_PAD,
-  CARD_ASPECT_INVERSE,
   LABEL_WRAPPER_MT,
   META_LABEL_PY,
   META_LINE_GAP,
@@ -93,7 +93,7 @@ export function CardGridDebug({
       const prevTotal = prevTotalRef.current;
 
       const { gap, cardWidth, gutter } = computeGridMetrics(containerWidth, columns);
-      const expImgH = (cardWidth - BUTTON_PAD * 2) * CARD_ASPECT_INVERSE;
+      const expImgH = (cardWidth - BUTTON_PAD * 2) / CARD_ASPECT;
       const expRow = estimateRowHeight(items[0]?.index ?? 0);
 
       // oxlint-disable-next-line unicorn/prefer-number-coercion -- CSS px string; Number() would yield NaN

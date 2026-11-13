@@ -10,8 +10,6 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-export const SIBLING_VARIANT_BACKFILL_KIND = "marketplace_variants.backfill_siblings";
-
 const siblingVariantDriftFn = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context }): Promise<SiblingVariantDriftResponse> =>
@@ -34,7 +32,7 @@ export function useSiblingVariantDrift(isBackfillRunning: boolean) {
 
 /**
  * The pass can exceed the API's request timeout; the endpoint answers 202 with
- * a run handle to poll via job-runs (`SIBLING_VARIANT_BACKFILL_KIND`).
+ * a run handle to poll via job-runs (`JOB_KIND.backfillSiblingVariants`).
  */
 export function useBackfillSiblingVariants() {
   return useMutation({

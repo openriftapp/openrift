@@ -3,31 +3,42 @@ import { describe, expect, it } from "vitest";
 import { priceHistoryPoint } from "./price-history-points";
 
 describe("priceHistoryPoint", () => {
-  it("plots the market price with the low alongside for TCGplayer and Cardmarket", () => {
-    expect(priceHistoryPoint({ date: "2026-10-01", market: 452, low: 325 })).toEqual({
+  it("plots the market price with the low alongside where market is the headline", () => {
+    expect(priceHistoryPoint("tcgplayer", { date: "2026-10-01", market: 452, low: 325 })).toEqual({
       date: "2026-10-01",
       value: 452,
-      low: 325,
+      secondary: 325,
     });
   });
 
-  it("plots the Zero price for CardTrader", () => {
-    expect(priceHistoryPoint({ date: "2026-10-01", zeroLow: 420, low: 390 })).toEqual({
+  it("plots the low price, the figure players see, with the market alongside on Cardmarket", () => {
+    expect(priceHistoryPoint("cardmarket", { date: "2026-10-01", market: 452, low: 325 })).toEqual({
       date: "2026-10-01",
-      value: 420,
-      low: 390,
+      value: 325,
+      secondary: 452,
     });
+    expect(
+      priceHistoryPoint("cardmarket", { date: "2026-10-01", market: 452, low: null }).value,
+    ).toBe(452);
   });
 
-  it("keeps a missing CardTrader Zero price empty", () => {
-    expect(priceHistoryPoint({ date: "2026-10-01", zeroLow: null, low: 390 }).value).toBeNull();
+  it("plots the hub-seller price on the per-seller marketplace", () => {
+    expect(priceHistoryPoint("cardtrader", { date: "2026-10-01", zeroLow: 420, low: 390 })).toEqual(
+      { date: "2026-10-01", value: 420, secondary: 390 },
+    );
   });
 
-  it("plots the lowest listing for CardNexus without a second low line", () => {
-    expect(priceHistoryPoint({ date: "2026-10-01", low: 370 })).toEqual({
+  it("keeps a missing hub-seller price empty", () => {
+    expect(
+      priceHistoryPoint("cardtrader", { date: "2026-10-01", zeroLow: null, low: 390 }).value,
+    ).toBeNull();
+  });
+
+  it("plots the lowest listing without a second line where only low is known", () => {
+    expect(priceHistoryPoint("cardnexus", { date: "2026-10-01", low: 370 })).toEqual({
       date: "2026-10-01",
       value: 370,
-      low: null,
+      secondary: null,
     });
   });
 });

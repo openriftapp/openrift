@@ -101,9 +101,6 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
           {[entry.groupName, eventDate].filter(Boolean).join(" · ")}
         </span>
         <span className="flex-1" />
-        {entry.reviewOutcome === "issue" && entry.state === "editable" ? (
-          <Badge variant="destructive">{m.tournaments_my_deck_changes_requested()}</Badge>
-        ) : null}
         {entry.unlockRequested ? (
           <Badge variant="outline">{m.tournaments_deck_check_unlock_requested()}</Badge>
         ) : null}

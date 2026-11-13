@@ -51,13 +51,3 @@ export type AnySnapshot =
   | CardmarketSnapshot
   | CardtraderSnapshot
   | CardnexusSnapshot;
-
-export function snapshotHeadline(snap: AnySnapshot): number {
-  if ("market" in snap) {
-    return snap.market;
-  }
-  if ("zeroLow" in snap) {
-    return (snap.zeroLow ?? snap.low) as number;
-  }
-  return snap.low as number;
-}

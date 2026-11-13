@@ -1,5 +1,5 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
 import type {
   StagedProductResponse,
   UnifiedMappingGroupResponse,
@@ -41,6 +41,7 @@ function staged(overrides: Partial<StagedProductResponse> = {}): StagedProductRe
     language: "EN",
     marketCents: 100,
     lowCents: null,
+    zeroLowCents: null,
     midCents: null,
     highCents: null,
     trendCents: null,
@@ -82,7 +83,7 @@ function suggestions(
 ): Map<string, ProductSuggestion[]> {
   return new Map(
     entries.map(([product, list]) => [
-      productSuggestionKey("cardtrader", product.externalId, product.finish, product.language),
+      marketplaceSkuKey("cardtrader", product.externalId, product.finish, product.language),
       list,
     ]),
   );

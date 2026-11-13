@@ -12,6 +12,10 @@ export function getSiteUrl(): string {
   return globalThis.window.location.origin;
 }
 
+export function getSiteHost(): string {
+  return new URL(getSiteUrl()).host;
+}
+
 export function getIsPreview(): boolean {
   if (globalThis.window === undefined) {
     return process.env.APP_ENV === "preview";

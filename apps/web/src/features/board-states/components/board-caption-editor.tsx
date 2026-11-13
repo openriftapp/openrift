@@ -1,3 +1,4 @@
+import { pieceNumerals } from "@openrift/shared/board-layout";
 import type { BoardChainEntry, BoardPiece } from "@openrift/shared/board-state";
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -6,7 +7,6 @@ import { useRef, useState } from "react";
 import { Pressable } from "@/components/ui/pressable";
 import { Textarea } from "@/components/ui/textarea";
 import { chainEntryLabel, describeZone, pieceName } from "@/features/board-states/lib/board-labels";
-import { pieceNumerals } from "@/features/board-states/lib/board-layout";
 import { PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";

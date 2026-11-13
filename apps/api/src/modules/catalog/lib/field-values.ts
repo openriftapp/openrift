@@ -1,7 +1,6 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ZodType } from "zod";
 
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 
 export function validateFieldValue(
@@ -14,9 +13,7 @@ export function validateFieldValue(
   }
   const parsed = validator.safeParse(value);
   if (!parsed.success) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       `Invalid value for ${field}: ${parsed.error.issues[0]?.message ?? "invalid value"}`,
     );
   }
@@ -26,11 +23,7 @@ export function validateFieldValue(
 /** A foreign-key violation on a field write means an unknown slug reached an FK-backed column. */
 export function asFieldWriteError(error: unknown, field: string, value: unknown): unknown {
   if (isForeignKeyViolation(error)) {
-    return new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Invalid value for ${field}: ${String(value)}`,
-    );
+    return badRequest(`Invalid value for ${field}: ${String(value)}`);
   }
   return error;
 }

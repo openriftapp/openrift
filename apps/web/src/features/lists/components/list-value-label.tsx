@@ -4,10 +4,9 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { ValueWithUnpriced } from "@/features/cards/components/value-with-unpriced";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { computeListValue } from "@/features/lists/lib/list-value";
+import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { formatterForMarketplace } from "@/lib/format";
-import { useDisplayStore } from "@/stores/display-store";
 
 interface ListValueLabelProps {
   kind: ListKind;
@@ -18,16 +17,14 @@ interface ListValueLabelProps {
 export function ListValueLabel({ kind, entries }: ListValueLabelProps) {
   const display = useCardThumbnailDisplay();
   const { printingsByCardId } = useCards();
-  const userLanguages = useDisplayStore((state) => state.languages);
-
-  const scopedPrintingsByCardId =
-    kind === "card" ? filterPrintingsByLanguages(printingsByCardId, userLanguages) : EMPTY_MAP;
+  const languages = useEffectiveLanguageOrder();
 
   const { value, unpriced } = computeListValue({
     entries,
     prices: display.prices,
     marketplace: display.favoriteMarketplace,
-    printingsByCardId: scopedPrintingsByCardId,
+    printingsByCardId: kind === "card" ? printingsByCardId : EMPTY_MAP,
+    languages,
   });
 
   const format = formatterForMarketplace(display.favoriteMarketplace);

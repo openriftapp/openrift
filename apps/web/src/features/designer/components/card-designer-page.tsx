@@ -3,11 +3,7 @@ import { useRef, useState } from "react";
 
 import { TYPE_ICON_COLOR } from "@/features/cards/components/card-placeholder-image";
 import type { ExportAction } from "@/features/cards/lib/card-export";
-import {
-  CARD_EXPORT_WIDTH,
-  exportCardImage,
-  waitForRender,
-} from "@/features/cards/lib/card-export";
+import { CARD_EXPORT_WIDTH, exportCardImage } from "@/features/cards/lib/card-export";
 import { BackgroundImageControl } from "@/features/designer/components/background-image-control";
 import { CardDesignerForm } from "@/features/designer/components/card-designer-form";
 import { CardDesignerPreview } from "@/features/designer/components/card-designer-preview";
@@ -17,6 +13,7 @@ import { useCardDesignerStore } from "@/features/designer/stores/card-designer-s
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getPipGlyphTint } from "@/lib/domain";
 import { downloadFilename } from "@/lib/download";
+import { waitForRender } from "@/lib/html-capture";
 import { getFilterIconPath, getTypeIconPath } from "@/lib/icons";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
 import { m } from "@/paraglide/messages.js";

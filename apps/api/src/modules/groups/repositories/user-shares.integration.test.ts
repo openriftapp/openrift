@@ -77,7 +77,7 @@ describe.skipIf(!ctx)("userSharesRepo (integration)", () => {
       kind: "card",
     });
     createdListIds.push(publicWish.id);
-    await lists.setShareToken(publicWish.id, userId, "wish-tok", true);
+    await lists.setShare(publicWish.id, userId, "wish-tok", true);
 
     const privateWish = await lists.create({
       userId,
@@ -94,7 +94,7 @@ describe.skipIf(!ctx)("userSharesRepo (integration)", () => {
       kind: "copy",
     });
     createdListIds.push(publicTrade.id);
-    await lists.setShareToken(publicTrade.id, userId, "trade-tok", true);
+    await lists.setShare(publicTrade.id, userId, "trade-tok", true);
 
     const organize = await lists.create({
       userId,
@@ -103,7 +103,7 @@ describe.skipIf(!ctx)("userSharesRepo (integration)", () => {
       kind: "card",
     });
     createdListIds.push(organize.id);
-    await lists.setShareToken(organize.id, userId, "organize-tok", true);
+    await lists.setShare(organize.id, userId, "organize-tok", true);
 
     const rows = await repo.listsForOwner(userId, null);
     const ids = rows.map((row) => row.list.id);
@@ -165,7 +165,7 @@ describe.skipIf(!ctx)("userSharesRepo (integration)", () => {
       kind: "card",
     });
     createdListIds.push(publicWish.id);
-    await lists.setShareToken(publicWish.id, userId, "find-public-tok", true);
+    await lists.setShare(publicWish.id, userId, "find-public-tok", true);
 
     const privateWish = await lists.create({
       userId,

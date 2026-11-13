@@ -5,7 +5,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { PlanDraft } from "@/features/decks/lib/deck-plan";
 import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
 import { saveDeckCards } from "@/features/decks/lib/decks-write";
@@ -158,7 +158,7 @@ function createEntry(queryClient: QueryClient, userId: string, deckId: string): 
   entry.collection = createCollection(
     localOnlyCollectionOptions<DeckBuilderCard>({
       id: `deck-draft:${userId}:${deckId}`,
-      getKey: getDeckCardKey,
+      getKey: deckCardKey,
       onInsert: () => {
         scheduleSave(queryClient, userId, entry);
         return Promise.resolve();
@@ -230,7 +230,7 @@ function replaceDraftCards(entry: DraftEntry, cards: DeckBuilderCard[]): void {
   for (const key of entry.collection.keys()) {
     existingKeys.add(key);
   }
-  const incomingKeys = new Set<string | number>(cards.map((card) => getDeckCardKey(card)));
+  const incomingKeys = new Set<string | number>(cards.map((card) => deckCardKey(card)));
 
   for (const key of existingKeys) {
     if (!incomingKeys.has(key)) {
@@ -238,7 +238,7 @@ function replaceDraftCards(entry: DraftEntry, cards: DeckBuilderCard[]): void {
     }
   }
   for (const card of cards) {
-    const key = getDeckCardKey(card);
+    const key = deckCardKey(card);
     if (existingKeys.has(key)) {
       entry.collection.update(key, (draft) => {
         draft.quantity = card.quantity;

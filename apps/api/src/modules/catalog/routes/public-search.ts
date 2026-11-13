@@ -52,7 +52,7 @@ async function searchSource(
   for (const row of priceRows) {
     priceMap[row.printingId] = {
       ...priceMap[row.printingId],
-      [row.marketplace as Marketplace]: row.marketCents,
+      [row.marketplace as Marketplace]: row.headlineCents,
     };
   }
   return {

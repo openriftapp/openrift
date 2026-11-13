@@ -1,5 +1,4 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { canManageMember } from "@openrift/shared/friend-group-roles";
 import type {
   FriendGroupMemberDetailResponse,
@@ -7,7 +6,7 @@ import type {
 } from "@openrift/shared/types/api/friend-group";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -76,11 +75,7 @@ export const friendGroupsMembersRouter = {
 
     const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
     if (ctx.membership.role === "owner") {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "Owner cannot leave without first transferring ownership",
-      );
+      throw conflict("Owner cannot leave without first transferring ownership");
     }
 
     // Cancel the leaver's live trades in this group (releasing reserved copies)
@@ -100,16 +95,16 @@ export const friendGroupsMembersRouter = {
     requireRole(ctx.membership, "owner");
 
     if (targetUserId === viewerId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Cannot transfer to yourself");
+      throw badRequest("Cannot transfer to yourself");
     }
     const target = await friendGroups.getMembership(ctx.group.id, targetUserId);
     if (!target) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Target must already be a member");
+      throw badRequest("Target must already be a member");
     }
 
     const transferred = await friendGroups.transferOwnership(ctx.group.id, viewerId, targetUserId);
     if (!transferred) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "You no longer own this group");
+      throw conflict("You no longer own this group");
     }
   }),
 
@@ -125,13 +120,13 @@ export const friendGroupsMembersRouter = {
       const target = await friendGroups.getMembership(ctx.group.id, targetUserId);
       assertFound(target, "Member not found");
       if (target.role === "owner") {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Cannot demote the owner");
+        throw conflict("Cannot demote the owner");
       }
       if (
         !canManageMember(ctx.membership.role, target.role) ||
         (input.role === "admin" && ctx.membership.role !== "owner")
       ) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only the owner can change admins");
+        throw forbidden("Only the owner can change admins");
       }
 
       const updated = await friendGroups.updateRole(ctx.group.id, targetUserId, input.role);
@@ -153,7 +148,7 @@ export const friendGroupsMembersRouter = {
       const targetUserId = input.userId;
 
       if (targetUserId !== viewerId) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Members can only edit their own contacts");
+        throw forbidden("Members can only edit their own contacts");
       }
       const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
 
@@ -178,15 +173,15 @@ export const friendGroupsMembersRouter = {
     requireRole(ctx.membership, "admin");
 
     if (targetUserId === viewerId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Use /leave to remove yourself");
+      throw badRequest("Use /leave to remove yourself");
     }
     const target = await friendGroups.getMembership(ctx.group.id, targetUserId);
     assertFound(target, "Member not found");
     if (target.role === "owner") {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Cannot kick the owner");
+      throw conflict("Cannot kick the owner");
     }
     if (!canManageMember(ctx.membership.role, target.role)) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only the owner can remove admins");
+      throw forbidden("Only the owner can remove admins");
     }
 
     // Cancel the kicked member's live trades in this group (releasing reserved

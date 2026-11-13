@@ -26,7 +26,6 @@ import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
 import { DeckSelectMark } from "./deck-select-mark";
 import { DraftBadge, FamilyFrontLine, VariantCountToggle } from "./deck-variant-controls";
-import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
 
 export function DeckListRow({
@@ -198,7 +197,7 @@ export function DeckListRow({
       {/* Above the stretched link, so the menu takes its own clicks. */}
       <div className="relative z-10 flex shrink-0 items-center gap-1">
         {isLocal && <LocalDeckBadge className="hidden md:inline-flex" />}
-        {isLocal ? <LocalDeckActionsMenu item={item} /> : <DeckActionsMenu item={item} />}
+        <DeckActionsMenu item={item} source={isLocal ? "local" : "server"} />
       </div>
     </div>
   );

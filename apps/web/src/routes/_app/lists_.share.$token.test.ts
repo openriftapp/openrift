@@ -26,7 +26,7 @@ describe("/lists/share/$token head", () => {
     expect(headTitle(head)).toBe("Wants (Wishlist) - OpenRift");
     expect(headMeta(head, "description")).toBe("A Riftbound wishlist shared by Teemo Scout.");
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/lists/share/LIST123/image.png?v=1785578400000",
+      "http://localhost:5173/api/v1/lists/share/LIST123/image.png?v=1785578400000-r2",
     );
     expect(headCanonical(head)).toBe("http://localhost:5173/lists/share/LIST123");
   });

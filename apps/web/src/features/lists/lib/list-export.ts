@@ -11,7 +11,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
-import { formatPrice, formatPriceEur } from "@/lib/format";
+import { formatCentsInLocale, formatterForMarketplace } from "@/lib/format";
 
 const KIND_NOUN: Record<ListKind, { one: string; many: string }> = {
   card: { one: "card", many: "cards" },
@@ -110,19 +110,17 @@ function tradePriceText(entry: ListEntryDetailResponse, pricing: SharePricing): 
     pricing.tradeDefaults,
     pricing.currency,
   );
-  let value: number | undefined;
   if (effective.pricePref === "absolute") {
     if (effective.priceAbsoluteCents === null || effective.currency === null) {
       return "";
     }
-    value = effective.priceAbsoluteCents / 100;
-  } else if (effective.pricePref === "ct_zero" && entry.kind !== "card") {
-    value = pricing.ctPriceFor?.(entry.printingId);
+    return ` · ${formatCentsInLocale(effective.priceAbsoluteCents, effective.currency)}`;
   }
-  if (value === undefined) {
+  if (effective.pricePref !== "ct_zero" || entry.kind === "card") {
     return "";
   }
-  return ` · ${pricing.currency === "EUR" ? formatPriceEur(value) : formatPrice(value)}`;
+  const ctPrice = pricing.ctPriceFor?.(entry.printingId);
+  return ctPrice === undefined ? "" : ` · ${formatterForMarketplace("cardtrader")(ctPrice)}`;
 }
 
 export function formatListShareText(

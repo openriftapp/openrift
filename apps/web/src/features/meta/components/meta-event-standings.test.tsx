@@ -508,7 +508,17 @@ describe("MetaEventStandings", () => {
 
   it("prices each archived list once the archive's prices are in", () => {
     archive.costs = new Map([
-      ["d1", { needed: 40, owned: undefined, value: 123.4, toComplete: undefined }],
+      [
+        "d1",
+        {
+          needed: 40,
+          owned: undefined,
+          value: 123.4,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
     ]);
     renderStandings([
       metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
@@ -522,7 +532,17 @@ describe("MetaEventStandings", () => {
 
   it("leaves the value blank for a list some card of which has no price", () => {
     archive.costs = new Map([
-      ["d1", { needed: 40, owned: undefined, value: undefined, toComplete: undefined }],
+      [
+        "d1",
+        {
+          needed: 40,
+          owned: undefined,
+          value: undefined,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
     ]);
     renderStandings([metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
 
@@ -532,8 +552,11 @@ describe("MetaEventStandings", () => {
   it("prices what a signed-in reader is missing under the value", () => {
     session.userId = "u-1";
     archive.costs = new Map([
-      ["d1", { needed: 40, owned: 28, value: 123.4, toComplete: 12.5 }],
-      ["d2", { needed: 40, owned: 40, value: 80, toComplete: 0 }],
+      [
+        "d1",
+        { needed: 40, owned: 28, value: 123.4, toComplete: 12.5, unpriced: 0, unpricedMissing: 0 },
+      ],
+      ["d2", { needed: 40, owned: 40, value: 80, toComplete: 0, unpriced: 0, unpricedMissing: 0 }],
     ]);
     renderStandings([
       metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
@@ -547,7 +570,17 @@ describe("MetaEventStandings", () => {
 
   it("prices the list alone for a signed-out reader", () => {
     archive.costs = new Map([
-      ["d1", { needed: 40, owned: undefined, value: 123.4, toComplete: undefined }],
+      [
+        "d1",
+        {
+          needed: 40,
+          owned: undefined,
+          value: 123.4,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        },
+      ],
     ]);
     renderStandings([metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
 
@@ -1080,9 +1113,25 @@ describe("MetaEventStandings", () => {
     function pricedField() {
       session.userId = "u-1";
       archive.costs = new Map([
-        ["d1", { needed: 40, owned: 20, value: 123.4, toComplete: 12.5 }],
-        ["d2", { needed: 40, owned: 40, value: 80, toComplete: 0 }],
-        ["d3", { needed: 40, owned: 30, value: 300, toComplete: 5 }],
+        [
+          "d1",
+          {
+            needed: 40,
+            owned: 20,
+            value: 123.4,
+            toComplete: 12.5,
+            unpriced: 0,
+            unpricedMissing: 0,
+          },
+        ],
+        [
+          "d2",
+          { needed: 40, owned: 40, value: 80, toComplete: 0, unpriced: 0, unpricedMissing: 0 },
+        ],
+        [
+          "d3",
+          { needed: 40, owned: 30, value: 300, toComplete: 5, unpriced: 0, unpricedMissing: 0 },
+        ],
       ]);
       renderStandings([
         metaRow({ id: "p-1", playerName: "Ana", rank: 1, deckId: "d1", shareToken: "tok1" }),
@@ -1195,7 +1244,12 @@ describe("MetaEventStandings", () => {
     it("says a bound emptied this page rather than that the field holds nothing", async () => {
       const user = userEvent.setup();
       session.userId = "u-1";
-      archive.costs = new Map([["d1", { needed: 40, owned: 0, value: 300, toComplete: 250 }]]);
+      archive.costs = new Map([
+        [
+          "d1",
+          { needed: 40, owned: 0, value: 300, toComplete: 250, unpriced: 0, unpricedMissing: 0 },
+        ],
+      ]);
       renderStandings([
         metaRow({ id: "p-1", playerName: "Ana", rank: 1, deckId: "d1", shareToken: "tok1" }),
       ]);

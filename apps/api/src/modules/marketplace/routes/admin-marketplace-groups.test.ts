@@ -11,7 +11,9 @@ const mockMktAdmin = {
   stagingCountsByMarketplaceGroup: vi.fn(),
   assignedCountsByMarketplaceGroup: vi.fn(),
   updateGroup: vi.fn(),
+  getGroup: vi.fn(),
 };
+const mockAdminEvents = { insert: vi.fn() };
 
 // Mounts the oRPC router directly, skipping requireAdmin; AppErrors are bridged
 // to ORPCErrors inside the router, so 4xx responses carry `{ message }`.
@@ -21,7 +23,7 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { marketplaceAdmin: mockMktAdmin } as never);
+  c.set("repos", { marketplaceAdmin: mockMktAdmin, adminEvents: mockAdminEvents } as never);
   await next();
 });
 registerRouterForTest(app, adminMarketplaceGroupsRouter);
@@ -101,6 +103,29 @@ describe("GET /marketplace-groups", () => {
 describe("PATCH /marketplace-groups/:marketplace/:id", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockMktAdmin.getGroup.mockResolvedValue({
+      name: "Origin Set",
+      groupKind: "basic",
+      setId: null,
+    });
+  });
+
+  it("records old and new values of the changed fields only", async () => {
+    mockMktAdmin.updateGroup.mockResolvedValue(true);
+    await app.request("/api/admin/v1/marketplace-groups/tcgplayer/100", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupKind: "special" }),
+    });
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith({
+      actorUserId: USER_ID,
+      action: "marketplace-group.update",
+      entityType: "marketplace-group",
+      entityId: "tcgplayer:100",
+      entityLabel: "Origin Set",
+      oldValues: { groupKind: "basic" },
+      newValues: { groupKind: "special" },
+    });
   });
 
   it("returns 204 on successful name update (coercing the numeric id)", async () => {

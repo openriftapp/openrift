@@ -1,16 +1,19 @@
 import type { Logger } from "@openrift/shared/logger";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
+import { toCents } from "@openrift/shared/money";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
 import { fetchJson, fetchOk } from "../../../../lib/http.js";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
+import type { GroupRow, PriceUpsertConfig } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
 
 const UPSERT_CONFIG: PriceUpsertConfig = {
@@ -117,8 +120,8 @@ function extractPrices(records: CnPriceRecord[]): CnPrice[] {
       }
       for (const [cnLanguage, bucket] of Object.entries(byLanguage)) {
         const language = LANGUAGES[cnLanguage];
-        const lowCents = bucket.low === null ? 0 : Math.round(bucket.low * 100);
-        if (!language || lowCents <= 0) {
+        const lowCents = toCents(bucket.low);
+        if (!language || lowCents === null) {
           continue;
         }
         prices.push({ productId: record.productId, finish, language, lowCents });
@@ -169,7 +172,7 @@ function buildCardnexusStaging(
     if (!card || card.expansionId === null || ignoredKeys.productIds.has(card.id)) {
       continue;
     }
-    if (ignoredKeys.variantKeys.has(`${card.id}::${price.finish}::${price.language}`)) {
+    if (ignoredKeys.variantKeys.has(skuKey(card.id, price.finish, price.language))) {
       continue;
     }
     staging.push({

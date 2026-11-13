@@ -50,7 +50,9 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
     async productCounts(
       wants: CardmarketOverlayWant[],
       userId: string,
+      languages: readonly string[],
     ): Promise<CardmarketOverlayCountRow[]> {
+      const preferredLanguages = [...languages];
       const wantIds = wants.map((_, index) => index);
       const cardIds = wants.map((want) => want.cardId);
       const printingIds = wants.map((want) => want.printingId);
@@ -101,7 +103,7 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
             p.external_id,
             p.finish,
             COALESCE(
-              MIN(mvp.headline_cents) FILTER (WHERE pr.language = 'EN'),
+              MIN(mvp.headline_cents) FILTER (WHERE pr.language = ANY(${preferredLanguages}::text[])),
               MIN(mvp.headline_cents)
             )::int AS price_cents
           FROM marketplace_products p

@@ -1,3 +1,4 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -35,7 +36,6 @@ vi.mock("@/features/cards/hooks/use-responsive-columns", () => ({
 
 import {
   BUTTON_PAD,
-  CARD_ASPECT_INVERSE,
   HEADER_CONTENT_HEIGHT,
   HEADER_PB,
   HEADER_PT,
@@ -48,7 +48,7 @@ import { CardGrid } from "./card-grid";
 // Mirrors CardGrid's estimateRowHeight for the mocked layout above.
 const { gap: GAP, cardWidth: THUMB_WIDTH } = computeGridMetrics(CONTAINER_WIDTH, COLUMNS);
 const CARDS_ROW_HEIGHT = Math.round(
-  (THUMB_WIDTH - BUTTON_PAD * 2) * CARD_ASPECT_INVERSE + LABEL_HEIGHT + BUTTON_PAD * 2,
+  (THUMB_WIDTH - BUTTON_PAD * 2) / CARD_ASPECT + LABEL_HEIGHT + BUTTON_PAD * 2,
 );
 const HEADER_ROW_HEIGHT = HEADER_PT + HEADER_CONTENT_HEIGHT + HEADER_PB;
 

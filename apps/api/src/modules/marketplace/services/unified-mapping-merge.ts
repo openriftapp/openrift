@@ -1,4 +1,5 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type {
   AssignableCardResponse,
   MappingGroupHeader,
@@ -366,6 +367,7 @@ export async function buildUnifiedMappingsCardResponse(
       recordedAt: r.recordedAt,
       marketCents: r.marketCents,
       lowCents: r.lowCents,
+      zeroLowCents: r.zeroLowCents,
       midCents: r.midCents,
       highCents: r.highCents,
       trendCents: r.trendCents,
@@ -401,7 +403,7 @@ export async function buildUnifiedMappingsCardResponse(
     }
     for (const r of rows) {
       if (r.overrideCardId === thisCardId) {
-        overrideMap.set(`${r.externalId}::${r.finish}::${r.language}`, { cardId: thisCardId });
+        overrideMap.set(skuKey(r.externalId, r.finish, r.language), { cardId: thisCardId });
       }
       if (r.groupName !== null) {
         groupNameMap.set(r.groupId, r.groupName);

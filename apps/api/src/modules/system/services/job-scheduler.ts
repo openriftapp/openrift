@@ -7,7 +7,7 @@ import type { Logger } from "@openrift/shared/logger";
 import { Cron } from "croner";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, badRequest } from "../../../errors.js";
 import type { JobScheduleMeta } from "../lib/job-schedule-presenters.js";
 import { toJobScheduleView } from "../lib/job-schedule-presenters.js";
 import { runJob, runJobAsync } from "./run-job.js";
@@ -89,7 +89,7 @@ export function createJobScheduler(deps: JobSchedulerDeps): JobScheduler {
   function requireDefinition(kind: ScheduledJobKind): AnyJobDefinition {
     const definition = byKind.get(kind);
     if (definition === undefined) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Unknown job "${kind}"`);
+      throw badRequest(`Unknown job "${kind}"`);
     }
     return definition;
   }
@@ -97,7 +97,7 @@ export function createJobScheduler(deps: JobSchedulerDeps): JobScheduler {
   function requireAvailable(kind: ScheduledJobKind): AnyJobDefinition {
     const definition = requireDefinition(kind);
     if (definition.unavailableReason !== undefined) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, definition.unavailableReason);
+      throw badRequest(definition.unavailableReason);
     }
     return definition;
   }
@@ -138,11 +138,7 @@ export function createJobScheduler(deps: JobSchedulerDeps): JobScheduler {
     try {
       new Cron(schedule, { paused: true }).stop();
     } catch (error) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Invalid cron expression: ${messageOf(error)}`,
-      );
+      throw badRequest(`Invalid cron expression: ${messageOf(error)}`);
     }
   }
 

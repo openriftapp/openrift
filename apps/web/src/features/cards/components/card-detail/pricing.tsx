@@ -1,5 +1,5 @@
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
-import { snapshotHeadline } from "@openrift/shared/types/api/pricing";
+import { headlinePrice } from "@openrift/shared/price-headline";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { ArrowUpRightIcon } from "lucide-react";
@@ -29,12 +29,8 @@ function usePriceEntries(printing: Printing, range: TimeRange): PriceEntry[] {
   const prices = usePrices();
 
   function latestPrice(marketplace: Marketplace): number | null {
-    const snapshots = history?.[marketplace]?.snapshots;
-    if (!snapshots?.length) {
-      return null;
-    }
-    // oxlint-disable-next-line no-non-null-assertion -- length check above
-    return snapshotHeadline(snapshots.at(-1)!);
+    const latest = history?.[marketplace]?.snapshots.at(-1);
+    return latest === undefined ? null : headlinePrice(marketplace, latest);
   }
 
   // Catalog price is preferred over history since it doesn't wait on history to load.

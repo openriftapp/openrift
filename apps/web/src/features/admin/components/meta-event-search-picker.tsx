@@ -3,7 +3,7 @@ import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { useMetaEventSearch } from "@/features/admin/hooks/use-admin-meta";
+import { useAdminMetaEventSearch } from "@/features/admin/hooks/use-admin-meta";
 import { CatalogSearchCombobox } from "@/features/cards/components/card-search-dropdown";
 
 function EventRow({ event }: { event: AdminMetaEvent }) {
@@ -26,7 +26,7 @@ export function MetaEventSearchPicker({
   onPick: (metaEventId: string, name: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const { data, isPending } = useMetaEventSearch(search);
+  const { data, isPending } = useAdminMetaEventSearch(search);
 
   return (
     <CatalogSearchCombobox<AdminMetaEvent>

@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 export function providerSettingsRepo(db: Kysely<Database>) {
   return {
@@ -14,7 +15,7 @@ export function providerSettingsRepo(db: Kysely<Database>) {
     },
 
     async reorder(providers: string[]) {
-      await db.transaction().execute(async (tx) => {
+      await inTransaction(db, async (tx) => {
         for (const [i, provider] of providers.entries()) {
           await tx
             .insertInto("providerSettings")

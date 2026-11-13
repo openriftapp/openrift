@@ -1,3 +1,4 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
@@ -12,7 +13,6 @@ import {
 } from "./deck-image-parts.js";
 
 /** Portrait card aspect, mirrored from share-image-core. */
-const CARD_ASPECT = 0.715;
 
 function card(
   cardName: string,
@@ -35,7 +35,7 @@ describe("splitDeckZones", () => {
     expect(zones.legend?.cardName).toBe("Scorn of the Moon");
     expect(zones.legendOptions.map((entry) => entry.cardName)).toEqual(["Ekko", "Vi"]);
     expect(zones.gridCards.map((entry) => entry.cardName)).toEqual(["Gust"]);
-    expect(zones.mainCardCount).toBe(3);
+    expect(zones.cardCount).toBe(6);
   });
 
   it("groups a deck into the bands a layout draws", () => {
@@ -75,7 +75,7 @@ describe("splitDeckZones", () => {
     expect(zones.gridCards.map((entry) => entry.cardName)).toEqual(["Ahri", "Zed", "Unknown cost"]);
   });
 
-  it("counts champions and main but not overflow, legend, runes, or battlefields", () => {
+  it("counts every zone but overflow", () => {
     const zones = splitDeckZones([
       card("Scorn of the Moon", "legend"),
       card("Order Rune", "runes", 6),
@@ -85,8 +85,7 @@ describe("splitDeckZones", () => {
       card("Spare copy", "overflow", 2, 1),
       card("Singularity", "sideboard", 2, 6),
     ]);
-    expect(zones.mainCardCount).toBe(6);
-    expect(zones.sideboardCount).toBe(2);
+    expect(zones.cardCount).toBe(16);
     expect(zones.gridCards).toHaveLength(3);
   });
 
@@ -114,7 +113,7 @@ describe("splitDeckZones", () => {
     const zones = splitDeckZones([]);
     expect(zones.legend).toBeNull();
     expect(zones.gridCards).toEqual([]);
-    expect(zones.mainCardCount).toBe(0);
+    expect(zones.cardCount).toBe(0);
   });
 });
 
@@ -143,16 +142,12 @@ describe("runeCountsByDomain", () => {
 });
 
 describe("deckMetaLabel", () => {
-  it("omits the sideboard when there is none", () => {
-    expect(deckMetaLabel("Constructed", 40, 0)).toBe("Constructed · 40 cards");
-  });
-
-  it("reports the sideboard separately", () => {
-    expect(deckMetaLabel("Constructed", 40, 4)).toBe("Constructed · 40 + 4 cards");
+  it("prints the deck's card count", () => {
+    expect(deckMetaLabel("Constructed", 64)).toBe("Constructed · 64 cards");
   });
 
   it("uses the singular for a one-card deck", () => {
-    expect(deckMetaLabel("Freeform", 1, 0)).toBe("Freeform · 1 card");
+    expect(deckMetaLabel("Freeform", 1)).toBe("Freeform · 1 card");
   });
 });
 

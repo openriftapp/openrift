@@ -1,9 +1,9 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
 import {
-  CARD_ASPECT,
   COLORS,
   cardTile,
   elideTitle,
@@ -13,6 +13,7 @@ import {
   renderTreeToPng,
   tileArtDataUri,
 } from "../../system/services/share-image-core.js";
+import { GOLD_GLOW, hostLabel, shareCanvas } from "../../system/services/share-image-frame.js";
 import type { CardShareImageInput } from "./card-share-input.js";
 
 const PAD = 40;
@@ -92,31 +93,15 @@ export async function renderCardShareImage(
       "div",
       { display: "flex", flexDirection: "column", gap: 14 },
       printings,
-      input.siteHost &&
-        element(
-          "div",
-          { display: "flex", fontSize: 24, fontWeight: 600, color: COLORS.muted },
-          input.siteHost,
-        ),
+      input.siteHost && hostLabel(input.siteHost, 24),
     ),
     qr && qrMark(qr, QR),
   );
 
-  const root = element(
-    "div",
-    {
-      display: "flex",
-      width,
-      height,
-      padding: PAD,
-      gap: COLUMN_GAP,
-      backgroundColor: COLORS.background,
-      backgroundImage:
-        "radial-gradient(80% 120% at 0% 0%, rgba(205,172,110,0.14) 0%, transparent 60%)",
-      color: COLORS.text,
-      fontFamily: "Hanken Grotesk",
-      overflow: "hidden",
-    },
+  const root = shareCanvas(
+    width,
+    height,
+    { padding: PAD, gap: COLUMN_GAP, backgroundImage: GOLD_GLOW },
     cardTile({ cardName: input.cardName }, art, CARD_W, CARD_H),
     element(
       "div",

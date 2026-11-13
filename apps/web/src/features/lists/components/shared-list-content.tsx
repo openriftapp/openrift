@@ -38,13 +38,11 @@ import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
-import { OfferToWishlistDialog } from "@/features/groups/components/offer-to-wishlist-dialog";
+import { TradeProposalDialog } from "@/features/groups/components/trade-proposal-dialog";
 import type {
-  OfferablePrintingChoice,
-  OfferToWishlistContext,
-} from "@/features/groups/components/offer-to-wishlist-dialog";
-import { RequestFromTradelistDialog } from "@/features/groups/components/request-from-tradelist-dialog";
-import type { TradelistRequestContext } from "@/features/groups/components/request-from-tradelist-dialog";
+  TradePrintingChoice,
+  TradeProposalContext,
+} from "@/features/groups/components/trade-proposal-dialog";
 import { SharedTradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import {
   useCancelTrade,
@@ -92,8 +90,8 @@ const SHARED_HIDDEN_FILTER_SECTIONS: ReadonlySet<string> = new Set(["owned", "cu
 
 /** A "Want" request on a member's tradelist, or an "Offer" on a member's wishlist. */
 export type ListExchangeContext =
-  | ({ mode: "request" } & TradelistRequestContext)
-  | ({ mode: "offer" } & OfferToWishlistContext);
+  | ({ mode: "request" } & TradeProposalContext)
+  | ({ mode: "offer" } & TradeProposalContext);
 
 interface SharedListContentProps {
   data: PublicListDetailResponse;
@@ -170,7 +168,7 @@ function SharedListGrid({
   const router = useRouter();
   const [requestPrinting, setRequestPrinting] = useState<Printing | null>(null);
   const [offerTarget, setOfferTarget] = useState<{
-    choices: OfferablePrintingChoice[];
+    choices: TradePrintingChoice[];
     wantQuantity: number;
   } | null>(null);
 
@@ -180,7 +178,7 @@ function SharedListGrid({
     exchange?.mode === "offer"
       ? personalCopyIdsByPrinting(ownedCopies)
       : new Map<string, string[]>();
-  const offerChoicesForPrinting = (printing: Printing): OfferablePrintingChoice[] => {
+  const offerChoicesForPrinting = (printing: Printing): TradePrintingChoice[] => {
     const candidatePrintingIds =
       list.kind === "printing"
         ? [printing.printingId]
@@ -192,6 +190,7 @@ function SharedListGrid({
           printingsByCardId,
           printingsById,
         ) ?? printing,
+      available: entry.copyIds.length,
       copyIds: entry.copyIds,
     }));
   };
@@ -528,16 +527,23 @@ function SharedListGrid({
           />
         </CardViewer>
         {exchange?.mode === "request" ? (
-          <RequestFromTradelistDialog
+          <TradeProposalDialog
+            side="request"
             open={requestPrinting !== null}
             onOpenChange={(open) => {
               if (!open) {
                 setRequestPrinting(null);
               }
             }}
-            printing={requestPrinting}
-            availableHint={
-              requestPrinting ? (entriesBySideKey.get(sideKey(requestPrinting))?.length ?? 1) : 1
+            choices={
+              requestPrinting
+                ? [
+                    {
+                      printing: requestPrinting,
+                      available: entriesBySideKey.get(sideKey(requestPrinting))?.length ?? 1,
+                    },
+                  ]
+                : []
             }
             groupSlug={exchange.groupSlug}
             groupName={exchange.groupName}
@@ -546,7 +552,8 @@ function SharedListGrid({
           />
         ) : null}
         {exchange?.mode === "offer" ? (
-          <OfferToWishlistDialog
+          <TradeProposalDialog
+            side="offer"
             open={offerTarget !== null}
             onOpenChange={(open) => {
               if (!open) {
@@ -721,8 +728,8 @@ function OfferActionsCell({
   printing?: Printing;
   itemId?: string;
   entryByItemId: Map<string, ListEntryDetailResponse>;
-  offerChoicesForPrinting: (printing: Printing) => OfferablePrintingChoice[];
-  onOffer: (choices: OfferablePrintingChoice[], wantQuantity: number) => void;
+  offerChoicesForPrinting: (printing: Printing) => TradePrintingChoice[];
+  onOffer: (choices: TradePrintingChoice[], wantQuantity: number) => void;
 }) {
   if (!printing) {
     return null;

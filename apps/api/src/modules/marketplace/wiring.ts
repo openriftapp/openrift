@@ -44,7 +44,7 @@ export function createRulePriceLookup(db: Kysely<Database>): () => Promise<Price
       const rows = await marketplaceRepo(db).latestPrices();
       const map: PriceMap = {};
       for (const row of rows) {
-        (map[row.printingId] ??= {})[row.marketplace as Marketplace] = row.marketCents;
+        (map[row.printingId] ??= {})[row.marketplace as Marketplace] = row.headlineCents;
       }
       return priceLookupFromMap(map);
     },

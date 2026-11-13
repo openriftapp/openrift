@@ -58,7 +58,9 @@ export function DeckOwnershipBody({ data, marketplace, onViewMissing }: DeckOwne
         )}
       </div>
 
-      {data.deckValueCents !== undefined && <PriceBlock data={data} marketplace={marketplace} />}
+      {(data.deckValue !== undefined || data.unpricedCount > 0) && (
+        <PriceBlock data={data} marketplace={marketplace} />
+      )}
 
       {data.missingCards.length > 0 && (
         <Button variant="outline" size="sm" className="w-full" onClick={onViewMissing}>
@@ -81,13 +83,16 @@ function Row({ label, value, indent }: { label: string; value: string; indent?: 
 
 function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplace: Marketplace }) {
   const fmt = formatterForMarketplace(marketplace);
-  const showMissing = data.missingValueCents !== undefined && data.missingValueCents > 0;
-  const showSplit = data.sideboardValueCents !== undefined && data.sideboardValueCents > 0;
+  const showMissing =
+    (data.missingValue !== undefined && data.missingValue > 0) || data.missingUnpricedCount > 0;
+  const withUnpriced = (value: number | undefined, unpriced: number) =>
+    unpriced > 0 ? `${fmt(value)} ${m.common_unpriced({ count: unpriced })}` : fmt(value);
+  const showSplit = data.sideboardValue !== undefined && data.sideboardValue > 0;
   const showAsShown =
     showMissing &&
-    data.missingAsDisplayedValueCents !== undefined &&
-    data.missingValueCents !== undefined &&
-    data.missingAsDisplayedValueCents > data.missingValueCents;
+    data.missingAsDisplayedValue !== undefined &&
+    data.missingValue !== undefined &&
+    data.missingAsDisplayedValue > data.missingValue;
 
   return (
     <div className="space-y-1 text-sm">
@@ -95,24 +100,26 @@ function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplac
         <MarketplaceIcon marketplace={marketplace} />
         {m.decks_overview_marketplace_prices({ marketplace: MARKETPLACE_META[marketplace].label })}
       </div>
-      <PriceRow label={m.decks_overview_deck_value()} value={fmt(data.deckValueCents)} />
+      <PriceRow
+        label={m.decks_overview_deck_value()}
+        value={withUnpriced(data.deckValue, data.unpricedCount)}
+      />
       {showSplit && (
         <>
-          <PriceRow label={m.decks_overview_main_deck()} value={fmt(data.mainValueCents)} indent />
-          <PriceRow
-            label={m.decks_overview_sideboard()}
-            value={fmt(data.sideboardValueCents)}
-            indent
-          />
+          <PriceRow label={m.decks_overview_main_deck()} value={fmt(data.mainValue)} indent />
+          <PriceRow label={m.decks_overview_sideboard()} value={fmt(data.sideboardValue)} indent />
         </>
       )}
       {showMissing && (
-        <PriceRow label={m.decks_import_missing_cost()} value={fmt(data.missingValueCents)} />
+        <PriceRow
+          label={m.decks_import_missing_cost()}
+          value={withUnpriced(data.missingValue, data.missingUnpricedCount)}
+        />
       )}
       {showAsShown && (
         <PriceRow
           label={m.decks_overview_price_as_shown()}
-          value={fmt(data.missingAsDisplayedValueCents)}
+          value={fmt(data.missingAsDisplayedValue)}
           indent
         />
       )}

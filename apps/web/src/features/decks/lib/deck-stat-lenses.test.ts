@@ -2,7 +2,7 @@ import { labelMapOf } from "@openrift/shared/enum-label";
 import { describe, expect, it } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import {
   buildOwnershipRows,
@@ -42,8 +42,8 @@ describe("buildRarityByCardKey", () => {
   it("maps entries via the resolver and skips unresolved ones", () => {
     const cards = [card({ cardId: "a" }), card({ cardId: "b" })];
     const map = buildRarityByCardKey(cards, (entry) => (entry.cardId === "a" ? "rare" : undefined));
-    expect(map.get(getDeckCardKey(cards[0]!))).toBe("rare");
-    expect(map.has(getDeckCardKey(cards[1]!))).toBe(false);
+    expect(map.get(deckCardKey(cards[0]!))).toBe("rare");
+    expect(map.has(deckCardKey(cards[1]!))).toBe(false);
   });
 });
 
@@ -55,10 +55,10 @@ describe("buildRarityRows", () => {
     card({ cardId: "d", quantity: 4, zone: "sideboard" }),
   ];
   const rarities = new Map([
-    [getDeckCardKey(cards[0]!), "common"],
-    [getDeckCardKey(cards[1]!), "rare"],
-    [getDeckCardKey(cards[2]!), "rare"],
-    [getDeckCardKey(cards[3]!), "epic"],
+    [deckCardKey(cards[0]!), "common"],
+    [deckCardKey(cards[1]!), "rare"],
+    [deckCardKey(cards[2]!), "rare"],
+    [deckCardKey(cards[3]!), "epic"],
   ]);
 
   it("counts main and champion cards into enum-ordered single-segment rows", () => {
@@ -81,7 +81,7 @@ describe("rarityLensSeries", () => {
   it("colors each row from the rarity palette, in row order", () => {
     const rows = buildRarityRows(
       [card({ cardId: "a", quantity: 2 })],
-      new Map([[getDeckCardKey(card({ cardId: "a", quantity: 2 })), "rare"]]),
+      new Map([[deckCardKey(card({ cardId: "a", quantity: 2 })), "rare"]]),
       RARITY_ORDER,
       RARITY_LABELS,
     );
@@ -105,9 +105,9 @@ describe("buildOwnershipRows", () => {
     card({ cardId: "c", quantity: 4, zone: "sideboard" }),
   ];
   const segments = new Map<string, OwnershipBandSegments>([
-    [getDeckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 0, missing: 1 }],
-    [getDeckCardKey(cards[1]!), { exact: 0, other: 2, borrowed: 0, locked: 0, missing: 0 }],
-    [getDeckCardKey(cards[2]!), { exact: 4, other: 0, borrowed: 0, locked: 0, missing: 0 }],
+    [deckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 0, missing: 1 }],
+    [deckCardKey(cards[1]!), { exact: 0, other: 2, borrowed: 0, locked: 0, missing: 0 }],
+    [deckCardKey(cards[2]!), { exact: 4, other: 0, borrowed: 0, locked: 0, missing: 0 }],
   ]);
 
   it("sums copies per class over the main deck and champion only", () => {
@@ -133,7 +133,7 @@ describe("buildOwnershipRows", () => {
   it("counts locked copies as missing", () => {
     const lockedCards = [card({ cardId: "a", quantity: 3 })];
     const lockedSegments = new Map<string, OwnershipBandSegments>([
-      [getDeckCardKey(lockedCards[0]!), { exact: 1, other: 0, borrowed: 0, locked: 1, missing: 1 }],
+      [deckCardKey(lockedCards[0]!), { exact: 1, other: 0, borrowed: 0, locked: 1, missing: 1 }],
     ]);
     const rows = buildOwnershipRows(lockedCards, lockedSegments);
     expect(rows.find((row) => row.key === "missing")?.total).toBe(2);
@@ -142,10 +142,7 @@ describe("buildOwnershipRows", () => {
   it("counts borrowed copies as their own class, not as missing", () => {
     const borrowedCards = [card({ cardId: "a", quantity: 3 })];
     const borrowedSegments = new Map<string, OwnershipBandSegments>([
-      [
-        getDeckCardKey(borrowedCards[0]!),
-        { exact: 1, other: 0, borrowed: 2, locked: 0, missing: 0 },
-      ],
+      [deckCardKey(borrowedCards[0]!), { exact: 1, other: 0, borrowed: 2, locked: 0, missing: 0 }],
     ]);
     const rows = buildOwnershipRows(borrowedCards, borrowedSegments);
     expect(rows.find((row) => row.key === "borrowed")?.total).toBe(2);
@@ -162,32 +159,32 @@ describe("focus key sets", () => {
 
   it("rarityFocusKeys collects matching main-deck entries only", () => {
     const rarities = new Map([
-      [getDeckCardKey(cards[0]!), "rare"],
-      [getDeckCardKey(cards[1]!), "common"],
-      [getDeckCardKey(cards[2]!), "rare"],
+      [deckCardKey(cards[0]!), "rare"],
+      [deckCardKey(cards[1]!), "common"],
+      [deckCardKey(cards[2]!), "rare"],
     ]);
-    expect(rarityFocusKeys(cards, rarities, "rare")).toEqual(new Set([getDeckCardKey(cards[0]!)]));
+    expect(rarityFocusKeys(cards, rarities, "rare")).toEqual(new Set([deckCardKey(cards[0]!)]));
   });
 
   it("ownershipFocusKeys matches entries with at least one copy in the class", () => {
     const segments = new Map<string, OwnershipBandSegments>([
-      [getDeckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 0, missing: 1 }],
-      [getDeckCardKey(cards[1]!), { exact: 1, other: 0, borrowed: 0, locked: 0, missing: 0 }],
+      [deckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 0, missing: 1 }],
+      [deckCardKey(cards[1]!), { exact: 1, other: 0, borrowed: 0, locked: 0, missing: 0 }],
     ]);
     expect(ownershipFocusKeys(cards, segments, "missing")).toEqual(
-      new Set([getDeckCardKey(cards[0]!)]),
+      new Set([deckCardKey(cards[0]!)]),
     );
     expect(ownershipFocusKeys(cards, segments, "exact")).toEqual(
-      new Set([getDeckCardKey(cards[0]!), getDeckCardKey(cards[1]!)]),
+      new Set([deckCardKey(cards[0]!), deckCardKey(cards[1]!)]),
     );
   });
 
   it("ownershipFocusKeys counts a locked-only shortfall as missing", () => {
     const segments = new Map<string, OwnershipBandSegments>([
-      [getDeckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 1, missing: 0 }],
+      [deckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 1, missing: 0 }],
     ]);
     expect(ownershipFocusKeys(cards, segments, "missing")).toEqual(
-      new Set([getDeckCardKey(cards[0]!)]),
+      new Set([deckCardKey(cards[0]!)]),
     );
   });
 });

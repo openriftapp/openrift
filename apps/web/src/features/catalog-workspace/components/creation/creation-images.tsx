@@ -22,7 +22,7 @@ function FileThumb({ file, alt }: { file: File; alt: string }) {
 
 function ThumbFrame({ src, alt }: { src: string | null; alt: string }) {
   return (
-    <div className="bg-muted aspect-[63/88] w-12 min-w-0 overflow-hidden rounded-sm">
+    <div className="bg-muted aspect-card w-12 min-w-0 overflow-hidden rounded-sm">
       {src !== null && <img src={src} alt={alt} className="size-full object-cover" />}
     </div>
   );

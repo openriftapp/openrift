@@ -2,7 +2,7 @@ import { labelMapOf } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { chanceToDraw, OPENING_HAND_SIZE } from "@/features/decks/lib/deck-draw-odds";
 import {
   cardMatchesStatsFocus,
@@ -49,7 +49,7 @@ describe("cardMatchesStatsFocus", () => {
 
   it("matches rarity and ownership focuses via their key sets", () => {
     const card = main({ cardId: "a" });
-    const key = getDeckCardKey(card);
+    const key = deckCardKey(card);
     expect(
       cardMatchesStatsFocus(card, { kind: "rarity", value: "rare", cardKeys: new Set([key]) }),
     ).toBe(true);
@@ -71,7 +71,7 @@ describe("cardMatchesStatsFocus", () => {
       cardMatchesStatsFocus(rune, {
         kind: "rarity",
         value: "rare",
-        cardKeys: new Set([getDeckCardKey(rune)]),
+        cardKeys: new Set([deckCardKey(rune)]),
       }),
     ).toBe(false);
   });

@@ -155,12 +155,8 @@ vi.mock("@/features/lists/components/list-header", () => ({
   ListHeader: () => null,
 }));
 
-vi.mock("@/features/groups/components/request-from-tradelist-dialog", () => ({
-  RequestFromTradelistDialog: () => null,
-}));
-
-vi.mock("@/features/groups/components/offer-to-wishlist-dialog", () => ({
-  OfferToWishlistDialog: () => null,
+vi.mock("@/features/groups/components/trade-proposal-dialog", () => ({
+  TradeProposalDialog: () => null,
 }));
 
 const { SharedListContent } = await import("./shared-list-content");

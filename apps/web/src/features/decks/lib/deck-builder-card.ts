@@ -79,12 +79,12 @@ export interface DeckBuilderCard {
   power: number | null;
 }
 
-export function deckCardKey(
-  cardId: string,
-  zone: DeckZone,
-  preferredPrintingId: string | null,
-): string {
-  return `${cardId}|${zone}|${preferredPrintingId ?? ""}`;
+export function deckCardKey(card: {
+  cardId: string;
+  zone: string;
+  preferredPrintingId: string | null;
+}): string {
+  return `${card.cardId}|${card.zone}|${card.preferredPrintingId ?? ""}`;
 }
 
 /** Every field is already denormalized in the public payload; no catalog lookup needed. */
@@ -130,14 +130,6 @@ export function toRuleEngineCard(
     additionalLegendCount: card.additionalLegendCount,
     banned: card.banned,
   };
-}
-
-export function getDeckCardKey(card: {
-  cardId: string;
-  zone: DeckZone;
-  preferredPrintingId: string | null;
-}): string {
-  return deckCardKey(card.cardId, card.zone, card.preferredPrintingId);
 }
 
 const MOVE_TARGET_ORDER: readonly DeckZone[] = [
@@ -249,12 +241,18 @@ export function isCardAllowedInZone(
  */
 export function isDeckZoneFullForDrag(args: {
   zone: DeckZone;
-  draggedCard: { cardId: string; maxCopiesOverride: number | null; keywords: readonly string[] };
+  draggedCard: {
+    cardId: string;
+    maxCopiesOverride: number | null;
+    keywords: readonly string[];
+    domains: readonly string[];
+  };
   fromZone: DeckZone | null;
   allCards: readonly {
     cardId: string;
     zone: DeckZone;
     quantity: number;
+    domains: readonly string[];
     additionalLegendCount?: number | null;
   }[];
   format: DeckFormat;
@@ -303,10 +301,7 @@ export function isDeckZoneFullForDrag(args: {
     );
   }
   if (zone === WellKnown.deckZone.RUNES) {
-    const runeTotal = totalQuantity(
-      allCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
-    );
-    return runeTotal >= RUNE_TARGET;
+    return !canAddRune(draggedCard, allCards);
   }
   return false;
 }
@@ -403,7 +398,7 @@ export function toDeckBuilderCard(
   };
 }
 
-export function runeTotalOf(cards: DeckBuilderCard[]): number {
+export function runeTotalOf(cards: readonly { zone: string; quantity: number }[]): number {
   let total = 0;
   for (const card of cards) {
     if (card.zone === WellKnown.deckZone.RUNES) {
@@ -413,11 +408,20 @@ export function runeTotalOf(cards: DeckBuilderCard[]): number {
   return total;
 }
 
+interface RuneCard {
+  zone: string;
+  quantity: number;
+  domains: readonly string[];
+}
+
 /**
  * At the RUNE_TARGET cap, an add is only valid when rebalanceRunes can
  * decrement an already-present opposite-domain rune of a dual-domain legend.
  */
-export function canAddRune(card: DeckBuilderCard, deckCards: DeckBuilderCard[]): boolean {
+export function canAddRune(
+  card: { domains: readonly string[] },
+  deckCards: readonly RuneCard[],
+): boolean {
   const runeTotal = runeTotalOf(deckCards);
   if (runeTotal < RUNE_TARGET) {
     return true;
@@ -435,4 +439,28 @@ export function canAddRune(card: DeckBuilderCard, deckCards: DeckBuilderCard[]):
       entry.zone === WellKnown.deckZone.RUNES &&
       entry.domains.some((domain) => domain === otherDomain),
   );
+}
+
+export function canIncrementDeckEntry(
+  card: DeckBuilderCard,
+  allCards: readonly DeckBuilderCard[],
+  options: { freeform: boolean; relaxed: boolean },
+): boolean {
+  if (options.freeform || options.relaxed) {
+    return true;
+  }
+  if (
+    COPY_LIMIT_ZONES.has(card.zone) &&
+    copyLimitTotal(allCards, card.cardId) >= copyLimitFor(card)
+  ) {
+    return false;
+  }
+  return card.zone !== WellKnown.deckZone.RUNES || canAddRune(card, allCards);
+}
+
+export function runeAddRoom(
+  card: { domains: readonly string[] },
+  deckCards: readonly RuneCard[],
+): number {
+  return canAddRune(card, deckCards) ? Math.max(1, RUNE_TARGET - runeTotalOf(deckCards)) : 0;
 }

@@ -18,7 +18,7 @@ describe("/decks/compare search", () => {
     expect(validateSearch.parse({ from: "deck-1" })).toEqual({ from: "deck-1" });
   });
 
-  it("rejects a side that is not a string", () => {
-    expect(() => validateSearch.parse({ from: 1 })).toThrow();
+  it("drops a side that is not a string and keeps the other", () => {
+    expect(validateSearch.parse({ from: true, to: "deck-2" })).toEqual({ to: "deck-2" });
   });
 });

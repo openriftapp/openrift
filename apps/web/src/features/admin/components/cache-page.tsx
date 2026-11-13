@@ -1,4 +1,5 @@
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { EraserIcon, RefreshCwIcon, TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,14 +12,8 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { JobRunStatusLine } from "@/features/admin/components/job-run-status-line";
 import { useCacheStatus, usePurgeCache } from "@/features/admin/hooks/use-cache-purge";
 import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
-import {
-  CARD_TOKENS_RECOMPUTE_KIND,
-  useRecomputeCardTokens,
-} from "@/features/admin/hooks/use-recompute-card-tokens";
-import {
-  MATVIEWS_REFRESH_KIND,
-  useRefreshMatviews,
-} from "@/features/admin/hooks/use-refresh-matviews";
+import { useRecomputeCardTokens } from "@/features/admin/hooks/use-recompute-card-tokens";
+import { useRefreshMatviews } from "@/features/admin/hooks/use-refresh-matviews";
 import { useClearSsrCache } from "@/features/admin/hooks/use-status";
 
 /**
@@ -40,8 +35,8 @@ export function CachePage() {
   const clearSsrCache = useClearSsrCache();
   const refreshMatviews = useRefreshMatviews();
   const recomputeCardTokens = useRecomputeCardTokens();
-  const matviewsRun = useLatestJobRun(MATVIEWS_REFRESH_KIND);
-  const cardTokensRun = useLatestJobRun(CARD_TOKENS_RECOMPUTE_KIND);
+  const matviewsRun = useLatestJobRun(JOB_KIND.refreshMatviews);
+  const cardTokensRun = useLatestJobRun(JOB_KIND.recomputeCardTokens);
 
   const matviewsRunning = refreshMatviews.isPending || matviewsRun.data?.status === "running";
   const cardTokensRunning =

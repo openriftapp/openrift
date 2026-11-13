@@ -1,13 +1,22 @@
+import {
+  BOARD_ZONE_LABEL_EN,
+  CHAIN_TYPE_LABEL_EN,
+  PIECE_KIND_LABEL_EN,
+} from "@openrift/shared/board-layout";
 import type { BoardPiece, BoardStep } from "@openrift/shared/board-state";
-import { emptyBoardStep } from "@openrift/shared/board-state";
+import { emptyBoardStep, PIECE_KINDS } from "@openrift/shared/board-state";
 import { describe, expect, it } from "vitest";
 
+import { m } from "@/paraglide/messages.js";
+
 import {
+  CHAIN_TYPE_LABEL,
   chainEntryLabel,
   describeArrow,
   describeArrowEnd,
   describeZone,
   pieceName,
+  ZONE_LABEL,
 } from "./board-labels";
 
 const yasuo: BoardPiece = {
@@ -97,5 +106,20 @@ describe("describeArrow", () => {
         step,
       ),
     ).toBe("Recall: Yasuo, Remorseful (A) → Base A");
+  });
+});
+
+describe("English labels on the share image", () => {
+  it("match the English board messages", () => {
+    for (const [zone, label] of Object.entries(ZONE_LABEL)) {
+      expect(BOARD_ZONE_LABEL_EN[zone as keyof typeof ZONE_LABEL]).toBe(label());
+    }
+    expect(BOARD_ZONE_LABEL_EN.chain).toBe(m.board_states_chain());
+    for (const [type, label] of Object.entries(CHAIN_TYPE_LABEL)) {
+      expect(CHAIN_TYPE_LABEL_EN[type as keyof typeof CHAIN_TYPE_LABEL]).toBe(label());
+    }
+    for (const kind of PIECE_KINDS) {
+      expect(PIECE_KIND_LABEL_EN[kind]).toBe(pieceName({ ...yasuo, kind, card: null }));
+    }
   });
 });

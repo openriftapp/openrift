@@ -34,6 +34,7 @@ import {
   filterMarketByGroup,
   filterMarketByPerson,
   marketPeople,
+  openSuggestionCount,
   sortByValue,
 } from "@/features/groups/lib/trade-market";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
@@ -232,8 +233,8 @@ export function TradeMarket() {
           : { kind: "market", card: pickedCard };
 
   const tabs: { value: MarketTab; label: string; count: number | null }[] = [
-    { value: "get", label: m.trades_market_tab_get(), count: incoming.length },
-    { value: "give", label: m.trades_market_tab_give(), count: outgoing.length },
+    { value: "get", label: m.trades_market_tab_get(), count: openSuggestionCount(incoming) },
+    { value: "give", label: m.trades_market_tab_give(), count: openSuggestionCount(outgoing) },
     { value: "buy", label: m.trades_market_tab_buy(), count: wantedReady ? buyable.length : null },
   ];
   const groupItems = [
@@ -294,7 +295,11 @@ export function TradeMarket() {
                   <BuyAllCallout
                     items={buyItems}
                     allInCart={buyItems.every((item) => cartKeys.has(item.key))}
-                    estimate={formatPrice(buyEstimate.total)}
+                    estimate={
+                      buyEstimate.unpriced > 0
+                        ? `${formatPrice(buyEstimate.total)} ${m.common_unpriced({ count: buyEstimate.unpriced })}`
+                        : formatPrice(buyEstimate.total)
+                    }
                     onAddAll={() => addItems(userId, buyItems)}
                   />
                 )}

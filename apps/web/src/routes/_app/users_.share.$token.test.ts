@@ -30,7 +30,7 @@ describe("/users/share/$token head", () => {
     expect(headTitle(head)).toBe("Teemo Scout's wishlists and tradelists - OpenRift");
     expect(headMeta(head, "description")).toBe("2 wishlists, 1 tradelist, 9 cards in total.");
     expect(headMeta(head, "og:image")).toBe(
-      "http://localhost:5173/api/v1/users/share/BUNDLE123/image.png?v=1788256800000-3",
+      "http://localhost:5173/api/v1/users/share/BUNDLE123/image.png?v=1788256800000-3-r2",
     );
     expect(headCanonical(head)).toBe("http://localhost:5173/users/share/BUNDLE123");
   });

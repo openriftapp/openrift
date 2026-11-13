@@ -108,6 +108,26 @@ describe("MetaDeckIndexRow", () => {
     expect(seen("of 2,224")).toBe(false);
   });
 
+  it("notes the unpriced cards beside the value and the cost to complete", () => {
+    render(
+      <MetaDeckIndexRow
+        deck={deck()}
+        fieldSize={2224}
+        marketplace="cardtrader"
+        cost={{
+          needed: 40,
+          owned: 20,
+          value: 142,
+          toComplete: 30,
+          unpriced: 3,
+          unpricedMissing: 2,
+        }}
+      />,
+    );
+    expect(screen.queryAllByText("€142 (3 unpriced)").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/to complete \(2 unpriced\)/u).length).toBeGreaterThan(0);
+  });
+
   it("drops the to-complete cell without a collection, in both layouts", () => {
     const { container, rerender } = render(
       <MetaDeckIndexRow
@@ -115,7 +135,14 @@ describe("MetaDeckIndexRow", () => {
         fieldSize={2224}
         marketplace="cardtrader"
         withCollection={false}
-        cost={{ needed: 40, owned: undefined, value: 142, toComplete: undefined }}
+        cost={{
+          needed: 40,
+          owned: undefined,
+          value: 142,
+          toComplete: undefined,
+          unpriced: 0,
+          unpricedMissing: 0,
+        }}
       />,
     );
     const grid = () => container.querySelector(String.raw`.sm\:grid`) as HTMLElement;
@@ -155,7 +182,14 @@ describe("MetaDeckIndexRow", () => {
         deck={deck()}
         fieldSize={2224}
         marketplace="cardtrader"
-        cost={{ needed: 40, owned: 36, value: 142, toComplete: 18 }}
+        cost={{
+          needed: 40,
+          owned: 36,
+          value: 142,
+          toComplete: 18,
+          unpriced: 0,
+          unpricedMissing: 0,
+        }}
       />,
     );
     expect(seen("€142")).toBe(true);
@@ -169,7 +203,7 @@ describe("MetaDeckIndexRow", () => {
         deck={deck()}
         fieldSize={2224}
         marketplace="cardtrader"
-        cost={{ needed: 40, owned: 40, value: 142, toComplete: 0 }}
+        cost={{ needed: 40, owned: 40, value: 142, toComplete: 0, unpriced: 0, unpricedMissing: 0 }}
       />,
     );
     expect(seen("Buildable")).toBe(true);

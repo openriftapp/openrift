@@ -1,4 +1,3 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { nextCutRoundPairs, seedBracket } from "@openrift/shared/pairing/cut-bracket";
 import type {
   BracketSeed,
@@ -18,7 +17,7 @@ import { mathRandom } from "@openrift/shared/random";
 import { pluralize } from "@openrift/shared/strings";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { loadGroupCutContext } from "../lib/group-cut-builders.js";
 import type { GroupCutPlayer, GroupStageRoundNumber, UnitProgress } from "../lib/group-cut.js";
@@ -39,14 +38,6 @@ import {
 import type { PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
 import type { GroupPodInsert } from "../repositories/tournament-groups.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
-
-function badRequest(message: string): AppError {
-  return new AppError(400, ERROR_CODES.BAD_REQUEST, message);
-}
-
-function conflict(message: string): AppError {
-  return new AppError(409, ERROR_CODES.CONFLICT, message);
-}
 
 async function loadState(
   repos: Repos,

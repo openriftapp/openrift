@@ -1,5 +1,4 @@
 import { listsContract } from "@openrift/shared/contracts/lists";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ListGroupSharesResponse } from "@openrift/shared/types/api/friend-group";
 import type {
   ListBulkAddResponse,
@@ -14,7 +13,7 @@ import type {
 import { ruleCombineMatchesKind, ruleKindForListKind } from "@openrift/shared/types/list-rule";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { assertDeleted, assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
@@ -412,7 +411,7 @@ export const listsRouter = {
     const userId = context.userId;
     return await enableShare({
       read: () => lists.getShareState(input.id, userId),
-      write: (token) => lists.setShareToken(input.id, userId, token, true),
+      write: (token) => lists.setShare(input.id, userId, token, true),
     });
   }),
 
@@ -420,7 +419,7 @@ export const listsRouter = {
     const { lists } = context.repos;
     const userId = context.userId;
 
-    const updated = await lists.setShareToken(input.id, userId, null, false);
+    const updated = await lists.setShare(input.id, userId, null, false);
     assertFound(updated, "Not found");
   }),
 
@@ -460,11 +459,7 @@ async function resolveEntryTarget(
   personalOnly: boolean,
 ): Promise<{ cardId: string | null; printingId: string | null; copyId: string | null }> {
   if (!targetMatchesKind(kind, body)) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `Entry target must match the list's kind (${kind})`,
-    );
+    throw badRequest(`Entry target must match the list's kind (${kind})`);
   }
   if (kind === "card") {
     return { cardId: body.cardId ?? null, printingId: null, copyId: null };

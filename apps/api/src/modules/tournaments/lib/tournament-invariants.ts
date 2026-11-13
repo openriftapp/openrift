@@ -7,7 +7,7 @@ import type {
 } from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { AppError, badRequest, conflict } from "../../../errors.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 
 /**
@@ -95,18 +95,14 @@ export function assertStatusTransition(
     return;
   }
   if (!ALLOWED_STATUS_TRANSITIONS[current].includes(next)) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, `A ${current} tournament can't move to ${next}`);
+    throw conflict(`A ${current} tournament can't move to ${next}`);
   }
 }
 
 export function assertParticipantsOpen(tournament: Tournament): void {
   const status = tournament.status;
   if (status === "completed" || status === "cancelled") {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "Participants cannot be added to a completed or cancelled tournament",
-    );
+    throw conflict("Participants cannot be added to a completed or cancelled tournament");
   }
 }
 
@@ -118,11 +114,7 @@ export async function assertLegendAssignable(
   if (tournament.format === "group_cut") {
     const groups = await repos.tournamentGroups.listGroups(tournament.id);
     if (groups.length > 0) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "The Legend can't change once the groups are generated",
-      );
+      throw conflict("The Legend can't change once the groups are generated");
     }
   }
   if (legendCardId === null) {
@@ -130,7 +122,7 @@ export async function assertLegendAssignable(
   }
   const names = await repos.tournamentGroups.legendCardNames([legendCardId]);
   if (!names.has(legendCardId)) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "That card is not a Legend");
+    throw badRequest("That card is not a Legend");
   }
 }
 
@@ -146,6 +138,6 @@ export async function assertValidRegion(
   }
   const [tag] = await repos.customTags.listBySlugs([region]);
   if (!tag || tag.category !== "region") {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Unknown region "${region}"`);
+    throw badRequest(`Unknown region "${region}"`);
   }
 }

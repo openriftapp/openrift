@@ -32,12 +32,12 @@ describe("cardmarketOverlayRepo", () => {
       { cardId: "card-1", printingId: null, quantity: 2 },
       { cardId: null, printingId: "pr-1", quantity: 3 },
     ];
-    expect(await repo.productCounts(wants, "u1")).toEqual(rows);
+    expect(await repo.productCounts(wants, "u1", ["EN"])).toEqual(rows);
   });
 
   it("productCounts runs with no wants at all", async () => {
     const db = createMockDb([]);
     const repo = cardmarketOverlayRepo(db);
-    expect(await repo.productCounts([], "u1")).toEqual([]);
+    expect(await repo.productCounts([], "u1", ["EN"])).toEqual([]);
   });
 });

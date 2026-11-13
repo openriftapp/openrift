@@ -12,6 +12,7 @@ function createMockTransferRepo() {
 const priceRow = {
   marketCents: 500,
   lowCents: 400,
+  zeroLowCents: null,
   midCents: 450,
   highCents: 600,
   trendCents: 480,
@@ -21,7 +22,7 @@ const priceRow = {
 };
 
 describe("createMarketplaceConfigs", () => {
-  it("returns tcgplayer, cardmarket, and cardtrader configs", () => {
+  it("returns a config for every marketplace", () => {
     const repo = createMockTransferRepo();
     const repos = { marketplaceMapping: repo } as unknown as Repos;
     const configs = createMarketplaceConfigs(repos);
@@ -29,6 +30,7 @@ describe("createMarketplaceConfigs", () => {
     expect(configs).toHaveProperty("tcgplayer");
     expect(configs).toHaveProperty("cardmarket");
     expect(configs).toHaveProperty("cardtrader");
+    expect(configs.cardnexus.currency).toBe("EUR");
   });
 
   describe("tcgplayer config", () => {
@@ -158,5 +160,24 @@ describe("createMarketplaceConfigs", () => {
       expect(result.currency).toBe("EUR");
       expect(result.productName).toBe("CT Product");
     });
+  });
+
+  it("carries the hub-seller low through to the admin listing", () => {
+    const repo = createMockTransferRepo();
+    const repos = { marketplaceMapping: repo } as unknown as Repos;
+    const { cardtrader } = createMarketplaceConfigs(repos);
+
+    const result = cardtrader.mapStagingPrices({
+      ...priceRow,
+      zeroLowCents: 310,
+      externalId: 1,
+      groupId: 1,
+      productName: "Test",
+      finish: "normal",
+      language: "EN",
+      recordedAt: new Date(),
+    });
+
+    expect(result.zeroLowCents).toBe(310);
   });
 });

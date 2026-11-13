@@ -53,6 +53,9 @@ const mockCatalogRepo = {
 const mockMetaRepo = {
   contextForDeck: vi.fn(),
 };
+const mockBoardStatesRepo = {
+  getByShareToken: vi.fn(),
+};
 const mockCardErrataRepo = {
   announcements: vi.fn(),
   listEntries: vi.fn(),
@@ -83,6 +86,7 @@ const app = new Hono<{ Variables: Variables }>()
       catalog: mockCatalogRepo,
       meta: mockMetaRepo,
       cardErrata: mockCardErrataRepo,
+      boardStates: mockBoardStatesRepo,
       catalogResponse: mockCatalogResponse,
       deckFormats: mockDeckFormatsRepo,
       enums: { deckZones: () => Promise.resolve([]) },
@@ -311,6 +315,10 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
       const res = await getImage("/api/v1/lists/share/tok-abc/image.png", "10.9.0.1");
       if (res.status === 429) {
         limited += 1;
+        expect(await readJson(res)).toStrictEqual({
+          error: "Too many image requests. Try again in a minute.",
+          code: ERROR_CODES.RATE_LIMITED,
+        });
       }
     }
 
@@ -721,6 +729,51 @@ describe("GET /api/v1/decks/share/:token/image.png", () => {
   });
 });
 
+describe("GET /api/v1/board-states/share/:token/image.png", () => {
+  const boardState = {
+    title: "Lethal check",
+    document: { steps: [] },
+  };
+
+  it("bylines the board with its owner", async () => {
+    mockBoardStatesRepo.getByShareToken.mockResolvedValue({
+      boardState,
+      ownerName: "Poro",
+      ownerEmail: "poro@example.test",
+    });
+
+    const res = await getImage("/api/v1/board-states/share/tok-board/image.png?v=1");
+
+    expect(res.status).toBe(200);
+    expect(jobsOfKind("boardState")[0]!.input.ownerName).toBe("Poro");
+  });
+
+  it("omits the byline when the owner has no name", async () => {
+    mockBoardStatesRepo.getByShareToken.mockResolvedValue({
+      boardState,
+      ownerName: "   ",
+      ownerEmail: "poro@example.test",
+    });
+
+    await getImage("/api/v1/board-states/share/tok-board/image.png?v=1");
+
+    expect(jobsOfKind("boardState")[0]!.input.ownerName).toBeUndefined();
+  });
+
+  it("reads only size=hq for the scale, never a scale param", async () => {
+    mockBoardStatesRepo.getByShareToken.mockResolvedValue({
+      boardState,
+      ownerName: "Poro",
+      ownerEmail: "poro@example.test",
+    });
+
+    await getImage("/api/v1/board-states/share/tok-board/image.png?v=1&scale=3");
+    await getImage("/api/v1/board-states/share/tok-board/image.png?v=1&size=hq");
+
+    expect(jobsOfKind("boardState").map((job) => job.scale)).toEqual([1, 2]);
+  });
+});
+
 describe("POST /api/v1/decks/image", () => {
   // The rate limiter's counters live for the whole test file; each test needs its own IP.
   function postRender(ip: string, body: unknown) {
@@ -755,6 +808,13 @@ describe("POST /api/v1/decks/image", () => {
 
     expect(res.status).toBe(200);
     expect(deckJobs()[0]!.input.formatLabel).toBe("Custom Region");
+  });
+
+  it("drops a blank ownerName instead of rendering an empty byline", async () => {
+    const res = await postRender("10.0.0.5", { ...validBody, ownerName: "   " });
+
+    expect(res.status).toBe(200);
+    expect(deckJobs()[0]!.input.ownerName).toBeUndefined();
   });
 
   it("truncates oversized deckName and ownerName before rendering", async () => {

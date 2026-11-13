@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
+import { ownerImageRateLimit } from "../../../lib/image-rate-limit.js";
 import { parseShareImageQuery } from "../../../lib/share-image-query.js";
 import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
@@ -20,7 +21,7 @@ export const deckImageRoute = new Hono<{ Variables: Variables }>()
   .basePath("/decks")
   // requireAuth is scoped to this one route: a bare `.use(requireAuth)` on the
   // sub-app would 401 the public `/decks/share/{token}` routes it doesn't collide with.
-  .get("/:id/image.png", requireAuth, async (c) => {
+  .get("/:id/image.png", requireAuth, ownerImageRateLimit, async (c) => {
     const repos = c.get("repos");
     const config = c.get("config");
     const userId = getUserId(c);

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
+import { ownerImageRateLimit } from "../../../lib/image-rate-limit.js";
 import { parseShareImageQuery } from "../../../lib/share-image-query.js";
 import { bylineName } from "../../../lib/share-owner.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
@@ -19,7 +20,7 @@ export const collectionImageRoute = new Hono<{ Variables: Variables }>()
   .basePath("/collections")
   // requireAuth is scoped to this route, not the whole /collections sub-app: a
   // blanket .use(requireAuth) would 401 anonymous callers of the public share view.
-  .get("/:id/image.png", requireAuth, async (c) => {
+  .get("/:id/image.png", requireAuth, ownerImageRateLimit, async (c) => {
     const { collections, copies } = c.get("repos");
     const config = c.get("config");
     const userId = getUserId(c);

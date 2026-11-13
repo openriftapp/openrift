@@ -2,8 +2,10 @@ import { adminProviderSettingsContract } from "@openrift/shared/contracts/admin/
 import type { ProviderSettingResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
+import { auditChange } from "../../../lib/audit-change.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
 const os = implement(adminProviderSettingsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -36,11 +38,24 @@ export const adminProviderSettingsRouter = {
     }
 
     await repo.reorder(providers);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "provider-setting.reorder",
+      entityType: "provider-setting",
+      newValues: { providers },
+    });
   }),
 
   update: os.update.handler(async ({ input, context }): Promise<void> => {
     const { providerSettings: repo } = context.repos;
     const { provider, ...body } = input;
+    const settings = await repo.listAll();
+    const before = settings.find((row) => row.provider === provider);
     await repo.upsert(provider, body);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "provider-setting.update",
+      entityType: "provider-setting",
+      entityId: provider,
+      ...auditChange(before, body),
+    });
   }),
 };

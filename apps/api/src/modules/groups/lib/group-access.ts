@@ -1,9 +1,8 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createRoleRank } from "@openrift/shared/friend-group-roles";
 import type { FriendGroupRole } from "@openrift/shared/types/api/friend-group";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import type { Group, GroupMember } from "../repositories/friend-groups-shared.js";
 
@@ -43,12 +42,13 @@ export function hasRole(role: FriendGroupRole, minimum: FriendGroupRole): boolea
   return ROLE_RANK[role] >= ROLE_RANK[minimum];
 }
 
-/** Throws 403 unless the membership meets the minimum role; a non-member fails too. */
+/** A non-member cannot see the group, so 404; a member below the minimum role gets 403. */
 export function requireRole(
   membership: GroupMember | undefined,
   minimum: FriendGroupRole,
 ): asserts membership is GroupMember {
-  if (!membership || !hasRole(membership.role, minimum)) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, ROLE_MINIMUM_MESSAGE[minimum]);
+  assertFound(membership, "Group not found");
+  if (!hasRole(membership.role, minimum)) {
+    throw forbidden(ROLE_MINIMUM_MESSAGE[minimum]);
   }
 }

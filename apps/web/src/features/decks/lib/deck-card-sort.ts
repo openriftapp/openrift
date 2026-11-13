@@ -12,7 +12,7 @@ export const GROUPED_ZONES: ReadonlySet<DeckZone> = new Set([
 
 export const TYPE_GROUP_ORDER: CardType[] = [
   WellKnown.cardType.UNIT,
-  "spell",
+  WellKnown.cardType.SPELL,
   WellKnown.cardType.GEAR,
 ];
 
@@ -31,22 +31,32 @@ export function compareDeckCardsByCurve(a: DeckBuilderCard, b: DeckBuilderCard):
   );
 }
 
+function typeIndex(cardType: string): number {
+  const index = TYPE_GROUP_ORDER.indexOf(cardType as CardType);
+  return index === -1 ? TYPE_GROUP_ORDER.length : index;
+}
+
+export function compareGroupedCards(a: DeckBuilderCard, b: DeckBuilderCard): number {
+  return typeIndex(a.cardType) - typeIndex(b.cardType) || compareDeckCardsByCurve(a, b);
+}
+
 /**
  * Non-grouped zones are returned as-is: the sidebar skips sorting them too,
  * so both surfaces keep the API-provided order (apps/api/src/repositories/decks.ts).
  */
 export function sortOverviewCards(cards: DeckBuilderCard[], zone: DeckZone): DeckBuilderCard[] {
-  if (!GROUPED_ZONES.has(zone)) {
-    return cards;
-  }
-  return cards.toSorted((a, b) => {
-    const aRank = TYPE_GROUP_ORDER.indexOf(a.cardType as CardType);
-    const bRank = TYPE_GROUP_ORDER.indexOf(b.cardType as CardType);
-    const aIndex = aRank === -1 ? TYPE_GROUP_ORDER.length : aRank;
-    const bIndex = bRank === -1 ? TYPE_GROUP_ORDER.length : bRank;
-    if (aIndex !== bIndex) {
-      return aIndex - bIndex;
-    }
-    return compareDeckCardsByCurve(a, b);
-  });
+  return GROUPED_ZONES.has(zone) ? cards.toSorted(compareGroupedCards) : cards;
+}
+
+export function sortCardsLikeSidebar(
+  cards: readonly DeckBuilderCard[],
+  zoneOrder: readonly DeckZone[],
+): DeckBuilderCard[] {
+  const zoneIndex = new Map(zoneOrder.map((zone, index) => [zone, index]));
+  const fallbackIndex = zoneOrder.length;
+  const byZone = Map.groupBy(cards, (card) => card.zone);
+  const orderedZones = [...byZone.keys()].toSorted(
+    (a, b) => (zoneIndex.get(a) ?? fallbackIndex) - (zoneIndex.get(b) ?? fallbackIndex),
+  );
+  return orderedZones.flatMap((zone) => sortOverviewCards(byZone.get(zone) ?? [], zone));
 }

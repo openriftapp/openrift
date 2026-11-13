@@ -139,16 +139,6 @@ export function sortMetaDecks(
   });
 }
 
-export function nextDeckSort(
-  current: { sort: MetaDeckSort; direction: MetaDeckSortDirection },
-  column: MetaDeckSort,
-): { sort: MetaDeckSort; direction: MetaDeckSortDirection } {
-  if (current.sort === column) {
-    return { sort: column, direction: current.direction === "asc" ? "desc" : "asc" };
-  }
-  return { sort: column, direction: column === "date" ? "desc" : "asc" };
-}
-
 export interface MetaDeckEventGroup {
   event: MetaDeckSummary["event"];
   decks: MetaDeckSummary[];
@@ -208,3 +198,5 @@ export function hasActiveMetaDeckFilters(filters: MetaDeckFilterValues): boolean
     filters.valueMax !== null
   );
 }
+
+export const DECK_SORT_DESCENDING_FIRST: ReadonlySet<MetaDeckSort> = new Set(["date"]);

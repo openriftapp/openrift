@@ -6,7 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const captured = { events: [] as AdminMetaEvent[], isPending: false };
 
 vi.mock("@/features/admin/hooks/use-admin-meta", () => ({
-  useMetaEventSearch: () => ({ data: { events: captured.events }, isPending: captured.isPending }),
+  useAdminMetaEventSearch: () => ({
+    data: { events: captured.events },
+    isPending: captured.isPending,
+  }),
 }));
 
 const { MetaEventSearchPicker } =

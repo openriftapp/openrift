@@ -1,6 +1,7 @@
 import { ChevronLeftIcon, ChevronRightIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { OFFICIAL_HOST } from "@/lib/official-host";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -48,7 +49,7 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
                   </div>
                 </div>
                 <span className="text-2xs pb-0.5 font-mono tracking-wide text-white/45">
-                  openrift.app
+                  {OFFICIAL_HOST}
                 </span>
               </div>
               {art ? (
@@ -100,7 +101,7 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
         <p className="text-muted-foreground text-sm">{m.marketing_stage_browser_source_hint()}</p>
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn(INPUT_CHROME, "truncate")}>
-            https://openrift.app/stage/source/Kf3nQ7ZaVb2p
+            {`https://${OFFICIAL_HOST}/stage/source/Kf3nQ7ZaVb2p`}
           </span>
           <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
             <CopyIcon />

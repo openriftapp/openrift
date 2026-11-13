@@ -134,17 +134,17 @@ describe("listsRepo", () => {
     });
   });
 
-  it("setShareToken sets a token + isPublic=true", async () => {
+  it("setShare sets a token + isPublic=true", async () => {
     const shared = { ...LIST, isPublic: true, shareToken: "tok-abc" };
     const db = createMockDb([shared]);
     const repo = listsRepo(db);
-    expect(await repo.setShareToken("lst-1", "u1", "tok-abc", true)).toEqual(shared);
+    expect(await repo.setShare("lst-1", "u1", "tok-abc", true)).toEqual(shared);
   });
 
-  it("setShareToken nulls the token + isPublic=false on unshare", async () => {
+  it("setShare nulls the token + isPublic=false on unshare", async () => {
     const db = createMockDb([LIST]);
     const repo = listsRepo(db);
-    expect(await repo.setShareToken("lst-1", "u1", null, false)).toEqual(LIST);
+    expect(await repo.setShare("lst-1", "u1", null, false)).toEqual(LIST);
   });
 
   it("getByShareToken returns list + owner name", async () => {

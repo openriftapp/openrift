@@ -1,4 +1,3 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { formatDay, HOUR_MS } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { tradeSettlementFingerprint } from "@openrift/shared/trade-settlement";
@@ -11,7 +10,7 @@ import type {
 
 import type { Repos, Transact } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
@@ -73,18 +72,10 @@ async function reloadDto(
 function requireLiveTrade(trade: CardTrade): LiveCardTrade {
   const { groupId, giverUserId, receiverUserId } = trade;
   if (groupId === null) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "This trade is closed: its friend group was deleted",
-    );
+    throw conflict("This trade is closed: its friend group was deleted");
   }
   if (giverUserId === null || receiverUserId === null) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "This trade is closed: the other party deleted their account",
-    );
+    throw conflict("This trade is closed: the other party deleted their account");
   }
   return { ...trade, groupId, giverUserId, receiverUserId };
 }
@@ -99,32 +90,32 @@ async function loadTradeForParty(
   assertFound(trade, "Trade not found");
   const role = callerRole(trade, byUserId);
   if (role === null) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "You are not a party to this trade");
+    throw forbidden("You are not a party to this trade");
   }
   return { trade: requireLiveTrade(trade), role };
 }
 
 function assertTradeStatus(trade: CardTrade, expected: CardTrade["status"], message: string): void {
   if (trade.status !== expected) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, message);
+    throw conflict(message);
   }
 }
 
 function assertRecipient(trade: CardTrade, role: CardTradeRole, action: string): void {
   if (role === trade.initiator) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, `Only the recipient can ${action} this trade`);
+    throw forbidden(`Only the recipient can ${action} this trade`);
   }
 }
 
 async function claimGiverSyncSide(repos: Repos, tradeId: string): Promise<void> {
   if ((await repos.cardTrades.setGiverSyncApplied(tradeId)) === 0) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "You've already resolved your side");
+    throw conflict("You've already resolved your side");
   }
 }
 
 async function claimReceiverSyncSide(repos: Repos, tradeId: string): Promise<void> {
   if ((await repos.cardTrades.setReceiverSyncApplied(tradeId)) === 0) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "You've already resolved your side");
+    throw conflict("You've already resolved your side");
   }
 }
 
@@ -140,15 +131,15 @@ async function assertRequestableCopies(
   },
 ): Promise<void> {
   if (input.role !== "receiver") {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only a request can ask for specific copies");
+    throw forbidden("Only a request can ask for specific copies");
   }
   const unique = new Set(input.copyIds);
   if (unique.size !== input.copyIds.length) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Choose each copy only once");
+    throw badRequest("Choose each copy only once");
   }
   if (unique.size !== input.quantity) {
     const noun = pluralize(input.quantity, "copy", "copies");
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Choose exactly ${input.quantity} ${noun}`);
+    throw badRequest(`Choose exactly ${input.quantity} ${noun}`);
   }
   const { unreservedCopyIds } = await repos.friendGroupMatches.giverPrintingSupply({
     groupId: input.groupId,
@@ -157,11 +148,7 @@ async function assertRequestableCopies(
   });
   const available = new Set(unreservedCopyIds);
   if (input.copyIds.some((id) => !available.has(id))) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "One of those copies is no longer available to trade",
-    );
+    throw conflict("One of those copies is no longer available to trade");
   }
 }
 
@@ -192,7 +179,7 @@ async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise
   } = input;
 
   if (counterpartyUserId === callerUserId) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "You cannot trade with yourself");
+    throw badRequest("You cannot trade with yourself");
   }
 
   const { group } = await loadGroupForMember(repos, groupSlug, callerUserId);
@@ -222,7 +209,7 @@ async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise
   const onPrinting = matchRows.filter((row) => row.printingId === printingId);
   const primaryMatch = onPrinting.find((row) => row.cardId === cardId) ?? onPrinting[0];
   if (!primaryMatch) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "That card is no longer available to trade");
+    throw conflict("That card is no longer available to trade");
   }
   await repos.cardTrades.lockSupply(group.id, giverUserId, printingId);
   return createCheckedTrade(repos, {
@@ -274,7 +261,7 @@ async function createCheckedTrade(
     printingId,
   );
   if (existing !== undefined) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "A live trade for this card already exists");
+    throw conflict("A live trade for this card already exists");
   }
 
   await assertSupplyAvailable(repos, groupId, giverUserId, printingId, quantity);
@@ -282,9 +269,7 @@ async function createCheckedTrade(
   // over-credit copies and drive the wishlist negative on sync.
   const raisesWish = role === "receiver" && receiverWishEntryId !== null;
   if (quantity > demandQuantity && !raisesWish) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       role === "giver"
         ? `They only want ${demandQuantity} of this card`
         : `You only want ${demandQuantity} of this card`,
@@ -320,7 +305,7 @@ async function createCheckedTrade(
   } catch (error) {
     // Lost a race to the unique partial index uq_card_trades_live.
     if (isUniqueViolation(error)) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "A live trade for this card already exists");
+      throw conflict("A live trade for this card already exists");
     }
     throw error;
   }
@@ -352,11 +337,7 @@ async function resolvePinnedCopyIds(
       chosenCopyIds !== undefined &&
       (chosenCopyIds.length !== requested.size || chosenCopyIds.some((id) => !requested.has(id)))
     ) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "This request names its copies: accept or decline them",
-      );
+      throw conflict("This request names its copies: accept or decline them");
     }
     return [...requestedCopyIds];
   }
@@ -373,27 +354,19 @@ async function resolvePinnedCopyIds(
   }
 
   if (role !== "giver") {
-    throw new AppError(
-      403,
-      ERROR_CODES.FORBIDDEN,
-      "Only the giver can choose which copies to promise",
-    );
+    throw forbidden("Only the giver can choose which copies to promise");
   }
   const unique = new Set(chosenCopyIds);
   if (unique.size !== chosenCopyIds.length) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Choose each copy only once");
+    throw conflict("Choose each copy only once");
   }
   if (unique.size !== trade.quantity) {
     const noun = pluralize(trade.quantity, "copy", "copies");
-    throw new AppError(409, ERROR_CODES.CONFLICT, `Choose exactly ${trade.quantity} ${noun}`);
+    throw conflict(`Choose exactly ${trade.quantity} ${noun}`);
   }
   const available = new Set(availableCopyIds);
   if (chosenCopyIds.some((id) => !available.has(id))) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "One of those copies is no longer available to trade",
-    );
+    throw conflict("One of those copies is no longer available to trade");
   }
   return chosenCopyIds;
 }
@@ -424,11 +397,7 @@ export async function listTradeCopyOptions(
 ): Promise<CardTradeCopyOptionsResponse> {
   const { trade, role } = await loadTradeForParty(repos, tradeId, byUserId);
   if (role !== "giver") {
-    throw new AppError(
-      403,
-      ERROR_CODES.FORBIDDEN,
-      "Only the giver can see the copies behind this trade",
-    );
+    throw forbidden("Only the giver can see the copies behind this trade");
   }
 
   if (trade.status === "pending") {
@@ -532,7 +501,7 @@ export function acceptTrade(
     const reserved = await trxRepos.cardTrades.markReserved(tradeId, byUserId);
     if (reserved === 0) {
       // A concurrent decline/cancel moved it out of `pending` after we pinned.
-      throw new AppError(409, ERROR_CODES.CONFLICT, "This trade is no longer pending");
+      throw conflict("This trade is no longer pending");
     }
     // The pins may have made the giver's other pending trades unfillable.
     await autoCancelUnfillablePendingTrades(trxRepos, trade.giverUserId, trade.printingId);
@@ -551,7 +520,7 @@ export function declineTrade(
     assertRecipient(trade, role, "decline");
     const declined = await trxRepos.cardTrades.markDeclined(tradeId, byUserId);
     if (declined === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "This trade is no longer pending");
+      throw conflict("This trade is no longer pending");
     }
     return reloadDto(trxRepos, tradeId, byUserId);
   });
@@ -568,20 +537,14 @@ export function cancelTrade(
     });
     if (trade.status === "pending") {
       if (role !== trade.initiator) {
-        throw new AppError(
-          403,
-          ERROR_CODES.FORBIDDEN,
-          "Only the initiator can cancel a pending trade",
-        );
+        throw forbidden("Only the initiator can cancel a pending trade");
       }
     } else if (trade.status !== "reserved") {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "This trade can no longer be cancelled");
+      throw conflict("This trade can no longer be cancelled");
     } else if (trade.giverSyncAppliedAt !== null || trade.receiverSyncAppliedAt !== null) {
       // The giver's settle hard-deletes the copy rows, so cancelling here
       // can't restore them.
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
+      throw conflict(
         "Someone has already settled their side of this trade, so it can no longer be cancelled",
       );
     }
@@ -589,7 +552,7 @@ export function cancelTrade(
     // cancel does not delete copies it didn't transition.
     const cancelled = await trxRepos.cardTrades.markCancelled(tradeId, byUserId);
     if (cancelled === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "This trade can no longer be cancelled");
+      throw conflict("This trade can no longer be cancelled");
     }
     await trxRepos.cardTrades.deleteCopiesForTrade(tradeId); // no-op while pending
     return reloadDto(trxRepos, tradeId, byUserId);
@@ -605,14 +568,14 @@ export function setTradeQuantity(
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
     if (quantity < 1) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Quantity must be at least 1");
+      throw badRequest("Quantity must be at least 1");
     }
     const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
       forUpdate: true,
     });
     assertTradeStatus(trade, "pending", "This request can no longer be changed");
     if (role !== trade.initiator) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only the initiator can change this request");
+      throw forbidden("Only the initiator can change this request");
     }
 
     await trxRepos.cardTrades.lockSupply(trade.groupId, trade.giverUserId, trade.printingId);
@@ -637,7 +600,7 @@ export function setTradeQuantity(
 
     const updated = await trxRepos.cardTrades.setPendingQuantity(tradeId, byUserId, quantity);
     if (updated === 0) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "This request can no longer be changed");
+      throw conflict("This request can no longer be changed");
     }
     if (quantity !== trade.quantity) {
       await trxRepos.cardTrades.setRequestedCopies(tradeId, []);
@@ -648,14 +611,14 @@ export function setTradeQuantity(
 
 function assertSettleable(trade: LiveCardTrade): void {
   if (trade.status !== "reserved") {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "This trade is no longer open to settle");
+    throw conflict("This trade is no longer open to settle");
   }
 }
 
 function assertGiverUnsettled(trade: LiveCardTrade): void {
   assertSettleable(trade);
   if (trade.giverSyncAppliedAt !== null) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "You have already settled your half");
+    throw conflict("You have already settled your half");
   }
 }
 
@@ -700,7 +663,7 @@ async function applyReceiverSync(
       trade.receiverUserId,
     );
     if (writable.length !== 1) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "That collection is not writable by you");
+      throw forbidden("That collection is not writable by you");
     }
     collectionId = targetCollectionId;
   }
@@ -763,11 +726,11 @@ async function resolveSettleCopyIds(
 ): Promise<string[]> {
   const unique = new Set(chosenCopyIds);
   if (unique.size !== chosenCopyIds.length) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Choose each copy only once");
+    throw conflict("Choose each copy only once");
   }
   if (unique.size !== quantity) {
     const noun = pluralize(quantity, "copy", "copies");
-    throw new AppError(409, ERROR_CODES.CONFLICT, `Choose exactly ${quantity} ${noun}`);
+    throw conflict(`Choose exactly ${quantity} ${noun}`);
   }
 
   // Lock only the chosen rows, so a concurrent accept or dispose serializes
@@ -776,7 +739,7 @@ async function resolveSettleCopyIds(
   const candidates = await listSettleCandidateCopies(trxRepos, trade, pinnedCopyIds);
   const allowed = new Set(candidates.map((copy) => copy.id));
   if (chosenCopyIds.some((id) => !locked.has(id) || !allowed.has(id))) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "One of those copies is no longer available");
+    throw conflict("One of those copies is no longer available");
   }
   return chosenCopyIds;
 }
@@ -791,7 +754,7 @@ async function splitTradeForSettle(
   disposingCopyIds?: string[],
 ): Promise<LiveCardTrade> {
   if ((await trxRepos.cardTrades.reserveQuantityForSplit(trade.id, quantity, role)) === 0) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "You've already resolved your side");
+    throw conflict("You've already resolved your side");
   }
   const split = await trxRepos.cardTrades.createSettledSplit({
     from: trade,
@@ -827,11 +790,7 @@ async function claimSettleTarget(
   const settling = quantity ?? trade.quantity;
   if (settling > trade.quantity) {
     const noun = pluralize(trade.quantity, "copy", "copies");
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      `This trade is down to ${trade.quantity} ${noun}`,
-    );
+    throw conflict(`This trade is down to ${trade.quantity} ${noun}`);
   }
   if (settling === trade.quantity) {
     const claimSide = role === "giver" ? claimGiverSyncSide : claimReceiverSyncSide;
@@ -856,11 +815,7 @@ async function replaySettlement(
     return undefined;
   }
   if (previous.fingerprint !== fingerprint) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "This settlement request was already used with different details",
-    );
+    throw conflict("This settlement request was already used with different details");
   }
   return reloadDto(repos, previous.settledTradeId, userId);
 }
@@ -909,11 +864,7 @@ export function applyTradeSync(
     }
     assertSettleable(trade);
     if (options.copyIds !== undefined && role !== "giver") {
-      throw new AppError(
-        403,
-        ERROR_CODES.FORBIDDEN,
-        "Only the giver can choose which copies to log",
-      );
+      throw forbidden("Only the giver can choose which copies to log");
     }
 
     let settledId: string;

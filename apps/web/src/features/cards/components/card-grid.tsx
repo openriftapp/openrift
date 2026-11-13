@@ -1,3 +1,4 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactNode } from "react";
@@ -12,7 +13,6 @@ import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import {
   BUTTON_PAD,
   BUTTON_PAD_CLASS,
-  CARD_ASPECT_INVERSE,
   FALLBACK_ROW_HEIGHT,
   HEADER_CONTENT_HEIGHT,
   HEADER_PB,
@@ -264,7 +264,7 @@ export function CardGrid({
     if (row.kind === "header") {
       return HEADER_PT + HEADER_CONTENT_HEIGHT + HEADER_PB;
     }
-    const imgHeight = (thumbWidth - BUTTON_PAD * 2) * CARD_ASPECT_INVERSE;
+    const imgHeight = (thumbWidth - BUTTON_PAD * 2) / CARD_ASPECT;
     return Math.round(imgHeight + labelHeight + BUTTON_PAD * 2 + addStripHeight);
   };
 

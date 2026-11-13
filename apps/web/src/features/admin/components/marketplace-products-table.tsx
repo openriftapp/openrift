@@ -1,5 +1,5 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminMarketplaceName,
@@ -13,6 +13,7 @@ import { WandSparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { AdminTable } from "@/features/admin/components/admin-table";
+import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 
 import type { RowSuggestion } from "./marketplace-product-cells";
 import {
@@ -32,7 +33,6 @@ import {
   collectEntries,
   collectStrongMappings,
   collectWeakMappings,
-  MARKETPLACE_CONFIGS,
 } from "./marketplace-product-entries";
 
 function AcceptSuggestionsButton({
@@ -119,7 +119,7 @@ function MarketplaceTable({
         toolbar={
           <div className="flex w-full items-center gap-2">
             <SectionHeading as="h3" size="sm">
-              {MARKETPLACE_CONFIGS[marketplace].displayName}
+              {SOURCE_CONFIGS[marketplace].displayName}
             </SectionHeading>
             <div className="ml-auto flex items-center gap-2">
               <AcceptSuggestionsButton
@@ -187,7 +187,7 @@ export function MarketplaceProductsTable({
             row.key,
             (
               suggestions?.get(
-                productSuggestionKey(
+                marketplaceSkuKey(
                   marketplace,
                   row.entry.product.externalId,
                   row.entry.product.finish,

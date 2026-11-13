@@ -7,13 +7,9 @@ import { featureFlagsKeys, serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "./server-cache";
 import { withCookies } from "./server-fns/middleware";
 import { apiOrpcClient } from "./server-fns/orpc-client";
+import { hasSessionCookie } from "./session-cookie";
 
 export type FeatureFlags = Record<string, boolean>;
-
-/** Matches better-auth's session cookie name (plain + `__Secure-` prefixed variant). */
-function hasSessionCookie(cookie: string): boolean {
-  return /better-auth\.session_token/u.test(cookie);
-}
 
 async function fetchFlagsFromApi(cookie?: string): Promise<FeatureFlags> {
   const data = await apiOrpcClient(featureFlagsContract, cookie).get();

@@ -1,10 +1,8 @@
+import { escapeRegExp } from "@openrift/shared/strings";
+
 export interface TokenCardName {
   cardId: string;
   name: string;
-}
-
-function escapeRegExp(literal: string): string {
-  return literal.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 }
 
 function flattenCardText(text: string): string {

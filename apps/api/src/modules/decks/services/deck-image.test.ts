@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { defaultIo } from "../../../io.js";
 import type { DeckImageCard } from "./deck-image.js";
-import { renderDeckImage, truncateTitle } from "./deck-image.js";
+import { renderDeckImage } from "./deck-image.js";
 
 // Exercises the real pipeline (font load + glyph rasterize + QR + satori + sharp), no DB or media.
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -11,7 +11,7 @@ const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 // Canvas geometry mirrored from deck-image.ts, to locate the QR mark in output.
 const WIDTH = 1200;
 const HEIGHT = 630;
-const PAD = 22;
+const PAD = 24;
 const HEADER_QR_SIZE = 104;
 /** Gap below the title row, `GAP` in deck-image-parts.ts. */
 const TITLE_GAP = 10;
@@ -278,22 +278,4 @@ describe("renderDeckImage (vertical)", () => {
     expect(meta.width).toBe(2160);
     expect(meta.height).toBe(3840);
   }, 30_000); // 2160×3840 is the heaviest canvas here; generous for cold CI.
-});
-
-describe("truncateTitle", () => {
-  it("leaves short titles untouched", () => {
-    expect(truncateTitle("Azir UNL - Current")).toBe("Azir UNL - Current");
-  });
-
-  it("elides overly long titles to a single ellipsis", () => {
-    const long = "A".repeat(40);
-    const result = truncateTitle(long);
-    expect(result.length).toBeLessThanOrEqual(34);
-    expect(result.endsWith("…")).toBe(true);
-  });
-
-  it("trims trailing space before the ellipsis", () => {
-    const title = `${"word ".repeat(8)}tail`; // spaces land near the cut
-    expect(truncateTitle(title)).not.toContain(" …");
-  });
 });

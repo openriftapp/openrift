@@ -1,4 +1,5 @@
 import { formatDayTime } from "@openrift/shared/format-date";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { CardLabels } from "@openrift/shared/scan/labels";
 import {
   CameraIcon,
@@ -22,10 +23,7 @@ import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useClipRecorder } from "@/features/admin/hooks/use-clip-recorder";
 import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
-import {
-  REBUILD_SCAN_BANK_KIND,
-  useRebuildScanBank,
-} from "@/features/admin/hooks/use-scan-bank-admin";
+import { useRebuildScanBank } from "@/features/admin/hooks/use-scan-bank-admin";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ScanLoadRow } from "@/features/scan/components/scan-load-row";
 import { useCardScanner } from "@/features/scan/hooks/use-card-scanner";
@@ -288,7 +286,7 @@ function EngineCard({ settings, onChange }: EngineCardProps) {
 
 function ServingCard({ serving }: { serving: ScanServing }) {
   const rebuild = useRebuildScanBank();
-  const latestRun = useLatestJobRun(REBUILD_SCAN_BANK_KIND);
+  const latestRun = useLatestJobRun(JOB_KIND.rebuildScanBank);
   const running = rebuild.isPending || latestRun.data?.status === "running";
 
   async function handleRebuild() {

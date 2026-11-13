@@ -5,7 +5,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { chanceToDraw, OPENING_HAND_SIZE } from "@/features/decks/lib/deck-draw-odds";
 import type { OwnershipClass } from "@/features/decks/lib/deck-stat-lenses";
 import { m } from "@/paraglide/messages.js";
@@ -40,7 +40,7 @@ export function cardMatchesStatsFocus(card: DeckBuilderCard, focus: StatsFocus):
     }
     case "rarity":
     case "ownership": {
-      return focus.cardKeys.has(getDeckCardKey(card));
+      return focus.cardKeys.has(deckCardKey(card));
     }
   }
 }

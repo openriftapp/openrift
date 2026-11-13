@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isRecord } from "./type-guards.js";
+
 export const BOARD_STATE_SCHEMA_VERSION = 3;
 export const BOARD_PLAYERS = ["A", "B", "C", "D"] as const;
 export const MAX_BATTLEFIELDS = 3;
@@ -474,10 +476,6 @@ export function extractCardRefs(text: string): string[] {
     }
   }
   return [...seen];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function upgradePiece(raw: unknown, version: number): unknown {

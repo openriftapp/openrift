@@ -23,7 +23,7 @@ import type {
   DecksCollection,
 } from "@/features/decks/lib/decks-write";
 import {
-  deckCardKey,
+  deckCardRowKey,
   persistDeckCardMutations,
   persistDeckFolderMutations,
   persistDeckMutations,
@@ -146,7 +146,7 @@ export function getDeckCardsCollection(
         const liveDeckIds = syncedDeckIds(queryClient, userId);
         return liveDeckIds === undefined ? merged : dropCardsOfMissingDecks(merged, liveDeckIds);
       },
-      getKey: (row) => deckCardKey(row),
+      getKey: (row) => deckCardRowKey(row),
       onInsert: async ({ transaction, collection: rows }) => {
         await persistDeckCardMutations(rows, transaction.mutations, context);
         return { refetch: false };

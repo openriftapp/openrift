@@ -3,7 +3,7 @@ import type {
   CardTradeSheetResponse,
 } from "@openrift/shared/types/api/card-trade";
 import { Link } from "@tanstack/react-router";
-import { BellIcon, CheckIcon, EllipsisVerticalIcon, HandshakeIcon } from "lucide-react";
+import { BellIcon, EllipsisVerticalIcon, HandshakeIcon, HistoryIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { useState } from "react";
 
@@ -36,9 +36,10 @@ import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups"
 import {
   countTradeSuggestions,
   tradeGroupKey,
+  liveOnlyMatchRows,
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
-import { tradeSideKey } from "@/features/groups/lib/trade-printing";
+import { tradePrinting, tradeSideKey } from "@/features/groups/lib/trade-printing";
 import { sheetEmptyState, splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
 import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -100,8 +101,8 @@ function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
   return (
     <Disclosure
       variant="heading"
-      icon={CheckIcon}
-      title={m.trades_completed({ count: trades.length })}
+      icon={HistoryIcon}
+      title={m.trades_past_trades({ count: trades.length })}
     >
       <ul className="flex flex-col gap-2">
         {trades.map((trade) => (
@@ -147,7 +148,7 @@ function TradeSheetBody({
   viaGroup: boolean;
 }) {
   const { data: allTrades } = useUserTrades();
-  const { printingsById } = useCards();
+  const { printingsById, printingsByCardId } = useCards();
   const [exportOpen, setExportOpen] = useState(false);
 
   const trades = allTrades?.items ?? [];
@@ -158,8 +159,21 @@ function TradeSheetBody({
     (printingId) => printingsById[printingId]?.canonicalRank ?? Number.MAX_SAFE_INTEGER,
   );
 
-  const incoming = withoutLiveTradeMatches(sheet.othersHaveYourWants, trades);
-  const outgoing = withoutLiveTradeMatches(sheet.othersWantYourHaves, trades);
+  const counterpartyTrades = trades.filter((trade) => trade.counterparty.userId === userId);
+  const printingOf = (trade: { cardId: string; printingId: string }) =>
+    tradePrinting(trade, printingsByCardId, printingsById);
+  const incoming = [
+    ...sheet.othersHaveYourWants,
+    ...liveOnlyMatchRows(counterpartyTrades, sheet.othersHaveYourWants, "incoming", printingOf),
+  ];
+  const outgoing = [
+    ...sheet.othersWantYourHaves,
+    ...liveOnlyMatchRows(counterpartyTrades, sheet.othersWantYourHaves, "outgoing", printingOf),
+  ];
+  const suggestionCount = countTradeSuggestions(
+    withoutLiveTradeMatches(sheet.othersHaveYourWants, trades, "incoming"),
+    withoutLiveTradeMatches(sheet.othersWantYourHaves, trades, "outgoing"),
+  );
 
   const { data: anchorGroupDetail } = useFriendGroupDetail(anchorGroup.slug);
   // Organize-list shares don't render on the member page, so they don't count.
@@ -184,7 +198,7 @@ function TradeSheetBody({
     (trade) => trade.status === "pending" || trade.status === "reserved",
   );
   const reserved = live.filter((trade) => trade.status === "reserved");
-  const emptyState = sheetEmptyState(ledger, incoming.length + outgoing.length);
+  const emptyState = sheetEmptyState(ledger, suggestionCount);
 
   return (
     <CardDetailOverlayProvider>
@@ -292,7 +306,7 @@ function TradeSheetBody({
             />
             {incoming.length > 0 || outgoing.length > 0 ? (
               <section className="flex flex-col gap-3">
-                <SectionHeading count={countTradeSuggestions(incoming, outgoing)}>
+                <SectionHeading count={suggestionCount}>
                   {m.trades_section_suggestions()}
                 </SectionHeading>
                 <MatchTradeList

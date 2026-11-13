@@ -1,9 +1,9 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { describe, expect, it } from "vitest";
 
 import {
   backgroundLayout,
   buildAttribution,
-  CARD_ASPECT,
   CARD_MAX_ZOOM,
   CARD_MIN_ZOOM,
   clampImageTransform,
@@ -17,25 +17,27 @@ const PORTRAIT_ASPECT = 0.5;
 const LANDSCAPE_ASPECT = 2;
 
 describe("buildAttribution", () => {
-  it("appends openrift.app to a provided artist", () => {
-    expect(buildAttribution("Jane Doe")).toBe("Jane Doe · openrift.app");
+  const host = "cards.example.test";
+
+  it("credits the running site after a provided artist", () => {
+    expect(buildAttribution("Jane Doe", host)).toBe("Jane Doe · cards.example.test");
   });
 
-  it("returns just openrift.app for an empty field", () => {
-    expect(buildAttribution("")).toBe("openrift.app");
-    expect(buildAttribution(undefined)).toBe("openrift.app");
+  it("returns just the site host for an empty field", () => {
+    expect(buildAttribution("", host)).toBe(host);
+    expect(buildAttribution(undefined, host)).toBe(host);
   });
 
   it("trims surrounding whitespace and treats whitespace-only as empty", () => {
-    expect(buildAttribution("  Jane  ")).toBe("Jane · openrift.app");
-    expect(buildAttribution("   ")).toBe("openrift.app");
+    expect(buildAttribution("  Jane  ", host)).toBe("Jane · cards.example.test");
+    expect(buildAttribution("   ", host)).toBe(host);
   });
 
-  it("omits the brand when includeBrand is false", () => {
-    expect(buildAttribution("Jane Doe", false)).toBe("Jane Doe");
-    expect(buildAttribution("  Jane  ", false)).toBe("Jane");
-    expect(buildAttribution("", false)).toBe("");
-    expect(buildAttribution(undefined, false)).toBe("");
+  it("omits the brand when there is none to credit", () => {
+    expect(buildAttribution("Jane Doe", null)).toBe("Jane Doe");
+    expect(buildAttribution("  Jane  ", null)).toBe("Jane");
+    expect(buildAttribution("", null)).toBe("");
+    expect(buildAttribution(undefined, null)).toBe("");
   });
 });
 

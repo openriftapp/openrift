@@ -1,3 +1,4 @@
+import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -222,6 +223,36 @@ describe("isZoneDropRejected", () => {
           relaxed: true,
         }),
       ).toBe(true);
+    });
+  });
+
+  describe("a rune dragged from the browser onto a full rune deck", () => {
+    const rune = (domain: string, quantity: number, zone: DeckZone = WellKnown.deckZone.RUNES) =>
+      stubDeckBuilderCard({ cardType: "rune", zone, domains: [domain] as never, quantity });
+    const legend = (domains: string[]) =>
+      stubDeckBuilderCard({
+        cardType: "legend",
+        zone: WellKnown.deckZone.LEGEND,
+        domains: domains as never,
+      });
+    const drop = (allCards: DeckBuilderCard[]) =>
+      isZoneDropRejected({
+        dragData: { type: "browser-card", card: rune("fury", 1, WellKnown.deckZone.MAIN) },
+        zone: WellKnown.deckZone.RUNES,
+        allCards,
+        format: WellKnown.deckFormat.CONSTRUCTED,
+      });
+
+    it("accepts it when a two-domain legend lets it swap a rune out", () => {
+      expect(drop([legend(["fury", "calm"]), rune("fury", 6), rune("calm", 6)])).toBe(false);
+    });
+
+    it("rejects it without a legend", () => {
+      expect(drop([rune("fury", 12)])).toBe(true);
+    });
+
+    it("rejects it under a single-domain legend", () => {
+      expect(drop([legend(["fury"]), rune("fury", 12)])).toBe(true);
     });
   });
 });

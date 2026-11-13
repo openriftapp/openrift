@@ -1,4 +1,3 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { pickAutoBye } from "@openrift/shared/pairing/auto-bye";
 import { evaluatePairing } from "@openrift/shared/pairing/evaluate";
 import { generatePairing, InvalidPlayerCountError } from "@openrift/shared/pairing/local-search";
@@ -14,7 +13,8 @@ import type { PairingMode, PairingResult, Pod } from "@openrift/shared/pairing/t
 import type { PodSnapshotPlayer } from "@openrift/shared/types/api/pod-tournament";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import type { AppError } from "../../../errors.js";
+import { badRequest, conflict, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { scoringOf } from "../lib/pod-scoring.js";
@@ -22,11 +22,7 @@ import type { PodRound } from "../repositories/pod-tournaments-shared.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 
 function roundAlreadyOpen(): AppError {
-  return new AppError(
-    409,
-    ERROR_CODES.CONFLICT,
-    "A round is already open. Finalize or re-roll it before pairing the next one.",
-  );
+  return conflict("A round is already open. Finalize or re-roll it before pairing the next one.");
 }
 
 /** An empty round (every active player took a bye): zero pods, zero penalty. */
@@ -60,7 +56,7 @@ async function runPairing(
   const activeIds = new Set(snapshot.map((player) => player.id));
   for (const byeId of byePlayerIds) {
     if (!activeIds.has(byeId)) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A bye names a player who is not active.");
+      throw badRequest("A bye names a player who is not active.");
     }
   }
   const byeSet = new Set(byePlayerIds);
@@ -70,9 +66,7 @@ async function runPairing(
       (player) => player.region === null || player.region === undefined,
     ).length;
     if (missingRegion > 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
+      throw badRequest(
         missingRegion === 1
           ? "1 player has no region set. Assign regions on the Participants page, or sit them out, before pairing."
           : `${missingRegion} players have no region set. Assign regions on the Participants page, or sit them out, before pairing.`,
@@ -98,7 +92,7 @@ async function runPairing(
     };
   } catch (error) {
     if (error instanceof InvalidPlayerCountError) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, error.message);
+      throw badRequest(error.message);
     }
     throw error;
   }
@@ -121,27 +115,19 @@ function runTeamPairing(
   const full = buildTeamUnits(snapshot);
   const { partialByePlayerIds } = collapseTeamByes(byePlayerIds, full.teamByPlayer);
   if (partialByePlayerIds.length > 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "A bye must sit out a whole team — include both members.",
-    );
+    throw badRequest("A bye must sit out a whole team — include both members.");
   }
   const field = buildTeamUnits(seated);
   if (field.unteamedPlayerIds.length > 0) {
     const count = field.unteamedPlayerIds.length;
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       count === 1
         ? "1 player is not on a team. Pair them on the Participants page, sit them out, or drop them before pairing."
         : `${count} players are not on a team. Pair them on the Participants page, sit them out, or drop them before pairing.`,
     );
   }
   if (field.incompleteTeamIds.length > 0) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       "A team is missing its partner. Drop the remaining member too, or sit them out, before pairing.",
     );
   }
@@ -163,7 +149,7 @@ function runTeamPairing(
     };
   } catch (error) {
     if (error instanceof InvalidPlayerCountError) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, error.message);
+      throw badRequest(error.message);
     }
     throw error;
   }
@@ -214,14 +200,10 @@ export async function rerollRound(
   });
   assertFound(round, "Round not found");
   if (round.status === "finalized") {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A finalized round cannot be re-rolled.");
+    throw badRequest("A finalized round cannot be re-rolled.");
   }
   if (await repos.podTournaments.anyResultEntered(round.id)) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "A round cannot be re-rolled once a pod result has been entered.",
-    );
+    throw badRequest("A round cannot be re-rolled once a pod result has been entered.");
   }
   const byePlayerIds = await repos.podTournaments.listRoundByePlayerIds(round.id);
   await repos.podTournaments.deleteRound(round.id);
@@ -247,42 +229,26 @@ export async function replaceRoundPairing(
   });
   assertFound(round, "Round not found");
   if (round.status === "finalized") {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A finalized round cannot be edited.");
+    throw badRequest("A finalized round cannot be edited.");
   }
   if (await repos.podTournaments.anyResultEntered(round.id)) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "A round cannot be edited once a pod result has been entered.",
-    );
+    throw badRequest("A round cannot be edited once a pod result has been entered.");
   }
 
   const swiss = pairingModeOf(tournament) === "swiss";
   const team = tournament.playMode === "2v2";
   for (const pod of pods) {
     if (pod.size !== pod.playerIds.length) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `A pod declares size ${pod.size} but has ${pod.playerIds.length} players.`,
-      );
+      throw badRequest(`A pod declares size ${pod.size} but has ${pod.playerIds.length} players.`);
     }
     if (team && pod.size !== 4) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "2v2 matches must have exactly 4 players (two teams).",
-      );
+      throw badRequest("2v2 matches must have exactly 4 players (two teams).");
     }
     if (!team && swiss && pod.size !== 2) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Swiss matches must have exactly 2 players.",
-      );
+      throw badRequest("Swiss matches must have exactly 2 players.");
     }
     if (!team && !swiss && pod.size === 2) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Pods must have 3 or 4 players.");
+      throw badRequest("Pods must have 3 or 4 players.");
     }
   }
 
@@ -291,11 +257,7 @@ export async function replaceRoundPairing(
   const incoming = [...pods.flatMap((pod) => pod.playerIds), ...byePlayerIds];
   const incomingSet = new Set(incoming);
   if (incomingSet.size !== incoming.length) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "A player appears in more than one pod or bye.",
-    );
+    throw badRequest("A player appears in more than one pod or bye.");
   }
   const [memberIds, existingByes] = await Promise.all([
     repos.podTournaments.listRoundMemberPlayerIds(round.id),
@@ -303,11 +265,7 @@ export async function replaceRoundPairing(
   ]);
   const current = new Set([...memberIds, ...existingByes]);
   if (current.size !== incomingSet.size || [...current].some((id) => !incomingSet.has(id))) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "The edited pairing must include exactly the players already in this round.",
-    );
+    throw badRequest("The edited pairing must include exactly the players already in this round.");
   }
 
   // Recompute the penalty from the pre-round snapshot so the stored breakdown
@@ -325,19 +283,11 @@ export async function replaceRoundPairing(
     const teams = buildTeamUnits(players);
     const { teamPods, invalidPodIndexes } = collapseTeamPods(enginePods, teams.teamByPlayer);
     if (invalidPodIndexes.length > 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Each 2v2 match must hold two complete teams.",
-      );
+      throw badRequest("Each 2v2 match must hold two complete teams.");
     }
     const { partialByePlayerIds } = collapseTeamByes(byePlayerIds, teams.teamByPlayer);
     if (partialByePlayerIds.length > 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "A bye must sit out a whole team — include both members.",
-      );
+      throw badRequest("A bye must sit out a whole team — include both members.");
     }
     evaluated = evaluatePairing(teamPods, teams.units);
   } else {
@@ -379,14 +329,10 @@ export async function finalizeRound(
   });
   assertFound(round, "Round not found");
   if (round.status === "finalized") {
-    throw new AppError(409, ERROR_CODES.CONFLICT, "Round already finalized.");
+    throw conflict("Round already finalized.");
   }
   if (!(await repos.podTournaments.allPodsReported(round.id))) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      "Every pod must have a result before the round can be finalized.",
-    );
+    throw badRequest("Every pod must have a result before the round can be finalized.");
   }
   await repos.podTournaments.finalizeRound(round.id, tournament.id, roundNumber);
 }
@@ -406,40 +352,32 @@ export async function submitPodResult(
   await repos.podTournaments.lockRoundOfPod(podId);
   const found = await repos.podTournaments.getPodForResult(podId);
   if (!found || found.tournament.id !== tournamentId) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Pod not found");
+    throw notFound("Pod not found");
   }
   if (found.round.status === "finalized" && !options.allowFinalized) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "This round is finalized. Results can no longer be submitted here.",
-    );
+    throw conflict("This round is finalized. Results can no longer be submitted here.");
   }
 
   const size = found.pod.size;
   if (results.length !== size) {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
-      `A ${size}-player pod needs exactly ${size} results.`,
-    );
+    throw badRequest(`A ${size}-player pod needs exactly ${size} results.`);
   }
   const memberIds = new Set(found.memberPlayerIds);
   const seen = new Set<string>();
   for (const { playerId, gamePoints } of results) {
     if (!memberIds.has(playerId)) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A result names a player not in this pod.");
+      throw badRequest("A result names a player not in this pod.");
     }
     if (seen.has(playerId)) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A player appears twice in the results.");
+      throw badRequest("A player appears twice in the results.");
     }
     seen.add(playerId);
     if (gamePoints < 0) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Game points cannot be negative.");
+      throw badRequest("Game points cannot be negative.");
     }
   }
   if (seen.size !== memberIds.size) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Every player in the pod needs a result.");
+    throw badRequest("Every player in the pod needs a result.");
   }
   if (found.tournament.playMode === "2v2") {
     // A 2v2 result is a team result: both members of a side carry the same
@@ -448,18 +386,10 @@ export async function submitPodResult(
       found.teamByPlayer.get(result.playerId),
     )) {
       if (teamId === undefined) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "A result names a player who is not on a team.",
-        );
+        throw badRequest("A result names a player who is not on a team.");
       }
       if (new Set(teamResults.map((result) => result.gamePoints)).size > 1) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "Teammates share one team result — their game points must match.",
-        );
+        throw badRequest("Teammates share one team result — their game points must match.");
       }
     }
   }
@@ -489,20 +419,16 @@ export async function submitPodPlayerResult(
   await repos.podTournaments.lockRoundOfPod(podId);
   const found = await repos.podTournaments.getPodForResult(podId);
   if (!found || found.tournament.id !== tournamentId) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Pod not found");
+    throw notFound("Pod not found");
   }
   if (found.round.status === "finalized") {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
-      "This round is finalized. Results can no longer be submitted here.",
-    );
+    throw conflict("This round is finalized. Results can no longer be submitted here.");
   }
   if (!found.memberPlayerIds.includes(playerId)) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "This player is not in this pod.");
+    throw badRequest("This player is not in this pod.");
   }
   if (gamePoints < 0) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Game points cannot be negative.");
+    throw badRequest("Game points cannot be negative.");
   }
   // A 2v2 self-report is the team's result: mirror it onto the teammate, so
   // the pod completes once each side has reported (any member of either team).

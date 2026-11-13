@@ -1,8 +1,7 @@
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { errorMessage } from "@openrift/shared/strings";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
-import { AppError } from "../../../../errors.js";
+import { badRequest } from "../../../../errors.js";
 import { recordCapped } from "../../../../lib/json-coerce.js";
 import { UVSGAMES_PROVIDER, UVSGAMES_STATUS_CANCELED } from "../../../../lib/meta-providers.js";
 import type { MetaAutoAcceptRule, MetaAutoAcceptSettings } from "../../lib/meta-auto-accept.js";
@@ -46,9 +45,7 @@ export async function acceptCatalogEvent(
   const mappings = options?.formatMappings ?? (await deps.repos.uvsgamesEvents.formatMappings());
   const format = options?.format ?? mapSourceFormat(mappings, row.eventFormat) ?? "";
   if (format === "") {
-    throw new AppError(
-      400,
-      ERROR_CODES.BAD_REQUEST,
+    throw badRequest(
       `No archive format matches what the source published for "${row.name}". Pick one to accept it.`,
     );
   }

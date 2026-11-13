@@ -67,7 +67,7 @@ const group: TradeMarketGroup = {
   incoming: [stubRow()],
   outgoing: [stubRow({ printingId: "p-leona", cardId: "c-leona", cardName: "Leona, Zealot" })],
 };
-const market = buildTradeMarket([group], []);
+const market = buildTradeMarket([group]);
 let currentMarket = market;
 
 function wantedCard(overrides: Partial<WantedCard>): WantedCard {
@@ -226,14 +226,13 @@ describe("TradeMarket", () => {
       copyId: "copy-2",
     });
     const groups = [{ ...group, incoming: [stubRow(), kofi] }];
-    currentMarket = buildTradeMarket(groups, []);
+    currentMarket = buildTradeMarket(groups);
     const { rerender } = render(<TradeMarket />);
     fireEvent.click(screen.getByRole("button", { name: /Jinx, Rebel/u }));
     expect(screen.getByText("sources:2")).toBeTruthy();
 
     currentMarket = buildTradeMarket(
       groups,
-      [],
       dismissalKeys([
         { direction: "incoming", counterpartyUserId: "user-kofi", printingId: "p-jinx" },
       ]),

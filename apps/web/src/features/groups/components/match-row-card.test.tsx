@@ -2,7 +2,7 @@ import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { countTradeSuggestions } from "@/features/groups/lib/trade-derivation";
+import { countTradeSuggestions, liveTradeIndex } from "@/features/groups/lib/trade-derivation";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -113,14 +113,22 @@ describe("bulkTradeRequests", () => {
     ]);
   });
 
-  it("skips a card that already has a live trade with that member", () => {
+  it("skips a card that already has a live trade with that member, in any shared group", () => {
     const groups = groupTradeMatches([
       makeDirected({ printingId: "pending", cardId: "bird", buyEntryId: "w-bird" }),
       makeDirected({ printingId: "open", cardId: "brush", buyEntryId: "w-brush" }),
     ]);
-    const liveTradeByKey = new Map([["rift-crew\0user-1\0pending", {} as CardTradeResponse]]);
+    const liveTrades = liveTradeIndex([
+      {
+        status: "pending",
+        role: "receiver",
+        groupSlug: "another-crew",
+        printingId: "pending",
+        counterparty: { userId: "user-1" },
+      } as CardTradeResponse,
+    ]);
 
-    const requests = bulkTradeRequests(groups, liveTradeByKey);
+    const requests = bulkTradeRequests(groups, liveTrades);
 
     expect(requests.map((request) => request.variant.cardId)).toEqual(["brush"]);
   });

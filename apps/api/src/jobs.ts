@@ -1,4 +1,5 @@
 import { DAY_MS } from "@openrift/shared/format-date";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Logger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
 
@@ -63,7 +64,7 @@ import {
   syncPlayriftboundCatalog,
   syncTopdeckCatalog,
 } from "./modules/meta/services/meta-sync/index.js";
-import { REBUILD_SCAN_BANK_KIND, rebuildScanBank } from "./modules/scan/services/scan-bank.js";
+import { rebuildScanBank } from "./modules/scan/services/scan-bank.js";
 import {
   extractWatermark,
   postChangelogToDiscord,
@@ -186,7 +187,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       },
     }),
     defineJob(log, {
-      kind: "discord.flush_printing_events",
+      kind: JOB_KIND.flushPrintingEvents,
       title: "New-printing Discord posts",
       description: "Posts the cards added since the last run to the new-printings channel.",
       suggestedSchedule: "*/15 * * * *",
@@ -255,7 +256,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isRehostRetryNoop,
     }),
     defineJob(log, {
-      kind: "candidates.check_matching",
+      kind: JOB_KIND.checkMatching,
       title: "Check matching sources",
       description:
         "Marks unchecked source rows checked when every value they provide equals the live card or printing.",
@@ -397,13 +398,13 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isInferSlotsNoop,
     }),
     defineJob(log, {
-      kind: REBUILD_SCAN_BANK_KIND,
+      kind: JOB_KIND.rebuildScanBank,
       title: "Scan bank rebuild",
       description:
         "Rebuilds the scanner's card bank when card images, card details or the encoder changed since the last build.",
       suggestedSchedule: "0 5 * * *",
       execute: async (_runId, jobLog) => {
-        const prior = await repos.jobRuns.getLatestForResume(REBUILD_SCAN_BANK_KIND);
+        const prior = await repos.jobRuns.getLatestForResume(JOB_KIND.rebuildScanBank);
         return await rebuildScanBank(
           { repos, io: defaultIo, log: jobLog, encoderFile: config.scan.encoderFile },
           { previousResult: prior?.result },

@@ -69,6 +69,8 @@ describe("useMetaDeckCosts", () => {
       owned: undefined,
       value: 10,
       toComplete: undefined,
+      unpriced: 0,
+      unpricedMissing: 0,
     });
   });
 
@@ -86,6 +88,8 @@ describe("useMetaDeckCosts", () => {
       owned: 1,
       value: 10,
       toComplete: 5,
+      unpriced: 0,
+      unpricedMissing: 0,
     });
   });
 

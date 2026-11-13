@@ -20,14 +20,13 @@ import { META_USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/meta-s
  *     the live event and adopts the entries hanging off it, so both are
  *     reviewed as one thing.
  */
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { formatCompactUtcStamp } from "@openrift/shared/format-date";
 import type { MetaEventFieldEdits } from "@openrift/shared/types/api/meta";
 import type { MetaListStatus, MetaSubmissionKind } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, notFound } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isValidIsoDate } from "../../../lib/iso-date.js";
 import {
@@ -288,7 +287,7 @@ export function submitMetaDeck(
     const target =
       args.metaEventId === null ? undefined : await repos.meta.eventById(args.metaEventId);
     if (args.metaEventId !== null && target === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Event not found");
+      throw notFound("Event not found");
     }
     if (
       args.metaEventPlayerId !== null &&
@@ -320,7 +319,7 @@ export function submitMetaDeck(
       if (target === undefined) {
         // Validation requires an event or a proposal, so this is a client
         // constructing its own payload.
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A submission needs an event.");
+        throw badRequest("A submission needs an event.");
       }
       eventName = target.name;
     } else {

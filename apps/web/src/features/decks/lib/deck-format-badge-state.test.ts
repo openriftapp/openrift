@@ -42,7 +42,7 @@ describe("deckFormatBadgeState", () => {
         requiredProgress: 48,
         isValid: false,
       }),
-    ).toEqual({ kind: "invalid", progress: "48/56" });
+    ).toEqual({ kind: "invalid", progress: "48/56 required" });
   });
 
   it("drops the figure on a complete but invalid deck", () => {
@@ -61,7 +61,7 @@ describe("deckFormatBadgeState", () => {
         requiredTotal: 56,
         isValid: true,
       }),
-    ).toEqual({ kind: "building", progress: "41/56" });
+    ).toEqual({ kind: "building", progress: "41/56 required" });
 
     expect(
       deckFormatBadgeState({
@@ -71,7 +71,7 @@ describe("deckFormatBadgeState", () => {
         requiredTotal: 54,
         isValid: true,
       }),
-    ).toEqual({ kind: "building", progress: "50/54" });
+    ).toEqual({ kind: "building", progress: "50/54 required" });
   });
 
   it("settles once the deck is complete", () => {

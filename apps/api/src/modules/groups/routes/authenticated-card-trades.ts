@@ -1,5 +1,4 @@
 import { cardTradesContract } from "@openrift/shared/contracts/card-trades";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   CardTradeCopyOptionsResponse,
   CardTradeListResponse,
@@ -10,7 +9,7 @@ import type {
 } from "@openrift/shared/types/api/card-trade";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { badRequest } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -86,7 +85,7 @@ export const cardTradesRouter = {
       await tradeSuggestionDismissals.add(context.userId, input);
     } catch (error) {
       if (isForeignKeyViolation(error)) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Unknown member or printing");
+        throw badRequest("Unknown member or printing");
       }
       throw error;
     }
@@ -101,7 +100,7 @@ export const cardTradesRouter = {
     const viewerId = context.userId;
     const counterpartyUserId = input.userId;
     if (counterpartyUserId === viewerId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Cannot open a trade sheet with yourself");
+      throw badRequest("Cannot open a trade sheet with yourself");
     }
 
     const { friendGroups, friendGroupMatches } = context.repos;

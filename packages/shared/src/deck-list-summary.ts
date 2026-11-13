@@ -1,5 +1,6 @@
 import type { DeckCard } from "./deck-rules.js";
-import { validateDeck } from "./deck-rules.js";
+import { deckCardCount, validateDeck } from "./deck-rules.js";
+import type { DeckListItemResponse } from "./types/api/deck.js";
 import type { CardType, DeckFormat, Domain } from "./types/enums.js";
 import { WellKnown } from "./well-known.js";
 
@@ -14,6 +15,22 @@ export interface DeckCardSummaryInput {
   cardTypes: readonly string[];
   domains: readonly string[];
 }
+
+export const EMPTY_DECK_LIST_SUMMARY: Omit<DeckListItemResponse, "deck"> = {
+  legendCardId: null,
+  championCardId: null,
+  totalCards: 0,
+  typeCounts: [],
+  domainDistribution: [],
+  isValid: false,
+  requiredProgress: 0,
+  requiredTotal: 0,
+  totalValueCents: null,
+  unpricedCardCount: null,
+  missingCount: null,
+  folderIds: [],
+  familyName: null,
+};
 
 export interface DeckSummaryOrders {
   cardTypes: readonly string[];
@@ -42,7 +59,6 @@ export function summarizeDeckCards(
 ): DeckCardStats {
   const typeCountMap = new Map<string, number>();
   const domainCountMap = new Map<string, number>();
-  let totalCards = 0;
   let legendCardId: string | null = null;
   let championCardId: string | null = null;
 
@@ -52,10 +68,6 @@ export function summarizeDeckCards(
     }
     if (championCardId === null && card.zone === WellKnown.deckZone.CHAMPION) {
       championCardId = card.cardId;
-    }
-    // Overflow copies are not part of the deck.
-    if (card.zone !== WellKnown.deckZone.OVERFLOW) {
-      totalCards += card.quantity;
     }
     if (!COUNTED_ZONES.has(card.zone)) {
       continue;
@@ -74,7 +86,7 @@ export function summarizeDeckCards(
   return {
     legendCardId,
     championCardId,
-    totalCards,
+    totalCards: deckCardCount(cards),
     typeCounts: orders.cardTypes
       .filter((type) => typeCountMap.has(type))
       .map((type) => ({ cardType: type as CardType, count: typeCountMap.get(type) ?? 0 })),

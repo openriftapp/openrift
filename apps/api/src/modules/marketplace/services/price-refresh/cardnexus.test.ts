@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import { refreshCardnexusPrices } from "./cardnexus.js";
-import type { StagingRow, UpsertCounts } from "./types.js";
+import type { UpsertCounts } from "./types.js";
 import * as upsertMod from "./upsert.js";
 
 const FEEDS_URL = "https://public-api.cardnexus.com/v1/feeds/riftbound";

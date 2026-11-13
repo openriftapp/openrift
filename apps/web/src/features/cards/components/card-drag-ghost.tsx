@@ -1,11 +1,10 @@
-import { getOrientation } from "@openrift/shared/card-orientation";
+import { CARD_ASPECT, getOrientation } from "@openrift/shared/card-orientation";
 import type { ImageVariant } from "@openrift/shared/image-url";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
-import { CARD_ASPECT_INVERSE } from "@/features/cards/lib/card-grid-constants";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +47,7 @@ export function CardDragGhost({
   const fan = printings.slice(0, MAX_FAN);
   // Matches CardArtThumb's own corner rounding (5% of its width).
   const cornerRadius = width * 0.05;
-  const height = width * CARD_ASPECT_INVERSE;
+  const height = width / CARD_ASPECT;
 
   const frames = fan.length > 0 ? fan : [undefined];
 

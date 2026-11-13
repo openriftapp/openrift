@@ -90,7 +90,7 @@ describe("POST /api/v1/users/me/share (enable)", () => {
     const res = await app.request("/api/v1/users/me/share", { method: "POST" });
     expect(res.status).toBe(404);
     const lintBody = await readJson(res);
-    expect(lintBody.message).toBe("User not found");
+    expect(lintBody.message).toBe("Not found");
   });
 });
 

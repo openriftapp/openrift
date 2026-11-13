@@ -6,8 +6,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-export const CARD_TOKENS_RECOMPUTE_KIND = "card_tokens.recompute";
-
 const recomputeCardTokensFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context }): Promise<JobRunStartedResponse> =>
@@ -16,7 +14,7 @@ const recomputeCardTokensFn = createServerFn({ method: "POST" })
 
 /**
  * The full pass can exceed the API's request timeout; the endpoint answers
- * 202 with a run handle to poll via job-runs (`CARD_TOKENS_RECOMPUTE_KIND`).
+ * 202 with a run handle to poll via job-runs (`JOB_KIND.recomputeCardTokens`).
  */
 export function useRecomputeCardTokens() {
   return useMutation({

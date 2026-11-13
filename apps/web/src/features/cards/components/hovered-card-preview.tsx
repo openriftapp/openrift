@@ -1,17 +1,12 @@
 import { useDndContext } from "@dnd-kit/core";
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useProgressiveCardImage } from "@/features/cards/hooks/use-progressive-card-image";
-import { CARD_ASPECT_INVERSE, CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
-import type { DockSide } from "@/features/cards/lib/hover-dock";
+import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import type { DockSide, HoverOrigin } from "@/features/cards/lib/hover-dock";
 import { pickDockSide } from "@/features/cards/lib/hover-dock";
 import { cn } from "@/lib/utils";
-
-/**
- * "main" and "main-right" are synonyms (both dock opposite the cursor); kept
- * separate so callers' origin derivation doesn't need to change.
- */
-export type HoverOrigin = "sidebar" | "main" | "main-right";
 
 const SIDEBAR_PREVIEW_LEFT_PX = 312;
 const CURSOR_OFFSET_PX = 24;
@@ -70,13 +65,11 @@ export function HoveredCardPreview({ hoveredCard, origin, containerRef }: Hovere
         return;
       }
       const rect = container.getBoundingClientRect();
-      // Falls back to an estimate (CARD_ASPECT_INVERSE = height/width) before
+      // Falls back to an estimate from the card aspect before
       // the image has laid out, so the clamp below is right on first paint.
       const previewHeight =
         preview.offsetHeight ||
-        (shownCard.landscape
-          ? previewWidth / CARD_ASPECT_INVERSE
-          : previewWidth * CARD_ASPECT_INVERSE);
+        (shownCard.landscape ? previewWidth * CARD_ASPECT : previewWidth / CARD_ASPECT);
 
       const clampAxis = (desired: number, offset: number, viewport: number, size: number) => {
         const min = VIEWPORT_MARGIN_PX - offset;

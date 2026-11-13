@@ -1,7 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { DAY_MS } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import { snapshotHeadline } from "@openrift/shared/types/api/pricing";
+import { headlinePrice } from "@openrift/shared/price-headline";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
@@ -14,7 +13,11 @@ import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PriceTable, PriceTablePlaceholder } from "@/features/cards/components/card-detail/pricing";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
-import { TIME_RANGES } from "@/features/cards/lib/price-history-chart-constants";
+import {
+  availableTimeRanges,
+  effectiveTimeRange,
+  snapshotSpanDays,
+} from "@/features/cards/lib/price-history-chart-constants";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatPublicCode, formatterForMarketplace } from "@/lib/format";
@@ -96,24 +99,10 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     );
   }
 
-  const allSnapshots = data?.[source]?.snapshots;
-  const spanSnapshots = allSnapshots && allSnapshots.length >= 2 ? allSnapshots : undefined;
-  const firstSnapshot = spanSnapshots?.[0];
-  const lastSnapshot = spanSnapshots?.at(-1);
-  const dataSpanDays =
-    firstSnapshot && lastSnapshot
-      ? Math.round(
-          (new Date(lastSnapshot.date).getTime() - new Date(firstSnapshot.date).getTime()) / DAY_MS,
-        )
-      : null;
-
-  const availableRanges = TIME_RANGES.filter(
-    (tr) => tr.days === 0 || dataSpanDays === null || dataSpanDays >= tr.days,
+  const effectiveRange = effectiveTimeRange(
+    range,
+    availableTimeRanges(snapshotSpanDays(data?.[source]?.snapshots)),
   );
-
-  const effectiveRange = availableRanges.some((tr) => tr.value === range)
-    ? range
-    : ("all" as TimeRange);
 
   const dateMap = new Map<string, Partial<Record<Marketplace, number>>>();
   if (rangeData) {
@@ -123,8 +112,12 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
         continue;
       }
       for (const snap of mpData.snapshots) {
+        const headline = headlinePrice(mp, snap);
+        if (headline === null) {
+          continue;
+        }
         const entry = dateMap.get(snap.date) ?? {};
-        entry[mp] = snapshotHeadline(snap);
+        entry[mp] = headline;
         dateMap.set(snap.date, entry);
       }
     }

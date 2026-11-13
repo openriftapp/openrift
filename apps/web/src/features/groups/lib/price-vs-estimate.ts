@@ -1,3 +1,4 @@
+import { centsToDollars } from "@openrift/shared/money";
 import type { EffectiveTradePreference } from "@openrift/shared/types/api/trade-preferences";
 import { MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 
@@ -25,7 +26,7 @@ export function fixedPriceVsEstimate(
   ) {
     return null;
   }
-  const difference = pref.priceAbsoluteCents / 100 - estimate;
+  const difference = centsToDollars(pref.priceAbsoluteCents) - estimate;
   if (Math.abs(difference) <= estimate * MATCH_TOLERANCE) {
     return { kind: "match", difference: 0, favorable: true };
   }

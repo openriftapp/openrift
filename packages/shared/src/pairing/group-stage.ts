@@ -66,29 +66,54 @@ export function planGroups(playerIds: readonly string[], rng: Random): GroupPlan
   return { groups };
 }
 
-export function groupUnits(plan: GroupPlan): GroupPlanGroup[][] {
-  const byLabel = new Map(plan.groups.map((group) => [group.label, group]));
-  const units: GroupPlanGroup[][] = [];
+export function pairUnits<TGroup>(
+  groups: readonly TGroup[],
+  keyOf: (group: TGroup) => string,
+  partnerKeyOf: (group: TGroup) => string | null,
+  unknownPartner: "throw" | "solo",
+): TGroup[][] {
+  const byKey = new Map(groups.map((group) => [keyOf(group), group]));
+  const units: TGroup[][] = [];
   const placed = new Set<string>();
-  for (const group of plan.groups) {
-    if (placed.has(group.label)) {
+  for (const group of groups) {
+    const key = keyOf(group);
+    if (placed.has(key)) {
       continue;
     }
-    placed.add(group.label);
-    if (group.pairedWith === null) {
+    placed.add(key);
+    const partnerKey = partnerKeyOf(group);
+    if (partnerKey === null) {
       units.push([group]);
       continue;
     }
-    const partner = byLabel.get(group.pairedWith);
+    const partner = byKey.get(partnerKey);
     if (partner === undefined) {
-      throw new Error(
-        `groupUnits: group ${group.label} is paired with unknown group ${group.pairedWith}`,
-      );
+      if (unknownPartner === "solo") {
+        units.push([group]);
+        continue;
+      }
+      throw new Error(`groupUnits: group ${key} is paired with unknown group ${partnerKey}`);
     }
-    placed.add(partner.label);
+    placed.add(partnerKey);
     units.push([group, partner]);
   }
   return units;
+}
+
+export function groupUnits(plan: GroupPlan): GroupPlanGroup[][] {
+  return pairUnits(
+    plan.groups,
+    (group) => group.label,
+    (group) => group.pairedWith,
+    "throw",
+  );
+}
+
+export function podsOfUnit<TPod extends { members: readonly { playerId: string }[] }>(
+  pods: readonly TPod[],
+  playerIds: ReadonlySet<string>,
+): TPod[] {
+  return pods.filter((pod) => pod.members.some((member) => playerIds.has(member.playerId)));
 }
 
 const FOUR_PLAYER_TABLES: Record<1 | 2 | 3, readonly (readonly [number, number])[]> = {

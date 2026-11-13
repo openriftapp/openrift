@@ -1,4 +1,5 @@
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
+import { podsOfUnit } from "@openrift/shared/pairing/group-stage";
 import type {
   GroupStageView,
   PodResponse,
@@ -17,7 +18,6 @@ import {
   groupLabelByPlayer,
   groupUnits,
   isCrossGroupPod,
-  podsOfUnit,
   roundSummaryLine,
   unitReportProgress,
 } from "@/features/tournaments/lib/group-cut-units";
@@ -150,13 +150,14 @@ function GroupUnitSection({
   onStartUnit?: (unit: GroupUnit) => void;
   starting: boolean;
 }) {
+  const unitPlayers = new Set(unit.playerIds);
   const currentRound = rounds.find((round) => round.roundNumber === unit.roundsStarted);
-  const currentPods = currentRound ? podsOfUnit(currentRound, unit) : [];
+  const currentPods = currentRound ? podsOfUnit(currentRound.pods, unitPlayers) : [];
   const progress = unitReportProgress(currentPods);
   const missing = progress.total - progress.reported;
   const earlier = rounds
     .filter((round) => round.roundNumber < unit.roundsStarted)
-    .map((round) => ({ roundNumber: round.roundNumber, pods: podsOfUnit(round, unit) }))
+    .map((round) => ({ roundNumber: round.roundNumber, pods: podsOfUnit(round.pods, unitPlayers) }))
     .filter((entry) => entry.pods.length > 0);
   const nextRound = unit.roundsStarted + 1;
   const showStart = onStartUnit !== undefined && !unit.done && nextRound <= GROUP_STAGE_ROUNDS;

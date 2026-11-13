@@ -1,10 +1,10 @@
+import { seatsFor } from "@openrift/shared/board-layout";
 import type { BoardPiece, BoardStep } from "@openrift/shared/board-state";
 import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state";
 import type { Card } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
 import {
-  arrowZoneKey,
   boardWidthUnits,
   grantedLegendSlots,
   hasTurnState,
@@ -12,16 +12,13 @@ import {
   longestChain,
   nextChainId,
   nextPieceId,
-  occupiedZones,
   pieceKindForCardTypes,
-  pieceNumerals,
-  piecesAt,
+  runePoolUnits,
+  runeZoneMinWidth,
   scoreHolder,
-  seatSlots,
-  seatsFor,
   zoneAcceptsMore,
   zoneCardRule,
-} from "./board-layout";
+} from "./board-rules";
 
 function piece(overrides: Partial<BoardPiece>): BoardPiece {
   return {
@@ -40,94 +37,6 @@ function piece(overrides: Partial<BoardPiece>): BoardPiece {
     ...overrides,
   };
 }
-
-describe("seatsFor", () => {
-  it("puts A at the bottom and B at the top for two players", () => {
-    expect(seatsFor(2)).toEqual({ top: ["B"], bottom: ["A"] });
-  });
-
-  it("seats C beside A for three players", () => {
-    expect(seatsFor(3)).toEqual({ top: ["B"], bottom: ["A", "C"] });
-  });
-
-  it("splits four players two per side", () => {
-    expect(seatsFor(4)).toEqual({ top: ["B", "D"], bottom: ["A", "C"] });
-  });
-});
-
-describe("seatSlots", () => {
-  it("orders the table from the rune deck out to banishment", () => {
-    const zones = { ...emptyBoardDocument().zones, deck: true, trash: true, banishment: true };
-    expect(seatSlots(zones)).toEqual([
-      "runeDeck",
-      "runes",
-      "champion",
-      "legend",
-      "base",
-      "deck",
-      "trash",
-      "banishment",
-    ]);
-  });
-
-  it("drops every hidden zone, the base included", () => {
-    const zones = {
-      base: false,
-      legend: false,
-      champion: false,
-      runes: false,
-      hand: false,
-      trash: false,
-      banishment: false,
-      deck: false,
-      chain: false,
-      score: true,
-    };
-    expect(seatSlots(zones)).toEqual([]);
-  });
-
-  it("never places the hand in the seat row", () => {
-    const zones = { ...emptyBoardDocument().zones, hand: true };
-    expect(seatSlots(zones)).not.toContain("hand");
-  });
-});
-
-describe("piecesAt", () => {
-  const step: BoardStep = {
-    ...emptyBoardStep(2),
-    pieces: [
-      piece({ id: "a", zone: { kind: "battlefield", index: 0 } }),
-      piece({ id: "b", owner: "B", zone: { kind: "battlefield", index: 0 } }),
-      piece({ id: "c", owner: "B", zone: { kind: "base" } }),
-      piece({ id: "d", zone: { kind: "facedown", index: 0 }, facedown: true }),
-    ],
-  };
-
-  it("filters by zone", () => {
-    expect(piecesAt(step, { kind: "battlefield", index: 0 }).map((p) => p.id)).toEqual(["a", "b"]);
-    expect(piecesAt(step, { kind: "facedown", index: 0 }).map((p) => p.id)).toEqual(["d"]);
-  });
-
-  it("filters by zone and owner", () => {
-    expect(piecesAt(step, { kind: "base" }, "B").map((p) => p.id)).toEqual(["c"]);
-    expect(piecesAt(step, { kind: "base" }, "A")).toEqual([]);
-  });
-});
-
-describe("arrowZoneKey", () => {
-  it("keys battlefields by index and owner", () => {
-    expect(arrowZoneKey({ kind: "battlefield", index: 2 }, "C")).toBe("battlefield-2-C");
-  });
-
-  it("keys player zones by kind and owner", () => {
-    expect(arrowZoneKey({ kind: "base" }, "B")).toBe("base-B");
-  });
-
-  it("keys a facedown zone by battlefield alone", () => {
-    expect(arrowZoneKey({ kind: "facedown", index: 1 }, "A")).toBe("facedown-1");
-    expect(arrowZoneKey({ kind: "facedown", index: 1 }, "B")).toBe("facedown-1");
-  });
-});
 
 describe("isHiddenZone", () => {
   it("hides both decks and the facedown zones", () => {
@@ -272,36 +181,6 @@ describe("grantedLegendSlots", () => {
   });
 });
 
-describe("pieceNumerals", () => {
-  const named = (id: string, name: string): BoardPiece =>
-    piece({ id, card: { cardId: "00000000-0000-7000-8000-000000000001", name } });
-
-  it("numbers only pieces that share a name, in piece order", () => {
-    const numerals = pieceNumerals([named("p1", "Ashe"), named("p2", "Vi"), named("p3", "Ashe")]);
-    expect([...numerals]).toEqual([
-      ["p1", 1],
-      ["p3", 2],
-    ]);
-  });
-
-  it("never numbers runes", () => {
-    const rune = (id: string) => piece({ id, kind: "rune", zone: { kind: "runes" } });
-    expect(pieceNumerals([rune("p1"), rune("p2")]).size).toBe(0);
-  });
-
-  it("treats generic pieces of the same kind as sharing a name", () => {
-    const numerals = pieceNumerals([
-      piece({ id: "p1" }),
-      piece({ id: "p2", kind: "gear" }),
-      piece({ id: "p3" }),
-    ]);
-    expect([...numerals]).toEqual([
-      ["p1", 1],
-      ["p3", 2],
-    ]);
-  });
-});
-
 function stepWith(pieces: BoardPiece[], chainLength = 0): BoardStep {
   const card = { cardId: "019a0000-0000-7000-8000-000000000001", name: "Facebreaker" };
   return {
@@ -316,20 +195,6 @@ function stepWith(pieces: BoardPiece[], chainLength = 0): BoardStep {
   };
 }
 
-describe("occupiedZones", () => {
-  it("collects every zone and owner that holds a piece in any step", () => {
-    const zones = occupiedZones([
-      stepWith([piece({ id: "p1", owner: "B" })]),
-      stepWith([piece({ id: "p1", owner: "B", zone: { kind: "battlefield", index: 0 } })]),
-    ]);
-    expect([...zones].toSorted()).toEqual(["base-B", "battlefield-0-B"]);
-  });
-
-  it("is empty for a board without pieces", () => {
-    expect(occupiedZones([stepWith([])]).size).toBe(0);
-  });
-});
-
 describe("longestChain", () => {
   it("returns the longest chain across steps", () => {
     expect(longestChain([stepWith([], 1), stepWith([], 3), stepWith([])])).toBe(3);
@@ -337,6 +202,48 @@ describe("longestChain", () => {
 
   it("returns 0 when no step has a chain", () => {
     expect(longestChain([stepWith([])])).toBe(0);
+  });
+});
+
+describe("runePoolUnits", () => {
+  const rune = (id: string, exhausted = false) =>
+    piece({ id, kind: "rune", zone: { kind: "runes" }, exhausted });
+
+  it("lets each upright rune after the first show a sliver of the one beneath", () => {
+    expect(runePoolUnits([rune("r1"), rune("r2"), rune("r3")])).toBeCloseTo(1.64);
+  });
+
+  it("counts a turned rune at its sideways width", () => {
+    expect(runePoolUnits([rune("r1"), rune("r2", true)])).toBeCloseTo(1.72);
+    expect(runePoolUnits([rune("r1", true), rune("r2", true)])).toBeCloseTo(1.72);
+  });
+
+  it("is zero for an empty pool", () => {
+    expect(runePoolUnits([])).toBe(0);
+  });
+
+  it("ends at the sideways width of the last turned rune", () => {
+    const pool = [rune("r1"), rune("r2"), rune("r3", true), rune("r4", true), rune("r5", true)];
+    expect(runePoolUnits(pool)).toBeCloseTo(4 * 0.32 + 1.4);
+  });
+
+  it("covers a pool of twelve with every other rune turned", () => {
+    const pool = Array.from({ length: 12 }, (_, index) => rune(`r${index}`, index % 2 === 1));
+    expect(runePoolUnits(pool)).toBeCloseTo(11 * 0.32 + 1.4);
+  });
+});
+
+describe("runeZoneMinWidth", () => {
+  const rune = (id: string, exhausted = false) =>
+    piece({ id, kind: "rune", zone: { kind: "runes" }, exhausted });
+
+  it("keeps the usual width for a small pool", () => {
+    expect(runeZoneMinWidth([rune("r1")])).toBe("calc(var(--board-card-w) * 2 + 2rem)");
+  });
+
+  it("grows to fit a pool that ends on a turned rune", () => {
+    const pool = [rune("r1"), rune("r2"), rune("r3", true), rune("r4", true), rune("r5", true)];
+    expect(runeZoneMinWidth(pool)).toBe("calc(var(--board-card-w) * 2.68 + 2rem)");
   });
 });
 
@@ -367,6 +274,16 @@ describe("boardWidthUnits", () => {
     );
     expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), [0])).toBeCloseTo(1.8);
     expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), [1])).toBeCloseTo(4.8);
+  });
+
+  it("widens the rune zone to the widest pool of turned runes", () => {
+    const zones = { ...baseAndHand, runes: true, hand: false };
+    const pool = Array.from({ length: 8 }, (_, index) =>
+      piece({ id: `r${index}`, kind: "rune", zone: { kind: "runes" }, exhausted: true }),
+    );
+    const plain = boardWidthUnits([stepWith([])], zones, seatsFor(4), []);
+    const crowded = boardWidthUnits([stepWith(pool)], zones, seatsFor(4), []);
+    expect(crowded - plain).toBeCloseTo(2 * (runePoolUnits(pool) + 0.4 - 0.9));
   });
 
   it("doubles the seat row when two players share a side", () => {

@@ -1,5 +1,4 @@
 import { tournamentsContract } from "@openrift/shared/contracts/tournaments";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { PodTournamentDetailResponse } from "@openrift/shared/types/api/pod-tournament";
 import type {
@@ -11,7 +10,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { badRequest, conflict, forbidden, notFound } from "../../../errors.js";
 import { assertExisted } from "../../../lib/assertions.js";
 import { buildKeysetCursor } from "../../../lib/keyset-cursor.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
@@ -175,7 +174,7 @@ export const tournamentsRouter = {
     if (input.groupId) {
       const membership = await repos.friendGroups.getMembership(input.groupId, userId);
       if (!membership) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Not a member of that group");
+        throw forbidden("Not a member of that group");
       }
     }
 
@@ -226,7 +225,7 @@ export const tournamentsRouter = {
     const userId = context.userId;
     const tournament = await loadTournament(repos, input.id);
     if (!(await repos.tournaments.hasRelationship(tournament.id, userId))) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Tournament not found");
+      throw notFound("Tournament not found");
     }
     return buildDetail(repos, tournament, userId);
   }),
@@ -239,7 +238,7 @@ export const tournamentsRouter = {
     await requireManage(repos, tournament, userId);
     const currentStatus = tournament.status;
     if (currentStatus === "cancelled") {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "A cancelled tournament cannot be edited");
+      throw conflict("A cancelled tournament cannot be edited");
     }
     // Status moves follow the forward-only lifecycle; an unchanged value is a no-op.
     assertStatusTransition(currentStatus, patch.status);
@@ -262,11 +261,7 @@ export const tournamentsRouter = {
       (pairingChanging || matchFormatChanging || playModeChanging || formatChanging) &&
       (await repos.tournaments.hasRounds(id))
     ) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "The pairing engine can't change once a round has been generated",
-      );
+      throw conflict("The pairing engine can't change once a round has been generated");
     }
     assertPlayModeCompatible(
       patch.playMode ?? tournament.playMode,
@@ -292,7 +287,7 @@ export const tournamentsRouter = {
     if (patch.groupId) {
       const membership = await repos.friendGroups.getMembership(patch.groupId, userId);
       if (!membership) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Not a member of that group");
+        throw forbidden("Not a member of that group");
       }
     }
     // Host reassignment is host-only; the target binds to the caller (personal = themselves).
@@ -434,11 +429,7 @@ export const tournamentsRouter = {
       input.userId,
     );
     if (!eligible) {
-      throw new AppError(
-        403,
-        ERROR_CODES.FORBIDDEN,
-        "Only group members or participants can be added as staff",
-      );
+      throw forbidden("Only group members or participants can be added as staff");
     }
     await repos.tournaments.addStaff(tournament.id, input.userId, input.role);
     return buildStaffList(repos, tournament);
@@ -482,12 +473,15 @@ export const tournamentsRouter = {
       const repos = context.repos;
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
+      if (!(await repos.tournaments.hasRelationship(tournament.id, userId))) {
+        throw notFound("Tournament not found");
+      }
       const allowed = await repos.tournaments.isHostOrStaff(tournament.id, userId, [
         "organizer",
         "judge",
       ]);
       if (!allowed) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Host or staff only");
+        throw forbidden("Host or staff only");
       }
       return buildParticipantList(repos, input.id);
     },
@@ -539,11 +533,7 @@ export const tournamentsRouter = {
           GROUP_STAGE_ROUNDS + 1,
         );
         if (cutRound) {
-          throw new AppError(
-            409,
-            ERROR_CODES.CONFLICT,
-            "Seeds were locked when the cut was generated",
-          );
+          throw conflict("Seeds were locked when the cut was generated");
         }
       }
       await repos.tournaments.updateParticipant(input.participantId, {
@@ -716,11 +706,11 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       if (tournament.playMode !== "2v2") {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Teams exist only in 2v2 tournaments.");
+        throw badRequest("Teams exist only in 2v2 tournaments.");
       }
       const [firstId, secondId] = input.participantIds;
       if (firstId === secondId || firstId === undefined || secondId === undefined) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A team needs two different players.");
+        throw badRequest("A team needs two different players.");
       }
       const members = await Promise.all([
         loadParticipant(repos, input.id, firstId),
@@ -728,11 +718,7 @@ export const tournamentsRouter = {
       ]);
       for (const member of members) {
         if (member.status !== "active") {
-          throw new AppError(
-            400,
-            ERROR_CODES.BAD_REQUEST,
-            "Only active participants can join a team.",
-          );
+          throw badRequest("Only active participants can join a team.");
         }
         if (member.teamId !== null) {
           throw errors.CONFLICT({ message: `${member.displayName} is already on a team` });
@@ -740,11 +726,7 @@ export const tournamentsRouter = {
       }
       const teamId = await repos.podTournaments.createTeam(input.id, [firstId, secondId]);
       if (teamId === null) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          "A player is already on a team or no longer in this tournament.",
-        );
+        throw conflict("A player is already on a team or no longer in this tournament.");
       }
       return buildParticipantList(repos, input.id);
     },
@@ -760,7 +742,7 @@ export const tournamentsRouter = {
         await trxRepos.tournaments.lockRounds(input.id);
         const team = await trxRepos.podTournaments.getTeam(input.teamId);
         if (!team || team.tournamentId !== input.id) {
-          throw new AppError(404, ERROR_CODES.NOT_FOUND, "Team not found");
+          throw notFound("Team not found");
         }
         // A team that has played is part of the recorded rounds; standings and
         // rematch history would silently degrade if it fell apart.
@@ -782,7 +764,7 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       if (!(await repos.tournaments.hasRelationship(input.id, userId))) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Tournament not found");
+        throw notFound("Tournament not found");
       }
       return buildPodRunDetail(repos, tournament);
     },
@@ -791,7 +773,7 @@ export const tournamentsRouter = {
     const repos = context.repos;
     const tournament = await loadTournament(repos, input.id);
     if (!(await repos.tournaments.hasRelationship(input.id, context.userId))) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Tournament not found");
+      throw notFound("Tournament not found");
     }
     return buildStandingsSnapshot(repos, tournament, input.throughRound);
   }),

@@ -33,6 +33,7 @@ export interface CardCellProps {
 
   dragData?: Record<string, unknown>;
   dragId?: string;
+  dragBlockedLabel?: string;
 
   wrap?: ReactElement<{ children?: ReactNode }>;
   contextMenu?: ReactElement<{ children?: ReactNode }>;
@@ -59,6 +60,7 @@ export function CardCell({
   banDisplay,
   dragData,
   dragId,
+  dragBlockedLabel,
   wrap,
   contextMenu,
 }: CardCellProps) {
@@ -84,6 +86,7 @@ export function CardCell({
       imageBadge={imageBadge}
       dragData={dragData}
       dragId={dragId}
+      dragBlockedLabel={dragBlockedLabel}
       aboveCard={strip}
       href={href}
     />

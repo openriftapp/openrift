@@ -2,8 +2,10 @@ import { adminMarketplaceGroupsContract } from "@openrift/shared/contracts/admin
 import type { MarketplaceGroupResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
+import { auditChange } from "../../../lib/audit-change.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
 const os = implement(adminMarketplaceGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -49,9 +51,17 @@ export const adminMarketplaceGroupsRouter = {
     const { marketplaceAdmin: mktAdmin } = context.repos;
     const { marketplace, id: groupId, ...patch } = input;
 
+    const before = await mktAdmin.getGroup(marketplace, groupId);
     const updated = await mktAdmin.updateGroup(marketplace, groupId, patch);
-    if (!updated) {
+    if (!updated || !before) {
       throw errors.NOT_FOUND({ message: `Marketplace group ${marketplace}/${groupId} not found` });
     }
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "marketplace-group.update",
+      entityType: "marketplace-group",
+      entityId: `${marketplace}:${groupId}`,
+      entityLabel: before.name,
+      ...auditChange(before, patch),
+    });
   }),
 };

@@ -1,11 +1,10 @@
 import { dirname, join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
 import { straightenedSize, unwarpQuad } from "@openrift/shared/scan/unwarp";
 
-import { AppError } from "../../../../errors.js";
+import { badRequest, conflict } from "../../../../errors.js";
 import type { Io } from "../../../../io.js";
 import { CARD_MEDIA_DIR } from "./paths.js";
 import { computeScanCropBox, computeScanLevels } from "./scan-analysis.js";
@@ -34,12 +33,12 @@ async function straighten(io: Io, buffer: Buffer, quad: ImageQuad): Promise<Buff
 
   const fits = quad.every((p) => p.x >= 0 && p.y >= 0 && p.x <= info.width && p.y <= info.height);
   if (!fits) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Quad does not fit the original image");
+    throw badRequest("Quad does not fit the original image");
   }
 
   const { width, height } = straightenedSize(quad);
   if (width < 1 || height < 1) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Quad does not fit the original image");
+    throw badRequest("Quad does not fit the original image");
   }
 
   const frame = {
@@ -49,7 +48,7 @@ async function straighten(io: Io, buffer: Buffer, quad: ImageQuad): Promise<Buff
   };
   const straightened = unwarpQuad(frame, quad, width, height);
   if (!straightened) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Quad does not fit the original image");
+    throw badRequest("Quad does not fit the original image");
   }
 
   return io
@@ -227,9 +226,7 @@ export async function processAndSave(
   allowOverwrite = false,
 ): Promise<void> {
   if (!allowOverwrite && (await rehostFilesExist(io, outputDir, fileBase))) {
-    throw new AppError(
-      409,
-      ERROR_CODES.CONFLICT,
+    throw conflict(
       `Rehost files already exist for ${fileBase} in ${outputDir}; use overwrite to regenerate`,
     );
   }
@@ -272,7 +269,7 @@ export async function origFileOnDisk(io: Io, imageFileId: string): Promise<strin
 async function requireOrigFile(io: Io, imageFileId: string, message: string): Promise<string> {
   const origFile = await origFileOnDisk(io, imageFileId);
   if (origFile === undefined) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, message);
+    throw badRequest(message);
   }
   return origFile;
 }
@@ -303,7 +300,7 @@ export async function ensureOriginalOnDisk(io: Io, imageFileId: string): Promise
   const buffer = await io.fs.readFile(join(outputDir, origFile));
   const meta = await io.sharp(buffer).metadata();
   if (!meta.width || !meta.height) {
-    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image has no original to straighten");
+    throw badRequest("Image has no original to straighten");
   }
   const suffix = origFile.slice(imageFileId.length);
   return {

@@ -2,7 +2,7 @@
  * Hand-checked card outlines for detector training: one entry per frame, the
  * card quads in image pixels and whether every card in the frame is outlined.
  */
-import { CARD_ASPECT } from "@openrift/shared/scan/types";
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 
 export interface OutlineLabelPoint {
   x: number;

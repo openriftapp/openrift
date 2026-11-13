@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
 
-import { previewLegendSwitch, runeRefillPlan, simulateLegendSwitch } from "./legend-switch-preview";
+import { previewLegendSwitch, runeRefillPlan, legendSwitchCards } from "./legend-switch-preview";
 
 const rune = (cardId: string, domain: string, quantity: number) =>
   stubDeckBuilderCard({
@@ -109,27 +109,43 @@ const runesOf = (cards: { zone: string; cardId: string; quantity: number }[]) =>
     .map((card) => [card.cardId, card.quantity])
     .toSorted(([a], [b]) => String(a).localeCompare(String(b)));
 
-describe("simulateLegendSwitch", () => {
+describe("legendSwitchCards", () => {
   it("replaces the current legend", () => {
     const old = { ...legendOf(["fury", "calm"]), cardId: "old" };
-    const after = simulateLegendSwitch(
+    const after = legendSwitchCards(
       [old],
       legendOf(["fury", "mind"]),
       runesByDomain,
       "constructed",
+      { refill: true },
     );
     expect(after.filter((card) => card.zone === "legend").map((card) => card.cardId)).toEqual([
       "legend",
     ]);
   });
 
-  it("refills from the catalog when runes remain", () => {
+  it("leaves the remaining runes alone without a refill", () => {
     const cards = [rune("r-fury", "fury", 6), rune("r-calm", "calm", 6)];
-    const after = simulateLegendSwitch(
+    const after = legendSwitchCards(
       cards,
       legendOf(["fury", "mind"]),
       runesByDomain,
       "constructed",
+      {
+        refill: false,
+      },
+    );
+    expect(runesOf(after)).toEqual([["r-fury", 6]]);
+  });
+
+  it("refills from the catalog when runes remain", () => {
+    const cards = [rune("r-fury", "fury", 6), rune("r-calm", "calm", 6)];
+    const after = legendSwitchCards(
+      cards,
+      legendOf(["fury", "mind"]),
+      runesByDomain,
+      "constructed",
+      { refill: true },
     );
     expect(runesOf(after)).toEqual([
       ["cat-mind", 6],
@@ -139,11 +155,12 @@ describe("simulateLegendSwitch", () => {
 
   it("merges a refill into an existing default-printing row", () => {
     const cards = [rune("cat-fury", "fury", 4), rune("r-calm", "calm", 6)];
-    const after = simulateLegendSwitch(
+    const after = legendSwitchCards(
       cards,
       legendOf(["fury", "calm"]),
       runesByDomain,
       "constructed",
+      { refill: true },
     );
     expect(runesOf(after)).toEqual([
       ["cat-fury", 6],
@@ -156,11 +173,12 @@ describe("simulateLegendSwitch", () => {
       ["fury", [rune("fury-a", "fury", 1), rune("fury-b", "fury", 1)]],
       ["mind", [rune("cat-mind", "mind", 1)]],
     ]);
-    const after = simulateLegendSwitch(
+    const after = legendSwitchCards(
       [rune("r-calm", "calm", 12)],
       legendOf(["fury", "mind"]),
       twoFury,
       "constructed",
+      { refill: true },
     );
     expect(runesOf(after)).toEqual([
       ["cat-mind", 6],
@@ -170,18 +188,17 @@ describe("simulateLegendSwitch", () => {
   });
 
   it("adds no runes for a mono-domain legend without runes", () => {
-    const after = simulateLegendSwitch([], legendOf(["fury"]), runesByDomain, "constructed");
+    const after = legendSwitchCards([], legendOf(["fury"]), runesByDomain, "constructed", {
+      refill: true,
+    });
     expect(runesOf(after)).toEqual([]);
   });
 
   it("adds a legend copy in freeform without touching runes", () => {
     const cards = [rune("r-calm", "calm", 6)];
-    const after = simulateLegendSwitch(
-      cards,
-      legendOf(["fury", "mind"]),
-      runesByDomain,
-      "freeform",
-    );
+    const after = legendSwitchCards(cards, legendOf(["fury", "mind"]), runesByDomain, "freeform", {
+      refill: true,
+    });
     expect(runesOf(after)).toEqual([["r-calm", 6]]);
     expect(after.filter((card) => card.zone === "legend")).toHaveLength(1);
   });

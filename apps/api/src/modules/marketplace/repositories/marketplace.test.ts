@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 
+import { headlinePrice } from "@openrift/shared/price-headline";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createMockDb } from "../../../test/mock-db.js";
@@ -37,7 +39,7 @@ function headlineRule(sql: string): Map<string, string[]> {
 
 describe("marketplaceRepo", () => {
   it("latestPrices returns price rows", async () => {
-    const rows = [{ printingId: "p1", marketplace: "tcgplayer", marketCents: 1500 }];
+    const rows = [{ printingId: "p1", marketplace: "tcgplayer", headlineCents: 1500 }];
     const db = createMockDb(rows);
     const repo = marketplaceRepo(db);
     expect(await repo.latestPrices()).toEqual(rows);
@@ -123,5 +125,23 @@ describe("marketplaceRepo (generated SQL)", () => {
     expect(headlineRule(ours).size).toBe(3);
     expect(view).toContain("(pp.zero_low_cents IS NULL), pp.recorded_at DESC");
     expect(ours).toContain("ORDER BY (pp.zero_low_cents IS NULL), pp.recorded_at DESC");
+  });
+
+  it("applies the same headline order in the shared headlinePrice", () => {
+    const schema = readFileSync(SCHEMA_PATH, "utf-8");
+    const start = schema.indexOf("CREATE MATERIALIZED VIEW public.mv_daily_printing_prices");
+    const rule = headlineRule(squash(schema.slice(start, schema.indexOf("WITH NO DATA", start))));
+    const value: Record<string, number> = { market: 1, low: 2, zero: 3 };
+    const columns = (roles: readonly string[]) => ({
+      market: roles.includes("market") ? value.market : null,
+      low: roles.includes("low") ? value.low : null,
+      zeroLow: roles.includes("zero") ? value.zero : null,
+    });
+
+    for (const marketplace of ALL_MARKETPLACES) {
+      const [first = "", second = ""] = rule.get(marketplace) ?? rule.get("else") ?? [];
+      expect(headlinePrice(marketplace, columns([first, second]))).toBe(value[first]);
+      expect(headlinePrice(marketplace, columns([second]))).toBe(value[second]);
+    }
   });
 });

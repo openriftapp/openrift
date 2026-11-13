@@ -72,7 +72,23 @@ export type AdminEventAction =
   | "meta-catalog.format"
   | "meta-submission.resolve"
   | "meta-submission.apply-correction"
-  | "meta-submission.reopen";
+  | "meta-submission.reopen"
+  | "marketplace-variant.map"
+  | "marketplace-variant.unmap"
+  | "marketplace-variant.ignore"
+  | "marketplace-variant.unignore"
+  | "marketplace-variant.assign-card"
+  | "marketplace-variant.unassign-card"
+  | "marketplace-product.ignore"
+  | "marketplace-product.unignore"
+  | "marketplace-group.update"
+  | "marketplace.clear-prices"
+  | "product.create"
+  | "product.update"
+  | "product.delete"
+  | "product.resync"
+  | "provider-setting.update"
+  | "provider-setting.reorder";
 
 export type AdminEventEntityType =
   | "card"
@@ -89,7 +105,13 @@ export type AdminEventEntityType =
   | "errata"
   | "ban"
   | "provider"
-  | "upload";
+  | "upload"
+  | "marketplace"
+  | "marketplace-product"
+  | "marketplace-variant"
+  | "marketplace-group"
+  | "product"
+  | "provider-setting";
 
 /**
  * actorUserId has no FK, so rows survive user deletion. Check/uncheck

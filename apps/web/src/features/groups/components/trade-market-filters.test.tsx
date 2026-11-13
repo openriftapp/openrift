@@ -72,7 +72,7 @@ const groups = [
     outgoing: [stubRow(), stubRow({ printingId: "p-2", cardId: "c-2" })],
   },
 ];
-const market = buildTradeMarket(groups, []);
+const market = buildTradeMarket(groups);
 
 afterEach(() => {
   mobile.value = false;

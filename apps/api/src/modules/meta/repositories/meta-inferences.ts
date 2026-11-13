@@ -6,6 +6,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { MetaInferredZone } from "../../../db/tables/meta.js";
 import { META_INFERRED_ZONES } from "../../../db/tables/meta.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import { resolvedPlayerName } from "./meta-shared.js";
 
 const WRITE_CHUNK = 500;
@@ -168,7 +169,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
       written: readonly StoredInference[],
       removed: readonly string[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         const cleared = [...removed, ...written.map((row) => row.deckId)];
         for (let start = 0; start < cleared.length; start += WRITE_CHUNK) {
           await trx

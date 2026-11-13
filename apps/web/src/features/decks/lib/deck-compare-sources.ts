@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckImportEntry } from "@openrift/shared/deck-code";
+import { deckCardCount } from "@openrift/shared/deck-rules";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -25,14 +26,6 @@ export interface OwnDeckCard {
   quantity: number;
 }
 
-function localDeckCardCount(deck: LocalDeck): number {
-  let total = 0;
-  for (const card of deck.cards) {
-    total += card.quantity;
-  }
-  return total;
-}
-
 export function collectCompareDeckOptions(
   openDeckId: string,
   serverDecks: readonly DeckListItemResponse[] | undefined,
@@ -49,7 +42,7 @@ export function collectCompareDeckOptions(
     if (deck.id === openDeckId) {
       continue;
     }
-    options.push({ id: deck.id, name: deck.name, cardCount: localDeckCardCount(deck) });
+    options.push({ id: deck.id, name: deck.name, cardCount: deckCardCount(deck.cards) });
   }
   return options.toSorted((optionA, optionB) => optionA.name.localeCompare(optionB.name));
 }

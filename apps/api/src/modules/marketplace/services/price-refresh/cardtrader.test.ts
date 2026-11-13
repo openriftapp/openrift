@@ -4,9 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../../deps.js";
 import { requestUrl } from "../../../../test/request-url.js";
+import type { StagingRow } from "../../lib/marketplace-configs.js";
 import { refreshCardtraderPrices } from "./cardtrader.js";
 import * as logMod from "./log.js";
-import type { StagingRow, UpsertCounts } from "./types.js";
+import type { UpsertCounts } from "./types.js";
 import * as upsertMod from "./upsert.js";
 
 /** The `globalThis.fetch` spy these tests drive, typed so `mock.calls` indexes. */

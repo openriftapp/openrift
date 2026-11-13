@@ -526,7 +526,7 @@ describe("suggested listings", () => {
   it("counts only saved listings and survives a failing one", async () => {
     vi.mocked(saveMappings)
       .mockRejectedValueOnce(new Error("boom"))
-      .mockResolvedValueOnce({ saved: 1, skipped: [] });
+      .mockResolvedValueOnce({ saved: 1, skipped: [], applied: [] });
     const configs = { tcgplayer: {} } as unknown as MarketplaceConfigs;
 
     const result = await assignSuggestedListings(

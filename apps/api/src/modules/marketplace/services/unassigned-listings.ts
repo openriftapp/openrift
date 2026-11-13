@@ -1,6 +1,6 @@
+import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
 import {
   computeProductSuggestions,
-  productSuggestionKey,
   STRONG_MATCH_THRESHOLD,
 } from "@openrift/shared/marketplace-suggestions";
 import type { UnifiedMappingGroupResponse } from "@openrift/shared/types/api/admin";
@@ -30,7 +30,7 @@ function toListing(row: ListingRow): UnassignedListing {
 }
 
 function rowKey(row: ListingRow): string {
-  return productSuggestionKey(row.marketplace, row.externalId, row.finish, row.language);
+  return marketplaceSkuKey(row.marketplace, row.externalId, row.finish, row.language);
 }
 
 function listingsFromGroup(
@@ -42,7 +42,7 @@ function listingsFromGroup(
   const out: UnassignedListings = { suggested: [], unmatched: [] };
   for (const marketplace of ALL_MARKETPLACES) {
     for (const product of group[marketplace].stagedProducts) {
-      const key = productSuggestionKey(
+      const key = marketplaceSkuKey(
         marketplace,
         product.externalId,
         product.finish,
@@ -91,7 +91,7 @@ export async function listUnassignedListings(repos: Repos): Promise<UnassignedLi
     const overrideMap = new Map<string, { cardId: string }>();
     for (const row of marketplaceRows) {
       if (row.overrideCardId !== null) {
-        overrideMap.set(`${row.externalId}::${row.finish}::${row.language}`, {
+        overrideMap.set(skuKey(row.externalId, row.finish, row.language), {
           cardId: row.overrideCardId,
         });
       }
@@ -106,7 +106,7 @@ export async function listUnassignedListings(repos: Repos): Promise<UnassignedLi
       touchedCardIds.add(cardId);
     }
     for (const row of marketplaceRows) {
-      if (!matchedStagingKeys.has(`${row.externalId}::${row.finish}::${row.language}`)) {
+      if (!matchedStagingKeys.has(skuKey(row.externalId, row.finish, row.language))) {
         nameless.push({ ...toListing(row), card: null });
       }
     }

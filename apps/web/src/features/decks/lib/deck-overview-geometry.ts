@@ -1,3 +1,4 @@
+import { CARD_ASPECT } from "@openrift/shared/card-orientation";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -40,8 +41,7 @@ export function phoneZoneCardWidth(
 ): number {
   const perRow = PHONE_CARDS_PER_ROW[zone] ?? defaultPerRow;
   const slot = (containerWidth - (perRow - 1) * DECK_GRID_GAP) / perRow;
-  // Landscape thumbs render at width * 88/63, so the row count applies to that.
-  const width = LANDSCAPE_ZONES.has(zone) ? (slot * 63) / 88 : slot;
+  const width = LANDSCAPE_ZONES.has(zone) ? slot * CARD_ASPECT : slot;
   return Math.max(0, Math.floor(width));
 }
 

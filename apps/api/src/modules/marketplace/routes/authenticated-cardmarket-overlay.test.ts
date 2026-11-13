@@ -29,6 +29,8 @@ const mockListsRepo = {
   entriesWithDetails: vi.fn(() => Promise.resolve([] as object[])),
 };
 
+const mockUserPreferences = { getByUserId: vi.fn() };
+
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const LIST_ID = "a0000000-0001-4000-a000-000000000010";
 const OTHER_LIST_ID = "a0000000-0001-4000-a000-000000000011";
@@ -39,7 +41,11 @@ const PRINTING_ID = "d0000000-0001-4000-a000-000000000001";
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { cardmarketOverlay: mockOverlayRepo, lists: mockListsRepo } as never);
+  c.set("repos", {
+    cardmarketOverlay: mockOverlayRepo,
+    lists: mockListsRepo,
+    userPreferences: mockUserPreferences,
+  } as never);
   await next();
 });
 registerRouterForTest(app, cardmarketOverlayRouter);
@@ -55,6 +61,17 @@ function snapshot(listIds: string[]) {
 describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it("prices against the viewer's collected languages", async () => {
+    mockOverlayRepo.wishListsForUser.mockResolvedValue([
+      { id: LIST_ID, name: "Summoner Wants", kind: "printing" },
+    ]);
+    mockUserPreferences.getByUserId.mockResolvedValue({ data: { languages: ["FR", "EN"] } });
+
+    await snapshot([LIST_ID]);
+
+    expect(mockOverlayRepo.productCounts).toHaveBeenCalledWith([], USER_ID, ["FR", "EN"]);
   });
 
   it("returns the resolved lists and the product counts", async () => {
@@ -129,7 +146,7 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     expect(res.status).toBe(200);
     expect(mockOverlayRepo.wishListsForUser).toHaveBeenCalledWith([LIST_ID], USER_ID);
     expect(mockListsRepo.entriesWithDetails).toHaveBeenCalledTimes(1);
-    expect(mockOverlayRepo.productCounts).toHaveBeenCalledWith([], USER_ID);
+    expect(mockOverlayRepo.productCounts).toHaveBeenCalledWith([], USER_ID, ["EN"]);
   });
 
   it("counts each list's expanded entries", async () => {
@@ -193,6 +210,7 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
         { cardId: null, printingId: PRINTING_ID, quantity: 3 },
       ],
       USER_ID,
+      ["EN"],
     );
   });
 

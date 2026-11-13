@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { OFFICIAL_HOST } from "@/lib/official-host";
 import { m } from "@/paraglide/messages.js";
 
 import { Vignette, VignetteHeading } from "./vignette-parts";
@@ -8,7 +9,7 @@ import { Vignette, VignetteHeading } from "./vignette-parts";
 const QUERY = "!card viktor innovator";
 
 const REPLY = "Viktor, Innovator — Champion Unit · Mind · Energy 4 · Might 3 · Power 1 —";
-const REPLY_URL = "openrift.app/cards/viktor-innovator";
+const REPLY_URL = `${OFFICIAL_HOST}/cards/viktor-innovator`;
 
 function backlog() {
   return [

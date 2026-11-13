@@ -2,7 +2,6 @@ import type {
   GroupStageGroupView,
   PodMemberResponse,
   PodResponse,
-  PodRoundResponse,
 } from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
@@ -15,7 +14,6 @@ import {
   podForDisplay,
   isWalkoverPod,
   podScoreLine,
-  podsOfUnit,
   roundSummaryLine,
   unitReportProgress,
   waitingUnitsLabel,
@@ -75,20 +73,6 @@ function makePod(
   };
 }
 
-function makeRound(roundNumber: number, pods: PodResponse[]): PodRoundResponse {
-  return {
-    id: `r-${roundNumber}`,
-    roundNumber,
-    status: "reporting",
-    pairingStrategy: "swiss",
-    penaltyTotal: null,
-    createdAt: "2026-09-09T10:00:00Z",
-    finalizedAt: null,
-    pods,
-    byes: [],
-  };
-}
-
 describe("groupUnits", () => {
   it("gives a 4-player group its own unit", () => {
     const units = groupUnits([makeGroup("A", ["p1", "p2", "p3", "p4"])]);
@@ -128,6 +112,13 @@ describe("groupUnits", () => {
     expect(unit?.roundsStarted).toBe(2);
   });
 
+  it("shows a group paired with one the stage does not list as a unit of its own", () => {
+    const units = groupUnits([
+      makeGroup("D", ["p1"], { pairedGroupId: "g-Z", pairedGroupLabel: "Z" }),
+    ]);
+    expect(units.map((unit) => [unit.label, unit.paired])).toEqual([["Group D", false]]);
+  });
+
   it("keeps unpaired groups in their listed order", () => {
     const units = groupUnits([
       makeGroup("A", ["p1"]),
@@ -135,18 +126,6 @@ describe("groupUnits", () => {
       makeGroup("C", ["p3"]),
     ]);
     expect(units.map((unit) => unit.label)).toEqual(["Group A", "Group B", "Group C"]);
-  });
-});
-
-describe("podsOfUnit", () => {
-  it("keeps only the matches its members play", () => {
-    const [unit] = groupUnits([makeGroup("A", ["p1", "p2", "p3", "p4"])]);
-    const round = makeRound(1, [
-      makePod("pod-1", 1, [makeMember("p1"), makeMember("p2")]),
-      makePod("pod-2", 2, [makeMember("p3"), makeMember("p4")]),
-      makePod("pod-3", 3, [makeMember("p9"), makeMember("p8")]),
-    ]);
-    expect(podsOfUnit(round, unit!).map((pod) => pod.id)).toEqual(["pod-1", "pod-2"]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type {
   StagedProductResponse,
   UnifiedMappingGroupResponse,
@@ -35,6 +35,7 @@ function staged(overrides: Partial<StagedProductResponse>): StagedProductRespons
     language: "FR",
     marketCents: 100,
     lowCents: null,
+    zeroLowCents: null,
     midCents: null,
     highCents: null,
     trendCents: null,
@@ -100,9 +101,9 @@ describe("unmatchedListingGroups", () => {
     const groups = unmatchedListingGroups(
       group([suggested, staged({ externalId: 2 }), staged({ externalId: 4, language: "KR" })], []),
       new Map([
-        [productSuggestionKey("cardtrader", 1, "foil", "FR"), [{ printingId: "p-en", score: 60 }]],
+        [marketplaceSkuKey("cardtrader", 1, "foil", "FR"), [{ printingId: "p-en", score: 60 }]],
         [
-          productSuggestionKey("cardtrader", 2, "foil", "FR"),
+          marketplaceSkuKey("cardtrader", 2, "foil", "FR"),
           [{ printingId: "p-en", score: 60, isWeak: true }],
         ],
       ]),

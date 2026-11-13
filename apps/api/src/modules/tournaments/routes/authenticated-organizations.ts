@@ -1,5 +1,4 @@
 import { organizationsContract } from "@openrift/shared/contracts/organizations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   OrganizationDetailResponse,
   OrganizationListResponse,
@@ -7,7 +6,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { conflict, forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -59,17 +58,17 @@ export const organizationsRouter = {
       const org = await loadOrg(repos, input.id);
       const membership = await requireOrgRole(repos, org.id, context.userId, "manager");
       if (input.role === "owner" && membership.role !== "owner") {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only an owner can add another owner");
+        throw forbidden("Only an owner can add another owner");
       }
       const targetUser = await repos.users.getIdByEmail(input.email);
       assertFound(targetUser, "No account found for that email");
       const existing = await repos.organizations.getMembership(org.id, targetUser.id);
       if (existing) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "User is already a member");
+        throw conflict("User is already a member");
       }
       const added = await repos.organizations.addMember(org.id, targetUser.id, input.role);
       if (!added) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "User is already a member");
+        throw conflict("User is already a member");
       }
       return buildDetail(repos, org, context.userId);
     },
@@ -86,7 +85,7 @@ export const organizationsRouter = {
         return buildDetail(repos, org, context.userId);
       }
       if ((input.role === "owner" || target.role === "owner") && membership.role !== "owner") {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only an owner can change the owner role");
+        throw forbidden("Only an owner can change the owner role");
       }
       await context.transact(async (trxRepos) => {
         // Re-checks the role under the org lock: the snapshot above may be stale.
@@ -96,7 +95,7 @@ export const organizationsRouter = {
           return;
         }
         if (lockedTarget.role === "owner" && membership.role !== "owner") {
-          throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only an owner can change the owner role");
+          throw forbidden("Only an owner can change the owner role");
         }
         if (lockedTarget.role === "owner") {
           await assertNotLastOwner(trxRepos, org.id);
@@ -115,7 +114,7 @@ export const organizationsRouter = {
       const target = await repos.organizations.getMembership(org.id, input.userId);
       assertFound(target, "Member not found");
       if (target.role === "owner" && membership.role !== "owner") {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only an owner can remove another owner");
+        throw forbidden("Only an owner can remove another owner");
       }
       await context.transact(async (trxRepos) => {
         // Re-checks the role under the org lock, as updateMemberRole does.
@@ -126,11 +125,7 @@ export const organizationsRouter = {
         }
         if (lockedTarget.role === "owner") {
           if (membership.role !== "owner") {
-            throw new AppError(
-              403,
-              ERROR_CODES.FORBIDDEN,
-              "Only an owner can remove another owner",
-            );
+            throw forbidden("Only an owner can remove another owner");
           }
           await assertNotLastOwner(trxRepos, org.id);
         }

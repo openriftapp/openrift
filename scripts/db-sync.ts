@@ -151,8 +151,10 @@ async function sync(database: ReturnType<typeof createDb>["db"]): Promise<void> 
     fetchJson("/api/v1/prices/links", marketplaceLinksResponseSchema),
   ]);
   const priceRows = buildPricesSync(prices, links, catalog, new Date());
-  await writePricesSync(database, priceRows);
-  log.info(`Prices: ${priceRows.products.length} marketplace products`);
+  const { skippedProducts } = await writePricesSync(database, priceRows);
+  log.info(
+    `Prices: ${priceRows.products.length - skippedProducts} marketplace products, ${skippedProducts} skipped because the regular price refresh already holds them`,
+  );
 }
 
 const { db } = createDb(databaseUrl);

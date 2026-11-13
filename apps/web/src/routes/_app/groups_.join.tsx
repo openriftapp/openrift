@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
 import { RouteErrorFallback } from "@/components/error-message";
+import { lenient } from "@/lib/lenient-param";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 const searchSchema = z.object({
-  code: z.optional(z.string()),
+  code: lenient(z.string()),
 });
 
 // Outside `_authenticated` on purpose: a code link must say which group it

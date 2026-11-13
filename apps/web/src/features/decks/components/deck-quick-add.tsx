@@ -27,7 +27,6 @@ import { useDeckUndo } from "@/features/decks/components/deck-undo-controls";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
-  canAddRune,
   catalogCardToDeckBuilderCard,
   isCardAllowedInZone,
   isDeckZoneFullForDrag,
@@ -73,13 +72,11 @@ export function buildTargets(
           allCards: deckCards,
           format,
         });
-        const runeMismatch =
-          zone === WellKnown.deckZone.RUNES && !freeform && !canAddRune(builderCard, deckCards);
         return {
           zone,
           label: enumLabel(zoneLabels, zone),
           kind: "add" as const,
-          disabled: full || runeMismatch,
+          disabled: full,
           count: totalQuantity(
             deckCards.filter((card) => card.cardId === builderCard.cardId && card.zone === zone),
           ),

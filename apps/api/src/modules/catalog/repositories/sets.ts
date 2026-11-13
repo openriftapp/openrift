@@ -4,7 +4,11 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { SetsTable } from "../../../db/tables/catalog.js";
-import { reorderBySortOrder, withKeyLock } from "../../../repositories/query-helpers.js";
+import {
+  reorderBySortOrder,
+  withKeyLock,
+  inTransaction,
+} from "../../../repositories/query-helpers.js";
 
 export function setsRepo(db: Kysely<Database>) {
   return {
@@ -109,7 +113,7 @@ export function setsRepo(db: Kysely<Database>) {
 
     async replaceReleases(setId: string, releases: SetReleases): Promise<void> {
       const languages = Object.keys(releases);
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         let deletion = trx.deleteFrom("setReleases").where("setId", "=", setId);
         if (languages.length > 0) {
           deletion = deletion.where("language", "not in", languages);

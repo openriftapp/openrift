@@ -1,6 +1,6 @@
 import type { WorkspaceListingVariant } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
 import type { UnifiedMappingGroupResponse } from "@openrift/shared/types/api/admin";
 
 import type { CardListingRow } from "./card-listing-rows";
@@ -27,7 +27,7 @@ export function unmatchedListingGroups(
     (row) =>
       !(
         suggestions.get(
-          productSuggestionKey(
+          marketplaceSkuKey(
             row.marketplace,
             row.product.externalId,
             row.product.finish,

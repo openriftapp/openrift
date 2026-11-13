@@ -41,14 +41,14 @@ const PRINTING_B = "a0000000-0001-4000-a000-000000000002";
 const dbPrice = {
   printingId: PRINTING_A,
   marketplace: "tcgplayer",
-  marketCents: 275,
+  headlineCents: 275,
   recordedAt: new Date("2026-03-01"),
 };
 
 const dbPriceFoil = {
   printingId: PRINTING_B,
   marketplace: "tcgplayer",
-  marketCents: 800,
+  headlineCents: 800,
   recordedAt: new Date("2026-03-01"),
 };
 
@@ -101,9 +101,9 @@ describe("GET /api/v1/prices", () => {
 
   it("groups multiple marketplaces under the same printing", async () => {
     mockMarketplaceRepo.latestPrices.mockResolvedValue([
-      { printingId: PRINTING_A, marketplace: "tcgplayer", marketCents: 100 },
-      { printingId: PRINTING_A, marketplace: "cardmarket", marketCents: 200 },
-      { printingId: PRINTING_A, marketplace: "cardtrader", marketCents: 300 },
+      { printingId: PRINTING_A, marketplace: "tcgplayer", headlineCents: 100 },
+      { printingId: PRINTING_A, marketplace: "cardmarket", headlineCents: 200 },
+      { printingId: PRINTING_A, marketplace: "cardtrader", headlineCents: 300 },
     ]);
     const res = await app.request("/api/v1/prices");
     const json = await readJson(res);

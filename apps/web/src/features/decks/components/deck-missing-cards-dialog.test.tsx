@@ -115,3 +115,26 @@ describe("DeckMissingCardsDialog zone sections", () => {
     expect(headings).toEqual(["Legend", "Battlefields"]);
   });
 });
+
+describe("DeckMissingCardsDialog total", () => {
+  it("counts the missing copies that have no price beside the total", () => {
+    render(
+      <DeckMissingCardsDialog
+        open
+        onOpenChange={() => {}}
+        missingCards={[
+          stubCardOwnership({ cardName: "Jinx, Rebel", shortfall: 2, cheapestPrice: 1.5 }),
+          stubCardOwnership({
+            cardName: "Star Spring",
+            shortfall: 3,
+            cheapestPrice: undefined,
+            displayPrice: undefined,
+          }),
+        ]}
+        totalMissingValue={3}
+        marketplace="cardmarket"
+      />,
+    );
+    expect(screen.getByText(/\(3 unpriced\)/u)).toBeTruthy();
+  });
+});

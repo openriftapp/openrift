@@ -209,6 +209,27 @@ describe("GET /tournaments/{id}", () => {
   });
 });
 
+describe("GET /tournaments/{id}/participants", () => {
+  it("answers 404 to a viewer with no relationship to the tournament", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+    repos.tournaments.hasRelationship.mockResolvedValue(false);
+    repos.tournaments.isHostOrStaff.mockResolvedValue(false);
+
+    const res = await app.fetch(req("GET", `/tournaments/${TOURNAMENT_ID}/participants`));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("answers 403 to a participant who is not staff", async () => {
+    const { app, repos } = makeApp(tournamentRow());
+    repos.tournaments.isHostOrStaff.mockResolvedValue(false);
+
+    const res = await app.fetch(req("GET", `/tournaments/${TOURNAMENT_ID}/participants`));
+
+    expect(res.status).toBe(403);
+  });
+});
+
 describe("POST /tournaments", () => {
   it("rejects 2v2 team play combined with pod pairing", async () => {
     const { app, repos } = makeApp(tournamentRow());

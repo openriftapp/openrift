@@ -128,9 +128,9 @@ describe("computeDeckOwnership", () => {
       EN_FIRST,
     );
 
-    expect(result.deckValueCents).toBe(200);
-    expect(result.missingValueCents).toBe(200);
-    expect(result.asDisplayedValueCents).toBe(200);
+    expect(result.deckValue).toBe(200);
+    expect(result.missingValue).toBe(200);
+    expect(result.asDisplayedValue).toBe(200);
   });
 
   it("counts the deck proper (runes included, sideboard excluded) for the required-zone basis", () => {
@@ -209,8 +209,8 @@ describe("computeDeckOwnership", () => {
 
     const result = computeDeckOwnership(deckCards, printings, {}, "tcgplayer", prices, ["EN"]);
 
-    expect(result.missingValueCents).toBe(600);
-    expect(result.missingAsDisplayedValueCents).toBe(10_000);
+    expect(result.missingValue).toBe(600);
+    expect(result.missingAsDisplayedValue).toBe(10_000);
     const entry = result.byCardZone.get(`${cardId}:main`);
     expect(entry?.cheapestPrice).toBe(300);
     expect(entry?.cheapestPrinting?.id).toBe("cheap-en");
@@ -229,7 +229,7 @@ describe("computeDeckOwnership", () => {
     const result = computeDeckOwnership(deckCards, printings, {}, "tcgplayer", prices, ["EN"]);
 
     expect(result.byCardZone.get(`${cardId}:main`)?.cheapestPrinting?.id).toBe("sc-priced");
-    expect(result.missingValueCents).toBe(250);
+    expect(result.missingValue).toBe(250);
   });
 
   it("marks a partially owned card with correct shortfall", () => {
@@ -429,10 +429,10 @@ describe("computeDeckOwnership", () => {
 
     const result = computeDeckOwnership(deckCards, printings, owned, "tcgplayer", prices, EN_FIRST);
 
-    expect(result.deckValueCents).toBe(6);
-    expect(result.missingValueCents).toBe(3);
-    expect(result.asDisplayedValueCents).toBe(10);
-    expect(result.missingAsDisplayedValueCents).toBe(5);
+    expect(result.deckValue).toBe(6);
+    expect(result.missingValue).toBe(3);
+    expect(result.asDisplayedValue).toBe(10);
+    expect(result.missingAsDisplayedValue).toBe(5);
   });
 
   it("uses preferredPrintingId when set, even when another language is cheaper", () => {
@@ -463,8 +463,8 @@ describe("computeDeckOwnership", () => {
       landscape: false,
     });
     expect(entry?.displayPrice).toBe(500);
-    expect(result.deckValueCents).toBe(100);
-    expect(result.asDisplayedValueCents).toBe(500);
+    expect(result.deckValue).toBe(100);
+    expect(result.asDisplayedValue).toBe(500);
   });
 
   it("keeps a premium pin out of the headline value", () => {
@@ -485,8 +485,8 @@ describe("computeDeckOwnership", () => {
       "EN",
     ]);
 
-    expect(result.deckValueCents).toBe(200);
-    expect(result.asDisplayedValueCents).toBe(15_000);
+    expect(result.deckValue).toBe(200);
+    expect(result.asDisplayedValue).toBe(15_000);
     const entry = result.byCardZone.get(`${cardId}:legend`);
     expect(entry?.cheapestPrice).toBe(200);
     expect(entry?.displayPrice).toBe(15_000);
@@ -550,8 +550,26 @@ describe("computeDeckOwnership", () => {
       EN_FIRST,
     );
 
-    expect(result.deckValueCents).toBeUndefined();
-    expect(result.missingValueCents).toBeUndefined();
+    expect(result.deckValue).toBeUndefined();
+    expect(result.missingValue).toBeUndefined();
+  });
+
+  it("counts the copies it cannot price beside the deck value", () => {
+    const deckCards = [
+      stubDeckBuilderCard({ cardId: "priced", quantity: 2, zone: "main" }),
+      stubDeckBuilderCard({ cardId: "unpriced", quantity: 3, zone: "main" }),
+    ];
+    const printings = [
+      stubPrinting({ printingId: "p-priced", cardId: "priced" }),
+      stubPrinting({ printingId: "p-unpriced", cardId: "unpriced" }),
+    ];
+    const prices = stubPriceLookup({ "p-priced": { tcgplayer: 4 } });
+
+    const result = computeDeckOwnership(deckCards, printings, {}, "tcgplayer", prices, EN_FIRST);
+
+    expect(result.deckValue).toBe(8);
+    expect(result.unpricedCount).toBe(3);
+    expect(result.missingUnpricedCount).toBe(3);
   });
 
   it("uses marketplace-specific prices when available", () => {
@@ -565,7 +583,7 @@ describe("computeDeckOwnership", () => {
 
     const result = computeDeckOwnership(deckCards, printings, {}, "cardmarket", prices, EN_FIRST);
 
-    expect(result.deckValueCents).toBe(8);
+    expect(result.deckValue).toBe(8);
   });
 
   it("counts borrowed copies as buildable, tracked separately from owned", () => {
@@ -840,7 +858,7 @@ describe("computeDeckOwnership", () => {
       { [printingId]: 2 },
     );
 
-    expect(result.missingValueCents).toBe(500);
+    expect(result.missingValue).toBe(500);
   });
 
   it("defaults incoming to 0 when no incoming map is supplied", () => {
@@ -887,8 +905,8 @@ describe("computeDeckOwnership", () => {
     expect(result.totalOwned).toBe(3);
     expect(result.missingCount).toBe(3);
     expect(result.missingCards).toHaveLength(2);
-    expect(result.deckValueCents).toBe(15);
-    expect(result.missingValueCents).toBe(12);
+    expect(result.deckValue).toBe(15);
+    expect(result.missingValue).toBe(12);
   });
 
   it("splits deck value into main deck and sideboard", () => {
@@ -910,9 +928,9 @@ describe("computeDeckOwnership", () => {
 
     const result = computeDeckOwnership(deckCards, printings, {}, "tcgplayer", prices, EN_FIRST);
 
-    expect(result.mainValueCents).toBe(32);
-    expect(result.sideboardValueCents).toBe(6);
-    expect(result.deckValueCents).toBe(38);
+    expect(result.mainValue).toBe(32);
+    expect(result.sideboardValue).toBe(6);
+    expect(result.deckValue).toBe(38);
   });
 
   it("sums missing value across main deck and sideboard", () => {
@@ -941,7 +959,7 @@ describe("computeDeckOwnership", () => {
       EN_FIRST,
     );
 
-    expect(result.missingValueCents).toBe(14);
+    expect(result.missingValue).toBe(14);
   });
 
   it("reports a zero sideboard value when the deck has no sideboard", () => {
@@ -951,8 +969,8 @@ describe("computeDeckOwnership", () => {
 
     const result = computeDeckOwnership(deckCards, printings, {}, "tcgplayer", prices, EN_FIRST);
 
-    expect(result.mainValueCents).toBe(14);
-    expect(result.sideboardValueCents).toBe(0);
+    expect(result.mainValue).toBe(14);
+    expect(result.sideboardValue).toBe(0);
   });
 
   it("leaves overflow out of every ownership and value total", () => {
@@ -986,9 +1004,9 @@ describe("computeDeckOwnership", () => {
     expect(result.totalBorrowed).toBe(0);
     expect(result.missingCount).toBe(1);
     expect(result.missingCards.map((entry) => entry.cardName)).toEqual(["Alpha"]);
-    expect(result.deckValueCents).toBe(20);
-    expect(result.mainValueCents).toBe(20);
-    expect(result.missingValueCents).toBe(10);
+    expect(result.deckValue).toBe(20);
+    expect(result.mainValue).toBe(20);
+    expect(result.missingValue).toBe(10);
   });
 
   it("still exposes a per-row entry for overflow cards", () => {
@@ -1008,7 +1026,7 @@ describe("computeDeckOwnership", () => {
     const entry = result.byCardZone.get("z:overflow");
     expect(entry?.owned).toBe(2);
     expect(entry?.displayPrice).toBe(9);
-    expect(result.deckValueCents).toBeUndefined();
+    expect(result.deckValue).toBeUndefined();
   });
 
   it("does not let an overflow copy claim ownership away from the main deck", () => {

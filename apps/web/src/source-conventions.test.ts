@@ -272,6 +272,40 @@ describe("source conventions", () => {
     ).toEqual([]);
   });
 
+  it("builds card image srcSet strings only through imageSrcSet", () => {
+    expect(offenders(ALL_FILES, /\$\{imageUrl\([^)]*\)\} \d+w/u)).toEqual([]);
+  });
+
+  it("takes the card aspect ratio from the shared constant or the --aspect-card variables", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /\b0\.71\d\b|aspect-\[(?:63\/88|88\/63)\]|\b(?:63|88) ?\/ ?(?:88|63)\b|\*1\.4\b/u,
+        ["packages/shared/src/card-orientation.ts"],
+      ),
+    ).toEqual([]);
+    const css = readFileSync(path.join(SRC, "index.css"), "utf-8");
+    expect(css).toContain("--aspect-card: 63 / 88;");
+    expect(css).toContain("--aspect-card-landscape: 88 / 63;");
+  });
+
+  it("detects the session cookie in one place", () => {
+    expect(
+      offenders(WEB_FILES, /better-auth\\?\.session_token/u, [
+        "apps/web/src/lib/session-cookie.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("names the site host only through getSiteHost or OFFICIAL_HOST", () => {
+    expect(
+      offenders(ALL_FILES, /(?<!@)openrift\.app/u, [
+        "apps/web/src/lib/official-host.ts",
+        "packages/shared/src/link-hosts.ts",
+      ]),
+    ).toEqual([]);
+  });
+
   it("names downloads only through downloadFilename", () => {
     expect(
       offenders(ALL_FILES, /\.replaceAll\(\/\[\^(?:\\w|a-z0-9\]\+)/u, [
@@ -287,6 +321,79 @@ describe("source conventions", () => {
       offenders(ALL_FILES, /`[^`]*(?<!media|api\/v1|API_BASE\})\/cards\/\$\{|"\/cards\/" *\+/u, [
         "packages/shared/src/site-paths.ts",
         "packages/shared/src/marketplace.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("builds marketplace SKU keys only through skuKey and marketplaceSkuKey", () => {
+    expect(
+      offenders(ALL_FILES, /\$\{[^}`]*externalId\}::\$\{[^}`]*finish\}::/u, [
+        "packages/shared/src/marketplace-sku-key.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("picks a card's cheapest printing only through the shared card-price module", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /cheapest\w*\s*===\s*undefined\s*\|\|\s*price\s*<|lowestPriceFor|cheapestPriceByCardId/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("formats money only through the shared formatters", () => {
+    expect(offenders(ALL_FILES, /=== "EUR" \? formatPriceEur\(/u)).toEqual([]);
+  });
+
+  it("validates every search field leniently, so a stale link falls back to a default", () => {
+    const routeFiles = WEB_FILES.filter((file) => path.relative(SRC, file).startsWith("routes/"));
+    const schemaNames = new Set(
+      routeFiles.flatMap((file) =>
+        [
+          ...readFileSync(file, "utf-8").matchAll(
+            /validateSearch: (?:z\.extend\()?(?<schema>\w+)/gu,
+          ),
+        ].map((match) => match.groups?.schema ?? ""),
+      ),
+    );
+    const schemaFiles = WEB_FILES.filter((file) => {
+      const source = readFileSync(file, "utf-8");
+      return [...schemaNames].some((name) =>
+        new RegExp(String.raw`\bconst ${name}\b`, "u").test(source),
+      );
+    });
+    expect(offenders([...routeFiles, ...schemaFiles], /^\s+\w+: z\.optional\(/mu)).toEqual([]);
+  });
+
+  it("flips an index sort only through nextIndexSort", () => {
+    expect(
+      offenders(WEB_FILES, /direction === "asc" \? "desc" : "asc"/u, [
+        "apps/web/src/features/meta/lib/meta-index-sort.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("tags collection mutations only through mutationTag", () => {
+    expect(
+      offenders(WEB_FILES, /\bconst metadata = \{\};/u, ["apps/web/src/lib/mutation-metadata.ts"]),
+    ).toEqual([]);
+  });
+
+  it("rasterizes elements only through html-capture", () => {
+    expect(
+      offenders(
+        WEB_FILES,
+        /function (?:resolveClipPaths|waitForRender)\b|from "html2canvas-pro"/u,
+        ["apps/web/src/lib/html-capture.ts"],
+      ),
+    ).toEqual([]);
+  });
+
+  it("splits a group stage into units in one place", () => {
+    expect(
+      offenders(ALL_FILES, /function (?:podsOfUnit|pairUnits)\b/u, [
+        "packages/shared/src/pairing/group-stage.ts",
       ]),
     ).toEqual([]);
   });

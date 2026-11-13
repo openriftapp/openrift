@@ -1,6 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
-import { imageUrl } from "@openrift/shared/image-url";
+import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import { getRouteApi } from "@tanstack/react-router";
 
@@ -157,7 +157,7 @@ export function FirstRowPreview() {
                     </div>
                   );
                 }
-                const srcSet = `${imageUrl(card.imageId, "120w")} 120w, ${imageUrl(card.imageId, "240w")} 240w, ${imageUrl(card.imageId, "400w")} 400w, ${imageUrl(card.imageId, "full")} 800w`;
+                const srcSet = imageSrcSet(card.imageId);
                 // Approximate resolution hint only; exact per-breakpoint values come from computeGridMetrics.
                 const sizes =
                   "(min-width: 1920px) calc((100vw - 126px) / 8 - 6px), (min-width: 1600px) calc((100vw - 102px) / 7 - 6px), (min-width: 1280px) calc((100vw - 75px) / 6 - 6px), (min-width: 1024px) calc((100vw - 56px) / 5 - 6px), (min-width: 768px) calc((100vw - 39px) / 4 - 6px), (min-width: 640px) calc((100vw - 30px) / 3 - 6px), calc((100vw - 10px) / 2 - 6px)";

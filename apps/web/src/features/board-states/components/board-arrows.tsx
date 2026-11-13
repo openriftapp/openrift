@@ -1,3 +1,4 @@
+import { arrowZoneKey } from "@openrift/shared/board-layout";
 import type {
   ArrowKind,
   BoardArrow,
@@ -9,7 +10,6 @@ import { ARROW_KINDS } from "@openrift/shared/board-state";
 import { useLayoutEffect, useState } from "react";
 
 import { ARROW_KIND_LABEL } from "@/features/board-states/lib/board-labels";
-import { arrowZoneKey } from "@/features/board-states/lib/board-layout";
 
 interface ArrowLine {
   kind: ArrowKind;

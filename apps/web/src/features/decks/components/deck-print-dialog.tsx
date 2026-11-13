@@ -29,7 +29,7 @@ import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useLocalDeckImageBody } from "@/features/decks/hooks/use-local-deck-image-body";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { sortCardsLikeSidebar } from "@/features/decks/lib/deck-card-order";
+import { sortCardsLikeSidebar } from "@/features/decks/lib/deck-card-sort";
 import type { LocalDeckImageBody } from "@/features/decks/lib/local-deck-image-body";
 import { isLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
@@ -39,6 +39,7 @@ import type {
 } from "@/features/decks/lib/registration-pdf";
 import { useSession } from "@/hooks/use-session";
 import { downloadFilename } from "@/lib/download";
+import { captureElementCanvas, waitForRender } from "@/lib/html-capture";
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import type { ProxyCard, ProxyPageSize, ProxyRenderMode, RenderedCard } from "@/lib/proxy-pdf";
@@ -81,39 +82,6 @@ function pageSizeLabels(): Record<ProxyPageSize, string> {
 // Full render width for html2canvas capture (px)
 const RENDER_WIDTH_PX = 504;
 
-// html2canvas supports clip-path polygon with percentages but not em/calc units; resolve via
-// getComputedStyle (returns px) and convert to percentages of the element's dimensions.
-function resolveClipPaths(element: HTMLElement): void {
-  const inlineClip = element.style.clipPath;
-  if (
-    inlineClip &&
-    inlineClip.includes("polygon") &&
-    (inlineClip.includes("em") || inlineClip.includes("calc"))
-  ) {
-    const computed = getComputedStyle(element).clipPath;
-    const width = element.offsetWidth;
-    const height = element.offsetHeight;
-    if (width > 0 && height > 0 && computed.includes("polygon")) {
-      const converted = computed.replaceAll(/[\d.]+px/gu, (match, offset) => {
-        // oxlint-disable-next-line unicorn/prefer-number-coercion -- match includes the "px" unit; Number() would yield NaN
-        const px = Number.parseFloat(match);
-        // Coordinates alternate x y, x y, ... within the polygon; count values before this one.
-        const before = computed.slice(computed.indexOf("(") + 1, offset);
-        const valueIndex = before.split(/[\s,]+/u).filter(Boolean).length;
-        const isX = valueIndex % 2 === 0;
-        const percent = isX ? (px / width) * 100 : (px / height) * 100;
-        return `${percent.toFixed(1)}%`;
-      });
-      element.style.clipPath = converted;
-    }
-  }
-  for (const child of element.children) {
-    if (child instanceof HTMLElement) {
-      resolveClipPaths(child);
-    }
-  }
-}
-
 // Dynamic import at module scope: react-compiler can't lower an `import()` inside a component
 // and bails on the whole file, and eager import would put jsPDF on every deck tile's page.
 async function loadRegistrationPdfGenerator() {
@@ -129,27 +97,8 @@ async function loadImagePdfDownloader() {
 
 // The element must already be in the page's React tree (with all providers).
 async function captureElement(element: HTMLElement): Promise<string> {
-  resolveClipPaths(element);
-
-  const { html2canvas } = await import("html2canvas-pro");
-  const canvas = await html2canvas(element, {
-    width: element.offsetWidth,
-    height: element.offsetHeight,
-    scale: 2,
-    useCORS: true,
-    backgroundColor: null,
-  });
+  const canvas = await captureElementCanvas(element);
   return canvas.toDataURL("image/png");
-}
-
-// Waits two animation frames for React to commit and the browser to compute styles.
-function waitForRender(): Promise<void> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping requestAnimationFrame callback API
-  return new Promise<void>((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
 }
 
 interface GenerateProxyPdfParams {

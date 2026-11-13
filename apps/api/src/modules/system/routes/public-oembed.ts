@@ -1,4 +1,5 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { shareImageVersionParam } from "@openrift/shared/share-image-params";
 import {
   collectionShareTitle,
   deckShareTitle,
@@ -209,7 +210,7 @@ export const publicOembedRoute = new Hono<{ Variables: Variables }>().get("/oemb
   // Same-origin as the validated page URL; the image route ignores `?v=` and
   // always renders current state — the version only changes the cache key.
   const origin = new URL(rawUrl).origin;
-  const imageUrl = `${origin}/api/v1/${match.kind}/share/${match.token}/image.png?v=${resolved.version}`;
+  const imageUrl = `${origin}/api/v1/${match.kind}/share/${match.token}/image.png?v=${shareImageVersionParam(resolved.version)}`;
   const { width, height } = scaledDimensions(
     positiveQuery(c.req.query("maxwidth")),
     positiveQuery(c.req.query("maxheight")),

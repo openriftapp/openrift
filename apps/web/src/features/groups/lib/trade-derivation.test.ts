@@ -5,6 +5,8 @@ import type {
 } from "@openrift/shared/types/api/card-trade";
 import { describe, expect, it } from "vitest";
 
+import { stubPrinting } from "@/test/factories";
+
 import type { MatchCopyDetail, MatchSuggestionFields } from "./trade-derivation";
 import {
   bucketMemberTrades,
@@ -15,6 +17,7 @@ import {
   describeViewerSource,
   groupTradeAnnotationsByPrinting,
   groupTradesByCounterparty,
+  liveOnlyMatchRows,
   matchCopyConditionLabel,
   matchSuggestionKey,
   maxTradeQuantity,
@@ -201,7 +204,7 @@ describe("withoutLiveTradeMatches", () => {
         },
       }),
     ];
-    expect(withoutLiveTradeMatches(matches, trades)).toEqual([]);
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual([]);
   });
 
   it("drops a match with a reserved trade for the same member + printing", () => {
@@ -219,13 +222,13 @@ describe("withoutLiveTradeMatches", () => {
         },
       }),
     ];
-    expect(withoutLiveTradeMatches(matches, trades)).toEqual([]);
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual([]);
   });
 
   it("keeps a match when the live trade is for a different printing", () => {
     const matches = [match("user-2", "printing-1")];
     const trades = [stubTrade({ status: "reserved", printingId: "printing-OTHER" })];
-    expect(withoutLiveTradeMatches(matches, trades)).toEqual(matches);
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual(matches);
   });
 
   it("keeps a match when the live trade is with a different member", () => {
@@ -243,7 +246,7 @@ describe("withoutLiveTradeMatches", () => {
         },
       }),
     ];
-    expect(withoutLiveTradeMatches(matches, trades)).toEqual(matches);
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual(matches);
   });
 
   it("keeps a match when the only matching trade is terminal", () => {
@@ -262,13 +265,51 @@ describe("withoutLiveTradeMatches", () => {
           },
         }),
       ];
-      expect(withoutLiveTradeMatches(matches, trades)).toEqual(matches);
+      expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual(matches);
     }
+  });
+
+  it("drops a match whose live trade sits in another shared group", () => {
+    const matches = [match("user-2", "printing-1")];
+    const trades = [
+      stubTrade({
+        status: "pending",
+        printingId: "printing-1",
+        groupSlug: "other-group",
+        counterparty: {
+          userId: "user-2",
+          name: null,
+          image: null,
+          gravatarHash: "h",
+          contactMethods: [],
+        },
+      }),
+    ];
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual([]);
+  });
+
+  it("keeps a match when the live trade runs the other direction", () => {
+    const matches = [match("user-2", "printing-1")];
+    const trades = [
+      stubTrade({
+        status: "pending",
+        role: "giver",
+        printingId: "printing-1",
+        counterparty: {
+          userId: "user-2",
+          name: null,
+          image: null,
+          gravatarHash: "h",
+          contactMethods: [],
+        },
+      }),
+    ];
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual(matches);
   });
 
   it("returns all matches when there are no trades", () => {
     const matches = [match("user-2", "printing-1"), match("user-3", "printing-2")];
-    expect(withoutLiveTradeMatches(matches, [])).toEqual(matches);
+    expect(withoutLiveTradeMatches(matches, [], "incoming")).toEqual(matches);
   });
 
   it("filters only the matches with a live trade, keeping the rest", () => {
@@ -286,7 +327,9 @@ describe("withoutLiveTradeMatches", () => {
         },
       }),
     ];
-    expect(withoutLiveTradeMatches(matches, trades)).toEqual([match("user-3", "printing-2")]);
+    expect(withoutLiveTradeMatches(matches, trades, "incoming")).toEqual([
+      match("user-3", "printing-2"),
+    ]);
   });
 });
 
@@ -584,10 +627,13 @@ describe("sumTradeValues", () => {
 
     const split = sumTradeValues(trades, price({ p1: 5, p2: 3 }));
 
-    expect(split).toEqual({ get: 10, give: 3, hasGet: true, hasGive: true });
+    expect(split).toEqual({
+      get: { value: 10, priced: 2, unpriced: 0 },
+      give: { value: 3, priced: 1, unpriced: 0 },
+    });
   });
 
-  it("skips unpriced printings and leaves the flag false when a side is all-unpriced", () => {
+  it("counts unpriced copies beside each side's value", () => {
     const trades = [
       stubTrade({ role: "receiver", printingId: "p1", quantity: 2 }),
       stubTrade({ role: "receiver", printingId: "p2", quantity: 4 }),
@@ -595,15 +641,16 @@ describe("sumTradeValues", () => {
 
     const split = sumTradeValues(trades, price({ p1: 5 }));
 
-    expect(split).toEqual({ get: 10, give: 0, hasGet: true, hasGive: false });
+    expect(split).toEqual({
+      get: { value: 10, priced: 2, unpriced: 4 },
+      give: { value: 0, priced: 0, unpriced: 0 },
+    });
   });
 
   it("returns an all-empty split for no trades", () => {
     expect(sumTradeValues([], price({}))).toEqual({
-      get: 0,
-      give: 0,
-      hasGet: false,
-      hasGive: false,
+      get: { value: 0, priced: 0, unpriced: 0 },
+      give: { value: 0, priced: 0, unpriced: 0 },
     });
   });
 });
@@ -856,5 +903,56 @@ describe("groupMatchCopyConditions", () => {
       { short: "NM", full: "nm", count: 1 },
     ]);
     expect(groupMatchCopyConditions([copy()], labelOf)).toEqual([]);
+  });
+});
+
+describe("liveOnlyMatchRows", () => {
+  const printing = stubPrinting({ printingId: "printing-1" });
+  const printingOf = () => printing;
+
+  it("keeps a reserved request the server netted out of the matches", () => {
+    const rows = liveOnlyMatchRows(
+      [stubTrade({ status: "reserved", quantity: 2 })],
+      [],
+      "incoming",
+      printingOf,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      counterpartyUserId: "user-2",
+      printingId: "printing-1",
+      buyQuantity: 2,
+      groupSlug: "the-group",
+      liveOnly: true,
+    });
+    expect(
+      countTradeSuggestions(
+        withoutLiveTradeMatches(rows, [stubTrade({ status: "reserved" })], "incoming"),
+        [],
+      ),
+    ).toBe(0);
+  });
+
+  it("keeps an offer of the giver's only copy on the outgoing side", () => {
+    const offer = stubTrade({ role: "giver", initiator: "giver" });
+    expect(liveOnlyMatchRows([offer], [], "outgoing", printingOf)).toHaveLength(1);
+    expect(liveOnlyMatchRows([offer], [], "incoming", printingOf)).toEqual([]);
+  });
+
+  it("adds nothing when a match row already carries the trade", () => {
+    expect(
+      liveOnlyMatchRows(
+        [stubTrade()],
+        [{ counterpartyUserId: "user-2", printingId: "printing-1" }],
+        "incoming",
+        printingOf,
+      ),
+    ).toEqual([]);
+  });
+
+  it("adds nothing for a closed trade", () => {
+    expect(
+      liveOnlyMatchRows([stubTrade({ status: "declined" })], [], "incoming", printingOf),
+    ).toEqual([]);
   });
 });

@@ -6,6 +6,7 @@ import type {
   QualificationRow,
 } from "@openrift/shared/pairing/group-cut-types";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
+import { podsOfUnit } from "@openrift/shared/pairing/group-stage";
 
 import type { PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
 import type { GroupPodInsert, TournamentGroup } from "../repositories/tournament-groups.js";
@@ -119,13 +120,6 @@ export function podInsertsForPairs(
   }));
 }
 
-/** A pod belongs to a unit when both of its members do. */
-function podsOfUnit(rows: PodRoundRows, memberIds: ReadonlySet<string>) {
-  return rows.pods.filter((entry) =>
-    entry.members.every((member) => memberIds.has(member.playerId)),
-  );
-}
-
 export function unitProgress(
   memberIds: ReadonlySet<string>,
   roundRows: readonly PodRoundRows[],
@@ -136,14 +130,14 @@ export function unitProgress(
   let roundsStarted = 0;
   let latest: PodRoundRows | undefined;
   for (const rows of stage) {
-    if (podsOfUnit(rows, memberIds).length > 0) {
+    if (podsOfUnit(rows.pods, memberIds).length > 0) {
       roundsStarted += 1;
       latest = rows;
     }
   }
   const currentRoundReported =
     latest !== undefined &&
-    podsOfUnit(latest, memberIds).every((entry) => entry.pod.resultStatus === "reported");
+    podsOfUnit(latest.pods, memberIds).every((entry) => entry.pod.resultStatus === "reported");
   return { roundsStarted, currentRoundReported };
 }
 

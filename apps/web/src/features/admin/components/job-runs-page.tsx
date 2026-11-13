@@ -1,6 +1,11 @@
 import type { JobRunActivity, JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
-import { JOB_RUN_ACTIVITIES, JOB_STATUSES, JOB_TRIGGERS } from "@openrift/shared/job-run-kinds";
+import {
+  JOB_KIND,
+  JOB_RUN_ACTIVITIES,
+  JOB_STATUSES,
+  JOB_TRIGGERS,
+} from "@openrift/shared/job-run-kinds";
 import { getRouteApi } from "@tanstack/react-router";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
@@ -28,7 +33,7 @@ import { summarizeRunResult } from "@/lib/job-run-display";
 const routeApi = getRouteApi("/_app/_authenticated/admin/job-runs");
 
 /** Only resumable jobs that re-read `result` between batches can be cancelled mid-run. */
-const CANCELLABLE_KINDS = new Set<string>(["images.regenerate"]);
+const CANCELLABLE_KINDS = new Set<string>([JOB_KIND.regenerateImages]);
 
 const ANY = "__any";
 
