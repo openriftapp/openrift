@@ -23,6 +23,10 @@ vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
 vi.mock("@/features/decks/hooks/use-decks", () => ({
   useDeckDetail: () => ({ data: { deck: { format: "constructed" } } }),
 }));
+vi.mock("@/hooks/use-session", () => ({ useSession: () => ({ data: undefined }) }));
+vi.mock("@/features/collections/hooks/use-owned-count", () => ({
+  useOwnedCountsForPrintings: () => ({ data: undefined }),
+}));
 vi.mock("@/features/cards/hooks/use-printing-choices", () => ({
   usePrintingChoices: () => [],
 }));

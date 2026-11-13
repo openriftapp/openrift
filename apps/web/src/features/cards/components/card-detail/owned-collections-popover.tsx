@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/count-pill";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { OWNED_COUNT_BADGE_CLASS } from "@/features/cards/components/owned-count-badge";
 import { OwnedVariantBreakdown } from "@/features/cards/components/owned-variant-breakdown";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { printingCollectionSearch } from "@/features/cards/lib/printing-search-link";
@@ -78,7 +79,7 @@ export function OwnedCollectionsPopover({
       {badge ? (
         <PopoverTrigger
           onClick={(event) => event.stopPropagation()}
-          className="bg-foreground text-background ring-background text-2xs flex h-4.5 min-w-4.5 cursor-pointer items-center justify-center rounded-full px-1 font-bold tabular-nums ring-2"
+          className={cn(OWNED_COUNT_BADGE_CLASS, "cursor-pointer")}
         >
           ×<CountWithTotal count={totalOwned} totalCount={totalCount} />
         </PopoverTrigger>

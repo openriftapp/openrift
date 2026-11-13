@@ -104,6 +104,12 @@ describe("PrintingRowContent", () => {
     expect(container.querySelector(".h-8")).not.toBeInTheDocument();
   });
 
+  it("overlays the thumbnail badge when given one", () => {
+    render(<PrintingRowContent printing={stubPrinting()} thumbBadge={<span>×3</span>} />);
+
+    expect(screen.getByText("×3")).toBeInTheDocument();
+  });
+
   it("renders the trailing slot", () => {
     render(<PrintingRowContent printing={stubPrinting()} right={<span>€1.23</span>} />);
 

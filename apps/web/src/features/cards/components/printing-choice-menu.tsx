@@ -4,9 +4,12 @@ import type { MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
 
 import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel } from "@/components/ui/context-menu";
+import { OwnedCountBadge } from "@/features/cards/components/owned-count-badge";
 import { PrintingHoverPreview } from "@/features/cards/components/printing-hover-preview";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePrintingHover } from "@/features/cards/hooks/use-printing-hover";
+import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
+import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -77,6 +80,11 @@ export function PrintingChoiceMenuSection({
   onSelectDefault?: (event: MouseEvent) => void;
 }) {
   const choices = uniquePrintings(printings);
+  const { data: session } = useSession();
+  const { data: owned } = useOwnedCountsForPrintings(
+    choices.map((printing) => printing.printingId),
+    Boolean(session?.user),
+  );
   if (choices.length === 0) {
     return null;
   }
@@ -97,21 +105,28 @@ export function PrintingChoiceMenuSection({
             {m.cards_printing_menu_use_default()}
           </ContextMenuItem>
         )}
-        {choices.map((printing) => (
-          <ContextMenuItem
-            key={sideKey(printing)}
-            className={cn(
-              printing.printingId === activePrintingId && "bg-muted ring-border ring-1",
-            )}
-            onClick={(event) => {
-              event.stopPropagation();
-              onSelect(printing, event);
-            }}
-            {...hoverProps(printing.printingId)}
-          >
-            <PrintingRowContent printing={printing} siblings={printings} />
-          </ContextMenuItem>
-        ))}
+        {choices.map((printing) => {
+          const ownedCount = owned?.totals[printing.printingId] ?? 0;
+          return (
+            <ContextMenuItem
+              key={sideKey(printing)}
+              className={cn(
+                printing.printingId === activePrintingId && "bg-muted ring-border ring-1",
+              )}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect(printing, event);
+              }}
+              {...hoverProps(printing.printingId)}
+            >
+              <PrintingRowContent
+                printing={printing}
+                siblings={printings}
+                thumbBadge={ownedCount > 0 && <OwnedCountBadge count={ownedCount} />}
+              />
+            </ContextMenuItem>
+          );
+        })}
       </div>
     </ContextMenuGroup>
   );

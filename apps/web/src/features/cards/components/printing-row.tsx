@@ -108,21 +108,30 @@ export function PrintingRowContent({
   name,
   right,
   thumbClassName,
+  thumbBadge,
 }: {
   printing: Printing;
   siblings?: readonly Printing[];
   name?: string;
   right?: ReactNode;
   thumbClassName?: string;
+  thumbBadge?: ReactNode;
 }) {
+  const thumb = (
+    <PrintingThumbnail printing={printing} className={thumbClassName ?? (name ? "h-10" : "h-8")} />
+  );
   return (
     // A span, not a div: the scan sheets nest this inside a Pressable, and a
     // flow element inside a button is invalid markup.
     <span className="flex min-w-0 flex-1 items-center gap-2">
-      <PrintingThumbnail
-        printing={printing}
-        className={thumbClassName ?? (name ? "h-10" : "h-8")}
-      />
+      {thumbBadge ? (
+        <span className="relative mr-1 shrink-0">
+          {thumb}
+          <span className="absolute -top-1.5 -right-2">{thumbBadge}</span>
+        </span>
+      ) : (
+        thumb
+      )}
       <span className="flex min-w-0 flex-1 flex-col">
         {name ? <span className="truncate font-medium">{name}</span> : null}
         <span className="min-w-0 truncate text-xs">
