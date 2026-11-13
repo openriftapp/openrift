@@ -5,6 +5,7 @@ import type {
   MetaSyncStatus,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { formatDayTime } from "@openrift/shared/format-date";
+import { metaSourceJobPrefix } from "@openrift/shared/job-run-kinds";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -13,14 +14,9 @@ import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import { HealthCard } from "@/features/admin/components/meta-health-card";
 import type { SourcedAlert } from "@/features/admin/components/meta-health-card";
 import { MetaRunCellView, MetaToneDot } from "@/features/admin/components/meta-overview-shared";
@@ -31,9 +27,9 @@ import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import {
   BACKFILL_TRIGGERS_BY_SOURCE,
   catalogueSource,
-  JOB_KIND_PREFIX,
   TRIGGER_GROUPS,
 } from "@/features/admin/lib/meta-admin-triggers";
+import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
 import type { MetaRunCell } from "@/features/admin/lib/meta-source-overview";
@@ -46,6 +42,7 @@ import {
   sourceTone,
   triggerKind,
 } from "@/features/admin/lib/meta-source-overview";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface Segment {
@@ -69,14 +66,14 @@ function RejectPassingButton({ source, count }: { source: MetaSource; count: num
       <ConfirmActionDialog
         open={open}
         onOpenChange={setOpen}
-        title={`Reject ${count.toLocaleString()} events?`}
+        title={`Reject ${formatCount(count)} events?`}
         description="They passed the auto-publish rule but have no results on the source. Refresh mirror never offers a rejected event again. Each one can be restored from the Mirror table."
         confirmLabel="Reject all"
         isPending={reject.isPending}
         onConfirm={() => {
           reject.mutate(undefined, {
             onSuccess: (result) => {
-              toast.success(`Rejected ${result.rejected.toLocaleString()} events`);
+              toast.success(`Rejected ${formatCount(result.rejected)} events`);
               setOpen(false);
             },
           });
@@ -113,7 +110,7 @@ function SegmentLegend({ segments }: { segments: Segment[] }) {
           <span className={cn("mt-1.5 size-3 shrink-0 rounded-sm", segment.colorClass)} />
           <div>
             <dt>
-              <span className="font-semibold tabular-nums">{segment.count.toLocaleString()}</span>{" "}
+              <span className="font-semibold tabular-nums">{formatCount(segment.count)}</span>{" "}
               {segment.label}
               {segment.target !== undefined && segment.count > 0 && (
                 <>
@@ -274,6 +271,59 @@ function jobCell(
   };
 }
 
+interface SourceJobRow {
+  entry: TriggerEntry;
+  cron: string | null;
+  nextRun: string | null;
+  cell: MetaRunCell | null;
+}
+
+function JobLabelCell({ row }: AdminCellSlotProps<SourceJobRow>) {
+  if (!row) {
+    return null;
+  }
+  return (
+    <>
+      <div className="font-medium">{row.entry.label}</div>
+      <div className="text-muted-foreground">{row.entry.description}</div>
+    </>
+  );
+}
+
+function JobScheduleCell({ row }: AdminCellSlotProps<SourceJobRow>) {
+  if (!row) {
+    return null;
+  }
+  return (
+    <span className={cn(row.cron === null && "text-muted-foreground")}>{row.cron ?? "Manual"}</span>
+  );
+}
+
+function JobLastRunCell({ row }: AdminCellSlotProps<SourceJobRow>) {
+  if (!row || row.cell === null) {
+    return null;
+  }
+  return <MetaRunCellView cell={row.cell} />;
+}
+
+function JobRunAction({
+  row,
+  source,
+  status,
+}: AdminCellSlotProps<SourceJobRow> & { source?: MetaSource; status?: MetaSyncStatus }) {
+  if (!row || !source || !status) {
+    return null;
+  }
+  return (
+    <MetaJobRunControl
+      source={source}
+      runs={status.runs}
+      entry={row.entry}
+      pendingTriage={status.counts.new}
+    />
+  );
+}
+
 export function MetaSourceDetail({
   source,
   status,
@@ -333,7 +383,7 @@ export function MetaSourceDetail({
         </Link>
         <Link
           to="/admin/job-runs"
-          search={{ runPrefix: JOB_KIND_PREFIX[source] }}
+          search={{ runPrefix: metaSourceJobPrefix(source) }}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           All runs
@@ -372,7 +422,7 @@ export function MetaSourceDetail({
             <CardTitle>
               Mirrored{" "}
               <span className="text-muted-foreground tabular-nums">
-                {status.catalog.total.toLocaleString()} events
+                {formatCount(status.catalog.total)} events
               </span>
             </CardTitle>
             {refreshEntry !== undefined && (
@@ -399,7 +449,7 @@ export function MetaSourceDetail({
           <CardTitle>
             Results of published events{" "}
             <span className="text-muted-foreground tabular-nums">
-              {results.reduce((sum, segment) => sum + segment.count, 0).toLocaleString()}
+              {formatCount(results.reduce((sum, segment) => sum + segment.count, 0))}
             </span>
           </CardTitle>
         </CardHeader>
@@ -417,49 +467,31 @@ export function MetaSourceDetail({
           <CardTitle>Jobs</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Job</TableHead>
-                <TableHead>Schedule (UTC)</TableHead>
-                <TableHead>Last run</TableHead>
-                <TableHead>Next run</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((entry) => {
-                const kind = triggerKind(source, entry);
-                const schedule = scheduleByKind.get(kind);
-                const cron = schedule?.schedule ?? null;
-                const nextRun = schedule?.nextRun ?? null;
-                const cell = jobCell(source, kind, status, cron !== null, now);
-                return (
-                  <TableRow key={entry.trigger}>
-                    <TableCell className="max-w-md whitespace-normal">
-                      <div className="font-medium">{entry.label}</div>
-                      <div className="text-muted-foreground">{entry.description}</div>
-                    </TableCell>
-                    <TableCell className={cn(cron === null && "text-muted-foreground")}>
-                      {cron ?? "Manual"}
-                    </TableCell>
-                    <TableCell>{cell !== null && <MetaRunCellView cell={cell} />}</TableCell>
-                    <TableCell>{nextRun !== null && formatDayTime(nextRun)}</TableCell>
-                    <TableCell className="text-right">
-                      <MetaJobRunControl
-                        source={source}
-                        runs={status.runs}
-                        entry={entry}
-                        pendingTriage={status.counts.new}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <AdminTable
+            bare
+            columns={[
+              { header: "Job", width: "max-w-md", wrap: true, cell: <JobLabelCell /> },
+              { header: "Schedule (UTC)", cell: <JobScheduleCell /> },
+              { header: "Last run", cell: <JobLastRunCell /> },
+              {
+                header: "Next run",
+                cell: <InstantCell<SourceJobRow> at={(row) => row.nextRun} />,
+              },
+            ]}
+            data={jobs.map((entry) => {
+              const kind = triggerKind(source, entry);
+              const schedule = scheduleByKind.get(kind);
+              const cron = schedule?.schedule ?? null;
+              return {
+                entry,
+                cron,
+                nextRun: schedule?.nextRun ?? null,
+                cell: jobCell(source, kind, status, cron !== null, now),
+              };
+            })}
+            getRowKey={(row) => row.entry.trigger}
+            actions={<JobRunAction source={source} status={status} />}
+          />
         </CardContent>
       </Card>
     </div>

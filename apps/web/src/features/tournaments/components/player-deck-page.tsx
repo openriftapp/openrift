@@ -335,14 +335,12 @@ function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse 
                 );
                 void navigate({ to: "/decks/$deckId", params: { deckId: deck.id } });
               },
-              // Error itself is reported by the global mutation toast.
               onError: () => {
                 setIsSaving(false);
               },
             },
           );
         },
-        // Error itself is reported by the global mutation toast.
         onError: () => {
           setIsSaving(false);
         },

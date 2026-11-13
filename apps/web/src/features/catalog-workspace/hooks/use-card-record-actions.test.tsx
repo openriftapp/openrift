@@ -34,19 +34,21 @@ function fakeMutation(): FakeMutation {
 const mutations = {
   acceptCardField: fakeMutation(),
   check: fakeMutation(),
+  checkMany: fakeMutation(),
   acceptSubmission: fakeMutation(),
 };
 
 const serverFns = vi.hoisted(() => ({
   acceptCardField: vi.fn((_input: unknown) => Promise.resolve()),
-  uncheckCandidateCard: vi.fn((_input: unknown) => Promise.resolve()),
+  uncheckCandidateCards: vi.fn((_input: unknown) => Promise.resolve()),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   acceptCardFieldFn: serverFns.acceptCardField,
-  uncheckCandidateCardFn: serverFns.uncheckCandidateCard,
+  uncheckCandidateCardsFn: serverFns.uncheckCandidateCards,
   useAcceptCardField: () => mutations.acceptCardField,
   useCheckCandidateCard: () => mutations.check,
+  useCheckCandidateCards: () => mutations.checkMany,
 }));
 
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
@@ -64,9 +66,10 @@ beforeEach(() => {
   resetStore = createStoreResetter(useWorkspaceSelectionStore);
   mutations.acceptCardField = fakeMutation();
   mutations.check = fakeMutation();
+  mutations.checkMany = fakeMutation();
   mutations.acceptSubmission = fakeMutation();
   serverFns.acceptCardField.mockClear();
-  serverFns.uncheckCandidateCard.mockClear();
+  serverFns.uncheckCandidateCards.mockClear();
   vi.mocked(toast.success).mockClear();
 });
 
@@ -166,12 +169,12 @@ describe("useCardRecordActions", () => {
     expect(mutations.check.mutate).toHaveBeenCalledWith(row.id, expect.anything());
     expect(latest()?.label).toBe("Discarded 2 suggestions on Jinx, Demolitionist");
     await latest()?.undo();
-    expect(serverFns.uncheckCandidateCard).toHaveBeenCalledWith({
-      data: { candidateCardId: row.id },
+    expect(serverFns.uncheckCandidateCards).toHaveBeenCalledWith({
+      data: { candidateCardIds: [row.id] },
     });
   });
 
-  it("Enter checks every open source row but never a contributor row", async () => {
+  it("Enter checks every open source row in one call, never a contributor row", async () => {
     const changed = source({ provider: "scans", might: 3 });
     const quiet = source({ provider: "gallery" });
     const { result } = setup([changed, quiet]);
@@ -180,22 +183,23 @@ describe("useCardRecordActions", () => {
     expect(result.current.actions.primary?.disabled).toBe(false);
     await act(() => result.current.actions.primary?.run());
 
-    expect(mutations.check.mutateAsync.mock.calls.map((call) => call[0])).toEqual([
-      changed.id,
-      quiet.id,
-    ]);
+    expect(mutations.checkMany.mutateAsync).toHaveBeenCalledOnce();
+    expect(mutations.checkMany.mutateAsync).toHaveBeenCalledWith({
+      cardId: card.id,
+      candidateCardIds: [changed.id, quiet.id],
+    });
+    expect(mutations.check.mutateAsync).not.toHaveBeenCalled();
     expect(useWorkspaceSelectionStore.getState().undoStack).toHaveLength(1);
     expect(latest()?.label).toBe("Discarded 1 suggestion on Jinx, Demolitionist");
     await latest()?.undo();
-    expect(serverFns.uncheckCandidateCard.mock.calls.map((call) => call[0])).toEqual([
-      { data: { candidateCardId: changed.id } },
-      { data: { candidateCardId: quiet.id } },
+    expect(serverFns.uncheckCandidateCards.mock.calls).toEqual([
+      [{ data: { candidateCardIds: [changed.id, quiet.id] } }],
     ]);
   });
 
   it("pushes no entry when Enter's discard fails", async () => {
     const { result } = setup([source({ might: 3 })]);
-    mutations.check.mutateAsync.mockRejectedValueOnce(new Error("offline"));
+    mutations.checkMany.mutateAsync.mockRejectedValueOnce(new Error("offline"));
 
     await act(async () => {
       await expect(result.current.actions.primary?.run()).rejects.toThrow("offline");
@@ -229,7 +233,7 @@ describe("useCardRecordActions", () => {
 
     expect(result.current.actions.primary?.label).toBe("Next");
     await act(() => result.current.actions.primary?.run());
-    expect(mutations.check.mutateAsync).not.toHaveBeenCalled();
+    expect(mutations.checkMany.mutateAsync).not.toHaveBeenCalled();
 
     const model = buildCardSuggestions(
       makeAdminCardDetail({ card, sources: [source({ might: 3 })] }),

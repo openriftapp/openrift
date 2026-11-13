@@ -1,4 +1,3 @@
-import { labelMapOf } from "@openrift/shared/enum-label";
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -16,7 +15,6 @@ import {
   describeElsewhere,
   discardLabel,
   faceCompareCandidates,
-  formatSuggestionValue,
   primaryLabel,
   submitterNameOf,
 } from "./face-suggestion-rows";
@@ -331,35 +329,6 @@ describe("buildFaceSuggestions", () => {
     expect(buildFaceSuggestions(detail, "f2", CONTEXT).images.map((entry) => entry.id)).toEqual([
       "back",
     ]);
-  });
-});
-
-describe("formatSuggestionValue", () => {
-  const labels = {
-    rarities: labelMapOf({ rare: "Rare" }),
-    finishes: labelMapOf({ foil: "Foil" }),
-    artVariants: labelMapOf({}),
-    cardSizes: labelMapOf({}),
-    languages: labelMapOf({ FR: "French" }),
-    markers: labelMapOf({ promo: "Promo" }),
-    channels: labelMapOf({ "summoner-skirmish": "Organized play › Summoner Skirmish" }),
-  };
-
-  it("reads enum slugs through their label map", () => {
-    expect(formatSuggestionValue("rarity", "rare", labels)).toBe("Rare");
-    expect(formatSuggestionValue("language", "FR", labels)).toBe("French");
-  });
-
-  it("joins list labels and keeps unknown slugs", () => {
-    expect(formatSuggestionValue("markerSlugs", ["promo", "signed"], labels)).toBe("Promo, signed");
-    expect(formatSuggestionValue("distributionChannelSlugs", ["summoner-skirmish"], labels)).toBe(
-      "Organized play › Summoner Skirmish",
-    );
-  });
-
-  it("says Empty for a missing value and formats booleans", () => {
-    expect(formatSuggestionValue("artist", "", labels)).toBe("Empty");
-    expect(formatSuggestionValue("isSigned", true, labels)).toBe("Yes");
   });
 });
 

@@ -9,6 +9,7 @@ import { FriendGroupHero } from "@/features/groups/components/friend-group-hero"
 import { useDeclineFriendGroupInvite } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { useRequiredUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -67,11 +68,12 @@ function PendingApprovalStub({ data }: { data: FriendGroupDetailResponse }) {
   const navigate = useNavigate();
 
   async function handleCancel() {
-    try {
-      await declineInvite.mutateAsync({ slug: data.group.slug, userId: viewerId });
+    if (
+      await runReportedMutation(() =>
+        declineInvite.mutateAsync({ slug: data.group.slug, userId: viewerId }),
+      )
+    ) {
       void navigate({ to: "/groups" });
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

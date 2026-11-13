@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { playriftboundEventUrl } from "@openrift/shared/playriftbound-links";
 import { errorMessage } from "@openrift/shared/strings";
 
@@ -55,8 +56,7 @@ async function sweep(
   tournamentIds: readonly string[],
 ): Promise<PlayriftboundAcceptSummary> {
   const summary = emptySummary();
-  for (let index = 0; index < tournamentIds.length; index += SWEEP_PAGE) {
-    const page = tournamentIds.slice(index, index + SWEEP_PAGE);
+  for (const page of chunk(tournamentIds, SWEEP_PAGE)) {
     const rows = await deps.repos.playriftboundEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
     for (const row of rows) {

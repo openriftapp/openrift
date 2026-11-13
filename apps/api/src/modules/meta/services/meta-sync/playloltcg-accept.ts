@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { formatDay } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -66,8 +67,7 @@ async function sweep(
   activityShopIds: readonly number[],
 ): Promise<PlayloltcgAcceptSummary> {
   const summary = emptySummary();
-  for (let index = 0; index < activityShopIds.length; index += SWEEP_PAGE) {
-    const page = activityShopIds.slice(index, index + SWEEP_PAGE);
+  for (const page of chunk(activityShopIds, SWEEP_PAGE)) {
     const rows = await deps.repos.playloltcgEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
     for (const row of rows) {

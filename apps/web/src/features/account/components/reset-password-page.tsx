@@ -9,6 +9,11 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { AuthFormCard } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
+import {
+  isEmailAddress,
+  OTP_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
 import { otpErrorMessage, requestOtpErrorMessage } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
@@ -35,7 +40,7 @@ export function ResetPasswordPage() {
 
   async function handleSendCode() {
     const trimmed = email.trim();
-    if (!trimmed || !trimmed.includes("@")) {
+    if (!isEmailAddress(trimmed)) {
       setEmailError(m.auth_reset_email_invalid());
       return;
     }
@@ -74,8 +79,8 @@ export function ResetPasswordPage() {
 
   async function handleReset() {
     setError("");
-    if (newPassword.length < 8) {
-      setError(m.auth_reset_password_too_short());
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      setError(m.auth_password_min());
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -185,7 +190,7 @@ export function ResetPasswordPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={otp.length < 6 || !newPassword || loading}
+                  disabled={otp.length < OTP_LENGTH || !newPassword || loading}
                 >
                   {loading ? m.auth_reset_resetting() : m.auth_reset_submit()}
                 </Button>

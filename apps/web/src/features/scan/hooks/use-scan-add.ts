@@ -12,6 +12,7 @@ import { addInChunks, addJobsFor, reconcileJobs, settleAdd } from "@/features/sc
 import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import type { ScanSessionRow } from "@/features/scan/stores/scan-session-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface WishFollowUp {
@@ -50,12 +51,9 @@ export function useScanAdd(collections: CollectionResponse[]): ScanAdd {
     if (copyIds.length === 0) {
       return;
     }
-    try {
-      await disposeCopies.mutateAsync({ copyIds });
+    if (await runReportedMutation(() => disposeCopies.mutateAsync({ copyIds }))) {
       appendScanJournal({ type: "undo-add", batchId, copies: copyIds.length });
       useScanSessionStore.getState().putBack(rows);
-    } catch {
-      // Reported by the global mutation error toast.
     }
   }
 

@@ -197,6 +197,7 @@ export function useWorkspaceBatch(kind: BatchKind, enabled: boolean) {
     enabled,
   });
   const run = useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (keys: string[]) => runBatch(kind, keys),
     invalidates: [adminKeys.workspace, adminKeys.cards.list, adminKeys.reviewQueue],
   });

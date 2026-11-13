@@ -1,5 +1,5 @@
 import type { WorkspaceEvent } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { formatDayTime } from "@openrift/shared/format-date";
+import { formatTimeUtc } from "@openrift/shared/format-date";
 
 import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -15,7 +15,7 @@ function DecisionRow({ event }: { event: WorkspaceEvent }) {
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t py-2 first:border-t-0">
       <span className="text-muted-foreground w-12 shrink-0 text-sm tabular-nums">
-        {formatDayTime(event.createdAt).slice(11)}
+        {formatTimeUtc(event.createdAt)}
       </span>
       {target === null ? (
         <span className="font-medium">{event.label}</span>

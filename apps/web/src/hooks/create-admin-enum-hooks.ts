@@ -1,4 +1,4 @@
-import type { DefaultError, UseSuspenseQueryOptions } from "@tanstack/react-query";
+import type { DefaultError, MutationMeta, UseSuspenseQueryOptions } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -64,15 +64,17 @@ export function createAdminEnumHooks<
     return useSuspenseQuery(config.listQueryOptions);
   }
 
-  function useCreate() {
+  function useCreate(meta?: MutationMeta) {
     return useMutationWithInvalidation<TCreateResult, TCreateVars>({
+      meta,
       mutationFn: config.create,
       invalidates: config.invalidates,
     });
   }
 
-  function useUpdate() {
+  function useUpdate(meta?: MutationMeta) {
     return useMutationWithInvalidation<TUpdateResult, TUpdateVars>({
+      meta,
       mutationFn: config.update,
       invalidates: config.invalidates,
     });

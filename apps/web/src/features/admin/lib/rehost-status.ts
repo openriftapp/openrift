@@ -1,3 +1,4 @@
+import { countNoun } from "@openrift/shared/strings";
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 
 export type RehostStatus = "rehosted" | "pending" | "failed" | "not-rehosted";
@@ -27,7 +28,7 @@ export function rehostStatusTitle(
     case "failed": {
       const failure = image.rehostFailure;
       const attempts = failure?.attempts ?? 1;
-      const tries = attempts === 1 ? "1 attempt" : `${attempts} attempts`;
+      const tries = countNoun(attempts, "attempt");
       const pending = image.activateWhenRehosted
         ? " It becomes the active image once a retry succeeds."
         : "";

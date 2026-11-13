@@ -46,6 +46,14 @@ describe("relativeAge", () => {
     expect(relativeAge("2026-09-06T09:00:00.000Z", NOW)).toBe("3 days ago");
   });
 
+  it("counts whole weeks past seven days", () => {
+    expect(relativeAge("2026-08-26T12:00:00.000Z", NOW)).toBe("2 weeks ago");
+  });
+
+  it("reads a timestamp ahead of the clock as just now", () => {
+    expect(relativeAge("2026-09-09T12:05:00.000Z", NOW)).toBe("just now");
+  });
+
   it("treats an unparseable timestamp as just now", () => {
     expect(relativeAge("not a date", NOW)).toBe("just now");
   });

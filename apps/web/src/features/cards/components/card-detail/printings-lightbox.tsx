@@ -493,7 +493,7 @@ function LightboxTile({
             aria-pressed={selected}
             aria-label={variantText(printing, siblings)}
             onClick={() => onSelect(printing)}
-            className="relative block w-full min-w-0 rounded-[5%/3.6%]"
+            className="rounded-card relative block w-full min-w-0"
           >
             {art}
             <OwnedPill floating count={stats?.owned?.[printing.printingId]} />

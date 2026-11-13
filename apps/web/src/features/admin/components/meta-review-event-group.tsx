@@ -39,6 +39,7 @@ import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import type { MetaReviewGroup } from "@/features/admin/lib/meta-review-queue";
 import { bulkAcceptItems, triageOverlay } from "@/features/admin/lib/meta-review-queue";
 import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const READY_PREVIEW = 5;
 
@@ -50,20 +51,14 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
   const provider = sourceProviderDisplay(overlay.provider ?? "usersubmission");
 
   async function runAccept(metaEventId: string | null): Promise<void> {
-    try {
-      await accept.mutateAsync({ id: overlay.id, metaEventId });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => accept.mutateAsync({ id: overlay.id, metaEventId })))) {
       return;
     }
     toast.success(metaEventId === null && isProposal ? "Published as a new event" : "Applied");
   }
 
   async function decline(): Promise<void> {
-    try {
-      await reject.mutateAsync({ kind: "event", id: overlay.id });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => reject.mutateAsync({ kind: "event", id: overlay.id })))) {
       return;
     }
     toast.success("Rejected");

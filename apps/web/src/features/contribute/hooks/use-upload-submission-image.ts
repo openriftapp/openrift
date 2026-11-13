@@ -13,5 +13,5 @@ async function uploadSubmissionImage(file: File): Promise<string> {
 }
 
 export function useUploadSubmissionImage() {
-  return useMutation({ mutationFn: uploadSubmissionImage });
+  return useMutation({ mutationFn: uploadSubmissionImage, meta: { inlineError: true } });
 }

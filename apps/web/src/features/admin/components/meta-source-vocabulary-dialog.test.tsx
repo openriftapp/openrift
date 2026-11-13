@@ -15,7 +15,9 @@ const captured = vi.hoisted(() => ({
   updateFormat: vi.fn(),
   updateSettings: vi.fn(),
   archiveRuns: [] as unknown[],
-  runSync: vi.fn(() => Promise.resolve({ status: "running", runId: "run-1" })),
+  runSync: vi.fn((_input: { trigger: string }) =>
+    Promise.resolve({ status: "running", runId: "run-1" }),
+  ),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
@@ -26,7 +28,11 @@ vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
   useUpdateMetaSourceFormat: () => ({ mutate: captured.updateFormat, isPending: false }),
   useUpdateMetaSyncSettings: () => ({ mutate: captured.updateSettings, isPending: false }),
   useMetaArchiveJobs: () => ({ data: { runs: captured.archiveRuns } }),
-  useRunMetaSync: () => ({ mutateAsync: captured.runSync, isPending: false }),
+  useStartMetaJob: () => ({
+    start: (trigger: string) => captured.runSync({ trigger }),
+    isPending: false,
+    pendingTrigger: undefined,
+  }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({

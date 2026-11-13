@@ -1,5 +1,6 @@
 import { adminChangelogContract } from "@openrift/shared/contracts/admin/changelog";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { createLogger } from "@openrift/shared/logger";
 import { implement } from "@orpc/server";
 
@@ -21,12 +22,12 @@ export const adminChangelogRouter = {
   post: os.post.handler(async ({ context, errors }) => {
     const config = context.config;
     const repos = context.repos;
-    const prior = await repos.jobRuns.getLatestForResume("discord.post_changelog");
+    const prior = await repos.jobRuns.getLatestForResume(JOB_KIND.postChangelog);
     const fromDate = extractWatermark(prior?.result);
 
     const outcome = await runJobOutcome(
       { repos, log },
-      "discord.post_changelog",
+      JOB_KIND.postChangelog,
       "admin",
       (runId) =>
         postChangelogToDiscord({

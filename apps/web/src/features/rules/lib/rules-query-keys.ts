@@ -1,4 +1,5 @@
 export const rulesKeys = {
+  root: ["rules"] as const,
   all: (kind: string) => ["rules", kind] as const,
   versions: (kind: string, language: string) => ["rules", kind, language, "versions"] as const,
   byVersion: (kind: string, language: string, version: string) =>

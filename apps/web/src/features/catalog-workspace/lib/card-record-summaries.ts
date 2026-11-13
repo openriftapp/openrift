@@ -13,13 +13,16 @@ export function bansErrataSummary(banCount: number | undefined, hasErrata: boole
   return text.length === 0 ? "None" : `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
+export function newestFirst<T extends { createdAt: string }>(events: readonly T[]): T[] {
+  return events.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export function historySummary(
-  events: readonly { createdAt: string }[],
+  events: readonly { createdAt: string; label?: string }[],
   now?: Date,
 ): string | undefined {
-  const newest = events
-    .map((event) => event.createdAt)
-    .toSorted()
-    .at(-1);
-  return newest === undefined ? undefined : `Updated ${formatRelativeTime(newest, { now })}`;
+  const newest = newestFirst(events).at(0);
+  return newest === undefined
+    ? undefined
+    : `${newest.label ?? "Updated"} ${formatRelativeTime(newest.createdAt, { now })}`;
 }

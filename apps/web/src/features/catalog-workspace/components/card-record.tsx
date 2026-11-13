@@ -47,6 +47,7 @@ import { auditEventsQueryOptions } from "@/features/admin/lib/admin-audit-querie
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { pairNamesByPrinting } from "@/features/admin/lib/face-rows";
+import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { filterHistoryEvents } from "@/features/admin/lib/history-events";
 import { printingKindLabel } from "@/features/admin/lib/printing-summary";
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
@@ -80,7 +81,6 @@ import {
   cardTypeLine,
   cardWaitingSince,
   faceOpenCounts,
-  formatRecordValue,
   primaryCardImage,
 } from "@/features/catalog-workspace/lib/record-fields";
 import type {
@@ -99,6 +99,7 @@ import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/wor
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import type { EnumLabels } from "@/lib/enum-labels";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { errorStatus } from "@/lib/server-fns/api-error";
 import { cn } from "@/lib/utils";
 
@@ -408,12 +409,12 @@ function CardRecordBody({
   );
 
   async function primaryAndNext() {
-    try {
+    const done = await runReportedMutation(async () => {
       await primary.run();
-    } catch {
-      return;
+    });
+    if (done) {
+      navigation.goNext();
     }
-    navigation.goNext();
   }
   const submissionById = new Map(submissions.map((entry) => [entry.candidateCardId, entry]));
   const cardValues = card as unknown as Record<string, unknown>;
@@ -516,7 +517,7 @@ function CardRecordBody({
   }
 
   function chipFor(suggestion: FieldSuggestion) {
-    const value = formatRecordValue(suggestion.field, suggestion.value, labels);
+    const value = formatCatalogFieldValue(suggestion.field, suggestion.value, labels);
     return suggestion.tone === "contributor"
       ? contributorChip(suggestion, value)
       : sourceChip(suggestion, value);
@@ -602,7 +603,7 @@ function CardRecordBody({
             <FieldRow
               key={def.field}
               label={def.label}
-              value={formatRecordValue(def.field, cardValues[def.field], labels)}
+              value={formatCatalogFieldValue(def.field, cardValues[def.field], labels)}
               onEdit={() => setCompare({ focusField: def.field })}
               suggestions={
                 suggestions.length > 0

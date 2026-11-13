@@ -1,13 +1,14 @@
-/**
- * Bun-side adapter for the shared embedding module (packages/shared/src/scan):
- * opens the ONNX vision encoder from https://huggingface.co/Xenova/mobileclip_s0
- * under onnxruntime-node and caches the reference bank on disk.
- */
 import fs from "node:fs";
 import path from "node:path";
 
 import * as ort from "onnxruntime-node";
 
+/**
+ * Bun-side adapter for the shared embedding module (packages/shared/src/scan):
+ * opens the ONNX vision encoder from https://huggingface.co/Xenova/mobileclip_s0
+ * under onnxruntime-node and caches the reference bank on disk.
+ */
+import { chunk } from "../../packages/shared/src/collections.js";
 import type { CardEmbedder, EmbedBank } from "../../packages/shared/src/scan/embed.js";
 import {
   EMBED_IMAGE_SIZE,
@@ -73,9 +74,8 @@ export async function loadEmbedBank(force = false): Promise<EmbedBank> {
   const refs = listReferenceImages();
   const chunks: Float32Array[][] = [];
   const input = new Float32Array(BUILD_BATCH * 3 * EMBED_SIZE * EMBED_SIZE);
-  for (let start = 0; start < refs.length; start += BUILD_BATCH) {
-    const chunk = refs.slice(start, start + BUILD_BATCH);
-    const images = await mapConcurrent(chunk, 4, (ref) => loadImage(ref.file));
+  for (const batch of chunk(refs, BUILD_BATCH)) {
+    const images = await mapConcurrent(batch, 4, (ref) => loadImage(ref.file));
     for (const [slot, image] of images.entries()) {
       // 90 degrees left = three clockwise quarter turns; matches the
       // trainer's Image.Transpose.ROTATE_90.
@@ -85,7 +85,7 @@ export async function loadEmbedBank(force = false): Promise<EmbedBank> {
           : image;
       preprocessCardInto(oriented, input, slot, EMBED_SIZE);
     }
-    chunks.push(normalizeEmbeddings(await nodeEmbedder(input, chunk.length), chunk.length));
+    chunks.push(normalizeEmbeddings(await nodeEmbedder(input, batch.length), batch.length));
   }
   const flat = chunks.flat();
   const dim = flat[0]?.length;

@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { historySentence } from "@/features/admin/lib/history-events";
+import { newestFirst } from "@/features/catalog-workspace/lib/card-record-summaries";
 import type { WorkspaceTarget } from "@/features/catalog-workspace/lib/owner-items";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -22,7 +23,7 @@ const fetchWorkspaceDecisions = createServerFn({ method: "GET" })
 
 function workspaceDecisionsQueryOptions(since?: string) {
   return queryOptions({
-    queryKey: [...adminKeys.workspace, "decisions", since ?? "today"] as const,
+    queryKey: adminKeys.workspaceDecisions(since ?? "today"),
     queryFn: () => fetchWorkspaceDecisions({ data: { since } }),
     staleTime: 60 * 1000,
   });
@@ -34,10 +35,6 @@ export function useWorkspaceDecisions(options?: { since?: string; enabled?: bool
     enabled: options?.enabled ?? true,
     select: (data) => newestFirst(data.events),
   });
-}
-
-export function newestFirst(events: readonly WorkspaceEvent[]): WorkspaceEvent[] {
-  return events.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function decisionSentence(event: WorkspaceEvent): string {

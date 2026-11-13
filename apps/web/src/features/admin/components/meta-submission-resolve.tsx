@@ -40,6 +40,7 @@ import {
   metaSubmissionStatusBadgeVariant,
   metaSubmissionStatusLabels,
 } from "@/features/meta/lib/meta-submission-copy";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const RESOLUTION_ORDER: MetaSubmissionResolution[] = ["already_correct", "not_applied", "rejected"];
 
@@ -124,11 +125,11 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
   }
 
   async function handleReopen() {
-    let result;
-    try {
+    let result: Awaited<ReturnType<typeof reopen.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
       result = await reopen.mutateAsync({ submissionId: submission.id, playerOverlayId });
-    } catch {
-      // Reported by the global mutation error toast.
+    });
+    if (!ok || !result) {
       return;
     }
     setConflict(result.status === "alreadyAccepted");
@@ -138,8 +139,8 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
   const notePayload = trimmedNote.length > 0 ? trimmedNote : null;
 
   async function handleSubmit() {
-    let result;
-    try {
+    let result: Awaited<ReturnType<typeof resolve.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
       result = await resolve.mutateAsync({
         submissionId: submission.id,
         playerOverlayId,
@@ -147,8 +148,8 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
         reason,
         note: notePayload,
       });
-    } catch {
-      // Reported by the global mutation error toast.
+    });
+    if (!ok || !result) {
       return;
     }
     if (result.status === "alreadyAccepted") {

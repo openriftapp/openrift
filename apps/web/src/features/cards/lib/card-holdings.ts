@@ -6,6 +6,7 @@ import { HandCoinsIcon, HandHeartIcon } from "lucide-react";
 
 import { loanCounterpartyLabel, outstandingQuantity } from "@/features/groups/lib/loan-derivation";
 import { liveTradeStatus } from "@/features/groups/lib/trade-status-labels";
+import { m } from "@/paraglide/messages.js";
 
 /** One sentence about copies of a card that are lent, borrowed, or in a live trade. */
 export interface CardHoldingLine {
@@ -19,10 +20,6 @@ export interface CardHoldingLine {
 // row. This is the first surface showing both, so the two must not share one.
 const LENT_ICON = HandHeartIcon;
 const BORROWED_ICON = HandCoinsIcon;
-
-function copies(count: number): string {
-  return count === 1 ? "1 copy" : `${count} copies`;
-}
 
 // Active with copies still out matches the `on_loan` copy pin: an
 // unacknowledged loan has already taken the cards out of the binder.
@@ -42,7 +39,7 @@ function lentLines(loans: readonly LoanResponse[]): CardHoldingLine[] {
   return [...byBorrower].map(([name, count]) => ({
     key: `lent:${name}`,
     icon: LENT_ICON,
-    text: `Lent ${copies(count)} to ${name}`,
+    text: m.cards_holdings_lent({ count, name }),
     tone: "committed" as const,
   }));
 }
@@ -65,7 +62,7 @@ function borrowedLines(loans: readonly LoanResponse[]): CardHoldingLine[] {
   return [...byLender].map(([name, count]) => ({
     key: `borrowed:${name}`,
     icon: BORROWED_ICON,
-    text: `Borrowed ${copies(count)} from ${name}`,
+    text: m.cards_holdings_borrowed({ count, name }),
     tone: "committed" as const,
   }));
 }
@@ -87,7 +84,10 @@ function tradeLines(annotations: readonly CardTradeLiveAnnotation[]): CardHoldin
       lines.push({
         key: `trade:${role}:${phase}`,
         icon: status.icon,
-        text: `${status.label} · ${copies(count)} ${status.direction}`,
+        text:
+          status.direction === "outgoing"
+            ? m.cards_holdings_trade_outgoing({ label: status.label, count })
+            : m.cards_holdings_trade_incoming({ label: status.label, count }),
         tone: status.tone,
       });
     }

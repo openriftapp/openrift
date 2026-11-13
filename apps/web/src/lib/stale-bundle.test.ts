@@ -3,6 +3,7 @@ import { API_FORMAT_VERSION } from "@openrift/shared/contracts/api-format";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { CHUNK_LOAD_ERROR_PATTERN } from "./error-text";
 // Importing ./stale-bundle also installs the reload module's stale notifier,
 // exactly like the real entry does.
 import {
@@ -11,7 +12,6 @@ import {
   initVisibilityVersionCheck,
 } from "./stale-bundle";
 import {
-  CHUNK_LOAD_ERROR_PATTERN,
   initChunkErrorReloader,
   initVersionStaleNavigationReload,
   isStaleServerFnError,

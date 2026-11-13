@@ -1,5 +1,4 @@
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
-import { formatDayTime } from "@openrift/shared/format-date";
 import { useEffect, useState } from "react";
 
 import { ShowMoreButton } from "@/components/show-more-button";
@@ -9,6 +8,7 @@ import { CardList } from "@/components/ui/card-list";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { useAuditEvents } from "@/features/admin/hooks/use-admin-audit";
 import type {
   HistoryContext,
@@ -65,9 +65,10 @@ export function HistoryRow({
   const target = onOpen === undefined ? null : historyTarget(event);
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2 text-sm">
-      <span className="text-muted-foreground w-36 shrink-0 font-mono">
-        {formatDayTime(event.createdAt)}
-      </span>
+      <AdminInstant
+        at={event.createdAt}
+        className="text-muted-foreground w-36 shrink-0 font-mono"
+      />
       <span className="min-w-0 flex-1">
         {historySentence(event, context)}{" "}
         <span className="text-muted-foreground">by {actorName(event, userId)}</span>

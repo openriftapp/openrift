@@ -131,7 +131,7 @@ export function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-const MINUTE_MS = 60_000;
+export const MINUTE_MS = 60_000;
 export const HOUR_MS = 60 * MINUTE_MS;
 export const DAY_MS = 24 * HOUR_MS;
 
@@ -221,6 +221,12 @@ export function formatDayTime(input: Date | string): string {
   return date === null ? "" : date.toISOString().slice(0, 16).replace("T", " ");
 }
 
+/** `HH:mm` of a UTC instant, for ops surfaces. */
+export function formatTimeUtc(instant: Date | string): string {
+  const date = toDate(instant);
+  return date === null ? "" : date.toISOString().slice(11, 16);
+}
+
 /** Viewer's local day; use {@link formatDay} when the day is a property of the data, not the viewer's own. */
 export function formatDayLocal(input: Date | string): string {
   const date = toDate(input);
@@ -257,6 +263,15 @@ export function localDayDiff(from: Date | string, to: Date | string): number {
   const startDay = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
   const endDay = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
   return Math.round((endDay - startDay) / DAY_MS);
+}
+
+export function utcDayDiff(from: Date | string, to: Date | string): number | null {
+  const start = toDate(formatDay(from));
+  const end = toDate(formatDay(to));
+  if (start === null || end === null) {
+    return null;
+  }
+  return Math.round((end.getTime() - start.getTime()) / DAY_MS);
 }
 
 export function shiftUtcDay(day: string, days: number): string {

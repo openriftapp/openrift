@@ -10,6 +10,7 @@ import {
 } from "@/features/tournaments/components/settings/points-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function PointsSection({
@@ -46,11 +47,8 @@ export function PointsSection({
       winPoints: isSwiss ? (win ?? undefined) : undefined,
       drawPoints: isSwiss ? (draw ?? undefined) : undefined,
     };
-    try {
-      await updateTournament.mutateAsync(patch);
+    if (await runReportedMutation(() => updateTournament.mutateAsync(patch))) {
       toast.success(m.tournaments_settings_points_updated());
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 

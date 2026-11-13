@@ -1,4 +1,7 @@
-import { RESERVED_META_EVENT_SLUGS } from "@openrift/shared/contracts/admin/meta-events";
+import {
+  META_EVENT_SLUG_PATTERN,
+  RESERVED_META_EVENT_SLUGS,
+} from "@openrift/shared/contracts/admin/meta-events";
 import type { AdminMetaEvent, AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import type {
   MetaEventOverlayField,
@@ -7,11 +10,10 @@ import type {
 } from "@openrift/shared/types/enums";
 import { META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
 
-const EVENT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{2,49}$/u;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
-const WHOLE_NUMBER_PATTERN = /^\d+$/u;
 const COUNTRY_PATTERN = /^[A-Za-z]{2}$/u;
 
 export interface MetaEventDraft {
@@ -42,7 +44,7 @@ export const EMPTY_META_EVENT_DRAFT: MetaEventDraft = {
 
 export function validateMetaEventDraft(draft: MetaEventDraft): string | null {
   const slug = draft.slug.trim();
-  if (!EVENT_SLUG_PATTERN.test(slug)) {
+  if (!META_EVENT_SLUG_PATTERN.test(slug)) {
     return "Slug must be 3-50 characters: lowercase letters, digits, or hyphens, starting with a letter or digit";
   }
   if (RESERVED_META_EVENT_SLUGS.includes(slug)) {
@@ -58,8 +60,7 @@ export function validateMetaEventDraft(draft: MetaEventDraft): string | null {
   if (draft.format.trim().length === 0) {
     return "Format is required";
   }
-  const players = draft.playerCount.trim();
-  if (players.length > 0 && (!WHOLE_NUMBER_PATTERN.test(players) || Number(players) < 1)) {
+  if (parseIntegerInput(draft.playerCount, 1) === undefined) {
     return "Player count must be a whole number of at least 1";
   }
   if (draft.organizer.trim().length > 120) {
@@ -93,14 +94,13 @@ export interface MetaEventBody {
 
 /** Blank optional fields go out as null, not omitted, so clearing one actually clears it. */
 export function metaEventDraftToBody(draft: MetaEventDraft): MetaEventBody {
-  const players = draft.playerCount.trim();
   return {
     slug: draft.slug.trim(),
     name: draft.name.trim(),
     eventDate: draft.eventDate.trim(),
     format: draft.format.trim(),
     tier: draft.tier,
-    playerCount: players.length > 0 ? Number(players) : null,
+    playerCount: parseIntegerInput(draft.playerCount, 1) ?? null,
     organizer: draft.organizer.trim() || null,
     country: draft.country.trim().toUpperCase() || null,
     location: draft.location.trim() || null,
@@ -175,25 +175,15 @@ export interface MetaPlayerDraft {
 export const RANK_PRESETS = [1, 2, 3, 4, 8, 16, 32, 64];
 
 export function metaPlayerRank(value: string): number | null {
-  const trimmed = value.trim();
-  if (!WHOLE_NUMBER_PATTERN.test(trimmed)) {
-    return null;
-  }
-  const rank = Number(trimmed);
-  if (rank < 1) {
-    return null;
-  }
-  return rank;
+  return parseIntegerInput(value, 1) ?? null;
 }
 
 export function metaPlayerRecordPart(value: string): number | null {
-  const trimmed = value.trim();
-  return trimmed === "" ? null : Number(trimmed);
+  return parseIntegerInput(value, 0) ?? null;
 }
 
 function isRecordPart(value: string): boolean {
-  const trimmed = value.trim();
-  return trimmed === "" || WHOLE_NUMBER_PATTERN.test(trimmed);
+  return parseIntegerInput(value, 0) !== undefined;
 }
 
 export function validateMetaPlayerDraft(draft: MetaPlayerDraft): string | null {

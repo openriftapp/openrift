@@ -22,6 +22,7 @@ import {
   submissionReasonLabels,
   submissionReasonSentences,
 } from "@/features/contribute/lib/card-submission-copy";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const REASON_ORDER: CardSubmissionReason[] = [
   "not_a_card",
@@ -71,14 +72,15 @@ export function SubmissionResolutionDialog({
     if (candidateCardId === null || blocked) {
       return;
     }
-    try {
-      await setResolution.mutateAsync({
-        candidateCardId,
-        reason: effectiveReason,
-        note: notePayload,
-      });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        setResolution.mutateAsync({
+          candidateCardId,
+          reason: effectiveReason,
+          note: notePayload,
+        }),
+      ))
+    ) {
       return;
     }
     setTouched(false);

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { TradeAddTarget } from "@/features/groups/lib/trade-add-target";
+import { mergeFields } from "@/lib/persist-merge";
 
 function parseTarget(value: unknown): TradeAddTarget | null {
   if (typeof value !== "object" || value === null) {
@@ -29,10 +30,7 @@ export const useTradeAddTargetStore = create<TradeAddTargetState>()(
     {
       name: "openrift-trade-add-target",
       partialize: (state) => ({ target: state.target }),
-      merge: (persisted, current) => {
-        const raw = (persisted as Record<string, unknown>) ?? {};
-        return { ...current, target: parseTarget(raw.target) };
-      },
+      merge: mergeFields<TradeAddTargetState>({ target: parseTarget }),
     },
   ),
 );

@@ -6,9 +6,13 @@ import type {
 import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  CountCell,
+  DescriptionCell,
   DescriptionInput,
   DraftTextInput,
+  LabelCell,
   SlugAddInput,
+  SlugCell,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
@@ -26,46 +30,11 @@ import {
   useUpdateCustomTag,
 } from "@/features/collections/hooks/use-custom-tags";
 
-function TagSlugCell({ row }: AdminCellSlotProps<CustomTagResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.slug}</span>;
-}
-
-function TagLabelCell({ row }: AdminCellSlotProps<CustomTagResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span>{row.label}</span>;
-}
-
 function TagCategoryCell({ row }: AdminCellSlotProps<CustomTagResponse>) {
   if (!row) {
     return null;
   }
   return <span>{row.categoryLabel}</span>;
-}
-
-function TagDescriptionCell({ row }: AdminCellSlotProps<CustomTagResponse>) {
-  if (!row) {
-    return null;
-  }
-  return (
-    <span
-      className="text-muted-foreground block max-w-xs truncate"
-      title={row.description ?? undefined}
-    >
-      {row.description ?? "—"}
-    </span>
-  );
-}
-
-function TagCardCountCell({ row }: AdminCellSlotProps<CustomTagResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.cardCount}</span>;
 }
 
 interface TagCategorySelectProps extends AdminDraftSlotProps<CustomTagDraft> {
@@ -115,8 +84,8 @@ export function TagsSection({
   tags: CustomTagResponse[];
   categories: CustomTagCategoryResponse[];
 }) {
-  const createMutation = useCreateCustomTag();
-  const updateMutation = useUpdateCustomTag();
+  const createMutation = useCreateCustomTag({ inlineError: true });
+  const updateMutation = useUpdateCustomTag({ inlineError: true });
   const deleteMutation = useDeleteCustomTag();
   const clearMutation = useClearCustomTagCards();
 
@@ -127,13 +96,13 @@ export function TagsSection({
     {
       header: "Slug",
       sortValue: (t) => t.slug,
-      cell: <TagSlugCell />,
+      cell: <SlugCell<CustomTagResponse> />,
       addCell: <SlugAddInput<CustomTagDraft> placeholder="bandle-city" width="w-48" />,
     },
     {
       header: "Label",
       sortValue: (t) => t.label,
-      cell: <TagLabelCell />,
+      cell: <LabelCell<CustomTagResponse> />,
       editCell: <DraftTextInput<CustomTagDraft> field="label" />,
       addCell: <DraftTextInput<CustomTagDraft> field="label" placeholder="Bandle City" />,
     },
@@ -147,7 +116,7 @@ export function TagsSection({
     {
       header: "Description",
       sortValue: (t) => t.description ?? "",
-      cell: <TagDescriptionCell />,
+      cell: <DescriptionCell<CustomTagResponse> />,
       editCell: <DescriptionInput<CustomTagDraft> />,
       addCell: <DescriptionInput<CustomTagDraft> />,
     },
@@ -155,7 +124,7 @@ export function TagsSection({
       header: "Cards",
       sortValue: (t) => t.cardCount,
       align: "right",
-      cell: <TagCardCountCell />,
+      cell: <CountCell<CustomTagResponse> count={(row) => row.cardCount} />,
     },
   ];
 

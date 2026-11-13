@@ -1,4 +1,3 @@
-import { formatDay } from "@openrift/shared/format-date";
 import { Undo2Icon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import type { IgnoredMetaSourcePlayer } from "@/features/admin/hooks/use-admin-meta-overlays";
 import {
   useAdminMetaIgnoredSources,
@@ -52,9 +52,7 @@ export function MetaIgnoredSourcesDialog({ onClose }: { onClose: () => void }) {
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-muted-foreground text-sm">
-                      {formatDay(row.createdAt)}
-                    </span>
+                    <AdminInstant at={row.createdAt} className="text-muted-foreground text-sm" />
                     <Button
                       variant="ghost"
                       size="sm"

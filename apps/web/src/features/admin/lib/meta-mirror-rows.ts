@@ -12,6 +12,7 @@ import { formatDay, formatDayTime } from "@openrift/shared/format-date";
 import type { MetaResultsState } from "@openrift/shared/meta-results";
 import { mirrorResultsState } from "@openrift/shared/meta-results";
 import { playriftboundFormatLabel } from "@openrift/shared/playriftbound-links";
+import { countNoun } from "@openrift/shared/strings";
 
 import type { CatalogChipDisplay } from "@/features/admin/lib/meta-catalog-display";
 import {
@@ -59,20 +60,22 @@ function started(startAt: string | null, isDay: boolean, now: Date): boolean {
   return isDay ? startAt <= formatDay(now) : new Date(startAt).getTime() <= now.getTime();
 }
 
-function count(value: number, one: string, many: string): string {
-  return `${value.toLocaleString()} ${value === 1 ? one : many}`;
-}
-
 function missingBadge(missingSince: string | null): MirrorBadge[] {
   return missingSince === null
     ? []
-    : [{ label: "Gone from the source", variant: "destructive", title: formatDay(missingSince) }];
+    : [
+        {
+          label: "Gone from the source",
+          variant: "destructive",
+          title: `${formatDayTime(missingSince)} UTC`,
+        },
+      ];
 }
 
 function stagedDetail(row: { stagedPlayerCount: number; stagedDeckCount: number }): string[] {
   return [
-    count(row.stagedPlayerCount, "standing", "standings"),
-    ...(row.stagedDeckCount > 0 ? [count(row.stagedDeckCount, "deck", "decks")] : []),
+    countNoun(row.stagedPlayerCount, "standing", "standings"),
+    ...(row.stagedDeckCount > 0 ? [countNoun(row.stagedDeckCount, "deck", "decks")] : []),
   ];
 }
 
@@ -273,9 +276,11 @@ export function playriftboundMirrorRow(row: PlayriftboundCatalogRow, now: Date):
       : null,
     resultsDetail: published
       ? [
-          count(row.stagedPlayerCount, "standing", "standings"),
-          ...(row.stagedMatchCount > 0 ? [count(row.stagedMatchCount, "pairing", "pairings")] : []),
-          ...(open > 0 ? [count(open, "round open", "rounds open")] : []),
+          countNoun(row.stagedPlayerCount, "standing", "standings"),
+          ...(row.stagedMatchCount > 0
+            ? [countNoun(row.stagedMatchCount, "pairing", "pairings")]
+            : []),
+          ...(open > 0 ? [countNoun(open, "round open", "rounds open")] : []),
         ]
       : [],
     nextCheckAt: row.nextCheckAt,

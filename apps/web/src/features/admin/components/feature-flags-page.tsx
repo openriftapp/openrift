@@ -29,6 +29,7 @@ import {
   useUpsertFeatureFlagOverride,
 } from "@/hooks/use-feature-flags";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface FlagDraft {
   key: string;
@@ -141,7 +142,7 @@ const globalFlagColumns: AdminColumnDef<FeatureFlagResponse, FlagDraft>[] = [
 
 function GlobalFlagsSection() {
   const { data } = useFeatureFlags();
-  const createMutation = useCreateFeatureFlag();
+  const createMutation = useCreateFeatureFlag({ inlineError: true });
   const deleteMutation = useDeleteFeatureFlag();
   const { flags } = data;
 
@@ -221,13 +222,11 @@ function KnownFlagRow({
   async function handleCreate() {
     setPending(true);
     setSaveError("");
-    try {
-      await onCreate(known.description);
-      setPending(false);
-    } catch (error) {
-      setSaveError(errorText(error, "Creation failed"));
-      setPending(false);
-    }
+    await runReportedMutation(
+      () => onCreate(known.description),
+      (error) => setSaveError(errorText(error, "Creation failed")),
+    );
+    setPending(false);
   }
 
   return (
@@ -386,7 +385,7 @@ const overrideColumns: AdminColumnDef<OverrideRow, OverrideDraft>[] = [
 
 function OverridesSection() {
   const { data } = useFeatureFlagOverrides();
-  const upsertMutation = useUpsertFeatureFlagOverride();
+  const upsertMutation = useUpsertFeatureFlagOverride({ inlineError: true });
   const deleteMutation = useDeleteFeatureFlagOverride();
 
   return (

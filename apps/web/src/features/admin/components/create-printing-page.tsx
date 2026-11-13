@@ -13,7 +13,7 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -22,6 +22,7 @@ import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-querie
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useLanguages } from "@/features/admin/hooks/use-languages";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { printingFormDefaults } from "@/features/cards/lib/printing-form-defaults";
@@ -97,7 +98,9 @@ export function CreatePrintingPage() {
   const derivedShortCode = shortCodeFromPublicCode(publicCode.trim());
   const derivedSetId = setSlugFromShortCode(derivedShortCode);
 
+  const parsedYear = parseIntegerInput(printedYear);
   const canSubmit =
+    parsedYear !== undefined &&
     cardId !== undefined &&
     derivedShortCode !== null &&
     derivedSetId !== null &&
@@ -133,12 +136,8 @@ export function CreatePrintingPage() {
     if (printedName.trim()) {
       printingFields.printedName = printedName.trim();
     }
-    if (printedYear.trim()) {
-      // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of a form field; Number() would yield NaN on trailing text
-      const parsed = Number.parseInt(printedYear.trim(), 10);
-      if (Number.isFinite(parsed)) {
-        printingFields.printedYear = parsed;
-      }
+    if (typeof parsedYear === "number") {
+      printingFields.printedYear = parsedYear;
     }
     if (printedRulesText.trim()) {
       printingFields.printedRulesText = printedRulesText.trim();
@@ -349,7 +348,7 @@ export function CreatePrintingPage() {
               placeholder="Leave blank to use card name"
             />
           </Field>
-          <Field>
+          <Field data-invalid={parsedYear === undefined}>
             <FieldLabel htmlFor="create-printing-printed-year">Printed year</FieldLabel>
             <Input
               id="create-printing-printed-year"
@@ -357,7 +356,9 @@ export function CreatePrintingPage() {
               onChange={(e) => setPrintedYear(e.target.value)}
               placeholder="e.g. 2025"
               inputMode="numeric"
+              aria-invalid={parsedYear === undefined}
             />
+            {parsedYear === undefined && <FieldError>Whole number</FieldError>}
           </Field>
         </div>
 

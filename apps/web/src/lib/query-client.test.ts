@@ -137,6 +137,37 @@ describe("createQueryClient mutation onError", () => {
     errorSpy.mockRestore();
   });
 
+  it("says the server cannot be reached instead of the browser's raw fetch failure", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    getOnError()(new TypeError("Failed to fetch"), undefined, undefined);
+
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Can't reach the server. Check your connection.",
+        PERSISTENT_ERROR_TOAST,
+      ),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it("skips the toast for a mutation that shows its error inline, but still logs and reports it", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    getOnError()(new Error("boom"), undefined, undefined, { meta: { inlineError: true } });
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(captureHandledError).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("still reloads on a stale server function when the error is shown inline", () => {
+    getOnError()(staleServerFn, undefined, undefined, { meta: { inlineError: true } });
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("invalidates the session query when a mutation fails with a 401", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const client = createQueryClient();

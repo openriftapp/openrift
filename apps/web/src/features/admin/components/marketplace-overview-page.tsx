@@ -1,7 +1,8 @@
 import { priceRefreshResponseSchema } from "@openrift/shared/contracts/admin/job-results";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { formatRelativeTime } from "@openrift/shared/format-date";
-import { JOB_KIND } from "@openrift/shared/job-run-kinds";
+import { JOB_KIND, PRICE_REFRESH_JOB_KIND } from "@openrift/shared/job-run-kinds";
+import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
@@ -13,15 +14,12 @@ import {
   JobRunStatusLine,
   JobRunStatusMessage,
 } from "@/features/admin/components/job-run-status-line";
-import { useClearPrices, useRefreshPrices } from "@/features/admin/hooks/use-admin-prices";
+import { useClearPrices } from "@/features/admin/hooks/use-admin-prices";
 import { useJobSchedules } from "@/features/admin/hooks/use-job-schedules";
-import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
 import { useMarketplaceGroups } from "@/features/admin/hooks/use-marketplace-groups";
-import {
-  useBackfillSiblingVariants,
-  useSiblingVariantDrift,
-} from "@/features/admin/hooks/use-sibling-variants";
-import { refreshActions } from "@/features/admin/lib/refresh-actions";
+import { useSiblingVariantDrift } from "@/features/admin/hooks/use-sibling-variants";
+import { useStartJob } from "@/features/admin/hooks/use-start-job";
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 
 // Old `job_runs.result` rows predate the per-SKU prices reshape and lack `upserted.prices`.
 export function isPriceRefreshResult(value: unknown): value is PriceRefreshResponse {
@@ -43,26 +41,22 @@ function PriceRefreshResult({ result }: { result: PriceRefreshResponse }) {
 }
 
 function PriceSection({
-  label,
   groups,
   mapped,
   staged,
   marketplace,
   nextRun,
 }: {
-  label: "TCGplayer" | "Cardmarket" | "CardTrader" | "CardNexus";
   groups: number;
   mapped: number;
   staged: number;
   marketplace: Marketplace;
   nextRun: string | null;
 }) {
-  const refreshMutation = useRefreshPrices(marketplace);
+  const { label } = MARKETPLACE_LINKS[marketplace];
+  const refresh = useStartJob(PRICE_REFRESH_JOB_KIND[marketplace], `${label} price refresh`);
   const clearMutation = useClearPrices(marketplace);
-  const latestRun = useLatestJobRun(refreshActions[marketplace].jobKind);
-
-  const isRefreshRunning = refreshMutation.isPending || latestRun.data?.status === "running";
-  const anyPending = isRefreshRunning || clearMutation.isPending;
+  const anyPending = refresh.running || clearMutation.isPending;
 
   return (
     <SettingsSection
@@ -88,21 +82,17 @@ function PriceSection({
           </ConfirmActionButton>
           <Button
             disabled={anyPending}
-            pending={isRefreshRunning}
-            onClick={() =>
-              refreshMutation.mutate(undefined, {
-                onSuccess: () => void latestRun.refetch(),
-              })
-            }
+            pending={refresh.running}
+            onClick={() => void refresh.start()}
           >
             Refresh
           </Button>
         </div>
       }
     >
-      {latestRun.data && (
+      {refresh.latestRun && (
         <JobRunStatusLine
-          run={latestRun.data}
+          run={refresh.latestRun}
           failedText="Refresh failed"
           renderSucceeded={(run) =>
             isPriceRefreshResult(run.result) ? (
@@ -113,17 +103,11 @@ function PriceSection({
           }
         />
       )}
-      {refreshMutation.isError && (
-        <JobRunStatusMessage status="failed">{refreshMutation.error.message}</JobRunStatusMessage>
-      )}
       {clearMutation.isSuccess && (
         <JobRunStatusMessage status="succeeded">
           Cleared {clearMutation.data.deleted.products} products,{" "}
           {clearMutation.data.deleted.variants} variants, {clearMutation.data.deleted.prices} prices
         </JobRunStatusMessage>
-      )}
-      {clearMutation.isError && (
-        <JobRunStatusMessage status="failed">{clearMutation.error.message}</JobRunStatusMessage>
       )}
     </SettingsSection>
   );
@@ -155,10 +139,10 @@ export function backfillSucceededText(result: JobRunView["result"]): string {
  * printing family, so each covered printing carries its own variant row.
  */
 function SiblingVariantSection() {
-  const backfill = useBackfillSiblingVariants();
-  const latestRun = useLatestJobRun(JOB_KIND.backfillSiblingVariants);
-  const isRunning = backfill.isPending || latestRun.data?.status === "running";
-  const drift = useSiblingVariantDrift(isRunning);
+  const backfill = useStartJob(JOB_KIND.backfillSiblingVariants, "Language fan-out backfill", {
+    invalidates: [adminKeys.siblingVariantDrift],
+  });
+  const drift = useSiblingVariantDrift(backfill.running);
 
   return (
     <SettingsSection
@@ -167,26 +151,19 @@ function SiblingVariantSection() {
       action={
         <Button
           className="shrink-0"
-          pending={isRunning}
-          onClick={() =>
-            backfill.mutate(undefined, {
-              onSuccess: () => void latestRun.refetch(),
-            })
-          }
+          pending={backfill.running}
+          onClick={() => void backfill.start()}
         >
           Backfill
         </Button>
       }
     >
-      {latestRun.data && (
+      {backfill.latestRun && (
         <JobRunStatusLine
-          run={latestRun.data}
+          run={backfill.latestRun}
           failedText="Backfill failed"
-          succeededText={backfillSucceededText(latestRun.data.result)}
+          succeededText={backfillSucceededText(backfill.latestRun.result)}
         />
-      )}
-      {backfill.isError && (
-        <JobRunStatusMessage status="failed">{backfill.error.message}</JobRunStatusMessage>
       )}
     </SettingsSection>
   );
@@ -198,55 +175,24 @@ export function MarketplaceOverviewPage() {
 
   const nextRunByKind = new Map(schedules.jobs.map((job) => [job.kind, job.nextRun]));
 
-  const allGroups = groupsData.groups;
-  const tcgGroups = allGroups.filter((g) => g.marketplace === "tcgplayer");
-  const cmGroups = allGroups.filter((g) => g.marketplace === "cardmarket");
-  const ctGroups = allGroups.filter((g) => g.marketplace === "cardtrader");
-  const cnGroups = allGroups.filter((g) => g.marketplace === "cardnexus");
-  const tcgAssigned = tcgGroups.reduce((sum, g) => sum + g.assignedCount, 0);
-  const tcgStaged = tcgGroups.reduce((sum, g) => sum + g.stagedCount, 0);
-  const cmAssigned = cmGroups.reduce((sum, g) => sum + g.assignedCount, 0);
-  const cmStaged = cmGroups.reduce((sum, g) => sum + g.stagedCount, 0);
-  const ctAssigned = ctGroups.reduce((sum, g) => sum + g.assignedCount, 0);
-  const ctStaged = ctGroups.reduce((sum, g) => sum + g.stagedCount, 0);
-  const cnAssigned = cnGroups.reduce((sum, g) => sum + g.assignedCount, 0);
-  const cnStaged = cnGroups.reduce((sum, g) => sum + g.stagedCount, 0);
+  const marketplaces = Object.keys(MARKETPLACE_LINKS) as Marketplace[];
 
   return (
     <div className="flex flex-col gap-8">
       <AdminPageTopBar title="Marketplace Overview" />
-      <PriceSection
-        label="TCGplayer"
-        groups={tcgGroups.length}
-        mapped={tcgAssigned}
-        staged={tcgStaged}
-        marketplace="tcgplayer"
-        nextRun={nextRunByKind.get("tcgplayer.refresh") ?? null}
-      />
-      <PriceSection
-        label="Cardmarket"
-        groups={cmGroups.length}
-        mapped={cmAssigned}
-        staged={cmStaged}
-        marketplace="cardmarket"
-        nextRun={nextRunByKind.get("cardmarket.refresh") ?? null}
-      />
-      <PriceSection
-        label="CardTrader"
-        groups={ctGroups.length}
-        mapped={ctAssigned}
-        staged={ctStaged}
-        marketplace="cardtrader"
-        nextRun={nextRunByKind.get("cardtrader.refresh") ?? null}
-      />
-      <PriceSection
-        label="CardNexus"
-        groups={cnGroups.length}
-        mapped={cnAssigned}
-        staged={cnStaged}
-        marketplace="cardnexus"
-        nextRun={nextRunByKind.get("cardnexus.refresh") ?? null}
-      />
+      {marketplaces.map((marketplace) => {
+        const groups = groupsData.groups.filter((group) => group.marketplace === marketplace);
+        return (
+          <PriceSection
+            key={marketplace}
+            groups={groups.length}
+            mapped={groups.reduce((sum, group) => sum + group.assignedCount, 0)}
+            staged={groups.reduce((sum, group) => sum + group.stagedCount, 0)}
+            marketplace={marketplace}
+            nextRun={nextRunByKind.get(PRICE_REFRESH_JOB_KIND[marketplace]) ?? null}
+          />
+        );
+      })}
       <SiblingVariantSection />
     </div>
   );

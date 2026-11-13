@@ -3,6 +3,8 @@ import type {
   CardTradeResponse,
 } from "@openrift/shared/types/api/card-trade";
 
+import { runReportedMutation } from "@/lib/run-reported-mutation";
+
 export interface SettleStep {
   trade: CardTradeResponse;
   quantity: number;
@@ -50,16 +52,17 @@ export async function runSettleBatch(
         continue;
       }
     }
-    try {
-      await deps.settle({
+    const settled = await runReportedMutation(() =>
+      deps.settle({
         tradeId: trade.id,
         groupSlug: trade.groupSlug ?? undefined,
         quantity,
         targetCollectionId: trade.role === "receiver" ? deps.targetCollectionId : undefined,
-      });
+      }),
+    );
+    if (settled) {
       settledTradeIds.push(trade.id);
-    } catch {
-      // The global mutation toast already reported this row's failure.
+    } else {
       failed = true;
     }
   }

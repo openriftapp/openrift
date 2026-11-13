@@ -49,6 +49,7 @@ import {
   validateMetaSubmissionDraft,
 } from "@/features/meta/lib/meta-submission-form";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -391,10 +392,12 @@ export function MetaSubmitPage({
           };
     const input = buildMetaSubmissionInput(draft, current, target);
     setFormError("");
-    try {
-      applyOutcome(await submit.mutateAsync(input));
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let outcome: Awaited<ReturnType<typeof submit.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      outcome = await submit.mutateAsync(input);
+    });
+    if (ok && outcome) {
+      applyOutcome(outcome);
     }
   }
 

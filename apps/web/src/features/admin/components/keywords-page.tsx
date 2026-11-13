@@ -1,6 +1,5 @@
 import { pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
-import { CircleXIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { PageDescription } from "@/components/layout/page-top-bar";
@@ -11,7 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { ColorInput, DraftTextInput } from "@/features/admin/components/admin-crud-shared";
+import {
+  ColorCell,
+  ColorInput,
+  CountCell,
+  DraftTextInput,
+} from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
@@ -30,6 +34,7 @@ import {
   useUpdateKeywordStyle,
   useUpsertTranslation,
 } from "@/features/admin/hooks/use-keywords";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { validateKeywordColor } from "@/features/admin/lib/keyword-color";
 
 // Fallback badge color, matching getKeywordStyle's FALLBACK_COLOR. Used when a
@@ -67,31 +72,6 @@ function KeywordCell({ row }: AdminCellSlotProps<KeywordRow>) {
   return <span className="font-medium">{row.keyword}</span>;
 }
 
-function CountCell({ row }: AdminCellSlotProps<KeywordRow>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.count}</span>;
-}
-
-function ColorCell({ row }: AdminCellSlotProps<KeywordRow>) {
-  if (!row) {
-    return null;
-  }
-  if (!row.color) {
-    return <span className="text-muted-foreground">-</span>;
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className="inline-block size-4 rounded-md border"
-        style={{ backgroundColor: row.color }}
-      />
-      <span className="font-mono text-sm">{row.color}</span>
-    </div>
-  );
-}
-
 function DarkTextCell({ row }: AdminCellSlotProps<KeywordRow>) {
   const updateStyle = useUpdateKeywordStyle();
   if (!row || !row.color) {
@@ -119,7 +99,7 @@ function TranslationsCell({ row }: AdminCellSlotProps<KeywordRow>) {
     return null;
   }
   if (row.translations.length === 0) {
-    return <span className="text-muted-foreground">-</span>;
+    return <span className="text-muted-foreground">{EMPTY_VALUE_TEXT}</span>;
   }
   return (
     <div className="flex flex-wrap gap-1">
@@ -246,11 +226,11 @@ const columns: AdminColumnDef<KeywordRow, KeywordDraft>[] = [
     header: "Cards",
     align: "right",
     sortValue: (row) => row.count,
-    cell: <CountCell />,
+    cell: <CountCell<KeywordRow> count={(row) => row.count} />,
   },
   {
     header: "Color",
-    cell: <ColorCell />,
+    cell: <ColorCell<KeywordRow> />,
     editCell: <ColorInput<KeywordDraft> placeholder="#6366f1" />,
     addCell: <ColorInput<KeywordDraft> placeholder="#6366f1" />,
   },
@@ -289,9 +269,9 @@ export function KeywordsPage() {
   const { data } = useKeywordStats();
   const recomputeKeywords = useRecomputeKeywords();
   const discoverTranslations = useDiscoverTranslations();
-  const updateStyle = useUpdateKeywordStyle();
+  const updateStyle = useUpdateKeywordStyle({ inlineError: true });
   const deleteStyle = useDeleteKeywordStyle();
-  const createStyle = useCreateKeywordStyle();
+  const createStyle = useCreateKeywordStyle({ inlineError: true });
 
   const styleMap = new Map(data.styles.map((s) => [s.name, s]));
   const translationsByKeyword = Map.groupBy(data.translations, (t) => t.keywordName);
@@ -334,12 +314,6 @@ export function KeywordsPage() {
               Updated {recomputeKeywords.data.updated} of {recomputeKeywords.data.totalCards} cards
             </p>
           )}
-          {recomputeKeywords.isError && (
-            <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-              <CircleXIcon className="text-destructive size-4 shrink-0" />
-              Failed
-            </p>
-          )}
           <Button
             variant="outline"
             onClick={() => recomputeKeywords.mutate()}
@@ -359,12 +333,6 @@ export function KeywordsPage() {
               {discoverTranslations.data.inserted}
               {discoverTranslations.data.conflicts.length > 0 &&
                 `, ${discoverTranslations.data.conflicts.length} ${pluralize(discoverTranslations.data.conflicts.length, "conflict")}`}
-            </p>
-          )}
-          {discoverTranslations.isError && (
-            <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-              <CircleXIcon className="text-destructive size-4 shrink-0" />
-              Failed
             </p>
           )}
           <Button
@@ -534,7 +502,7 @@ function TranslationsTable({
   translations: TranslationRow[];
   keywordNames: string[];
 }) {
-  const upsertTranslation = useUpsertTranslation();
+  const upsertTranslation = useUpsertTranslation({ inlineError: true });
   const deleteTranslation = useDeleteTranslation();
 
   const translationColumns: AdminColumnDef<TranslationRow>[] = [

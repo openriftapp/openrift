@@ -16,6 +16,7 @@ import { matchEntries } from "@/features/collections/lib/import-matcher";
 import { useBulkAddListEntries } from "@/features/lists/hooks/use-lists";
 import { knownPrintingCode } from "@/features/lists/lib/list-import-parser";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -118,18 +119,17 @@ export function useListImportFlow(
 
     const successMessage = m.lists_import_success({ count: summary.totalCards });
 
-    try {
-      await sendAllBatches();
+    if (await runReportedMutation(sendAllBatches)) {
       toast.success(successMessage);
       setIsImporting(false);
       reset();
       onClose();
-    } catch {
-      // Deliberate second toast on top of the global mutation error one: this says the
-      // import was left half-done (batches before the failing one already committed).
-      toast.error(m.lists_import_failed());
-      setIsImporting(false);
+      return;
     }
+    // Deliberate second toast on top of the global mutation error one: this says the
+    // import was left half-done (batches before the failing one already committed).
+    toast.error(m.lists_import_failed());
+    setIsImporting(false);
   };
 
   return {

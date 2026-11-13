@@ -7,6 +7,7 @@ import type {
   OverlayPlatePosition,
 } from "@openrift/shared/contracts/overlay";
 import { imageUrl } from "@openrift/shared/image-url";
+import { clamp } from "@openrift/shared/math";
 import { OVERLAY_SCALE } from "@openrift/shared/overlay-scale";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect, useState } from "react";
@@ -17,7 +18,6 @@ import { TierBoard } from "@/features/stage/components/tier-board";
 import type { OverlayBoardScene } from "@/features/stage/lib/overlay-board-scene";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { loadImage } from "@/lib/load-image";
-import { clamp } from "@/lib/math";
 import { getSiteHost } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -59,7 +59,7 @@ function OverlayCardArt({
   if (!image) {
     return (
       <div
-        className="aspect-card flex shrink-0 items-center justify-center rounded-[5%/3.6%] bg-black/80 p-4 text-center text-white"
+        className="aspect-card rounded-card flex shrink-0 items-center justify-center bg-black/80 p-4 text-center text-white"
         style={style}
       >
         {legendDisplayName(printing.card)}
@@ -69,7 +69,7 @@ function OverlayCardArt({
 
   return (
     <div
-      className="aspect-card relative shrink-0 overflow-hidden rounded-[5%/3.6%] shadow-2xl"
+      className="aspect-card rounded-card relative shrink-0 overflow-hidden shadow-2xl"
       style={style}
     >
       {rotated ? (

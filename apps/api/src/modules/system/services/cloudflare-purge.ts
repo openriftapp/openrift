@@ -1,3 +1,5 @@
+import { chunk } from "@openrift/shared/collections";
+
 import type { Io } from "../../../io.js";
 import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
 import type { Config } from "../../../types.js";
@@ -33,10 +35,8 @@ export async function purgeCloudflarePaths(
 ): Promise<number[]> {
   const files = [...new Set(paths)].map((path) => new URL(path, siteUrl).toString());
   const failures: number[] = [];
-  for (let start = 0; start < files.length; start += MAX_FILES_PER_PURGE) {
-    const res = await requestCloudflarePurge(cloudflare, fetch, {
-      files: files.slice(start, start + MAX_FILES_PER_PURGE),
-    });
+  for (const batch of chunk(files, MAX_FILES_PER_PURGE)) {
+    const res = await requestCloudflarePurge(cloudflare, fetch, { files: batch });
     if (!res.ok) {
       failures.push(res.status);
     }

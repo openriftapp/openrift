@@ -340,11 +340,50 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(json.updated).toBeGreaterThanOrEqual(1);
     });
 
+    it("checks only the given candidate cards and returns their ids", async () => {
+      await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: null })
+        .where("id", "=", cardShortCode)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/${cardId}/check-all`, { candidateCardIds: [cardShortCode] }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [cardShortCode] });
+    });
+
     it("returns 404 for non-existent card slug", async () => {
       const res = await app.fetch(
         adminReq("POST", `${P}/00000000-0000-4000-a000-000000000000/check-all`),
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("POST /candidate-cards/uncheck-batch", () => {
+    it("clears checked_at on every given candidate card", async () => {
+      await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: new Date() })
+        .where("id", "=", cardShortCode)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/candidate-cards/uncheck-batch`, {
+          candidateCardIds: [cardShortCode],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ updated: 1 });
+
+      const row = await db
+        .selectFrom("candidateCards")
+        .select("checkedAt")
+        .where("id", "=", cardShortCode)
+        .executeTakeFirstOrThrow();
+      expect(row.checkedAt).toBeNull();
     });
   });
 

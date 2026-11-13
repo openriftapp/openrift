@@ -4,9 +4,10 @@ import { toast } from "sonner";
 
 import {
   acceptCardFieldFn,
-  uncheckCandidateCardFn,
+  uncheckCandidateCardsFn,
   useAcceptCardField,
   useCheckCandidateCard,
+  useCheckCandidateCards,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -60,22 +61,24 @@ export function useCardRecordActions({
   const scope = cardRecordScope(cardSlug);
   const acceptCardField = useAcceptCardField(scope);
   const checkCandidateCard = useCheckCandidateCard(scope);
+  const checkCandidateCards = useCheckCandidateCards(scope);
   const acceptSubmission = useAcceptSubmission({ cardSlug });
   const { announce, push } = useWorkspaceUndo();
 
   const cardId = detail?.card?.id;
   const record = detail?.card?.name ?? cardSlug;
   const isPending =
-    acceptCardField.isPending || checkCandidateCard.isPending || acceptSubmission.isPending;
+    acceptCardField.isPending ||
+    checkCandidateCard.isPending ||
+    checkCandidateCards.isPending ||
+    acceptSubmission.isPending;
 
   function uncheckEntry(ids: readonly string[], suggestions: number): WorkspaceUndoEntry {
     return {
       ...discardUndoText({ suggestions, images: 0, sources: ids.length, record }),
       invalidates: undoScope(scope),
       undo: async () => {
-        await Promise.all(
-          ids.map((candidateCardId) => uncheckCandidateCardFn({ data: { candidateCardId } })),
-        );
+        await uncheckCandidateCardsFn({ data: { candidateCardIds: [...ids] } });
       },
     };
   }
@@ -144,12 +147,12 @@ export function useCardRecordActions({
 
   async function discardRemaining() {
     const targets = model?.enterTargets ?? [];
-    if (targets.length === 0) {
+    if (targets.length === 0 || cardId === undefined) {
       return;
     }
     const ids = targets.map((target) => target.candidateRowId);
     const entry = uncheckEntry(ids, enterDifferenceCount(targets));
-    await Promise.all(ids.map((id) => checkCandidateCard.mutateAsync(id)));
+    await checkCandidateCards.mutateAsync({ cardId, candidateCardIds: ids });
     push(entry);
   }
 

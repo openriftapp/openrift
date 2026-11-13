@@ -18,6 +18,7 @@ import {
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 import { crossSourceAutoLinks, crossSourceProgress } from "@/features/meta/lib/meta-cross-source";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function StateBadge({ row }: { row: MetaCrossSourceRow }) {
   if (row.state === "linked") {
@@ -43,10 +44,11 @@ function SourceHeader({
   const contributes = useSetMetaSourceContributes();
 
   async function toggle(): Promise<void> {
-    try {
-      await contributes.mutateAsync({ id: source.id, contributes: !source.contributes });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        contributes.mutateAsync({ id: source.id, contributes: !source.contributes }),
+      ))
+    ) {
       return;
     }
     toast.success(
@@ -205,19 +207,20 @@ export function MetaCrossSourcePanel({
     metaEventPlayerId: string | null,
     name: string,
   ): Promise<void> {
-    try {
-      await link.mutateAsync({
-        id: metaEventId,
-        links: [
-          {
-            provider: row.provider,
-            sourceIdentity: row.sourceIdentity,
-            metaEventPlayerId,
-          },
-        ],
-      });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        link.mutateAsync({
+          id: metaEventId,
+          links: [
+            {
+              provider: row.provider,
+              sourceIdentity: row.sourceIdentity,
+              metaEventPlayerId,
+            },
+          ],
+        }),
+      ))
+    ) {
       return;
     }
     toast.success(
@@ -226,14 +229,15 @@ export function MetaCrossSourcePanel({
   }
 
   async function handleUnlink(row: MetaCrossSourceRow): Promise<void> {
-    try {
-      await unlink.mutateAsync({
-        id: metaEventId,
-        provider: row.provider,
-        sourceIdentity: row.sourceIdentity,
-      });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        unlink.mutateAsync({
+          id: metaEventId,
+          provider: row.provider,
+          sourceIdentity: row.sourceIdentity,
+        }),
+      ))
+    ) {
       return;
     }
     toast.success(`${row.playerName} is unreviewed again.`);
@@ -244,17 +248,18 @@ export function MetaCrossSourcePanel({
     if (picks.length === 0) {
       return;
     }
-    try {
-      await link.mutateAsync({
-        id: metaEventId,
-        links: picks.map((pick) => ({
-          provider: pick.provider,
-          sourceIdentity: pick.sourceIdentity,
-          metaEventPlayerId: pick.metaEventPlayerId,
-        })),
-      });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        link.mutateAsync({
+          id: metaEventId,
+          links: picks.map((pick) => ({
+            provider: pick.provider,
+            sourceIdentity: pick.sourceIdentity,
+            metaEventPlayerId: pick.metaEventPlayerId,
+          })),
+        }),
+      ))
+    ) {
       return;
     }
     toast.success(`Linked ${picks.length} exact ${pluralize(picks.length, "match", "matches")}.`);

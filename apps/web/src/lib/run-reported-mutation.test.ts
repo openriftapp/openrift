@@ -14,6 +14,21 @@ describe("runReportedMutation", () => {
     await expect(runReportedMutation(action)).resolves.toBe(false);
   });
 
+  it("hands the rejection to onFailure so a form can show it inline", async () => {
+    const failure = new Error("Slug already taken");
+    const onFailure = vi.fn();
+    await expect(runReportedMutation(() => Promise.reject(failure), onFailure)).resolves.toBe(
+      false,
+    );
+    expect(onFailure).toHaveBeenCalledWith(failure);
+  });
+
+  it("leaves onFailure alone when the action succeeds", async () => {
+    const onFailure = vi.fn();
+    await runReportedMutation(() => Promise.resolve(), onFailure);
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
   it("awaits the action before resolving", async () => {
     let settled = false;
     async function action() {

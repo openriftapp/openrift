@@ -1,6 +1,6 @@
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import type { PrintingEventView } from "@openrift/shared/contracts/admin/printing-events";
-import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
+import { formatRelativeTime } from "@openrift/shared/format-date";
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
@@ -15,16 +15,11 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
+import { CountCell, InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import {
   JobRunStatusLine,
   JobRunStatusMessage,
@@ -34,47 +29,31 @@ import { RefreshCountdownButton } from "@/features/admin/components/refresh-coun
 import {
   isFlushPrintingEventsResult,
   useAdminPrintingEvents,
-  useFlushPrintingEvents,
   useRetryPrintingEvents,
 } from "@/features/admin/hooks/use-flush-printing-events";
-import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
-import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
+import { useStartJob } from "@/features/admin/hooks/use-start-job";
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { PRINTING_EVENTS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/flush-printing-events-queries";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function PrintingEventsPage() {
   const { data, refetch, isFetching, dataUpdatedAt } = useAdminPrintingEvents();
-  const flush = useFlushPrintingEvents();
-  const latestRun = useLatestJobRun(JOB_KIND.flushPrintingEvents);
+  const flush = useStartJob(JOB_KIND.flushPrintingEvents, "Flush", {
+    invalidates: [adminKeys.printingEvents],
+  });
+  const latestRun = flush.latestRun;
   const retry = useRetryPrintingEvents();
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
   const events = data?.events ?? [];
   const pending = events.filter((e) => e.status === "pending");
   const failed = events.filter((e) => e.status === "failed");
-  const isFlushRunning = flush.isPending || latestRun.data?.status === "running";
-
-  async function handleFlush() {
-    let started: Awaited<ReturnType<typeof flush.mutateAsync>>;
-    try {
-      started = await flush.mutateAsync();
-    } catch {
-      // Reported by the global mutation error toast.
-      return;
-    }
-    if (started.status === "already_running") {
-      toast.info("A flush is already running");
-    } else {
-      toast.success("Flush started");
-    }
-  }
 
   async function handleRetry(ids: string[]) {
     setRetryingIds(new Set(ids));
-    try {
-      await retry.mutateAsync(ids);
+    if (await runReportedMutation(() => retry.mutateAsync(ids))) {
       toast.success(`Reset ${ids.length} ${pluralize(ids.length, "event")} to pending`);
-    } catch {
-      // Reported by the global mutation error toast.
     }
     setRetryingIds(new Set());
   }
@@ -99,7 +78,7 @@ export function PrintingEventsPage() {
             dataUpdatedAt={dataUpdatedAt}
             intervalMs={PRINTING_EVENTS_REFRESH_INTERVAL_MS}
           />
-          <PageTopBarPrimaryButton onClick={() => void handleFlush()} pending={isFlushRunning}>
+          <PageTopBarPrimaryButton onClick={() => void flush.start()} pending={flush.running}>
             <SendIcon />
             Flush now
           </PageTopBarPrimaryButton>
@@ -128,103 +107,108 @@ export function PrintingEventsPage() {
         </span>
       </div>
 
-      {latestRun.data && (
+      {latestRun && (
         <JobRunStatusLine
-          run={latestRun.data}
-          runningText={`Flush started ${formatRelativeTime(latestRun.data.startedAt, { seconds: true })}`}
+          run={latestRun}
+          runningText={`Flush started ${formatRelativeTime(latestRun.startedAt, { seconds: true })}`}
           failedText="Flush failed"
           renderSucceeded={(run) => <FlushSucceededLine run={run} />}
         />
       )}
 
-      <Table className={ADMIN_TABLE_CLASS}>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-24">Status</TableHead>
-            <TableHead>Card</TableHead>
-            <TableHead className="w-28">Set</TableHead>
-            <TableHead className="w-20 text-right">Retries</TableHead>
-            <TableHead className="w-32">Created</TableHead>
-            <TableHead className="w-24 text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {events.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground h-24 text-center">
-                No queued events. The webhook is caught up.
-              </TableCell>
-            </TableRow>
-          )}
-          {events.map((event) => (
-            <PrintingEventRow
-              key={event.id}
-              event={event}
-              isRetrying={retryingIds.has(event.id)}
-              onRetry={() => void handleRetry([event.id])}
-            />
-          ))}
-        </TableBody>
-      </Table>
+      <AdminTable
+        columns={[
+          { header: "Status", width: "w-24", cell: <StatusCell /> },
+          { header: "Card", cell: <CardCell /> },
+          { header: "Set", width: "w-28", cell: <SetCell /> },
+          {
+            header: "Retries",
+            width: "w-20",
+            align: "right",
+            cell: <CountCell<PrintingEventView> count={(event) => event.retryCount} />,
+          },
+          {
+            header: "Created",
+            width: "w-32",
+            cell: (
+              <InstantCell<PrintingEventView> at={(event) => event.createdAt} relative seconds />
+            ),
+          },
+        ]}
+        data={events}
+        getRowKey={(event) => event.id}
+        emptyText="No queued events. The webhook is caught up."
+        actions={<RetryAction retryingIds={retryingIds} onRetry={(id) => void handleRetry([id])} />}
+      />
     </div>
   );
 }
 
-function PrintingEventRow({
-  event,
-  isRetrying,
-  onRetry,
-}: {
-  event: PrintingEventView;
-  isRetrying: boolean;
-  onRetry: () => void;
-}) {
+function StatusCell({ row: event }: AdminCellSlotProps<PrintingEventView>) {
+  if (!event) {
+    return null;
+  }
+  return event.status === "failed" ? (
+    <JobStatusBadge status="failed" />
+  ) : (
+    <Badge variant="secondary">pending</Badge>
+  );
+}
+
+function CardCell({ row: event }: AdminCellSlotProps<PrintingEventView>) {
+  if (!event) {
+    return null;
+  }
   return (
-    <TableRow>
-      <TableCell>
-        {event.status === "failed" ? (
-          <JobStatusBadge status="failed" />
-        ) : (
-          <Badge variant="secondary">pending</Badge>
-        )}
-      </TableCell>
-      <TableCell>
-        {event.cardSlug ? (
-          <TextLink
-            variant="inherit"
-            render={
-              <Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: event.cardSlug }} />
-            }
-          >
-            {event.cardName ?? event.cardSlug}
-          </TextLink>
-        ) : (
-          <span className="text-muted-foreground">{event.cardName ?? "—"}</span>
-        )}
-        {event.shortCode !== null && (
-          <span className="text-muted-foreground ml-2 font-mono">{event.shortCode}</span>
-        )}
-      </TableCell>
-      <TableCell className="text-muted-foreground text-sm">{event.setName ?? "—"}</TableCell>
-      <TableCell className="text-right font-mono">{event.retryCount}</TableCell>
-      <TableCell className="font-mono text-sm" title={formatDayTimeLocal(event.createdAt)}>
-        {formatRelativeTime(event.createdAt, { seconds: true })}
-      </TableCell>
-      <TableCell>
-        {event.status === "failed" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={onRetry}
-            pending={isRetrying}
-            title="Reset to pending"
-          >
-            <RotateCcwIcon className="size-3.5" />
-          </Button>
-        )}
-      </TableCell>
-    </TableRow>
+    <>
+      {event.cardSlug ? (
+        <TextLink
+          variant="inherit"
+          render={
+            <Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: event.cardSlug }} />
+          }
+        >
+          {event.cardName ?? event.cardSlug}
+        </TextLink>
+      ) : (
+        <span className="text-muted-foreground">{event.cardName ?? EMPTY_VALUE_TEXT}</span>
+      )}
+      {event.shortCode !== null && (
+        <span className="text-muted-foreground ml-2 font-mono">{event.shortCode}</span>
+      )}
+    </>
+  );
+}
+
+function SetCell({ row: event }: AdminCellSlotProps<PrintingEventView>) {
+  if (!event) {
+    return null;
+  }
+  return <span className="text-muted-foreground text-sm">{event.setName ?? EMPTY_VALUE_TEXT}</span>;
+}
+
+function RetryAction({
+  row: event,
+  retryingIds,
+  onRetry,
+}: AdminCellSlotProps<PrintingEventView> & {
+  retryingIds: ReadonlySet<string>;
+  onRetry: (id: string) => void;
+}) {
+  if (!event || event.status !== "failed") {
+    return null;
+  }
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-7"
+      onClick={() => onRetry(event.id)}
+      pending={retryingIds.has(event.id)}
+      title="Reset to pending"
+    >
+      <RotateCcwIcon className="size-3.5" />
+    </Button>
   );
 }
 

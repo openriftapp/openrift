@@ -1,3 +1,5 @@
+import { countNoun } from "@openrift/shared/strings";
+
 import { cardmarketPageKind } from "./cardmarket-url";
 import type { PageDeckExtract } from "./deck-extract";
 import { countTextCards } from "./deck-extract";
@@ -68,7 +70,7 @@ export function deckSummary(deck: PageDeckExtract | undefined): string | undefin
       ? "A decklist is on this page."
       : `${deck.name} · a decklist on this page.`;
   }
-  const counted = `${cards} card${cards === 1 ? "" : "s"} on this page.`;
+  const counted = `${countNoun(cards, "card")} on this page.`;
   return deck.name === undefined ? `A decklist with ${counted}` : `${deck.name} · ${counted}`;
 }
 
@@ -79,5 +81,5 @@ export function annotateResult(annotated: number | undefined): string {
   if (annotated === 0) {
     return "Nothing on this page is on your lists.";
   }
-  return `Marked ${annotated} card${annotated === 1 ? "" : "s"}.`;
+  return `Marked ${countNoun(annotated, "card")}.`;
 }

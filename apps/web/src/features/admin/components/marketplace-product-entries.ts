@@ -132,7 +132,9 @@ export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[]
             a.finish === product.finish &&
             (a.language === null || a.language === product.language),
         )
-        .map((a) => printingById.get(a.printingId))
+        .map((a) => a.printingId)
+        .filter((id, index, ids) => ids.indexOf(id) === index)
+        .map((id) => printingById.get(id))
         .filter((p): p is UnifiedMappingPrintingResponse => p !== undefined);
       const assignedPrintings: AssignedPrinting[] = matchingPrintings
         .map((p) => ({

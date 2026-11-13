@@ -1,4 +1,5 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
 import { CheckCheckIcon, PencilIcon } from "lucide-react";
@@ -16,10 +17,9 @@ import type {
 } from "@/features/admin/components/candidate-field-defs";
 import {
   useCheckAllCandidatePrintings,
-  useCheckCandidateCard,
+  useCheckCandidateCards,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
-import { hasValue } from "@/features/admin/lib/candidate-cell-values";
 import { firstPrintingSetLabel } from "@/features/admin/lib/card-overview";
 import type { OverviewSourceGroup } from "@/features/admin/lib/source-groups";
 
@@ -48,14 +48,15 @@ export function CardOverviewSection({
   onOpenPrinting: (printingId: string) => void;
   onOpenAttention: () => void;
 }) {
-  const checkSource = useCheckCandidateCard(invalidates);
+  const checkSources = useCheckCandidateCards(invalidates);
   const checkPrintings = useCheckAllCandidatePrintings(invalidates);
 
-  const filled = cardFields.filter((field) => !field.readOnly && hasValue(card[field.key]));
+  const filled = cardFields.filter((field) => !field.readOnly && hasFieldValue(card[field.key]));
   const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
   function checkGroup(group: OverviewSourceGroup) {
-    for (const candidateCardId of group.candidateCardIds) {
-      checkSource.mutate(candidateCardId);
+    const cardId = detail.card?.id;
+    if (cardId !== undefined && group.candidateCardIds.length > 0) {
+      checkSources.mutate({ cardId, candidateCardIds: [...group.candidateCardIds] });
     }
     if (group.uncheckedPrintingIds.length > 0) {
       checkPrintings.mutate({ extraIds: group.uncheckedPrintingIds });
@@ -150,7 +151,7 @@ export function CardOverviewSection({
                       <Button
                         variant="outline"
                         size="xs"
-                        disabled={checkSource.isPending || checkPrintings.isPending}
+                        disabled={checkSources.isPending || checkPrintings.isPending}
                         onClick={() => checkGroup(group)}
                       >
                         <CheckCheckIcon />

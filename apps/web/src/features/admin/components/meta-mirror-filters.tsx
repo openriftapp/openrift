@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/components/admin-filters";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import {
   catalogStatusDisplay,
   PLAYLOLTCG_STATUS_CHOICES,
@@ -23,6 +24,7 @@ import {
 import type { MirrorRailGroup, MirrorView } from "@/features/admin/lib/meta-mirror-view";
 import { mirrorViewId, mirrorViewSearch } from "@/features/admin/lib/meta-mirror-view";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const ANY = "any";
@@ -47,7 +49,7 @@ function withAny(label: string, choices: readonly { value: string; label: string
 }
 
 function countText(count: number | null): string {
-  return count === null ? "n/a" : count.toLocaleString();
+  return count === null ? "n/a" : formatCount(count);
 }
 
 function RailLink({
@@ -155,8 +157,7 @@ export function MirrorFilters({
 }) {
   const [minPlayersInput, setMinPlayersInput] = useSearchUrlSync({
     urlValue: filters.minPlayers === undefined ? "" : String(filters.minPlayers),
-    onCommit: (value) =>
-      applyFilter({ minPlayers: /^\d+$/u.test(value) ? Number(value) : undefined }),
+    onCommit: (value) => applyFilter({ minPlayers: parseIntegerInput(value, 0) ?? undefined }),
   });
 
   return (

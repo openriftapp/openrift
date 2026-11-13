@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import type { AdminDeleteConfig } from "@/features/admin/components/admin-table-delete-button";
 import { DeleteButton } from "@/features/admin/components/admin-table-delete-button";
+import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import {
   ReorderProvider,
   ReorderableRow,
@@ -107,6 +108,8 @@ interface AdminTableProps<TData, TDraft = TData> {
   footer?: ReactNode;
   layout?: "auto" | "fixed";
   renderExpanded?: (row: TData) => ReactNode;
+  groupBy?: { key: (row: TData) => string; label: (key: string) => ReactNode };
+  bare?: boolean;
 
   add?: {
     emptyDraft: TDraft;
@@ -229,6 +232,8 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   footer,
   layout = "auto",
   renderExpanded,
+  groupBy,
+  bare = false,
   add,
   addChild,
   edit,
@@ -298,6 +303,9 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   const renderedRows = virtualize
     ? virtualItems.map((item) => rows[item.index])
     : orderedKeys.map((key) => rowByKey.get(key));
+  const groupKeys = renderedRows.map((row) =>
+    groupBy && row ? groupBy.key(row.original) : undefined,
+  );
   const firstVirtualItem = virtualItems.at(0);
   const lastVirtualItem = virtualItems.at(-1);
 
@@ -306,26 +314,28 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
 
   const addRow =
     adding && addDraft !== null ? (
-      <TableRow>
-        {reorder && <TableCell />}
-        {adminColumns.map((col) => (
-          <TableCell key={col.header} className={alignClass(col.align)}>
-            {col.addCell
-              ? cloneElement(col.addCell, { draft: addDraft, setDraft: updateDraft })
-              : null}
-          </TableCell>
-        ))}
-        {hasActions && (
-          <TableCell className="text-right">
-            <SaveCancelButtons
-              onSave={() => void saveDraft()}
-              onCancel={cancelDraft}
-              isPending={draftPending}
-              error={draftError}
-            />
-          </TableCell>
-        )}
-      </TableRow>
+      <>
+        <TableRow>
+          {reorder && <TableCell />}
+          {adminColumns.map((col) => (
+            <TableCell key={col.header} className={alignClass(col.align)}>
+              {col.addCell
+                ? cloneElement(col.addCell, { draft: addDraft, setDraft: updateDraft })
+                : null}
+            </TableCell>
+          ))}
+          {hasActions && (
+            <TableCell className="text-right">
+              <SaveCancelButtons
+                onSave={() => void saveDraft()}
+                onCancel={cancelDraft}
+                isPending={draftPending}
+              />
+            </TableCell>
+          )}
+        </TableRow>
+        <DraftErrorRow colSpan={totalCols} error={draftError} />
+      </>
     ) : null;
 
   const handleExport = exportConfig
@@ -349,7 +359,6 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
         onSave={() => void saveDraft()}
         onCancel={cancelDraft}
         pending={draftPending}
-        error={draftError}
         actions={actions}
         onAddChild={
           showAddChild && childCfg
@@ -373,7 +382,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
         onExport={handleExport}
       />
 
-      <div className={ADMIN_TABLE_SURFACE}>
+      <div className={bare ? undefined : ADMIN_TABLE_SURFACE}>
         <ReorderProvider
           enabled={Boolean(reorder)}
           sensors={sensors}
@@ -412,14 +421,24 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
                   document space, so scrollMargin is subtracted here and added back below. */}
               {firstVirtualItem && <tr style={{ height: firstVirtualItem.start - scrollMargin }} />}
 
-              {renderedRows.map((row) => {
+              {renderedRows.map((row, index) => {
                 if (!row) {
                   return null;
                 }
                 const key = row.id;
                 const expandedContent = renderExpanded?.(row.original);
+                const groupKey = groupKeys[index];
+                const groupLabel =
+                  groupBy !== undefined &&
+                  groupKey !== undefined &&
+                  (index === 0 || groupKeys[index - 1] !== groupKey)
+                    ? groupBy.label(groupKey)
+                    : null;
                 return (
                   <Fragment key={key}>
+                    {groupLabel !== null && (
+                      <AdminTableGroupRow colSpan={totalCols}>{groupLabel}</AdminTableGroupRow>
+                    )}
                     {reorder ? (
                       <ReorderableRow
                         id={key}
@@ -455,6 +474,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
                         </TableCell>
                       </TableRow>
                     ) : null}
+                    {editingKey === key && <DraftErrorRow colSpan={totalCols} error={draftError} />}
                     {addingUnderKey === key && addRow}
                   </Fragment>
                 );
@@ -472,13 +492,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   );
 }
 
-export function AdminTableEmptyRow({
-  colSpan,
-  children,
-}: {
-  colSpan: number;
-  children: ReactNode;
-}) {
+function AdminTableEmptyRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
   return (
     <TableRow>
       <TableCell colSpan={colSpan} className="text-muted-foreground h-24 text-center">
@@ -496,7 +510,6 @@ function AdminRowCells<TData extends RowData, TDraft>({
   onSave,
   onCancel,
   pending,
-  error,
   actions,
   onAddChild,
   onEdit,
@@ -509,7 +522,6 @@ function AdminRowCells<TData extends RowData, TDraft>({
   onSave: () => void;
   onCancel: () => void;
   pending: boolean;
-  error: string;
   actions?: ReactElement<AdminCellSlotProps<TData>>;
   onAddChild?: () => void;
   onEdit?: () => void;
@@ -537,12 +549,7 @@ function AdminRowCells<TData extends RowData, TDraft>({
       {hasActions && (
         <TableCell className="text-right">
           {isEditing ? (
-            <SaveCancelButtons
-              onSave={onSave}
-              onCancel={onCancel}
-              isPending={pending}
-              error={error}
-            />
+            <SaveCancelButtons onSave={onSave} onCancel={onCancel} isPending={pending} />
           ) : (
             <div className="flex items-center justify-end gap-1">
               {actions ? cloneElement(actions, { row: row.original, index: row.index }) : null}
@@ -702,29 +709,37 @@ function SaveCancelButtons({
   onSave,
   onCancel,
   isPending,
-  error,
 }: {
   onSave: () => void;
   onCancel: () => void;
   isPending: boolean;
-  error: string;
 }) {
   return (
-    <>
-      <div className="flex justify-end gap-1">
-        <Button variant="outline" onClick={onSave} disabled={isPending}>
-          Save
-        </Button>
-        <Button variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-      {error && (
-        <p className="text-muted-foreground mt-1 flex items-center justify-end gap-1.5">
-          <CircleXIcon className="text-destructive size-4 shrink-0" />
-          {error}
+    <div className="flex justify-end gap-1">
+      <Button variant="outline" onClick={onSave} disabled={isPending}>
+        Save
+      </Button>
+      <Button variant="ghost" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
+  );
+}
+
+function DraftErrorRow({ colSpan, error }: { colSpan: number; error: string }) {
+  if (!error) {
+    return null;
+  }
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan} className="pt-0 whitespace-normal">
+        {/* No intrinsic width, so it never widens the table; sticky, so it stays in the
+            visible part of a table that scrolls sideways. */}
+        <p className="text-muted-foreground sticky left-0 flex max-w-[min(36rem,calc(100vw-2rem))] items-start gap-1.5 px-2 break-words [contain:inline-size]">
+          <CircleXIcon className="text-destructive mt-0.5 size-4 shrink-0" />
+          <span className="min-w-0">{error}</span>
         </p>
-      )}
-    </>
+      </TableCell>
+    </TableRow>
   );
 }

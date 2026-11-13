@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { isNetworkError, needsFullReload, routeErrorKind } from "./route-error-kind";
+import { isNetworkError } from "./error-text";
+import { needsFullReload, routeErrorKind } from "./route-error-kind";
 
 function statusError(status: number): Error {
   return Object.assign(new Error("request failed"), { status });

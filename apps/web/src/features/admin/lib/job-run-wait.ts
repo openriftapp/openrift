@@ -1,13 +1,7 @@
+import { sleep } from "@openrift/shared/async";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 
 const POLL_INTERVAL_MS = 2000;
-
-function sleep(ms: number): Promise<void> {
-  // oxlint-disable-next-line promise/avoid-new -- wrapping the callback-based setTimeout
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 /** Polls until the run leaves `running`; resolves `null` when the run is no longer listed. */
 export async function waitForJobRun(

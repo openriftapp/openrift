@@ -221,6 +221,23 @@ describe("collectEntries", () => {
     expect(scEntry?.assignedPrintings.map((p) => p.printingId)).toEqual(["p-en"]);
   });
 
+  it("lists a printing once when a null-language and a language assignment both cover it", () => {
+    const enPrint = printing({ printingId: "p-en", language: "EN" });
+    const entries = collectEntries(
+      group([enPrint], {
+        cardmarket: {
+          staged: [],
+          assigned: [staged({ externalId: 99, language: "EN" })],
+          assignments: [
+            { externalId: 99, printingId: "p-en", finish: "normal", language: null },
+            { externalId: 99, printingId: "p-en", finish: "normal", language: "EN" },
+          ],
+        },
+      }),
+    );
+    expect(entries[0]?.assignedPrintings.map((p) => p.printingId)).toEqual(["p-en"]);
+  });
+
   it("lists every printing a multi-variant assignment covers", () => {
     const shared = printing({ printingId: "p-1", language: "EN" });
     const entries = collectEntries(

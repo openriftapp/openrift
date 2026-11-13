@@ -1,5 +1,6 @@
 import type { OverlayPlateFields } from "@openrift/shared/contracts/overlay";
 import type { StageGround } from "@openrift/shared/contracts/stage-presets";
+import { CARD_SCALE } from "@openrift/shared/overlay-scale";
 import type { ReactNode } from "react";
 
 import { Kbd } from "@/components/ui/kbd";
@@ -7,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { MAX_CARD_SCALE, MIN_CARD_SCALE } from "@/features/cards/lib/card-scale";
 import { StagePresetSettings } from "@/features/stage/components/stage-preset-settings";
 import { StageTileSizeSlider } from "@/features/stage/components/stage-shell";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
@@ -262,8 +262,8 @@ export function StageSettings({
           <Slider
             id="stage-card-size"
             aria-label={m.stage_card_size()}
-            min={Math.round(MIN_CARD_SCALE * 100)}
-            max={Math.round(MAX_CARD_SCALE * 100)}
+            min={Math.round(CARD_SCALE.min * 100)}
+            max={Math.round(CARD_SCALE.max * 100)}
             step={5}
             value={[Math.round(cardScale * 100)]}
             onValueChange={handleScale}

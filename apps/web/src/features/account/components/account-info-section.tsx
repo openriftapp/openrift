@@ -11,20 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
+import { useUpdateUserField } from "@/features/account/hooks/use-update-user-field";
+import {
+  displayNameField,
+  isEmailAddress,
+  OTP_LENGTH,
+} from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
-import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
+import { otpErrorMessage, requestOtpErrorMessage } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 function displayNameSchema() {
-  return z.object({
-    name: z
-      .string()
-      .trim()
-      .min(1, m.profile_account_name_error_required())
-      .max(50, m.profile_account_name_error_max())
-      .regex(/^[\p{L}\p{N} ._-]+$/u, m.profile_account_name_error_charset()),
-  });
+  return z.object({ name: displayNameField() });
 }
 
 type DisplayNameValues = z.infer<ReturnType<typeof displayNameSchema>>;
@@ -54,9 +53,6 @@ export function AccountInfoSection({
 }
 
 function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId: string }) {
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const queryClient = useQueryClient();
   const form = useForm<DisplayNameValues>({
     resolver: zodResolver(displayNameSchema()),
     defaultValues: { name: defaultName },
@@ -65,22 +61,12 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
   // (IncompatibleLibrary), bailing on the whole component; useWatch does not.
   const watchedName = useWatch({ control: form.control, name: "name" });
 
+  const { save, loading, success } = useUpdateUserField(form, {
+    saveFailed: m.profile_account_save_failed(),
+  });
+
   async function onSubmit(values: DisplayNameValues) {
-    setLoading(true);
-    setSuccess(false);
-    const result = await authClient.updateUser({ name: values.name.trim() }).catch(() => null);
-    setLoading(false);
-    if (!result) {
-      form.setError("root", { message: m.profile_account_save_failed() });
-      return;
-    }
-    const { error } = result;
-    if (error) {
-      setServerError(form, error);
-      return;
-    }
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-    setSuccess(true);
+    await save({ name: values.name.trim() });
   }
 
   return (
@@ -135,32 +121,19 @@ const riotIdSchema = z.object({
 type RiotIdValues = z.infer<typeof riotIdSchema>;
 
 function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: string }) {
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const queryClient = useQueryClient();
   const form = useForm<RiotIdValues>({
     resolver: zodResolver(riotIdSchema),
     defaultValues: { riotId: defaultRiotId },
   });
   const watchedRiotId = useWatch({ control: form.control, name: "riotId" });
 
+  const { save, loading, success } = useUpdateUserField(form, {
+    saveFailed: m.profile_account_save_failed(),
+  });
+
   async function onSubmit(values: RiotIdValues) {
-    setLoading(true);
-    setSuccess(false);
     // An empty string normalizes to null server-side (clears the field).
-    const result = await authClient.updateUser({ riotId: values.riotId.trim() }).catch(() => null);
-    setLoading(false);
-    if (!result) {
-      form.setError("root", { message: m.profile_account_save_failed() });
-      return;
-    }
-    const { error } = result;
-    if (error) {
-      setServerError(form, error);
-      return;
-    }
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-    setSuccess(true);
+    await save({ riotId: values.riotId.trim() });
   }
 
   return (
@@ -224,7 +197,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
 
   async function handleSendToCurrentEmail() {
     const trimmed = newEmail.trim();
-    if (!trimmed || !trimmed.includes("@")) {
+    if (!isEmailAddress(trimmed)) {
       setError(m.profile_account_email_invalid());
       return;
     }
@@ -246,7 +219,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
   }
 
   async function handleVerifyCurrentEmail() {
-    if (otp.length < 6) {
+    if (otp.length < OTP_LENGTH) {
       return;
     }
     setLoading(true);
@@ -268,7 +241,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
   }
 
   async function handleVerifyNewEmail() {
-    if (otp.length < 6) {
+    if (otp.length < OTP_LENGTH) {
       return;
     }
     setLoading(true);
@@ -360,7 +333,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
           </div>
           <Field>
             <Button
-              disabled={otp.length < 6 || loading}
+              disabled={otp.length < OTP_LENGTH || loading}
               onClick={() => void handleVerifyCurrentEmail()}
             >
               {loading ? m.profile_account_verifying() : m.profile_account_verify()}
@@ -398,7 +371,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
           </div>
           <Field>
             <Button
-              disabled={otp.length < 6 || loading}
+              disabled={otp.length < OTP_LENGTH || loading}
               onClick={() => void handleVerifyNewEmail()}
             >
               {loading ? m.profile_account_confirming() : m.profile_account_confirm()}

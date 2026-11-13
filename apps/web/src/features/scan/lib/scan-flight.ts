@@ -1,6 +1,5 @@
+import { clamp } from "@openrift/shared/math";
 import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
-
-import { clamp } from "@/lib/math";
 
 import { videoLayoutBox, zoomRegion } from "./scan-zoom";
 

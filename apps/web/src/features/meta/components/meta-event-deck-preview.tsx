@@ -5,7 +5,6 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { CopyIcon, EllipsisVerticalIcon } from "lucide-react";
 import { Suspense, useState } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -23,7 +22,7 @@ import { useOpenCardDetail } from "@/features/cards/components/card-detail-opene
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { OwnershipBand } from "@/features/decks/components/ownership-band";
 import { useCopyArchivedDeck } from "@/features/decks/hooks/use-copy-archived-deck";
-import { useEncodeDeckCards } from "@/features/decks/hooks/use-decks";
+import { useCopyDeckCode } from "@/features/decks/hooks/use-copy-deck-code";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
@@ -36,20 +35,12 @@ import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-comp
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { deckCardDetailKeys } from "@/features/meta/lib/meta-deck-side-keys";
 import { inferredCards, inferredSummary } from "@/features/meta/lib/meta-inferred";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const SKELETON_THUMBS = 12;
-
-/** Module scope so the copy handler's `try` stays branch-free (React Compiler). */
-function reportEncodeWarnings(warnings: readonly string[]): void {
-  if (warnings.length > 0) {
-    toast.warning(m.meta_deck_code_warning(), { description: warnings.join(" ") });
-  }
-}
 
 function printingIdOf(card: PublicDeckCardResponse): string | null {
   return card.resolvedPrintingId ?? card.preferredPrintingId;
@@ -139,8 +130,7 @@ function StripCard({
 export function MetaEventDeckPreview({ token }: { token: string }) {
   const { data } = useMetaDeck(token);
   const copyToMyDecks = useCopyArchivedDeck();
-  const encodeMutation = useEncodeDeckCards();
-  const { copy } = useCopyToClipboard();
+  const deckCode = useCopyDeckCode(toEncodeDeckCards(data.cards));
   const hydrated = useHydrated();
   const signIn = useSignInSearch();
   const [owned, setOwned] = useState<MetaOwnedCards>();
@@ -187,21 +177,6 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const runes = deckRuneSplit(data.cards);
   const sideboardCount = sideboard.reduce((sum, card) => sum + card.quantity, 0);
   const missing = describeIncompleteList(data.deck.format, unknown);
-
-  const encodeCards = toEncodeDeckCards(data.cards);
-  const handleCopyCode = async () => {
-    try {
-      const encoded = await encodeMutation.mutateAsync({ cards: encodeCards });
-      if (await copy(encoded.code)) {
-        toast.success(m.decks_menu_code_copied());
-      } else {
-        toast.error(m.decks_menu_code_copy_failed());
-      }
-      reportEncodeWarnings(encoded.warnings);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
-  };
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -300,8 +275,8 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 {copyToMyDecks.label}
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={encodeMutation.isPending}
-                onClick={() => void handleCopyCode()}
+                disabled={deckCode.pending}
+                onClick={() => void deckCode.copyCode()}
               >
                 <CopyIcon />
                 {m.meta_deck_preview_copy_code()}

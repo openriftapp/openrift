@@ -215,3 +215,29 @@ describe("source conventions", () => {
     expect(silent).toEqual([]);
   });
 });
+
+describe("generic helpers", () => {
+  it("reads thrown errors only through the shared error helpers", () => {
+    expect(
+      filesMatching(
+        ".",
+        /instanceof Error \? \w+\.message\b|instanceof Error \? \w+ : new Error\(/u,
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  it("splits arrays only through chunk", () => {
+    expect(
+      filesMatching(
+        ".",
+        /for \(let (?<step>\w+) = 0; \k<step> < [\w.]+\.length; \k<step> \+= [A-Z][A-Z_]*\)/u,
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  it("defines clamp and sleep only in the shared modules", () => {
+    expect(filesMatching(".", /function clamp\(|setTimeout\(resolve, \w+\)/u, [])).toEqual([]);
+  });
+});

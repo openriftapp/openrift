@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { MAX_COPIES_PER_REQUEST } from "@openrift/shared/contracts/copies";
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import { normalizeCopyMetadataPatch } from "@openrift/shared/copy-metadata";
@@ -295,14 +296,6 @@ export async function moveCopies(
   await transact((trxRepos) => moveCopiesInTransaction(trxRepos, userId, copyIds, target, consent));
 }
 
-function writeChunks(copyIds: readonly string[]): string[][] {
-  const chunks: string[][] = [];
-  for (let start = 0; start < copyIds.length; start += MAX_COPIES_PER_REQUEST) {
-    chunks.push(copyIds.slice(start, start + MAX_COPIES_PER_REQUEST));
-  }
-  return chunks;
-}
-
 /** Each write-sized chunk sweeps on its own, as the client's chunked writes will. */
 export async function previewMoveTradeCancels(
   repos: Repos,
@@ -313,8 +306,8 @@ export async function previewMoveTradeCancels(
 ): Promise<TradeCancelConflictData> {
   const target = await resolveMoveTarget(repos, userId, toCollectionId);
   return previewTradeCancels(transact, async (trxRepos, consent) => {
-    for (const chunk of writeChunks(copyIds)) {
-      await moveCopiesInTransaction(trxRepos, userId, chunk, target, consent);
+    for (const batch of chunk(copyIds, MAX_COPIES_PER_REQUEST)) {
+      await moveCopiesInTransaction(trxRepos, userId, batch, target, consent);
     }
   });
 }
@@ -338,8 +331,8 @@ export function previewDisposeTradeCancels(
   copyIds: string[],
 ): Promise<TradeCancelConflictData> {
   return previewTradeCancels(transact, async (trxRepos, consent) => {
-    for (const chunk of writeChunks(copyIds)) {
-      await disposeCopiesInTransaction(trxRepos, userId, chunk, consent);
+    for (const batch of chunk(copyIds, MAX_COPIES_PER_REQUEST)) {
+      await disposeCopiesInTransaction(trxRepos, userId, batch, consent);
     }
   });
 }

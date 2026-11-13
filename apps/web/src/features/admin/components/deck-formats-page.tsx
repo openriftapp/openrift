@@ -53,8 +53,8 @@ const columns: AdminColumnDef<DeckFormatRow, DeckFormatDraft>[] = [
 
 export function DeckFormatsPage() {
   const { data } = useDeckFormats();
-  const createMutation = useCreateDeckFormat();
-  const updateMutation = useUpdateDeckFormat();
+  const createMutation = useCreateDeckFormat({ inlineError: true });
+  const updateMutation = useUpdateDeckFormat({ inlineError: true });
   const deleteMutation = useDeleteDeckFormat();
   const reorderMutation = useReorderDeckFormats();
   const { deckFormats } = data;

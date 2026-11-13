@@ -1,10 +1,10 @@
+import { DISCORD_EMBED_COLOR } from "@openrift/shared/discord-embed";
 import { RULE_REFERENCE_REGEX, ruleReferenceFromMatch } from "@openrift/shared/rules";
 import { rulesPath } from "@openrift/shared/site-paths";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { RuleKind } from "@openrift/shared/types/api/rules";
 import type { APIEmbed } from "discord.js";
 
-import { EMBED_COLOR } from "./card-embed.js";
 import type { IndexedRule, RuleIndex } from "./rule-search.js";
 
 const KIND_LABEL: Record<RuleKind, string> = { core: "Core Rules", tournament: "Tournament Rules" };
@@ -163,7 +163,7 @@ export function buildRuleEmbed(input: RuleEmbedInput): APIEmbed {
     title: truncateWithEllipsis(isHeading ? `${citation} — ${entry.plain}` : citation, 256),
     url: `${pages[entry.kind]}#rule-${entry.rule.ruleNumber}`,
     description: parts.join("\n\n"),
-    color: EMBED_COLOR,
+    color: DISCORD_EMBED_COLOR,
     footer: { text: `${KIND_LABEL[entry.kind]} · ${index.versions[entry.kind]}` },
   };
 }

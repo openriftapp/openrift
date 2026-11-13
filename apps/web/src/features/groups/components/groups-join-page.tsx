@@ -22,6 +22,7 @@ import {
   rememberJoinIntent,
 } from "@/features/groups/lib/join-intent";
 import { useUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -52,15 +53,12 @@ function JoinAction({
       return;
     }
     const joinedSlug = preview?.slug;
-    try {
-      await joinByCode.mutateAsync(code);
+    if (await runReportedMutation(() => joinByCode.mutateAsync(code))) {
       if (joinedSlug) {
         void navigate({ to: "/groups/$slug", params: { slug: joinedSlug } });
       } else {
         void navigate({ to: "/groups" });
       }
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

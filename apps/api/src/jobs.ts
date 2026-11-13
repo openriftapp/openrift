@@ -1,5 +1,5 @@
 import { DAY_MS } from "@openrift/shared/format-date";
-import { JOB_KIND } from "@openrift/shared/job-run-kinds";
+import { JOB_KIND, META_SOURCE_JOB_KINDS } from "@openrift/shared/job-run-kinds";
 import type { Logger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
 
@@ -19,11 +19,7 @@ import {
   isFingerprintSweepNoop,
   sweepImageFingerprints,
 } from "./modules/catalog/services/images/fingerprint-sweep.js";
-import {
-  isRehostRetryNoop,
-  REHOST_RETRY_KIND,
-  retryDueRehosts,
-} from "./modules/catalog/services/images/jobs.js";
+import { isRehostRetryNoop, retryDueRehosts } from "./modules/catalog/services/images/jobs.js";
 import { COPY_DELETION_RETENTION_MS } from "./modules/collections/lib/copy-deletion-retention.js";
 import {
   extractDigestWatermark,
@@ -135,21 +131,21 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
 
   return [
     defineJob(log, {
-      kind: "tcgplayer.refresh",
-      title: "TCGPlayer price refresh",
-      description: "Fetches the current TCGPlayer prices for every mapped printing.",
+      kind: JOB_KIND.refreshTcgplayer,
+      title: "TCGplayer price refresh",
+      description: "Fetches the current TCGplayer prices for every mapped printing.",
       suggestedSchedule: "0 6 * * *",
       execute: (_runId, jobLog) => refreshTcgplayerPrices(globalThis.fetch, repos, jobLog),
     }),
     defineJob(log, {
-      kind: "cardmarket.refresh",
+      kind: JOB_KIND.refreshCardmarket,
       title: "Cardmarket price refresh",
       description: "Fetches the current Cardmarket prices for every mapped printing.",
       suggestedSchedule: "15 6 * * *",
       execute: (_runId, jobLog) => refreshCardmarketPrices(globalThis.fetch, repos, jobLog),
     }),
     defineJob(log, {
-      kind: "cardtrader.refresh",
+      kind: JOB_KIND.refreshCardtrader,
       title: "CardTrader price refresh",
       description: "Fetches the current CardTrader prices for every mapped printing.",
       suggestedSchedule: "30 6 * * *",
@@ -158,7 +154,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
         refreshCardtraderPrices(globalThis.fetch, repos, jobLog, config.cardtraderApiToken),
     }),
     defineJob(log, {
-      kind: "cardnexus.refresh",
+      kind: JOB_KIND.refreshCardnexus,
       title: "CardNexus price refresh",
       description: "Fetches the current CardNexus prices for every mapped printing.",
       suggestedSchedule: "45 6 * * *",
@@ -167,7 +163,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
         refreshCardnexusPrices(globalThis.fetch, repos, jobLog, config.cardnexusApiKey),
     }),
     defineJob(log, {
-      kind: "discord.post_changelog",
+      kind: JOB_KIND.postChangelog,
       title: "Changelog Discord post",
       description: "Posts new changelog entries to the announcements channel on Discord.",
       suggestedSchedule: "0 20 * * *",
@@ -175,7 +171,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
         ? undefined
         : "DISCORD_WEBHOOK_CHANGELOG is not set.",
       execute: async (runId, jobLog) => {
-        const prior = await repos.jobRuns.getLatestForResume("discord.post_changelog");
+        const prior = await repos.jobRuns.getLatestForResume(JOB_KIND.postChangelog);
         return await postChangelogToDiscord({
           webhookUrl: config.discordWebhooks.changelog,
           changelogPath: config.changelogPath,
@@ -204,7 +200,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isPrintingFlushNoop,
     }),
     defineJob(log, {
-      kind: "job_runs.cleanup",
+      kind: JOB_KIND.cleanupJobRuns,
       title: "Job history cleanup",
       description: `Deletes job runs older than ${JOB_RUNS_RETENTION_DAYS} days.`,
       suggestedSchedule: "0 4 * * *",
@@ -216,7 +212,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: (summary) => summary.deleted === 0,
     }),
     defineJob(log, {
-      kind: "submission_uploads.sweep",
+      kind: JOB_KIND.sweepSubmissionUploads,
       title: "Submission upload sweep",
       description:
         "Deletes contributor photo uploads older than 7 days that never became a submission.",
@@ -225,7 +221,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: (result) => result.deleted === 0,
     }),
     defineJob(log, {
-      kind: "copy_deletions.sweep",
+      kind: JOB_KIND.sweepCopyDeletions,
       title: "Copy tombstone sweep",
       description:
         "Drops copy deletion tombstones past the sync window. A client whose watermark is older takes a full read instead.",
@@ -238,7 +234,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: (summary) => summary.deleted === 0,
     }),
     defineJob(log, {
-      kind: "images.fingerprint",
+      kind: JOB_KIND.fingerprintImages,
       title: "Image fingerprint sweep",
       description:
         "Fingerprints live and source images so check matching can tell a rehosted copy from a different image.",
@@ -247,7 +243,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isFingerprintSweepNoop,
     }),
     defineJob(log, {
-      kind: REHOST_RETRY_KIND,
+      kind: JOB_KIND.retryImageRehosts,
       title: "Image rehost retry",
       description:
         "Copies images that are waiting to go live to our server, retrying failed copies with a growing delay.",
@@ -265,7 +261,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: (result) => result.cardsChecked === 0 && result.printingsChecked === 0,
     }),
     defineJob(log, {
-      kind: "card_trades.expire_pending",
+      kind: JOB_KIND.expirePendingTrades,
       title: "Expire pending trades",
       description: "Closes trade offers nobody answered before their deadline.",
       suggestedSchedule: "*/15 * * * *",
@@ -273,12 +269,12 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: (result) => result.expired === 0,
     }),
     defineJob(log, {
-      kind: "email.trade_match_digest",
+      kind: JOB_KIND.emailTradeMatchDigest,
       title: "Trade match digest",
       description: "Emails each member the new trade matches found since the last digest.",
       suggestedSchedule: "0 8 * * *",
       execute: async (_runId, jobLog) => {
-        const prior = await repos.jobRuns.getLatestForResume("email.trade_match_digest");
+        const prior = await repos.jobRuns.getLatestForResume(JOB_KIND.emailTradeMatchDigest);
         const sinceTimestamp = extractDigestWatermark(prior?.result);
         // Watermark from the run start, not its end, so matches created mid-run
         // aren't skipped (at worst re-sent next day).
@@ -294,7 +290,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isTradeMatchDigestNoop,
     }),
     defineJob(log, {
-      kind: "email.flush_trade_requests",
+      kind: JOB_KIND.emailFlushTradeRequests,
       title: "Trade request emails",
       description: "Sends the follow-up email once a burst of trade requests has settled.",
       suggestedSchedule: "* * * * *",
@@ -303,7 +299,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isTradeRequestFlushNoop,
     }),
     defineJob(log, {
-      kind: "email.flush_trade_status",
+      kind: JOB_KIND.emailFlushTradeStatus,
       title: "Trade status emails",
       description: "Tells the other party a trade was accepted, declined or cancelled.",
       suggestedSchedule: "* * * * *",
@@ -311,41 +307,41 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isTradeStatusFlushNoop,
     }),
     defineJob(log, {
-      kind: "meta.uvsgames_sync",
+      kind: META_SOURCE_JOB_KINDS.uvsgames.sync,
       title: "UVS Games: refresh mirror",
       description: "Reads the UVS Games event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 6 * * *",
-      skipCronTick: skipMetaTick("meta.uvsgames_sync"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.uvsgames.sync),
       execute: (runId, jobLog) => syncCatalog(metaDeps(jobLog), runId),
       classifyNoop: isCatalogSyncNoop,
     }),
     defineJob(log, {
-      kind: "meta.uvsgames_recheck",
+      kind: META_SOURCE_JOB_KINDS.uvsgames.recheck,
       title: "UVS Games: collect results",
       description:
         "Re-fetches queued UVS Games events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
-      skipCronTick: skipMetaTick("meta.uvsgames_recheck"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.uvsgames.recheck),
       execute: (runId, jobLog) =>
         processRechecks(metaDeps(jobLog), { runId, listing: isFirstTickOfHour(new Date()) }),
       classifyNoop: isRecheckNoop,
     }),
     defineJob(log, {
-      kind: "meta.playloltcg_sync",
+      kind: META_SOURCE_JOB_KINDS.playloltcg.sync,
       title: "PlayLoLTCG: refresh mirror",
       description: "Reads the PlayLoLTCG event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 7 * * *",
-      skipCronTick: skipMetaTick("meta.playloltcg_sync"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.playloltcg.sync),
       execute: (_runId, jobLog) => syncPlayloltcgCatalog(playloltcgDeps(jobLog)),
       classifyNoop: isPlayloltcgSyncNoop,
     }),
     defineJob(log, {
-      kind: "meta.playloltcg_recheck",
+      kind: META_SOURCE_JOB_KINDS.playloltcg.recheck,
       title: "PlayLoLTCG: collect results",
       description:
         "Re-fetches queued PlayLoLTCG events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
-      skipCronTick: skipMetaTick("meta.playloltcg_recheck"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.playloltcg.recheck),
       execute: (runId, jobLog) =>
         processPlayloltcgRechecks(playloltcgDeps(jobLog), {
           runId,
@@ -354,33 +350,33 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isPlayloltcgRecheckNoop,
     }),
     defineJob(log, {
-      kind: "meta.topdeck_sync",
+      kind: META_SOURCE_JOB_KINDS.topdeck.sync,
       title: "Topdeck: refresh mirror",
       description:
         "Reads the last month of Topdeck tournaments, with their standings and decklists.",
       suggestedSchedule: "30 7 * * *",
       unavailableReason: topdeckApiKey === null ? "TOPDECK_API_KEY is not set." : undefined,
-      skipCronTick: skipMetaTick("meta.topdeck_sync"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.topdeck.sync),
       execute: (_runId, jobLog) => syncTopdeckCatalog(topdeckDeps(jobLog)),
       classifyNoop: isTopdeckSyncNoop,
     }),
     defineJob(log, {
-      kind: "meta.playriftbound_sync",
+      kind: META_SOURCE_JOB_KINDS.playriftbound.sync,
       title: "PlayRiftbound: refresh mirror",
       description:
         "Searches around every known PlayRiftbound store for events from the last week to two weeks ahead.",
       suggestedSchedule: "0 8 * * *",
-      skipCronTick: skipMetaTick("meta.playriftbound_sync"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.playriftbound.sync),
       execute: (_runId, jobLog) => syncPlayriftboundCatalog(playriftboundDeps(jobLog)),
       classifyNoop: isPlayriftboundSyncNoop,
     }),
     defineJob(log, {
-      kind: "meta.playriftbound_recheck",
+      kind: META_SOURCE_JOB_KINDS.playriftbound.recheck,
       title: "PlayRiftbound: collect results",
       description:
         "Re-fetches queued PlayRiftbound events whenever the source reports a change, until they finish. Once an hour it also re-queues the events running now.",
       suggestedSchedule: "*/10 * * * *",
-      skipCronTick: skipMetaTick("meta.playriftbound_recheck"),
+      skipCronTick: skipMetaTick(META_SOURCE_JOB_KINDS.playriftbound.recheck),
       execute: (runId, jobLog) =>
         processPlayriftboundRechecks(playriftboundDeps(jobLog), {
           runId,
@@ -389,7 +385,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       classifyNoop: isPlayriftboundRecheckNoop,
     }),
     defineJob(log, {
-      kind: "meta.infer_slots",
+      kind: JOB_KIND.metaInferSlots,
       title: "Meta archive: guess missing champions and battlefields",
       description:
         "Recomputes the likely chosen champion and one battlefield of every partial list from the complete lists of the same legend.",

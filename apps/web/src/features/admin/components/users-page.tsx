@@ -1,5 +1,4 @@
 import { ADMIN_SECTION_LABELS, ADMIN_SECTION_SLUGS } from "@openrift/shared/admin-sections";
-import { formatDay } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminUserResponse } from "@openrift/shared/types/api/admin";
 import { EllipsisVerticalIcon } from "lucide-react";
@@ -15,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
+import { CountCell, InstantCell } from "@/features/admin/components/admin-crud-shared";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -27,10 +28,6 @@ import {
 } from "@/features/admin/hooks/use-admin-grants";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin-users";
 import { useGravatarHash } from "@/hooks/use-gravatar-hash";
-
-function formatDate(iso: string): string {
-  return formatDay(iso);
-}
 
 function UserNameCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   const gravatarHash = useGravatarHash(row?.email ?? "");
@@ -120,34 +117,6 @@ function GrantsCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   );
 }
 
-function CardCountCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="tabular-nums">{row.cardCount.toLocaleString()}</span>;
-}
-
-function DeckCountCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="tabular-nums">{row.deckCount.toLocaleString()}</span>;
-}
-
-function CollectionCountCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="tabular-nums">{row.collectionCount.toLocaleString()}</span>;
-}
-
-function ListCountCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="tabular-nums">{row.listCount.toLocaleString()}</span>;
-}
-
 function GroupsCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   if (!row) {
     return null;
@@ -166,20 +135,13 @@ function GroupsCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   );
 }
 
-function JoinedCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground text-sm">{formatDate(row.createdAt)}</span>;
-}
-
 function LastActiveCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   if (!row) {
     return null;
   }
   return (
     <span className="text-muted-foreground text-sm">
-      {row.lastActiveAt ? formatDate(row.lastActiveAt) : "Never"}
+      {row.lastActiveAt ? <AdminInstant at={row.lastActiveAt} relative /> : "Never"}
     </span>
   );
 }
@@ -212,28 +174,28 @@ const columns: AdminColumnDef<AdminUserResponse>[] = [
     align: "right",
     width: "w-20",
     sortValue: (user) => user.cardCount,
-    cell: <CardCountCell />,
+    cell: <CountCell<AdminUserResponse> count={(row) => row.cardCount} />,
   },
   {
     header: "Decks",
     align: "right",
     width: "w-20",
     sortValue: (user) => user.deckCount,
-    cell: <DeckCountCell />,
+    cell: <CountCell<AdminUserResponse> count={(row) => row.deckCount} />,
   },
   {
     header: "Collections",
     align: "right",
     width: "w-28",
     sortValue: (user) => user.collectionCount,
-    cell: <CollectionCountCell />,
+    cell: <CountCell<AdminUserResponse> count={(row) => row.collectionCount} />,
   },
   {
     header: "Lists",
     align: "right",
     width: "w-20",
     sortValue: (user) => user.listCount,
-    cell: <ListCountCell />,
+    cell: <CountCell<AdminUserResponse> count={(row) => row.listCount} />,
   },
   {
     header: "Groups",
@@ -244,7 +206,7 @@ const columns: AdminColumnDef<AdminUserResponse>[] = [
     header: "Joined",
     width: "w-32",
     sortValue: (user) => user.createdAt,
-    cell: <JoinedCell />,
+    cell: <InstantCell<AdminUserResponse> at={(row) => row.createdAt} />,
   },
   {
     header: "Last active",

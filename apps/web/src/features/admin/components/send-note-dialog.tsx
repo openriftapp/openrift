@@ -15,6 +15,7 @@ import {
   useSetSubmissionResolution,
   useSubmissionForCandidate,
 } from "@/features/admin/hooks/use-admin-card-submissions";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface SendNoteDialogProps {
   candidateCardId: string | null;
@@ -43,10 +44,7 @@ export function SendNoteDialog({
       return;
     }
     const payload = { candidateCardId, reason: existing?.reason ?? null, note: notePayload };
-    try {
-      await setResolution.mutateAsync(payload);
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => setResolution.mutateAsync(payload)))) {
       return;
     }
     setTouched(false);

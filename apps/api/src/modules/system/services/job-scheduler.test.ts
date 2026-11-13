@@ -27,7 +27,7 @@ const NEVER = "0 0 1 1 *";
 function definition(overrides: Partial<AnyJobDefinition> = {}): AnyJobDefinition {
   return {
     kind: "tcgplayer.refresh",
-    title: "TCGPlayer price refresh",
+    title: "TCGplayer price refresh",
     description: "Fetches prices.",
     suggestedSchedule: NEVER,
     log,
@@ -264,7 +264,7 @@ describe("list", () => {
 describe("defineJob", () => {
   const meta = {
     kind: "tcgplayer.refresh",
-    title: "TCGPlayer price refresh",
+    title: "TCGplayer price refresh",
     description: "Fetches prices.",
     suggestedSchedule: NEVER,
   } as const;

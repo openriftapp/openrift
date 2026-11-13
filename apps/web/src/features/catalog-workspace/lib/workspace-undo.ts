@@ -1,4 +1,4 @@
-import { pluralize } from "@openrift/shared/strings";
+import { countNoun } from "@openrift/shared/strings";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 
@@ -18,12 +18,8 @@ export function undoScope(...scopes: QueryScope[]): QueryScope {
   return [adminKeys.workspace, ...scopes.flat()];
 }
 
-function counted(count: number, noun: string): string {
-  return `${count} ${pluralize(count, noun)}`;
-}
-
 function restored(count: number, noun: string): string {
-  return count === 1 ? noun : counted(count, noun);
+  return count === 1 ? noun : countNoun(count, noun);
 }
 
 export function discardUndoText({
@@ -44,13 +40,13 @@ export function discardUndoText({
   const shown = parts.filter(([count]) => count > 0);
   if (shown.length === 0) {
     return {
-      label: `Discarded ${counted(sources, "source")} on ${record}`,
+      label: `Discarded ${countNoun(sources, "source")} on ${record}`,
       undoneLabel: `Undone: ${restored(sources, "source")} restored on ${record}`,
     };
   }
   return {
-    label: `Discarded ${shown.map(([count, noun]) => counted(count, noun)).join(" and ")} on ${record}`,
-    undoneLabel: `Undone: ${shown.map(([count, noun]) => (shown.length === 1 ? restored(count, noun) : counted(count, noun))).join(" and ")} restored on ${record}`,
+    label: `Discarded ${shown.map(([count, noun]) => countNoun(count, noun)).join(" and ")} on ${record}`,
+    undoneLabel: `Undone: ${shown.map(([count, noun]) => (shown.length === 1 ? restored(count, noun) : countNoun(count, noun))).join(" and ")} restored on ${record}`,
   };
 }
 

@@ -1,3 +1,5 @@
+import { countNoun } from "@openrift/shared/strings";
+
 import { formatEuro } from "./cardmarket-annotate";
 import type { CardmarketFinish } from "./cardmarket-rows";
 
@@ -229,11 +231,11 @@ export function needsAttributeNote(lines: readonly WizardLine[]): boolean {
 }
 
 function cards(count: number): string {
-  return `${count} card${count === 1 ? "" : "s"}`;
+  return countNoun(count, "card");
 }
 
 function sellersLabel(count: number): string {
-  return `${count} seller${count === 1 ? "" : "s"}`;
+  return countNoun(count, "seller");
 }
 
 /** One line under a seller's card: the decision and what it rests on. */

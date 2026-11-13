@@ -1,6 +1,7 @@
+import { CARD_SCALE } from "@openrift/shared/overlay-scale";
 import { describe, expect, it } from "vitest";
 
-import { clampCardScale, MAX_CARD_SCALE, MIN_CARD_SCALE } from "./card-scale";
+import { clampCardScale } from "./card-scale";
 
 describe("clampCardScale", () => {
   it("passes a scale already in range through untouched", () => {
@@ -8,12 +9,12 @@ describe("clampCardScale", () => {
   });
 
   it("clamps at both ends", () => {
-    expect(clampCardScale(-1)).toBe(MIN_CARD_SCALE);
-    expect(clampCardScale(2)).toBe(MAX_CARD_SCALE);
+    expect(clampCardScale(-1)).toBe(CARD_SCALE.min);
+    expect(clampCardScale(2)).toBe(CARD_SCALE.max);
   });
 
   it("falls back to full size for a value that isn't a number", () => {
-    expect(clampCardScale(Number.NaN)).toBe(MAX_CARD_SCALE);
-    expect(clampCardScale(Number.POSITIVE_INFINITY)).toBe(MAX_CARD_SCALE);
+    expect(clampCardScale(Number.NaN)).toBe(CARD_SCALE.max);
+    expect(clampCardScale(Number.POSITIVE_INFINITY)).toBe(CARD_SCALE.max);
   });
 });

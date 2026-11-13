@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { GroupField } from "@/features/tournaments/components/settings/group-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function GroupSection({
@@ -21,11 +22,8 @@ export function GroupSection({
       value === "none"
         ? m.tournaments_settings_group_unlinked_toast()
         : m.tournaments_settings_group_updated_toast();
-    try {
-      await updateTournament.mutateAsync({ id: detail.id, groupId });
+    if (await runReportedMutation(() => updateTournament.mutateAsync({ id: detail.id, groupId }))) {
       toast.success(successMessage);
-    } catch {
-      // Errors surface via the global mutation error toast.
     }
   }
 

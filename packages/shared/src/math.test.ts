@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clamp } from "./math";
+import { clamp } from "./math.js";
 
 describe("clamp", () => {
   it("leaves a value already inside the range alone", () => {

@@ -16,7 +16,9 @@ import {
   TOPDECK_FORMATS,
 } from "@openrift/shared/types/enums";
 import type { PlayloltcgStatus, PlayriftboundTournamentType } from "@openrift/shared/types/enums";
+import { toast } from "sonner";
 
+import { formatCount } from "@/lib/format";
 import { summarizeRunResult } from "@/lib/job-run-display";
 
 export const META_SOURCE_LABELS: Record<MetaSource, string> = {
@@ -386,7 +388,7 @@ export function metaSyncAlerts(
   if (oldestDue !== null && now.getTime() - oldestDue.getTime() > RECHECK_LAG_LIMIT_MS) {
     alerts.push({
       id: "due-rechecks",
-      message: `${catalog.dueRecheck.toLocaleString()} published events are overdue for result collection. The oldest became due ${formatRelativeTime(oldestDue, { now })}.`,
+      message: `${formatCount(catalog.dueRecheck)} published events are overdue for result collection. The oldest became due ${formatRelativeTime(oldestDue, { now })}.`,
       target: "catalogue-accepted",
     });
   }
@@ -416,4 +418,15 @@ export function metaSyncAlerts(
   }
 
   return alerts;
+}
+
+export function announceSyncTrigger(label: string, result: MetaSyncTriggerResult): void {
+  const announcement = syncTriggerAnnouncement(label, result);
+  const options =
+    announcement.description === "" ? undefined : { description: announcement.description };
+  if (announcement.ok) {
+    toast.success(announcement.title, options);
+    return;
+  }
+  toast.error(announcement.title, options);
 }

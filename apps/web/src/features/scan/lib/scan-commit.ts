@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { MAX_COPIES_PER_ADD } from "@openrift/shared/contracts/copies";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { v7 as uuidv7 } from "uuid";
@@ -50,10 +51,9 @@ export async function addInChunks(
   addOne: (job: ScanAddJob) => Promise<{ id: string }>,
 ): Promise<PromiseSettledResult<{ id: string }>[]> {
   const outcomes: PromiseSettledResult<{ id: string }>[] = [];
-  for (let i = 0; i < jobs.length; i += MAX_COPIES_PER_ADD) {
-    const chunk = jobs.slice(i, i + MAX_COPIES_PER_ADD);
+  for (const batch of chunk(jobs, MAX_COPIES_PER_ADD)) {
     // Queued in one tick so the batcher folds the chunk into a single POST.
-    const settled = await Promise.allSettled(chunk.map((job) => addOne(job)));
+    const settled = await Promise.allSettled(batch.map((job) => addOne(job)));
     outcomes.push(...settled);
   }
   return outcomes;

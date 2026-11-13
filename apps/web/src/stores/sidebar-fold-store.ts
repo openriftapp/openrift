@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { mergeFields, pickBoolean, pickRecord } from "@/lib/persist-merge";
+
 /** `shared:<groupId>` keys are emitted dynamically, one per shared friend group. */
 export type SidebarGroupKey = "collections" | "wish" | "trade" | "organize" | `shared:${string}`;
 
@@ -28,6 +30,8 @@ const FIXED_DEFAULTS: Record<string, boolean> = {
   organize: true,
 };
 
+const pickStoredFolds = pickRecord(pickBoolean);
+
 export const useSidebarFoldStore = create<SidebarFoldState>()(
   persist(
     (set, get) => ({
@@ -50,17 +54,12 @@ export const useSidebarFoldStore = create<SidebarFoldState>()(
     {
       name: "openrift-sidebar-fold",
       partialize: (state) => ({ byKey: state.byKey }),
-      merge: (persisted, current) => {
-        const raw = persisted as { byKey?: Record<string, unknown> } | undefined;
-        const persistedByKey = raw?.byKey ?? {};
-        const merged: Record<string, boolean> = { ...current.byKey };
-        for (const [key, value] of Object.entries(persistedByKey)) {
-          if (typeof value === "boolean") {
-            merged[key] = value;
-          }
-        }
-        return { ...current, byKey: merged };
-      },
+      merge: mergeFields<SidebarFoldState>({
+        byKey: (value) => {
+          const stored = pickStoredFolds(value);
+          return stored && { ...FIXED_DEFAULTS, ...stored };
+        },
+      }),
     },
   ),
 );

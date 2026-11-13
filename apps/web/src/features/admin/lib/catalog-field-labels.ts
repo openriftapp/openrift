@@ -2,7 +2,6 @@ import type {
   ComparableCardField,
   ComparablePrintingField,
 } from "@openrift/shared/catalog-field-compare";
-import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 
 export const CARD_FIELD_LABELS: Record<ComparableCardField, string> = {
   name: "Name",
@@ -47,16 +46,3 @@ export const DIFFED_FIELDS: ReadonlySet<string> = new Set([
   "printedEffectText",
   "flavorText",
 ]);
-
-export function formatFieldValue(value: unknown): string {
-  if (!hasFieldValue(value)) {
-    return "—";
-  }
-  if (Array.isArray(value)) {
-    return value.map(String).join(", ");
-  }
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-  return String(value);
-}

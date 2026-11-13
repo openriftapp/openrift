@@ -65,6 +65,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -220,15 +221,13 @@ function SharedListGrid({
       setRequestPrinting(printing);
       return;
     }
-    try {
-      await setTradeQuantity.mutateAsync({
+    await runReportedMutation(() =>
+      setTradeQuantity.mutateAsync({
         tradeId: pending.tradeId,
         quantity: pending.quantity + 1,
         groupSlug: exchange.groupSlug,
-      });
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
-    }
+      }),
+    );
   };
 
   const handleRelease = async (printing: Printing) => {
@@ -239,20 +238,15 @@ function SharedListGrid({
     if (pending === undefined) {
       return;
     }
-    // Built outside the try: the React Compiler can't handle a conditional value inside try/catch.
-    const release =
+    await runReportedMutation(() =>
       pending.quantity > 1
         ? setTradeQuantity.mutateAsync({
             tradeId: pending.tradeId,
             quantity: pending.quantity - 1,
             groupSlug: exchange.groupSlug,
           })
-        : cancelTrade.mutateAsync({ tradeId: pending.tradeId, groupSlug: exchange.groupSlug });
-    try {
-      await release;
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
-    }
+        : cancelTrade.mutateAsync({ tradeId: pending.tradeId, groupSlug: exchange.groupSlug }),
+    );
   };
 
   const { filters, sortBy, sortDir, groupBy, hasActiveFilters } = useFilterValues();

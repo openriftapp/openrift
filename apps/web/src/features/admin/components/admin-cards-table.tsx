@@ -1,5 +1,4 @@
 import { matchesCardQuery } from "@openrift/shared/card-search";
-import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import { formatShortCodesArray } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
@@ -12,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CountCell, InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -196,13 +196,6 @@ function SetCell({ row }: AdminCellSlotProps<CardsRow>) {
   );
 }
 
-function PrintingCountCell({ row }: AdminCellSlotProps<CardsRow>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground">{row.printingCount}</span>;
-}
-
 function AttentionCell({ row }: AdminCellSlotProps<CardsRow>) {
   if (!row) {
     return null;
@@ -215,15 +208,6 @@ function AttentionCell({ row }: AdminCellSlotProps<CardsRow>) {
         </Badge>
       ))}
     </span>
-  );
-}
-
-function UpdatedCell({ row }: AdminCellSlotProps<CardsRow>) {
-  if (!row) {
-    return null;
-  }
-  return (
-    <span className="text-muted-foreground text-xs">{formatRelativeTime(row.card.updatedAt)}</span>
   );
 }
 
@@ -266,7 +250,7 @@ function buildColumns(): AdminColumnDef<CardsRow>[] {
       sortKey: "printings",
       width: "w-[6rem]",
       align: "right",
-      cell: <PrintingCountCell />,
+      cell: <CountCell<CardsRow> count={(row) => row.printingCount} />,
     },
     {
       header: "Attention",
@@ -280,7 +264,7 @@ function buildColumns(): AdminColumnDef<CardsRow>[] {
       sortKey: "updated",
       width: "w-24",
       align: "right",
-      cell: <UpdatedCell />,
+      cell: <InstantCell<CardsRow> at={(row) => row.card.updatedAt} relative />,
     },
   ];
 }

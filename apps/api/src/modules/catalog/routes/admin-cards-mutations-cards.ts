@@ -3,7 +3,7 @@ import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/car
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 import { implement } from "@orpc/server";
 
-import { assertFound } from "../../../lib/assertions.js";
+import { assertFound, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
@@ -16,6 +16,9 @@ import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { deleteCard } from "../services/card-admin.js";
 import { normalizeCardFieldValue, writeCardField } from "../services/card-field-writes.js";
 import type { NewPrinting } from "../services/printing-admin.js";
+
+const CARD_SLUG_KEY = "cards_slug_key";
+const CARD_SLUG_TAKEN = "A card with this slug already exists";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -136,17 +139,19 @@ export const adminCardMutationsCardsRouter = {
       );
     }
 
-    await context.transact(async (trxRepos) => {
-      // FK constraints validate values at DB level — safe to cast from z.string()
-      await trxRepos.catalogMutations.acceptNewCardFromSources(
-        cardFields as typeof cardFields & {
-          types: CardType[];
-          domains: Domain[];
-          superTypes?: SuperType[];
-        },
-        name,
-      );
-    });
+    await conflictOnUniqueViolation(CARD_SLUG_KEY, CARD_SLUG_TAKEN, () =>
+      context.transact(async (trxRepos) => {
+        // FK constraints validate values at DB level — safe to cast from z.string()
+        await trxRepos.catalogMutations.acceptNewCardFromSources(
+          cardFields as typeof cardFields & {
+            types: CardType[];
+            domains: Domain[];
+            superTypes?: SuperType[];
+          },
+          name,
+        );
+      }),
+    );
 
     await context.repos.catalog.refreshCatalogViews();
 
@@ -221,16 +226,18 @@ export const adminCardMutationsCardsRouter = {
   createCard: os.createCard.handler(async ({ input, context }) => {
     const cardFields = input;
 
-    await context.transact(async (trxRepos) => {
-      await trxRepos.catalogMutations.acceptNewCardFromSources(
-        cardFields as typeof cardFields & {
-          types: CardType[];
-          domains: Domain[];
-          superTypes?: SuperType[];
-        },
-        normalizeNameForIdentity(cardFields.name),
-      );
-    });
+    await conflictOnUniqueViolation(CARD_SLUG_KEY, CARD_SLUG_TAKEN, () =>
+      context.transact(async (trxRepos) => {
+        await trxRepos.catalogMutations.acceptNewCardFromSources(
+          cardFields as typeof cardFields & {
+            types: CardType[];
+            domains: Domain[];
+            superTypes?: SuperType[];
+          },
+          normalizeNameForIdentity(cardFields.name),
+        );
+      }),
+    );
 
     await context.repos.catalog.refreshCatalogViews();
 

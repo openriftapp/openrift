@@ -7,7 +7,7 @@ import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MirrorCounts } from "@/features/admin/lib/meta-mirror-view";
-import { useMetaMirrorSelectionStore } from "@/features/admin/stores/meta-mirror-selection-store";
+import { mirrorSelectionStore } from "@/features/admin/stores/row-selection-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const captured = vi.hoisted(() => ({
@@ -190,7 +190,7 @@ function row(overrides: Partial<MetaCatalogRow> = {}): MetaCatalogRow {
   };
 }
 
-const resetSelection = createStoreResetter(useMetaMirrorSelectionStore);
+const resetSelection = createStoreResetter(mirrorSelectionStore);
 
 describe("MetaMirrorPage", () => {
   beforeEach(() => {

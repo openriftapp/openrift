@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import type { Logger } from "@openrift/shared/logger";
 import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -126,8 +127,8 @@ export async function autoMatchByCrossReference(
   }
 
   const BATCH_SIZE = 200;
-  for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-    await repos.priceRefresh.batchInsertProductVariants(toInsert.slice(i, i + BATCH_SIZE));
+  for (const batch of chunk(toInsert, BATCH_SIZE)) {
+    await repos.priceRefresh.batchInsertProductVariants(batch);
   }
 
   log.info(`Auto-matched ${toInsert.length} ${marketplace} variants to existing printings`);

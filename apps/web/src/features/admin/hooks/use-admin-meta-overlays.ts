@@ -11,6 +11,7 @@ import type {
   MetaUploadRevertResult,
   MetaUploadSummary,
 } from "@openrift/shared/types/api/meta";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -41,7 +42,7 @@ const fetchMetaEventDrift = createServerFn({ method: "GET" })
 
 export function useMetaEventDrift(metaEventId: string, enabled: boolean) {
   return useQuery({
-    queryKey: [...adminKeys.meta.events, metaEventId, "drift"],
+    queryKey: adminKeys.meta.eventDrift(metaEventId),
     queryFn: () => fetchMetaEventDrift({ data: metaEventId }),
     enabled,
     staleTime: 60 * 1000,
@@ -61,8 +62,9 @@ const writeEventOverlayFieldsFn = createServerFn({ method: "POST" })
  * Only the fields the admin actually changed are sent: claiming everything at
  * once is indistinguishable from turning the sources off.
  */
-export function useWriteMetaEventOverlayFields() {
+export function useWriteMetaEventOverlayFields(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (
       input: ContractInput<typeof adminMetaCandidatesContract, "writeEventOverlayFields">,
     ) => writeEventOverlayFieldsFn({ data: input }),
@@ -101,6 +103,7 @@ const writePlayerOverlayFieldsFn = createServerFn({ method: "POST" })
 /** `list` is three-valued: absent, an object of claimed cards, or null for "no list" (survives a source that keeps publishing one). */
 export function useWritePlayerOverlayFields() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (
       input: ContractInput<typeof adminMetaCandidatesContract, "writePlayerOverlayFields">,
     ) => writePlayerOverlayFieldsFn({ data: input }),

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface PodResultFormProps {
@@ -78,11 +79,9 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
       playerId: member.playerId,
       gamePoints: parsed[index] as number,
     }));
-    try {
+    await runReportedMutation(async () => {
       await onSubmit(results);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+    });
   }
 
   return (

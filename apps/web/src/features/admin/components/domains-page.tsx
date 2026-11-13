@@ -73,8 +73,8 @@ const columns: AdminColumnDef<DomainRow, DomainDraft>[] = [
 
 export function DomainsPage() {
   const { data } = useDomains();
-  const createMutation = useCreateDomain();
-  const updateMutation = useUpdateDomain();
+  const createMutation = useCreateDomain({ inlineError: true });
+  const updateMutation = useUpdateDomain({ inlineError: true });
   const deleteMutation = useDeleteDomain();
   const reorderMutation = useReorderDomains();
   const { domains } = data;

@@ -1,4 +1,5 @@
 import { adminFeatureFlagsContract } from "@openrift/shared/contracts/admin/feature-flags";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -47,8 +48,9 @@ const createFeatureFlagFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminFeatureFlagsContract, context.cookie).create(data);
   });
 
-export function useCreateFeatureFlag() {
+export function useCreateFeatureFlag(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: { key: string; description?: string | null; enabled?: boolean }) =>
       createFeatureFlagFn({ data: vars }),
     invalidates: [adminKeys.featureFlags, featureFlagsKeys.all],
@@ -84,8 +86,9 @@ const upsertFeatureFlagOverrideFn = createServerFn({ method: "POST" })
     });
   });
 
-export function useUpsertFeatureFlagOverride() {
+export function useUpsertFeatureFlagOverride(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: { userId: string; flagKey: string; enabled: boolean }) =>
       upsertFeatureFlagOverrideFn({ data: vars }),
     invalidates: [adminKeys.featureFlagOverrides, featureFlagsKeys.all],

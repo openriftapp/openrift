@@ -1,3 +1,5 @@
+import { errorMessage } from "@openrift/shared/strings";
+
 import { defaultIo } from "../../../io.js";
 import { renderCardShareImage } from "../../catalog/services/card-share-image.js";
 import { renderDevelopersImage } from "../../catalog/services/developers-image.js";
@@ -43,7 +45,7 @@ async function handleMessage(id: number, job: RenderJob): Promise<void> {
     const failure: RenderResponse = {
       id,
       ok: false,
-      message: error instanceof Error ? error.message : String(error),
+      message: errorMessage(error),
       stack: error instanceof Error ? error.stack : undefined,
     };
     // oxlint-disable-next-line unicorn/require-post-message-target-origin -- a worker's postMessage takes no target origin

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { mergeFields } from "@/lib/persist-merge";
+
 /**
  * Keyed by trade id and deliberately sparse: no entry means "all of it
  * turned up". A count of 0 is a real answer and is stored.
@@ -52,10 +54,7 @@ export const useTradeTallyStore = create<TradeTallyState>()(
     {
       name: "openrift-trade-tally",
       partialize: (state) => ({ counts: state.counts }),
-      merge: (persisted, current) => {
-        const raw = (persisted as Record<string, unknown>) ?? {};
-        return { ...current, counts: parseCounts(raw.counts) };
-      },
+      merge: mergeFields<TradeTallyState>({ counts: parseCounts }),
     },
   ),
 );

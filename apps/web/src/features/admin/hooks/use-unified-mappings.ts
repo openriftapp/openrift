@@ -176,3 +176,48 @@ export function useUnifiedUnassignFromCard(marketplace: Marketplace) {
     },
   );
 }
+
+export function useSaveMappingsByMarketplace() {
+  return {
+    tcgplayer: useUnifiedSaveMappings("tcgplayer"),
+    cardmarket: useUnifiedSaveMappings("cardmarket"),
+    cardtrader: useUnifiedSaveMappings("cardtrader"),
+    cardnexus: useUnifiedSaveMappings("cardnexus"),
+  } satisfies Record<Marketplace, unknown>;
+}
+
+export function useIgnoreVariantsByMarketplace() {
+  return {
+    tcgplayer: useUnifiedIgnoreVariants("tcgplayer"),
+    cardmarket: useUnifiedIgnoreVariants("cardmarket"),
+    cardtrader: useUnifiedIgnoreVariants("cardtrader"),
+    cardnexus: useUnifiedIgnoreVariants("cardnexus"),
+  } satisfies Record<Marketplace, unknown>;
+}
+
+export function useIgnoreProductsByMarketplace() {
+  return {
+    tcgplayer: useUnifiedIgnoreProducts("tcgplayer"),
+    cardmarket: useUnifiedIgnoreProducts("cardmarket"),
+    cardtrader: useUnifiedIgnoreProducts("cardtrader"),
+    cardnexus: useUnifiedIgnoreProducts("cardnexus"),
+  } satisfies Record<Marketplace, unknown>;
+}
+
+export function useAssignToCardByMarketplace() {
+  return {
+    tcgplayer: useUnifiedAssignToCard("tcgplayer"),
+    cardmarket: useUnifiedAssignToCard("cardmarket"),
+    cardtrader: useUnifiedAssignToCard("cardtrader"),
+    cardnexus: useUnifiedAssignToCard("cardnexus"),
+  } satisfies Record<Marketplace, unknown>;
+}
+
+export function useUnassignFromCardByMarketplace() {
+  return {
+    tcgplayer: useUnifiedUnassignFromCard("tcgplayer"),
+    cardmarket: useUnifiedUnassignFromCard("cardmarket"),
+    cardtrader: useUnifiedUnassignFromCard("cardtrader"),
+    cardnexus: useUnifiedUnassignFromCard("cardnexus"),
+  } satisfies Record<Marketplace, unknown>;
+}

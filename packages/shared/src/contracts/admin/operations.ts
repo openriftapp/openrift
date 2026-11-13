@@ -28,38 +28,6 @@ export const adminOperationsContract = {
     .route({ method: "POST", path: `${BASE}/clear-prices`, tags: [TAG] })
     .input(z.object({ marketplace: marketplaceEnum }))
     .output(clearPricesResponseSchema),
-  refreshTcgplayer: authedRoute
-    .route({
-      method: "POST",
-      path: `${BASE}/refresh-tcgplayer-prices`,
-      tags: [TAG],
-      successStatus: 202,
-    })
-    .output(jobStartedResponseSchema),
-  refreshCardmarket: authedRoute
-    .route({
-      method: "POST",
-      path: `${BASE}/refresh-cardmarket-prices`,
-      tags: [TAG],
-      successStatus: 202,
-    })
-    .output(jobStartedResponseSchema),
-  refreshCardtrader: authedRoute
-    .route({
-      method: "POST",
-      path: `${BASE}/refresh-cardtrader-prices`,
-      tags: [TAG],
-      successStatus: 202,
-    })
-    .output(jobStartedResponseSchema),
-  refreshCardnexus: authedRoute
-    .route({
-      method: "POST",
-      path: `${BASE}/refresh-cardnexus-prices`,
-      tags: [TAG],
-      successStatus: 202,
-    })
-    .output(jobStartedResponseSchema),
   refreshMatviews: authedRoute
     .route({
       method: "POST",

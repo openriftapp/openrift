@@ -1,9 +1,11 @@
+import { chunk } from "@openrift/shared/collections";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
 import { printingVariantPartsEnglish } from "@openrift/shared/printing-label";
 import { cardUrl } from "@openrift/shared/site-paths";
+import { errorMessage } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { DEFAULT_TIMEOUT_MS } from "../../../lib/http.js";
@@ -169,11 +171,10 @@ export function buildNewPrintingMessages(
   });
 
   const messages: NewPrintingMessage[] = [];
-  for (let i = 0; i < embeds.length; i += MAX_EMBEDS_PER_MESSAGE) {
-    const chunk = embeds.slice(i, i + MAX_EMBEDS_PER_MESSAGE);
+  for (const batch of chunk(embeds, MAX_EMBEDS_PER_MESSAGE)) {
     messages.push({
-      body: { embeds: chunk.map((entry) => entry.embed) },
-      eventIds: chunk.map((entry) => entry.eventId),
+      body: { embeds: batch.map((entry) => entry.embed) },
+      eventIds: batch.map((entry) => entry.eventId),
     });
   }
   return messages;
@@ -265,18 +266,18 @@ function buildNewPrintingSummary(
   }
   flush();
 
-  return chunks.map((chunk, index) => ({
+  return chunks.map((part, index) => ({
     body: {
       embeds: [
         {
           title: `${events.length} new printings added${index > 0 ? " (continued)" : ""}`,
-          description: chunk.description,
+          description: part.description,
           color: COLOR_NEW,
           timestamp: firstEvent.createdAt.toISOString(),
         },
       ],
     },
-    eventIds: chunk.eventIds,
+    eventIds: part.eventIds,
   }));
 }
 
@@ -313,7 +314,7 @@ async function postMessage(
         signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
       });
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
+      const detail = errorMessage(error);
       log.warn({ error }, "Discord webhook request error");
       return { detail };
     }

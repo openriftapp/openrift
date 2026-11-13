@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 
 import type { BuyCartItem, UserCart } from "@/features/groups/lib/buy-cart";
 import { cartFor, withPrinting } from "@/features/groups/lib/buy-cart";
+import { mergeFields } from "@/lib/persist-merge";
 
 export const BUY_CART_MARKETPLACES: readonly Marketplace[] = [
   "cardtrader",
@@ -107,14 +108,7 @@ export const useBuyCartStore = create<BuyCartState>()(
     {
       name: "openrift-buy-cart",
       partialize: (state) => ({ carts: state.carts, marketplace: state.marketplace }),
-      merge: (persisted, current) => {
-        const raw = (persisted as Record<string, unknown>) ?? {};
-        return {
-          ...current,
-          carts: parseCarts(raw.carts),
-          marketplace: parseMarketplace(raw.marketplace),
-        };
-      },
+      merge: mergeFields<BuyCartState>({ carts: parseCarts, marketplace: parseMarketplace }),
     },
   ),
 );

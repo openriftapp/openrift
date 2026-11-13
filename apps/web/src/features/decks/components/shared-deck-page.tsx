@@ -7,6 +7,7 @@ import { PublicDeckSurface } from "@/features/decks/components/public-deck-surfa
 import { useCloneSharedDeck, usePublicDeck } from "@/features/decks/hooks/use-decks";
 import { useSession } from "@/hooks/use-session";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/decks_/share/$token");
@@ -25,11 +26,12 @@ export function SharedDeckPage() {
       void navigate(signIn);
       return;
     }
-    try {
-      const result = await cloneMutation.mutateAsync({ token });
-      void navigate({ to: "/decks/$deckId", params: { deckId: result.deckId } });
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let cloned: Awaited<ReturnType<typeof cloneMutation.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      cloned = await cloneMutation.mutateAsync({ token });
+    });
+    if (ok && cloned) {
+      void navigate({ to: "/decks/$deckId", params: { deckId: cloned.deckId } });
     }
   };
 

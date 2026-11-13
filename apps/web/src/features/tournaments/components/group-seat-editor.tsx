@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
 import { asDragData } from "@/lib/dnd-data";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -207,14 +208,15 @@ export function GroupSeatEditor({
   }
 
   async function handleSave() {
-    try {
-      await replace.mutateAsync({
-        id,
-        groups: groups.map((group) => ({ label: group.label, playerIds: group.playerIds })),
-      });
+    if (
+      await runReportedMutation(() =>
+        replace.mutateAsync({
+          id,
+          groups: groups.map((group) => ({ label: group.label, playerIds: group.playerIds })),
+        }),
+      )
+    ) {
       onClose();
-    } catch {
-      // Reported by the global mutation error toast.
     }
   }
 

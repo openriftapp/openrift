@@ -91,8 +91,8 @@ const columns: AdminColumnDef<LanguageResponse, LanguageDraft>[] = [
 
 export function LanguagesPage() {
   const { data } = useLanguages();
-  const createMutation = useCreateLanguage();
-  const updateMutation = useUpdateLanguage();
+  const createMutation = useCreateLanguage({ inlineError: true });
+  const updateMutation = useUpdateLanguage({ inlineError: true });
   const deleteMutation = useDeleteLanguage();
   const reorderMutation = useReorderLanguages();
   const { languages } = data;

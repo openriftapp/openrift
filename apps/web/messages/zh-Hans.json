@@ -5,7 +5,7 @@
   "footer_privacy_policy": "隐私政策",
   "footer_support_us": "支持我们",
   "footer_developers": "开发者",
-  "footer_riot_disclaimer": "OpenRift 依据 Riot Games 的 \"Legal Jibber Jabber\" 政策、使用 Riot Games 拥有的素材制作。Riot Games 不为本项目背书，也不提供赞助。指向 TCGPlayer、CardTrader 和 CardNexus 的链接为联盟推广链接。",
+  "footer_riot_disclaimer": "OpenRift 依据 Riot Games 的 \"Legal Jibber Jabber\" 政策、使用 Riot Games 拥有的素材制作。Riot Games 不为本项目背书，也不提供赞助。指向 TCGplayer、CardTrader 和 CardNexus 的链接为联盟推广链接。",
   "footer_unofficial_instance": "这是 OpenRift 的自托管副本，并非由 OpenRift 团队运营。官方网站请访问 {#link}openrift.app{/link}。",
   "locale_switcher_label": "语言",
   "profile_account_title": "账号信息",
@@ -13,9 +13,6 @@
   "profile_account_name_label": "名字",
   "profile_account_name_placeholder": "你的名字",
   "profile_account_name_updated": "名字已更新。",
-  "profile_account_name_error_required": "请填写名字。",
-  "profile_account_name_error_max": "名字不能超过 50 个字符。",
-  "profile_account_name_error_charset": "名字只能包含字母、数字、空格、句点、下划线和连字符。",
   "profile_account_save_failed": "无法保存，请重试。",
   "profile_account_riot_label": "Riot ID",
   "profile_account_riot_description": "用于预填你提交的赛事卡组。",
@@ -594,7 +591,6 @@
   "auth_reset_code_intro": "请输入我们发送至 {#strong}{email}{/strong} 的 6 位验证码，以及你的新密码。",
   "auth_reset_new_password_label": "新密码",
   "auth_reset_confirm_password_label": "确认密码",
-  "auth_reset_password_too_short": "密码至少需要 8 个字符。",
   "auth_reset_password_mismatch": "两次输入的密码不一致。",
   "auth_reset_failed": "无法重置密码，请重试。",
   "auth_reset_resetting": "重置中…",
@@ -668,6 +664,46 @@
   ],
   "cards_wish_on_your_list": "在你的心愿单上",
   "cards_wish_on_your_lists": "在你的心愿单上",
+  "cards_holdings_lent": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已借给 {name} {count} 张",
+        "countPlural=*": "已借给 {name} {count} 张"
+      }
+    }
+  ],
+  "cards_holdings_borrowed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "从 {name} 借来 {count} 张",
+        "countPlural=*": "从 {name} 借来 {count} 张"
+      }
+    }
+  ],
+  "cards_holdings_trade_outgoing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · 送出 {count} 张",
+        "countPlural=*": "{label} · 送出 {count} 张"
+      }
+    }
+  ],
+  "cards_holdings_trade_incoming": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · 收到 {count} 张",
+        "countPlural=*": "{label} · 收到 {count} 张"
+      }
+    }
+  ],
   "cards_wish_on_your_lists_wanted": "{lists}，想要 {count} 张",
   "cards_wish_on_your_lists_count": "{lists}（{count}）",
   "cards_wish_open_list": "打开{name}",
@@ -1609,7 +1645,7 @@
   "collections_copies_notes_private_hint_group": "这张实体卡属于小组收藏，因此小组里的所有人都能看到。绝不会在公开分享页面上显示。",
   "collections_copies_links_label": "照片与视频",
   "collections_copies_link_title_placeholder": "标签",
-  "collections_copies_network_error": "无法连接服务器。请检查你的网络连接。",
+  "common_network_error": "无法连接服务器。请检查你的网络连接。",
   "collections_copies_trade_cancel_stopped": "为保留你的交换，已在处理 {total} 张中的 {done} 张后停止。其余卡牌保持不变。",
   "collections_copies_signed_out": "未登录时无法添加实体卡",
   "collections_copies_quick_scope_move": "移动",
@@ -1683,6 +1719,16 @@
   "collections_reorder_aria": "重新排序{label}",
   "collections_copy_edit_aria": "{title}。编辑实体卡详情。",
   "collections_copy_graded_title": "评级{grader} {grade}",
+  "collections_copies_with_details": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张有详细信息的卡",
+        "countPlural=*": "{count} 张有详细信息的卡"
+      }
+    }
+  ],
   "collections_import_needs_review": "需要核对",
   "collections_deck_import_cards_section": "卡牌",
   "collections_import_dialog_title": "导入卡牌",
@@ -7669,7 +7715,6 @@
   "meta_archived_decks_heading": "已归档的卡组表",
   "meta_archived_decks_empty_legend": "该传奇的记录中没有清单落在此范围内。",
   "meta_archived_decks_empty_player": "该选手的记录中没有清单落在此范围内。",
-  "meta_deck_code_warning": "卡组代码遗漏了部分卡牌。",
   "meta_deck_preview_sideboard": "备牌 {count}",
   "meta_deck_preview_actions": "卡组表操作",
   "meta_deck_preview_copy_code": "复制卡组代码",

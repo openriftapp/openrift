@@ -22,6 +22,7 @@ import {
   validateContribution,
 } from "@/features/contribute/lib/contribute-json";
 import { otherMissingImages } from "@/features/contribute/lib/missing-images";
+import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
 interface ImageSuggestFormProps {
@@ -147,7 +148,9 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
         />
         {upload.isError && (
           <Alert variant="destructive">
-            <AlertDescription>{errorMessage(upload.error)}</AlertDescription>
+            <AlertDescription>
+              {errorText(upload.error, m.contribute_error_generic())}
+            </AlertDescription>
           </Alert>
         )}
       </div>
@@ -184,7 +187,9 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
       {submit.isError && (
         <Alert variant="destructive">
           <AlertTitle>{m.contribute_submit_error_title()}</AlertTitle>
-          <AlertDescription>{errorMessage(submit.error)}</AlertDescription>
+          <AlertDescription>
+            {errorText(submit.error, m.contribute_error_generic())}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -218,9 +223,4 @@ function MoreMissingImages({ current }: { current: { printingId: string; cardSlu
       <MissingImagesList items={remaining} />
     </section>
   );
-}
-
-function errorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message.trim() : "";
-  return message || m.contribute_error_generic();
 }

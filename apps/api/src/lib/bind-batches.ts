@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 /**
  * postgres.js refuses a statement binding more than 65534 parameters, so any
  * write whose row count comes from outside the request has to be split.
@@ -8,14 +9,6 @@ export const MAX_BIND_PARAMETERS = 65_534;
 const ROW_PARAMETER_BUDGET = 60_000;
 
 const KEY_BATCH_SIZE = 1000;
-
-function batchesOf<T>(items: readonly T[], size: number): T[][] {
-  const batches: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    batches.push(items.slice(index, index + size));
-  }
-  return batches;
-}
 
 /**
  * Kysely builds the column list from the union of the rows' keys and binds
@@ -42,10 +35,10 @@ export function rowBatches<T extends object>(rows: readonly T[]): T[][] {
   if (columns === 0) {
     return rows.length === 0 ? [] : [[...rows]];
   }
-  return batchesOf(rows, Math.max(1, Math.floor(ROW_PARAMETER_BUDGET / columns)));
+  return chunk(rows, Math.max(1, Math.floor(ROW_PARAMETER_BUDGET / columns)));
 }
 
 /** Batching a read means one query per batch; the caller concatenates the results. */
 export function keyBatches<T>(keys: readonly T[]): T[][] {
-  return batchesOf(keys, KEY_BATCH_SIZE);
+  return chunk(keys, KEY_BATCH_SIZE);
 }

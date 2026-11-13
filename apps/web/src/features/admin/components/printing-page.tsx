@@ -76,6 +76,7 @@ import {
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { DeskFaceOption } from "@/features/admin/lib/desk-face-options";
 import { deskFaceOptions, deskPrintingName } from "@/features/admin/lib/desk-face-options";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
@@ -91,6 +92,7 @@ import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 const DESK_IMAGE_SCOPE = [
@@ -268,7 +270,7 @@ function FaceCard({
             <DetailRow label="Language" value={enumLabel(languageLabels, face.language)} />
             <DetailRow label="Rarity" value={enumLabel(labels.rarities, face.rarity)} />
             <DetailRow label="Artist" value={face.artist} />
-            <DetailRow label="Markers" value={markers.length > 0 ? markers : "None"} />
+            <DetailRow label="Markers" value={markers.length > 0 ? markers : EMPTY_VALUE_TEXT} />
           </DefinitionList>
         )}
 
@@ -420,7 +422,7 @@ function FaceImages({
   images: DeskImage[];
 }) {
   const { data: session } = useSession();
-  const uploadImage = useUploadPrintingImage(DESK_IMAGE_SCOPE);
+  const uploadImage = useUploadPrintingImage(DESK_IMAGE_SCOPE, { inlineError: true });
   const activateImage = useActivatePrintingImage(DESK_IMAGE_SCOPE);
   const [uploading, setUploading] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -436,17 +438,17 @@ function FaceImages({
     const credit = uploaderName.length > 0 ? uploaderName : undefined;
     for (const file of files) {
       setUploading((current) => [...current, file.name]);
-      try {
-        await uploadImage.mutateAsync({
-          printingId,
-          file,
-          mode: "additional",
-          face: face.imageFace,
-          credit,
-        });
-      } catch (error) {
-        setUploadError(errorText(error, `Could not upload ${file.name}.`));
-      }
+      await runReportedMutation(
+        () =>
+          uploadImage.mutateAsync({
+            printingId,
+            file,
+            mode: "additional",
+            face: face.imageFace,
+            credit,
+          }),
+        (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+      );
       setUploading((current) => current.filter((name) => name !== file.name));
     }
   }
@@ -573,7 +575,10 @@ function PrintingFieldsCard({
         ) : (
           <>
             <DefinitionList className="sm:grid-cols-[max-content_minmax(0,1fr)_max-content_minmax(0,1fr)]">
-              <DetailRow label="Channel" value={channelPath.length > 0 ? channelPath : "None"} />
+              <DetailRow
+                label="Channel"
+                value={channelPath.length > 0 ? channelPath : EMPTY_VALUE_TEXT}
+              />
               <DetailRow label="Size" value={enumLabel(labels.cardSizes, printing.size)} />
               {printing.announcedAt !== null && (
                 <DetailRow label="Announced on" value={formatDay(printing.announcedAt)} />

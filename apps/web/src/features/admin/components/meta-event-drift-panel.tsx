@@ -21,15 +21,19 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import {
   useMetaEventDrift,
   useReleaseMetaEventOverlayField,
   useSetMetaSourcePriority,
   useWriteMetaEventOverlayFields,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { reviewFieldLabel } from "@/features/admin/lib/meta-review-queue";
 import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 type DriftField = MetaEventDrift["fields"][number];
@@ -54,10 +58,7 @@ function SourceHeader({ source }: { source: MetaEventDrift["sources"][number] })
 
   async function move(delta: number): Promise<void> {
     const priority = Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, source.priority + delta));
-    try {
-      await setPriority.mutateAsync({ id: source.id, priority });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => setPriority.mutateAsync({ id: source.id, priority })))) {
       return;
     }
     toast.success("Reordered. The published event is rebuilt from its sources.");
@@ -109,10 +110,11 @@ function ClaimForm({
   const write = useWriteMetaEventOverlayFields();
 
   async function save(): Promise<void> {
-    try {
-      await write.mutateAsync({ id: metaEventId, edits: [{ field, value: draft }] });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        write.mutateAsync({ id: metaEventId, edits: [{ field, value: draft }] }),
+      ))
+    ) {
       return;
     }
     toast.success("Claimed. The archive owns this field now.");
@@ -182,10 +184,7 @@ function ReleaseButton({
   const release = useReleaseMetaEventOverlayField();
 
   async function handleRelease(): Promise<void> {
-    try {
-      await release.mutateAsync({ id: metaEventId, field });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => release.mutateAsync({ id: metaEventId, field })))) {
       return;
     }
     toast.success("Released. The sources decide this field again.");
@@ -206,84 +205,96 @@ function ReleaseButton({
   );
 }
 
-function FieldRow({
-  metaEventId,
-  field,
-  sources,
-}: {
-  metaEventId: string;
-  field: DriftField;
-  sources: MetaEventDrift["sources"];
-}) {
-  const [claiming, setClaiming] = useState(false);
-  const contested = isContested(field);
-  const editable = isOverlayField(field.field) ? field.field : null;
+function DriftDotCell({ row: field }: AdminCellSlotProps<DriftField>) {
+  if (!field || !isContested(field)) {
+    return null;
+  }
+  return <span className="bg-warning block size-1.5 rounded-full" aria-hidden />;
+}
 
+function FieldNameCell({ row: field }: AdminCellSlotProps<DriftField>) {
+  if (!field) {
+    return null;
+  }
   return (
-    <tr>
-      <td className="w-1 py-2.5 pr-1">
-        {contested && <span className="bg-warning block size-1.5 rounded-full" aria-hidden />}
-      </td>
-      <td className="text-muted-foreground py-2.5 pr-3">
-        <span className="flex items-center gap-1.5">
-          {field.claimedByOverlay && <LockIcon className="size-3" aria-label="Set by hand" />}
-          {reviewFieldLabel(field.field)}
-        </span>
-      </td>
-      {field.bySource.map((cell, index) => (
-        <td
-          key={sources[index]?.id ?? index}
-          className={cn(
-            "py-2.5 pr-3 align-top",
-            field.claimedByOverlay && "text-muted-foreground/50 line-through",
-            contested && cell.value !== field.live && cell.value !== null && "text-warning",
-          )}
-        >
-          <span className="block">{cell.value ?? "—"}</span>
-          {cell.raw !== null && cell.raw !== cell.value && (
-            <span className="text-muted-foreground text-2xs block">{cell.raw}</span>
-          )}
-        </td>
-      ))}
-      <td className="py-2.5 align-top">
-        <span className="flex items-center gap-2">
-          {claiming && editable !== null ? (
-            <ClaimForm
-              metaEventId={metaEventId}
-              field={editable}
-              live={field.live}
-              onDone={() => {
-                setClaiming(false);
-              }}
-            />
+    <span className="text-muted-foreground flex items-center gap-1.5">
+      {field.claimedByOverlay && <LockIcon className="size-3" aria-label="Set by hand" />}
+      {reviewFieldLabel(field.field)}
+    </span>
+  );
+}
+
+function SourceValueCell({
+  row: field,
+  sourceIndex,
+}: AdminCellSlotProps<DriftField> & { sourceIndex?: number }) {
+  const cell = sourceIndex === undefined ? undefined : field?.bySource[sourceIndex];
+  if (!field || !cell) {
+    return null;
+  }
+  const contested = isContested(field);
+  return (
+    <span
+      className={cn(
+        "block",
+        field.claimedByOverlay && "text-muted-foreground/50 line-through",
+        contested && cell.value !== field.live && cell.value !== null && "text-warning",
+      )}
+    >
+      <span className="block">{cell.value ?? EMPTY_VALUE_TEXT}</span>
+      {cell.raw !== null && cell.raw !== cell.value && (
+        <span className="text-muted-foreground text-2xs block">{cell.raw}</span>
+      )}
+    </span>
+  );
+}
+
+function PublishedCell({
+  row: field,
+  metaEventId,
+}: AdminCellSlotProps<DriftField> & { metaEventId?: string }) {
+  const [claiming, setClaiming] = useState(false);
+  if (!field || metaEventId === undefined) {
+    return null;
+  }
+  const editable = isOverlayField(field.field) ? field.field : null;
+  return (
+    <span className="flex items-center gap-2">
+      {claiming && editable !== null ? (
+        <ClaimForm
+          metaEventId={metaEventId}
+          field={editable}
+          live={field.live}
+          onDone={() => {
+            setClaiming(false);
+          }}
+        />
+      ) : (
+        <>
+          <span className="font-medium">{field.live ?? EMPTY_VALUE_TEXT}</span>
+          {field.claimedByOverlay ? (
+            <Badge variant="outline">Set by hand</Badge>
           ) : (
-            <>
-              <span className="font-medium">{field.live ?? "—"}</span>
-              {field.claimedByOverlay ? (
-                <Badge variant="outline">Set by hand</Badge>
-              ) : (
-                field.wonBy !== null && <Badge variant="outline">{field.wonBy}</Badge>
-              )}
-              {editable !== null && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  aria-label={`Claim ${field.field} for the archive`}
-                  onClick={() => {
-                    setClaiming(true);
-                  }}
-                >
-                  <PencilIcon />
-                </Button>
-              )}
-              {editable !== null && field.claimedByOverlay && (
-                <ReleaseButton metaEventId={metaEventId} field={editable} />
-              )}
-            </>
+            field.wonBy !== null && <Badge variant="outline">{field.wonBy}</Badge>
           )}
-        </span>
-      </td>
-    </tr>
+          {editable !== null && (
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={`Claim ${field.field} for the archive`}
+              onClick={() => {
+                setClaiming(true);
+              }}
+            >
+              <PencilIcon />
+            </Button>
+          )}
+          {editable !== null && field.claimedByOverlay && (
+            <ReleaseButton metaEventId={metaEventId} field={editable} />
+          )}
+        </>
+      )}
+    </span>
   );
 }
 
@@ -335,32 +346,27 @@ export function MetaEventDriftPanel({
         <p className="text-muted-foreground">Every field matches its sources.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="w-1">
-                  <span className="sr-only">Drift</span>
-                </th>
-                <th className="py-2 pr-3 font-medium">Field</th>
-                {data.sources.map((source) => (
-                  <th key={source.id} className="py-2 pr-3 font-medium">
-                    {sourceProviderDisplay(source.provider ?? source.label).label}
-                  </th>
-                ))}
-                <th className="py-2 font-medium">Published</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((field) => (
-                <FieldRow
-                  key={field.field}
-                  metaEventId={metaEventId}
-                  field={field}
-                  sources={data.sources}
-                />
-              ))}
-            </tbody>
-          </table>
+          <AdminTable
+            bare
+            columns={[
+              {
+                header: "",
+                id: "drift",
+                headerTitle: "Drift",
+                width: "w-1",
+                cell: <DriftDotCell />,
+              },
+              { header: "Field", cell: <FieldNameCell /> },
+              ...data.sources.map((source, index) => ({
+                header: sourceProviderDisplay(source.provider ?? source.label).label,
+                id: `source-${source.id}`,
+                cell: <SourceValueCell sourceIndex={index} />,
+              })),
+              { header: "Published", cell: <PublishedCell metaEventId={metaEventId} /> },
+            ]}
+            data={shown}
+            getRowKey={(field) => field.field}
+          />
         </div>
       )}
 

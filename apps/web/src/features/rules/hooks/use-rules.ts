@@ -9,6 +9,7 @@ import {
   ruleVersionsQueryOptions,
   rulesAtVersionQueryOptions,
 } from "@/features/rules/lib/rules-queries";
+import { rulesKeys } from "@/features/rules/lib/rules-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
@@ -63,8 +64,9 @@ const importRulesFn = createServerFn({ method: "POST" })
 
 export function useImportRules() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: ImportRulesInput) => importRulesFn({ data: vars }),
-    invalidates: [["rules"], adminKeys.rules.versions],
+    invalidates: [rulesKeys.root, adminKeys.rules.versions],
   });
 }
 
@@ -84,7 +86,7 @@ const deleteRuleVersionFn = createServerFn({ method: "POST" })
 export function useDeleteRuleVersion() {
   return useMutationWithInvalidation({
     mutationFn: (vars: RuleVersionKey) => deleteRuleVersionFn({ data: vars }),
-    invalidates: [["rules"], adminKeys.rules.versions],
+    invalidates: [rulesKeys.root, adminKeys.rules.versions],
   });
 }
 
@@ -107,6 +109,6 @@ const updateRuleVersionFn = createServerFn({ method: "POST" })
 export function useUpdateRuleVersion() {
   return useMutationWithInvalidation({
     mutationFn: (vars: UpdateRuleVersionInput) => updateRuleVersionFn({ data: vars }),
-    invalidates: [["rules"], adminKeys.rules.versions],
+    invalidates: [rulesKeys.root, adminKeys.rules.versions],
   });
 }

@@ -2,6 +2,7 @@ import type { CustomTagCategoryResponse } from "@openrift/shared/types/api/admin
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import {
+  CountCell,
   DescriptionCell,
   DescriptionInput,
   DraftTextInput,
@@ -11,20 +12,13 @@ import {
   validateSlugAndLabel,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
-import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
+import type { AdminColumnDef } from "@/features/admin/components/admin-table";
 import type { CustomTagCategoryDraft } from "@/features/admin/lib/custom-tags-drafts";
 import {
   useCreateCustomTagCategory,
   useDeleteCustomTagCategory,
   useUpdateCustomTagCategory,
 } from "@/features/collections/hooks/use-custom-tags";
-
-function CategoryTagCountCell({ row }: AdminCellSlotProps<CustomTagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.tagCount}</span>;
-}
 
 const categoryColumns: AdminColumnDef<CustomTagCategoryResponse, CustomTagCategoryDraft>[] = [
   {
@@ -51,13 +45,13 @@ const categoryColumns: AdminColumnDef<CustomTagCategoryResponse, CustomTagCatego
     header: "Tags",
     sortValue: (cat) => cat.tagCount,
     align: "right",
-    cell: <CategoryTagCountCell />,
+    cell: <CountCell<CustomTagCategoryResponse> count={(row) => row.tagCount} />,
   },
 ];
 
 export function CategoriesSection({ categories }: { categories: CustomTagCategoryResponse[] }) {
-  const createMutation = useCreateCustomTagCategory();
-  const updateMutation = useUpdateCustomTagCategory();
+  const createMutation = useCreateCustomTagCategory({ inlineError: true });
+  const updateMutation = useUpdateCustomTagCategory({ inlineError: true });
   const deleteMutation = useDeleteCustomTagCategory();
 
   return (

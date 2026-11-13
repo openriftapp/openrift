@@ -1,3 +1,4 @@
+import { META_EVENT_SLUG_PATTERN } from "@openrift/shared/contracts/admin/meta-events";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,9 +7,6 @@ import {
   metaEventSlugCandidates,
   resolvedStandingName,
 } from "./meta-event-naming.js";
-
-/** The CHECK constraint on `meta_events.slug`, so every case can assert against it. */
-const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{2,49}$/u;
 
 describe("metaEventSlugBase", () => {
   it("slugifies the name and appends the event's date", () => {
@@ -57,7 +55,7 @@ describe("metaEventSlugBase", () => {
   it("always produces a slug the column accepts", () => {
     const names = ["Summoner Skirmish", "2026", "-- x --", "Ω", "a", `${"z".repeat(200)}`];
     for (const name of names) {
-      expect(metaEventSlugBase(name, "2026-08-01")).toMatch(SLUG_PATTERN);
+      expect(metaEventSlugBase(name, "2026-08-01")).toMatch(META_EVENT_SLUG_PATTERN);
     }
   });
 });
@@ -111,7 +109,7 @@ describe("metaEventSlugCandidates", () => {
     const names = [`${"a".repeat(80)} open`, "2026", "???", "AB"];
     for (const name of names) {
       for (const slug of metaEventSlugCandidates(name, "2026-08-01", ["ab12cd"])) {
-        expect(slug).toMatch(SLUG_PATTERN);
+        expect(slug).toMatch(META_EVENT_SLUG_PATTERN);
       }
     }
   });

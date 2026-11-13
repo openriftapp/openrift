@@ -21,5 +21,6 @@ export function useSubmitCard() {
       await submitCardFn({ data: input });
     },
     invalidates: [cardSubmissionsKeys.root],
+    meta: { inlineError: true },
   });
 }

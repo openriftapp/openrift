@@ -1,9 +1,9 @@
-export const MIN_CARD_SCALE = 0.4;
-export const MAX_CARD_SCALE = 1;
+import { clamp } from "@openrift/shared/math";
+import { CARD_SCALE } from "@openrift/shared/overlay-scale";
 
 export function clampCardScale(scale: number): number {
   if (!Number.isFinite(scale)) {
-    return MAX_CARD_SCALE;
+    return CARD_SCALE.max;
   }
-  return Math.min(MAX_CARD_SCALE, Math.max(MIN_CARD_SCALE, scale));
+  return clamp(scale, CARD_SCALE.min, CARD_SCALE.max);
 }

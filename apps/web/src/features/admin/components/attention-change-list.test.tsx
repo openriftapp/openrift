@@ -168,6 +168,17 @@ describe("AttentionChangeList", () => {
     expect(onEdit).toHaveBeenCalledWith("card:c1:name", "Lux, Lady of Light!");
   });
 
+  it("clears a number to no value and ignores text that is not a whole number", async () => {
+    const { onEdit } = renderList();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Might" }));
+    const input = screen.getByDisplayValue("5");
+    await userEvent.clear(input);
+    expect(onEdit).toHaveBeenLastCalledWith("card:c1:might", null);
+    onEdit.mockClear();
+    await userEvent.type(input, "x");
+    expect(onEdit).toHaveBeenLastCalledWith("card:c1:might", 5);
+  });
+
   it("links a new printing straight from the menu", async () => {
     const onLinkGroup = vi.fn();
     renderList({

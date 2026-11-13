@@ -18,19 +18,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { JsonFileField } from "@/features/admin/components/json-file-field";
+import {
+  UploadDiffTable,
+  UploadEntryTable,
+} from "@/features/admin/components/upload-preview-tables";
 import { useUploadCandidates } from "@/features/admin/hooks/use-admin-image-mutations";
 import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
-import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { parseJsonEntries } from "@/features/admin/lib/json-upload";
+import { errorText } from "@/lib/error-text";
 
 type UploadDetail = UploadCandidatesResponse["newCardDetails"][number];
 type UploadDiff = UploadCandidatesResponse["updatedCards"][number];
@@ -149,71 +145,34 @@ export function SourceNameField({
 
 function ItemList({ label, items }: { label: string; items: UploadDetail[] }) {
   return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-sm font-medium">{label}</p>
-      <div className="max-h-64 overflow-y-auto rounded-md border">
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader className="bg-muted sticky top-0">
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Code</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-muted-foreground">{item.shortCode ?? "—"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <UploadEntryTable
+      label={label}
+      detailHeader="Code"
+      entries={items.map((item, index) => ({
+        key: String(index),
+        name: item.name,
+        detail: item.shortCode ?? null,
+      }))}
+    />
   );
 }
 
 function DiffTable({ label, items }: { label: string; items: UploadDiff[] }) {
   return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-sm font-medium">{label}</p>
-      <div className="max-h-64 overflow-y-auto rounded-md border">
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader className="bg-muted sticky top-0">
-            <TableRow>
-              <TableHead>Card</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Field</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.flatMap((item, itemIndex) =>
-              item.fields.map((field, fieldIndex) => (
-                <TableRow key={`${itemIndex}-${fieldIndex}`}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.shortCode ?? "—"}</TableCell>
-                  <TableCell>{field.field}</TableCell>
-                  <TableCell
-                    className="text-destructive max-w-48 truncate"
-                    title={JSON.stringify(field.from)}
-                  >
-                    {JSON.stringify(field.from)}
-                  </TableCell>
-                  <TableCell
-                    className="text-success max-w-48 truncate"
-                    title={JSON.stringify(field.to)}
-                  >
-                    {JSON.stringify(field.to)}
-                  </TableCell>
-                </TableRow>
-              )),
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <UploadDiffTable
+      label={label}
+      detailHeader="Code"
+      changes={items.flatMap((item, itemIndex) =>
+        item.fields.map((field, fieldIndex) => ({
+          key: `${itemIndex}-${fieldIndex}`,
+          name: item.name,
+          detail: item.shortCode ?? null,
+          field: field.field,
+          from: field.from,
+          to: field.to,
+        })),
+      )}
+    />
   );
 }
 
@@ -337,7 +296,7 @@ export function SourceUploadDialog({
           {upload.isError && (
             <p className="text-muted-foreground flex items-center gap-1 text-sm">
               <XIcon className="text-destructive size-4 shrink-0" />
-              {upload.error.message}
+              {errorText(upload.error, "Upload failed")}
             </p>
           )}
         </div>

@@ -111,6 +111,20 @@ describe("applyOptimisticAssignmentForCard", () => {
     ]);
   });
 
+  it("adds no second assignment when the same assign is applied again before the refetch", () => {
+    const enPrinting = printing({ printingId: "p-en", language: "EN", finish: "normal" });
+    const product = staged({ externalId: 10, language: "EN", finish: "normal" });
+    const before = cardResponse(
+      group("c-1", [enPrinting], { cardmarket: { staged: [product], assigned: [] } }),
+    );
+    const once = applyOptimisticAssignmentForCard(before, "cardmarket", 10, "normal", "EN", "p-en");
+    const twice = applyOptimisticAssignmentForCard(once, "cardmarket", 10, "normal", "EN", "p-en");
+
+    expect(twice).toBe(once);
+    expect(twice.group?.cardmarket.assignments).toHaveLength(1);
+    expect(twice.group?.cardmarket.assignedProducts).toEqual([product]);
+  });
+
   it("returns the original response unchanged when the card has no group", () => {
     const before = cardResponse(null);
     const after = applyOptimisticAssignmentForCard(before, "tcgplayer", 1, "normal", null, "p-en");

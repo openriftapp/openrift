@@ -1,4 +1,4 @@
-import { createContext, use, useMemo, useState } from "react";
+import { createContext, use, useState } from "react";
 
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 
@@ -15,7 +15,7 @@ function useFieldFocus(): FieldFocusValue | null {
 
 export function useFieldFocusState(): FieldFocusValue {
   const [active, setActive] = useState<PlaceholderField | null>(null);
-  return useMemo(() => ({ active, setActive }), [active]);
+  return { active, setActive };
 }
 
 export function FieldFocusProvider({

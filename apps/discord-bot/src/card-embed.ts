@@ -1,5 +1,6 @@
 import { splitCardBans } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { DISCORD_EMBED_COLOR } from "@openrift/shared/discord-embed";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { errataForLanguage } from "@openrift/shared/errata";
 import { imageUrl } from "@openrift/shared/image-url";
@@ -24,8 +25,6 @@ import type { CatalogCard, CatalogPrinting, CatalogSnapshot, EnumLabels } from "
 import type { GlyphEmojis } from "./glyph-emoji.js";
 import type { TradelistHolderPrinting, TradelistHolders } from "./group-tradelists.js";
 import { printingVariantParts } from "./printing-choice.js";
-
-export const EMBED_COLOR = 0x24_70_5f;
 
 /** Discord's per-field value cap. */
 export const FIELD_LIMIT = 1024;
@@ -303,7 +302,7 @@ export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
     title: legendDisplayName(card),
     url: cardUrl(siteUrl, card.slug),
     ...(lines.length > 0 ? { description: lines.join("\n") } : {}),
-    color: EMBED_COLOR,
+    color: DISCORD_EMBED_COLOR,
     ...(imageId ? { image: { url: `${siteUrl}${imageUrl(imageId, "full")}` } } : {}),
     ...(fields.length > 0 ? { fields } : {}),
     ...(printing ? { footer: { text: printingFooter(printing, snapshot) } } : {}),

@@ -28,6 +28,7 @@ import {
   useUpdateSiteSetting,
 } from "@/hooks/use-site-settings";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface SettingDraft {
   key: string;
@@ -211,8 +212,8 @@ const columns: AdminColumnDef<SiteSettingResponse, SettingDraft>[] = [
 
 export function SiteSettingsPage() {
   const { data } = useSiteSettings();
-  const updateMutation = useUpdateSiteSetting();
-  const createMutation = useCreateSiteSetting();
+  const updateMutation = useUpdateSiteSetting({ inlineError: true });
+  const createMutation = useCreateSiteSetting({ inlineError: true });
   const deleteMutation = useDeleteSiteSetting();
   const { settings } = data;
 
@@ -359,14 +360,14 @@ function KnownSettingRow({
     }
     setPending(true);
     setSaveError("");
-    try {
-      await onCreate(value.trim());
+    const saved = await runReportedMutation(
+      () => onCreate(value.trim()),
+      (error) => setSaveError(errorText(error, "Save failed")),
+    );
+    setPending(false);
+    if (saved) {
       setEditing(false);
       setValue("");
-      setPending(false);
-    } catch (error) {
-      setSaveError(errorText(error, "Save failed"));
-      setPending(false);
     }
   }
 
@@ -375,13 +376,11 @@ function KnownSettingRow({
   async function handleCreateOn() {
     setPending(true);
     setSaveError("");
-    try {
-      await onCreate("true");
-      setPending(false);
-    } catch (error) {
-      setSaveError(errorText(error, "Save failed"));
-      setPending(false);
-    }
+    await runReportedMutation(
+      () => onCreate("true"),
+      (error) => setSaveError(errorText(error, "Save failed")),
+    );
+    setPending(false);
   }
 
   return (

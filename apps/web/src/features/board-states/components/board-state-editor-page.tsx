@@ -52,6 +52,7 @@ import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
 import { trackAuthGate } from "@/lib/analytics";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { shareLinkUrl } from "@/lib/share-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -141,14 +142,15 @@ function SavedEditor({
     setError(null);
     const savedRevision = useBoardEditorStore.getState().revision;
     const savedMetaRevision = metaRevision.current;
-    try {
-      await update.mutateAsync({ id: boardState.id, ...meta, document: result.document });
+    if (
+      await runReportedMutation(() =>
+        update.mutateAsync({ id: boardState.id, ...meta, document: result.document }),
+      )
+    ) {
       if (metaRevision.current === savedMetaRevision) {
         setMetaDirty(false);
       }
       useBoardEditorStore.getState().markSaved(savedRevision);
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   };
 
@@ -305,11 +307,11 @@ function DraftEditor() {
     const request = createdId
       ? () => update.mutateAsync({ id: createdId, ...body })
       : () => create.mutateAsync(body);
-    let saved: BoardStateResponse;
-    try {
+    let saved: BoardStateResponse | undefined;
+    const ok = await runReportedMutation(async () => {
       saved = await request();
-    } catch {
-      /* Reported by the global mutation error toast. */
+    });
+    if (!ok || !saved) {
       return;
     }
     const boardId = saved.id;

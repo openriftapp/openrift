@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useUpdateUserField } from "@/features/account/hooks/use-update-user-field";
 import { authClient } from "@/features/account/lib/auth-client";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
@@ -86,34 +87,23 @@ const bioSchema = z.object({
 type BioValues = z.infer<typeof bioSchema>;
 
 function BioForm({ defaultBio }: { defaultBio: string }) {
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const queryClient = useQueryClient();
   const form = useForm<BioValues>({
     resolver: zodResolver(bioSchema),
     defaultValues: { bio: defaultBio },
   });
   const watchedBio = useWatch({ control: form.control, name: "bio" });
 
-  async function onSubmit(values: BioValues) {
-    setLoading(true);
-    setSuccess(false);
-    // An empty string normalizes to null server-side (clears the field).
-    const result = await authClient.updateUser({ bio: values.bio.trim() }).catch(() => null);
-    setLoading(false);
-    if (!result) {
-      form.setError("root", { message: m.profile_public_save_error() });
-      return;
-    }
-    const { error } = result;
-    if (error) {
+  const { save, loading, success } = useUpdateUserField(form, {
+    saveFailed: m.profile_public_save_error(),
+    onServerError: (error) =>
       form.setError(error.code === "INVALID_BIO" ? "bio" : "root", {
         message: error.message ?? m.profile_public_save_error(),
-      });
-      return;
-    }
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-    setSuccess(true);
+      }),
+  });
+
+  async function onSubmit(values: BioValues) {
+    // An empty string normalizes to null server-side (clears the field).
+    await save({ bio: values.bio.trim() });
   }
 
   return (

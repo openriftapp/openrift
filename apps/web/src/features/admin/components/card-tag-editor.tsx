@@ -19,6 +19,7 @@ import {
   useCardCustomTags,
   useSetCardCustomTags,
 } from "@/features/collections/hooks/use-custom-tags";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function CategorySelect({
   items,
@@ -118,11 +119,7 @@ function CardTagToggleList({
   }
 
   async function save() {
-    try {
-      await mutation.mutateAsync([...pending]);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+    await runReportedMutation(() => mutation.mutateAsync([...pending]));
   }
 
   const dirty =

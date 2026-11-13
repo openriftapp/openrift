@@ -228,6 +228,27 @@ describe("candidateCardsRepo", () => {
     expect(result).toEqual({ updated: 3, candidateCardIds: ["cc-1", "cc-2", "cc-3"] });
   });
 
+  it("checkCandidateCards touches nothing for an empty id list", async () => {
+    const db = createMockDb([{ id: "cc-1" }]);
+    expect(await candidateCardsRepo(db).checkCandidateCards([])).toEqual({
+      updated: 0,
+      candidateCardIds: [],
+    });
+  });
+
+  it("checkCandidateCards counts the rows it flipped and returns every given row that exists", async () => {
+    const db = createMockDb([{ id: "cc-1" }]);
+    expect(await candidateCardsRepo(db).checkCandidateCards(["cc-1"])).toEqual({
+      updated: 1,
+      candidateCardIds: ["cc-1"],
+    });
+  });
+
+  it("uncheckCandidateCards counts the rows it cleared", async () => {
+    const db = createMockDb([{ id: "cc-1" }, { id: "cc-2" }]);
+    expect(await candidateCardsRepo(db).uncheckCandidateCards(["cc-1", "cc-2"])).toBe(2);
+  });
+
   it("checkCandidatePrinting updates checked_at", async () => {
     const db = createMockDb([{ numUpdatedRows: 1n }]);
     expect(await candidateCardsRepo(db).checkCandidatePrinting("cp-1")).toBeDefined();

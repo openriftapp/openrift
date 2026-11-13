@@ -3,7 +3,7 @@ import { pluralize } from "@openrift/shared/strings";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { uncheckCandidateCardFn } from "@/features/admin/hooks/use-admin-card-mutations";
+import { uncheckCandidateCardsFn } from "@/features/admin/hooks/use-admin-card-mutations";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import {
@@ -44,11 +44,7 @@ export function useDiscardSameDifference() {
           undoneLabel: `Undone: ${what} restored on ${record}`,
           invalidates: undoScope(BULK_SCOPE),
           undo: async () => {
-            await Promise.all(
-              candidateCardIds.map((candidateCardId) =>
-                uncheckCandidateCardFn({ data: { candidateCardId } }),
-              ),
-            );
+            await uncheckCandidateCardsFn({ data: { candidateCardIds } });
           },
         });
       },

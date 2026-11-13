@@ -9,6 +9,7 @@ import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
 import { fileOrder, findOrderedCollection } from "@/features/groups/lib/buy-cart";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useDecrementListEntries } from "@/features/lists/hooks/use-lists";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function useMarkOrdered() {
@@ -37,18 +38,16 @@ export function useMarkOrdered() {
     wantedByKey: ReadonlyMap<string, WantedCard>,
   ): Promise<boolean> => {
     setPending(true);
-    const done = await fileOrder(
-      {
-        collectionId,
-        addCopies: (copies) => addCopies.mutateAsync({ copies }),
-        decrementEntries: (entries) => decrementEntries.mutateAsync({ entries }),
-      },
-      items,
-      wantedByKey,
-    ).then(
-      () => true,
-      // Reported by the global mutation error toast.
-      () => false,
+    const done = await runReportedMutation(() =>
+      fileOrder(
+        {
+          collectionId,
+          addCopies: (copies) => addCopies.mutateAsync({ copies }),
+          decrementEntries: (entries) => decrementEntries.mutateAsync({ entries }),
+        },
+        items,
+        wantedByKey,
+      ),
     );
     setPending(false);
     return done;

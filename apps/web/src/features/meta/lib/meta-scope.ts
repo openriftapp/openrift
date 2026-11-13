@@ -1,4 +1,4 @@
-import { todayUtc, formatDay } from "@openrift/shared/format-date";
+import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
 import type { SetReleases } from "@openrift/shared/set-release";
 import { earliestRelease } from "@openrift/shared/set-release";
@@ -102,7 +102,7 @@ export function deriveSetEras(sets: readonly EraSet[], today = todayUtc()): Meta
         id: entry.set.slug,
         label: entry.set.name,
         from: entry.releasedAt,
-        to: nextEntry ? dayBefore(nextEntry.releasedAt) : null,
+        to: nextEntry ? shiftUtcDay(nextEntry.releasedAt, -1) : null,
       };
     })
     .toReversed();
@@ -386,12 +386,6 @@ export function scopeKey(scope: MetaScope): string {
     return `${included.join(",")}!${excluded.join(",")}`;
   });
   return [scope.era ?? "", scope.from ?? "", scope.to ?? "", ...facets].join("|");
-}
-
-function dayBefore(date: string): string {
-  const at = new Date(`${date}T00:00:00Z`);
-  at.setUTCDate(at.getUTCDate() - 1);
-  return formatDay(at);
 }
 
 /**

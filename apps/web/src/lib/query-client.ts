@@ -1,8 +1,10 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
+import type { MutationMeta } from "@tanstack/react-query";
 
 import { m } from "@/paraglide/messages.js";
 
 import { sessionQueryOptions } from "./auth-session";
+import { errorText } from "./error-text";
 import { featureFlagsKeys } from "./query-keys";
 import { captureHandledError } from "./report-error";
 import {
@@ -17,11 +19,21 @@ import { toastableMessage } from "./toastable-message";
 import { UserDeclinedError } from "./user-declined-error";
 import { refreshViewer } from "./viewer-change";
 
+declare module "@tanstack/react-query" {
+  interface Register {
+    mutationMeta: { inlineError?: boolean };
+  }
+}
+
 /**
  * react-query merges mutation options shallowly, so a mutation's own
  * `onError` overrides this default; such handlers must call this directly.
  */
-export function reportMutationError(err: Error, queryClient: QueryClient): void {
+export function reportMutationError(
+  err: Error,
+  queryClient: QueryClient,
+  meta?: MutationMeta,
+): void {
   if (err instanceof UserDeclinedError || reloadIfStaleServerFnError(err)) {
     return;
   }
@@ -38,7 +50,13 @@ export function reportMutationError(err: Error, queryClient: QueryClient): void 
   if (status === undefined || status >= 500) {
     captureHandledError(err, { mutation: "true" });
   }
-  toastError(toastableMessage(err.message, m.common_error_generic()), PERSISTENT_ERROR_TOAST);
+  if (meta?.inlineError === true) {
+    return;
+  }
+  toastError(
+    toastableMessage(errorText(err, err.message), m.common_error_generic()),
+    PERSISTENT_ERROR_TOAST,
+  );
 }
 
 /** Called once per request on the server, to avoid cross-request data leakage, and once on the client. */
@@ -71,7 +89,8 @@ export function createQueryClient() {
           failureCount < 3,
       },
       mutations: {
-        onError: (err) => reportMutationError(err, queryClient),
+        onError: (err, _variables, _onMutateResult, context) =>
+          reportMutationError(err, queryClient, context?.meta),
       },
     },
   });

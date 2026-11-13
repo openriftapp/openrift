@@ -5,6 +5,7 @@ import type { DistributionChannelKind } from "@openrift/shared/types/catalog";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import {
+  CountCell,
   DescriptionCell,
   DescriptionInput,
   DraftTextInput,
@@ -29,6 +30,7 @@ import {
 import { treeReorder } from "@/features/admin/lib/admin-reorder";
 import type { ChannelTreeNode } from "@/features/cards/lib/distribution-channel-tree";
 import { buildChannelTree, canReparent } from "@/features/cards/lib/distribution-channel-tree";
+import { formatCount } from "@/lib/format";
 
 interface ChannelDraft {
   id: string;
@@ -105,16 +107,6 @@ function ChildrenLabelCell({ row }: AdminCellSlotProps<DistributionChannelRespon
       {row.childrenLabel ?? <span className="text-muted-foreground/60">—</span>}
     </span>
   );
-}
-
-function PrintingCountCell({ row }: AdminCellSlotProps<DistributionChannelResponse>) {
-  if (!row) {
-    return null;
-  }
-  if (row.printingCount === 0) {
-    return <span className="text-muted-foreground/60">0</span>;
-  }
-  return <span>{row.printingCount.toLocaleString()}</span>;
 }
 
 interface ParentSelectProps extends AdminDraftSlotProps<ChannelDraft> {
@@ -211,8 +203,8 @@ const CHILDREN_LABEL_EXAMPLE = "Edition, Placement, Type, …";
 
 export function DistributionChannelsPage() {
   const { data } = useDistributionChannels();
-  const createMutation = useCreateDistributionChannel();
-  const updateMutation = useUpdateDistributionChannel();
+  const createMutation = useCreateDistributionChannel({ inlineError: true });
+  const updateMutation = useUpdateDistributionChannel({ inlineError: true });
   const deleteMutation = useDeleteDistributionChannel();
   const reorderMutation = useReorderDistributionChannels();
 
@@ -282,7 +274,7 @@ export function DistributionChannelsPage() {
       headerTitle: "Number of printings linked to this channel",
       align: "right",
       width: "w-20",
-      cell: <PrintingCountCell />,
+      cell: <CountCell<DistributionChannelResponse> count={(row) => row.printingCount} />,
     },
   ];
 
@@ -374,7 +366,7 @@ export function DistributionChannelsPage() {
           if (c.printingCount > 0) {
             return {
               title: `Delete "${c.label}"?`,
-              description: `This channel is linked to ${c.printingCount.toLocaleString()} ${pluralize(c.printingCount, "printing")}. Deleting it will unlink it from ${c.printingCount === 1 ? "that printing" : "all of them"}.`,
+              description: `This channel is linked to ${formatCount(c.printingCount)} ${pluralize(c.printingCount, "printing")}. Deleting it will unlink it from ${c.printingCount === 1 ? "that printing" : "all of them"}.`,
             };
           }
           return {

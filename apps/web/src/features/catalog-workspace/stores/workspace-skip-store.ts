@@ -2,6 +2,8 @@ import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-wo
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { mergeFields } from "@/lib/persist-merge";
+
 const OWNERS: readonly WorkspaceOwner[] = ["card", "face", "printing"];
 
 type SkippedByOwner = Partial<Record<WorkspaceOwner, string[]>>;
@@ -56,10 +58,7 @@ export const useWorkspaceSkipStore = create<WorkspaceSkipState>()(
     {
       name: "catalog-workspace-skipped",
       partialize: (state) => ({ skipped: state.skipped }),
-      merge: (persisted, current) => ({
-        ...current,
-        skipped: sanitizeSkipped((persisted as { skipped?: unknown } | null)?.skipped),
-      }),
+      merge: mergeFields<WorkspaceSkipState>({ skipped: sanitizeSkipped }),
     },
   ),
 );

@@ -23,6 +23,7 @@ import {
   submissionReasonLabels,
   submissionReasonSentences,
 } from "@/features/contribute/lib/card-submission-copy";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface RejectSubmissionDialogProps {
   candidateCardId: string | null;
@@ -62,10 +63,11 @@ export function RejectSubmissionDialog({
     if (candidateCardId === null || reason === null || !ready) {
       return;
     }
-    try {
-      await rejectSubmission.mutateAsync({ candidateCardId, reason, note: notePayload });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() =>
+        rejectSubmission.mutateAsync({ candidateCardId, reason, note: notePayload }),
+      ))
+    ) {
       return;
     }
     handleOpenChange(false);

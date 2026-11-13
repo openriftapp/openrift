@@ -240,30 +240,10 @@ describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 401 for unauthenticated request to refresh-tcgplayer-prices", async () => {
-      const res = await unauthCtx!.app.fetch(adminReq("POST", "/refresh-tcgplayer-prices"));
-      expect(res.status).toBe(401);
-    });
-
-    it("returns 401 for unauthenticated request to refresh-cardmarket-prices", async () => {
-      const res = await unauthCtx!.app.fetch(adminReq("POST", "/refresh-cardmarket-prices"));
-      expect(res.status).toBe(401);
-    });
-
     it("returns 403 for non-admin user on clear-prices", async () => {
       const res = await nonAdminCtx!.app.fetch(
         adminReq("POST", "/clear-prices", { marketplace: "tcgplayer" }),
       );
-      expect(res.status).toBe(403);
-    });
-
-    it("returns 403 for non-admin user on refresh-tcgplayer-prices", async () => {
-      const res = await nonAdminCtx!.app.fetch(adminReq("POST", "/refresh-tcgplayer-prices"));
-      expect(res.status).toBe(403);
-    });
-
-    it("returns 403 for non-admin user on refresh-cardmarket-prices", async () => {
-      const res = await nonAdminCtx!.app.fetch(adminReq("POST", "/refresh-cardmarket-prices"));
       expect(res.status).toBe(403);
     });
   });
@@ -398,27 +378,6 @@ describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
         .where("marketplace", "=", "tcgplayer")
         .where("externalId", "in", tcg.externalIds)
         .execute();
-    });
-  });
-
-  describe("POST /admin/refresh-tcgplayer-prices", () => {
-    it("returns 503 when no job scheduler is running", async () => {
-      const res = await app.fetch(adminReq("POST", "/refresh-tcgplayer-prices"));
-      expect(res.status).toBe(503);
-    });
-  });
-
-  describe("POST /admin/refresh-cardmarket-prices", () => {
-    it("returns 503 when no job scheduler is running", async () => {
-      const res = await app.fetch(adminReq("POST", "/refresh-cardmarket-prices"));
-      expect(res.status).toBe(503);
-    });
-  });
-
-  describe("POST /admin/refresh-cardtrader-prices", () => {
-    it("returns 503 when no job scheduler is running", async () => {
-      const res = await app.fetch(adminReq("POST", "/refresh-cardtrader-prices"));
-      expect(res.status).toBe(503);
     });
   });
 });

@@ -267,14 +267,12 @@ export function DeckListPage() {
               onSuccess: () => {
                 void navigate({ to: "/decks/$deckId", params: { deckId: deck.id } });
               },
-              // Error is reported by the global mutation error toast (reportMutationError).
               onError: () => {
                 setCreatingSample(false);
               },
             },
           );
         },
-        // Error is reported by the global mutation error toast (reportMutationError).
         onError: () => {
           setCreatingSample(false);
         },

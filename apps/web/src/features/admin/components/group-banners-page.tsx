@@ -1,5 +1,4 @@
 import type { AdminGroupBanner } from "@openrift/shared/contracts/admin/friend-group-banners";
-import { formatDayTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { Trash2Icon } from "lucide-react";
@@ -7,6 +6,7 @@ import { Trash2Icon } from "lucide-react";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -65,17 +65,6 @@ function UploaderCell({ row }: AdminCellSlotProps<AdminGroupBanner>) {
   );
 }
 
-function UploadedAtCell({ row }: AdminCellSlotProps<AdminGroupBanner>) {
-  if (!row) {
-    return null;
-  }
-  return (
-    <span className="text-muted-foreground">
-      {row.uploadedAt ? formatDayTime(row.uploadedAt) : "—"}
-    </span>
-  );
-}
-
 function RemoveAction({ row }: AdminCellSlotProps<AdminGroupBanner>) {
   const remove = useRemoveGroupBanner();
   if (!row) {
@@ -103,7 +92,7 @@ const columns: AdminColumnDef<AdminGroupBanner>[] = [
     header: "Uploaded At",
     width: "w-36",
     sortValue: (b) => b.uploadedAt ?? "",
-    cell: <UploadedAtCell />,
+    cell: <InstantCell<AdminGroupBanner> at={(row) => row.uploadedAt} />,
   },
 ];
 

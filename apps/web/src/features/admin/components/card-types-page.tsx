@@ -53,8 +53,8 @@ const columns: AdminColumnDef<CardTypeRow, CardTypeDraft>[] = [
 
 export function CardTypesPage() {
   const { data } = useCardTypes();
-  const createMutation = useCreateCardType();
-  const updateMutation = useUpdateCardType();
+  const createMutation = useCreateCardType({ inlineError: true });
+  const updateMutation = useUpdateCardType({ inlineError: true });
   const deleteMutation = useDeleteCardType();
   const reorderMutation = useReorderCardTypes();
   const { cardTypes } = data;

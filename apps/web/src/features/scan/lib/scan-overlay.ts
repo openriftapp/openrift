@@ -5,9 +5,8 @@
  * {@link mapQuad} are the only bridge between them.
  */
 
+import { clamp } from "@openrift/shared/math";
 import type { Point } from "@openrift/shared/scan/types";
-
-import { clamp } from "@/lib/math";
 
 const RETICLE_EASE = 0.15;
 const RETICLE_SNAP_PX = 0.5;

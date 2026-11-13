@@ -7,6 +7,7 @@ import {
   pickEnumArray,
   pickNumber,
   pickNullableString,
+  pickRecord,
   pickString,
   pickStringArray,
 } from "./persist-merge";
@@ -18,6 +19,17 @@ describe("pickBoolean", () => {
     expect(pickBoolean("true")).toBeUndefined();
     expect(pickBoolean(1)).toBeUndefined();
     expect(pickBoolean(undefined)).toBeUndefined();
+  });
+});
+
+describe("pickRecord", () => {
+  it("keeps the entries its value picker accepts", () => {
+    expect(pickRecord(pickBoolean)({ a: true, b: "yes", c: false })).toEqual({ a: true, c: false });
+  });
+
+  it("rejects a non-object", () => {
+    expect(pickRecord(pickBoolean)([true])).toBeUndefined();
+    expect(pickRecord(pickBoolean)(null)).toBeUndefined();
   });
 });
 

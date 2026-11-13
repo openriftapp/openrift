@@ -1,3 +1,4 @@
+import { createDb } from "../apps/api/src/db/connect.js";
 /**
  * Seeds a demo friend group with synthetic members, collections, shared lists,
  * trades and a mid-event tournament, for screenshots without real user data.
@@ -6,7 +7,7 @@
  *
  * The viewer becomes the group owner; re-running drops and rebuilds the rest.
  */
-import { createDb } from "../apps/api/src/db/connect.js";
+import { DAY_MS } from "../packages/shared/src/format-date.js";
 import { assertLocalDatabase, requireEnv } from "./env.js";
 
 const viewerEmail = process.argv[2];
@@ -146,7 +147,6 @@ assertLocalDatabase(databaseUrl);
 const { db } = createDb(databaseUrl);
 
 const NOW = Date.now();
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function daysAgo(n: number): Date {
   return new Date(NOW - n * DAY_MS);

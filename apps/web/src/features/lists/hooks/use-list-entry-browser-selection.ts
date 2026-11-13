@@ -59,6 +59,7 @@ import { excludeEntryFromRules } from "@/features/rules/lib/rule-exclude";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/hooks/use-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { computeShiftRange } from "@/lib/shift-range";
 import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -375,12 +376,13 @@ export function useListEntryBrowserSelection({
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
 
-    // Sequential, so a move declined in the trade prompt leaves no adds behind. Each try
-    // holds only its await: the compiler can't optimize a conditional inside try/catch.
+    // Sequential, so a move declined in the trade prompt leaves no adds behind.
     let moveResult: Awaited<ReturnType<typeof moveEntries.mutateAsync>> | undefined;
-    try {
-      moveResult = await movePromise;
-    } catch {
+    if (
+      !(await runReportedMutation(async () => {
+        moveResult = await movePromise;
+      }))
+    ) {
       return;
     }
     const addPromise =
@@ -389,9 +391,11 @@ export function useListEntryBrowserSelection({
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
     let addResult: Awaited<ReturnType<typeof bulkAddEntries.mutateAsync>> | undefined;
-    try {
-      addResult = await addPromise;
-    } catch {
+    if (
+      !(await runReportedMutation(async () => {
+        addResult = await addPromise;
+      }))
+    ) {
       return;
     }
 

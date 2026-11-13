@@ -1,3 +1,4 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type {
   AcceptCardField,
   AcceptPrintingField,
@@ -6,7 +7,7 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import type { EnumOrders } from "@openrift/shared/types/enums";
 
-import { hasValue } from "@/features/admin/lib/candidate-cell-values";
+import { formatFieldValue } from "@/features/admin/lib/field-value-text";
 import type { CardTextVariant } from "@/features/contribute/components/card-text-input";
 import type { EnumLabels } from "@/lib/enum-labels";
 import type { FilterCategory } from "@/lib/icons";
@@ -204,24 +205,18 @@ export function dropdownOptions(field: FieldDef): { value: string; label: string
 }
 
 export function resolveLabel(field: FieldDef, value: unknown): string {
-  if (!hasValue(value)) {
-    return "—";
-  }
-  if (field.labeledOptions) {
-    if (Array.isArray(value)) {
-      return value
-        .map((v) => field.labeledOptions?.find((o) => o.value === String(v))?.label ?? String(v))
-        .join(", ");
-    }
-    const match = field.labeledOptions.find((o) => o.value === String(value));
-    if (match) {
-      return match.label;
-    }
-  }
-  if (Array.isArray(value)) {
-    return value.join(", ");
-  }
-  return String(value);
+  const options = field.labeledOptions;
+  return formatFieldValue(
+    value,
+    options
+      ? (entry) => options.find((option) => option.value === entry)?.label ?? entry
+      : undefined,
+  );
+}
+
+export function candidateValueText(value: unknown, suffix: unknown): string {
+  const text = formatFieldValue(value);
+  return hasFieldValue(suffix) ? `${text} (${formatFieldValue(suffix)})` : text;
 }
 
 export function isValidOption(field: FieldDef, value: unknown): boolean {

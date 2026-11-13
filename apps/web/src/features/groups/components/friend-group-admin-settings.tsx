@@ -16,6 +16,7 @@ import {
 } from "@/features/groups/hooks/use-friend-group-mutations";
 import { groupSlugError } from "@/features/groups/lib/group-slug";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse; slug: string }) {
@@ -48,13 +49,12 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
           : trimmedDescription || null,
       newSlug: slugChanged ? trimmedSlug : undefined,
     };
-    try {
-      const result = await update.mutateAsync(payload);
-      if (slugChanged) {
-        void navigate({ to: "/groups/$slug/manage", params: { slug: result.slug } });
-      }
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let updated: Awaited<ReturnType<typeof update.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      updated = await update.mutateAsync(payload);
+    });
+    if (ok && updated && slugChanged) {
+      void navigate({ to: "/groups/$slug/manage", params: { slug: updated.slug } });
     }
   }
 

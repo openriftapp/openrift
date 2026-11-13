@@ -22,7 +22,7 @@ vi.mock("@/features/catalog-workspace/lib/workspace-same-difference", () => ({
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  uncheckCandidateCardFn: state.uncheck,
+  uncheckCandidateCardsFn: state.uncheck,
 }));
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
@@ -85,10 +85,7 @@ describe("useDiscardSameDifference", () => {
     const entry = useWorkspaceSelectionStore.getState().undoStack.at(-1);
     expect(entry?.undoneLabel).toBe("Undone: gallery's might suggestion restored on 2 cards");
     await entry?.undo();
-    expect(state.uncheck.mock.calls).toEqual([
-      [{ data: { candidateCardId: "cc-1" } }],
-      [{ data: { candidateCardId: "cc-2" } }],
-    ]);
+    expect(state.uncheck.mock.calls).toEqual([[{ data: { candidateCardIds: ["cc-1", "cc-2"] } }]]);
   });
 
   it("pushes no undo when nothing was left to discard", async () => {

@@ -4,6 +4,7 @@ import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import type { ResolvedDeckCodeRow } from "@openrift/shared/deck-code-resolve";
 import { resolveDeckCodeEntries } from "@openrift/shared/deck-code-resolve";
 import { deckCardCount } from "@openrift/shared/deck-rules";
+import { DISCORD_EMBED_COLOR } from "@openrift/shared/discord-embed";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckImageBody } from "@openrift/shared/share-image-params";
 import { deckImportPath } from "@openrift/shared/site-paths";
@@ -11,7 +12,6 @@ import { truncateWithEllipsis, pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { APIEmbed } from "discord.js";
 
-import { EMBED_COLOR } from "./card-embed.js";
 import type { CatalogCard, CatalogPrinting, CatalogSnapshot } from "./catalog-cache.js";
 import { log } from "./log.js";
 
@@ -96,7 +96,7 @@ export function buildDeckEmbed(input: {
     title: deckTitle(deck),
     url: deckImportUrl(siteUrl, code),
     description,
-    color: EMBED_COLOR,
+    color: DISCORD_EMBED_COLOR,
     footer: { text: `${deck.totalCards} cards` },
     ...(input.imageAttachmentName
       ? { image: { url: `attachment://${input.imageAttachmentName}` } }

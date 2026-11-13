@@ -7,6 +7,8 @@
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
 
+import { errorMessage } from "../strings.js";
+
 export function headersToRecord(headers: Headers): Record<string, string> {
   const record: Record<string, string> = {};
   headers.forEach((value, key) => {
@@ -18,7 +20,7 @@ export function headersToRecord(headers: Headers): Record<string, string> {
 export function recordSpanError(span: Span, error: unknown): void {
   span.setStatus({
     code: SpanStatusCode.ERROR,
-    message: error instanceof Error ? error.message : String(error),
+    message: errorMessage(error),
   });
   span.recordException(error as Error);
 }

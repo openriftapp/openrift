@@ -13,6 +13,7 @@ import {
   movableCountsByPrinting,
 } from "@/features/collections/lib/move-sources";
 import type { QuickAddVerb } from "@/lib/command-palette-results";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 /** Kept so Shift+Enter / the minus button can send the copy back where it came from. */
@@ -150,22 +151,23 @@ export function useQuickAddMoveMode({
       fromCollectionId: source.collectionId,
     };
     setMoveHistory((prev) => [...prev, record]);
-    try {
-      await moveCopies.mutateAsync({ copyIds: [copyId], toCollectionId: moveTo });
-      // Toast id is stable per printing, so a held Enter replaces it.
-      toast.success(
-        m.collections_copies_quick_moved({
-          card: printingDisplayName(printing),
-          collection: collectionDisplayName(moveTo),
-        }),
-        { id: `palette-move-${printing.printingId}` },
-      );
-      if (onMoved) {
-        onMoved();
-      }
-    } catch {
-      // Roll the session history back; the global onError already toasted.
+    const moved = await runReportedMutation(() =>
+      moveCopies.mutateAsync({ copyIds: [copyId], toCollectionId: moveTo }),
+    );
+    if (!moved) {
       setMoveHistory((prev) => prev.filter((entry) => entry !== record));
+      return;
+    }
+    // Toast id is stable per printing, so a held Enter replaces it.
+    toast.success(
+      m.collections_copies_quick_moved({
+        card: printingDisplayName(printing),
+        collection: collectionDisplayName(moveTo),
+      }),
+      { id: `palette-move-${printing.printingId}` },
+    );
+    if (onMoved) {
+      onMoved();
     }
   };
 
@@ -175,23 +177,22 @@ export function useQuickAddMoveMode({
       return;
     }
     setMoveHistory((prev) => prev.filter((entry) => entry !== record));
-    try {
-      await moveCopies.mutateAsync({
-        copyIds: [record.copyId],
-        toCollectionId: record.fromCollectionId,
-      });
-      toast.success(
-        m.collections_copies_quick_moved_back({
-          card: printingDisplayName(printing),
-          collection: collectionDisplayName(record.fromCollectionId),
-        }),
-        { id: `palette-move-${printing.printingId}` },
-      );
-      if (onMoved) {
-        onMoved();
-      }
-    } catch {
+    const movedBack = await runReportedMutation(() =>
+      moveCopies.mutateAsync({ copyIds: [record.copyId], toCollectionId: record.fromCollectionId }),
+    );
+    if (!movedBack) {
       setMoveHistory((prev) => [...prev, record]);
+      return;
+    }
+    toast.success(
+      m.collections_copies_quick_moved_back({
+        card: printingDisplayName(printing),
+        collection: collectionDisplayName(record.fromCollectionId),
+      }),
+      { id: `palette-move-${printing.printingId}` },
+    );
+    if (onMoved) {
+      onMoved();
     }
   };
 

@@ -48,6 +48,8 @@ import {
   standingsGaps,
 } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { formatCount } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function PlayerCell({ row }: AdminCellSlotProps<AdminMetaPlayer>) {
   if (!row) {
@@ -103,10 +105,7 @@ function ClaimedFields({ player }: { player: AdminMetaPlayer }) {
   const chips = metaPlayerClaimChips(player.claimedFields);
 
   async function handleRelease(field: MetaPlayerOverlayField): Promise<void> {
-    try {
-      await release.mutateAsync({ id: player.id, field });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => release.mutateAsync({ id: player.id, field })))) {
       return;
     }
     toast.success("Released. The sources decide this again.");
@@ -210,7 +209,7 @@ function EventFacts({ event, formatLabel }: { event: AdminMetaEvent; formatLabel
   const facts = [
     ["Date", formatDay(event.eventDate)],
     ["Format", formatLabel],
-    ["Players", event.playerCount === null ? "Not given" : event.playerCount.toLocaleString()],
+    ["Players", event.playerCount === null ? "Not given" : formatCount(event.playerCount)],
     ["Organizer", event.organizer ?? "Not given"],
   ] as const;
   return (

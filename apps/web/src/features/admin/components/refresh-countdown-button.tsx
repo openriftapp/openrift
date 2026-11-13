@@ -1,4 +1,4 @@
-import { formatDayTimeLocal } from "@openrift/shared/format-date";
+import { formatDayTime } from "@openrift/shared/format-date";
 import { RefreshCwIcon } from "lucide-react";
 
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
@@ -28,7 +28,7 @@ export function RefreshCountdownButton({
   const polling = intervalMs !== false && dataUpdatedAt > 0;
   const secondsToRefresh = useSecondsUntil(polling ? dataUpdatedAt + intervalMs : null);
   const lastUpdated =
-    hydrated && dataUpdatedAt > 0 ? formatDayTimeLocal(new Date(dataUpdatedAt)) : "";
+    hydrated && dataUpdatedAt > 0 ? `${formatDayTime(new Date(dataUpdatedAt))} UTC` : "";
 
   return (
     <PageTopBarButton

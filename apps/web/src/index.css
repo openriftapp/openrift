@@ -457,6 +457,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --radius-card: 5% / 3.6%;
   --animate-foil-shimmer: foil-shimmer 4s ease-in-out infinite;
   --animate-wobble: wobble 0.4s ease-in-out;
   --animate-printing-picked: printing-picked 1.6s ease-out;

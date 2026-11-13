@@ -1,4 +1,5 @@
 import { adminCustomTagsContract } from "@openrift/shared/contracts/admin/custom-tags";
+import type { MutationMeta } from "@tanstack/react-query";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -31,8 +32,9 @@ const createCustomTagCategoryFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCustomTagsContract, context.cookie).createCategory(data);
   });
 
-export function useCreateCustomTagCategory() {
+export function useCreateCustomTagCategory(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: { slug: string; label: string; description?: string | null }) =>
       createCustomTagCategoryFn({ data: vars }),
     invalidates: [adminKeys.customTagCategories, adminKeys.customTags],
@@ -48,8 +50,9 @@ const updateCustomTagCategoryFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCustomTagsContract, context.cookie).updateCategory(data);
   });
 
-export function useUpdateCustomTagCategory() {
+export function useUpdateCustomTagCategory(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: {
       id: string;
       slug?: string;
@@ -84,8 +87,9 @@ const createCustomTagFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCustomTagsContract, context.cookie).createTag(data);
   });
 
-export function useCreateCustomTag() {
+export function useCreateCustomTag(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: {
       slug: string;
       label: string;
@@ -111,8 +115,9 @@ const updateCustomTagFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCustomTagsContract, context.cookie).updateTag(data);
   });
 
-export function useUpdateCustomTag() {
+export function useUpdateCustomTag(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: {
       id: string;
       slug?: string;

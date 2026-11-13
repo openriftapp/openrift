@@ -1,5 +1,8 @@
+import { isRecord } from "@openrift/shared/type-guards";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
+import { mergeFields, pickBoolean } from "@/lib/persist-merge";
 
 export interface AdminSettings {
   debugOverlay: boolean;
@@ -21,18 +24,11 @@ export const useAdminSettingsStore = create<AdminSettingsState>()(
     }),
     {
       name: "admin-settings",
-      merge: (persisted, current) => {
-        const raw =
-          persisted && typeof persisted === "object"
-            ? (persisted as { settings?: Record<string, unknown> }).settings
-            : undefined;
-        return {
-          ...current,
-          settings: {
-            debugOverlay: typeof raw?.debugOverlay === "boolean" ? raw.debugOverlay : false,
-          },
-        };
-      },
+      merge: mergeFields<AdminSettingsState>({
+        settings: (value) => ({
+          debugOverlay: (isRecord(value) ? pickBoolean(value.debugOverlay) : undefined) ?? false,
+        }),
+      }),
     },
   ),
 );

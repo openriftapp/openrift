@@ -6,6 +6,7 @@ import type {
   DeskUpdateInput,
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { adminPrintingDeskContract } from "@openrift/shared/contracts/admin/printing-desk";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -56,15 +57,17 @@ const PUBLIC_CATALOG_KEYS = [
   adminKeys.workspace,
 ] as const;
 
-export function useCreateDeskPrinting() {
+export function useCreateDeskPrinting(meta?: MutationMeta) {
   return useMutationWithInvalidation<DeskCreateOutput, DeskCreateInput>({
+    meta,
     mutationFn: (vars) => createDeskPrintingFn({ data: vars }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }
 
-export function useUpdateDeskPrinting() {
+export function useUpdateDeskPrinting(meta?: MutationMeta) {
   return useMutationWithInvalidation<void, DeskUpdateInput>({
+    meta,
     mutationFn: (vars) => updateDeskPrintingFn({ data: vars }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });

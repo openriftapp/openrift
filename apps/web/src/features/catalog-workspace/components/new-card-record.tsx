@@ -67,6 +67,7 @@ import {
   seedNewCardGroups,
 } from "@/features/catalog-workspace/lib/new-card-groups";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 function nameHead(name: string): string {
@@ -191,9 +192,7 @@ export function NewCardRecord({ name }: { name: string }) {
     }
     accepting.current = true;
     setAcceptPending(true);
-    try {
-      await acceptNewCard.mutateAsync({ name, cardFields });
-    } catch {
+    if (!(await runReportedMutation(() => acceptNewCard.mutateAsync({ name, cardFields })))) {
       accepting.current = false;
       setAcceptPending(false);
       return;
@@ -211,8 +210,11 @@ export function NewCardRecord({ name }: { name: string }) {
   }
 
   async function ignoreDraft() {
-    const result = await ignoreDrafts.mutateAsync([name]).catch(() => null);
-    if (result !== null && result.sources.length > 0) {
+    let result: Awaited<ReturnType<typeof ignoreDrafts.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await ignoreDrafts.mutateAsync([name]);
+    });
+    if (ok && result && result.sources.length > 0) {
       announce(ignoredCardsUndo(result.sources, displayName));
     }
   }

@@ -14,6 +14,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
+import { isEmailAddress, OTP_LENGTH } from "@/features/account/lib/account-validation";
 import { authClient, signIn } from "@/features/account/lib/auth-client";
 import { authDestination } from "@/features/account/lib/auth-destination";
 import { isNewAccount, routeTemplate, trackSignupComplete, trackSignupCta } from "@/lib/analytics";
@@ -242,7 +243,7 @@ function OtpSignIn({
 
   async function handleSendOtp() {
     const email = form.getValues("email").trim();
-    if (!email || !email.includes("@")) {
+    if (!isEmailAddress(email)) {
       setEmailError(m.auth_invalid_email());
       return;
     }
@@ -264,7 +265,7 @@ function OtpSignIn({
   }
 
   async function handleVerifyOtp() {
-    if (otp.length < 6) {
+    if (otp.length < OTP_LENGTH) {
       return;
     }
     setLoading(true);
@@ -339,7 +340,7 @@ function OtpSignIn({
               <SixDigitOtpInput autoFocusOnMount value={otp} onChange={setOtp} />
             </div>
             <Field>
-              <Button type="submit" disabled={otp.length < 6 || loading}>
+              <Button type="submit" disabled={otp.length < OTP_LENGTH || loading}>
                 {loading ? m.auth_verifying() : m.auth_verify()}
               </Button>
             </Field>

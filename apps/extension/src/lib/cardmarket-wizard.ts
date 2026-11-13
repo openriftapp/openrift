@@ -1,3 +1,5 @@
+import { countNoun } from "@openrift/shared/strings";
+
 import { formatEuro } from "./cardmarket-annotate";
 import { parsePriceCents } from "./cardmarket-price";
 import type { CardmarketArticleRow } from "./cardmarket-rows";
@@ -227,7 +229,7 @@ const ATTRIBUTE_NOTE = {
 function partLabel(part: "cardmarket" | "cardtrader", lines: readonly WizardLine[]): string {
   const where = part === "cardmarket" ? "Cardmarket" : "CardTrader";
   const count = lineCount(lines);
-  return `Buy on ${where} (${count} card${count === 1 ? "" : "s"})`;
+  return `Buy on ${where} (${countNoun(count, "card")})`;
 }
 
 function paintColumn(panel: HTMLElement, part: "cardmarket" | "cardtrader", lines: WizardLine[]) {

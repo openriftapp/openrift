@@ -1,3 +1,4 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import { ArrowRightLeftIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -18,11 +19,12 @@ import type { FieldDef } from "@/features/admin/components/candidate-field-defs"
 import {
   dropdownOptions,
   hasDropdown,
+  candidateValueText,
   isMultiSelect,
   resolveLabel,
 } from "@/features/admin/components/candidate-field-defs";
 import { CardTextExpandDialog } from "@/features/admin/components/card-text-expand-dialog";
-import { formatValue, hasValue } from "@/features/admin/lib/candidate-cell-values";
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { CardText } from "@/features/cards/components/card-text";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +55,7 @@ export function CandidateActiveCell<TKey extends string>({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const content = renderContent?.(field);
 
-  const isMissing = isRequired && !hasValue(activeValue);
+  const isMissing = isRequired && !hasFieldValue(activeValue);
   const canReverseActive =
     field.array === true && Array.isArray(activeValue) && activeValue.length > 1;
 
@@ -74,13 +76,10 @@ export function CandidateActiveCell<TKey extends string>({
       return;
     }
     if (field.type === "number") {
-      if (!trimmed) {
-        onActiveChange(field.key, null);
-        return;
+      const parsed = parseIntegerInput(trimmed);
+      if (parsed !== undefined) {
+        onActiveChange(field.key, parsed);
       }
-      // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of a pasted cell; Number() would yield NaN on trailing text
-      const parsed = Number.parseInt(trimmed, 10);
-      onActiveChange(field.key, Number.isFinite(parsed) ? parsed : null);
       return;
     }
     onActiveChange(field.key, trimmed || null);
@@ -125,7 +124,7 @@ export function CandidateActiveCell<TKey extends string>({
         (field.richText ? (
           <div className="flex items-start justify-between gap-1">
             <div className="min-w-0 flex-1 break-words whitespace-normal">
-              {hasValue(activeValue) ? (
+              {hasFieldValue(activeValue) ? (
                 field.richTextVariant === "flavor" ? (
                   // Flavor is a plain span, not CardText; whitespace-pre-line keeps its line breaks.
                   <span className="text-muted-foreground/80 whitespace-pre-line italic">
@@ -143,7 +142,7 @@ export function CandidateActiveCell<TKey extends string>({
             {onActiveChange && !field.readOnly && (
               <CardTextExpandDialog
                 label={field.label}
-                value={hasValue(activeValue) ? String(activeValue) : ""}
+                value={hasFieldValue(activeValue) ? String(activeValue) : ""}
                 imageUrl={activeImageUrl}
                 variant={field.richTextVariant}
                 reformat={(value) =>
@@ -174,7 +173,7 @@ export function CandidateActiveCell<TKey extends string>({
                   field.options?.map((opt) => ({ value: opt, label: opt })) ??
                   []),
               ]}
-              value={hasValue(activeValue) ? String(activeValue) : null}
+              value={hasFieldValue(activeValue) ? String(activeValue) : null}
               onChange={(v) => {
                 setEditingField(null);
                 onActiveChange?.(field.key, v === SELECT_NONE ? null : v);
@@ -193,7 +192,7 @@ export function CandidateActiveCell<TKey extends string>({
         ) : editingField === field.key && field.suggestions ? (
           <SuggestionCombobox
             suggestions={field.suggestions}
-            defaultValue={hasValue(activeValue) ? String(activeValue) : ""}
+            defaultValue={hasFieldValue(activeValue) ? String(activeValue) : ""}
             onCommit={(value) => commitEdit(value)}
             onCancel={() => setEditingField(null)}
           />
@@ -201,7 +200,7 @@ export function CandidateActiveCell<TKey extends string>({
           <textarea
             ref={textareaRef}
             aria-label={field.label}
-            defaultValue={hasValue(activeValue) ? String(activeValue) : ""}
+            defaultValue={hasFieldValue(activeValue) ? String(activeValue) : ""}
             rows={4}
             className="border-primary w-full resize-y rounded-md border bg-transparent p-1 text-sm outline-none"
             // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: inline editor should grab focus immediately
@@ -228,7 +227,7 @@ export function CandidateActiveCell<TKey extends string>({
             aria-label={field.label}
             inputMode={field.type === "number" ? "numeric" : undefined}
             defaultValue={
-              hasValue(activeValue)
+              hasFieldValue(activeValue)
                 ? Array.isArray(activeValue)
                   ? activeValue.join(", ")
                   : String(activeValue)
@@ -256,7 +255,7 @@ export function CandidateActiveCell<TKey extends string>({
               (hasDropdown(field) || field.array) && "block truncate",
             )}
             title={
-              (hasDropdown(field) || field.array) && activeRow && hasValue(activeValue)
+              (hasDropdown(field) || field.array) && activeRow && hasFieldValue(activeValue)
                 ? resolveLabel(field, activeValue)
                 : undefined
             }
@@ -264,7 +263,10 @@ export function CandidateActiveCell<TKey extends string>({
             {activeRow
               ? field.labeledOptions
                 ? renderLabeledValue(field, activeValue)
-                : formatValue(activeValue, field.suffixKey ? activeRow[field.suffixKey] : undefined)
+                : candidateValueText(
+                    activeValue,
+                    field.suffixKey ? activeRow[field.suffixKey] : undefined,
+                  )
               : isMissing
                 ? "required"
                 : "—"}
@@ -274,7 +276,7 @@ export function CandidateActiveCell<TKey extends string>({
         !field.readOnly &&
         !field.richText &&
         editingField !== field.key &&
-        (canReverseActive || (!isRequired && hasValue(activeValue))) && (
+        (canReverseActive || (!isRequired && hasFieldValue(activeValue))) && (
           <div className="absolute top-1 right-1 flex gap-0.5 md:hidden md:group-hover/active:flex">
             {canReverseActive && (
               <Button
@@ -292,7 +294,7 @@ export function CandidateActiveCell<TKey extends string>({
                 <ArrowRightLeftIcon className="size-3" />
               </Button>
             )}
-            {!isRequired && hasValue(activeValue) && (
+            {!isRequired && hasFieldValue(activeValue) && (
               <Button
                 type="button"
                 variant="ghost"

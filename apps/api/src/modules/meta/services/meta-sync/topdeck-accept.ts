@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -47,8 +48,7 @@ async function sweep(
   tids: readonly string[],
 ): Promise<TopdeckAcceptSummary> {
   const summary = emptySummary();
-  for (let index = 0; index < tids.length; index += SWEEP_PAGE) {
-    const page = tids.slice(index, index + SWEEP_PAGE);
+  for (const page of chunk(tids, SWEEP_PAGE)) {
     const rows = await deps.repos.topdeckEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
     for (const row of rows) {

@@ -1,17 +1,21 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
-  DIFF_FIELDS,
   DiffText,
   ImageUrlCell,
   renderLabeledValue,
 } from "@/features/admin/components/candidate-cell-display";
 import type { FieldDef } from "@/features/admin/components/candidate-field-defs";
-import { hasDropdown, isValidOption } from "@/features/admin/components/candidate-field-defs";
-import { formatValue, hasValue } from "@/features/admin/lib/candidate-cell-values";
+import {
+  candidateValueText,
+  hasDropdown,
+  isValidOption,
+} from "@/features/admin/components/candidate-field-defs";
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import { isChecked, isFavoriteProvider } from "@/features/admin/lib/candidate-rows";
+import { DIFFED_FIELDS } from "@/features/admin/lib/catalog-field-labels";
 import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
 
@@ -44,15 +48,15 @@ export function CandidateValueCell<TKey extends string>({
     ? normalizeCandidate(field.key, candidateValue)
     : candidateValue;
   const invalidOption =
-    hasDropdown(field) && hasValue(candidateValue) && !isValidOption(field, candidateValue);
+    hasDropdown(field) && hasFieldValue(candidateValue) && !isValidOption(field, candidateValue);
   const isClickable =
     !field.readOnly &&
     !invalidOption &&
-    hasValue(candidateValue) &&
+    hasFieldValue(candidateValue) &&
     (activeRow === null || JSON.stringify(normalizedCandidate) !== JSON.stringify(activeValue));
   const isDifferent = isClickable && activeRow !== null;
   const warningText =
-    cellWarning && hasValue(candidateValue) ? cellWarning(field.key, candidateValue) : null;
+    cellWarning && hasFieldValue(candidateValue) ? cellWarning(field.key, candidateValue) : null;
   const content = renderContent?.(field, row);
 
   return (
@@ -86,14 +90,14 @@ export function CandidateValueCell<TKey extends string>({
         (field.key === "imageUrl" && typeof candidateValue === "string" ? (
           <ImageUrlCell url={candidateValue} alt="Candidate" />
         ) : isDifferent &&
-          DIFF_FIELDS.has(field.key) &&
+          DIFFED_FIELDS.has(field.key) &&
           typeof normalizedCandidate === "string" &&
           typeof activeValue === "string" ? (
           <DiffText segments={textDiff(activeValue, normalizedCandidate)} />
         ) : field.labeledOptions ? (
           renderLabeledValue(field, candidateValue)
         ) : (
-          formatValue(candidateValue, field.suffixKey ? record[field.suffixKey] : undefined)
+          candidateValueText(candidateValue, field.suffixKey ? record[field.suffixKey] : undefined)
         ))}
     </td>
   );

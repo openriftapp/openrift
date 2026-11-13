@@ -18,16 +18,14 @@ import {
   useRevertMetaUpload,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { sourceProviderDisplay } from "@/features/admin/lib/meta-source-review";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function MoveTargets({ eventOverlayId }: { eventOverlayId: string }) {
   const { data, isPending } = useMetaEventMatchSuggestions(eventOverlayId);
   const move = useMoveMetaEventOverlay();
 
   async function handleMove(metaEventId: string, name: string): Promise<void> {
-    try {
-      await move.mutateAsync({ id: eventOverlayId, metaEventId });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => move.mutateAsync({ id: eventOverlayId, metaEventId })))) {
       return;
     }
     toast.success(`Moved to ${name}.`);

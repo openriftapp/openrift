@@ -64,6 +64,7 @@ function ComboboxInput({
             size="icon-xs"
             variant="ghost"
             render={<ComboboxTrigger />}
+            nativeButton // custom: ComboboxTrigger renders a <button>; Button defaults nativeButton off when given a render
             data-slot="input-group-button"
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
             disabled={disabled}

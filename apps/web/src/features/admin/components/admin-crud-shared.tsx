@@ -1,16 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import type {
   AdminCellSlotProps,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
 import { isValidSlug } from "@/features/admin/lib/admin-slug";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { contrastText } from "@/lib/color";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-// Kept to exact duplicates found across the admin CRUD pages, not a
-// general-purpose admin-form kit. Each slot is generic over the row/draft
-// shape, so a page passes its own type: <SlugCell<FinishRow> />.
 
 export function SlugCell<TRow extends { slug: string }>({ row }: AdminCellSlotProps<TRow>) {
   if (!row) {
@@ -46,7 +45,7 @@ export function DescriptionCell<TRow extends { description: string | null }>({
       className="text-muted-foreground block max-w-xs truncate"
       title={row.description ?? undefined}
     >
-      {row.description ?? "—"}
+      {row.description ?? EMPTY_VALUE_TEXT}
     </span>
   );
 }
@@ -58,7 +57,7 @@ export function ColorCell<TRow extends { color: string | null }>({
     return null;
   }
   if (!row.color) {
-    return <span className="text-muted-foreground">-</span>;
+    return <span className="text-muted-foreground">{EMPTY_VALUE_TEXT}</span>;
   }
   return (
     <div className="flex items-center gap-2">
@@ -84,6 +83,44 @@ export function ColorPreviewCell<TRow extends { label: string; color: string | n
     >
       {row.label}
     </Badge>
+  );
+}
+
+export function CountCell<TRow>({
+  row,
+  count,
+}: AdminCellSlotProps<TRow> & { count?: (row: TRow) => number }) {
+  if (!row || !count) {
+    return null;
+  }
+  const value = count(row);
+  return (
+    <span className={cn("tabular-nums", value === 0 && "text-muted-foreground")}>
+      {formatCount(value)}
+    </span>
+  );
+}
+
+export function InstantCell<TRow>({
+  row,
+  at,
+  relative,
+  seconds,
+}: AdminCellSlotProps<TRow> & {
+  at?: (row: TRow) => Date | string | null;
+  relative?: boolean;
+  seconds?: boolean;
+}) {
+  if (!row || !at) {
+    return null;
+  }
+  return (
+    <AdminInstant
+      at={at(row)}
+      relative={relative}
+      seconds={seconds}
+      className="text-muted-foreground tabular-nums"
+    />
   );
 }
 

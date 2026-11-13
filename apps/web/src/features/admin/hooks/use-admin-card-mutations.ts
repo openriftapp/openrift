@@ -13,11 +13,13 @@ import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs"
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { Marketplace } from "@openrift/shared/types/pricing";
+import type { MutationMeta } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { checkMatchingResultFromRun, waitForJobRun } from "@/features/admin/lib/job-run-wait";
+import { startJobFn } from "@/features/admin/lib/job-start";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -31,13 +33,27 @@ const checkCandidateCardFn = createServerFn({ method: "POST" })
     });
   });
 
-export const uncheckCandidateCardFn = createServerFn({ method: "POST" })
+const uncheckCandidateCardFn = createServerFn({ method: "POST" })
   .validator((input: { candidateCardId: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).uncheckCandidateCard({
       candidateCardId: data.candidateCardId,
     });
+  });
+
+const checkCandidateCardsFn = createServerFn({ method: "POST" })
+  .validator((input: { cardId: string; candidateCardIds: string[] }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).checkAllForCard(data),
+  );
+
+export const uncheckCandidateCardsFn = createServerFn({ method: "POST" })
+  .validator((input: { candidateCardIds: string[] }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardMutationsContract, context.cookie).uncheckCandidateCards(data);
   });
 
 const checkAllCandidateCardsFn = createServerFn({ method: "POST" })
@@ -276,6 +292,14 @@ export function useUncheckCandidateCard(invalidates: Scope = defaultScope) {
   });
 }
 
+export function useCheckCandidateCards(invalidates: Scope = defaultScope) {
+  return useMutationWithInvalidation({
+    mutationFn: (input: { cardId: string; candidateCardIds: string[] }) =>
+      checkCandidateCardsFn({ data: input }),
+    invalidates,
+  });
+}
+
 export function useCheckAllCandidateCards(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
     mutationFn: async (cardId: string) => {
@@ -398,6 +422,7 @@ const createCardFn = createServerFn({ method: "POST" })
 
 export function useCreateCard() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (cardFields: CreateCardBody) => createCardFn({ data: { cardFields } }),
     invalidates: (_variables, data) => [
       adminKeys.cards.detail(data.cardSlug),
@@ -420,6 +445,7 @@ const createPrintingFn = createServerFn({ method: "POST" })
 
 export function useCreatePrinting() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: ({
       cardId,
       printingFields,
@@ -517,8 +543,9 @@ export function useDeleteCard() {
   });
 }
 
-export function useAcceptPrintingGroup(invalidates: Scope = defaultScope) {
+export function useAcceptPrintingGroup(invalidates: Scope = defaultScope, meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: ({
       cardId,
       printingFields,
@@ -549,12 +576,6 @@ export function useCheckProvider() {
   });
 }
 
-const checkMatchingCandidatesFn = createServerFn({ method: "POST" })
-  .middleware([withCookies])
-  .handler(({ context }) =>
-    apiOrpcClient(adminCardMutationsContract, context.cookie).checkMatchingCandidates(),
-  );
-
 const listCheckMatchingRunsFn = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(async ({ context }): Promise<JobRunView[]> => {
@@ -569,7 +590,7 @@ const listCheckMatchingRunsFn = createServerFn({ method: "GET" })
 export function useCheckMatchingCandidates() {
   return useMutationWithInvalidation({
     mutationFn: async () => {
-      const started = await checkMatchingCandidatesFn();
+      const started = await startJobFn({ data: { kind: JOB_KIND.checkMatching } });
       const run = await waitForJobRun(started.runId, () => listCheckMatchingRunsFn());
       return checkMatchingResultFromRun(run);
     },

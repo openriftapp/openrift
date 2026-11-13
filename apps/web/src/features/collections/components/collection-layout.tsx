@@ -70,6 +70,7 @@ import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { asDragData } from "@/lib/dnd-data";
 import { isTypingTarget } from "@/lib/keyboard-target";
 import { parseMoveDigit } from "@/lib/parse-digit-key";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -317,12 +318,13 @@ export function CollectionLayout() {
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
 
-    // Sequential, so a move declined in the trade prompt leaves no adds behind. Each try
-    // holds only its await: the compiler can't optimize a conditional inside try/catch.
+    // Sequential, so a move declined in the trade prompt leaves no adds behind.
     let moveResult: Awaited<ReturnType<typeof moveListEntries.mutateAsync>> | undefined;
-    try {
-      moveResult = await movePromise;
-    } catch {
+    if (
+      !(await runReportedMutation(async () => {
+        moveResult = await movePromise;
+      }))
+    ) {
       return;
     }
     const addPromise =
@@ -331,9 +333,11 @@ export function CollectionLayout() {
         : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
           Promise.resolve(undefined);
     let addResult: Awaited<ReturnType<typeof bulkAddListEntries.mutateAsync>> | undefined;
-    try {
-      addResult = await addPromise;
-    } catch {
+    if (
+      !(await runReportedMutation(async () => {
+        addResult = await addPromise;
+      }))
+    ) {
       return;
     }
 

@@ -10,10 +10,16 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { getLatestJobRunFn } from "@/features/admin/lib/refresh-actions";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+
+const getLatestJobRunFn = createServerFn({ method: "GET" })
+  .validator((input: { kind: string }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<JobRunsListResponse> =>
+    apiOrpcClient(adminJobRunsContract, context.cookie).list({ kind: data.kind, limit: 1 }),
+  );
 
 export const JOB_RUNS_PAGE_SIZE = 50;
 

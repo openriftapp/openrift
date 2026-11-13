@@ -5,8 +5,8 @@ import { toJobScheduleView } from "./job-schedule-presenters.js";
 
 const META = {
   kind: "tcgplayer.refresh",
-  title: "TCGPlayer price refresh",
-  description: "Pulls the latest TCGPlayer prices.",
+  title: "TCGplayer price refresh",
+  description: "Pulls the latest TCGplayer prices.",
   suggestedSchedule: "0 6 * * *",
 } as const;
 
@@ -28,8 +28,8 @@ describe("toJobScheduleView", () => {
     const view = toJobScheduleView({ meta: META, row: null, lastRun: undefined, nextRun: null });
     expect(view).toEqual({
       kind: "tcgplayer.refresh",
-      title: "TCGPlayer price refresh",
-      description: "Pulls the latest TCGPlayer prices.",
+      title: "TCGplayer price refresh",
+      description: "Pulls the latest TCGplayer prices.",
       suggestedSchedule: "0 6 * * *",
       schedule: null,
       available: true,

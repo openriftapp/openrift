@@ -31,6 +31,7 @@ import {
   sourceProviderDisplay,
 } from "@/features/admin/lib/meta-source-review";
 import { useZoneOrder } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 /**
@@ -236,10 +237,9 @@ export function PlayerMatches({ overlay }: { overlay: MetaOverlayQueueRow }) {
   const suggestions = data?.suggestions ?? [];
 
   async function handleLink(metaEventPlayerId: string, playerName: string): Promise<void> {
-    try {
-      await link.mutateAsync({ id: overlay.id, metaEventPlayerId });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (
+      !(await runReportedMutation(() => link.mutateAsync({ id: overlay.id, metaEventPlayerId })))
+    ) {
       return;
     }
     toast.success(`Linked to ${playerName}.`);

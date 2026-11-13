@@ -84,7 +84,6 @@ export function DeckVariantCreateForm({
           onCreated();
           void navigate({ to: "/decks/$deckId", params: { deckId: created.id } });
         },
-        // Errors are reported by the global mutation error toast.
       },
     );
   };

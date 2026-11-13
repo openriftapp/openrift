@@ -24,9 +24,12 @@ export const RESERVED_META_EVENT_SLUGS = [
   "submit",
 ];
 
+/** Mirrors the `meta_events.slug` CHECK. */
+export const META_EVENT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{2,49}$/u;
+
 export const eventSlugSchema = z
   .string()
-  .regex(/^[a-z0-9][a-z0-9-]{2,49}$/u, "Slug must be 3-50 lowercase letters, digits, or hyphens")
+  .regex(META_EVENT_SLUG_PATTERN, "Slug must be 3-50 lowercase letters, digits, or hyphens")
   .refine((slug) => !RESERVED_META_EVENT_SLUGS.includes(slug), {
     message: `Reserved slug. Pick another: ${RESERVED_META_EVENT_SLUGS.join(", ")} are taken`,
   });

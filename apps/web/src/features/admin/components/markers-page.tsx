@@ -54,8 +54,8 @@ const columns: AdminColumnDef<MarkerResponse, MarkerDraft>[] = [
 
 export function MarkersPage() {
   const { data } = useMarkers();
-  const createMutation = useCreateMarker();
-  const updateMutation = useUpdateMarker();
+  const createMutation = useCreateMarker({ inlineError: true });
+  const updateMutation = useUpdateMarker({ inlineError: true });
   const deleteMutation = useDeleteMarker();
   const reorderMutation = useReorderMarkers();
   const markers = data.markers;

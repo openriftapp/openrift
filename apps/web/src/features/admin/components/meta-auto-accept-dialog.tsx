@@ -22,6 +22,7 @@ import {
   useMetaSyncSettings,
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
 
@@ -66,12 +67,13 @@ function AutoAcceptForm({
     setDraft(toDraft(settings));
   }
 
-  const playerCountValid = /^\d+$/u.test(draft.minPlayers) && Number(draft.minPlayers) > 0;
+  const minPlayers = parseIntegerInput(draft.minPlayers, 1);
+  const playerCountValid = typeof minPlayers === "number";
   const canSave = (!draft.minPlayersEnabled || playerCountValid) && !update.isPending;
 
   function save() {
     update.mutate({
-      autoAcceptMinPlayers: draft.minPlayersEnabled ? Number(draft.minPlayers) : null,
+      autoAcceptMinPlayers: draft.minPlayersEnabled ? (minPlayers ?? null) : null,
       autoAcceptNotable: draft.notable,
       autoAcceptOfficial: draft.official,
     });

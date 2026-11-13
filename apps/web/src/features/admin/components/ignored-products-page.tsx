@@ -1,4 +1,3 @@
-import { formatDayTime } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { pluralize } from "@openrift/shared/strings";
 import type { IgnoredProductResponse } from "@openrift/shared/types/api/admin";
@@ -8,6 +7,7 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -85,13 +85,6 @@ function LanguageCell({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
   );
 }
 
-function CreatedAtCell({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground">{formatDayTime(row.createdAt)}</span>;
-}
-
 function UnignoreAction({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
   const unignoreMutation = useUnignoreProduct();
   if (!row) {
@@ -164,7 +157,7 @@ const columns: AdminColumnDef<IgnoredProductResponse>[] = [
     header: "Ignored At",
     width: "w-36",
     sortValue: (p) => p.createdAt,
-    cell: <CreatedAtCell />,
+    cell: <InstantCell<IgnoredProductResponse> at={(row) => row.createdAt} />,
   },
 ];
 

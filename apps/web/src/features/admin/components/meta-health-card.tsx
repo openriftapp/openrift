@@ -1,5 +1,6 @@
 import type { JobStatus } from "@openrift/shared/contracts/admin/job-runs";
 import type { MetaSource } from "@openrift/shared/contracts/admin/meta-catalog";
+import { metaSourceJobPrefix } from "@openrift/shared/job-run-kinds";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon } from "lucide-react";
@@ -9,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetaToneDot } from "@/features/admin/components/meta-overview-shared";
 import type { MetaAdminTarget } from "@/features/admin/lib/meta-admin-triggers";
-import { catalogueSource, JOB_KIND_PREFIX } from "@/features/admin/lib/meta-admin-triggers";
+import { catalogueSource } from "@/features/admin/lib/meta-admin-triggers";
 import type { MetaSyncAlert, MetaSyncAlertTarget } from "@/features/admin/lib/meta-catalog-display";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 
@@ -45,7 +46,7 @@ function AlertAction({ alert, source }: { alert: MetaSyncAlert; source: MetaSour
     return (
       <Link
         to="/admin/job-runs"
-        search={{ runPrefix: JOB_KIND_PREFIX[source], runStatus: destination.status }}
+        search={{ runPrefix: metaSourceJobPrefix(source), runStatus: destination.status }}
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         {destination.label}

@@ -11,7 +11,6 @@ import {
   cardTypeLine,
   cardWaitingSince,
   faceOpenCounts,
-  formatRecordValue,
   primaryCardImage,
 } from "./record-fields";
 
@@ -188,28 +187,6 @@ describe("CARD_RECORD_FIELDS", () => {
       "comment",
     ]);
     expect(CARD_RECORD_FIELDS.filter((entry) => entry.comparable)).toHaveLength(9);
-  });
-});
-
-describe("formatRecordValue", () => {
-  it("shows a dash for empty values", () => {
-    expect(formatRecordValue("might", null)).toBe("—");
-    expect(formatRecordValue("tags", [])).toBe("—");
-    expect(formatRecordValue("name", "")).toBe("—");
-  });
-
-  it("resolves enum labels for typed list fields", () => {
-    expect(formatRecordValue("domains", ["fury", "chaos"], labels)).toBe("Fury · Chaos");
-    expect(formatRecordValue("types", ["unit"], labels)).toBe("Unit");
-  });
-
-  it("falls back to the slug when a label is missing", () => {
-    expect(formatRecordValue("domains", ["order"], labels)).toBe("order");
-  });
-
-  it("leaves untyped values as text", () => {
-    expect(formatRecordValue("tags", ["Jinx", "Zaun"], labels)).toBe("Jinx · Zaun");
-    expect(formatRecordValue("might", 0)).toBe("0");
   });
 });
 

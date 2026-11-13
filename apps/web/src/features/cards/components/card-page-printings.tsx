@@ -304,7 +304,7 @@ function PrintingCell({
             >
               <span
                 className={cn(
-                  "relative block w-full rounded-[5%/3.6%]",
+                  "rounded-card relative block w-full",
                   selected && "ring-primary ring-offset-card ring-2 ring-offset-2",
                 )}
               >

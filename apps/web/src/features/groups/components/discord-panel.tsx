@@ -11,6 +11,7 @@ import {
   useDeleteFriendGroupDiscordLink,
   useFriendGroupDiscordLinks,
 } from "@/features/groups/hooks/use-friend-group-discord";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 // While a code is outstanding the links list polls, so the redeem shows up without a reload.
@@ -29,11 +30,12 @@ export function DiscordPanel({ slug }: { slug: string }) {
     pending !== null && data.items.some((item) => !pending.knownLinkIds.includes(item.id));
 
   async function handleGenerate() {
-    try {
-      const result = await createCode.mutateAsync(slug);
-      setPending({ code: result.code, knownLinkIds: data.items.map((item) => item.id) });
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let created: Awaited<ReturnType<typeof createCode.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      created = await createCode.mutateAsync(slug);
+    });
+    if (ok && created) {
+      setPending({ code: created.code, knownLinkIds: data.items.map((item) => item.id) });
     }
   }
 

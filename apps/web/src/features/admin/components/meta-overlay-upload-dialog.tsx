@@ -22,6 +22,7 @@ import { useUploadMetaOverlays } from "@/features/admin/hooks/use-admin-meta-ove
 import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
 import type { JsonParseResult } from "@/features/admin/lib/json-upload";
 import { parseMetaUploadFile } from "@/features/admin/lib/meta-source-review";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const EXAMPLE_UPLOAD_JSON = `{
   "provider": "riftdecks",
@@ -172,11 +173,11 @@ export function MetaOverlayUploadDialog({ onClose }: { onClose: () => void }) {
     if (!body) {
       return;
     }
-    let response: MetaUploadResponse;
-    try {
+    let response: MetaUploadResponse | undefined;
+    const ok = await runReportedMutation(async () => {
       response = await upload.mutateAsync(body);
-    } catch {
-      // Reported by the global mutation error toast.
+    });
+    if (!ok || !response) {
       return;
     }
     setResult(response);

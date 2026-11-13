@@ -12,6 +12,7 @@ import { useClaimStaffInvite } from "@/features/tournaments/hooks/use-tournament
 import { useTournamentStaffInviteLanding } from "@/features/tournaments/hooks/use-tournaments";
 import { staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
 import { useUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -71,12 +72,13 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
       data.role === "judge"
         ? m.tournaments_staff_invite_success_judge()
         : m.tournaments_staff_invite_success_organizer();
-    try {
-      const result = await claim.mutateAsync(token);
+    let claimed: Awaited<ReturnType<typeof claim.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      claimed = await claim.mutateAsync(token);
+    });
+    if (ok && claimed) {
       toast.success(successMessage);
-      void navigate({ to: "/tournaments/$id", params: { id: result.tournamentId } });
-    } catch {
-      // Reported by the global mutation error toast.
+      void navigate({ to: "/tournaments/$id", params: { id: claimed.tournamentId } });
     }
   }
 

@@ -1,4 +1,5 @@
 import { adminProductsContract } from "@openrift/shared/contracts/admin/products";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -42,6 +43,7 @@ const createProductFn = createServerFn({ method: "POST" })
 
 export function useCreateProduct() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: CreateProductInput) => createProductFn({ data: vars }),
     invalidates: [productsKeys.all],
   });
@@ -57,6 +59,7 @@ const resyncProductFn = createServerFn({ method: "POST" })
 
 export function useResyncProduct() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: { id: string; listId: string }) => resyncProductFn({ data: vars }),
     invalidates: [productsKeys.all],
   });
@@ -70,8 +73,9 @@ const updateProductFn = createServerFn({ method: "POST" })
     await invalidateProductsServerCache();
   });
 
-export function useUpdateProduct() {
+export function useUpdateProduct(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: UpdateProductInput) => updateProductFn({ data: vars }),
     invalidates: [productsKeys.all],
   });

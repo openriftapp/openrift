@@ -223,7 +223,7 @@ export function RouteErrorFallback({
     return (
       <ErrorMessageLayout
         heading={m.error_offline_heading()}
-        subtext={m.collections_copies_network_error()}
+        subtext={m.common_network_error()}
         className={className}
       >
         {actions}

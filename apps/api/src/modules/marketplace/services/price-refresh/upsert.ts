@@ -4,6 +4,7 @@
  * products panel and fuzzy name match read `marketplace_products` directly.
  */
 
+import { chunk } from "@openrift/shared/collections";
 import type { Logger } from "@openrift/shared/logger";
 import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -87,9 +88,8 @@ export async function upsertPriceData(
   const productIdByKey = new Map<string, string>();
   if (uniqueSkus.size > 0) {
     const skus = [...uniqueSkus.values()];
-    for (let i = 0; i < skus.length; i += BATCH_SIZE) {
-      const chunk = skus.slice(i, i + BATCH_SIZE);
-      const products = await repo.upsertProductsForMarketplace(marketplace, chunk);
+    for (const batch of chunk(skus, BATCH_SIZE)) {
+      const products = await repo.upsertProductsForMarketplace(marketplace, batch);
       for (const row of products) {
         productIdByKey.set(skuKey(row.externalId, row.finish, row.language), row.id);
       }
@@ -120,8 +120,7 @@ export async function upsertPriceData(
 
   let newPrices = 0;
   let updatedPrices = 0;
-  for (let i = 0; i < priceRows.length; i += BATCH_SIZE) {
-    const batch = priceRows.slice(i, i + BATCH_SIZE);
+  for (const batch of chunk(priceRows, BATCH_SIZE)) {
     const { inserted, updated } = await repo.upsertProductPrices(batch);
     newPrices += inserted;
     updatedPrices += updated;

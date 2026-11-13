@@ -1,6 +1,6 @@
 export const MAX_DISPLAY_NAME_LENGTH = 50;
 
-const ALLOWED_CHARS = /^[\p{L}\p{N} ._-]+$/u;
+export const DISPLAY_NAME_PATTERN = /^[\p{L}\p{N} ._-]+$/u;
 const DISALLOWED_CHARS = /[^\p{L}\p{N} ._-]/gu;
 
 type ValidateResult = { ok: true; value: string } | { ok: false; reason: string };
@@ -19,7 +19,7 @@ export function validateDisplayName(input: unknown): ValidateResult {
       reason: `Name must be ${String(MAX_DISPLAY_NAME_LENGTH)} characters or fewer.`,
     };
   }
-  if (!ALLOWED_CHARS.test(trimmed)) {
+  if (!DISPLAY_NAME_PATTERN.test(trimmed)) {
     return {
       ok: false,
       reason: "Name may only contain letters, digits, spaces, periods, underscores, and hyphens.",

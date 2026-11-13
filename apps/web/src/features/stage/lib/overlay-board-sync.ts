@@ -1,5 +1,7 @@
 import type { OverlayBoard } from "@openrift/shared/contracts/overlay";
 
+import { runReportedMutation } from "@/lib/run-reported-mutation";
+
 interface OverlayBoardIntent {
   board: Omit<OverlayBoard, "revealCount"> | null;
   revealCount: number;
@@ -28,13 +30,11 @@ export function createOverlayBoardSync(deps: OverlayBoardSyncDeps): OverlayBoard
     while (next !== null) {
       const intent = next;
       next = null;
-      try {
-        await (intent.board === null
+      await runReportedMutation(() =>
+        intent.board === null
           ? deps.setReveal(intent.revealCount)
-          : deps.pushBoard({ ...intent.board, revealCount: intent.revealCount }));
-      } catch {
-        // Swallowed: the QueryClient's default mutation handler reports it.
-      }
+          : deps.pushBoard({ ...intent.board, revealCount: intent.revealCount }),
+      );
     }
     inFlight = false;
   };

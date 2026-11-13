@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TIER_TILE_STEPS } from "@openrift/shared/overlay-scale";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -304,6 +305,10 @@ describe("useDisplayStore", () => {
       useDisplayStore.getState().setFrostedBars(false);
       expect(useDisplayStore.getState().frostedBars).toBe(false);
       expect(document.documentElement.dataset.frosted).toBeUndefined();
+    });
+
+    it("offers one tile width per step a saved stage preset can name", () => {
+      expect(TIER_TILE_WIDTHS).toHaveLength(TIER_TILE_STEPS);
     });
 
     it("tierTileStep starts on the size the board was designed around", () => {

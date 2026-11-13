@@ -74,6 +74,7 @@ const createMetaEventFn = createServerFn({ method: "POST" })
 
 export function useCreateMetaEvent() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: MetaEventInput) => createMetaEventFn({ data: vars }),
     invalidates: [adminKeys.meta.events, metaKeys.all],
   });
@@ -89,6 +90,7 @@ const updateMetaEventFn = createServerFn({ method: "POST" })
 /** Only renames the slug; other event facts are corrected as overlays. */
 export function useUpdateMetaEvent() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: { id: string; slug: string }) => updateMetaEventFn({ data: vars }),
     invalidates: [adminKeys.meta.events, metaKeys.all],
   });
@@ -143,6 +145,7 @@ const createMetaPlayerFn = createServerFn({ method: "POST" })
 
 export function useCreateMetaPlayer() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: CreateMetaPlayerInput) => createMetaPlayerFn({ data: vars }),
     invalidates: (vars) => [
       adminKeys.meta.eventPlayers(vars.eventId),
@@ -165,6 +168,7 @@ const renamePlayerDeckFn = createServerFn({ method: "POST" })
 /** Not an overlay: promotion preserves deck names, so this survives a re-promote. */
 export function useRenamePlayerDeck() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (vars: { id: string; eventId: string; name: string }) =>
       renamePlayerDeckFn({ data: vars }),
     invalidates: (vars) => [

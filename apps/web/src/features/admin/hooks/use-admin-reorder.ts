@@ -4,6 +4,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useState } from "react";
 
 import type { ReorderMoves } from "@/features/admin/lib/admin-reorder";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export interface AdminReorderConfig {
   moves: ReorderMoves;
@@ -41,9 +42,10 @@ export function useAdminReorder({
       return;
     }
     setPendingOrder({ keys, from: orderSignature });
-    try {
+    const saved = await runReportedMutation(async () => {
       await reorder.onReorder(keys);
-    } catch {
+    });
+    if (!saved) {
       setPendingOrder(null);
     }
   }

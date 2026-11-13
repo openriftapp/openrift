@@ -7,11 +7,12 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import { parseIntegerFields, parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
@@ -47,20 +48,14 @@ export function CreateCardPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const effectiveSlug = slugDirty ? slug : slugifyName(name);
+  const stats = parseIntegerFields(numeric);
   const canSubmit =
+    stats !== undefined &&
     name.trim().length > 0 &&
     effectiveSlug.trim().length > 0 &&
     types.length > 0 &&
     domains.length > 0 &&
     !createCard.isPending;
-
-  function parseNum(value: string): number | null {
-    if (value.trim() === "") {
-      return null;
-    }
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-  }
 
   function handleSubmit() {
     if (!canSubmit) {
@@ -74,10 +69,7 @@ export function CreateCardPage() {
         types,
         domains,
         ...(superTypes.length > 0 && { superTypes }),
-        ...(numeric.might !== "" && { might: parseNum(numeric.might) }),
-        ...(numeric.energy !== "" && { energy: parseNum(numeric.energy) }),
-        ...(numeric.power !== "" && { power: parseNum(numeric.power) }),
-        ...(numeric.mightBonus !== "" && { mightBonus: parseNum(numeric.mightBonus) }),
+        ...stats,
         ...(tags.length > 0 && { tags }),
       },
       {
@@ -186,16 +178,20 @@ export function CreateCardPage() {
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {NUM_FIELDS.map(({ key, label }) => (
-                <Field key={key}>
+                <Field key={key} data-invalid={parseIntegerInput(numeric[key]) === undefined}>
                   <FieldLabel htmlFor={`create-card-${key}`}>{label}</FieldLabel>
                   <Input
                     id={`create-card-${key}`}
                     type="number"
                     min={0}
+                    aria-invalid={parseIntegerInput(numeric[key]) === undefined}
                     value={numeric[key]}
                     onChange={(e) => setNumeric((prev) => ({ ...prev, [key]: e.target.value }))}
                     className="[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
                   />
+                  {parseIntegerInput(numeric[key]) === undefined && (
+                    <FieldError>Whole number</FieldError>
+                  )}
                 </Field>
               ))}
             </div>

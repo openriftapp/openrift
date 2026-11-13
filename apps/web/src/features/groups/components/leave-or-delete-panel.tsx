@@ -10,6 +10,7 @@ import {
   useDeleteFriendGroup,
   useLeaveFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-mutations";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function LeaveOrDeletePanel({
@@ -30,11 +31,8 @@ export function LeaveOrDeletePanel({
   }
 
   async function handleLeave() {
-    try {
-      await leave.mutateAsync(slug);
+    if (await runReportedMutation(() => leave.mutateAsync(slug))) {
       void navigate({ to: "/groups" });
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

@@ -3,6 +3,8 @@ import { upgradeBoardDocument } from "@openrift/shared/board-state";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { mergeFields } from "@/lib/persist-merge";
+
 export interface BoardDraft {
   title: string;
   coreRulesVersion: string | null;
@@ -47,10 +49,7 @@ export const useBoardDraftStore = create<BoardDraftState>()(
     {
       name: "openrift-board-state-draft",
       partialize: (state) => ({ draft: state.draft }),
-      merge: (persisted, current) => {
-        const raw = persisted as { draft?: unknown } | undefined;
-        return { ...current, draft: parseBoardDraft(raw?.draft) };
-      },
+      merge: mergeFields<BoardDraftState>({ draft: parseBoardDraft }),
     },
   ),
 );

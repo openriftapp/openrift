@@ -73,8 +73,8 @@ const columns: AdminColumnDef<RarityRow, RarityDraft>[] = [
 
 export function RaritiesPage() {
   const { data } = useRarities();
-  const createMutation = useCreateRarity();
-  const updateMutation = useUpdateRarity();
+  const createMutation = useCreateRarity({ inlineError: true });
+  const updateMutation = useUpdateRarity({ inlineError: true });
   const deleteMutation = useDeleteRarity();
   const reorderMutation = useReorderRarities();
   const { rarities } = data;

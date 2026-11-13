@@ -9,7 +9,6 @@ import {
   PrinterIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { PageTopBarIconButton } from "@/components/layout/page-top-bar";
 import { ShareDialog } from "@/components/share/share-dialog";
@@ -22,32 +21,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DeckExportDialog } from "@/features/decks/components/deck-export-dialog";
 import { DeckPrintDialog } from "@/features/decks/components/deck-print-dialog";
-import { useEncodeDeckCards } from "@/features/decks/hooks/use-decks";
+import { useCopyDeckCode } from "@/features/decks/hooks/use-copy-deck-code";
 import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card";
 import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { compareLinkParam } from "@/features/decks/lib/deck-compare-side";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { deckShareImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
-
-/** Module scope so the copy handler's `try` stays branch-free (React Compiler). */
-function reportEncodeWarnings(warnings: readonly string[]): void {
-  if (warnings.length > 0) {
-    toast.warning(m.decks_menu_code_warnings(), { description: warnings.join(" ") });
-  }
-}
-
-/** Module scope for the same reason as {@link reportEncodeWarnings}. */
-function reportCopyResult(written: boolean): void {
-  if (written) {
-    toast.success(m.decks_menu_code_copied());
-    return;
-  }
-  toast.error(m.decks_menu_code_copy_failed());
-}
 
 interface PublicDeckActionsMenuProps {
   deckId: string;
@@ -77,8 +59,6 @@ export function PublicDeckActionsMenu({
   const [imageOpen, setImageOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const encodeMutation = useEncodeDeckCards();
-  const { copy } = useCopyToClipboard();
 
   const builderCards = cards.map((card) => toBuilderCardFromPublic(card));
   const publicSource: PublicDeckSource = {
@@ -86,19 +66,7 @@ export function PublicDeckActionsMenu({
     imageVersion: shareImageVersion(updatedAt),
   };
 
-  const encodeCards = toEncodeDeckCards(builderCards);
-  // The menu closes on click, so the hook's inline "Copied" state never
-  // shows; this toast is the only feedback the click gets.
-  const handleCopyCode = async () => {
-    try {
-      const encoded = await encodeMutation.mutateAsync({ cards: encodeCards });
-      const written = await copy(encoded.code);
-      reportCopyResult(written);
-      reportEncodeWarnings(encoded.warnings);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
-  };
+  const deckCode = useCopyDeckCode(toEncodeDeckCards(builderCards));
 
   return (
     <>
@@ -115,10 +83,7 @@ export function PublicDeckActionsMenu({
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onClick={() => void handleCopyCode()}
-            disabled={encodeMutation.isPending}
-          >
+          <DropdownMenuItem onClick={() => void deckCode.copyCode()} disabled={deckCode.pending}>
             <CopyIcon className="size-4" />
             {m.decks_menu_copy_deck_code()}
           </DropdownMenuItem>

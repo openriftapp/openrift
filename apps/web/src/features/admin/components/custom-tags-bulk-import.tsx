@@ -17,6 +17,7 @@ import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
 import { useAddCardsToCustomTag } from "@/features/collections/hooks/use-custom-tags";
 import type { BulkImportPlan } from "@/features/collections/lib/custom-tag-bulk-import";
 import { planCustomTagBulkImport } from "@/features/collections/lib/custom-tag-bulk-import";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
   const { data: allCards } = useAllCards();
@@ -41,12 +42,13 @@ export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
       return;
     }
     const matchedCount = plan.cardIds.length;
-    try {
-      const response = await mutation.mutateAsync({ tagId: selectedTag.id, cardIds: plan.cardIds });
+    let response: Awaited<ReturnType<typeof mutation.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      response = await mutation.mutateAsync({ tagId: selectedTag.id, cardIds: plan.cardIds });
+    });
+    if (ok && response) {
       setResult({ added: response.added, matched: matchedCount, tagLabel: selectedTag.label });
       setText("");
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

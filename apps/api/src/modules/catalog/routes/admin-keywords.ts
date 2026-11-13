@@ -1,6 +1,7 @@
 import { adminKeywordsContract } from "@openrift/shared/contracts/admin/keywords";
 import { implement } from "@orpc/server";
 
+import { conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { discoverKeywordTranslations } from "../services/keyword-translation-discovery.js";
@@ -26,7 +27,9 @@ export const adminKeywordsRouter = {
   }),
 
   createStyle: os.createStyle.handler(async ({ input, context }): Promise<void> => {
-    await context.repos.keywords.createStyle(input);
+    await conflictOnUniqueViolation("keywords_pkey", `Keyword "${input.name}" already exists`, () =>
+      context.repos.keywords.createStyle(input),
+    );
   }),
 
   updateStyle: os.updateStyle.handler(async ({ input, context }): Promise<void> => {

@@ -8,22 +8,17 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { JsonFileField } from "@/features/admin/components/json-file-field";
+import {
+  UploadDiffTable,
+  UploadEntryTable,
+} from "@/features/admin/components/upload-preview-tables";
 import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
-import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { parseJsonEntries } from "@/features/admin/lib/json-upload";
 import type { BulkErrataEntry } from "@/features/cards/hooks/use-card-errata";
 import { useUploadErrata } from "@/features/cards/hooks/use-card-errata";
+import { errorText } from "@/lib/error-text";
 
 function parseErrataEntries(text: string) {
   return parseJsonEntries<BulkErrataEntry>(
@@ -125,7 +120,7 @@ export function ErrataUploadPage() {
         {upload.isError && (
           <p className="text-muted-foreground flex items-center gap-1 text-sm">
             <XIcon className="text-destructive size-4 shrink-0" />
-            {upload.error.message}
+            {errorText(upload.error, "Upload failed")}
           </p>
         )}
       </SettingsSection>
@@ -281,29 +276,15 @@ function EntryList({
   entries: { cardSlug: string; cardName: string }[];
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <SectionHeading as="h3" size="sm">
-        {label}
-      </SectionHeading>
-      <div className="max-h-64 overflow-y-auto rounded-md border">
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader className="bg-muted sticky top-0">
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Slug</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry) => (
-              <TableRow key={entry.cardSlug}>
-                <TableCell className="font-medium">{entry.cardName}</TableCell>
-                <TableCell className="text-muted-foreground">{entry.cardSlug}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <UploadEntryTable
+      label={label}
+      detailHeader="Slug"
+      entries={entries.map((entry) => ({
+        key: entry.cardSlug,
+        name: entry.cardName,
+        detail: entry.cardSlug,
+      }))}
+    />
   );
 }
 
@@ -319,44 +300,17 @@ function DiffList({
   }[];
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <SectionHeading as="h3" size="sm">
-        {label}
-      </SectionHeading>
-      <div className="max-h-64 overflow-y-auto rounded-md border">
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader className="bg-muted sticky top-0">
-            <TableRow>
-              <TableHead>Card</TableHead>
-              <TableHead>Field</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.flatMap((entry) =>
-              entry.fields.map((field, fieldIndex) => (
-                <TableRow key={`${entry.cardSlug}-${fieldIndex}`}>
-                  <TableCell className="font-medium">{entry.cardName}</TableCell>
-                  <TableCell>{field.field}</TableCell>
-                  <TableCell
-                    className="text-destructive max-w-48 truncate"
-                    title={JSON.stringify(field.from)}
-                  >
-                    {JSON.stringify(field.from)}
-                  </TableCell>
-                  <TableCell
-                    className="text-success max-w-48 truncate"
-                    title={JSON.stringify(field.to)}
-                  >
-                    {JSON.stringify(field.to)}
-                  </TableCell>
-                </TableRow>
-              )),
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <UploadDiffTable
+      label={label}
+      changes={entries.flatMap((entry) =>
+        entry.fields.map((field, fieldIndex) => ({
+          key: `${entry.cardSlug}-${fieldIndex}`,
+          name: entry.cardName,
+          field: field.field,
+          from: field.from,
+          to: field.to,
+        })),
+      )}
+    />
   );
 }

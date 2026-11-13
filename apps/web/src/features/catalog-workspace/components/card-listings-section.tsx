@@ -29,6 +29,7 @@ import {
   useUnifiedAssignToCard,
   useUnifiedIgnoreProducts,
   useUnifiedIgnoreVariants,
+  useSaveMappingsByMarketplace,
   useUnifiedSaveMappings,
   useUnifiedUnassignFromCard,
 } from "@/features/admin/hooks/use-unified-mappings";
@@ -312,12 +313,7 @@ export function CardListingsSection({
 }) {
   const { data, isPending } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
   const done = useListingDone(cardSlug);
-  const saves: Record<AdminMarketplaceName, ReturnType<typeof useUnifiedSaveMappings>> = {
-    tcgplayer: useUnifiedSaveMappings("tcgplayer"),
-    cardmarket: useUnifiedSaveMappings("cardmarket"),
-    cardtrader: useUnifiedSaveMappings("cardtrader"),
-    cardnexus: useUnifiedSaveMappings("cardnexus"),
-  };
+  const saves = useSaveMappingsByMarketplace();
   const [showAll, setShowAll] = useState(false);
   const saving = ALL_MARKETPLACES.some((marketplace) => saves[marketplace].isPending);
 

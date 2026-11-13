@@ -1,11 +1,11 @@
 import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
-import { formatRelativeTime } from "@openrift/shared/format-date";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { DatabaseIcon, UserIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -101,13 +101,6 @@ function ChangesCell({ row }: AdminCellSlotProps<ReviewQueueItem>) {
   return <span className="text-muted-foreground">{summarizeReviewItem(row)}</span>;
 }
 
-function WaitingCell({ row }: AdminCellSlotProps<ReviewQueueItem>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground">{formatRelativeTime(row.createdAt)}</span>;
-}
-
 const columns: AdminColumnDef<ReviewQueueItem>[] = [
   {
     header: "Type",
@@ -136,7 +129,7 @@ const columns: AdminColumnDef<ReviewQueueItem>[] = [
     header: "Waiting",
     width: "w-28",
     sortValue: (row) => row.createdAt,
-    cell: <WaitingCell />,
+    cell: <InstantCell<ReviewQueueItem> at={(row) => row.createdAt} relative />,
   },
 ];
 

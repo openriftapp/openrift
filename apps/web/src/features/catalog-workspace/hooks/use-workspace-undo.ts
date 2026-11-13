@@ -1,3 +1,4 @@
+import { toError } from "@openrift/shared/strings";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -44,7 +45,7 @@ export async function runWorkspaceUndo(
     refresh(entry, queryClient);
     return;
   }
-  reportMutationError(failure instanceof Error ? failure : new Error("Undo failed"), queryClient);
+  reportMutationError(toError(failure), queryClient);
 }
 
 export function useWorkspaceUndo() {

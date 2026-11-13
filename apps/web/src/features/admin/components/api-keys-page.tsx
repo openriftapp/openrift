@@ -1,4 +1,3 @@
-import { formatDay } from "@openrift/shared/format-date";
 import { KeyRoundIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,20 +24,11 @@ import {
   useCreateApiKey,
   useDeleteApiKey,
 } from "@/features/account/hooks/use-api-keys";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
 import { AdminTable } from "@/features/admin/components/admin-table";
-
-/**
- * Formats a better-auth date (a Date on the type, an ISO string on the wire).
- */
-function keyDate(value: Date | string | null): string {
-  if (!value) {
-    return "—";
-  }
-  const iso = typeof value === "string" ? value : value.toISOString();
-  return formatDay(iso);
-}
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function CreatedKeyDialog({ createdKey, onClose }: { createdKey: string; onClose: () => void }) {
   return (
@@ -111,12 +101,13 @@ export function ApiKeysPage() {
     if (!trimmed) {
       return;
     }
-    try {
-      const created = await createKey.mutateAsync({ name: trimmed });
+    let created: Awaited<ReturnType<typeof createKey.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      created = await createKey.mutateAsync({ name: trimmed });
+    });
+    if (ok && created) {
       setName("");
       setCreatedKey(created.key);
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 
@@ -178,10 +169,13 @@ export function ApiKeysPage() {
             columns={[
               { header: "Name", cell: <TextCell value={(key) => key.name ?? "—"} /> },
               { header: "Key", cell: <KeyStartCell /> },
-              { header: "Created", cell: <TextCell value={(key) => keyDate(key.createdAt)} /> },
+              {
+                header: "Created",
+                cell: <InstantCell<ApiKeySummary> at={(key) => key.createdAt} />,
+              },
               {
                 header: "Last used",
-                cell: <TextCell value={(key) => keyDate(key.lastRequest)} />,
+                cell: <InstantCell<ApiKeySummary> at={(key) => key.lastRequest} relative />,
               },
               {
                 header: "Requests",

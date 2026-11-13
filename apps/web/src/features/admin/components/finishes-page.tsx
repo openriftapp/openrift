@@ -53,8 +53,8 @@ const columns: AdminColumnDef<FinishRow, FinishDraft>[] = [
 
 export function FinishesPage() {
   const { data } = useFinishes();
-  const createMutation = useCreateFinish();
-  const updateMutation = useUpdateFinish();
+  const createMutation = useCreateFinish({ inlineError: true });
+  const updateMutation = useUpdateFinish({ inlineError: true });
   const deleteMutation = useDeleteFinish();
   const reorderMutation = useReorderFinishes();
   const { finishes } = data;

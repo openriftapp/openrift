@@ -12,6 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authAccountsKeys } from "@/features/account/lib/account-query-keys";
+import { newPasswordField } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
 import { setServerError } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
@@ -20,7 +21,7 @@ function passwordSchema() {
   return z
     .object({
       currentPassword: z.string().min(1, m.profile_password_error_current_required()),
-      newPassword: z.string().min(8, m.profile_password_error_new_too_short()),
+      newPassword: newPasswordField(m.profile_password_error_new_too_short()),
       confirmPassword: z.string().min(1, m.profile_password_error_confirm_required()),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {

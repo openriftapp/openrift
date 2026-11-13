@@ -58,10 +58,10 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
                   alt=""
                   loading="lazy"
                   draggable={false}
-                  className="aspect-card h-[70%] shrink-0 rounded-[5%/3.6%] object-cover shadow-2xl"
+                  className="aspect-card rounded-card h-[70%] shrink-0 object-cover shadow-2xl"
                 />
               ) : (
-                <span className="aspect-card h-[70%] shrink-0 rounded-[5%/3.6%] bg-black/80 shadow-2xl" />
+                <span className="aspect-card rounded-card h-[70%] shrink-0 bg-black/80 shadow-2xl" />
               )}
             </div>
           </div>

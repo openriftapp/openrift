@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/server-fns/orpc-client", () => ({ apiOrpcClient: vi.fn() }));
 
-const { decisionSentence, decisionTarget, newestFirst } = await import("./use-workspace-decisions");
+const { decisionSentence, decisionTarget } = await import("./use-workspace-decisions");
 
 function decision(overrides: Partial<WorkspaceEvent>): WorkspaceEvent {
   return {
@@ -17,17 +17,6 @@ function decision(overrides: Partial<WorkspaceEvent>): WorkspaceEvent {
     ...overrides,
   };
 }
-
-describe("newestFirst", () => {
-  it("orders events by time, newest first", () => {
-    const events = [
-      decision({ id: "a", createdAt: "2026-10-26T08:00:00.000Z" }),
-      decision({ id: "b", createdAt: "2026-10-26T10:00:00.000Z" }),
-      decision({ id: "c", createdAt: "2026-10-26T09:00:00.000Z" }),
-    ];
-    expect(newestFirst(events).map((event) => event.id)).toEqual(["b", "c", "a"]);
-  });
-});
 
 describe("decisionSentence", () => {
   it("uses the history action sentence without repeating the label", () => {

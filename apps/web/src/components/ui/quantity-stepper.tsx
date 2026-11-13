@@ -1,3 +1,4 @@
+import { clamp } from "@openrift/shared/math";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -47,14 +48,13 @@ function QuantityStepper({
   editable = false,
   className,
 }: QuantityStepperProps) {
-  const clamp = (next: number) => Math.min(max, Math.max(min, next));
   const { inputProps, resetDraft } = useNumericDraft({
     display: String(value),
     onCommit: (text) => {
       // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of an input value; Number() would yield NaN on trailing text
       const parsed = Number.parseInt(text, 10);
       if (!Number.isNaN(parsed)) {
-        onValueChange(clamp(parsed));
+        onValueChange(clamp(parsed, min, max));
       }
     },
   });
@@ -67,7 +67,7 @@ function QuantityStepper({
         disabled={disabled || value <= min}
         onClick={() => {
           resetDraft();
-          onValueChange(clamp(value - 1));
+          onValueChange(clamp(value - 1, min, max));
         }}
         aria-label={m.ui_quantity_one_fewer()}
       >
@@ -93,7 +93,7 @@ function QuantityStepper({
         disabled={disabled || value >= max}
         onClick={() => {
           resetDraft();
-          onValueChange(clamp(value + 1));
+          onValueChange(clamp(value + 1, min, max));
         }}
         aria-label={m.ui_quantity_one_more()}
       >

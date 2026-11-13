@@ -53,8 +53,8 @@ const columns: AdminColumnDef<ArtVariantRow, ArtVariantDraft>[] = [
 
 export function ArtVariantsPage() {
   const { data } = useArtVariants();
-  const createMutation = useCreateArtVariant();
-  const updateMutation = useUpdateArtVariant();
+  const createMutation = useCreateArtVariant({ inlineError: true });
+  const updateMutation = useUpdateArtVariant({ inlineError: true });
   const deleteMutation = useDeleteArtVariant();
   const reorderMutation = useReorderArtVariants();
   const { artVariants } = data;

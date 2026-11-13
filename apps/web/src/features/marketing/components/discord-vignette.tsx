@@ -1,3 +1,5 @@
+import { discordEmbedColorHex } from "@openrift/shared/discord-embed";
+import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { BotIcon } from "lucide-react";
 import { siDiscord } from "simple-icons";
 
@@ -8,12 +10,12 @@ import { m } from "@/paraglide/messages.js";
 
 import { Vignette } from "./vignette-parts";
 
-const EMBED_ACCENT = "#24705F";
+const EMBED_ACCENT = discordEmbedColorHex();
 
 const PRICE_FIELDS = [
-  { name: "TCGplayer", value: "$4.52" },
-  { name: "Cardmarket", value: "€3.80" },
-  { name: "CardTrader", value: "€3.65" },
+  { name: marketplaceLabel("tcgplayer"), value: "$4.52" },
+  { name: marketplaceLabel("cardmarket"), value: "€3.80" },
+  { name: marketplaceLabel("cardtrader"), value: "€3.65" },
 ] as const;
 
 // Fallback for when the daily-cached sample predates the art-identity fields.

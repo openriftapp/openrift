@@ -1,11 +1,11 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
-import { formatDay, formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
+import { formatDay } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, DownloadIcon, PlusIcon, Share2Icon } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
 import {
@@ -17,7 +17,6 @@ import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Empty,
   EmptyDescription,
@@ -27,7 +26,9 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { RowSelectCheckbox } from "@/features/admin/components/admin-row-select";
 import { PrintingDeskCardSearchDialog } from "@/features/admin/components/printing-desk-card-search";
 import {
   DeskSegmented,
@@ -38,6 +39,7 @@ import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useDeskPrintings } from "@/features/admin/hooks/use-printing-desk";
+import { useRowSelection } from "@/features/admin/hooks/use-row-selection";
 import { deskPrintingCodes, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import {
   buildPrintingDeskCsv,
@@ -52,6 +54,7 @@ import {
 import type { DeskListMode } from "@/features/admin/lib/printing-desk-queries";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { selectionSummary, splitSelection } from "@/features/admin/lib/selection-summary";
+import { deskSelectionStore } from "@/features/admin/stores/row-selection-store";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { downloadCsv } from "@/lib/download";
@@ -87,7 +90,7 @@ export function PrintingDeskPage() {
   const [status, setStatus] = useState<DeskStatusFilter>("any");
   const [sort, setSort] = useState<DeskSort>("code");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const selection = useRowSelection(deskSelectionStore, useId());
 
   const { data, isPending } = useDeskPrintings(mode);
   const { data: channelData } = useDistributionChannels();
@@ -101,7 +104,12 @@ export function PrintingDeskPage() {
     sort,
   );
 
-  const split = splitSelection(data?.printings ?? [], rows, (row) => row.printingId, selected);
+  const split = splitSelection(
+    data?.printings ?? [],
+    rows,
+    (row) => row.printingId,
+    selection.selected,
+  );
   const selectedRows = split.selected;
   const postSlides = selectedRows.flatMap((row) =>
     row.activeImageFileId === null
@@ -113,18 +121,6 @@ export function PrintingDeskPage() {
   function handleExport() {
     const csv = buildPrintingDeskCsv(rows, { channelPaths, siteUrl: getSiteUrl() });
     downloadCsv(csv, printingDeskCsvFilename(mode, todayDay()));
-  }
-
-  function toggleSelected(printingId: string, checked: boolean) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (checked) {
-        next.add(printingId);
-      } else {
-        next.delete(printingId);
-      }
-      return next;
-    });
   }
 
   return (
@@ -244,8 +240,7 @@ export function PrintingDeskPage() {
                 .join(", ")}
               markerLabels={markerLabels}
               finishLabel={enumLabel(labels.finishes, row.finish)}
-              selected={selected.has(row.printingId)}
-              onSelectedChange={(checked) => toggleSelected(row.printingId, checked)}
+              selectionScope={selection.scope}
             />
           ))}
         </CardList>
@@ -261,25 +256,23 @@ function DeskPrintingListRow({
   channelPath,
   markerLabels,
   finishLabel,
-  selected,
-  onSelectedChange,
+  selectionScope,
 }: {
   row: DeskPrintingRow;
   channelPath: string;
   markerLabels: LabelMap;
   finishLabel: string;
-  selected: boolean;
-  onSelectedChange: (checked: boolean) => void;
+  selectionScope: string;
 }) {
   return (
     <li className="hover:bg-muted/50 has-[a:focus-visible]:ring-ring/50 relative flex items-center gap-3 rounded-md px-2 py-2 has-[a:focus-visible]:ring-2">
       {/* Above the row link's inset-0 overlay, or the tick would open the printing. */}
-      <Checkbox
-        aria-label={`Select ${row.cardName}`}
+      <RowSelectCheckbox
+        store={deskSelectionStore}
+        scope={selectionScope}
+        rowKey={row.printingId}
+        label={`Select ${row.cardName}`}
         className="relative z-10"
-        checked={selected}
-        onCheckedChange={(checked) => onSelectedChange(checked === true)}
-        onClick={(event) => event.stopPropagation()}
       />
 
       <DeskThumb row={row} className="h-12" />
@@ -320,12 +313,11 @@ function DeskPrintingListRow({
       <span className="text-muted-foreground hidden w-20 shrink-0 text-right text-sm md:block">
         {imageCountText(row.imageCount)}
       </span>
-      <span
+      <AdminInstant
+        at={row.updatedAt}
+        relative
         className="text-muted-foreground hidden w-24 shrink-0 text-right text-sm lg:block"
-        title={formatDayTimeLocal(row.updatedAt)}
-      >
-        {formatRelativeTime(row.updatedAt)}
-      </span>
+      />
 
       <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
     </li>

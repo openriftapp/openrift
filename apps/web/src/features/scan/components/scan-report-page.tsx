@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSendScanReport } from "@/features/scan/hooks/use-scan-report";
 import type { ScanJournalEntry } from "@/features/scan/lib/scan-journal";
 import { readScanJournal } from "@/features/scan/lib/scan-journal";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -48,12 +49,13 @@ export function ScanReportPage() {
       noteToSend = trimmedNote;
     }
     const userAgent = navigator.userAgent.slice(0, 500);
-    try {
-      const sent = await sendReport.mutateAsync({ note: noteToSend, userAgent, journal });
+    let sent: Awaited<ReturnType<typeof sendReport.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      sent = await sendReport.mutateAsync({ note: noteToSend, userAgent, journal });
+    });
+    if (ok && sent) {
       setReference(sent.reference);
       setJournal(readScanJournal());
-    } catch {
-      // Reported by the global mutation error toast.
     }
   }
 

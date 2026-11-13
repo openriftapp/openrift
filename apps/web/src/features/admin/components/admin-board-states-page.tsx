@@ -1,11 +1,11 @@
 import type { AdminBoardState } from "@openrift/shared/contracts/admin/board-states";
-import { formatDayTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Switch } from "@/components/ui/switch";
 import { TextLink } from "@/components/ui/text-link";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -85,13 +85,6 @@ function FeaturedCell({ row }: AdminCellSlotProps<AdminBoardState>) {
   );
 }
 
-function UpdatedCell({ row }: AdminCellSlotProps<AdminBoardState>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground">{formatDayTime(row.updatedAt)}</span>;
-}
-
 const columns: AdminColumnDef<AdminBoardState>[] = [
   { header: "Title", sortValue: (b) => b.title, cell: <TitleCell /> },
   { header: "Owner", width: "w-44", sortValue: (b) => b.ownerName ?? "", cell: <OwnerCell /> },
@@ -109,7 +102,12 @@ const columns: AdminColumnDef<AdminBoardState>[] = [
     sortValue: (b) => (b.isFeatured ? 1 : 0),
     cell: <FeaturedCell />,
   },
-  { header: "Updated", width: "w-36", sortValue: (b) => b.updatedAt, cell: <UpdatedCell /> },
+  {
+    header: "Updated",
+    width: "w-36",
+    sortValue: (b) => b.updatedAt,
+    cell: <InstantCell<AdminBoardState> at={(row) => row.updatedAt} relative />,
+  },
 ];
 
 export function AdminBoardStatesPage() {

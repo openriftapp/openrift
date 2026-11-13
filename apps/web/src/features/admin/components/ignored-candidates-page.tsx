@@ -1,4 +1,3 @@
-import { formatDayTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
 import { Undo2Icon } from "lucide-react";
 import { useState } from "react";
@@ -7,6 +6,7 @@ import { Heading } from "@/components/heading";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -59,13 +59,6 @@ function ExternalIdCell({ row }: AdminCellSlotProps<{ externalId: string }>) {
   return <span className="font-mono">{row.externalId}</span>;
 }
 
-function CreatedAtCell({ row }: AdminCellSlotProps<{ createdAt: string }>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground">{formatDayTime(row.createdAt)}</span>;
-}
-
 function PrintingFinishCell({ row }: AdminCellSlotProps<IgnoredPrinting>) {
   if (!row) {
     return null;
@@ -93,7 +86,7 @@ const cardColumns: AdminColumnDef<IgnoredCard>[] = [
     header: "Ignored At",
     width: "w-36",
     sortValue: (r) => r.createdAt,
-    cell: <CreatedAtCell />,
+    cell: <InstantCell<{ createdAt: string }> at={(row) => row.createdAt} />,
   },
 ];
 
@@ -119,7 +112,7 @@ const printingColumns: AdminColumnDef<IgnoredPrinting>[] = [
     header: "Ignored At",
     width: "w-36",
     sortValue: (r) => r.createdAt,
-    cell: <CreatedAtCell />,
+    cell: <InstantCell<{ createdAt: string }> at={(row) => row.createdAt} />,
   },
 ];
 
@@ -216,7 +209,7 @@ const printingLinkColumns: AdminColumnDef<PrintingLink>[] = [
     header: "Pinned At",
     width: "w-36",
     sortValue: (r) => r.createdAt,
-    cell: <CreatedAtCell />,
+    cell: <InstantCell<{ createdAt: string }> at={(row) => row.createdAt} />,
   },
 ];
 

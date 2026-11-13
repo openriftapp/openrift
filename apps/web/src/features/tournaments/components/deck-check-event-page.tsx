@@ -61,6 +61,7 @@ import {
   participantStatusLabels,
 } from "@/features/tournaments/lib/tournament-display";
 import { useZoneOrder } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -287,11 +288,10 @@ function EntryRowMenu({
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function handleDelete() {
-    try {
-      await deleteEntry.mutateAsync({ tournamentId, entryId: entry.id });
+    if (
+      await runReportedMutation(() => deleteEntry.mutateAsync({ tournamentId, entryId: entry.id }))
+    ) {
       setDeleteOpen(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

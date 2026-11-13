@@ -1,6 +1,5 @@
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
-import type { ComparableCardField } from "@openrift/shared/catalog-field-compare";
-import { COMPARABLE_CARD_FIELDS, hasFieldValue } from "@openrift/shared/catalog-field-compare";
+import { COMPARABLE_CARD_FIELDS } from "@openrift/shared/catalog-field-compare";
 import type { AcceptCardField } from "@openrift/shared/contracts/admin/card-mutations";
 import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { enumLabel } from "@openrift/shared/enum-label";
@@ -33,27 +32,6 @@ export const CARD_RECORD_FIELDS: readonly RecordFieldDef[] = [
   })),
   ...EXTRA_CARD_FIELDS,
 ];
-
-const LABEL_GROUPS: Partial<Record<ComparableCardField, keyof CardStatLabels>> = {
-  types: "cardTypes",
-  superTypes: "superTypes",
-  domains: "domains",
-};
-
-export function formatRecordValue(field: string, value: unknown, labels?: CardStatLabels): string {
-  if (!hasFieldValue(value)) {
-    return "—";
-  }
-  const group = LABEL_GROUPS[field as ComparableCardField];
-  const map = group === undefined || labels === undefined ? undefined : labels[group];
-  if (Array.isArray(value)) {
-    return value.map((entry) => (map ? enumLabel(map, String(entry)) : String(entry))).join(" · ");
-  }
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-  return map ? enumLabel(map, String(value)) : String(value);
-}
 
 export function cardTypeLine(
   card: { superTypes: readonly string[]; types: readonly string[]; domains: readonly string[] },

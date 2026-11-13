@@ -398,3 +398,228 @@ describe("source conventions", () => {
     ).toEqual([]);
   });
 });
+
+describe("generic helpers", () => {
+  it("memoizes through the React Compiler, keeping memo only on virtualized cells", () => {
+    expect(
+      offenders(WEB_FILES, /\b(?:useMemo|useCallback)\(|\bmemo\(/u, [
+        "apps/web/src/features/cards/components/card-grid.tsx",
+        "apps/web/src/features/cards/components/card-table.tsx",
+        "apps/web/src/features/cards/components/browser-card-cell.tsx",
+        "apps/web/src/features/cards/components/card-thumbnail.tsx",
+        "apps/web/src/features/collections/components/collection-grid-cell.tsx",
+        "apps/web/src/features/lists/components/list-grid-cell.tsx",
+        "apps/web/src/components/ui/chart.tsx",
+        "apps/web/src/components/ui/drawer.tsx",
+        "apps/web/src/components/ui/field.tsx",
+        "apps/web/src/components/ui/sidebar.tsx",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("reads thrown errors only through the shared error helpers", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /instanceof Error \? \w+\.message\b|instanceof Error \? \w+ : new Error\(/u,
+        ["packages/shared/src/strings.ts", "apps/web/src/lib/error-text.ts"],
+      ),
+    ).toEqual([]);
+  });
+
+  it("splits arrays only through chunk", () => {
+    expect(
+      offenders(
+        ALL_FILES,
+        /for \(let (?<step>\w+) = 0; \k<step> < [\w.]+\.length; \k<step> \+= [A-Z][A-Z_]*\)/u,
+        [
+          "packages/shared/src/collections.ts",
+          "apps/web/src/features/admin/hooks/use-admin-image-mutations.ts",
+        ],
+      ),
+    ).toEqual([]);
+  });
+
+  it("defines clamp and sleep once", () => {
+    expect(
+      offenders(ALL_FILES, /function clamp\(|setTimeout\(resolve, \w+\)/u, [
+        "packages/shared/src/math.ts",
+        "packages/shared/src/async.ts",
+        // A timeout raced against a shutdown, cleared on either outcome.
+        "packages/shared/src/otel/tracing-node.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("rounds card corners through the card radius token", () => {
+    expect(
+      offenders(WEB_FILES, /5% ?\/ ?3\.6%/u, [
+        "apps/web/src/features/cards/lib/card-grid-constants.ts",
+        "apps/web/src/features/cards/components/card-detail/card-image.tsx",
+      ]),
+    ).toEqual([]);
+  });
+});
+
+describe("mutations and jobs", () => {
+  const parse = (file: string) => {
+    const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    return ts.createSourceFile(
+      file,
+      readFileSync(file, "utf-8"),
+      ts.ScriptTarget.Latest,
+      true,
+      kind,
+    );
+  };
+
+  it("names job kinds only through the shared job-run-kinds constants", async () => {
+    const { JOB_KIND, META_JOB_KINDS } = await import("@openrift/shared/job-run-kinds");
+    const kinds = new Set<string>([...Object.values(JOB_KIND), ...META_JOB_KINDS]);
+    const literalKinds = (file: string) => {
+      const found: string[] = [];
+      const visit = (node: ts.Node) => {
+        if (
+          (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
+          kinds.has(node.text)
+        ) {
+          found.push(`${relative(file)}: ${node.text}`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(parse(file));
+      return found;
+    };
+    expect(
+      ALL_FILES.filter((file) => !file.endsWith("job-run-kinds.ts")).flatMap((file) =>
+        literalKinds(file),
+      ),
+    ).toEqual([]);
+  });
+
+  it("shows admin table save errors inline only", () => {
+    const missing = WEB_FILES.flatMap((file) => {
+      const source = readFileSync(file, "utf-8");
+      const names = [
+        ...source.matchAll(/onSave: \([^)]*\) =>\s*(?:\{\s*return\s+)?(?<name>\w+)\.mutateAsync/gu),
+      ].map((match) => match.groups?.name ?? "");
+      return names
+        .filter(
+          (name) =>
+            !new RegExp(String.raw`const ${name} = use\w+\([^)]*inlineError: true`, "u").test(
+              source,
+            ),
+        )
+        .map((name) => `${relative(file)}: ${name}`);
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it("awaits mutations only through runReportedMutation", () => {
+    const handwritten = (file: string) => {
+      const found: string[] = [];
+      const at = (node: ts.Node, what: string) => {
+        const { line } = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart());
+        found.push(`${relative(file)}:${line + 1} ${what}`);
+      };
+      const visit = (node: ts.Node) => {
+        if (ts.isTryStatement(node) && node.tryBlock.getText().includes(".mutateAsync")) {
+          at(node, "try around mutateAsync");
+        }
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression) &&
+          (node.expression.name.text === "catch" ||
+            (node.expression.name.text === "then" && node.arguments.length > 1)) &&
+          node.expression.expression.getText().includes(".mutateAsync(")
+        ) {
+          at(node, `.${node.expression.name.text}() on mutateAsync`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      const sf = parse(file);
+      visit(sf);
+      if (sf.text.includes("Reported by the global mutation")) {
+        found.push(`${relative(file)} comment-only mutation catch`);
+      }
+      return found;
+    };
+    expect(
+      WEB_FILES.filter((file) => !file.endsWith("run-reported-mutation.ts")).flatMap((file) =>
+        handwritten(file),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("admin display", () => {
+  const adminFiles = WEB_FILES.filter((file) =>
+    ["apps/web/src/features/admin/", "apps/web/src/features/catalog-workspace/"].some((dir) =>
+      relative(file).startsWith(dir),
+    ),
+  );
+  const admin = (file: string) => `apps/web/src/features/admin/${file}`;
+
+  it("shows admin instants in UTC", () => {
+    expect(
+      offenders(
+        adminFiles,
+        /\b(?:formatDayTimeLocal|formatDayLocal|formatTimeLocal|formatWeekday\w*Local|dateLeafParts)\(/u,
+      ),
+    ).toEqual([]);
+    expect(offenders(ALL_FILES, /format(?:Day|DayTime|Month)\([^)]*\)\.slice\(/u)).toEqual([]);
+  });
+
+  it("tests field emptiness only through hasFieldValue", () => {
+    expect(
+      offenders(
+        adminFiles,
+        /(?<name>\w+) === null \|\| \k<name> === undefined \|\| \k<name> === ""/u,
+        [admin("components/new-printing-group-card.tsx")],
+      ),
+    ).toEqual([]);
+  });
+
+  it("parses admin number inputs only through parseIntegerInput", () => {
+    expect(
+      offenders(adminFiles, /Number\.parseInt\(|parseFloat\(|function parseNum\b|\/\^\\d\+\$\/u/u),
+    ).toEqual([]);
+  });
+
+  it("renders admin values only through field-value-text", () => {
+    expect(
+      offenders(
+        adminFiles,
+        /JSON\.stringify\(field\.(?:from|to)\)|function (?:formatValue|formatRecordValue|formatSuggestionValue|historySummary|newestFirst|hasValue|candidateHasValue|isValidFieldOption)\b/u,
+        ["apps/web/src/features/catalog-workspace/lib/card-record-summaries.ts"],
+      ),
+    ).toEqual([]);
+  });
+
+  it("formats admin counts through formatCount", () => {
+    expect(offenders(adminFiles, /\.toLocaleString\(\)/u)).toEqual([]);
+  });
+
+  it("selects admin rows only through the row selection store", () => {
+    expect(
+      offenders(adminFiles, /\[\w*[sS]elected\w*, set\w*\] = useState<(?:Readonly)?Set</u),
+    ).toEqual([]);
+  });
+
+  it("builds admin tables through AdminTable", () => {
+    expect(
+      offenders(adminFiles, /from "@\/components\/ui\/table"|<table\b/u, [
+        admin("components/admin-table.tsx"),
+        admin("components/admin-table-group-row.tsx"),
+        admin("components/admin-table-reorder-row.tsx"),
+        admin("components/upload-preview-tables.tsx"),
+        admin("components/meta-review-event-group.tsx"),
+        admin("components/meta-review-player-row.tsx"),
+        admin("components/meta-archive-jobs-card.tsx"),
+        admin("components/unmatched-products-panel.tsx"),
+        admin("components/candidate-spreadsheet.tsx"),
+        admin("components/design/ui/data-section.tsx"),
+      ]),
+    ).toEqual([]);
+  });
+});

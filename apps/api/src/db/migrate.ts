@@ -1,5 +1,5 @@
 import type { Logger } from "@openrift/shared/logger";
-import { stringifyUnknown } from "@openrift/shared/strings";
+import { toError } from "@openrift/shared/strings";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 import { Migrator } from "kysely/migration";
@@ -104,10 +104,6 @@ async function assertFoldedMigrationsApplied(db: Kysely<Database>): Promise<void
       `Database predates the migration squash: ${missing.length} folded migrations were never applied (first: ${missing[0]}). Reset or restore the database.`,
     );
   }
-}
-
-function toError(thrown: unknown): Error {
-  return thrown instanceof Error ? thrown : new Error(stringifyUnknown(thrown));
 }
 
 export async function migrate(db: Kysely<Database>, log: Logger): Promise<void> {

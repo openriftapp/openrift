@@ -6,6 +6,7 @@ import {
   assertDeleted,
   assertFound,
   assertSlugAvailable,
+  conflictOnUniqueViolation,
   assertUpdated,
   assertValidReorder,
 } from "./assertions.js";
@@ -180,5 +181,30 @@ describe("assertDeleted", () => {
 
   it("throws a 404 when result is undefined", () => {
     expect(() => assertDeleted(undefined, "Not found")).toThrow(AppError);
+  });
+});
+
+describe("conflictOnUniqueViolation", () => {
+  const violation = (constraint: string) =>
+    Object.assign(new Error("duplicate key"), { code: "23505", constraint_name: constraint });
+
+  it("returns the write's result", async () => {
+    await expect(conflictOnUniqueViolation("cards_slug_key", "Taken", async () => 7)).resolves.toBe(
+      7,
+    );
+  });
+
+  it("turns a violation of the named constraint into a 409", async () => {
+    const result = conflictOnUniqueViolation("cards_slug_key", "Taken", () =>
+      Promise.reject(violation("cards_slug_key")),
+    );
+    await expect(result).rejects.toMatchObject({ status: 409, message: "Taken" });
+  });
+
+  it("rethrows a violation of any other constraint unchanged", async () => {
+    const other = violation("cards_pkey");
+    await expect(
+      conflictOnUniqueViolation("cards_slug_key", "Taken", () => Promise.reject(other)),
+    ).rejects.toBe(other);
   });
 });

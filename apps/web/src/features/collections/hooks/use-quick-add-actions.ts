@@ -15,6 +15,7 @@ import {
 import { summarizeBatchAdd } from "@/features/collections/lib/summarize-batch-add";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 /**
  * `sessionUndo` marks the session-undo path: add-mode bookkeeping runs only
@@ -72,16 +73,14 @@ export function useQuickAddActions(
     if (sessionUndo) {
       useAddModeStore.getState().recordUndo(printing.printingId);
     }
-    try {
-      await disposeCopies.mutateAsync({ copyIds: [copy.id] });
+    if (await runReportedMutation(() => disposeCopies.mutateAsync({ copyIds: [copy.id] }))) {
       if (onDisposed) {
         onDisposed(printing);
       }
-    } catch {
-      // Global onError already toasts; restore the session entry so a later undo still works.
-      if (sessionUndo) {
-        useAddModeStore.getState().recordAdd(printing, copy.id);
-      }
+      return;
+    }
+    if (sessionUndo) {
+      useAddModeStore.getState().recordAdd(printing, copy.id);
     }
   };
 
@@ -90,11 +89,12 @@ export function useQuickAddActions(
   const addToCollection = async (printing: Printing, collectionId: string) => {
     pendingPrintingsRef.current.set(printing.printingId, printing);
     useAddModeStore.getState().incrementPending(printing);
-    try {
-      const real = await batchedAdd.add(printing.printingId, collectionId);
+    let real: Awaited<ReturnType<typeof batchedAdd.add>> | undefined;
+    const added = await runReportedMutation(async () => {
+      real = await batchedAdd.add(printing.printingId, collectionId);
+    });
+    if (added && real) {
       useAddModeStore.getState().recordAdd(printing, real.id);
-    } catch {
-      // Global onError toasts; swallow so it doesn't surface as an uncaught promise.
     }
     useAddModeStore.getState().decrementPending(printing.printingId);
   };
@@ -126,12 +126,13 @@ export function useQuickAddActions(
             return "done";
           }
           useAddModeStore.getState().recordUndo(printing.printingId);
-          try {
-            await disposeCopies.mutateAsync({ copyIds: [sessionCopyId] });
+          if (
+            await runReportedMutation(() => disposeCopies.mutateAsync({ copyIds: [sessionCopyId] }))
+          ) {
             if (onDisposed) {
               onDisposed(printing);
             }
-          } catch {
+          } else {
             useAddModeStore.getState().recordAdd(printing, sessionCopyId);
           }
           return "done";
@@ -155,13 +156,11 @@ export function useQuickAddActions(
           return "done";
         }
         if (decision.kind === "dispose") {
-          try {
-            await disposeCopies.mutateAsync({ copyIds: [decision.copyId] });
-            if (onDisposed) {
-              onDisposed(printing);
-            }
-          } catch {
-            // Global onError toasts. Caller (fire-and-forget onDecrement) doesn't catch.
+          const disposed = await runReportedMutation(() =>
+            disposeCopies.mutateAsync({ copyIds: [decision.copyId] }),
+          );
+          if (disposed && onDisposed) {
+            onDisposed(printing);
           }
           return "done";
         }
@@ -184,14 +183,11 @@ export function useQuickAddActions(
       setPendingAnnotatedDispose({ copy: candidate, printing });
       return;
     }
-    try {
-      await disposeCopies.mutateAsync({ copyIds: [candidate.id] });
-      if (onDisposed) {
-        onDisposed(printing);
-      }
-    } catch {
-      // Global onError toasts; onRemoveFromCollection is wired straight into
-      // this handler and doesn't catch.
+    const disposed = await runReportedMutation(() =>
+      disposeCopies.mutateAsync({ copyIds: [candidate.id] }),
+    );
+    if (disposed && onDisposed) {
+      onDisposed(printing);
     }
   };
 

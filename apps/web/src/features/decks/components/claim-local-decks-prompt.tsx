@@ -23,6 +23,7 @@ import { clearImportedLocalDecks } from "@/features/decks/lib/local-decks-collec
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function ClaimLocalDecksPrompt() {
@@ -47,6 +48,20 @@ export function ClaimLocalDecksPrompt() {
   const isSelected = (id: string) => !deselected[id];
   const selectedDecks = list.filter((deck) => isSelected(deck.id));
 
+  const claimDeck = async (deck: (typeof selectedDecks)[number]) => {
+    const created = await createDeck.mutateAsync({
+      id: deck.id,
+      name: deck.name,
+      description: deck.description || undefined,
+      format: deck.format,
+    });
+    await saveDeckCards.mutateAsync({ deckId: created.id, cards: deck.cards });
+    // `create` can't set formatConfig (e.g. Custom-Region tags); patch it afterward.
+    if (deck.formatConfig) {
+      await updateDeck.mutateAsync({ deckId: created.id, formatConfig: deck.formatConfig });
+    }
+  };
+
   const handleImport = async () => {
     if (selectedDecks.length === 0) {
       return;
@@ -54,21 +69,9 @@ export function ClaimLocalDecksPrompt() {
     setImporting(true);
     const importedIds: string[] = [];
     for (const deck of selectedDecks) {
-      const description = deck.description || undefined;
-      try {
-        const created = await createDeck.mutateAsync({
-          id: deck.id,
-          name: deck.name,
-          description,
-          format: deck.format,
-        });
-        await saveDeckCards.mutateAsync({ deckId: created.id, cards: deck.cards });
-        // `create` can't set formatConfig (e.g. Custom-Region tags); patch it afterward.
-        if (deck.formatConfig) {
-          await updateDeck.mutateAsync({ deckId: created.id, formatConfig: deck.formatConfig });
-        }
+      if (await runReportedMutation(() => claimDeck(deck))) {
         importedIds.push(deck.id);
-      } catch {
+      } else {
         // Second toast beside the global mutation error one: this loop claims several decks, only this toast names which one failed.
         toast.error(m.decks_dialog_claim_import_failed({ name: deck.name }));
       }

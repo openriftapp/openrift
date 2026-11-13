@@ -480,12 +480,9 @@ export function AddParticipantButton({ id }: { id: string }) {
     if (!displayName) {
       return;
     }
-    try {
-      await addParticipant.mutateAsync({ id, displayName });
+    if (await runReportedMutation(() => addParticipant.mutateAsync({ id, displayName }))) {
       setName("");
       setOpen(false);
-    } catch {
-      // Reported by the global mutation error toast.
     }
   }
 

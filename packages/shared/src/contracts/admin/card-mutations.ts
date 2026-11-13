@@ -461,7 +461,11 @@ export const adminCardMutationsContract = {
   checkAllForCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/check-all`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Card not found" } })
-    .input(cardIdParam)
+    .input(cardIdParam.extend({ candidateCardIds: z.array(z.uuid()).optional() }))
+    .output(updatedCountOutput.extend({ candidateCardIds: z.array(z.string()) })),
+  uncheckCandidateCards: authedRoute
+    .route({ method: "POST", path: `${CARDS}/candidate-cards/uncheck-batch`, tags: [TAG] })
+    .input(z.object({ candidateCardIds: z.array(z.uuid()).min(1) }))
     .output(updatedCountOutput),
   patchCandidatePrinting: authedRoute
     .route({

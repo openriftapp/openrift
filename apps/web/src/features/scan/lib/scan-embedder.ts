@@ -1,3 +1,4 @@
+import { sleep } from "@openrift/shared/async";
 import type { CardEmbedder } from "@openrift/shared/scan/embed";
 import { EMBED_IMAGE_SIZE, embedImageSizeOf } from "@openrift/shared/scan/embed";
 
@@ -94,10 +95,7 @@ export async function loadScanEmbedder(
       }
       // Re-fetch needed: the failed attempt's transfer detached the buffer.
       console.warn("[scan] encoder create failed, retrying once", createError);
-      // oxlint-disable-next-line promise/avoid-new -- delay primitive
-      await new Promise((resolve) => {
-        setTimeout(resolve, CREATE_RETRY_DELAY_MS);
-      });
+      await sleep(CREATE_RETRY_DELAY_MS);
       try {
         session = await createEncoderSession();
       } catch (retryError) {

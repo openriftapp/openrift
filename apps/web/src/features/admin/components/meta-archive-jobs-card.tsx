@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
 import { MetaRunCellView } from "@/features/admin/components/meta-overview-shared";
-import { useMetaArchiveJobs, useRunMetaSync } from "@/features/admin/hooks/use-admin-meta-catalog";
+import { useMetaArchiveJobs, useStartMetaJob } from "@/features/admin/hooks/use-admin-meta-catalog";
 import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import {
   ARCHIVE_KIND_BY_TRIGGER,
@@ -21,7 +20,7 @@ import { summarizeRunResult } from "@/lib/job-run-display";
 export function ArchiveJobsCard() {
   const { data } = useMetaArchiveJobs();
   const runs = data?.runs ?? [];
-  const run = useRunMetaSync();
+  const run = useStartMetaJob();
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState<TriggerEntry | null>(null);
 
@@ -31,14 +30,7 @@ export function ArchiveJobsCard() {
 
   async function start(entry: TriggerEntry) {
     setConfirming(null);
-    let result;
-    try {
-      result = await run.mutateAsync({ trigger: entry.trigger });
-    } catch {
-      // Reported by the global mutation error toast.
-      return;
-    }
-    announceSyncTrigger(entry.label, result);
+    await run.start(entry.trigger, entry.label);
   }
 
   return (
@@ -89,7 +81,7 @@ export function ArchiveJobsCard() {
                         variant="outline"
                         size="sm"
                         disabled={anyRunning || run.isPending}
-                        pending={run.isPending && run.variables?.trigger === entry.trigger}
+                        pending={run.pendingTrigger === entry.trigger}
                         onClick={() => {
                           if (entry.confirm === undefined) {
                             void start(entry);

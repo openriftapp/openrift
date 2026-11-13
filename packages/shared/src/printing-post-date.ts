@@ -1,24 +1,10 @@
+import { formatDayMonthYear, formatMonthYear } from "./format-date.js";
 import type { SetRelease } from "./set-release.js";
 
 const YEAR_RE = /^\d{4}$/u;
 const QUARTER_RE = /^\d{4}-Q[1-4]$/u;
 const MONTH_RE = /^\d{4}-\d{2}$/u;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/u;
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
 
 function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -61,11 +47,7 @@ export function formatPostDate(value: string): string {
   if (QUARTER_RE.test(value)) {
     return `${value.slice(5)} ${year}`;
   }
-  const monthName = MONTH_NAMES[Number(value.slice(5, 7)) - 1];
-  if (MONTH_RE.test(value)) {
-    return `${monthName} ${year}`;
-  }
-  return `${Number(value.slice(8, 10))} ${monthName} ${year}`;
+  return MONTH_RE.test(value) ? formatMonthYear(value) : formatDayMonthYear(value);
 }
 
 export function releasePostDate(release: SetRelease): string | undefined {

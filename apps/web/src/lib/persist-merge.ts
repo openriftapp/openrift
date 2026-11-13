@@ -1,3 +1,4 @@
+import { isRecord } from "@openrift/shared/type-guards";
 /** Reads one persisted field; `undefined` keeps the store's current value. */
 export type FieldPicker<T> = (value: unknown, persisted?: Record<string, unknown>) => T | undefined;
 
@@ -18,6 +19,23 @@ export const pickStringArray: FieldPicker<string[]> = (value) =>
   Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string")
     : undefined;
+
+/** Drops entries its value picker rejects; a non-object keeps the current value. */
+export function pickRecord<T>(pick: FieldPicker<T>): FieldPicker<Record<string, T>> {
+  return (value) => {
+    if (!isRecord(value)) {
+      return;
+    }
+    const kept: Record<string, T> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      const picked = pick(entry);
+      if (picked !== undefined) {
+        kept[key] = picked;
+      }
+    }
+    return kept;
+  };
+}
 
 export function pickEnum<T extends string>(allowed: readonly T[]): FieldPicker<T> {
   return (value) => (allowed.includes(value as T) ? (value as T) : undefined);

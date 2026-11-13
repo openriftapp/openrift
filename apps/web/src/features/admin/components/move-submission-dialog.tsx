@@ -17,6 +17,7 @@ import type { SettleScope } from "@/features/admin/hooks/use-catalog-review";
 import { useMoveSubmission } from "@/features/admin/hooks/use-catalog-review";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface MoveSubmissionDialogProps {
   candidateCardId: string | null;
@@ -70,15 +71,15 @@ function MoveSubmissionForm({
     if (cardId === null) {
       return;
     }
-    let cardSlug: string;
-    try {
-      ({ cardSlug } = await moveSubmission.mutateAsync({ candidateCardId, cardId }));
-    } catch {
-      // Reported by the global mutation error toast.
+    let moved: Awaited<ReturnType<typeof moveSubmission.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      moved = await moveSubmission.mutateAsync({ candidateCardId, cardId });
+    });
+    if (!ok || !moved) {
       return;
     }
     onDone();
-    void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug } });
+    void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug: moved.cardSlug } });
   }
 
   return (

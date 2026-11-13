@@ -25,7 +25,7 @@ const fetchWorkspaceUploads = createServerFn({ method: "GET" })
 
 function workspaceUploadsQueryOptions() {
   return queryOptions({
-    queryKey: [...adminKeys.workspace, "uploads"] as const,
+    queryKey: adminKeys.workspaceUploads,
     queryFn: () => fetchWorkspaceUploads(),
     staleTime: 60 * 1000,
   });

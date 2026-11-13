@@ -25,6 +25,7 @@ import {
   DESK_STATUSES,
   WORKSPACE_SORTS,
 } from "@/features/catalog-workspace/lib/workspace-search";
+import { formatCount } from "@/lib/format";
 
 const ANY = "__any__";
 
@@ -88,7 +89,7 @@ function SegmentControl({
   const segments: { value: WorkspaceView; label: string }[] = [
     { value: "open", label: `Open ${counts.open}` },
     ...(owner === "face" ? [] : [{ value: "new" as const, label: `New ${counts.new}` }]),
-    { value: "all", label: allCount === null ? "All" : `All ${allCount.toLocaleString()}` },
+    { value: "all", label: allCount === null ? "All" : `All ${formatCount(allCount)}` },
   ];
   return (
     <ToggleGroup
@@ -165,7 +166,7 @@ function TypeFilterChips({
       {filters.map((filter) => (
         <ToggleGroupItem key={filter} value={filter}>
           {filter === active && activeCount !== null
-            ? `${FILTER_LABELS[filter]} ${activeCount.toLocaleString()}`
+            ? `${FILTER_LABELS[filter]} ${formatCount(activeCount)}`
             : FILTER_LABELS[filter]}
         </ToggleGroupItem>
       ))}

@@ -20,10 +20,7 @@ export function QuickAddPreview({
   const rotated = needsCssRotation(getOrientation(printing.card.types));
   const alt = legendDisplayName(printing.card);
   return (
-    <div
-      className={cn("bg-muted aspect-card relative overflow-hidden", className)}
-      style={{ borderRadius: "5% / 3.6%" }}
-    >
+    <div className={cn("bg-muted aspect-card rounded-card relative overflow-hidden", className)}>
       {rotated ? (
         <div className="absolute top-1/2 left-1/2 overflow-hidden" style={LANDSCAPE_ROTATION_STYLE}>
           <img src={src} alt={alt} className="size-full object-cover" onError={onError} />

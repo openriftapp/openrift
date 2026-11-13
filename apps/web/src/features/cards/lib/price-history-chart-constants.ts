@@ -1,4 +1,4 @@
-import { DAY_MS } from "@openrift/shared/format-date";
+import { utcDayDiff } from "@openrift/shared/format-date";
 import type { TimeRange } from "@openrift/shared/types/pricing";
 
 import { m } from "@/paraglide/messages.js";
@@ -22,7 +22,7 @@ export function snapshotSpanDays(snapshots?: readonly { date: string }[]): numbe
   if (!snapshots || snapshots.length < 2 || !first || !last) {
     return null;
   }
-  return Math.round((new Date(last.date).getTime() - new Date(first.date).getTime()) / DAY_MS);
+  return utcDayDiff(first.date, last.date);
 }
 
 export function availableTimeRanges(

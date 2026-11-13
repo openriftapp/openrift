@@ -12,6 +12,7 @@ import { PlayerSubmitDeckSection } from "@/features/tournaments/components/playe
 import { useRequestJoinTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentSubmitLanding } from "@/features/tournaments/hooks/use-tournaments";
 import { useUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -78,11 +79,11 @@ export function TournamentSubmitPage({ token }: { token: string }) {
   const [joined, setJoined] = useState(false);
 
   async function handleJoin() {
-    let result;
-    try {
+    let result: Awaited<ReturnType<typeof requestJoin.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
       result = await requestJoin.mutateAsync({ token });
-    } catch {
-      // Reported by the global mutation error toast.
+    });
+    if (!ok || !result) {
       return;
     }
     setJoined(true);

@@ -1,7 +1,7 @@
 import type { WorkspaceRecordRow } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
-import { formatDay, formatRelativeTime } from "@openrift/shared/format-date";
+import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
@@ -15,15 +15,18 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
+import { selectColumn } from "@/features/admin/components/admin-row-select";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useIgnoreNewCardDrafts } from "@/features/admin/hooks/use-ignored-candidates";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
+import type { RowSelection } from "@/features/admin/hooks/use-row-selection";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import {
   buildPrintingDeskCsv,
   printingDeskCsvFilename,
@@ -38,7 +41,6 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { WorkspaceTargetLink } from "@/features/catalog-workspace/components/queue-list";
 import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
-import type { RecordSelection } from "@/features/catalog-workspace/hooks/use-record-selection";
 import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { ignoredDraftsMessage } from "@/features/catalog-workspace/lib/ignored-drafts-message";
@@ -67,62 +69,11 @@ import { fetchAllWorkspaceRecords } from "@/features/catalog-workspace/lib/works
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { downloadCsv } from "@/lib/download";
+import { errorText } from "@/lib/error-text";
+import { formatCount } from "@/lib/format";
 import { getSiteUrl } from "@/lib/site-config";
 
 const ROW_HEIGHT = 57;
-
-type Selection = ReadonlySet<string>;
-
-function SelectCell<T>({
-  row,
-  rowKey,
-  rowLabel,
-  canSelect,
-  selected,
-  onToggle,
-}: AdminCellSlotProps<T> & {
-  rowKey?: (row: T) => string;
-  rowLabel?: (row: T) => string;
-  canSelect?: (row: T) => boolean;
-  selected?: Selection;
-  onToggle?: (key: string, checked: boolean) => void;
-}) {
-  if (row === undefined || rowKey === undefined || (canSelect !== undefined && !canSelect(row))) {
-    return null;
-  }
-  const key = rowKey(row);
-  return (
-    <Checkbox
-      aria-label={`Select ${rowLabel?.(row) ?? key}`}
-      checked={selected?.has(key) ?? false}
-      onCheckedChange={(checked) => onToggle?.(key, checked === true)}
-    />
-  );
-}
-
-function selectColumn<T>(
-  props: {
-    rowKey: (row: T) => string;
-    rowLabel: (row: T) => string;
-    canSelect?: (row: T) => boolean;
-  },
-  selection: RecordSelection,
-): AdminColumnDef<T> {
-  return {
-    header: "",
-    id: "select",
-    width: "w-10",
-    cell: (
-      <SelectCell<T>
-        rowKey={props.rowKey}
-        rowLabel={props.rowLabel}
-        canSelect={props.canSelect}
-        selected={selection.selected}
-        onToggle={selection.handleToggle}
-      />
-    ),
-  };
-}
 
 function NameLink({ target, children }: { target: WorkspaceTarget | null; children: string }) {
   if (target === null) {
@@ -144,10 +95,6 @@ function Thumb({ url }: { url: string | null }) {
       className="w-7 min-w-0 shrink-0"
     />
   );
-}
-
-function Updated({ at }: { at: string }) {
-  return <span className="text-muted-foreground text-sm">{formatRelativeTime(at)}</span>;
 }
 
 function Muted({ children }: { children: ReactNode }) {
@@ -204,7 +151,7 @@ function CardOpenCell({
   }
   const badges = cardOpenBadges(row, groups?.get(cardSummaryKey(row)));
   if (badges.length === 0) {
-    return <Muted>None</Muted>;
+    return <Muted>{EMPTY_VALUE_TEXT}</Muted>;
   }
   return (
     <span className="flex flex-wrap gap-1">
@@ -215,10 +162,6 @@ function CardOpenCell({
       ))}
     </span>
   );
-}
-
-function CardUpdatedCell({ row }: AdminCellSlotProps<CandidateCardSummaryResponse>) {
-  return row ? <Updated at={row.updatedAt} /> : null;
 }
 
 function PrintingNameCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
@@ -284,10 +227,6 @@ function PrintingImagesCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
     return <Muted>{row.imageUrl === null ? "No image" : ""}</Muted>;
   }
   return <Muted>{imageCountText(row.imageCount)}</Muted>;
-}
-
-function RecordUpdatedCell({ row }: AdminCellSlotProps<WorkspaceRecordRow>) {
-  return row ? <Updated at={row.updatedAt} /> : null;
 }
 
 function FaceNameCell({
@@ -394,15 +333,11 @@ function DeskImagesCell({ row }: AdminCellSlotProps<DeskRow>) {
   return row ? <Muted>{imageCountText(row.imageCount)}</Muted> : null;
 }
 
-function DeskUpdatedCell({ row }: AdminCellSlotProps<DeskRow>) {
-  return row ? <Updated at={row.updatedAt} /> : null;
-}
-
 function summaryText(shown: number, total: number | null, noun: string, hasMore: boolean): string {
   const count =
     hasMore && total !== null
-      ? `${shown.toLocaleString()} of ${total.toLocaleString()} ${noun} loaded`
-      : `${shown.toLocaleString()} ${noun}`;
+      ? `${formatCount(shown)} of ${formatCount(total)} ${noun} loaded`
+      : `${formatCount(shown)} ${noun}`;
   return `${count} · a row opens beside the list`;
 }
 
@@ -557,7 +492,7 @@ function CardsTable({
 }: {
   records: CardRecords;
   isAdmin: boolean;
-  selection: RecordSelection;
+  selection: RowSelection;
 }) {
   const ignoreDrafts = useIgnoreNewCardDrafts([adminKeys.workspace, adminKeys.cards.list]);
   const { push: pushUndo } = useWorkspaceUndo();
@@ -605,14 +540,12 @@ function CardsTable({
   const columns: AdminColumnDef<CandidateCardSummaryResponse>[] = [
     ...(isAdmin
       ? [
-          selectColumn<CandidateCardSummaryResponse>(
-            {
-              rowKey: cardSummaryKey,
-              rowLabel: (row) => row.name,
-              canSelect: (row) => row.cardSlug === null,
-            },
-            selection,
-          ),
+          selectColumn<CandidateCardSummaryResponse>(selection.store, {
+            scope: selection.scope,
+            rowKey: cardSummaryKey,
+            rowLabel: (row) => row.name,
+            canSelect: (row) => row.cardSlug === null,
+          }),
         ]
       : []),
     { header: "Card", id: "name", wrap: true, cell: <CardNameCell /> },
@@ -625,7 +558,13 @@ function CardsTable({
       cell: <CardPrintingsCell />,
     },
     { header: "Open", id: "open", wrap: true, cell: <CardOpenCell groups={records.groups} /> },
-    { header: "Updated", id: "updated", width: "w-24", align: "right", cell: <CardUpdatedCell /> },
+    {
+      header: "Updated",
+      id: "updated",
+      width: "w-24",
+      align: "right",
+      cell: <InstantCell<CandidateCardSummaryResponse> at={(row) => row.updatedAt} relative />,
+    },
   ];
 
   return (
@@ -660,13 +599,7 @@ function CardsTable({
   );
 }
 
-function PrintingsTable({
-  records,
-  selection,
-}: {
-  records: RowRecords;
-  selection: RecordSelection;
-}) {
+function PrintingsTable({ records, selection }: { records: RowRecords; selection: RowSelection }) {
   const { labels } = useEnumOrders();
   const post = useMakePost();
   const exporter = useExport(async () => ({
@@ -687,10 +620,11 @@ function PrintingsTable({
   const postIds = [...withImage.map((row) => row.id), ...unloadedIds];
 
   const columns: AdminColumnDef<WorkspaceRecordRow>[] = [
-    selectColumn<WorkspaceRecordRow>(
-      { rowKey: (row) => row.id, rowLabel: (row) => row.cardName },
-      selection,
-    ),
+    selectColumn<WorkspaceRecordRow>(selection.store, {
+      scope: selection.scope,
+      rowKey: (row) => row.id,
+      rowLabel: (row) => row.cardName,
+    }),
     {
       header: "Printing",
       id: "name",
@@ -713,7 +647,7 @@ function PrintingsTable({
       id: "updated",
       width: "w-24",
       align: "right",
-      cell: <RecordUpdatedCell />,
+      cell: <InstantCell<WorkspaceRecordRow> at={(row) => row.updatedAt} relative />,
     },
   ];
 
@@ -785,7 +719,7 @@ function FacesTable({ records }: { records: RowRecords }) {
       id: "updated",
       width: "w-24",
       align: "right",
-      cell: <RecordUpdatedCell />,
+      cell: <InstantCell<WorkspaceRecordRow> at={(row) => row.updatedAt} relative />,
     },
   ];
 
@@ -823,7 +757,7 @@ function DeskTable({
 }: {
   records: DeskRecords;
   mode: DeskMode;
-  selection: RecordSelection;
+  selection: RowSelection;
 }) {
   const rows = records.rows;
 
@@ -852,10 +786,11 @@ function DeskTable({
   );
 
   const columns: AdminColumnDef<DeskRow>[] = [
-    selectColumn<DeskRow>(
-      { rowKey: (row) => row.printingId, rowLabel: (row) => row.cardName },
-      selection,
-    ),
+    selectColumn<DeskRow>(selection.store, {
+      scope: selection.scope,
+      rowKey: (row) => row.printingId,
+      rowLabel: (row) => row.cardName,
+    }),
     {
       header: "Printing",
       id: "name",
@@ -878,7 +813,13 @@ function DeskTable({
     },
     { header: "Status", id: "status", width: "w-28", cell: <DeskStatusCell /> },
     { header: "Images", id: "images", width: "w-24", align: "right", cell: <DeskImagesCell /> },
-    { header: "Updated", id: "updated", width: "w-24", align: "right", cell: <DeskUpdatedCell /> },
+    {
+      header: "Updated",
+      id: "updated",
+      width: "w-24",
+      align: "right",
+      cell: <InstantCell<DeskRow> at={(row) => row.updatedAt} relative />,
+    },
   ];
 
   return (
@@ -923,7 +864,7 @@ export function RecordsTable({
   records: WorkspaceRecordsResult;
   deskMode: DeskMode;
   role: WorkspaceRole;
-  selection: RecordSelection;
+  selection: RowSelection;
 }) {
   switch (records.kind) {
     case "card": {
@@ -965,7 +906,7 @@ async function loadPostSlides(
     }
     return slides;
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : "The printings could not be loaded.");
+    toast.error(errorText(error, "The printings could not be loaded."));
     return null;
   }
 }
@@ -975,6 +916,6 @@ async function exportCsv(build: () => Promise<{ csv: string; filename: string }>
     const { csv, filename } = await build();
     downloadCsv(csv, filename);
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : "The export failed.");
+    toast.error(errorText(error, "The export failed."));
   }
 }

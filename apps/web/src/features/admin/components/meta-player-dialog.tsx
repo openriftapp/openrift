@@ -53,6 +53,7 @@ import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
 import { parseDeckImportAuto } from "@/features/decks/lib/deck-import-parsers";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function sourceLabel(entry: DeckMatchedEntry): string {
   return entry.entry.cardName ?? entry.entry.shortCode ?? "(unnamed line)";
@@ -278,14 +279,12 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
       ? `Updated ${draft.playerName.trim()}`
       : `Filed ${draft.playerName.trim()}`;
     setFormError("");
-    try {
-      await save();
+    const saved = await runReportedMutation(save, (error) =>
+      setFormError(errorText(error, "Save failed")),
+    );
+    if (saved) {
       toast.success(successMessage);
       onClose();
-    } catch (error) {
-      // The global mutation error toast reports it too; this keeps the reason in
-      // front of the form so the field can be fixed in place.
-      setFormError(errorText(error, "Save failed"));
     }
   }
 

@@ -1,6 +1,7 @@
 import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { Link, Outlet, useChildMatches, useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeftIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
+import { useId } from "react";
 
 import {
   PageDescription,
@@ -9,6 +10,8 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { useRowSelection } from "@/features/admin/hooks/use-row-selection";
+import { workspaceRowSelectionStore } from "@/features/admin/stores/row-selection-store";
 import { EmptyQueue } from "@/features/catalog-workspace/components/empty-queue";
 import { QueueHeader } from "@/features/catalog-workspace/components/queue-header";
 import { QueueList } from "@/features/catalog-workspace/components/queue-list";
@@ -16,7 +19,6 @@ import { RecordsTable } from "@/features/catalog-workspace/components/records-ta
 import { WorkspaceSplitLayout } from "@/features/catalog-workspace/components/workspace-split-layout";
 import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
 import { useClearUndoOnLeave } from "@/features/catalog-workspace/hooks/use-clear-undo-on-leave";
-import { useRecordSelection } from "@/features/catalog-workspace/hooks/use-record-selection";
 import { useWorkspaceKeyboard } from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
 import type { WorkspaceSearchState } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import {
@@ -30,6 +32,7 @@ import {
   selectedKeyFromParams,
 } from "@/features/catalog-workspace/lib/owner-items";
 import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 function BackToList({ owner }: { owner: WorkspaceOwner }) {
@@ -122,7 +125,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
   const { role, view, search } = queue;
   const listAllowed = ownersForRole(role).includes(owner);
   const records = useWorkspaceRecords(owner, view === "all" && listAllowed);
-  const selection = useRecordSelection();
+  const selection = useRowSelection(workspaceRowSelectionStore, useId());
   const isDesk = role === "desk";
   const canCreate = owner === "card" ? role === "admin" : role === "admin" || isDesk;
 
@@ -165,7 +168,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
       isAdmin={role === "admin"}
       hint={
         view === "all" && hasRecord
-          ? `${records.entries.length.toLocaleString()} ${OWNER_LABELS[owner].toLowerCase()} · the table returns when you close the record`
+          ? `${formatCount(records.entries.length)} ${OWNER_LABELS[owner].toLowerCase()} · the table returns when you close the record`
           : undefined
       }
       counts={queue.counts}

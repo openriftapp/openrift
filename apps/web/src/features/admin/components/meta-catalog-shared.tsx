@@ -1,6 +1,4 @@
-import type { MetaSyncTriggerResult } from "@openrift/shared/contracts/admin/meta-catalog";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,20 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { syncTriggerAnnouncement } from "@/features/admin/lib/meta-catalog-display";
 import type { MetaMirrorRow } from "@/features/admin/lib/meta-mirror-rows";
 import { useDeckFormatList } from "@/hooks/use-enums";
-
-export function announceSyncTrigger(label: string, result: MetaSyncTriggerResult): void {
-  const announcement = syncTriggerAnnouncement(label, result);
-  const options =
-    announcement.description === "" ? undefined : { description: announcement.description };
-  if (announcement.ok) {
-    toast.success(announcement.title, options);
-    return;
-  }
-  toast.error(announcement.title, options);
-}
 
 export function MetaMirrorFormatDialog({
   row,

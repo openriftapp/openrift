@@ -1,4 +1,5 @@
 import { adminDeckZonesContract } from "@openrift/shared/contracts/admin/deck-zones";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -34,8 +35,9 @@ const updateDeckZoneFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminDeckZonesContract, context.cookie).update(data);
   });
 
-export function useUpdateDeckZone() {
+export function useUpdateDeckZone(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: { slug: string; label?: string }) => updateDeckZoneFn({ data: vars }),
     invalidates: [adminKeys.deckZones, initKeys.all],
   });

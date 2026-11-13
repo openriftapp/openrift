@@ -1,6 +1,7 @@
 import { formatDayTime } from "@openrift/shared/format-date";
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { CardLabels } from "@openrift/shared/scan/labels";
+import { countNoun } from "@openrift/shared/strings";
 import {
   CameraIcon,
   CameraOffIcon,
@@ -12,7 +13,6 @@ import {
   SquareIcon,
 } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,7 @@ import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useClipRecorder } from "@/features/admin/hooks/use-clip-recorder";
-import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
-import { useRebuildScanBank } from "@/features/admin/hooks/use-scan-bank-admin";
+import { useStartJob } from "@/features/admin/hooks/use-start-job";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ScanLoadRow } from "@/features/scan/components/scan-load-row";
 import { useCardScanner } from "@/features/scan/hooks/use-card-scanner";
@@ -35,6 +34,7 @@ import type { CameraInfo, CameraInfoEntry } from "@/features/scan/lib/camera-inf
 import { describeKey, isLandscapeKey } from "@/features/scan/lib/scan-bank";
 import type { FrameLogEntry } from "@/features/scan/lib/scan-frame-log";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
+import { scanKeys } from "@/features/scan/lib/scan-query-keys";
 import type { ScannerReadout } from "@/features/scan/lib/scan-readout";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
 import { DEFAULT_SCANNER_SETTINGS } from "@/features/scan/lib/scan-session";
@@ -285,24 +285,10 @@ function EngineCard({ settings, onChange }: EngineCardProps) {
 }
 
 function ServingCard({ serving }: { serving: ScanServing }) {
-  const rebuild = useRebuildScanBank();
-  const latestRun = useLatestJobRun(JOB_KIND.rebuildScanBank);
-  const running = rebuild.isPending || latestRun.data?.status === "running";
-
-  async function handleRebuild() {
-    let started: Awaited<ReturnType<typeof rebuild.mutateAsync>>;
-    try {
-      started = await rebuild.mutateAsync();
-    } catch {
-      // Reported by the global mutation error toast.
-      return;
-    }
-    if (started.status === "already_running") {
-      toast.info("A rebuild is already running");
-    } else {
-      toast.success("Bank rebuild started");
-    }
-  }
+  const rebuild = useStartJob(JOB_KIND.rebuildScanBank, "Bank rebuild", {
+    invalidates: [scanKeys.manifest],
+  });
+  const latestRun = rebuild.latestRun;
 
   return (
     <Card>
@@ -326,15 +312,19 @@ function ServingCard({ serving }: { serving: ScanServing }) {
             {serving.assets.builtAt ? ` · built ${formatDayTime(serving.assets.builtAt)}` : ""}
           </p>
         )}
-        {latestRun.data?.status === "failed" && (
+        {latestRun?.status === "failed" && (
           <p className="text-muted-foreground flex items-center gap-1.5">
             <CircleXIcon className="text-destructive size-4 shrink-0" />
-            Last rebuild failed: {latestRun.data.errorMessage}
+            Last rebuild failed: {latestRun.errorMessage}
           </p>
         )}
         <div>
-          <Button onClick={() => void handleRebuild()} disabled={running} variant="secondary">
-            {running ? <LoaderIcon className="animate-spin" /> : <RotateCcwIcon />}
+          <Button
+            onClick={() => void rebuild.start()}
+            disabled={rebuild.running}
+            variant="secondary"
+          >
+            {rebuild.running ? <LoaderIcon className="animate-spin" /> : <RotateCcwIcon />}
             Rebuild bank
           </Button>
         </div>
@@ -570,9 +560,7 @@ export function ScanTestPage() {
             </div>
 
             {threads !== null && (
-              <p className="text-muted-foreground">
-                {threads === 1 ? "1 thread" : `${threads} threads`}
-              </p>
+              <p className="text-muted-foreground">{countNoun(threads, "thread")}</p>
             )}
 
             {recordError && (

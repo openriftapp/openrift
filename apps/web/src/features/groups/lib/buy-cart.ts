@@ -1,6 +1,9 @@
 import { priceTotal } from "@openrift/shared/card-price";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 
+import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { sendInBatches } from "@/lib/send-in-batches";
+
 import type { WantedCard, WishDecrement } from "./wanted-cards";
 import { wishDecrements } from "./wanted-cards";
 
@@ -96,20 +99,15 @@ export async function fileOrder(
   const copies = cartPurchaseItems(items).flatMap((item) =>
     Array.from({ length: item.quantity }, () => ({ printingId: item.printingId, collectionId })),
   );
-  for (let start = 0; start < copies.length; start += COPIES_PER_REQUEST) {
-    await deps.addCopies(copies.slice(start, start + COPIES_PER_REQUEST));
-  }
+  await sendInBatches(copies, COPIES_PER_REQUEST, (batch) => deps.addCopies(batch));
   const decrements = items.flatMap((item) =>
     wishDecrements(wantedByKey.get(item.key)?.entries ?? [], item.quantity),
   );
   if (decrements.length === 0) {
     return;
   }
-  try {
-    await deps.decrementEntries(decrements);
-  } catch {
-    // The copies are in by now, so a failed wish update must not make a retry file them twice.
-  }
+  // The copies are in by now, so a failed wish update must not make a retry file them twice.
+  await runReportedMutation(() => deps.decrementEntries(decrements));
 }
 
 export function withPrinting(

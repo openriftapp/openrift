@@ -29,7 +29,7 @@ const fetchWorkspaceRecords = createServerFn({ method: "GET" })
 
 export function workspaceQueueQueryOptions(owner?: WorkspaceOwner) {
   return queryOptions({
-    queryKey: [...adminKeys.workspaceQueue, owner ?? "all"] as const,
+    queryKey: adminKeys.workspaceQueueFor(owner ?? "all"),
     queryFn: () => fetchWorkspaceQueue({ data: { owner } }),
     staleTime: 60 * 1000,
   });
@@ -37,7 +37,7 @@ export function workspaceQueueQueryOptions(owner?: WorkspaceOwner) {
 
 export function workspaceRecordsInfiniteQueryOptions(input: Omit<WorkspaceRecordsInput, "cursor">) {
   return infiniteQueryOptions({
-    queryKey: [...adminKeys.workspaceRecords.prefix, "infinite", input] as const,
+    queryKey: adminKeys.workspaceRecords.infinite(input),
     queryFn: ({ pageParam }) => fetchWorkspaceRecords({ data: { ...input, cursor: pageParam } }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,

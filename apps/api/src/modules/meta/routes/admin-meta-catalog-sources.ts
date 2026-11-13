@@ -10,6 +10,7 @@ import {
   adminMetaCatalogContract,
   isResumableCheckpoint,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import { META_SOURCE_JOB_KINDS } from "@openrift/shared/job-run-kinds";
 import { createLogger } from "@openrift/shared/logger";
 import type { InferSchemaOutput } from "@orpc/contract";
 import { implement } from "@orpc/server";
@@ -383,26 +384,26 @@ const UVSGAMES = {
       return (row) => toMetaCatalogRow(row, { formatMappings, watchedTemplates });
     },
   }),
-  sync: scheduledJob("meta.uvsgames_sync"),
+  sync: scheduledJob(META_SOURCE_JOB_KINDS.uvsgames.sync),
   ...uvsgamesJobs.backfill(
-    "meta.uvsgames_backfill",
+    META_SOURCE_JOB_KINDS.uvsgames.backfill,
     backfillCatalog,
     isCatalogSyncNoop,
     resumeFromInstant,
   ),
   autoAccept: uvsgamesJobs.job(
-    "meta.uvsgames_auto_accept",
+    META_SOURCE_JOB_KINDS.uvsgames.autoAccept,
     autoAcceptCatalogBacklog,
     isAutoAcceptNoop,
   ),
   recheck: uvsgamesJobs.job(
-    "meta.uvsgames_recheck",
+    META_SOURCE_JOB_KINDS.uvsgames.recheck,
     (deps, runId) => processRechecks(deps, { runId, listing: true }),
     isRecheckNoop,
   ),
   // Five upstream requests at 30s each outlive the proxy's read timeout: the
   // gateway 405s the dead POST, but the run keeps going and reports its runId.
-  fetchEvent: uvsgamesJobs.eventFetch("meta.uvsgames_event_fetch", fetchEventNow),
+  fetchEvent: uvsgamesJobs.eventFetch(META_SOURCE_JOB_KINDS.uvsgames.eventFetch, fetchEventNow),
 } satisfies CatalogSource<
   CatalogQuery<"dismiss">,
   string,
@@ -438,24 +439,24 @@ const PLAYLOLTCG = {
     }),
     presenter: () => Promise.resolve(toPlayloltcgCatalogRow),
   }),
-  sync: scheduledJob("meta.playloltcg_sync"),
+  sync: scheduledJob(META_SOURCE_JOB_KINDS.playloltcg.sync),
   ...playloltcgJobs.backfill(
-    "meta.playloltcg_backfill",
+    META_SOURCE_JOB_KINDS.playloltcg.backfill,
     backfillPlayloltcg,
     isPlayloltcgSyncNoop,
     resumeFromInstant,
   ),
   autoAccept: playloltcgJobs.job(
-    "meta.playloltcg_auto_accept",
+    META_SOURCE_JOB_KINDS.playloltcg.autoAccept,
     autoAcceptPlayloltcgBacklog,
     isAutoAcceptNoop,
   ),
   recheck: playloltcgJobs.job(
-    "meta.playloltcg_recheck",
+    META_SOURCE_JOB_KINDS.playloltcg.recheck,
     (deps, runId) => processPlayloltcgRechecks(deps, { runId, listing: true }),
     isPlayloltcgRecheckNoop,
   ),
-  fetchEvent: playloltcgJobs.eventFetch("meta.playloltcg_event_fetch", (deps, row) =>
+  fetchEvent: playloltcgJobs.eventFetch(META_SOURCE_JOB_KINDS.playloltcg.eventFetch, (deps, row) =>
     fetchPlayloltcgEvent(deps, row),
   ),
 } satisfies CatalogSource<
@@ -490,15 +491,15 @@ const TOPDECK = {
     }),
     presenter: () => Promise.resolve(toTopdeckCatalogRow),
   }),
-  sync: scheduledJob("meta.topdeck_sync"),
+  sync: scheduledJob(META_SOURCE_JOB_KINDS.topdeck.sync),
   ...topdeckJobs.backfill(
-    "meta.topdeck_backfill",
+    META_SOURCE_JOB_KINDS.topdeck.backfill,
     backfillTopdeck,
     isTopdeckSyncNoop,
     resumeFromInstant,
   ),
   autoAccept: topdeckJobs.job(
-    "meta.topdeck_auto_accept",
+    META_SOURCE_JOB_KINDS.topdeck.autoAccept,
     autoAcceptTopdeckBacklog,
     isAutoAcceptNoop,
   ),
@@ -535,26 +536,27 @@ const PLAYRIFTBOUND = {
     }),
     presenter: () => Promise.resolve(toPlayriftboundCatalogRow),
   }),
-  sync: scheduledJob("meta.playriftbound_sync"),
+  sync: scheduledJob(META_SOURCE_JOB_KINDS.playriftbound.sync),
   // The checkpoint here is a cell index.
   ...playriftboundJobs.backfill(
-    "meta.playriftbound_backfill",
+    META_SOURCE_JOB_KINDS.playriftbound.backfill,
     backfillPlayriftbound,
     isPlayriftboundSyncNoop,
     resumeFromCell,
   ),
   autoAccept: playriftboundJobs.job(
-    "meta.playriftbound_auto_accept",
+    META_SOURCE_JOB_KINDS.playriftbound.autoAccept,
     autoAcceptPlayriftboundBacklog,
     isAutoAcceptNoop,
   ),
   recheck: playriftboundJobs.job(
-    "meta.playriftbound_recheck",
+    META_SOURCE_JOB_KINDS.playriftbound.recheck,
     (deps, runId) => processPlayriftboundRechecks(deps, { runId, rearm: true }),
     isPlayriftboundRecheckNoop,
   ),
-  fetchEvent: playriftboundJobs.eventFetch("meta.playriftbound_event_fetch", (deps, row) =>
-    fetchPlayriftboundEvent(deps, row),
+  fetchEvent: playriftboundJobs.eventFetch(
+    META_SOURCE_JOB_KINDS.playriftbound.eventFetch,
+    (deps, row) => fetchPlayriftboundEvent(deps, row),
   ),
 } satisfies CatalogSource<
   CatalogQuery<"playriftboundDismiss">,

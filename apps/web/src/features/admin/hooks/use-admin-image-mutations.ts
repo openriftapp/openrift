@@ -5,7 +5,7 @@ import type {
   UploadCandidatesBody,
   UploadCandidatesResponse,
 } from "@openrift/shared/contracts/admin/card-mutations";
-import type { QueryClient } from "@tanstack/react-query";
+import type { MutationMeta, QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -341,8 +341,9 @@ async function toBase64(file: File): Promise<string> {
   return btoa(binary);
 }
 
-export function useUploadPrintingImage(invalidates: Scope = defaultScope) {
+export function useUploadPrintingImage(invalidates: Scope = defaultScope, meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: async ({
       printingId,
       file,
@@ -436,6 +437,7 @@ export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
 
 export function useUploadCandidates() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (payload: UploadCandidatesBody) => uploadCandidatesFn({ data: payload }),
     invalidates: [
       adminKeys.cards.all,

@@ -3,6 +3,13 @@ import {
   adminMetaCatalogContract,
   isCatalogCheckpoint,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import {
+  JOB_KIND,
+  META_ARCHIVE_JOB_KINDS,
+  META_JOB_KINDS,
+  META_SOURCE_JOB_KINDS,
+  metaSourceJobPrefix,
+} from "@openrift/shared/job-run-kinds";
 import { implement } from "@orpc/server";
 
 import { AppError, badRequest, conflict } from "../../../errors.js";
@@ -20,7 +27,7 @@ import {
 import { unpublishMetaEvent } from "../services/meta-remove.js";
 import { isRepromoteNoop, repromoteMetaEvents } from "../services/meta-repromote.js";
 import { isRetierNoop, retierMetaEvents } from "../services/meta-retier.js";
-import { isIdSweepNoop, META_JOB_KINDS, sweepEventIds } from "../services/meta-sync/index.js";
+import { isIdSweepNoop, sweepEventIds } from "../services/meta-sync/index.js";
 import {
   adminMetaCatalogSourcesRouter,
   MIRRORS,
@@ -31,20 +38,31 @@ import {
 
 const os = implement(adminMetaCatalogContract).$context<ApiContext>().use(requireAuthedUser);
 
-const ID_SWEEP_KIND = "meta.uvsgames_id_sweep";
+const M = META_SOURCE_JOB_KINDS;
+const ID_SWEEP_KIND = M.uvsgames.idSweep;
 
 const CANCELLABLE_KINDS: Partial<
   Record<`${MetaSource}:${MetaCancellableJob}`, (typeof META_JOB_KINDS)[number]>
 > = {
-  "uvsgames:backfill": "meta.uvsgames_backfill",
-  "uvsgames:recheck": "meta.uvsgames_recheck",
+  "uvsgames:backfill": M.uvsgames.backfill,
+  "uvsgames:recheck": M.uvsgames.recheck,
   "uvsgames:id_sweep": ID_SWEEP_KIND,
-  "playloltcg:backfill": "meta.playloltcg_backfill",
-  "playloltcg:recheck": "meta.playloltcg_recheck",
-  "topdeck:backfill": "meta.topdeck_backfill",
-  "playriftbound:backfill": "meta.playriftbound_backfill",
-  "playriftbound:recheck": "meta.playriftbound_recheck",
+  "playloltcg:backfill": M.playloltcg.backfill,
+  "playloltcg:recheck": M.playloltcg.recheck,
+  "topdeck:backfill": M.topdeck.backfill,
+  "playriftbound:backfill": M.playriftbound.backfill,
+  "playriftbound:recheck": M.playriftbound.recheck,
 };
+
+const SCHEDULED_META_KINDS = [
+  M.uvsgames.sync,
+  M.uvsgames.recheck,
+  M.playloltcg.sync,
+  M.playloltcg.recheck,
+  M.topdeck.sync,
+  M.playriftbound.sync,
+  M.playriftbound.recheck,
+] as const;
 
 const STATUS_RUN_LIMIT = 25;
 
@@ -53,10 +71,8 @@ const STATUS_RUN_LIMIT = 25;
  * newest-25 buries one source's backfill and the resume state the panel reads off it.
  */
 function jobKindsForSource(source: MetaSource): string[] {
-  return META_JOB_KINDS.filter((kind) => kind.startsWith(`meta.${source}_`));
+  return META_JOB_KINDS.filter((kind) => kind.startsWith(metaSourceJobPrefix(source)));
 }
-
-const ARCHIVE_JOB_KINDS = ["meta.retier", "meta.repromote"];
 
 export const adminMetaCatalogRouter = {
   ...adminMetaCatalogSourcesRouter,
@@ -233,7 +249,10 @@ export const adminMetaCatalogRouter = {
   }),
 
   archiveJobs: os.archiveJobs.handler(async ({ context }) => {
-    const runs = await context.repos.jobRuns.listRecentByKinds(ARCHIVE_JOB_KINDS, STATUS_RUN_LIMIT);
+    const runs = await context.repos.jobRuns.listRecentByKinds(
+      [...META_ARCHIVE_JOB_KINDS],
+      STATUS_RUN_LIMIT,
+    );
     return { runs: runs.map((run) => toMetaSyncRun(run)) };
   }),
 
@@ -257,16 +276,9 @@ export const adminMetaCatalogRouter = {
       archive,
       counts,
       runs: runs.map((run) => toMetaSyncRun(run)),
-      schedules: {
-        "meta.uvsgames_sync": context.scheduler?.isEnabled("meta.uvsgames_sync") ?? false,
-        "meta.uvsgames_recheck": context.scheduler?.isEnabled("meta.uvsgames_recheck") ?? false,
-        "meta.playloltcg_sync": context.scheduler?.isEnabled("meta.playloltcg_sync") ?? false,
-        "meta.playloltcg_recheck": context.scheduler?.isEnabled("meta.playloltcg_recheck") ?? false,
-        "meta.topdeck_sync": context.scheduler?.isEnabled("meta.topdeck_sync") ?? false,
-        "meta.playriftbound_sync": context.scheduler?.isEnabled("meta.playriftbound_sync") ?? false,
-        "meta.playriftbound_recheck":
-          context.scheduler?.isEnabled("meta.playriftbound_recheck") ?? false,
-      },
+      schedules: Object.fromEntries(
+        SCHEDULED_META_KINDS.map((kind) => [kind, context.scheduler?.isEnabled(kind) ?? false]),
+      ),
     };
   }),
 
@@ -321,7 +333,7 @@ export const adminMetaCatalogRouter = {
   runRetier: os.runRetier.handler(({ context }) =>
     startJob(
       context,
-      "meta.retier",
+      JOB_KIND.metaRetier,
       (ctx) => ctx.repos,
       (repos) => retierMetaEvents(repos),
       isRetierNoop,
@@ -331,7 +343,7 @@ export const adminMetaCatalogRouter = {
   runRepromote: os.runRepromote.handler(({ context }) =>
     startJob(
       context,
-      "meta.repromote",
+      JOB_KIND.metaRepromote,
       (ctx) => ctx.repos,
       (repos) => repromoteMetaEvents(repos),
       isRepromoteNoop,

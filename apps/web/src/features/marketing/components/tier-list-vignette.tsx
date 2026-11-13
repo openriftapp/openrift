@@ -43,7 +43,7 @@ function TierRow({ tier, children }: { tier: Tier; children: ReactNode }) {
 
 function Tile({ url, className }: { url?: string; className?: string }) {
   if (!url) {
-    return <span className={cn("aspect-card bg-muted rounded-[5%/3.6%]", TILE, className)} />;
+    return <span className={cn("aspect-card bg-muted rounded-card", TILE, className)} />;
   }
   return <MiniCardArt url={url} className={cn(TILE, className)} />;
 }

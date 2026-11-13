@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { CitationEntry } from "@/features/cards/components/card-detail/printing-citations";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export interface EditableCitation {
   id: string;
@@ -67,17 +68,13 @@ function CitationRow<T extends EditableCitation>({
     if (!onUpdate) {
       return;
     }
-    // Resolved before the try: the React Compiler cannot lower a conditional
-    // that sits inside one.
     const trimmedUrl = url.trim();
     const sourceUrl = trimmedUrl.length > 0 ? trimmedUrl : null;
-    try {
-      await onUpdate(citation.id, { label: label.trim(), sourceUrl });
-    } catch {
-      // Reported by the global mutation error toast.
-      return;
+    if (
+      await runReportedMutation(() => onUpdate(citation.id, { label: label.trim(), sourceUrl }))
+    ) {
+      setEditing(false);
     }
-    setEditing(false);
   }
 
   if (editing) {
@@ -187,14 +184,9 @@ export function SourceCitationsEditor<T extends EditableCitation>({
   const trimmedLabel = label.trim();
 
   async function handleAdd() {
-    // Resolved before the try: the React Compiler cannot lower a conditional
-    // that sits inside one.
     const trimmedUrl = url.trim();
     const sourceUrl = trimmedUrl.length > 0 ? trimmedUrl : null;
-    try {
-      await onAdd({ label: trimmedLabel, sourceUrl });
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => onAdd({ label: trimmedLabel, sourceUrl })))) {
       return;
     }
     setLabel("");

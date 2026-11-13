@@ -9,6 +9,7 @@ import {
   updateLocalDeck,
 } from "@/features/decks/lib/local-decks-collection";
 import { useUserId } from "@/hooks/use-session";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface CopyArchivedDeckInput {
@@ -84,11 +85,12 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
       return;
     }
     const input = cloneInput({ token, name, description }, extraCards);
-    try {
-      const result = await cloneMutation.mutateAsync(input);
-      void navigate({ to: "/decks/$deckId", params: { deckId: result.deckId } });
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let cloned: Awaited<ReturnType<typeof cloneMutation.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      cloned = await cloneMutation.mutateAsync(input);
+    });
+    if (ok && cloned) {
+      void navigate({ to: "/decks/$deckId", params: { deckId: cloned.deckId } });
     }
   };
 

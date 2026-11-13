@@ -6,8 +6,6 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { adminPrintingEventsRouter } from "./admin-printing-events";
 
-const mockScheduler = { runNow: vi.fn() };
-
 const mockRepo = {
   listByStatus: vi.fn(),
   retryFailed: vi.fn(),
@@ -19,13 +17,11 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", { printingEvents: mockRepo } as never);
-  c.set("scheduler", mockScheduler as never);
   await next();
 });
 registerRouterForTest(app, adminPrintingEventsRouter);
 
 const now = new Date("2026-03-17T00:00:00.000Z");
-const RUN_ID = "019d4999-4219-72f6-b7bb-64004e1b1bff";
 
 const eventRow = {
   id: "019d4999-4219-72f6-b7bb-64004e1b1c01",
@@ -45,21 +41,6 @@ const eventRow = {
   frontImageId: "019d4999-4219-72f6-b7bb-64004e1b1c03",
   createdAt: now,
 };
-
-describe("POST /printing-events/flush", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("starts the scheduled flush job and returns 202 with the run handle", async () => {
-    mockScheduler.runNow.mockResolvedValue({ runId: RUN_ID, status: "running" });
-    const res = await app.request("/api/admin/v1/printing-events/flush", { method: "POST" });
-    expect(res.status).toBe(202);
-    const json = await readJson(res);
-    expect(json).toEqual({ runId: RUN_ID, status: "running" });
-    expect(mockScheduler.runNow).toHaveBeenCalledWith("discord.flush_printing_events");
-  });
-});
 
 describe("GET /printing-events", () => {
   beforeEach(() => {

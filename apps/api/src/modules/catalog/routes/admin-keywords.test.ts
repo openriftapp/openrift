@@ -107,6 +107,30 @@ describe("POST /keywords (createStyle)", () => {
   });
 });
 
+describe("POST /keywords (createStyle) with a taken name", () => {
+  it("answers 409", async () => {
+    mockKeywords.createStyle.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "keywords_pkey",
+      }),
+    );
+
+    const res = await app.request("/api/admin/v1/keywords", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Accelerate",
+        color: "#24705f",
+        darkText: false,
+        costKeyword: false,
+        cardModifier: false,
+      }),
+    });
+    expect(res.status).toBe(409);
+  });
+});
+
 describe("PUT /keywords/:name (updateStyle)", () => {
   beforeEach(() => {
     vi.resetAllMocks();

@@ -1,11 +1,12 @@
 import { splitCardBans } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { describeCardStats } from "@openrift/shared/card-stat-line";
+import { DISCORD_EMBED_COLOR } from "@openrift/shared/discord-embed";
 import { cardUrl } from "@openrift/shared/site-paths";
-import { truncateWithEllipsis } from "@openrift/shared/strings";
+import { truncateWithEllipsis, pluralize } from "@openrift/shared/strings";
 import type { APIEmbed, APIEmbedField } from "discord.js";
 
-import { cardTextFields, EMBED_COLOR, FIELD_LIMIT, printingFooter } from "./card-embed.js";
+import { cardTextFields, FIELD_LIMIT, printingFooter } from "./card-embed.js";
 import type { CatalogCard, CatalogPrinting, CatalogSnapshot } from "./catalog-cache.js";
 import type { GlyphEmojis } from "./glyph-emoji.js";
 import { NO_GLYPH_EMOJIS } from "./glyph-emoji.js";
@@ -59,7 +60,7 @@ function banField(card: CatalogCard): APIEmbedField | null {
     return null;
   }
   return {
-    name: lines.length === 1 ? "Ban" : "Bans",
+    name: pluralize(lines.length, "Ban"),
     value: truncateWithEllipsis(lines.join("\n"), FIELD_LIMIT),
   };
 }
@@ -76,7 +77,7 @@ export function buildCardDetailsEmbed(input: CardDetailsInput): APIEmbed {
     title: legendDisplayName(card),
     url: cardUrl(siteUrl, card.slug),
     description: describeCardStats(card, snapshot.labels),
-    color: EMBED_COLOR,
+    color: DISCORD_EMBED_COLOR,
     ...(fields.length > 0 ? { fields } : {}),
     ...(printing ? { footer: { text: printingFooter(printing, snapshot) } } : {}),
   };

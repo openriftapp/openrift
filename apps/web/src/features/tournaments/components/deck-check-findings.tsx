@@ -29,6 +29,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { zoneFixAllowed } from "@/features/tournaments/lib/deck-check-actions";
 import { useZoneOrder } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function ChangeBanner({ summary }: { summary: DeckCheckChangeSummary }) {
@@ -89,17 +90,19 @@ export function FindingsBanner({
   }
 
   async function handleReResolve() {
-    try {
-      const result = await reResolve.mutateAsync({ tournamentId });
-      if (result.updatedLines === 0) {
-        toast.info(m.tournaments_deck_check_no_new_matches());
-      } else {
-        toast.info(reResolveMessage(result.updatedLines));
-      }
-      onResolved();
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let result: Awaited<ReturnType<typeof reResolve.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await reResolve.mutateAsync({ tournamentId });
+    });
+    if (!ok || !result) {
+      return;
     }
+    if (result.updatedLines === 0) {
+      toast.info(m.tournaments_deck_check_no_new_matches());
+    } else {
+      toast.info(reResolveMessage(result.updatedLines));
+    }
+    onResolved();
   }
 
   return (

@@ -1,9 +1,10 @@
 import type { MetaSource, MetaSyncStatus } from "@openrift/shared/contracts/admin/meta-catalog";
 import { HOUR_MS } from "@openrift/shared/format-date";
+import { META_SOURCE_JOB_KINDS } from "@openrift/shared/job-run-kinds";
 import { pluralize } from "@openrift/shared/strings";
 
 import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
-import { BACKFILL_KIND, TRIGGER_GROUPS } from "@/features/admin/lib/meta-admin-triggers";
+import { formatCount } from "@/lib/format";
 import { runStopNote } from "@/lib/job-run-display";
 
 export type MetaRun = MetaSyncStatus["runs"][number];
@@ -21,15 +22,13 @@ const REFRESH_STALE_MS = 26 * HOUR_MS;
 const OVERDUE_LIMIT_MS = 2 * HOUR_MS;
 
 export function refreshKind(source: MetaSource): string {
-  return `meta.${source}_sync`;
+  return META_SOURCE_JOB_KINDS[source].sync;
 }
 
 /** `null` for a source whose mirror refresh carries the results itself. */
 export function collectKind(source: MetaSource): string | null {
-  return (
-    TRIGGER_GROUPS[source].find((entry) => entry.scheduleKey?.endsWith("_recheck"))?.scheduleKey ??
-    null
-  );
+  const kinds = META_SOURCE_JOB_KINDS[source];
+  return "recheck" in kinds ? kinds.recheck : null;
 }
 
 export function newestRun(runs: readonly MetaRun[]): MetaRun | undefined {
@@ -55,7 +54,7 @@ const JOB_LABELS: [suffix: string, label: string][] = [
 ];
 
 export function metaJobLabel(kind: string): string {
-  if (kind === BACKFILL_KIND.playriftbound) {
+  if (kind === META_SOURCE_JOB_KINDS.playriftbound.backfill) {
     return "Find stores";
   }
   if (kind.endsWith("_backfill")) {
@@ -109,12 +108,12 @@ export function refreshCell(run: MetaRun | undefined, scheduled: boolean, now: D
   if (numberOf(result, "rows") === 0 && errors.length > 0) {
     return { tone: "warn", at: run.startedAt, detail: errors[0] ?? "" };
   }
-  const parts = [`${inserted.toLocaleString()} new`];
+  const parts = [`${formatCount(inserted)} new`];
   if (published > 0) {
-    parts.push(`${published.toLocaleString()} published`);
+    parts.push(`${formatCount(published)} published`);
   }
   if (errors.length > 0) {
-    parts.push(`${errors.length.toLocaleString()} ${pluralize(errors.length, "error", "errors")}`);
+    parts.push(`${formatCount(errors.length)} ${pluralize(errors.length, "error", "errors")}`);
   }
   const stale = scheduled && now.getTime() - new Date(run.startedAt).getTime() > REFRESH_STALE_MS;
   return {
@@ -139,7 +138,7 @@ export function collectDetail(run: MetaRun): MetaRunCell {
   const players = numberOf(result, "players");
   const detail =
     fetched > 0
-      ? `${fetched.toLocaleString()} ${pluralize(fetched, "event", "events")}, ${players.toLocaleString()} players`
+      ? `${formatCount(fetched)} ${pluralize(fetched, "event", "events")}, ${formatCount(players)} players`
       : numberOf(result, "due") === 0
         ? "nothing due"
         : "nothing new";
@@ -148,7 +147,7 @@ export function collectDetail(run: MetaRun): MetaRunCell {
     at: run.startedAt,
     detail:
       errors.length > 0
-        ? `${detail} · ${errors.length.toLocaleString()} ${pluralize(errors.length, "error", "errors")}`
+        ? `${detail} · ${formatCount(errors.length)} ${pluralize(errors.length, "error", "errors")}`
         : detail,
   };
 }
@@ -177,7 +176,9 @@ export function sourceTone(
   if (alertIds.length > 0) {
     return "warn";
   }
-  return latestRun(runs, BACKFILL_KIND[source])?.status === "running" ? "running" : "ok";
+  return latestRun(runs, META_SOURCE_JOB_KINDS[source].backfill)?.status === "running"
+    ? "running"
+    : "ok";
 }
 
 export function autoPublishRuleText(settings: {
@@ -200,10 +201,10 @@ export function triggerKind(source: MetaSource, entry: TriggerEntry): string {
     return entry.scheduleKey;
   }
   if (entry.trigger.endsWith("AutoAccept")) {
-    return `meta.${source}_auto_accept`;
+    return META_SOURCE_JOB_KINDS[source].autoAccept;
   }
   if (entry.trigger === "runIdSweep") {
-    return "meta.uvsgames_id_sweep";
+    return META_SOURCE_JOB_KINDS.uvsgames.idSweep;
   }
-  return BACKFILL_KIND[source];
+  return META_SOURCE_JOB_KINDS[source].backfill;
 }

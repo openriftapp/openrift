@@ -44,6 +44,7 @@ import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists"
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function PrintingDeskCreatePage({ cardSlug }: { cardSlug: string }) {
   const { data } = useDeskCardPrintings(cardSlug);
@@ -151,8 +152,8 @@ function usePrintingDeskFormState({
   scope?: DeskFieldScope;
   onSaved: (printingId: string) => void;
 }) {
-  const createPrinting = useCreateDeskPrinting();
-  const updatePrinting = useUpdateDeskPrinting();
+  const createPrinting = useCreateDeskPrinting({ inlineError: true });
+  const updatePrinting = useUpdateDeskPrinting({ inlineError: true });
 
   const [language, setLanguage] = useState(existing?.language ?? seedLanguage);
   const base = basePrintingForLanguage(cardPrintings, language);
@@ -221,15 +222,14 @@ function usePrintingDeskFormState({
 
     const basePrintingId = base?.printingId;
     const secondSideFaceId = secondSide?.faceId;
-    try {
+    const save = async (): Promise<string> => {
       if (existing) {
         await updatePrinting.mutateAsync({
           printingId: existing.printingId,
           side: existing.side,
           ...fieldsInScope(fields, scope),
         });
-        onSaved(existing.printingId);
-        return;
+        return existing.printingId;
       }
       const created = await createPrinting.mutateAsync({
         ...fields,
@@ -237,9 +237,17 @@ function usePrintingDeskFormState({
         basePrintingId,
         secondSideFaceId,
       });
-      onSaved(created.printingId);
-    } catch (error) {
-      setFormError(errorText(error, "Could not save the printing."));
+      return created.printingId;
+    };
+    let savedId: string | undefined;
+    const ok = await runReportedMutation(
+      async () => {
+        savedId = await save();
+      },
+      (error) => setFormError(errorText(error, "Could not save the printing.")),
+    );
+    if (ok && savedId !== undefined) {
+      onSaved(savedId);
     }
   }
 

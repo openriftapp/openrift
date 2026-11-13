@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS, formatDay } from "@openrift/shared/format-date";
+import { DAY_MS, HOUR_MS, formatDay, utcDayDiff } from "@openrift/shared/format-date";
 import { errorMessage } from "@openrift/shared/strings";
 
 import { recordCapped } from "../../../../lib/json-coerce.js";
@@ -160,7 +160,7 @@ async function crawlWindow(
   if (body.items.length < MAX_PAGE_SIZE) {
     return;
   }
-  const days = Math.round((to.getTime() - from.getTime()) / DAY_MS);
+  const days = utcDayDiff(from, to) ?? 0;
   if (days < 1) {
     result.complete = false;
     recordCapped(result.errors, [

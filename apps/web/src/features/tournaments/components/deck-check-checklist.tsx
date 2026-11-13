@@ -8,7 +8,6 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { CheckIcon, LayoutGridIcon, PencilIcon, Rows3Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
@@ -27,10 +26,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { FixCardDialog } from "@/features/tournaments/components/deck-check-entry-dialogs";
-import {
-  useRemoveTournamentDeckCheckCard,
-  useTickTournamentDeckCheckCard,
-} from "@/features/tournaments/hooks/use-tournament-deck-check";
+import { useChecklistCopyActions } from "@/features/tournaments/hooks/use-checklist-copy-actions";
 import { resolvedSide } from "@/features/tournaments/lib/deck-check-side";
 import type { DeckCheckSort } from "@/features/tournaments/lib/deck-check-sort";
 import { sortDeckCheckCards } from "@/features/tournaments/lib/deck-check-sort";
@@ -363,6 +359,37 @@ function ZoneSection({
   );
 }
 
+function RemoveCopyDialog({
+  card,
+  open,
+  onOpenChange,
+  pending,
+  onConfirm,
+}: {
+  card: DeckCheckEntryCardResponse;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <ConfirmActionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={m.tournaments_deck_check_remove_title({ name: card.rawName })}
+      description={
+        card.quantity > 1
+          ? m.tournaments_deck_check_remove_only_copy()
+          : m.tournaments_deck_check_remove_whole_card()
+      }
+      confirmLabel={m.tournaments_deck_check_remove_confirm()}
+      pendingLabel={m.tournaments_deck_check_remove_pending()}
+      isPending={pending}
+      onConfirm={onConfirm}
+    />
+  );
+}
+
 function ChecklistRow({
   tournamentId,
   entryId,
@@ -388,39 +415,11 @@ function ChecklistRow({
   tickLocked: boolean;
   onStale: () => void;
 }) {
-  const tickCard = useTickTournamentDeckCheckCard();
-  const removeCard = useRemoveTournamentDeckCheckCard();
-  const [removeOpen, setRemoveOpen] = useState(false);
+  const { found, toggle, removeOpen, setRemoveOpen, remove, removePending } =
+    useChecklistCopyActions({ tournamentId, entryId, card, copyIndex, tickLocked, onStale });
   const [fixOpen, setFixOpen] = useState(false);
-  const found = card.foundCopies[copyIndex] === true;
   const matched = printing !== undefined && card.matchStatus === "matched";
   const name = matched ? legendDisplayName(printing.card) : card.rawName;
-
-  const toggle = () => {
-    if (tickLocked) {
-      return;
-    }
-    tickCard.mutate(
-      { tournamentId, entryId, cardId: card.id, copyIndex, found: !found },
-      {
-        onSuccess: (result) => {
-          if (result.status === "stale") {
-            toast.info(m.tournaments_deck_check_list_changed());
-            onStale();
-          }
-        },
-      },
-    );
-  };
-
-  const handleRemove = async () => {
-    try {
-      await removeCard.mutateAsync({ tournamentId, entryId, cardId: card.id, copyIndex });
-      setRemoveOpen(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
-  };
 
   return (
     <div
@@ -510,19 +509,12 @@ function ChecklistRow({
           )}
         </div>
       )}
-      <ConfirmActionDialog
+      <RemoveCopyDialog
+        card={card}
         open={removeOpen}
         onOpenChange={setRemoveOpen}
-        title={m.tournaments_deck_check_remove_title({ name: card.rawName })}
-        description={
-          card.quantity > 1
-            ? m.tournaments_deck_check_remove_only_copy()
-            : m.tournaments_deck_check_remove_whole_card()
-        }
-        confirmLabel={m.tournaments_deck_check_remove_confirm()}
-        pendingLabel={m.tournaments_deck_check_remove_pending()}
-        isPending={removeCard.isPending}
-        onConfirm={() => void handleRemove()}
+        pending={removePending}
+        onConfirm={() => void remove()}
       />
     </div>
   );
@@ -553,37 +545,9 @@ function ChecklistCell({
 }) {
   const { printingsById, printingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
-  const tickCard = useTickTournamentDeckCheckCard();
-  const removeCard = useRemoveTournamentDeckCheckCard();
-  const [removeOpen, setRemoveOpen] = useState(false);
+  const { found, toggle, removeOpen, setRemoveOpen, remove, removePending } =
+    useChecklistCopyActions({ tournamentId, entryId, card, copyIndex, tickLocked, onStale });
   const [fixOpen, setFixOpen] = useState(false);
-  const found = card.foundCopies[copyIndex] === true;
-
-  const toggle = () => {
-    if (tickLocked) {
-      return;
-    }
-    tickCard.mutate(
-      { tournamentId, entryId, cardId: card.id, copyIndex, found: !found },
-      {
-        onSuccess: (result) => {
-          if (result.status === "stale") {
-            toast.info(m.tournaments_deck_check_list_changed());
-            onStale();
-          }
-        },
-      },
-    );
-  };
-
-  const handleRemove = async () => {
-    try {
-      await removeCard.mutateAsync({ tournamentId, entryId, cardId: card.id, copyIndex });
-      setRemoveOpen(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
-  };
 
   const foundOverlay = found ? <SelectionStamp tone="success" /> : null;
 
@@ -627,19 +591,12 @@ function ChecklistCell({
           />
         )}
         {locked ? null : (
-          <ConfirmActionDialog
+          <RemoveCopyDialog
+            card={card}
             open={removeOpen}
             onOpenChange={setRemoveOpen}
-            title={m.tournaments_deck_check_remove_title({ name: card.rawName })}
-            description={
-              card.quantity > 1
-                ? m.tournaments_deck_check_remove_only_copy()
-                : m.tournaments_deck_check_remove_whole_card()
-            }
-            confirmLabel={m.tournaments_deck_check_remove_confirm()}
-            pendingLabel={m.tournaments_deck_check_remove_pending()}
-            isPending={removeCard.isPending}
-            onConfirm={() => void handleRemove()}
+            pending={removePending}
+            onConfirm={() => void remove()}
           />
         )}
       </>

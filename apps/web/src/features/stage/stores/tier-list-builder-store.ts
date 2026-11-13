@@ -3,6 +3,7 @@ import {
   MAX_TIER_LIST_CARDS,
   MAX_TIER_ROWS,
 } from "@openrift/shared/contracts/tier-lists";
+import { clamp } from "@openrift/shared/math";
 import type { TierCard, TierRow } from "@openrift/shared/types/api/tier-list";
 import { create } from "zustand";
 
@@ -43,10 +44,6 @@ interface TierListBuilderState {
 }
 
 const UNRANKED_ROW_LABEL = "Unranked";
-
-function clamp(position: number, cards: readonly TierCard[]): number {
-  return Math.max(0, Math.min(position, cards.length));
-}
 
 function indexRows(rows: readonly TierRow[]): Map<string, number> {
   const index = new Map<string, number>();
@@ -146,7 +143,7 @@ export const useTierListBuilderStore = create<TierListBuilderState>()((set) => (
       // Lifting the card out of this row shifts everything after it left by one, so
       // a target past the card's old slot needs the same shift.
       const shifted = fromPosition >= 0 && fromPosition < position ? position - 1 : position;
-      target.cards.splice(clamp(shifted, target.cards), 0, entry);
+      target.cards.splice(clamp(shifted, 0, target.cards.length), 0, entry);
       return withRows(stripped);
     }),
 

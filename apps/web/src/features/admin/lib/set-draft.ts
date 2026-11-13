@@ -1,3 +1,8 @@
+import type { SetReleases } from "@openrift/shared/set-release";
+import type { AdminSetResponse } from "@openrift/shared/types/api/admin";
+
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
+
 export interface SetDraftFields {
   name: string;
   printedTotal: string;
@@ -13,12 +18,27 @@ export function parseSetDraft(draft: SetDraftFields): ParsedSetDraft | { error: 
   if (!name) {
     return { error: "Name is required" };
   }
-  const total = draft.printedTotal.trim();
-  if (!total) {
-    return { name, printedTotal: null };
-  }
-  if (!/^\d+$/u.test(total)) {
+  const printedTotal = parseIntegerInput(draft.printedTotal, 0);
+  if (printedTotal === undefined) {
     return { error: "Printed total must be a non-negative whole number" };
   }
-  return { name, printedTotal: Number(total) };
+  return { name, printedTotal };
+}
+
+export function requireSetDraft(draft: SetDraftFields): ParsedSetDraft {
+  const parsed = parseSetDraft(draft);
+  if ("error" in parsed) {
+    throw new Error(parsed.error);
+  }
+  return parsed;
+}
+
+export function setReleasesUpdate(set: AdminSetResponse, releases: SetReleases) {
+  return {
+    id: set.id,
+    name: set.name,
+    printedTotal: set.printedTotal,
+    releases,
+    setType: set.setType,
+  };
 }

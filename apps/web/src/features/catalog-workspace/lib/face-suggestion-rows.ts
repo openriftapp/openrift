@@ -5,9 +5,6 @@ import {
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
-import type { LabelMap } from "@openrift/shared/enum-label";
-import { enumLabel } from "@openrift/shared/enum-label";
-import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 import { pluralize } from "@openrift/shared/strings";
@@ -18,7 +15,7 @@ import type {
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 
-import { formatFieldValue, PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
+import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 
 export interface CompareContext {
@@ -300,45 +297,4 @@ export function buildFaceSuggestions(
     agreeingFields,
     enterCandidateIds,
   };
-}
-
-export interface ValueLabels {
-  rarities: LabelMap;
-  finishes: LabelMap;
-  artVariants: LabelMap;
-  cardSizes: LabelMap;
-  languages: LabelMap;
-  markers: LabelMap;
-  channels: LabelMap;
-}
-
-const SLUG_LABEL_GROUPS: Partial<Record<string, keyof ValueLabels>> = {
-  rarity: "rarities",
-  finish: "finishes",
-  artVariant: "artVariants",
-  size: "cardSizes",
-  language: "languages",
-};
-
-const LIST_LABEL_GROUPS: Partial<Record<string, keyof ValueLabels>> = {
-  markerSlugs: "markers",
-  distributionChannelSlugs: "channels",
-};
-
-export function formatSuggestionValue(field: string, value: unknown, labels: ValueLabels): string {
-  if (!hasFieldValue(value)) {
-    return "Empty";
-  }
-  const slugGroup = SLUG_LABEL_GROUPS[field];
-  if (slugGroup !== undefined && typeof value === "string") {
-    return enumLabel(labels[slugGroup], value);
-  }
-  const listGroup = LIST_LABEL_GROUPS[field];
-  if (listGroup !== undefined && Array.isArray(value)) {
-    return value.map((slug) => enumLabel(labels[listGroup], String(slug))).join(", ");
-  }
-  if (field === "publicCode" && typeof value === "string") {
-    return formatPrintingCode(value);
-  }
-  return formatFieldValue(value);
 }

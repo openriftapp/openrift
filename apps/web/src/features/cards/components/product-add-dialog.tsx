@@ -27,6 +27,7 @@ import {
 } from "@/features/collections/components/collection-radio-picker";
 import { useCollections, useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { useAddCopies } from "@/features/collections/hooks/use-copies";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 // Sends batches sequentially so the server never sees a later one before an
@@ -104,36 +105,44 @@ function ProductAddBody({
   const totalCards = countValid ? productCopyTotal(data.contents, productCount) : 0;
   const pending = isAdding || createCollection.isPending;
 
+  const addToTarget = async (): Promise<string> => {
+    let target = {
+      id: selectedId,
+      name:
+        collections.find((collection) => collection.id === selectedId)?.name ??
+        m.products_add_fallback_collection(),
+    };
+    if (selectedId === NEW_COLLECTION_OPTION) {
+      const created = await createCollection.mutateAsync({
+        name: newName.trim() || m.products_add_default_collection_name(),
+      });
+      target = { id: created.id, name: created.name };
+    }
+    const batches = chunkProductCopies(
+      expandProductContents(data.contents, target.id, productCount),
+    );
+    await addBatchesInOrder(batches, addCopies.mutateAsync);
+    return target.name;
+  };
+
   const confirm = async () => {
     if (!countValid || totalCards === 0) {
       return;
     }
     setIsAdding(true);
-    // Every conditional is resolved up front: React Compiler cannot lower a
-    // ternary, `??`, `||` or `?.` that sits inside a try/catch.
-    const newCollectionName = newName.trim() || m.products_add_default_collection_name();
-    let targetId = selectedId;
-    let targetName =
-      collections.find((collection) => collection.id === selectedId)?.name ??
-      m.products_add_fallback_collection();
-    try {
-      if (selectedId === NEW_COLLECTION_OPTION) {
-        const created = await createCollection.mutateAsync({ name: newCollectionName });
-        targetId = created.id;
-        targetName = created.name;
-      }
-      const batches = chunkProductCopies(
-        expandProductContents(data.contents, targetId, productCount),
-      );
-      await addBatchesInOrder(batches, addCopies.mutateAsync);
-      toast.success(m.products_add_success({ count: totalCards, name: targetName }));
+    let addedTo: string | undefined;
+    const added = await runReportedMutation(async () => {
+      addedTo = await addToTarget();
+    });
+    if (added && addedTo !== undefined) {
+      toast.success(m.products_add_success({ count: totalCards, name: addedTo }));
       onClose();
-    } catch {
-      // Second toast alongside the global mutation error one: batches before
-      // the failing one already committed.
-      toast.error(m.products_add_error());
-      setIsAdding(false);
+      return;
     }
+    // Second toast alongside the global mutation error one: batches before
+    // the failing one already committed.
+    toast.error(m.products_add_error());
+    setIsAdding(false);
   };
 
   return (

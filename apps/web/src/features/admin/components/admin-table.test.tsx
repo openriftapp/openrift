@@ -635,6 +635,23 @@ describe("AdminTable add", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it("puts the save error in a wrapping cell across every column", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockRejectedValue(new Error('Marker "promo" already exists'));
+    renderAddTable({ emptyDraft: { slug: "promo", label: "Promo" }, onSave });
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const message = await screen.findByText('Marker "promo" already exists');
+    const cell = message.closest("td");
+    const headerCount = screen.getAllByRole("columnheader").length;
+    expect(cell).toHaveAttribute("colspan", String(headerCount));
+    expect(cell?.className).not.toContain("whitespace-nowrap");
+    expect(message.closest("p")?.className).toMatch(/sticky left-0/u);
+    expect(message.closest("p")?.className).toContain("[contain:inline-size]");
+  });
+
   it("shows the rejection error and keeps the add row open", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockRejectedValue(new Error("Slug already exists"));
@@ -898,5 +915,24 @@ describe("AdminTable slots", () => {
     render(<AdminTable columns={columns} data={[row]} getRowKey={(r) => r.slug} topBar={topBar} />);
 
     expect(topBar).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe("AdminTable groups", () => {
+  it("heads each run of rows with its group label", () => {
+    render(
+      <AdminTable
+        columns={columns}
+        data={[
+          { slug: "a", label: "Alpha" },
+          { slug: "b", label: "Beta" },
+          { slug: "c", label: "Gamma" },
+        ]}
+        getRowKey={(r) => r.slug}
+        groupBy={{ key: (r) => (r.slug === "c" ? "FR" : "EN"), label: (key) => `Group ${key}` }}
+      />,
+    );
+    const rows = screen.getAllByRole("row").map((element) => element.textContent);
+    expect(rows).toEqual(["Label", "Group EN", "Alpha", "Beta", "Group FR", "Gamma"]);
   });
 });

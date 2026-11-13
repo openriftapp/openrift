@@ -2,7 +2,6 @@ import type { WorkspaceQueueItem } from "@openrift/shared/contracts/admin/catalo
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
-import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -23,6 +22,7 @@ import { ProductLink } from "@/features/admin/components/price-mappings-utils";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useUnifiedIgnoreProducts,
+  useIgnoreVariantsByMarketplace,
   useUnifiedIgnoreVariants,
   useUnifiedSaveMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
@@ -54,8 +54,9 @@ import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/worksp
 import { combinedUndo, ignoredUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatCentsInLocale } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-type IgnoreVariants = Record<AdminMarketplaceName, ReturnType<typeof useUnifiedIgnoreVariants>>;
+type IgnoreVariants = ReturnType<typeof useIgnoreVariantsByMarketplace>;
 
 function skuOf(row: CardListingRow) {
   return {
@@ -74,10 +75,7 @@ async function ignoreVariantGroup(
   const runs = [...byMarketplace].map(([marketplace, rows]) =>
     ignores[marketplace].mutateAsync(rows.map((row) => skuOf(row))),
   );
-  const ok = await Promise.all(runs).then(
-    () => true,
-    () => false,
-  );
+  const ok = await runReportedMutation(() => Promise.all(runs));
   if (ok) {
     await onDone();
   }
@@ -131,12 +129,7 @@ function CardListingsBody({ cardSlug, item }: { cardSlug: string; item: Workspac
   const queryClient = useQueryClient();
   const { labels } = useEnumOrders();
   const { data, isPending, isError } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
-  const ignores: IgnoreVariants = {
-    tcgplayer: useUnifiedIgnoreVariants("tcgplayer"),
-    cardmarket: useUnifiedIgnoreVariants("cardmarket"),
-    cardtrader: useUnifiedIgnoreVariants("cardtrader"),
-    cardnexus: useUnifiedIgnoreVariants("cardnexus"),
-  };
+  const ignores = useIgnoreVariantsByMarketplace();
   const ignoring = Object.values(ignores).some((mutation) => mutation.isPending);
   const { announce } = useWorkspaceUndo();
 

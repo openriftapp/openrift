@@ -1,4 +1,5 @@
 import { adminKeywordsContract } from "@openrift/shared/contracts/admin/keywords";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -41,8 +42,9 @@ const updateKeywordStyleFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminKeywordsContract, context.cookie).updateStyle(data);
   });
 
-export function useUpdateKeywordStyle() {
+export function useUpdateKeywordStyle(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (params: {
       name: string;
       color: string;
@@ -69,8 +71,9 @@ const createKeywordStyleFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminKeywordsContract, context.cookie).createStyle(data);
   });
 
-export function useCreateKeywordStyle() {
+export function useCreateKeywordStyle(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (params: {
       name: string;
       color: string;
@@ -116,8 +119,9 @@ const upsertTranslationFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminKeywordsContract, context.cookie).upsertTranslation(data);
   });
 
-export function useUpsertTranslation() {
+export function useUpsertTranslation(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (params: { keywordName: string; language: string; label: string }) =>
       upsertTranslationFn({ data: params }),
     invalidates: STYLE_INVALIDATES,

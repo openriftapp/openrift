@@ -1,8 +1,9 @@
 import type { OverlayPlateFields } from "@openrift/shared/contracts/overlay";
 import type { StageGround } from "@openrift/shared/contracts/stage-presets";
+import { CARD_SCALE } from "@openrift/shared/overlay-scale";
 import { create } from "zustand";
 
-import { clampCardScale, MAX_CARD_SCALE } from "@/features/cards/lib/card-scale";
+import { clampCardScale } from "@/features/cards/lib/card-scale";
 import type { TierQueueDirection } from "@/features/stage/lib/tier-list-presentation";
 
 interface PresentationState {
@@ -38,7 +39,7 @@ export const usePresentationStore = create<PresentationState>()((set) => ({
   plateFields: { name: true, code: true, stats: true, rulesText: true, flavorText: true },
   showStrip: false,
   showHelp: false,
-  cardScale: MAX_CARD_SCALE,
+  cardScale: CARD_SCALE.max,
   ground: "black",
   boardMode: true,
   showHero: true,

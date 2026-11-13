@@ -10,7 +10,7 @@ import type {
 const captured = vi.hoisted(() => ({ checkSource: vi.fn(), checkPrintings: vi.fn() }));
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useCheckCandidateCard: () => ({ mutate: captured.checkSource, isPending: false }),
+  useCheckCandidateCards: () => ({ mutate: captured.checkSource, isPending: false }),
   useCheckAllCandidatePrintings: () => ({ mutate: captured.checkPrintings, isPending: false }),
 }));
 
@@ -136,7 +136,10 @@ describe("CardOverviewSection", () => {
 
     await user.click(screen.getByRole("button", { name: "Check" }));
 
-    expect(captured.checkSource).toHaveBeenCalledWith("cc-1");
+    expect(captured.checkSource).toHaveBeenCalledWith({
+      cardId: expect.any(String),
+      candidateCardIds: ["cc-1"],
+    });
     expect(captured.checkPrintings).toHaveBeenCalledWith({ extraIds: ["cp-1"] });
   });
 

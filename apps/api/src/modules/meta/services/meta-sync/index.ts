@@ -30,7 +30,6 @@ export type {
   PlayloltcgRecheckResult,
   PlayloltcgSyncResult,
 } from "./playloltcg-sync.js";
-export { META_JOB_KINDS } from "./job-kinds.js";
 export { metaJobSkipReason } from "./source-stop.js";
 export { createTopdeckSyncDeps } from "./topdeck-deps.js";
 export type { TopdeckSyncDeps } from "./topdeck-deps.js";

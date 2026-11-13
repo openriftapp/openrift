@@ -14,6 +14,9 @@ import {
   formatDayTimeLocal,
   formatFileStamp,
   formatTimeLocal,
+  formatTimeUtc,
+  MINUTE_MS,
+  utcDayDiff,
   formatDayMonthYear,
   formatShortDay,
   formatShortDayYear,
@@ -388,7 +391,8 @@ describe("todayUtc", () => {
 
 describe("duration constants", () => {
   it("are consistent", () => {
-    expect(HOUR_MS).toBe(3_600_000);
+    expect(MINUTE_MS).toBe(60_000);
+    expect(HOUR_MS).toBe(60 * MINUTE_MS);
     expect(DAY_MS).toBe(24 * HOUR_MS);
   });
 });
@@ -418,5 +422,30 @@ describe("shiftUtcDay", () => {
 
   it("returns an empty string for bad input", () => {
     expect(shiftUtcDay("nope", 1)).toBe("");
+  });
+});
+
+describe("formatTimeUtc", () => {
+  it("formats the UTC hour and minute", () => {
+    expect(formatTimeUtc("2026-03-05T07:04:59.999Z")).toBe("07:04");
+    expect(formatTimeUtc(new Date(Date.UTC(2026, 0, 1, 23, 30)))).toBe("23:30");
+  });
+
+  it("returns an empty string for bad input", () => {
+    expect(formatTimeUtc("nope")).toBe("");
+  });
+});
+
+describe("utcDayDiff", () => {
+  it("counts UTC calendar days between days and instants", () => {
+    expect(utcDayDiff("2026-02-27", "2026-03-02")).toBe(3);
+    expect(utcDayDiff("2026-03-02", "2026-02-27")).toBe(-3);
+    expect(utcDayDiff("2026-03-01T23:59:00Z", "2026-03-02T00:01:00Z")).toBe(1);
+    expect(utcDayDiff("2026-03-01T00:01:00Z", "2026-03-01T23:59:00Z")).toBe(0);
+  });
+
+  it("returns null for bad input", () => {
+    expect(utcDayDiff("nope", "2026-03-01")).toBeNull();
+    expect(utcDayDiff("2026-03-01", "nope")).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import type { WorkspaceEvent } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { formatRelativeTime } from "@openrift/shared/format-date";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import type { WorkspaceHistoryTarget } from "@/features/catalog-workspace/hooks/use-workspace-history";
 import { useWorkspaceHistory } from "@/features/catalog-workspace/hooks/use-workspace-history";
@@ -53,9 +53,7 @@ function WorkspaceHistoryList({
       {events.map((event) => (
         <li key={event.id} className="flex flex-wrap items-baseline gap-x-3">
           <span className="min-w-0 flex-1">{event.label}</span>
-          <span className="text-muted-foreground text-sm">
-            {formatRelativeTime(event.createdAt)}
-          </span>
+          <AdminInstant at={event.createdAt} className="text-muted-foreground text-sm" />
         </li>
       ))}
     </ul>

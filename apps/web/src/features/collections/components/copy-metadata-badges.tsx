@@ -116,7 +116,7 @@ export function StackMetadataChip({
   return (
     <MetadataPillButton
       itemId={itemId}
-      title={annotatedCount === 1 ? "1 copy with details" : `${annotatedCount} copies with details`}
+      title={m.collections_copies_with_details({ count: annotatedCount })}
     >
       <FileTextIcon className="size-3" aria-hidden />
       {annotatedCount}

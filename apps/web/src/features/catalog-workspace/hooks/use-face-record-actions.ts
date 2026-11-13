@@ -14,6 +14,7 @@ import { useDistributionChannels } from "@/features/admin/hooks/use-distribution
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
@@ -22,7 +23,6 @@ import type {
   FieldSuggestion,
   SourceImageCandidate,
   SuggestionSource,
-  ValueLabels,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { primaryLabel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type {
@@ -37,7 +37,7 @@ import {
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-export function useValueLabels(): ValueLabels {
+export function useValueLabels(): PrintingValueLabels {
   const { labels } = useEnumOrders();
   const languages = useLanguageLabels();
   const { data: markerData } = useMarkers();

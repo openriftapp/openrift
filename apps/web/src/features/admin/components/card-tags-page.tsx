@@ -9,7 +9,11 @@ import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Toggle } from "@/components/ui/toggle";
 import {
+  CountCell,
+  DescriptionCell,
   DescriptionInput,
+  LabelCell,
+  SlugCell,
   validateSlugAndLabel,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -28,6 +32,7 @@ import {
   useTagCategoryList,
   useUpdateTagCategory,
 } from "@/features/cards/hooks/use-card-tags";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface TagCategoryDraft {
   id: string;
@@ -50,41 +55,6 @@ export function CardTagsPage() {
       <ClassificationSection tags={tagsData.tags} categories={categoriesData.categories} />
     </div>
   );
-}
-
-function CategorySlugCell({ row }: AdminCellSlotProps<TagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.slug}</span>;
-}
-
-function CategoryLabelCell({ row }: AdminCellSlotProps<TagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span>{row.label}</span>;
-}
-
-function CategoryDescriptionCell({ row }: AdminCellSlotProps<TagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return (
-    <span
-      className="text-muted-foreground block max-w-xs truncate"
-      title={row.description ?? undefined}
-    >
-      {row.description ?? "—"}
-    </span>
-  );
-}
-
-function CategoryTagCountCell({ row }: AdminCellSlotProps<TagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.tagCount}</span>;
 }
 
 function CategorySlugAddInput({ draft, setDraft }: AdminDraftSlotProps<TagCategoryDraft>) {
@@ -119,20 +89,20 @@ const categoryColumns: AdminColumnDef<TagCategoryResponse, TagCategoryDraft>[] =
   {
     header: "Slug",
     sortValue: (cat) => cat.slug,
-    cell: <CategorySlugCell />,
+    cell: <SlugCell<TagCategoryResponse> />,
     addCell: <CategorySlugAddInput />,
   },
   {
     header: "Label",
     sortValue: (cat) => cat.label,
-    cell: <CategoryLabelCell />,
+    cell: <LabelCell<TagCategoryResponse> />,
     editCell: <CategoryLabelInput />,
     addCell: <CategoryLabelInput />,
   },
   {
     header: "Description",
     sortValue: (cat) => cat.description ?? "",
-    cell: <CategoryDescriptionCell />,
+    cell: <DescriptionCell<TagCategoryResponse> />,
     editCell: <DescriptionInput<TagCategoryDraft> />,
     addCell: <DescriptionInput<TagCategoryDraft> />,
   },
@@ -140,13 +110,13 @@ const categoryColumns: AdminColumnDef<TagCategoryResponse, TagCategoryDraft>[] =
     header: "Tags",
     sortValue: (cat) => cat.tagCount,
     align: "right",
-    cell: <CategoryTagCountCell />,
+    cell: <CountCell<TagCategoryResponse> count={(row) => row.tagCount} />,
   },
 ];
 
 function CategoriesSection({ categories }: { categories: TagCategoryResponse[] }) {
-  const createMutation = useCreateTagCategory();
-  const updateMutation = useUpdateTagCategory();
+  const createMutation = useCreateTagCategory({ inlineError: true });
+  const updateMutation = useUpdateTagCategory({ inlineError: true });
   const deleteMutation = useDeleteTagCategory();
 
   return (
@@ -208,13 +178,6 @@ function TagNameCell({ row }: AdminCellSlotProps<ClassifiedCardTag>) {
   );
 }
 
-function TagCardCountCell({ row }: AdminCellSlotProps<ClassifiedCardTag>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.cardCount}</span>;
-}
-
 interface ClassificationSelectProps extends AdminCellSlotProps<ClassifiedCardTag> {
   items: { value: string; label: string }[];
   onSetCategory?: (tag: string, categoryId: string | null) => void;
@@ -256,17 +219,19 @@ function ClassificationSection({
     if (!legendCategory) {
       return;
     }
-    try {
-      const result = await detectMutation.mutateAsync({ categoryId: legendCategory.id });
-      if (result.assigned === 0) {
-        setDetectResult(`All ${result.found} Legend tags were already classified.`);
-      } else {
-        setDetectResult(
-          `Classified ${result.assigned} of ${result.found} Legend tags as ${legendCategory.label}.`,
-        );
-      }
-    } catch {
-      /* Reported by the global mutation error toast. */
+    let result: Awaited<ReturnType<typeof detectMutation.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await detectMutation.mutateAsync({ categoryId: legendCategory.id });
+    });
+    if (!ok || !result) {
+      return;
+    }
+    if (result.assigned === 0) {
+      setDetectResult(`All ${result.found} Legend tags were already classified.`);
+    } else {
+      setDetectResult(
+        `Classified ${result.assigned} of ${result.found} Legend tags as ${legendCategory.label}.`,
+      );
     }
   };
 
@@ -295,7 +260,7 @@ function ClassificationSection({
       header: "Cards",
       sortValue: (t) => t.cardCount,
       align: "right",
-      cell: <TagCardCountCell />,
+      cell: <CountCell<ClassifiedCardTag> count={(row) => row.cardCount} />,
     },
     {
       header: "Category",

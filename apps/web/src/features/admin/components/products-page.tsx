@@ -1,6 +1,5 @@
 import type { ProductSummary } from "@openrift/shared/contracts/products";
 import { RESERVED_PRODUCT_SLUGS, productSlugRegex } from "@openrift/shared/contracts/products";
-import { formatDayTime } from "@openrift/shared/format-date";
 import { slugifyName } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { RefreshCwIcon } from "lucide-react";
@@ -23,8 +22,10 @@ import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  CountCell,
   DescriptionInput,
   DraftTextInput,
+  InstantCell,
   SlugCell,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -38,6 +39,8 @@ import {
   useUpdateProduct,
 } from "@/features/cards/hooks/use-products";
 import { useLists } from "@/features/lists/hooks/use-lists";
+import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 import type { AdminCellSlotProps, AdminColumnDef, AdminDraftSlotProps } from "./admin-table";
 import { AdminTable } from "./admin-table";
@@ -91,17 +94,6 @@ function CardTotalCell({ row }: AdminCellSlotProps<ProductSummary>) {
   return <span>{row?.cardTotal}</span>;
 }
 
-function PrintingCountCell({ row }: AdminCellSlotProps<ProductSummary>) {
-  return <span>{row?.printingCount}</span>;
-}
-
-function UpdatedCell({ row }: AdminCellSlotProps<ProductSummary>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="text-muted-foreground text-xs">{formatDayTime(row.updatedAt)}</span>;
-}
-
 function SetInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
   if (!draft || !setDraft) {
     return null;
@@ -141,9 +133,13 @@ const productColumns: AdminColumnDef<ProductSummary, ProductDraft>[] = [
     header: "Unique",
     align: "right",
     sortValue: (p) => p.printingCount,
-    cell: <PrintingCountCell />,
+    cell: <CountCell<ProductSummary> count={(row) => row.printingCount} />,
   },
-  { header: "Updated", sortValue: (p) => p.updatedAt, cell: <UpdatedCell /> },
+  {
+    header: "Updated",
+    sortValue: (p) => p.updatedAt,
+    cell: <InstantCell<ProductSummary> at={(row) => row.updatedAt} relative />,
+  },
 ];
 
 function ListPicker({
@@ -215,8 +211,6 @@ function CreateProductDialog({
       setError(validationError);
       return;
     }
-    // Built outside try/catch: the React Compiler can't yet handle value
-    // blocks (||, ?:) inside try statements and would skip the component.
     const payload = {
       name: draft.name.trim(),
       slug: draft.slug,
@@ -224,15 +218,12 @@ function CreateProductDialog({
       setId: draft.setId || null,
       listId: draft.listId,
     };
-    try {
-      await createProduct.mutateAsync(payload);
+    const created = await runReportedMutation(
+      () => createProduct.mutateAsync(payload),
+      (submitError) => setError(errorText(submitError, "Creating the product failed")),
+    );
+    if (created) {
       handleOpenChange(false);
-    } catch (submitError) {
-      if (submitError instanceof Error) {
-        setError(submitError.message);
-      } else {
-        setError("Creating the product failed");
-      }
     }
   };
 
@@ -362,15 +353,12 @@ function ResyncDialog({
       return;
     }
     const payload = { id: product.id, listId };
-    try {
-      await resyncProduct.mutateAsync(payload);
+    const resynced = await runReportedMutation(
+      () => resyncProduct.mutateAsync(payload),
+      (submitError) => setError(errorText(submitError, "Re-syncing failed")),
+    );
+    if (resynced) {
       handleOpenChange(false);
-    } catch (submitError) {
-      if (submitError instanceof Error) {
-        setError(submitError.message);
-      } else {
-        setError("Re-syncing failed");
-      }
     }
   };
 
@@ -423,7 +411,7 @@ function ResyncAction({
 
 export function AdminProductsPage() {
   const { data } = useProductsList();
-  const updateProduct = useUpdateProduct();
+  const updateProduct = useUpdateProduct({ inlineError: true });
   const deleteProduct = useDeleteProduct();
   const [createOpen, setCreateOpen] = useState(false);
   const [resyncTarget, setResyncTarget] = useState<ProductSummary | null>(null);

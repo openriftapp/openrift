@@ -16,7 +16,9 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { MetaSyncTrigger } from "@/features/admin/lib/meta-admin-triggers";
+import { announceSyncTrigger } from "@/features/admin/lib/meta-catalog-display";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -190,11 +192,27 @@ const syncRunInvalidates = [
 ] as const;
 
 /** The result says `running`; the crawl itself finishes in the background. */
-export function useRunMetaSync() {
-  return useMutationWithInvalidation<MetaSyncTriggerResult, { trigger: MetaSyncTrigger }>({
+export function useStartMetaJob() {
+  const run = useMutationWithInvalidation<MetaSyncTriggerResult, { trigger: MetaSyncTrigger }>({
     mutationFn: (vars) => runMetaSyncFn({ data: vars }),
     invalidates: syncRunInvalidates,
   });
+
+  async function start(trigger: MetaSyncTrigger, label: string) {
+    let result: MetaSyncTriggerResult | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await run.mutateAsync({ trigger });
+    });
+    if (ok && result) {
+      announceSyncTrigger(label, result);
+    }
+  }
+
+  return {
+    start,
+    isPending: run.isPending,
+    pendingTrigger: run.isPending ? run.variables?.trigger : undefined,
+  };
 }
 
 const cancelRunFn = createServerFn({ method: "POST" })

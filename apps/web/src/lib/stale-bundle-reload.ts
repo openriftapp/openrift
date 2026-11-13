@@ -1,3 +1,6 @@
+import { errorMessage } from "@openrift/shared/strings";
+
+import { CHUNK_LOAD_ERROR_PATTERN, thrownMessage } from "@/lib/error-text";
 // No UI imports here: router.ts and sentry-client.ts import this module
 // statically, and pulling in the toast library would enter the SSR module graph.
 
@@ -121,35 +124,16 @@ export function initVersionStaleNavigationReload(router: RouterSubscribe): void 
   });
 }
 
-// Matches each browser's phrasing for a dynamic-import failure (Chrome,
-// Firefox, Safari) plus webpack's ChunkLoadError. Shared with
-// sentry-client.ts to filter these out of Sentry before the reload fires.
-export const CHUNK_LOAD_ERROR_PATTERN =
-  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk \d+ failed/u;
-
 // TanStack Start's getServerFnById throws these two messages when a server
 // function's hashed ID isn't in the deployed server's manifest;
 // middleware/stale-server-fn.ts relays the message to the client as `error.message`.
 export const STALE_SERVER_FN_ERROR_PATTERN =
   /Server function (?:info not found|module not resolved)/u;
 
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  // A server-fn error loses its prototype crossing the boundary, arriving as
-  // a plain object that still carries `message`.
-  if (typeof error === "object" && error !== null) {
-    const { message } = error as { message?: unknown };
-    return typeof message === "string" ? message : "";
-  }
-  return typeof error === "string" ? error : "";
-}
-
 // Exported so the query layer can also skip retrying this error: re-hammering
 // a missing manifest entry can't succeed.
 export function isStaleServerFnError(error: unknown): boolean {
-  return STALE_SERVER_FN_ERROR_PATTERN.test(errorMessage(error));
+  return STALE_SERVER_FN_ERROR_PATTERN.test(thrownMessage(error));
 }
 
 // A polling query never navigates, so the soft toast + reload-on-navigation
@@ -165,7 +149,7 @@ export function reloadIfStaleServerFnError(error: unknown): boolean {
 function chunkLoadErrorMessage(error: unknown): string | undefined {
   let current = error;
   for (let depth = 0; depth < 5 && current !== undefined && current !== null; depth++) {
-    const message = errorMessage(current);
+    const message = thrownMessage(current);
     if (CHUNK_LOAD_ERROR_PATTERN.test(message)) {
       return message;
     }
@@ -237,7 +221,7 @@ export function initChunkErrorReloader(): void {
   });
   globalThis.addEventListener("unhandledrejection", (event) => {
     const reason = event.reason;
-    const message = reason instanceof Error ? reason.message : String(reason ?? "");
+    const message = thrownMessage(reason);
     if (isChunkLoadError(message)) {
       reloadOnce(`chunk load error: ${message}`);
       return;
@@ -252,9 +236,7 @@ export function initChunkErrorReloader(): void {
     // Vite types payload as Error, but the helper passes whatever the import rejected with
     // (undefined included). Drop the guard once Vite types it as unknown.
     const payload: unknown = event.payload;
-    reloadOnce(
-      `vite preload error: ${payload instanceof Error ? payload.message : String(payload)}`,
-    );
+    reloadOnce(`vite preload error: ${errorMessage(payload)}`);
   });
 }
 

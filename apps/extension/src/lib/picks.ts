@@ -1,3 +1,5 @@
+import { countNoun } from "@openrift/shared/strings";
+
 import type { CardmarketFinish } from "./cardmarket-rows";
 
 interface CardmarketPick {
@@ -140,7 +142,7 @@ export function picksPayload(basket: PicksBasket, seller: string): PicksPayload 
 }
 
 export function sellerPicksText(entry: SellerPicks): string {
-  const cards = `${entry.cards} card${entry.cards === 1 ? "" : "s"}`;
+  const cards = countNoun(entry.cards, "card");
   const copies = entry.copies === entry.cards ? "" : ` (${entry.copies} copies)`;
   return `${cards}${copies} from ${entry.seller}`;
 }

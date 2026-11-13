@@ -1,4 +1,5 @@
 import { adminSiteSettingsContract } from "@openrift/shared/contracts/admin/site-settings";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -29,8 +30,9 @@ const updateSiteSettingFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminSiteSettingsContract, context.cookie).update(data);
   });
 
-export function useUpdateSiteSetting() {
+export function useUpdateSiteSetting(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: async (vars: { key: string; value?: string; scope?: SettingScope }) => {
       await updateSiteSettingFn({ data: vars });
     },
@@ -45,8 +47,9 @@ const createSiteSettingFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminSiteSettingsContract, context.cookie).create(data);
   });
 
-export function useCreateSiteSetting() {
+export function useCreateSiteSetting(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: async (vars: { key: string; value: string; scope?: SettingScope }) => {
       await createSiteSettingFn({ data: vars });
     },

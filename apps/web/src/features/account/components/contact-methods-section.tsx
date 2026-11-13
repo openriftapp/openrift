@@ -15,6 +15,7 @@ import {
   useDeleteContactMethod,
   useUpdateContactMethod,
 } from "@/features/account/hooks/use-contact-methods";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 const TYPE_ITEMS: { value: ContactMethodType; label: string }[] = CONTACT_METHOD_TYPES.map(
@@ -65,11 +66,12 @@ function ContactMethodRow({ method }: { method: ContactMethod }) {
   const canSave = dirty && value.trim().length > 0;
 
   async function handleSave() {
-    try {
-      await update.mutateAsync({ id: method.id, type, value: value.trim() });
+    if (
+      await runReportedMutation(() =>
+        update.mutateAsync({ id: method.id, type, value: value.trim() }),
+      )
+    ) {
       toast.success(m.profile_contacts_saved_toast());
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 
@@ -110,11 +112,8 @@ function AddContactMethod() {
   const canAdd = value.trim().length > 0;
 
   async function handleAdd() {
-    try {
-      await create.mutateAsync({ type, value: value.trim() });
+    if (await runReportedMutation(() => create.mutateAsync({ type, value: value.trim() }))) {
       setValue("");
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

@@ -4,6 +4,7 @@ import type {
   OverlayPayload,
 } from "@openrift/shared/contracts/overlay";
 import { overlayContract } from "@openrift/shared/contracts/overlay";
+import { clampRevealCount } from "@openrift/shared/overlay-scale";
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
@@ -44,7 +45,7 @@ async function ensureChannel(repos: Repos, userId: string): Promise<OverlayChann
  */
 function clampReveal(board: OverlayBoard, revealCount: number): number {
   const total = board.tiers.reduce((sum, row) => sum + row.cards.length, 0);
-  return Math.min(Math.max(revealCount, 0), total);
+  return clampRevealCount(revealCount, total);
 }
 
 async function updatePayload(

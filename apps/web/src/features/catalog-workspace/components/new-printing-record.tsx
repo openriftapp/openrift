@@ -35,6 +35,7 @@ import { useProviderSettings } from "@/features/admin/hooks/use-provider-setting
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unlinkedGroupCandidates } from "@/features/admin/lib/candidate-groups";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
+import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { CardListingsRecord } from "@/features/catalog-workspace/components/card-listings-record";
@@ -64,12 +65,10 @@ import {
   toAcceptInput,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
-import {
-  formatSuggestionValue,
-  providerOf,
-} from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { providerOf } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
   if (parseListingCardOwnerId(candidatePrintingId) !== null) {
@@ -132,7 +131,7 @@ function NewPrintingBody({
   const navigation = useQueueNavigation("printing");
   const queryClient = useQueryClient();
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
-  const acceptGroup = useAcceptPrintingGroup(scope);
+  const acceptGroup = useAcceptPrintingGroup(scope, { inlineError: true });
   const linkCandidates = useLinkCandidatePrintings(scope);
   const ignoreCandidate = useIgnoreCandidatePrinting(scope);
   const { announce } = useWorkspaceUndo();
@@ -201,26 +200,31 @@ function NewPrintingBody({
   const acceptDraft = async (toCreate: CreationDraft) => {
     setWorking(true);
     setFailure(null);
-    const created = await acceptGroup
-      .mutateAsync(toAcceptInput(toCreate))
-      .catch((error: unknown) => {
-        setFailure(errorText(error, "Could not accept the printing."));
-        return null;
-      });
-    if (created === null) {
+    let created: Awaited<ReturnType<typeof acceptGroup.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(
+      async () => {
+        created = await acceptGroup.mutateAsync(toAcceptInput(toCreate));
+      },
+      (error) => setFailure(errorText(error, "Could not accept the printing.")),
+    );
+    if (!ok || !created) {
       setWorking(false);
       return;
     }
+    const printingId = created.printingId;
     const followUp = isAdmin ? printingFollowUpFields(toCreate) : null;
     const failed: string[] = [];
-    if (followUp !== null) {
-      await updateDesk
-        .mutateAsync({ printingId: created.printingId, ...followUp })
-        .catch(() => failed.push("the dates and note"));
+    if (
+      followUp !== null &&
+      !(await runReportedMutation(() => updateDesk.mutateAsync({ printingId, ...followUp })))
+    ) {
+      failed.push("the dates and note");
     }
     if (isAdmin) {
       for (const upload of plannedImageUploads(toCreate)) {
-        await uploadOne(created.printingId, upload).catch(() => failed.push("an image"));
+        if (!(await runReportedMutation(() => uploadOne(printingId, upload)))) {
+          failed.push("an image");
+        }
       }
     }
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
@@ -384,13 +388,13 @@ function NewPrintingBody({
                 <span className="text-muted-foreground">
                   {[
                     printing.language,
-                    formatSuggestionValue("finish", printing.finish, labels),
-                    formatSuggestionValue("size", printing.size, labels),
+                    formatCatalogFieldValue("finish", printing.finish, labels),
+                    formatCatalogFieldValue("size", printing.size, labels),
                     printing.markerSlugs.length > 0
-                      ? formatSuggestionValue("markerSlugs", printing.markerSlugs, labels)
+                      ? formatCatalogFieldValue("markerSlugs", printing.markerSlugs, labels)
                       : null,
                     printing.distributionChannelSlugs.length > 0
-                      ? formatSuggestionValue(
+                      ? formatCatalogFieldValue(
                           "distributionChannelSlugs",
                           printing.distributionChannelSlugs,
                           labels,

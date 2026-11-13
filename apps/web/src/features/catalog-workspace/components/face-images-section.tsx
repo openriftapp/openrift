@@ -63,6 +63,7 @@ import {
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 type Rotation = 0 | 90 | 180 | 270;
 type Scope = readonly (readonly unknown[])[];
@@ -139,7 +140,7 @@ export function FaceImagesSection({
     adminKeys.printingDesk.all,
     adminKeys.workspace,
   ];
-  const upload = useUploadPrintingImage(scope);
+  const upload = useUploadPrintingImage(scope, { inlineError: true });
   const addFromUrl = useAddImageFromUrl(scope);
   const setCandidateImage = useSetCandidatePrintingImage(scope);
   const [uploading, setUploading] = useState(0);
@@ -160,16 +161,16 @@ export function FaceImagesSection({
     setUploadError(null);
     for (const [index, file] of files.entries()) {
       setUploading((count) => count + 1);
-      await upload
-        .mutateAsync({
-          printingId: face.id,
-          file,
-          face: side,
-          mode: !hasActive && index === 0 ? "main" : "additional",
-        })
-        .catch((error: unknown) =>
-          setUploadError(errorText(error, `Could not upload ${file.name}.`)),
-        );
+      await runReportedMutation(
+        () =>
+          upload.mutateAsync({
+            printingId: face.id,
+            file,
+            face: side,
+            mode: !hasActive && index === 0 ? "main" : "additional",
+          }),
+        (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+      );
       setUploading((count) => count - 1);
     }
   }
@@ -482,7 +483,7 @@ export function DeskFaceImagesSection({
   landscape: boolean;
 }) {
   const { data: session } = useSession();
-  const upload = useUploadPrintingImage(DESK_IMAGE_SCOPE);
+  const upload = useUploadPrintingImage(DESK_IMAGE_SCOPE, { inlineError: true });
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -496,17 +497,17 @@ export function DeskFaceImagesSection({
     const credit = uploaderName.length > 0 ? uploaderName : undefined;
     for (const file of files) {
       setUploading((count) => count + 1);
-      await upload
-        .mutateAsync({
-          printingId: printing.printingId,
-          file,
-          mode: "additional",
-          face: imageFace,
-          credit,
-        })
-        .catch((error: unknown) =>
-          setUploadError(errorText(error, `Could not upload ${file.name}.`)),
-        );
+      await runReportedMutation(
+        () =>
+          upload.mutateAsync({
+            printingId: printing.printingId,
+            file,
+            mode: "additional",
+            face: imageFace,
+            credit,
+          }),
+        (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
+      );
       setUploading((count) => count - 1);
     }
   }

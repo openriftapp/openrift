@@ -1,3 +1,5 @@
+import { toError } from "@openrift/shared/strings";
+
 import type { Fetch } from "../../../../io.js";
 import {
   httpFailureMessage,
@@ -185,7 +187,7 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
       }
     } catch (error) {
       return {
-        error: error instanceof Error ? error : new Error(String(error)),
+        error: toError(error),
         retryable: true,
         block: false,
       };

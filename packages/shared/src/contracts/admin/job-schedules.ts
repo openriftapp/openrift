@@ -1,4 +1,4 @@
-import { JOB_KIND, JOB_STATUSES } from "@openrift/shared/job-run-kinds";
+import { JOB_KIND, JOB_STATUSES, META_SOURCE_JOB_KINDS } from "@openrift/shared/job-run-kinds";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
@@ -10,30 +10,30 @@ const JS = "/api/admin/v1/job-schedules";
 
 /** Every job the API can run on a schedule. Mirrors `job_runs.kind` for those jobs. */
 export const SCHEDULED_JOB_KINDS = [
-  "tcgplayer.refresh",
-  "cardmarket.refresh",
-  "cardtrader.refresh",
-  "cardnexus.refresh",
-  "discord.post_changelog",
+  JOB_KIND.refreshTcgplayer,
+  JOB_KIND.refreshCardmarket,
+  JOB_KIND.refreshCardtrader,
+  JOB_KIND.refreshCardnexus,
+  JOB_KIND.postChangelog,
   JOB_KIND.flushPrintingEvents,
-  "job_runs.cleanup",
-  "submission_uploads.sweep",
-  "copy_deletions.sweep",
-  "images.fingerprint",
-  "images.rehost_retry",
+  JOB_KIND.cleanupJobRuns,
+  JOB_KIND.sweepSubmissionUploads,
+  JOB_KIND.sweepCopyDeletions,
+  JOB_KIND.fingerprintImages,
+  JOB_KIND.retryImageRehosts,
   JOB_KIND.checkMatching,
-  "card_trades.expire_pending",
-  "email.trade_match_digest",
-  "email.flush_trade_requests",
-  "email.flush_trade_status",
-  "meta.uvsgames_sync",
-  "meta.uvsgames_recheck",
-  "meta.playloltcg_sync",
-  "meta.playloltcg_recheck",
-  "meta.topdeck_sync",
-  "meta.playriftbound_sync",
-  "meta.playriftbound_recheck",
-  "meta.infer_slots",
+  JOB_KIND.expirePendingTrades,
+  JOB_KIND.emailTradeMatchDigest,
+  JOB_KIND.emailFlushTradeRequests,
+  JOB_KIND.emailFlushTradeStatus,
+  META_SOURCE_JOB_KINDS.uvsgames.sync,
+  META_SOURCE_JOB_KINDS.uvsgames.recheck,
+  META_SOURCE_JOB_KINDS.playloltcg.sync,
+  META_SOURCE_JOB_KINDS.playloltcg.recheck,
+  META_SOURCE_JOB_KINDS.topdeck.sync,
+  META_SOURCE_JOB_KINDS.playriftbound.sync,
+  META_SOURCE_JOB_KINDS.playriftbound.recheck,
+  JOB_KIND.metaInferSlots,
   JOB_KIND.rebuildScanBank,
 ] as const;
 

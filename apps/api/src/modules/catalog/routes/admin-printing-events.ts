@@ -1,10 +1,8 @@
 import { adminPrintingEventsContract } from "@openrift/shared/contracts/admin/printing-events";
-import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { requireScheduler } from "../../system/services/job-scheduler.js";
 
 const os = implement(adminPrintingEventsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -13,10 +11,6 @@ const os = implement(adminPrintingEventsContract).$context<ApiContext>().use(req
  * handler's {@link appErrorInterceptor}.
  */
 export const adminPrintingEventsRouter = {
-  flush: os.flush.handler(({ context }) =>
-    requireScheduler(context.scheduler).runNow(JOB_KIND.flushPrintingEvents),
-  ),
-
   list: os.list.handler(async ({ context }) => {
     const { printingEvents } = context.repos;
     const events = await printingEvents.listByStatus(["pending", "failed"]);

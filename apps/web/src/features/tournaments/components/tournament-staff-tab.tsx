@@ -52,6 +52,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentStaffCandidates } from "@/features/tournaments/hooks/use-tournaments";
 import { isTournamentHost, staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
@@ -181,11 +182,9 @@ function StaffRow({
   const canRemove = host && member.source === "grant";
 
   async function handleRemove() {
-    try {
-      await removeStaff.mutateAsync({ id: detail.id, userId: member.userId, role: member.role });
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+    await runReportedMutation(() =>
+      removeStaff.mutateAsync({ id: detail.id, userId: member.userId, role: member.role }),
+    );
   }
 
   return (
@@ -272,11 +271,7 @@ function StaffInviteRow({
   const url = token ? `${getSiteUrl()}/tournaments/staff-invite/${token}` : null;
 
   async function run(enabled: boolean) {
-    try {
-      await setInvite.mutateAsync({ id, role: staffRole, enabled });
-    } catch {
-      // Reported by the global mutation error toast.
-    }
+    await runReportedMutation(() => setInvite.mutateAsync({ id, role: staffRole, enabled }));
   }
 
   async function handleDisable() {
@@ -396,11 +391,8 @@ function AddStaffDialog({
     if (!userId) {
       return;
     }
-    try {
-      await addStaff.mutateAsync({ id: tournamentId, userId, role });
+    if (await runReportedMutation(() => addStaff.mutateAsync({ id: tournamentId, userId, role }))) {
       onOpenChange(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

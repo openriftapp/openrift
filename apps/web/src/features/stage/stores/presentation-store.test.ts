@@ -1,6 +1,6 @@
+import { CARD_SCALE } from "@openrift/shared/overlay-scale";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MAX_CARD_SCALE, MIN_CARD_SCALE } from "@/features/cards/lib/card-scale";
 import { createStoreResetter } from "@/test/store-helpers";
 
 import { usePresentationStore } from "./presentation-store";
@@ -151,7 +151,7 @@ describe("presentation store", () => {
   });
 
   it("starts with the card filling the stage", () => {
-    expect(usePresentationStore.getState().cardScale).toBe(MAX_CARD_SCALE);
+    expect(usePresentationStore.getState().cardScale).toBe(CARD_SCALE.max);
   });
 
   it("sets a card scale inside the supported range", () => {
@@ -163,11 +163,11 @@ describe("presentation store", () => {
   it("clamps a scale outside the range instead of shrinking the card to nothing", () => {
     usePresentationStore.getState().setCardScale(0);
 
-    expect(usePresentationStore.getState().cardScale).toBe(MIN_CARD_SCALE);
+    expect(usePresentationStore.getState().cardScale).toBe(CARD_SCALE.min);
 
     usePresentationStore.getState().setCardScale(4);
 
-    expect(usePresentationStore.getState().cardScale).toBe(MAX_CARD_SCALE);
+    expect(usePresentationStore.getState().cardScale).toBe(CARD_SCALE.max);
   });
 
   it("starts on black, so nothing is keyed out until it is asked for", () => {
@@ -191,6 +191,6 @@ describe("presentation store", () => {
     const state = usePresentationStore.getState();
     expect(state.ground).toBe("magenta");
     expect(state.showText).toBe(true);
-    expect(state.cardScale).toBe(MAX_CARD_SCALE);
+    expect(state.cardScale).toBe(CARD_SCALE.max);
   });
 });

@@ -3,6 +3,7 @@ import type {
   MetaSource,
   MetaSyncStatus,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import { META_SOURCE_JOB_KINDS, metaSourceJobPrefix } from "@openrift/shared/job-run-kinds";
 import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -15,11 +16,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
-import { useCancelMetaRun, useRunMetaSync } from "@/features/admin/hooks/use-admin-meta-catalog";
+import { useCancelMetaRun, useStartMetaJob } from "@/features/admin/hooks/use-admin-meta-catalog";
 import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import {
-  BACKFILL_KIND,
   BACKFILL_TRIGGERS_BY_SOURCE,
   TRIGGER_GROUPS,
 } from "@/features/admin/lib/meta-admin-triggers";
@@ -32,7 +31,8 @@ interface StopEntry {
 
 function isStoppable(source: MetaSource, runs: MetaSyncStatus["runs"], entry: TriggerEntry) {
   return (
-    entry.stop !== undefined && stoppableRunId(runs, `meta.${source}_${entry.stop.job}`) !== null
+    entry.stop !== undefined &&
+    stoppableRunId(runs, `${metaSourceJobPrefix(source)}${entry.stop.job}`) !== null
   );
 }
 
@@ -43,28 +43,21 @@ function stopEntries(source: MetaSource, runs: MetaSyncStatus["runs"]): StopEntr
       stops.push({ job: entry.stop.job, label: entry.stop.label });
     }
   }
-  if (stoppableRunId(runs, BACKFILL_KIND[source]) !== null) {
+  if (stoppableRunId(runs, META_SOURCE_JOB_KINDS[source].backfill) !== null) {
     const label = BACKFILL_TRIGGERS_BY_SOURCE[source].idle[0]?.label ?? "the backfill";
     stops.push({ job: "backfill", label: `Stop ${label}` });
   }
   return stops;
 }
 
-function useJobStarter(source: MetaSource, pendingTriage: number) {
-  const run = useRunMetaSync();
+function useMetaJobMenu(source: MetaSource, pendingTriage: number) {
+  const run = useStartMetaJob();
   const cancel = useCancelMetaRun(source);
   const [confirming, setConfirming] = useState<TriggerEntry | null>(null);
 
   async function start(entry: TriggerEntry) {
     setConfirming(null);
-    let result;
-    try {
-      result = await run.mutateAsync({ trigger: entry.trigger });
-    } catch {
-      // Reported by the global mutation error toast.
-      return;
-    }
-    announceSyncTrigger(entry.label, result);
+    await run.start(entry.trigger, entry.label);
   }
 
   function pick(entry: TriggerEntry) {
@@ -104,9 +97,9 @@ export function MetaRunMenu({
   runs: MetaSyncStatus["runs"];
   pendingTriage: number;
 }) {
-  const { run, cancel, pick, dialog } = useJobStarter(source, pendingTriage);
+  const { run, cancel, pick, dialog } = useMetaJobMenu(source, pendingTriage);
 
-  const backfill = backfillDisplay(runs, BACKFILL_KIND[source]);
+  const backfill = backfillDisplay(runs, META_SOURCE_JOB_KINDS[source].backfill);
   const history =
     backfill.phase === "running" ? [] : BACKFILL_TRIGGERS_BY_SOURCE[source][backfill.phase];
   const stops = stopEntries(source, runs);
@@ -163,10 +156,10 @@ export function MetaJobRunControl({
   entry: TriggerEntry;
   pendingTriage: number;
 }) {
-  const { run, cancel, pick, dialog } = useJobStarter(source, pendingTriage);
+  const { run, cancel, pick, dialog } = useMetaJobMenu(source, pendingTriage);
   const isHistory = BACKFILL_TRIGGERS_BY_SOURCE[source].idle.includes(entry);
-  const backfill = backfillDisplay(runs, BACKFILL_KIND[source]);
-  const pending = run.isPending && run.variables?.trigger === entry.trigger;
+  const backfill = backfillDisplay(runs, META_SOURCE_JOB_KINDS[source].backfill);
+  const pending = run.pendingTrigger === entry.trigger;
 
   let stopJob: MetaCancellableJob | null = null;
   if (isHistory && backfill.phase === "running") {

@@ -30,6 +30,7 @@ import {
   useAdminOrganizations,
   useAdminUpdateOrganization,
 } from "@/features/tournaments/hooks/use-organizations";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
   const updateOrg = useAdminUpdateOrganization();
@@ -52,17 +53,18 @@ function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
       return;
     }
     const trimmedDescription = description.trim() || null;
-    try {
-      await updateOrg.mutateAsync({
-        id: org.id,
-        slug: slug.trim(),
-        name: name.trim(),
-        description: trimmedDescription,
-      });
+    if (
+      await runReportedMutation(() =>
+        updateOrg.mutateAsync({
+          id: org.id,
+          slug: slug.trim(),
+          name: name.trim(),
+          description: trimmedDescription,
+        }),
+      )
+    ) {
       setOpen(false);
       toast.success("Organization updated");
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 
@@ -123,11 +125,7 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
   const [confirming, setConfirming] = useState(false);
 
   async function handleDelete() {
-    try {
-      await deleteOrg.mutateAsync(org.id);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+    await runReportedMutation(() => deleteOrg.mutateAsync(org.id));
   }
 
   return (
@@ -204,20 +202,21 @@ export function AdminOrganizationsPage() {
       return;
     }
     const trimmedDescription = description.trim() || null;
-    try {
-      await createOrg.mutateAsync({
-        slug: slug.trim(),
-        name: name.trim(),
-        description: trimmedDescription,
-        ownerUserId,
-      });
+    if (
+      await runReportedMutation(() =>
+        createOrg.mutateAsync({
+          slug: slug.trim(),
+          name: name.trim(),
+          description: trimmedDescription,
+          ownerUserId,
+        }),
+      )
+    ) {
       setSlug("");
       setName("");
       setDescription("");
       setOwnerUserId("");
       toast.success("Organization created");
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 

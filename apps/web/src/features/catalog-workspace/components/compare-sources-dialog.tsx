@@ -29,7 +29,7 @@ import {
   acceptCardFieldFn,
   acceptPrintingFieldFn,
   useAcceptPrintingField,
-  useCheckCandidateCard,
+  useCheckCandidateCards,
   useCheckCandidatePrinting,
   useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
@@ -64,7 +64,7 @@ export function CompareSourcesDialog({
   isAdmin: boolean;
   focusField?: string;
 }) {
-  const checkCandidateCard = useCheckCandidateCard(invalidates);
+  const checkCandidateCards = useCheckCandidateCards(invalidates);
   const { announce } = useWorkspaceUndo();
   const openSourceIds = sources
     .filter((source) => source.provider !== USER_SUBMISSION_PROVIDER && source.checkedAt === null)
@@ -82,11 +82,11 @@ export function CompareSourcesDialog({
           candidateCardFields={fields}
           providerSettings={providerSettings}
           onCheckAllSources={() => {
-            for (const id of openSourceIds) {
-              checkCandidateCard.mutate(id);
+            if (openSourceIds.length > 0) {
+              checkCandidateCards.mutate({ cardId: card.id, candidateCardIds: openSourceIds });
             }
           }}
-          isCheckingAllSources={checkCandidateCard.isPending}
+          isCheckingAllSources={checkCandidateCards.isPending}
           invalidates={invalidates}
           isAdmin={isAdmin}
           focusField={focusField}

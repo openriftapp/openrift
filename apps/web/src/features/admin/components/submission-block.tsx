@@ -3,7 +3,6 @@ import type {
   AcceptSubmissionResponse,
   ReviewQueueItem,
 } from "@openrift/shared/contracts/admin/catalog-review";
-import { formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
@@ -20,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { AttentionChangeList } from "@/features/admin/components/attention-change-list";
 import { MoveSubmissionDialog } from "@/features/admin/components/move-submission-dialog";
 import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
@@ -40,6 +40,7 @@ import {
   unlinkedGroupCandidates,
 } from "@/features/admin/lib/candidate-groups";
 import { printingBlockTitle } from "@/features/admin/lib/printing-summary";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 
 interface SettledRow {
@@ -130,9 +131,7 @@ function BlockHeader({
         </span>
       )}
       {queueItem && (
-        <span className="text-muted-foreground text-xs">
-          {formatRelativeTime(queueItem.createdAt)}
-        </span>
+        <AdminInstant at={queueItem.createdAt} relative className="text-muted-foreground text-xs" />
       )}
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -250,11 +249,11 @@ export function SubmissionBlock({
 
   async function runAccept() {
     const { input, includedKeys } = buildAcceptSubmissionInput(submission, { ticked, edits });
-    let result: AcceptSubmissionResponse;
-    try {
+    let result: AcceptSubmissionResponse | undefined;
+    const ok = await runReportedMutation(async () => {
       result = await acceptSubmission.mutateAsync(input);
-    } catch {
-      // Reported by the global mutation error toast.
+    });
+    if (!ok || !result) {
       return;
     }
     const reasons = new Map(

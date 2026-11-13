@@ -17,7 +17,7 @@ import { SideSearch } from "@/features/admin/components/side-search";
 import {
   useAcceptPrintingGroup,
   useCheckAllCandidatePrintings,
-  useCheckCandidateCard,
+  useCheckCandidateCards,
   useLinkCandidatePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -39,6 +39,7 @@ import {
   missingPrintingFields,
 } from "@/features/admin/lib/printing-fields";
 import { printingBlockTitle } from "@/features/admin/lib/printing-summary";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface PendingAdd {
   candidate: CandidatePrintingResponse;
@@ -73,14 +74,14 @@ export function SourceBlock({
   renderUnlinked,
 }: SourceBlockProps) {
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.reviewQueue];
-  const checkCard = useCheckCandidateCard(scope);
+  const checkCards = useCheckCandidateCards(scope);
   const checkPrintings = useCheckAllCandidatePrintings(scope);
   const acceptPrintingGroup = useAcceptPrintingGroup(scope);
   const linkCandidatePrintings = useLinkCandidatePrintings(scope);
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
   const [pairingId, setPairingId] = useState<string | null>(null);
 
-  const isPending = checkCard.isPending || checkPrintings.isPending;
+  const isPending = checkCards.isPending || checkPrintings.isPending;
   const cardId = detail.card?.id;
   const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
   const isSingle = block.entries.length === 1;
@@ -97,15 +98,14 @@ export function SourceBlock({
   }));
 
   async function markChecked() {
-    const jobs: Promise<unknown>[] = block.candidateCardIds.map((id) => checkCard.mutateAsync(id));
+    const jobs: Promise<unknown>[] = [];
+    if (cardId !== undefined && block.candidateCardIds.length > 0) {
+      jobs.push(checkCards.mutateAsync({ cardId, candidateCardIds: [...block.candidateCardIds] }));
+    }
     if (uncheckedPrintingIds.length > 0) {
       jobs.push(checkPrintings.mutateAsync({ extraIds: uncheckedPrintingIds }));
     }
-    try {
-      await Promise.all(jobs);
-    } catch {
-      // Reported by the global mutation error toast.
-    }
+    await runReportedMutation(() => Promise.all(jobs));
   }
 
   function addPrinting(

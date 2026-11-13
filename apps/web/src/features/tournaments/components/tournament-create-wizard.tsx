@@ -45,6 +45,7 @@ import {
   parseScheduleInput,
 } from "@/features/tournaments/lib/tournament-display";
 import { localTimeZoneLabel, splitUtcToLocalDateTime } from "@/lib/date-time-input";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -162,11 +163,12 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
       submissionsCloseAt,
       listLockMode,
     };
-    try {
-      const created = await createTournament.mutateAsync(payload);
+    let created: Awaited<ReturnType<typeof createTournament.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      created = await createTournament.mutateAsync(payload);
+    });
+    if (ok && created) {
       void navigate({ to: "/tournaments/$id", params: { id: created.id } });
-    } catch {
-      // Errors surface via the global mutation error toast.
     }
   }
 

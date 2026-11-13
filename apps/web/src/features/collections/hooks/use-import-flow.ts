@@ -26,6 +26,7 @@ import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-f
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
 import { knownPrintingCode } from "@/features/lists/lib/list-import-parser";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -149,18 +150,20 @@ export function useImportFlow() {
       name: list.name,
     });
 
-    try {
-      await sendInBatches(payload, IMPORT_BATCH_SIZE, (entries) =>
+    const sent = await runReportedMutation(() =>
+      sendInBatches(payload, IMPORT_BATCH_SIZE, (entries) =>
         bulkAddEntries.mutateAsync({ listId, entries }),
-      );
+      ),
+    );
+    if (sent) {
       toast.success(addedToListMessage);
       void navigate({ to: "/collections/lists/$listId", params: { listId } });
-    } catch {
-      // Deliberate second toast: batches before the failing one already
-      // committed, so this says the import was left half-done.
-      toast.error(m.collections_import_toast_failed());
-      setIsImporting(false);
+      return;
     }
+    // Deliberate second toast: batches before the failing one already
+    // committed, so this says the import was left half-done.
+    toast.error(m.collections_import_toast_failed());
+    setIsImporting(false);
   };
 
   // Lists and the create-new target are always additive; only an existing
@@ -180,15 +183,15 @@ export function useImportFlow() {
         return;
       }
       setIsCreatingCollection(true);
-      try {
-        const result = await createCollection.mutateAsync({ name: trimmed });
-        targetCollectionId = result.id;
-      } catch {
-        // The global mutation error toast reports the failure.
-        setIsCreatingCollection(false);
+      let created: Awaited<ReturnType<typeof createCollection.mutateAsync>> | undefined;
+      const ok = await runReportedMutation(async () => {
+        created = await createCollection.mutateAsync({ name: trimmed });
+      });
+      setIsCreatingCollection(false);
+      if (!ok || !created) {
         return;
       }
-      setIsCreatingCollection(false);
+      targetCollectionId = created.id;
     }
 
     if (!targetCollectionId || targetCollectionId === "__new__") {
@@ -204,15 +207,14 @@ export function useImportFlow() {
       const existingCopyIds = copiesCollection
         ? copyIdsInCollection(copiesCollection.toArray, targetCollectionId)
         : [];
-      if (existingCopyIds.length > 0) {
-        try {
-          await disposeCopies.mutateAsync({ copyIds: existingCopyIds });
-        } catch {
-          // Deliberate second toast: this says the collection is untouched.
-          toast.error(m.collections_import_toast_clear_failed());
-          setIsImporting(false);
-          return;
-        }
+      if (
+        existingCopyIds.length > 0 &&
+        !(await runReportedMutation(() => disposeCopies.mutateAsync({ copyIds: existingCopyIds })))
+      ) {
+        // Deliberate second toast: this says the collection is untouched.
+        toast.error(m.collections_import_toast_clear_failed());
+        setIsImporting(false);
+        return;
       }
     }
 
@@ -229,21 +231,21 @@ export function useImportFlow() {
 
     const importedMessage = m.collections_import_toast_imported({ count: summary.totalCards });
 
-    try {
-      await sendInBatches(copies, IMPORT_BATCH_SIZE, (batch) =>
-        addCopies.mutateAsync({ copies: batch }),
-      );
+    const imported = await runReportedMutation(() =>
+      sendInBatches(copies, IMPORT_BATCH_SIZE, (batch) => addCopies.mutateAsync({ copies: batch })),
+    );
+    if (imported) {
       toast.success(importedMessage);
       void navigate({
         to: "/collections/$collectionId",
         params: { collectionId: targetCollectionId },
       });
-    } catch {
-      // Deliberate second toast: batches before the failing one already
-      // committed, so this says the import was left half-done.
-      toast.error(m.collections_import_toast_failed());
-      setIsImporting(false);
+      return;
     }
+    // Deliberate second toast: batches before the failing one already
+    // committed, so this says the import was left half-done.
+    toast.error(m.collections_import_toast_failed());
+    setIsImporting(false);
   };
 
   return {

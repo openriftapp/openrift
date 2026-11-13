@@ -72,7 +72,11 @@ vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
       updatedAt: "2026-08-01T00:00:00.000Z",
     },
   }),
-  useRunMetaSync: () => ({ mutateAsync: captured.run, isPending: false, variables: undefined }),
+  useStartMetaJob: () => ({
+    start: (trigger: string) => captured.run({ trigger }),
+    isPending: false,
+    pendingTrigger: undefined,
+  }),
   useCancelMetaRun: () => ({ mutate: captured.cancel, isPending: false }),
   useMetaArchiveJobs: () => ({ data: { runs: [] } }),
   useRejectPassingNoResults: () => ({ mutate: captured.reject, isPending: false }),

@@ -64,17 +64,3 @@ export function useEnableSuggestedJobSchedules() {
     invalidates: SCHEDULE_WRITE_INVALIDATES,
   });
 }
-
-const runJobNowFn = createServerFn({ method: "POST" })
-  .validator((input: { kind: ScheduledJobKind }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }) =>
-    apiOrpcClient(adminJobSchedulesContract, context.cookie).runNow(data),
-  );
-
-export function useRunJobNow() {
-  return useMutationWithInvalidation({
-    mutationFn: (vars: { kind: ScheduledJobKind }) => runJobNowFn({ data: vars }),
-    invalidates: SCHEDULE_WRITE_INVALIDATES,
-  });
-}

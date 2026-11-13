@@ -1,5 +1,6 @@
 import { join } from "node:path";
 
+import { chunk } from "@openrift/shared/collections";
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
 import { imageRehostedUrl } from "@openrift/shared/image-url";
 import type { Logger } from "@openrift/shared/logger";
@@ -196,8 +197,6 @@ export async function rehostImages(
   return progress;
 }
 
-export const REHOST_RETRY_KIND = "images.rehost_retry";
-
 const REHOST_RETRY_LIMIT = 20;
 
 export interface RehostRetryResult {
@@ -225,8 +224,8 @@ export async function retryDueRehosts(
     skipped: 0,
     failed: 0,
   };
-  for (let start = 0; start < imageFileIds.length; start += BATCH_SIZE) {
-    const outcomes = await settleRehosts(io, repo, imageFileIds.slice(start, start + BATCH_SIZE));
+  for (const batch of chunk(imageFileIds, BATCH_SIZE)) {
+    const outcomes = await settleRehosts(io, repo, batch);
     for (const outcome of outcomes) {
       if (outcome.status === "rehosted") {
         result.rehosted++;
@@ -471,8 +470,7 @@ export async function refetchImages(
     errors: [],
   };
 
-  for (let start = 0; start < imageFileIds.length; start += BATCH_SIZE) {
-    const batch = imageFileIds.slice(start, start + BATCH_SIZE);
+  for (const batch of chunk(imageFileIds, BATCH_SIZE)) {
     const outcomes = await settleRehosts(io, repo, batch, { overwrite: true });
     for (const [idx, imageFileId] of batch.entries()) {
       const outcome = outcomes[idx];

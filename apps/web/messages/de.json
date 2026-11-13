@@ -5,7 +5,7 @@
   "footer_privacy_policy": "Datenschutz",
   "footer_support_us": "Unterstütze uns",
   "footer_developers": "Entwickler",
-  "footer_riot_disclaimer": "OpenRift wurde unter der \"Legal Jibber Jabber\"-Richtlinie von Riot Games mit Assets von Riot Games erstellt. Riot Games unterstützt oder sponsert dieses Projekt nicht. Links zu TCGPlayer, CardTrader und CardNexus sind Affiliate-Links.",
+  "footer_riot_disclaimer": "OpenRift wurde unter der \"Legal Jibber Jabber\"-Richtlinie von Riot Games mit Assets von Riot Games erstellt. Riot Games unterstützt oder sponsert dieses Projekt nicht. Links zu TCGplayer, CardTrader und CardNexus sind Affiliate-Links.",
   "footer_unofficial_instance": "Dies ist eine selbst gehostete Kopie von OpenRift, die nicht vom OpenRift-Team betrieben wird. Die offizielle Seite findest du unter {#link}openrift.app{/link}.",
   "locale_switcher_label": "Sprache",
   "profile_account_title": "Kontodaten",
@@ -13,9 +13,6 @@
   "profile_account_name_label": "Name",
   "profile_account_name_placeholder": "Dein Name",
   "profile_account_name_updated": "Name aktualisiert.",
-  "profile_account_name_error_required": "Name ist erforderlich.",
-  "profile_account_name_error_max": "Name darf höchstens 50 Zeichen lang sein.",
-  "profile_account_name_error_charset": "Name darf nur Buchstaben, Ziffern, Leerzeichen, Punkte, Unterstriche und Bindestriche enthalten.",
   "profile_account_save_failed": "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   "profile_account_riot_label": "Riot ID",
   "profile_account_riot_description": "Wird bei Turnier-Deckanmeldungen vorausgefüllt.",
@@ -594,7 +591,6 @@
   "auth_reset_code_intro": "Gib den 6-stelligen Code ein, den wir an {#strong}{email}{/strong} geschickt haben, und dein neues Passwort.",
   "auth_reset_new_password_label": "Neues Passwort",
   "auth_reset_confirm_password_label": "Passwort bestätigen",
-  "auth_reset_password_too_short": "Das Passwort muss mindestens 8 Zeichen lang sein.",
   "auth_reset_password_mismatch": "Die Passwörter stimmen nicht überein.",
   "auth_reset_failed": "Das Passwort konnte nicht zurückgesetzt werden. Bitte versuche es erneut.",
   "auth_reset_resetting": "Wird zurückgesetzt…",
@@ -668,6 +664,46 @@
   ],
   "cards_wish_on_your_list": "Auf deiner Wunschliste",
   "cards_wish_on_your_lists": "Auf deinen Wunschlisten",
+  "cards_holdings_lent": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Exemplar an {name} verliehen",
+        "countPlural=*": "{count} Exemplare an {name} verliehen"
+      }
+    }
+  ],
+  "cards_holdings_borrowed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Exemplar von {name} geliehen",
+        "countPlural=*": "{count} Exemplare von {name} geliehen"
+      }
+    }
+  ],
+  "cards_holdings_trade_outgoing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · {count} Exemplar ausgehend",
+        "countPlural=*": "{label} · {count} Exemplare ausgehend"
+      }
+    }
+  ],
+  "cards_holdings_trade_incoming": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · {count} Exemplar eingehend",
+        "countPlural=*": "{label} · {count} Exemplare eingehend"
+      }
+    }
+  ],
   "cards_wish_on_your_lists_wanted": "{lists}, {count} gesucht",
   "cards_wish_on_your_lists_count": "{lists} ({count})",
   "cards_wish_open_list": "{name} öffnen",
@@ -1609,7 +1645,7 @@
   "collections_copies_notes_private_hint_group": "Dieses Exemplar liegt in einer Gruppensammlung, also sieht es jeder in der Gruppe. Wird nie auf öffentlich geteilten Seiten angezeigt.",
   "collections_copies_links_label": "Fotos & Videos",
   "collections_copies_link_title_placeholder": "Bezeichnung",
-  "collections_copies_network_error": "Server nicht erreichbar, prüfe deine Verbindung",
+  "common_network_error": "Server nicht erreichbar, prüfe deine Verbindung",
   "collections_copies_trade_cancel_stopped": "Nach {done} von {total} Karten angehalten, damit deine Tausche bestehen bleiben. Der Rest ist unverändert.",
   "collections_copies_signed_out": "Karten können nicht hinzugefügt werden, solange du abgemeldet bist",
   "collections_copies_quick_scope_move": "Verschieben",
@@ -1683,6 +1719,16 @@
   "collections_reorder_aria": "{label} neu anordnen",
   "collections_copy_edit_aria": "{title}. Details des Exemplars bearbeiten.",
   "collections_copy_graded_title": "Bewertet {grader} {grade}",
+  "collections_copies_with_details": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Exemplar mit Details",
+        "countPlural=*": "{count} Exemplare mit Details"
+      }
+    }
+  ],
   "collections_import_needs_review": "Muss geprüft werden",
   "collections_deck_import_cards_section": "Karten",
   "collections_import_dialog_title": "Karten importieren",
@@ -7670,7 +7716,6 @@
   "meta_archived_decks_heading": "Decklisten im Archiv",
   "meta_archived_decks_empty_legend": "Keine Liste im Verlauf dieser Legende fällt in diesen Bereich.",
   "meta_archived_decks_empty_player": "Keine Liste im Verlauf dieses Spielers fällt in diesen Bereich.",
-  "meta_deck_code_warning": "Der Deck-Code hat einige Karten ausgelassen.",
   "meta_deck_preview_sideboard": "Sideboard {count}",
   "meta_deck_preview_actions": "Decklisten-Aktionen",
   "meta_deck_preview_copy_code": "Deck-Code kopieren",

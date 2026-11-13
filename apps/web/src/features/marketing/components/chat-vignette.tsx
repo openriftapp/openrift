@@ -1,3 +1,4 @@
+import { cardUrl } from "@openrift/shared/site-paths";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { Vignette, VignetteHeading } from "./vignette-parts";
 const QUERY = "!card viktor innovator";
 
 const REPLY = "Viktor, Innovator — Champion Unit · Mind · Energy 4 · Might 3 · Power 1 —";
-const REPLY_URL = `${OFFICIAL_HOST}/cards/viktor-innovator`;
+const REPLY_URL = cardUrl(`https://${OFFICIAL_HOST}`, "viktor-innovator");
 
 function backlog() {
   return [

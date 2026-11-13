@@ -12,6 +12,7 @@ import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const ANY = "any";
@@ -120,7 +121,7 @@ export function EventsRail({
             >
               <span>{entry.label}</span>
               <span className={cn("tabular-nums", entry.id !== active && "text-muted-foreground")}>
-                {entry.count.toLocaleString()}
+                {formatCount(entry.count)}
               </span>
             </Link>
           ))}

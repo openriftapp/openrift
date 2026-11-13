@@ -27,6 +27,7 @@ import {
   validateMetaEventCorrectionDraft,
 } from "@/features/meta/lib/meta-event-correction-form";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 /** Submits to the review queue; nothing here edits the event, an admin applies it by hand. */
@@ -59,15 +60,15 @@ export function MetaEventCorrectionDialog({
       return;
     }
     setProblem("");
-    let outcome;
-    try {
+    let outcome: Awaited<ReturnType<typeof submit.mutateAsync>> | undefined;
+    const sentOk = await runReportedMutation(async () => {
       outcome = await submit.mutateAsync({
         metaEventId: event.id,
         fieldEdits: metaEventCorrectionEdits(draft, event),
         note: draft.note.trim(),
       });
-    } catch {
-      /* Reported by the global mutation error toast. */
+    });
+    if (!sentOk || !outcome) {
       return;
     }
     if (!outcome.ok) {

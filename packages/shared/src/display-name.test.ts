@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_DISPLAY_NAME_LENGTH, sanitizeDisplayName, validateDisplayName } from "./display-name";
+import {
+  MAX_DISPLAY_NAME_LENGTH,
+  sanitizeDisplayName,
+  validateDisplayName,
+} from "./display-name.js";
 
 describe("validateDisplayName", () => {
   it("accepts a simple ASCII name", () => {

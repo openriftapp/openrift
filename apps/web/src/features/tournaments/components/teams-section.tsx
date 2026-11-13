@@ -16,6 +16,7 @@ import {
   useDissolveTeam,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -63,21 +64,19 @@ export function TeamsSection({
     if (!firstId || !secondId || firstId === secondId) {
       return;
     }
-    try {
-      await createTeam.mutateAsync({ id, participantIds: [firstId, secondId] });
+    if (
+      await runReportedMutation(() =>
+        createTeam.mutateAsync({ id, participantIds: [firstId, secondId] }),
+      )
+    ) {
       setFirstId("");
       setSecondId("");
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 
   async function handleDissolve(teamId: string, name: string) {
-    try {
-      await dissolveTeam.mutateAsync({ id, teamId });
+    if (await runReportedMutation(() => dissolveTeam.mutateAsync({ id, teamId }))) {
       toast.success(m.tournaments_teams_dissolved_toast({ name }));
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 

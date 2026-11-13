@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { HostField } from "@/features/tournaments/components/settings/host-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function HostSection({
@@ -21,11 +22,8 @@ export function HostSection({
       value === "user"
         ? ({ type: "user" } as const)
         : ({ type: "organization", orgId: value } as const);
-    try {
-      await updateTournament.mutateAsync({ id: detail.id, host });
+    if (await runReportedMutation(() => updateTournament.mutateAsync({ id: detail.id, host }))) {
       toast.success(m.tournaments_settings_host_updated());
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 

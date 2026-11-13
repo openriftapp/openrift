@@ -692,7 +692,7 @@ Card data is ingested via JSON upload through the admin API (`POST /api/admin/ca
 
 ## Price Refresh
 
-Daily price data is fetched from two sources via the admin API (`POST /api/admin/refresh-tcgplayer-prices` / `POST /api/admin/refresh-cardmarket-prices`):
+Daily price data is fetched from two sources by the `tcgplayer.refresh` and `cardmarket.refresh` jobs (run on demand with `POST /api/admin/v1/job-schedules/{kind}/run`):
 
 - **TCGCSV (TCGplayer)** — USD prices. Products matched to printings by collector number (`Number` extended data field), with card name fallback for ambiguous or missing numbers.
 - **Cardmarket** — EUR prices. Products matched by card name within auto-discovered expansions.
@@ -766,23 +766,22 @@ Source-specific secondary price columns:
 
 ### Admin (require admin role)
 
-| Method | Path                                   | Description                         |
-| ------ | -------------------------------------- | ----------------------------------- |
-| GET    | `/api/admin/me`                        | Check admin status                  |
-| GET    | `/api/admin/cron-status`               | Get cron job next-run times         |
-| POST   | `/api/admin/refresh-tcgplayer-prices`  | Trigger TCGPlayer price refresh     |
-| POST   | `/api/admin/refresh-cardmarket-prices` | Trigger Cardmarket price refresh    |
-| POST   | `/api/admin/clear-prices`              | Clear price data for marketplace    |
-| \*     | `/api/admin/sets/**`                   | Set CRUD + reorder                  |
-| \*     | `/api/admin/feature-flags/**`          | Feature flag CRUD                   |
-| \*     | `/api/admin/candidates/**`             | Candidate card/printing curation    |
-| \*     | `/api/admin/ignored-candidates/**`     | Manage ignored candidates           |
-| \*     | `/api/admin/ignored-products/**`       | Manage ignored marketplace products |
-| \*     | `/api/admin/marketplace-groups/**`     | Marketplace group management        |
-| \*     | `/api/admin/marketplace-mappings/**`   | Marketplace ↔ printing mappings     |
-| \*     | `/api/admin/staging-card-overrides/**` | Staging card override management    |
-| \*     | `/api/admin/promo-types/**`            | Promo type CRUD                     |
-| \*     | `/api/admin/provider-settings/**`      | Provider settings management        |
-| POST   | `/api/admin/rehost-images`             | Rehost card images to CDN           |
-| GET    | `/api/admin/rehost-status`             | Get image rehosting status          |
-| GET    | `/api/admin/missing-images`            | List cards with missing images      |
+| Method | Path                                     | Description                                    |
+| ------ | ---------------------------------------- | ---------------------------------------------- |
+| GET    | `/api/admin/me`                          | Check admin status                             |
+| GET    | `/api/admin/cron-status`                 | Get cron job next-run times                    |
+| POST   | `/api/admin/v1/job-schedules/{kind}/run` | Run a scheduled job (e.g. a price refresh) now |
+| POST   | `/api/admin/clear-prices`                | Clear price data for marketplace               |
+| \*     | `/api/admin/sets/**`                     | Set CRUD + reorder                             |
+| \*     | `/api/admin/feature-flags/**`            | Feature flag CRUD                              |
+| \*     | `/api/admin/candidates/**`               | Candidate card/printing curation               |
+| \*     | `/api/admin/ignored-candidates/**`       | Manage ignored candidates                      |
+| \*     | `/api/admin/ignored-products/**`         | Manage ignored marketplace products            |
+| \*     | `/api/admin/marketplace-groups/**`       | Marketplace group management                   |
+| \*     | `/api/admin/marketplace-mappings/**`     | Marketplace ↔ printing mappings                |
+| \*     | `/api/admin/staging-card-overrides/**`   | Staging card override management               |
+| \*     | `/api/admin/promo-types/**`              | Promo type CRUD                                |
+| \*     | `/api/admin/provider-settings/**`        | Provider settings management                   |
+| POST   | `/api/admin/rehost-images`               | Rehost card images to CDN                      |
+| GET    | `/api/admin/rehost-status`               | Get image rehosting status                     |
+| GET    | `/api/admin/missing-images`              | List cards with missing images                 |

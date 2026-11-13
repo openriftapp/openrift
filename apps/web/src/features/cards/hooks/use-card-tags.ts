@@ -1,4 +1,5 @@
 import { adminCardTagsContract } from "@openrift/shared/contracts/admin/card-tags";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -27,8 +28,9 @@ const createTagCategoryFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCardTagsContract, context.cookie).createCategory(data);
   });
 
-export function useCreateTagCategory() {
+export function useCreateTagCategory(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: { slug: string; label: string; description?: string | null }) =>
       createTagCategoryFn({ data: vars }),
     invalidates: [adminKeys.tagCategories, adminKeys.cardTags, initKeys.all],
@@ -44,8 +46,9 @@ const updateTagCategoryFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminCardTagsContract, context.cookie).updateCategory(data);
   });
 
-export function useUpdateTagCategory() {
+export function useUpdateTagCategory(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (vars: {
       id: string;
       slug?: string;

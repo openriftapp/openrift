@@ -1,6 +1,7 @@
 import type { JobTrigger } from "@openrift/shared/contracts/admin/job-runs";
 import { HOUR_MS } from "@openrift/shared/format-date";
 import type { Logger } from "@openrift/shared/logger";
+import { errorMessage } from "@openrift/shared/strings";
 import { context, SpanStatusCode, trace } from "@opentelemetry/api";
 import * as Sentry from "@sentry/bun";
 
@@ -143,7 +144,7 @@ async function runJobInner<T>(
     return { status: "succeeded", result };
   } catch (error) {
     const durationMs = Date.now() - startMs;
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     if (shuttingDown) {
       log.warn({ err: error, kind, runId: id, durationMs }, "Job cut short by shutdown");
       return { status: "failed", message };
@@ -199,7 +200,7 @@ export async function runJobAsync<T>(
         log.info({ kind, runId: id, durationMs }, "Job succeeded (async)");
       } catch (error) {
         const durationMs = Date.now() - startMs;
-        const message = error instanceof Error ? error.message : String(error);
+        const message = errorMessage(error);
         span.setStatus({ code: SpanStatusCode.ERROR, message });
         if (shuttingDown) {
           log.warn({ err: error, kind, runId: id, durationMs }, "Job cut short by shutdown");

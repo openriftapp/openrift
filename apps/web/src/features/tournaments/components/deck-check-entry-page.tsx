@@ -45,6 +45,7 @@ import {
 import { zoneFixAllowed } from "@/features/tournaments/lib/deck-check-actions";
 import type { DeckCheckSort } from "@/features/tournaments/lib/deck-check-sort";
 import { useDeckCheckViewStore } from "@/features/tournaments/stores/deck-check-view-store";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -97,15 +98,12 @@ export function TournamentDeckCheckEntry({
   const navigate = useNavigate();
 
   async function handleDelete() {
-    try {
-      await deleteEntry.mutateAsync({ tournamentId, entryId });
+    if (await runReportedMutation(() => deleteEntry.mutateAsync({ tournamentId, entryId }))) {
       flushSync(() => {
         setDeleteOpen(false);
         resetNotesDirty();
       });
       void navigate({ to: "/tournaments/$id/decks", params: { id: tournamentId } });
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

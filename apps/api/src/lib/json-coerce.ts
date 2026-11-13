@@ -3,10 +3,10 @@
  * for anything outside its shape, so a projection can drop or default a field.
  */
 
+import { isRecord } from "@openrift/shared/type-guards";
+
 export function record(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
+  return isRecord(value) ? value : null;
 }
 
 /** Trimmed non-empty string; a finite number is stringified. */

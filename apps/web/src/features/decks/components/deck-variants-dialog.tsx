@@ -318,7 +318,6 @@ function GroupNameField({
     if (name === savedName || setFamilyName.isPending) {
       return;
     }
-    // Errors are reported by the global mutation error toast.
     setFamilyName.mutate({ deckId, name });
   };
 
@@ -390,14 +389,12 @@ function VariantsDialogBody({
   const handlePromote = (memberId: string) => {
     promotePrimary.mutate(memberId, {
       onSuccess: () => toast.success(m.decks_dialog_variants_primary_updated()),
-      // Errors are reported by the global mutation error toast.
     });
   };
 
   const handleUnlink = (memberId: string) => {
     unlinkVariant.mutate(memberId, {
       onSuccess: () => toast.success(m.decks_dialog_variants_removed()),
-      // Errors are reported by the global mutation error toast.
     });
   };
 
@@ -411,7 +408,6 @@ function VariantsDialogBody({
     // and a deleted primary hands the flag on.
     deleteDeck.mutate(target.id, {
       onSuccess: () => toast.success(m.decks_dialog_variants_version_deleted()),
-      // Errors are reported by the global mutation error toast.
     });
   };
 
@@ -431,7 +427,6 @@ function VariantsDialogBody({
           setPanel(null);
           toast.success(m.decks_dialog_variants_linked());
         },
-        // Errors are reported by the global mutation error toast.
       },
     );
   };

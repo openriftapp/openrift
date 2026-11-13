@@ -5,7 +5,7 @@
   "footer_privacy_policy": "개인정보 처리방침",
   "footer_support_us": "후원하기",
   "footer_developers": "개발자",
-  "footer_riot_disclaimer": "OpenRift는 Riot Games의 \"Legal Jibber Jabber\" 정책에 따라 Riot Games가 소유한 에셋을 사용하여 제작되었습니다. Riot Games는 이 프로젝트를 보증하거나 후원하지 않습니다. TCGPlayer, CardTrader, CardNexus로 연결되는 링크는 제휴 링크입니다.",
+  "footer_riot_disclaimer": "OpenRift는 Riot Games의 \"Legal Jibber Jabber\" 정책에 따라 Riot Games가 소유한 에셋을 사용하여 제작되었습니다. Riot Games는 이 프로젝트를 보증하거나 후원하지 않습니다. TCGplayer, CardTrader, CardNexus로 연결되는 링크는 제휴 링크입니다.",
   "footer_unofficial_instance": "이 사이트는 OpenRift 팀이 운영하지 않는 자체 호스팅 OpenRift 사본입니다. 공식 사이트는 {#link}openrift.app{/link}입니다.",
   "locale_switcher_label": "언어",
   "profile_account_title": "계정 정보",
@@ -13,9 +13,6 @@
   "profile_account_name_label": "이름",
   "profile_account_name_placeholder": "이름",
   "profile_account_name_updated": "이름을 변경했습니다.",
-  "profile_account_name_error_required": "이름을 입력하세요.",
-  "profile_account_name_error_max": "이름은 50자 이하여야 합니다.",
-  "profile_account_name_error_charset": "이름에는 문자, 숫자, 공백, 마침표, 밑줄, 하이픈만 사용할 수 있습니다.",
   "profile_account_save_failed": "저장하지 못했습니다. 다시 시도하세요.",
   "profile_account_riot_label": "Riot ID",
   "profile_account_riot_description": "대회 덱 제출 시 자동으로 입력됩니다.",
@@ -594,7 +591,6 @@
   "auth_reset_code_intro": "{#strong}{email}{/strong}으로 보낸 6자리 코드와 새 비밀번호를 입력하세요.",
   "auth_reset_new_password_label": "새 비밀번호",
   "auth_reset_confirm_password_label": "비밀번호 확인",
-  "auth_reset_password_too_short": "비밀번호는 8자 이상이어야 합니다.",
   "auth_reset_password_mismatch": "비밀번호가 일치하지 않습니다.",
   "auth_reset_failed": "비밀번호를 재설정하지 못했습니다. 다시 시도하세요.",
   "auth_reset_resetting": "재설정 중…",
@@ -668,6 +664,46 @@
   ],
   "cards_wish_on_your_list": "위시리스트에 있음",
   "cards_wish_on_your_lists": "위시리스트에 있음",
+  "cards_holdings_lent": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name}님에게 {count}장 빌려줌",
+        "countPlural=*": "{name}님에게 {count}장 빌려줌"
+      }
+    }
+  ],
+  "cards_holdings_borrowed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name}님에게서 {count}장 빌림",
+        "countPlural=*": "{name}님에게서 {count}장 빌림"
+      }
+    }
+  ],
+  "cards_holdings_trade_outgoing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · {count}장 보냄",
+        "countPlural=*": "{label} · {count}장 보냄"
+      }
+    }
+  ],
+  "cards_holdings_trade_incoming": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · {count}장 받음",
+        "countPlural=*": "{label} · {count}장 받음"
+      }
+    }
+  ],
   "cards_wish_on_your_lists_wanted": "{lists}, {count}장 희망",
   "cards_wish_on_your_lists_count": "{lists} ({count})",
   "cards_wish_open_list": "{name} 열기",
@@ -1609,7 +1645,7 @@
   "collections_copies_notes_private_hint_group": "이 사본은 그룹 컬렉션에 있어 그룹 멤버 모두가 볼 수 있습니다. 공개 공유 페이지에는 표시되지 않습니다.",
   "collections_copies_links_label": "사진 및 영상",
   "collections_copies_link_title_placeholder": "라벨",
-  "collections_copies_network_error": "서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.",
+  "common_network_error": "서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.",
   "collections_copies_trade_cancel_stopped": "교환을 유지하기 위해 {total}장 중 {done}장까지만 처리했습니다. 나머지는 그대로입니다.",
   "collections_copies_signed_out": "로그아웃 상태에서는 사본을 추가할 수 없습니다",
   "collections_copies_quick_scope_move": "이동",
@@ -1683,6 +1719,16 @@
   "collections_reorder_aria": "{label} 순서 바꾸기",
   "collections_copy_edit_aria": "{title}. 사본 정보를 편집합니다.",
   "collections_copy_graded_title": "{grader} {grade} 등급",
+  "collections_copies_with_details": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "세부 정보가 있는 사본 {count}장",
+        "countPlural=*": "세부 정보가 있는 사본 {count}장"
+      }
+    }
+  ],
   "collections_import_needs_review": "확인 필요",
   "collections_deck_import_cards_section": "카드",
   "collections_import_dialog_title": "카드 가져오기",
@@ -7669,7 +7715,6 @@
   "meta_archived_decks_heading": "아카이브된 덱 목록",
   "meta_archived_decks_empty_legend": "이 전설의 기록 중 이 범위에 해당하는 덱 목록이 없습니다.",
   "meta_archived_decks_empty_player": "이 플레이어의 기록 중 이 범위에 해당하는 덱 목록이 없습니다.",
-  "meta_deck_code_warning": "덱 코드에 일부 카드가 빠졌습니다.",
   "meta_deck_preview_sideboard": "보조 덱 {count}",
   "meta_deck_preview_actions": "덱 목록 작업",
   "meta_deck_preview_copy_code": "덱 코드 복사",

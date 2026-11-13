@@ -52,8 +52,18 @@ vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: () => mocks.generic.current,
 }));
 vi.mock("@/features/admin/hooks/use-unified-mappings", () => ({
-  useUnifiedSaveMappings: () => mocks.save.current,
-  useUnifiedIgnoreVariants: () => mocks.ignore.current,
+  useSaveMappingsByMarketplace: () => ({
+    tcgplayer: mocks.save.current,
+    cardmarket: mocks.save.current,
+    cardtrader: mocks.save.current,
+    cardnexus: mocks.save.current,
+  }),
+  useIgnoreVariantsByMarketplace: () => ({
+    tcgplayer: mocks.ignore.current,
+    cardmarket: mocks.ignore.current,
+    cardtrader: mocks.ignore.current,
+    cardnexus: mocks.ignore.current,
+  }),
 }));
 vi.mock("@/features/admin/lib/accept-undo", () => ({
   acceptFieldWithUndo: vi.fn(async () => true),

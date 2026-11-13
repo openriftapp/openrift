@@ -38,7 +38,7 @@ const columns: AdminColumnDef<DeckZoneRow, DeckZoneDraft>[] = [
 
 export function DeckZonesPage() {
   const { data } = useDeckZones();
-  const updateMutation = useUpdateDeckZone();
+  const updateMutation = useUpdateDeckZone({ inlineError: true });
   const reorderMutation = useReorderDeckZones();
   const { deckZones } = data;
 

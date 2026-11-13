@@ -33,6 +33,14 @@ async function settleCheckedSubmissions(
   }
 }
 
+async function cardNameVariants(
+  mut: ApiContext["repos"]["catalogMutations"],
+  card: { id: string; name: string },
+): Promise<string[]> {
+  const aliasRows = await mut.getCardAliases(card.id);
+  return [...new Set([normalizeNameForIdentity(card.name), ...aliasRows.map((a) => a.normName)])];
+}
+
 export const adminCardMutationsCandidatesRouter = {
   checkCandidateCard: os.checkCandidateCard.handler(async ({ input, context }): Promise<void> => {
     const { candidateCards } = context.repos;
@@ -97,22 +105,22 @@ export const adminCardMutationsCandidatesRouter = {
     const card = await mut.getCardById(input.cardId);
     assertFound(card, "Card not found");
 
-    const cardNormName = normalizeNameForIdentity(card.name);
-    const aliasRows = await mut.getCardAliases(card.id);
-    const uniqueVariants = [...new Set([cardNormName, ...aliasRows.map((a) => a.normName)])];
-
-    const { updated, candidateCardIds } = await candidateCards.checkAllCandidateCards(
-      uniqueVariants,
-      card.id,
-    );
+    const { updated, candidateCardIds } =
+      input.candidateCardIds === undefined
+        ? await candidateCards.checkAllCandidateCards(await cardNameVariants(mut, card), card.id)
+        : await candidateCards.checkCandidateCards(input.candidateCardIds);
 
     await settleCheckedSubmissions(context, {
       candidateCardIds,
       adminUserId: context.userId,
       now: new Date(),
     });
-    return { updated };
+    return { updated, candidateCardIds };
   }),
+
+  uncheckCandidateCards: os.uncheckCandidateCards.handler(async ({ input, context }) => ({
+    updated: await context.repos.candidateCards.uncheckCandidateCards(input.candidateCardIds),
+  })),
 
   patchCandidatePrinting: os.patchCandidatePrinting.handler(
     async ({ input, context, errors }): Promise<void> => {

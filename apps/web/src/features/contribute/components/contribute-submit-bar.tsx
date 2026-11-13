@@ -12,6 +12,7 @@ import {
   errorLabel,
   errorPrintingIndex,
 } from "@/features/contribute/lib/contribute-preview-fields";
+import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
 interface ContributeSubmitBarProps extends Pick<
@@ -102,7 +103,9 @@ export function ContributeSubmitBar({
         {submit.isError && (
           <Alert variant="destructive">
             <AlertTitle>{m.contribute_submit_error_title()}</AlertTitle>
-            <AlertDescription>{submitErrorMessage(submit.error)}</AlertDescription>
+            <AlertDescription>
+              {errorText(submit.error, m.contribute_error_generic())}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -123,9 +126,4 @@ export function ContributeSubmitBar({
       </div>
     </>
   );
-}
-
-function submitErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message.trim() : "";
-  return message || m.contribute_error_generic();
 }

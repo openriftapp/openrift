@@ -70,7 +70,6 @@ export function DeckEditorDialogs({
       onSuccess: () => {
         void navigate({ to: "/decks" });
       },
-      // Errors are reported by the global mutation error toast.
     });
   };
 

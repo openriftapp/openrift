@@ -4,6 +4,7 @@ import type { ScanSession } from "@openrift/shared/scan/session";
 import type { EncoderGates } from "@openrift/shared/scan/session-options";
 import { gatesForBank } from "@openrift/shared/scan/session-options";
 import type { CardCandidate, RgbaImage } from "@openrift/shared/scan/types";
+import { errorMessage } from "@openrift/shared/strings";
 
 import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import { loadScanBank } from "@/features/scan/lib/scan-bank";
@@ -220,7 +221,7 @@ async function handle(request: ScanWorkerRequest): Promise<void> {
     post({
       type: "error",
       id: "id" in request ? request.id : undefined,
-      message: error instanceof Error ? error.message : String(error),
+      message: errorMessage(error),
       ...(error instanceof ScanWorkerError ? { code: error.code } : {}),
     });
   }

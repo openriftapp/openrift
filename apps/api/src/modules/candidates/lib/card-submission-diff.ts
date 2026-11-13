@@ -5,16 +5,12 @@
  * id, else by `buildPrintingLinkKey` (never hand-roll it); paths always use the
  * matched live side's key.
  */
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ProposedCard, ProposedPrinting } from "../repositories/candidate-cards-review.js";
 import type { LivePrintingSnapshot, LiveSnapshot } from "../repositories/card-submissions.js";
-
-/** Blank-ish proposals say "I have nothing to offer here", not "make it empty". */
-function isEmpty(value: unknown): boolean {
-  return value === null || value === undefined || value === "";
-}
 
 /**
  * Case- and whitespace-insensitive: a contributor typing "riot games" for
@@ -73,7 +69,7 @@ export function computeProposedDiff(
       diff.push("card.name");
     }
     const proposedType = proposed.card.types?.[0] ?? null;
-    if (!isEmpty(proposedType) && !sameText(proposedType, liveCard.type)) {
+    if (hasFieldValue(proposedType) && !sameText(proposedType, liveCard.type)) {
       diff.push("card.type");
     }
     const numbers = [
@@ -83,7 +79,7 @@ export function computeProposedDiff(
       ["mightBonus", proposed.card.mightBonus, liveCard.mightBonus],
     ] as const;
     for (const [field, proposedValue, liveValue] of numbers) {
-      if (!isEmpty(proposedValue) && proposedValue !== liveValue) {
+      if (hasFieldValue(proposedValue) && proposedValue !== liveValue) {
         diff.push(`card.${field}`);
       }
     }
@@ -103,10 +99,10 @@ export function computeProposedDiff(
       if (printing.shortCode.toUpperCase() !== linked.shortCode.toUpperCase()) {
         diff.push(`printing.${key}.shortCode`);
       }
-      if (!isEmpty(printing.finish) && printing.finish !== linked.finish) {
+      if (hasFieldValue(printing.finish) && printing.finish !== linked.finish) {
         diff.push(`printing.${key}.finish`);
       }
-      if (!isEmpty(printing.language) && !sameText(printing.language, linked.language)) {
+      if (hasFieldValue(printing.language) && !sameText(printing.language, linked.language)) {
         diff.push(`printing.${key}.language`);
       }
       if (printing.markerSlugs && !sameSlugs(printing.markerSlugs, linked.markerSlugs)) {
@@ -141,20 +137,20 @@ export function computeProposedDiff(
       ["printedName", printing.printedName, livePrinting.printedName],
     ] as const;
     for (const [field, proposedValue, liveValue] of texts) {
-      if (!isEmpty(proposedValue) && !sameText(proposedValue, liveValue)) {
+      if (hasFieldValue(proposedValue) && !sameText(proposedValue, liveValue)) {
         diff.push(`printing.${key}.${field}`);
       }
     }
-    if (!isEmpty(printing.isSigned) && printing.isSigned !== livePrinting.isSigned) {
+    if (hasFieldValue(printing.isSigned) && printing.isSigned !== livePrinting.isSigned) {
       diff.push(`printing.${key}.isSigned`);
     }
     if (
-      !isEmpty(printing.isOvernumbered) &&
+      hasFieldValue(printing.isOvernumbered) &&
       printing.isOvernumbered !== livePrinting.isOvernumbered
     ) {
       diff.push(`printing.${key}.isOvernumbered`);
     }
-    if (!isEmpty(printing.imageUrl) && !livePrinting.hasImage) {
+    if (hasFieldValue(printing.imageUrl) && !livePrinting.hasImage) {
       diff.push(`printing.${key}.image`);
     }
   }

@@ -56,7 +56,7 @@ export const deskCardPrintingsQueryOptions = (cardSlug: string) =>
 /** `side` picks which face of a double-faced printing the row presents. */
 export const deskPrintingQueryOptions = (printingId: string, side: 1 | 2 = 1) =>
   queryOptions({
-    queryKey: [...adminKeys.printingDesk.printing(printingId), side] as const,
+    queryKey: adminKeys.printingDesk.printingSide(printingId, side),
     queryFn: () => fetchDeskPrinting({ data: { printingId, side } }),
     staleTime: 60 * 1000,
   });

@@ -3,7 +3,6 @@ import { formatDayTime, formatRelativeTime } from "@openrift/shared/format-date"
 import { Link } from "@tanstack/react-router";
 import { CalendarPlusIcon, CircleXIcon, HistoryIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { PageDescription, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +15,9 @@ import {
   useDisableJobSchedule,
   useEnableSuggestedJobSchedules,
   useJobSchedules,
-  useRunJobNow,
   useSetJobSchedule,
 } from "@/features/admin/hooks/use-job-schedules";
+import { useJobStarter } from "@/features/admin/hooks/use-start-job";
 import { formatDuration } from "@/lib/format-duration";
 
 function ScheduleEditor({
@@ -78,7 +77,7 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
   const [editing, setEditing] = useState(false);
   const setSchedule = useSetJobSchedule();
   const disableSchedule = useDisableJobSchedule();
-  const runNow = useRunJobNow();
+  const runNow = useJobStarter(job.kind, job.title, { viaSchedule: true });
 
   const isOn = job.schedule !== null;
   const busy = setSchedule.isPending || disableSchedule.isPending || runNow.isPending;
@@ -89,21 +88,6 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
 
   function handleEnableSuggested() {
     setSchedule.mutate({ kind: job.kind, schedule: job.suggestedSchedule });
-  }
-
-  async function handleRunNow() {
-    let started: Awaited<ReturnType<typeof runNow.mutateAsync>>;
-    try {
-      started = await runNow.mutateAsync({ kind: job.kind });
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
-      return;
-    }
-    if (started.status === "already_running") {
-      toast.info("Already running");
-    } else {
-      toast.success("Started");
-    }
   }
 
   const onActions = (
@@ -121,7 +105,7 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
       <Button
         pending={runNow.isPending}
         variant="outline"
-        onClick={() => void handleRunNow()}
+        onClick={() => void runNow.start()}
         disabled={busy}
       >
         <PlayIcon />

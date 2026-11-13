@@ -2,6 +2,7 @@ import { apiKey } from "@better-auth/api-key";
 // better-auth 1.7.3 leaks SchemaCheck into betterAuth()'s inferred type. The import
 // makes it nameable for declaration emit. Drop once better-auth re-exports it.
 import type { SchemaCheck as _SchemaCheck } from "@better-auth/core/db/internal";
+import { sanitizeDisplayName, validateDisplayName } from "@openrift/shared/display-name";
 import { HOUR_MS } from "@openrift/shared/format-date";
 import { validateProfileBio } from "@openrift/shared/profile-bio";
 import { validateRiotId } from "@openrift/shared/riot-id";
@@ -13,7 +14,6 @@ import type { Dialect, Kysely } from "kysely";
 import type { createConfig } from "./config.js";
 import { isLocalDevOrigin, matchOrigin } from "./cors.js";
 import type { Database } from "./db/tables.js";
-import { sanitizeDisplayName, validateDisplayName } from "./display-name.js";
 import type { createEmailSender } from "./email.js";
 import { emailMessages } from "./emails/messages.js";
 import { displayLocaleFromRequest } from "./lib/display-locale.js";

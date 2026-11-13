@@ -17,11 +17,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { IgnoredProductsNote } from "@/features/admin/components/ignored-products-note";
 import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
-  useUnifiedAssignToCard,
-  useUnifiedIgnoreProducts,
-  useUnifiedIgnoreVariants,
-  useUnifiedSaveMappings,
-  useUnifiedUnassignFromCard,
+  useAssignToCardByMarketplace,
+  useIgnoreProductsByMarketplace,
+  useIgnoreVariantsByMarketplace,
+  useSaveMappingsByMarketplace,
+  useUnassignFromCardByMarketplace,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
@@ -88,12 +88,7 @@ export function AdminCardMarketplaceSection({
           queryClient.setQueryData(cardKey, next);
         }
       }
-      const save = {
-        tcgplayer: tcgSaveMapping,
-        cardmarket: cmSaveMapping,
-        cardtrader: ctSaveMapping,
-        cardnexus: cnSaveMapping,
-      }[marketplace];
+      const save = saveMappings[marketplace];
       save.mutate(
         { mappings },
         {
@@ -117,26 +112,11 @@ export function AdminCardMarketplaceSection({
       applyAssignments(marketplace)([{ externalId: eid, finish, language, printingId: pid }]);
     };
 
-  const tcgIgnoreVariant = useUnifiedIgnoreVariants("tcgplayer");
-  const cmIgnoreVariant = useUnifiedIgnoreVariants("cardmarket");
-  const ctIgnoreVariant = useUnifiedIgnoreVariants("cardtrader");
-  const cnIgnoreVariant = useUnifiedIgnoreVariants("cardnexus");
-  const tcgIgnoreProduct = useUnifiedIgnoreProducts("tcgplayer");
-  const cmIgnoreProduct = useUnifiedIgnoreProducts("cardmarket");
-  const ctIgnoreProduct = useUnifiedIgnoreProducts("cardtrader");
-  const cnIgnoreProduct = useUnifiedIgnoreProducts("cardnexus");
-  const tcgAssignToCard = useUnifiedAssignToCard("tcgplayer");
-  const cmAssignToCard = useUnifiedAssignToCard("cardmarket");
-  const ctAssignToCard = useUnifiedAssignToCard("cardtrader");
-  const cnAssignToCard = useUnifiedAssignToCard("cardnexus");
-  const tcgUnassign = useUnifiedUnassignFromCard("tcgplayer");
-  const cmUnassign = useUnifiedUnassignFromCard("cardmarket");
-  const ctUnassign = useUnifiedUnassignFromCard("cardtrader");
-  const cnUnassign = useUnifiedUnassignFromCard("cardnexus");
-  const tcgSaveMapping = useUnifiedSaveMappings("tcgplayer");
-  const cmSaveMapping = useUnifiedSaveMappings("cardmarket");
-  const ctSaveMapping = useUnifiedSaveMappings("cardtrader");
-  const cnSaveMapping = useUnifiedSaveMappings("cardnexus");
+  const ignoreVariants = useIgnoreVariantsByMarketplace();
+  const ignoreProducts = useIgnoreProductsByMarketplace();
+  const assignToCards = useAssignToCardByMarketplace();
+  const unassigns = useUnassignFromCardByMarketplace();
+  const saveMappings = useSaveMappingsByMarketplace();
   const unmapPrinting = useUnmapMarketplacePrinting([
     adminKeys.cards.detail(cardId),
     adminKeys.unifiedMappings.all,
@@ -144,11 +124,7 @@ export function AdminCardMarketplaceSection({
 
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
   const acceptAllRef = useRef<() => void>(() => {});
-  const isSaving =
-    tcgSaveMapping.isPending ||
-    cmSaveMapping.isPending ||
-    ctSaveMapping.isPending ||
-    cnSaveMapping.isPending;
+  const isSaving = ALL_MARKETPLACES.some((marketplace) => saveMappings[marketplace].isPending);
   useHotkey("Mod+Enter", () => acceptAllRef.current(), { enabled: !isSaving });
   // Install the latest accept-all closure every render so the hotkey fires
   // against the current data/handlers without needing a stale dep list.
@@ -195,11 +171,11 @@ export function AdminCardMarketplaceSection({
   const handlersFor = (
     marketplace: AdminMarketplaceName,
     m: {
-      ignoreVariant: typeof tcgIgnoreVariant;
-      ignoreProduct: typeof tcgIgnoreProduct;
-      assignToCard: typeof tcgAssignToCard;
-      unassign: typeof tcgUnassign;
-      saveMapping: typeof tcgSaveMapping;
+      ignoreVariant: (typeof ignoreVariants)[AdminMarketplaceName];
+      ignoreProduct: (typeof ignoreProducts)[AdminMarketplaceName];
+      assignToCard: (typeof assignToCards)[AdminMarketplaceName];
+      unassign: (typeof unassigns)[AdminMarketplaceName];
+      saveMapping: (typeof saveMappings)[AdminMarketplaceName];
     },
   ): MarketplaceHandlers => ({
     onIgnoreVariant: (eid, fin, lang) =>
@@ -226,36 +202,18 @@ export function AdminCardMarketplaceSection({
     isUnmappingPrinting: unmapPrinting.isPending,
   });
 
-  const handlers: Record<AdminMarketplaceName, MarketplaceHandlers> = {
-    tcgplayer: handlersFor("tcgplayer", {
-      ignoreVariant: tcgIgnoreVariant,
-      ignoreProduct: tcgIgnoreProduct,
-      assignToCard: tcgAssignToCard,
-      unassign: tcgUnassign,
-      saveMapping: tcgSaveMapping,
-    }),
-    cardmarket: handlersFor("cardmarket", {
-      ignoreVariant: cmIgnoreVariant,
-      ignoreProduct: cmIgnoreProduct,
-      assignToCard: cmAssignToCard,
-      unassign: cmUnassign,
-      saveMapping: cmSaveMapping,
-    }),
-    cardtrader: handlersFor("cardtrader", {
-      ignoreVariant: ctIgnoreVariant,
-      ignoreProduct: ctIgnoreProduct,
-      assignToCard: ctAssignToCard,
-      unassign: ctUnassign,
-      saveMapping: ctSaveMapping,
-    }),
-    cardnexus: handlersFor("cardnexus", {
-      ignoreVariant: cnIgnoreVariant,
-      ignoreProduct: cnIgnoreProduct,
-      assignToCard: cnAssignToCard,
-      unassign: cnUnassign,
-      saveMapping: cnSaveMapping,
-    }),
-  };
+  const handlers = Object.fromEntries(
+    ALL_MARKETPLACES.map((marketplace) => [
+      marketplace,
+      handlersFor(marketplace, {
+        ignoreVariant: ignoreVariants[marketplace],
+        ignoreProduct: ignoreProducts[marketplace],
+        assignToCard: assignToCards[marketplace],
+        unassign: unassigns[marketplace],
+        saveMapping: saveMappings[marketplace],
+      }),
+    ]),
+  ) as Record<AdminMarketplaceName, MarketplaceHandlers>;
 
   const suggestions = computeProductSuggestions(group);
   const strong = collectStrongMappings(group, suggestions);
@@ -317,6 +275,16 @@ function applyOptimisticAssignmentToGroup(
     return group;
   }
   const mk = group[marketplace];
+  const alreadyAssigned = mk.assignments.some(
+    (a) =>
+      a.externalId === externalId &&
+      a.finish === finish &&
+      a.printingId === printingId &&
+      (a.language === null || a.language === language),
+  );
+  if (alreadyAssigned) {
+    return group;
+  }
   const variantIdx = mk.stagedProducts.findIndex(
     (p) => p.externalId === externalId && p.finish === finish && p.language === language,
   );

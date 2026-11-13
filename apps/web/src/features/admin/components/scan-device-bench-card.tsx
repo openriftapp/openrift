@@ -2,6 +2,7 @@ import { formatFileStamp } from "@openrift/shared/format-date";
 import type { BenchRun } from "@openrift/shared/scan/bench-score";
 import { summarize } from "@openrift/shared/scan/bench-score";
 import type { CardLabels } from "@openrift/shared/scan/labels";
+import { countNoun } from "@openrift/shared/strings";
 import { GaugeIcon, LoaderIcon, SaveIcon, TimerIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -148,8 +149,9 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
         {speed && (
           <div className="flex flex-col gap-1 tabular-nums">
             <p className="font-medium">
-              Speed check ·{" "}
-              {speed.meta.threads === 1 ? "1 thread" : `${String(speed.meta.threads)} threads`}
+              Speed check
+              {typeof speed.meta.threads === "number" &&
+                ` · ${countNoun(speed.meta.threads, "thread")}`}
             </p>
             {speedLines.map((line) => (
               <p key={line} className="text-muted-foreground">

@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import type { MetaListStatus } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely } from "kysely";
@@ -171,18 +172,14 @@ export function metaInferencesRepo(db: Kysely<Database>) {
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
         const cleared = [...removed, ...written.map((row) => row.deckId)];
-        for (let start = 0; start < cleared.length; start += WRITE_CHUNK) {
-          await trx
-            .deleteFrom("metaDeckInferences")
-            .where("deckId", "in", cleared.slice(start, start + WRITE_CHUNK))
-            .execute();
+        for (const batch of chunk(cleared, WRITE_CHUNK)) {
+          await trx.deleteFrom("metaDeckInferences").where("deckId", "in", batch).execute();
         }
-        for (let start = 0; start < written.length; start += WRITE_CHUNK) {
-          const chunk = written.slice(start, start + WRITE_CHUNK);
+        for (const batch of chunk(written, WRITE_CHUNK)) {
           await trx
             .insertInto("metaDeckInferences")
             .values(
-              chunk.map((row) => ({
+              batch.map((row) => ({
                 deckId: row.deckId,
                 championCardId: row.championCardId,
                 championAltCardId: row.championAltCardId,
@@ -192,7 +189,7 @@ export function metaInferencesRepo(db: Kysely<Database>) {
               })),
             )
             .execute();
-          const neighbours = chunk.flatMap((row) =>
+          const neighbours = batch.flatMap((row) =>
             META_INFERRED_ZONES.flatMap((zone) =>
               row.neighbours
                 .filter((neighbour) => neighbour.zone === zone)

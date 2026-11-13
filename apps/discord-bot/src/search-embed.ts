@@ -1,10 +1,9 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { SearchResponse } from "@openrift/shared/contracts/search";
+import { DISCORD_EMBED_COLOR } from "@openrift/shared/discord-embed";
 import { cardUrl } from "@openrift/shared/site-paths";
 import { pluralize } from "@openrift/shared/strings";
 import type { APIEmbed } from "discord.js";
-
-import { EMBED_COLOR } from "./card-embed.js";
 
 export const SEARCH_RESULT_LIMIT = 10;
 
@@ -34,7 +33,7 @@ export function buildSearchEmbed({
       ? `[${more} more on OpenRift](${searchPageUrl(siteUrl, query)})`
       : `[Open on OpenRift](${searchPageUrl(siteUrl, query)})`;
   return {
-    color: EMBED_COLOR,
+    color: DISCORD_EMBED_COLOR,
     title: `${response.total} ${pluralize(response.total, "result", "results")} for ${query}`,
     url: searchPageUrl(siteUrl, query),
     description: response.total === 0 ? "Nothing matches." : [...lines, "", footer].join("\n"),

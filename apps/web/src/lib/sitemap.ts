@@ -1,5 +1,6 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/server-only";
+import { chunk } from "@openrift/shared/collections";
 import type { ErrataListResponse } from "@openrift/shared/contracts/errata";
 import type { SitemapDataResponse } from "@openrift/shared/types/api/catalog";
 
@@ -156,11 +157,7 @@ const SECTION_URLS: Record<SitemapSection, (input: SitemapInput) => SitemapUrl[]
 
 export function sitemapSectionFiles(section: SitemapSection, input: SitemapInput): SitemapUrl[][] {
   const urls = SECTION_URLS[section](input);
-  const files: SitemapUrl[][] = [];
-  for (let start = 0; start < urls.length; start += SITEMAP_FILE_LIMIT) {
-    files.push(urls.slice(start, start + SITEMAP_FILE_LIMIT));
-  }
-  return files;
+  return chunk(urls, SITEMAP_FILE_LIMIT);
 }
 
 /** A section that fits one file keeps a bare name, so it never changes address if it later splits. */

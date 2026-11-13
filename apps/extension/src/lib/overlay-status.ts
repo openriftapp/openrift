@@ -1,24 +1,30 @@
+import {
+  DAY_MS,
+  ENGLISH_DATE_WORDS,
+  formatRelativeTime,
+  MINUTE_MS,
+} from "@openrift/shared/format-date";
+import type { DateWords } from "@openrift/shared/format-date";
+import { countNoun, pluralize } from "@openrift/shared/strings";
+
 import type { OverlayList, OverlaySnapshot } from "./overlay-snapshot";
 
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
-const DAY_MS = 24 * HOUR_MS;
+const LONG_DATE_WORDS: DateWords = {
+  ...ENGLISH_DATE_WORDS,
+  minutes: (count) => countNoun(count, "minute"),
+  hours: (count) => countNoun(count, "hour"),
+  days: (count) => countNoun(count, "day"),
+  weeks: (count) => countNoun(count, "week"),
+  months: (count) => countNoun(count, "month"),
+  years: (count) => countNoun(count, "year"),
+};
 
 export function relativeAge(from: string, now: Date): string {
   const elapsed = now.getTime() - new Date(from).getTime();
   if (Number.isNaN(elapsed) || elapsed < MINUTE_MS) {
     return "just now";
   }
-  if (elapsed < HOUR_MS) {
-    const minutes = Math.floor(elapsed / MINUTE_MS);
-    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  }
-  if (elapsed < DAY_MS) {
-    const hours = Math.floor(elapsed / HOUR_MS);
-    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  }
-  const days = Math.floor(elapsed / DAY_MS);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
+  return formatRelativeTime(from, { now, words: LONG_DATE_WORDS });
 }
 
 const NAMES_SHOWN = 3;
@@ -58,7 +64,7 @@ export function entriesLabel(entryCount?: number): string | undefined {
   if (entryCount === undefined) {
     return undefined;
   }
-  return `${entryCount.toLocaleString()} ${entryCount === 1 ? "entry" : "entries"}`;
+  return `${entryCount.toLocaleString()} ${pluralize(entryCount, "entry", "entries")}`;
 }
 
 export function snapshotSummary(snapshot: OverlaySnapshot | undefined, now: Date): string {

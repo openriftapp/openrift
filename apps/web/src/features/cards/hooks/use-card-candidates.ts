@@ -1,6 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Card } from "@openrift/shared/types/catalog";
-import { useMemo } from "react";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 
@@ -18,12 +17,8 @@ export function useCardCandidates(filter?: (card: Card) => boolean): {
   cardsById: Record<string, Card>;
 } {
   const { cardsById } = useCards();
-  const candidates = useMemo(
-    () =>
-      Object.entries(cardsById)
-        .filter(([, card]) => filter === undefined || filter(card))
-        .map(([cardId, card]) => ({ cardId, cardName: legendDisplayName(card) })),
-    [cardsById, filter],
-  );
+  const candidates = Object.entries(cardsById)
+    .filter(([, card]) => filter === undefined || filter(card))
+    .map(([cardId, card]) => ({ cardId, cardName: legendDisplayName(card) }));
   return { candidates, cardsById };
 }

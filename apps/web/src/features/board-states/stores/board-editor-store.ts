@@ -25,10 +25,10 @@ import {
   MAX_PIECE_KEYWORDS,
   zoneBattlefieldIndex,
 } from "@openrift/shared/board-state";
+import { clamp } from "@openrift/shared/math";
 import { create } from "zustand";
 
 import { isHiddenZone, nextChainId, nextPieceId } from "@/features/board-states/lib/board-rules";
-import { clamp } from "@/lib/math";
 
 const HISTORY_LIMIT = 50;
 const RECENT_LIMIT = 8;

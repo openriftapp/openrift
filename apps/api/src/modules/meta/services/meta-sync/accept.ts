@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { errorMessage } from "@openrift/shared/strings";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
@@ -101,8 +102,7 @@ async function sweep(
   externalIds: readonly string[],
 ): Promise<MetaAutoAcceptSummary> {
   const summary = emptySummary();
-  for (let index = 0; index < externalIds.length; index += SWEEP_PAGE) {
-    const page = externalIds.slice(index, index + SWEEP_PAGE);
+  for (const page of chunk(externalIds, SWEEP_PAGE)) {
     const rows = await deps.repos.uvsgamesEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
     for (const row of rows) {

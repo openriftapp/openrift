@@ -43,6 +43,7 @@ import {
 } from "@/features/extension/lib/cardmarket-picks-payload";
 import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -224,17 +225,16 @@ function PicksEditor({
 
   const handleSave = async () => {
     setIsSaving(true);
-    let listId: string;
-    try {
+    let listId: string | undefined;
+    const resolved = await runReportedMutation(async () => {
       listId = await targetListId();
-    } catch {
-      // Reported by the global mutation error toast.
+    });
+    if (!resolved || listId === undefined) {
       setIsSaving(false);
       return;
     }
-    try {
-      await addAll(listId);
-    } catch {
+    const savedListId = listId;
+    if (!(await runReportedMutation(() => addAll(savedListId)))) {
       // Deliberate second toast on top of the global mutation error one: this says the
       // save was left half-done (batches before the failing one already committed).
       toast.error(m.extension_picks_save_failed());
@@ -242,7 +242,7 @@ function PicksEditor({
       return;
     }
     toast.success(m.extension_picks_added({ count: summary.totalCards }));
-    void navigate({ to: "/collections/lists/$listId", params: { listId } });
+    void navigate({ to: "/collections/lists/$listId", params: { listId: savedListId } });
   };
 
   const renderRow = ({ entry, index }: { entry: MatchedEntry; index: number }) => (

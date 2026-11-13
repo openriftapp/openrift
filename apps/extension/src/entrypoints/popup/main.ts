@@ -1,3 +1,5 @@
+import { sleep } from "@openrift/shared/async";
+import { errorMessage } from "@openrift/shared/strings";
 import { browser } from "wxt/browser";
 
 import { CARDMARKET_MATCH_PATTERN } from "@/lib/cardmarket-url";
@@ -112,13 +114,6 @@ async function granted(): Promise<boolean> {
 async function activeTab(): Promise<Tab | undefined> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   return tab?.id === undefined ? undefined : { id: tab.id, index: tab.index, url: tab.url ?? "" };
-}
-
-function sleep(ms: number): Promise<void> {
-  // oxlint-disable-next-line promise/avoid-new -- bridges the callback-based setTimeout API
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 async function waitForCapture(before: string | undefined): Promise<boolean> {
@@ -328,7 +323,7 @@ enableButton.addEventListener("click", () => {
       enableButton.hidden = allowed;
       permissionNote.hidden = allowed;
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = errorMessage(error);
       showResult(`The browser refused that permission: ${reason}`, true);
     }
   })();

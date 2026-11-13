@@ -13,6 +13,7 @@ import {
   countAdded,
   toGrowthSeries,
 } from "@/features/admin/lib/growth";
+import { formatCount } from "@/lib/format";
 
 const chartConfig = {
   total: { label: "Total", color: "var(--chart-1)" },
@@ -40,14 +41,14 @@ function GrowthTooltipContent({
           <span className="size-2 rounded-full" style={{ backgroundColor: "var(--color-total)" }} />
           <span className="text-muted-foreground">{label}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
-            {point.total.toLocaleString()}
+            {formatCount(point.total)}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="size-2" />
           <span className="text-muted-foreground">New</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
-            +{point.added.toLocaleString()}
+            +{formatCount(point.added)}
           </span>
         </div>
       </div>
@@ -134,7 +135,7 @@ export function GrowthChart({
         {/* Not zero-based: a running total dwarfs a month of growth, and the ticks carry the real count. */}
         <YAxis
           hide={compact}
-          tickFormatter={(v: number) => v.toLocaleString()}
+          tickFormatter={(v: number) => formatCount(v)}
           tick={{ fontSize: 11 }}
           width={48}
           domain={["dataMin", "dataMax"]}
@@ -178,7 +179,7 @@ export function GrowthPanel({
         <p className="text-muted-foreground text-sm">
           {added === 0
             ? `No new ${noun[1]} in this range`
-            : `+${added.toLocaleString()} ${added === 1 ? noun[0] : noun[1]} in this range`}
+            : `+${formatCount(added)} ${added === 1 ? noun[0] : noun[1]} in this range`}
         </p>
         <GrowthRangeToggle value={range} onChange={setRange} className="ml-auto" />
       </div>

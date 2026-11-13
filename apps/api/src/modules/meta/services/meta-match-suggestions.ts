@@ -1,5 +1,5 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
-import { DAY_MS, shiftUtcDay } from "@openrift/shared/format-date";
+import { shiftUtcDay, utcDayDiff } from "@openrift/shared/format-date";
 import { countNoun } from "@openrift/shared/strings";
 /**
  * Ranks candidate live events/players against a meta archive overlay for
@@ -56,15 +56,6 @@ const MIN_EVENT_SCORE = 4;
 /** uvsgames files a multi-day event under the Friday, playriftbound under the Sunday; must stay wide enough to bridge that gap. */
 export const MAX_EVENT_MATCH_DAY_DELTA = 3;
 
-function dayDelta(a: string, b: string): number | null {
-  const left = Date.parse(`${a}T00:00:00Z`);
-  const right = Date.parse(`${b}T00:00:00Z`);
-  if (Number.isNaN(left) || Number.isNaN(right)) {
-    return null;
-  }
-  return Math.abs(left - right) / DAY_MS;
-}
-
 /** Bigram Dice coefficient over the two normalized names, 0 (nothing shared) to 1 (identical). */
 export function nameSimilarity(a: string, b: string): number {
   const left = normalizeNameForIdentity(a);
@@ -110,7 +101,8 @@ export function scoreEventMatch(
     reasons.push("same format");
   }
 
-  const delta = dayDelta(candidate.eventDate, live.eventDate);
+  const diff = utcDayDiff(candidate.eventDate, live.eventDate);
+  const delta = diff === null ? null : Math.abs(diff);
   const withinWindow = delta !== null && delta <= MAX_EVENT_MATCH_DAY_DELTA;
   if (withinWindow) {
     score += delta === 0 ? 3 : 2;

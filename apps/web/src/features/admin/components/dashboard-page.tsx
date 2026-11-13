@@ -26,6 +26,7 @@ import { GROWTH_RANGE_CAPTIONS, countAdded, toGrowthSeries } from "@/features/ad
 import { CatalogWorkTile } from "@/features/catalog-workspace/components/catalog-work-tile";
 import { LastUploadsSection } from "@/features/catalog-workspace/components/last-uploads-section";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { formatCount } from "@/lib/format";
 
 function StatTile({
   icon: Icon,
@@ -55,8 +56,8 @@ function StatTile({
       </CardHeader>
       <CardContent className="space-y-2">
         <StatFigure
-          value={value.toLocaleString()}
-          label={`+${added.toLocaleString()} ${GROWTH_RANGE_CAPTIONS[range]}`}
+          value={formatCount(value)}
+          label={`+${formatCount(added)} ${GROWTH_RANGE_CAPTIONS[range]}`}
         />
         <GrowthChart series={series} label={label} compact />
       </CardContent>

@@ -12,10 +12,10 @@ import type { ErrorInfo } from "react";
 
 import { getAppDiagnostics } from "./app-diagnostics";
 import { COMMIT_HASH, PROD } from "./env";
+import { CHUNK_LOAD_ERROR_PATTERN, NETWORK_ERROR_MESSAGES } from "./error-text";
 import { drainHydrationErrors } from "./hydration-error-buffer";
 import { isKnownBot } from "./known-bot";
-import { NETWORK_ERROR_MESSAGES } from "./route-error-kind";
-import { CHUNK_LOAD_ERROR_PATTERN, STALE_SERVER_FN_ERROR_PATTERN } from "./stale-bundle-reload";
+import { STALE_SERVER_FN_ERROR_PATTERN } from "./stale-bundle-reload";
 
 type TanstackRouter = Parameters<typeof tanstackRouterBrowserTracingIntegration>[0];
 

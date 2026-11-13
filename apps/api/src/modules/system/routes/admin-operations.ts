@@ -5,7 +5,6 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { requireScheduler } from "../services/job-scheduler.js";
 import { recordAdminEvent } from "../services/record-admin-event.js";
 import { runJobAsync } from "../services/run-job.js";
 
@@ -30,23 +29,6 @@ export const adminOperationsRouter = {
     });
     return { marketplace: input.marketplace, deleted: { prices, variants, products } };
   }),
-
-  refreshTcgplayer: os.refreshTcgplayer.handler(({ context }) =>
-    requireScheduler(context.scheduler).runNow("tcgplayer.refresh"),
-  ),
-
-  refreshCardmarket: os.refreshCardmarket.handler(({ context }) =>
-    requireScheduler(context.scheduler).runNow("cardmarket.refresh"),
-  ),
-
-  refreshCardtrader: os.refreshCardtrader.handler(({ context }) =>
-    requireScheduler(context.scheduler).runNow("cardtrader.refresh"),
-  ),
-
-  refreshCardnexus: os.refreshCardnexus.handler(({ context }) =>
-    requireScheduler(context.scheduler).runNow("cardnexus.refresh"),
-  ),
-
   refreshMatviews: os.refreshMatviews.handler(async ({ context }) => {
     const repos = context.backgroundRepos;
     return await runJobAsync({ repos, log }, JOB_KIND.refreshMatviews, "admin", async () => {

@@ -3,7 +3,10 @@ import type {
   MetaCatalogTriage,
   MetaSource,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import { JOB_KIND, META_SOURCE_JOB_KINDS } from "@openrift/shared/job-run-kinds";
 import type { META_CATALOG_DISPLAY_STATUSES } from "@openrift/shared/types/enums";
+
+import { formatCount } from "@/lib/format";
 
 /** The tab a funnel stage or an alert opens, with its catalogue pre-filter. */
 export interface MetaAdminTarget {
@@ -61,7 +64,7 @@ const AUTO_ACCEPT_DESCRIPTION =
 const AUTO_ACCEPT_CONFIRM = {
   title: "Apply the auto-publish rule?",
   body: (pending: number | null) =>
-    `The rule runs over ${pending === null ? "every undecided event" : `all ${pending.toLocaleString()} undecided events`}, and every match is published. Rejected events are left alone. Nothing unpublishes in bulk.`,
+    `The rule runs over ${pending === null ? "every undecided event" : `all ${formatCount(pending)} undecided events`}, and every match is published. Rejected events are left alone. Nothing unpublishes in bulk.`,
   action: "Apply the rule",
 };
 
@@ -81,7 +84,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       trigger: "runSync",
       label: "Refresh mirror",
       description: "Re-reads the last 7 days and everything upcoming into the mirror.",
-      scheduleKey: "meta.uvsgames_sync",
+      scheduleKey: META_SOURCE_JOB_KINDS.uvsgames.sync,
     },
     {
       trigger: "runAutoAccept",
@@ -94,7 +97,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       label: "Collect results",
       description:
         "Re-reads the last three days of the list, then fetches standings and decklists for published events whose next check is due, important ones first, for up to five minutes.",
-      scheduleKey: "meta.uvsgames_recheck",
+      scheduleKey: META_SOURCE_JOB_KINDS.uvsgames.recheck,
       stop: {
         job: "recheck",
         label: "Stop collecting results",
@@ -120,7 +123,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       trigger: "runPlayloltcgSync",
       label: "Refresh mirror",
       description: "Re-reads the last 7 days and everything upcoming into the mirror.",
-      scheduleKey: "meta.playloltcg_sync",
+      scheduleKey: META_SOURCE_JOB_KINDS.playloltcg.sync,
     },
     {
       trigger: "runPlayloltcgAutoAccept",
@@ -133,7 +136,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       label: "Collect results",
       description:
         "Re-reads the last three days of the list, then fetches standings and decklists for published events whose next check is due, important ones first, for up to five minutes.",
-      scheduleKey: "meta.playloltcg_recheck",
+      scheduleKey: META_SOURCE_JOB_KINDS.playloltcg.recheck,
       stop: {
         job: "recheck",
         label: "Stop collecting results",
@@ -148,7 +151,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       label: "Refresh mirror",
       description:
         "Re-reads the last 30 days of each format. Standings and decklists come in the same pass, so there is no Collect results job.",
-      scheduleKey: "meta.topdeck_sync",
+      scheduleKey: META_SOURCE_JOB_KINDS.topdeck.sync,
     },
     {
       trigger: "runTopdeckAutoAccept",
@@ -163,7 +166,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       label: "Refresh mirror",
       description:
         "Re-reads events around every known store, from 7 days back to 2 weeks ahead. Only stores Find stores has found are covered.",
-      scheduleKey: "meta.playriftbound_sync",
+      scheduleKey: META_SOURCE_JOB_KINDS.playriftbound.sync,
     },
     {
       trigger: "runPlayriftboundAutoAccept",
@@ -176,7 +179,7 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       label: "Collect results",
       description:
         "Re-queues the events running now, then fetches standings and pairings for published events that changed, important ones first, for up to five minutes.",
-      scheduleKey: "meta.playriftbound_recheck",
+      scheduleKey: META_SOURCE_JOB_KINDS.playriftbound.recheck,
       stop: {
         job: "recheck",
         label: "Stop collecting results",
@@ -281,20 +284,6 @@ export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
   },
 };
 
-export const JOB_KIND_PREFIX: Record<MetaSource, string> = {
-  uvsgames: "meta.uvsgames_",
-  playloltcg: "meta.playloltcg_",
-  topdeck: "meta.topdeck_",
-  playriftbound: "meta.playriftbound_",
-};
-
-export const BACKFILL_KIND: Record<MetaSource, string> = {
-  uvsgames: "meta.uvsgames_backfill",
-  playloltcg: "meta.playloltcg_backfill",
-  topdeck: "meta.topdeck_backfill",
-  playriftbound: "meta.playriftbound_backfill",
-};
-
 export const ARCHIVE_TRIGGERS: TriggerEntry[] = [
   {
     trigger: "runRetier",
@@ -317,6 +306,6 @@ export const ARCHIVE_TRIGGERS: TriggerEntry[] = [
 ];
 
 export const ARCHIVE_KIND_BY_TRIGGER: Partial<Record<MetaSyncTrigger, string>> = {
-  runRetier: "meta.retier",
-  runRepromote: "meta.repromote",
+  runRetier: JOB_KIND.metaRetier,
+  runRepromote: JOB_KIND.metaRepromote,
 };

@@ -107,6 +107,8 @@ const mockRefreshCatalogViews = vi.fn();
 const mockCandidateCards = {
   checkCandidateCard: vi.fn(),
   uncheckCandidateCard: vi.fn(),
+  uncheckCandidateCards: vi.fn(),
+  checkCandidateCards: vi.fn(),
   checkAllCandidatePrintings: vi.fn(),
   checkCandidatePrinting: vi.fn(),
   uncheckCandidatePrinting: vi.fn(),
@@ -278,6 +280,35 @@ describe("POST /cards/:candidateCardId/uncheck", () => {
   });
 });
 
+describe("POST /cards/candidate-cards/uncheck-batch", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("unchecks every given candidate card in one call", async () => {
+    mockCandidateCards.uncheckCandidateCards.mockResolvedValue(2);
+
+    const res = await app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateCardIds: [CARD_ID, CARD_ID2] }),
+    });
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ updated: 2 });
+    expect(mockCandidateCards.uncheckCandidateCards).toHaveBeenCalledWith([CARD_ID, CARD_ID2]);
+  });
+
+  it("rejects an empty id list", async () => {
+    const res = await app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateCardIds: [] }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockCandidateCards.uncheckCandidateCards).not.toHaveBeenCalled();
+  });
+});
+
 describe("POST /cards/candidate-printings/check-all", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -390,11 +421,34 @@ describe("POST /cards/:cardId/check-all", () => {
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/check-all`, { method: "POST" });
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json).toEqual({ updated: 3 });
+    expect(json).toEqual({ updated: 3, candidateCardIds: ["cc-1"] });
     expect(mockCandidateCards.checkAllCandidateCards).toHaveBeenCalledWith(
       expect.arrayContaining(["fire-dragon-alt"]),
       "card-uuid",
     );
+  });
+
+  it("checks exactly the given candidate card ids, without the name match", async () => {
+    mockMut.getCardById.mockResolvedValue({
+      id: "card-uuid",
+      name: "Fire Dragon",
+      slug: "fire-dragon",
+    });
+    mockMut.getCardAliases.mockResolvedValue([]);
+    mockCandidateCards.checkCandidateCards.mockResolvedValue({
+      updated: 1,
+      candidateCardIds: [CARD_ID],
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/check-all`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateCardIds: [CARD_ID] }),
+    });
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [CARD_ID] });
+    expect(mockCandidateCards.checkCandidateCards).toHaveBeenCalledWith([CARD_ID]);
+    expect(mockCandidateCards.checkAllCandidateCards).not.toHaveBeenCalled();
   });
 
   it("returns 404 when card not found", async () => {
@@ -1584,6 +1638,28 @@ describe("POST /cards/create", () => {
       expect.objectContaining({ id: "fire-dragon" }),
       expect.any(String),
     );
+  });
+
+  it("answers a taken slug with a 409 instead of a 500", async () => {
+    mockTrxMut.acceptNewCardFromSources.mockRejectedValue(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "cards_slug_key",
+      }),
+    );
+
+    const res = await app.request("/api/admin/v1/cards/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: "fire-dragon",
+        name: "Fire Dragon",
+        types: ["unit"],
+        domains: ["fury"],
+      }),
+    });
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({ message: "A card with this slug already exists" });
   });
 
   it("rejects a body missing required card fields", async () => {

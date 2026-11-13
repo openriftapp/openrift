@@ -16,7 +16,8 @@ import type {
   AttentionGroup,
   ClosestPrinting,
 } from "@/features/admin/lib/attention-items";
-import { formatFieldValue } from "@/features/admin/lib/catalog-field-labels";
+import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { CardText } from "@/features/cards/components/card-text";
 import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,7 @@ function toEditText(value: unknown): string {
   return scalarText(value);
 }
 
-function fromEditText(change: AttentionChange, text: string): unknown {
+function fromEditText(change: AttentionChange, text: string, current: unknown): unknown {
   if (Array.isArray(change.proposed)) {
     return text
       .split(",")
@@ -57,8 +58,8 @@ function fromEditText(change: AttentionChange, text: string): unknown {
       .filter((part) => part !== "");
   }
   if (typeof change.proposed === "number") {
-    const parsed = Number(text.trim());
-    return Number.isFinite(parsed) ? parsed : change.proposed;
+    const parsed = parseIntegerInput(text);
+    return parsed === undefined ? current : parsed;
   }
   return text;
 }
@@ -87,7 +88,7 @@ function Thumb({
 
 function FormattedText({ field, value }: { field: string; value: unknown }) {
   if (typeof value !== "string" || value === "") {
-    return formatFieldValue(value);
+    return formatCatalogFieldValue(field, value);
   }
   if (field === "flavorText") {
     return <span className="whitespace-pre-line italic">{value}</span>;
@@ -221,10 +222,10 @@ function ChangeRow({
           ) : (
             <span>
               <span className="text-muted-foreground line-through">
-                {formatFieldValue(change.current)}
+                {formatCatalogFieldValue(change.field, change.current)}
               </span>
               <span className="text-muted-foreground mx-2">&rarr;</span>
-              <span>{formatFieldValue(effective)}</span>
+              <span>{formatCatalogFieldValue(change.field, effective)}</span>
             </span>
           )}
         </div>
@@ -247,12 +248,12 @@ function ChangeRow({
             <Textarea
               rows={4}
               value={toEditText(effective)}
-              onChange={(event) => onEdit(fromEditText(change, event.target.value))}
+              onChange={(event) => onEdit(fromEditText(change, event.target.value, effective))}
             />
           ) : (
             <Input
               value={toEditText(effective)}
-              onChange={(event) => onEdit(fromEditText(change, event.target.value))}
+              onChange={(event) => onEdit(fromEditText(change, event.target.value, effective))}
             />
           )}
         </div>
@@ -284,10 +285,10 @@ function ClosestPrintingTable({ closest }: { closest: ClosestPrinting }) {
         <Fragment key={row.field}>
           <span className="text-muted-foreground">{row.label}</span>
           <span className={cn("line-clamp-3 min-w-0", row.differs && "text-warning font-medium")}>
-            {formatFieldValue(row.incoming)}
+            {formatCatalogFieldValue(row.field, row.incoming)}
           </span>
           <span className="text-muted-foreground line-clamp-3 min-w-0">
-            {formatFieldValue(row.existing)}
+            {formatCatalogFieldValue(row.field, row.existing)}
           </span>
         </Fragment>
       ))}

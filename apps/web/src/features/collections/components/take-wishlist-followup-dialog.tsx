@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DialogForm } from "@/components/ui/dialog-form";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { useRemoveListEntry, useUpdateListEntry } from "@/features/lists/hooks/use-lists";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface TakeWishlistFollowUpDialogProps {
@@ -62,12 +63,9 @@ export function TakeWishlistFollowUpDialog({
           });
     });
     const message = m.collections_dialog_take_wishlist_updated({ count: chosen.length });
-    try {
-      await Promise.all(updates);
+    if (await runReportedMutation(() => Promise.all(updates))) {
       toast.success(message);
       onOpenChange(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   };
 

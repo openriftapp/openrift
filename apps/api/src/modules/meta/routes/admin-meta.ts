@@ -6,14 +6,18 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { implement } from "@orpc/server";
 
 import { conflict } from "../../../errors.js";
-import { assertExisted, assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
+import {
+  assertExisted,
+  assertFound,
+  assertSlugAvailable,
+  conflictOnUniqueViolation,
+} from "../../../lib/assertions.js";
 import {
   PLAYLOLTCG_PROVIDER,
   PLAYRIFTBOUND_PROVIDER,
   TOPDECK_PROVIDER,
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
-import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertKnownFormat, validateFormatConfig } from "../../decks/lib/deck-format-validation.js";
@@ -135,15 +139,8 @@ const ADMIN_META_EVENT_PAGE_SIZE = 50;
  * `list` on write bodies: absent leaves it alone, an object sets it, null clears it.
  * Archived decks are created here, not through the deck builder, and stamp the synthetic owner and public flag inside the repo's transaction.
  */
-async function rejectTakenEventSlug<T>(slug: string, write: () => Promise<T>): Promise<T> {
-  try {
-    return await write();
-  } catch (error) {
-    if (isUniqueViolationOn(error, "uq_meta_events_slug")) {
-      throw conflict(`Event "${slug}" already exists`);
-    }
-    throw error;
-  }
+function rejectTakenEventSlug<T>(slug: string, write: () => Promise<T>): Promise<T> {
+  return conflictOnUniqueViolation("uq_meta_events_slug", `Event "${slug}" already exists`, write);
 }
 
 export const adminMetaRouter = {

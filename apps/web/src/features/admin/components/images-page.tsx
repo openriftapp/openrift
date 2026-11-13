@@ -4,7 +4,7 @@ import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { pluralize } from "@openrift/shared/strings";
 import type { RehostImageResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -59,9 +59,7 @@ function MutationStatus({
 }: {
   mutation: {
     isSuccess: boolean;
-    isError: boolean;
     data?: RehostImageResponse;
-    error?: Error | null;
   };
   label: string;
 }) {
@@ -88,14 +86,6 @@ function MutationStatus({
           </ul>
         )}
       </div>
-    );
-  }
-  if (mutation.isError) {
-    return (
-      <p className="text-muted-foreground flex items-center gap-1 text-sm">
-        <XIcon className="text-destructive size-4 shrink-0" />
-        {mutation.error?.message}
-      </p>
     );
   }
   return null;
@@ -138,7 +128,7 @@ function SimpleMutationResult<T>({
   mutation,
   renderSuccess,
 }: {
-  mutation: { isSuccess: boolean; isError: boolean; data?: T; error?: Error | null };
+  mutation: { isSuccess: boolean; data?: T };
   renderSuccess: (data: T) => React.ReactNode;
 }) {
   if (mutation.isSuccess && mutation.data) {
@@ -146,14 +136,6 @@ function SimpleMutationResult<T>({
       <p className="text-muted-foreground flex items-center gap-1 text-sm">
         <CheckIcon className="text-success size-4 shrink-0" />
         {renderSuccess(mutation.data)}
-      </p>
-    );
-  }
-  if (mutation.isError) {
-    return (
-      <p className="text-muted-foreground flex items-center gap-1 text-sm">
-        <XIcon className="text-destructive size-4 shrink-0" />
-        {mutation.error?.message}
       </p>
     );
   }
@@ -318,26 +300,8 @@ function ManageSection() {
           <ErrorsList errors={migrateMutation.data.errors} />
         </div>
       )}
-      {migrateMutation.isError && (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <XIcon className="text-destructive size-4 shrink-0" />
-          {migrateMutation.error?.message}
-        </p>
-      )}
 
       <MutationStatus mutation={rehostMutation} label="rehost" />
-      {regenMutation.isError && (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <XIcon className="text-destructive size-4 shrink-0" />
-          {regenMutation.error?.message}
-        </p>
-      )}
-      {cancelRegenMutation.isError && (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <XIcon className="text-destructive size-4 shrink-0" />
-          {cancelRegenMutation.error?.message}
-        </p>
-      )}
 
       {cleanupMutation.isSuccess && cleanupMutation.data && (
         <div>
@@ -349,12 +313,6 @@ function ManageSection() {
           />
           <ErrorsList errors={cleanupMutation.data.errors} />
         </div>
-      )}
-      {cleanupMutation.isError && (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <XIcon className="text-destructive size-4 shrink-0" />
-          {cleanupMutation.error?.message}
-        </p>
       )}
     </SettingsSection>
   );
@@ -516,12 +474,6 @@ function BrokenImagesSection() {
           </p>
           <ErrorsList errors={refetchMutation.data.errors} />
         </div>
-      )}
-      {refetchMutation.isError && (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <XIcon className="text-destructive size-4 shrink-0" />
-          {refetchMutation.error?.message}
-        </p>
       )}
       <BySetList
         groups={[...bySet.entries()]}

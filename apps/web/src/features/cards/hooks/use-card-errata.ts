@@ -87,6 +87,7 @@ const uploadErrataFn = createServerFn({ method: "POST" })
 
 export function useUploadErrata() {
   return useMutationWithInvalidation({
+    meta: { inlineError: true },
     mutationFn: (payload: BulkErrataUploadBody) => uploadErrataFn({ data: payload }),
     invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });

@@ -9,6 +9,10 @@ export const adminKeys = {
   reviewQueue: ["admin", "review-queue"] as const,
   workspace: ["admin", "workspace"] as const,
   workspaceQueue: ["admin", "workspace", "queue"] as const,
+  workspaceQueueFor: (owner: string) => ["admin", "workspace", "queue", owner] as const,
+  workspaceHistory: (target: object) => ["admin", "workspace", "history", target] as const,
+  workspaceUploads: ["admin", "workspace", "uploads"] as const,
+  workspaceDecisions: (since: string) => ["admin", "workspace", "decisions", since] as const,
   workspaceSameDifference: (params: {
     provider: string;
     field: string;
@@ -18,7 +22,10 @@ export const adminKeys = {
   workspaceRecords: Object.assign(
     (params: { kind: string; q?: string; limit?: number; cursor?: string }) =>
       ["admin", "workspace", "records", params] as const,
-    { prefix: ["admin", "workspace", "records"] as const },
+    {
+      prefix: ["admin", "workspace", "records"] as const,
+      infinite: (input: object) => ["admin", "workspace", "records", "infinite", input] as const,
+    },
   ),
   cards: {
     all: ["admin", "cards"] as const,
@@ -40,6 +47,8 @@ export const adminKeys = {
       (printingId: string) => ["admin", "printing-desk", "printing", printingId] as const,
       { prefix: ["admin", "printing-desk", "printing"] as const },
     ),
+    printingSide: (printingId: string, side: number) =>
+      ["admin", "printing-desk", "printing", printingId, side] as const,
   },
   audit: {
     events: (filters: { actorUserId?: string; action?: string; search?: string }) =>
@@ -111,6 +120,7 @@ export const adminKeys = {
     }) => ["admin", "meta", "events", "list", params] as const,
     eventSearch: (search: string) => ["admin", "meta", "events", "search", search] as const,
     event: (eventId: string) => ["admin", "meta", "events", eventId] as const,
+    eventDrift: (eventId: string) => ["admin", "meta", "events", eventId, "drift"] as const,
     eventPlayers: (eventId: string) => ["admin", "meta", "events", eventId, "players"] as const,
     eventSources: (eventId: string) => ["admin", "meta", "events", eventId, "sources"] as const,
     eventSourceStates: (eventId: string) =>

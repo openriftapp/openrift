@@ -21,6 +21,7 @@ import {
   batchOutcomeText,
   useWorkspaceBatch,
 } from "@/features/catalog-workspace/hooks/use-workspace-batch";
+import { errorText } from "@/lib/error-text";
 
 const CONFIRM_TITLES: Record<BatchKind, string> = {
   "trusted-cards": "Accept trusted new cards",
@@ -108,7 +109,7 @@ function BatchDialog({
         )}
         {run.error !== null && (
           <p role="alert" className="text-destructive text-sm">
-            {run.error.message}
+            {errorText(run.error, "The batch failed")}
           </p>
         )}
         <DialogFooter>

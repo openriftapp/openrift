@@ -5,7 +5,7 @@
   "footer_privacy_policy": "隱私權政策",
   "footer_support_us": "支持我們",
   "footer_developers": "開發者",
-  "footer_riot_disclaimer": "OpenRift 是依照 Riot Games 的「Legal Jibber Jabber」政策，使用 Riot Games 擁有的素材所製作。Riot Games 並未認可或贊助本專案。連往 TCGPlayer、CardTrader 與 CardNexus 的連結為聯盟連結。",
+  "footer_riot_disclaimer": "OpenRift 是依照 Riot Games 的「Legal Jibber Jabber」政策，使用 Riot Games 擁有的素材所製作。Riot Games 並未認可或贊助本專案。連往 TCGplayer、CardTrader 與 CardNexus 的連結為聯盟連結。",
   "footer_unofficial_instance": "這是 OpenRift 的自架副本，並非由 OpenRift 團隊營運。官方網站請前往 {#link}openrift.app{/link}。",
   "locale_switcher_label": "語言",
   "profile_account_title": "帳號資訊",
@@ -13,9 +13,6 @@
   "profile_account_name_label": "名稱",
   "profile_account_name_placeholder": "你的名稱",
   "profile_account_name_updated": "名稱已更新。",
-  "profile_account_name_error_required": "請輸入名稱。",
-  "profile_account_name_error_max": "名稱不得超過 50 個字元。",
-  "profile_account_name_error_charset": "名稱只能包含字母、數字、空格、句點、底線與連字號。",
   "profile_account_save_failed": "無法儲存，請再試一次。",
   "profile_account_riot_label": "Riot ID",
   "profile_account_riot_description": "會自動填入你的賽事牌組清單。",
@@ -594,7 +591,6 @@
   "auth_reset_code_intro": "請輸入寄送至 {#strong}{email}{/strong} 的 6 位數驗證碼與你的新密碼。",
   "auth_reset_new_password_label": "新密碼",
   "auth_reset_confirm_password_label": "確認密碼",
-  "auth_reset_password_too_short": "密碼至少需要 8 個字元。",
   "auth_reset_password_mismatch": "兩次輸入的密碼不一致。",
   "auth_reset_failed": "無法重設密碼，請再試一次。",
   "auth_reset_resetting": "重設中…",
@@ -668,6 +664,46 @@
   ],
   "cards_wish_on_your_list": "在你的願望清單上",
   "cards_wish_on_your_lists": "在你的願望清單上",
+  "cards_holdings_lent": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已借給 {name} {count} 張",
+        "countPlural=*": "已借給 {name} {count} 張"
+      }
+    }
+  ],
+  "cards_holdings_borrowed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "從 {name} 借來 {count} 張",
+        "countPlural=*": "從 {name} 借來 {count} 張"
+      }
+    }
+  ],
+  "cards_holdings_trade_outgoing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · 送出 {count} 張",
+        "countPlural=*": "{label} · 送出 {count} 張"
+      }
+    }
+  ],
+  "cards_holdings_trade_incoming": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label} · 收到 {count} 張",
+        "countPlural=*": "{label} · 收到 {count} 張"
+      }
+    }
+  ],
   "cards_wish_on_your_lists_wanted": "{lists}，想要 {count} 張",
   "cards_wish_on_your_lists_count": "{lists}（{count}）",
   "cards_wish_open_list": "開啟 {name}",
@@ -1609,7 +1645,7 @@
   "collections_copies_notes_private_hint_group": "這張實體卡在社團收藏裡，所以社團中的每個人都看得到。永遠不會顯示在公開分享頁面上。",
   "collections_copies_links_label": "照片與影片",
   "collections_copies_link_title_placeholder": "標籤",
-  "collections_copies_network_error": "無法連線到伺服器。請檢查你的網路連線。",
+  "common_network_error": "無法連線到伺服器。請檢查你的網路連線。",
   "collections_copies_trade_cancel_stopped": "為保留你的交換，已在處理 {total} 張中的 {done} 張後停止。其餘卡牌保持不變。",
   "collections_copies_signed_out": "登出狀態下無法加入實體卡",
   "collections_copies_quick_scope_move": "移動",
@@ -1683,6 +1719,16 @@
   "collections_reorder_aria": "重新排序 {label}",
   "collections_copy_edit_aria": "{title}。編輯實體卡詳細資料。",
   "collections_copy_graded_title": "評級 {grader} {grade}",
+  "collections_copies_with_details": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張有詳細資訊的卡",
+        "countPlural=*": "{count} 張有詳細資訊的卡"
+      }
+    }
+  ],
   "collections_import_needs_review": "需要確認",
   "collections_deck_import_cards_section": "卡牌",
   "collections_import_dialog_title": "匯入卡牌",
@@ -7669,7 +7715,6 @@
   "meta_archived_decks_heading": "已封存的牌組清單",
   "meta_archived_decks_empty_legend": "這張傳奇的紀錄中沒有任何牌組清單落在此範圍內。",
   "meta_archived_decks_empty_player": "這位玩家的紀錄中沒有任何牌組清單落在此範圍內。",
-  "meta_deck_code_warning": "牌組代碼漏掉了一些卡牌。",
   "meta_deck_preview_sideboard": "備牌 {count}",
   "meta_deck_preview_actions": "牌組清單操作",
   "meta_deck_preview_copy_code": "複製牌組代碼",

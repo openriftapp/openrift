@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
 import { AuthFormCard } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
+import { OTP_LENGTH } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
 import { routeTemplate, trackSignupComplete } from "@/lib/analytics";
 import { otpErrorMessage } from "@/lib/auth-errors";
@@ -28,7 +29,7 @@ export function VerifyEmailPage() {
   const [error, setError] = useState("");
 
   async function handleVerify(code: string) {
-    if (code.length < 6) {
+    if (code.length < OTP_LENGTH) {
       return;
     }
     setVerifying(true);
@@ -88,7 +89,7 @@ export function VerifyEmailPage() {
         <Field>
           <Button
             className="w-full"
-            disabled={otp.length < 6 || verifying}
+            disabled={otp.length < OTP_LENGTH || verifying}
             onClick={() => void handleVerify(otp)}
           >
             {verifying ? m.auth_verify_verifying() : m.auth_verify_submit()}

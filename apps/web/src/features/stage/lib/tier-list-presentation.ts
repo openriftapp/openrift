@@ -1,3 +1,4 @@
+import { clampRevealCount } from "@openrift/shared/overlay-scale";
 import type { TierRow } from "@openrift/shared/types/api/tier-list";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 
@@ -71,7 +72,7 @@ export function boardRevealCount({
   if (!reveal) {
     return total;
   }
-  return Math.min(Math.max(index, 0), Math.max(total, 0));
+  return clampRevealCount(index, total);
 }
 
 // `count` stops are placed; the card at the current index is deliberately not

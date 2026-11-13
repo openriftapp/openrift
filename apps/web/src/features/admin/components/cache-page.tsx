@@ -11,9 +11,7 @@ import { Code } from "@/components/ui/code";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { JobRunStatusLine } from "@/features/admin/components/job-run-status-line";
 import { useCacheStatus, usePurgeCache } from "@/features/admin/hooks/use-cache-purge";
-import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
-import { useRecomputeCardTokens } from "@/features/admin/hooks/use-recompute-card-tokens";
-import { useRefreshMatviews } from "@/features/admin/hooks/use-refresh-matviews";
+import { useStartJob } from "@/features/admin/hooks/use-start-job";
 import { useClearSsrCache } from "@/features/admin/hooks/use-status";
 
 /**
@@ -33,14 +31,8 @@ export function CachePage() {
   const { data } = useCacheStatus();
   const purge = usePurgeCache();
   const clearSsrCache = useClearSsrCache();
-  const refreshMatviews = useRefreshMatviews();
-  const recomputeCardTokens = useRecomputeCardTokens();
-  const matviewsRun = useLatestJobRun(JOB_KIND.refreshMatviews);
-  const cardTokensRun = useLatestJobRun(JOB_KIND.recomputeCardTokens);
-
-  const matviewsRunning = refreshMatviews.isPending || matviewsRun.data?.status === "running";
-  const cardTokensRunning =
-    recomputeCardTokens.isPending || cardTokensRun.data?.status === "running";
+  const matviews = useStartJob(JOB_KIND.refreshMatviews, "Materialized view refresh");
+  const cardTokens = useStartJob(JOB_KIND.recomputeCardTokens, "Card token pass");
 
   return (
     <div className="flex flex-col gap-8">
@@ -68,17 +60,15 @@ export function CachePage() {
         <div>
           <Button
             variant="outline"
-            onClick={() =>
-              refreshMatviews.mutate(undefined, { onSuccess: () => void matviewsRun.refetch() })
-            }
-            pending={matviewsRunning}
+            onClick={() => void matviews.start()}
+            pending={matviews.running}
           >
             <RefreshCwIcon className="size-4" />
             Refresh materialized views
           </Button>
         </div>
-        {matviewsRun.data && (
-          <JobRunStatusLine run={matviewsRun.data} succeededText="Materialized views refreshed" />
+        {matviews.latestRun && (
+          <JobRunStatusLine run={matviews.latestRun} succeededText="Materialized views refreshed" />
         )}
       </SettingsSection>
 
@@ -89,21 +79,17 @@ export function CachePage() {
         <div>
           <Button
             variant="outline"
-            onClick={() =>
-              recomputeCardTokens.mutate(undefined, {
-                onSuccess: () => void cardTokensRun.refetch(),
-              })
-            }
-            pending={cardTokensRunning}
+            onClick={() => void cardTokens.start()}
+            pending={cardTokens.running}
           >
             <RefreshCwIcon className="size-4" />
             Re-derive card tokens
           </Button>
         </div>
-        {cardTokensRun.data && (
+        {cardTokens.latestRun && (
           <JobRunStatusLine
-            run={cardTokensRun.data}
-            succeededText={cardTokensSucceededText(cardTokensRun.data.result)}
+            run={cardTokens.latestRun}
+            succeededText={cardTokensSucceededText(cardTokens.latestRun.result)}
           />
         )}
       </SettingsSection>

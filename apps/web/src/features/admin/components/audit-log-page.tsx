@@ -1,5 +1,4 @@
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
-import { formatDayTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
 import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
@@ -9,6 +8,7 @@ import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-
 import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
 import { TextLink } from "@/components/ui/text-link";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
@@ -42,17 +42,6 @@ function ChangeValue({ value }: { value: string | null }) {
     >
       <span className="break-all">{value}</span>
     </Disclosure>
-  );
-}
-
-function WhenCell({ row: event }: AdminCellSlotProps<AdminAuditEventResponse>) {
-  if (!event) {
-    return null;
-  }
-  return (
-    <span className="font-mono text-sm" title={event.createdAt}>
-      {formatDayTime(event.createdAt)}
-    </span>
   );
 }
 
@@ -186,7 +175,11 @@ export function AuditLogPage() {
       <AdminTable
         layout="fixed"
         columns={[
-          { header: "When", width: "w-40", cell: <WhenCell /> },
+          {
+            header: "When",
+            width: "w-40",
+            cell: <InstantCell<AdminAuditEventResponse> at={(row) => row.createdAt} />,
+          },
           { header: "Actor", width: "w-40", cell: <ActorCell /> },
           { header: "Action", width: "w-52", cell: <ActionCell /> },
           { header: "Entity", width: "w-56", cell: <EntityCell /> },

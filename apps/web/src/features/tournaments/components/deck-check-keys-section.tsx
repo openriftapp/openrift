@@ -36,6 +36,7 @@ import {
   useRevokeMyDeckCheckKey,
   useRevokeOrgDeckCheckKey,
 } from "@/features/tournaments/hooks/use-deck-check-keys";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface KeyActions {
@@ -224,22 +225,16 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
   const revoked = apiKey.revokedAt !== null;
 
   async function handleRevoke() {
-    try {
-      await actions.revoke(apiKey.id);
+    if (await runReportedMutation(() => actions.revoke(apiKey.id))) {
       setConfirmOpen(false);
       toast.success(m.profile_deck_check_toast_revoked());
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 
   async function handleRemove() {
-    try {
-      await actions.remove(apiKey.id);
+    if (await runReportedMutation(() => actions.remove(apiKey.id))) {
       setRemoveOpen(false);
       toast.success(m.profile_deck_check_toast_removed());
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

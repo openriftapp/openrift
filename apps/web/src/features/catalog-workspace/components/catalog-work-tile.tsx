@@ -24,6 +24,7 @@ import {
   visibleQueueItems,
 } from "@/features/catalog-workspace/lib/owner-items";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import { formatCount } from "@/lib/format";
 
 function OwnerLink({
   owner,
@@ -123,7 +124,7 @@ export function CatalogWorkTile() {
               >
                 <span className="text-sm font-medium">{OWNER_LABELS[owner]}</span>
                 <span className="font-heading text-2xl font-bold">
-                  {(counts.open + counts.new).toLocaleString()}
+                  {formatCount(counts.open + counts.new)}
                 </span>
                 <span className="text-muted-foreground text-xs">
                   {stats.decisions} decisions · {counts.new} new

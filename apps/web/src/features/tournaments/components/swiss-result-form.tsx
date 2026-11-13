@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { swissPointsPreview, swissResultPresets } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 interface SwissResultFormProps {
@@ -60,11 +61,9 @@ export function SwissResultForm({
       ...side1.map((member) => ({ playerId: member.playerId, gamePoints: chosen.gamePoints[0] })),
       ...side2.map((member) => ({ playerId: member.playerId, gamePoints: chosen.gamePoints[1] })),
     ];
-    try {
+    await runReportedMutation(async () => {
       await onSubmit(results);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+    });
   }
 
   if (!side1 || !side2 || groups.length !== 2) {

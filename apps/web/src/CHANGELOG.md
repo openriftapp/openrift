@@ -28,6 +28,10 @@
 - fix(Cards): **Close an empty detail panel** — the card detail panel has its close button before you pick a card too.
 - fix(Cards): **Owned buttons stay under the toolbar** — the plus and minus buttons next to "Owned" in a card's details no longer show through the toolbar when you scroll.
 - fix(App): **Bad links recover** — a mistyped filter or page number in a link loads the page with defaults.
+- fix(App): **Readable connection errors** — when an action cannot reach the server, the message says so on every page.
+- fix(Cards): **Lent and traded copies in your language** — the lines about lent, borrowed and traded copies on a card are translated.
+- fix(Contribute): **One error message** — a failed correction or image upload shows its error once, next to the form.
+- fix(Account): **Stricter email check** — the sign-in, email change and password reset forms reject an incomplete address before sending.
 
 ## 2026-11-12
 

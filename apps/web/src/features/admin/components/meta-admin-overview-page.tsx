@@ -4,15 +4,9 @@ import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import { getRouteApi, Link } from "@tanstack/react-router";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import { ArchiveJobsCard } from "@/features/admin/components/meta-archive-jobs-card";
 import { HealthCard } from "@/features/admin/components/meta-health-card";
 import type { SourcedAlert } from "@/features/admin/components/meta-health-card";
@@ -48,6 +42,7 @@ import {
   sourceTone,
 } from "@/features/admin/lib/meta-source-overview";
 import { useMountedAt } from "@/hooks/use-mounted-at";
+import { formatCount } from "@/lib/format";
 import { summarizeRunResult } from "@/lib/job-run-display";
 import { cn } from "@/lib/utils";
 
@@ -87,116 +82,149 @@ function NotApplicable() {
   return <span className="text-muted-foreground">n/a</span>;
 }
 
-function SourceRow({
-  source,
-  status,
-  alertIds,
-  now,
-}: {
+interface SourceOverviewRow {
   source: MetaSource;
   status: MetaSyncStatus | undefined;
   alertIds: string[];
   now: Date;
-}) {
-  const name = (
-    <Link
-      from="/admin/meta"
-      to="/admin/meta"
-      search={(prev) => ({ ...prev, detail: source })}
-      className="font-medium hover:underline"
-    >
-      {META_SOURCE_LABELS[source]}
-    </Link>
-  );
-  if (status === undefined) {
-    return (
-      <TableRow>
-        <TableCell>{name}</TableCell>
-        <TableCell colSpan={7} className="text-muted-foreground">
-          Loading…
-        </TableCell>
-      </TableRow>
-    );
-  }
-  const { catalog, archive, runs, schedules } = status;
-  const refresh = refreshCell(
-    latestRun(runs, refreshKind(source)),
-    schedules[refreshKind(source)] === true,
-    now,
-  );
-  const collects = collectKind(source) !== null;
-  const overdue = overdueOf(catalog, now);
-  const newest = newestRun(runs);
+}
 
+type SourceCellProps = AdminCellSlotProps<SourceOverviewRow>;
+
+function SourceNameCell({ row }: SourceCellProps) {
+  if (!row) {
+    return null;
+  }
   return (
-    <TableRow>
-      <TableCell>
-        <span className="flex items-center gap-2">
-          <MetaToneDot tone={sourceTone(alertIds, runs, source)} />
-          {name}
-        </span>
-      </TableCell>
-      <TableCell className="max-w-56 whitespace-normal">
-        <MetaRunCellView cell={refresh} />
-      </TableCell>
-      <TableCell>
-        <div className="tabular-nums">{archive.events.toLocaleString()}</div>
+    <span className="flex items-center gap-2">
+      {row.status !== undefined && (
+        <MetaToneDot tone={sourceTone(row.alertIds, row.status.runs, row.source)} />
+      )}
+      <Link
+        from="/admin/meta"
+        to="/admin/meta"
+        search={(prev) => ({ ...prev, detail: row.source })}
+        className="font-medium hover:underline"
+      >
+        {META_SOURCE_LABELS[row.source]}
+      </Link>
+    </span>
+  );
+}
+
+function RefreshCell({ row }: SourceCellProps) {
+  if (!row) {
+    return null;
+  }
+  if (row.status === undefined) {
+    return <span className="text-muted-foreground">Loading…</span>;
+  }
+  const { runs, schedules } = row.status;
+  return (
+    <MetaRunCellView
+      cell={refreshCell(
+        latestRun(runs, refreshKind(row.source)),
+        schedules[refreshKind(row.source)] === true,
+        row.now,
+      )}
+    />
+  );
+}
+
+function PublishedCell({ row }: SourceCellProps) {
+  if (!row || row.status === undefined) {
+    return null;
+  }
+  const { archive } = row.status;
+  return (
+    <>
+      <div className="tabular-nums">{formatCount(archive.events)}</div>
+      <div className="text-muted-foreground text-xs">
+        +{formatCount(archive.addedLast7Days)} in 7 days
+      </div>
+    </>
+  );
+}
+
+function NotStartedCell({ row }: SourceCellProps) {
+  if (!row || row.status === undefined) {
+    return null;
+  }
+  const { catalog } = row.status;
+  return (
+    <>
+      <div className="tabular-nums">{formatCount(catalog.notStarted)}</div>
+      {catalog.firstStartAt !== null && (
         <div className="text-muted-foreground text-xs">
-          +{archive.addedLast7Days.toLocaleString()} in 7 days
+          first {formatDayTime(catalog.firstStartAt)}
         </div>
-      </TableCell>
-      <TableCell>
-        <div className="tabular-nums">{catalog.notStarted.toLocaleString()}</div>
-        {catalog.firstStartAt !== null && (
-          <div className="text-muted-foreground text-xs">
-            first {formatDayTime(catalog.firstStartAt)}
-          </div>
+      )}
+    </>
+  );
+}
+
+function CollectingCell({ row }: SourceCellProps) {
+  if (!row || row.status === undefined) {
+    return null;
+  }
+  if (collectKind(row.source) === null) {
+    return <NotApplicable />;
+  }
+  return <span className="tabular-nums">{formatCount(row.status.catalog.collecting)}</span>;
+}
+
+function OverdueCell({ row }: SourceCellProps) {
+  if (!row || row.status === undefined) {
+    return null;
+  }
+  if (collectKind(row.source) === null) {
+    return <NotApplicable />;
+  }
+  const { catalog } = row.status;
+  const overdue = overdueOf(catalog, row.now);
+  return (
+    <>
+      <div
+        className={cn(
+          "tabular-nums",
+          overdue.behind ? "text-warning font-semibold" : "text-muted-foreground",
         )}
-      </TableCell>
-      <TableCell>
-        {collects ? (
-          <span className="tabular-nums">{catalog.collecting.toLocaleString()}</span>
-        ) : (
-          <NotApplicable />
-        )}
-      </TableCell>
-      <TableCell>
-        {collects ? (
-          <>
-            <div
-              className={cn(
-                "tabular-nums",
-                overdue.behind ? "text-warning font-semibold" : "text-muted-foreground",
-              )}
-            >
-              {overdue.count.toLocaleString()}
-            </div>
-            <div className="text-muted-foreground text-xs">
-              {overdue.behind && overdue.oldestAt !== null
-                ? `oldest ${formatRelativeTime(overdue.oldestAt, { now })}`
-                : catalog.nextCheckAt === null
-                  ? ""
-                  : `next ${formatDayTime(catalog.nextCheckAt)}`}
-            </div>
-          </>
-        ) : (
-          <NotApplicable />
-        )}
-      </TableCell>
-      <TableCell className="max-w-56 whitespace-normal">
-        {newest === undefined ? (
-          <span className="text-muted-foreground">No runs yet</span>
-        ) : (
-          <MetaRunCellView
-            cell={lastRunCell(source, newest, now)}
-            title={metaJobLabel(newest.kind)}
-          />
-        )}
-      </TableCell>
-      <TableCell className="text-right">
-        <MetaRunMenu source={source} runs={runs} pendingTriage={status.counts.new} />
-      </TableCell>
-    </TableRow>
+      >
+        {formatCount(overdue.count)}
+      </div>
+      <div className="text-muted-foreground text-xs">
+        {overdue.behind && overdue.oldestAt !== null
+          ? `oldest ${formatRelativeTime(overdue.oldestAt, { now: row.now })}`
+          : catalog.nextCheckAt === null
+            ? ""
+            : `next ${formatDayTime(catalog.nextCheckAt)}`}
+      </div>
+    </>
+  );
+}
+
+function LastRunCell({ row }: SourceCellProps) {
+  if (!row || row.status === undefined) {
+    return null;
+  }
+  const newest = newestRun(row.status.runs);
+  if (newest === undefined) {
+    return <span className="text-muted-foreground">No runs yet</span>;
+  }
+  return (
+    <MetaRunCellView
+      cell={lastRunCell(row.source, newest, row.now)}
+      title={metaJobLabel(newest.kind)}
+    />
+  );
+}
+
+function SourceRunMenu({ row }: SourceCellProps) {
+  if (!row || row.status === undefined) {
+    return null;
+  }
+  return (
+    <MetaRunMenu source={row.source} runs={row.status.runs} pendingTriage={row.status.counts.new} />
   );
 }
 
@@ -303,13 +331,13 @@ export function MetaAdminOverviewPage() {
       <section aria-label="Needs a decision" className="grid gap-3 sm:grid-cols-2">
         <DecisionCard
           title="Review"
-          count={`${reviewCount.toLocaleString()}${corrections.data?.hasMore === true ? "+" : ""}`}
+          count={`${formatCount(reviewCount)}${corrections.data?.hasMore === true ? "+" : ""}`}
           caption="Contributor corrections, uploaded standings and decklists, and event changes"
           target={{ tab: "review" }}
         />
         <DecisionCard
           title="Needs a decision"
-          count={needsDecision.toLocaleString()}
+          count={formatCount(needsDecision)}
           caption="Past events that pass the auto-publish rule and have results, not published"
           target={{
             tab: "catalogue",
@@ -329,33 +357,26 @@ export function MetaAdminOverviewPage() {
           )}
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Source</TableHead>
-                <TableHead>Mirror refresh</TableHead>
-                <TableHead>Published</TableHead>
-                <TableHead>Not started</TableHead>
-                <TableHead>Collecting results</TableHead>
-                <TableHead>Overdue</TableHead>
-                <TableHead>Last run</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {SOURCES.map((source) => (
-                <SourceRow
-                  key={source}
-                  source={source}
-                  status={queries[source].data}
-                  alertIds={(alertsBySource.get(source) ?? []).map((alert) => alert.id)}
-                  now={now}
-                />
-              ))}
-            </TableBody>
-          </Table>
+          <AdminTable
+            bare
+            columns={[
+              { header: "Source", cell: <SourceNameCell /> },
+              { header: "Mirror refresh", width: "max-w-56", wrap: true, cell: <RefreshCell /> },
+              { header: "Published", cell: <PublishedCell /> },
+              { header: "Not started", cell: <NotStartedCell /> },
+              { header: "Collecting results", cell: <CollectingCell /> },
+              { header: "Overdue", cell: <OverdueCell /> },
+              { header: "Last run", width: "max-w-56", wrap: true, cell: <LastRunCell /> },
+            ]}
+            data={SOURCES.map((source) => ({
+              source,
+              status: queries[source].data,
+              alertIds: (alertsBySource.get(source) ?? []).map((alert) => alert.id),
+              now,
+            }))}
+            getRowKey={(row) => row.source}
+            actions={<SourceRunMenu />}
+          />
         </CardContent>
       </Card>
 

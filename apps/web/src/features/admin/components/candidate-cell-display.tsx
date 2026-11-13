@@ -1,17 +1,10 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
+
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import type { FieldDef } from "@/features/admin/components/candidate-field-defs";
 import { resolveLabel } from "@/features/admin/components/candidate-field-defs";
-import { hasValue } from "@/features/admin/lib/candidate-cell-values";
 import { FilterIcon } from "@/features/cards/components/filter-icon";
 import type { DiffSegment } from "@/lib/text-diff";
-
-export const DIFF_FIELDS = new Set([
-  "rulesText",
-  "effectText",
-  "printedRulesText",
-  "printedEffectText",
-  "flavorText",
-]);
 
 export function DiffText({
   segments,
@@ -49,7 +42,7 @@ export function DiffText({
 export function renderLabeledValue(field: FieldDef, value: unknown): React.ReactNode {
   const label = resolveLabel(field, value);
   const iconCategory = field.iconCategory;
-  if (!iconCategory || !hasValue(value)) {
+  if (!iconCategory || !hasFieldValue(value)) {
     return label;
   }
   const values = Array.isArray(value) ? value.map(String) : [String(value)];

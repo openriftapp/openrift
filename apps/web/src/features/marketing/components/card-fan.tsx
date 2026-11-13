@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";
+import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +99,7 @@ function FanCard({
             <div
               ref={innerRef}
               style={{
-                borderRadius: "5% / 3.6%",
+                borderRadius: CARD_BORDER_RADIUS,
                 transform:
                   "perspective(1000px) rotateX(var(--foil-rotate-x, 0deg)) rotateY(var(--foil-rotate-y, 0deg))",
                 transformStyle: "preserve-3d",

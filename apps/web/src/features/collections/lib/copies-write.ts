@@ -7,6 +7,7 @@ import {
   definedCopyMetadataFields,
   normalizeCopyMetadataPatch,
 } from "@openrift/shared/copy-metadata";
+import { toError } from "@openrift/shared/strings";
 import type {
   CollectionResponse,
   CopyMetadataPatch,
@@ -32,6 +33,7 @@ import {
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { mutationTag } from "@/lib/mutation-metadata";
 import { watchForRefetchRace } from "@/lib/refetch-race";
+import { sendInBatches } from "@/lib/send-in-batches";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { UserDeclinedError } from "@/lib/user-declined-error";
 import { TimeoutError, withTimeout } from "@/lib/with-timeout";
@@ -120,7 +122,7 @@ export async function waitForInsert(
   if (entry) {
     const failure = await entry.settled;
     if (!entry.confirmed) {
-      throw failure instanceof Error ? failure : new Error(String(failure));
+      throw toError(failure);
     }
   }
   return collection.get(row.id) ?? row;
@@ -140,30 +142,9 @@ export function updateCopyMetadata(
   });
 }
 
-// fetch throws a TypeError for offline/DNS/CORS failures; an abort throws
-// DOMException("AbortError") instead and must propagate untouched.
-function rethrowAsNetworkError(error: unknown): never {
-  if (error instanceof TypeError) {
-    // oxlint-disable-next-line unicorn/prefer-type-error -- this is a network failure, not a type check
-    throw new Error(m.collections_copies_network_error());
-  }
-  throw error;
-}
-
-async function requestOrNetworkError<T>(
-  request: (signal: AbortSignal) => Promise<T>,
-  signal: AbortSignal,
-): Promise<T> {
-  try {
-    return await request(signal);
-  } catch (error) {
-    return rethrowAsNetworkError(error);
-  }
-}
-
 function send<T>(label: string, request: (signal: AbortSignal) => Promise<T>): Promise<T> {
   const controller = new AbortController();
-  return withTimeout(requestOrNetworkError(request, controller.signal), {
+  return withTimeout(request(controller.signal), {
     label,
     abortController: controller,
   });
@@ -178,16 +159,6 @@ async function retryOnceOnTimeout<T>(attempt: () => Promise<T>): Promise<T> {
       throw error;
     }
     return await attempt();
-  }
-}
-
-async function inChunks<T>(
-  items: readonly T[],
-  size: number,
-  sendChunk: (chunk: T[]) => Promise<void>,
-): Promise<void> {
-  for (let start = 0; start < items.length; start += size) {
-    await sendChunk(items.slice(start, start + size));
   }
 }
 
@@ -275,7 +246,7 @@ async function persistInserts(
   const batchId = batchIds.size === 1 ? [...batchIds][0] : undefined;
   const pending = pendingInsertsOf(collection);
   try {
-    await inChunks(mutations, MAX_COPIES_PER_ADD, async (chunk) => {
+    await sendInBatches(mutations, MAX_COPIES_PER_ADD, async (chunk) => {
       const { items } = await retryOnceOnTimeout(() =>
         send(m.collections_copies_timeout_add(), (signal) =>
           browserApiOrpcClient(copiesContract).add(
@@ -369,7 +340,7 @@ async function persistUpdates(
 
   for (const [toCollectionId, copyIds] of moves) {
     const groupId = groupIdForCollection(context.queryClient, context.userId, toCollectionId);
-    await inChunks(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
+    await sendInBatches(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
       await sendConsented(consent, progress, (cancelTradeIds) =>
         send(m.collections_copies_timeout_move(), (signal) =>
           browserApiOrpcClient(copiesContract).move(
@@ -387,7 +358,7 @@ async function persistUpdates(
   }
 
   for (const { patch, copyIds } of patches.values()) {
-    await inChunks(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
+    await sendInBatches(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
       await send(m.collections_copies_timeout_update(), (signal) =>
         browserApiOrpcClient(copiesContract).update({ copyIds: chunk, patch }, { signal }),
       );
@@ -406,7 +377,7 @@ async function persistDeletes(
 ): Promise<void> {
   const consent = consentOf(mutations);
   const copyIds = mutations.map((mutation) => String(mutation.key));
-  await inChunks(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
+  await sendInBatches(copyIds, MAX_COPIES_PER_REQUEST, async (chunk) => {
     await sendConsented(consent, progress, (cancelTradeIds) =>
       send(m.collections_copies_timeout_dispose(), (signal) =>
         browserApiOrpcClient(copiesContract).dispose(

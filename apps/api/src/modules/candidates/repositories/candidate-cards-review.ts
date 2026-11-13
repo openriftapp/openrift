@@ -259,6 +259,38 @@ export function candidateReviewRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
+    async checkCandidateCards(
+      candidateCardIds: readonly string[],
+    ): Promise<{ updated: number; candidateCardIds: string[] }> {
+      if (candidateCardIds.length === 0) {
+        return { updated: 0, candidateCardIds: [] };
+      }
+      const ids = [...candidateCardIds];
+      const rows = await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: new Date() })
+        .where("id", "in", ids)
+        .where("checkedAt", "is", null)
+        .returning("id")
+        .execute();
+      const existing = await db
+        .selectFrom("candidateCards")
+        .select("id")
+        .where("id", "in", ids)
+        .execute();
+      return { updated: rows.length, candidateCardIds: existing.map((row) => row.id) };
+    },
+
+    async uncheckCandidateCards(candidateCardIds: readonly string[]): Promise<number> {
+      const rows = await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: null })
+        .where("id", "in", [...candidateCardIds])
+        .returning("id")
+        .execute();
+      return rows.length;
+    },
+
     uncheckCandidateCard(candidateCardId: string): Promise<UpdateResult> {
       return db
         .updateTable("candidateCards")

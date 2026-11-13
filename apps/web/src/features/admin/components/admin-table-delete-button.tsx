@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export interface AdminDeleteConfig<TData> {
   onDelete: (row: TData) => Promise<unknown>;
@@ -34,11 +35,7 @@ export function DeleteButton<TData>({
   }
 
   async function handleDelete() {
-    try {
-      await config.onDelete(row);
-    } catch {
-      // Reported by the global mutation toast.
-    }
+    await runReportedMutation(() => config.onDelete(row));
   }
 
   return (

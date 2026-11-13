@@ -1,8 +1,24 @@
 import { badRequest, conflict, notFound } from "../errors.js";
+import { isUniqueViolationOn } from "./pg-errors.js";
 
 export function assertFound<T>(value: T | null | undefined, message: string): asserts value is T {
   if (value === null || value === undefined) {
     throw notFound(message);
+  }
+}
+
+export async function conflictOnUniqueViolation<T>(
+  constraintName: string,
+  message: string,
+  write: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await write();
+  } catch (error) {
+    if (isUniqueViolationOn(error, constraintName)) {
+      throw conflict(message);
+    }
+    throw error;
   }
 }
 

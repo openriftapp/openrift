@@ -21,6 +21,7 @@ import {
   buildCandidateCardFields,
   buildCandidatePrintingFields,
   buildNewCardFields,
+  isValidOption,
 } from "@/features/admin/components/candidate-field-defs";
 import {
   useCheckAllCandidatePrintings,
@@ -213,30 +214,6 @@ export function sortByProviderOrder(providerSettings: ProviderSettingResponse[])
   };
 }
 
-function candidateHasValue(value: unknown): boolean {
-  if (value === null || value === undefined || value === "") {
-    return false;
-  }
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-  return true;
-}
-
-function isValidFieldOption(field: FieldDef, value: unknown): boolean {
-  if (field.labeledOptions) {
-    return Array.isArray(value)
-      ? value.every((v) => field.labeledOptions?.some((o) => o.value === String(v)))
-      : field.labeledOptions.some((o) => o.value === String(value));
-  }
-  if (field.options) {
-    return Array.isArray(value)
-      ? value.every((v) => field.options?.includes(String(v)))
-      : field.options.includes(String(value));
-  }
-  return true;
-}
-
 // cardFieldsSchema minus id (collected separately); pre-seeding stays limited to
 // these so Active never fills with fields the accept endpoint would strip.
 const ACCEPT_CARD_FIELD_KEYS = new Set(
@@ -273,11 +250,11 @@ export function foldedFieldKeys<TKey extends string>(
     const activeValue = activeRow ? activeRow[field.key] : null;
     const disagrees = rows.some((row) => {
       const value = (row as unknown as Record<string, unknown>)[field.key];
-      if (!candidateHasValue(value)) {
+      if (!hasFieldValue(value)) {
         return false;
       }
       // An unusable value has to stay on screen even though it is never applied.
-      if (hasDropdownOptions(field) && !isValidFieldOption(field, value)) {
+      if (hasDropdownOptions(field) && !isValidOption(field, value)) {
         return true;
       }
       const normalized = normalizeCandidate ? normalizeCandidate(field.key, value) : value;
@@ -311,7 +288,7 @@ export function unknownOptionValues(
     }
     for (const candidate of candidates) {
       const value = (candidate as unknown as Record<string, unknown>)[field.key];
-      if (!candidateHasValue(value) || isValidFieldOption(field, value)) {
+      if (!hasFieldValue(value) || isValidOption(field, value)) {
         continue;
       }
       const provider = providerLabels[candidate.candidateCardId] ?? "";
@@ -348,10 +325,10 @@ export function buildPreseededActiveCard(
     }
     for (const source of sorted) {
       const value = (source as unknown as Record<string, unknown>)[field.key];
-      if (!candidateHasValue(value)) {
+      if (!hasFieldValue(value)) {
         continue;
       }
-      if (hasDropdownOptions(field) && !isValidFieldOption(field, value)) {
+      if (hasDropdownOptions(field) && !isValidOption(field, value)) {
         continue;
       }
       seed[field.key] = value;
@@ -393,10 +370,10 @@ export function buildPreseededActivePrinting(
     }
     for (const source of sorted) {
       const value = (source as unknown as Record<string, unknown>)[field.key];
-      if (!candidateHasValue(value)) {
+      if (!hasFieldValue(value)) {
         continue;
       }
-      if (hasDropdownOptions(field) && !isValidFieldOption(field, value)) {
+      if (hasDropdownOptions(field) && !isValidOption(field, value)) {
         continue;
       }
       seed[field.key] = value;
@@ -405,14 +382,14 @@ export function buildPreseededActivePrinting(
   }
 
   const finishField = fields.find((field) => field.key === "finish");
-  const inferredFinish = candidateHasValue(seed.finish)
+  const inferredFinish = hasFieldValue(seed.finish)
     ? null
     : resolveFinish(null, typeof seed.rarity === "string" ? seed.rarity : null);
   if (
     inferredFinish !== null &&
     (finishField === undefined ||
       !hasDropdownOptions(finishField) ||
-      isValidFieldOption(finishField, inferredFinish))
+      isValidOption(finishField, inferredFinish))
   ) {
     seed.finish = inferredFinish;
   }
@@ -426,7 +403,7 @@ export function buildPreseededActivePrinting(
     if (!favoriteProviders.has(providerOf(source))) {
       continue;
     }
-    if (candidateHasValue(source.imageUrl)) {
+    if (hasFieldValue(source.imageUrl)) {
       seed.imageUrl = source.imageUrl;
       break;
     }
@@ -435,7 +412,7 @@ export function buildPreseededActivePrinting(
   // Printed year: fall back to the set's release year when no source supplied
   // one. Sets reach each language on their own date, so the printing's own
   // language wins; the set's earliest release is the fallback.
-  if (!candidateHasValue(seed.printedYear) && typeof seed.setId === "string") {
+  if (!hasFieldValue(seed.printedYear) && typeof seed.setId === "string") {
     const year = setReleaseYear(
       setReleaseYears,
       seed.setId,

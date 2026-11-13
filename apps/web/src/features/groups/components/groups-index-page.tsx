@@ -46,6 +46,7 @@ import type { GroupSuggestionStrip } from "@/features/groups/lib/trade-derivatio
 import { groupSuggestionStripsBySlug } from "@/features/groups/lib/trade-derivation";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { markdownTeaser } from "@/lib/markdown-teaser";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -130,12 +131,13 @@ function CreateGroupDialog({
       description: description.trim() || null,
       generateCode,
     };
-    try {
-      const group = await createGroup.mutateAsync(payload);
+    let group: Awaited<ReturnType<typeof createGroup.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      group = await createGroup.mutateAsync(payload);
+    });
+    if (ok && group) {
       onOpenChange(false);
       onCreated({ slug: group.slug, name: trimmedName });
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

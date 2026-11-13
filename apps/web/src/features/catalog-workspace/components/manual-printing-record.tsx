@@ -48,6 +48,7 @@ import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order"
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/workspace/printings/create");
 
@@ -59,16 +60,6 @@ const IMAGE_SCOPE = [
   cardsKeys.all,
   promosKeys.all,
 ] as const;
-
-type Settled<T> = { ok: true; value: T } | { ok: false; error: unknown };
-
-async function settle<T>(promise: Promise<T>): Promise<Settled<T>> {
-  try {
-    return { ok: true, value: await promise };
-  } catch (error) {
-    return { ok: false, error };
-  }
-}
 
 function StepTitle({ step, children }: { step: number; children: ReactNode }) {
   return (
@@ -170,7 +161,7 @@ function DraftEditor({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const createPrinting = useCreateDeskPrinting();
+  const createPrinting = useCreateDeskPrinting({ inlineError: true });
   const uploadImage = useUploadPrintingImage(IMAGE_SCOPE);
   const [draft, setDraft] = useState(initialDraft);
   const [pending, setPending] = useState(false);
@@ -201,21 +192,26 @@ function DraftEditor({
     }
     setPending(true);
     setError(null);
-    const created = await settle(createPrinting.mutateAsync(toDeskCreateInput(draft)));
-    if (!created.ok) {
+    let created: Awaited<ReturnType<typeof createPrinting.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(
+      async () => {
+        created = await createPrinting.mutateAsync(toDeskCreateInput(draft));
+      },
+      (failure) => setError(errorText(failure, "Could not create the printing.")),
+    );
+    if (!ok || !created) {
       setPending(false);
-      setError(errorText(created.error, "Could not create the printing."));
       return;
     }
-    const { printingId } = created.value;
+    const { printingId } = created;
     setCreatedId(printingId);
     const failed: string[] = [];
     for (const upload of plannedImageUploads(draft)) {
       if (upload.image.kind !== "file") {
         continue;
       }
-      const result = await settle(uploadOne(printingId, upload, upload.image.file));
-      if (!result.ok) {
+      const file = upload.image.file;
+      if (!(await runReportedMutation(() => uploadOne(printingId, upload, file)))) {
         failed.push(draftImageLabel(upload.image));
       }
     }

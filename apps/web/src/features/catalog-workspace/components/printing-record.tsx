@@ -69,6 +69,7 @@ import {
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
+import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
@@ -97,7 +98,6 @@ import {
   ADMIN_ONLY_DISCARD,
   ADMIN_ONLY_REPLY,
   discardLabel,
-  formatSuggestionValue,
   primaryLabel,
   submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
@@ -261,9 +261,6 @@ function PrintingRecordBody({
     field: ComparablePrintingField,
     suggestion: Extract<PrintingChip, { kind: "field" }>["suggestion"],
   ): string {
-    if (field === "announcedAt" && typeof suggestion.proposed === "string") {
-      return formatDay(suggestion.proposed);
-    }
     if (field === "releasedAt" && typeof suggestion.proposed === "string") {
       const release = parseReleaseInput(suggestion.proposed, suggestion.candidate.releasePrecision);
       return release === null ? suggestion.proposed : formatReleasePeriod(release);
@@ -274,7 +271,7 @@ function PrintingRecordBody({
         precision: suggestion.proposed as ReleasePrecision,
       });
     }
-    return formatSuggestionValue(field, suggestion.proposed, labels);
+    return formatCatalogFieldValue(field, suggestion.proposed, labels);
   }
 
   function chipsFor(field: ComparablePrintingField): ReactNode {
@@ -421,7 +418,7 @@ function PrintingRecordBody({
         <div>
           <FieldRow
             label="Channel"
-            value={formatSuggestionValue(
+            value={formatCatalogFieldValue(
               "distributionChannelSlugs",
               printing.distributionChannelSlugs,
               labels,
@@ -432,14 +429,16 @@ function PrintingRecordBody({
           />
           <FieldRow
             label="Size"
-            value={formatSuggestionValue("size", printing.size, labels)}
+            value={formatCatalogFieldValue("size", printing.size, labels)}
             onEdit={editOf("size")}
             editing={editorOf("size")}
             suggestions={chipsFor("size")}
           />
           <FieldRow
             label="Announced on"
-            value={printing.announcedAt === null ? "Not set" : formatDay(printing.announcedAt)}
+            value={
+              printing.announcedAt === null ? EMPTY_VALUE_TEXT : formatDay(printing.announcedAt)
+            }
             onEdit={editOf("announced")}
             editing={editorOf("announced")}
             suggestions={chipsFor("announcedAt")}
@@ -454,7 +453,9 @@ function PrintingRecordBody({
           <FieldRow
             label="Comment"
             value={
-              printing.comment === null || printing.comment.length === 0 ? "None" : printing.comment
+              printing.comment === null || printing.comment.length === 0
+                ? EMPTY_VALUE_TEXT
+                : printing.comment
             }
             onEdit={editOf("comment")}
             editing={editorOf("comment")}

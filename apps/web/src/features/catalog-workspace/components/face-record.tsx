@@ -40,6 +40,7 @@ import { useDeskCardPrintings, useDeskPrinting } from "@/features/admin/hooks/us
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { printingPairName } from "@/features/admin/lib/face-rows";
+import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { FaceCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
@@ -70,7 +71,6 @@ import {
   ADMIN_ONLY_REPLY,
   buildFaceSuggestions,
   discardLabel,
-  formatSuggestionValue,
   primaryLabel,
   submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
@@ -217,7 +217,7 @@ function ReviewFaceRecord({
           subtitle={[
             formatPrintingCode(face.publicCode),
             face.language,
-            formatSuggestionValue("finish", face.finish, labels),
+            formatCatalogFieldValue("finish", face.finish, labels),
           ].join(" · ")}
           actions={
             <>
@@ -317,7 +317,7 @@ function ReviewFaceRecord({
               <FieldRow
                 key={field}
                 label={PRINTING_FIELD_LABELS[field]}
-                value={formatSuggestionValue(
+                value={formatCatalogFieldValue(
                   field,
                   (face as unknown as Record<string, unknown>)[field],
                   labels,
@@ -336,7 +336,7 @@ function ReviewFaceRecord({
                               sourceLabel={
                                 suggestion.isContributor ? "Contributor" : suggestion.provider
                               }
-                              value={formatSuggestionValue(field, suggestion.proposed, labels)}
+                              value={formatCatalogFieldValue(field, suggestion.proposed, labels)}
                               hotkey={hotkeyOf(chip.key)}
                               pending={actions.pending}
                               onUse={() => void actions.applyChip(chip)}
@@ -580,11 +580,11 @@ function DeskFaceBody({
     { label: "Set", value: face.setName },
     {
       label: "Finish · Language",
-      value: `${formatSuggestionValue("finish", face.finish, labels)} · ${face.language}`,
+      value: `${formatCatalogFieldValue("finish", face.finish, labels)} · ${face.language}`,
     },
-    { label: "Rarity", value: formatSuggestionValue("rarity", face.rarity, labels) },
-    { label: "Markers", value: formatSuggestionValue("markerSlugs", face.markerSlugs, labels) },
-    { label: "Artist", value: formatSuggestionValue("artist", face.artist, labels) },
+    { label: "Rarity", value: formatCatalogFieldValue("rarity", face.rarity, labels) },
+    { label: "Markers", value: formatCatalogFieldValue("markerSlugs", face.markerSlugs, labels) },
+    { label: "Artist", value: formatCatalogFieldValue("artist", face.artist, labels) },
   ];
 
   return (

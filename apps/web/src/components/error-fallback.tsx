@@ -1,3 +1,4 @@
+import { toError } from "@openrift/shared/strings";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { rootRouteId, useMatch } from "@tanstack/react-router";
 
@@ -10,7 +11,7 @@ const SHELL_LESS_ROUTE_IDS = new Set<string>([rootRouteId, "/_app"]);
 
 export function RouterErrorFallback({ error }: ErrorComponentProps) {
   const routeId = useMatch({ strict: false, shouldThrow: false, select: (match) => match.routeId });
-  const normalizedError = error instanceof Error ? error : new Error(String(error));
+  const normalizedError = toError(error);
   if (typeof document === "undefined") {
     // SSR has no onCaughtError; in the browser client.tsx reports this with the
     // hydration phase, and a second capture here would win Sentry's dedupe.

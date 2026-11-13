@@ -1,3 +1,4 @@
+import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type { MetaEventFieldEdits } from "@openrift/shared/types/api/meta";
 
 interface MetaEventCorrectionRow {
@@ -31,7 +32,7 @@ const FIELDS: { field: keyof MetaEventFieldEdits; label: string }[] = [
 const EMPTY = "—";
 
 function display(value: string | number | null | undefined): string {
-  return value === null || value === undefined || value === "" ? EMPTY : String(value);
+  return hasFieldValue(value) ? String(value) : EMPTY;
 }
 
 /**

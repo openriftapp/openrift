@@ -3,6 +3,7 @@ import {
   MAX_COPIES_PER_TRADE_CANCEL_CHECK,
 } from "@openrift/shared/contracts/copies";
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
+import { toError } from "@openrift/shared/strings";
 import type {
   CopyListMembershipsResponse,
   CopyMetadataPatch,
@@ -279,7 +280,7 @@ async function commitBatch(
   try {
     await transaction.commit();
   } catch (error) {
-    reportMutationError(error instanceof Error ? error : new Error(String(error)), queryClient);
+    reportMutationError(toError(error), queryClient);
     callbacks?.onBatchError?.(printingIds, error);
     return;
   }

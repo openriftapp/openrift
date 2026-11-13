@@ -24,6 +24,8 @@ import {
   useUpdateRuleVersion,
 } from "@/features/rules/hooks/use-rules";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
+import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface AdminRuleVersion {
   kind: RuleKind;
@@ -89,25 +91,24 @@ export function RulesImportPage() {
       documentVersion: documentVersion.trim() || undefined,
       content,
     };
-    try {
-      const response = await importMutation.mutateAsync(payload);
+    let response: Awaited<ReturnType<typeof importMutation.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      response = await importMutation.mutateAsync(payload);
+    });
+    if (ok && response) {
       setResult(response);
       setContent("");
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 
   async function handleDelete(entry: AdminRuleVersion) {
-    try {
-      await deleteMutation.mutateAsync({
+    await runReportedMutation(() =>
+      deleteMutation.mutateAsync({
         kind: entry.kind,
         language: entry.language,
         version: entry.version,
-      });
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+      }),
+    );
   }
 
   const canImport = version.trim() && content.trim() && !importMutation.isPending;
@@ -236,7 +237,7 @@ export function RulesImportPage() {
 
         {importMutation.isError && (
           <Alert variant="destructive">
-            <AlertDescription>{importMutation.error.message}</AlertDescription>
+            <AlertDescription>{errorText(importMutation.error, "Import failed")}</AlertDescription>
           </Alert>
         )}
       </div>
@@ -304,11 +305,8 @@ function VersionRow({
       label: draft.label.trim() || null,
       documentVersion: draft.documentVersion.trim() || null,
     };
-    try {
-      await updateMutation.mutateAsync(payload);
+    if (await runReportedMutation(() => updateMutation.mutateAsync(payload))) {
       setIsEditing(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 

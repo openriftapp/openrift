@@ -4,6 +4,7 @@ import type {
 } from "@openrift/shared/contracts/admin/job-schedules";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Logger } from "@openrift/shared/logger";
+import { errorMessage } from "@openrift/shared/strings";
 import { Cron } from "croner";
 
 import type { Repos } from "../../../deps.js";
@@ -73,10 +74,6 @@ export function requireScheduler(scheduler: JobScheduler | null): JobScheduler {
   return scheduler;
 }
 
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /**
  * Owns the croner timers for the scheduled jobs and the `job_schedules` rows
  * that decide which of them exist. A job with no row does not run at all.
@@ -138,7 +135,7 @@ export function createJobScheduler(deps: JobSchedulerDeps): JobScheduler {
     try {
       new Cron(schedule, { paused: true }).stop();
     } catch (error) {
-      throw badRequest(`Invalid cron expression: ${messageOf(error)}`);
+      throw badRequest(`Invalid cron expression: ${errorMessage(error)}`);
     }
   }
 

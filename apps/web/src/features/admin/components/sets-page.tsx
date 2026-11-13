@@ -15,30 +15,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
+import { DraftTextInput, SlugCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { AdminTable, AdminTableEmptyRow } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AdminCellSlotProps,
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
-import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import { CountBadge } from "@/features/admin/components/count-badge";
 import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
 import { LanguageSelect } from "@/features/admin/components/language-select";
 import { SetPicker } from "@/features/admin/components/set-picker";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
-import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
-import { parseSetDraft } from "@/features/admin/lib/set-draft";
+import { parseSetDraft, requireSetDraft, setReleasesUpdate } from "@/features/admin/lib/set-draft";
 import {
   useCreateSet,
   useDeleteSet,
@@ -53,13 +43,6 @@ interface SetDraft {
   name: string;
   printedTotal: string;
   setType: "main" | "supplemental";
-}
-
-function IdCell({ row }: AdminCellSlotProps<AdminSetResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono">{row.slug}</span>;
 }
 
 function NameCell({ row }: AdminCellSlotProps<AdminSetResponse>) {
@@ -172,7 +155,7 @@ const columns: AdminColumnDef<AdminSetResponse, SetDraft>[] = [
   {
     header: "ID",
     width: "w-28",
-    cell: <IdCell />,
+    cell: <SlugCell<AdminSetResponse> />,
     addCell: <DraftTextInput<SetDraft> field="id" placeholder="ID" className="font-mono" />,
   },
   {
@@ -239,29 +222,157 @@ interface ReleaseRow {
   release: SetRelease;
 }
 
-interface ReleaseLanguageGroup {
+interface ReleaseDraft {
+  setId: string;
   language: string;
-  rows: ReleaseRow[];
 }
 
-function toReleaseGroups(sets: AdminSetResponse[]): ReleaseLanguageGroup[] {
-  const byLanguage = new Map<string, ReleaseRow[]>();
-  for (const set of sets) {
-    for (const language of Object.keys(set.releases).toSorted()) {
-      const rows = byLanguage.get(language) ?? [];
-      rows.push({
-        setId: set.id,
-        setSlug: set.slug,
-        language,
-        // Non-null: the key came from this map.
-        release: set.releases[language] as SetRelease,
-      });
-      byLanguage.set(language, rows);
-    }
+type WriteRelease = (setId: string, language: string, release: SetRelease) => void;
+
+function toReleaseRows(sets: AdminSetResponse[]): ReleaseRow[] {
+  return sets
+    .flatMap((set) =>
+      Object.keys(set.releases)
+        .toSorted()
+        .map((language) => ({
+          setId: set.id,
+          setSlug: set.slug,
+          language,
+          release: set.releases[language] as SetRelease,
+        })),
+    )
+    .toSorted((a, b) => a.language.localeCompare(b.language));
+}
+
+function ReleaseSetCell({ row }: AdminCellSlotProps<ReleaseRow>) {
+  if (!row) {
+    return null;
   }
-  return [...byLanguage]
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .map(([language, rows]) => ({ language, rows }));
+  return <span className="font-mono">{row.setSlug}</span>;
+}
+
+function ReleaseLanguageCell({ row }: AdminCellSlotProps<ReleaseRow>) {
+  if (!row) {
+    return null;
+  }
+  return <span className="text-muted-foreground font-mono">{row.language}</span>;
+}
+
+function ReleaseDateCell({
+  row,
+  write,
+  resetKey,
+}: AdminCellSlotProps<ReleaseRow> & { write?: WriteRelease; resetKey?: number }) {
+  if (!row || !write) {
+    return null;
+  }
+  return (
+    <DatePicker
+      key={resetKey}
+      value={row.release.releasedAt}
+      onValueChange={(iso) =>
+        write(row.setId, row.language, {
+          releasedAt: iso,
+          precision: row.release.precision ?? "day",
+        })
+      }
+      onClear={() => write(row.setId, row.language, { releasedAt: null, precision: null })}
+      className="font-mono"
+    />
+  );
+}
+
+function ReleasePrecisionCell({
+  row,
+  write,
+}: AdminCellSlotProps<ReleaseRow> & { write?: WriteRelease }) {
+  if (!row || !write) {
+    return null;
+  }
+  return (
+    <DatePrecisionControl
+      includeQuarter
+      value={row.release.precision ?? "day"}
+      disabled={row.release.releasedAt === null}
+      onChange={(precision) =>
+        write(row.setId, row.language, { releasedAt: row.release.releasedAt, precision })
+      }
+    />
+  );
+}
+
+function ReleaseShownCell({ row }: AdminCellSlotProps<ReleaseRow>) {
+  if (!row) {
+    return null;
+  }
+  return (
+    <Badge variant={isReleased(row.release) ? "default" : "secondary"}>
+      {formatReleasePeriod(row.release)}
+    </Badge>
+  );
+}
+
+function RemoveReleaseAction({
+  row,
+  remove,
+}: AdminCellSlotProps<ReleaseRow> & { remove?: (setId: string, language: string) => void }) {
+  if (!row || !remove) {
+    return null;
+  }
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="text-destructive"
+      aria-label={`Remove the ${row.language} release of ${row.setSlug}`}
+      onClick={() => remove(row.setId, row.language)}
+    >
+      <Trash2Icon className="size-4" />
+    </Button>
+  );
+}
+
+function ReleaseSetInput({ draft, setDraft }: AdminDraftSlotProps<ReleaseDraft>) {
+  if (!draft || !setDraft) {
+    return null;
+  }
+  return (
+    <SetPicker
+      value={draft.setId}
+      onChange={(setId) => setDraft((prev) => ({ ...prev, setId, language: "" }))}
+      placeholder="Set"
+      className="w-44"
+    />
+  );
+}
+
+function ReleaseLanguageInput({
+  draft,
+  setDraft,
+  sets,
+}: AdminDraftSlotProps<ReleaseDraft> & { sets?: AdminSetResponse[] }) {
+  const languages = useLanguageList();
+  if (!draft || !setDraft || !sets) {
+    return null;
+  }
+  const taken = sets.find((set) => set.id === draft.setId)?.releases ?? {};
+  return (
+    <LanguageSelect
+      label="Language"
+      placeholder="Language"
+      className="w-32"
+      languages={languages.filter((language) => !(language.code in taken))}
+      value={draft.language}
+      onChange={(language) => setDraft((prev) => ({ ...prev, language }))}
+    />
+  );
+}
+
+function AddedUndatedNote({ draft }: AdminDraftSlotProps<ReleaseDraft>) {
+  if (!draft) {
+    return null;
+  }
+  return <span className="text-muted-foreground text-sm">Added as undated</span>;
 }
 
 /**
@@ -270,24 +381,19 @@ function toReleaseGroups(sets: AdminSetResponse[]): ReleaseLanguageGroup[] {
  */
 function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
   const updateMutation = useUpdateSet();
-  const languages = useLanguageList();
-  const [addSetId, setAddSetId] = useState("");
-  const [addLanguage, setAddLanguage] = useState("");
-
-  const groups = toReleaseGroups(sets);
+  const addMutation = useUpdateSet({ inlineError: true });
   const setsById = new Map(sets.map((set) => [set.id, set]));
+
+  const [lastAddedSetId, setLastAddedSetId] = useState("");
+  const [failedWrites, setFailedWrites] = useState(0);
 
   function saveReleases(setId: string, releases: SetReleases) {
     const set = setsById.get(setId);
     if (!set) {
       return;
     }
-    updateMutation.mutate({
-      id: set.id,
-      name: set.name,
-      printedTotal: set.printedTotal ?? 0,
-      releases,
-      setType: set.setType,
+    updateMutation.mutate(setReleasesUpdate(set, releases), {
+      onError: () => setFailedWrites((count) => count + 1),
     });
   }
 
@@ -297,6 +403,17 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
       return;
     }
     saveReleases(setId, { ...set.releases, [language]: normalizeToPeriodStart(release) });
+  }
+
+  function addedRelease(draft: ReleaseDraft) {
+    const set = setsById.get(draft.setId);
+    if (!set) {
+      throw new Error("Pick a set");
+    }
+    return setReleasesUpdate(set, {
+      ...set.releases,
+      [draft.language]: { releasedAt: null, precision: null },
+    });
   }
 
   function removeRelease(setId: string, language: string) {
@@ -311,14 +428,6 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
     );
   }
 
-  const takenLanguages = new Set(
-    groups
-      .flatMap((group) => group.rows.filter((row) => row.setId === addSetId))
-      .map((row) => row.language),
-  );
-  const addableLanguages = languages.filter((language) => !takenLanguages.has(language.code));
-  const canAdd = addSetId !== "" && addLanguage !== "";
-
   return (
     <div className="space-y-3">
       <div>
@@ -329,122 +438,56 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
           known, and clear the date for a language that is announced without one.
         </p>
       </div>
-      <div className={ADMIN_TABLE_SURFACE}>
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-24">Set</TableHead>
-              <TableHead className="w-44">Date</TableHead>
-              <TableHead>Precision</TableHead>
-              <TableHead className="w-32">Shown as</TableHead>
-              <TableHead className="w-24 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {groups.length === 0 && (
-              <AdminTableEmptyRow colSpan={5}>No release dates yet.</AdminTableEmptyRow>
-            )}
-            {groups.flatMap((group) => [
-              <AdminTableGroupRow key={group.language} colSpan={5}>
-                {group.language}
-              </AdminTableGroupRow>,
-              ...group.rows.map((row) => (
-                <TableRow key={`${row.setId}-${row.language}`}>
-                  <TableCell className="font-mono">{row.setSlug}</TableCell>
-                  <TableCell>
-                    <DatePicker
-                      value={row.release.releasedAt}
-                      onValueChange={(iso) =>
-                        writeRelease(row.setId, row.language, {
-                          releasedAt: iso,
-                          precision: row.release.precision ?? "day",
-                        })
-                      }
-                      onClear={() =>
-                        writeRelease(row.setId, row.language, { releasedAt: null, precision: null })
-                      }
-                      className="font-mono"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DatePrecisionControl
-                      includeQuarter
-                      value={row.release.precision ?? "day"}
-                      disabled={row.release.releasedAt === null}
-                      onChange={(precision) =>
-                        writeRelease(row.setId, row.language, {
-                          releasedAt: row.release.releasedAt,
-                          precision,
-                        })
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={isReleased(row.release) ? "default" : "secondary"}>
-                      {formatReleasePeriod(row.release)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      aria-label={`Remove the ${row.language} release of ${row.setSlug}`}
-                      onClick={() => removeRelease(row.setId, row.language)}
-                    >
-                      <Trash2Icon className="size-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )),
-            ])}
-            <TableRow>
-              <TableCell>
-                <SetPicker
-                  value={addSetId}
-                  onChange={setAddSetId}
-                  placeholder="Set"
-                  className="w-44"
-                />
-              </TableCell>
-              <TableCell>
-                <LanguageSelect
-                  label="Language"
-                  placeholder="Language"
-                  className="w-32"
-                  languages={addableLanguages}
-                  value={addLanguage}
-                  onChange={setAddLanguage}
-                />
-              </TableCell>
-              <TableCell colSpan={2} className="text-muted-foreground text-sm">
-                Added as undated. Set the date on the new row.
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!canAdd}
-                  onClick={() => {
-                    writeRelease(addSetId, addLanguage, { releasedAt: null, precision: null });
-                    setAddLanguage("");
-                  }}
-                >
-                  Add
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
+      <AdminTable<ReleaseRow, ReleaseDraft>
+        columns={[
+          {
+            header: "Set",
+            width: "w-24",
+            cell: <ReleaseSetCell />,
+            addCell: <ReleaseSetInput />,
+          },
+          {
+            header: "Language",
+            width: "w-32",
+            cell: <ReleaseLanguageCell />,
+            addCell: <ReleaseLanguageInput sets={sets} />,
+          },
+          {
+            header: "Date",
+            width: "w-44",
+            cell: <ReleaseDateCell write={writeRelease} resetKey={failedWrites} />,
+          },
+          {
+            header: "Precision",
+            cell: <ReleasePrecisionCell write={writeRelease} />,
+            addCell: <AddedUndatedNote />,
+          },
+          { header: "Shown as", width: "w-32", cell: <ReleaseShownCell /> },
+        ]}
+        data={toReleaseRows(sets)}
+        getRowKey={(row) => `${row.setId}-${row.language}`}
+        emptyText="No release dates yet."
+        groupBy={{ key: (row) => row.language, label: (language) => language }}
+        actions={<RemoveReleaseAction remove={removeRelease} />}
+        add={{
+          label: "Add release",
+          emptyDraft: { setId: lastAddedSetId, language: "" },
+          validate: (draft) =>
+            draft.setId === "" || draft.language === "" ? "Pick a set and a language" : null,
+          onSave: (draft) =>
+            addMutation.mutateAsync(addedRelease(draft), {
+              onSuccess: () => setLastAddedSetId(draft.setId),
+            }),
+        }}
+      />
     </div>
   );
 }
 
 export function SetsPage() {
   const { data } = useSets();
-  const updateMutation = useUpdateSet();
-  const createMutation = useCreateSet();
+  const updateMutation = useUpdateSet({ inlineError: true });
+  const createMutation = useCreateSet({ inlineError: true });
   const reorderMutation = useReorderSets();
   const deleteMutation = useDeleteSet();
   const { sets } = data;
@@ -486,13 +529,12 @@ export function SetsPage() {
             printedTotal: "",
             setType: WellKnown.setType.MAIN,
           },
-          onSave: (d) => {
-            const parsed = parseSetDraft(d);
-            if ("error" in parsed) {
-              throw new Error(parsed.error);
-            }
-            return createMutation.mutateAsync({ id: d.id.trim(), ...parsed, setType: d.setType });
-          },
+          onSave: (d) =>
+            createMutation.mutateAsync({
+              id: d.id.trim(),
+              ...requireSetDraft(d),
+              setType: d.setType,
+            }),
           validate: (d) => {
             if (!d.id.trim()) {
               return "ID is required";
@@ -509,18 +551,13 @@ export function SetsPage() {
             printedTotal: s.printedTotal === null ? "" : String(s.printedTotal),
             setType: s.setType,
           }),
-          onSave: (d) => {
-            const parsed = parseSetDraft(d);
-            if ("error" in parsed) {
-              throw new Error(parsed.error);
-            }
-            return updateMutation.mutateAsync({
+          onSave: (d) =>
+            updateMutation.mutateAsync({
               id: d.id,
-              ...parsed,
+              ...requireSetDraft(d),
               releases: releasesById.get(d.id) ?? {},
               setType: d.setType,
-            });
-          },
+            }),
           validate: (d) => {
             const parsed = parseSetDraft(d);
             return "error" in parsed ? parsed.error : null;

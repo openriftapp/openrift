@@ -32,6 +32,7 @@ import {
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const FORM_ID = "meta-event-form";
 
@@ -45,7 +46,7 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
   const { formats } = useDeckFormatList();
   const createEvent = useCreateMetaEvent();
   const updateEvent = useUpdateMetaEvent();
-  const writeOverlay = useWriteMetaEventOverlayFields();
+  const writeOverlay = useWriteMetaEventOverlayFields({ inlineError: true });
 
   const [draft, setDraft] = useState<MetaEventDraft>(() =>
     event ? metaEventToDraft(event) : { ...EMPTY_META_EVENT_DRAFT, format: formats[0]?.slug ?? "" },
@@ -76,16 +77,14 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
     }
     setFormError("");
     const body = metaEventDraftToBody(draft);
-    // The branch is resolved before the try: the compiler bails on a
-    // conditional inside one, and a `finally` is not lowerable either.
     const save = event ? () => saveEdit(event, body) : () => createEvent.mutateAsync(body);
     const successMessage = event ? `Updated "${body.name}"` : `Created "${body.name}"`;
-    try {
-      await save();
+    const saved = await runReportedMutation(save, (error) =>
+      setFormError(errorText(error, "Save failed")),
+    );
+    if (saved) {
       toast.success(successMessage);
       onClose();
-    } catch (error) {
-      setFormError(errorText(error, "Save failed"));
     }
   }
 

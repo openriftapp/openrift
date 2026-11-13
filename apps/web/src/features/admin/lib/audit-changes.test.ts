@@ -12,21 +12,21 @@ describe("formatAuditChanges", () => {
   it("covers the union of keys, with null for the missing side", () => {
     const changes = formatAuditChanges({ slug: "old-slug" }, { name: "New Name" });
     expect(changes).toEqual([
-      { field: "slug", from: "old-slug", to: null },
-      { field: "name", from: null, to: "New Name" },
+      { field: "slug", from: '"old-slug"', to: null },
+      { field: "name", from: null, to: '"New Name"' },
     ]);
   });
 
   it("handles create events (old null)", () => {
     expect(formatAuditChanges(null, { name: "Fireball", types: ["spell"] })).toEqual([
-      { field: "name", from: null, to: "Fireball" },
+      { field: "name", from: null, to: '"Fireball"' },
       { field: "types", from: null, to: '["spell"]' },
     ]);
   });
 
   it("handles delete events (new null)", () => {
     expect(formatAuditChanges({ slug: "gone" }, null)).toEqual([
-      { field: "slug", from: "gone", to: null },
+      { field: "slug", from: '"gone"', to: null },
     ]);
   });
 
@@ -34,12 +34,16 @@ describe("formatAuditChanges", () => {
     expect(formatAuditChanges(null, null)).toEqual([]);
   });
 
-  it("stringifies non-string values, keeping strings verbatim", () => {
-    const changes = formatAuditChanges({ reason: null, active: false }, { markerSlugs: ["promo"] });
+  it("prints every value as JSON, so an empty string differs from null", () => {
+    const changes = formatAuditChanges(
+      { reason: null, active: false },
+      { markerSlugs: ["promo"], comment: "" },
+    );
     expect(changes).toEqual([
       { field: "reason", from: "null", to: null },
       { field: "active", from: "false", to: null },
       { field: "markerSlugs", from: null, to: '["promo"]' },
+      { field: "comment", from: null, to: '""' },
     ]);
   });
 });

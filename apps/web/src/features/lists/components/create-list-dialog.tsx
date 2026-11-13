@@ -25,6 +25,7 @@ import { useShareListWithFriendGroup } from "@/features/groups/hooks/use-friend-
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -166,13 +167,11 @@ export function CreateListDialog({
 
   const finishCreate = async (list: ListResponse) => {
     const entries = initialEntries?.(kind) ?? [];
-    if (entries.length > 0) {
-      try {
-        await bulkAdd.mutateAsync({ listId: list.id, entries });
-      } catch {
-        /* Reported by the global mutation error toast. */
-        return;
-      }
+    if (
+      entries.length > 0 &&
+      !(await runReportedMutation(() => bulkAdd.mutateAsync({ listId: list.id, entries })))
+    ) {
+      return;
     }
     // allSettled: one group's share failing shouldn't block the others or the create.
     const selectedGroups = groups.filter((group) => selectedGroupIds.has(group.id));

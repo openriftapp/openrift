@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Kysely, Transaction } from "kysely";
 import { sql } from "kysely";
@@ -12,19 +13,11 @@ export const SYNC_MARKER_KEY = "dev.catalog-sync-source";
 
 type Trx = Transaction<Database>;
 
-function chunks<T>(rows: readonly T[]): T[][] {
-  const result: T[][] = [];
-  for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
-    result.push(rows.slice(start, start + CHUNK_SIZE));
-  }
-  return result;
-}
-
 async function insertChunked(trx: Trx, table: keyof Database, rows: readonly object[]) {
-  for (const chunk of chunks(rows)) {
+  for (const batch of chunk(rows, CHUNK_SIZE)) {
     await trx
       .insertInto(table)
-      .values(chunk as any)
+      .values(batch as any)
       .execute();
   }
 }
@@ -36,13 +29,13 @@ async function upsertChunked(
   conflict: readonly string[],
   keep: readonly string[] = [],
 ) {
-  for (const chunk of chunks(rows)) {
-    const columns = Object.keys(chunk[0] ?? {}).filter(
+  for (const batch of chunk(rows, CHUNK_SIZE)) {
+    const columns = Object.keys(batch[0] ?? {}).filter(
       (column) => !conflict.includes(column) && !keep.includes(column),
     );
     await trx
       .insertInto(table)
-      .values(chunk as any)
+      .values(batch as any)
       .onConflict((oc) => {
         const target = oc.columns(conflict as any);
         return columns.length === 0
@@ -64,10 +57,10 @@ async function replaceChildren(
   parentIds: readonly string[],
   rows: readonly object[],
 ) {
-  for (const chunk of chunks(parentIds)) {
+  for (const batch of chunk(parentIds, CHUNK_SIZE)) {
     await trx
       .deleteFrom(table)
-      .where(parentColumn as any, "in", chunk)
+      .where(parentColumn as any, "in", batch)
       .execute();
   }
   await insertChunked(trx, table, rows);
@@ -251,19 +244,19 @@ export async function writePricesSync(
       .execute();
     const plan = planPricesSync(rows, existing);
 
-    for (const chunk of chunks(plan.staleProductIds)) {
+    for (const batch of chunk(plan.staleProductIds, CHUNK_SIZE)) {
       await trx
         .deleteFrom("marketplaceProductVariants")
-        .where("marketplaceProductId", "in", chunk)
+        .where("marketplaceProductId", "in", batch)
         .execute();
-      await trx.deleteFrom("marketplaceProducts").where("id", "in", chunk).execute();
+      await trx.deleteFrom("marketplaceProducts").where("id", "in", batch).execute();
     }
 
     const productIds = new Map<string, string>();
-    for (const chunk of chunks(plan.products)) {
+    for (const batch of chunk(plan.products, CHUNK_SIZE)) {
       const written = await trx
         .insertInto("marketplaceProducts")
-        .values(chunk.map(({ skuKey: _skuKey, ...product }) => product))
+        .values(batch.map(({ skuKey: _skuKey, ...product }) => product))
         .onConflict((oc) =>
           oc
             .columns(["marketplace", "externalId", "finish", "language"])

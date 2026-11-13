@@ -1,3 +1,4 @@
+import { sleep } from "@openrift/shared/async";
 import { CheckIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -38,13 +39,6 @@ const GROUPS = {
 
 export const COMPOSED_GROUPS: readonly DesignGroup[] = Object.values(GROUPS);
 
-function wait(ms: number): Promise<void> {
-  // oxlint-disable-next-line promise/avoid-new -- wraps a callback-only timer
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 export function ComposedSection() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [nudgeVisible, setNudgeVisible] = useState(true);
@@ -71,7 +65,7 @@ export function ComposedSection() {
             pendingLabel="Deleting…"
             trigger={<Button variant="destructive" />}
             onConfirm={async () => {
-              await wait(800);
+              await sleep(800);
               toast("Deleted (demo only)");
             }}
           >

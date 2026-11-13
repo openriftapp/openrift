@@ -2,7 +2,7 @@ import type {
   MetaSourceFormat,
   MetaSourceTemplate,
 } from "@openrift/shared/contracts/admin/meta-catalog";
-import { formatDay, formatRelativeTime } from "@openrift/shared/format-date";
+import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { useState } from "react";
 
@@ -20,16 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
+import { CountCell, InstantCell } from "@/features/admin/components/admin-crud-shared";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   MetaSourceFormatInput,
   MetaSourceTemplateInput,
@@ -39,15 +33,17 @@ import {
   useMetaSourceFormats,
   useMetaSourceTemplates,
   useMetaSyncSettings,
-  useRunMetaSync,
+  useStartMetaJob,
   useUpdateMetaSourceFormat,
   useUpdateMetaSourceTemplate,
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
-import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
+import { parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { runningRunId } from "@/features/admin/lib/meta-catalog-display";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { formatCount } from "@/lib/format";
 
 const UNMAPPED = "__unmapped";
 
@@ -58,25 +54,61 @@ function tierItems() {
   ];
 }
 
-function TemplateRow({
-  template,
-  busy,
-  onUpdate,
-}: {
-  template: MetaSourceTemplate;
-  busy: boolean;
-  onUpdate: (input: MetaSourceTemplateInput) => void;
-}) {
-  const name = template.sourceName ?? template.templateId;
+interface TemplateCellProps extends AdminCellSlotProps<MetaSourceTemplate> {
+  busy?: boolean;
+  onUpdate?: (input: MetaSourceTemplateInput) => void;
+}
 
-  function toggleWatched(watched: boolean) {
-    onUpdate({ templateId: template.templateId, watched });
+function TemplateNameCell({ row: template }: AdminCellSlotProps<MetaSourceTemplate>) {
+  if (!template) {
+    return null;
   }
+  return (
+    <span className="font-medium">
+      {template.sourceName ?? (
+        <span className="text-muted-foreground font-mono text-xs">{template.templateId}</span>
+      )}
+    </span>
+  );
+}
 
+function SampleEventCell({ row: template }: AdminCellSlotProps<MetaSourceTemplate>) {
+  if (!template) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground block max-w-64 truncate">
+      {template.sampleEventName ?? EMPTY_VALUE_TEXT}
+    </span>
+  );
+}
+
+function AvgPlayersCell({ row: template }: AdminCellSlotProps<MetaSourceTemplate>) {
+  if (!template) {
+    return null;
+  }
+  if (template.avgPlayers === null) {
+    return <span className="text-muted-foreground">{EMPTY_VALUE_TEXT}</span>;
+  }
+  return (
+    <span
+      className="tabular-nums"
+      title={`Over ${formatCount(template.ranEventCount)} events that have run`}
+    >
+      {template.avgPlayers.toFixed(1)}
+    </span>
+  );
+}
+
+function TierCell({ row: template, busy = false, onUpdate }: TemplateCellProps) {
+  if (!template || !onUpdate) {
+    return null;
+  }
+  const name = template.sourceName ?? template.templateId;
   // BaseUI hands null when the open Select is dismissed without a pick; the
   // "Unmapped" item is the explicit clear, so null is not one.
   function setTier(value: string | null) {
-    if (value === null) {
+    if (value === null || !template || !onUpdate) {
       return;
     }
     onUpdate({
@@ -84,75 +116,49 @@ function TemplateRow({
       tier: value === UNMAPPED ? null : (value as MetaEventTier),
     });
   }
-
   return (
-    <TableRow>
-      <TableCell className="font-medium">
-        {template.sourceName ?? (
-          <span className="text-muted-foreground font-mono text-xs">{template.templateId}</span>
-        )}
-      </TableCell>
-      <TableCell>
-        <span className="text-muted-foreground block max-w-64 truncate">
-          {template.sampleEventName ?? "—"}
-        </span>
-      </TableCell>
-      <TableCell className="text-right tabular-nums">
-        {template.eventCount.toLocaleString()}
-      </TableCell>
-      <TableCell className="text-right tabular-nums">
-        {template.avgPlayers === null ? (
-          <span className="text-muted-foreground">—</span>
-        ) : (
-          <span title={`Over ${template.ranEventCount.toLocaleString()} events that have run`}>
-            {template.avgPlayers.toFixed(1)}
-          </span>
-        )}
-      </TableCell>
-      <TableCell>
-        <span
-          className="text-muted-foreground"
-          title={template.lastStartAt === null ? undefined : formatDay(template.lastStartAt)}
-        >
-          {template.lastStartAt === null ? "—" : formatRelativeTime(template.lastStartAt)}
-        </span>
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <SimpleSelect
-            items={tierItems()}
-            value={template.tier ?? UNMAPPED}
-            onChange={setTier}
-            label={`Tier for ${name}`}
-            size="sm"
-            disabled={busy}
-            className="w-36"
-          />
-          {template.tier === null && template.suggestedTier !== null && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              onClick={() => setTier(template.suggestedTier)}
-            >
-              Suggest: {metaEventTierLabels()[template.suggestedTier]}
-            </Button>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        <Switch
-          id={`meta-template-watched-${template.templateId}`}
-          checked={template.watched}
+    <div className="flex items-center gap-2">
+      <SimpleSelect
+        items={tierItems()}
+        value={template.tier ?? UNMAPPED}
+        onChange={setTier}
+        label={`Tier for ${name}`}
+        size="sm"
+        disabled={busy}
+        className="w-36"
+      />
+      {template.tier === null && template.suggestedTier !== null && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           disabled={busy}
-          onCheckedChange={toggleWatched}
-        />
-        <Label htmlFor={`meta-template-watched-${template.templateId}`} className="sr-only">
-          Watch {name}
-        </Label>
-      </TableCell>
-    </TableRow>
+          onClick={() => setTier(template.suggestedTier)}
+        >
+          Suggest: {metaEventTierLabels()[template.suggestedTier]}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function WatchedCell({ row: template, busy = false, onUpdate }: TemplateCellProps) {
+  if (!template || !onUpdate) {
+    return null;
+  }
+  const name = template.sourceName ?? template.templateId;
+  return (
+    <>
+      <Switch
+        id={`meta-template-watched-${template.templateId}`}
+        checked={template.watched}
+        disabled={busy}
+        onCheckedChange={(watched) => onUpdate({ templateId: template.templateId, watched })}
+      />
+      <Label htmlFor={`meta-template-watched-${template.templateId}`} className="sr-only">
+        Watch {name}
+      </Label>
+    </>
   );
 }
 
@@ -166,8 +172,9 @@ function PlayerFloorField() {
     setDraft(String(data.competitivePlayerFloor));
   }
 
-  const valid = /^\d+$/u.test(draft) && Number(draft) > 0;
-  const changed = data !== undefined && valid && Number(draft) !== data.competitivePlayerFloor;
+  const floor = parseIntegerInput(draft, 1);
+  const changed =
+    data !== undefined && typeof floor === "number" && floor !== data.competitivePlayerFloor;
 
   return (
     <div className="bg-muted/40 space-y-2 rounded-md border px-3 py-2">
@@ -192,12 +199,16 @@ function PlayerFloorField() {
           variant="outline"
           size="sm"
           disabled={!changed || update.isPending}
-          onClick={() => update.mutate({ competitivePlayerFloor: Number(draft) })}
+          onClick={() => {
+            if (typeof floor === "number") {
+              update.mutate({ competitivePlayerFloor: floor });
+            }
+          }}
         >
           Save floor
         </Button>
       </div>
-      {!valid && data !== undefined && (
+      {typeof floor !== "number" && data !== undefined && (
         <FieldError>Enter a whole number of players above zero.</FieldError>
       )}
     </div>
@@ -205,20 +216,9 @@ function PlayerFloorField() {
 }
 
 function RetierHint() {
-  const run = useRunMetaSync();
+  const run = useStartMetaJob();
   const { data } = useMetaArchiveJobs();
-  const running = runningRunId(data?.runs ?? [], "meta.retier") !== null;
-
-  async function start() {
-    let result;
-    try {
-      result = await run.mutateAsync({ trigger: "runRetier" });
-    } catch {
-      // Reported by the global mutation error toast.
-      return;
-    }
-    announceSyncTrigger("Reapply tier rules", result);
-  }
+  const running = runningRunId(data?.runs ?? [], JOB_KIND.metaRetier) !== null;
 
   return (
     <div className="bg-muted/40 flex flex-wrap items-center gap-3 rounded-md border px-3 py-2">
@@ -229,7 +229,7 @@ function RetierHint() {
         variant="outline"
         size="sm"
         disabled={run.isPending || running}
-        onClick={() => void start()}
+        onClick={() => void run.start("runRetier", "Reapply tier rules")}
       >
         {running ? "Reapplying…" : "Reapply tier rules"}
       </Button>
@@ -250,58 +250,72 @@ function TemplatesSection() {
         names.
       </p>
       <RetierHint />
-      <div className="overflow-x-auto">
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-60">Event type</TableHead>
-              <TableHead>Sample event</TableHead>
-              <TableHead className="w-20 text-right">Events</TableHead>
-              <TableHead className="w-24 text-right">Avg players</TableHead>
-              <TableHead className="w-28">Latest</TableHead>
-              <TableHead className="w-56">Counts as</TableHead>
-              <TableHead className="w-24">Watched</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {templates.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-muted-foreground h-20 text-center">
-                  {data === undefined
-                    ? "Loading the event types…"
-                    : "No event types yet. Refresh mirror reads them from the source."}
-                </TableCell>
-              </TableRow>
-            )}
-            {templates.map((template) => (
-              <TemplateRow
-                key={template.templateId}
-                template={template}
-                busy={update.isPending}
-                onUpdate={(input) => update.mutate(input)}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <AdminTable
+        columns={[
+          { header: "Event type", width: "w-60", cell: <TemplateNameCell /> },
+          { header: "Sample event", cell: <SampleEventCell /> },
+          {
+            header: "Events",
+            width: "w-20",
+            align: "right",
+            cell: <CountCell<MetaSourceTemplate> count={(template) => template.eventCount} />,
+          },
+          { header: "Avg players", width: "w-24", align: "right", cell: <AvgPlayersCell /> },
+          {
+            header: "Latest",
+            width: "w-28",
+            cell: (
+              <InstantCell<MetaSourceTemplate> at={(template) => template.lastStartAt} relative />
+            ),
+          },
+          {
+            header: "Counts as",
+            width: "w-56",
+            cell: <TierCell busy={update.isPending} onUpdate={(input) => update.mutate(input)} />,
+          },
+          {
+            header: "Watched",
+            width: "w-24",
+            cell: (
+              <WatchedCell busy={update.isPending} onUpdate={(input) => update.mutate(input)} />
+            ),
+          },
+        ]}
+        data={templates}
+        getRowKey={(template) => template.templateId}
+        emptyText={
+          data === undefined
+            ? "Loading the event types…"
+            : "No event types yet. Refresh mirror reads them from the source."
+        }
+      />
     </section>
   );
 }
 
-function FormatRow({
-  format,
+function SourceFormatCell({ row: format }: AdminCellSlotProps<MetaSourceFormat>) {
+  if (!format) {
+    return null;
+  }
+  return <span className="font-medium">{format.sourceFormat}</span>;
+}
+
+function FormatPickCell({
+  row: format,
   options,
-  busy,
+  busy = false,
   onUpdate,
-}: {
-  format: MetaSourceFormat;
-  options: { value: string; label: string }[];
-  busy: boolean;
-  onUpdate: (input: MetaSourceFormatInput) => void;
+}: AdminCellSlotProps<MetaSourceFormat> & {
+  options?: { value: string; label: string }[];
+  busy?: boolean;
+  onUpdate?: (input: MetaSourceFormatInput) => void;
 }) {
+  if (!format || !options || !onUpdate) {
+    return null;
+  }
   // A dismissed Select reports null; unmapping is the "Unmapped" item, not null.
   function pick(next: string | null) {
-    if (next === null) {
+    if (next === null || !format || !onUpdate) {
       return;
     }
     onUpdate({
@@ -309,25 +323,16 @@ function FormatRow({
       mappedFormat: next === UNMAPPED ? null : next,
     });
   }
-
   return (
-    <TableRow>
-      <TableCell className="font-medium">{format.sourceFormat}</TableCell>
-      <TableCell className="text-right tabular-nums">
-        {format.eventCount.toLocaleString()}
-      </TableCell>
-      <TableCell>
-        <SimpleSelect
-          items={options}
-          value={format.mappedFormat ?? UNMAPPED}
-          onChange={pick}
-          label={`Format for ${format.sourceFormat}`}
-          size="sm"
-          disabled={busy}
-          className="w-48"
-        />
-      </TableCell>
-    </TableRow>
+    <SimpleSelect
+      items={options}
+      value={format.mappedFormat ?? UNMAPPED}
+      onChange={pick}
+      label={`Format for ${format.sourceFormat}`}
+      size="sm"
+      disabled={busy}
+      className="w-48"
+    />
   );
 }
 
@@ -347,37 +352,33 @@ function FormatsSection() {
       <p className="text-muted-foreground text-sm">
         An event with an unmapped format never auto-publishes and needs a format pick to publish.
       </p>
-      <div className="overflow-x-auto">
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>At the source</TableHead>
-              <TableHead className="w-20 text-right">Events</TableHead>
-              <TableHead className="w-52">Ours</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {formats.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-muted-foreground h-20 text-center">
-                  {data === undefined
-                    ? "Loading the formats…"
-                    : "No mirrored event has a format yet."}
-                </TableCell>
-              </TableRow>
-            )}
-            {formats.map((format) => (
-              <FormatRow
-                key={format.sourceFormat}
-                format={format}
+      <AdminTable
+        columns={[
+          { header: "At the source", cell: <SourceFormatCell /> },
+          {
+            header: "Events",
+            width: "w-20",
+            align: "right",
+            cell: <CountCell<MetaSourceFormat> count={(format) => format.eventCount} />,
+          },
+          {
+            header: "Ours",
+            width: "w-52",
+            cell: (
+              <FormatPickCell
                 options={options}
                 busy={update.isPending}
                 onUpdate={(input) => update.mutate(input)}
               />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            ),
+          },
+        ]}
+        data={formats}
+        getRowKey={(format) => format.sourceFormat}
+        emptyText={
+          data === undefined ? "Loading the formats…" : "No mirrored event has a format yet."
+        }
+      />
     </section>
   );
 }

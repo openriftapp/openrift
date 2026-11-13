@@ -1,4 +1,4 @@
-import { DAY_MS, formatDay } from "@openrift/shared/format-date";
+import { shiftUtcDay, utcDayDiff } from "@openrift/shared/format-date";
 
 import type { Repos } from "../../../../deps.js";
 import { nameSimilarity } from "../meta-match-suggestions.js";
@@ -21,10 +21,6 @@ export interface SameStoreLiveEvent {
   organizer: string | null;
 }
 
-function dayOf(value: string): number {
-  return Date.parse(`${value}T00:00:00Z`);
-}
-
 /** One tournament listed on two platforms: the same store, within a day, under a similar name. */
 export function findSameStoreEvent<T extends SameStoreLiveEvent>(
   candidate: SameStoreCandidate,
@@ -34,11 +30,10 @@ export function findSameStoreEvent<T extends SameStoreLiveEvent>(
   if (store === null) {
     return undefined;
   }
-  const day = dayOf(candidate.eventDate);
   return live.find(
     (event) =>
       event.organizer !== null &&
-      Math.abs(dayOf(event.eventDate) - day) <= MAX_DAY_DELTA * DAY_MS &&
+      Math.abs(utcDayDiff(candidate.eventDate, event.eventDate) ?? Infinity) <= MAX_DAY_DELTA &&
       nameSimilarity(store, event.organizer) >= MIN_STORE_SIMILARITY &&
       nameSimilarity(candidate.name, event.name) >= MIN_NAME_SIMILARITY,
   );
@@ -56,11 +51,9 @@ export async function sameStoreLiveEvent(
   if (candidate.organizer === null) {
     return undefined;
   }
-  const day = dayOf(candidate.eventDate);
-  const shift = (days: number) => formatDay(new Date(day + days * DAY_MS));
   const rows = await repos.meta.eventsAtStoresOutside({
-    dateFrom: shift(-MAX_DAY_DELTA),
-    dateTo: shift(MAX_DAY_DELTA),
+    dateFrom: shiftUtcDay(candidate.eventDate, -MAX_DAY_DELTA),
+    dateTo: shiftUtcDay(candidate.eventDate, MAX_DAY_DELTA),
     provider,
   });
   return findSameStoreEvent(candidate, rows);

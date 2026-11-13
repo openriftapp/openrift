@@ -1,4 +1,5 @@
 import type { OverlayBoard } from "@openrift/shared/contracts/overlay";
+import { clampRevealCount } from "@openrift/shared/overlay-scale";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 
 import type { ResolvedTierRow } from "@/features/stage/lib/tier-list-presentation";
@@ -25,7 +26,7 @@ export function deriveOverlayBoardScene(
 ): OverlayBoardScene {
   const resolved = resolveTierRows(board.tiers, cardsById, printingsByCardId);
   const queue = tierRowsToQueue(resolved, board.direction);
-  const placed = Math.min(Math.max(board.revealCount, 0), queue.length);
+  const placed = clampRevealCount(board.revealCount, queue.length);
   const complete = placed >= queue.length;
 
   return {

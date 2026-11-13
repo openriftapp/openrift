@@ -17,6 +17,7 @@ import {
 } from "@/features/collections/components/collection-radio-picker";
 import { useCollections, useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { useTradeAddTargetStore } from "@/features/groups/stores/trade-add-target-store";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 // Changes where incoming trade copies land, and nothing else: the settle
@@ -63,22 +64,22 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
 
   const confirm = async () => {
     const newCollectionName = newName.trim() || m.trades_default_collection_name();
-    // Resolved up front: reading it inside the try would put an optional chain
-    // in a try body, which the React Compiler bails on.
-    const picked = collections.find((collection) => collection.id === selectedId);
-    const pickedName = picked ? picked.name : newCollectionName;
-    try {
-      let targetId: string;
-      if (selectedId === NEW_COLLECTION_OPTION) {
-        const created = await createCollection.mutateAsync({ name: newCollectionName });
-        targetId = created.id;
-      } else {
-        targetId = selectedId;
+    const pickedName =
+      collections.find((collection) => collection.id === selectedId)?.name ?? newCollectionName;
+    const resolveTargetId = async () => {
+      if (selectedId !== NEW_COLLECTION_OPTION) {
+        return selectedId;
       }
+      const created = await createCollection.mutateAsync({ name: newCollectionName });
+      return created.id;
+    };
+    let targetId: string | undefined;
+    const ok = await runReportedMutation(async () => {
+      targetId = await resolveTargetId();
+    });
+    if (ok && targetId !== undefined) {
       setTarget({ id: targetId, name: pickedName });
       onClose();
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   };
 

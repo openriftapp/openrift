@@ -54,6 +54,7 @@ import type {
 } from "@/features/tournaments/lib/pod-pairing-editor";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
 import { asDragData } from "@/lib/dnd-data";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -258,18 +259,17 @@ export function PodPairingEditor({
           byes: payload.byes.flatMap(expandUnit),
         }
       : payload;
-    const saved = cutMode
-      ? replaceCut.mutateAsync({
-          id,
-          roundNumber: round.roundNumber,
-          pods: expanded.pods.map((pod) => ({ playerIds: pod.playerIds })),
-        })
-      : replace.mutateAsync({ id, roundNumber: round.roundNumber, ...expanded });
-    try {
-      await saved;
+    const saved = await runReportedMutation(() =>
+      cutMode
+        ? replaceCut.mutateAsync({
+            id,
+            roundNumber: round.roundNumber,
+            pods: expanded.pods.map((pod) => ({ playerIds: pod.playerIds })),
+          })
+        : replace.mutateAsync({ id, roundNumber: round.roundNumber, ...expanded }),
+    );
+    if (saved) {
       onClose();
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 

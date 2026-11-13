@@ -2,7 +2,6 @@ import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
-import { jobStartedResponseSchema } from "./shared.js";
 
 const TAG = "Admin - Operations";
 
@@ -30,9 +29,6 @@ const printingEventViewSchema = z.object({
 });
 
 export const adminPrintingEventsContract = {
-  flush: authedRoute
-    .route({ method: "POST", path: `${PE}/flush`, tags: [TAG], successStatus: 202 })
-    .output(jobStartedResponseSchema),
   list: authedRoute
     .route({ method: "GET", path: PE, tags: [TAG] })
     .output(z.object({ events: z.array(printingEventViewSchema) })),

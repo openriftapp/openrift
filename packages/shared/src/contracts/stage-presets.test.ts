@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { TIER_TILE_STEPS } from "../overlay-scale.js";
 import {
   createStagePresetSchema,
   stagePresetConfigSchema,
@@ -40,8 +41,20 @@ describe("stagePresetConfigSchema", () => {
     expect(stagePresetConfigSchema.safeParse({ cardScale: 0.4 }).success).toBe(true);
     expect(stagePresetConfigSchema.safeParse({ cardScale: 0.39 }).success).toBe(false);
     expect(stagePresetConfigSchema.safeParse({ tierTileStep: 0 }).success).toBe(true);
-    expect(stagePresetConfigSchema.safeParse({ tierTileStep: 11 }).success).toBe(false);
+    expect(stagePresetConfigSchema.safeParse({ tierTileStep: -1 }).success).toBe(false);
     expect(stagePresetConfigSchema.safeParse({ ground: "chartreuse" }).success).toBe(false);
+  });
+});
+
+describe("stagePresetConfigSchema tierTileStep", () => {
+  it("reads a stored step past the last tile size as the last one", () => {
+    expect(stagePresetConfigSchema.parse({ tierTileStep: 10 }).tierTileStep).toBe(
+      TIER_TILE_STEPS - 1,
+    );
+  });
+
+  it("keeps a step inside the range", () => {
+    expect(stagePresetConfigSchema.parse({ tierTileStep: 2 }).tierTileStep).toBe(2);
   });
 });
 

@@ -1,4 +1,5 @@
 import { CARD_ASPECT } from "../card-orientation";
+import { clamp } from "../math";
 import { applyHomography, computeHomography } from "./geometry";
 import type { Matrix3, Point, Quad, RgbaImage } from "./types";
 
@@ -121,8 +122,4 @@ function sample(frame: RgbaImage, h: Matrix3, outWidth: number, outHeight: numbe
   }
 
   return { data: out, width: outWidth, height: outHeight };
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
 }

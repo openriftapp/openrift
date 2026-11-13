@@ -2,6 +2,7 @@ import { pluralize } from "@openrift/shared/strings";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 
 export function SourceStrip({
   sources,
@@ -13,7 +14,9 @@ export function SourceStrip({
   return (
     <div className="flex flex-wrap items-center gap-1.5 pb-2">
       <span className="text-muted-foreground text-xs">Sources</span>
-      {sources.length === 0 && <span className="text-muted-foreground text-xs">None</span>}
+      {sources.length === 0 && (
+        <span className="text-muted-foreground text-xs">{EMPTY_VALUE_TEXT}</span>
+      )}
       {sources.map((source) => (
         <span
           key={source.key}

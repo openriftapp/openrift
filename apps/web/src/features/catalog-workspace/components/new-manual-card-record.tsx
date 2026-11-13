@@ -4,11 +4,12 @@ import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -17,6 +18,7 @@ import { useUploadPrintingImage } from "@/features/admin/hooks/use-admin-image-m
 import { useCreateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { parseIntegerFields, parseIntegerInput } from "@/features/admin/lib/integer-input";
 import { catalogKeys, cardsKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { draftImageLabel } from "@/features/catalog-workspace/components/creation/creation-images";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
@@ -38,6 +40,8 @@ import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order"
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 const IMAGE_SCOPE = [
   adminKeys.printingDesk.all,
@@ -57,14 +61,6 @@ const NUM_FIELDS: { key: NumField; label: string }[] = [
   { key: "mightBonus", label: "Might bonus" },
 ];
 
-function parseNum(value: string): number | null {
-  if (value.trim() === "") {
-    return null;
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
 function asExistingCard(draft: CreationDraft, id: string, slug: string, name: string) {
   return { ...draft, card: { mode: "existing" as const, id, slug, name } };
 }
@@ -74,7 +70,7 @@ export function NewManualCardRecord() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const createCard = useCreateCard();
-  const createPrinting = useCreateDeskPrinting();
+  const createPrinting = useCreateDeskPrinting({ inlineError: true });
   const uploadImage = useUploadPrintingImage(IMAGE_SCOPE);
   const { orders, labels } = useEnumOrders();
   const preferredLanguages = useEffectiveLanguageOrder();
@@ -109,8 +105,13 @@ export function NewManualCardRecord() {
     card: { mode: "new", slug, name: name.trim(), summary: "" },
   };
   const printingIssues = validateDraft(asExistingCard(draft, "pending", slug, name.trim()));
+  const stats = parseIntegerFields(numeric);
   const cardReady =
-    name.trim().length > 0 && slug.length > 0 && types.length > 0 && domains.length > 0;
+    stats !== undefined &&
+    name.trim().length > 0 &&
+    slug.length > 0 &&
+    types.length > 0 &&
+    domains.length > 0;
   const canCreate =
     cardReady &&
     (!withPrinting || printingIssues.length === 0) &&
@@ -132,27 +133,37 @@ export function NewManualCardRecord() {
       return "The card was created, but its printing was not. Add it under Printings.";
     }
     const ready = asExistingCard(draft, cardId, cardSlug, name.trim());
-    let printingId: string;
-    try {
-      ({ printingId } = await createPrinting.mutateAsync(toDeskCreateInput(ready)));
-    } catch (error) {
-      return `The card was created, but its printing was not: ${errorText(error, "unknown error")}`;
+    let created: Awaited<ReturnType<typeof createPrinting.mutateAsync>> | undefined;
+    let reason = "unknown error";
+    const ok = await runReportedMutation(
+      async () => {
+        created = await createPrinting.mutateAsync(toDeskCreateInput(ready));
+      },
+      (error) => {
+        reason = errorText(error, reason);
+      },
+    );
+    if (!ok || !created) {
+      return `The card was created, but its printing was not: ${reason}`;
     }
+    const { printingId } = created;
     const failed: string[] = [];
     const uploadCredit = credit !== undefined && credit.length > 0 ? credit : undefined;
     for (const upload of plannedImageUploads(ready)) {
       if (upload.image.kind !== "file") {
         continue;
       }
-      try {
-        await uploadImage.mutateAsync({
+      const file = upload.image.file;
+      const uploaded = await runReportedMutation(() =>
+        uploadImage.mutateAsync({
           printingId,
-          file: upload.image.file,
+          file,
           mode: upload.mode,
           face: upload.face,
           credit: uploadCredit,
-        });
-      } catch {
+        }),
+      );
+      if (!uploaded) {
         failed.push(draftImageLabel(upload.image));
       }
     }
@@ -173,25 +184,26 @@ export function NewManualCardRecord() {
       types,
       domains,
       ...(superTypes.length > 0 && { superTypes }),
-      ...(numeric.might !== "" && { might: parseNum(numeric.might) }),
-      ...(numeric.energy !== "" && { energy: parseNum(numeric.energy) }),
-      ...(numeric.power !== "" && { power: parseNum(numeric.power) }),
-      ...(numeric.mightBonus !== "" && { mightBonus: parseNum(numeric.mightBonus) }),
+      ...stats,
       ...(tags.length > 0 && { tags }),
     };
-    let cardSlug: string;
-    try {
-      ({ cardSlug } = await createCard.mutateAsync(input));
-    } catch (error) {
+    let createdCard: Awaited<ReturnType<typeof createCard.mutateAsync>> | undefined;
+    const ok = await runReportedMutation(
+      async () => {
+        createdCard = await createCard.mutateAsync(input);
+      },
+      (error) => setNotice(errorText(error, "Could not create the card.")),
+    );
+    if (!ok || !createdCard) {
       setPending(false);
-      setNotice(errorText(error, "Could not create the card."));
       return;
     }
+    const { cardSlug } = createdCard;
     const printingError = withPrinting ? await createFirstPrinting(cardSlug) : null;
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     setPending(false);
     if (printingError !== null) {
-      setNotice(printingError);
+      toast.error(printingError, PERSISTENT_ERROR_TOAST);
     }
     void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug } });
   }
@@ -298,18 +310,23 @@ export function NewManualCardRecord() {
             </ToggleGroup>
           </Field>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {NUM_FIELDS.map(({ key, label }) => (
-              <Field key={key}>
-                <FieldLabel htmlFor={`new-card-${key}`}>{label}</FieldLabel>
-                <Input
-                  id={`new-card-${key}`}
-                  type="number"
-                  min={0}
-                  value={numeric[key]}
-                  onChange={(event) => setNumeric({ ...numeric, [key]: event.target.value })}
-                />
-              </Field>
-            ))}
+            {NUM_FIELDS.map(({ key, label }) => {
+              const invalid = parseIntegerInput(numeric[key]) === undefined;
+              return (
+                <Field key={key} data-invalid={invalid}>
+                  <FieldLabel htmlFor={`new-card-${key}`}>{label}</FieldLabel>
+                  <Input
+                    id={`new-card-${key}`}
+                    type="number"
+                    min={0}
+                    value={numeric[key]}
+                    aria-invalid={invalid}
+                    onChange={(event) => setNumeric({ ...numeric, [key]: event.target.value })}
+                  />
+                  {invalid && <FieldError>Whole number</FieldError>}
+                </Field>
+              );
+            })}
           </div>
           <Field>
             <FieldLabel htmlFor="new-card-tags">Tags</FieldLabel>

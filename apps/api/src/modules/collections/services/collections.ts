@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import type { ResetCollectionsResponse } from "@openrift/shared/types/api/collection";
 
@@ -151,14 +152,6 @@ export function previewClearCollectionTradeCancels(
 // Keeps guard IN-lists and event batch inserts well under postgres.js's
 // ~65k bind-parameter limit even for very large collections.
 const RESET_BATCH_SIZE = 1000;
-
-function chunk<T>(items: readonly T[], size: number): T[][] {
-  const batches: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    batches.push(items.slice(i, i + size));
-  }
-  return batches;
-}
 
 async function resetCollectionsInTransaction(
   trxRepos: Repos,

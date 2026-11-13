@@ -5,6 +5,7 @@ import {
   adminEditingReducer,
 } from "@/features/admin/lib/admin-table-editing";
 import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 interface DraftSaver<TDraft> {
   onSave: (draft: TDraft) => Promise<unknown>;
@@ -67,11 +68,12 @@ export function useAdminTableEditing<TDraft>({ add, edit }: UseAdminTableEditing
       return;
     }
     dispatch({ type: "submitStart" });
-    try {
-      await config.onSave(draft);
+    const saved = await runReportedMutation(
+      () => config.onSave(draft),
+      (error) => dispatch({ type: "submitFailed", error: errorText(error, "Save failed") }),
+    );
+    if (saved) {
       dispatch({ type: "close" });
-    } catch (error) {
-      dispatch({ type: "submitFailed", error: errorText(error, "Save failed") });
     }
   }
 

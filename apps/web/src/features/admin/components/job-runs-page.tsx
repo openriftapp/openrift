@@ -1,5 +1,4 @@
 import type { JobRunActivity, JobRunView } from "@openrift/shared/contracts/admin/job-runs";
-import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
 import {
   JOB_KIND,
   JOB_RUN_ACTIVITIES,
@@ -14,6 +13,7 @@ import { Eyebrow } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pager } from "@/components/ui/pager";
+import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
@@ -211,7 +211,11 @@ export function JobRunsPage() {
           { header: "Kind", cell: <KindCell /> },
           { header: "Trigger", width: "w-28", cell: <TriggerCell /> },
           { header: "Status", width: "w-28", cell: <StatusCell /> },
-          { header: "Started", width: "w-44", cell: <StartedCell /> },
+          {
+            header: "Started",
+            width: "w-44",
+            cell: <InstantCell<JobRunView> at={(row) => row.startedAt} relative seconds />,
+          },
           { header: "Duration", width: "w-32", cell: <DurationCell /> },
           { header: "Result", wrap: true, cell: <ResultCell /> },
         ]}
@@ -293,17 +297,6 @@ function StatusCell({ row: run }: AdminCellSlotProps<JobRunView>) {
         </Badge>
       )}
     </div>
-  );
-}
-
-function StartedCell({ row: run }: AdminCellSlotProps<JobRunView>) {
-  if (!run) {
-    return null;
-  }
-  return (
-    <span className="font-mono" title={formatDayTimeLocal(run.startedAt)}>
-      {formatRelativeTime(run.startedAt, { seconds: true })}
-    </span>
   );
 }
 

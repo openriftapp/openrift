@@ -10,6 +10,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
+import { displayNameField, newPasswordField } from "@/features/account/lib/account-validation";
 import { signUp } from "@/features/account/lib/auth-client";
 import { authDestination } from "@/features/account/lib/auth-destination";
 import { routeTemplate, trackSignupSubmit } from "@/lib/analytics";
@@ -18,14 +19,9 @@ import { m } from "@/paraglide/messages.js";
 
 function signUpSchema() {
   return z.object({
-    name: z
-      .string()
-      .trim()
-      .min(1, m.auth_name_required())
-      .max(50, m.auth_name_too_long())
-      .regex(/^[\p{L}\p{N} ._-]+$/u, m.auth_name_invalid()),
+    name: displayNameField(),
     email: z.email(m.auth_invalid_email()),
-    password: z.string().min(8, m.auth_password_min()),
+    password: newPasswordField(m.auth_password_min()),
   });
 }
 

@@ -148,8 +148,8 @@ docker compose exec db psql -U openrift -d openrift
 docker compose restart api
 
 # Manually trigger price refresh (via admin API)
-curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/refresh-tcgplayer-prices
-curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/refresh-cardmarket-prices
+curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/v1/job-schedules/tcgplayer.refresh/run
+curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/v1/job-schedules/cardmarket.refresh/run
 
 # Stop everything
 docker compose down              # Keeps data (bind-mounted in ./data/)
@@ -294,8 +294,8 @@ Price refresh runs via in-process cron jobs in the `api` container, on whatever 
 **Run manually via admin API:**
 
 ```bash
-curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/refresh-tcgplayer-prices
-curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/refresh-cardmarket-prices
+curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/v1/job-schedules/tcgplayer.refresh/run
+curl -X POST -H "Cookie: ..." https://openrift.app/api/admin/v1/job-schedules/cardmarket.refresh/run
 ```
 
 **Logs:** Cron output goes to the `api` container's stdout, visible via `docker compose logs api`.

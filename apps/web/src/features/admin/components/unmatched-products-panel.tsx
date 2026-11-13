@@ -1,4 +1,5 @@
-import { formatDayTime } from "@openrift/shared/format-date";
+import { enumLabel } from "@openrift/shared/enum-label";
+import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
@@ -8,7 +9,7 @@ import type {
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertTriangleIcon, BanIcon, EllipsisVerticalIcon, LinkIcon, XIcon } from "lucide-react";
+import { BanIcon, EllipsisVerticalIcon, LinkIcon, XIcon } from "lucide-react";
 import React, { useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
@@ -31,22 +32,19 @@ import {
 } from "@/components/ui/table";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
+import { ListingPrice } from "@/features/admin/components/marketplace-product-cells";
 import { displayedProductLanguage } from "@/features/admin/components/marketplace-product-entries";
 import {
-  useUnifiedAssignToCard,
-  useUnifiedIgnoreProducts,
-  useUnifiedIgnoreVariants,
+  useAssignToCardByMarketplace,
+  useIgnoreProductsByMarketplace,
+  useIgnoreVariantsByMarketplace,
   useUnifiedMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
-import {
-  isStaleRecord,
-  listingPriceCents,
-  SOURCE_CONFIGS,
-} from "@/features/admin/lib/marketplace-sources";
+import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
-import { formatCentsInLocale } from "@/lib/format";
+import { useEnumOrders } from "@/hooks/use-enums";
 
 import { ProductLink } from "./price-mappings-utils";
 
@@ -130,38 +128,16 @@ export function UnmatchedProductsPanel() {
       a.product.externalId - b.product.externalId,
   );
 
-  const tcgAssign = useUnifiedAssignToCard("tcgplayer");
-  const cmAssign = useUnifiedAssignToCard("cardmarket");
-  const ctAssign = useUnifiedAssignToCard("cardtrader");
-  const cnAssign = useUnifiedAssignToCard("cardnexus");
-  const tcgIgnoreVariant = useUnifiedIgnoreVariants("tcgplayer");
-  const cmIgnoreVariant = useUnifiedIgnoreVariants("cardmarket");
-  const ctIgnoreVariant = useUnifiedIgnoreVariants("cardtrader");
-  const cnIgnoreVariant = useUnifiedIgnoreVariants("cardnexus");
-  const tcgIgnoreProduct = useUnifiedIgnoreProducts("tcgplayer");
-  const cmIgnoreProduct = useUnifiedIgnoreProducts("cardmarket");
-  const ctIgnoreProduct = useUnifiedIgnoreProducts("cardtrader");
-  const cnIgnoreProduct = useUnifiedIgnoreProducts("cardnexus");
+  const assigns = useAssignToCardByMarketplace();
+  const ignoreVariants = useIgnoreVariantsByMarketplace();
+  const ignoreProducts = useIgnoreProductsByMarketplace();
 
   function mutationsFor(marketplace: Marketplace) {
-    switch (marketplace) {
-      case "tcgplayer": {
-        return {
-          assign: tcgAssign,
-          ignoreVariant: tcgIgnoreVariant,
-          ignoreProduct: tcgIgnoreProduct,
-        };
-      }
-      case "cardmarket": {
-        return { assign: cmAssign, ignoreVariant: cmIgnoreVariant, ignoreProduct: cmIgnoreProduct };
-      }
-      case "cardtrader": {
-        return { assign: ctAssign, ignoreVariant: ctIgnoreVariant, ignoreProduct: ctIgnoreProduct };
-      }
-      case "cardnexus": {
-        return { assign: cnAssign, ignoreVariant: cnIgnoreVariant, ignoreProduct: cnIgnoreProduct };
-      }
-    }
+    return {
+      assign: assigns[marketplace],
+      ignoreVariant: ignoreVariants[marketplace],
+      ignoreProduct: ignoreProducts[marketplace],
+    };
   }
 
   function handleAssignToCard(
@@ -297,14 +273,11 @@ function UnmatchedProductRow({
   onIgnoreProduct: () => void;
   isIgnoring: boolean;
 }) {
+  const { labels } = useEnumOrders();
   const [showAssign, setShowAssign] = useState(false);
   const [cardSearchQuery, setCardSearchQuery] = useState("");
 
   const config = SOURCE_CONFIGS[marketplace];
-  const recordedAt = new Date(product.recordedAt);
-  const isStale = isStaleRecord(recordedAt);
-  const priceCents = listingPriceCents(marketplace, product);
-  const priceDisplay = priceCents === null ? "" : formatCentsInLocale(priceCents, product.currency);
 
   const filteredResults = useAssignableCardSearch(allCards, cardSearchQuery);
 
@@ -332,17 +305,10 @@ function UnmatchedProductRow({
           </span>
         </TableCell>
         <TableCell className="w-16">
-          <Badge variant="outline">{product.finish}</Badge>
+          <Badge variant="outline">{enumLabel(labels.finishes, product.finish)}</Badge>
         </TableCell>
         <TableCell className="w-20 text-right tabular-nums">
-          <div className="flex items-center justify-end gap-1">
-            {isStale && (
-              <span title={`Last seen ${formatDayTime(product.recordedAt)}`}>
-                <AlertTriangleIcon className="text-destructive size-3.5" />
-              </span>
-            )}
-            <span>{priceDisplay}</span>
-          </div>
+          <ListingPrice marketplace={marketplace} product={product} />
         </TableCell>
         <TableCell className="py-0">
           <div className="flex items-center justify-end gap-1">
@@ -442,16 +408,20 @@ function FilterBar({
   totalCount: number;
   filteredCount: number;
 }) {
+  const { labels } = useEnumOrders();
   const marketplaceItems: { value: "all" | Marketplace; label: string }[] = [
     { value: "all", label: "All marketplaces" },
-    { value: "tcgplayer", label: "TCGplayer" },
-    { value: "cardmarket", label: "Cardmarket" },
-    { value: "cardtrader", label: "CardTrader" },
-    { value: "cardnexus", label: "CardNexus" },
+    ...(Object.keys(MARKETPLACE_LINKS) as Marketplace[]).map((value) => ({
+      value,
+      label: MARKETPLACE_LINKS[value].label,
+    })),
   ];
   const finishItems = [
     { value: "all", label: "All finishes" },
-    ...availableFinishes.map((f) => ({ value: f, label: f })),
+    ...availableFinishes.map((finish) => ({
+      value: finish,
+      label: enumLabel(labels.finishes, finish),
+    })),
   ];
   const languageItems = [
     { value: "all", label: "All languages" },

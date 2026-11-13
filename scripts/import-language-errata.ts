@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+
+import { createDb } from "../apps/api/src/db/connect.js";
+import { cardErrataRepo } from "../apps/api/src/modules/catalog/repositories/card-errata.js";
 /**
  * Imports one language's errata announcement: the printed text onto that language's
  * faces and the corrected text as `card_errata` rows. Prints the plan; `--apply` writes it
@@ -5,10 +9,7 @@
  *
  * Usage: bun --env-file=.env scripts/import-language-errata.ts <list.json> [--apply]
  */
-import { readFileSync } from "node:fs";
-
-import { createDb } from "../apps/api/src/db/connect.js";
-import { cardErrataRepo } from "../apps/api/src/modules/catalog/repositories/card-errata.js";
+import { errorMessage } from "../packages/shared/src/strings.js";
 import { requireEnv } from "./env.js";
 
 interface LanguageErrataList {
@@ -185,7 +186,7 @@ try {
     console.log("Done.");
   }
 } catch (error) {
-  console.error(error instanceof Error ? error.message : error);
+  console.error(errorMessage(error));
   process.exitCode = 1;
 } finally {
   await db.destroy();

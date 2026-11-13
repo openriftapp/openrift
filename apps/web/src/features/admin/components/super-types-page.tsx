@@ -53,8 +53,8 @@ const columns: AdminColumnDef<SuperTypeRow, SuperTypeDraft>[] = [
 
 export function SuperTypesPage() {
   const { data } = useSuperTypes();
-  const createMutation = useCreateSuperType();
-  const updateMutation = useUpdateSuperType();
+  const createMutation = useCreateSuperType({ inlineError: true });
+  const updateMutation = useUpdateSuperType({ inlineError: true });
   const deleteMutation = useDeleteSuperType();
   const reorderMutation = useReorderSuperTypes();
   const { superTypes } = data;

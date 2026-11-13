@@ -91,23 +91,34 @@ export function VariantCell({ row }: CellProps) {
   return <span className="whitespace-nowrap">{parts.join(" · ")}</span>;
 }
 
-export function PriceCell({ row }: CellProps) {
-  if (!row) {
-    return null;
-  }
-  const { marketplace, product } = row.entry;
+export function ListingPrice({
+  marketplace,
+  product,
+}: {
+  marketplace: Parameters<typeof listingPriceCents>[0];
+  product: Parameters<typeof listingPriceCents>[1] & {
+    recordedAt: string;
+    currency: Parameters<typeof formatCentsInLocale>[1];
+  };
+}) {
   const priceCents = listingPriceCents(marketplace, product);
-
   return (
     <span className="flex items-center justify-end gap-1 tabular-nums">
       {isStaleRecord(new Date(product.recordedAt)) && (
-        <span title={`Last seen ${formatDayTime(product.recordedAt)}`}>
+        <span title={`Last seen ${formatDayTime(product.recordedAt)} UTC`}>
           <AlertTriangleIcon className="text-destructive size-3.5" />
         </span>
       )}
       <span>{priceCents === null ? "" : formatCentsInLocale(priceCents, product.currency)}</span>
     </span>
   );
+}
+
+export function PriceCell({ row }: CellProps) {
+  if (!row) {
+    return null;
+  }
+  return <ListingPrice marketplace={row.entry.marketplace} product={row.entry.product} />;
 }
 
 export function AssignedPrintingsCell({

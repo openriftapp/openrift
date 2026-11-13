@@ -1,4 +1,4 @@
-import { formatRelativeTime } from "@openrift/shared/format-date";
+import { DAY_MS, HOUR_MS, MINUTE_MS } from "@openrift/shared/format-date";
 import { ActivityIcon, BugIcon, CpuIcon, DatabaseIcon, ServerIcon, TagIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { toast } from "sonner";
@@ -8,20 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import { useThrowInApi, useThrowInSsr } from "@/features/admin/hooks/use-sentry-test";
 import { useAdminStatus } from "@/features/admin/hooks/use-status";
+import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { ADMIN_STATUS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/status-queries";
-
-const SECONDS_PER_DAY = 86_400;
-const SECONDS_PER_HOUR = 3600;
-const SECONDS_PER_MINUTE = 60;
+import { formatCount } from "@/lib/format";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function formatUptime(seconds: number): string {
-  const days = Math.floor(seconds / SECONDS_PER_DAY);
-  const hours = Math.floor((seconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
-  const minutes = Math.floor((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  const ms = seconds * 1000;
+  const days = Math.floor(ms / DAY_MS);
+  const hours = Math.floor((ms % DAY_MS) / HOUR_MS);
+  const minutes = Math.floor((ms % HOUR_MS) / MINUTE_MS);
   const parts: string[] = [];
   if (days > 0) {
     parts.push(`${days}d`);
@@ -31,10 +32,6 @@ function formatUptime(seconds: number): string {
   }
   parts.push(`${minutes}m`);
   return parts.join(" ");
-}
-
-function formatNumber(num: number): string {
-  return num.toLocaleString();
 }
 
 function StatRow({ label, value }: { label: string; value: string | number }) {
@@ -133,24 +130,24 @@ export function StatusPage() {
       <div className="grid gap-8 sm:grid-cols-2">
         <SettingsSection title={<SectionTitle icon={ActivityIcon}>Application</SectionTitle>}>
           <DefinitionList>
-            <StatRow label="Users" value={formatNumber(app.totalUsers)} />
-            <StatRow label="Signups (7d)" value={formatNumber(app.recentSignups7d)} />
-            <StatRow label="Cards" value={formatNumber(app.totalCards)} />
-            <StatRow label="Printings" value={formatNumber(app.totalPrintings)} />
-            <StatRow label="Sets" value={formatNumber(app.totalSets)} />
-            <StatRow label="Collections" value={formatNumber(app.totalCollections)} />
-            <StatRow label="User decks" value={formatNumber(app.totalUserDecks)} />
-            <StatRow label="Meta event decks" value={formatNumber(app.totalMetaDecks)} />
-            <StatRow label="Wishlists" value={formatNumber(app.totalWishlists)} />
-            <StatRow label="Tradelists" value={formatNumber(app.totalTradelists)} />
-            <StatRow label="Friend groups" value={formatNumber(app.totalFriendGroups)} />
-            <StatRow label="Copies" value={formatNumber(app.totalCopies)} />
+            <StatRow label="Users" value={formatCount(app.totalUsers)} />
+            <StatRow label="Signups (7d)" value={formatCount(app.recentSignups7d)} />
+            <StatRow label="Cards" value={formatCount(app.totalCards)} />
+            <StatRow label="Printings" value={formatCount(app.totalPrintings)} />
+            <StatRow label="Sets" value={formatCount(app.totalSets)} />
+            <StatRow label="Collections" value={formatCount(app.totalCollections)} />
+            <StatRow label="User decks" value={formatCount(app.totalUserDecks)} />
+            <StatRow label="Meta event decks" value={formatCount(app.totalMetaDecks)} />
+            <StatRow label="Wishlists" value={formatCount(app.totalWishlists)} />
+            <StatRow label="Tradelists" value={formatCount(app.totalTradelists)} />
+            <StatRow label="Friend groups" value={formatCount(app.totalFriendGroups)} />
+            <StatRow label="Copies" value={formatCount(app.totalCopies)} />
           </DefinitionList>
         </SettingsSection>
 
         <SettingsSection title={<SectionTitle icon={TagIcon}>Pricing</SectionTitle>}>
           <DefinitionList>
-            <StatRow label="Total prices" value={formatNumber(pricing.totalPrices)} />
+            <StatRow label="Total prices" value={formatCount(pricing.totalPrices)} />
           </DefinitionList>
           {pricing.sources.map((source) => (
             <div key={source.marketplace} className="flex flex-col gap-2">
@@ -158,16 +155,16 @@ export function StatusPage() {
                 {source.marketplace}
               </SectionHeading>
               <DefinitionList>
-                <StatRow label="Products" value={formatNumber(source.products)} />
-                <StatRow label="Price rows" value={formatNumber(source.prices)} />
+                <StatRow label="Products" value={formatCount(source.products)} />
+                <StatRow label="Price rows" value={formatCount(source.prices)} />
                 <DefinitionTerm>Latest price</DefinitionTerm>
                 {source.latestPrice ? (
                   <DefinitionDetail className="font-mono">
-                    {formatRelativeTime(source.latestPrice)}
+                    <AdminInstant at={source.latestPrice} relative />
                   </DefinitionDetail>
                 ) : (
                   <DefinitionDetail className="self-center">
-                    <Badge variant="secondary">none</Badge>
+                    <span className="text-muted-foreground">{EMPTY_VALUE_TEXT}</span>
                   </DefinitionDetail>
                 )}
               </DefinitionList>
@@ -198,9 +195,7 @@ function SentrySmokeTestSection() {
   }
 
   async function handleSsr() {
-    try {
-      await throwSsr.mutateAsync();
-    } catch {
+    if (!(await runReportedMutation(() => throwSsr.mutateAsync()))) {
       toast.info("Thrown in SSR — check openrift-ssr for service:web-ssr");
       return;
     }
@@ -208,9 +203,7 @@ function SentrySmokeTestSection() {
   }
 
   async function handleApi() {
-    try {
-      await throwApi.mutateAsync();
-    } catch {
+    if (!(await runReportedMutation(() => throwApi.mutateAsync()))) {
       toast.info("Thrown in API — check openrift-api");
       return;
     }

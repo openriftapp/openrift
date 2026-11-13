@@ -38,3 +38,19 @@ describe("source conventions", () => {
     expect(filesMatching(/`[^`]*\/cards\/\$\{|\$\{cardPath\(/u)).toEqual([]);
   });
 });
+
+describe("generic helpers", () => {
+  it("reads thrown errors only through the shared error helpers", () => {
+    expect(
+      filesMatching(/instanceof Error \? \w+\.message\b|instanceof Error \? \w+ : new Error\(/u),
+    ).toEqual([]);
+  });
+
+  it("pluralizes through the shared pluralize", () => {
+    expect(filesMatching(/(?:[=!]==|>) 1 \? "s?" : "s?"|=== 1 \? "[A-Z]?[a-z]+" : "/u)).toEqual([]);
+  });
+
+  it("takes the embed color from the shared module", () => {
+    expect(filesMatching(/0x24_?70_?5f/iu)).toEqual([]);
+  });
+});

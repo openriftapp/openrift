@@ -8,6 +8,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { isRecord } from "../packages/shared/src/type-guards.js";
+
 const repoRoot = resolve(import.meta.dirname ?? ".", "..");
 
 // Read from bun.lock, not node_modules — a squash-merge leaves it predating the commit.
@@ -58,7 +60,7 @@ function readLockfile(path: string): LockFile | null {
  */
 function lockedDependencies(entry: unknown[]): Record<string, string> {
   for (const part of entry) {
-    if (typeof part === "object" && part !== null && !Array.isArray(part)) {
+    if (isRecord(part)) {
       return (part as { dependencies?: Record<string, string> }).dependencies ?? {};
     }
   }

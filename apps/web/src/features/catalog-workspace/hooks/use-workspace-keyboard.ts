@@ -8,6 +8,7 @@ import { SUGGESTION_KEYS, WORKSPACE_KEYS } from "@/features/catalog-workspace/li
 import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { isTypingTarget } from "@/lib/keyboard-target";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
@@ -60,12 +61,12 @@ async function settleAndNext(
   primary: NonNullable<WorkspaceRecordActions["primary"]>,
   next: () => void,
 ) {
-  try {
+  const done = await runReportedMutation(async () => {
     await primary.run();
-  } catch {
-    return;
+  });
+  if (done) {
+    next();
   }
-  next();
 }
 
 async function runExclusive(
@@ -73,11 +74,9 @@ async function runExclusive(
   task: () => Promise<unknown> | unknown,
 ): Promise<void> {
   busy.current = true;
-  try {
+  await runReportedMutation(async () => {
     await task();
-  } catch {
-    // The mutation's own error toast reports the failure.
-  }
+  });
   busy.current = false;
 }
 

@@ -25,6 +25,7 @@ import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -156,23 +157,21 @@ export function GenerateRoundControls({
       teamMode && player.teamId !== null
         ? players.filter((row) => row.teamId === player.teamId).map((row) => row.id)
         : [player.id];
-    try {
-      await participantAction.mutateAsync({ id, participantId: player.id, action });
+    if (
+      await runReportedMutation(() =>
+        participantAction.mutateAsync({ id, participantId: player.id, action }),
+      )
+    ) {
       if (dropped) {
         setByeIds((current) => current.filter((byeId) => !goneIds.includes(byeId)));
       }
       toast.success(message);
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 
   async function generate() {
-    try {
-      await generateRound.mutateAsync({ id, byes: byeIds });
+    if (await runReportedMutation(() => generateRound.mutateAsync({ id, byes: byeIds }))) {
       setByeIds([]);
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 

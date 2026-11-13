@@ -1,5 +1,6 @@
 import type { JobScheduleView } from "@openrift/shared/contracts/admin/job-schedules";
-import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentType, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -42,17 +43,23 @@ vi.mock("@/features/admin/hooks/use-job-schedules", () => ({
     },
     isPending: false,
   }),
-  useRunJobNow: () => ({
-    mutateAsync: (vars: { kind: string }) => {
-      captured.ran.push(vars.kind);
-      return Promise.resolve({ runId: "run-1", status: captured.runStatus });
-    },
-    isPending: false,
-  }),
+}));
+vi.mock("@/features/admin/lib/job-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  startJobFn: ({ data }: { data: { kind: string; viaSchedule?: boolean } }) => {
+    captured.ran.push(data.viaSchedule === true ? data.kind : `route:${data.kind}`);
+    return Promise.resolve({ runId: "run-1", status: captured.runStatus });
+  },
 }));
 
 const { toast } = await import("sonner");
 const { JobSchedulesPage } = await import("./job-schedules-page");
+
+const client = new QueryClient({ defaultOptions: { mutations: { onError: () => {} } } });
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 function job(overrides: Partial<JobScheduleView> = {}): JobScheduleView {
   return {
@@ -83,7 +90,7 @@ beforeEach(() => {
 describe("JobSchedulesPage", () => {
   it("shows a job with no schedule as off, alongside its suggestion", () => {
     captured.jobs = [job()];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     expect(screen.getByText("Off")).toBeInTheDocument();
     expect(screen.getByText("0 3 * * *")).toBeInTheDocument();
@@ -93,7 +100,7 @@ describe("JobSchedulesPage", () => {
   it("writes the suggested expression when enabling a job", async () => {
     const user = userEvent.setup();
     captured.jobs = [job()];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Enable suggested" }));
 
@@ -103,7 +110,7 @@ describe("JobSchedulesPage", () => {
   it("saves an edited expression, trimmed", async () => {
     const user = userEvent.setup();
     captured.jobs = [job({ schedule: "0 4 * * *" })];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
     const input = screen.getByLabelText("Cron expression");
@@ -119,7 +126,7 @@ describe("JobSchedulesPage", () => {
   it("blocks saving an empty expression", async () => {
     const user = userEvent.setup();
     captured.jobs = [job({ schedule: "0 4 * * *" })];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.clear(screen.getByLabelText("Cron expression"));
@@ -131,7 +138,7 @@ describe("JobSchedulesPage", () => {
   it("disables a scheduled job", async () => {
     const user = userEvent.setup();
     captured.jobs = [job({ schedule: "0 4 * * *" })];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Disable" }));
 
@@ -141,22 +148,24 @@ describe("JobSchedulesPage", () => {
   it("reports a started run and one that was already running", async () => {
     const user = userEvent.setup();
     captured.jobs = [job({ schedule: "0 4 * * *" })];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Run now" }));
     expect(captured.ran).toEqual(["meta.uvsgames_sync"]);
-    expect(toast.success).toHaveBeenCalledWith("Started");
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("UVS Games sync started"));
 
     captured.runStatus = "already_running";
     await user.click(screen.getByRole("button", { name: "Run now" }));
-    expect(toast.info).toHaveBeenCalledWith("Already running");
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith("UVS Games sync is already running"),
+    );
   });
 
   it("keeps an unavailable job off and explains why", () => {
     captured.jobs = [
       job({ available: false, unavailableReason: "DISCORD_WEBHOOK_URL is not set" }),
     ];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     expect(screen.getByText("DISCORD_WEBHOOK_URL is not set")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enable suggested" })).toBeDisabled();
@@ -166,7 +175,7 @@ describe("JobSchedulesPage", () => {
   it("only offers enable-all while an available job is still off", async () => {
     const user = userEvent.setup();
     captured.jobs = [job(), job({ kind: "meta.playloltcg_sync", schedule: "0 5 * * *" })];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Enable all suggested" }));
     expect(captured.enabledSuggested).toBe(1);
@@ -177,7 +186,7 @@ describe("JobSchedulesPage", () => {
       job({ schedule: "0 3 * * *" }),
       job({ kind: "meta.playloltcg_sync", available: false, unavailableReason: "No API key" }),
     ];
-    render(<JobSchedulesPage />);
+    render(<JobSchedulesPage />, { wrapper });
 
     expect(screen.getByRole("button", { name: "Enable all suggested" })).toBeDisabled();
   });

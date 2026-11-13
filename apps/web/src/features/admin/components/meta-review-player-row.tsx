@@ -1,4 +1,3 @@
-import { formatDay } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import type { MetaSubmissionReason } from "@openrift/shared/types/enums";
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { AdminInstant } from "@/features/admin/components/admin-instant";
 import {
   DismissSourceKey,
   OverlayCardLines,
@@ -40,6 +40,7 @@ import {
   metaSubmissionReasonSentences,
   metaSubmissionReasonsFor,
 } from "@/features/meta/lib/meta-submission-copy";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export const PLAYER_ROW_COLUMNS = 6;
 
@@ -189,11 +190,12 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
 
   async function runAccept(): Promise<void> {
     const metaEventPlayerId = state === "exact" ? (overlay.match?.metaEventPlayerId ?? null) : null;
-    try {
-      await accept.mutateAsync({ id: overlay.id, metaEventPlayerId, fields: kept });
-    } catch {
+    if (
+      !(await runReportedMutation(() =>
+        accept.mutateAsync({ id: overlay.id, metaEventPlayerId, fields: kept }),
+      ))
+    ) {
       setConfirming(false);
-      // Reported by the global mutation error toast.
       return;
     }
     toast.success("Applied.");
@@ -217,10 +219,7 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
       reason: reason?.reason ?? null,
       note: reason === undefined || reason.note === "" ? null : reason.note,
     };
-    try {
-      await reject.mutateAsync(input);
-    } catch {
-      // Reported by the global mutation error toast.
+    if (!(await runReportedMutation(() => reject.mutateAsync(input)))) {
       return;
     }
     setRejecting(false);
@@ -265,7 +264,7 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
           <CardsCell overlay={overlay} />
         </TableCell>
         <TableCell className="text-muted-foreground w-28 tabular-nums">
-          {formatDay(overlay.createdAt)}
+          <AdminInstant at={overlay.createdAt} relative />
         </TableCell>
         <TableCell className="w-56">
           <span className="flex items-center justify-end gap-1.5">

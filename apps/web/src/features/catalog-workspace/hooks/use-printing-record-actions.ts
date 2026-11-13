@@ -1,5 +1,4 @@
 import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
-import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -8,8 +7,8 @@ import {
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import {
-  useUnifiedIgnoreVariants,
-  useUnifiedSaveMappings,
+  useIgnoreVariantsByMarketplace,
+  useSaveMappingsByMarketplace,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -76,18 +75,8 @@ export function usePrintingRecordActions({
   const discards = useCandidateDiscards({ scope, sources: model.sources, record });
   const { announce } = useWorkspaceUndo();
   const acceptSubmission = useAcceptSubmission();
-  const save: Record<AdminMarketplaceName, ReturnType<typeof useUnifiedSaveMappings>> = {
-    tcgplayer: useUnifiedSaveMappings("tcgplayer"),
-    cardmarket: useUnifiedSaveMappings("cardmarket"),
-    cardtrader: useUnifiedSaveMappings("cardtrader"),
-    cardnexus: useUnifiedSaveMappings("cardnexus"),
-  };
-  const ignore: Record<AdminMarketplaceName, ReturnType<typeof useUnifiedIgnoreVariants>> = {
-    tcgplayer: useUnifiedIgnoreVariants("tcgplayer"),
-    cardmarket: useUnifiedIgnoreVariants("cardmarket"),
-    cardtrader: useUnifiedIgnoreVariants("cardtrader"),
-    cardnexus: useUnifiedIgnoreVariants("cardnexus"),
-  };
+  const save = useSaveMappingsByMarketplace();
+  const ignore = useIgnoreVariantsByMarketplace();
 
   const chips = printingChips(model, canMap ? listings : []);
   const enterIds = canCheck ? model.enterCandidateIds : [];
@@ -146,11 +135,12 @@ export function usePrintingRecordActions({
 
   async function mapListing(listing: ListingSuggestion): Promise<void> {
     const sku = skuOf(listing);
-    const result = await save[listing.marketplace]
-      .mutateAsync({ mappings: [{ ...sku, printingId }] })
-      .catch(() => null);
+    let result: Awaited<ReturnType<(typeof save)["tcgplayer"]["mutateAsync"]>> | undefined;
+    const ok = await runReportedMutation(async () => {
+      result = await save[listing.marketplace].mutateAsync({ mappings: [{ ...sku, printingId }] });
+    });
     settleCards();
-    if (result !== null && result.skipped.length === 0) {
+    if (ok && result && result.skipped.length === 0) {
       announce(assignedListingUndo(listing.marketplace, sku, printingId, record));
     }
   }
