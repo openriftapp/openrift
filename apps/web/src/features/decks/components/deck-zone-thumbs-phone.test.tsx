@@ -10,6 +10,7 @@ const actions = vi.hoisted(() => ({
   setQuantity: vi.fn(),
 }));
 
+vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ cardsById: {} }) }));
 vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => true }));
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckBuilderActions: () => actions,

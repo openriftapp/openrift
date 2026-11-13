@@ -26,7 +26,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   useQuery: () => ({ data: undefined }),
 }));
-vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ sets: [] }) }));
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ sets: [], cardsById: {} }),
+}));
 vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   usePreferredPrinting: () => ({ getFaceImage: () => undefined }),
 }));

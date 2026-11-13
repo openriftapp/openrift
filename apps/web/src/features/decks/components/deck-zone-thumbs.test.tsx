@@ -1,15 +1,26 @@
+import type { Card, CardBan } from "@openrift/shared/types/catalog";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { stubDeckBuilderCard } from "@/test/factories";
+import { m } from "@/paraglide/messages.js";
+import { stubCard, stubDeckBuilderCard } from "@/test/factories";
 
 import { ZoneThumb } from "./deck-zone-thumbs";
 
-function renderThumb(banned: boolean) {
+const { cardsById } = vi.hoisted(() => ({ cardsById: {} as Record<string, Card> }));
+vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ cardsById }) }));
+
+function ban(formatId: string, formatName: string): CardBan {
+  return { formatId, formatName, bannedAt: "2026-11-23", reason: null };
+}
+
+function renderThumb(bans: { bans?: CardBan[]; upcomingBans?: CardBan[] } = {}) {
+  const card = stubDeckBuilderCard({ cardName: "Stacked Deck" });
+  cardsById[card.cardId] = stubCard({ bans: [], upcomingBans: [], ...bans });
   render(
     <ZoneThumb
       deckId="deck-1"
-      card={stubDeckBuilderCard({ cardName: "Stacked Deck", banned })}
+      card={card}
       zone="main"
       thumbnail="https://example.test/stacked-deck.webp"
       isLandscape={false}
@@ -20,13 +31,24 @@ function renderThumb(banned: boolean) {
 
 describe("ZoneThumb", () => {
   it("marks a banned card with the corner ribbon", () => {
-    renderThumb(true);
+    renderThumb({ bans: [ban("standard", "Standard")] });
     expect(screen.getByText("Banned")).toBeDefined();
   });
 
+  it("names the format of a sole mode ban", () => {
+    renderThumb({ bans: [ban("2v2", "2v2")] });
+    expect(screen.getByText(m.cards_thumb_format_ban({ format: "2v2" }))).toBeDefined();
+  });
+
+  it("flags a scheduled ban", () => {
+    renderThumb({ upcomingBans: [ban("standard", "Standard")] });
+    expect(screen.getByText(m.cards_thumb_ban_upcoming())).toBeDefined();
+  });
+
   it("draws no ribbon on a legal card", () => {
-    renderThumb(false);
+    renderThumb();
     expect(screen.queryByText("Banned")).toBeNull();
+    expect(screen.queryByText(m.cards_thumb_ban_upcoming())).toBeNull();
   });
 });
 

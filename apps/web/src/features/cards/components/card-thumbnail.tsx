@@ -5,7 +5,7 @@ import { errataForLanguage } from "@openrift/shared/errata";
 import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
-import type { Printing } from "@openrift/shared/types/catalog";
+import type { CardBan, Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 import { useRouter } from "@tanstack/react-router";
@@ -90,6 +90,39 @@ export function CornerRibbon({
       </div>
     </div>
   );
+}
+
+export function BanRibbon({ bans, upcomingBans }: { bans: CardBan[]; upcomingBans: CardBan[] }) {
+  if (bans.length > 0) {
+    const hasBaseBan = bans.some((ban) => isBaseBanFormat(ban.formatId));
+    const soleModeBan = !hasBaseBan && bans.length === 1 ? bans[0] : undefined;
+    const banLines = bans.map((ban) =>
+      m.cards_thumb_banned_since({ format: ban.formatName, date: ban.bannedAt }),
+    );
+    return (
+      <CornerRibbon
+        tone="banned"
+        title={(hasBaseBan ? banLines : [...banLines, m.cards_thumb_legal_elsewhere()]).join("\n")}
+      >
+        {soleModeBan
+          ? m.cards_thumb_format_ban({ format: soleModeBan.formatName })
+          : m.cards_thumb_banned()}
+      </CornerRibbon>
+    );
+  }
+  if (upcomingBans.length > 0) {
+    return (
+      <CornerRibbon
+        tone="caution"
+        title={upcomingBans
+          .map((ban) => m.cards_thumb_banned_from({ format: ban.formatName, date: ban.bannedAt }))
+          .join("\n")}
+      >
+        {m.cards_thumb_ban_upcoming()}
+      </CornerRibbon>
+    );
+  }
+  return null;
 }
 
 function ImageShell({
@@ -606,46 +639,18 @@ export const CardThumbnail = memo(function CardThumbnail({
   // Base-list bans apply to all constructed play; mode-scoped bans (e.g. 2v2-only)
   // leave the card legal elsewhere, so only base bans get the full "unusable" treatment.
   const activeBans = banDisplay === "none" ? [] : printing.card.bans;
-  const baseBans = activeBans.filter((ban) => isBaseBanFormat(ban.formatId));
-  const modeBans = activeBans.filter((ban) => !isBaseBanFormat(ban.formatId));
+  const banDim = banDisplay === "overlay" &&
+    activeBans.some((ban) => isBaseBanFormat(ban.formatId)) && (
+      <div className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] bg-black/70" />
+    );
 
-  const banDim = banDisplay === "overlay" && baseBans.length > 0 && (
-    <div className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] bg-black/70" />
-  );
-
-  const soleModeBan = baseBans.length === 0 && modeBans.length === 1 ? modeBans[0] : undefined;
-  const banLines = activeBans.map((ban) =>
-    m.cards_thumb_banned_since({ format: ban.formatName, date: ban.bannedAt }),
-  );
   const upcomingBans = banDisplay === "none" ? [] : printing.card.upcomingBans;
   // Preview outranks an upcoming ban: the card is still legal, and the Riot TCG
   // community license requires previewed/unreleased cards to be labeled.
   // `setReleased` is per printing language, covering a set out elsewhere but not here.
   const ribbon =
-    activeBans.length > 0 ? (
-      <CornerRibbon
-        tone="banned"
-        title={
-          baseBans.length > 0
-            ? banLines.join("\n")
-            : [...banLines, m.cards_thumb_legal_elsewhere()].join("\n")
-        }
-      >
-        {soleModeBan
-          ? m.cards_thumb_format_ban({ format: soleModeBan.formatName })
-          : m.cards_thumb_banned()}
-      </CornerRibbon>
-    ) : printing.setReleased ? (
-      upcomingBans.length > 0 && (
-        <CornerRibbon
-          tone="caution"
-          title={upcomingBans
-            .map((ban) => m.cards_thumb_banned_from({ format: ban.formatName, date: ban.bannedAt }))
-            .join("\n")}
-        >
-          {m.cards_thumb_ban_upcoming()}
-        </CornerRibbon>
-      )
+    activeBans.length > 0 || printing.setReleased ? (
+      <BanRibbon bans={activeBans} upcomingBans={upcomingBans} />
     ) : (
       <CornerRibbon tone="caution" title={m.cards_thumb_not_released()}>
         {m.cards_thumb_preview_ribbon()}

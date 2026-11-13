@@ -10,7 +10,8 @@ import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardPriceChip } from "@/features/cards/components/card-price-chip";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
-import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
+import { AFTER_BORDER, BanRibbon } from "@/features/cards/components/card-thumbnail";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { CardQuantityChip } from "@/features/decks/components/card-quantity-chip";
@@ -237,6 +238,7 @@ export function ZoneThumb({
 }) {
   const isMobile = useIsMobile();
   const coarsePointer = useCoarsePointer();
+  const catalogCard = useCards().cardsById[card.cardId];
   const controlsAlwaysVisible = isMobile || coarsePointer;
   const stepAbove = !readOnly && isMobile && STEPPER_ZONES.has(zone);
   const enableDrag = !readOnly && !isMobile && DRAG_SOURCE_ZONES.has(zone);
@@ -313,7 +315,7 @@ export function ZoneThumb({
           />
         )}
       </DeckCardPageLink>
-      {card.banned && <CornerRibbon tone="banned">{m.cards_thumb_banned()}</CornerRibbon>}
+      {catalogCard && <BanRibbon bans={catalogCard.bans} upcomingBans={catalogCard.upcomingBans} />}
       {hasCustomPrinting && (
         <span
           title={m.decks_editor_pinned_printing()}

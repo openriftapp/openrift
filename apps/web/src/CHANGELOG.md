@@ -13,6 +13,7 @@
 
 ### Other
 
+- feat(Decks): **Upcoming and 2v2 bans on deck cards** — card art in the deck editor and on shared and meta decks carries the same ban ribbons as the card browser, including bans that take effect later and bans for one format such as 2v2.
 - feat(Decks): **Deck boxes on collapsed variants** — a deck with variants shows which deck box its variants are stored in before you expand it, and its menu links to each box.
 - feat(Collection): **Exclude collections from trade rules** — a tradelist rule can leave out chosen collections, so a new collection is covered without editing the rule.
 - feat(Meta): **Missing cards on partial lists** — event standings show what the known cards of a partial list would cost you, marked with a "+" since the rest of the list is unknown.
