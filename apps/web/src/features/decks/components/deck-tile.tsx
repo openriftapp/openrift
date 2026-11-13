@@ -286,7 +286,7 @@ export function DeckTile({
       style={gradientStyle}
     >
       <div className="bg-background/60 absolute top-2 right-2 z-10 rounded-md backdrop-blur-sm">
-        <DeckActionsMenu item={item} source={isLocal ? "local" : "server"} />
+        <DeckActionsMenu item={item} family={family} source={isLocal ? "local" : "server"} />
       </div>
 
       <div className="max-sm:hidden">
@@ -406,7 +406,7 @@ export function DeckTile({
             requiredTotal={requiredTotal}
             isValid={isValid}
           />
-          <DeckMetaLine item={metaItem} />
+          <DeckMetaLine item={metaItem} family={family} />
           {variantToggle && <span className="ml-auto">{variantToggle}</span>}
         </div>
 
@@ -421,7 +421,7 @@ export function DeckTile({
         )}
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-1 max-sm:hidden">
-          <DeckMetaLine item={metaItem} className="min-w-0" />
+          <DeckMetaLine item={metaItem} family={family} className="min-w-0" />
           {variantToggle}
         </div>
       </div>

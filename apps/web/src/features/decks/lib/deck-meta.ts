@@ -13,11 +13,30 @@ export interface DeckMetaPart {
   title?: string;
 }
 
-export function deckBoxPart(boxName?: string | null): DeckMetaPart {
+export interface BoxedDeck {
+  deckId: string;
+  deckName: string;
+  boxName: string;
+}
+
+export function deckBoxPart(boxed: readonly BoxedDeck[], deckId: string): DeckMetaPart {
+  const [first] = boxed;
+  if (!first) {
+    return { key: "box", text: null };
+  }
+  const boxCount = new Set(boxed.map((entry) => entry.boxName)).size;
+  const onlySelf = boxed.length === 1 && first.deckId === deckId;
   return {
     key: "box",
-    text: boxName ? m.decks_meta_in_box({ box: boxName }) : null,
-    title: boxName ? m.decks_meta_stored_in_box({ box: boxName }) : undefined,
+    text:
+      boxCount === 1
+        ? m.decks_meta_in_box({ box: first.boxName })
+        : m.decks_meta_in_boxes({ count: boxCount }),
+    title: onlySelf
+      ? m.decks_meta_stored_in_box({ box: first.boxName })
+      : boxed
+          .map((entry) => m.decks_meta_variant_in_box({ deck: entry.deckName, box: entry.boxName }))
+          .join("\n"),
   };
 }
 
@@ -26,7 +45,7 @@ export function deckBoxPart(boxName?: string | null): DeckMetaPart {
 export function deckMetaParts(
   item: DeckListItemResponse,
   formatPrice: (cents: number) => string,
-  boxName?: string | null,
+  boxed: readonly BoxedDeck[] = [],
 ): DeckMetaPart[] {
   const { deck, totalValueCents, unpricedCardCount, missingCount } = item;
   const valueText =
@@ -39,7 +58,7 @@ export function deckMetaParts(
   const updatedDate = formatDay(deck.updatedAt);
 
   return [
-    deckBoxPart(boxName),
+    deckBoxPart(boxed, deck.id),
     {
       key: "missing",
       text: missingCount !== null && missingCount > 0 ? `${missingCount} missing` : null,

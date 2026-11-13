@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import type { DeckFamilyEntry } from "./deck-family";
-import { collapseFamilies, familyFrontView, withVariantPanels } from "./deck-family";
+import {
+  collapseFamilies,
+  familyFrontView,
+  storedDecksShown,
+  withVariantPanels,
+} from "./deck-family";
 
 interface TestItem {
-  deck: { id: string; familyId: string | null; isPrimary: boolean; updatedAt: string };
+  deck: {
+    id: string;
+    name: string;
+    familyId: string | null;
+    collectionId: string | null;
+    isPrimary: boolean;
+    updatedAt: string;
+  };
   familyName: string | null;
 }
 
@@ -14,10 +26,17 @@ function makeItem(
   id: string,
   familyId: string | null = null,
   isPrimary = false,
-  extra: { updatedAt?: string; familyName?: string | null } = {},
+  extra: { updatedAt?: string; familyName?: string | null; collectionId?: string } = {},
 ): TestItem {
   return {
-    deck: { id, familyId, isPrimary, updatedAt: extra.updatedAt ?? DAY },
+    deck: {
+      id,
+      name: `Deck ${id}`,
+      familyId,
+      collectionId: extra.collectionId ?? null,
+      isPrimary,
+      updatedAt: extra.updatedAt ?? DAY,
+    },
     familyName: extra.familyName ?? null,
   };
 }
@@ -52,6 +71,7 @@ describe("collapseFamilies", () => {
       name: null,
       updatedAt: DAY,
       memberCount: 3,
+      stored: [],
       expanded: false,
       role: "front",
     });
@@ -89,6 +109,7 @@ describe("collapseFamilies", () => {
       name: null,
       updatedAt: DAY,
       memberCount: 1,
+      stored: [],
       expanded: false,
       role: "front",
     });
@@ -168,6 +189,44 @@ describe("withVariantPanels", () => {
   });
 });
 
+describe("storedDecksShown", () => {
+  const items = [
+    makeItem("main", "fam", true),
+    makeItem("budget", "fam", false, { collectionId: "box-1" }),
+    makeItem("tourney", "fam", false, { collectionId: "box-2" }),
+  ];
+
+  it("collects every boxed member onto the family", () => {
+    const [entry] = collapseFamilies(items, new Set());
+    expect(entry?.family?.stored).toEqual([
+      { deckId: "budget", deckName: "Deck budget", collectionId: "box-1" },
+      { deckId: "tourney", deckName: "Deck tourney", collectionId: "box-2" },
+    ]);
+  });
+
+  it("shows the variants' boxes on a collapsed front", () => {
+    const [entry] = collapseFamilies(items, new Set());
+    expect(entry && storedDecksShown(entry.item.deck, entry.family)).toHaveLength(2);
+  });
+
+  it("shows only each deck's own box once the family is expanded", () => {
+    const entries = collapseFamilies(items, new Set(["fam"]));
+    expect(entries.map((entry) => storedDecksShown(entry.item.deck, entry.family))).toEqual([
+      [],
+      [{ deckId: "budget", deckName: "Deck budget", collectionId: "box-1" }],
+      [{ deckId: "tourney", deckName: "Deck tourney", collectionId: "box-2" }],
+    ]);
+  });
+
+  it("shows a standalone deck's own box", () => {
+    const deck = makeItem("solo", null, false, { collectionId: "box-1" }).deck;
+    expect(storedDecksShown(deck)).toEqual([
+      { deckId: "solo", deckName: "Deck solo", collectionId: "box-1" },
+    ]);
+    expect(storedDecksShown(makeItem("bare").deck)).toEqual([]);
+  });
+});
+
 describe("familyFrontView", () => {
   const item = { deck: { name: "RAD Heron", updatedAt: "2026-11-05T00:00:00.000Z" } };
   const front: DeckFamilyEntry = {
@@ -175,6 +234,7 @@ describe("familyFrontView", () => {
     name: "Orianna",
     updatedAt: "2026-11-09T00:00:00.000Z",
     memberCount: 2,
+    stored: [],
     expanded: false,
     role: "front",
   };

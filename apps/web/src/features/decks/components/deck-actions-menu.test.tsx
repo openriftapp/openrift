@@ -12,8 +12,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as UseDecks from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
-const { dialogProps } = vi.hoisted(() => ({
+const { dialogProps, boxed } = vi.hoisted(() => ({
   dialogProps: {} as Record<string, Record<string, unknown>>,
+  boxed: {
+    current: [] as { deckId: string; deckName: string; boxName: string; collectionId: string }[],
+  },
 }));
 
 function cardRow(deckId: string, cardId: string, quantity: number): DeckCardWithDeckResponse {
@@ -42,6 +45,7 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@/features/decks/hooks/use-boxed-decks", () => ({ useBoxedDecks: () => boxed.current }));
 
 const noopMutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
 vi.mock("@/features/decks/hooks/use-decks", async (importOriginal) => ({
@@ -159,6 +163,33 @@ describe("DeckActionsMenu", () => {
       cardRow("deck-other", "card-other", 2),
     ]);
     dialogProps.export = {};
+    boxed.current = [];
+  });
+
+  it("names the deck's own box", async () => {
+    boxed.current = [
+      { deckId: "deck-own", deckName: "Yasuo Aggro", boxName: "Red box", collectionId: "c1" },
+    ];
+    const user = userEvent.setup();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Stored in Red box" })).toBeInTheDocument();
+  });
+
+  it("names each boxed variant on a family front", async () => {
+    boxed.current = [
+      { deckId: "v2", deckName: "Yasuo VEN", boxName: "Red box", collectionId: "c1" },
+      { deckId: "v3", deckName: "Yasuo UNL", boxName: "Blue box", collectionId: "c2" },
+    ];
+    const user = userEvent.setup();
+    render(<DeckActionsMenu item={ITEM} source="server" />);
+
+    await user.click(screen.getByRole("button", { name: "Deck actions" }));
+    expect(
+      await screen.findByRole("menuitem", { name: "Yasuo VEN in Red box" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Yasuo UNL in Blue box" })).toBeInTheDocument();
   });
 
   it("reads no cards until a dialog that needs them opens", () => {

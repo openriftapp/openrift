@@ -29,9 +29,7 @@ vi.mock("@/features/cards/hooks/use-preferred-printing", () => ({
   }),
 }));
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("@/features/collections/hooks/use-home-collection", () => ({
-  useHomeCollection: () => undefined,
-}));
+vi.mock("@/features/decks/hooks/use-boxed-decks", () => ({ useBoxedDecks: () => [] }));
 vi.mock("@/hooks/use-enums", () => ({
   useCustomTagList: () => ({ all: [] }),
   useDeckFormatList: () => ({ formats: [], labels: {} }),
@@ -89,6 +87,7 @@ const FAMILY = {
   updatedAt: "2026-08-02T00:00:00.000Z",
   role: "front",
   memberCount: 3,
+  stored: [],
   expanded: false,
 } as const;
 

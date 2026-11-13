@@ -2,7 +2,8 @@ import { centsToDollars } from "@openrift/shared/money";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import { Fragment } from "react";
 
-import { useHomeCollection } from "@/features/collections/hooks/use-home-collection";
+import { useBoxedDecks } from "@/features/decks/hooks/use-boxed-decks";
+import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import type { DeckMetaPartKey } from "@/features/decks/lib/deck-meta";
 import { deckMetaParts } from "@/features/decks/lib/deck-meta";
 import { formatterForMarketplace } from "@/lib/format";
@@ -25,19 +26,21 @@ const COLUMN_WIDTH: Partial<Record<DeckMetaPartKey, string>> = {
  */
 export function DeckMetaLine({
   item,
+  family,
   variant = "inline",
   leading,
   className,
 }: {
   item: DeckListItemResponse;
+  family?: DeckFamilyEntry;
   variant?: "inline" | "columns";
   leading?: React.ReactNode;
   className?: string;
 }) {
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const priceFormatter = formatterForMarketplace(marketplaceOrder[0]);
-  const box = useHomeCollection(item.deck.collectionId);
-  const parts = deckMetaParts(item, (cents) => priceFormatter(centsToDollars(cents)), box?.name);
+  const boxed = useBoxedDecks(item.deck, family);
+  const parts = deckMetaParts(item, (cents) => priceFormatter(centsToDollars(cents)), boxed);
 
   if (variant === "columns") {
     // The box is free text among fixed-width numbers, so a column of its own

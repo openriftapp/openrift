@@ -3,8 +3,21 @@
  * per family, fronted by the primary variant, with the rest revealed on demand.
  */
 interface DeckFamilyItem {
-  deck: { id: string; familyId: string | null; isPrimary: boolean; updatedAt: string };
+  deck: {
+    id: string;
+    name: string;
+    familyId: string | null;
+    collectionId: string | null;
+    isPrimary: boolean;
+    updatedAt: string;
+  };
   familyName: string | null;
+}
+
+export interface StoredDeck {
+  deckId: string;
+  deckName: string;
+  collectionId: string;
 }
 
 export interface DeckFamilyEntry {
@@ -12,6 +25,7 @@ export interface DeckFamilyEntry {
   name: string | null;
   updatedAt: string;
   memberCount: number;
+  stored: readonly StoredDeck[];
   expanded: boolean;
   role: "front" | "member";
 }
@@ -56,6 +70,18 @@ export function familyFrontView<T extends { deck: { name: string; updatedAt: str
     isNamedGroup: family.name !== null,
     metaItem,
   };
+}
+
+export function storedDecksShown(
+  deck: { id: string; name: string; collectionId: string | null },
+  family?: DeckFamilyEntry,
+): readonly StoredDeck[] {
+  if (family?.role === "front" && !family.expanded) {
+    return family.stored;
+  }
+  return deck.collectionId === null
+    ? []
+    : [{ deckId: deck.id, deckName: deck.name, collectionId: deck.collectionId }];
 }
 
 /** The front renders at its own sorted position, not the first member's. */
@@ -104,6 +130,11 @@ export function collapseFamilies<T extends DeckFamilyItem>(
       name: familyNameOf(members),
       updatedAt: familyUpdatedAt(members) ?? item.deck.updatedAt,
       memberCount: members.length,
+      stored: members.flatMap(({ deck }) =>
+        deck.collectionId === null
+          ? []
+          : [{ deckId: deck.id, deckName: deck.name, collectionId: deck.collectionId }],
+      ),
       expanded,
     };
     entries.push({ item, family: { ...family, role: "front" } });

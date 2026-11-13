@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
+  BoxIcon,
   CopyIcon,
   DownloadIcon,
   EllipsisVerticalIcon,
@@ -37,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useBoxedDecks } from "@/features/decks/hooks/use-boxed-decks";
 import { useDeckFolders, useSetDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import { useDeckMenuActions } from "@/features/decks/hooks/use-deck-menu-actions";
 import {
@@ -50,6 +52,7 @@ import {
 import { useLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import type {
   DeckMenuCapabilities,
   DeckMenuSource,
@@ -69,6 +72,7 @@ import { ManageDeckFoldersDialog } from "./manage-deck-folders-dialog";
 type DeckMenuDialog = "share" | "export" | "print" | "rename" | "delete" | "folders" | "variants";
 
 interface ServerOnlyActions {
+  boxed: ReturnType<typeof useBoxedDecks>;
   handleTogglePin: () => void;
   folders: readonly DeckFolderResponse[];
   toggleFolder: (folderId: string) => void;
@@ -100,16 +104,29 @@ function toBuilderCards(
 
 export function DeckActionsMenu({
   item,
+  family,
   source,
 }: {
   item: DeckListItemResponse;
+  family?: DeckFamilyEntry;
   source: DeckMenuSource;
 }) {
-  return source === "server" ? <ServerDeckActions item={item} /> : <LocalDeckActions item={item} />;
+  return source === "server" ? (
+    <ServerDeckActions item={item} family={family} />
+  ) : (
+    <LocalDeckActions item={item} />
+  );
 }
 
-function ServerDeckActions({ item }: { item: DeckListItemResponse }) {
+function ServerDeckActions({
+  item,
+  family,
+}: {
+  item: DeckListItemResponse;
+  family?: DeckFamilyEntry;
+}) {
   const { deck } = item;
+  const boxed = useBoxedDecks(deck, family);
   const [dialog, setDialog] = useState<DeckMenuDialog | null>(null);
   const deleteDeck = useDeleteDeck();
   const updateDeck = useUpdateDeck();
@@ -141,6 +158,7 @@ function ServerDeckActions({ item }: { item: DeckListItemResponse }) {
       deletePending={deleteDeck.isPending}
       deleteDescription={m.decks_dialog_delete_description({ name: deck.name })}
       server={{
+        boxed,
         handleTogglePin: () => setPinned.mutate({ deckId: deck.id, isPinned: !deck.isPinned }),
         folders: folders ?? [],
         // Folder membership is set wholesale; the toggle sends the full resulting set.
@@ -212,6 +230,23 @@ function DeckMenuBody({
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {server?.boxed.map((entry) => (
+            <DropdownMenuItem
+              key={entry.deckId}
+              onClick={() => {
+                void navigate({
+                  to: "/collections/$collectionId",
+                  params: { collectionId: entry.collectionId },
+                });
+              }}
+            >
+              <BoxIcon className="size-4" />
+              {entry.deckId === deck.id && server.boxed.length === 1
+                ? m.decks_meta_stored_in_box({ box: entry.boxName })
+                : m.decks_meta_variant_in_box({ deck: entry.deckName, box: entry.boxName })}
+            </DropdownMenuItem>
+          ))}
+          {server && server.boxed.length > 0 && <DropdownMenuSeparator />}
           {capabilities.pin && server ? (
             <DropdownMenuItem onClick={server.handleTogglePin}>
               {deck.isPinned ? (

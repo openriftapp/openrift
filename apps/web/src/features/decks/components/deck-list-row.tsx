@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cardLinkVariants } from "@/components/ui/card-link";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
-import { useHomeCollection } from "@/features/collections/hooks/use-home-collection";
+import { useBoxedDecks } from "@/features/decks/hooks/use-boxed-decks";
 import { useDeckSelectState } from "@/features/decks/hooks/use-deck-select-state";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
@@ -63,8 +63,8 @@ export function DeckListRow({
   const legendDomains = legendCard?.domains;
 
   const tagSummary = resolveFormatTagSummary(deck.format, deck.formatConfig, customTags);
-  const box = useHomeCollection(deck.collectionId);
-  const boxPart = deckBoxPart(box?.name);
+  const boxed = useBoxedDecks(deck, family);
+  const boxPart = deckBoxPart(boxed, deck.id);
 
   const gradientStyle =
     legendDomains && legendDomains.length > 0
@@ -161,7 +161,12 @@ export function DeckListRow({
             tagSummary={tagSummary}
           />
           {/* Below md there's no width for both columns and a readable name. */}
-          <DeckMetaLine item={metaItem} leading={formatText} className="mt-0.5 md:hidden" />
+          <DeckMetaLine
+            item={metaItem}
+            family={family}
+            leading={formatText}
+            className="mt-0.5 md:hidden"
+          />
         </div>
       </div>
 
@@ -189,6 +194,7 @@ export function DeckListRow({
           here is shrink-0 chrome that costs the deck name its width. */}
       <DeckMetaLine
         item={metaItem}
+        family={family}
         variant="columns"
         leading={formatText}
         className="hidden shrink-0 md:flex"
@@ -197,7 +203,7 @@ export function DeckListRow({
       {/* Above the stretched link, so the menu takes its own clicks. */}
       <div className="relative z-10 flex shrink-0 items-center gap-1">
         {isLocal && <LocalDeckBadge className="hidden md:inline-flex" />}
-        <DeckActionsMenu item={item} source={isLocal ? "local" : "server"} />
+        <DeckActionsMenu item={item} family={family} source={isLocal ? "local" : "server"} />
       </div>
     </div>
   );

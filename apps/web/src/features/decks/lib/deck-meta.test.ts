@@ -2,7 +2,7 @@ import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import { describe, expect, it } from "vitest";
 
 import type { DeckMetaPartKey } from "./deck-meta";
-import { deckMetaParts } from "./deck-meta";
+import { deckBoxPart, deckMetaParts } from "./deck-meta";
 
 const price = (cents: number) => `€${(cents / 100).toFixed(2)}`;
 
@@ -47,9 +47,11 @@ function stubItem(overrides: Partial<DeckListItemResponse> = {}): DeckListItemRe
   } as DeckListItemResponse;
 }
 
+const ownBox = [{ deckId: stubItem().deck.id, deckName: "Own", boxName: "Deckbox 1" }];
+
 describe("deckMetaParts", () => {
   it("returns the canonical order regardless of which facts apply", () => {
-    const keys = deckMetaParts(stubItem(), price, "Deckbox 1").map((entry) => entry.key);
+    const keys = deckMetaParts(stubItem(), price, ownBox).map((entry) => entry.key);
     expect(keys).toEqual(["box", "missing", "value", "updated"]);
 
     const emptyKeys = deckMetaParts(
@@ -60,7 +62,7 @@ describe("deckMetaParts", () => {
   });
 
   it("formats a fully-populated deck", () => {
-    const parts = deckMetaParts(stubItem(), price, "Deckbox 1");
+    const parts = deckMetaParts(stubItem(), price, ownBox);
     expect(parts.map((entry) => entry.text)).toEqual([
       "in Deckbox 1",
       "4 missing",
@@ -72,14 +74,13 @@ describe("deckMetaParts", () => {
   });
 
   it("names the box it is stored in, with the full phrase on hover", () => {
-    const parts = deckMetaParts(stubItem(), price, "Deckbox 1");
+    const parts = deckMetaParts(stubItem(), price, ownBox);
     expect(part(parts, "box").text).toBe("in Deckbox 1");
     expect(part(parts, "box").title).toBe("Stored in Deckbox 1");
   });
 
   it("blanks the box part for a deck that lives nowhere", () => {
     expect(part(deckMetaParts(stubItem(), price), "box").text).toBeNull();
-    expect(part(deckMetaParts(stubItem(), price, null), "box").text).toBeNull();
   });
 
   it("keeps the created date as hover context only when it differs", () => {
@@ -126,5 +127,30 @@ describe("deckMetaParts", () => {
       price,
     );
     expect(parts.map((entry) => entry.text)).toEqual([null, null, null, "2026-08-09"]);
+  });
+});
+
+describe("deckBoxPart", () => {
+  const variant = (deckId: string, boxName: string) => ({
+    deckId,
+    deckName: `Variant ${deckId}`,
+    boxName,
+  });
+
+  it("names a family's single box and says which variant sits in it", () => {
+    const boxPart = deckBoxPart([variant("v2", "Green box")], "front");
+    expect(boxPart.text).toBe("in Green box");
+    expect(boxPart.title).toBe("Variant v2 in Green box");
+  });
+
+  it("counts distinct boxes across variants and lists each on hover", () => {
+    const boxPart = deckBoxPart(
+      [variant("front", "Green box"), variant("v2", "Red box"), variant("v3", "Red box")],
+      "front",
+    );
+    expect(boxPart.text).toBe("in 2 deck boxes");
+    expect(boxPart.title).toBe(
+      "Variant front in Green box\nVariant v2 in Red box\nVariant v3 in Red box",
+    );
   });
 });

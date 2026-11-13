@@ -13,6 +13,7 @@
 
 ### Other
 
+- feat(Decks): **Deck boxes on collapsed variants** — a deck with variants shows which deck box its variants are stored in before you expand it, and its menu links to each box.
 - feat(Collection): **Exclude collections from trade rules** — a tradelist rule can leave out chosen collections, so a new collection is covered without editing the rule.
 - feat(Meta): **Missing cards on partial lists** — event standings show what the known cards of a partial list would cost you, marked with a "+" since the rest of the list is unknown.
 - feat(Cards): **Calmer selected card** — the card you opened is marked by a gold ring and a light tint inside its tile, and in the deck editor cards already in your deck get a gold frame on the art.
