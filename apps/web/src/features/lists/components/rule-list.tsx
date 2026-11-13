@@ -1,5 +1,9 @@
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
-import type { ListRuleCombine, TradeKeepPer } from "@openrift/shared/types/list-rule";
+import type {
+  ListRuleCombine,
+  TradeKeepFirst,
+  TradeKeepPer,
+} from "@openrift/shared/types/list-rule";
 import { defaultRuleCombine, MAX_LIST_RULES } from "@openrift/shared/types/list-rule";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -11,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { RuleExclusions } from "@/features/lists/components/rule-exclusions";
+import { RuleExceptions } from "@/features/lists/components/rule-exceptions";
 import {
   CONTROL_WIDTH,
   FilterRow,
@@ -106,6 +110,13 @@ export function RuleList({
       )}
     </div>
   );
+}
+
+function keepFirstOptions() {
+  return [
+    { value: "special", label: m.lists_rule_keep_first_special() },
+    { value: "plain", label: m.lists_rule_keep_first_plain() },
+  ] as const;
 }
 
 function keepPerOptions() {
@@ -205,6 +216,12 @@ function RuleFields({
   const setQuantity = useRuleEditorStore((state) => state.setQuantity);
   const setKeepPerCard = useRuleEditorStore((state) => state.setKeepPerCard);
   const setKeepPer = useRuleEditorStore((state) => state.setKeepPer);
+  const setKeepFirst = useRuleEditorStore((state) => state.setKeepFirst);
+  const countsCombine = useRuleEditorStore(
+    (state) =>
+      state.rules.length > 1 &&
+      (state.ruleCombine === "count-sum" || state.ruleCombine === "count-max"),
+  );
   const setNetOwned = useRuleEditorStore((state) => state.setNetOwned);
   const setCountSpecialVersions = useRuleEditorStore((state) => state.setCountSpecialVersions);
   const setCollectionScope = useRuleEditorStore((state) => state.setCollectionScope);
@@ -271,6 +288,25 @@ function RuleFields({
       </FilterRow>
       <p className="text-muted-foreground -mt-1 text-sm">{wording.quantityHint(rule.keepPer)}</p>
 
+      {isCopy && (
+        <FilterRow
+          label={wording.pin.firstLabel}
+          hint={
+            countsCombine
+              ? `${wording.pin.firstHint} ${m.lists_rule_keep_first_overlap_hint()}`
+              : wording.pin.firstHint
+          }
+        >
+          <SimpleSelect
+            items={keepFirstOptions()}
+            value={rule.keepFirst}
+            onChange={(next) => setKeepFirst(index, next as TradeKeepFirst)}
+            label={wording.pin.firstLabel}
+            className={CONTROL_WIDTH}
+          />
+        </FilterRow>
+      )}
+
       {!isCopy && (
         <FilterRow label={m.lists_rule_net_owned_label()} hint={netOwnedHint(rule.filter.price)}>
           <Switch
@@ -294,12 +330,13 @@ function RuleFields({
         </FilterRow>
       )}
 
-      <RuleExclusions
+      <RuleExceptions
         index={index}
         kind={kind}
         isCopy={isCopy}
         excludeIds={rule.excludeIds}
-        excludeCopyIds={rule.excludeCopyIds}
+        keepCopyIds={rule.keepCopyIds}
+        pinWording={wording.pin}
       />
     </>
   );

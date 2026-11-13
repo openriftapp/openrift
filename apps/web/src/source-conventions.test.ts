@@ -20,6 +20,8 @@ function sourceFiles(root: string): string[] {
 }
 
 const WEB_FILES = sourceFiles(SRC);
+// Milliseconds. These tests scan the whole source tree and exceed the 5 s default under full-suite load.
+const SCAN_TIMEOUT_MS = 20_000;
 const ALL_FILES = [...WEB_FILES, ...sourceFiles(SHARED_SRC)];
 
 function relative(file: string): string {
@@ -152,23 +154,31 @@ function copyLiterals(file: string, returnsCopy = false): string[] {
 }
 
 describe("source conventions", () => {
-  it("renders player-facing copy through messages", () => {
-    const literals = WEB_FILES.filter(
-      (file) =>
-        file.endsWith(".tsx") || file.includes("/hooks/") || /\/features\/[^/]+\/lib\//u.test(file),
-    )
-      .filter((file) => {
-        const rel = path.relative(SRC, file);
-        return !ADMIN_COPY_DIRS.some((dir) => rel.startsWith(dir)) && !NON_COPY_FILES.includes(rel);
-      })
-      .flatMap((file) =>
-        copyLiterals(file, file.includes("/lib/")).map(
-          (text) => `${path.relative(SRC, file)}: ${text}`,
-        ),
-      );
+  it(
+    "renders player-facing copy through messages",
+    () => {
+      const literals = WEB_FILES.filter(
+        (file) =>
+          file.endsWith(".tsx") ||
+          file.includes("/hooks/") ||
+          /\/features\/[^/]+\/lib\//u.test(file),
+      )
+        .filter((file) => {
+          const rel = path.relative(SRC, file);
+          return (
+            !ADMIN_COPY_DIRS.some((dir) => rel.startsWith(dir)) && !NON_COPY_FILES.includes(rel)
+          );
+        })
+        .flatMap((file) =>
+          copyLiterals(file, file.includes("/lib/")).map(
+            (text) => `${path.relative(SRC, file)}: ${text}`,
+          ),
+        );
 
-    expect(literals).toEqual([]);
-  });
+      expect(literals).toEqual([]);
+    },
+    SCAN_TIMEOUT_MS,
+  );
 
   it("takes day and hour lengths from the shared date module", () => {
     expect(
@@ -473,29 +483,33 @@ describe("mutations and jobs", () => {
     );
   };
 
-  it("names job kinds only through the shared job-run-kinds constants", async () => {
-    const { JOB_KIND, META_JOB_KINDS } = await import("@openrift/shared/job-run-kinds");
-    const kinds = new Set<string>([...Object.values(JOB_KIND), ...META_JOB_KINDS]);
-    const literalKinds = (file: string) => {
-      const found: string[] = [];
-      const visit = (node: ts.Node) => {
-        if (
-          (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
-          kinds.has(node.text)
-        ) {
-          found.push(`${relative(file)}: ${node.text}`);
-        }
-        ts.forEachChild(node, visit);
+  it(
+    "names job kinds only through the shared job-run-kinds constants",
+    async () => {
+      const { JOB_KIND, META_JOB_KINDS } = await import("@openrift/shared/job-run-kinds");
+      const kinds = new Set<string>([...Object.values(JOB_KIND), ...META_JOB_KINDS]);
+      const literalKinds = (file: string) => {
+        const found: string[] = [];
+        const visit = (node: ts.Node) => {
+          if (
+            (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
+            kinds.has(node.text)
+          ) {
+            found.push(`${relative(file)}: ${node.text}`);
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(parse(file));
+        return found;
       };
-      visit(parse(file));
-      return found;
-    };
-    expect(
-      ALL_FILES.filter((file) => !file.endsWith("job-run-kinds.ts")).flatMap((file) =>
-        literalKinds(file),
-      ),
-    ).toEqual([]);
-  });
+      expect(
+        ALL_FILES.filter((file) => !file.endsWith("job-run-kinds.ts")).flatMap((file) =>
+          literalKinds(file),
+        ),
+      ).toEqual([]);
+    },
+    SCAN_TIMEOUT_MS,
+  );
 
   it("shows admin table save errors inline only", () => {
     const missing = WEB_FILES.flatMap((file) => {
@@ -515,41 +529,45 @@ describe("mutations and jobs", () => {
     expect(missing).toEqual([]);
   });
 
-  it("awaits mutations only through runReportedMutation", () => {
-    const handwritten = (file: string) => {
-      const found: string[] = [];
-      const at = (node: ts.Node, what: string) => {
-        const { line } = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart());
-        found.push(`${relative(file)}:${line + 1} ${what}`);
-      };
-      const visit = (node: ts.Node) => {
-        if (ts.isTryStatement(node) && node.tryBlock.getText().includes(".mutateAsync")) {
-          at(node, "try around mutateAsync");
+  it(
+    "awaits mutations only through runReportedMutation",
+    () => {
+      const handwritten = (file: string) => {
+        const found: string[] = [];
+        const at = (node: ts.Node, what: string) => {
+          const { line } = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart());
+          found.push(`${relative(file)}:${line + 1} ${what}`);
+        };
+        const visit = (node: ts.Node) => {
+          if (ts.isTryStatement(node) && node.tryBlock.getText().includes(".mutateAsync")) {
+            at(node, "try around mutateAsync");
+          }
+          if (
+            ts.isCallExpression(node) &&
+            ts.isPropertyAccessExpression(node.expression) &&
+            (node.expression.name.text === "catch" ||
+              (node.expression.name.text === "then" && node.arguments.length > 1)) &&
+            node.expression.expression.getText().includes(".mutateAsync(")
+          ) {
+            at(node, `.${node.expression.name.text}() on mutateAsync`);
+          }
+          ts.forEachChild(node, visit);
+        };
+        const sf = parse(file);
+        visit(sf);
+        if (sf.text.includes("Reported by the global mutation")) {
+          found.push(`${relative(file)} comment-only mutation catch`);
         }
-        if (
-          ts.isCallExpression(node) &&
-          ts.isPropertyAccessExpression(node.expression) &&
-          (node.expression.name.text === "catch" ||
-            (node.expression.name.text === "then" && node.arguments.length > 1)) &&
-          node.expression.expression.getText().includes(".mutateAsync(")
-        ) {
-          at(node, `.${node.expression.name.text}() on mutateAsync`);
-        }
-        ts.forEachChild(node, visit);
+        return found;
       };
-      const sf = parse(file);
-      visit(sf);
-      if (sf.text.includes("Reported by the global mutation")) {
-        found.push(`${relative(file)} comment-only mutation catch`);
-      }
-      return found;
-    };
-    expect(
-      WEB_FILES.filter((file) => !file.endsWith("run-reported-mutation.ts")).flatMap((file) =>
-        handwritten(file),
-      ),
-    ).toEqual([]);
-  });
+      expect(
+        WEB_FILES.filter((file) => !file.endsWith("run-reported-mutation.ts")).flatMap((file) =>
+          handwritten(file),
+        ),
+      ).toEqual([]);
+    },
+    SCAN_TIMEOUT_MS,
+  );
 });
 
 describe("admin display", () => {

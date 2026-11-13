@@ -18,9 +18,49 @@ export interface RuleWording {
   combineOptions: readonly { value: ListRuleCombine; label: string }[];
   combineHint: (combine: ListRuleCombine) => string;
   countVerb: (netOwned: boolean) => string;
+  pin: CopyPinWording;
 }
 
 type RuleNoun = "card" | "printing";
+
+export interface CopyPinWording {
+  firstLabel: string;
+  firstHint: string;
+  pinnedHeading: string;
+  unpin: (label: string) => string;
+  pin: string;
+  pinAria: (name: string) => string;
+  heldBack: string;
+  included: string;
+  pinnedMark: string;
+}
+
+export function copyPinWording(intent: ListIntent): CopyPinWording {
+  if (intent === "organize") {
+    return {
+      firstLabel: m.lists_rule_wording_organize_copy_first_label(),
+      firstHint: m.lists_rule_wording_organize_copy_first_hint(),
+      pinnedHeading: m.lists_rule_wording_organize_copy_pinned(),
+      unpin: (label) => m.lists_rule_wording_organize_copy_unpin({ label }),
+      pin: m.lists_entry_leave_out_copy(),
+      pinAria: (name) => m.lists_entry_leave_out_copy_aria({ name }),
+      heldBack: m.lists_rule_split_left_out(),
+      included: m.lists_rule_split_listed(),
+      pinnedMark: m.lists_rule_split_left_out_pinned(),
+    };
+  }
+  return {
+    firstLabel: m.lists_rule_keep_first_label(),
+    firstHint: m.lists_rule_keep_first_hint(),
+    pinnedHeading: m.lists_rule_kept_copies(),
+    unpin: (label) => m.lists_rule_stop_keeping({ label }),
+    pin: m.lists_entry_keep_copy(),
+    pinAria: (name) => m.lists_entry_keep_copy_aria({ name }),
+    heldBack: m.lists_rule_split_kept(),
+    included: m.lists_rule_split_offered(),
+    pinnedMark: m.lists_rule_split_pinned(),
+  };
+}
 
 function quantityCombineLabels(): readonly { value: ListRuleCombine; label: string }[] {
   return [
@@ -45,7 +85,7 @@ function organizeCopyCombineLabels(): readonly { value: ListRuleCombine; label: 
   ];
 }
 
-const wishWording = (noun: RuleNoun): Omit<RuleWording, "isCopy"> => ({
+const wishWording = (noun: RuleNoun): Omit<RuleWording, "isCopy" | "pin"> => ({
   description: m.lists_rule_wording_wish_description(),
   emptyMessage: m.lists_rule_wording_wish_empty(),
   quantityLabel: () => m.lists_rule_wording_wish_quantity_label(),
@@ -69,7 +109,7 @@ const wishWording = (noun: RuleNoun): Omit<RuleWording, "isCopy"> => ({
     netOwned ? m.lists_rule_wording_verb_missing() : m.lists_rule_wording_verb_matches(),
 });
 
-const tradeWording = (): Omit<RuleWording, "isCopy"> => ({
+const tradeWording = (): Omit<RuleWording, "isCopy" | "pin"> => ({
   description: m.lists_rule_wording_trade_description(),
   emptyMessage: m.lists_rule_wording_trade_empty(),
   quantityLabel: (keepPer) =>
@@ -95,7 +135,7 @@ const tradeWording = (): Omit<RuleWording, "isCopy"> => ({
   countVerb: () => m.lists_rule_wording_verb_offers(),
 });
 
-const organizeCardWording = (noun: RuleNoun): Omit<RuleWording, "isCopy"> => ({
+const organizeCardWording = (noun: RuleNoun): Omit<RuleWording, "isCopy" | "pin"> => ({
   description: m.lists_rule_wording_organize_description(),
   emptyMessage: m.lists_rule_wording_organize_empty(),
   quantityLabel: () => m.lists_rule_wording_organize_quantity_label(),
@@ -123,7 +163,7 @@ const organizeCardWording = (noun: RuleNoun): Omit<RuleWording, "isCopy"> => ({
  * Reuses the trade list's keep/offer split, but nothing is offered here, so
  * held-back copies read as "left out" instead.
  */
-const organizeCopyWording = (): Omit<RuleWording, "isCopy"> => ({
+const organizeCopyWording = (): Omit<RuleWording, "isCopy" | "pin"> => ({
   description: m.lists_rule_wording_organize_copy_description(),
   emptyMessage: m.lists_rule_wording_organize_copy_empty(),
   quantityLabel: (keepPer) =>
@@ -152,9 +192,13 @@ export function ruleWording(intent: ListIntent, kind: ListKind): RuleWording {
   const isCopy = kind === "copy";
   const noun: RuleNoun = kind === "printing" ? "printing" : "card";
   if (intent === "organize") {
-    return { ...(isCopy ? organizeCopyWording() : organizeCardWording(noun)), isCopy };
+    return {
+      ...(isCopy ? organizeCopyWording() : organizeCardWording(noun)),
+      isCopy,
+      pin: copyPinWording(intent),
+    };
   }
-  return { ...(isCopy ? tradeWording() : wishWording(noun)), isCopy };
+  return { ...(isCopy ? tradeWording() : wishWording(noun)), isCopy, pin: copyPinWording(intent) };
 }
 
 /** Pluralized rule-count label, e.g. "42 cards" / "1 printing" / "3 copies". */

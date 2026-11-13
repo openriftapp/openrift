@@ -6,7 +6,7 @@ import { createStoreResetter } from "@/test/store-helpers";
 
 import {
   dispatchContextAction,
-  dispatchExcludeFromRule,
+  dispatchDropFromRule,
   dispatchMoveCopyToCollection,
   useCardRowActionsStore,
 } from "./card-row-actions-store";
@@ -94,15 +94,15 @@ describe("useCardRowActionsStore", () => {
     expect(() => dispatchContextAction("item-1", "move")).not.toThrow();
   });
 
-  it("dispatchExcludeFromRule forwards the target to the registered handler", () => {
-    const onExcludeFromRule = vi.fn();
-    useCardRowActionsStore.getState().setHandlers("list", { onExcludeFromRule });
-    dispatchExcludeFromRule({ kind: "card", cardId: "card-1" });
-    expect(onExcludeFromRule).toHaveBeenCalledWith({ kind: "card", cardId: "card-1" });
+  it("dispatchDropFromRule forwards the target to the registered handler", () => {
+    const onDropFromRule = vi.fn();
+    useCardRowActionsStore.getState().setHandlers("list", { onDropFromRule });
+    dispatchDropFromRule({ kind: "card", cardId: "card-1" });
+    expect(onDropFromRule).toHaveBeenCalledWith({ kind: "card", cardId: "card-1" });
   });
 
-  it("dispatchExcludeFromRule is a no-op when no handler is registered", () => {
-    expect(() => dispatchExcludeFromRule({ kind: "copy", copyId: "copy-1" })).not.toThrow();
+  it("dispatchDropFromRule is a no-op when no handler is registered", () => {
+    expect(() => dispatchDropFromRule({ kind: "copy", copyId: "copy-1" })).not.toThrow();
   });
 
   it("dispatchMoveCopyToCollection forwards the copy id to the registered handler", () => {

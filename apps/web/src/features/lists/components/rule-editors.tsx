@@ -5,19 +5,15 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useCollections } from "@/features/collections/hooks/use-collections";
-import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { RuleList } from "@/features/lists/components/rule-list";
-import {
-  ownedCopiesFromCopyList,
-  ownedCopiesFromCounts,
-} from "@/features/lists/lib/rule-owned-copies";
+import { useCopyRuleEvalContext } from "@/features/lists/hooks/use-copy-rule-eval-context";
+import { ownedCopiesFromCounts } from "@/features/lists/lib/rule-owned-copies";
 import { serializeRules } from "@/features/rules/lib/rule-draft";
 import type { RuleWording } from "@/features/rules/lib/rule-wording";
 import { matchLabel } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { m } from "@/paraglide/messages.js";
 
@@ -36,41 +32,22 @@ export function CopyRuleEditor({
   wording: RuleWording;
 }) {
   const { data: collections } = useCollections();
-  const { allPrintings, printingsById } = useCards();
-  const customTagAssignments = useCustomTagAssignments();
-  // Reference orders keep the offered-copy count exact, matching the server's
-  // keep/offer split, in overlapping protect cases.
-  const { orders: enumOrders } = useEnumOrders();
   const rules = useRuleEditorStore((state) => state.rules);
   const ruleCombine = useRuleEditorStore((state) => state.ruleCombine);
+  const ctx = useCopyRuleEvalContext();
 
   const collectionOptions = collections.map((collection) => ({
     value: collection.id,
     label: collection.name,
   }));
 
-  const copiesStore = useCopies();
-  const copies = copiesStore.isReady ? copiesStore.data : undefined;
-
   const serialized = serializeRules(rules, kind);
-  const priceLookup = usePrices();
-  const vocabulary = useCatalogSearchVocabulary();
-  const keywordReverseMap = useKeywordReverseMap();
-  const ctx = {
-    catalog: allPrintings,
-    ownedCopies: copies ? ownedCopiesFromCopyList(copies, printingsById) : [],
-    customTagAssignments,
-    enumOrders,
-    priceLookup,
-    vocabulary,
-    keywordReverseMap,
-  };
   // Undefined while copies load; the UI shows no count, never a misleading zero.
-  const perRuleCounts = copies
+  const perRuleCounts = ctx
     ? serialized.map((rule) => evaluateListRule(rule, kind, ctx).length)
     : undefined;
   const previewCount =
-    copies && rules.length > 0
+    ctx && rules.length > 0
       ? expandList(kind, [], evaluateListRules(serialized, kind, ctx, ruleCombine)).length
       : null;
 

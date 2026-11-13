@@ -3,7 +3,7 @@ import type {
   CardTradeLiveAnnotation,
   CardTradeResponse,
 } from "@openrift/shared/types/api/card-trade";
-import type { ListKind } from "@openrift/shared/types/api/list";
+import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { ListIcon, XIcon } from "lucide-react";
@@ -18,7 +18,6 @@ import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumb
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
 import {
   dispatchEntryQuantityChange,
-  dispatchExcludeFromRule,
   dispatchIncrement,
   dispatchItemClick,
   dispatchItemToggle,
@@ -38,12 +37,12 @@ import { TradeStatusChip } from "@/features/groups/components/trade-status-chip"
 import { DraggableListEntry } from "@/features/lists/components/draggable-list-entry";
 import { ListEntryContextMenu } from "@/features/lists/components/list-entry-context-menu";
 import { isRuleSourced, RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
+import { ruleBadgeAction, ruleMenuAction } from "@/features/lists/hooks/rule-entry-actions";
 import { entrySelectionId } from "@/features/lists/lib/list-entries";
 import { entryAddsCopies, ruleEntryRef } from "@/features/lists/lib/list-move";
 import type { ListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { listEntryTrades, listEntryTradeStatus } from "@/features/lists/lib/list-trade-status";
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
-import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
 
@@ -139,6 +138,7 @@ export const ListGridCell = memo(function ListGridCell({
     : buildStrip({
         showLibrary,
         kind,
+        intent,
         entry,
         displayPrinting,
         listTradeDefaults,
@@ -205,7 +205,7 @@ export const ListGridCell = memo(function ListGridCell({
         onCopy={() => dispatchListBulkAction(selectionId, "copy")}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
         onAddToCollection={onAddToCollection}
-        onExclude={() => dispatchExcludeFromRule(entryToExcludeTarget(entry))}
+        {...ruleMenuAction(entry, intent)}
       />
     ) : undefined;
 
@@ -242,6 +242,7 @@ export const ListGridCell = memo(function ListGridCell({
 interface BuildStripArgs {
   showLibrary: boolean;
   kind: ListKind;
+  intent: ListIntent;
   entry: ReturnType<typeof useListEntriesStore.getState>["entryByItemId"] extends Map<
     string,
     infer V
@@ -259,6 +260,7 @@ interface BuildStripArgs {
 function buildStrip({
   showLibrary,
   kind,
+  intent,
   entry,
   displayPrinting,
   listTradeDefaults,
@@ -324,8 +326,7 @@ function buildStrip({
           <>
             <RuleSourceBadge
               quantity={kind === "copy" ? undefined : entry.ruleQuantity}
-              onExclude={() => dispatchExcludeFromRule(entryToExcludeTarget(entry))}
-              excludeLabel={m.lists_entry_exclude_aria({ name: entry.cardName })}
+              {...ruleBadgeAction(entry, intent)}
             />
             {tradeChip}
             {onLoan && <Badge variant="secondary">{m.lists_entry_on_loan()}</Badge>}

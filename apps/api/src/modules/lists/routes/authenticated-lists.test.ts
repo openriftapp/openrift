@@ -359,7 +359,7 @@ describe("PATCH /api/v1/lists/:id", () => {
     filter: {},
     collectionIds: null,
     keepPerCard: { mode: "fixed", n: 1 },
-    excludeCopyIds: [],
+    keepCopyIds: [],
   };
   const wishRule = {
     kind: "wish",

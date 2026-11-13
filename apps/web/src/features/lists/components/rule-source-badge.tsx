@@ -1,5 +1,5 @@
 import type { EntrySource } from "@openrift/shared/types/api/list";
-import { BanIcon, SparklesIcon } from "lucide-react";
+import { BanIcon, PinIcon, SparklesIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
@@ -15,17 +15,23 @@ export function RuleSourceBadge({
   className,
   onExclude,
   excludeLabel = m.lists_rule_badge_exclude_default(),
+  keep,
 }: {
   quantity?: number;
   className?: string;
   onExclude?: () => void;
   excludeLabel?: string;
+  keep?: { handleKeep: () => void; label: string };
 }) {
   return (
     <Badge
       variant="subtle"
       // Must match countPillVariants in ui/count-pill.tsx.
-      className={cn("rounded-md border-0 bg-transparent", onExclude && "pr-0.5", className)}
+      className={cn(
+        "rounded-md border-0 bg-transparent",
+        (onExclude ?? keep) && "pr-0.5",
+        className,
+      )}
       title={
         quantity === undefined
           ? m.lists_rule_badge_title()
@@ -50,6 +56,20 @@ export function RuleSourceBadge({
           }}
         >
           <BanIcon className="size-3" aria-hidden />
+        </ChipRemoveButton>
+      ) : null}
+      {keep ? (
+        <ChipRemoveButton
+          tabIndex={-1}
+          aria-label={keep.label}
+          title={keep.label}
+          className="hover:bg-primary/15 hover:text-primary -my-0.5 p-0.5"
+          onClick={(event) => {
+            event.stopPropagation();
+            keep.handleKeep();
+          }}
+        >
+          <PinIcon className="size-3" aria-hidden />
         </ChipRemoveButton>
       ) : null}
     </Badge>

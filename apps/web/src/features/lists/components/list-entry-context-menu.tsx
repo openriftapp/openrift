@@ -7,6 +7,7 @@ import {
   HandCoinsIcon,
   InfoIcon,
   PackagePlusIcon,
+  PinIcon,
   Trash2Icon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -25,6 +26,7 @@ interface ListEntryContextMenuProps {
   onMoveToCollection?: () => void;
   onAddToCollection?: () => void;
   onExclude?: () => void;
+  keep?: { handleKeep: () => void; label: string };
   children?: ReactNode;
 }
 
@@ -38,10 +40,17 @@ export function ListEntryContextMenu({
   onMoveToCollection,
   onAddToCollection,
   onExclude,
+  keep,
   children,
 }: ListEntryContextMenuProps) {
   const hasActions = Boolean(
-    onViewDetail ?? onSetPreference ?? onMove ?? onCopy ?? onMoveToCollection ?? onAddToCollection,
+    onViewDetail ??
+    onSetPreference ??
+    onMove ??
+    onCopy ??
+    onMoveToCollection ??
+    onAddToCollection ??
+    keep,
   );
   const hasDestructive = Boolean(onTakeOff ?? onRemove ?? onExclude);
   return (
@@ -51,6 +60,11 @@ export function ListEntryContextMenu({
           {onViewDetail && (
             <CardMenuItem icon={InfoIcon} onSelect={onViewDetail}>
               {m.lists_entry_view_details()}
+            </CardMenuItem>
+          )}
+          {keep && (
+            <CardMenuItem icon={PinIcon} onSelect={keep.handleKeep}>
+              {keep.label}
             </CardMenuItem>
           )}
           {onSetPreference && (

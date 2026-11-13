@@ -2,7 +2,13 @@ import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import { defaultRuleCombine, ruleCombineMatchesKind } from "@openrift/shared/types/list-rule";
 import { describe, expect, it } from "vitest";
 
-import { matchLabel, netOwnedHint, ruleCountLabel, ruleWording } from "./rule-wording";
+import {
+  copyPinWording,
+  matchLabel,
+  netOwnedHint,
+  ruleCountLabel,
+  ruleWording,
+} from "./rule-wording";
 
 const COMBOS: [ListIntent, ListKind][] = [
   ["wish", "card"],
@@ -129,5 +135,23 @@ describe("ruleWording", () => {
     }
     expect(organize.description).not.toBe(trade.description);
     expect(organize.emptyMessage).not.toBe(trade.emptyMessage);
+  });
+});
+
+describe("copyPinWording", () => {
+  it("speaks of keeping on a tradelist and leaving out on an organize list", () => {
+    const trade = copyPinWording("trade");
+    const organize = copyPinWording("organize");
+    expect(trade.pin).toBe("Keep this copy");
+    expect(organize.pin).toBe("Leave this copy out");
+    expect(trade.included).toBe("Offered");
+    expect(organize.included).toBe("On this list");
+    expect(trade.unpin("Flash")).toBe("Stop keeping Flash");
+    expect(organize.unpin("Flash")).toBe("Include Flash again");
+  });
+
+  it("is the pin wording every rule wording carries", () => {
+    expect(ruleWording("organize", "copy").pin.pin).toBe(copyPinWording("organize").pin);
+    expect(ruleWording("trade", "copy").pin.firstLabel).toBe("Keep first");
   });
 });

@@ -9,14 +9,14 @@ import type { CardFilters } from "@openrift/shared/types/search";
  * The card/printing/copy a user picked to drop from a list's dynamic rules.
  * Exactly the id matching `kind` is set; the others are absent.
  */
-export interface RuleExcludeTarget {
+export interface RuleDropTarget {
   kind: ListKind;
   cardId?: string;
   printingId?: string;
   copyId?: string;
 }
 
-export function entryToExcludeTarget(entry: ListEntryDetailResponse): RuleExcludeTarget {
+export function entryToDropTarget(entry: ListEntryDetailResponse): RuleDropTarget {
   if (entry.kind === "card") {
     return { kind: "card", cardId: entry.cardId };
   }
@@ -28,7 +28,7 @@ export function entryToExcludeTarget(entry: ListEntryDetailResponse): RuleExclud
 
 function wishRuleMatches(
   filter: CardFilters,
-  target: RuleExcludeTarget,
+  target: RuleDropTarget,
   catalog: Printing[],
   context: CardSearchContext,
 ): boolean {
@@ -40,12 +40,12 @@ function wishRuleMatches(
 }
 
 /**
- * The id is excluded from every wish rule whose filter still matches it, since a
- * card/printing can be produced by several. Returns null when nothing would change.
+ * Excludes a card/printing from every wish rule still matching it, or pins a copy on every trade
+ * rule. Returns null when nothing would change.
  */
-export function excludeEntryFromRules(
+export function dropEntryFromRules(
   rules: ListRule[],
-  target: RuleExcludeTarget,
+  target: RuleDropTarget,
   catalog: Printing[],
   context: CardSearchContext,
 ): ListRule[] | null {
@@ -63,11 +63,11 @@ export function excludeEntryFromRules(
       changed = true;
       return { ...rule, excludeIds: [...rule.excludeIds, id] };
     }
-    if (target.kind !== "copy" || !target.copyId || rule.excludeCopyIds.includes(target.copyId)) {
+    if (target.kind !== "copy" || !target.copyId || rule.keepCopyIds.includes(target.copyId)) {
       return rule;
     }
     changed = true;
-    return { ...rule, excludeCopyIds: [...rule.excludeCopyIds, target.copyId] };
+    return { ...rule, keepCopyIds: [...rule.keepCopyIds, target.copyId] };
   });
   return changed ? next : null;
 }

@@ -472,7 +472,7 @@ describe("listsRepo.expandedCounts", () => {
       filter: EMPTY_CARD_FILTERS,
       keepPerCard: { mode: "fixed" as const, n: 0 },
       collectionIds: null,
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     const { providers, ownedCopyCalls } = countingProviders();
     const db = tableDb({

@@ -14,6 +14,7 @@ import type {
   ListRule,
   ListRuleCombine,
   RuleQuantity,
+  TradeKeepFirst,
   TradeRule,
   TradeRuleCombine,
   WishRule,
@@ -32,9 +33,15 @@ function orderRank(order: readonly string[], slug: string): number {
  * Keep-priority comparator for printings only; `reserved` is handled by the
  * caller ({@link copyKeepComparator}), not here.
  */
-function comparePrintingKeepPriority(a: Printing, b: Printing, orders: KeepPriorityOrders): number {
+function comparePrintingKeepPriority(
+  a: Printing,
+  b: Printing,
+  orders: KeepPriorityOrders,
+  keepFirst: TradeKeepFirst,
+): number {
+  const standardOrder = Number(isStandardPrinting(a)) - Number(isStandardPrinting(b));
   return (
-    Number(isStandardPrinting(a)) - Number(isStandardPrinting(b)) ||
+    (keepFirst === "plain" ? -standardOrder : standardOrder) ||
     orderRank(orders.rarities, b.rarity) - orderRank(orders.rarities, a.rarity) ||
     orderRank(orders.finishes, b.finish) - orderRank(orders.finishes, a.finish) ||
     Number(b.markers.length > 0) - Number(a.markers.length > 0) ||
@@ -310,31 +317,54 @@ function combineWishRules(
 interface TradeRulePool {
   keepN: number;
   ordered: OwnedCopyRow[];
+  pinned: ReadonlySet<string>;
+  keepFirst: TradeKeepFirst;
 }
 
 /**
  * Sorts reserved copies last (already promised to a trade, so they must
- * never fill a keep slot), then by printing niceness, then copy id as the final tiebreak.
+ * never fill a keep slot), then pinned copies first, then by printing niceness, then copy id.
  */
 function copyKeepComparator(
   printingById: Map<string, Printing>,
   enumOrders: KeepPriorityOrders | undefined,
+  pinned: ReadonlySet<string>,
+  keepFirst: TradeKeepFirst,
 ): (first: OwnedCopyRow, second: OwnedCopyRow) => number {
   return (first, second) => {
     const byReserved = Number(first.reserved) - Number(second.reserved);
     if (byReserved !== 0) {
       return byReserved;
     }
+    const byPinned = Number(pinned.has(second.copyId)) - Number(pinned.has(first.copyId));
+    if (byPinned !== 0) {
+      return byPinned;
+    }
     const firstPrinting = printingById.get(first.printingId);
     const secondPrinting = printingById.get(second.printingId);
     if (enumOrders && firstPrinting && secondPrinting) {
-      const byNiceness = comparePrintingKeepPriority(firstPrinting, secondPrinting, enumOrders);
+      const byNiceness = comparePrintingKeepPriority(
+        firstPrinting,
+        secondPrinting,
+        enumOrders,
+        keepFirst,
+      );
       if (byNiceness !== 0) {
         return byNiceness;
       }
     }
     return first.copyId.localeCompare(second.copyId);
   };
+}
+
+/** Pinned copies stay kept past the keep count, unless already promised to a trade. */
+function isKept(
+  copy: OwnedCopyRow,
+  index: number,
+  keepN: number,
+  pinned: ReadonlySet<string>,
+): boolean {
+  return index < keepN || (pinned.has(copy.copyId) && !copy.reserved);
 }
 
 /** Must call the same {@link filterCards} / {@link wishRuleTargets} as the evaluator, or a printing omitted here is one the evaluator would still match. */
@@ -394,16 +424,18 @@ function tradeRulePools(
       (printing) => `${printing.printingId}:${printing.cardId}`,
     ),
   );
-  const excludedCopies = new Set(rule.excludeCopyIds);
   const excludedCollections = new Set(rule.collectionIdsExclude);
   const candidates = (ctx.ownedCopies ?? []).filter(
     (copy) =>
       (rule.collectionIds === null || rule.collectionIds.includes(copy.collectionId)) &&
       !excludedCollections.has(copy.collectionId) &&
-      passing.has(`${copy.printingId}:${copy.cardId}`) &&
-      !excludedCopies.has(copy.copyId),
+      passing.has(`${copy.printingId}:${copy.cardId}`),
   );
-  const compare = copyKeepComparator(printingById, ctx.enumOrders);
+  // A pin counts only on a rule that matches the copy, never through another rule in count modes.
+  const candidateIds = new Set(candidates.map((copy) => copy.copyId));
+  const pinned = new Set(rule.keepCopyIds.filter((copyId) => candidateIds.has(copyId)));
+  const keepFirst = rule.keepFirst ?? "special";
+  const compare = copyKeepComparator(printingById, ctx.enumOrders, pinned, keepFirst);
   const pools = new Map<string, TradeRulePool>();
   const grouped = Map.groupBy(candidates, (copy) =>
     rule.keepPer === "printing" ? copy.printingId : copy.cardId,
@@ -421,6 +453,8 @@ function tradeRulePools(
     pools.set(key, {
       keepN: resolveQuantity(rule.keepPerCard, card),
       ordered: copies.toSorted(compare),
+      pinned,
+      keepFirst,
     });
   }
   return pools;
@@ -430,17 +464,34 @@ function tradeRulePools(
 interface CountGroupAcc {
   keeps: number[];
   copies: Map<string, OwnedCopyRow>;
+  pinned: Set<string>;
+  keepFirst: TradeKeepFirst;
+}
+
+export interface TradeCopySplit {
+  kept: OwnedCopyRow[];
+  offered: OwnedCopyRow[];
+}
+
+function splitMatched(matched: Map<string, OwnedCopyRow>, kept: Set<string>): TradeCopySplit {
+  const copies = [...matched.values()];
+  return {
+    kept: copies.filter((copy) => kept.has(copy.copyId)),
+    offered: copies.filter((copy) => !kept.has(copy.copyId)),
+  };
 }
 
 /**
  * `protect`: a copy is offered only if some rule matched it and no rule kept
  * it. `count-sum`/`count-max`: keep counts combine per grouping (card vs printing) before the nicest N are kept.
  */
-function combineTradeRules(
+export function splitTradeCopies(
   rules: TradeRule[],
   ctx: RuleEvalContext,
-  mode: TradeRuleCombine,
-): VirtualEntry[] {
+  combine?: ListRuleCombine | null,
+): TradeCopySplit {
+  const mode: TradeRuleCombine =
+    combine === "count-sum" || combine === "count-max" ? combine : "protect";
   const cardById = new Map<string, Card>();
   for (const printing of ctx.catalog) {
     if (!cardById.has(printing.cardId)) {
@@ -452,28 +503,20 @@ function combineTradeRules(
     keepPer: rule.keepPer ?? "card",
     pool: tradeRulePools(rule, ctx, cardById, printingById),
   }));
-  const toEntry = (copy: OwnedCopyRow): VirtualEntry => ({
-    kind: "copy",
-    copyId: copy.copyId,
-    quantity: 1,
-    reserved: copy.reserved,
-  });
   if (mode === "protect") {
     const matched = new Map<string, OwnedCopyRow>();
     const kept = new Set<string>();
     for (const { pool } of pooled) {
-      for (const { keepN, ordered } of pool.values()) {
+      for (const { keepN, ordered, pinned } of pool.values()) {
         ordered.forEach((copy, index) => {
           matched.set(copy.copyId, copy);
-          if (index < keepN) {
+          if (isKept(copy, index, keepN, pinned)) {
             kept.add(copy.copyId);
           }
         });
       }
     }
-    return [...matched.values()]
-      .filter((copy) => !kept.has(copy.copyId))
-      .map((copy) => toEntry(copy));
+    return splitMatched(matched, kept);
   }
   const layers = {
     card: new Map<string, CountGroupAcc>(),
@@ -481,36 +524,40 @@ function combineTradeRules(
   };
   for (const { keepPer, pool } of pooled) {
     const layer = layers[keepPer];
-    for (const [key, { keepN, ordered }] of pool) {
+    for (const [key, { keepN, ordered, pinned, keepFirst }] of pool) {
+      // The first rule covering a group decides its keep order.
       const acc = layer.get(key) ?? {
         keeps: [] as number[],
         copies: new Map<string, OwnedCopyRow>(),
+        pinned: new Set<string>(),
+        keepFirst,
       };
       acc.keeps.push(keepN);
+      for (const id of pinned) {
+        acc.pinned.add(id);
+      }
       for (const copy of ordered) {
         acc.copies.set(copy.copyId, copy);
       }
       layer.set(key, acc);
     }
   }
-  const compare = copyKeepComparator(printingById, ctx.enumOrders);
   const matched = new Map<string, OwnedCopyRow>();
   const kept = new Set<string>();
   for (const layer of [layers.card, layers.printing]) {
-    for (const { keeps, copies } of layer.values()) {
+    for (const { keeps, copies, pinned, keepFirst } of layer.values()) {
       const keepTotal =
         mode === "count-sum" ? keeps.reduce((a, b) => a + b, 0) : Math.max(...keeps);
+      const compare = copyKeepComparator(printingById, ctx.enumOrders, pinned, keepFirst);
       [...copies.values()].toSorted(compare).forEach((copy, index) => {
         matched.set(copy.copyId, copy);
-        if (index < keepTotal) {
+        if (isKept(copy, index, keepTotal, pinned)) {
           kept.add(copy.copyId);
         }
       });
     }
   }
-  return [...matched.values()]
-    .filter((copy) => !kept.has(copy.copyId))
-    .map((copy) => toEntry(copy));
+  return splitMatched(matched, kept);
 }
 
 /**
@@ -526,7 +573,7 @@ export function evaluateListRule(
 
 /**
  * Wish rules combine via {@link combineWishRules} (sum default / max); trade
- * rules via {@link combineTradeRules} (protect default / count-sum / count-max). A missing or unrecognized mode falls back to the default.
+ * rules via {@link splitTradeCopies} (protect default / count-sum / count-max). A missing or unrecognized mode falls back to the default.
  */
 export function evaluateListRules(
   rules: ListRule[],
@@ -537,11 +584,15 @@ export function evaluateListRules(
   const wishRules = rules.filter((rule) => rule.kind === "wish");
   const tradeRules = rules.filter((rule) => rule.kind === "trade");
   const wishMode: WishRuleCombine = combine === "max" ? "max" : "sum";
-  const tradeMode: TradeRuleCombine =
-    combine === "count-sum" || combine === "count-max" ? combine : "protect";
+  const offered = tradeRules.length > 0 ? splitTradeCopies(tradeRules, ctx, combine).offered : [];
   return [
     ...(wishRules.length > 0 ? combineWishRules(wishRules, listKind, ctx, wishMode) : []),
-    ...(tradeRules.length > 0 ? combineTradeRules(tradeRules, ctx, tradeMode) : []),
+    ...offered.map((copy): VirtualEntry => ({
+      kind: "copy",
+      copyId: copy.copyId,
+      quantity: 1,
+      reserved: copy.reserved,
+    })),
   ];
 }
 

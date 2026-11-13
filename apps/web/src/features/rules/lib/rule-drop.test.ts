@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
 
-import { entryToExcludeTarget, excludeEntryFromRules } from "./rule-exclude";
+import { entryToDropTarget, dropEntryFromRules } from "./rule-drop";
 
 const commonA: Printing = stubPrinting({ printingId: "p-a", cardId: "card-a", rarity: "common" });
 const rareB: Printing = stubPrinting({ printingId: "p-b", cardId: "card-b", rarity: "rare" });
@@ -29,14 +29,14 @@ function tradeRule(overrides: Partial<Extract<ListRule, { kind: "trade" }>> = {}
     filter: EMPTY_CARD_FILTERS,
     collectionIds: null,
     keepPerCard: { mode: "fixed", n: 0 },
-    excludeCopyIds: [],
+    keepCopyIds: [],
     ...overrides,
   };
 }
 
-describe("excludeEntryFromRules", () => {
+describe("dropEntryFromRules", () => {
   it("excludes a card from the wish rule whose filter matches it", () => {
-    const next = excludeEntryFromRules(
+    const next = dropEntryFromRules(
       [wishRule()],
       { kind: "card", cardId: "card-a" },
       catalog,
@@ -46,7 +46,7 @@ describe("excludeEntryFromRules", () => {
   });
 
   it("excludes a printing target by printing id", () => {
-    const next = excludeEntryFromRules(
+    const next = dropEntryFromRules(
       [wishRule()],
       { kind: "printing", printingId: "p-a" },
       catalog,
@@ -61,7 +61,7 @@ describe("excludeEntryFromRules", () => {
       wishRule({ filter: EMPTY_CARD_FILTERS }),
       wishRule({ filter: { ...EMPTY_CARD_FILTERS, rarities: ["rare"] } }),
     ];
-    const next = excludeEntryFromRules(
+    const next = dropEntryFromRules(
       rules,
       { kind: "card", cardId: "card-a" },
       catalog,
@@ -75,7 +75,7 @@ describe("excludeEntryFromRules", () => {
   });
 
   it("returns null when no rule produces the target", () => {
-    const next = excludeEntryFromRules(
+    const next = dropEntryFromRules(
       [wishRule()],
       { kind: "card", cardId: "card-b" },
       catalog,
@@ -85,7 +85,7 @@ describe("excludeEntryFromRules", () => {
   });
 
   it("returns null when the id is already excluded", () => {
-    const next = excludeEntryFromRules(
+    const next = dropEntryFromRules(
       [wishRule({ excludeIds: ["card-a"] })],
       { kind: "card", cardId: "card-a" },
       catalog,
@@ -94,19 +94,19 @@ describe("excludeEntryFromRules", () => {
     expect(next).toBeNull();
   });
 
-  it("appends a copy id to a trade rule's excludeCopyIds", () => {
-    const next = excludeEntryFromRules(
+  it("pins a copy as kept on the trade rule", () => {
+    const next = dropEntryFromRules(
       [tradeRule()],
       { kind: "copy", copyId: "copy-1" },
       catalog,
       testSearchContext(),
     );
-    expect(next).toEqual([expect.objectContaining({ excludeCopyIds: ["copy-1"] })]);
+    expect(next).toEqual([expect.objectContaining({ keepCopyIds: ["copy-1"] })]);
   });
 
-  it("returns null when a copy is already excluded from the trade rule", () => {
-    const next = excludeEntryFromRules(
-      [tradeRule({ excludeCopyIds: ["copy-1"] })],
+  it("returns null when the copy is already pinned as kept", () => {
+    const next = dropEntryFromRules(
+      [tradeRule({ keepCopyIds: ["copy-1"] })],
       { kind: "copy", copyId: "copy-1" },
       catalog,
       testSearchContext(),
@@ -116,22 +116,22 @@ describe("excludeEntryFromRules", () => {
 
   it("does not mutate the input rules", () => {
     const rules = [wishRule()];
-    excludeEntryFromRules(rules, { kind: "card", cardId: "card-a" }, catalog, testSearchContext());
+    dropEntryFromRules(rules, { kind: "card", cardId: "card-a" }, catalog, testSearchContext());
     expect(rules[0]).toMatchObject({ excludeIds: [] });
   });
 });
 
-describe("entryToExcludeTarget", () => {
+describe("entryToDropTarget", () => {
   it("maps each entry kind to the matching id", () => {
-    expect(entryToExcludeTarget({ kind: "card", cardId: "c1" } as never)).toEqual({
+    expect(entryToDropTarget({ kind: "card", cardId: "c1" } as never)).toEqual({
       kind: "card",
       cardId: "c1",
     });
-    expect(entryToExcludeTarget({ kind: "printing", printingId: "p1" } as never)).toEqual({
+    expect(entryToDropTarget({ kind: "printing", printingId: "p1" } as never)).toEqual({
       kind: "printing",
       printingId: "p1",
     });
-    expect(entryToExcludeTarget({ kind: "copy", copyId: "cp1" } as never)).toEqual({
+    expect(entryToDropTarget({ kind: "copy", copyId: "cp1" } as never)).toEqual({
       kind: "copy",
       copyId: "cp1",
     });

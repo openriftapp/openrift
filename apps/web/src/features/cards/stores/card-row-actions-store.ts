@@ -2,7 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { create } from "zustand";
 
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
-import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
+import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
 
 export interface CardRowClickModifiers {
   shift?: boolean;
@@ -68,8 +68,8 @@ interface ListRowHandlers {
   /** Keyed by copy id, not entry id, so rule-produced entries (no `list_entries` row) can be moved too. */
   onMoveCopyToCollection?: (copyId: string) => void;
   onAddEntryToCollection?: (selectionId: string) => void;
-  /** Rule-produced entries have no `list_entries` row; this excludes them from the rule, not removes them. */
-  onExcludeFromRule?: (target: RuleExcludeTarget) => void;
+  /** Rule-produced entries have no `list_entries` row, so this excludes or keeps them instead. */
+  onDropFromRule?: (target: RuleDropTarget) => void;
 }
 
 /** Keyed by surface, so a surface can't register another surface's vocabulary by accident. */
@@ -184,8 +184,8 @@ export function dispatchAddEntryToCollection(selectionId: string): void {
   useCardRowActionsStore.getState().handlers.onAddEntryToCollection?.(selectionId);
 }
 
-export function dispatchExcludeFromRule(target: RuleExcludeTarget): void {
-  useCardRowActionsStore.getState().handlers.onExcludeFromRule?.(target);
+export function dispatchDropFromRule(target: RuleDropTarget): void {
+  useCardRowActionsStore.getState().handlers.onDropFromRule?.(target);
 }
 
 export function isQuantityPending(entryId: string): boolean {

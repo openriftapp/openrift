@@ -27,6 +27,9 @@ export type WishRule = z.infer<typeof wishRuleSchema>;
 export const tradeKeepPerSchema = z.enum(["card", "printing"]);
 export type TradeKeepPer = z.infer<typeof tradeKeepPerSchema>;
 
+export const tradeKeepFirstSchema = z.enum(["special", "plain"]);
+export type TradeKeepFirst = z.infer<typeof tradeKeepFirstSchema>;
+
 // As with wishRuleSchema, the `trade` discriminant names the rule's shape,
 // not the list's intent.
 export const tradeRuleSchema = z.object({
@@ -37,7 +40,8 @@ export const tradeRuleSchema = z.object({
   collectionIdsExclude: z.array(z.string()).optional(),
   keepPerCard: ruleQuantitySchema,
   keepPer: tradeKeepPerSchema.optional(),
-  excludeCopyIds: z.array(z.string()),
+  keepFirst: tradeKeepFirstSchema.optional(),
+  keepCopyIds: z.array(z.string()),
 });
 export type TradeRule = z.infer<typeof tradeRuleSchema>;
 

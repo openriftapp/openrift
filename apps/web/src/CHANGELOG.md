@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Collection): **Choose which copies a tradelist keeps** — copies you mark as kept fill a rule's keep count (copies you excluded before now count too), a rule can keep plain versions first, and a card's details show what the rules keep and offer.
 - feat(Trades): **Open trades marked on cards** — cards with an open request or offer are marked on the trades page, and other members' rows name that trade.
 - fix(Decks): **Deck counts match everywhere** — a deck's card count leaves out Overflow on every page, share image and in the Discord bot, progress figures are labelled "required", and adding a rune at 12 swaps one out from quick add and drag too.
 - fix(Prices): **Totals say what is missing** — deck, list, meta deck and trade totals use your preferred languages first, fall back to any language, and show how many cards have no price.

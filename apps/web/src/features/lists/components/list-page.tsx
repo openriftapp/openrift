@@ -322,6 +322,7 @@ export function ListPage({ listId }: ListPageProps) {
         listTradeDefaults={data.list.tradeDefaults}
         listCurrency={data.list.currency}
         rules={data.list.rules}
+        ruleCombine={data.list.ruleCombine}
         entries={data.entries}
         renderTopBar={renderTopBar}
         showLibrary={showLibraryActive}

@@ -146,7 +146,7 @@ describe("toListDetail", () => {
         filter: staleFilter,
         collectionIds: ["019e2fa1-8cdc-7a3a-810e-d5a09f31c19e"],
         keepPerCard: { mode: "fixed", n: 0 },
-        excludeCopyIds: [],
+        keepCopyIds: [],
       },
     ];
 

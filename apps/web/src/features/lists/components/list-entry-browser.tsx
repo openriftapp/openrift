@@ -5,7 +5,8 @@ import type {
 } from "@openrift/shared/types/api/card-trade";
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
-import type { ListRule } from "@openrift/shared/types/list-rule";
+import type { Printing } from "@openrift/shared/types/catalog";
+import type { ListRule, ListRuleCombine } from "@openrift/shared/types/list-rule";
 import { BookOpenIcon, CopyIcon, LibraryBigIcon, ListIcon, Trash2Icon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -35,6 +36,7 @@ import { ListIntroBanner } from "@/features/lists/components/list-intro-banner";
 import { ListRemoveDialog } from "@/features/lists/components/list-remove-dialog";
 import { MoveCopiesToCollectionDialog } from "@/features/lists/components/move-copies-to-collection-dialog";
 import { MoveToListDialog } from "@/features/lists/components/move-to-list-dialog";
+import { RuleKeepSection } from "@/features/lists/components/rule-keep-section";
 import { TakeOffTradelistDialog } from "@/features/lists/components/take-off-tradelist-dialog";
 import { useListEntryBrowserData } from "@/features/lists/hooks/use-list-entry-browser-data";
 import { useListEntryBrowserSelection } from "@/features/lists/hooks/use-list-entry-browser-selection";
@@ -65,6 +67,7 @@ export interface ListEntryBrowserProps {
   listTradeDefaults: TradePreference;
   listCurrency: Currency | null;
   rules: ListRule[];
+  ruleCombine: ListRuleCombine | null;
   entries: ListEntryDetailResponse[];
   renderTopBar: (selectActions: ReactNode, moveCopies?: ListMoveCopiesAction) => ReactNode;
   showLibrary: boolean;
@@ -87,6 +90,7 @@ export function ListEntryBrowser({
   listTradeDefaults,
   listCurrency,
   rules,
+  ruleCombine,
   entries,
   renderTopBar,
   showLibrary,
@@ -300,12 +304,29 @@ export function ListEntryBrowser({
   // the in-tile siblings fan which keeps its per-kind scoping.
   const detailPanePrintingsByCardId = userScopedPrintingsByCardId;
 
+  const onListCopyIds = new Set(
+    entries.flatMap((entry) => (entry.kind === "copy" ? [entry.copyId] : [])),
+  );
+  const detailActions =
+    kind === "copy" && !showLibrary && rules.some((rule) => rule.kind === "trade")
+      ? (printing: Printing) => (
+          <RuleKeepSection
+            cardId={printing.cardId}
+            intent={intent}
+            rules={rules}
+            ruleCombine={ruleCombine}
+            onListCopyIds={onListCopyIds}
+          />
+        )
+      : undefined;
+
   const rightPane = isMobile ? undefined : (
     <SelectionDetailPane
       items={items}
       printingsByCardId={detailPanePrintingsByCardId}
       showImages={showImages}
       onSearchAndClose={handleSearchAndClose}
+      actions={detailActions}
     />
   );
 
@@ -372,6 +393,7 @@ export function ListEntryBrowser({
             actionsCell: (
               <ListActionsCell
                 kind={kind}
+                intent={intent}
                 entryByItemId={entryByItemId}
                 entriesBySideKey={entriesBySideKey}
                 tradeIndex={tradeIndex}
@@ -395,6 +417,7 @@ export function ListEntryBrowser({
             printingsByCardId={detailPanePrintingsByCardId}
             showImages={showImages}
             onSearchAndClose={handleSearchAndClose}
+            actions={detailActions}
           />
           {mode === "select" && selected.size > 0 && (
             <FloatingActionBar

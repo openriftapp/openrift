@@ -15,10 +15,11 @@ function draft(overrides: Partial<DraftRule> = {}): DraftRule {
     quantity: { mode: "fixed", n: 1 },
     keepPerCard: { mode: "fixed", n: 0 },
     keepPer: "card",
+    keepFirst: "special",
     collectionIds: null,
     collectionIdsExclude: [],
     excludeIds: [],
-    excludeCopyIds: [],
+    keepCopyIds: [],
     netOwned: false,
     countSpecialVersions: false,
     ...overrides,
@@ -131,7 +132,8 @@ describe("useRuleEditorStore", () => {
         collectionIds: ["col-1"],
         keepPerCard: { mode: "playset", multiplier: 2 },
         keepPer: "card",
-        excludeCopyIds: [],
+        keepFirst: "special",
+        keepCopyIds: [],
       },
     ]);
   });
@@ -152,7 +154,7 @@ describe("useRuleEditorStore", () => {
       collectionIds: null,
       keepPerCard: { mode: "playset", multiplier: 1 },
       keepPer: "printing",
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     useRuleEditorStore.getState().load([rule]);
     expect(useRuleEditorStore.getState().rules[0]?.keepPer).toBe("printing");
@@ -171,24 +173,33 @@ describe("useRuleEditorStore", () => {
     expect(rules[1]?.keepPer).toBe("printing");
   });
 
-  it("toggleExcludeCopyId removes and re-adds a single copy on the targeted rule", () => {
-    const tradeRule = (excludeCopyIds: string[]): ListRule => ({
+  it("setKeepFirst changes only the targeted rule and survives serialization", () => {
+    useRuleEditorStore.getState().addRule();
+    useRuleEditorStore.getState().addRule();
+    useRuleEditorStore.getState().setKeepFirst(1, "plain");
+    const rules = useRuleEditorStore.getState().buildRules("copy");
+    expect(rules[0]).toMatchObject({ kind: "trade", keepFirst: "special" });
+    expect(rules[1]).toMatchObject({ kind: "trade", keepFirst: "plain" });
+  });
+
+  it("toggleKeepCopyId removes and re-adds a single copy on the targeted rule", () => {
+    const tradeRule = (keepCopyIds: string[]): ListRule => ({
       kind: "trade",
       filter: EMPTY_CARD_FILTERS,
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds,
+      keepCopyIds,
     });
     useRuleEditorStore.getState().load([tradeRule(["copy-1", "copy-2"]), tradeRule(["copy-9"])]);
 
-    useRuleEditorStore.getState().toggleExcludeCopyId(0, "copy-1");
+    useRuleEditorStore.getState().toggleKeepCopyId(0, "copy-1");
     let rules = useRuleEditorStore.getState().rules;
-    expect(rules[0]?.excludeCopyIds).toEqual(["copy-2"]);
-    expect(rules[1]?.excludeCopyIds).toEqual(["copy-9"]);
+    expect(rules[0]?.keepCopyIds).toEqual(["copy-2"]);
+    expect(rules[1]?.keepCopyIds).toEqual(["copy-9"]);
 
-    useRuleEditorStore.getState().toggleExcludeCopyId(0, "copy-1");
+    useRuleEditorStore.getState().toggleKeepCopyId(0, "copy-1");
     rules = useRuleEditorStore.getState().rules;
-    expect(rules[0]?.excludeCopyIds).toEqual(["copy-2", "copy-1"]);
+    expect(rules[0]?.keepCopyIds).toEqual(["copy-2", "copy-1"]);
   });
 
   it("load seeds drafts from saved wish rules", () => {
@@ -276,14 +287,14 @@ describe("useRuleEditorStore", () => {
       filter: { ...EMPTY_CARD_FILTERS, rarities: ["common"] },
       collectionIds: ["col-2"],
       keepPerCard: { mode: "fixed", n: 1 },
-      excludeCopyIds: ["copy-1"],
+      keepCopyIds: ["copy-1"],
     };
     useRuleEditorStore.getState().load([rule]);
     const state = useRuleEditorStore.getState();
     expect(state.rules).toHaveLength(1);
     expect(state.rules[0]?.collectionIds).toEqual(["col-2"]);
     expect(state.rules[0]?.keepPerCard).toEqual({ mode: "fixed", n: 1 });
-    expect(state.rules[0]?.excludeCopyIds).toEqual(["copy-1"]);
+    expect(state.rules[0]?.keepCopyIds).toEqual(["copy-1"]);
   });
 
   it("load([]) clears the drafts", () => {

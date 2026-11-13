@@ -228,7 +228,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       filter: EMPTY_CARD_FILTERS,
       collectionIds: [collection.id],
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     const tradeList = await db
       .insertInto("lists")

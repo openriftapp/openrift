@@ -3,6 +3,7 @@ import type {
   ListRule,
   ListRuleCombine,
   RuleQuantity,
+  TradeKeepFirst,
   TradeKeepPer,
 } from "@openrift/shared/types/list-rule";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -26,11 +27,12 @@ export interface RuleEditorState {
   setQuantity: (index: number, quantity: RuleQuantity) => void;
   setKeepPerCard: (index: number, keepPerCard: RuleQuantity) => void;
   setKeepPer: (index: number, keepPer: TradeKeepPer) => void;
+  setKeepFirst: (index: number, keepFirst: TradeKeepFirst) => void;
   setNetOwned: (index: number, netOwned: boolean) => void;
   setCountSpecialVersions: (index: number, countSpecialVersions: boolean) => void;
   setCollectionScope: (index: number, included: string[], excluded: string[]) => void;
   toggleExcludeId: (index: number, id: string) => void;
-  toggleExcludeCopyId: (index: number, copyId: string) => void;
+  toggleKeepCopyId: (index: number, copyId: string) => void;
   reset: () => void;
   buildRules: (kind: ListKind) => ListRule[];
 }
@@ -79,6 +81,11 @@ export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
       rules: patchRule(state.rules, index, (rule) => ({ ...rule, keepPer })),
     })),
 
+  setKeepFirst: (index, keepFirst) =>
+    set((state) => ({
+      rules: patchRule(state.rules, index, (rule) => ({ ...rule, keepFirst })),
+    })),
+
   setNetOwned: (index, netOwned) =>
     set((state) => ({
       rules: patchRule(state.rules, index, (rule) => ({ ...rule, netOwned })),
@@ -108,13 +115,13 @@ export const useRuleEditorStore = create<RuleEditorState>()((set, get) => ({
       })),
     })),
 
-  toggleExcludeCopyId: (index, copyId) =>
+  toggleKeepCopyId: (index, copyId) =>
     set((state) => ({
       rules: patchRule(state.rules, index, (rule) => ({
         ...rule,
-        excludeCopyIds: rule.excludeCopyIds.includes(copyId)
-          ? rule.excludeCopyIds.filter((existing) => existing !== copyId)
-          : [...rule.excludeCopyIds, copyId],
+        keepCopyIds: rule.keepCopyIds.includes(copyId)
+          ? rule.keepCopyIds.filter((existing) => existing !== copyId)
+          : [...rule.keepCopyIds, copyId],
       })),
     })),
 

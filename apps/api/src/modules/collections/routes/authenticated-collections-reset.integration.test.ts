@@ -97,7 +97,7 @@ describe.skipIf(!ctx)("POST /collections/reset (integration)", () => {
     await db
       .updateTable("lists")
       .set({
-        rules: sql`'[{"kind":"trade","collectionIds":null,"keepPerCard":{"mode":"fixed","n":1},"excludeCopyIds":[]}]'::jsonb`,
+        rules: sql`'[{"kind":"trade","collectionIds":null,"keepPerCard":{"mode":"fixed","n":1},"keepCopyIds":[]}]'::jsonb`,
       })
       .where("id", "=", ruledListId)
       .execute();

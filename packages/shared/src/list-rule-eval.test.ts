@@ -5,6 +5,7 @@ import {
   evaluateListRules,
   expandList,
   ownedCopyPrintingScope,
+  splitTradeCopies,
 } from "./list-rule-eval.js";
 import type {
   ExpandedEntry,
@@ -324,7 +325,7 @@ describe("evaluateListRule — trade", () => {
       filter: filters(),
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
       ...overrides,
     };
   }
@@ -491,12 +492,12 @@ describe("evaluateListRule — trade", () => {
     expect(out[0]?.copyId).not.toBe("cp1");
   });
 
-  it("honors excludeCopyIds", () => {
+  it("never offers a pinned copy, even with keep 0", () => {
     const ownedCopies = [
       ownedCopy({ copyId: "cp1", printingId: "p1", cardId: "c1" }),
       ownedCopy({ copyId: "cp2", printingId: "p1", cardId: "c1" }),
     ];
-    const out = evaluateListRule(tradeRule({ excludeCopyIds: ["cp1"] }), "copy", {
+    const out = evaluateListRule(tradeRule({ keepCopyIds: ["cp1"] }), "copy", {
       catalog,
       ownedCopies,
     });
@@ -1364,14 +1365,14 @@ describe("evaluateListRules — trade combine (the Zeri matrix)", () => {
       filter: filters(),
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 1 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     },
     {
       kind: "trade",
       filter: filters({ finishes: ["normal"] }),
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 2 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     },
   ];
   const ctx = { catalog, ownedCopies, enumOrders };
@@ -1398,25 +1399,25 @@ describe("evaluateListRules — trade combine (the Zeri matrix)", () => {
     }
   });
 
-  it("protect never leaks a copy excluded by the only rule matching it", () => {
+  it("a pinned copy fills its rule's keep slot, so the next plain copy is offered", () => {
     const scoped: ListRule[] = [
       {
         kind: "trade",
         filter: filters({ finishes: ["foil"] }),
         collectionIds: null,
         keepPerCard: { mode: "fixed", n: 1 },
-        excludeCopyIds: [],
+        keepCopyIds: [],
       },
       {
         kind: "trade",
         filter: filters({ finishes: ["normal"] }),
         collectionIds: null,
         keepPerCard: { mode: "fixed", n: 1 },
-        excludeCopyIds: ["z5"],
+        keepCopyIds: ["z5"],
       },
     ];
     const out = evaluateListRules(scoped, "copy", ctx);
-    expect(out.map((entry) => entry.copyId).sort()).toEqual(["z2", "z4"]);
+    expect(out.map((entry) => entry.copyId).sort()).toEqual(["z2", "z3", "z4"]);
   });
 
   it("count modes combine within a grouping and union the keeps across them", () => {
@@ -1428,7 +1429,7 @@ describe("evaluateListRules — trade combine (the Zeri matrix)", () => {
         collectionIds: null,
         keepPerCard: { mode: "fixed", n: 1 },
         keepPer: "printing",
-        excludeCopyIds: [],
+        keepCopyIds: [],
       },
     ];
     for (const mode of ["count-sum", "count-max"] as const) {
@@ -1448,7 +1449,7 @@ describe("evaluateListRules — trade combine (the Zeri matrix)", () => {
         filter: filters({ finishes: ["normal"] }),
         collectionIds: null,
         keepPerCard: { mode: "fixed", n: 1 },
-        excludeCopyIds: [],
+        keepCopyIds: [],
       },
     ];
     const out = evaluateListRules(keepOnePlain, "copy", { ...ctx, ownedCopies: reservedCopies });
@@ -1503,7 +1504,7 @@ describe("listRulesSchema — rule count cap", () => {
       filter: EMPTY_CARD_FILTERS,
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 1 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     // Absent = per card (rules saved before the field existed).
     expect(listRulesSchema.safeParse([base]).success).toBe(true);
@@ -1553,7 +1554,7 @@ describe("ownedCopyPrintingScope", () => {
       filter: filters({ finishes: ["foil"] }),
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     expect(ownedCopyPrintingScope([rule], "card", { catalog }).toSorted()).toEqual(["p2"]);
   });
@@ -1590,7 +1591,7 @@ describe("ownedCopyPrintingScope", () => {
         filter: filters({ finishes: ["foil"] }),
         collectionIds: null,
         keepPerCard: { mode: "fixed", n: 0 },
-        excludeCopyIds: [],
+        keepCopyIds: [],
       },
       {
         kind: "wish",
@@ -1616,7 +1617,7 @@ describe("ownedCopyPrintingScope", () => {
           filter: filters({ finishes: ["foil"] }),
           collectionIds: null,
           keepPerCard: { mode: "fixed", n: 0 },
-          excludeCopyIds: [],
+          keepCopyIds: [],
         },
         {
           kind: "wish",
@@ -1681,7 +1682,7 @@ describe("price-bounded rules (priceMarketplace + priceLookup)", () => {
       priceMarketplace: "cardmarket",
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     const ownedCopies = [
       ownedCopy({ copyId: "x1", printingId: "p1", cardId: "c1" }),
@@ -1723,7 +1724,7 @@ describe("price-bounded rules (priceMarketplace + priceLookup)", () => {
       priceMarketplace: "cardmarket",
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     expect(ownedCopyPrintingScope([rule], "card", { catalog, priceLookup })).toEqual(["p1"]);
     // ownedCopyPrintingScope must apply the same price bound as evaluateListRules, or copy loading misses what rules match.
@@ -1764,11 +1765,142 @@ describe("listRulesSchema — price marketplace requirement", () => {
       filter: { ...EMPTY_CARD_FILTERS, price: { min: null, max: 5 } },
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
-      excludeCopyIds: [],
+      keepCopyIds: [],
     };
     expect(listRulesSchema.safeParse([boundedTrade]).success).toBe(false);
     expect(
       listRulesSchema.safeParse([{ ...boundedTrade, priceMarketplace: "cardtrader" }]).success,
     ).toBe(true);
+  });
+});
+
+describe("trade rules — pinned copies and keep order", () => {
+  const enumOrders = {
+    finishes: ["normal", "foil"],
+    rarities: ["common", "rare"],
+    artVariants: ["normal", "altart"],
+  };
+  const catalog = [
+    makePrinting("flash-std", "flash", { rarity: "rare", finish: "foil" }),
+    makePrinting("flash-promo", "flash", {
+      rarity: "rare",
+      finish: "foil",
+      markers: [{ id: "m1", slug: "promo", label: "Promo", description: null }],
+    }),
+  ];
+  const ownedCopies = [
+    ownedCopy({ copyId: "s1", printingId: "flash-std", cardId: "flash" }),
+    ownedCopy({ copyId: "s2", printingId: "flash-std", cardId: "flash" }),
+    ownedCopy({ copyId: "s3", printingId: "flash-std", cardId: "flash" }),
+    ownedCopy({ copyId: "p1", printingId: "flash-promo", cardId: "flash" }),
+    ownedCopy({ copyId: "p2", printingId: "flash-promo", cardId: "flash" }),
+    ownedCopy({ copyId: "p3", printingId: "flash-promo", cardId: "flash" }),
+    ownedCopy({ copyId: "p4", printingId: "flash-promo", cardId: "flash" }),
+  ];
+  const ctx = { catalog, ownedCopies, enumOrders };
+  function keepThree(overrides: Partial<Extract<ListRule, { kind: "trade" }>> = {}): ListRule {
+    return {
+      kind: "trade",
+      filter: filters(),
+      collectionIds: null,
+      keepPerCard: { mode: "fixed", n: 3 },
+      keepCopyIds: [],
+      ...overrides,
+    };
+  }
+  const offeredIds = (rules: ListRule[], combine?: "count-sum" | "count-max") =>
+    evaluateListRules(rules, "copy", ctx, combine)
+      .map((entry) => entry.copyId)
+      .toSorted();
+
+  it("keeps special versions first by default", () => {
+    expect(offeredIds([keepThree()])).toEqual(["p4", "s1", "s2", "s3"]);
+  });
+
+  it("keeps plain versions first when the rule asks for it", () => {
+    expect(offeredIds([keepThree({ keepFirst: "plain" })])).toEqual(["p1", "p2", "p3", "p4"]);
+  });
+
+  it("pinned copies take the keep slots, so every other copy is offered", () => {
+    expect(offeredIds([keepThree({ keepCopyIds: ["s1", "s2", "s3"] })])).toEqual([
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+    ]);
+  });
+
+  it("keeps pinned copies past the keep count", () => {
+    const rule = keepThree({ keepPerCard: { mode: "fixed", n: 1 }, keepCopyIds: ["s1", "s2"] });
+    expect(offeredIds([rule])).toEqual(["p1", "p2", "p3", "p4", "s3"]);
+  });
+
+  it("offers a pinned copy that is already promised to a trade once the keep slots are full", () => {
+    const reserved = ownedCopies.map((copy) =>
+      copy.copyId === "s1" ? { ...copy, reserved: true } : copy,
+    );
+    const rule = keepThree({ keepPerCard: { mode: "fixed", n: 1 }, keepCopyIds: ["s1", "s2"] });
+    const out = evaluateListRules([rule], "copy", { ...ctx, ownedCopies: reserved });
+    expect(out.find((entry) => entry.copyId === "s1")?.reserved).toBe(true);
+    expect(out.some((entry) => entry.copyId === "s2")).toBe(false);
+  });
+
+  it("count modes honour pins from every rule covering the card", () => {
+    const rules = [keepThree({ keepCopyIds: ["s1"] }), keepThree({ keepCopyIds: ["s2", "s3"] })];
+    for (const mode of ["count-sum", "count-max"] as const) {
+      expect(offeredIds(rules, mode)).toEqual(
+        mode === "count-sum" ? ["p4"] : ["p1", "p2", "p3", "p4"],
+      );
+    }
+  });
+
+  it("splitTradeCopies reports the kept copies next to the offered ones", () => {
+    const split = splitTradeCopies(
+      [keepThree({ keepCopyIds: ["s1"] }) as Extract<ListRule, { kind: "trade" }>],
+      ctx,
+    );
+    expect(split.kept.map((copy) => copy.copyId).toSorted()).toEqual(["p1", "p2", "s1"]);
+    expect(split.offered.map((copy) => copy.copyId).toSorted()).toEqual(["p3", "p4", "s2", "s3"]);
+  });
+
+  it("a pin fills a slot in its own printing's pool when keeping per printing", () => {
+    const rule = keepThree({
+      keepPer: "printing",
+      keepPerCard: { mode: "fixed", n: 1 },
+      keepCopyIds: ["s2"],
+    });
+    expect(offeredIds([rule])).toEqual(["p2", "p3", "p4", "s1", "s3"]);
+  });
+
+  it("count modes ignore a pin on a rule that doesn't match the copy", () => {
+    const rules = [
+      keepThree({ collectionIds: ["col-elsewhere"], keepCopyIds: ["s1"] }),
+      keepThree(),
+    ];
+    for (const mode of ["count-sum", "count-max"] as const) {
+      expect(offeredIds(rules, mode)).toEqual(["p4", "s1", "s2", "s3"]);
+    }
+  });
+
+  it("count modes take the keep order from the first rule covering the card", () => {
+    const plainFirst = [keepThree({ keepFirst: "plain" }), keepThree()];
+    expect(offeredIds(plainFirst, "count-max")).toEqual(["p1", "p2", "p3", "p4"]);
+    expect(offeredIds(plainFirst.toReversed(), "count-max")).toEqual(["p4", "s1", "s2", "s3"]);
+  });
+
+  it("keeps a pinned double-sided copy on both of its cards", () => {
+    const dsCatalog = [makePrinting("ds", "front"), makePrinting("ds", "back")];
+    const dsCopies = [
+      ownedCopy({ copyId: "d1", printingId: "ds", cardId: "front" }),
+      ownedCopy({ copyId: "d1", printingId: "ds", cardId: "back" }),
+    ];
+    const dsCtx = { catalog: dsCatalog, ownedCopies: dsCopies, enumOrders };
+    const keepNone = keepThree({ keepPerCard: { mode: "fixed", n: 0 } });
+    expect(evaluateListRules([keepNone], "copy", dsCtx).map((entry) => entry.copyId)).toEqual([
+      "d1",
+    ]);
+    expect(
+      evaluateListRules([{ ...keepNone, keepCopyIds: ["d1"] } as ListRule], "copy", dsCtx),
+    ).toEqual([]);
   });
 });

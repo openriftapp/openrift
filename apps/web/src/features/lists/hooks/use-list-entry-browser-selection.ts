@@ -54,8 +54,8 @@ import type {
 } from "@/features/lists/lib/list-move";
 import { hasTwoCards, ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
-import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
-import { excludeEntryFromRules } from "@/features/rules/lib/rule-exclude";
+import type { RuleDropTarget } from "@/features/rules/lib/rule-drop";
+import { dropEntryFromRules } from "@/features/rules/lib/rule-drop";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/hooks/use-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -131,8 +131,8 @@ export function useListEntryBrowserSelection({
   const updateList = useUpdateList();
   const searchContext = useCardSearchContext();
 
-  const handleExcludeFromRule = (target: RuleExcludeTarget) => {
-    const next = excludeEntryFromRules(rules, target, allPrintings, searchContext);
+  const handleDropFromRule = (target: RuleDropTarget) => {
+    const next = dropEntryFromRules(rules, target, allPrintings, searchContext);
     if (!next) {
       return;
     }
@@ -506,7 +506,7 @@ export function useListEntryBrowserSelection({
       setPrefDialogEntryIds(narrowToSelection(selectionId).filter((id) => !isRuleSelectionId(id))),
     onMoveCopyToCollection: handleMoveCopyToCollection,
     onAddEntryToCollection: (selectionId) => setAddToCollectionIds(narrowToSelection(selectionId)),
-    onExcludeFromRule: handleExcludeFromRule,
+    onDropFromRule: handleDropFromRule,
     isQuantityPendingFor: (entryId) => isQuantityPendingFor(entryId),
   });
 

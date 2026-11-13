@@ -1,19 +1,23 @@
 import { sideKey } from "@openrift/shared/printing-side";
-import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
+import type {
+  ListEntryDetailResponse,
+  ListIntent,
+  ListKind,
+} from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 
 import type { TableRowSlotProps } from "@/features/cards/components/card-table";
-import { dispatchExcludeFromRule } from "@/features/cards/stores/card-row-actions-store";
 import { TradePreferencePill } from "@/features/groups/components/trade-preference-pill";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import { ListEntryTableActions } from "@/features/lists/components/list-entry-table-actions";
 import { RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
+import { ruleBadgeAction } from "@/features/lists/hooks/rule-entry-actions";
 import type { ListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { listEntryTrades, listEntryTradeStatus } from "@/features/lists/lib/list-trade-status";
-import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 
 interface ListActionsCellProps extends TableRowSlotProps {
   kind: ListKind;
+  intent: ListIntent;
   entryByItemId: Map<string, ListEntryDetailResponse>;
   entriesBySideKey: Map<string, ListEntryDetailResponse[]>;
   tradeIndex: ListTradeIndex;
@@ -32,6 +36,7 @@ export function ListActionsCell({
   printing,
   itemId,
   kind,
+  intent,
   entryByItemId,
   entriesBySideKey,
   tradeIndex,
@@ -67,8 +72,7 @@ export function ListActionsCell({
       <div className="flex items-center gap-2">
         <RuleSourceBadge
           quantity={kind === "copy" ? undefined : entry.ruleQuantity}
-          onExclude={() => dispatchExcludeFromRule(entryToExcludeTarget(entry))}
-          excludeLabel={`Don't include ${entry.cardName}`}
+          {...ruleBadgeAction(entry, intent)}
         />
         {tradeChip}
       </div>

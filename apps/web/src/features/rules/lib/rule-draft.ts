@@ -1,5 +1,10 @@
 import type { ListKind } from "@openrift/shared/types/api/list";
-import type { ListRule, RuleQuantity, TradeKeepPer } from "@openrift/shared/types/list-rule";
+import type {
+  ListRule,
+  RuleQuantity,
+  TradeKeepFirst,
+  TradeKeepPer,
+} from "@openrift/shared/types/list-rule";
 import { ruleKindForListKind } from "@openrift/shared/types/list-rule";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { CardFilters } from "@openrift/shared/types/search";
@@ -11,10 +16,11 @@ export interface DraftRule {
   quantity: RuleQuantity;
   keepPerCard: RuleQuantity;
   keepPer: TradeKeepPer;
+  keepFirst: TradeKeepFirst;
   collectionIds: string[] | null;
   collectionIdsExclude: string[];
   excludeIds: string[];
-  excludeCopyIds: string[];
+  keepCopyIds: string[];
   netOwned: boolean;
   countSpecialVersions: boolean;
 }
@@ -29,10 +35,11 @@ export function emptyDraft(languages: string[] = []): DraftRule {
     quantity: DEFAULT_QUANTITY,
     keepPerCard: DEFAULT_KEEP,
     keepPer: "card",
+    keepFirst: "special",
     collectionIds: null,
     collectionIdsExclude: [],
     excludeIds: [],
-    excludeCopyIds: [],
+    keepCopyIds: [],
     netOwned: false,
     countSpecialVersions: false,
   };
@@ -56,9 +63,10 @@ export function draftFromRule(rule: ListRule): DraftRule {
     priceMarketplace: rule.priceMarketplace ?? null,
     keepPerCard: rule.keepPerCard,
     keepPer: rule.keepPer ?? "card",
+    keepFirst: rule.keepFirst ?? "special",
     collectionIds: rule.collectionIds,
     collectionIdsExclude: rule.collectionIdsExclude ?? [],
-    excludeCopyIds: rule.excludeCopyIds,
+    keepCopyIds: rule.keepCopyIds,
   };
 }
 
@@ -88,7 +96,8 @@ export function serializeRules(rules: DraftRule[], kind: ListKind): ListRule[] {
           }),
           keepPerCard: rule.keepPerCard,
           keepPer: rule.keepPer,
-          excludeCopyIds: rule.excludeCopyIds,
+          keepFirst: rule.keepFirst,
+          keepCopyIds: rule.keepCopyIds,
         };
   });
 }

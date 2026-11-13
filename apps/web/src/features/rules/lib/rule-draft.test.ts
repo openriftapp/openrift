@@ -22,7 +22,7 @@ function tradeRule(overrides: Partial<Extract<ListRule, { kind: "trade" }>> = {}
     filter: EMPTY_CARD_FILTERS,
     collectionIds: null,
     keepPerCard: { mode: "fixed", n: 3 },
-    excludeCopyIds: [],
+    keepCopyIds: [],
     ...overrides,
   };
 }
@@ -54,7 +54,7 @@ describe("emptyDraft", () => {
     const draft = emptyDraft();
     expect(draft.collectionIds).toBeNull();
     expect(draft.excludeIds).toEqual([]);
-    expect(draft.excludeCopyIds).toEqual([]);
+    expect(draft.keepCopyIds).toEqual([]);
   });
 
   it("leaves the net-owned and special-version toggles off", () => {
@@ -99,7 +99,7 @@ describe("draftFromRule", () => {
     expect(draft.keepPerCard).toEqual({ mode: "fixed", n: 0 });
     expect(draft.keepPer).toBe("card");
     expect(draft.collectionIds).toBeNull();
-    expect(draft.excludeCopyIds).toEqual([]);
+    expect(draft.keepCopyIds).toEqual([]);
   });
 
   it("carries a trade rule's own fields onto the draft", () => {
@@ -110,7 +110,7 @@ describe("draftFromRule", () => {
         keepPer: "printing",
         collectionIds: ["collection-1"],
         collectionIdsExclude: ["collection-2"],
-        excludeCopyIds: ["copy-1"],
+        keepCopyIds: ["copy-1"],
       }),
     );
     expect(draft).toMatchObject({
@@ -119,7 +119,7 @@ describe("draftFromRule", () => {
       keepPer: "printing",
       collectionIds: ["collection-1"],
       collectionIdsExclude: ["collection-2"],
-      excludeCopyIds: ["copy-1"],
+      keepCopyIds: ["copy-1"],
     });
   });
 
@@ -131,8 +131,13 @@ describe("draftFromRule", () => {
     expect(draftFromRule(tradeRule()).keepPer).toBe("card");
   });
 
+  it("keeps special versions first unless the trade rule says plain", () => {
+    expect(draftFromRule(tradeRule()).keepFirst).toBe("special");
+    expect(draftFromRule(tradeRule({ keepFirst: "plain" })).keepFirst).toBe("plain");
+  });
+
   it("leaves the wish-only fields at their defaults for a trade rule", () => {
-    const draft = draftFromRule(tradeRule({ excludeCopyIds: ["copy-1"] }));
+    const draft = draftFromRule(tradeRule({ keepCopyIds: ["copy-1"] }));
     expect(draft.quantity).toEqual({ mode: "fixed", n: 1 });
     expect(draft.excludeIds).toEqual([]);
     expect(draft.netOwned).toBe(false);
@@ -170,7 +175,8 @@ describe("serializeRules", () => {
       collectionIds: null,
       keepPerCard: { mode: "fixed", n: 0 },
       keepPer: "printing",
-      excludeCopyIds: [],
+      keepFirst: "special",
+      keepCopyIds: [],
     });
   });
 

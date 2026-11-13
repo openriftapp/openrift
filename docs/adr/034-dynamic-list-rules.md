@@ -204,7 +204,8 @@ export interface TradeRule {
   collectionIds: string[] | null; // null = all owned collections; else restrict source
   collectionIdsExclude?: string[]; // never source from these, applied after collectionIds
   keepPerCard: RuleQuantity; // keep N per card; trade surplus. {mode:"fixed",n:0} = trade all
-  excludeCopyIds: string[];
+  keepFirst?: "special" | "plain"; // which side of the standard-vs-special tier is kept first; default special
+  keepCopyIds: string[]; // copies the owner pinned as kept
 }
 export type ListRule = WishRule | TradeRule;
 ```
@@ -247,7 +248,7 @@ export function evaluateListRule(
 - **Wish, listKind="printing":** `matched = filterCards(ctx.catalog, rule.filter)`. For each `p` with `p.id ∉ excludeIds`, emit `{kind:"printing", printingId:p.id, quantity: resolveQuantity(rule.quantity, p.card)}`.
 - **Wish, listKind="card":** group `matched` by `cardId`. For each `cardId ∉ excludeIds`, emit `{kind:"card", cardId, quantity: resolveQuantity(rule.quantity, card)}`.
 - **Wish `netOwned`:** when set, subtract the owner's owned count from each emitted quantity (per `printingId` for printing-kind, per `cardId` for card-kind) and drop entries whose remaining `quantity <= 0`. Copies reserved by a live (outgoing) trade are excluded from the owned count. They're about to leave the collection, so they must not suppress the shortfall (incoming copies aren't in the owner's collection yet, so they never reach the set). Falls back to the full target when `ctx.ownedCopies` is absent.
-- **Trade (listKind="copy"):** require `ownedCopies`. `passing = new Set(filterCards(ctx.catalog, rule.filter).map(p => p.id))`. Candidates = copies where `(rule.collectionIds === null || collectionIds.includes(c.collectionId))` and `c.collectionId ∉ collectionIdsExclude` and `passing.has(c.printingId)` and `c.copyId ∉ excludeCopyIds`. Group by `cardId`. `keepN = resolveQuantity(rule.keepPerCard, card)`. Sort each group keep-first by the keep-priority ladder (standard-vs-special, then rarity / finish / art variant / signed against the reference orders, then `canonicalRank`, then copy id; Amendment 2), and emit `{kind:"copy", copyId, quantity:1, reserved}` for copies after the first `keepN`. With several rules the per-rule splits combine per the trade mode (`protect` default, `count-sum`, `count-max`; Amendment 2). Reserved copies stay in the pool and are emitted with `reserved:true`. Consumers filter/annotate them (matching excludes reserved; display shows status), mirroring today's `copyEntryQuery` behavior.
+- **Trade (listKind="copy"):** require `ownedCopies`. `passing = new Set(filterCards(ctx.catalog, rule.filter).map(p => p.id))`. Candidates = copies where `(rule.collectionIds === null || collectionIds.includes(c.collectionId))` and `c.collectionId ∉ collectionIdsExclude` and `passing.has(c.printingId)`. Group by `cardId`. `keepN = resolveQuantity(rule.keepPerCard, card)`. Sort each group keep-first: copies in `keepCopyIds` first, then the keep-priority ladder (standard-vs-special in the `keepFirst` direction, then rarity / finish / art variant / signed against the reference orders, then `canonicalRank`, then copy id; Amendment 2), and emit `{kind:"copy", copyId, quantity:1, reserved}` for copies after the first `keepN`. A pinned copy is never emitted, even past `keepN`, unless it is reserved. With several rules the per-rule splits combine per the trade mode (`protect` default, `count-sum`, `count-max`; Amendment 2). Reserved copies stay in the pool and are emitted with `reserved:true`. Consumers filter/annotate them (matching excludes reserved; display shows status), mirroring today's `copyEntryQuery` behavior.
 - Tests `list-rule-eval.test.ts`: each of UC1–UC4 plus empty results, exclusions, playset-1 vs playset-3 cards, keep=0, reserved handling, collection scoping.
 
 ### II.4 `expandList` (union authority, `packages/shared`)
@@ -318,7 +319,7 @@ Tests: port the existing matcher integration tests unchanged (they must still pa
 - **Filter editor:** extract the card-browser facet list into a controlled `<RuleFilterEditor value={CardFilters} onChange availableFilters />` (same facet components as `BrowserLeftPane`, but bound to local state instead of URL search params). The negation + standard controls from §IV appear here too.
 - **Quantity / keep:** radio `Fixed (number)` vs `Playset (×N)` → `RuleQuantity`. Trade lists label it "Keep per card"; `0` = trade all.
 - **Collection scope (trade):** multiselect of the user's collections; default "all" (`null`).
-- **Exclusions:** an "exclude" action on each previewed card/printing/copy appends to `excludeIds`/`excludeCopyIds`; show removable chips of current exclusions.
+- **Exclusions and kept copies:** an "exclude" action on each previewed card/printing appends to `excludeIds`, and a "keep" action on each previewed copy appends to `keepCopyIds`; show removable chips of both.
 - **Live preview:** run `evaluateListRule` client-side over the loaded catalog (`useCatalog`) + the user's copies (collection store) and render the would-be entries instantly, before save.
 - **Persistence:** PATCH `/lists/{id}` with `rules` (and allow on create). On load, the detail response carries `list.rules`.
 - **Editor state** is a Zustand store → requires `*.test.ts` with `createStoreResetter` (repo convention). Rule entries (`source:"rule"`, `id:null`) render read-only with only an "exclude" affordance. Manual entries keep edit/remove.

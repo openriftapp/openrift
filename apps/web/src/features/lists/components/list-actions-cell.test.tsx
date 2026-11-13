@@ -130,6 +130,7 @@ function renderCell(
       printing={wished}
       itemId="item-1"
       kind={entry.kind === "copy" ? "copy" : "card"}
+      intent="trade"
       entryByItemId={new Map([["item-1", entry]])}
       entriesBySideKey={new Map()}
       tradeIndex={buildListTradeIndex(annotations, CATALOG, trades)}

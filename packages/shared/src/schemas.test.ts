@@ -419,7 +419,7 @@ describe("createListSchema", () => {
     filter: EMPTY_CARD_FILTERS,
     collectionIds: null,
     keepPerCard: { mode: "fixed", n: 0 },
-    excludeCopyIds: [],
+    keepCopyIds: [],
   };
 
   it("accepts a wish rule on a wish list", () => {
