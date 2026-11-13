@@ -28,7 +28,6 @@ export interface CardCellProps {
 
   dimmed?: boolean;
   checked?: boolean;
-  highlighted?: boolean;
   banDisplay?: "label" | "overlay" | "none";
 
   dragData?: Record<string, unknown>;
@@ -56,7 +55,6 @@ export function CardCell({
   imageBadge,
   dimmed,
   checked,
-  highlighted,
   banDisplay,
   dragData,
   dragId,
@@ -70,7 +68,7 @@ export function CardCell({
       onClick={onClick}
       onSiblingClick={onSiblingClick}
       showImages={showImages}
-      selected={ctx.isSelected === true || highlighted === true}
+      selected={ctx.isSelected === true}
       isFlashing={ctx.isFlashing}
       cardWidth={ctx.cardWidth}
       priority={ctx.priority}

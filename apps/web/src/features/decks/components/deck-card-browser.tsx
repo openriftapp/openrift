@@ -905,8 +905,7 @@ function DeckCardBrowserInner({
         onClick={isMobile ? handleQuickAdd : handleCardClick}
         priceRange={priceRangeByCardId?.get(cardId)}
         dimmed={highlightOwned && ownedCount === 0 && deckQty === 0}
-        highlighted={!workbench && deckQty > 0}
-        imageOverlay={workbench && deckQty > 0 ? <DeckCountMark /> : undefined}
+        imageOverlay={deckQty > 0 ? <DeckCountMark /> : undefined}
         imageBadge={
           workbench && deckQty > 0 ? (
             <CardQuantityChip

@@ -177,6 +177,36 @@ describe("CardThumbnail siblings", () => {
     expect(getByText("×3")).toBeDefined();
   });
 
+  it("tints the tile and rings the image when selected, with no layer outside the tile", () => {
+    const { container } = render(
+      <CardThumbnail
+        printing={makePrintingWithImage("RB1-001")}
+        onClick={() => {}}
+        showImages
+        selected
+        display={baseDisplay}
+      />,
+    );
+
+    expect(container.querySelector("[data-printing-id]")?.className).toContain("bg-primary/10");
+    expect(container.querySelector(".ring-primary.ring-2")).not.toBeNull();
+    expect(container.querySelector(".blur-sm")).toBeNull();
+  });
+
+  it("leaves an unselected tile untinted and unringed", () => {
+    const { container } = render(
+      <CardThumbnail
+        printing={makePrintingWithImage("RB1-001")}
+        onClick={() => {}}
+        showImages
+        display={baseDisplay}
+      />,
+    );
+
+    expect(container.querySelector("[data-printing-id]")?.className).not.toContain("bg-primary/10");
+    expect(container.querySelector(".ring-primary.ring-2")).toBeNull();
+  });
+
   it("exposes a checked state as a checkbox when one is given", () => {
     const front = makePrintingWithImage("RB1-001");
     const { getByRole } = render(

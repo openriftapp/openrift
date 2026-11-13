@@ -92,9 +92,20 @@ export function CornerRibbon({
   );
 }
 
-function ImageShell({ children, badge }: { children: ReactNode; badge?: ReactNode }) {
+function ImageShell({
+  children,
+  badge,
+  selected,
+}: {
+  children: ReactNode;
+  badge?: ReactNode;
+  selected?: boolean;
+}) {
   return (
-    <div className={SHELL_INNER_CLASS} style={{ borderRadius: CARD_BORDER_RADIUS }}>
+    <div
+      className={cn(SHELL_INNER_CLASS, selected && "ring-primary hover:ring-primary ring-2")}
+      style={{ borderRadius: CARD_BORDER_RADIUS }}
+    >
       {children}
       {badge}
     </div>
@@ -720,7 +731,7 @@ export const CardThumbnail = memo(function CardThumbnail({
           </div>
         );
       })}
-      <ImageShell badge={imageBadge}>
+      <ImageShell badge={imageBadge} selected={selected}>
         <ImageTarget
           className={cn(
             "bg-muted aspect-card relative block w-full overflow-hidden",
@@ -852,25 +863,14 @@ export const CardThumbnail = memo(function CardThumbnail({
         }
       : undefined;
 
-  // Must be a separate layer with negative inset: the wrapper's background
-  // would confine the glow to the cell padding instead.
-  const selectionGlow = selected && (
-    <div
-      className="pointer-events-none absolute -inset-2 -z-10 rounded-2xl blur-sm"
-      style={getDomainGradientStyle(card.domains, "50", domainColors)}
-    />
-  );
   const wrapperClassName = cn(
     "group relative z-0 w-full rounded-lg text-left hover:z-10",
     BUTTON_PAD_CLASS,
     otherPrintings.length > 0 && "hover:[--fan:1]",
-    // Without this, equal-z siblings paint in DOM order: the glow shows over the
-    // left neighbour but under the right one.
-    selected && "z-10",
+    selected && "bg-primary/10",
   );
   const wrapperContent = (
     <>
-      {selectionGlow}
       {flashOverlay}
       {/* Outside the image target: interactive `aboveCard` strips must not nest in a button or link. */}
       {aboveCard}

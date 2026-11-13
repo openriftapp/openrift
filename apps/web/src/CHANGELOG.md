@@ -10,6 +10,7 @@
 
 ### Other
 
+- feat(Cards): **Calmer selected card** — the card you opened is marked by a gold ring and a light tint inside its tile, and in the deck editor cards already in your deck get a gold frame on the art.
 - feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.
 - fix(Cards): **One price per marketplace** — the price charts on a card page plot the same figure as the price chip.
 - fix(Cards): **Card page art matches the grid** — the large image on a card page shows the foil effect, the preview ribbon and the suggest-image notice, and follows your show-images setting.
