@@ -30,6 +30,8 @@ import type { MetaOwnedCards } from "@/features/meta/components/meta-owned-cards
 import { MetaOwnedCardsBridge } from "@/features/meta/components/meta-owned-cards-bridge";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
 import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/meta-deck-archive";
+import type { MetaBanGroup, MetaDeckCardBan } from "@/features/meta/lib/meta-deck-bans";
+import { metaDeckCardBanStates } from "@/features/meta/lib/meta-deck-bans";
 import { metaCardOwnershipBand } from "@/features/meta/lib/meta-deck-collection";
 import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-composition";
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
@@ -67,6 +69,7 @@ function StripCard({
   sideboard,
   inferred,
   band,
+  ban,
 }: {
   card: PublicDeckCardResponse;
   detailKey: string | null;
@@ -74,11 +77,23 @@ function StripCard({
   sideboard?: boolean;
   inferred?: boolean;
   band?: OwnershipBandSegments;
+  ban?: MetaDeckCardBan;
 }) {
   const openCardDetail = useOpenCardDetail();
   const printingId = detailKey;
   const name = inferred ? m.meta_inferred_card_label({ name: card.cardName }) : card.cardName;
-  const label = card.quantity > 1 ? `${card.quantity}× ${name}` : name;
+  const counted = card.quantity > 1 ? `${card.quantity}× ${name}` : name;
+  let label = counted;
+  if (ban !== undefined) {
+    let banLabel = m.cards_thumb_ban_upcoming();
+    if (ban.state === "banned") {
+      banLabel =
+        ban.modeFormat === undefined
+          ? m.cards_thumb_banned()
+          : m.cards_thumb_format_ban({ format: ban.modeFormat });
+    }
+    label = `${counted}, ${banLabel}`;
+  }
   const landscape = getOrientation(card.cardTypes) === "landscape";
   const previewProps = {
     "aria-label": label,
@@ -105,6 +120,15 @@ function StripCard({
         </span>
       )}
       {band && <OwnershipBand quantity={card.quantity} band={band} />}
+      {ban && (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute top-0 right-0 size-0 border-t-8 border-l-8 border-l-transparent",
+            ban.state === "banned" ? "border-t-destructive" : "border-t-warning",
+          )}
+        />
+      )}
     </>
   );
   const className = cn(
@@ -133,7 +157,13 @@ function StripCard({
 }
 
 /** Suspends on the deck query; mount it under a Suspense boundary with {@link MetaEventDeckPreviewSkeleton}. */
-export function MetaEventDeckPreview({ token }: { token: string }) {
+export function MetaEventDeckPreview({
+  token,
+  banGroups,
+}: {
+  token: string;
+  banGroups?: readonly MetaBanGroup[];
+}) {
   const { data } = useMetaDeck(token);
   const copyToMyDecks = useCopyArchivedDeck();
   const deckCode = useCopyDeckCode(toEncodeDeckCards(data.cards));
@@ -151,6 +181,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
           owned.printingsByCardId,
         );
 
+  const banStates = metaDeckCardBanStates(banGroups ?? []);
   const guessed = inferredCards(data.inferred);
   const guessedIds = new Set(guessed.map((card) => `${card.zone}:${card.cardId}`));
   const isGuessed = (card: PublicDeckCardResponse) => guessedIds.has(`${card.zone}:${card.cardId}`);
@@ -217,6 +248,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 sideboard={group.sideboard}
                 inferred={isGuessed(card)}
                 band={isGuessed(card) ? undefined : bandFor(card)}
+                ban={banStates.get(card.cardId)}
               />
             ))}
             {Array.from({ length: group.unknownSlots }, (_, index) => (

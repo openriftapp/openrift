@@ -15,6 +15,7 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaListShapeBar } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
+import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { finishBracketLabel, formatRank } from "@/features/meta/lib/meta-format";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
@@ -260,10 +261,16 @@ export function DeckCell({
   );
 }
 
-export function DeckPreview({ token }: { token: string }) {
+export function DeckPreview({
+  token,
+  banGroups,
+}: {
+  token: string;
+  banGroups?: readonly MetaBanGroup[];
+}) {
   return (
     <Suspense fallback={<MetaEventDeckPreviewSkeleton />}>
-      <MetaEventDeckPreview token={token} />
+      <MetaEventDeckPreview token={token} banGroups={banGroups} />
     </Suspense>
   );
 }

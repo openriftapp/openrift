@@ -3,6 +3,7 @@ import type { MetaStandingsRow } from "@openrift/shared/types/api/meta";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DesktopRow, PhoneRow } from "@/features/meta/components/meta-event-standings-rows";
 import { useRowWindow } from "@/features/meta/hooks/use-standings-row-window";
+import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { StandingsColumns } from "@/features/meta/lib/meta-event-standings";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
@@ -14,6 +15,9 @@ export interface StandingsBodyProps {
   canSubmit: boolean;
   columns: StandingsColumns;
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
+  bans: ReadonlyMap<string, MetaBanGroup[]> | undefined;
+  /** UTC date. */
+  eventDate: string;
   pending: ReadonlyMap<string, MetaPendingRowMark>;
   cutSize: number | null;
   expandedId: string | null;
@@ -26,6 +30,8 @@ export function DesktopStandings({
   canSubmit,
   columns,
   costs,
+  bans,
+  eventDate,
   pending,
   cutSize,
   expandedId,
@@ -76,6 +82,8 @@ export function DesktopStandings({
               canSubmit={canSubmit}
               columns={columns}
               costs={costs}
+              banGroups={player.deckId === null ? undefined : bans?.get(player.deckId)}
+              eventDate={eventDate}
               pending={pending.get(player.id)}
               cutSize={cutSize}
               expanded={expandedId === player.id}
@@ -94,6 +102,8 @@ export function PhoneStandings({
   canSubmit,
   columns,
   costs,
+  bans,
+  eventDate,
   pending,
   cutSize,
   expandedId,
@@ -116,6 +126,8 @@ export function PhoneStandings({
           canSubmit={canSubmit}
           columns={columns}
           costs={costs}
+          banGroups={player.deckId === null ? undefined : bans?.get(player.deckId)}
+          eventDate={eventDate}
           pending={pending.get(player.id)}
           cutSize={cutSize}
           expanded={expandedId === player.id}

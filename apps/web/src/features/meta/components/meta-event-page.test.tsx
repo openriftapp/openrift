@@ -93,6 +93,10 @@ vi.mock("@/features/meta/components/meta-deck-costs-bridge", () => ({
   MetaDeckCostsBridge: () => null,
 }));
 
+vi.mock("@/features/meta/components/meta-deck-bans-bridge", () => ({
+  MetaDeckBansBridge: () => null,
+}));
+
 vi.mock("@/components/layout/top-bar-breadcrumb", () => ({
   TopBarBreadcrumbSeparator: () => null,
   TopBarBreadcrumbTrail: () => null,

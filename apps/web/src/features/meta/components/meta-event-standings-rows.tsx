@@ -2,6 +2,7 @@ import type { MetaStandingsRow } from "@openrift/shared/types/api/meta";
 
 import { TableCell, TableRow } from "@/components/ui/table";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { MetaDeckBanChips } from "@/features/meta/components/meta-deck-ban-chips";
 import {
   DeckCell,
   DeckPreview,
@@ -12,6 +13,7 @@ import {
 } from "@/features/meta/components/meta-event-standings-cells";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
+import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { RowSlot, StandingsColumns } from "@/features/meta/lib/meta-event-standings";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
@@ -23,6 +25,9 @@ export interface RowProps extends RowSlot {
   canSubmit: boolean;
   columns: StandingsColumns;
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
+  banGroups?: readonly MetaBanGroup[];
+  /** UTC date. */
+  eventDate: string;
   pending: MetaPendingRowMark | undefined;
   cutSize: number | null;
   expanded: boolean;
@@ -31,7 +36,10 @@ export interface RowProps extends RowSlot {
 
 function ownsClick(event: React.SyntheticEvent<HTMLElement>): boolean {
   const target = event.target;
-  return target instanceof Element && target.closest("a, button, [role=menu]") !== null;
+  return (
+    target instanceof Element &&
+    target.closest("a, button, [role=menu], [data-slot=popover-content]") !== null
+  );
 }
 
 function rowToggleProps(token: string | null, expanded: boolean, onToggle: () => void) {
@@ -63,6 +71,8 @@ export function DesktopRow({
   canSubmit,
   columns,
   costs,
+  banGroups,
+  eventDate,
   pending,
   cutSize,
   expanded,
@@ -107,7 +117,8 @@ export function DesktopRow({
         </TableCell>
       )}
       {columns.deck && (
-        <TableCell className="w-36 shrink-0 text-right">
+        <TableCell className="flex w-36 shrink-0 flex-col items-end gap-1">
+          {banGroups && <MetaDeckBanChips groups={banGroups} eventDate={eventDate} />}
           <DeckCell
             player={player}
             slug={slug}
@@ -119,7 +130,7 @@ export function DesktopRow({
       )}
       {expanded && token !== null && (
         <TableCell className="w-full p-3 whitespace-normal">
-          <DeckPreview token={token} />
+          <DeckPreview token={token} banGroups={banGroups} />
         </TableCell>
       )}
     </TableRow>
@@ -132,6 +143,8 @@ export function PhoneRow({
   canSubmit,
   columns,
   costs,
+  banGroups,
+  eventDate,
   pending,
   cutSize,
   expanded,
@@ -193,12 +206,13 @@ export function PhoneRow({
                 pending={pending}
               />
             )}
+            {banGroups && <MetaDeckBanChips groups={banGroups} eventDate={eventDate} />}
           </div>
         </div>
       </div>
       {expanded && token !== null && (
         <div className="px-3 pb-2">
-          <DeckPreview token={token} />
+          <DeckPreview token={token} banGroups={banGroups} />
         </div>
       )}
     </li>

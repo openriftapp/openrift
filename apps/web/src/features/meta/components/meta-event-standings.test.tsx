@@ -5,11 +5,13 @@ import type {
   MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 import { act, configure, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MetaDeckCostFilterProps } from "@/features/meta/components/meta-deck-cost-filter";
+import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { MetaStandingsSearch } from "@/features/meta/lib/meta-standings-search";
 import { standingsPageQuery } from "@/features/meta/lib/meta-standings-search";
@@ -44,6 +46,7 @@ interface StandingsPage {
 const archive = vi.hoisted(() => {
   const store = {
     costs: undefined as ReadonlyMap<string, MetaDeckCost> | undefined,
+    bans: new Map() as ReadonlyMap<string, MetaBanGroup[]>,
     withCollection: [] as boolean[],
     includeSideboard: [] as boolean[],
     rows: [] as { id: string; playerName: string; shareToken: string | null; legend: unknown }[],
@@ -123,6 +126,10 @@ vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
     archive.includeSideboard.push(side);
     return archive.costs;
   },
+}));
+
+vi.mock("@/features/meta/hooks/use-meta-deck-bans", () => ({
+  useMetaDeckBans: () => archive.bans,
 }));
 
 vi.mock("@/features/meta/components/meta-deck-cost-filter", () => ({
@@ -310,6 +317,7 @@ describe("MetaEventStandings", () => {
   beforeEach(() => {
     session.userId = null;
     archive.costs = undefined;
+    archive.bans = new Map();
     archive.withCollection = [];
     archive.includeSideboard = [];
     archive.cache.clear();
@@ -504,6 +512,62 @@ describe("MetaEventStandings", () => {
     expect(screen.queryByRole("columnheader", { name: "Value" })).not.toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "Decklist" })).not.toBeInTheDocument();
     expect(phoneRow("Player 0").querySelector('[data-slot="card-art-thumb"]')).toBeNull();
+  });
+
+  it("marks a list whose cards are banned from a later date, and leaves clean lists alone", () => {
+    archive.bans = new Map([
+      [
+        "d1",
+        [
+          {
+            formatId: WellKnown.banFormat.CONSTRUCTED,
+            formatName: "Constructed",
+            bannedAt: "2026-11-23",
+            inEffect: false,
+            cards: [{ cardId: "c1", displayName: "Zhonya's Hourglass", main: 3, side: 0 }],
+          },
+        ],
+      ],
+    ]);
+    renderStandings(
+      [
+        metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
+        metaRow({ id: "p-2", playerName: "Bo", rank: 2, deckId: "d2", shareToken: "tok2" }),
+      ],
+      "2026-11-06",
+    );
+
+    expect(within(phoneRow("Ana")).getByRole("button", { name: "Ban Nov 23" })).toBeInTheDocument();
+    expect(within(phoneRow("Bo")).queryByRole("button", { name: /Ban/u })).toBeNull();
+    expect(
+      within(screen.getByRole("table")).getAllByRole("button", { name: "Ban Nov 23" }),
+    ).toHaveLength(1);
+  });
+
+  it("keeps a click inside the ban card from toggling the row's decklist", async () => {
+    archive.bans = new Map([
+      [
+        "d1",
+        [
+          {
+            formatId: WellKnown.banFormat.CONSTRUCTED,
+            formatName: "Constructed",
+            bannedAt: "2026-11-23",
+            inEffect: false,
+            cards: [{ cardId: "c1", displayName: "Zhonya's Hourglass", main: 3, side: 0 }],
+          },
+        ],
+      ],
+    ]);
+    renderStandings(
+      [metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" })],
+      "2026-11-06",
+    );
+
+    await userEvent.click(within(phoneRow("Ana")).getByRole("button", { name: "Ban Nov 23" }));
+    await userEvent.click(await screen.findByText("Zhonya's Hourglass"));
+
+    expect(screen.queryByText("Preview for tok1")).toBeNull();
   });
 
   it("prices each archived list once the archive's prices are in", () => {

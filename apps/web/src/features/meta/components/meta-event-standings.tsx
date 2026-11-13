@@ -18,6 +18,7 @@ import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
+import { MetaDeckBansBridge } from "@/features/meta/components/meta-deck-bans-bridge";
 import type { MetaCostFilterValue } from "@/features/meta/components/meta-deck-cost-filter";
 import {
   EMPTY_META_COST_FILTER,
@@ -31,6 +32,7 @@ import {
 import { MetaListShapeKey } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
 import { useMetaStandings } from "@/features/meta/hooks/use-meta";
+import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
 import {
@@ -106,6 +108,7 @@ export function MetaEventStandings({
   const canSubmit = useUserId() !== null;
   const hydrated = useHydrated();
   const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
+  const [bans, setBans] = useState<ReadonlyMap<string, MetaBanGroup[]>>();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // The Value column prices the sideboard in, so the filter has to price it in too.
   const [costFilter, setCostFilter] = useState<MetaCostFilterValue>({
@@ -178,6 +181,8 @@ export function MetaEventStandings({
     canSubmit,
     columns,
     costs,
+    bans,
+    eventDate,
     pending,
     expandedId,
     onToggle: toggle,
@@ -195,6 +200,11 @@ export function MetaEventStandings({
               partialDeckIds={partialListDeckIds(players)}
               onChange={setCosts}
             />
+          </Suspense>
+        )}
+        {hydrated && field.withLists > 0 && (
+          <Suspense fallback={null}>
+            <MetaDeckBansBridge decks={{ event: slug }} onChange={setBans} />
           </Suspense>
         )}
 

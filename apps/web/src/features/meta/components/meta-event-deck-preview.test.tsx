@@ -1,5 +1,6 @@
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
+import { WellKnown } from "@openrift/shared/well-known";
 import { createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -276,6 +277,58 @@ describe("MetaEventDeckPreview", () => {
 
     expect(screen.getByRole("button", { name: "3× Ruin Runner" })).toHaveTextContent("3");
     expect(screen.getByRole("button", { name: "Sivir, Battle Mistress" }).textContent).toBe("");
+  });
+
+  it("flags a banned card and a soon-banned one, a ban in effect winning", () => {
+    render(
+      <MetaEventDeckPreview
+        token={TOKEN}
+        banGroups={[
+          {
+            formatId: WellKnown.banFormat.CONSTRUCTED,
+            formatName: "Constructed",
+            bannedAt: "2026-09-18",
+            inEffect: true,
+            cards: [{ cardId: "card-punch", displayName: "Punch First", main: 1, side: 0 }],
+          },
+          {
+            formatId: WellKnown.banFormat.CONSTRUCTED,
+            formatName: "Constructed",
+            bannedAt: "2026-11-23",
+            inEffect: false,
+            cards: [
+              { cardId: "card-ruin", displayName: "Ruin Runner", main: 3, side: 0 },
+              { cardId: "card-punch", displayName: "Punch First", main: 1, side: 0 },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "3× Ruin Runner, Ban incoming" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "8× Punch First, Banned" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sivir, Battle Mistress" })).toBeInTheDocument();
+  });
+
+  it("names the mode on a card banned only there", () => {
+    render(
+      <MetaEventDeckPreview
+        token={TOKEN}
+        banGroups={[
+          {
+            formatId: "2v2",
+            formatName: "2v2",
+            bannedAt: "2026-09-18",
+            inEffect: true,
+            cards: [{ cardId: "card-ruin", displayName: "Ruin Runner", main: 3, side: 0 }],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "3× Ruin Runner, 2v2 Ban" })).toBeInTheDocument();
   });
 
   it("ends the strip with a dimmed sideboard", () => {
