@@ -12,6 +12,7 @@
 ### Other
 
 - feat(Cards): **Calmer selected card** — the card you opened is marked by a gold ring and a light tint inside its tile, and in the deck editor cards already in your deck get a gold frame on the art.
+- feat(Collection): **Ctrl+A selects every card** — in a collection or list, Ctrl+A (Cmd+A on Mac) switches to managing cards with everything shown selected.
 - feat(Decks): **Duplicate and change format everywhere** — the deck menus offer both for decks in your account and decks saved in this browser.
 - feat(Trades): **Owned count in the trade panel** — a card's trade panel shows how many copies you own, and how many of them are this printing.
 - fix(Cards): **One price per marketplace** — the price charts on a card page plot the same figure as the price chip.

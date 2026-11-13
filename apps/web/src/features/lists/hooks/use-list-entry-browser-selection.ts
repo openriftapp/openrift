@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
+import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import type {
   CardRowClickModifiers,
@@ -266,6 +267,7 @@ export function useListEntryBrowserSelection({
   const selectableIds = selectableEntryIds(items, entryByItemId);
   const selectAll = () => toggleSelectAll(selectableIds);
   const isAllSelected = selectableIds.length > 0 && selected.size === selectableIds.length;
+  useSelectAllHotkey(selectableIds, !showLibrary);
 
   const shiftSelectRange = (itemId: string) => {
     const targetEntry = entryByItemId.get(itemId);

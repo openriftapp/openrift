@@ -10,6 +10,7 @@ import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { tileSiblings } from "@/features/cards/lib/card-tiles";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
@@ -221,6 +222,7 @@ export function CollectionGrid({
     setSelectMode(false);
     clearSelection();
   };
+  useSelectAllHotkey(selectableCopyIds, !showLibrary);
 
   // Switching collections drops any in-progress selection (it wouldn't be
   // visible in the new grid) and sibling overrides. The library toggle is

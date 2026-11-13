@@ -20,4 +20,23 @@ describe("createMultiSelectStore", () => {
     expect(second.getState().selectMode).toBe(false);
     expect(second.getState().selected.size).toBe(0);
   });
+
+  it("enterSelectAll turns on select mode and replaces the selection with every id", () => {
+    const store = createMultiSelectStore();
+    store.getState().toggleSelect("stale");
+
+    store.getState().enterSelectAll(["a", "b"]);
+
+    expect(store.getState().selectMode).toBe(true);
+    expect([...store.getState().selected].toSorted()).toEqual(["a", "b"]);
+  });
+
+  it("enterSelectAll keeps everything selected when called twice", () => {
+    const store = createMultiSelectStore();
+
+    store.getState().enterSelectAll(["a", "b"]);
+    store.getState().enterSelectAll(["a", "b"]);
+
+    expect(store.getState().selected.size).toBe(2);
+  });
 });

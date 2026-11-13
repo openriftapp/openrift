@@ -6,6 +6,7 @@ interface MultiSelectState {
   toggleSelect: (id: string) => void;
   toggleStack: (ids: string[]) => void;
   toggleSelectAll: (allIds: string[]) => void;
+  enterSelectAll: (allIds: string[]) => void;
   addToSelection: (ids: string[]) => void;
   clearSelection: () => void;
   setSelectMode: (on: boolean) => void;
@@ -55,6 +56,7 @@ export function createMultiSelectStore() {
         return { selected: new Set(allIds) };
       });
     },
+    enterSelectAll: (allIds) => set({ selectMode: true, selected: new Set(allIds) }),
     addToSelection: (ids) => {
       if (ids.length === 0) {
         return;
