@@ -1,8 +1,10 @@
 import type { Printing } from "@openrift/shared/types/catalog";
+import { XIcon } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Pane } from "@/components/layout/panes";
+import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -95,7 +97,7 @@ export function SelectionDetailPane({
               />
             </Suspense>
           ) : (
-            <PaneEmptyState />
+            <PaneEmptyState onClose={handleClose} />
           )}
         </PrintingsHostProvider>
       </div>
@@ -128,11 +130,22 @@ function useGrownWidth(pane: HTMLElement | null): number | undefined {
   return width;
 }
 
-function PaneEmptyState() {
+function PaneEmptyState({ onClose }: { onClose: () => void }) {
   return (
-    <Empty className="h-40">
-      <EmptyDescription>{m.cards_selection_detail_empty()}</EmptyDescription>
-    </Empty>
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onClose}
+        aria-label={m.cards_detail_pane_hide()}
+        className="absolute top-4 right-3"
+      >
+        <XIcon className="size-4" />
+      </Button>
+      <Empty className="h-40">
+        <EmptyDescription>{m.cards_selection_detail_empty()}</EmptyDescription>
+      </Empty>
+    </div>
   );
 }
 

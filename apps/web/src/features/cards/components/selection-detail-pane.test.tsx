@@ -101,4 +101,15 @@ describe("SelectionDetailPane", () => {
     expect(useSelectionStore.getState().selectedCard).toBeNull();
     expect(screen.queryByText("Select a card to see its details")).not.toBeInTheDocument();
   });
+
+  it("closes the dock from the empty state's close button", async () => {
+    const user = userEvent.setup();
+    useDisplayStore.setState({ paneDocked: true });
+    renderPane([stubCardViewerItem()]);
+
+    await user.click(screen.getByRole("button", { name: "Hide the card detail panel" }));
+
+    expect(useDisplayStore.getState().paneDocked).toBe(false);
+    expect(screen.queryByText("Select a card to see its details")).not.toBeInTheDocument();
+  });
 });
