@@ -83,6 +83,7 @@ import {
   faceOpenCounts,
   primaryCardImage,
 } from "@/features/catalog-workspace/lib/record-fields";
+import { discardLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import type {
   CardSuggestions,
   FieldSuggestion,
@@ -90,7 +91,6 @@ import type {
 } from "@/features/catalog-workspace/lib/suggestion-rows";
 import {
   buildCardSuggestions,
-  discardLabel,
   enterDifferenceCount,
   enterProviders,
   sameDifferenceInput,
@@ -487,7 +487,7 @@ function CardRecordBody({
         pending={isPending}
         onUse={() => applySuggestion(suggestion)}
         onDiscard={isAdmin ? () => discardSuggestion(suggestion) : undefined}
-        discardLabel={discardLabel(suggestion)}
+        discardLabel={discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)}
         discardDisabledReason={isAdmin ? undefined : "Only admins can discard source suggestions"}
         bulk={
           bulkInput === null ? undefined : (

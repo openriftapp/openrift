@@ -19,12 +19,12 @@ import {
 import { useCandidateDiscards } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import type { FieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import { primaryLabel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type {
   ListingSuggestion,
   PrintingSuggestionModel,
 } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import { undoScope, usedUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
@@ -37,7 +37,7 @@ function skuOf(listing: ListingSuggestion) {
 }
 
 export type PrintingChip =
-  | { kind: "field"; key: string; suggestion: FieldSuggestion }
+  | { kind: "field"; key: string; suggestion: PrintingFieldSuggestion }
   | { kind: "listing"; key: string; listing: ListingSuggestion };
 
 export function printingChips(
@@ -87,7 +87,7 @@ export function usePrintingRecordActions({
     void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
   }
 
-  async function applyField(suggestion: FieldSuggestion): Promise<void> {
+  async function applyField(suggestion: PrintingFieldSuggestion): Promise<void> {
     if (!isAcceptPrintingField(suggestion.field)) {
       return;
     }

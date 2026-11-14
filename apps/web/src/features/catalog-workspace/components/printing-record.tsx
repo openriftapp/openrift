@@ -98,8 +98,6 @@ import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue
 import {
   ADMIN_ONLY_DISCARD,
   ADMIN_ONLY_REPLY,
-  discardLabel,
-  primaryLabel,
   submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
@@ -107,6 +105,7 @@ import {
   listingSuggestionsForPrinting,
 } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { replaceSecondFace } from "@/features/catalog-workspace/lib/replace-second-face";
+import { discardLabel, primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";

@@ -11,7 +11,7 @@ import type { RuleResponse } from "@openrift/shared/types/api/rules";
 import type { CatalogCard, CatalogPrinting } from "../catalog-cache.js";
 import type { RulesSnapshot } from "../rules-cache.js";
 
-export function makeCard(overrides: Partial<CatalogCard> = {}): CatalogCard {
+export function makeBotCard(overrides: Partial<CatalogCard> = {}): CatalogCard {
   return makeCatalogCard({
     slug: "jinx-rebel",
     name: "Jinx, Rebel",
@@ -23,7 +23,7 @@ export function makeCard(overrides: Partial<CatalogCard> = {}): CatalogCard {
   });
 }
 
-export function makePrinting(overrides: Partial<CatalogPrinting> = {}): CatalogPrinting {
+export function makeBotPrinting(overrides: Partial<CatalogPrinting> = {}): CatalogPrinting {
   const { markers = [], distributionChannels = [], ...rest } = overrides;
   return {
     ...makeCatalogPrinting({

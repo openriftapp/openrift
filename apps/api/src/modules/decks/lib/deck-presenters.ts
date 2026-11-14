@@ -1,7 +1,6 @@
 import { primaryCardType } from "@openrift/shared/card-primary-type";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
-  DeckCardResponse,
   DeckPlanResponse,
   DeckResponse,
   DeckSummaryResponse,
@@ -124,20 +123,6 @@ export function isEmptyDeckPlan(plan: DeckPlanResponse): boolean {
     plan.battlefieldNote === "" &&
     plan.matchups.length === 0
   );
-}
-
-export function toDeckCard(row: {
-  cardId: string;
-  zone: string;
-  quantity: number;
-  preferredPrintingId: string | null;
-}): DeckCardResponse {
-  return {
-    cardId: row.cardId,
-    zone: row.zone as DeckCardResponse["zone"],
-    quantity: row.quantity,
-    preferredPrintingId: row.preferredPrintingId,
-  };
 }
 
 /** `banned` is precomputed by the caller; the share page's rule engine can't see bans on its own. */

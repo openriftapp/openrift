@@ -23,7 +23,7 @@ export function withPrice(printing: Printing, price: number): Printing {
 }
 export const getTestPrice = (p: Printing): number | undefined => TEST_PRICES.get(p);
 
-export function makePrinting(
+export function makeFilterPrinting(
   overrides: Omit<Partial<Printing>, "card"> & { card?: Partial<Card> } = {},
 ): Printing {
   const { card, ...printing } = overrides;

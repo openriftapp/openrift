@@ -1722,14 +1722,15 @@ describe.skipIf(!ctx)("metaRepo", () => {
       const eventId = await seedEvent(repo, "mta-range-none", { eventDate: "2025-06-01" });
       await seedListedPlayer(repo, eventId, { playerName: "MTA Unbounded", rank: 1 });
 
-      const all = await repo.allDeckSummaries();
+      const all = await repo.allDeckSummaries({ limit: 10_000 });
+      const defaulted = await repo.allDeckSummaries();
       const bounded = await repo.allDeckSummaries({});
 
       expect(all.rows.some((deck) => deck.eventSlug === "mta-range-none")).toBe(true);
-      expect(bounded.rows.map((deck) => deck.playerId)).toEqual(
-        all.rows.map((deck) => deck.playerId),
-      );
       expect(all.total).toBe(all.rows.length);
+      expect(bounded.rows.map((deck) => deck.playerId)).toEqual(
+        defaulted.rows.map((deck) => deck.playerId),
+      );
     });
 
     it("narrows the deck list to one legend and one player", async () => {

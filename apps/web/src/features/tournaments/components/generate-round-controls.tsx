@@ -58,6 +58,42 @@ function PlayerAvatarChip({
   );
 }
 
+function ParticipantsFixAlert({
+  id,
+  message,
+  playerIds,
+  nameById,
+}: {
+  id: string;
+  message: typeof m.tournaments_pairings_no_region;
+  playerIds: readonly string[];
+  nameById: ReadonlyMap<string, string>;
+}) {
+  return (
+    <Alert variant="warning">
+      <TriangleAlertIcon />
+      <AlertTitle>
+        <ParaglideMessage
+          message={message}
+          inputs={{
+            count: playerIds.length,
+            names: playerIds
+              .map((playerId) => nameById.get(playerId) ?? m.tournaments_pairings_fallback_player())
+              .join(", "),
+          }}
+          markup={{
+            link: ({ children }) => (
+              <TextLink render={<Link to="/tournaments/$id/participants" params={{ id }} />}>
+                {children}
+              </TextLink>
+            ),
+          }}
+        />
+      </AlertTitle>
+    </Alert>
+  );
+}
+
 export function GenerateRoundControls({
   id,
   players,
@@ -348,56 +384,20 @@ export function GenerateRoundControls({
         </Alert>
       ) : null}
       {seatedWithoutRegion.length > 0 ? (
-        <Alert variant="warning">
-          <TriangleAlertIcon />
-          <AlertTitle>
-            <ParaglideMessage
-              message={m.tournaments_pairings_no_region}
-              inputs={{
-                count: seatedWithoutRegion.length,
-                names: seatedWithoutRegion
-                  .map(
-                    (playerId) =>
-                      nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
-                  )
-                  .join(", "),
-              }}
-              markup={{
-                link: ({ children }) => (
-                  <TextLink render={<Link to="/tournaments/$id/participants" params={{ id }} />}>
-                    {children}
-                  </TextLink>
-                ),
-              }}
-            />
-          </AlertTitle>
-        </Alert>
+        <ParticipantsFixAlert
+          id={id}
+          message={m.tournaments_pairings_no_region}
+          playerIds={seatedWithoutRegion}
+          nameById={nameById}
+        />
       ) : null}
       {seatedWithoutTeam.length > 0 ? (
-        <Alert variant="warning">
-          <TriangleAlertIcon />
-          <AlertTitle>
-            <ParaglideMessage
-              message={m.tournaments_pairings_no_team}
-              inputs={{
-                count: seatedWithoutTeam.length,
-                names: seatedWithoutTeam
-                  .map(
-                    (playerId) =>
-                      nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
-                  )
-                  .join(", "),
-              }}
-              markup={{
-                link: ({ children }) => (
-                  <TextLink render={<Link to="/tournaments/$id/participants" params={{ id }} />}>
-                    {children}
-                  </TextLink>
-                ),
-              }}
-            />
-          </AlertTitle>
-        </Alert>
+        <ParticipantsFixAlert
+          id={id}
+          message={m.tournaments_pairings_no_team}
+          playerIds={seatedWithoutTeam}
+          nameById={nameById}
+        />
       ) : null}
       {swissAutoBye ? (
         <p className="text-muted-foreground text-sm">

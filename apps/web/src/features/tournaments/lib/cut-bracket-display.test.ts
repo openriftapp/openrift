@@ -8,9 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   bracketMode,
   buildBracketColumns,
-  cutRounds,
   defaultBracketRound,
-  groupStageRounds,
   isHigherSeed,
   seedsByPlayer,
 } from "./cut-bracket-display";
@@ -70,19 +68,6 @@ describe("buildBracketColumns", () => {
     const columns = buildBracketColumns([], 4);
     expect(columns.map((column) => column.roundNumber)).toEqual([4, 5]);
     expect(columns[1]?.matches[0]?.feeders).toEqual(["SF 1", "SF 2"]);
-  });
-});
-
-describe("round split", () => {
-  it("keeps rounds one to three in the group stage and the rest in the cut", () => {
-    const rounds = [makeRound(1, [1]), makeRound(3, [1]), makeRound(4, [1]), makeRound(5, [1])];
-    expect(groupStageRounds(rounds).map((round) => round.roundNumber)).toEqual([1, 3]);
-    expect(cutRounds(rounds).map((round) => round.roundNumber)).toEqual([4, 5]);
-  });
-
-  it("orders the cut rounds by number whatever order they arrive in", () => {
-    const rounds = [makeRound(6, [1]), makeRound(4, [1, 2]), makeRound(5, [1])];
-    expect(cutRounds(rounds).map((round) => round.roundNumber)).toEqual([4, 5, 6]);
   });
 });
 

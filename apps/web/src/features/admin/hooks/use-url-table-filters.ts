@@ -1,11 +1,10 @@
+import type { SortDirection } from "@openrift/shared/types/search";
 import { getRouteApi } from "@tanstack/react-router";
 
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import type { ServerSort } from "@/features/admin/lib/admin-table-types";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/meta");
-
-export type SortDirection = "asc" | "desc";
 
 export interface UrlTableFilters {
   page: number;

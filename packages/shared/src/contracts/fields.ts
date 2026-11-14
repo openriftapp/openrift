@@ -9,6 +9,8 @@ export const shareStateResponseSchema = z.object({
   isPublic: z.boolean(),
 });
 
+export type ShareState = z.infer<typeof shareStateResponseSchema>;
+
 export const shareOwnerDisplayNameSchema = z.string().nullable().meta({
   description:
     "The owner's display name, or null when the account has no name. Clients omit the byline then.",

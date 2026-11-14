@@ -265,6 +265,86 @@ describe("CandidateSpreadsheet free-text array (tags) editing", () => {
   });
 });
 
+describe("CandidateSpreadsheet required text editing", () => {
+  const nameField: FieldDef = { key: "name", label: "Name" };
+
+  function renderName(
+    onActiveChange: (field: string, value: unknown) => void,
+    requiredKeys: string[],
+  ) {
+    render(
+      <CandidateSpreadsheet
+        fields={[nameField]}
+        activeRow={{ name: "Poro" }}
+        candidateRows={[]}
+        requiredKeys={requiredKeys}
+        onActiveChange={onActiveChange}
+      />,
+    );
+  }
+
+  it("refuses a blank required value and says so next to the cell", async () => {
+    const user = userEvent.setup();
+    const onActiveChange = vi.fn();
+    renderName(onActiveChange, ["name"]);
+
+    await user.click(screen.getByText("Poro"));
+    await user.clear(screen.getByRole("textbox", { name: "Name" }));
+    await user.keyboard("{Enter}");
+
+    expect(onActiveChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Name is required.");
+    expect(screen.getByText("Poro")).toBeInTheDocument();
+  });
+
+  it("clears the message once a value is saved", async () => {
+    const user = userEvent.setup();
+    const onActiveChange = vi.fn();
+    renderName(onActiveChange, ["name"]);
+
+    await user.click(screen.getByText("Poro"));
+    await user.clear(screen.getByRole("textbox", { name: "Name" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByText("Poro"));
+    await user.clear(screen.getByRole("textbox", { name: "Name" }));
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Fizz{Enter}");
+
+    expect(onActiveChange).toHaveBeenCalledWith("name", "Fizz");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("describes the editor by the message while it shows and drops it on Escape", async () => {
+    const user = userEvent.setup();
+    renderName(vi.fn(), ["name"]);
+
+    await user.click(screen.getByText("Poro"));
+    await user.clear(screen.getByRole("textbox", { name: "Name" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByText("Poro"));
+
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveAccessibleDescription(
+      "Name is required.",
+    );
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("still lets an optional field be cleared", async () => {
+    const user = userEvent.setup();
+    const onActiveChange = vi.fn();
+    renderName(onActiveChange, []);
+
+    await user.click(screen.getByText("Poro"));
+    await user.clear(screen.getByRole("textbox", { name: "Name" }));
+    await user.keyboard("{Enter}");
+
+    expect(onActiveChange).toHaveBeenCalledWith("name", null);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
 describe("CandidateSpreadsheet rarity icon", () => {
   const rarityField: FieldDef = {
     key: "rarity",

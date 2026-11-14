@@ -184,12 +184,6 @@ export function buildCardSuggestions(
   };
 }
 
-export function discardLabel(suggestion: FieldSuggestion): string {
-  return suggestion.rowDifferences <= 1
-    ? "Discard"
-    : `Discard ${suggestion.rowDifferences} from ${suggestion.sourceLabel}`;
-}
-
 export function sameDifferenceInput(
   suggestion: FieldSuggestion,
 ): WorkspaceSameDifferenceInput | null {

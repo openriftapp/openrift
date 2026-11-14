@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { emptyFilters, getTestPrice, makePrinting, withPrice } from "./filters-test-helpers.js";
+import {
+  emptyFilters,
+  getTestPrice,
+  makeFilterPrinting,
+  withPrice,
+} from "./filters-test-helpers.js";
 import { cardFiltersPredicate, filterCards } from "./filters.js";
 import { testSearchContext } from "./test-factories.js";
 import type { CardFilters } from "./types/search.js";
@@ -8,7 +13,7 @@ import { NONE } from "./types/search.js";
 
 describe("filterCards", () => {
   const printings = [
-    makePrinting({
+    makeFilterPrinting({
       printingId: "SET1-001:rare:normal:",
       shortCode: "SET1-001",
       setSlug: "Set Alpha",
@@ -41,7 +46,7 @@ describe("filterCards", () => {
         ],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       printingId: "SET1-002:common:foil:",
       shortCode: "SET1-002",
       setSlug: "Set Alpha",
@@ -74,7 +79,7 @@ describe("filterCards", () => {
         ],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       printingId: "SET2-001:epic:normal:",
       shortCode: "SET2-001a",
       setSlug: "Set Beta",
@@ -223,17 +228,17 @@ describe("filterCards", () => {
 
   it("filters by language", () => {
     const catalog = [
-      makePrinting({
+      makeFilterPrinting({
         printingId: "en-printing",
         language: "EN",
         card: { slug: "c1", name: "Alpha" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         printingId: "de-printing",
         language: "DE",
         card: { slug: "c2", name: "Beta" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         printingId: "ja-printing",
         language: "JA",
         card: { slug: "c3", name: "Gamma" },
@@ -246,17 +251,17 @@ describe("filterCards", () => {
 
   it("filters by multiple languages (OR)", () => {
     const catalog = [
-      makePrinting({
+      makeFilterPrinting({
         printingId: "en-printing",
         language: "EN",
         card: { slug: "c1", name: "Alpha" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         printingId: "de-printing",
         language: "DE",
         card: { slug: "c2", name: "Beta" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         printingId: "ja-printing",
         language: "JA",
         card: { slug: "c3", name: "Gamma" },
@@ -272,12 +277,12 @@ describe("filterCards", () => {
 
   it("shows all printings when languages filter is empty", () => {
     const catalog = [
-      makePrinting({
+      makeFilterPrinting({
         printingId: "en-printing",
         language: "EN",
         card: { slug: "c1", name: "Alpha" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         printingId: "de-printing",
         language: "DE",
         card: { slug: "c2", name: "Beta" },
@@ -313,7 +318,7 @@ describe("filterCards", () => {
   });
 
   it("matches multi-type cards under every type they carry", () => {
-    const unitGear = makePrinting({
+    const unitGear = makeFilterPrinting({
       printingId: "p-dual",
       cardId: "c-dual",
       card: { name: "Hexcore Carrier", types: ["unit", "gear"] },
@@ -477,8 +482,8 @@ describe("filterCards", () => {
   });
 
   it("filters by card size", () => {
-    const standard = makePrinting({ printingId: "std", size: "standard" });
-    const oversized = makePrinting({ printingId: "ovr", size: "oversized" });
+    const standard = makeFilterPrinting({ printingId: "std", size: "standard" });
+    const oversized = makeFilterPrinting({ printingId: "ovr", size: "oversized" });
     const result = filterCards(
       [standard, oversized],
       emptyFilters({ cardSizes: ["oversized"] }),
@@ -489,7 +494,7 @@ describe("filterCards", () => {
 
   it("filters by isSigned", () => {
     const withSigned = [
-      makePrinting({
+      makeFilterPrinting({
         isSigned: true,
         cardId: "s",
         card: {
@@ -506,7 +511,7 @@ describe("filterCards", () => {
           errata: [],
         },
       }),
-      makePrinting({
+      makeFilterPrinting({
         isSigned: false,
         cardId: "u",
         card: {
@@ -531,8 +536,8 @@ describe("filterCards", () => {
 
   it("filters by isOvernumbered independently of art variant", () => {
     const withOvernumbered = [
-      makePrinting({ shortCode: "OGN-303a", isOvernumbered: true, artVariant: "altart" }),
-      makePrinting({ shortCode: "OGN-007a", isOvernumbered: false, artVariant: "altart" }),
+      makeFilterPrinting({ shortCode: "OGN-303a", isOvernumbered: true, artVariant: "altart" }),
+      makeFilterPrinting({ shortCode: "OGN-007a", isOvernumbered: false, artVariant: "altart" }),
     ];
     const result = filterCards(
       withOvernumbered,
@@ -544,8 +549,8 @@ describe("filterCards", () => {
 
   it("filters by isOvernumbered=false excluding overnumbered printings", () => {
     const mixed = [
-      makePrinting({ shortCode: "OGN-303a", isOvernumbered: true }),
-      makePrinting({ shortCode: "OGN-007", isOvernumbered: false }),
+      makeFilterPrinting({ shortCode: "OGN-303a", isOvernumbered: true }),
+      makeFilterPrinting({ shortCode: "OGN-007", isOvernumbered: false }),
     ];
     const result = filterCards(mixed, emptyFilters({ isOvernumbered: false }), testSearchContext());
     expect(result.map((p) => p.shortCode)).toEqual(["OGN-007"]);
@@ -553,8 +558,8 @@ describe("filterCards", () => {
 
   it("filters by hasNoImage to the printings with no image", () => {
     const mixed = [
-      makePrinting({ shortCode: "OGN-001", images: [] }),
-      makePrinting({ shortCode: "OGN-002" }),
+      makeFilterPrinting({ shortCode: "OGN-001", images: [] }),
+      makeFilterPrinting({ shortCode: "OGN-002" }),
     ];
     const result = filterCards(mixed, emptyFilters({ hasNoImage: true }), testSearchContext());
     expect(result.map((p) => p.shortCode)).toEqual(["OGN-001"]);
@@ -562,8 +567,8 @@ describe("filterCards", () => {
 
   it("filters by hasNoImage=false to the printings that have an image", () => {
     const mixed = [
-      makePrinting({ shortCode: "OGN-001", images: [] }),
-      makePrinting({ shortCode: "OGN-002" }),
+      makeFilterPrinting({ shortCode: "OGN-001", images: [] }),
+      makeFilterPrinting({ shortCode: "OGN-002" }),
     ];
     const result = filterCards(mixed, emptyFilters({ hasNoImage: false }), testSearchContext());
     expect(result.map((p) => p.shortCode)).toEqual(["OGN-002"]);
@@ -571,15 +576,15 @@ describe("filterCards", () => {
 
   it("ignores hasNoImage when unset", () => {
     const mixed = [
-      makePrinting({ shortCode: "OGN-001", images: [] }),
-      makePrinting({ shortCode: "OGN-002" }),
+      makeFilterPrinting({ shortCode: "OGN-001", images: [] }),
+      makeFilterPrinting({ shortCode: "OGN-002" }),
     ];
     expect(filterCards(mixed, emptyFilters(), testSearchContext())).toHaveLength(2);
   });
 
   it("filters by presence.markers=any", () => {
     const withPromo = [
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
         cardId: "p",
         card: {
@@ -596,7 +601,7 @@ describe("filterCards", () => {
           errata: [],
         },
       }),
-      makePrinting({
+      makeFilterPrinting({
         markers: [],
         cardId: "r",
         card: {
@@ -635,7 +640,7 @@ describe("filterCards", () => {
   it("filters by price range", () => {
     const withPrices = [
       withPrice(
-        makePrinting({
+        makeFilterPrinting({
           cardId: "c",
           card: {
             name: "Cheap Card",
@@ -654,7 +659,7 @@ describe("filterCards", () => {
         1,
       ),
       withPrice(
-        makePrinting({
+        makeFilterPrinting({
           cardId: "e",
           card: {
             name: "Expensive Card",
@@ -672,7 +677,7 @@ describe("filterCards", () => {
         }),
         25,
       ),
-      makePrinting({
+      makeFilterPrinting({
         cardId: "n",
         card: {
           name: "No Price Card",
@@ -729,7 +734,7 @@ describe("filterCards", () => {
 
   it("treats null artVariant as normal when filtering", () => {
     const nullArtVariant = [
-      makePrinting({
+      makeFilterPrinting({
         artVariant: null as unknown as "normal",
         cardId: "nav",
         card: { name: "Null Art Card" },
@@ -746,7 +751,7 @@ describe("filterCards", () => {
 
   it("card text search handles null errata", () => {
     const nullTextCard = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "nt",
         card: {
           name: "No Text Card",
@@ -773,12 +778,12 @@ describe("filterCards", () => {
 
   it("filters by isSigned=false excludes signed cards", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         isSigned: true,
         cardId: "s1",
         card: { name: "Signed Card" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         isSigned: false,
         cardId: "s2",
         card: { name: "Unsigned Card" },
@@ -791,12 +796,12 @@ describe("filterCards", () => {
 
   it("filters by presence.markers=none excludes marked cards", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
         cardId: "p1",
         card: { name: "Promo Card" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         markers: [],
         cardId: "p2",
         card: { name: "Regular Card" },
@@ -823,7 +828,7 @@ describe("filterCards", () => {
 
   it("excludes cards with null energy when energy filter is active", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "ne",
         card: {
           name: "No Energy Card",
@@ -850,7 +855,7 @@ describe("filterCards", () => {
 
   it("excludes cards with null might when might filter is active", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "nm",
         card: {
           name: "No Might Card",
@@ -877,7 +882,7 @@ describe("filterCards", () => {
 
   it("excludes cards with null power when power filter is active", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "np",
         card: {
           name: "No Power Card",
@@ -904,11 +909,11 @@ describe("filterCards", () => {
 
   it("includes null-energy cards when min is NONE", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "1",
         card: { name: "spell", energy: null, might: null, power: null },
       }),
-      makePrinting({ cardId: "2", card: { name: "unit", energy: 3 } }),
+      makeFilterPrinting({ cardId: "2", card: { name: "unit", energy: 3 } }),
     ];
     const result = filterCards(
       cards,
@@ -920,11 +925,11 @@ describe("filterCards", () => {
 
   it("isolates null-energy cards when both min and max are NONE", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "1",
         card: { name: "spell", energy: null, might: null, power: null },
       }),
-      makePrinting({ cardId: "2", card: { name: "unit", energy: 3 } }),
+      makeFilterPrinting({ cardId: "2", card: { name: "unit", energy: 3 } }),
     ];
     const result = filterCards(
       cards,
@@ -937,11 +942,11 @@ describe("filterCards", () => {
 
   it("excludes null-energy cards when min is a real number", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "1",
         card: { name: "spell", energy: null, might: null, power: null },
       }),
-      makePrinting({ cardId: "2", card: { name: "unit", energy: 0 } }),
+      makeFilterPrinting({ cardId: "2", card: { name: "unit", energy: 0 } }),
     ];
     const result = filterCards(
       cards,
@@ -954,8 +959,8 @@ describe("filterCards", () => {
 
   it("includes null-might cards when min is NONE", () => {
     const cards = [
-      makePrinting({ cardId: "1", card: { name: "spell", might: null } }),
-      makePrinting({ cardId: "2", card: { name: "unit", might: 4 } }),
+      makeFilterPrinting({ cardId: "1", card: { name: "spell", might: null } }),
+      makeFilterPrinting({ cardId: "2", card: { name: "unit", might: 4 } }),
     ];
     const result = filterCards(
       cards,
@@ -967,8 +972,8 @@ describe("filterCards", () => {
 
   it("isolates null-power cards when both min and max are NONE", () => {
     const cards = [
-      makePrinting({ cardId: "1", card: { name: "spell", power: null } }),
-      makePrinting({ cardId: "2", card: { name: "unit", power: 6 } }),
+      makeFilterPrinting({ cardId: "1", card: { name: "spell", power: null } }),
+      makeFilterPrinting({ cardId: "2", card: { name: "unit", power: 6 } }),
     ];
     const result = filterCards(
       cards,
@@ -1003,7 +1008,7 @@ describe("filterCards", () => {
 
   it("card text search matches errata effectText only (not rulesText)", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "et",
         card: {
           name: "Effect Only",
@@ -1057,8 +1062,8 @@ describe("filterCards", () => {
       ],
     };
     const printingsByLanguage = [
-      makePrinting({ printingId: "en", cardId: "ff", language: "EN", card }),
-      makePrinting({ printingId: "fr", cardId: "ff", language: "FR", card }),
+      makeFilterPrinting({ printingId: "en", cardId: "ff", language: "EN", card }),
+      makeFilterPrinting({ printingId: "fr", cardId: "ff", language: "FR", card }),
     ];
 
     it("counts as errata only on printings in the errata's language", () => {
@@ -1120,7 +1125,7 @@ describe("filterCards", () => {
       childrenLabel: null,
     };
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "m", slug: "promo", label: "Promo", description: null }],
         distributionChannels: [
           { channel: channelNexus, distributionNote: null, ancestorLabels: [] },
@@ -1128,7 +1133,7 @@ describe("filterCards", () => {
         cardId: "p1",
         card: { name: "Nexus Card" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "m", slug: "promo", label: "Promo", description: null }],
         distributionChannels: [
           { channel: channelLaunch, distributionNote: null, ancestorLabels: [] },
@@ -1136,7 +1141,7 @@ describe("filterCards", () => {
         cardId: "p2",
         card: { name: "Launch Card" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         markers: [],
         distributionChannels: [],
         cardId: "p3",
@@ -1154,12 +1159,12 @@ describe("filterCards", () => {
 
   it("filters by presence.markers=any with specific markerSlugs", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "1", slug: "top-8", label: "Top 8", description: null }],
         cardId: "p1",
         card: { name: "Top 8 Card" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "2", slug: "promo", label: "Promo", description: null }],
         cardId: "p2",
         card: { name: "Promo Card" },
@@ -1176,12 +1181,12 @@ describe("filterCards", () => {
 
   it("filters by presence.markers=any with empty markerSlugs returns all marked", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
         cardId: "p1",
         card: { name: "Promo Card" },
       }),
-      makePrinting({
+      makeFilterPrinting({
         markers: [],
         cardId: "p2",
         card: { name: "Regular Card" },
@@ -1199,7 +1204,7 @@ describe("filterCards", () => {
 
 describe("filterCards with a language filter", () => {
   const card = { name: "Royal Guard", slug: "royal-guard" };
-  const en = makePrinting({
+  const en = makeFilterPrinting({
     printingId: "en",
     cardId: "guard",
     language: "EN",
@@ -1207,7 +1212,7 @@ describe("filterCards with a language filter", () => {
     publicCode: "OGN-010/298",
     card,
   });
-  const enAlt = makePrinting({
+  const enAlt = makeFilterPrinting({
     printingId: "en-alt",
     cardId: "guard",
     language: "EN",
@@ -1215,7 +1220,7 @@ describe("filterCards with a language filter", () => {
     publicCode: "OGN-010a/298",
     card,
   });
-  const fr = makePrinting({
+  const fr = makeFilterPrinting({
     printingId: "fr",
     cardId: "guard",
     language: "FR",
@@ -1227,7 +1232,7 @@ describe("filterCards with a language filter", () => {
     finish: "foil",
     card,
   });
-  const other = makePrinting({
+  const other = makeFilterPrinting({
     printingId: "other",
     cardId: "other",
     language: "EN",

@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { buildSnapshot } from "./catalog-cache.js";
 import { printingChoices, resolvePrinting } from "./printing-choice.js";
 import {
-  makeCard,
+  makeBotCard,
   makeCatalogResponse,
   makeInitResponse,
   makePricesResponse,
-  makePrinting,
+  makeBotPrinting,
   makeSet,
 } from "./test/factories.js";
 
-const card = makeCard({ id: "c1" });
+const card = makeBotCard({ id: "c1" });
 
 function snapshotWith(printings = defaultPrintings()) {
   return buildSnapshot(
@@ -26,8 +26,8 @@ function snapshotWith(printings = defaultPrintings()) {
 
 function defaultPrintings() {
   return [
-    makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
-    makePrinting({
+    makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
+    makeBotPrinting({
       printingId: "p2",
       cardId: "c1",
       canonicalRank: 2,
@@ -35,7 +35,7 @@ function defaultPrintings() {
       shortCode: "SFB-011",
       publicCode: "SFB-011/120",
     }),
-    makePrinting({
+    makeBotPrinting({
       printingId: "p3",
       cardId: "c1",
       canonicalRank: 3,
@@ -48,8 +48,8 @@ function defaultPrintings() {
 
 function finishPrintings() {
   return [
-    makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, finish: "normal" }),
-    makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2, finish: "foil" }),
+    makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, finish: "normal" }),
+    makeBotPrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2, finish: "foil" }),
   ];
 }
 
@@ -119,8 +119,8 @@ describe("printingChoices", () => {
 
   it("labels the language even when every printing shares a non-EN one", () => {
     const printings = [
-      makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, language: "DE" }),
-      makePrinting({
+      makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, language: "DE" }),
+      makeBotPrinting({
         printingId: "p2",
         cardId: "c1",
         canonicalRank: 2,
@@ -136,15 +136,15 @@ describe("printingChoices", () => {
     const catalog = makeCatalogResponse(
       [
         card,
-        makeCard({ id: "recruit", name: "Recruit" }),
-        makeCard({ id: "sprite", name: "Sprite" }),
+        makeBotCard({ id: "recruit", name: "Recruit" }),
+        makeBotCard({ id: "sprite", name: "Sprite" }),
       ],
       [
-        makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
-        makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
+        makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
+        makeBotPrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
       ],
     );
-    const { side: _side, printingId: _id, ...sideFields } = makePrinting();
+    const { side: _side, printingId: _id, ...sideFields } = makeBotPrinting();
     catalog.printings.p1 = {
       ...catalog.printings.p1!,
       side2: { ...sideFields, cardId: "recruit", shortCode: "OGN-271", faceId: "f1" },
@@ -171,8 +171,8 @@ describe("printingChoices", () => {
 
   it("names the other variant attributes the site's picker names", () => {
     const printings = [
-      makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
-      makePrinting({
+      makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
+      makeBotPrinting({
         printingId: "p2",
         cardId: "c1",
         canonicalRank: 2,
@@ -187,7 +187,7 @@ describe("printingChoices", () => {
   });
 
   it("omits the variant label for a card with a single plain printing", () => {
-    const printings = [makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 })];
+    const printings = [makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 })];
     expect(printingChoices(snapshotWith(printings), card, "")[0]?.name).toBe(
       "OGN-202/298 · Origins (default)",
     );
@@ -210,7 +210,7 @@ describe("printingChoices", () => {
 
   it("caps the choices at Discord's limit of 25", () => {
     const many = Array.from({ length: 30 }, (_, i) =>
-      makePrinting({ printingId: `p${i}`, cardId: "c1", canonicalRank: i + 1 }),
+      makeBotPrinting({ printingId: `p${i}`, cardId: "c1", canonicalRank: i + 1 }),
     );
     expect(printingChoices(snapshotWith(many), card, "")).toHaveLength(25);
   });

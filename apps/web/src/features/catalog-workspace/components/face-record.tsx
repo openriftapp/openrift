@@ -71,10 +71,9 @@ import {
   ADMIN_ONLY_DISCARD,
   ADMIN_ONLY_REPLY,
   buildFaceSuggestions,
-  discardLabel,
-  primaryLabel,
   submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { discardLabel, primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { runReportedMutation } from "@/lib/run-reported-mutation";

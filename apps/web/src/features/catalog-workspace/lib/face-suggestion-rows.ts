@@ -24,7 +24,7 @@ export interface CompareContext {
   hiddenProviders?: ReadonlySet<string>;
 }
 
-export interface FieldSuggestion {
+export interface PrintingFieldSuggestion {
   key: string;
   field: ComparablePrintingField;
   label: string;
@@ -57,7 +57,7 @@ export interface FaceSuggestionModel {
   face: AdminPrintingResponse | null;
   printings: AdminPrintingResponse[];
   images: AdminPrintingImageResponse[];
-  suggestions: FieldSuggestion[];
+  suggestions: PrintingFieldSuggestion[];
   sources: SuggestionSource[];
   sourceImages: SourceImageCandidate[];
   agreeingFields: number;
@@ -106,11 +106,11 @@ export function compareCandidate(
   fields: readonly ComparablePrintingField[],
   context: CompareContext,
   provider: string,
-): { suggestions: FieldSuggestion[]; agreeing: number } {
+): { suggestions: PrintingFieldSuggestion[]; agreeing: number } {
   const printedTotal = context.setTotals[row.setSlug] ?? null;
   const live = row as unknown as Record<string, unknown>;
   const proposedRow = candidate as unknown as Record<string, unknown>;
-  const suggestions: FieldSuggestion[] = [];
+  const suggestions: PrintingFieldSuggestion[] = [];
   let agreeing = 0;
   for (const field of fields) {
     const proposed = normalizeProvidedPrintingValue(field, proposedRow[field], {
@@ -141,17 +141,6 @@ export function compareCandidate(
   return { suggestions, agreeing };
 }
 
-export function discardLabel(
-  differences: number,
-  provider: string,
-  elsewhere?: string | null,
-): string {
-  const base = differences <= 1 ? "Discard" : `Discard ${differences} from ${provider}`;
-  return elsewhere === null || elsewhere === undefined
-    ? base
-    : `${base} (also settles ${elsewhere})`;
-}
-
 export const ADMIN_ONLY_DISCARD = "Only an admin discards source suggestions.";
 export const ADMIN_ONLY_REPLY = "Only an admin replies to contributors.";
 
@@ -167,10 +156,6 @@ export function faceCompareCandidates(
       !hiddenProviders.has(providerOf(detail, candidate.candidateCardId)) &&
       candidateBelongsToFace(candidate, faceId, detail.printings),
   );
-}
-
-export function primaryLabel(discardCount: number): string {
-  return discardCount === 0 ? "Next" : `Discard ${discardCount} & next`;
 }
 
 export function providerOf(detail: AdminCardDetailResponse, candidateCardId: string): string {
@@ -254,7 +239,7 @@ export function buildFaceSuggestions(
       candidateBelongsToFace(candidate, faceId, detail.printings),
   );
 
-  const suggestions: FieldSuggestion[] = [];
+  const suggestions: PrintingFieldSuggestion[] = [];
   const sources: SuggestionSource[] = [];
   const sourceImages: SourceImageCandidate[] = [];
   const enterCandidateIds: string[] = [];

@@ -1,7 +1,10 @@
 import type { MetaStandingsRow } from "@openrift/shared/types/api/meta";
+import type { ComponentType } from "react";
 
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { RowProps } from "@/features/meta/components/meta-event-standings-rows";
 import { DesktopRow, PhoneRow } from "@/features/meta/components/meta-event-standings-rows";
+import type { RowWindow } from "@/features/meta/hooks/use-standings-row-window";
 import { useRowWindow } from "@/features/meta/hooks/use-standings-row-window";
 import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
@@ -66,8 +69,9 @@ export function DesktopStandingsHeader({
   );
 }
 
-export function DesktopStandings({
-  players,
+function StandingsRows({
+  Row,
+  rows,
   slug,
   canSubmit,
   columns,
@@ -78,7 +82,33 @@ export function DesktopStandings({
   cutSize,
   expandedId,
   onToggle,
+}: Omit<StandingsBodyProps, "players"> & {
+  Row: ComponentType<RowProps>;
+  rows: RowWindow["rows"];
+}) {
+  return rows.map(({ player, slot }) => (
+    <Row
+      key={player.id}
+      {...slot}
+      player={player}
+      slug={slug}
+      canSubmit={canSubmit}
+      columns={columns}
+      costs={costs}
+      banGroups={player.deckId === null ? undefined : bans?.get(player.deckId)}
+      eventDate={eventDate}
+      pending={pending.get(player.id)}
+      cutSize={cutSize}
+      expanded={expandedId === player.id}
+      onToggle={() => onToggle(player.id)}
+    />
+  ));
+}
+
+export function DesktopStandings({
+  players,
   header = "visible",
+  ...body
 }: StandingsBodyProps & { header?: "visible" | "screen-reader" }) {
   const { containerRef, height, rows } = useRowWindow(players);
 
@@ -86,46 +116,18 @@ export function DesktopStandings({
     <div className="hidden md:block">
       <Table variant="divided" className="block">
         <DesktopStandingsHeader
-          columns={columns}
+          columns={body.columns}
           className={header === "screen-reader" ? "sr-only" : undefined}
         />
         <TableBody ref={containerRef} className="relative block" style={{ height }}>
-          {rows.map(({ player, slot }) => (
-            <DesktopRow
-              key={player.id}
-              {...slot}
-              player={player}
-              slug={slug}
-              canSubmit={canSubmit}
-              columns={columns}
-              costs={costs}
-              banGroups={player.deckId === null ? undefined : bans?.get(player.deckId)}
-              eventDate={eventDate}
-              pending={pending.get(player.id)}
-              cutSize={cutSize}
-              expanded={expandedId === player.id}
-              onToggle={() => onToggle(player.id)}
-            />
-          ))}
+          <StandingsRows Row={DesktopRow} rows={rows} {...body} />
         </TableBody>
       </Table>
     </div>
   );
 }
 
-export function PhoneStandings({
-  players,
-  slug,
-  canSubmit,
-  columns,
-  costs,
-  bans,
-  eventDate,
-  pending,
-  cutSize,
-  expandedId,
-  onToggle,
-}: StandingsBodyProps) {
+export function PhoneStandings({ players, ...body }: StandingsBodyProps) {
   const { containerRef, height, rows } = useRowWindow(players);
 
   return (
@@ -134,23 +136,7 @@ export function PhoneStandings({
       className="relative block md:hidden [&>li+li]:border-t"
       style={{ height }}
     >
-      {rows.map(({ player, slot }) => (
-        <PhoneRow
-          key={player.id}
-          {...slot}
-          player={player}
-          slug={slug}
-          canSubmit={canSubmit}
-          columns={columns}
-          costs={costs}
-          banGroups={player.deckId === null ? undefined : bans?.get(player.deckId)}
-          eventDate={eventDate}
-          pending={pending.get(player.id)}
-          cutSize={cutSize}
-          expanded={expandedId === player.id}
-          onToggle={() => onToggle(player.id)}
-        />
-      ))}
+      <StandingsRows Row={PhoneRow} rows={rows} {...body} />
     </ul>
   );
 }

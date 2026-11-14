@@ -61,14 +61,14 @@ export function candidateCardValidatorInput(card: IngestCard): Record<string, un
     might_bonus: card.might_bonus,
     rules_text: trimToNull(card.rules_text),
     effect_text: trimToNull(card.effect_text),
-    short_code: card.short_code ?? null,
+    short_code: trimToNull(card.short_code),
     external_id: card.external_id,
   };
 }
 
 export function candidatePrintingValidatorInput(printing: IngestPrinting): Record<string, unknown> {
   return {
-    short_code: printing.short_code,
+    short_code: printing.short_code.trim(),
     set_id: printing.set_id,
     set_name: printing.set_name,
     rarity: printing.rarity,
@@ -76,7 +76,7 @@ export function candidatePrintingValidatorInput(printing: IngestPrinting): Recor
     finish: printing.finish,
     size: printing.size,
     artist: trimToNull(printing.artist),
-    public_code: printing.public_code,
+    public_code: trimToNull(printing.public_code),
     printed_rules_text: trimToNull(printing.printed_rules_text),
     printed_effect_text: trimToNull(printing.printed_effect_text),
     image_url: printing.image_url,
@@ -118,7 +118,7 @@ export function buildCandidateCardFields(card: IngestCard): CandidateCardFields 
     effectText: trimToNull(card.effect_text),
     tags: card.tags,
     externalId: card.external_id,
-    shortCode: card.short_code ?? null,
+    shortCode: trimToNull(card.short_code),
     extraData: jsonOrNull(card.extra_data),
   };
 }
@@ -137,7 +137,7 @@ function releaseFields(
 /** Marker slugs are sorted here so the stored order matches the one the link key is built from. */
 export function buildCandidatePrintingFields(printing: IngestPrinting): CandidatePrintingFields {
   return {
-    shortCode: printing.short_code,
+    shortCode: printing.short_code.trim(),
     setId: printing.set_id,
     setName: printing.set_name,
     rarity: printing.rarity,
@@ -149,7 +149,7 @@ export function buildCandidatePrintingFields(printing: IngestPrinting): Candidat
     finish: printing.finish,
     size: printing.size,
     artist: trimToNull(printing.artist),
-    publicCode: printing.public_code,
+    publicCode: trimToNull(printing.public_code),
     printedRulesText: trimToNull(printing.printed_rules_text),
     printedEffectText: trimToNull(printing.printed_effect_text),
     imageUrl: printing.image_url,

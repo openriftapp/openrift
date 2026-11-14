@@ -374,6 +374,28 @@ describe("insertNewPrinting", () => {
     });
   });
 
+  it("400s a printing whose public code is only whitespace", async () => {
+    await expect(
+      insertNewPrinting(trxRepos() as any, "card-uuid", { ...FIELDS, publicCode: "  " }, []),
+    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("publicCode") });
+  });
+
+  it("stores the short code and public code without outer whitespace", async () => {
+    const repos = trxRepos();
+
+    await insertNewPrinting(
+      repos as any,
+      "card-uuid",
+      { ...FIELDS, shortCode: " OGN-001 ", publicCode: " 001 " },
+      [],
+    );
+
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledWith(
+      expect.objectContaining({ shortCode: "OGN-001", publicCode: "001" }),
+      null,
+    );
+  });
+
   const STORED_FACE = {
     setId: "set-uuid",
     rarity: "common",

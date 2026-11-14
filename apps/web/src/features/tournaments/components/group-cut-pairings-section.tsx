@@ -1,3 +1,4 @@
+import { cutRounds } from "@openrift/shared/pairing/group-cut-rounds";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { PodTournamentDetailResponse } from "@openrift/shared/types/api/pod-tournament";
 import { LayoutGridIcon } from "lucide-react";
@@ -13,7 +14,7 @@ import {
   useStartGroupStageRound,
   useSubmitTournamentResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { bracketMode, cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
+import { bracketMode } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupUnits } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -60,7 +61,7 @@ export function GroupCutPairingsSection({
   }
 
   const units = groupUnits(groupStage.groups);
-  const bracketRounds = cutRounds(data.rounds);
+  const bracketRounds = cutRounds(data.rounds, (round) => round.roundNumber);
   const openCutRound = bracketRounds.find((round) => round.status === "reporting");
   const lastCutRound = bracketRounds.at(-1);
   const nextCutRoundNumber = (lastCutRound?.roundNumber ?? GROUP_STAGE_ROUNDS) + 1;

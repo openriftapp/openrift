@@ -361,7 +361,7 @@ export function NewPrintingGroupCard({
               <CandidateSpreadsheet
                 key={group.candidates.map((s) => s.id).join(",")}
                 fields={printingFields}
-                requiredKeys={[...REQUIRED_ACCEPT_PRINTING_FIELDS]}
+                requiredKeys={REQUIRED_ACCEPT_PRINTING_FIELDS}
                 activeRow={Object.keys(activePrinting).length > 0 ? activePrinting : null}
                 candidateRows={group.candidates}
                 providerLabels={providerLabels}

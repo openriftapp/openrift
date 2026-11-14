@@ -1,3 +1,4 @@
+import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { Kysely, RawBuilder, SqlBool } from "kysely";
 import { sql } from "kysely";
 
@@ -6,7 +7,7 @@ import { containsPattern } from "../../../lib/like-pattern.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaEventWithCounts } from "./meta-events.js";
 import { EVENT_COUNT_COLUMNS, withEventCounts } from "./meta-events.js";
-import type { MetaScopeFacet, MetaScopeFilters } from "./meta-shared.js";
+import type { MetaScopeFilters } from "./meta-shared.js";
 import { HAS_DECKS, HAS_STANDINGS, scopeConditions, UPCOMING } from "./meta-shared.js";
 
 export interface MetaEventIndexFilters extends MetaScopeFilters {

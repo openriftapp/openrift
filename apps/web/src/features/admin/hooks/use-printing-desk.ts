@@ -3,6 +3,7 @@ import type {
   DeskCreateOutput,
   DeskSetImageFaceInput,
   DeskSetSecondSideInput,
+  DeskUpdateImageInput,
   DeskUpdateInput,
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { adminPrintingDeskContract } from "@openrift/shared/contracts/admin/printing-desk";
@@ -99,12 +100,6 @@ export function useRemoveDeskSecondSide() {
     mutationFn: (vars) => removeDeskSecondSideFn({ data: vars }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
-}
-
-/** Omitted credit stays as it is, `null` clears it. */
-export interface DeskUpdateImageInput {
-  imageFileId: string;
-  credit?: string | null;
 }
 
 const updateDeskImageFn = createServerFn({ method: "POST" })

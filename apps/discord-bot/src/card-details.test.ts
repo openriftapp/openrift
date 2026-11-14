@@ -8,11 +8,11 @@ import {
 } from "./card-details.js";
 import { buildSnapshot } from "./catalog-cache.js";
 import {
-  makeCard,
+  makeBotCard,
   makeCatalogResponse,
   makeInitResponse,
   makePricesResponse,
-  makePrinting,
+  makeBotPrinting,
 } from "./test/factories.js";
 
 const SITE = "https://openrift.example";
@@ -21,7 +21,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function snapshotWith(card = makeCard(), printing = makePrinting()) {
+function snapshotWith(card = makeBotCard(), printing = makeBotPrinting()) {
   return buildSnapshot(
     makeCatalogResponse([card], [printing]),
     makePricesResponse(),
@@ -77,8 +77,8 @@ describe("detailsLabel", () => {
 describe("buildCardDetailsEmbed", () => {
   it("carries the stat line and the card text the compact embed leaves off", () => {
     const snapshot = snapshotWith(
-      makeCard(),
-      makePrinting({ printedRulesText: "Draw 1.", printedEffectText: "I have +2 :rb_might:." }),
+      makeBotCard(),
+      makeBotPrinting({ printedRulesText: "Draw 1.", printedEffectText: "I have +2 :rb_might:." }),
     );
     const embed = buildCardDetailsEmbed({
       card: snapshot.cards[0]!,
@@ -99,7 +99,7 @@ describe("buildCardDetailsEmbed", () => {
 
   it("gives the ban reason the compact embed only hints at", () => {
     const snapshot = snapshotWith(
-      makeCard({
+      makeBotCard({
         bans: [
           { formatId: "f1", formatName: "Standard", bannedAt: "2026-01-05", reason: "Too fast" },
         ],
@@ -116,7 +116,7 @@ describe("buildCardDetailsEmbed", () => {
 
   it("lists every ban and copes with a missing reason", () => {
     const snapshot = snapshotWith(
-      makeCard({
+      makeBotCard({
         bans: [
           { formatId: "f1", formatName: "Standard", bannedAt: "2026-01-05", reason: null },
           { formatId: "f2", formatName: "Ranked", bannedAt: "2026-02-01", reason: "Combo" },
@@ -136,7 +136,7 @@ describe("buildCardDetailsEmbed", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
     const snapshot = snapshotWith(
-      makeCard({
+      makeBotCard({
         bans: [
           { formatId: "f1", formatName: "Standard", bannedAt: "2026-09-18", reason: "Too fast" },
         ],
@@ -155,8 +155,8 @@ describe("buildCardDetailsEmbed", () => {
 
   it("renders glyphs with the app's emojis", () => {
     const snapshot = snapshotWith(
-      makeCard(),
-      makePrinting({ printedRulesText: "Pay :rb_energy_1:." }),
+      makeBotCard(),
+      makeBotPrinting({ printedRulesText: "Pay :rb_energy_1:." }),
     );
     const embed = buildCardDetailsEmbed({
       card: snapshot.cards[0]!,

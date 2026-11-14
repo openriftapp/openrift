@@ -18,8 +18,9 @@ interface CardTextExpandDialogProps {
   label: string;
   value: string;
   imageUrl?: string | null;
-  /** Commit the edited text (empty string clears the field). */
-  onSave: (next: string) => void;
+  /** Commit the edited text (empty string clears the field). Return false to keep the dialog open. */
+  onSave: (next: string) => boolean | void;
+  requiredError?: string;
   variant?: CardTextVariant;
   reformat?: (value: string) => string;
   triggerClassName?: string;
@@ -30,12 +31,22 @@ export function CardTextExpandDialog({
   value,
   imageUrl,
   onSave,
+  requiredError,
   variant,
   reformat,
   triggerClassName,
 }: CardTextExpandDialogProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [rejected, setRejected] = useState(false);
+
+  function save(next: string) {
+    if (onSave(next) === false) {
+      setRejected(true);
+      return;
+    }
+    setOpen(false);
+  }
 
   return (
     <>
@@ -48,6 +59,7 @@ export function CardTextExpandDialog({
         className={triggerClassName}
         onClick={() => {
           setDraft(value);
+          setRejected(false);
           setOpen(true);
         }}
       >
@@ -55,12 +67,7 @@ export function CardTextExpandDialog({
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-4xl">
-          <DialogForm
-            onSubmit={() => {
-              onSave(draft);
-              setOpen(false);
-            }}
-          >
+          <DialogForm onSubmit={() => save(draft)}>
             <DialogHeader>
               <DialogTitle>Edit {label}</DialogTitle>
             </DialogHeader>
@@ -87,15 +94,17 @@ export function CardTextExpandDialog({
                 reformat={reformat}
               />
             </div>
+            {rejected && requiredError && (
+              <p role="alert" className="text-destructive text-xs">
+                {requiredError}
+              </p>
+            )}
             <DialogFooter>
               <Button
                 type="button"
                 variant="ghost"
                 className="text-destructive sm:mr-auto"
-                onClick={() => {
-                  onSave("");
-                  setOpen(false);
-                }}
+                onClick={() => save("")}
               >
                 Clear
               </Button>

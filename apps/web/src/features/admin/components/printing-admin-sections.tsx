@@ -1,4 +1,7 @@
-import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
+import {
+  isAcceptPrintingField,
+  REQUIRED_PRINTING_FIELD_KEYS,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import type {
@@ -93,6 +96,7 @@ export function PrintingSourcesCard({
         ) : (
           <CandidateSpreadsheet
             fields={fields}
+            requiredKeys={REQUIRED_PRINTING_FIELD_KEYS}
             activeRow={activeRow}
             candidateRows={sources}
             providerLabels={labels}

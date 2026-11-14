@@ -1,11 +1,11 @@
-import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 /**
  * Every entry point here only touches `pending` rows, so a check that runs
  * twice (or crashes between check and resolve) settles the same way.
  */
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import type { CardSubmissionStatus } from "@openrift/shared/contracts/card-submissions";
 import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";
 
-import type { CardSubmissionStatus } from "../../../db/tables/candidates.js";
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
 import { adoptedFields, computeProposedDiff } from "../lib/card-submission-diff.js";

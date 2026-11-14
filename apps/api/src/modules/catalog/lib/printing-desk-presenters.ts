@@ -1,9 +1,6 @@
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 
-import type {
-  DeskImageRow,
-  DeskPrintingRow as DeskPrintingDbRow,
-} from "../repositories/printing-desk.js";
+import type { DeskImageRow, DeskPrintingDbRow } from "../repositories/printing-desk.js";
 
 export function toDeskPrintingRow(
   row: DeskPrintingDbRow,

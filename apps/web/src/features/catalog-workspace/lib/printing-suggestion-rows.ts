@@ -10,7 +10,7 @@ import type {
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import type {
   CompareContext,
-  FieldSuggestion,
+  PrintingFieldSuggestion,
   SuggestionSource,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
@@ -25,7 +25,7 @@ import {
 
 export interface PrintingSuggestionModel {
   printing: AdminPrintingResponse | null;
-  suggestions: FieldSuggestion[];
+  suggestions: PrintingFieldSuggestion[];
   sources: SuggestionSource[];
   agreeingFields: number;
   enterCandidateIds: string[];
@@ -44,7 +44,7 @@ export function buildPrintingSuggestions(
 
   const hidden = context.hiddenProviders ?? new Set<string>();
   const seen = new Set<string>();
-  const suggestions: FieldSuggestion[] = [];
+  const suggestions: PrintingFieldSuggestion[] = [];
   const sources: SuggestionSource[] = [];
   const enterCandidateIds: string[] = [];
   let agreeingFields = 0;

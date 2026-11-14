@@ -12,26 +12,26 @@ import {
 } from "./deck-embed.js";
 import { log } from "./log.js";
 import {
-  makeCard,
+  makeBotCard,
   makeCatalogResponse,
   makeInitResponse,
   makePricesResponse,
-  makePrinting,
+  makeBotPrinting,
 } from "./test/factories.js";
 
 function makeDeckSnapshot() {
   const cards = [
-    makeCard({
+    makeBotCard({
       id: "c-legend",
       name: "Emperor of the Sands",
       types: ["legend"],
       superTypes: [],
       tags: ["Azir"],
     }),
-    makeCard({ id: "c-champ", name: "Jinx, Rebel" }),
-    makeCard({ id: "c-unit", name: "Iron Ballista", superTypes: [] }),
-    makeCard({ id: "c-rune", name: "Fury Rune", types: ["rune"], superTypes: [] }),
-    makeCard({
+    makeBotCard({ id: "c-champ", name: "Jinx, Rebel" }),
+    makeBotCard({ id: "c-unit", name: "Iron Ballista", superTypes: [] }),
+    makeBotCard({ id: "c-rune", name: "Fury Rune", types: ["rune"], superTypes: [] }),
+    makeBotCard({
       id: "c-bf",
       name: "Sunken Temple",
       types: ["battlefield"],
@@ -39,11 +39,11 @@ function makeDeckSnapshot() {
     }),
   ];
   const printings = [
-    makePrinting({ printingId: "p-legend", cardId: "c-legend", shortCode: "OGN-003" }),
-    makePrinting({ printingId: "p-champ", cardId: "c-champ", shortCode: "OGN-007" }),
-    makePrinting({ printingId: "p-unit", cardId: "c-unit", shortCode: "OGN-100" }),
-    makePrinting({ printingId: "p-rune", cardId: "c-rune", shortCode: "OGN-200" }),
-    makePrinting({ printingId: "p-bf", cardId: "c-bf", shortCode: "OGN-220" }),
+    makeBotPrinting({ printingId: "p-legend", cardId: "c-legend", shortCode: "OGN-003" }),
+    makeBotPrinting({ printingId: "p-champ", cardId: "c-champ", shortCode: "OGN-007" }),
+    makeBotPrinting({ printingId: "p-unit", cardId: "c-unit", shortCode: "OGN-100" }),
+    makeBotPrinting({ printingId: "p-rune", cardId: "c-rune", shortCode: "OGN-200" }),
+    makeBotPrinting({ printingId: "p-bf", cardId: "c-bf", shortCode: "OGN-220" }),
   ];
   return buildSnapshot(
     makeCatalogResponse(cards, printings),

@@ -1,4 +1,6 @@
+import { sameDeckCards } from "@openrift/shared/deck-cards";
 import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
+import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type {
   CardType,
@@ -13,7 +15,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import { ttlCached } from "../../../lib/ttl-cached.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
-import type { MetaScopeFacet, MetaScopeFilters } from "./meta-shared.js";
+import type { MetaScopeFilters } from "./meta-shared.js";
 import {
   META_ARCHIVE_USER_ID,
   foldedPlayerIdentity,
@@ -207,42 +209,11 @@ export function mergeDeckCards(cards: readonly MetaDeckCardInput[]): MetaDeckCar
   return [...merged.values()];
 }
 
-export interface MetaStoredDeckCard {
+interface MetaStoredDeckCard {
   cardId: string;
   zone: string;
   quantity: number;
   preferredPrintingId: string | null;
-}
-
-function deckCardKey(card: MetaStoredDeckCard | MetaDeckCardInput): string {
-  return `${card.cardId} ${card.zone} ${card.quantity} ${card.preferredPrintingId ?? ""}`;
-}
-
-/**
- * `incoming` is compared as given — callers pass it through
- * {@link mergeDeckCards} first, since that is the shape the table holds.
- */
-export function sameDeckCards(
-  existing: readonly MetaStoredDeckCard[],
-  incoming: readonly MetaDeckCardInput[],
-): boolean {
-  if (existing.length !== incoming.length) {
-    return false;
-  }
-  const held = new Map<string, number>();
-  for (const card of existing) {
-    const key = deckCardKey(card);
-    held.set(key, (held.get(key) ?? 0) + 1);
-  }
-  for (const card of incoming) {
-    const key = deckCardKey(card);
-    const left = held.get(key) ?? 0;
-    if (left === 0) {
-      return false;
-    }
-    held.set(key, left - 1);
-  }
-  return true;
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { CardNameParts } from "@openrift/shared/card-name";
 import { legendDisplayName } from "@openrift/shared/card-name";
+import type { ShareState } from "@openrift/shared/contracts/fields";
 import type { CardType, Finish, Rarity } from "@openrift/shared/types/enums";
 import type {
   Expression,
@@ -396,11 +397,6 @@ export async function printingDetailsByIds(
  * `collections` is deliberately excluded: it scopes its setter by id alone.
  */
 type ShareableTable = "lists" | "decks" | "tierLists" | "boardStates";
-
-export interface ShareState {
-  shareToken: string | null;
-  isPublic: boolean;
-}
 
 /*
  * The helpers below cast `table` to one concrete member of ShareableTable;

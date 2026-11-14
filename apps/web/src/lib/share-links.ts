@@ -1,3 +1,5 @@
+import type { ShareState } from "@openrift/shared/contracts/fields";
+
 import { getSiteUrl } from "@/lib/site-config";
 
 const SHARE_PATHS = {
@@ -10,11 +12,6 @@ const SHARE_PATHS = {
 } as const;
 
 export type ShareLinkKind = keyof typeof SHARE_PATHS;
-
-export interface ShareState {
-  shareToken: string | null;
-  isPublic: boolean;
-}
 
 /**
  * The public URL for a shared surface, `null` when it isn't. Requires both

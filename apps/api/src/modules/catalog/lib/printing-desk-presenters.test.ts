@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { DeskImageRow, DeskPrintingRow } from "../repositories/printing-desk.js";
+import type { DeskImageRow, DeskPrintingDbRow } from "../repositories/printing-desk.js";
 import { toDeskImages, toDeskPrintingRow } from "./printing-desk-presenters.js";
 
-const row: DeskPrintingRow = {
+const row: DeskPrintingDbRow = {
   printingId: "p1",
   slug: "en-tba-summoner-skirmish-banner-foil-prerelease-standard",
   cardId: "c1",
@@ -38,7 +38,7 @@ const row: DeskPrintingRow = {
   isPromo: true,
 };
 
-const base: DeskPrintingRow = {
+const base: DeskPrintingDbRow = {
   ...row,
   markerSlugs: [],
   distributionChannelSlugs: [],

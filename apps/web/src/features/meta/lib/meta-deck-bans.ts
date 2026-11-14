@@ -4,7 +4,7 @@ import { isBaseBanFormat } from "@openrift/shared/well-known";
 
 import type { MetaDeckCardsByDeck } from "@/features/meta/lib/meta-deck-collection";
 
-export interface MetaBanGroupCard {
+interface MetaBanGroupCard {
   cardId: string;
   displayName: string;
   main: number;
@@ -20,7 +20,7 @@ export interface MetaBanGroup {
   cards: MetaBanGroupCard[];
 }
 
-export type MetaDeckBanState = "banned" | "upcoming";
+type MetaDeckBanState = "banned" | "upcoming";
 
 type BanCard = Pick<Card, "name" | "types" | "tags" | "bans" | "upcomingBans">;
 

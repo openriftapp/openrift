@@ -57,12 +57,6 @@ export function buildBracketColumns(
   });
 }
 
-export function cutRounds(rounds: readonly PodRoundResponse[]): PodRoundResponse[] {
-  return rounds
-    .filter((round) => round.roundNumber > GROUP_STAGE_ROUNDS)
-    .toSorted((a, b) => a.roundNumber - b.roundNumber);
-}
-
 export function seedsByPlayer(groupStage: Pick<GroupStageView, "ranking">): Map<string, number> {
   return new Map(
     groupStage.ranking.flatMap((row) => (row.seed === null ? [] : [[row.playerId, row.seed]])),
@@ -77,10 +71,6 @@ export function bracketMode({
   canEnter: boolean;
 }): "compact" | "editable" {
   return completed || !canEnter ? "compact" : "editable";
-}
-
-export function groupStageRounds(rounds: readonly PodRoundResponse[]): PodRoundResponse[] {
-  return rounds.filter((round) => round.roundNumber <= GROUP_STAGE_ROUNDS);
 }
 
 export function isHigherSeed(

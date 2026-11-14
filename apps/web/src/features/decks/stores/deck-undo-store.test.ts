@@ -2,7 +2,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { sameDeckCards, useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { stubDeckBuilderCard } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -96,31 +96,6 @@ describe("record", () => {
     expect(store().past).toHaveLength(100);
     expect(store().past[0]![0]!.quantity).toBe(5);
     expect(store().past.at(-1)?.[0]!.quantity).toBe(104);
-  });
-});
-
-describe("sameDeckCards", () => {
-  it("is true for the same rows and quantities in any order", () => {
-    expect(sameDeckCards([card("a", 1), card("b", 2)], [card("b", 2), card("a", 1)])).toBe(true);
-  });
-
-  it("is false when a quantity changes", () => {
-    expect(sameDeckCards([card("a", 1)], [card("a", 2)])).toBe(false);
-  });
-
-  it("is false when a row moves zone with the same quantity", () => {
-    const moved = { ...card("a", 1), zone: "sideboard" as DeckZone };
-    expect(sameDeckCards([card("a", 1)], [moved])).toBe(false);
-  });
-
-  it("is false when a row changes printing", () => {
-    const repinned = { ...card("a", 1), preferredPrintingId: "printing-2" };
-    expect(sameDeckCards([card("a", 1)], [repinned])).toBe(false);
-  });
-
-  it("is false when a row is added or removed", () => {
-    expect(sameDeckCards([card("a", 1)], [card("a", 1), card("b", 1)])).toBe(false);
-    expect(sameDeckCards([card("a", 1), card("b", 1)], [card("a", 1)])).toBe(false);
   });
 });
 

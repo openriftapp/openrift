@@ -86,7 +86,7 @@ export interface MetaSubmissionArgs {
  * Outcome of a submission. Discriminated so the route maps it to a typed oRPC
  * error without this service depending on oRPC.
  */
-export type MetaSubmissionResult =
+export type MetaDeckSubmitResult =
   | {
       status: "ok";
       submissionId: string;
@@ -265,7 +265,7 @@ export function submitMetaEventCorrection(
 export function submitMetaDeck(
   transact: Transact,
   args: MetaSubmissionArgs,
-): Promise<MetaSubmissionResult> {
+): Promise<MetaDeckSubmitResult> {
   const problems = validateMetaSubmission(args);
   if (problems.length > 0) {
     return Promise.resolve({ status: "invalid", errors: problems });

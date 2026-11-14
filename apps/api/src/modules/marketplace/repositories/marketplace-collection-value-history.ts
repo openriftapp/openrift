@@ -1,17 +1,11 @@
 import { formatDay } from "@openrift/shared/format-date";
+import type { CollectionValueHistoryPoint } from "@openrift/shared/types/api/collection-value-history";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { customTagExists, STANDARD } from "./marketplace-scope.js";
 import type { ScopeFilter } from "./marketplace-scope.js";
-
-export interface CollectionValueHistoryPoint {
-  date: string;
-  valueCents: number;
-  baselineValueCents: number;
-  copyCount: number;
-}
 
 export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
   return {

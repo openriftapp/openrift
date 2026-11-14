@@ -90,7 +90,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
         id: string;
         deckId: string;
         cardId: string;
-        zone: string;
+        zone: DeckZone;
         quantity: number;
         preferredPrintingId: string | null;
       }[]

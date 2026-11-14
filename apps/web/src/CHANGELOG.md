@@ -13,6 +13,7 @@
 
 - fix(Trades): **No repeats in a person's suggestions** — a trade page for one person lists cards already in a trade only in that trade's section, and the suggestions count matches the rows shown.
 - fix(Meta): **One rule for upcoming events** — an event dated in the future reads as not played yet on every page.
+- fix(Meta): **Countries sorted by name** — the country filter lists countries alphabetically by their name in your language.
 - fix(Meta): **Players filter on the reported size** — the players filter, sort and column on the events page all use the field size the event reported.
 - fix(Collection): **Full Legend names in the scanner** — the identify sheet, the printing picker and scanner messages show a Legend's full name.
 - fix(Collection): **Scanner "New" per card** — a scanned card counts as new only when you own it in no printing.

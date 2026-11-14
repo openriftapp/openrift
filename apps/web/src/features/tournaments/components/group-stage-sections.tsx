@@ -1,3 +1,4 @@
+import { groupStageRounds } from "@openrift/shared/pairing/group-cut-rounds";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import { podsOfUnit } from "@openrift/shared/pairing/group-stage";
 import type {
@@ -12,7 +13,6 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { groupStageRounds } from "@/features/tournaments/lib/cut-bracket-display";
 import type { GroupUnit } from "@/features/tournaments/lib/group-cut-units";
 import {
   groupLabelByPlayer,
@@ -61,7 +61,7 @@ export function GroupStageSections({
   const units = groupUnits(groupStage.groups);
   const labelByPlayer = groupLabelByPlayer(groupStage.groups);
   const legendByPlayer = legendsByPlayer(groupStage);
-  const stageRounds = groupStageRounds(rounds);
+  const stageRounds = groupStageRounds(rounds, (round) => round.roundNumber);
   const canEditEarlier = canEnterResult && !groupStage.cutGenerated;
 
   if (units.length === 0) {

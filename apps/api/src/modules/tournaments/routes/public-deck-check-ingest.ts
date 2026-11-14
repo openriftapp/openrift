@@ -10,7 +10,7 @@ import { createMiddleware } from "hono/factory";
 import { AppError } from "../../../errors.js";
 import { bearerToken } from "../../../lib/bearer.js";
 import { clientAddress } from "../../../lib/client-address.js";
-import { sha256Hex } from "../../../lib/hash.js";
+import { sha256HexSync } from "../../../lib/hash.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { orpcErrorResponse } from "../../../orpc/error-body.js";
@@ -63,7 +63,7 @@ export const deckCheckIngestRouter = {
       throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Missing push key");
     }
 
-    const tokenHash = sha256Hex(token);
+    const tokenHash = sha256HexSync(token);
     const key = await context.repos.deckCheckKeys.getActiveKeyByHash(tokenHash);
     if (!key) {
       throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Unknown or revoked push key");

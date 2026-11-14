@@ -1,5 +1,8 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
+import {
+  isAcceptPrintingField,
+  REQUIRED_PRINTING_FIELD_KEYS,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
@@ -284,6 +287,7 @@ function SourceSpreadsheet({
   return (
     <CandidateSpreadsheet
       fields={fields}
+      requiredKeys={REQUIRED_PRINTING_FIELD_KEYS}
       activeRow={activeRow}
       candidateRows={candidates}
       providerLabels={labels}

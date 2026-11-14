@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getAvailableFilters as getAvailableFiltersRaw } from "./filters-available.js";
 import { computeFilterCounts } from "./filters-counts.js";
-import { emptyFilters, makePrinting, TEST_ORDERS } from "./filters-test-helpers.js";
+import { emptyFilters, makeFilterPrinting, TEST_ORDERS } from "./filters-test-helpers.js";
 import { filterCards } from "./filters.js";
 import { testSearchContext } from "./test-factories.js";
 import type { Printing } from "./types/catalog.js";
@@ -27,20 +27,23 @@ describe("filterCards predicates", () => {
       childrenLabel: null,
     };
 
-    const withMarker = makePrinting({
+    const withMarker = makeFilterPrinting({
       cardId: "has-marker",
       markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
     });
-    const withoutMarker = makePrinting({ cardId: "no-marker", markers: [] });
-    const withSuperType = makePrinting({ cardId: "has-super", card: { superTypes: ["champion"] } });
-    const onlyBasic = makePrinting({ cardId: "basic-only", card: { superTypes: ["basic"] } });
-    const withChannel = makePrinting({
+    const withoutMarker = makeFilterPrinting({ cardId: "no-marker", markers: [] });
+    const withSuperType = makeFilterPrinting({
+      cardId: "has-super",
+      card: { superTypes: ["champion"] },
+    });
+    const onlyBasic = makeFilterPrinting({ cardId: "basic-only", card: { superTypes: ["basic"] } });
+    const withChannel = makeFilterPrinting({
       cardId: "has-channel",
       distributionChannels: [{ channel, distributionNote: null, ancestorLabels: [] }],
     });
-    const withoutChannel = makePrinting({ cardId: "no-channel", distributionChannels: [] });
-    const withKeyword = makePrinting({ cardId: "has-kw", card: { keywords: ["Shield"] } });
-    const withoutKeyword = makePrinting({ cardId: "no-kw", card: { keywords: [] } });
+    const withoutChannel = makeFilterPrinting({ cardId: "no-channel", distributionChannels: [] });
+    const withKeyword = makeFilterPrinting({ cardId: "has-kw", card: { keywords: ["Shield"] } });
+    const withoutKeyword = makeFilterPrinting({ cardId: "no-kw", card: { keywords: [] } });
 
     it("markers: any keeps marked, none keeps unmarked", () => {
       const cards = [withMarker, withoutMarker];
@@ -113,8 +116,8 @@ describe("filterCards predicates", () => {
     });
 
     it("customTags: any/none use the customTagAssignments lookup", () => {
-      const tagged = makePrinting({ cardId: "tagged" });
-      const untagged = makePrinting({ cardId: "untagged" });
+      const tagged = makeFilterPrinting({ cardId: "tagged" });
+      const untagged = makeFilterPrinting({ cardId: "untagged" });
       const cards = [tagged, untagged];
       const options = { customTagAssignments: { tagged: ["foil-hunt"] } };
       expect(
@@ -134,7 +137,7 @@ describe("filterCards predicates", () => {
     });
 
     it("constraints across dimensions combine (AND)", () => {
-      const both = makePrinting({
+      const both = makeFilterPrinting({
         cardId: "both",
         markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
         card: { keywords: [] },
@@ -170,7 +173,7 @@ describe("filterCards predicates", () => {
 
   it("markerSlugs filter excludes unmarked cards", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         markers: [],
         cardId: "r",
         card: { name: "Regular Card" },
@@ -185,9 +188,12 @@ describe("filterCards predicates", () => {
   });
 
   describe("keywords filter", () => {
-    const shieldCard = makePrinting({ cardId: "shield", card: { keywords: ["Shield", "Tank"] } });
-    const ambushCard = makePrinting({ cardId: "ambush", card: { keywords: ["Ambush"] } });
-    const plainCard = makePrinting({ cardId: "plain", card: { keywords: [] } });
+    const shieldCard = makeFilterPrinting({
+      cardId: "shield",
+      card: { keywords: ["Shield", "Tank"] },
+    });
+    const ambushCard = makeFilterPrinting({ cardId: "ambush", card: { keywords: ["Ambush"] } });
+    const plainCard = makeFilterPrinting({ cardId: "plain", card: { keywords: [] } });
     const cards = [shieldCard, ambushCard, plainCard];
 
     it("passes everything when no keyword is selected", () => {
@@ -232,9 +238,9 @@ describe("filterCards predicates", () => {
   });
 
   describe("tags filter", () => {
-    const ioniaCard = makePrinting({ cardId: "ionia", card: { tags: ["Ionia", "Poro"] } });
-    const noxusCard = makePrinting({ cardId: "noxus", card: { tags: ["Noxus"] } });
-    const untaggedCard = makePrinting({ cardId: "untagged", card: { tags: [] } });
+    const ioniaCard = makeFilterPrinting({ cardId: "ionia", card: { tags: ["Ionia", "Poro"] } });
+    const noxusCard = makeFilterPrinting({ cardId: "noxus", card: { tags: ["Noxus"] } });
+    const untaggedCard = makeFilterPrinting({ cardId: "untagged", card: { tags: [] } });
     const cards = [ioniaCard, noxusCard, untaggedCard];
 
     it("passes everything when no tag is selected", () => {
@@ -255,7 +261,7 @@ describe("filterCards predicates", () => {
     });
 
     it("matches multi-word tags as exact values", () => {
-      const targon = makePrinting({ cardId: "targon", card: { tags: ["Mount Targon"] } });
+      const targon = makeFilterPrinting({ cardId: "targon", card: { tags: ["Mount Targon"] } });
       expect(
         filterCards(
           [targon, noxusCard],
@@ -326,8 +332,8 @@ describe("filterCards predicates", () => {
 
   it("customTagSlugs filter passes all when empty", () => {
     const cards = [
-      makePrinting({ cardId: "a", card: { name: "A" } }),
-      makePrinting({ cardId: "b", card: { name: "B" } }),
+      makeFilterPrinting({ cardId: "a", card: { name: "A" } }),
+      makeFilterPrinting({ cardId: "b", card: { name: "B" } }),
     ];
     const result = filterCards(
       cards,
@@ -341,9 +347,9 @@ describe("filterCards predicates", () => {
 
   it("customTagSlugs filter OR-matches across selected slugs", () => {
     const cards = [
-      makePrinting({ cardId: "a", card: { name: "A" } }),
-      makePrinting({ cardId: "b", card: { name: "B" } }),
-      makePrinting({ cardId: "c", card: { name: "C" } }),
+      makeFilterPrinting({ cardId: "a", card: { name: "A" } }),
+      makeFilterPrinting({ cardId: "b", card: { name: "B" } }),
+      makeFilterPrinting({ cardId: "c", card: { name: "C" } }),
     ];
     const result = filterCards(
       cards,
@@ -357,8 +363,8 @@ describe("filterCards predicates", () => {
 
   it("customTagSlugs filter excludes cards with no assignment", () => {
     const cards = [
-      makePrinting({ cardId: "a", card: { name: "A" } }),
-      makePrinting({ cardId: "b", card: { name: "B" } }),
+      makeFilterPrinting({ cardId: "a", card: { name: "A" } }),
+      makeFilterPrinting({ cardId: "b", card: { name: "B" } }),
     ];
     const result = filterCards(
       cards,
@@ -372,7 +378,7 @@ describe("filterCards predicates", () => {
   });
 
   it("customTagSlugs filter with missing assignment map excludes everything", () => {
-    const cards = [makePrinting({ cardId: "a", card: { name: "A" } })];
+    const cards = [makeFilterPrinting({ cardId: "a", card: { name: "A" } })];
     const result = filterCards(
       cards,
       emptyFilters({ customTagSlugs: ["bandle-city"] }),
@@ -383,7 +389,7 @@ describe("filterCards predicates", () => {
 
   it("excludes value below min in range filter", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "low",
         card: {
           name: "Low Energy",
@@ -410,7 +416,7 @@ describe("filterCards predicates", () => {
 
   it("excludes value above max in range filter", () => {
     const cards = [
-      makePrinting({
+      makeFilterPrinting({
         cardId: "high",
         card: {
           name: "High Energy",
@@ -439,8 +445,8 @@ describe("filterCards predicates", () => {
 describe("filterCards negation", () => {
   it("excludes by scalar dimension (rarity)", () => {
     const cards = [
-      makePrinting({ rarity: "common", card: { slug: "a" } }),
-      makePrinting({ rarity: "rare", card: { slug: "b" } }),
+      makeFilterPrinting({ rarity: "common", card: { slug: "a" } }),
+      makeFilterPrinting({ rarity: "rare", card: { slug: "b" } }),
     ];
     const result = filterCards(
       cards,
@@ -451,7 +457,7 @@ describe("filterCards negation", () => {
   });
 
   it("excludes by set, language, type, art variant, finish", () => {
-    const base = makePrinting();
+    const base = makeFilterPrinting();
     expect(
       filterCards([base], emptyFilters({ setsExclude: [base.setSlug] }), testSearchContext()),
     ).toHaveLength(0);
@@ -470,7 +476,7 @@ describe("filterCards negation", () => {
   });
 
   it("excludes by array dimension when any value overlaps (domains, superTypes)", () => {
-    const card = makePrinting({
+    const card = makeFilterPrinting({
       card: { slug: "x", domains: ["fury", "calm"], superTypes: ["champion"] },
     });
     expect(
@@ -486,8 +492,8 @@ describe("filterCards negation", () => {
 
   it("exclude overrides include for the same value", () => {
     const cards = [
-      makePrinting({ rarity: "common", card: { slug: "a" } }),
-      makePrinting({ rarity: "rare", card: { slug: "b" } }),
+      makeFilterPrinting({ rarity: "common", card: { slug: "a" } }),
+      makeFilterPrinting({ rarity: "rare", card: { slug: "b" } }),
     ];
     const result = filterCards(
       cards,
@@ -500,7 +506,7 @@ describe("filterCards negation", () => {
   it("tolerates a persisted filter missing a newer dimension", () => {
     // Filters persist as jsonb and rehydrate via a bare JSON.parse, so a rule
     // saved before a dimension existed lacks that key entirely.
-    const card = makePrinting({ card: { slug: "a", keywords: ["Shield"] } });
+    const card = makeFilterPrinting({ card: { slug: "a", keywords: ["Shield"] } });
     const stale = emptyFilters();
     delete (stale as Partial<CardFilters>).keywordsExclude;
     expect(() => filterCards([card], stale, testSearchContext())).not.toThrow();
@@ -509,8 +515,12 @@ describe("filterCards negation", () => {
 });
 
 describe("filterCards isStandard", () => {
-  const standard = makePrinting({ rarity: "common", finish: "normal", card: { slug: "std" } });
-  const nonStandard = makePrinting({
+  const standard = makeFilterPrinting({
+    rarity: "common",
+    finish: "normal",
+    card: { slug: "std" },
+  });
+  const nonStandard = makeFilterPrinting({
     rarity: "common",
     finish: "foil",
     card: { slug: "nonstd" },

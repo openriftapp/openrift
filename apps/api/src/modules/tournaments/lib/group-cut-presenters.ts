@@ -1,4 +1,5 @@
 import { finalStandings } from "@openrift/shared/pairing/cut-standings";
+import { cutRounds } from "@openrift/shared/pairing/group-cut-rounds";
 import type { GroupPlan, GroupStageRanking } from "@openrift/shared/pairing/group-cut-types";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import { groupUnits } from "@openrift/shared/pairing/group-stage";
@@ -17,7 +18,7 @@ import type {
 } from "../repositories/tournament-groups.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import type { GroupCutPlayer } from "./group-cut.js";
-import { cutRounds, qualificationOrder, unitPlayerIds, unitProgress } from "./group-cut.js";
+import { qualificationOrder, rowsRoundNumber, unitPlayerIds, unitProgress } from "./group-cut.js";
 
 export interface GroupStageViewInput {
   tournament: Tournament;
@@ -98,7 +99,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
     }
   }
 
-  const cutGenerated = cutRounds(roundRows).length > 0;
+  const cutGenerated = cutRounds(roundRows, rowsRoundNumber).length > 0;
   const seedByPlayer = new Map(
     players.flatMap((player) => (player.seed === null ? [] : [[player.id, player.seed] as const])),
   );
@@ -131,7 +132,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
   const rankingByPlayer = new Map(rankingRows.map((row) => [row.playerId, row]));
   const places = finalStandings(
     rankingRows,
-    cutRounds(roundRows).map((rows) => ({
+    cutRounds(roundRows, rowsRoundNumber).map((rows) => ({
       roundNumber: rows.round.roundNumber,
       pods: rows.pods.map((pod) => ({ members: pod.members })),
     })),

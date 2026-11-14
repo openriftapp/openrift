@@ -1,5 +1,5 @@
 // Writes apps/web/src/lib/country-names/ from the CLDR files vendored in
-// scripts/data/cldr-<version>/: one module per locale and the loaders that import them.
+// scripts/data/cldr-<version>/: one module per locale, with the names in that locale's collation order, and the loaders that import them.
 //
 //   bun run countries:generate          rewrite the modules
 //   bun run countries:generate --check  exit 1 when the committed modules are stale
@@ -39,16 +39,23 @@ function territories(locale: string): Record<string, string> {
 
 function localeModule(locale: string): string {
   const names = territories(locale);
-  const lines: string[] = [];
-  for (const code of [...FLAG_CODES].filter((flag) => !UNNAMED_CODES.has(flag)).toSorted()) {
-    const upper = code.toUpperCase();
-    const name =
-      (SHORT_NAME_CODES.has(upper) ? names[`${upper}-alt-short`] : undefined) ?? names[upper];
-    if (name === undefined) {
-      throw new Error(`CLDR has no ${locale} name for ${upper}`);
-    }
-    lines.push(`  ${code}: ${JSON.stringify(name)},`);
-  }
+  const collator = new Intl.Collator(locale);
+  const entries = [...FLAG_CODES]
+    .filter((flag) => !UNNAMED_CODES.has(flag))
+    .map((code): [string, string] => {
+      const upper = code.toUpperCase();
+      const name =
+        (SHORT_NAME_CODES.has(upper) ? names[`${upper}-alt-short`] : undefined) ?? names[upper];
+      if (name === undefined) {
+        throw new Error(`CLDR has no ${locale} name for ${upper}`);
+      }
+      return [code, name];
+    })
+    .toSorted(
+      ([codeA, nameA], [codeB, nameB]) =>
+        collator.compare(nameA, nameB) || (codeA < codeB ? -1 : 1),
+    );
+  const lines = entries.map(([code, name]) => `  ${code}: ${JSON.stringify(name)},`);
   return `${HEADER}const COUNTRY_NAMES: Readonly<Record<string, string>> = {
 ${lines.join("\n")}
 };

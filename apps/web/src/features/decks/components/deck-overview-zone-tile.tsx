@@ -157,6 +157,37 @@ export function ZoneTile({
       </>
     ) : null;
 
+  const thumbFor = (card: DeckBuilderCard, copyIndex: number | null, skipBlank: boolean) => {
+    const copy = copyIndex === null ? undefined : copyViewFor?.(card, copyIndex);
+    const thumbnail = copy?.thumbnail ?? getThumbnail(card.cardId, card.preferredPrintingId);
+    if (skipBlank && !thumbnail) {
+      return null;
+    }
+    return (
+      <ZoneThumb
+        key={`${deckCardKey(card)}-${copyIndex ?? "stack"}`}
+        deckId={deckId}
+        card={card}
+        band={bandByCardKey.get(deckCardKey(card))}
+        priceText={copy ? copy.priceText : priceTextByCardKey.get(deckCardKey(card))}
+        caption={planTags?.get(card.cardId)?.label}
+        addRoom={addRoomByCardKey.get(deckCardKey(card)) ?? 0}
+        hoverPrintingId={
+          copy?.printingId ?? resolveHoverPrintingId(card.cardId, card.preferredPrintingId)
+        }
+        copyIndex={copyIndex}
+        showsCopyPrinting={copy !== undefined}
+        dimmed={statsFocus !== null && !cardMatchesStatsFocus(card, statsFocus)}
+        zone={zone}
+        thumbnail={thumbnail}
+        isLandscape={isLandscape}
+        onHoverCard={onHoverCard}
+        readOnly={readOnly}
+        onCardClick={onCardClick}
+      />
+    );
+  };
+
   const canAdd = !readOnly && onClick !== undefined;
   const emptyStrip = canAdd ? (
     <Button type="button" variant="dashed" onClick={onClick} className={ZONE_ADD_STRIP_CLASS}>
@@ -272,25 +303,13 @@ export function ZoneTile({
       ) : groups ? (
         <>
           <GroupedThumbs
-            deckId={deckId}
-            bandByCardKey={bandByCardKey}
-            priceTextByCardKey={priceTextByCardKey}
-            addRoomByCardKey={addRoomByCardKey}
-            resolveHoverPrintingId={resolveHoverPrintingId}
             showAllCopies={showAllCopies}
-            statsFocus={statsFocus}
-            zone={zone}
             groups={groups}
             sortCards={sortCards}
             groupBy={groupBy}
             groupDir={groupDir}
-            copyViewFor={copyViewFor}
             getOwnershipEntry={getOwnershipEntry}
-            isLandscape={isLandscape}
-            onHoverCard={onHoverCard}
-            getThumbnail={getThumbnail}
-            readOnly={readOnly}
-            onCardClick={onCardClick}
+            renderThumb={(card, copyIndex) => thumbFor(card, copyIndex, true)}
           />
           {unknownSlots && (
             <div className="flex flex-wrap items-center gap-1.5">{unknownSlots}</div>
@@ -298,34 +317,9 @@ export function ZoneTile({
         </>
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">
-          {expandCopies(cards, showAllCopies).map(({ card, copyIndex }) => {
-            const copy = copyIndex === null ? undefined : copyViewFor?.(card, copyIndex);
-            const thumbnail =
-              copy?.thumbnail ?? getThumbnail(card.cardId, card.preferredPrintingId);
-            return (
-              <ZoneThumb
-                key={`${deckCardKey(card)}-${copyIndex ?? "stack"}`}
-                deckId={deckId}
-                card={card}
-                band={bandByCardKey.get(deckCardKey(card))}
-                priceText={copy ? copy.priceText : priceTextByCardKey.get(deckCardKey(card))}
-                caption={planTags?.get(card.cardId)?.label}
-                addRoom={addRoomByCardKey.get(deckCardKey(card)) ?? 0}
-                hoverPrintingId={
-                  copy?.printingId ?? resolveHoverPrintingId(card.cardId, card.preferredPrintingId)
-                }
-                copyIndex={copyIndex}
-                showsCopyPrinting={copy !== undefined}
-                dimmed={statsFocus !== null && !cardMatchesStatsFocus(card, statsFocus)}
-                zone={zone}
-                thumbnail={thumbnail}
-                isLandscape={isLandscape}
-                onHoverCard={onHoverCard}
-                readOnly={readOnly}
-                onCardClick={onCardClick}
-              />
-            );
-          })}
+          {expandCopies(cards, showAllCopies).map(({ card, copyIndex }) =>
+            thumbFor(card, copyIndex, false),
+          )}
           {unknownSlots}
         </div>
       )}

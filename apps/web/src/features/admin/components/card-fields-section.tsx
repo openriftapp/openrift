@@ -1,5 +1,8 @@
 import type { AcceptCardField } from "@openrift/shared/contracts/admin/card-mutations";
-import { isAcceptCardField } from "@openrift/shared/contracts/admin/card-mutations";
+import {
+  isAcceptCardField,
+  REQUIRED_CARD_FIELD_KEYS,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardResponse,
@@ -186,7 +189,7 @@ export function CardFieldsSection({
       </div>
       <CandidateSpreadsheet
         fields={candidateCardFields}
-        requiredKeys={["name", "types", "domains"]}
+        requiredKeys={REQUIRED_CARD_FIELD_KEYS}
         activeRow={{ ...card }}
         candidateRows={sources}
         submitters={submitters}

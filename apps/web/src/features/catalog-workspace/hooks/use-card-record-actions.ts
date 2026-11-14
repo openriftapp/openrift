@@ -19,6 +19,7 @@ import {
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import type {
   CardSuggestions,
   FieldSuggestion,
@@ -44,11 +45,6 @@ interface UseCardRecordActionsOptions {
 
 export function cardRecordScope(cardSlug: string): (readonly unknown[])[] {
   return [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
-}
-
-export function primaryLabel(model: CardSuggestions | null, canCheck: boolean): string {
-  const differences = model === null ? 0 : enterDifferenceCount(model.enterTargets);
-  return canCheck && differences > 0 ? `Discard ${differences} & next` : "Next";
 }
 
 export function useCardRecordActions({
@@ -160,7 +156,7 @@ export function useCardRecordActions({
   const actions: RecordActions = {
     primary: canCheck
       ? {
-          label: primaryLabel(model, canCheck),
+          label: primaryLabel(model === null ? 0 : enterDifferenceCount(model.enterTargets)),
           disabled: contributorOpen || isPending,
           run: discardRemaining,
         }

@@ -436,10 +436,15 @@ async function pinEditedCandidateLinks(
 export async function insertNewPrinting(
   trx: NewPrintingRepos,
   cardId: string,
-  printingFields: NewPrintingFields,
+  providedFields: NewPrintingFields,
   candidatePrintingIds: readonly string[],
   options: { secondFaceId?: string | null } = {},
 ): Promise<NewPrinting> {
+  const printingFields = {
+    ...providedFields,
+    shortCode: providedFields.shortCode.trim(),
+    publicCode: providedFields.publicCode.trim(),
+  };
   const secondFaceId = options.secondFaceId ?? null;
   const artist = trimToNull(printingFields.artist);
   const required: Record<RequiredAcceptPrintingField, string | null | undefined> = {

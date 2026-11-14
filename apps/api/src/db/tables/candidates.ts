@@ -1,3 +1,8 @@
+import type {
+  CardSubmissionKind,
+  CardSubmissionReason,
+  CardSubmissionStatus,
+} from "@openrift/shared/contracts/card-submissions";
 import type { ColumnType, Generated } from "kysely";
 
 import type { CreatedAt, UpdatedAt } from "./columns.js";
@@ -81,23 +86,6 @@ export interface IgnoredCandidatePrintingsTable {
   finish: string | null;
   createdAt: CreatedAt;
 }
-
-export type CardSubmissionKind = "new_card" | "correction" | "image";
-
-export type CardSubmissionStatus =
-  | "pending"
-  | "accepted"
-  | "already_correct"
-  | "not_applied"
-  | "rejected";
-
-export type CardSubmissionReason =
-  | "duplicate"
-  | "already_correct"
-  | "unverified"
-  | "not_a_card"
-  | "bad_image"
-  | "other";
 
 export interface CardSubmissionsTable {
   id: Generated<string>;

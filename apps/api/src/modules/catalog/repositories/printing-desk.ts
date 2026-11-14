@@ -15,7 +15,7 @@ import { imageUrlWithOriginal, joinAdminFaceImage } from "../../../repositories/
 import type { FullPrintingRow, PrintingUpdate } from "./catalog-mutations.js";
 import { selectFullPrintings, updatePrintingAndFace } from "./catalog-mutations.js";
 
-export interface DeskPrintingRow {
+export interface DeskPrintingDbRow {
   printingId: string;
   slug: string;
   cardId: string;
@@ -212,7 +212,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
     },
 
     /** Empty `printingIds` short-circuits: Postgres rejects `WHERE id IN ()`. */
-    listDeskPrintings(filter: DeskPrintingFilter): Promise<DeskPrintingRow[]> {
+    listDeskPrintings(filter: DeskPrintingFilter): Promise<DeskPrintingDbRow[]> {
       if ("printingIds" in filter) {
         if (filter.printingIds.length === 0) {
           return Promise.resolve([]);
@@ -222,7 +222,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
       return rowQuery().where(isPromo).execute();
     },
 
-    async listDeskPrintingsForCard(cardId: string): Promise<DeskPrintingRow[]> {
+    async listDeskPrintingsForCard(cardId: string): Promise<DeskPrintingDbRow[]> {
       const [first, second] = await Promise.all([
         rowQuery(1).where("pf.cardId", "=", cardId).execute(),
         rowQuery(2).where("pf.cardId", "=", cardId).execute(),
@@ -351,7 +351,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
       return row;
     },
 
-    getDeskPrinting(printingId: string, side: 1 | 2 = 1): Promise<DeskPrintingRow | undefined> {
+    getDeskPrinting(printingId: string, side: 1 | 2 = 1): Promise<DeskPrintingDbRow | undefined> {
       return rowQuery(side).where("p.id", "=", printingId).executeTakeFirst();
     },
 

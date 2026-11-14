@@ -4,6 +4,10 @@ import { inferZone } from "@openrift/shared/zone-inference";
 import { stableKey } from "../../../lib/hash.js";
 import { coord, count, record, sourceId, text } from "../../../lib/json-coerce.js";
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
+import type {
+  PlayloltcgShopInput,
+  PlayloltcgUpsertInput,
+} from "../repositories/playloltcg-events.js";
 import { META_NAME_MAX } from "./meta-event-naming.js";
 
 /**
@@ -39,18 +43,7 @@ export function normalizeCardNo(cardNo: unknown): string | null {
   return key === "" ? null : key;
 }
 
-export interface PlayloltcgShopProjection {
-  id: number;
-  name: string;
-  province: string | null;
-  city: string | null;
-  area: string | null;
-  address: string | null;
-  longitude: number | null;
-  latitude: number | null;
-}
-
-export function projectShopRow(raw: unknown): PlayloltcgShopProjection | null {
+export function projectShopRow(raw: unknown): PlayloltcgShopInput | null {
   const row = record(raw);
   if (row === null) {
     return null;
@@ -86,34 +79,8 @@ function status(value: unknown): number | null {
   return Number.isInteger(n) && inRange ? n : null;
 }
 
-/** Omits `shopId` (repo-resolved by name) and the crawl bookkeeping the repo owns. */
-export interface PlayloltcgEventProjection {
-  activityShopId: number;
-  shopName: string | null;
-  name: string;
-  activityType: string | null;
-  activityTypeName: string | null;
-  battleMode: string | null;
-  status: number | null;
-  /** YYYY-MM-DD */
-  startAt: string | null;
-  endAt: string | null;
-  playerCount: number | null;
-  maxUser: number | null;
-  fee: number | null;
-  province: string | null;
-  city: string | null;
-  area: string | null;
-  address: string | null;
-  longitude: number | null;
-  latitude: number | null;
-  contentHash: string;
-}
-
 /** The parts array's field order must stay fixed, or unrelated diffs hash as content changes. */
-export function playloltcgContentHash(
-  fields: Omit<PlayloltcgEventProjection, "contentHash">,
-): string {
+export function playloltcgContentHash(fields: Omit<PlayloltcgUpsertInput, "contentHash">): string {
   const parts = [
     fields.name,
     fields.shopName ?? "",
@@ -140,7 +107,7 @@ export function playloltcgContentHash(
  * The venue is the event's own address, which the source repeats per row; the
  * store link is resolved from {@link shopName} by the repo.
  */
-export function projectEventRow(raw: unknown): PlayloltcgEventProjection | null {
+export function projectEventRow(raw: unknown): PlayloltcgUpsertInput | null {
   const row = record(raw);
   if (row === null) {
     return null;

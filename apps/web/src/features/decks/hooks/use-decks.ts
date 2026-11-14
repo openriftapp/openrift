@@ -1,6 +1,7 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import { publicDecksContract } from "@openrift/shared/contracts/public-decks";
+import { toDeckCard } from "@openrift/shared/deck-cards";
 import { EMPTY_DECK_LIST_SUMMARY } from "@openrift/shared/deck-list-summary";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
@@ -34,7 +35,6 @@ import {
   useDecksCollection,
 } from "@/features/decks/hooks/use-decks-collections";
 import { useIsLocalDeck, useLocalDeck } from "@/features/decks/hooks/use-local-decks";
-import { toDeckCard } from "@/features/decks/lib/deck-card-rows";
 import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
 import { getDeckCardsCollection, getDecksCollection } from "@/features/decks/lib/decks-collection";
 import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";

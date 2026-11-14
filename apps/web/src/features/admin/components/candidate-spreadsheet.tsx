@@ -27,7 +27,7 @@ interface CandidateSpreadsheetProps<
   providerNames?: Record<string, string>;
   submitters?: Record<string, SourceSubmitter>;
   providerSettings?: ProviderSettingResponse[];
-  requiredKeys?: string[];
+  requiredKeys?: readonly string[];
   onCellClick?: (field: TKey, value: unknown, candidateId: string) => void;
   onActiveChange?: (field: TKey, value: unknown | null) => void;
   onCheck?: (candidateId: string) => void;

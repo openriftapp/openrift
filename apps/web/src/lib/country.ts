@@ -17,6 +17,17 @@ const NAMES: Partial<Record<Locale, CountryNames>> = Object.fromEntries(
   ),
 );
 
+const RANKS = new WeakMap<CountryNames, Map<string, number>>();
+
+function rankOf(names: CountryNames): Map<string, number> {
+  let ranks = RANKS.get(names);
+  if (ranks === undefined) {
+    ranks = new Map(Object.keys(names).map((code, index) => [code, index]));
+    RANKS.set(names, ranks);
+  }
+  return ranks;
+}
+
 export function normalizeCountryCode(code: string | null | undefined): string | null {
   if (code === null || code === undefined) {
     return null;
@@ -47,4 +58,21 @@ export function countryLabel(code: string | null | undefined): string | null {
     return null;
   }
   return countryName(lower) ?? lower.toUpperCase();
+}
+
+/** Orders codes by displayed name. Codes without a name follow, by code. */
+export function compareCountryCodes(a: string, b: string): number {
+  const names = NAMES[getLocale()];
+  const ranks = names === undefined ? undefined : rankOf(names);
+  const lowerA = normalizeCountryCode(a) ?? a.toLowerCase();
+  const lowerB = normalizeCountryCode(b) ?? b.toLowerCase();
+  const rankA = ranks?.get(lowerA);
+  const rankB = ranks?.get(lowerB);
+  if (rankA !== undefined && rankB !== undefined) {
+    return rankA - rankB;
+  }
+  if (rankA !== undefined || rankB !== undefined) {
+    return rankA === undefined ? 1 : -1;
+  }
+  return lowerA < lowerB ? -1 : lowerA > lowerB ? 1 : 0;
 }

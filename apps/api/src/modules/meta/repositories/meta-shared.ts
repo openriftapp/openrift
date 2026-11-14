@@ -1,3 +1,4 @@
+import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { RawBuilder, SqlBool } from "kysely";
 import { sql } from "kysely";
 
@@ -125,8 +126,6 @@ function facetCondition(
   }
   return undefined;
 }
-
-export type MetaScopeFacet = "formats" | "tiers" | "countries";
 
 /** Every condition a scope puts on the event alias `me`. A lifted facet is left unapplied. */
 export function scopeConditions(

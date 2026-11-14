@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { sortCards } from "./filters-sort.js";
-import { getTestPrice, makePrinting, TEST_ORDERS, withPrice } from "./filters-test-helpers.js";
+import {
+  getTestPrice,
+  makeFilterPrinting,
+  TEST_ORDERS,
+  withPrice,
+} from "./filters-test-helpers.js";
 
 describe("sortCards", () => {
-  // Matches `makePrinting`'s default set, plus a second main set that sorts
+  // Matches `makeFilterPrinting`'s default set, plus a second main set that sorts
   // after it despite its printings' alphabetically-earlier short codes.
   const SET_ALPHA_ID = "00000000-0000-0000-0000-0000000000a1";
   const SET_BETA_ID = "00000000-0000-0000-0000-0000000000a2";
@@ -15,7 +20,7 @@ describe("sortCards", () => {
   ];
 
   const printings = [
-    makePrinting({
+    makeFilterPrinting({
       printingId: "SET1-003:epic:normal:",
       shortCode: "SET1-003",
       rarity: "epic",
@@ -34,7 +39,7 @@ describe("sortCards", () => {
         errata: [],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       printingId: "SET1-001:rare:normal:",
       shortCode: "SET1-001",
       rarity: "common",
@@ -53,7 +58,7 @@ describe("sortCards", () => {
         errata: [],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       printingId: "SET1-002:common:foil:",
       shortCode: "SET1-002",
       rarity: "rare",
@@ -86,7 +91,7 @@ describe("sortCards", () => {
   });
 
   it("files a Legend under its champion, not its stored epithet", () => {
-    const azir = makePrinting({
+    const azir = makeFilterPrinting({
       printingId: "SET1-004:epic:normal:",
       shortCode: "SET1-004",
       rarity: "epic",
@@ -123,7 +128,7 @@ describe("sortCards", () => {
   it("sorts by id across sets in set order, not by the code's set prefix", () => {
     // "AAA" sorts ahead of "SET1" alphabetically, but Set Alpha comes first in
     // the catalog, so its printings lead.
-    const beta = makePrinting({
+    const beta = makeFilterPrinting({
       printingId: "AAA-001:common:normal:",
       shortCode: "AAA-001",
       setId: SET_BETA_ID,
@@ -134,7 +139,7 @@ describe("sortCards", () => {
   });
 
   it("sorts a supplemental set's printings after the main sets", () => {
-    const promo = makePrinting({
+    const promo = makeFilterPrinting({
       printingId: "PRM-001:common:normal:",
       shortCode: "PRM-001",
       setId: SET_PROMO_ID,
@@ -148,7 +153,7 @@ describe("sortCards", () => {
   });
 
   it("sorts a printing from an unknown set last", () => {
-    const stray = makePrinting({
+    const stray = makeFilterPrinting({
       printingId: "ZZZ-001:common:normal:",
       shortCode: "AAA-001",
       setId: "set-not-in-catalog",
@@ -159,7 +164,7 @@ describe("sortCards", () => {
   });
 
   it("breaks a name tie by set order, then card number", () => {
-    const reprint = makePrinting({
+    const reprint = makeFilterPrinting({
       printingId: "AAA-009:common:normal:",
       shortCode: "AAA-009",
       setId: SET_BETA_ID,
@@ -189,7 +194,7 @@ describe("sortCards", () => {
 
   it("keeps shortCode tiebreaker ascending when rarity sort is desc", () => {
     const tied = [
-      makePrinting({
+      makeFilterPrinting({
         shortCode: "SET1-003",
         rarity: "common",
         cardId: "c3",
@@ -207,7 +212,7 @@ describe("sortCards", () => {
           errata: [],
         },
       }),
-      makePrinting({
+      makeFilterPrinting({
         shortCode: "SET1-001",
         rarity: "common",
         cardId: "c1",
@@ -225,7 +230,7 @@ describe("sortCards", () => {
           errata: [],
         },
       }),
-      makePrinting({
+      makeFilterPrinting({
         shortCode: "SET1-002",
         rarity: "rare",
         cardId: "c2",
@@ -254,7 +259,7 @@ describe("sortCards", () => {
   describe("price sort", () => {
     const pricePrintings = [
       withPrice(
-        makePrinting({
+        makeFilterPrinting({
           cardId: "e",
           card: {
             name: "Expensive",
@@ -272,7 +277,7 @@ describe("sortCards", () => {
         }),
         20,
       ),
-      makePrinting({
+      makeFilterPrinting({
         cardId: "n",
         card: {
           name: "No Price",
@@ -289,7 +294,7 @@ describe("sortCards", () => {
         },
       }),
       withPrice(
-        makePrinting({
+        makeFilterPrinting({
           cardId: "c",
           card: {
             name: "Cheap",
@@ -317,7 +322,7 @@ describe("sortCards", () => {
     it("breaks price ties by shortCode", () => {
       const tiedPrintings = [
         withPrice(
-          makePrinting({
+          makeFilterPrinting({
             shortCode: "SET1-002",
             cardId: "b",
             card: {
@@ -337,7 +342,7 @@ describe("sortCards", () => {
           5,
         ),
         withPrice(
-          makePrinting({
+          makeFilterPrinting({
             shortCode: "SET1-001",
             cardId: "a",
             card: {
@@ -363,7 +368,7 @@ describe("sortCards", () => {
 
     it("sorts all-null-price printings by shortCode", () => {
       const nullPrintings = [
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-002",
           cardId: "z",
           card: {
@@ -380,7 +385,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-001",
           cardId: "a",
           card: {
@@ -404,7 +409,7 @@ describe("sortCards", () => {
 
     it("keeps nulls last when sorting price desc", () => {
       const priceMix = [
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-002",
           cardId: "n",
           card: {
@@ -422,7 +427,7 @@ describe("sortCards", () => {
           },
         }),
         withPrice(
-          makePrinting({
+          makeFilterPrinting({
             shortCode: "SET1-001",
             cardId: "m",
             card: {
@@ -442,7 +447,7 @@ describe("sortCards", () => {
           10,
         ),
         withPrice(
-          makePrinting({
+          makeFilterPrinting({
             shortCode: "SET1-003",
             cardId: "h",
             card: {
@@ -468,7 +473,7 @@ describe("sortCards", () => {
 
     it("keeps nulls last when sorting energy desc", () => {
       const energyMix = [
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-002",
           cardId: "n",
           card: {
@@ -485,7 +490,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-001",
           cardId: "h",
           card: {
@@ -502,7 +507,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-003",
           cardId: "l",
           card: {
@@ -526,7 +531,7 @@ describe("sortCards", () => {
 
     it("uses custom getPrice for price sort", () => {
       const printingsWithCustomPrice = [
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-001",
           cardId: "a",
           card: {
@@ -543,7 +548,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-002",
           cardId: "b",
           card: {
@@ -572,7 +577,7 @@ describe("sortCards", () => {
   describe("energy sort with null values", () => {
     it("pushes null energy to the end", () => {
       const energyPrintings = [
-        makePrinting({
+        makeFilterPrinting({
           cardId: "n",
           card: {
             name: "No Energy",
@@ -588,7 +593,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           cardId: "l",
           card: {
             name: "Low Energy",
@@ -611,7 +616,7 @@ describe("sortCards", () => {
 
     it("sorts non-null energy before null, null by shortCode", () => {
       const energyPrintings = [
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-002",
           cardId: "z",
           card: {
@@ -628,7 +633,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           shortCode: "SET1-001",
           cardId: "a",
           card: {
@@ -645,7 +650,7 @@ describe("sortCards", () => {
             errata: [],
           },
         }),
-        makePrinting({
+        makeFilterPrinting({
           cardId: "h",
           card: {
             name: "High Energy",
@@ -676,7 +681,7 @@ describe("sortCards", () => {
   });
 
   it("handles single-element array for all sort modes", () => {
-    const single = [makePrinting({ cardId: "x", card: { name: "Solo" } })];
+    const single = [makeFilterPrinting({ cardId: "x", card: { name: "Solo" } })];
     expect(sortCards(single, "name")).toHaveLength(1);
     expect(sortCards(single, "id", { sets: SETS })).toHaveLength(1);
     expect(sortCards(single, "energy")).toHaveLength(1);
@@ -685,25 +690,25 @@ describe("sortCards", () => {
   });
 
   it("throws when sortBy is 'rarity' but no rarityOrder is supplied", () => {
-    expect(() => sortCards([makePrinting()], "rarity")).toThrow(/rarityOrder/u);
+    expect(() => sortCards([makeFilterPrinting()], "rarity")).toThrow(/rarityOrder/u);
   });
 
   describe("search orders", () => {
-    const first = makePrinting({
+    const first = makeFilterPrinting({
       printingId: "a",
       shortCode: "SET1-001",
       artist: "Zed Studio",
       setReleasedAt: "2025-10-31",
       card: { name: "A", might: 2, power: null },
     });
-    const second = makePrinting({
+    const second = makeFilterPrinting({
       printingId: "b",
       shortCode: "SET1-002",
       artist: "Alpha Studio",
       setReleasedAt: "2026-02-13",
       card: { name: "B", might: 5, power: 1 },
     });
-    const third = makePrinting({
+    const third = makeFilterPrinting({
       printingId: "c",
       shortCode: "SET1-003",
       artist: "",

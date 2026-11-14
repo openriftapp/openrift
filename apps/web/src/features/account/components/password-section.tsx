@@ -4,14 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";
+import { FormInputField } from "@/features/account/components/form-input-field";
 import { authAccountsKeys } from "@/features/account/lib/account-query-keys";
 import { newPasswordField } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
@@ -127,56 +127,26 @@ function ChangePasswordCard() {
           {form.formState.errors.root && (
             <FieldError>{form.formState.errors.root.message}</FieldError>
           )}
-          <Controller
+          <FormInputField
+            control={form.control}
             name="currentPassword"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{m.profile_password_current_label()}</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="password"
-                  autoComplete="current-password"
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
+            label={m.profile_password_current_label()}
+            type="password"
+            autoComplete="current-password"
           />
-          <Controller
+          <FormInputField
+            control={form.control}
             name="newPassword"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{m.profile_password_new_label()}</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="password"
-                  autoComplete="new-password"
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
+            label={m.profile_password_new_label()}
+            type="password"
+            autoComplete="new-password"
           />
-          <Controller
-            name="confirmPassword"
+          <FormInputField
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{m.profile_password_confirm_label()}</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="password"
-                  autoComplete="new-password"
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
+            name="confirmPassword"
+            label={m.profile_password_confirm_label()}
+            type="password"
+            autoComplete="new-password"
           />
           <Field>
             <Button pending={loading} type="submit" disabled={loading}>

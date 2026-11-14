@@ -9,9 +9,9 @@ import {
   resetIdCounter,
 } from "@/test/factories";
 
+import { discardLabel } from "./suggestion-labels";
 import {
   buildCardSuggestions,
-  discardLabel,
   enterDifferenceCount,
   enterProviders,
   sameDifferenceInput,
@@ -178,14 +178,18 @@ describe("buildCardSuggestions", () => {
 describe("discardLabel", () => {
   it("says Discard when the source has one difference here", () => {
     const [suggestion] = build([sameAsCard({ name: "Jinx A" })]).suggestions;
-    expect(suggestion && discardLabel(suggestion)).toBe("Discard");
+    expect(suggestion && discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)).toBe(
+      "Discard",
+    );
   });
 
   it("names the count and source when it has more", () => {
     const [suggestion] = build([
       sameAsCard({ provider: "scans", name: "Jinx A", might: 1 }),
     ]).suggestions;
-    expect(suggestion && discardLabel(suggestion)).toBe("Discard 2 from scans");
+    expect(suggestion && discardLabel(suggestion.rowDifferences, suggestion.sourceLabel)).toBe(
+      "Discard 2 from scans",
+    );
   });
 });
 

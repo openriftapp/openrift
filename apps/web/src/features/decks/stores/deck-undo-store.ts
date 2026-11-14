@@ -1,7 +1,6 @@
 import { create } from "zustand";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 
 /**
  * Edits landing within this window of the previous record collapse into one
@@ -18,17 +17,6 @@ const MAX_DEPTH = 100;
  */
 export function copySnapshot(cards: readonly DeckBuilderCard[]): DeckBuilderCard[] {
   return cards.map((card) => ({ ...card }));
-}
-
-export function sameDeckCards(
-  before: readonly DeckBuilderCard[],
-  after: readonly DeckBuilderCard[],
-): boolean {
-  if (before.length !== after.length) {
-    return false;
-  }
-  const quantities = new Map(before.map((card) => [deckCardKey(card), card.quantity]));
-  return after.every((card) => quantities.get(deckCardKey(card)) === card.quantity);
 }
 
 interface DeckUndoState {

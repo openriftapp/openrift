@@ -4,6 +4,8 @@ export const MAX_OFFSET = 1_000_000;
 
 export const MAX_FACET_VALUES = 300;
 
+export type MetaScopeFacet = "formats" | "tiers" | "countries";
+
 // The event payload carries this many rows, and the web seeds its cache under a
 // key built from it, so a change here silently mismatches that key on both sides.
 export const STANDINGS_PAGE_SIZE = 200;

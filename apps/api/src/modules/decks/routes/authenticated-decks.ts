@@ -2,6 +2,7 @@ import { isBanInEffect } from "@openrift/shared/card-ban";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
+import { toDeckCard } from "@openrift/shared/deck-cards";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type {
@@ -42,7 +43,7 @@ import type { FieldMapping } from "../../../patch.js";
 import { resolveFavoriteMarketplace } from "../../users/lib/preferences.js";
 import { clampDeckCardsLimit } from "../lib/deck-cards-page-limit.js";
 import { assertKnownFormat, validateFormatConfig } from "../lib/deck-format-validation.js";
-import { toDeck, toDeckCard, toDeckPlan, toDeckSummary } from "../lib/deck-presenters.js";
+import { toDeck, toDeckPlan, toDeckSummary } from "../lib/deck-presenters.js";
 import type { DeckUpdateInput } from "../repositories/decks-core.js";
 import { encodeDeck } from "../services/deck-codecs/encode-deck.js";
 

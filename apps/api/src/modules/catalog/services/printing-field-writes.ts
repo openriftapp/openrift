@@ -30,6 +30,8 @@ const OPTIONAL_TEXT_FIELDS: ReadonlySet<string> = new Set([
   "comment",
 ]);
 
+const REQUIRED_TEXT_FIELDS: ReadonlySet<string> = new Set(["artist", "shortCode", "publicCode"]);
+
 // The inputs of `mv_printing_foil_twins` and `mv_printing_sides_canonical_rank`.
 const CATALOG_VIEW_FIELDS: ReadonlySet<AcceptPrintingField> = new Set([
   "shortCode",
@@ -121,6 +123,9 @@ export async function normalizePrintingFieldValue(
   }
 
   let normalized: unknown = OPTIONAL_TEXT_FIELDS.has(field) ? trimOptionalText(value) : value;
+  if (REQUIRED_TEXT_FIELDS.has(field) && typeof normalized === "string") {
+    normalized = normalized.trim();
+  }
   if (field === "rarity" && typeof value === "string") {
     const rarityRows = await repos.rarities.listAll();
     const raritySlugs = rarityRows.map((row) => row.slug);

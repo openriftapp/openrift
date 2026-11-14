@@ -8,11 +8,11 @@ import {
 } from "./card-embed.js";
 import { buildSnapshot } from "./catalog-cache.js";
 import {
-  makeCard,
+  makeBotCard,
   makeCatalogResponse,
   makeInitResponse,
   makePricesResponse,
-  makePrinting,
+  makeBotPrinting,
 } from "./test/factories.js";
 
 const SITE = "https://openrift.example";
@@ -23,7 +23,7 @@ afterEach(() => {
 
 function snapshotWithPrices(prices = makePricesResponse()) {
   return buildSnapshot(
-    makeCatalogResponse([makeCard()], [makePrinting()]),
+    makeCatalogResponse([makeBotCard()], [makeBotPrinting()]),
     prices,
     makeInitResponse(),
   );
@@ -33,7 +33,7 @@ const LABELS = snapshotWithPrices().labels;
 
 describe("fallbackArtDifferences", () => {
   it("mirrors the site's badge order: language, markers, art variant, overnumbered, signed, finish", () => {
-    const printing = makePrinting({
+    const printing = makeBotPrinting({
       printingId: "p-noimg",
       images: [],
       language: "DE",
@@ -43,7 +43,7 @@ describe("fallbackArtDifferences", () => {
       isSigned: true,
       finish: "metal",
     });
-    const artPrinting = makePrinting();
+    const artPrinting = makeBotPrinting();
     expect(fallbackArtDifferences(printing, artPrinting, LABELS)).toEqual([
       "EN",
       "Promo",
@@ -55,13 +55,13 @@ describe("fallbackArtDifferences", () => {
   });
 
   it("returns no tags when the printings only differ by image", () => {
-    expect(fallbackArtDifferences(makePrinting({ images: [] }), makePrinting(), LABELS)).toEqual(
-      [],
-    );
+    expect(
+      fallbackArtDifferences(makeBotPrinting({ images: [] }), makeBotPrinting(), LABELS),
+    ).toEqual([]);
   });
 
   it("drops the language tag when the art has no printing behind it", () => {
-    const printing = makePrinting({ images: [], language: "DE", isSigned: true });
+    const printing = makeBotPrinting({ images: [], language: "DE", isSigned: true });
     expect(fallbackArtDifferences(printing, null, LABELS)).toEqual(["Signed"]);
   });
 });
@@ -78,8 +78,8 @@ describe("cardTextFields", () => {
 
   it("stacks rules and effect text the way the card panel does, without the flavor text", () => {
     const fields = cardTextFields(
-      makeCard(),
-      makePrinting({
+      makeBotCard(),
+      makeBotPrinting({
         printedRulesText: "Draw 1.",
         printedEffectText: "I have +2 :rb_might:.",
         flavorText: "Bang bang!",
@@ -94,14 +94,14 @@ describe("cardTextFields", () => {
 
   it("returns nothing for a card whose only text is flavor text", () => {
     expect(
-      cardTextFields(makeCard(), makePrinting({ flavorText: "Bang bang!" }), new Map()),
+      cardTextFields(makeBotCard(), makeBotPrinting({ flavorText: "Bang bang!" }), new Map()),
     ).toEqual([]);
   });
 
   it("renders glyphs with the app's emojis when it has them", () => {
     const fields = cardTextFields(
-      makeCard(),
-      makePrinting({ printedRulesText: "Pay :rb_energy_1:." }),
+      makeBotCard(),
+      makeBotPrinting({ printedRulesText: "Pay :rb_energy_1:." }),
       new Map([["energy_1", "<:rb_energy_1:2>"]]),
     );
     expect(fields[0]?.value).toBe("Pay <:rb_energy_1:2>.");
@@ -109,8 +109,8 @@ describe("cardTextFields", () => {
 
   it("shows the errata text with a linked credit instead of the printed text", () => {
     const fields = cardTextFields(
-      makeCard({ errata: [ERRATA] }),
-      makePrinting({ printedRulesText: "Draw 1." }),
+      makeBotCard({ errata: [ERRATA] }),
+      makeBotPrinting({ printedRulesText: "Draw 1." }),
       new Map(),
     );
     expect(fields[0]?.value).toBe(
@@ -119,34 +119,34 @@ describe("cardTextFields", () => {
   });
 
   it("shows the printed text of a printing in a language without its own errata", () => {
-    const card = makeCard({ errata: [ERRATA] });
-    const printing = makePrinting({ printedRulesText: "Piochez 1 carte.", language: "FR" });
+    const card = makeBotCard({ errata: [ERRATA] });
+    const printing = makeBotPrinting({ printedRulesText: "Piochez 1 carte.", language: "FR" });
     expect(cardTextFields(card, printing, new Map())[0]?.value).toBe("Piochez 1 carte.");
     expect(cardWarnings(card, printing)).toEqual([]);
   });
 
   it("omits the credit when the errata matches what was printed", () => {
     const fields = cardTextFields(
-      makeCard({ errata: [ERRATA] }),
-      makePrinting({ printedRulesText: "Draw 2." }),
+      makeBotCard({ errata: [ERRATA] }),
+      makeBotPrinting({ printedRulesText: "Draw 2." }),
       new Map(),
     );
     expect(fields[0]?.value).toBe("Draw 2.");
   });
 
   it("puts the might bonus in the effect field, as the panel does", () => {
-    const fields = cardTextFields(makeCard({ mightBonus: 2 }), makePrinting(), new Map());
+    const fields = cardTextFields(makeBotCard({ mightBonus: 2 }), makeBotPrinting(), new Map());
     expect(fields).toEqual([{ name: "Effect text", value: "**Might bonus** +2" }]);
   });
 
   it("returns nothing for a card with no text and no printing", () => {
-    expect(cardTextFields(makeCard(), undefined, new Map())).toEqual([]);
+    expect(cardTextFields(makeBotCard(), undefined, new Map())).toEqual([]);
   });
 
   it("truncates a text block past Discord's field limit", () => {
     const fields = cardTextFields(
-      makeCard(),
-      makePrinting({ printedRulesText: "a".repeat(1200) }),
+      makeBotCard(),
+      makeBotPrinting({ printedRulesText: "a".repeat(1200) }),
       new Map(),
     );
     expect(fields[0]?.value).toHaveLength(1024);
@@ -172,8 +172,8 @@ describe("buildCardEmbed", () => {
   it("leaves the stat line and the card text to the details, keeping the embed compact", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard()],
-        [makePrinting({ printedRulesText: "Draw 1.", flavorText: "Bang bang!" })],
+        [makeBotCard()],
+        [makeBotPrinting({ printedRulesText: "Draw 1.", flavorText: "Bang bang!" })],
       ),
       makePricesResponse({ "printing-1": { tcgplayer: 452 } }),
       makeInitResponse(),
@@ -192,7 +192,7 @@ describe("buildCardEmbed", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
         [
-          makeCard({
+          makeBotCard({
             bans: [
               {
                 formatId: "f1",
@@ -213,7 +213,7 @@ describe("buildCardEmbed", () => {
             ],
           }),
         ],
-        [makePrinting({ printedRulesText: "Draw 1." })],
+        [makeBotPrinting({ printedRulesText: "Draw 1." })],
       ),
       makePricesResponse(),
       makeInitResponse(),
@@ -231,7 +231,7 @@ describe("buildCardEmbed", () => {
   });
 
   it("names every format a card is banned in", () => {
-    const card = makeCard({
+    const card = makeBotCard({
       bans: [
         { formatId: "f1", formatName: "Standard", bannedAt: "2026-01-05", reason: null },
         { formatId: "f2", formatName: "Ranked", bannedAt: "2026-02-01", reason: null },
@@ -243,7 +243,7 @@ describe("buildCardEmbed", () => {
   it("lists a scheduled ban as incoming with its start day", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
-    const card = makeCard({
+    const card = makeBotCard({
       bans: [
         { formatId: "f1", formatName: "Standard", bannedAt: "2026-03-31", reason: null },
         { formatId: "f2", formatName: "2v2", bannedAt: "2026-09-18", reason: null },
@@ -256,7 +256,7 @@ describe("buildCardEmbed", () => {
   });
 
   it("keeps the errata warning unlinked when the errata has no source URL", () => {
-    const card = makeCard({
+    const card = makeBotCard({
       errata: [
         {
           language: "EN",
@@ -273,7 +273,7 @@ describe("buildCardEmbed", () => {
 
   it("puts the tradelist field above the prices", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard()], [makePrinting({ printedRulesText: "Draw 1." })]),
+      makeCatalogResponse([makeBotCard()], [makeBotPrinting({ printedRulesText: "Draw 1." })]),
       makePricesResponse({ "printing-1": { tcgplayer: 452 } }),
       makeInitResponse(),
     );
@@ -315,10 +315,10 @@ describe("buildCardEmbed", () => {
   it("names each printing in the holder breakdown, dropping a repeated code", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard()],
+        [makeBotCard()],
         [
-          makePrinting({ printingId: "printing-1", canonicalRank: 1 }),
-          makePrinting({ printingId: "printing-2", canonicalRank: 2, artVariant: "altart" }),
+          makeBotPrinting({ printingId: "printing-1", canonicalRank: 1 }),
+          makeBotPrinting({ printingId: "printing-2", canonicalRank: 2, artVariant: "altart" }),
         ],
       ),
       makePricesResponse(),
@@ -416,10 +416,10 @@ describe("buildCardEmbed", () => {
   it("names the variant in the footer when the card has same-code siblings", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard()],
+        [makeBotCard()],
         [
-          makePrinting({ printingId: "printing-1", canonicalRank: 1 }),
-          makePrinting({ printingId: "printing-2", canonicalRank: 2, finish: "foil" }),
+          makeBotPrinting({ printingId: "printing-1", canonicalRank: 1 }),
+          makeBotPrinting({ printingId: "printing-2", canonicalRank: 2, finish: "foil" }),
         ],
       ),
       makePricesResponse(),
@@ -499,10 +499,10 @@ describe("buildCardEmbed", () => {
   it("shows standard-printing artwork for a printing without an image", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard()],
+        [makeBotCard()],
         [
-          makePrinting({ printingId: "p-standard", canonicalRank: 1 }),
-          makePrinting({ printingId: "p-noimg", canonicalRank: 2, images: [], isSigned: true }),
+          makeBotPrinting({ printingId: "p-standard", canonicalRank: 1 }),
+          makeBotPrinting({ printingId: "p-noimg", canonicalRank: 2, images: [], isSigned: true }),
         ],
       ),
       makePricesResponse(),
@@ -521,10 +521,10 @@ describe("buildCardEmbed", () => {
   it("notes the substitution without tags when nothing differs", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard()],
+        [makeBotCard()],
         [
-          makePrinting({ printingId: "p-standard", canonicalRank: 1 }),
-          makePrinting({ printingId: "p-noimg", canonicalRank: 2, images: [] }),
+          makeBotPrinting({ printingId: "p-standard", canonicalRank: 1 }),
+          makeBotPrinting({ printingId: "p-noimg", canonicalRank: 2, images: [] }),
         ],
       ),
       makePricesResponse(),
@@ -543,10 +543,10 @@ describe("buildCardEmbed", () => {
   it("words the note generically for pinned substitute art", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard()],
+        [makeBotCard()],
         [
-          makePrinting({ printingId: "p-standard", canonicalRank: 1 }),
-          makePrinting({
+          makeBotPrinting({ printingId: "p-standard", canonicalRank: 1 }),
+          makeBotPrinting({
             printingId: "p-noimg",
             canonicalRank: 2,
             images: [],
@@ -570,7 +570,10 @@ describe("buildCardEmbed", () => {
 
   it("omits image and note when no standard printing has an image", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard()], [makePrinting({ printingId: "p-noimg", images: [] })]),
+      makeCatalogResponse(
+        [makeBotCard()],
+        [makeBotPrinting({ printingId: "p-noimg", images: [] })],
+      ),
       makePricesResponse(),
       makeInitResponse(),
     );

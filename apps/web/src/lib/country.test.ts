@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { getLocale, locales, overwriteGetLocale } from "@/paraglide/runtime.js";
 
-import { countryLabel, countryName, flagIconPath } from "./country";
+import { compareCountryCodes, countryLabel, countryName, flagIconPath } from "./country";
 import { COUNTRY_NAME_LOADERS } from "./country-names/loaders.gen";
 import { FLAG_CODES } from "./flag-codes";
 
@@ -65,6 +65,50 @@ describe("COUNTRY_NAME_LOADERS", () => {
       const { default: names } = await COUNTRY_NAME_LOADERS[locale]();
       const missing = [...FLAG_CODES].filter((code) => names[code] === undefined);
       expect(missing.toSorted(), locale).toEqual(["pc", "xx"]);
+    }
+  });
+});
+
+describe("compareCountryCodes", () => {
+  function inLocale<T>(locale: "en" | "de", run: () => T): T {
+    const baseGetLocale = getLocale;
+    overwriteGetLocale(() => locale);
+    try {
+      return run();
+    } finally {
+      overwriteGetLocale(baseGetLocale);
+    }
+  }
+
+  it("orders by the English name, not the code", () => {
+    const sorted = inLocale("en", () => ["de", "at", "us", "au"].toSorted(compareCountryCodes));
+    expect(sorted).toEqual(["au", "at", "de", "us"]);
+  });
+
+  it("orders by the German name, placing Österreich among the Os", () => {
+    const sorted = inLocale("de", () =>
+      ["de", "at", "us", "au", "no", "pl"].toSorted(compareCountryCodes),
+    );
+    expect(sorted).toEqual(["au", "de", "no", "at", "pl", "us"]);
+  });
+
+  it("accepts either case", () => {
+    expect(inLocale("en", () => compareCountryCodes("AT", "au"))).toBeGreaterThan(0);
+  });
+
+  it("puts codes without a name after named ones, by code", () => {
+    const sorted = inLocale("en", () => ["qz", "de", "qq", "at"].toSorted(compareCountryCodes));
+    expect(sorted).toEqual(["at", "de", "qq", "qz"]);
+  });
+});
+
+describe("COUNTRY_NAME_LOADERS order", () => {
+  it("lists every locale's names in collation order", async () => {
+    for (const locale of locales) {
+      const { default: names } = await COUNTRY_NAME_LOADERS[locale]();
+      const collator = new Intl.Collator(locale);
+      const listed = Object.values(names);
+      expect(listed, locale).toEqual(listed.toSorted(collator.compare));
     }
   });
 });

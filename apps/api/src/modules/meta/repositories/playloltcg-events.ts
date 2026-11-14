@@ -4,7 +4,10 @@ import type { Kysely, RawBuilder, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { PlayloltcgEventsTable } from "../../../db/tables/meta-sources.js";
+import type {
+  PlayloltcgEventsTable,
+  PlayloltcgShopsTable,
+} from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { PLAYLOLTCG_PROVIDER, PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
@@ -40,40 +43,12 @@ import { upsertMirrorRows } from "./mirror-upsert.js";
 
 type PlayloltcgEventRow = Selectable<PlayloltcgEventsTable>;
 
-/** `shopId` is not here: the listing never links the shop, the deep fetch sets it. */
-export interface PlayloltcgUpsertInput {
-  activityShopId: number;
-  shopName: string | null;
-  name: string;
-  activityType: string | null;
-  activityTypeName: string | null;
-  battleMode: string | null;
-  status: number | null;
-  /** `YYYY-MM-DD`: `start_at` and `end_at` are `date` columns, not instants. */
-  startAt: string | null;
-  endAt: string | null;
-  playerCount: number | null;
-  maxUser: number | null;
-  fee: number | null;
-  province: string | null;
-  city: string | null;
-  area: string | null;
-  address: string | null;
-  longitude: number | null;
-  latitude: number | null;
-  contentHash: string;
-}
+export type PlayloltcgUpsertInput = Omit<
+  PlayloltcgEventRow,
+  "shopId" | "firstSeenAt" | "lastSeenAt" | "missingSince"
+>;
 
-export interface PlayloltcgShopInput {
-  id: number;
-  name: string;
-  province: string | null;
-  city: string | null;
-  area: string | null;
-  address: string | null;
-  longitude: number | null;
-  latitude: number | null;
-}
+export type PlayloltcgShopInput = Omit<Selectable<PlayloltcgShopsTable>, "createdAt" | "updatedAt">;
 
 export interface PlayloltcgTierInputRow {
   metaEventId: string;

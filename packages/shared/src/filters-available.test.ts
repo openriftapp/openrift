@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { getAvailableFilters as getAvailableFiltersRaw } from "./filters-available.js";
-import { getTestPrice, makePrinting, TEST_ORDERS, withPrice } from "./filters-test-helpers.js";
+import {
+  getTestPrice,
+  makeFilterPrinting,
+  TEST_ORDERS,
+  withPrice,
+} from "./filters-test-helpers.js";
 import type { Printing } from "./types/catalog.js";
 
 function getAvailableFilters(
@@ -13,7 +18,7 @@ function getAvailableFilters(
 
 describe("getAvailableFilters", () => {
   const printings = [
-    makePrinting({
+    makeFilterPrinting({
       rarity: "epic",
       setSlug: "Set Alpha",
       artVariant: "altart",
@@ -33,7 +38,7 @@ describe("getAvailableFilters", () => {
         errata: [],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       rarity: "common",
       setSlug: "Set Beta",
       artVariant: "normal",
@@ -53,7 +58,7 @@ describe("getAvailableFilters", () => {
         errata: [],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       rarity: "rare",
       setSlug: "Set Alpha",
       artVariant: "normal",
@@ -119,8 +124,8 @@ describe("getAvailableFilters", () => {
 
   it("surfaces card sizes in canonical order", () => {
     const result = getAvailableFilters([
-      makePrinting({ printingId: "ovr", size: "oversized" }),
-      makePrinting({ printingId: "std", size: "standard" }),
+      makeFilterPrinting({ printingId: "ovr", size: "oversized" }),
+      makeFilterPrinting({ printingId: "std", size: "standard" }),
     ]);
     expect(result.cardSizes).toEqual(["standard", "oversized"]);
   });
@@ -133,68 +138,79 @@ describe("getAvailableFilters", () => {
   });
 
   it("computes price range from printings with prices", () => {
-    const withPrices = [withPrice(makePrinting(), 2.5), withPrice(makePrinting(), 25.3)];
+    const withPrices = [
+      withPrice(makeFilterPrinting(), 2.5),
+      withPrice(makeFilterPrinting(), 25.3),
+    ];
     const result = getAvailableFilters(withPrices, { getPrice: getTestPrice });
     expect(result.price).toEqual({ min: 2, max: 26 }); // floor(2.5), ceil(25.3)
   });
 
   it("returns 0 price range when no getPrice resolver is supplied", () => {
-    const withPrices = [withPrice(makePrinting(), 2.5), withPrice(makePrinting(), 25.3)];
+    const withPrices = [
+      withPrice(makeFilterPrinting(), 2.5),
+      withPrice(makeFilterPrinting(), 25.3),
+    ];
     const result = getAvailableFilters(withPrices);
     expect(result.price).toEqual({ min: 0, max: 0 });
   });
 
   it("returns 0 price range when no printings have prices", () => {
-    const result = getAvailableFilters([makePrinting()]);
+    const result = getAvailableFilters([makeFilterPrinting()]);
     expect(result.price).toEqual({ min: 0, max: 0 });
   });
 
   it("computes hasSigned when signed printings exist", () => {
     const result = getAvailableFilters([
-      makePrinting({ isSigned: true }),
-      makePrinting({ isSigned: false }),
+      makeFilterPrinting({ isSigned: true }),
+      makeFilterPrinting({ isSigned: false }),
     ]);
     expect(result.hasSigned).toBe(true);
   });
 
   it("computes hasSigned false when no signed printings", () => {
-    const result = getAvailableFilters([makePrinting({ isSigned: false })]);
+    const result = getAvailableFilters([makeFilterPrinting({ isSigned: false })]);
     expect(result.hasSigned).toBe(false);
   });
 
   it("computes hasOvernumbered when overnumbered printings exist", () => {
     const result = getAvailableFilters([
-      makePrinting({ isOvernumbered: true }),
-      makePrinting({ isOvernumbered: false }),
+      makeFilterPrinting({ isOvernumbered: true }),
+      makeFilterPrinting({ isOvernumbered: false }),
     ]);
     expect(result.hasOvernumbered).toBe(true);
   });
 
   it("computes hasOvernumbered false when no overnumbered printings", () => {
-    const result = getAvailableFilters([makePrinting({ isOvernumbered: false })]);
+    const result = getAvailableFilters([makeFilterPrinting({ isOvernumbered: false })]);
     expect(result.hasOvernumbered).toBe(false);
   });
 
   it("computes hasNoImage when a printing has no image", () => {
-    const result = getAvailableFilters([makePrinting({ images: [] }), makePrinting({})]);
+    const result = getAvailableFilters([
+      makeFilterPrinting({ images: [] }),
+      makeFilterPrinting({}),
+    ]);
     expect(result.hasNoImage).toBe(true);
   });
 
   it("computes hasNoImage false when every printing has an image", () => {
-    const result = getAvailableFilters([makePrinting({})]);
+    const result = getAvailableFilters([makeFilterPrinting({})]);
     expect(result.hasNoImage).toBe(false);
   });
 
   it("computes hasNonStandard true when a non-standard printing exists", () => {
     const result = getAvailableFilters([
-      makePrinting({ rarity: "common", finish: "normal", card: { slug: "a" } }),
-      makePrinting({ rarity: "common", finish: "foil", card: { slug: "b" } }),
+      makeFilterPrinting({ rarity: "common", finish: "normal", card: { slug: "a" } }),
+      makeFilterPrinting({ rarity: "common", finish: "foil", card: { slug: "b" } }),
     ]);
     expect(result.hasNonStandard).toBe(true);
   });
 
   it("computes hasNonStandard false when every printing is standard", () => {
-    const result = getAvailableFilters([makePrinting({ rarity: "common", finish: "normal" })]);
+    const result = getAvailableFilters([
+      makeFilterPrinting({ rarity: "common", finish: "normal" }),
+    ]);
     expect(result.hasNonStandard).toBe(false);
   });
 
@@ -214,23 +230,23 @@ describe("getAvailableFilters", () => {
 
   it("lists markers when marked printings exist", () => {
     const result = getAvailableFilters([
-      makePrinting({
+      makeFilterPrinting({
         markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
       }),
-      makePrinting({ markers: [] }),
+      makeFilterPrinting({ markers: [] }),
     ]);
     expect(result.markers).toHaveLength(1);
     expect(result.markers[0]!.slug).toBe("promo");
   });
 
   it("lists no markers when no marked printings", () => {
-    const result = getAvailableFilters([makePrinting({ markers: [] })]);
+    const result = getAvailableFilters([makeFilterPrinting({ markers: [] })]);
     expect(result.markers).toHaveLength(0);
   });
 
   it("handles printings with null energy/might/power", () => {
     const result = getAvailableFilters([
-      makePrinting({
+      makeFilterPrinting({
         cardId: "null-stats",
         card: {
           name: "Null Stats",
@@ -257,7 +273,7 @@ describe("getAvailableFilters", () => {
 
   it("computes hasNull flags as false when all cards have stats", () => {
     const result = getAvailableFilters([
-      makePrinting({ cardId: "1", card: { energy: 3, might: 2, power: 4 } }),
+      makeFilterPrinting({ cardId: "1", card: { energy: 3, might: 2, power: 4 } }),
     ]);
     expect(result.hasNullEnergy).toBe(false);
     expect(result.hasNullMight).toBe(false);
@@ -265,13 +281,15 @@ describe("getAvailableFilters", () => {
   });
 
   it("handles null artVariant by treating it as normal", () => {
-    const result = getAvailableFilters([makePrinting({ artVariant: null as unknown as "normal" })]);
+    const result = getAvailableFilters([
+      makeFilterPrinting({ artVariant: null as unknown as "normal" }),
+    ]);
     expect(result.artVariants).toContain("normal");
   });
 
   it("deduplicates domains from multiple printings", () => {
     const result = getAvailableFilters([
-      makePrinting({
+      makeFilterPrinting({
         cardId: "1",
         card: {
           name: "A",
@@ -287,7 +305,7 @@ describe("getAvailableFilters", () => {
           errata: [],
         },
       }),
-      makePrinting({
+      makeFilterPrinting({
         cardId: "2",
         card: {
           name: "B",

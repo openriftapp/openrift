@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { makePrinting } from "../filters-test-helpers.js";
+import { makeFilterPrinting } from "../filters-test-helpers.js";
 import { catalogSearchVocabulary } from "./vocabulary.js";
 
 describe("catalogSearchVocabulary", () => {
   const printings = [
-    makePrinting({
+    makeFilterPrinting({
       rarity: "epic",
       language: "FR",
       markers: [{ id: "m1", slug: "judge", label: "Judge", description: null }],

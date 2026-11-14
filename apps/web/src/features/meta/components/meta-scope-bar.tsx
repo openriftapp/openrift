@@ -1,3 +1,4 @@
+import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -16,7 +17,6 @@ import type {
   MetaEra,
   MetaScope,
   MetaScopeControls,
-  MetaScopeFacet,
   ScopeFacetDefaults,
 } from "@/features/meta/lib/meta-scope";
 import {
@@ -32,7 +32,7 @@ import {
 import type { ScopeFacetCounts, ScopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useSmUp } from "@/hooks/use-sm-up";
-import { countryLabel, normalizeCountryCode } from "@/lib/country";
+import { compareCountryCodes, countryLabel, normalizeCountryCode } from "@/lib/country";
 import type { SignedFilterBinding } from "@/lib/filter-sign";
 import { dimensionSign } from "@/lib/filter-sign";
 import { cn } from "@/lib/utils";
@@ -165,6 +165,7 @@ export function MetaScopeBar({
       "countries",
       m.meta_scope_country(),
       countries
+        .toSorted(compareCountryCodes)
         .map((code) => ({ value: code, label: countryLabel(code) }))
         .filter((option): option is { value: string; label: string } => option.label !== null),
       countryCounts,

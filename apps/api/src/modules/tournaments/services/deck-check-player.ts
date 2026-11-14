@@ -15,7 +15,7 @@ import { inferZone } from "@openrift/shared/zone-inference";
 import type { Repos } from "../../../deps.js";
 import { AppError, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { sha256Hex } from "../../../lib/hash.js";
+import { sha256HexSync } from "../../../lib/hash.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { createCardCodeIndexLoader } from "../../catalog/lib/card-lookup-index.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
@@ -304,7 +304,7 @@ export async function applyPlayerList(
   cardRows: NewDeckCheckEntryCard[],
   consent: PlayerSharingConsent = {},
 ): Promise<DeckCheckEntry> {
-  const contentHash = sha256Hex(buildContentHashInput(lines));
+  const contentHash = sha256HexSync(buildContentHashInput(lines));
   if (entry.contentHash === contentHash) {
     const patch = consentPatch(consent);
     if (Object.keys(patch).length > 0) {
@@ -360,7 +360,7 @@ export async function createSelfSubmittedEntry(
     externalId: `${SELF_SUBMIT_EXTERNAL_ID_PREFIX}${account.id}`,
     submittedAt: new Date(),
     ...consentPatch(consent),
-    contentHash: sha256Hex(buildContentHashInput(lines)),
+    contentHash: sha256HexSync(buildContentHashInput(lines)),
     withdrawnAt: null,
     state: "submitted",
   });

@@ -8,7 +8,7 @@ const TAG = "Admin - Markers";
 
 const MARKERS = "/api/admin/v1/markers";
 
-export const markerSchema = z.object({
+export const adminMarkerSchema = z.object({
   id: z.string(),
   slug: z.string(),
   label: z.string(),
@@ -25,7 +25,7 @@ export const markerSchema = z.object({
 export const adminMarkersContract = {
   list: authedRoute
     .route({ method: "GET", path: MARKERS, tags: [TAG] })
-    .output(z.object({ markers: z.array(markerSchema) })),
+    .output(z.object({ markers: z.array(adminMarkerSchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${MARKERS}/reorder`, tags: [TAG], successStatus: 204 })
     .errors({ BAD_REQUEST: { message: "Invalid or incomplete list of marker ids" } })
@@ -40,7 +40,7 @@ export const adminMarkersContract = {
         description: z.string().min(1).nullable().optional(),
       }),
     )
-    .output(z.object({ marker: markerSchema })),
+    .output(z.object({ marker: adminMarkerSchema })),
   update: authedRoute
     .route({ method: "PATCH", path: `${MARKERS}/{id}`, tags: [TAG], successStatus: 204 })
     .errors({
@@ -65,5 +65,5 @@ export const adminMarkersContract = {
 
 export type AdminMarkersContract = typeof adminMarkersContract;
 export interface AdminMarkersResponse {
-  markers: z.infer<typeof markerSchema>[];
+  markers: z.infer<typeof adminMarkerSchema>[];
 }

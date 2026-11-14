@@ -154,6 +154,20 @@ describe("GenerateRoundControls", () => {
     expect(screen.getByRole("button", { name: "Generate next round" })).toBeEnabled();
   });
 
+  it("names seated 2v2 players without a team and links to the participants page", () => {
+    renderControls({ playMode: "2v2" });
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Ashe, Braum, Caitlyn, Darius are not on a team yet. Pair them on the Participants page",
+    );
+    expect(screen.getByRole("link", { name: "Participants page" })).toHaveAttribute(
+      "href",
+      "/tournaments/$id/participants",
+    );
+    expect(screen.getByRole("button", { name: "Generate next round" })).toBeDisabled();
+  });
+
   it("drops a player from the same row as the bye picker, without staging it", async () => {
     const user = userEvent.setup();
     renderControls();

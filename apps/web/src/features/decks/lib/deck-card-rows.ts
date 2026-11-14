@@ -1,13 +1,5 @@
+import { toDeckCard } from "@openrift/shared/deck-cards";
 import type { DeckCardResponse, DeckCardWithDeckResponse } from "@openrift/shared/types/api/deck";
-
-export function toDeckCard(row: DeckCardWithDeckResponse): DeckCardResponse {
-  return {
-    cardId: row.cardId,
-    zone: row.zone,
-    quantity: row.quantity,
-    preferredPrintingId: row.preferredPrintingId,
-  };
-}
 
 export function deckCardsForDeck(
   rows: readonly DeckCardWithDeckResponse[] | undefined,

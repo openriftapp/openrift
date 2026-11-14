@@ -1,4 +1,7 @@
-import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
+import {
+  isAcceptPrintingField,
+  REQUIRED_PRINTING_FIELD_KEYS,
+} from "@openrift/shared/contracts/admin/card-mutations";
 import { enumLabel, labelMap } from "@openrift/shared/enum-label";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
@@ -403,6 +406,7 @@ export function PrintingReviewCard({
             <CandidateSpreadsheet
               key={allSources.map((s) => s.id).join(",")}
               fields={fields}
+              requiredKeys={REQUIRED_PRINTING_FIELD_KEYS}
               activeRow={printingWithImage}
               candidateRows={allSources}
               providerLabels={sourceLabels}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CatalogCard, CatalogPrinting } from "./catalog-cache.js";
-import { makeCard, makePrinting } from "./test/factories.js";
+import { makeBotCard, makeBotPrinting } from "./test/factories.js";
 import {
   buildScanIndex,
   buildTradeReply,
@@ -18,11 +18,11 @@ function indexOf(
   printings: Partial<CatalogPrinting>[] = [{ cardId: entries[0]?.[0] }],
 ) {
   const cards: CatalogCard[] = entries.map(([id, name]) =>
-    makeCard({ id, name, slug: name.toLowerCase().replaceAll(/\W+/gu, "-") }),
+    makeBotCard({ id, name, slug: name.toLowerCase().replaceAll(/\W+/gu, "-") }),
   );
   const byCard = new Map<string, CatalogPrinting[]>();
   for (const [position, overrides] of printings.entries()) {
-    const printing = makePrinting({ printingId: `printing-${position}`, ...overrides });
+    const printing = makeBotPrinting({ printingId: `printing-${position}`, ...overrides });
     byCard.set(printing.cardId, [...(byCard.get(printing.cardId) ?? []), printing]);
   }
   return buildScanIndex(cards, byCard);
@@ -149,7 +149,7 @@ describe("scanForCards", () => {
 });
 
 describe("tradeLine", () => {
-  const card = makeCard();
+  const card = makeBotCard();
 
   it("names each holder and their count, linking the card", () => {
     expect(

@@ -2,14 +2,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Control } from "react-hook-form";
-import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
+import { useForm, useFormState, useWatch } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
+import { FormInputField } from "@/features/account/components/form-input-field";
 import { displayNameField, newPasswordField } from "@/features/account/lib/account-validation";
 import { signUp } from "@/features/account/lib/auth-client";
 import { authDestination } from "@/features/account/lib/auth-destination";
@@ -78,59 +78,29 @@ export function SignupForm({
       <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
         <FieldGroup>
           <RootFormError control={form.control} />
-          <Controller
+          <FormInputField
+            control={form.control}
             name="name"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{m.auth_field_name()}</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="text"
-                  placeholder={m.auth_name_placeholder()}
-                  aria-invalid={fieldState.invalid}
-                  // oxlint-disable-next-line jsx-a11y/no-autofocus -- sign-up page's primary input
-                  autoFocus
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
+            label={m.auth_field_name()}
+            type="text"
+            placeholder={m.auth_name_placeholder()}
+            // oxlint-disable-next-line jsx-a11y/no-autofocus -- sign-up page's primary input
+            autoFocus
           />
-          <Controller
+          <FormInputField
+            control={form.control}
             name="email"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{m.auth_field_email()}</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="email"
-                  autoComplete="email"
-                  placeholder={emailPlaceholder}
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
+            label={m.auth_field_email()}
+            type="email"
+            autoComplete="email"
+            placeholder={emailPlaceholder}
           />
-          <Controller
-            name="password"
+          <FormInputField
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{m.auth_field_password()}</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="password"
-                  autoComplete="new-password"
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
+            name="password"
+            label={m.auth_field_password()}
+            type="password"
+            autoComplete="new-password"
           />
           <Field>
             <Button pending={loading} type="submit" disabled={loading}>

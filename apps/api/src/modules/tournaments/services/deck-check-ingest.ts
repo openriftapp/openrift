@@ -18,7 +18,7 @@ import type { z } from "zod";
 import type { Repos } from "../../../deps.js";
 import { AppError, conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { sha256Hex } from "../../../lib/hash.js";
+import { sha256HexSync } from "../../../lib/hash.js";
 import { generateShareToken } from "../../../lib/share-token.js";
 import { storedCardLines } from "../lib/deck-check-deadline.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
@@ -64,7 +64,7 @@ function mapAllSections(entries: IngestEntry[]): DeckCheckCardLine[][] {
 export async function recomputeEntryHash(repos: Repos, entryId: string): Promise<void> {
   const cards = await repos.deckCheck.listCardsForEntry(entryId);
   await repos.deckCheck.updateEntry(entryId, {
-    contentHash: sha256Hex(buildContentHashInput(storedCardLines(cards))),
+    contentHash: sha256HexSync(buildContentHashInput(storedCardLines(cards))),
   });
 }
 
@@ -136,7 +136,7 @@ export async function ingestDeckCheckPush(
 
   for (const [index, entry] of payload.entries.entries()) {
     const lines = mappedLines[index] ?? [];
-    const contentHash = sha256Hex(buildContentHashInput(lines));
+    const contentHash = sha256HexSync(buildContentHashInput(lines));
     const cardRows: NewDeckCheckEntryCard[] = entry.cards.map((card, sortOrder) => {
       const resolution = resolutions.get(cardResolutionKey(card.name)) ?? {
         resolvedCardId: null,
@@ -304,7 +304,7 @@ export async function createManualDeckCheckEntry(
     participantId: payload.participantId,
     externalId: `${MANUAL_ENTRY_EXTERNAL_ID_PREFIX}${randomUUID()}`,
     submittedAt: null,
-    contentHash: sha256Hex(buildContentHashInput(lines)),
+    contentHash: sha256HexSync(buildContentHashInput(lines)),
     withdrawnAt: null,
   });
   await repos.deckCheck.replaceEntryCards(created.id, cardRows);

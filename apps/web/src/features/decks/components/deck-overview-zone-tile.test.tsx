@@ -10,9 +10,6 @@ vi.mock("@/features/decks/hooks/use-deck-zone-drop", () => ({
 vi.mock("@/features/decks/components/deck-zone-thumbs", () => ({
   ZoneThumb: ({ card }: { card: { cardName: string } }) => <div>{card.cardName}</div>,
 }));
-vi.mock("@/features/decks/components/deck-grouped-thumbs", () => ({
-  GroupedThumbs: () => <div>grouped</div>,
-}));
 
 afterEach(cleanup);
 
@@ -27,6 +24,7 @@ function renderZone({
   emptyHint = "Choose 3 unique Battlefield cards",
   readOnly = true,
   onClick,
+  getThumbnail = () => undefined,
 }: {
   zone?: DeckZone;
   cards?: ReturnType<typeof stubDeckBuilderCard>[];
@@ -36,6 +34,7 @@ function renderZone({
   emptyHint?: string;
   readOnly?: boolean;
   onClick?: () => void;
+  getThumbnail?: (cardId: string) => string | undefined;
 }) {
   render(
     <ZoneTile
@@ -60,7 +59,7 @@ function renderZone({
       unknownCount={unknownCount}
       zoneViolations={[]}
       format="constructed"
-      getThumbnail={() => undefined}
+      getThumbnail={getThumbnail}
       collapsedZones={new Set()}
       onToggleCollapsed={vi.fn()}
       readOnly={readOnly}
@@ -164,5 +163,28 @@ describe("ZoneTile add strips", () => {
       onClick: vi.fn(),
     });
     expect(screen.queryByRole("button", { name: "Add cards to Battlefields" })).toBeNull();
+  });
+});
+
+describe("ZoneTile thumbnails", () => {
+  it("leaves a card without a thumbnail out of a grouped zone", () => {
+    renderZone({
+      zone: "main",
+      label: "Main deck",
+      cards: [
+        stubDeckBuilderCard({ cardId: "a", zone: "main", cardName: "Ahri, Nine-Tailed Fox" }),
+        stubDeckBuilderCard({ cardId: "b", zone: "main", cardName: "Yasuo, Unforgiven" }),
+      ],
+      getThumbnail: (cardId) => (cardId === "a" ? "/thumb-a.webp" : undefined),
+    });
+    expect(screen.getByText("Ahri, Nine-Tailed Fox")).toBeDefined();
+    expect(screen.queryByText("Yasuo, Unforgiven")).toBeNull();
+  });
+
+  it("keeps a card without a thumbnail in an ungrouped zone", () => {
+    renderZone({
+      cards: [stubDeckBuilderCard({ zone: "battlefield", cardName: "Ionian Cliffside" })],
+    });
+    expect(screen.getByText("Ionian Cliffside")).toBeDefined();
   });
 });

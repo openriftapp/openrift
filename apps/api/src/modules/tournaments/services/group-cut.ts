@@ -1,4 +1,9 @@
 import { nextCutRoundPairs, seedBracket } from "@openrift/shared/pairing/cut-bracket";
+import {
+  cutRounds,
+  groupStageRounds,
+  isGroupStageRound,
+} from "@openrift/shared/pairing/group-cut-rounds";
 import type {
   BracketSeed,
   BracketSlot,
@@ -22,15 +27,13 @@ import { assertFound } from "../../../lib/assertions.js";
 import { loadGroupCutContext } from "../lib/group-cut-builders.js";
 import type { GroupCutPlayer, GroupStageRoundNumber, UnitProgress } from "../lib/group-cut.js";
 import {
-  cutRounds,
-  groupStageRounds,
   highestRoundNumber,
   isGroupCut,
-  isGroupStageRound,
   opponentsByPlayer,
   planFromRows,
   podInsertsForPairs,
   podWinnerId,
+  rowsRoundNumber,
   unitPlayerIds,
   unitPodOffsets,
   unitProgress,
@@ -119,7 +122,7 @@ export async function replaceGroupSeats(
   if (context.groups.length === 0) {
     throw badRequest("The groups have not been drawn yet.");
   }
-  const laterPods = groupStageRounds(roundRows).some(
+  const laterPods = groupStageRounds(roundRows, rowsRoundNumber).some(
     (entry) => entry.round.roundNumber > 1 && entry.pods.length > 0,
   );
   const played = roundRows.some((entry) =>
@@ -245,7 +248,7 @@ async function generateNextCutRound(
   players: readonly GroupCutPlayer[],
   roundRows: readonly PodRoundRows[],
 ): Promise<void> {
-  const rounds = cutRounds(roundRows);
+  const rounds = cutRounds(roundRows, rowsRoundNumber);
   const previous = rounds.at(-1);
   assertFound(previous, "Round not found");
   if (previous.round.status !== "finalized") {
@@ -313,7 +316,9 @@ async function loadUnits(
 }
 
 function roundIdFor(roundRows: readonly PodRoundRows[], roundNumber: number): string {
-  const round = groupStageRounds(roundRows).find((rows) => rows.round.roundNumber === roundNumber);
+  const round = groupStageRounds(roundRows, rowsRoundNumber).find(
+    (rows) => rows.round.roundNumber === roundNumber,
+  );
   assertFound(round, "Round not found");
   return round.round.id;
 }
@@ -443,7 +448,7 @@ export async function rerollGroupCutRound(
     if (roundNumber !== 1) {
       throw badRequest("Group rounds follow the fixed schedule.");
     }
-    const laterPods = groupStageRounds(roundRows).some(
+    const laterPods = groupStageRounds(roundRows, rowsRoundNumber).some(
       (entry) => entry.round.roundNumber > 1 && entry.pods.length > 0,
     );
     const played = rows.pods.some((entry) => entry.pod.resultStatus === "reported");

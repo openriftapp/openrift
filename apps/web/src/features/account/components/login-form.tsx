@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TextLink } from "@/components/ui/text-link";
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
+import { FormInputField } from "@/features/account/components/form-input-field";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { isEmailAddress, OTP_LENGTH } from "@/features/account/lib/account-validation";
 import { authClient, signIn } from "@/features/account/lib/auth-client";
@@ -167,25 +168,15 @@ function PasswordSignIn({
             </Button>
           )}
         </RootFormError>
-        <Controller
-          name="email"
+        <FormInputField
           control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{m.auth_field_email()}</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                type="email"
-                autoComplete="email"
-                placeholder={emailPlaceholder}
-                aria-invalid={fieldState.invalid}
-                // oxlint-disable-next-line jsx-a11y/no-autofocus -- login page's primary input; skipped when prefilled from URL
-                autoFocus={autoFocusEmail}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
+          name="email"
+          label={m.auth_field_email()}
+          type="email"
+          autoComplete="email"
+          placeholder={emailPlaceholder}
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- login page's primary input; skipped when prefilled from URL
+          autoFocus={autoFocusEmail}
         />
         <Controller
           name="password"

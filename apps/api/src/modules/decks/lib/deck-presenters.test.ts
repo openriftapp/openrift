@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  toDeck,
-  toDeckCard,
-  toDeckSummary,
-  toPublicDeck,
-  toPublicDeckCard,
-} from "./deck-presenters.js";
+import { toDeck, toDeckSummary, toPublicDeck, toPublicDeckCard } from "./deck-presenters.js";
 
 const NOW = new Date("2025-06-15T12:00:00.000Z");
 const LATER = new Date("2025-06-16T08:30:00.000Z");
@@ -226,23 +220,6 @@ describe("toDeckSummary", () => {
       updatedXid: "4242",
     });
     expect(result.archivedAt).toBe("2026-04-01T10:00:00.000Z");
-  });
-});
-
-describe("toDeckCard", () => {
-  it("maps a deck card row to slim response", () => {
-    const result = toDeckCard({
-      cardId: "card-1",
-      zone: "main",
-      quantity: 4,
-      preferredPrintingId: null,
-    });
-    expect(result).toEqual({
-      cardId: "card-1",
-      zone: "main",
-      quantity: 4,
-      preferredPrintingId: null,
-    });
   });
 });
 

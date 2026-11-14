@@ -13,9 +13,7 @@ import {
   buildFaceSuggestions,
   candidateBelongsToFace,
   describeElsewhere,
-  discardLabel,
   faceCompareCandidates,
-  primaryLabel,
   submitterNameOf,
 } from "./face-suggestion-rows";
 
@@ -43,21 +41,6 @@ beforeEach(() => {
   resetIdCounter();
 });
 
-describe("discardLabel", () => {
-  it("says Discard for one suggestion", () => {
-    expect(discardLabel(1, "Provider B")).toBe("Discard");
-  });
-
-  it("names the count and the source when it checks several", () => {
-    expect(discardLabel(2, "Provider B")).toBe("Discard 2 from Provider B");
-  });
-
-  it("names what else the row settles on another record", () => {
-    expect(discardLabel(1, "Provider B", "1 image")).toBe("Discard (also settles 1 image)");
-    expect(discardLabel(2, "Provider B", null)).toBe("Discard 2 from Provider B");
-  });
-});
-
 describe("describeElsewhere", () => {
   it("is null when nothing is left elsewhere", () => {
     expect(describeElsewhere({})).toBeNull();
@@ -67,16 +50,6 @@ describe("describeElsewhere", () => {
   it("joins the counts with their nouns", () => {
     expect(describeElsewhere({ printingFields: 1 })).toBe("1 printing field");
     expect(describeElsewhere({ faceFields: 2, images: 1 })).toBe("2 face fields and 1 image");
-  });
-});
-
-describe("primaryLabel", () => {
-  it("is plain Next when nothing is discarded", () => {
-    expect(primaryLabel(0)).toBe("Next");
-  });
-
-  it("counts the discarded sources", () => {
-    expect(primaryLabel(3)).toBe("Discard 3 & next");
   });
 });
 

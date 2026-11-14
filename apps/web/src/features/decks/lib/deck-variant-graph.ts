@@ -4,6 +4,8 @@
  * the left instead. lib/deck-variant-rail lays the same family out sideways.
  */
 
+import { orderVariantRoots } from "@/features/decks/lib/deck-variant-roots";
+
 export interface VariantGraphMember {
   id: string;
   /** ISO timestamp. */
@@ -115,38 +117,6 @@ export function buildVariantGraph(
     return sorted;
   };
 
-  const treeNewest = (member: VariantGraphMember): string => {
-    let newest = member.updatedAt;
-    for (const child of children(member.id)) {
-      const childNewest = treeNewest(child);
-      if (childNewest > newest) {
-        newest = childNewest;
-      }
-    }
-    return newest;
-  };
-
-  let currentRootId = currentId;
-  let currentRootParent = parents.get(currentRootId) ?? null;
-  while (currentRootParent !== null) {
-    currentRootId = currentRootParent;
-    currentRootParent = parents.get(currentRootId) ?? null;
-  }
-
-  roots.sort((left, right) => {
-    // Newest tree last. On a tie the open deck's tree goes last.
-    const byNewest = treeNewest(left).localeCompare(treeNewest(right));
-    if (byNewest !== 0) {
-      return byNewest;
-    }
-    const leftOpen = left.id === currentRootId ? 1 : 0;
-    const rightOpen = right.id === currentRootId ? 1 : 0;
-    if (leftOpen !== rightOpen) {
-      return leftOpen - rightOpen;
-    }
-    return left.id.localeCompare(right.id);
-  });
-
   // Depth-first, first child right after its parent.
   const order: VariantGraphMember[] = [];
   const visit = (member: VariantGraphMember): void => {
@@ -155,7 +125,7 @@ export function buildVariantGraph(
       visit(child);
     }
   };
-  for (const root of roots) {
+  for (const root of orderVariantRoots(roots, children, parents, currentId)) {
     visit(root);
   }
   const rowOf = new Map(order.map((member, index) => [member.id, index]));

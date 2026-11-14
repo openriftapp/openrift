@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { toSearchTerm } from "./filters-search.js";
-import { emptyFilters, makePrinting } from "./filters-test-helpers.js";
+import { emptyFilters, makeFilterPrinting } from "./filters-test-helpers.js";
 import { filterCards } from "./filters.js";
 import { testSearchContext } from "./test-factories.js";
 import type { CardFilters } from "./types/search.js";
@@ -21,7 +21,7 @@ describe("filterCards search folding", () => {
   // Real catalogue values: fixTypography stores U+2019 apostrophes, U+2212 for
   // the minus in "-1", and keywords are hyphenated.
   const printings = [
-    makePrinting({
+    makeFilterPrinting({
       printingId: "OGN-101",
       cardId: "c-dorans",
       shortCode: "OGN-101",
@@ -35,7 +35,7 @@ describe("filterCards search folding", () => {
         tags: ["Kha’Zix"],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       printingId: "OGN-269",
       cardId: "c-kaisa",
       shortCode: "OGN-269",
@@ -49,7 +49,7 @@ describe("filterCards search folding", () => {
         tags: ["Sentinel"],
       },
     }),
-    makePrinting({
+    makeFilterPrinting({
       printingId: "OGN-400",
       cardId: "c-sterak",
       shortCode: "OGN-400",

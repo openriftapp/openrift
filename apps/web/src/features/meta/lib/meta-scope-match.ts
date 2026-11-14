@@ -1,11 +1,7 @@
+import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 
-import type {
-  MetaEra,
-  MetaScope,
-  MetaScopeFacet,
-  ScopeFacetDefaults,
-} from "@/features/meta/lib/meta-scope";
+import type { MetaEra, MetaScope, ScopeFacetDefaults } from "@/features/meta/lib/meta-scope";
 import { resolveScopeRange, scopeFacetValues } from "@/features/meta/lib/meta-scope";
 import { normalizeCountryCode } from "@/lib/country";
 

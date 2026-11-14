@@ -20,11 +20,11 @@ import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type {
   FaceSuggestionModel,
-  FieldSuggestion,
+  PrintingFieldSuggestion,
   SourceImageCandidate,
   SuggestionSource,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import { primaryLabel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { primaryLabel } from "@/features/catalog-workspace/lib/suggestion-labels";
 import type {
   QueryScope,
   WorkspaceUndoEntry,
@@ -123,7 +123,7 @@ export function useCandidateDiscards({
 
 export type FaceChip =
   | { kind: "image"; key: string; image: SourceImageCandidate }
-  | { kind: "field"; key: string; suggestion: FieldSuggestion };
+  | { kind: "field"; key: string; suggestion: PrintingFieldSuggestion };
 
 export function faceChips(model: FaceSuggestionModel): FaceChip[] {
   return [
@@ -177,7 +177,7 @@ export function useFaceRecordActions({
     setCandidateImage.isPending ||
     acceptSubmission.isPending;
 
-  async function applyField(suggestion: FieldSuggestion): Promise<void> {
+  async function applyField(suggestion: PrintingFieldSuggestion): Promise<void> {
     if (!isAcceptPrintingField(suggestion.field)) {
       return;
     }

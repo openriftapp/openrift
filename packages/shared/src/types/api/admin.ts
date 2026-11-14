@@ -51,7 +51,7 @@ import type {
   regenerateImagesCheckpointSchema,
 } from "../../contracts/admin/job-results.js";
 import type { languageSchema } from "../../contracts/admin/languages.js";
-import type { markerSchema } from "../../contracts/admin/markers.js";
+import type { adminMarkerSchema } from "../../contracts/admin/markers.js";
 import type {
   groupKindEnum,
   marketplaceGroupSchema,
@@ -126,7 +126,7 @@ export type FeatureFlagResponse = z.infer<typeof flagSchema>;
 
 export type SiteSettingResponse = z.infer<typeof siteSettingSchema>;
 
-export type MarkerResponse = z.infer<typeof markerSchema>;
+export type MarkerResponse = z.infer<typeof adminMarkerSchema>;
 
 export type CustomTagResponse = z.infer<typeof customTagSchema>;
 

@@ -1,3 +1,4 @@
+import { REQUIRED_CARD_FIELD_KEYS } from "@openrift/shared/contracts/admin/card-mutations";
 import type { AcceptNewCardBody } from "@openrift/shared/contracts/admin/card-mutations";
 import { pluralize } from "@openrift/shared/strings";
 import type {
@@ -319,7 +320,7 @@ export function NewCardRecord({ name }: { name: string }) {
       >
         <CandidateSpreadsheet
           fields={newCardFields}
-          requiredKeys={["name", "types", "domains"]}
+          requiredKeys={REQUIRED_CARD_FIELD_KEYS}
           activeRow={Object.keys(activeCard).length > 0 ? activeCard : null}
           candidateRows={sources}
           submitters={buildSourceSubmitters(sources)}

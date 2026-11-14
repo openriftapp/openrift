@@ -156,6 +156,30 @@ export const ACCEPT_PRINTING_FIELDS = [
   "comment",
 ] as const;
 
+function blankRejected(rule: z.ZodType): boolean {
+  return !rule.safeParse(null).success && !rule.safeParse([]).success;
+}
+
+function requiredFields<TField extends string>(
+  fields: readonly TField[],
+  rules: Partial<Record<string, z.ZodType>>,
+): TField[] {
+  return fields.filter((field) => {
+    const rule = rules[field];
+    return rule !== undefined && blankRejected(rule);
+  });
+}
+
+export const REQUIRED_CARD_FIELD_KEYS: readonly AcceptCardField[] = requiredFields(
+  ACCEPT_CARD_FIELDS,
+  cardFieldRules,
+);
+
+export const REQUIRED_PRINTING_FIELD_KEYS: readonly AcceptPrintingField[] = requiredFields(
+  ACCEPT_PRINTING_FIELDS,
+  printingFieldRules,
+);
+
 const acceptCardFieldBodySchema = z.object({
   field: z.enum(ACCEPT_CARD_FIELDS),
   value: z.unknown(),

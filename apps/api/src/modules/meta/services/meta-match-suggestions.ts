@@ -5,36 +5,15 @@ import { countNoun } from "@openrift/shared/strings";
  * Ranks candidate live events/players against a meta archive overlay for
  * manual linking. Ranks only; never applies a suggestion.
  */
-import type { MetaOverlayRowMatch } from "@openrift/shared/types/api/meta";
+import type {
+  MetaEventMatchSuggestion,
+  MetaOverlayRowMatch,
+  MetaPlayerMatchSuggestion,
+} from "@openrift/shared/types/api/meta";
 
 import type { Repos } from "../../../deps.js";
 import type { MetaEventWithCounts } from "../repositories/meta-events.js";
 import type { AdminMetaPlayerRow } from "../repositories/meta-players.js";
-
-export interface MetaEventMatchSuggestion {
-  metaEventId: string;
-  slug: string;
-  name: string;
-  eventDate: string;
-  format: string;
-  playerRowCount: number;
-  /** Comparable only within one call. */
-  score: number;
-  reasons: string[];
-  isExact: boolean;
-}
-
-export interface MetaPlayerMatchSuggestion {
-  metaEventPlayerId: string;
-  isCurrent: boolean;
-  playerName: string;
-  rank: number;
-  rankIsTier: boolean;
-  deckId: string | null;
-  score: number;
-  reasons: string[];
-  isExact: boolean;
-}
 
 export interface MetaEventMatchInput {
   name: string;

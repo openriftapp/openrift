@@ -3,9 +3,12 @@ import type {
   AcceptPrintingBody,
   AcceptPrintingField,
 } from "@openrift/shared/contracts/admin/card-mutations";
+import type {
+  CardSubmissionReason,
+  CardSubmissionStatus,
+} from "@openrift/shared/contracts/card-submissions";
 import { resolveFinish } from "@openrift/shared/printing-accept";
 
-import type { CardSubmissionReason, CardSubmissionStatus } from "../../../db/tables/candidates.js";
 import type { Repos, Transact } from "../../../deps.js";
 import { badRequest, conflict, notFound } from "../../../errors.js";
 import type { Io } from "../../../io.js";

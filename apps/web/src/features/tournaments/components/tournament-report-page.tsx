@@ -1,3 +1,4 @@
+import { cutRounds } from "@openrift/shared/pairing/group-cut-rounds";
 import type { PodReportResponse } from "@openrift/shared/types/api/pod-tournament";
 
 import {
@@ -5,7 +6,7 @@ import {
   useSubmitTournamentReportPlayerResult,
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
-import { bracketMode, cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
+import { bracketMode } from "@/features/tournaments/lib/cut-bracket-display";
 import type { PodResultEntry } from "@/features/tournaments/lib/swiss-results";
 import { reportAcceptsResults, reportCanEdit } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -34,7 +35,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
 
   if (data.format === "group_cut" && groupStage !== null && groupStage.groups.length > 0) {
-    const bracketRounds = cutRounds(data.rounds);
+    const bracketRounds = cutRounds(data.rounds, (round) => round.roundNumber);
     return (
       <div className="flex flex-col gap-6">
         {showEntryHint ? (

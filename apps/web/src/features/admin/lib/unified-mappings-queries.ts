@@ -1,9 +1,9 @@
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
+import type { UnifiedMappingsSummaryResponse } from "@openrift/shared/contracts/admin/unified-mappings";
 import type {
   UnifiedMappingsCardResponse,
   UnifiedMappingsResponse,
-  UnifiedMappingsSummaryResponse,
-} from "@openrift/shared/contracts/admin/unified-mappings";
+} from "@openrift/shared/types/api/admin";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 

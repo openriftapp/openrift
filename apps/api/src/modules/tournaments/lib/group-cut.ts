@@ -1,3 +1,4 @@
+import { groupStageRounds } from "@openrift/shared/pairing/group-cut-rounds";
 import type {
   GroupMatch,
   GroupPlan,
@@ -5,7 +6,6 @@ import type {
   GroupStandingsInput,
   QualificationRow,
 } from "@openrift/shared/pairing/group-cut-types";
-import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import { podsOfUnit } from "@openrift/shared/pairing/group-stage";
 
 import type { PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
@@ -33,18 +33,8 @@ export function isGroupCut(tournament: Tournament): boolean {
   return tournament.format === "group_cut";
 }
 
-export function isGroupStageRound(roundNumber: number): boolean {
-  return roundNumber <= GROUP_STAGE_ROUNDS;
-}
-
-export function groupStageRounds(roundRows: readonly PodRoundRows[]): PodRoundRows[] {
-  return roundRows.filter((rows) => isGroupStageRound(rows.round.roundNumber));
-}
-
-export function cutRounds(roundRows: readonly PodRoundRows[]): PodRoundRows[] {
-  return roundRows
-    .filter((rows) => !isGroupStageRound(rows.round.roundNumber))
-    .toSorted((a, b) => a.round.roundNumber - b.round.roundNumber);
+export function rowsRoundNumber(rows: PodRoundRows): number {
+  return rows.round.roundNumber;
 }
 
 export function highestRoundNumber(roundRows: readonly PodRoundRows[]): number {
@@ -124,7 +114,7 @@ export function unitProgress(
   memberIds: ReadonlySet<string>,
   roundRows: readonly PodRoundRows[],
 ): UnitProgress {
-  const stage = groupStageRounds(roundRows).toSorted(
+  const stage = groupStageRounds(roundRows, rowsRoundNumber).toSorted(
     (a, b) => a.round.roundNumber - b.round.roundNumber,
   );
   let roundsStarted = 0;
@@ -142,7 +132,7 @@ export function unitProgress(
 }
 
 export function groupStageMatches(roundRows: readonly PodRoundRows[]): GroupMatch[] {
-  return groupStageRounds(roundRows).flatMap((rows) =>
+  return groupStageRounds(roundRows, rowsRoundNumber).flatMap((rows) =>
     rows.pods.flatMap((entry) => {
       const [first, second] = entry.members;
       if (!first || !second) {

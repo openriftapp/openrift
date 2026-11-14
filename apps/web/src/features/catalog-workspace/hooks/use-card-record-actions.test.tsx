@@ -57,7 +57,7 @@ vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 
-const { primaryLabel, useCardRecordActions } = await import("./use-card-record-actions");
+const { useCardRecordActions } = await import("./use-card-record-actions");
 
 let resetStore: () => void;
 
@@ -277,11 +277,5 @@ describe("useCardRecordActions", () => {
       void result.current.actions.useSuggestion?.(4);
     });
     expect(mutations.acceptCardField.mutate).not.toHaveBeenCalled();
-  });
-});
-
-describe("primaryLabel", () => {
-  it("falls back to Next without differences", () => {
-    expect(primaryLabel(null, true)).toBe("Next");
   });
 });

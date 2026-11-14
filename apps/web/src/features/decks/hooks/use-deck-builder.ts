@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sameDeckCards } from "@openrift/shared/deck-cards";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import {
   battlefieldCapFor,
@@ -40,11 +41,7 @@ import {
 } from "@/features/decks/lib/workbench-add-toast";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { applyDeckSnapshot } from "@/features/decks/stores/deck-draft-store";
-import {
-  copySnapshot,
-  sameDeckCards,
-  useDeckUndoStore,
-} from "@/features/decks/stores/deck-undo-store";
+import { copySnapshot, useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useChampionIdentifierTags, useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";

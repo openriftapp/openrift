@@ -6,6 +6,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { describeIncompleteList } from "@/features/meta/lib/meta-deck-archive";
+import { joinNames } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 export type ShapeSegmentState = "known" | "inferred" | "unknown";
@@ -32,13 +33,6 @@ export function inferredCards(inferred: MetaDeckInference | null): PublicDeckCar
 
 export function inferredCardLabel(card: PublicDeckCardResponse): string {
   return legendDisplayName({ name: card.cardName, types: card.cardTypes, tags: card.tags });
-}
-
-export function joinNames(names: readonly string[]): string {
-  if (names.length <= 1) {
-    return names[0] ?? "";
-  }
-  return m.meta_join_and({ names: names.slice(0, -1).join(", "), last: names.at(-1) ?? "" });
 }
 
 export function eitherName(names: readonly string[]): string | null {

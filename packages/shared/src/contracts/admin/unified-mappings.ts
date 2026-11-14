@@ -261,6 +261,4 @@ export const adminUnifiedMappingsContract = {
 };
 
 export type AdminUnifiedMappingsContract = typeof adminUnifiedMappingsContract;
-export type UnifiedMappingsResponse = z.infer<typeof unifiedMappingsResponseSchema>;
-export type UnifiedMappingsCardResponse = z.infer<typeof unifiedMappingsCardResponseSchema>;
 export type UnifiedMappingsSummaryResponse = z.infer<typeof unifiedMappingsSummaryResponseSchema>;

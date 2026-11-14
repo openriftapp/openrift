@@ -10,7 +10,7 @@ import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
-import { sha256Hex } from "../../../lib/hash.js";
+import { sha256HexSync } from "../../../lib/hash.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toKey } from "../lib/deck-check-presenters.js";
@@ -21,7 +21,7 @@ function mintToken(): { token: string; tokenHash: string; tokenPrefix: string } 
   const token = `orpk_${randomBytes(24).toString("base64url")}`;
   return {
     token,
-    tokenHash: sha256Hex(token),
+    tokenHash: sha256HexSync(token),
     tokenPrefix: token.slice(0, 10),
   };
 }

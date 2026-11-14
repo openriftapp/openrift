@@ -2,12 +2,13 @@ import { stringifyUnknown } from "@openrift/shared/strings";
 import type {
   MetaOverlayBulkAcceptResult,
   MetaOverlayReviewResult,
+  MetaUploadRevertResult,
+  MetaUploadSummary,
 } from "@openrift/shared/types/api/meta";
 import type {
   MetaEntryStatus,
   MetaEventOverlayField,
   MetaListStatus,
-  MetaOverlayStatus,
   MetaPlayerOverlayField,
   MetaSubmissionReason,
 } from "@openrift/shared/types/enums";
@@ -235,18 +236,6 @@ export async function moveMetaEventOverlay(
   });
 }
 
-export interface MetaUploadSummary {
-  eventOverlayId: string;
-  provider: string;
-  externalId: string;
-  status: MetaOverlayStatus;
-  /** ISO 8601, as every other wire timestamp. */
-  acceptedAt: string | null;
-  acceptedPlayers: number;
-  pendingPlayers: number;
-  mintedPlayers: number;
-}
-
 export async function listMetaUploadsForEvent(
   repos: Repos,
   metaEventId: string,
@@ -272,12 +261,6 @@ export async function listMetaUploadsForEvent(
       mintedPlayers: players.reduce((sum, player) => sum + (minted.get(player.id) ?? 0), 0),
     };
   });
-}
-
-export interface MetaUploadRevertResult {
-  metaEventIds: string[];
-  players: number;
-  eventRejected: boolean;
 }
 
 /**

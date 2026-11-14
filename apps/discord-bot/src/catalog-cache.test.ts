@@ -3,19 +3,19 @@ import { describe, expect, it } from "vitest";
 
 import { buildSnapshot, CatalogCache, representativePrinting } from "./catalog-cache.js";
 import {
-  makeCard,
+  makeBotCard,
   makeCatalogResponse,
   makeInitResponse,
   makePricesResponse,
-  makePrinting,
+  makeBotPrinting,
 } from "./test/factories.js";
 
 describe("buildSnapshot", () => {
   it("reattaches map keys as ids on cards and printings", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard({ id: "c1" })],
-        [makePrinting({ printingId: "p1", cardId: "c1" })],
+        [makeBotCard({ id: "c1" })],
+        [makeBotPrinting({ printingId: "p1", cardId: "c1" })],
       ),
       makePricesResponse(),
       makeInitResponse(),
@@ -26,10 +26,10 @@ describe("buildSnapshot", () => {
 
   it("gives side 2 its own fallback art and lists a card on both sides once", () => {
     const catalog = makeCatalogResponse(
-      [makeCard({ id: "bird" }), makeCard({ id: "gold" })],
-      [makePrinting({ printingId: "pair", cardId: "bird" })],
+      [makeBotCard({ id: "bird" }), makeBotCard({ id: "gold" })],
+      [makeBotPrinting({ printingId: "pair", cardId: "bird" })],
     );
-    const { side: _side, printingId: _id, ...sideFields } = makePrinting({ cardId: "gold" });
+    const { side: _side, printingId: _id, ...sideFields } = makeBotPrinting({ cardId: "gold" });
     catalog.printings.pair = {
       ...catalog.printings.pair!,
       fallbackArtMode: "pinned",
@@ -41,8 +41,8 @@ describe("buildSnapshot", () => {
     expect(pair.printingsByCardId.get("gold")?.[0]?.fallbackArtMode).toBeUndefined();
 
     const buffCatalog = makeCatalogResponse(
-      [makeCard({ id: "buff" })],
-      [makePrinting({ printingId: "rioter", cardId: "buff" })],
+      [makeBotCard({ id: "buff" })],
+      [makeBotPrinting({ printingId: "rioter", cardId: "buff" })],
     );
     buffCatalog.printings.rioter = {
       ...buffCatalog.printings.rioter!,
@@ -55,12 +55,17 @@ describe("buildSnapshot", () => {
   it("names a legend on the other side the way players do", () => {
     const catalog = makeCatalogResponse(
       [
-        makeCard({ id: "bird", name: "Bird" }),
-        makeCard({ id: "azir", name: "Emperor of the Sands", types: ["legend"], tags: ["Azir"] }),
+        makeBotCard({ id: "bird", name: "Bird" }),
+        makeBotCard({
+          id: "azir",
+          name: "Emperor of the Sands",
+          types: ["legend"],
+          tags: ["Azir"],
+        }),
       ],
-      [makePrinting({ printingId: "pair", cardId: "bird" })],
+      [makeBotPrinting({ printingId: "pair", cardId: "bird" })],
     );
-    const { side: _side, printingId: _id, ...sideFields } = makePrinting({ cardId: "azir" });
+    const { side: _side, printingId: _id, ...sideFields } = makeBotPrinting({ cardId: "azir" });
     catalog.printings.pair = {
       ...catalog.printings.pair!,
       side2: { ...sideFields, faceId: "face-azir" },
@@ -74,10 +79,10 @@ describe("buildSnapshot", () => {
   it("groups printings per card sorted by canonical rank", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard({ id: "c1" })],
+        [makeBotCard({ id: "c1" })],
         [
-          makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
-          makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
+          makeBotPrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
+          makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
         ],
       ),
       makePricesResponse(),
@@ -88,7 +93,7 @@ describe("buildSnapshot", () => {
 
   it("indexes sets by id and carries prices + currencies through", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard()], [makePrinting()]),
+      makeCatalogResponse([makeBotCard()], [makeBotPrinting()]),
       makePricesResponse({ "printing-1": { tcgplayer: 452 } }),
       makeInitResponse(),
     );
@@ -99,7 +104,7 @@ describe("buildSnapshot", () => {
 
   it("builds slug → label maps from the init enums", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard()], [makePrinting()]),
+      makeCatalogResponse([makeBotCard()], [makeBotPrinting()]),
       makePricesResponse(),
       makeInitResponse(),
     );
@@ -123,10 +128,10 @@ describe("representativePrinting", () => {
   it("picks the lowest-ranked printing with a front image", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(
-        [makeCard({ id: "c1" })],
+        [makeBotCard({ id: "c1" })],
         [
-          makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, images: [] }),
-          makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
+          makeBotPrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, images: [] }),
+          makeBotPrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
         ],
       ),
       makePricesResponse(),
@@ -137,7 +142,7 @@ describe("representativePrinting", () => {
 
   it("returns undefined for a card without printings", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard({ id: "c1" })], []),
+      makeCatalogResponse([makeBotCard({ id: "c1" })], []),
       makePricesResponse(),
       makeInitResponse(),
     );
@@ -148,7 +153,8 @@ describe("representativePrinting", () => {
 describe("CatalogCache", () => {
   it("starts without a snapshot and exposes one after refresh", async () => {
     const cache = new CatalogCache({
-      fetchCatalog: () => Promise.resolve(makeCatalogResponse([makeCard()], [makePrinting()])),
+      fetchCatalog: () =>
+        Promise.resolve(makeCatalogResponse([makeBotCard()], [makeBotPrinting()])),
       fetchInit: () => Promise.resolve(makeInitResponse()),
       fetchPrices: () => Promise.resolve(makePricesResponse()),
     });
@@ -163,7 +169,7 @@ describe("CatalogCache", () => {
       fetchCatalog: () => {
         calls += 1;
         return calls === 1
-          ? Promise.resolve(makeCatalogResponse([makeCard()], [makePrinting()]))
+          ? Promise.resolve(makeCatalogResponse([makeBotCard()], [makeBotPrinting()]))
           : Promise.reject(new Error("api down"));
       },
       fetchInit: () => Promise.resolve(makeInitResponse()),

@@ -2,7 +2,7 @@ import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import { ArrowRightLeftIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useRef } from "react";
+import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SELECT_NONE, SimpleSelect } from "@/components/ui/simple-select";
@@ -54,6 +54,26 @@ export function CandidateActiveCell<TKey extends string>({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const content = renderContent?.(field);
+  const [blankRejected, setBlankRejected] = useState(false);
+
+  const alertId = `${useId()}-required`;
+  const rejectsBlank = (value: unknown) => isRequired && !hasFieldValue(value);
+
+  function changeActive(value: unknown) {
+    if (rejectsBlank(value)) {
+      setBlankRejected(true);
+      return;
+    }
+    setBlankRejected(false);
+    onActiveChange?.(field.key, value);
+  }
+
+  function cancelEdit() {
+    setBlankRejected(false);
+    setEditingField(null);
+  }
+
+  const describedBy = blankRejected ? alertId : undefined;
 
   const isMissing = isRequired && !hasFieldValue(activeValue);
   const canReverseActive =
@@ -72,17 +92,17 @@ export function CandidateActiveCell<TKey extends string>({
             .map((s) => s.trim())
             .filter(Boolean)
         : [];
-      onActiveChange(field.key, items.length > 0 ? items : null);
+      changeActive(items.length > 0 ? items : null);
       return;
     }
     if (field.type === "number") {
       const parsed = parseIntegerInput(trimmed);
       if (parsed !== undefined) {
-        onActiveChange(field.key, parsed);
+        changeActive(parsed);
       }
       return;
     }
-    onActiveChange(field.key, trimmed || null);
+    changeActive(trimmed || null);
   }
 
   return (
@@ -107,6 +127,7 @@ export function CandidateActiveCell<TKey extends string>({
           return;
         }
         if (hasDropdown(field)) {
+          setBlankRejected(false);
           setEditingField(field.key);
           return;
         }
@@ -150,7 +171,15 @@ export function CandidateActiveCell<TKey extends string>({
                     ? fixTypography(value, { italicParens: false, keywordGlyphs: false })
                     : fixTypography(value, { costKeywords })
                 }
-                onSave={(next) => onActiveChange(field.key, next.trim() || null)}
+                requiredError={isRequired ? `${field.label} is required.` : undefined}
+                onSave={(next) => {
+                  const value = next.trim() || null;
+                  if (rejectsBlank(value)) {
+                    return false;
+                  }
+                  onActiveChange(field.key, value);
+                  return true;
+                }}
                 triggerClassName="text-muted-foreground shrink-0"
               />
             )}
@@ -160,7 +189,7 @@ export function CandidateActiveCell<TKey extends string>({
             label={field.label}
             options={dropdownOptions(field)}
             value={Array.isArray(activeValue) ? (activeValue as string[]) : []}
-            onCommit={(next) => onActiveChange?.(field.key, next)}
+            onCommit={(next) => changeActive(next)}
             onClose={() => setEditingField(null)}
           />
         ) : editingField === field.key && hasDropdown(field) ? (
@@ -176,7 +205,7 @@ export function CandidateActiveCell<TKey extends string>({
               value={hasFieldValue(activeValue) ? String(activeValue) : null}
               onChange={(v) => {
                 setEditingField(null);
-                onActiveChange?.(field.key, v === SELECT_NONE ? null : v);
+                changeActive(v === SELECT_NONE ? null : v);
               }}
               defaultOpen
               onOpenChange={(open) => {
@@ -194,7 +223,7 @@ export function CandidateActiveCell<TKey extends string>({
             suggestions={field.suggestions}
             defaultValue={hasFieldValue(activeValue) ? String(activeValue) : ""}
             onCommit={(value) => commitEdit(value)}
-            onCancel={() => setEditingField(null)}
+            onCancel={cancelEdit}
           />
         ) : editingField === field.key && field.multiline ? (
           <textarea
@@ -206,9 +235,10 @@ export function CandidateActiveCell<TKey extends string>({
             // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: inline editor should grab focus immediately
             autoFocus
             onBlur={(e) => commitEdit(e.target.value)}
+            aria-describedby={describedBy}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
-                setEditingField(null);
+                cancelEdit();
               }
             }}
             onClick={(e) => e.stopPropagation()}
@@ -217,7 +247,7 @@ export function CandidateActiveCell<TKey extends string>({
           <TagChipCell
             value={Array.isArray(activeValue) ? (activeValue as string[]) : []}
             placeholder={`Add ${field.label.toLowerCase()}`}
-            onChange={(next) => onActiveChange?.(field.key, next.length > 0 ? next : null)}
+            onChange={(next) => changeActive(next.length > 0 ? next : null)}
             onDone={() => setEditingField(null)}
           />
         ) : editingField === field.key ? (
@@ -225,6 +255,7 @@ export function CandidateActiveCell<TKey extends string>({
             ref={inputRef}
             type="text"
             aria-label={field.label}
+            aria-describedby={describedBy}
             inputMode={field.type === "number" ? "numeric" : undefined}
             defaultValue={
               hasFieldValue(activeValue)
@@ -241,7 +272,7 @@ export function CandidateActiveCell<TKey extends string>({
               if (e.key === "Enter") {
                 commitEdit(e.currentTarget.value);
               } else if (e.key === "Escape") {
-                setEditingField(null);
+                cancelEdit();
               }
             }}
             onClick={(e) => e.stopPropagation()}
@@ -272,6 +303,11 @@ export function CandidateActiveCell<TKey extends string>({
                 : "—"}
           </span>
         ))}
+      {blankRejected && isRequired && (
+        <p id={alertId} role="alert" className="text-destructive mt-1 text-xs">
+          {field.label} is required.
+        </p>
+      )}
       {onActiveChange &&
         !field.readOnly &&
         !field.richText &&

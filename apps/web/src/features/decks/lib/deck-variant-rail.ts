@@ -3,6 +3,8 @@
  * the deck hero.
  */
 
+import { orderVariantRoots } from "@/features/decks/lib/deck-variant-roots";
+
 export interface RailMemberInput {
   id: string;
   name: string;
@@ -174,36 +176,6 @@ export function buildRailLayout(
     return span;
   };
 
-  const treeNewest = (member: RailMemberInput): string => {
-    let newest = member.updatedAt;
-    for (const child of children.get(member.id) ?? []) {
-      const childNewest = treeNewest(child);
-      if (childNewest > newest) {
-        newest = childNewest;
-      }
-    }
-    return newest;
-  };
-
-  const rootIdOf = (id: string): string => {
-    const parentId = parents.get(id) ?? null;
-    return parentId === null ? id : rootIdOf(parentId);
-  };
-  const currentRootId = rootIdOf(currentId);
-  roots.sort((left, right) => {
-    // Newest tree right-most. On a tie the open deck's tree goes last.
-    const byNewest = treeNewest(left).localeCompare(treeNewest(right));
-    if (byNewest !== 0) {
-      return byNewest;
-    }
-    const leftOpen = left.id === currentRootId ? 1 : 0;
-    const rightOpen = right.id === currentRootId ? 1 : 0;
-    if (leftOpen !== rightOpen) {
-      return leftOpen - rightOpen;
-    }
-    return left.id.localeCompare(right.id);
-  });
-
   const nodes: RailNode[] = [];
   const laneEnd: number[] = [];
   const claimLane = (preferred: number | null, x: number): number => {
@@ -244,7 +216,7 @@ export function buildRailLayout(
   // Each tree starts where the previous one ended, so lane 0 is free again at
   // that column and every root lands on it.
   let nextColumn = 0;
-  for (const root of roots) {
+  for (const root of orderVariantRoots(roots, (id) => children.get(id) ?? [], parents, currentId)) {
     place(root, 0, nextColumn);
     nextColumn += treeSpan(root);
   }

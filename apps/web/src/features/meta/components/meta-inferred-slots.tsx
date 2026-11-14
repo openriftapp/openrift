@@ -17,8 +17,8 @@ import {
   PORTRAIT_THUMB_CLASS,
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/lib/deck-thumb-metrics";
-import { formatRank } from "@/features/meta/lib/meta-format";
-import { inferredCardLabel, joinNames } from "@/features/meta/lib/meta-inferred";
+import { formatRank, joinNames } from "@/features/meta/lib/meta-format";
+import { inferredCardLabel } from "@/features/meta/lib/meta-inferred";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

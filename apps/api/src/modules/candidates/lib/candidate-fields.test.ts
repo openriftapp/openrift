@@ -91,6 +91,31 @@ describe("ingest printed text", () => {
     ).toMatchObject({ artist: "Riot Games", printedRulesText: "Draw 1.\nGain 1." });
   });
 
+  it("trims the short code and public code so a padded re-upload matches the stored row", () => {
+    expect(ingest({ short_code: " OGN-001 ", public_code: " 001/298 " })).toMatchObject({
+      shortCode: "OGN-001",
+      publicCode: "001/298",
+    });
+    expect(ingest({ short_code: " OGN-001 ", public_code: " 001/298 " })).toEqual(
+      ingest({ short_code: "OGN-001", public_code: "001/298" }),
+    );
+  });
+
+  it("stores a whitespace-only public code as null", () => {
+    expect(ingest({ public_code: "  " })).toMatchObject({ publicCode: null });
+  });
+
+  it("validates the trimmed codes", () => {
+    const printing = ingestPrintingSchema.parse({
+      ...BASE,
+      short_code: " OGN-001 ",
+      public_code: " ",
+    });
+    const input = candidatePrintingValidatorInput(printing);
+    expect(input).toMatchObject({ short_code: "OGN-001", public_code: null });
+    expect(candidatePrintingValidator.safeParse(input).success).toBe(true);
+  });
+
   it("validates the trimmed values", () => {
     const printing = ingestPrintingSchema.parse({ ...BASE, artist: "  ", flavor_text: " " });
     expect(

@@ -1,5 +1,6 @@
 import { shiftUtcDay, todayUtc } from "@openrift/shared/format-date";
 import { MAX_FACET_VALUES } from "@openrift/shared/meta-query";
+import type { MetaScopeFacet } from "@openrift/shared/meta-query";
 import type { SetReleases } from "@openrift/shared/set-release";
 import { earliestRelease } from "@openrift/shared/set-release";
 import type { MetaEventFilterQuery, MetaScopeQuery } from "@openrift/shared/types/api/meta";
@@ -151,9 +152,6 @@ export const CLEARED_SCOPE: Record<keyof MetaScope, undefined> = {
 export function scopeWithDefaultEra(scope: MetaScope, era: string): MetaScope {
   return scope.era === undefined ? { ...scope, era } : scope;
 }
-
-/** The facets a reader picks values on, as opposed to the era's single window. */
-export type MetaScopeFacet = "formats" | "tiers" | "countries";
 
 const META_SCOPE_FACETS: readonly MetaScopeFacet[] = ["formats", "tiers", "countries"];
 

@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { FilterCardsOptions } from "../filters-shared.js";
-import { emptyFilters, makePrinting } from "../filters-test-helpers.js";
+import { emptyFilters, makeFilterPrinting } from "../filters-test-helpers.js";
 import { filterCards } from "../filters.js";
 import { testSearchContext } from "../test-factories.js";
 import type { Printing } from "../types/catalog.js";
 import type { SearchVocabulary } from "./bind.js";
 import { searchPredicate, sortByPreference } from "./evaluate.js";
 
-const garen = makePrinting({
+const garen = makeFilterPrinting({
   printingId: "p-garen",
   cardId: "c-garen",
   shortCode: "OGN-001",
@@ -31,7 +31,7 @@ const garen = makePrinting({
   },
 });
 
-const annie = makePrinting({
+const annie = makeFilterPrinting({
   printingId: "p-annie",
   cardId: "c-annie",
   shortCode: "SFD-010",
@@ -59,7 +59,7 @@ const annie = makePrinting({
   },
 });
 
-const buff = makePrinting({
+const buff = makeFilterPrinting({
   printingId: "p-buff",
   cardId: "c-buff",
   shortCode: "OGN-300",
@@ -81,7 +81,7 @@ const buff = makePrinting({
   },
 });
 
-const token = makePrinting({
+const token = makeFilterPrinting({
   printingId: "p-token",
   cardId: "c-token",
   shortCode: "OGN-301",
@@ -261,8 +261,8 @@ describe("search query evaluation", () => {
     });
 
     it("matches a variant letter with or without it", () => {
-      const altart = makePrinting({ shortCode: "OGN-120a", card: { name: "Alt" } });
-      const rune = makePrinting({ shortCode: "SFD-R01", card: { name: "Rune" } });
+      const altart = makeFilterPrinting({ shortCode: "OGN-120a", card: { name: "Alt" } });
+      const rune = makeFilterPrinting({ shortCode: "SFD-R01", card: { name: "Rune" } });
       expect(names("cn:120", [altart, rune])).toEqual(["Alt"]);
       expect(names("cn:120a", [altart, rune])).toEqual(["Alt"]);
       expect(names("cn:r01", [altart, rune])).toEqual(["Rune"]);
@@ -271,7 +271,7 @@ describe("search query evaluation", () => {
   });
 
   describe("print runs", () => {
-    const reprint = makePrinting({
+    const reprint = makeFilterPrinting({
       printingId: "p-reprint",
       cardId: "c-garen",
       shortCode: "SFD-200",

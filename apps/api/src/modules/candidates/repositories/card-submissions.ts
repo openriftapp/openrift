@@ -1,15 +1,15 @@
-import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
+import type {
+  CardSubmissionKind,
+  CardSubmissionReason,
+  CardSubmissionStatus,
+  MissingImagePrinting,
+} from "@openrift/shared/contracts/card-submissions";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
-import type {
-  CardSubmissionKind,
-  CardSubmissionReason,
-  CardSubmissionStatus,
-  CardSubmissionsTable,
-} from "../../../db/tables/candidates.js";
+import type { CardSubmissionsTable } from "../../../db/tables/candidates.js";
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import { liveCardForNorm } from "../../../repositories/candidate-card-sql.js";
 import {

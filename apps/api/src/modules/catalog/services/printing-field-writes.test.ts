@@ -179,6 +179,28 @@ describe("normalizePrintingFieldValue optional text fields", () => {
   });
 });
 
+describe("normalizePrintingFieldValue required text fields", () => {
+  const fields = ["artist", "shortCode", "publicCode"] as const;
+
+  function normalizeRequired(field: (typeof fields)[number], value: unknown) {
+    const { repos } = makeRepos(UNDATED);
+    return normalizePrintingFieldValue(repos, {
+      printingId: "printing-1",
+      field,
+      value,
+      source: "manual",
+    });
+  }
+
+  it.each(fields)("trims outer whitespace on %s", async (field) => {
+    await expect(normalizeRequired(field, "  Jane Doe \n")).resolves.toBe("Jane Doe");
+  });
+
+  it.each(fields)("rejects whitespace-only %s", async (field) => {
+    await expect(normalizeRequired(field, "  \t ")).rejects.toThrow(`Invalid value for ${field}`);
+  });
+});
+
 describe("normalizePrintingFieldValue provider-sourced text", () => {
   function normalizeProvided(value: unknown) {
     const { repos } = makeRepos(UNDATED);
