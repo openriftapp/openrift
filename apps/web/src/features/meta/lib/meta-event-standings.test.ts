@@ -10,16 +10,23 @@ const VEX = { cardId: "card-vex", name: "Vex, Gloomist", count: 2 };
 
 describe("legendOptions", () => {
   it("offers nothing when the field played one legend or fewer", () => {
-    expect(legendOptions([YASUO])).toEqual({});
-    expect(legendOptions([])).toEqual({});
+    expect(legendOptions([YASUO], 3)).toEqual({});
+    expect(legendOptions([], 0)).toEqual({});
   });
 
   it("keeps the order the API sent and counts each legend's entries", () => {
-    expect(Object.entries(legendOptions([AHRI, VEX, YASUO]))).toEqual([
+    expect(Object.entries(legendOptions([AHRI, VEX, YASUO], 0))).toEqual([
       ["any", "Any legend"],
       ["card-ahri", "Ahri, the Nine-Tailed Fox (1)"],
       ["card-vex", "Vex, Gloomist (2)"],
       ["card-yasuo", "Yasuo, the Unforgiven (1)"],
+    ]);
+  });
+
+  it("ends on the entries without a known legend when there are any", () => {
+    expect(Object.entries(legendOptions([AHRI, YASUO], 4)).at(-1)).toEqual([
+      "none",
+      "No legend on file (4)",
     ]);
   });
 });

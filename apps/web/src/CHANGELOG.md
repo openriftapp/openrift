@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Meta): **Event standings by legend** — switch an event's standings to "By legend" to see how many players brought each legend, its best finish and its top players, replacing the best-finish tiles.
 - fix(Trades): **Your move means your move** — an accepted swap moves to "Ready to swap" on the trades page and only asks you to confirm or hand over once the other person has done their part.
 - fix(Meta): **Matching counts on the meta front page** — "Browse all" counts the events in your current filters, and the link opens those.
 

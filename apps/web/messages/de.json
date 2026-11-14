@@ -7044,7 +7044,6 @@
   "meta_submissions_empty_description": "Ein Turnier verfolgt und weißt, was gespielt wurde? Sende eine Deckliste ein und verfolge hier ihre Prüfung. Hilf uns, die Lücken zu füllen.",
   "meta_submissions_show_older": "Ältere Beiträge anzeigen",
   "meta_event_actions_sr": "Turnier-Aktionen",
-  "meta_legend_finishes_best_per_legend": "Beste Platzierung je Legende",
   "meta_legend_finishes_deck": "Deck",
   "meta_deck_incomplete_title": "Diese Liste ist unvollständig",
   "meta_inferred_badge": "Vermutet",
@@ -7723,6 +7722,37 @@
   "meta_standings_find_player": "Spieler finden",
   "meta_standings_find_player_placeholder": "Spieler finden…",
   "meta_standings_filter_legend": "Nach Legende filtern",
+  "meta_standings_order_aria": "Ansicht der Tabelle",
+  "meta_standings_by_rank": "Nach Platz",
+  "meta_standings_by_legend": "Nach Legende",
+  "meta_standings_expand_all": "Alle aufklappen",
+  "meta_standings_collapse_all": "Alle zuklappen",
+  "meta_standings_legend_best": "Bester Platz",
+  "meta_standings_legend_page": "Legendenseite",
+  "meta_standings_legend_unknown": "Keine Legende hinterlegt",
+  "meta_standings_legend_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} Spieler",
+        "countPlural=*": "{countFormatted} Spieler"
+      }
+    }
+  ],
+  "meta_standings_legend_see_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Alle {countFormatted} in der Tabelle ansehen"
+      }
+    }
+  ],
   "meta_standings_no_entries": "Keine Einträge passen.",
   "meta_standings_cost_none_on_page": "Kein Eintrag auf dieser Seite liegt im Preisfilter. Preise werden in deinem Browser berechnet, daher gilt der Filter nur für die aktuelle Seite.",
   "meta_standings_pages_aria": "Seiten der Platzierungen",

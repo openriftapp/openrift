@@ -6,10 +6,14 @@ import type {
   MetaEventFilterQuery,
   MetaEventListQuery,
   MetaEventStandingsQuery,
+  MetaEventStandingsResponse,
+  MetaStandingsRow,
   MetaScopeQuery,
 } from "@openrift/shared/types/api/meta";
-import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
+import type { LegendGroupRows } from "@/features/meta/lib/meta-legend-groups";
 import type { MetaLegendPageQuery } from "@/features/meta/lib/meta-queries";
 import {
   metaActivityQueryOptions,
@@ -74,6 +78,27 @@ export function useMetaStandings(slug: string, query: Omit<MetaEventStandingsQue
   return useQuery({
     ...metaStandingsQueryOptions(slug, query),
     placeholderData: keepPreviousData,
+  });
+}
+
+function legendGroupRowsOf(results: UseQueryResult<MetaEventStandingsResponse>[]): {
+  groups: LegendGroupRows[];
+  lists: (readonly MetaStandingsRow[] | undefined)[];
+} {
+  return {
+    groups: results.map((result) => ({
+      players: result.data?.players,
+      isError: result.isError,
+      refetch: result.refetch,
+    })),
+    lists: results.map((result) => result.data?.players),
+  };
+}
+
+export function useMetaLegendGroupRows(slug: string, cardIds: readonly string[], limit: number) {
+  return useQueries({
+    queries: cardIds.map((legend) => metaStandingsQueryOptions(slug, { legend, limit, offset: 0 })),
+    combine: legendGroupRowsOf,
   });
 }
 

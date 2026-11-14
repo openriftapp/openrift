@@ -7,6 +7,7 @@ import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { StandingsColumns } from "@/features/meta/lib/meta-event-standings";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export interface StandingsBodyProps {
@@ -24,6 +25,47 @@ export interface StandingsBodyProps {
   onToggle: (id: string) => void;
 }
 
+export function DesktopStandingsHeader({
+  columns,
+  className,
+}: {
+  columns: StandingsColumns;
+  className?: string;
+}) {
+  return (
+    <TableHeader className={cn("block", className)}>
+      <TableRow className="flex w-full">
+        <TableHead className="flex w-24 shrink-0 items-center justify-center">
+          {m.meta_standings_col_rank()}
+        </TableHead>
+        {columns.legend && (
+          <TableHead className="flex w-64 shrink-0 items-center">
+            {m.meta_standings_col_legend()}
+          </TableHead>
+        )}
+        <TableHead className="flex min-w-0 flex-1 items-center">
+          {m.meta_standings_col_player()}
+        </TableHead>
+        {(columns.run || columns.record) && (
+          <TableHead className="flex w-52 shrink-0 items-center">
+            {columns.run ? m.meta_standings_col_run() : m.meta_finishes_col_record()}
+          </TableHead>
+        )}
+        {columns.value && (
+          <TableHead className="flex w-28 shrink-0 items-center justify-end">
+            {m.meta_standings_col_value()}
+          </TableHead>
+        )}
+        {columns.deck && (
+          <TableHead className="flex w-36 shrink-0 items-center justify-end">
+            {m.meta_standings_decklist()}
+          </TableHead>
+        )}
+      </TableRow>
+    </TableHeader>
+  );
+}
+
 export function DesktopStandings({
   players,
   slug,
@@ -36,42 +78,17 @@ export function DesktopStandings({
   cutSize,
   expandedId,
   onToggle,
-}: StandingsBodyProps) {
+  header = "visible",
+}: StandingsBodyProps & { header?: "visible" | "screen-reader" }) {
   const { containerRef, height, rows } = useRowWindow(players);
 
   return (
     <div className="hidden md:block">
       <Table variant="divided" className="block">
-        <TableHeader className="block">
-          <TableRow className="flex w-full">
-            <TableHead className="flex w-24 shrink-0 items-center justify-center">
-              {m.meta_standings_col_rank()}
-            </TableHead>
-            {columns.legend && (
-              <TableHead className="flex w-64 shrink-0 items-center">
-                {m.meta_standings_col_legend()}
-              </TableHead>
-            )}
-            <TableHead className="flex min-w-0 flex-1 items-center">
-              {m.meta_standings_col_player()}
-            </TableHead>
-            {(columns.run || columns.record) && (
-              <TableHead className="flex w-52 shrink-0 items-center">
-                {columns.run ? m.meta_standings_col_run() : m.meta_finishes_col_record()}
-              </TableHead>
-            )}
-            {columns.value && (
-              <TableHead className="flex w-28 shrink-0 items-center justify-end">
-                {m.meta_standings_col_value()}
-              </TableHead>
-            )}
-            {columns.deck && (
-              <TableHead className="flex w-36 shrink-0 items-center justify-end">
-                {m.meta_standings_decklist()}
-              </TableHead>
-            )}
-          </TableRow>
-        </TableHeader>
+        <DesktopStandingsHeader
+          columns={columns}
+          className={header === "screen-reader" ? "sr-only" : undefined}
+        />
         <TableBody ref={containerRef} className="relative block" style={{ height }}>
           {rows.map(({ player, slot }) => (
             <DesktopRow

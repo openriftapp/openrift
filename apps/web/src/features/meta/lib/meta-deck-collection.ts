@@ -80,11 +80,17 @@ function scopedQuantities(cards: MetaDeckCards, includeSideboard: boolean): Map<
   return quantities;
 }
 
+interface ListRow {
+  deckId: string | null;
+  listStatus: MetaListStatus;
+}
+
 export function partialListDeckIds(
-  rows: readonly { deckId: string | null; listStatus: MetaListStatus }[],
+  rows: readonly ListRow[],
+  moreRows: readonly (readonly ListRow[] | undefined)[] = [],
 ): Set<string> {
   const ids = new Set<string>();
-  for (const row of rows) {
+  for (const row of [rows, ...moreRows].flatMap((list) => list ?? [])) {
     if (row.deckId !== null && row.listStatus === "partial") {
       ids.add(row.deckId);
     }

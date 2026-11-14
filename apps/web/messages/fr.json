@@ -7045,7 +7045,6 @@
   "meta_submissions_empty_description": "Vous avez suivi un tournoi et savez ce qui s'y est joué ? Envoyez une decklist et suivez sa vérification ici. Aidez-nous à combler les lacunes.",
   "meta_submissions_show_older": "Afficher les contributions plus anciennes",
   "meta_event_actions_sr": "Actions du tournoi",
-  "meta_legend_finishes_best_per_legend": "Meilleur classement par légende",
   "meta_legend_finishes_deck": "Deck",
   "meta_deck_incomplete_title": "Cette liste est incomplète",
   "meta_inferred_badge": "Déduit",
@@ -7724,6 +7723,37 @@
   "meta_standings_find_player": "Trouver un joueur",
   "meta_standings_find_player_placeholder": "Trouver un joueur…",
   "meta_standings_filter_legend": "Filtrer par légende",
+  "meta_standings_order_aria": "Affichage du classement",
+  "meta_standings_by_rank": "Par rang",
+  "meta_standings_by_legend": "Par légende",
+  "meta_standings_expand_all": "Tout déplier",
+  "meta_standings_collapse_all": "Tout replier",
+  "meta_standings_legend_best": "Meilleur",
+  "meta_standings_legend_page": "Page de la légende",
+  "meta_standings_legend_unknown": "Aucune légende connue",
+  "meta_standings_legend_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} joueur",
+        "countPlural=*": "{countFormatted} joueurs"
+      }
+    }
+  ],
+  "meta_standings_legend_see_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Voir les {countFormatted} dans le classement"
+      }
+    }
+  ],
   "meta_standings_no_entries": "Aucune entrée ne correspond.",
   "meta_standings_cost_none_on_page": "Aucune entrée de cette page ne rentre dans le filtre de prix. Les prix sont calculés dans votre navigateur, donc le filtre ne s'applique qu'à la page affichée.",
   "meta_standings_pages_aria": "Pages du classement",

@@ -22,7 +22,6 @@ import { MetaEventBracket } from "@/features/meta/components/meta-event-bracket"
 import { MetaEventContributeBand } from "@/features/meta/components/meta-event-contribute-band";
 import { MetaEventCorrectionDialog } from "@/features/meta/components/meta-event-correction-dialog";
 import { MetaEventHeader } from "@/features/meta/components/meta-event-header";
-import { MetaEventLegendFinishes } from "@/features/meta/components/meta-event-legend-finishes";
 import { MetaEventPendingList } from "@/features/meta/components/meta-event-pending-list";
 import { MetaEventStandings } from "@/features/meta/components/meta-event-standings";
 import { useMetaEvent, useMetaPendingSubmissions } from "@/features/meta/hooks/use-meta";
@@ -112,11 +111,10 @@ export function MetaEventPage({ slug }: { slug: string }) {
           players={bracketPlayers(standings.players, bestPerLegend)}
         />
 
-        <MetaEventLegendFinishes entries={bestPerLegend} phases={phases} slug={slug} />
-
         <MetaEventStandings
           firstPage={standings}
           field={field}
+          bestPerLegend={bestPerLegend}
           phases={phases}
           slug={slug}
           eventDate={event.eventDate}

@@ -26,3 +26,6 @@ export const META_EVENT_INDEX_SORTS = [
   "players",
   "decks",
 ] as const;
+
+/** The standings `legend` value that asks for the entries whose legend the archive does not know. */
+export const NO_LEGEND = "none";

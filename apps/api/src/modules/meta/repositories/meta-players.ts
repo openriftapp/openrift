@@ -1,3 +1,4 @@
+import { NO_LEGEND } from "@openrift/shared/meta-query";
 import type { CardType, MetaEntryStatus, MetaListStatus } from "@openrift/shared/types/enums";
 import type { Kysely, Selectable, SelectQueryBuilder, SqlBool, Updateable } from "kysely";
 import { sql } from "kysely";
@@ -226,7 +227,10 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     if (filters.withList === true) {
       narrowed = narrowed.where(HAS_LIST);
     }
-    if (filters.legend !== undefined) {
+    if (filters.legend === NO_LEGEND) {
+      // A legend card the catalogue lacks counts as unknown too, as in the field's legend counts.
+      narrowed = narrowed.where(sql<SqlBool>`lc.id is null`);
+    } else if (filters.legend !== undefined) {
       narrowed = narrowed.where(sql<SqlBool>`p.legend_card_id = ${filters.legend}::uuid`);
     }
     return narrowed;

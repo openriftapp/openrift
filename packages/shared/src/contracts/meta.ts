@@ -5,6 +5,7 @@ import {
   META_EVENT_INDEX_SORTS,
   META_MAX_LIST_PAGE_SIZE,
   META_MAX_PAGE_SIZE,
+  NO_LEGEND,
 } from "@openrift/shared/meta-query";
 import {
   deckFormatSchema,
@@ -298,7 +299,7 @@ export const metaEventStandingsQuerySchema = z.object({
   slug: z.string().min(1),
   q: z.string().max(200).optional(),
   list: z.literal("with").optional(),
-  legend: z.uuid().optional(),
+  legend: z.union([z.uuid(), z.literal(NO_LEGEND)]).optional(),
   limit: z.coerce.number().int().positive().max(META_MAX_PAGE_SIZE).optional(),
   offset: pageOffset,
 });

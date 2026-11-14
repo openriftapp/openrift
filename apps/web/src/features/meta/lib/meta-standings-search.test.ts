@@ -11,7 +11,7 @@ describe("metaStandingsSearchSchema", () => {
   it("reads the page and the size a link carries", () => {
     expect(
       metaStandingsSearchSchema.parse({ page: "3", per: "50", q: "ana", list: "with" }),
-    ).toEqual({ page: 3, per: 50, q: "ana", list: "with", legend: undefined });
+    ).toEqual({ page: 3, per: 50, q: "ana", list: "with", legend: undefined, by: undefined });
   });
 
   it("keeps the whole field as a size of its own", () => {
@@ -25,11 +25,18 @@ describe("metaStandingsSearchSchema", () => {
       q: undefined,
       list: undefined,
       legend: undefined,
+      by: undefined,
     });
+  });
+
+  it("reads the grouping a link carries and drops an unknown one", () => {
+    expect(metaStandingsSearchSchema.parse({ by: "legend" }).by).toBe("legend");
+    expect(metaStandingsSearchSchema.parse({ by: "deck" }).by).toBeUndefined();
   });
 
   it("drops a legend that is not an id the API would accept", () => {
     expect(metaStandingsSearchSchema.parse({ legend: "azir" }).legend).toBeUndefined();
+    expect(metaStandingsSearchSchema.parse({ legend: "none" }).legend).toBe("none");
     expect(
       metaStandingsSearchSchema.parse({ legend: "0199f1a2-6b3c-7d4e-8f90-1a2b3c4d5e6f" }).legend,
     ).toBe("0199f1a2-6b3c-7d4e-8f90-1a2b3c4d5e6f");

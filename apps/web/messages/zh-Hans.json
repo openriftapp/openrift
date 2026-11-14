@@ -7043,7 +7043,6 @@
   "meta_submissions_empty_description": "看过某场赛事，知道大家都玩了什么？提交一份卡组表，并在这里追踪它的审核进度。帮我们把空缺补上。",
   "meta_submissions_show_older": "显示更早的贡献",
   "meta_event_actions_sr": "赛事操作",
-  "meta_legend_finishes_best_per_legend": "各传奇的最佳成绩",
   "meta_legend_finishes_deck": "卡组",
   "meta_deck_incomplete_title": "这份清单并不完整",
   "meta_inferred_badge": "推测",
@@ -7722,6 +7721,37 @@
   "meta_standings_find_player": "查找选手",
   "meta_standings_find_player_placeholder": "查找选手…",
   "meta_standings_filter_legend": "按传奇筛选",
+  "meta_standings_order_aria": "排名视图",
+  "meta_standings_by_rank": "按名次",
+  "meta_standings_by_legend": "按传奇",
+  "meta_standings_expand_all": "全部展开",
+  "meta_standings_collapse_all": "全部收起",
+  "meta_standings_legend_best": "最佳",
+  "meta_standings_legend_page": "传奇页面",
+  "meta_standings_legend_unknown": "未记录传奇",
+  "meta_standings_legend_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 名玩家",
+        "countPlural=*": "{countFormatted} 名玩家"
+      }
+    }
+  ],
+  "meta_standings_legend_see_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "在排名中查看全部 {countFormatted} 名"
+      }
+    }
+  ],
   "meta_standings_no_entries": "没有符合的参赛记录。",
   "meta_standings_cost_none_on_page": "本页没有符合价格筛选的参赛记录。价格在浏览器中计算，因此筛选仅适用于当前页。",
   "meta_standings_pages_aria": "排名分页",

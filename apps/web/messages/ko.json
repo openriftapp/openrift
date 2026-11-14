@@ -7043,7 +7043,6 @@
   "meta_submissions_empty_description": "대회를 보고 사람들이 무엇을 썼는지 아시나요? 덱 목록을 보내고 검토 상황을 여기서 확인하세요. 빈 곳을 함께 채워 주세요.",
   "meta_submissions_show_older": "이전 기여 보기",
   "meta_event_actions_sr": "대회 작업",
-  "meta_legend_finishes_best_per_legend": "전설별 최고 성적",
   "meta_legend_finishes_deck": "덱",
   "meta_deck_incomplete_title": "이 리스트는 완전하지 않습니다",
   "meta_inferred_badge": "추정",
@@ -7722,6 +7721,37 @@
   "meta_standings_find_player": "플레이어 찾기",
   "meta_standings_find_player_placeholder": "플레이어 찾기…",
   "meta_standings_filter_legend": "전설로 필터",
+  "meta_standings_order_aria": "순위표 보기 방식",
+  "meta_standings_by_rank": "순위별",
+  "meta_standings_by_legend": "전설별",
+  "meta_standings_expand_all": "모두 펼치기",
+  "meta_standings_collapse_all": "모두 접기",
+  "meta_standings_legend_best": "최고",
+  "meta_standings_legend_page": "전설 페이지",
+  "meta_standings_legend_unknown": "전설 정보 없음",
+  "meta_standings_legend_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "플레이어 {countFormatted}명",
+        "countPlural=*": "플레이어 {countFormatted}명"
+      }
+    }
+  ],
+  "meta_standings_legend_see_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "순위표에서 {countFormatted}명 모두 보기"
+      }
+    }
+  ],
   "meta_standings_no_entries": "일치하는 참가자가 없습니다.",
   "meta_standings_cost_none_on_page": "이 페이지에는 가격 필터에 맞는 참가자가 없습니다. 가격은 브라우저에서 계산하므로 필터는 지금 보고 있는 페이지에만 적용됩니다.",
   "meta_standings_pages_aria": "순위 페이지",

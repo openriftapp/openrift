@@ -7043,7 +7043,6 @@
   "meta_submissions_empty_description": "看過某場賽事，知道大家打了什麼嗎？投稿一份牌組清單，並在這裡追蹤審核進度。幫我們補齊缺漏的部分。",
   "meta_submissions_show_older": "顯示較早的投稿",
   "meta_event_actions_sr": "賽事操作",
-  "meta_legend_finishes_best_per_legend": "各傳奇的最佳名次",
   "meta_legend_finishes_deck": "牌組",
   "meta_deck_incomplete_title": "這份清單並不完整",
   "meta_inferred_badge": "推測",
@@ -7722,6 +7721,37 @@
   "meta_standings_find_player": "尋找玩家",
   "meta_standings_find_player_placeholder": "尋找玩家…",
   "meta_standings_filter_legend": "依傳奇篩選",
+  "meta_standings_order_aria": "排名檢視",
+  "meta_standings_by_rank": "依名次",
+  "meta_standings_by_legend": "依傳奇",
+  "meta_standings_expand_all": "全部展開",
+  "meta_standings_collapse_all": "全部收合",
+  "meta_standings_legend_best": "最佳",
+  "meta_standings_legend_page": "傳奇頁面",
+  "meta_standings_legend_unknown": "未記錄傳奇",
+  "meta_standings_legend_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 名玩家",
+        "countPlural=*": "{countFormatted} 名玩家"
+      }
+    }
+  ],
+  "meta_standings_legend_see_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "在排名中查看全部 {countFormatted} 名"
+      }
+    }
+  ],
   "meta_standings_no_entries": "沒有符合的參賽資料。",
   "meta_standings_cost_none_on_page": "本頁沒有符合價格篩選的參賽資料。價格在瀏覽器中計算，因此篩選僅適用於目前頁面。",
   "meta_standings_pages_aria": "排名分頁",

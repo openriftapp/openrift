@@ -1,4 +1,4 @@
-import { STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
+import { NO_LEGEND, STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
 import { z } from "zod/mini";
 
 import {
@@ -19,7 +19,8 @@ import { lenient } from "@/lib/lenient-param";
 export const metaStandingsSearchSchema = z.object({
   q: lenient(z.string().check(z.maxLength(200))),
   list: lenient(z.literal("with")),
-  legend: lenient(z.uuid()),
+  legend: lenient(z.union([z.uuid(), z.literal(NO_LEGEND)])),
+  by: lenient(z.literal("legend")),
   ...metaPagingSearchFieldsWithAll(),
 });
 

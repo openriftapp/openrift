@@ -184,13 +184,15 @@ export function PhoneRow({
                 eventSlug={player.rounds.length > 0 ? slug : undefined}
               />
             </p>
-            <MetaIdentity
-              legend={player.legend}
-              slug={player.legend?.slug}
-              archiveSlug={player.legend?.archiveSlug}
-              domains={player.legend?.domains}
-              className="text-muted-foreground text-xs"
-            />
+            {columns.legend && (
+              <MetaIdentity
+                legend={player.legend}
+                slug={player.legend?.slug}
+                archiveSlug={player.legend?.archiveSlug}
+                domains={player.legend?.domains}
+                className="text-muted-foreground text-xs"
+              />
+            )}
             {(columns.run || columns.record) && (
               <RunCell player={player} slug={slug} layout="inline" className="mt-1" />
             )}

@@ -694,6 +694,29 @@ describe("GET /meta/events/{slug}/standings", () => {
     );
   });
 
+  it("forwards a narrowing to the entries without a known legend", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+
+    await app.request("/api/v1/meta/events/summoner-skirmish-2026/standings?legend=none");
+
+    expect(mockMeta.standingsPage).toHaveBeenCalledWith(
+      EVENT_ID,
+      { q: undefined, withList: false, legend: "none" },
+      { limit: 200, offset: 0 },
+    );
+  });
+
+  it("rejects a standings legend that is neither a card id nor none", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+
+    const res = await app.request(
+      "/api/v1/meta/events/summoner-skirmish-2026/standings?legend=ahri",
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.standingsPage).not.toHaveBeenCalled();
+  });
+
   it("draws each row's run and 404s an unknown event", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
     mockMeta.standingsPage.mockResolvedValue(standingsPage([playerRow()]));

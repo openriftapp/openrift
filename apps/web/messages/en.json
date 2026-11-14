@@ -7050,7 +7050,6 @@
   "meta_submissions_empty_description": "Watched a tournament and know what people played? Send in a decklist and track its review here. Help us fill in the gaps.",
   "meta_submissions_show_older": "Show older contributions",
   "meta_event_actions_sr": "Tournament actions",
-  "meta_legend_finishes_best_per_legend": "Best finish per legend",
   "meta_legend_finishes_deck": "Deck",
   "meta_deck_incomplete_title": "This list is incomplete",
   "meta_inferred_badge": "Inferred",
@@ -7729,6 +7728,37 @@
   "meta_standings_find_player": "Find a player",
   "meta_standings_find_player_placeholder": "Find a player…",
   "meta_standings_filter_legend": "Filter by legend",
+  "meta_standings_order_aria": "Standings view",
+  "meta_standings_by_rank": "By rank",
+  "meta_standings_by_legend": "By legend",
+  "meta_standings_expand_all": "Expand all",
+  "meta_standings_collapse_all": "Collapse all",
+  "meta_standings_legend_best": "Best",
+  "meta_standings_legend_page": "Legend page",
+  "meta_standings_legend_unknown": "No legend on file",
+  "meta_standings_legend_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} player",
+        "countPlural=*": "{countFormatted} players"
+      }
+    }
+  ],
+  "meta_standings_legend_see_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "See all {countFormatted} in the standings"
+      }
+    }
+  ],
   "meta_standings_no_entries": "No entries match.",
   "meta_standings_cost_none_on_page": "No entry on this page is within the price filter. Prices are worked out in your browser, so it only narrows the page you are on.",
   "meta_standings_pages_aria": "Standings pages",

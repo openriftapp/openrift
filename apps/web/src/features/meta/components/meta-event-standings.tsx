@@ -6,6 +6,7 @@ import type {
   MetaEventField,
   MetaEventPhase,
   MetaEventStandingsResponse,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
 import { getRouteApi } from "@tanstack/react-router";
@@ -30,9 +31,10 @@ import {
   DesktopStandings,
   PhoneStandings,
 } from "@/features/meta/components/meta-event-standings-body";
+import { MetaEventStandingsByLegend } from "@/features/meta/components/meta-event-standings-by-legend";
 import { MetaListShapeKey } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaPageSizePicker } from "@/features/meta/components/meta-page-size-picker";
-import { useMetaStandings } from "@/features/meta/hooks/use-meta";
+import { useMetaLegendGroupRows, useMetaStandings } from "@/features/meta/hooks/use-meta";
 import type { MetaBanGroup } from "@/features/meta/lib/meta-deck-bans";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { partialListDeckIds } from "@/features/meta/lib/meta-deck-collection";
@@ -43,6 +45,13 @@ import {
   subtitleFor,
 } from "@/features/meta/lib/meta-event-standings";
 import { describeEventProgress } from "@/features/meta/lib/meta-event-structure";
+import {
+  LEGEND_GROUP_ROWS,
+  LEGEND_GROUPS_SHOWN,
+  legendGroups,
+  openLegendIds,
+  unknownLegendGroup,
+} from "@/features/meta/lib/meta-legend-groups";
 import type { MetaPageSize } from "@/features/meta/lib/meta-paging";
 import { metaPageCount } from "@/features/meta/lib/meta-paging";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
@@ -87,6 +96,7 @@ function narrowedEmptyCopy(costActive: boolean, total: number): string {
 export function MetaEventStandings({
   firstPage,
   field,
+  bestPerLegend,
   phases,
   slug,
   eventDate,
@@ -95,6 +105,7 @@ export function MetaEventStandings({
 }: {
   firstPage: MetaEventStandingsResponse;
   field: MetaEventField;
+  bestPerLegend: readonly MetaStandingsRow[];
   phases: readonly MetaEventPhase[];
   slug: string;
   pending: ReadonlyMap<string, MetaPendingRowMark>;
@@ -117,6 +128,8 @@ export function MetaEventStandings({
   // Clearing the cost filter undoes a `list=with` this component set and leaves
   // one the reader chose in place.
   const [narrowedToLists, setNarrowedToLists] = useState(false);
+  const [touchedLegends, setTouchedLegends] = useState<readonly string[] | null>(null);
+  const [allLegendsShown, setAllLegendsShown] = useState(false);
 
   const setView = (patch: Partial<MetaStandingsSearch>, replace = false) => {
     void navigate({
@@ -145,6 +158,21 @@ export function MetaEventStandings({
     setShown(asked);
   }
 
+  const unknownGroup = unknownLegendGroup(field.legends, firstPage.total);
+  const legends = legendOptions(field.legends, unknownGroup?.count ?? 0);
+  const showSearch = firstPage.total > 8;
+  const showLegendFilter = showSearch && Object.keys(legends).length > 0;
+  const byLegend = showLegendFilter && search.by === "legend";
+  const groups = legendGroups(field.legends, bestPerLegend);
+  const openIds = openLegendIds(touchedLegends, groups);
+  const allGroupIds = [
+    ...(allLegendsShown ? groups : groups.slice(0, LEGEND_GROUPS_SHOWN)).map(
+      (group) => group.cardId,
+    ),
+    ...(unknownGroup === null ? [] : [unknownGroup.cardId]),
+  ];
+  const groupRows = useMetaLegendGroupRows(slug, byLegend ? openIds : [], LEGEND_GROUP_ROWS);
+
   if (firstPage.total === 0) {
     return (
       <section className="mt-8">
@@ -159,7 +187,6 @@ export function MetaEventStandings({
   }
 
   const columns = standingsColumns(field, canSubmit || pending.size > 0);
-  const legends = legendOptions(field.legends);
   const players = isError ? [] : page.players;
   const matching = costActive
     ? players.filter((player) =>
@@ -169,13 +196,10 @@ export function MetaEventStandings({
         ),
       )
     : players;
-  const showSearch = firstPage.total > 8;
-  const showLegendFilter = showSearch && Object.keys(legends).length > 0;
   const totalPages = metaPageCount(page.total, shown.perPage);
   const toggle = (id: string) => setExpandedId(expandedId === id ? null : id);
-  const body = {
+  const groupBody = {
     cutSize: cutSizeOf(phases),
-    players: matching,
     slug,
     canSubmit,
     columns,
@@ -186,6 +210,8 @@ export function MetaEventStandings({
     expandedId,
     onToggle: toggle,
   };
+  const body = { ...groupBody, players: matching };
+  const dimmed = isPlaceholderData && !byLegend;
 
   return (
     <CardDetailOverlayProvider>
@@ -196,7 +222,9 @@ export function MetaEventStandings({
               includeSideboard={costFilter.includeSideboard}
               withCollection={canSubmit}
               decks={{ event: slug }}
-              partialDeckIds={partialListDeckIds(players)}
+              // The group rows go in as their own argument: merging them into one array
+              // here stops the compiler memoizing this whole component.
+              partialDeckIds={partialListDeckIds(players, groupRows.lists)}
               onChange={setCosts}
             />
           </Suspense>
@@ -224,12 +252,54 @@ export function MetaEventStandings({
 
         {(field.withLists > 0 || showSearch || showLegendFilter) && (
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            {field.withLists > 0 && (
+            {showLegendFilter && (
+              <ToggleGroup
+                variant="outline"
+                spacing={0}
+                value={[byLegend ? "legend" : "rank"]}
+                onValueChange={([next]) => {
+                  // Pressing the active item again sends no value.
+                  if (next === undefined) {
+                    return;
+                  }
+                  setNarrowedToLists(false);
+                  if (next === "rank") {
+                    setView({ by: undefined });
+                    return;
+                  }
+                  setCostFilter((current) => ({
+                    ...current,
+                    maxCost: null,
+                    valueRange: { min: null, max: null },
+                  }));
+                  setView({ by: "legend", q: undefined, list: undefined, legend: undefined });
+                }}
+                aria-label={m.meta_standings_order_aria()}
+              >
+                <ToggleGroupItem value="rank">{m.meta_standings_by_rank()}</ToggleGroupItem>
+                <ToggleGroupItem value="legend">{m.meta_standings_by_legend()}</ToggleGroupItem>
+              </ToggleGroup>
+            )}
+            {byLegend && (
+              <Button
+                variant="link"
+                className="ml-auto h-auto p-0 text-sm font-medium"
+                onClick={() => setTouchedLegends(openIds.length > 0 ? [] : allGroupIds)}
+              >
+                {openIds.length > 0
+                  ? m.meta_standings_collapse_all()
+                  : m.meta_standings_expand_all()}
+              </Button>
+            )}
+            {!byLegend && field.withLists > 0 && (
               <ToggleGroup
                 variant="outline"
                 spacing={0}
                 value={[search.list === "with" ? "withList" : "all"]}
                 onValueChange={([next]) => {
+                  if (next === undefined) {
+                    return;
+                  }
                   setNarrowedToLists(false);
                   setView({ list: next === "withList" ? "with" : undefined });
                 }}
@@ -241,13 +311,13 @@ export function MetaEventStandings({
                 </ToggleGroupItem>
               </ToggleGroup>
             )}
-            {showSearch && (
+            {!byLegend && showSearch && (
               <StandingsSearch
                 value={search.q ?? ""}
                 onCommit={(next) => setView({ q: next === "" ? undefined : next }, true)}
               />
             )}
-            {showLegendFilter && (
+            {!byLegend && showLegendFilter && (
               <SimpleSelect
                 items={Object.entries(legends).map(([value, label]) => ({ value, label }))}
                 value={search.legend ?? ANY_LEGEND}
@@ -258,7 +328,7 @@ export function MetaEventStandings({
                 className="w-56"
               />
             )}
-            {columns.value && (
+            {!byLegend && columns.value && (
               <MetaDeckCostFilter
                 trigger="control"
                 triggerSize="default"
@@ -305,13 +375,28 @@ export function MetaEventStandings({
 
         <div id={STANDINGS_ID} className={PAGER_SCROLL_TARGET}>
           <div
-            aria-busy={isPlaceholderData}
-            className={cn(
-              "transition-opacity duration-150",
-              isPlaceholderData ? "opacity-60" : "opacity-100",
-            )}
+            aria-busy={dimmed}
+            className={cn("transition-opacity duration-150", dimmed ? "opacity-60" : "opacity-100")}
           >
-            {isError ? (
+            {byLegend ? (
+              <MetaEventStandingsByLegend
+                groups={groups}
+                unknownGroup={unknownGroup}
+                allShown={allLegendsShown}
+                openIds={openIds}
+                rowsByLegend={new Map(openIds.map((id, index) => [id, groupRows.groups[index]]))}
+                onShowAll={() => setAllLegendsShown(!allLegendsShown)}
+                body={{ ...groupBody, columns: { ...columns, legend: false } }}
+                onToggleGroup={(cardId) =>
+                  setTouchedLegends(
+                    openIds.includes(cardId)
+                      ? openIds.filter((id) => id !== cardId)
+                      : [...openIds, cardId],
+                  )
+                }
+                onSeeAll={(cardId) => setView({ by: undefined, legend: cardId })}
+              />
+            ) : isError ? (
               <Empty>
                 <EmptyHeader>
                   <EmptyDescription>{m.common_error_generic()}</EmptyDescription>
@@ -338,7 +423,7 @@ export function MetaEventStandings({
               </>
             )}
           </div>
-          {(page.total > 0 || search.per !== undefined) && (
+          {!byLegend && (page.total > 0 || search.per !== undefined) && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               <Pager
                 page={shown.page}

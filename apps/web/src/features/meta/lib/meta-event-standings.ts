@@ -1,3 +1,4 @@
+import { NO_LEGEND } from "@openrift/shared/meta-query";
 import type { MetaEventField } from "@openrift/shared/types/api/meta";
 
 import { m } from "@/paraglide/messages.js";
@@ -5,7 +6,10 @@ import { m } from "@/paraglide/messages.js";
 export const ANY_LEGEND = "any";
 
 /** The legends the field played, alphabetical. Keyed by card id so legends sharing a champion stay apart. */
-export function legendOptions(legends: MetaEventField["legends"]): Record<string, string> {
+export function legendOptions(
+  legends: MetaEventField["legends"],
+  unknownCount: number,
+): Record<string, string> {
   if (legends.length < 2) {
     return {};
   }
@@ -14,6 +18,9 @@ export function legendOptions(legends: MetaEventField["legends"]): Record<string
     ...Object.fromEntries(
       legends.map((legend) => [legend.cardId, `${legend.name} (${legend.count})`]),
     ),
+    ...(unknownCount > 0 && {
+      [NO_LEGEND]: `${m.meta_standings_legend_unknown()} (${unknownCount})`,
+    }),
   };
 }
 

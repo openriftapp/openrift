@@ -1,3 +1,4 @@
+import { NO_LEGEND } from "@openrift/shared/meta-query";
 import type {
   CardType,
   MetaCreditVisibility,
@@ -48,6 +49,7 @@ interface PlayerOpts {
   draws?: number | null;
   withChampion?: boolean;
   withSideboard?: boolean;
+  withLegend?: boolean;
   deckFormat?: string;
   sourceIdentity?: string;
 }
@@ -138,7 +140,7 @@ function playerInput(eventId: string, opts: PlayerOpts): Omit<MetaEventPlayerInp
     wins: opts.wins ?? null,
     losses: opts.losses ?? null,
     draws: opts.draws ?? null,
-    legendCardId,
+    legendCardId: opts.withLegend === false ? null : legendCardId,
     championCardId: opts.withChampion === false ? null : championCardId,
     sourceIdentity: opts.sourceIdentity ?? null,
   };
@@ -1378,6 +1380,25 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(byLegend.total).toBe(3);
     });
 
+    it("narrows one event's standings to the entries without a known legend", async () => {
+      const eventId = await seedEvent(repo, "mta-standings-no-legend");
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Known Ana", rank: 1 });
+      await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Unknown Bo",
+        rank: 2,
+        withLegend: false,
+      });
+
+      const unknown = await repo.standingsPage(
+        eventId,
+        { legend: NO_LEGEND },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(unknown.total).toBe(1);
+      expect(unknown.rows.map((row) => row.playerName)).toEqual(["MTA Unknown Bo"]);
+    });
+
     it("pages a field that ties on both rank and name without repeating or skipping a row", async () => {
       const eventId = await seedEvent(repo, "mta-standings-tie-page");
       const ana = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Ana", rank: 1 });
@@ -1432,6 +1453,18 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(best.map((row) => row.playerName)).toEqual(["MTA Best Top"]);
       expect(cutLine?.playerName).toBe("MTA Best Cut");
       expect(tiered?.playerName).toBe("MTA Best Deep");
+    });
+
+    it("breaks a tied best finish by name, as the standings order it", async () => {
+      const eventId = await seedEvent(repo, "mta-best-per-legend-tie");
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Zed", rank: 5 });
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Ana", rank: 5 });
+
+      const best = await repo.bestPerLegendForEvent(eventId);
+      const page = await repo.standingsPage(eventId, {}, { limit: 10, offset: 0 });
+
+      expect(best.map((row) => row.playerName)).toEqual(["MTA Tie Ana"]);
+      expect(page.rows[0]?.playerName).toBe("MTA Tie Ana");
     });
 
     it("names the same cut-line row when two players tie at the cut rank", async () => {

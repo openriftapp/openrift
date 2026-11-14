@@ -52,6 +52,8 @@ const archive = vi.hoisted(() => {
     rows: [] as { id: string; playerName: string; shareToken: string | null; legend: unknown }[],
     cache: new Map<string, StandingsPage>(),
     fetched: [] as string[],
+    groupFetches: [] as string[],
+    failingGroups: new Set<string>(),
     kept: undefined as StandingsPage | undefined,
     // Keys the API rejects, and keys whose request never lands.
     failing: new Set<string>(),
@@ -64,7 +66,8 @@ const archive = vi.hoisted(() => {
           (needle === "" || row.playerName.toLowerCase().includes(needle)) &&
           (query.list !== "with" || row.shareToken !== null) &&
           (query.legend === undefined ||
-            (row.legend as { cardId?: string } | null)?.cardId === query.legend),
+            (row.legend as { cardId?: string } | null)?.cardId === query.legend ||
+            (query.legend === "none" && row.legend === null)),
       );
       const offset = query.offset ?? 0;
       return {
@@ -81,6 +84,26 @@ const archive = vi.hoisted(() => {
 vi.mock("@/features/meta/hooks/use-meta", async () => {
   const react = await import("react");
   return {
+    useMetaLegendGroupRows: (_slug: string, cardIds: readonly string[], limit: number) => {
+      archive.groupFetches.push(...cardIds);
+      const groups = cardIds.map((legend) =>
+        archive.failingGroups.has(legend)
+          ? {
+              players: undefined,
+              isError: true,
+              refetch: () => {
+                archive.failingGroups.delete(legend);
+                searchStore.write({ ...searchStore.read() });
+              },
+            }
+          : {
+              players: archive.pageFor({ legend, limit, offset: 0 }).players,
+              isError: false,
+              refetch: () => {},
+            },
+      );
+      return { groups, lists: groups.map((group) => group.players) };
+    },
     useMetaStandings: (slug: string, query: StandingsQuery) => {
       const key = archive.keyOf(slug, query);
       const hit = archive.cache.get(key);
@@ -148,6 +171,7 @@ vi.mock("@/features/meta/components/meta-deck-cost-filter", () => ({
       <p>{`cost ceiling: ${props.maxValue}`}</p>
       <p>{`completion ceiling: ${props.maxToComplete}`}</p>
       <p>{`cost sideboard: ${props.value.includeSideboard}`}</p>
+      <p>{`cost max: ${props.value.maxCost}`}</p>
       <button type="button" onClick={() => props.onMaxCostChange(10)}>
         cost bound
       </button>
@@ -238,6 +262,16 @@ function fieldOf(
   });
 }
 
+function bestPerLegendOf(players: MetaStandingsRow[]): MetaStandingsRow[] {
+  const best = new Map<string, MetaStandingsRow>();
+  for (const player of players.toSorted((a, b) => a.rank - b.rank)) {
+    if (player.legend !== null && !best.has(player.legend.cardId)) {
+      best.set(player.legend.cardId, player);
+    }
+  }
+  return [...best.values()];
+}
+
 const SLUG = "summoner-skirmish";
 
 function seedFromLoader(search: MetaStandingsSearch, total: number) {
@@ -277,6 +311,7 @@ function renderStandings(
     <MetaEventStandings
       firstPage={{ players: players.slice(0, 200), total: players.length }}
       field={fieldOf(players, extra)}
+      bestPerLegend={bestPerLegendOf(players)}
       phases={extra.phases ?? []}
       slug={SLUG}
       status={status}
@@ -322,6 +357,8 @@ describe("MetaEventStandings", () => {
     archive.includeSideboard = [];
     archive.cache.clear();
     archive.fetched = [];
+    archive.groupFetches = [];
+    archive.failingGroups.clear();
     archive.kept = undefined;
     archive.failing.clear();
     archive.holding.clear();
@@ -1370,6 +1407,212 @@ describe("MetaEventStandings", () => {
 
       expect(screen.getByText("cost sideboard: false")).toBeInTheDocument();
       expect(archive.includeSideboard.at(-1)).toBe(false);
+    });
+  });
+
+  describe("by legend", () => {
+    const yasuo = metaRow().legend!;
+    const ahri = {
+      ...yasuo,
+      cardId: "card-ahri",
+      name: "Ahri, the Nine-Tailed Fox",
+      character: "Ahri",
+      epithet: "the Nine-Tailed Fox",
+      archiveSlug: "ahri-ahri-the-nine-tailed-fox",
+    };
+    function mixedField() {
+      return field(10, (index) => ({
+        legend: index === 9 ? null : index === 0 || index === 3 ? ahri : yasuo,
+      }));
+    }
+
+    it("offers the legend grouping only where the legend filter shows", () => {
+      renderStandings(field(9));
+      expect(screen.queryByRole("button", { name: "By legend" })).toBeNull();
+    });
+
+    it("switches to the grouping and drops the narrowings it does not apply", async () => {
+      const user = userEvent.setup();
+      renderStandings(mixedField(), "2020-01-01", {
+        search: { q: "player", list: "with", legend: "card-ahri" },
+      });
+
+      await user.click(screen.getByRole("button", { name: "By legend" }));
+
+      expect(searchStore.read()).toMatchObject({
+        by: "legend",
+        q: undefined,
+        list: undefined,
+        legend: undefined,
+      });
+      expect(screen.queryByLabelText("Filter by legend")).toBeNull();
+      expect(screen.queryByLabelText("Find a player")).toBeNull();
+      expect(screen.queryByLabelText("Standings pages")).toBeNull();
+    });
+
+    it("orders groups by best finish and opens the first one", () => {
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+
+      const headers = screen.getAllByRole("button", { expanded: true });
+      expect(headers).toHaveLength(1);
+      expect(within(headers[0]!).getAllByText("Ahri").length).toBeGreaterThan(0);
+      expect(within(headers[0]!).getAllByText("2 players").length).toBeGreaterThan(0);
+      const closed = screen.getAllByRole("button", { expanded: false });
+      expect(within(closed[0]!).getAllByText("Yasuo").length).toBeGreaterThan(0);
+      expect(within(closed[0]!).getAllByText("7 players").length).toBeGreaterThan(0);
+      expect(archive.groupFetches).toEqual(["card-ahri"]);
+      expect(screen.getAllByText("Player 3").length).toBeGreaterThan(0);
+      expect(screen.queryByText("Player 2")).toBeNull();
+    });
+
+    it("leaves the legend to the group header on phone rows", () => {
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+      const row = screen
+        .getAllByText("Player 3")
+        .map((element) => element.closest("li"))
+        .find((element) => element !== null);
+      expect(row).toBeDefined();
+      expect(within(row!).queryByText("Ahri")).toBeNull();
+    });
+
+    it("groups the entries without a legend at the end and opens them like any legend", async () => {
+      const user = userEvent.setup();
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+
+      const unknown = screen.getByRole("button", { name: /No legend on file/u });
+      expect(within(unknown).getAllByText("1 player").length).toBeGreaterThan(0);
+      expect(screen.queryByText("Player 9")).toBeNull();
+
+      await user.click(unknown);
+
+      expect(archive.groupFetches).toContain("none");
+      expect(screen.getAllByText("Player 9").length).toBeGreaterThan(0);
+    });
+
+    it("keys the list shapes of partial lists in an open group", () => {
+      const shape = {
+        format: "constructed",
+        legend: 1,
+        champion: 1,
+        battlefield: 0,
+        main: 20,
+        runes: 0,
+        inferredChampion: false,
+        inferredBattlefield: false,
+      } as MetaStandingsRow["listShape"];
+      renderStandings(
+        field(10, (index) => ({
+          legend: index === 0 || index === 3 ? ahri : yasuo,
+          listShape: index === 3 ? shape : null,
+          listStatus: index === 3 ? "partial" : "none",
+        })),
+        "2020-01-01",
+        { search: { by: "legend" } },
+      );
+
+      expect(
+        screen.getByText("Legend · Champion · Battlefields · Main deck · Runes"),
+      ).toBeInTheDocument();
+    });
+
+    it("opens and closes groups, one at a time or all at once", async () => {
+      const user = userEvent.setup();
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+
+      await user.click(screen.getByRole("button", { expanded: false, name: /Yasuo/u }));
+      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(2);
+      expect(screen.getAllByText("Player 1").length).toBeGreaterThan(0);
+
+      await user.click(screen.getByRole("button", { name: "Collapse all" }));
+      expect(screen.queryAllByRole("button", { expanded: true })).toHaveLength(0);
+
+      await user.click(screen.getByRole("button", { name: "Expand all" }));
+      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(3);
+    });
+
+    it("hands a group's full list to the ranked standings, narrowed to its legend", async () => {
+      const user = userEvent.setup();
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+
+      await user.click(screen.getByRole("button", { expanded: false, name: /Yasuo/u }));
+      await user.click(screen.getByRole("button", { name: "See all 7 in the standings" }));
+
+      expect(searchStore.read()).toMatchObject({ by: undefined, legend: "card-yasuo" });
+    });
+
+    it("links an open group to its legend page", () => {
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+      expect(screen.getByRole("link", { name: "Legend page" }).getAttribute("href")).toBe(
+        "/meta/legends/ahri-ahri-the-nine-tailed-fox",
+      );
+    });
+
+    it("stays on the legend view when its own switch is pressed again", async () => {
+      const user = userEvent.setup();
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+
+      await user.click(screen.getByRole("button", { name: "By legend" }));
+
+      expect(searchStore.read()).toMatchObject({ by: "legend" });
+    });
+
+    it("drops a price bound on the way to the legend view", async () => {
+      const user = userEvent.setup();
+      archive.costs = new Map();
+      renderStandings(
+        field(10, (index) => ({
+          legend: index % 2 === 0 ? ahri : yasuo,
+          shareToken: `tok-${index}`,
+          deckId: `deck-${index}`,
+        })),
+      );
+
+      await user.click(screen.getByRole("button", { name: "cost bound" }));
+      expect(screen.getByText("cost max: 10")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "By legend" }));
+      await user.click(screen.getByRole("button", { name: "By rank" }));
+
+      expect(screen.getByText("cost max: null")).toBeInTheDocument();
+    });
+
+    it("offers a retry when a group's rows fail to load", async () => {
+      const user = userEvent.setup();
+      archive.failingGroups.add("card-ahri");
+      renderStandings(mixedField(), "2020-01-01", { search: { by: "legend" } });
+
+      expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+
+      expect(screen.getAllByText("Player 3").length).toBeGreaterThan(0);
+    });
+
+    it("expands the legends shown past the first twelve", async () => {
+      const user = userEvent.setup();
+      renderStandings(
+        field(14, (index) => ({
+          legend: {
+            ...yasuo,
+            cardId: `card-${index}`,
+            name: `Legend ${index}`,
+            character: `Legend ${index}`,
+          },
+        })),
+        "2020-01-01",
+        { search: { by: "legend" } },
+      );
+
+      await user.click(screen.getByRole("button", { name: "Show all 14" }));
+      await user.click(screen.getByRole("button", { name: "Collapse all" }));
+      await user.click(screen.getByRole("button", { name: "Expand all" }));
+
+      expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(14);
+    });
+
+    it("falls back to ranks when the field played one legend", () => {
+      renderStandings(field(9), "2020-01-01", { search: { by: "legend" } });
+      expect(screen.queryByText("No legend on file")).toBeNull();
+      expect(archive.groupFetches).toEqual([]);
     });
   });
 });
