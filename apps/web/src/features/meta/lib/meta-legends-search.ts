@@ -3,10 +3,8 @@ import { z } from "zod/mini";
 import { metaScopeSearchSchema } from "@/features/meta/lib/meta-scope";
 import { lenient } from "@/lib/lenient-param";
 
-// Schema only, no logic: a route's non-lazy `*.tsx` runs on every page load, so
-// anything this module pulls in lands in the startup bundle of every route.
-// `meta-legend-page` reaches `lib/country`, which builds an `Intl.DisplayNames`
-// at module scope.
+// Schema only: non-lazy route files import this on every page load, and
+// `meta-legend-page` reaches `lib/country`, whose top-level await delays startup.
 
 const META_LEGEND_INDEX_SORTS = ["name", "best", "decklists", "finishes"] as const;
 

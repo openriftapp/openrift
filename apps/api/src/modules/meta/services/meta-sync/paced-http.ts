@@ -216,7 +216,11 @@ export function createPacedHttp(options: PacedHttpOptions): PacedHttp {
       lastError = outcome.error;
       if ("throttleMs" in outcome) {
         if (throttled || options.waitOnThrottle === false) {
-          throw throttledError(url);
+          const error = throttledError(url);
+          if (error instanceof SourceBlockedError) {
+            blocked = true;
+          }
+          throw error;
         }
         throttled = true;
         await sleep(outcome.throttleMs);

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
+import type { PacedHttpOptions } from "./paced-http.js";
 import { createPacedHttp, createPacingGate } from "./paced-http.js";
 import {
   isPermanentRefusal,
   isTransientSourceFailure,
+  SourceBlockedError,
   SourceThrottledError,
 } from "./source-http.js";
 
@@ -15,7 +17,7 @@ class RefusedError extends Error {
   override name = "RefusedError";
 }
 
-function harness(responses: (() => Response)[]) {
+function harness(responses: (() => Response)[], overrides: Partial<PacedHttpOptions> = {}) {
   const sleeps: number[] = [];
   let call = 0;
   let clock = 1_000_000;
@@ -39,6 +41,7 @@ function harness(responses: (() => Response)[]) {
     isBlock: (status) => status === 403,
     blockedError: (url) => new BlockedError(url),
     refusedError: (code) => new RefusedError(String(code)),
+    ...overrides,
   });
   return { http, sleeps };
 }
@@ -146,6 +149,22 @@ describe("createPacedHttp", () => {
     expect(isPermanentRefusal(error)).toBe(false);
     expect(sleeps).toContain(30_000);
     expect(http.requests).toBe(2);
+    expect(http.blocked).toBe(false);
+  });
+
+  it("latches when a second throttle maps to a block", async () => {
+    const { http, sleeps } = harness([status(429)], {
+      throttledError: (url) => new SourceBlockedError(url),
+    });
+
+    await expect(http.request("https://source.invalid/a")).rejects.toBeInstanceOf(
+      SourceBlockedError,
+    );
+    expect(sleeps).toContain(30_000);
+    expect(http.blocked).toBe(true);
+    const before = http.requests;
+    await expect(http.request("https://source.invalid/b")).rejects.toBeInstanceOf(BlockedError);
+    expect(http.requests).toBe(before);
   });
 
   it("retries a request timeout instead of refusing it", async () => {

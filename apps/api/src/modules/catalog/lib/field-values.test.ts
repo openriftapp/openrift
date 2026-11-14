@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { AppError } from "../../../errors.js";
-import { asFieldWriteError, validateFieldValue } from "./field-values.js";
+import { asFieldWriteError, isUnchangedValue, validateFieldValue } from "./field-values.js";
 
 describe("validateFieldValue", () => {
   it("returns the value unchanged when the field has no validator", () => {
@@ -42,5 +42,19 @@ describe("asFieldWriteError", () => {
   it("passes any other error through", () => {
     const other = Object.assign(new Error("unique"), { code: "23505" });
     expect(asFieldWriteError(other, "rarity", "mythic")).toBe(other);
+  });
+});
+
+describe("isUnchangedValue", () => {
+  it("is true for equal scalars, including null", () => {
+    expect(isUnchangedValue(null, null)).toBe(true);
+    expect(isUnchangedValue("a", "a")).toBe(true);
+  });
+
+  it("is false for different scalars, a missing column and structured values", () => {
+    expect(isUnchangedValue("a", null)).toBe(false);
+    expect(isUnchangedValue(undefined, null)).toBe(false);
+    expect(isUnchangedValue(["a"], ["a"])).toBe(false);
+    expect(isUnchangedValue(undefined, undefined)).toBe(false);
   });
 });

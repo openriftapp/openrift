@@ -101,7 +101,7 @@ export interface PlayriftboundClient {
 
 // The events page is HTML by design, so only the status can signal a block there.
 function isBlock(status: number): boolean {
-  return status === 403 || status === 429;
+  return status === 403;
 }
 
 /** Decodes the body of a single-quoted JS string literal. */
@@ -227,6 +227,7 @@ export function createPlayriftboundClient(
     blockRetryDelayMs: BLOCK_RETRY_DELAY_MS,
     isBlock,
     blockedError: (url, detail) => new PlayriftboundBlockedError(url, detail),
+    throttledError: (url) => new PlayriftboundBlockedError(url, "HTTP 429 again after a wait"),
     refusedError: (status, url, body) =>
       new PlayriftboundRefusedError(httpFailureMessage(status, url, body)),
   });
@@ -263,10 +264,7 @@ export function createPlayriftboundClient(
   /** One script that fails to load is skipped; a later one may still hold the list. */
   async function readScript(url: string): Promise<string | null> {
     try {
-      return await http.request(url, {
-        headers: { accept: "*/*" },
-        isBlock: (status) => status === 429,
-      });
+      return await http.request(url, { headers: { accept: "*/*" }, isBlock: () => false });
     } catch (error) {
       if (error instanceof PlayriftboundBlockedError) {
         throw error;

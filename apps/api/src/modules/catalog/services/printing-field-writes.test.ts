@@ -145,3 +145,68 @@ describe("writePrintingField release fields", () => {
     ).rejects.toThrow("Invalid value for announcedAt");
   });
 });
+
+describe("normalizePrintingFieldValue optional text fields", () => {
+  const fields = [
+    "printedRulesText",
+    "printedEffectText",
+    "flavorText",
+    "printedName",
+    "comment",
+  ] as const;
+
+  function normalizeText(field: (typeof fields)[number], value: unknown) {
+    const { repos } = makeRepos(UNDATED);
+    return normalizePrintingFieldValue(repos, {
+      printingId: "printing-1",
+      field,
+      value,
+      source: "manual",
+    });
+  }
+
+  it.each(fields)("stores whitespace-only %s as null", async (field) => {
+    await expect(normalizeText(field, "  \n\t ")).resolves.toBeNull();
+    await expect(normalizeText(field, "")).resolves.toBeNull();
+  });
+
+  it.each(fields)("trims outer whitespace on %s", async (field) => {
+    await expect(normalizeText(field, "  Draw 1.\n")).resolves.toBe("Draw 1.");
+  });
+
+  it.each(fields)("keeps null for %s", async (field) => {
+    await expect(normalizeText(field, null)).resolves.toBeNull();
+  });
+});
+
+describe("normalizePrintingFieldValue provider-sourced text", () => {
+  function normalizeProvided(value: unknown) {
+    const { repos } = makeRepos(UNDATED);
+    return normalizePrintingFieldValue(repos, {
+      printingId: "printing-1",
+      field: "printedRulesText",
+      value,
+      source: "provider",
+    });
+  }
+
+  it("trims padded text and then applies typography", async () => {
+    await expect(normalizeProvided('  Deal "2" damage.  ')).resolves.toBe(
+      "Deal \u201C2\u201D damage.",
+    );
+  });
+
+  it("returns null for whitespace-only text without running typography", async () => {
+    const { repos } = makeRepos(UNDATED);
+    const listCostKeywords = vi.mocked(repos.keywords.listCostKeywords);
+    await expect(
+      normalizePrintingFieldValue(repos, {
+        printingId: "printing-1",
+        field: "printedRulesText",
+        value: "  \n ",
+        source: "provider",
+      }),
+    ).resolves.toBeNull();
+    expect(listCostKeywords).not.toHaveBeenCalled();
+  });
+});

@@ -32,6 +32,11 @@ describe("CountryFlag", () => {
     expect(screen.getByText("UK")).toBeInTheDocument();
   });
 
+  it("says the code once when the fallback has no name", () => {
+    render(<CountryFlag code="uk" />);
+    expect(screen.getByText("UK")).not.toHaveAttribute("aria-hidden", "true");
+  });
+
   it("renders nothing without a usable code", () => {
     const { container } = render(<CountryFlag code={null} />);
     expect(container).toBeEmptyDOMElement();

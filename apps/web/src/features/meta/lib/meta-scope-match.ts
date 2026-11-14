@@ -41,8 +41,8 @@ function countryCodes(values: readonly string[]): string[] {
 }
 
 /**
- * Do not move this beside `metaScopeSearchSchema`: `lib/country` builds an
- * `Intl.DisplayNames` at module scope, and the search schemas are imported by non-lazy route files that run on every page load.
+ * Do not move this beside `metaScopeSearchSchema`: `lib/country` awaits its names at the top
+ * level, and non-lazy route files that run on every page load import the schemas.
  */
 export function scopeMatches(
   event: ScopedEvent,

@@ -1,19 +1,21 @@
+import type { CountryNames } from "@/lib/country-names/loaders.gen";
+import { COUNTRY_NAME_LOADERS } from "@/lib/country-names/loaders.gen";
 import { FLAG_CODES } from "@/lib/flag-codes";
-import { getLocale } from "@/paraglide/runtime.js";
+import type { Locale } from "@/paraglide/runtime.js";
+import { getLocale, locales } from "@/paraglide/runtime.js";
 
 const ALPHA_2 = /^[a-z]{2}$/u;
 
-const regionNames = new Map<string, Intl.DisplayNames>();
-
-function regionNamesForLocale(): Intl.DisplayNames {
-  const locale = getLocale();
-  let names = regionNames.get(locale);
-  if (names === undefined) {
-    names = new Intl.DisplayNames([locale], { type: "region", fallback: "none" });
-    regionNames.set(locale, names);
-  }
-  return names;
-}
+// Every locale switch reloads the document, so the browser loads only the
+// locale it started in. Importers wait for this await: keep them in lazy chunks.
+const NAMES: Partial<Record<Locale, CountryNames>> = Object.fromEntries(
+  await Promise.all(
+    (import.meta.env.SSR ? locales : [getLocale()]).map(async (locale) => {
+      const { default: names } = await COUNTRY_NAME_LOADERS[locale]();
+      return [locale, names];
+    }),
+  ),
+);
 
 export function normalizeCountryCode(code: string | null | undefined): string | null {
   if (code === null || code === undefined) {
@@ -28,11 +30,7 @@ export function countryName(code: string | null | undefined): string | null {
   if (lower === null) {
     return null;
   }
-  // ZZ is CLDR's "Unknown Region": a real entry, but not a country to print.
-  if (lower === "zz") {
-    return null;
-  }
-  return regionNamesForLocale().of(lower.toUpperCase()) ?? null;
+  return NAMES[getLocale()]?.[lower] ?? null;
 }
 
 export function flagIconPath(code: string | null | undefined): string | null {

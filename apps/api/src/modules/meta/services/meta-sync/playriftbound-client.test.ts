@@ -68,6 +68,22 @@ function client(routes: Record<string, () => Response>, cache = createManifestCa
   };
 }
 
+function waitingClient(routeMap: Record<string, () => Response>) {
+  const waits: number[] = [];
+  const fake = fakeFetch(routeMap);
+  const c = createPlayriftboundClient({
+    fetch: fake.fetch,
+    baseUrl: BASE,
+    sleep: (ms) => {
+      waits.push(ms);
+      return Promise.resolve();
+    },
+    random: () => 0,
+    now: () => 0,
+  });
+  return { ...fake, client: c, waits };
+}
+
 describe("manifest discovery helpers", () => {
   it("decodes escaped string literal bodies", () => {
     expect(decodeJsString(String.raw`it\'s é\n\\`)).toBe("it's é\n\\");
@@ -272,17 +288,43 @@ describe("createPlayriftboundClient", () => {
     expect(calls).toHaveLength(before);
   });
 
-  it("reads a 429 on a script as a block and stops walking the scripts", async () => {
+  it("waits once on a 429 for a script, then reads a repeat as a block and stops walking the scripts", async () => {
     const page = Array.from(
       { length: 5 },
       (_, index) => `<script src="${ASSETS}static/chunks/c${index}.js"></script>`,
     ).join("");
-    const { client: c, calls } = client({
+    const {
+      client: c,
+      calls,
+      waits,
+    } = waitingClient({
       [`${BASE}/en-US/events`]: () => new Response(page),
       [`${ASSETS}static/chunks/`]: () => new Response("slow down", { status: 429 }),
     });
     await expect(c.query("Search", {})).rejects.toBeInstanceOf(PlayriftboundBlockedError);
     expect(calls).toHaveLength(3);
+    expect(waits).toContain(30_000);
+    expect(waits).not.toContain(15_000);
+    expect(c.blocked).toBe(true);
+  });
+
+  it("waits once on a 429 for the events page, then reads a repeat as a block", async () => {
+    const { client: c, waits } = waitingClient({
+      [`${BASE}/en-US/events`]: () => new Response("<html>slow down</html>", { status: 429 }),
+    });
+    await expect(c.query("Search", {})).rejects.toBeInstanceOf(PlayriftboundBlockedError);
+    expect(waits).toContain(30_000);
+    expect(waits).not.toContain(15_000);
+    expect(c.blocked).toBe(true);
+  });
+
+  it("reads a 429 with an HTML body on the API as a challenge: one patient retry, then a block", async () => {
+    const { client: c, waits } = waitingClient(
+      routes(() => new Response("<html>slow down</html>", { status: 429 })),
+    );
+    await expect(c.query("Search", {})).rejects.toBeInstanceOf(PlayriftboundBlockedError);
+    expect(waits).toContain(15_000);
+    expect(waits).not.toContain(30_000);
     expect(c.blocked).toBe(true);
   });
 
@@ -350,9 +392,48 @@ describe("createPlayriftboundClient", () => {
     expect(refused.client.blocked).toBe(false);
   });
 
-  it("reads a repeated 429 as a block, then fails every later call without a request", async () => {
-    const { client: c, calls } = client(routes(() => new Response("slow down", { status: 429 })));
+  it("waits the named Retry-After once on a 429 and carries on when the next answer succeeds", async () => {
+    let answers = 0;
+    const { client: c, waits } = waitingClient(
+      routes(() => {
+        answers++;
+        return answers === 1
+          ? new Response("slow down", { status: 429, headers: { "retry-after": "40" } })
+          : Response.json({ data: { ok: 1 } });
+      }),
+    );
+    await expect(c.query("Search", {})).resolves.toEqual({ ok: 1 });
+    expect(c.blocked).toBe(false);
+    expect(waits).toContain(40_000);
+  });
+
+  it("waits once on a first 429 that follows server errors", async () => {
+    let answers = 0;
+    const { client: c, waits } = waitingClient(
+      routes(() => {
+        answers++;
+        if (answers <= 2) {
+          return new Response("busy", { status: 503 });
+        }
+        return answers === 3
+          ? new Response("slow down", { status: 429 })
+          : Response.json({ data: { ok: 1 } });
+      }),
+    );
+    await expect(c.query("Search", {})).resolves.toEqual({ ok: 1 });
+    expect(c.blocked).toBe(false);
+    expect(waits).toContain(30_000);
+    expect(waits).not.toContain(15_000);
+  });
+
+  it("reads a 429 that repeats after the wait as a block, then fails every later call without a request", async () => {
+    const {
+      client: c,
+      calls,
+      waits,
+    } = waitingClient(routes(() => new Response("slow down", { status: 429 })));
     await expect(c.query("Search", {})).rejects.toBeInstanceOf(PlayriftboundBlockedError);
+    expect(waits).toContain(30_000);
     expect(c.blocked).toBe(true);
     const before = calls.length;
     await expect(c.query("Search", {})).rejects.toBeInstanceOf(PlayriftboundBlockedError);

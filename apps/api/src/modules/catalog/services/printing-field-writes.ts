@@ -9,7 +9,7 @@ import type { Repos, Transact } from "../../../deps.js";
 import type { AppError } from "../../../errors.js";
 import { badRequest } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { asFieldWriteError, validateFieldValue } from "../lib/field-values.js";
+import { asFieldWriteError, trimOptionalText, validateFieldValue } from "../lib/field-values.js";
 import { updatePrintingDistributionChannels, updatePrintingMarkers } from "./printing-admin.js";
 
 export type PrintingFieldSource = "provider" | "manual";
@@ -21,6 +21,14 @@ type WriteRepos = Pick<
 >;
 
 const TYPOGRAPHY_TEXT_FIELDS = new Set(["printedRulesText", "printedEffectText"]);
+
+const OPTIONAL_TEXT_FIELDS: ReadonlySet<string> = new Set([
+  "printedRulesText",
+  "printedEffectText",
+  "flavorText",
+  "printedName",
+  "comment",
+]);
 
 // The inputs of `mv_printing_foil_twins` and `mv_printing_sides_canonical_rank`.
 const CATALOG_VIEW_FIELDS: ReadonlySet<AcceptPrintingField> = new Set([
@@ -112,7 +120,7 @@ export async function normalizePrintingFieldValue(
     return normalizeReleaseValue(repos, printingId, field, value);
   }
 
-  let normalized: unknown = value;
+  let normalized: unknown = OPTIONAL_TEXT_FIELDS.has(field) ? trimOptionalText(value) : value;
   if (field === "rarity" && typeof value === "string") {
     const rarityRows = await repos.rarities.listAll();
     const raritySlugs = rarityRows.map((row) => row.slug);

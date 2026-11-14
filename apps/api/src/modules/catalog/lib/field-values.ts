@@ -1,7 +1,18 @@
+import { trimToNull } from "@openrift/shared/strings";
 import type { ZodType } from "zod";
 
 import { badRequest } from "../../../errors.js";
 import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
+
+/** Blank text is stored as null, the same value clearing the field writes. */
+export function trimOptionalText(value: unknown): unknown {
+  return typeof value === "string" ? trimToNull(value) : value;
+}
+
+/** True when a scalar write would store what the row already holds. */
+export function isUnchangedValue(before: unknown, after: unknown): boolean {
+  return after !== undefined && (after === null || typeof after !== "object") && before === after;
+}
 
 export function validateFieldValue(
   validator: ZodType | undefined,

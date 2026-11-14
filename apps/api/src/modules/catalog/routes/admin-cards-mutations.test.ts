@@ -18,6 +18,7 @@ import {
 import {
   deletePrinting,
   createNewPrinting,
+  updatePrintingDistributionChannels,
   updatePrintingMarkers,
 } from "../services/printing-admin.js";
 import { adminCardMutationsRouter } from "./admin-cards-mutations";
@@ -1329,6 +1330,40 @@ describe("POST /cards/new/:name/accept", () => {
     );
   });
 
+  it("stores the trimmed name on accept", async () => {
+    mockTrxMut.acceptNewCardFromSources.mockResolvedValue(undefined);
+
+    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardFields: {
+          id: "fire-dragon",
+          name: "  Fire Dragon ",
+          types: ["unit"],
+          domains: ["fury"],
+        },
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockTrxMut.acceptNewCardFromSources).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Fire Dragon" }),
+      "Fire Dragon",
+    );
+  });
+
+  it("returns 400 for a whitespace-only name on accept", async () => {
+    const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardFields: { id: "fire-dragon", name: "   ", types: ["unit"], domains: ["fury"] },
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockTrxMut.acceptNewCardFromSources).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when cardFields is missing", async () => {
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept", {
       method: "POST",
@@ -1830,6 +1865,63 @@ describe("audit events", () => {
         newValues: { artist: "New Artist" },
       }),
     );
+  });
+
+  it("accept-field on a card that stores the value already held writes nothing and no audit event", async () => {
+    mockMut.getFullCardById.mockResolvedValue({
+      id: CARD_ID2,
+      name: "Flame Drake",
+      slug: "flame-drake",
+      comment: null,
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "comment", value: "   " }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockMut.updateCardById).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("accept-field on a printing that stores the value already held writes nothing and no audit event", async () => {
+    mockMut.getFullPrintingById.mockResolvedValue({
+      id: PRINTING_ID,
+      cardId: CARD_ID2,
+      shortCode: "OGN-001",
+      flavorText: null,
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "flavorText", value: "  " }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("accept-field on a printing with a null value still clears distribution channels", async () => {
+    mockMut.getFullPrintingById.mockResolvedValue({
+      id: PRINTING_ID,
+      cardId: CARD_ID2,
+      shortCode: "OGN-001",
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "distributionChannelSlugs", value: null }),
+    });
+    expect(res.status).toBe(204);
+    expect(vi.mocked(updatePrintingDistributionChannels)).toHaveBeenCalledWith(
+      expect.anything(),
+      PRINTING_ID,
+      [],
+    );
+    expect(mockAdminEvents.insert).toHaveBeenCalled();
   });
 
   it("deleting a candidate printing records the deleted key fields", async () => {

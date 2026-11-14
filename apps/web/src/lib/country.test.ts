@@ -3,9 +3,10 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
+import { getLocale, locales, overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import { countryLabel, countryName, flagIconPath } from "./country";
+import { COUNTRY_NAME_LOADERS } from "./country-names/loaders.gen";
 import { FLAG_CODES } from "./flag-codes";
 
 describe("countryName", () => {
@@ -48,6 +49,23 @@ describe("countryName", () => {
   it("returns null for a missing code", () => {
     expect(countryName(null)).toBeNull();
     expect(countryName(undefined)).toBeNull();
+  });
+
+  it("uses the short names for Hong Kong, Macao and Palestine", () => {
+    expect(countryName("HK")).toBe("Hong Kong");
+    expect(countryName("MO")).toBe("Macao");
+    expect(countryName("PS")).toBe("Palestine");
+    expect(countryName("FK")).toBe("Falkland Islands");
+  });
+});
+
+describe("COUNTRY_NAME_LOADERS", () => {
+  it("names every flagged code in every locale except the two CLDR has no name for", async () => {
+    for (const locale of locales) {
+      const { default: names } = await COUNTRY_NAME_LOADERS[locale]();
+      const missing = [...FLAG_CODES].filter((code) => names[code] === undefined);
+      expect(missing.toSorted(), locale).toEqual(["pc", "xx"]);
+    }
   });
 });
 

@@ -13,6 +13,7 @@ import {
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { isUnchangedValue } from "../lib/field-values.js";
 import { deleteCard } from "../services/card-admin.js";
 import { normalizeCardFieldValue, writeCardField } from "../services/card-field-writes.js";
 import type { NewPrinting } from "../services/printing-admin.js";
@@ -89,6 +90,9 @@ export const adminCardMutationsCardsRouter = {
     // Snapshot before the write for the audit event. domains/superTypes have no
     // cheap before-read, so their old is null.
     const cardBefore = await mut.getFullCardById(cardId);
+    if (isUnchangedValue(cardBefore?.[field as keyof typeof cardBefore], finalValue)) {
+      return;
+    }
     const typesBefore = field === "types" ? await mut.getCardTypesById(cardId) : null;
     const auditEvent = () =>
       recordAdminEvent(context.repos, context.userId, {
@@ -123,7 +127,11 @@ export const adminCardMutationsCardsRouter = {
   }),
 
   acceptNewCard: os.acceptNewCard.handler(async ({ input, context }): Promise<void> => {
-    const { name, cardFields } = input;
+    const { name } = input;
+    const cardFields = {
+      ...input.cardFields,
+      name: normalizeCardFieldValue("name", input.cardFields.name) as string,
+    };
 
     // Grant holders may only accept names that have candidate data from an
     // allowed provider — otherwise this endpoint is arbitrary card creation

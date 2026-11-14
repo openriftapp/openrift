@@ -5,10 +5,8 @@ import { metaPageSlice, metaPagingSearchFields } from "@/features/meta/lib/meta-
 import { metaScopeSearchSchema } from "@/features/meta/lib/meta-scope";
 import { lenient } from "@/lib/lenient-param";
 
-// Schema only, no logic: a route's non-lazy `*.tsx` runs on every page load, so
-// anything this module pulls in lands in the startup bundle of every route.
-// `meta-events-index` reaches `lib/country`, which builds an `Intl.DisplayNames`
-// at module scope.
+// Schema only: non-lazy route files import this on every page load, and
+// `meta-events-index` reaches `lib/country`, whose top-level await delays startup.
 
 export type MetaEventIndexSort = (typeof META_EVENT_INDEX_SORTS)[number];
 

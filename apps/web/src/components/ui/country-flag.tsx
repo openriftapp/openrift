@@ -61,8 +61,8 @@ export function CountryFlag({
         )}
       >
         {/* The plate shows the code; the name is what a reader needs said. */}
-        <span aria-hidden>{iso}</span>
-        <span className="sr-only">{label}</span>
+        <span aria-hidden={label !== iso || undefined}>{iso}</span>
+        {label !== iso && <span className="sr-only">{label}</span>}
       </span>
     );
   }
