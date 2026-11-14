@@ -11,13 +11,31 @@ import {
 } from "./card-trade-lifecycle.js";
 
 function trade(overrides: Partial<CardTradeStateFields> = {}): CardTradeStateFields {
-  return { status: "pending", actionNeeded: null, viewerSyncAppliedAt: null, ...overrides };
+  return {
+    status: "pending",
+    actionNeeded: null,
+    viewerSyncAppliedAt: null,
+    counterpartySyncAppliedAt: null,
+    ...overrides,
+  };
 }
 
 describe("cardTradeState", () => {
   it("reads the viewer's own two acts off actionNeeded", () => {
     expect(cardTradeState(trade({ actionNeeded: "accept-or-decline" }))).toBe("to-answer");
-    expect(cardTradeState(trade({ status: "reserved", actionNeeded: "settle" }))).toBe("to-settle");
+    expect(
+      cardTradeState(
+        trade({
+          status: "reserved",
+          actionNeeded: "settle",
+          counterpartySyncAppliedAt: "2026-08-08T10:00:00.000Z",
+        }),
+      ),
+    ).toBe("to-settle");
+  });
+
+  it("holds an unsettled half as a swap until the other side settles", () => {
+    expect(cardTradeState(trade({ status: "reserved", actionNeeded: "settle" }))).toBe("to-swap");
   });
 
   it("treats a request the viewer sent as waiting on the other side", () => {
@@ -50,16 +68,31 @@ describe("cardTradeState", () => {
   });
 
   it("lets a pending settle win over a completed status", () => {
-    expect(cardTradeState(trade({ status: "completed", actionNeeded: "settle" }))).toBe(
-      "to-settle",
-    );
+    expect(
+      cardTradeState(
+        trade({
+          status: "completed",
+          actionNeeded: "settle",
+          counterpartySyncAppliedAt: "2026-08-08T10:00:00.000Z",
+        }),
+      ),
+    ).toBe("to-settle");
   });
 });
 
 describe("needsViewerAction", () => {
-  it("is true for both of the viewer's acts and nothing else", () => {
+  it("is true for an answer and a settle the other side is waiting on", () => {
     expect(needsViewerAction(trade({ actionNeeded: "accept-or-decline" }))).toBe(true);
-    expect(needsViewerAction(trade({ status: "reserved", actionNeeded: "settle" }))).toBe(true);
+    expect(
+      needsViewerAction(
+        trade({
+          status: "reserved",
+          actionNeeded: "settle",
+          counterpartySyncAppliedAt: "2026-08-08T10:00:00.000Z",
+        }),
+      ),
+    ).toBe(true);
+    expect(needsViewerAction(trade({ status: "reserved", actionNeeded: "settle" }))).toBe(false);
     expect(needsViewerAction(trade({ actionNeeded: "cancel" }))).toBe(false);
     expect(needsViewerAction(trade({ status: "completed" }))).toBe(false);
   });

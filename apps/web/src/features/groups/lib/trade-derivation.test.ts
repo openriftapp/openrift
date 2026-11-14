@@ -107,10 +107,20 @@ describe("tradeSection", () => {
     expect(tradeSection(stubTrade({ status: "pending", actionNeeded: "cancel" }))).toBe("active");
   });
 
-  it("buckets an unsettled reserved trade into action-needed", () => {
-    expect(tradeSection(stubTrade({ status: "reserved", actionNeeded: "settle" }))).toBe(
-      "action-needed",
-    );
+  it("buckets an agreed swap into active until the other side settles", () => {
+    expect(tradeSection(stubTrade({ status: "reserved", actionNeeded: "settle" }))).toBe("active");
+  });
+
+  it("buckets a swap the other side already settled into action-needed", () => {
+    expect(
+      tradeSection(
+        stubTrade({
+          status: "reserved",
+          actionNeeded: "settle",
+          counterpartySyncAppliedAt: "2026-08-08T10:00:00.000Z",
+        }),
+      ),
+    ).toBe("action-needed");
   });
 
   it("keeps a reserved trade the viewer already settled in active", () => {
@@ -376,16 +386,16 @@ describe("bucketMemberTrades", () => {
       ],
       "alice",
     );
-    expect(buckets.actionNeeded.map((t) => t.id)).toEqual(["a1"]);
+    expect(buckets.active.map((t) => t.id)).toEqual(["a1"]);
   });
 
-  it("surfaces an unsettled reserved trade in action-needed instead of vanishing from the member page", () => {
+  it("keeps an agreed swap on the member page as an open trade", () => {
     const buckets = bucketMemberTrades(
       [forMember("alice", { id: "r1", status: "reserved", actionNeeded: "settle" })],
       "alice",
     );
-    expect(buckets.actionNeeded.map((t) => t.id)).toEqual(["r1"]);
-    expect(buckets.active).toHaveLength(0);
+    expect(buckets.active.map((t) => t.id)).toEqual(["r1"]);
+    expect(buckets.actionNeeded).toHaveLength(0);
     expect(buckets.history).toHaveLength(0);
   });
 

@@ -13,6 +13,7 @@ export interface TradesIndexPerson {
   image: string | null;
   gravatarHash: string;
   needsYou: CardTradeResponse[];
+  toSwap: CardTradeResponse[];
   waiting: CardTradeResponse[];
   doneCount: number;
   groupNames: string[];
@@ -21,6 +22,7 @@ export interface TradesIndexPerson {
 
 export interface TradesIndex {
   yourMove: TradesIndexPerson[];
+  toSwap: TradesIndexPerson[];
   waiting: TradesIndexPerson[];
   past: TradesIndexPerson[];
   groupCount: number;
@@ -66,6 +68,7 @@ export function buildTradesIndex(trades: readonly CardTradeResponse[]): TradesIn
       image: latest.counterparty.image,
       gravatarHash: latest.counterparty.gravatarHash,
       needsYou: sortNeedsYou(own.filter((trade) => needsViewerAction(trade))),
+      toSwap: own.filter((trade) => cardTradeState(trade) === "to-swap"),
       waiting: own.filter((trade) => cardTradeState(trade) === "waiting-on-them"),
       doneCount: own.filter((trade) => isTradedCardTrade(trade)).length,
       groupNames: sortedNames(own.map((trade) => trade.groupName)),
@@ -77,11 +80,20 @@ export function buildTradesIndex(trades: readonly CardTradeResponse[]): TradesIn
   }
   return {
     yourMove: people.filter((person) => person.needsYou.length > 0).toSorted(compareByUrgency),
+    toSwap: people
+      .filter((person) => person.needsYou.length === 0 && person.toSwap.length > 0)
+      .toSorted(compareByName),
     waiting: people
-      .filter((person) => person.needsYou.length === 0 && person.waiting.length > 0)
+      .filter(
+        (person) =>
+          person.needsYou.length === 0 && person.toSwap.length === 0 && person.waiting.length > 0,
+      )
       .toSorted(compareByName),
     past: people
-      .filter((person) => person.needsYou.length === 0 && person.waiting.length === 0)
+      .filter(
+        (person) =>
+          person.needsYou.length === 0 && person.toSwap.length === 0 && person.waiting.length === 0,
+      )
       .toSorted(compareByActivity),
     groupCount: new Set(trades.map((trade) => trade.groupId)).size,
   };

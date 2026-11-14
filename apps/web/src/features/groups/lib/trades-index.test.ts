@@ -44,6 +44,7 @@ describe("buildTradesIndex", () => {
   it("returns empty sections for no trades", () => {
     expect(buildTradesIndex([])).toEqual({
       yourMove: [],
+      toSwap: [],
       waiting: [],
       past: [],
       groupCount: 0,
@@ -90,6 +91,7 @@ describe("buildTradesIndex", () => {
         id: "settle-only",
         status: "reserved",
         actionNeeded: "settle",
+        counterpartySyncAppliedAt: "2026-08-02T10:00:00.000Z",
         ...withPerson("user-3", "Ash"),
       }),
       stubTrade({
@@ -105,6 +107,30 @@ describe("buildTradesIndex", () => {
       }),
     ]);
     expect(index.yourMove.map((person) => person.userId)).toEqual(["user-2", "user-4", "user-3"]);
+  });
+
+  it("files an agreed swap under to swap until the other side settles", () => {
+    const index = buildTradesIndex([
+      stubTrade({ id: "swap", status: "reserved", actionNeeded: "settle" }),
+      stubTrade({ id: "sent", actionNeeded: "cancel" }),
+    ]);
+    expect(index.yourMove).toEqual([]);
+    expect(index.waiting).toEqual([]);
+    expect(index.toSwap.map((person) => person.userId)).toEqual(["user-2"]);
+    expect(index.toSwap[0]?.toSwap.map((trade) => trade.id)).toEqual(["swap"]);
+  });
+
+  it("moves a swap to your move once the other side has settled", () => {
+    const index = buildTradesIndex([
+      stubTrade({
+        id: "swap",
+        status: "reserved",
+        actionNeeded: "settle",
+        counterpartySyncAppliedAt: "2026-08-02T10:00:00.000Z",
+      }),
+    ]);
+    expect(index.toSwap).toEqual([]);
+    expect(index.yourMove[0]?.needsYou.map((trade) => trade.id)).toEqual(["swap"]);
   });
 
   it("sorts waiting people by name with the nameless last", () => {

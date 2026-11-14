@@ -29,7 +29,14 @@ import { m } from "@/paraglide/messages.js";
 import { ShareListsWithGroupDialog } from "./share-lists-with-group-dialog";
 
 function factsLine(card: TradeHubCard<FriendGroupMemberResponse>): string | null {
-  return card.open.length > 0 ? m.trades_waiting_on_them({ count: card.open.length }) : null;
+  const parts: string[] = [];
+  if (card.toSwap.length > 0) {
+    parts.push(m.trades_to_swap({ count: card.toSwap.length }));
+  }
+  if (card.open.length > 0) {
+    parts.push(m.trades_waiting_on_them({ count: card.open.length }));
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 function footerLine(card: TradeHubCard<FriendGroupMemberResponse>): string | null {

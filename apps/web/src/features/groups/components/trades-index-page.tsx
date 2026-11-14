@@ -1,5 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { BellIcon, CheckIcon, ChevronRightIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
+import {
+  BellIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  HandshakeIcon,
+  ShoppingCartIcon,
+  UsersIcon,
+} from "lucide-react";
 import { Suspense } from "react";
 
 import { Disclosure } from "@/components/disclosure";
@@ -33,6 +40,9 @@ function artPrintingIds(person: TradesIndexPerson): string[] {
   if (person.needsYou.length > 0) {
     return distinctPrintingIds(person.needsYou);
   }
+  if (person.toSwap.length > 0) {
+    return distinctPrintingIds(person.toSwap);
+  }
   return distinctPrintingIds(person.waiting);
 }
 
@@ -43,6 +53,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
     key: printingId,
     ...printingArt(printingsById[printingId]),
   }));
+  const toSwap = person.needsYou.length > 0 ? 0 : person.toSwap.length;
   const waiting = person.needsYou.length > 0 ? 0 : person.waiting.length;
 
   return (
@@ -71,6 +82,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
       ) : null}
       {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {art.length > 0 ? <CardArtThumbStack items={art} max={5} thumbClassName="w-8" /> : null}
+      {toSwap > 0 ? <p className="text-sm">{m.trades_to_swap({ count: toSwap })}</p> : null}
       {waiting > 0 ? (
         <p className="text-muted-foreground text-sm">
           {m.trades_waiting_on_them({ count: waiting })}
@@ -154,7 +166,7 @@ export function TradesIndexPage() {
   const cartCount = useBuyCartStore((state) => cartFor(state.carts, userId).items.length);
   const index = buildTradesIndex(data?.items ?? []);
   const showGroups = index.groupCount > 1;
-  const live = index.yourMove.length + index.waiting.length;
+  const live = index.yourMove.length + index.toSwap.length + index.waiting.length;
   const groupCount = groupsData?.items.length ?? 0;
   const noGroups = groupsData !== undefined && groupCount === 0;
 
@@ -193,6 +205,15 @@ export function TradesIndexPage() {
           </section>
         ) : null}
 
+        {index.toSwap.length > 0 ? (
+          <section className="flex flex-col gap-3">
+            <SectionHeading icon={HandshakeIcon} count={index.toSwap.length}>
+              {m.trades_section_to_swap()}
+            </SectionHeading>
+            <PeopleGrid people={index.toSwap} showGroups={showGroups} />
+          </section>
+        ) : null}
+
         <Suspense fallback={null}>
           <TradeMarket />
         </Suspense>
@@ -200,7 +221,7 @@ export function TradesIndexPage() {
         {index.waiting.length > 0 ? (
           <Disclosure
             variant="heading"
-            defaultOpen={index.yourMove.length === 0}
+            defaultOpen={index.yourMove.length === 0 && index.toSwap.length === 0}
             title={m.trades_section_waiting()}
             count={index.waiting.length}
           >

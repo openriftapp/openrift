@@ -19,7 +19,12 @@ import {
 
 function isInFlightTrade(trade: CardTradeResponse): boolean {
   const state = cardTradeState(trade);
-  return state === "to-answer" || state === "to-settle" || state === "waiting-on-them";
+  return (
+    state === "to-answer" ||
+    state === "to-settle" ||
+    state === "to-swap" ||
+    state === "waiting-on-them"
+  );
 }
 
 export interface NeedsYouCounts {
@@ -161,6 +166,7 @@ function tradeSuggestionSide(
 export interface TradeHubCard<TMember> {
   member: TMember;
   needsYou: CardTradeResponse[];
+  toSwap: CardTradeResponse[];
   open: CardTradeResponse[];
   trades: CardTradeResponse[];
   couldGet: TradeSuggestionSide;
@@ -193,7 +199,7 @@ function cardRank(card: TradeHubCard<TradeHubMember>): number {
   if (card.needsYou.length > 0) {
     return 0;
   }
-  if (card.open.length > 0) {
+  if (card.toSwap.length > 0 || card.open.length > 0) {
     return 1;
   }
   if (card.suggestions > 0 || card.suggestionsElsewhere > 0) {
@@ -272,6 +278,7 @@ export function buildTradeHubCards<
       return {
         member,
         needsYou: sortNeedsYou(trades.filter((trade) => needsViewerAction(trade))),
+        toSwap: trades.filter((trade) => cardTradeState(trade) === "to-swap"),
         open: trades.filter((trade) => cardTradeState(trade) === "waiting-on-them"),
         trades,
         couldGet: tradeSuggestionSide("incoming", incoming),

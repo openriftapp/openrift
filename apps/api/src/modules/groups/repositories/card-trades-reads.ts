@@ -23,7 +23,14 @@ function actionNeededPredicates(userId: string) {
     (t.giver_user_id = ${userId} and t.giver_sync_applied_at is null)
     or (t.receiver_user_id = ${userId} and t.receiver_sync_applied_at is null)
   ))`;
-  return { awaitingResponse, awaitingSettle };
+  // Mirrors `to-settle` in `cardTradeState`: the other side settled first.
+  const settleDue = sql<boolean>`(t.status = 'reserved' and (
+    (t.giver_user_id = ${userId} and t.giver_sync_applied_at is null
+      and t.receiver_sync_applied_at is not null)
+    or (t.receiver_user_id = ${userId} and t.receiver_sync_applied_at is null
+      and t.giver_sync_applied_at is not null)
+  ))`;
+  return { awaitingResponse, awaitingSettle, settleDue };
 }
 
 export interface TradeListFilters {
@@ -352,7 +359,7 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
     },
 
     async actionNeededPeopleForUser(userId: string): Promise<number> {
-      const { awaitingResponse, awaitingSettle } = actionNeededPredicates(userId);
+      const { awaitingResponse, settleDue } = actionNeededPredicates(userId);
       const row = await db
         .selectFrom("cardTrades as t")
         .select(
@@ -363,7 +370,7 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
         .where((eb) =>
           eb.or([eb("t.giverUserId", "=", userId), eb("t.receiverUserId", "=", userId)]),
         )
-        .where(sql<boolean>`(${awaitingResponse} or ${awaitingSettle})`)
+        .where(sql<boolean>`(${awaitingResponse} or ${settleDue})`)
         .executeTakeFirstOrThrow();
       return Number(row.people);
     },

@@ -56,7 +56,7 @@ export function splitTradeLedger(
   printingRank: PrintingRank = noPrintingRank,
 ): TradeLedger {
   const mine = trades.filter((trade) => trade.counterparty.userId === counterpartyUserId);
-  const rest = mine.filter((trade) => !needsViewerAction(trade));
+  const rest = mine.filter((trade) => trade.actionNeeded !== "settle" && !needsViewerAction(trade));
   const byPile = byDirectionThenCatalog(printingRank);
   return {
     yourMove: sortNeedsYou(mine.filter((trade) => trade.actionNeeded === "accept-or-decline")),

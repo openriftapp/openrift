@@ -86,6 +86,12 @@ Everything else in ADR-013 stands: groups, roles, opt-in list/collection sharing
 > 4. **Resizing drops the ask.** `setTradeQuantity` clears the requested copies when the count changes, since the stored ids no longer match `quantity`. The requester can cancel and ask again.
 > 5. **The requester does not see the giver's private details.** The request dialog offers the copies' condition, grade and public note from the match rows, never the copy-options payload, which stays giver-only because it carries private notes.
 
+> **Amendment (2026-11-14, agreed swaps).** Rule 3 of the 2026-08-10 amendment put every unsettled half under "Your move" from the moment of accept. A receiver cannot truthfully confirm "got them" before the giver has handed the cards over, so the badge asked for something that was not theirs to do yet, and the page filed trades the viewer was waiting on as their own move. Rule 3 is narrowed.
+>
+> 1. **An unsettled half is `to-swap` until the other side settles.** `cardTradeState` (`packages/shared/src/card-trade-lifecycle.ts`) returns `to-settle` only when `counterpartySyncAppliedAt` is set. `needsViewerAction` follows, so only answers and settles the other side is waiting on reach "Your move" and the group band. The rule is symmetric: a giver whose receiver already confirmed is asked to hand over.
+> 2. **Agreed swaps stay visible.** The Trades page lists them under "Ready to swap" between "Your move" and "Waiting on them", the group hub ranks them with open trades, and the person sheet keeps its "Ready to swap" section. Two members who swap in person and never open the app get no gold reminder, which is the case rule 3 guarded against. Accepted: the trade stays on screen in its own section.
+> 3. **The header badge follows; the groups-list badge does not.** `actionNeededPeopleForUser` counts a reserved half only once the other side has settled, so the header's Trades badge agrees with "Your move". The groups-list "N swaps to confirm" keeps counting every unsettled half, because it already renders as a subtle badge and is the one place a swap nobody has touched stays counted. `tradeSection` files `to-swap` under _Active_, so the member page counts it as open, not as needing the viewer.
+
 ## Decision Drivers
 
 - The literal ask: a request must reach the counterparty as a notification, accepting must reserve and hide the copy from others, and acknowledging must (optionally) reconcile both sides' lists/collections.

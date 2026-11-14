@@ -4627,6 +4627,7 @@
   "trades_nothing_waiting": "Nichts wartet auf dich",
   "trades_no_matches_in_group": "Noch keine Treffer in dieser Gruppe",
   "trades_waiting_on_them": "{count} warten auf sie",
+  "trades_to_swap": "{count} bereit zum Tausch",
   "trades_done": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4693,6 +4694,7 @@
   "trades_your_move_confirm": "Bestätigen",
   "trades_your_move_open": "Öffnen",
   "trades_section_waiting": "Warten auf sie",
+  "trades_section_to_swap": "Bereit zum Tausch",
   "trades_section_suggestions": "Vorschläge",
   "trades_traded_before": [
     {

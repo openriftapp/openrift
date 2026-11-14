@@ -4626,6 +4626,7 @@
   "trades_nothing_waiting": "没有事情在等你处理",
   "trades_no_matches_in_group": "这个小组里还没有匹配",
   "trades_waiting_on_them": "{count} 项在等对方",
+  "trades_to_swap": "{count} 项待换卡",
   "trades_done": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4692,6 +4693,7 @@
   "trades_your_move_confirm": "确认",
   "trades_your_move_open": "打开",
   "trades_section_waiting": "等待对方",
+  "trades_section_to_swap": "可以换卡了",
   "trades_section_suggestions": "推荐",
   "trades_traded_before": [
     {

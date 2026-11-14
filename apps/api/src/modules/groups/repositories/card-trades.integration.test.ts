@@ -1053,6 +1053,9 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const { group } = await setupMatch(3);
     const reserved = await request(group, 1);
     await acceptTrade(transact, reserved.id, GIVER_ID);
+    // Nobody has settled yet, so the agreed swap waits on the handover, not on either side.
+    expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(0);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(0);
     const { group: other } = await setupMatch(3);
     await request(other, 1);
     expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(1);
@@ -1072,9 +1075,12 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     );
     expect(await repos.cardTrades.actionNeededPeopleForUser(GIVER_ID)).toBe(2);
 
-    // The receiver owes only their half of the reserved swap; nobody waits on the outsider.
-    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(1);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(0);
     expect(await repos.cardTrades.actionNeededPeopleForUser(OUTSIDER_ID)).toBe(0);
+
+    // Once the giver has handed over, the receiver's half is their move.
+    await skipTradeSync(transact, reserved.id, GIVER_ID);
+    expect(await repos.cardTrades.actionNeededPeopleForUser(RECEIVER_ID)).toBe(1);
   });
 
   // An offer is a commitment, so it holds its copies from the moment it is made

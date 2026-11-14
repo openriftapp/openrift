@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-14
+
+### Highlights
+
+- fix(Trades): **Your move means your move** — an accepted swap moves to "Ready to swap" on the trades page and only asks you to confirm or hand over once the other person has done their part.
+
+### Other
+
+- fix(Trades): **No repeats in a person's suggestions** — a trade page for one person lists cards already in a trade only in that trade's section, and the suggestions count matches the rows shown.
+
 ## 2026-11-13
 
 ### Highlights

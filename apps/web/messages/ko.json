@@ -4626,6 +4626,7 @@
   "trades_nothing_waiting": "기다리는 항목이 없습니다",
   "trades_no_matches_in_group": "아직 이 그룹에 매칭이 없습니다",
   "trades_waiting_on_them": "상대를 기다리는 것 {count}건",
+  "trades_to_swap": "교환할 것 {count}건",
   "trades_done": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4692,6 +4693,7 @@
   "trades_your_move_confirm": "확인하기",
   "trades_your_move_open": "열기",
   "trades_section_waiting": "상대 대기 중",
+  "trades_section_to_swap": "교환 준비 완료",
   "trades_section_suggestions": "추천",
   "trades_traded_before": [
     {

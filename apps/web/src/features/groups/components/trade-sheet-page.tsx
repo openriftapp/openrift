@@ -36,10 +36,9 @@ import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups"
 import {
   countTradeSuggestions,
   tradeGroupKey,
-  liveOnlyMatchRows,
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
-import { tradePrinting, tradeSideKey } from "@/features/groups/lib/trade-printing";
+import { tradeSideKey } from "@/features/groups/lib/trade-printing";
 import { sheetEmptyState, splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
 import { memberName } from "@/lib/member-name";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -148,7 +147,7 @@ function TradeSheetBody({
   viaGroup: boolean;
 }) {
   const { data: allTrades } = useUserTrades();
-  const { printingsById, printingsByCardId } = useCards();
+  const { printingsById } = useCards();
   const [exportOpen, setExportOpen] = useState(false);
 
   const trades = allTrades?.items ?? [];
@@ -159,21 +158,9 @@ function TradeSheetBody({
     (printingId) => printingsById[printingId]?.canonicalRank ?? Number.MAX_SAFE_INTEGER,
   );
 
-  const counterpartyTrades = trades.filter((trade) => trade.counterparty.userId === userId);
-  const printingOf = (trade: { cardId: string; printingId: string }) =>
-    tradePrinting(trade, printingsByCardId, printingsById);
-  const incoming = [
-    ...sheet.othersHaveYourWants,
-    ...liveOnlyMatchRows(counterpartyTrades, sheet.othersHaveYourWants, "incoming", printingOf),
-  ];
-  const outgoing = [
-    ...sheet.othersWantYourHaves,
-    ...liveOnlyMatchRows(counterpartyTrades, sheet.othersWantYourHaves, "outgoing", printingOf),
-  ];
-  const suggestionCount = countTradeSuggestions(
-    withoutLiveTradeMatches(sheet.othersHaveYourWants, trades, "incoming"),
-    withoutLiveTradeMatches(sheet.othersWantYourHaves, trades, "outgoing"),
-  );
+  const incoming = withoutLiveTradeMatches(sheet.othersHaveYourWants, trades, "incoming");
+  const outgoing = withoutLiveTradeMatches(sheet.othersWantYourHaves, trades, "outgoing");
+  const suggestionCount = countTradeSuggestions(incoming, outgoing);
 
   const { data: anchorGroupDetail } = useFriendGroupDetail(anchorGroup.slug);
   // Organize-list shares don't render on the member page, so they don't count.

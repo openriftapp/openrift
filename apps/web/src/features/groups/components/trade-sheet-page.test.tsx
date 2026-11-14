@@ -48,11 +48,15 @@ vi.mock("@/features/groups/components/trade-bulk-actions", () => ({
 vi.mock("@/features/groups/components/trade-cardmarket-export-dialog", () => ({
   TradeCardmarketExportDialog: () => null,
 }));
-vi.mock("@/features/groups/components/trade-row", () => ({ TradeRow: () => null }));
+vi.mock("@/features/groups/components/trade-row", () => ({
+  TradeRow: ({ trade }: { trade: CardTradeResponse }) => <div>{`trade row ${trade.id}`}</div>,
+}));
 vi.mock("@/components/layout/top-bar-breadcrumb", () => ({ TopBarBreadcrumbBar: () => null }));
 vi.mock("@/features/groups/components/trade-balance-bar", () => ({ TradeBalanceBar: () => null }));
 vi.mock("@/features/groups/components/trade-settle-section", () => ({
-  TradeSettleSection: () => null,
+  TradeSettleSection: ({ trades }: { trades: CardTradeResponse[] }) => (
+    <div>{`settle section ${trades.map((trade) => trade.id).join(",")}`}</div>
+  ),
 }));
 vi.mock("@/components/user-avatar", () => ({ UserAvatar: () => null }));
 
@@ -172,7 +176,7 @@ describe("TradeSheetPage", () => {
     expect(screen.queryByText(/completed trades/u)).toBeNull();
   });
 
-  it("keeps a reserved trade's card in the suggestions when the server netted its match away", () => {
+  it("lists a reserved trade only in its own section, not in the suggestions", () => {
     sheet.current = makeSheet();
     catalog.printingsById = {
       "printing-1": stubPrinting({ printingId: "printing-1", cardId: "card-1" }),
@@ -195,14 +199,18 @@ describe("TradeSheetPage", () => {
     ];
     render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
 
-    expect(screen.getByText("match rows")).toBeInTheDocument();
+    expect(screen.getByText("settle section trade-9")).toBeInTheDocument();
+    expect(screen.queryByText("match rows")).toBeNull();
+    expect(screen.queryByText("Suggestions")).toBeNull();
   });
 
-  it("keeps a suggestion that already has a live trade on the sheet", () => {
+  it("leaves a suggestion with a live trade out of the suggestions", () => {
     sheet.current = makeSheet({ othersHaveYourWants: [makeMatch()] });
     userTrades.items = [
       {
+        id: "trade-live",
         status: "pending",
+        actionNeeded: "cancel",
         role: "receiver",
         printingId: "printing-1",
         groupSlug: "another-group",
@@ -211,7 +219,9 @@ describe("TradeSheetPage", () => {
     ];
     render(<TradeSheetPage userId="member-1" fromGroupSlug="allerlei-spielerei" />);
 
-    expect(screen.getByText("match rows")).toBeInTheDocument();
+    expect(screen.getByText("trade row trade-live")).toBeInTheDocument();
+    expect(screen.queryByText("match rows")).toBeNull();
+    expect(screen.queryByText("Suggestions")).toBeNull();
   });
 
   it("keeps the shared-lists link on a sheet that has suggestions", () => {

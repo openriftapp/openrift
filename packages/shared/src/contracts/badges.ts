@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
 
-/** `people` is distinct counterparties waiting on the viewer, pooled across groups. */
+/** `people` is distinct counterparties waiting on the viewer, pooled across groups; an agreed swap counts once the other side has settled. */
 const tradeBadgeSchema = z.object({
   total: z.number().int().nonnegative(),
   people: z.number().int().nonnegative(),

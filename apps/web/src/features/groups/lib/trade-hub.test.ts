@@ -412,7 +412,12 @@ describe("buildTradeHubCards", () => {
     const cards = buildCards({
       members,
       groupTrades: [
-        withPerson("waiting", { id: "needs", actionNeeded: "settle", status: "reserved" }),
+        withPerson("waiting", {
+          id: "needs",
+          actionNeeded: "settle",
+          status: "reserved",
+          counterpartySyncAppliedAt: "2026-08-02T10:00:00.000Z",
+        }),
         withPerson("open", { id: "open", actionNeeded: "cancel" }),
       ],
       incoming: [stubMatch({ counterpartyUserId: "suggested" })],
@@ -420,6 +425,30 @@ describe("buildTradeHubCards", () => {
     });
 
     expect(cardIds(cards)).toEqual(["waiting", "open", "suggested", "lists", "quiet"]);
+  });
+
+  it("keeps an agreed swap out of needs-you and ranks it with open trades", () => {
+    const members = [
+      { userId: VIEWER, userName: "You" },
+      { userId: "suggested", userName: "Ashe" },
+      { userId: "swap", userName: "Braum" },
+    ];
+    const cards = buildCards({
+      members,
+      groupTrades: [
+        stubTrade({
+          id: "swap",
+          actionNeeded: "settle",
+          status: "reserved",
+          counterparty: { ...stubTrade().counterparty, userId: "swap", name: "swap" },
+        }),
+      ],
+      incoming: [stubMatch({ counterpartyUserId: "suggested" })],
+    });
+
+    expect(cardIds(cards)).toEqual(["swap", "suggested"]);
+    expect(cards[0]?.needsYou).toEqual([]);
+    expect(cards[0]?.toSwap.map((trade) => trade.id)).toEqual(["swap"]);
   });
 
   it("sorts a nameless member last among equals", () => {

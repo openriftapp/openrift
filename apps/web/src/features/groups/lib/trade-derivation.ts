@@ -24,6 +24,7 @@ export function tradeSection(trade: CardTradeResponse): TradeSection {
     case "to-settle": {
       return "action-needed";
     }
+    case "to-swap":
     case "waiting-on-them": {
       return "active";
     }
