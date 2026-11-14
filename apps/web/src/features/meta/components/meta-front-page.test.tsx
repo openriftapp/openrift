@@ -527,39 +527,47 @@ describe("MetaFrontPage", () => {
     expect(screen.getByText("Your contributions")).toBeInTheDocument();
   });
 
-  it("promises the tier's events with results archive-wide, not the era it fetched", () => {
-    captured.events = [event()];
-
-    render(<MetaFrontPage />);
-
-    expect(within(section("Premier")).getByRole("link", { name: "Browse all 3" })).toHaveAttribute(
-      "href",
-      "/meta/events",
+  it("counts the tier's events in the reader's scope on its link, beyond what the section shows", () => {
+    captured.events = Array.from({ length: 5 }, (_, index) =>
+      event({ id: `premier-${index}`, slug: `premier-${index}` }),
     );
+
+    render(<MetaFrontPage />);
+
+    const link = within(section("Premier")).getByRole("link", { name: "Browse all 5" });
+    expect(link).toHaveAttribute("href", "/meta/events");
+    expect(JSON.parse(link.dataset.search ?? "{}")).toMatchObject({
+      tiers: ["premier"],
+    });
   });
 
-  it("counts the archive's events with results on the link under the community section", () => {
-    captured.events = [event({ tier: "local" })];
+  it("counts the scope's events with standings on the link under the community section", () => {
+    captured.events = [
+      event({ id: "local-1", slug: "local-1", tier: "local" }),
+      event({ id: "premier-1", slug: "premier-1" }),
+      event({ id: "empty", slug: "empty", tier: "local", playerRowCount: 0, deckCount: 0 }),
+    ];
 
     render(<MetaFrontPage />);
 
     expect(
-      within(section("Local")).getByRole("link", { name: "Browse all 6 events" }),
+      within(section("Local")).getByRole("link", { name: "Browse all 2 events" }),
     ).toBeInTheDocument();
   });
 
-  it("groups the thousands in the archive-wide event count", () => {
-    captured.events = [event({ tier: "local" })];
-    captured.counts = {
-      ...captured.counts,
-      eventsWithResultsByTier: { premier: 3, competitive: 2, local: 2049 },
-    };
+  it("links the decks-only reader to events with decklists", () => {
+    captured.search = { decks: true };
+    captured.events = [
+      event({ id: "local-1", slug: "local-1", tier: "local" }),
+      event({ id: "local-2", slug: "local-2", tier: "local", deckCount: 0 }),
+    ];
 
     render(<MetaFrontPage />);
 
-    expect(
-      within(section("Local")).getByRole("link", { name: "Browse all 2,054 events" }),
-    ).toBeInTheDocument();
+    const link = within(section("Local")).getByRole("link", { name: "Browse 1 event" });
+    expect(JSON.parse(link.dataset.search ?? "{}")).toMatchObject({
+      holds: "decks",
+    });
   });
 
   it("asks for the era the scope names rather than the whole archive", () => {

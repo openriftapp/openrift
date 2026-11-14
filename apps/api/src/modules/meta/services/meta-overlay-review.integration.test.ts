@@ -519,7 +519,6 @@ describe.skipIf(!ctx)("overlay review", () => {
           draws: null,
           legendCardId: null,
           championCardId: null,
-          deck: null,
         },
         null,
       );
@@ -954,7 +953,6 @@ describe.skipIf(!ctx)("overlay review", () => {
           draws: null,
           legendCardId: null,
           championCardId: null,
-          deck: null,
         },
         null,
       );

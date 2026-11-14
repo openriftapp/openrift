@@ -3,19 +3,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { m } from "@/paraglide/messages.js";
 
 interface ScanNoticesProps {
-  unavailableMessage: string | null;
+  unavailable: boolean;
   scanError: string | null;
   cameraAvailable: boolean | null;
 }
 
-export function ScanNotices({ unavailableMessage, scanError, cameraAvailable }: ScanNoticesProps) {
+export function ScanNotices({ unavailable, scanError, cameraAvailable }: ScanNoticesProps) {
   return (
     <>
-      {unavailableMessage && (
+      {unavailable && (
         <Card className="border-destructive mt-4">
           <CardContent className="pt-6">
-            <p className="font-medium">{m.scan_notices_unavailable_title()}</p>
-            <p className="text-muted-foreground mt-2">{unavailableMessage}</p>
+            <p className="font-medium">{m.scan_unavailable()}</p>
           </CardContent>
         </Card>
       )}

@@ -24,11 +24,14 @@ export function ScanIdentifySearch({ allPrintings, onPick }: ScanIdentifySearchP
   const [query, setQuery] = useState("");
   const languages = useDisplayStore((state) => state.languages);
 
-  const printings =
-    languages.length === 0
-      ? allPrintings
-      : allPrintings.filter((printing) => languages.includes(printing.language));
-  const siblingsByCardId = Map.groupBy(printings, (printing) => printing.cardId);
+  const siblingsByCardId = new Map(
+    [...Map.groupBy(allPrintings, (printing) => printing.cardId)].map(([cardId, cardPrintings]) => {
+      const shown = cardPrintings.filter(
+        (printing) => languages.length === 0 || languages.includes(printing.language),
+      );
+      return [cardId, shown.length > 0 ? shown : cardPrintings];
+    }),
+  );
 
   const index = usePrintingSearchIndex(allPrintings);
 

@@ -68,7 +68,7 @@ export function aimHintInputFor(
     candidateAreaFraction,
     bestScore: outcome.bestScore,
     focus: outcome.focus,
-    topDistance: outcome.ranked[0]?.distance,
+    plausible: outcome.cardInGuide,
     refused: outcome.refused,
     isWinner: outcome.winner !== null,
     settling,

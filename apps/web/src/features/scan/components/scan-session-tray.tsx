@@ -1,7 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { LabelMap } from "@openrift/shared/enum-label";
-import { sideKey } from "@openrift/shared/printing-side";
+import { ownedTotalsByCard, sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -55,7 +55,11 @@ import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { formatterForMarketplace, priceColorClass } from "@/lib/format";
+import {
+  compactFormatterForMarketplace,
+  formatterForMarketplace,
+  priceColorClass,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -116,20 +120,20 @@ export function ScanSessionTray({
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const { data: prices } = useQuery(pricesQueryOptions);
   const wish = useWishEntries(true);
-  const { data: owned } = useOwnedCountsForPrintings(sequence, hydrated);
-  const ownedTotals = owned
-    ? new Map(
-        newestFirst.map((row) => [
-          row.printing.printingId,
-          owned.allTotals[row.printing.printingId] ?? 0,
-        ]),
-      )
-    : null;
+  const cardPrintings = newestFirst.flatMap(
+    (row) => printingsByCard.get(row.printing.cardId) ?? [row.printing],
+  );
+  const { data: owned } = useOwnedCountsForPrintings(
+    cardPrintings.map((printing) => printing.printingId),
+    hydrated,
+  );
+  const ownedByCard = owned ? ownedTotalsByCard(cardPrintings, owned.allTotals) : null;
   const formatValue = formatterForMarketplace(marketplace);
+  const formatRowValue = compactFormatterForMarketplace(marketplace);
   const summary = computeScanSessionSummary(newestFirst, {
     priceOf: (printingId) => prices?.get(printingId, marketplace),
     isWished: (printing) => wish.entriesForCopy(printing).length > 0,
-    ownedBefore: ownedTotals ? (printingId) => ownedTotals.get(printingId) ?? 0 : null,
+    ownedOfCard: ownedByCard ? (cardId) => ownedByCard.get(cardId) ?? 0 : null,
   });
 
   // Only the peeking drawer is short on room. Dragged open it gets the same
@@ -188,9 +192,9 @@ export function ScanSessionTray({
       onRemoveOne={onRemoveOne}
       onChangePrinting={onChangePrinting}
       price={prices?.get(row.printing.printingId, marketplace)}
-      formatValue={formatValue}
+      formatValue={formatRowValue}
       wishEntries={wish.entriesForCopy(row.printing)}
-      owned={ownedTotals ? (ownedTotals.get(row.printing.printingId) ?? 0) : null}
+      owned={ownedByCard ? (ownedByCard.get(row.printing.cardId) ?? 0) : null}
     />
   );
 
@@ -641,7 +645,7 @@ function UnidentifiedList({
     <ul className="mb-2 flex flex-col gap-2">
       {cards.map((card) => (
         <li key={card.id} className="flex items-center gap-3">
-          <span className="bg-muted block h-14 w-10 shrink-0 overflow-hidden rounded-md">
+          <span className="bg-muted rounded-card block h-14 w-10 shrink-0 overflow-hidden">
             {card.thumbnail !== null && (
               <img src={card.thumbnail} alt="" className="h-full w-full object-cover" />
             )}

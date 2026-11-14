@@ -1,5 +1,4 @@
 import type {
-  MetaCountsQuery,
   MetaEventDayCountsQuery,
   MetaEventFilterQuery,
   MetaDeckCardsQuery,
@@ -47,8 +46,6 @@ const DECK_QUERY_FIELDS = [...DECK_FACET_FIELDS, "by", "dir", "limit", "offset"]
 
 const DECK_CARDS_FIELDS = [...DECK_QUERY_FIELDS, "event"] as const;
 
-const COUNTS_QUERY_FIELDS = ["format", "dateFrom", "dateTo"] as const;
-
 const EVENT_FILTER_FIELDS = [
   ...SCOPE_FIELDS,
   "slug",
@@ -87,8 +84,7 @@ export const metaKeys = {
   eventFacets: (query?: MetaEventFilterQuery) =>
     metaFilterKey(["meta", "event-facets"], query, EVENT_FILTER_FIELDS),
   activity: ["meta", "activity"] as const,
-  counts: (query?: MetaCountsQuery) =>
-    metaFilterKey(["meta", "counts"], query, COUNTS_QUERY_FIELDS),
+  counts: (query?: MetaScopeQuery) => metaFilterKey(["meta", "counts"], query, SCOPE_FIELDS),
   eventDayCounts: (query?: MetaEventDayCountsQuery) =>
     metaFilterKey(["meta", "events", "day-counts"], query, DAY_COUNTS_FIELDS),
   event: (slug: string) => ["meta", "events", slug] as const,

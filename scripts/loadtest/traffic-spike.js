@@ -6,15 +6,8 @@ import { check, sleep } from "k6";
 import http from "k6/http";
 
 import { API_BASE, BASE_URL } from "./lib/config.js";
+import { authedParams, COOKIE_NAME, probeSession, SESSION_COOKIE } from "./lib/session.js";
 import { fetchSlugs, pick } from "./lib/setup.js";
-
-const SESSION_COOKIE = __ENV.LOADTEST_SESSION_COOKIE;
-if (!SESSION_COOKIE) {
-  throw new Error(
-    "LOADTEST_SESSION_COOKIE is required. Sign in on the target host in a browser, copy the session cookie value, and pass it via env.",
-  );
-}
-const COOKIE_NAME = __ENV.COOKIE_NAME ?? "__Secure-better-auth.session_token";
 
 // Repeated "" weights the common no-filter cold landing.
 const CARDS_FILTERS = [
@@ -26,13 +19,6 @@ const CARDS_FILTERS = [
   "?rarity=Rare",
   "?keyword=Strike",
 ];
-
-function authedParams(name) {
-  return {
-    tags: { name },
-    cookies: { [COOKIE_NAME]: SESSION_COOKIE },
-  };
-}
 
 function anonParams(name) {
   return { tags: { name } };
@@ -87,19 +73,7 @@ export const options = {
 };
 
 export function setup() {
-  const probe = http.get(`${BASE_URL}/api/auth/get-session`, {
-    cookies: { [COOKIE_NAME]: SESSION_COOKIE },
-  });
-  if (probe.status !== 200) {
-    throw new Error(
-      `Session cookie probe failed: ${probe.status} — check LOADTEST_SESSION_COOKIE and COOKIE_NAME.`,
-    );
-  }
-  const session = probe.json();
-  if (!session || !session.user) {
-    throw new Error("Session cookie probe returned no user — cookie is invalid or expired.");
-  }
-  console.log(`Authed as ${session.user.email}`);
+  probeSession();
 
   const collectionsRes = http.get(`${API_BASE}/collections`, {
     cookies: { [COOKIE_NAME]: SESSION_COOKIE },

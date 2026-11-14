@@ -25,7 +25,6 @@ import { useStartJob } from "@/features/admin/hooks/use-start-job";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ScanLoadRow } from "@/features/scan/components/scan-load-row";
 import { useCardScanner } from "@/features/scan/hooks/use-card-scanner";
-import { useScanBank } from "@/features/scan/hooks/use-scan-bank";
 import { useScanEngine } from "@/features/scan/hooks/use-scan-engine";
 import type { ScanServing } from "@/features/scan/hooks/use-scan-serving";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
@@ -38,10 +37,11 @@ import type { ScannerReadout } from "@/features/scan/lib/scan-readout";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
 import { DEFAULT_SCANNER_SETTINGS } from "@/features/scan/lib/scan-session";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { formatCount } from "@/lib/format";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
 const MODES: { value: string; label: string }[] = [
-  { value: "single", label: "Automatic (single cards, sweeps, copies on a stand)" },
+  { value: "single", label: "Automatic (single cards, copies on a stand)" },
   { value: "capture", label: "Single card, tap to scan (slow devices)" },
 ];
 
@@ -66,7 +66,7 @@ function LocksCard({ locks, labels }: { locks: LockedCard[]; labels: CardLabels 
       <CardContent>
         {locks.length === 0 ? (
           <p className="text-muted-foreground">
-            Nothing locked yet. A card locks once four sharp frames agree on it.
+            Nothing locked yet. A card locks once two to three agreeing frames add up.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -307,7 +307,9 @@ function ServingCard({ serving }: { serving: ScanServing }) {
         )}
         {serving.status === "ready" && (
           <p className="text-muted-foreground tabular-nums">
-            Server bank <Code>{serving.assets.bankHash}</Code> · {serving.assets.entryCount} entries
+            Server bank <Code>{serving.assets.bankHash}</Code> ·{" "}
+            {serving.assets.entryCount === null ? "—" : formatCount(serving.assets.entryCount)}{" "}
+            entries
             {serving.assets.builtAt ? ` · built ${formatDayTime(serving.assets.builtAt)}` : ""}
           </p>
         )}
@@ -343,17 +345,17 @@ export function ScanTestPage() {
   const cameraAvailable = hydrated ? navigator.mediaDevices?.getUserMedia !== undefined : null;
 
   const serving = useScanServing();
-  const { assets, labels, unavailableMessage } = useScanBank();
-  const labelsError = serving.status === "unavailable" ? null : unavailableMessage;
-  const engine = useScanEngine(assets, labels);
+  const engine = useScanEngine(serving.assets);
   const {
     bank,
+    loadError,
     engineReady,
     embedMsPerImage,
     slowDevice: deviceTooSlow,
     progress: engineProgress,
     threads,
   } = engine;
+  const labels = bank?.labels ?? null;
 
   const frameSinkRef = useRef<((frame: FrameLogEntry) => void) | null>(null);
   const scannerEvents = {
@@ -468,10 +470,10 @@ export function ScanTestPage() {
           </Card>
         )}
 
-        {labelsError && (
+        {loadError && (
           <Card className="border-destructive mt-4">
             <CardContent className="pt-6">
-              <p className="font-medium">{labelsError}</p>
+              <p className="font-medium">{loadError}</p>
             </CardContent>
           </Card>
         )}
@@ -487,18 +489,19 @@ export function ScanTestPage() {
               {!active && (
                 <div className="text-muted-foreground absolute inset-0 grid place-items-center px-6 text-center">
                   {ready ? (
-                    `Ready — ${bank.keys.length} cards, bank ${(bank.bytes / 1024 / 1024).toFixed(1)} MB`
+                    `Ready — ${formatCount(bank.keys.length)} renders, bank ${(bank.bytes / 1024 / 1024).toFixed(1)} MB`
                   ) : (
                     <div className="flex flex-col items-center gap-3">
-                      <ScanLoadRow label="Card labels" done={labels !== null} />
                       <ScanLoadRow
                         label="Card bank"
                         done={engineReady}
+                        failed={loadError !== null}
                         progress={engineProgress.bank}
                       />
                       <ScanLoadRow
                         label="Encoder model"
                         done={engineReady}
+                        failed={loadError !== null}
                         progress={engineProgress.encoder}
                       />
                     </div>

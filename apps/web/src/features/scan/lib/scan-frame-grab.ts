@@ -16,6 +16,22 @@ function sizedContext(
   return canvas.getContext("2d", { willReadFrequently: true });
 }
 
+export function processedFrameSize(
+  videoWidth: number,
+  videoHeight: number,
+  longSide: number,
+  zoom = 1,
+  minSide = 0,
+): { source: ReturnType<typeof zoomRegion>; width: number; height: number } {
+  const source = zoomRegion(videoWidth, videoHeight, zoom);
+  const scale = Math.min(1, longSide / Math.max(source.width, source.height));
+  return {
+    source,
+    width: Math.max(minSide, Math.round(source.width * scale)),
+    height: Math.max(minSide, Math.round(source.height * scale)),
+  };
+}
+
 export function grabRotatedFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
@@ -27,10 +43,12 @@ export function grabRotatedFrame(
   if (videoWidth === 0 || videoHeight === 0) {
     return null;
   }
-  const source = zoomRegion(videoWidth, videoHeight, zoom);
-  const scale = Math.min(1, processingSize / Math.max(source.width, source.height));
-  const width = Math.round(source.width * scale);
-  const height = Math.round(source.height * scale);
+  const { source, width, height } = processedFrameSize(
+    videoWidth,
+    videoHeight,
+    processingSize,
+    zoom,
+  );
 
   const rotatedWidth = turns % 2 === 1 ? height : width;
   const rotatedHeight = turns % 2 === 1 ? width : height;
@@ -67,10 +85,7 @@ export function grabWatchFrame(
   if (videoWidth === 0 || videoHeight === 0) {
     return null;
   }
-  const source = zoomRegion(videoWidth, videoHeight, zoom);
-  const scale = Math.min(1, longSide / Math.max(source.width, source.height));
-  const width = Math.max(1, Math.round(source.width * scale));
-  const height = Math.max(1, Math.round(source.height * scale));
+  const { source, width, height } = processedFrameSize(videoWidth, videoHeight, longSide, zoom, 1);
 
   const context = sizedContext(canvas, width, height);
   if (!context) {

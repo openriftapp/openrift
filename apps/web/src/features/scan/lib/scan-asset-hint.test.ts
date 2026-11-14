@@ -6,7 +6,7 @@ describe("scanAssetError", () => {
   it("carries the asset name, the url and the repair", () => {
     const message = scanAssetError("the scan bank", "/media/scan/scan-bank-abc.bin");
 
-    expect(message).toContain("the scan bank");
+    expect(message).toMatch(/^Could not load the scan bank/u);
     expect(message).toContain("/media/scan/scan-bank-abc.bin");
     expect(message).toContain("/admin/scan");
   });

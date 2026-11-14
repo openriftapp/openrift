@@ -1,6 +1,6 @@
-const STORAGE_KEY = "openrift-scan-journal";
+import { MAX_SCAN_REPORT_JOURNAL_ENTRIES } from "@openrift/shared/contracts/scan-reports";
 
-export const MAX_SCAN_JOURNAL_ENTRIES = 500;
+const STORAGE_KEY = "openrift-scan-journal";
 
 type ScanJournalPayload =
   | { type: "open"; rows: number; cards: number; pending: string | null }
@@ -74,7 +74,7 @@ export function readScanJournal(): ScanJournalEntry[] {
         entries.push(value);
       }
     }
-    return entries.slice(-MAX_SCAN_JOURNAL_ENTRIES);
+    return entries.slice(-MAX_SCAN_REPORT_JOURNAL_ENTRIES);
   } catch {
     return [];
   }
@@ -87,7 +87,7 @@ export function appendScanJournal(payload: ScanJournalPayload): void {
   }
   const entries = readScanJournal();
   entries.push({ ...payload, t: Date.now() });
-  writeRaw(store, JSON.stringify(entries.slice(-MAX_SCAN_JOURNAL_ENTRIES)));
+  writeRaw(store, JSON.stringify(entries.slice(-MAX_SCAN_REPORT_JOURNAL_ENTRIES)));
 }
 
 export function clearScanJournal(): void {

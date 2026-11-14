@@ -3,7 +3,7 @@
  * keep positions in table coordinates, so a card the camera returns to is
  * found again, while a copy of the same card elsewhere is a new place.
  */
-import { quadCenter, touchesFrameEdge } from "./geometry";
+import { mapQuad, quadCenter, touchesFrameEdge } from "./geometry";
 import type { Quad } from "./types";
 
 export interface TablePlace {
@@ -24,7 +24,7 @@ export interface TablePlaces {
 /** Fraction of a card's diagonal. */
 const SAME_PLACE = 0.45;
 /** Frame pixels. */
-const EDGE_MARGIN = 4;
+const TABLE_PLACE_EDGE_MARGIN_PX = 4;
 
 export function createTablePlaces(): TablePlaces {
   return { offsetX: 0, offsetY: 0, byArt: new Map() };
@@ -56,8 +56,8 @@ export function placeFor(
       nearest = { place, distance };
     }
   }
-  const whole = !touchesFrameEdge(quad, frame.width, frame.height, EDGE_MARGIN);
-  const onTable = shiftQuad(quad, places.offsetX, places.offsetY);
+  const whole = !touchesFrameEdge(quad, frame.width, frame.height, TABLE_PLACE_EDGE_MARGIN_PX);
+  const onTable = mapQuad(quad, (p) => ({ x: p.x + places.offsetX, y: p.y + places.offsetY }));
   if (nearest && (nearest.distance <= Math.max(size, nearest.place.size) * SAME_PLACE || !whole)) {
     if (whole) {
       Object.assign(nearest.place, { x, y, size, quad: onTable });
@@ -72,16 +72,6 @@ export function placeFor(
   return place;
 }
 
-function shiftQuad(quad: Quad, dx: number, dy: number): Quad {
-  const [a, b, c, d] = quad;
-  return [
-    { x: a.x + dx, y: a.y + dy },
-    { x: b.x + dx, y: b.y + dy },
-    { x: c.x + dx, y: c.y + dy },
-    { x: d.x + dx, y: d.y + dy },
-  ];
-}
-
 /** Outlines of the counted places whose centre lies in the current frame, in frame coordinates. */
 export function countedQuads(
   places: TablePlaces,
@@ -94,7 +84,9 @@ export function countedQuads(
       const x = place.x - places.offsetX;
       const y = place.y - places.offsetY;
       if (counted.has(place.key) && x >= 0 && y >= 0 && x <= frame.width && y <= frame.height) {
-        quads.push(shiftQuad(place.quad, -places.offsetX, -places.offsetY));
+        quads.push(
+          mapQuad(place.quad, (p) => ({ x: p.x - places.offsetX, y: p.y - places.offsetY })),
+        );
       }
     }
   }

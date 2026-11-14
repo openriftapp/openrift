@@ -3,12 +3,18 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { userId, failed, useCollections, addAll } = vi.hoisted(() => ({
-  userId: { current: null as string | null },
-  failed: { count: 0 },
-  useCollections: vi.fn(() => ({ data: [] })),
-  addAll: vi.fn(() => Promise.resolve()),
-}));
+const { userId, failed, useCollections, addAll, serving, engineLoadError, scannerSettings } =
+  vi.hoisted(() => ({
+    scannerSettings: vi.fn(),
+    userId: { current: null as string | null },
+    serving: {
+      current: { status: "loading", assets: null } as { status: string; assets: null },
+    },
+    engineLoadError: { current: null as string | null },
+    failed: { count: 0 },
+    useCollections: vi.fn(() => ({ data: [] })),
+    addAll: vi.fn(() => Promise.resolve()),
+  }));
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -39,26 +45,38 @@ vi.mock("@/features/cards/components/card-detail-opener", () => ({
   useOpenCardDetail: () => null,
 }));
 vi.mock("@/features/cards/hooks/use-cards", () => ({ useCards: () => ({ allPrintings: [] }) }));
-vi.mock("@/features/scan/hooks/use-scan-bank", () => ({
-  useScanBank: () => ({ assets: null, labels: null, unavailableMessage: null }),
+vi.mock("@/features/scan/hooks/use-scan-serving", () => ({
+  useScanServing: () => serving.current,
 }));
 vi.mock("@/features/scan/hooks/use-scan-engine", () => ({
-  useScanEngine: () => ({ bank: null, engineReady: false, slowDevice: false, progress: null }),
+  useScanEngine: () => ({
+    bank: null,
+    engineReady: false,
+    slowDevice: false,
+    progress: {
+      encoder: { loaded: 0, total: 0, ready: false },
+      bank: { loaded: 0, total: 0, ready: false },
+    },
+    loadError: engineLoadError.current,
+  }),
 }));
 vi.mock("@/features/scan/hooks/use-card-scanner", () => ({
-  useCardScanner: () => ({
-    videoRef: { current: null },
-    overlayRef: { current: null },
-    active: false,
-    error: null,
-    readout: { aim: null, aimHint: null, bestScore: 0, lockProgress: 0 },
-    start: vi.fn(),
-    stop: vi.fn(),
-    capture: vi.fn(),
-    identifyNow: vi.fn(),
-    unidentified: [],
-    dismissUnidentified: vi.fn(),
-  }),
+  useCardScanner: (_engine: unknown, settings: unknown) => {
+    scannerSettings(settings);
+    return {
+      videoRef: { current: null },
+      overlayRef: { current: null },
+      active: false,
+      error: null,
+      readout: { aim: null, aimHint: null, bestScore: 0, lockProgress: 0 },
+      start: vi.fn(),
+      stop: vi.fn(),
+      capture: vi.fn(),
+      identifyNow: vi.fn(),
+      unidentified: [],
+      dismissUnidentified: vi.fn(),
+    };
+  },
 }));
 vi.mock("@/features/scan/hooks/use-scan-identify", () => ({
   useScanIdentify: () => ({
@@ -89,7 +107,21 @@ vi.mock("@/features/scan/hooks/use-scan-add", () => ({
   }),
 }));
 vi.mock("@/features/scan/components/scan-stage", () => ({
-  ScanStage: ({ tray }: { tray: ReactNode }) => <div>{tray}</div>,
+  ScanStage: ({
+    viewfinder,
+    tray,
+    notices,
+  }: {
+    viewfinder: ReactNode;
+    tray: ReactNode;
+    notices: ReactNode;
+  }) => (
+    <div>
+      {viewfinder}
+      {notices}
+      {tray}
+    </div>
+  ),
 }));
 vi.mock("@/features/scan/components/scan-top-bar", () => ({ ScanTopBar: () => null }));
 vi.mock("@/features/scan/components/scan-flight-layer", () => ({ ScanFlightLayer: () => null }));
@@ -101,6 +133,7 @@ vi.mock("@/features/scan/components/scan-printing-picker", () => ({
 }));
 
 import { ScanPage } from "@/features/scan/components/scan-page";
+import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { initKeys } from "@/lib/query-keys";
 import { stubPrinting } from "@/test/factories";
@@ -108,6 +141,7 @@ import { stubInitResponse } from "@/test/init-fixtures";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const resetSession = createStoreResetter(useScanSessionStore);
+const resetPrefs = createStoreResetter(useScanPrefsStore);
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -125,8 +159,13 @@ describe("ScanPage", () => {
     useCollections.mockClear();
     addAll.mockClear();
     failed.count = 0;
+    serving.current = { status: "loading", assets: null };
+    engineLoadError.current = null;
   });
-  afterEach(resetSession);
+  afterEach(() => {
+    resetSession();
+    resetPrefs();
+  });
 
   it("renders for a signed-out visitor without reading collections", () => {
     userId.current = null;
@@ -167,5 +206,49 @@ describe("ScanPage", () => {
     renderPage();
 
     expect(screen.queryByText(/could not add/iu)).toBeNull();
+  });
+
+  it("shows the unavailable state when the engine assets fail to load", () => {
+    userId.current = null;
+    engineLoadError.current = "Could not load the scan labels from /media/scan/labels.json";
+    renderPage();
+
+    expect(
+      screen.getByText("The scanner is not available right now. Please try again later."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/media\/scan/u)).toBeNull();
+    expect(screen.queryByText("Getting the scanner ready")).toBeNull();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+
+  it("shows the loader while the engine loads", () => {
+    userId.current = null;
+    renderPage();
+
+    expect(screen.getByText("Getting the scanner ready")).toBeInTheDocument();
+    expect(screen.queryByText(/not available right now/u)).toBeNull();
+  });
+
+  it("shows the unavailable state when nothing is published", () => {
+    userId.current = null;
+    serving.current = { status: "unavailable", assets: null };
+    renderPage();
+
+    expect(
+      screen.getByText("The scanner is not available right now. Please try again later."),
+    ).toBeInTheDocument();
+  });
+
+  it("hands the stored zoom to the scanner from the first render on", () => {
+    userId.current = null;
+    useScanPrefsStore.getState().setZoom(2);
+    scannerSettings.mockClear();
+    renderPage();
+
+    const zooms = scannerSettings.mock.calls.map(
+      ([settings]) => (settings as { zoom: number }).zoom,
+    );
+    expect(zooms.length).toBeGreaterThan(0);
+    expect(zooms.every((zoom) => zoom === 2)).toBe(true);
   });
 });

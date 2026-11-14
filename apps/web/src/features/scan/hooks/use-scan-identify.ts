@@ -6,10 +6,12 @@ import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
 import type { IdentifyAttempt, UnidentifiedCard } from "@/features/scan/lib/scan-catchup";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
 import { toIdentifyCandidates } from "@/features/scan/lib/scan-identify";
+import type { ScanPrintingIndex } from "@/features/scan/lib/scan-resolve";
 import { m } from "@/paraglide/messages.js";
 
 interface ScanIdentifyOptions {
   bank: ScanBankInfo | null;
+  index: ScanPrintingIndex | null;
   identifyNow: (onSnapshot?: (snapshot: string | null) => void) => Promise<IdentifyAttempt>;
   unidentified: UnidentifiedCard[];
   dismissUnidentified: (id: string) => void;
@@ -21,6 +23,7 @@ interface ScanIdentify {
   open: boolean;
   snapshot: string | null;
   pending: boolean;
+  failed: boolean;
   candidates: IdentifyCandidate[];
   run: () => void;
   dismiss: () => void;
@@ -31,6 +34,7 @@ interface ScanIdentify {
 
 export function useScanIdentify({
   bank,
+  index,
   identifyNow,
   unidentified,
   dismissUnidentified,
@@ -40,6 +44,7 @@ export function useScanIdentify({
   const [identify, setIdentify] = useState<{
     snapshot: string | null;
     pending: boolean;
+    failed: boolean;
     candidates: IdentifyCandidate[];
   } | null>(null);
   // Keyed so a sheet the user dismissed while it was still thinking cannot be
@@ -50,17 +55,29 @@ export function useScanIdentify({
   // Also how a second copy of a card still in hand gets counted: the engine
   // won't lock the same artwork twice on its own.
   async function identifyCard() {
-    if (!bank) {
+    if (!bank || !index) {
       return;
     }
     const seq = ++identifySeqRef.current;
-    setIdentify({ snapshot: null, pending: true, candidates: [] });
-    const attempt = await identifyNow((snapshot) => {
+    setIdentify({ snapshot: null, pending: true, failed: false, candidates: [] });
+    const onSnapshot = (snapshot: string | null) => {
       if (identifySeqRef.current === seq) {
         setIdentify((current) => (current === null ? null : { ...current, snapshot }));
       }
-    });
+    };
+    let attempt: IdentifyAttempt | null = null;
+    try {
+      attempt = await identifyNow(onSnapshot);
+    } catch (error) {
+      console.warn("[scan] identify attempt failed", error);
+    }
     if (identifySeqRef.current !== seq) {
+      return;
+    }
+    if (attempt === null) {
+      setIdentify((current) =>
+        current === null ? null : { ...current, pending: false, failed: true },
+      );
       return;
     }
     if (attempt.identified) {
@@ -71,7 +88,8 @@ export function useScanIdentify({
     setIdentify({
       snapshot: attempt.snapshot,
       pending: false,
-      candidates: toIdentifyCandidates(bank.labels, attempt.candidates),
+      failed: false,
+      candidates: toIdentifyCandidates(index, bank.labels, attempt.candidates),
     });
   }
 
@@ -106,7 +124,7 @@ export function useScanIdentify({
 
   function answerMissed(id: string) {
     const card = unidentified.find((entry) => entry.id === id);
-    if (!card || !bank) {
+    if (!card || !bank || !index) {
       return;
     }
     if (card.candidates.length === 0) {
@@ -119,7 +137,8 @@ export function useScanIdentify({
     setIdentify({
       snapshot: card.thumbnail,
       pending: false,
-      candidates: toIdentifyCandidates(bank.labels, card.candidates),
+      failed: false,
+      candidates: toIdentifyCandidates(index, bank.labels, card.candidates),
     });
   }
 
@@ -127,6 +146,7 @@ export function useScanIdentify({
     open: identify !== null,
     snapshot: identify?.snapshot ?? null,
     pending: identify?.pending ?? false,
+    failed: identify?.failed ?? false,
     candidates: identify?.candidates ?? [],
     run,
     dismiss,

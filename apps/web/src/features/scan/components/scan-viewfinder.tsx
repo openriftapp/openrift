@@ -16,6 +16,7 @@ interface ScanViewfinderProps {
   ghostConfidence: number;
   ghostLandscape: boolean;
   ready: boolean;
+  unavailable: boolean;
   cameraAvailable: boolean | null;
   engineProgress: DownloadProgress;
   showPhoneHint: boolean;
@@ -33,6 +34,7 @@ export function ScanViewfinder({
   ghostConfidence,
   ghostLandscape,
   ready,
+  unavailable,
   cameraAvailable,
   engineProgress,
   showPhoneHint,
@@ -54,7 +56,7 @@ export function ScanViewfinder({
         landscape={ghostLandscape}
         className={cn("absolute right-4", immersive ? "top-20" : "top-4")}
       />
-      {!active && (
+      {!active && !unavailable && (
         <ScanStartPanel
           ready={ready}
           cameraAvailable={cameraAvailable}

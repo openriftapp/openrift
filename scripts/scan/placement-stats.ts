@@ -1,4 +1,4 @@
-import { quadArea, quadIou } from "../../packages/shared/src/scan/geometry.js";
+import { boxContainment, quadIou } from "../../packages/shared/src/scan/geometry.js";
 import { centeredGuideQuad } from "../../packages/shared/src/scan/session-options.js";
 import type { Quad } from "../../packages/shared/src/scan/types.js";
 
@@ -31,12 +31,10 @@ export function recordPlacement(
 ): void {
   const guide = centeredGuideQuad(width, height);
   const iou = quadIou(quad, guide);
-  const candidateArea = quadArea(quad);
-  const intersection = (iou * (candidateArea + quadArea(guide))) / (1 + iou);
 
   stats.frames++;
   stats.iouSum += iou;
-  stats.containmentSum += candidateArea > 0 ? intersection / candidateArea : 0;
+  stats.containmentSum += boxContainment(quad, guide);
   if (quad.every((point, index) => point.x === guide[index].x && point.y === guide[index].y)) {
     stats.guideFallback++;
   }

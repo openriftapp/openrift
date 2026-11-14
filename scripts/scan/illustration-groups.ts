@@ -7,18 +7,15 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import sharp from "sharp";
-
 import type { AlignedSignature } from "../../packages/shared/src/scan/aligned-verify";
 import { referenceSignature } from "../../packages/shared/src/scan/aligned-verify";
 import {
   illustrationCardKey,
   illustrationScore,
+  scanArtKey,
   SHARED_ILLUSTRATION_MIN_SCORE,
 } from "../../packages/shared/src/scan/art-groups";
-import type { RgbaImage } from "../../packages/shared/src/scan/types";
-
-const MEDIA_CARDS = path.resolve(process.cwd(), "media/cards");
+import { MEDIA_CARDS, loadImage } from "./lib";
 
 const QUERY = `
 select coalesce(json_agg(r), '[]') from (
@@ -41,23 +38,9 @@ interface Row {
   publicCode: string;
   language: string;
   cardType: string;
-  artVariant: string;
+  artVariant: string | null;
   isOvernumbered: boolean;
   artist: string;
-}
-
-async function decode(file: string): Promise<RgbaImage> {
-  const { data, info } = await sharp(file)
-    .flatten({ background: { r: 128, g: 128, b: 128 } })
-    .raw()
-    .toColourspace("srgb")
-    .ensureAlpha()
-    .toBuffer({ resolveWithObject: true });
-  return {
-    data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
-    width: info.width,
-    height: info.height,
-  };
 }
 
 const rows = JSON.parse(
@@ -67,19 +50,17 @@ const rows = JSON.parse(
   }),
 ) as Row[];
 
-const artKeyOf = (row: Row) =>
-  `${row.setSlug}|${row.name}|${row.artVariant}|${row.isOvernumbered ? "over" : ""}`;
 const byCard = Map.groupBy(rows, (row) => illustrationCardKey(row.name, row.cardType));
 
 const signatures = new Map<string, AlignedSignature>();
 for (const cardRows of byCard.values()) {
-  if (new Set(cardRows.map((row) => artKeyOf(row))).size < 2) {
+  if (new Set(cardRows.map((row) => scanArtKey(row))).size < 2) {
     continue;
   }
   for (const row of cardRows) {
     const file = path.join(MEDIA_CARDS, row.imageId.slice(-2), `${row.imageId}-400w.webp`);
     if (fs.existsSync(file)) {
-      signatures.set(row.imageId, referenceSignature(await decode(file)));
+      signatures.set(row.imageId, referenceSignature(await loadImage(file)));
     }
   }
 }
@@ -99,7 +80,7 @@ const pairs: PairResult[] = [];
 for (const [card, cardRows] of byCard) {
   const byArt = Map.groupBy(
     cardRows.filter((row) => signatures.has(row.imageId)),
-    artKeyOf,
+    (row) => scanArtKey(row),
   );
   const artKeys = [...byArt.keys()].toSorted();
   for (let i = 0; i < artKeys.length; i++) {

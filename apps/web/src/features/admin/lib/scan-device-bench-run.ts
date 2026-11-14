@@ -12,13 +12,13 @@ import {
   summarize,
 } from "@openrift/shared/scan/bench-score";
 import { toGray } from "@openrift/shared/scan/image";
-import type { CardLabels } from "@openrift/shared/scan/labels";
 import { createPlacementDetector } from "@openrift/shared/scan/placement";
+import type { FrameOutcome } from "@openrift/shared/scan/session";
 import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 import type { ScanSessionOptions } from "@openrift/shared/scan/session-options";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 
-import type { SpeedSample, SpeedSummary } from "@/features/admin/lib/scan-device-bench";
+import type { SpeedSummary } from "@/features/admin/lib/scan-device-bench";
 import {
   frameWindows,
   realtimePacing,
@@ -27,7 +27,7 @@ import {
 } from "@/features/admin/lib/scan-device-bench";
 import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
 import { describeKey, scanBankInfo } from "@/features/scan/lib/scan-bank";
-import { SLOW_DEVICE_EMBED_MS } from "@/features/scan/lib/scan-embedder";
+import { isSlowDevice } from "@/features/scan/lib/scan-embedder";
 import { DEFAULT_SCANNER_SETTINGS, scanSessionPlans } from "@/features/scan/lib/scan-session";
 import type { ScanWorkerClient } from "@/features/scan/lib/scan-worker-client";
 import type { ScanAssets, ScanWorkerReady } from "@/features/scan/lib/scan-worker-protocol";
@@ -46,15 +46,13 @@ export interface BenchAssets extends ScanAssets {
 
 export interface BenchJob {
   assets: BenchAssets;
-  labels: CardLabels;
   client: ScanWorkerClient;
   onProgress: (text: string) => void;
 }
 
 export interface SpeedRun {
   meta: Record<string, string | number | boolean>;
-  aimed: SpeedSummary | null;
-  sweep: SpeedSummary | null;
+  frames: SpeedSummary | null;
 }
 
 type IdentityOf = (key: string) => BenchIdentity | undefined;
@@ -150,12 +148,11 @@ interface BenchPack {
   ready: ScanWorkerReady;
   bank: ScanBankInfo;
   plans: { live: Partial<ScanSessionOptions>; catchUp: Partial<ScanSessionOptions> };
-  idleGate: number;
   meta: Record<string, string | number | boolean>;
   canvas: HTMLCanvasElement;
 }
 
-async function openBenchPack({ assets, labels, client, onProgress }: BenchJob): Promise<BenchPack> {
+async function openBenchPack({ assets, client, onProgress }: BenchJob): Promise<BenchPack> {
   const indexResponse = await fetch(`${PACK_URL}/index.json`);
   if (!indexResponse.ok) {
     throw new Error("No bench pack. Run bun scripts/scan/export-bench-pack.ts on the dev box.");
@@ -172,20 +169,18 @@ async function openBenchPack({ assets, labels, client, onProgress }: BenchJob): 
     },
     ortThreadsParam(),
   );
-  const gates = ready.gates;
   const plans = scanSessionPlans({
     mode: "single",
     candidatesToTry: DEFAULT_SCANNER_SETTINGS.candidatesToTry,
-    slowDevice: ready.embedMsPerImage > SLOW_DEVICE_EMBED_MS,
-    gates,
+    slowDevice: isSlowDevice(ready.embedMsPerImage),
+    gates: ready.gates,
     canonical: ready.canonical,
   });
   return {
     clips: pack.clips,
     ready,
-    bank: scanBankInfo(labels, ready),
+    bank: scanBankInfo(ready),
     plans,
-    idleGate: gates.rotationFallbackDistance,
     meta: {
       date: new Date().toISOString(),
       device: navigator.userAgent,
@@ -200,7 +195,7 @@ async function openBenchPack({ assets, labels, client, onProgress }: BenchJob): 
 /** Replays the clips from `export-bench-pack.ts`; the result matches `run-clips.ts --json`. */
 export async function runBench(job: BenchJob): Promise<BenchRun> {
   const { client, onProgress } = job;
-  const { clips: entries, bank, plans, idleGate, meta, canvas } = await openBenchPack(job);
+  const { clips: entries, bank, plans, meta, canvas } = await openBenchPack(job);
   const identityOf = identityLookup(bank);
   const multiPrinting = multiPrintingArts(bank.keys, identityOf);
   const bankArts = new Set(bank.artKeys.values());
@@ -227,7 +222,6 @@ export async function runBench(job: BenchJob): Promise<BenchRun> {
       rearm: () => client.rearm(),
       multiPrinting: (artKey) => multiPrinting.has(artKey),
       labelOf: (key) => describeKey(bank.labels, key),
-      idleGate,
       now: () => performance.now(),
       pacing: realtimePacing(),
     });
@@ -253,7 +247,7 @@ export async function runBench(job: BenchJob): Promise<BenchRun> {
 export async function runSpeedCheck(job: BenchJob): Promise<SpeedRun> {
   const { client, onProgress } = job;
   const { clips, plans, meta, canvas } = await openBenchPack(job);
-  const samples: SpeedSample[] = [];
+  const samples: FrameOutcome["timings"][] = [];
   for (const entry of clips) {
     const fps = clipFps(entry);
     const windows = frameWindows(
@@ -268,12 +262,12 @@ export async function runSpeedCheck(job: BenchJob): Promise<SpeedRun> {
         const frame = await loadFrame(entry.clip, index, canvas);
         const outcome = await client.processFrame("live", frame, position, position / fps);
         if (position >= SPEED_WARMUP_FRAMES) {
-          samples.push({ sweep: outcome.sweeping, timings: outcome.timings });
+          samples.push(outcome.timings);
         }
       }
     }
   }
-  return { meta, ...summarizeSpeed(samples) };
+  return { meta, frames: summarizeSpeed(samples) };
 }
 
 /** Dev server only: results land in data/image-recognition-test/device-runs. */

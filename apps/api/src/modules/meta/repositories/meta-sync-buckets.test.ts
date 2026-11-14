@@ -6,7 +6,12 @@ import { describe, expect, it } from "vitest";
 import type { Database } from "../../../db/tables.js";
 import { createRecordingDb } from "../../../test/recording-db.js";
 import type { MetaAutoPublishRule, MetaSyncBucketColumns } from "./meta-sync-buckets.js";
-import { metaSyncBucketCondition, metaSyncBucketCountSelections } from "./meta-sync-buckets.js";
+import {
+  metaSyncBucketCondition,
+  metaSyncBucketCountSelections,
+  mirrorOverviewSelections,
+  triageCountSelections,
+} from "./meta-sync-buckets.js";
 import { playloltcgEventsRepo } from "./playloltcg-events.js";
 import { playriftboundEventsRepo } from "./playriftbound-events.js";
 import { topdeckEventsRepo } from "./topdeck-events.js";
@@ -89,6 +94,9 @@ interface BucketListing {
     page: { limit: number; offset: number },
   ) => Promise<unknown>;
   passingNoResultsKeys: (rule: MetaAutoPublishRule) => Promise<string[]>;
+  triageCounts: () => Promise<unknown>;
+  bucketCounts: (filters: { missing?: boolean }, rule: MetaAutoPublishRule) => Promise<unknown>;
+  syncOverview: (rule: MetaAutoPublishRule) => Promise<unknown>;
 }
 
 const sources: [string, (db: Kysely<Database>) => BucketListing][] = [
@@ -121,5 +129,87 @@ describe.each(sources)("%s bucket filters", (_name, makeRepo) => {
     const where = bucketWhere(recording.queries[0] ?? "");
     expect(where).toContain("not exists");
     expect(where).not.toContain(JOINED_UNDECIDED);
+  });
+});
+
+function selectList(statement: string): string {
+  const end = statement.indexOf(' from "');
+  expect(end).toBeGreaterThan(-1);
+  return statement.slice(0, end);
+}
+
+function aliases(list: string): string[] {
+  return [...list.matchAll(/ as "(?<alias>\w+)"/gu)].map((match) => match.groups?.alias ?? "");
+}
+
+function sharedSelectList(build: (db: Kysely<Database>) => { compile: () => { sql: string } }) {
+  return selectList(build(createRecordingDb().db).compile().sql);
+}
+
+const NO_OVERVIEW = {
+  completed: sql<boolean>`false`,
+  decklistPublished: sql<boolean>`false`,
+  awaitingResults: sql<boolean>`false`,
+  cancelled: sql<boolean>`false`,
+};
+
+describe.each(sources)("%s aggregate reads", (_name, makeRepo) => {
+  it("counts triage states with the shared selections", async () => {
+    const recording = createRecordingDb([[{ new: 1, accepted: 2, dismissed: 3 }]]);
+
+    const counts = await makeRepo(recording.db).triageCounts();
+
+    expect(counts).toEqual({ new: 1, accepted: 2, dismissed: 3 });
+    expect(selectList(recording.queries[0] ?? "")).toBe(
+      sharedSelectList((db) =>
+        db.selectFrom("uvsgamesEvents as c").select(triageCountSelections()),
+      ),
+    );
+  });
+
+  it("skips the bucket counts when no filter narrows the list", async () => {
+    const recording = createRecordingDb();
+
+    await expect(makeRepo(recording.db).bucketCounts({}, rule)).resolves.toBeNull();
+    expect(recording.queries).toHaveLength(0);
+  });
+
+  it("counts narrowed buckets with the shared selections", async () => {
+    const recording = createRecordingDb([[{ total: "4" }]]);
+
+    await makeRepo(recording.db).bucketCounts({ missing: true }, rule);
+
+    const statement = recording.queries[0] ?? "";
+    expect(aliases(selectList(statement))).toEqual(
+      aliases(
+        sharedSelectList((db) =>
+          db.selectFrom("uvsgamesEvents as c").select(metaSyncBucketCountSelections(columns, rule)),
+        ),
+      ),
+    );
+    expect(statement).toContain(`count(*) filter (where ${JOINED_UNDECIDED}) as "undecided"`);
+    expect(statement).toContain("where c.missing_since is not null");
+  });
+
+  it("reads the sync overview through the shared selections", async () => {
+    const recording = createRecordingDb([[{ total: "7", missing: "1" }]]);
+
+    const overview = await makeRepo(recording.db).syncOverview(rule);
+
+    const statement = recording.queries[0] ?? "";
+    expect(aliases(selectList(statement))).toEqual(
+      aliases(
+        sharedSelectList((db) =>
+          db
+            .selectFrom("uvsgamesEvents as c")
+            .select(mirrorOverviewSelections(columns, rule, NO_OVERVIEW)),
+        ),
+      ),
+    );
+    expect(statement).toContain(
+      `count(*) filter (where (${JOINED_PUBLISHED}) and c.missing_since is not null) as "accepted_missing"`,
+    );
+    expect(statement).toContain('max("c"."last_seen_at") as "last_seen_at"');
+    expect(overview).toMatchObject({ total: 7, missing: 1 });
   });
 });

@@ -7,12 +7,32 @@ import sharp from "sharp";
 import type { ClipTruth, SavedRun } from "../../packages/shared/src/scan/bench-score.js";
 import type { RgbaImage } from "../../packages/shared/src/scan/types.js";
 
-export const REPO_ROOT = path.resolve(import.meta.dir, "../..");
+export const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 export const MEDIA_CARDS = path.join(REPO_ROOT, "media/cards");
 export const DATA_DIR = path.join(REPO_ROOT, "data/image-recognition-test");
 export const CACHE_DIR = path.join(DATA_DIR, "cache");
 export const CLIPS = path.join(DATA_DIR, "clips/full");
+const SCAN_MEDIA_DIR = path.join(REPO_ROOT, "media/scan");
+
+/** An explicit path wins; otherwise the file the API serves, named by the API's own variable. */
+export function servedModel(pathVar: string, fileVar: string, fallback: string): string;
+export function servedModel(pathVar: string, fileVar: string): string | undefined;
+export function servedModel(pathVar: string, fileVar: string, fallback?: string) {
+  const explicit = process.env[pathVar];
+  if (explicit) {
+    return explicit;
+  }
+  const file = process.env[fileVar] ?? fallback;
+  return file === undefined ? undefined : path.join(SCAN_MEDIA_DIR, file);
+}
 export const DEFAULT_FPS = 30;
+
+export function listFrames(dir: string): string[] {
+  return fs
+    .readdirSync(dir)
+    .filter((file) => file.endsWith(".jpg"))
+    .toSorted();
+}
 
 export function listClips(): string[] {
   if (!fs.existsSync(CLIPS)) {
@@ -84,7 +104,7 @@ export function extractClipFrames(clip: string): number {
     ],
     { stdio: "inherit" },
   );
-  return fs.readdirSync(outDir).filter((file) => file.endsWith(".jpg")).length;
+  return listFrames(outDir).length;
 }
 
 export function loadClipTruth(clip: string): ClipTruth | null {

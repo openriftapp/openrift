@@ -2,6 +2,7 @@ import type { Repos } from "../../../deps.js";
 import type { AppError } from "../../../errors.js";
 import { conflict } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { eventPromoteKey, sourcePromoteKey } from "../../../lib/meta-promote-keys.js";
 import { loadCardNameIndex } from "../../candidates/services/candidate-links.js";
 import { metaEventSlugCandidates } from "../lib/meta-event-naming.js";
 import type { MetaEventOverlayPatch } from "../lib/meta-overlay-apply.js";
@@ -53,7 +54,7 @@ export function promoteMetaEvent(
   metaEventId: string,
   context?: MetaPromoteContext,
 ): Promise<MetaPromoteResult> {
-  return repos.meta.withPromoteLock(`event:${metaEventId}`, (locked) =>
+  return repos.meta.withPromoteLock(eventPromoteKey(metaEventId), (locked) =>
     promoteMetaEventLocked(locked, metaEventId, context),
   );
 }
@@ -69,13 +70,10 @@ async function promoteMetaEventLocked(
 
   const result = emptyResult(metaEventId);
   const sources = await repos.meta.sourcesForEvent(metaEventId);
-  const ordered = sources
-    // A citation with `contributes` off is printed and never read; see
-    // `insertEventSource`.
-    .filter(
-      (source) => source.provider !== null && source.externalId !== null && source.contributes,
-    )
-    .toSorted((a, b) => a.priority - b.priority || a.createdAt.getTime() - b.createdAt.getTime());
+  // A citation with `contributes` off is printed and never read; see `insertEventSource`.
+  const ordered = sources.filter(
+    (source) => source.provider !== null && source.externalId !== null && source.contributes,
+  );
 
   const collected: SourceFacts[] = [];
   for (const source of ordered) {
@@ -193,7 +191,7 @@ export function promoteNewEvent(
   if (provider === null || externalId === null) {
     return promoteNewEventLocked(repos, provider, externalId, seed);
   }
-  return repos.meta.withPromoteLock(`source:${provider}:${externalId}`, (locked) =>
+  return repos.meta.withPromoteLock(sourcePromoteKey(provider, externalId), (locked) =>
     promoteNewEventLocked(locked, provider, externalId, seed),
   );
 }

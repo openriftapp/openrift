@@ -8,6 +8,7 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "paths": { "@/*": ["../apps/web/src/*"] },
     "types": ["bun"],
     "typeRoots": ["../packages/shared/node_modules/@types"]
   },

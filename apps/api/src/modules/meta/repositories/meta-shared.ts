@@ -8,6 +8,60 @@ import { sql } from "kysely";
  */
 export const META_ARCHIVE_USER_ID = "meta-archive";
 
+export const TODAY = sql<string>`(now() at time zone 'UTC')::date`;
+
+export const HAS_STANDINGS = sql<SqlBool>`exists (
+  select 1 from meta_event_players p where p.meta_event_id = me.id
+)`;
+
+export const HAS_DECKS = sql<SqlBool>`exists (
+  select 1 from meta_event_players p where p.meta_event_id = me.id and p.deck_id is not null
+)`;
+
+export const HAS_LIST = sql<SqlBool>`p.deck_id is not null`;
+
+export const UPCOMING = sql<SqlBool>`(me.status = 'upcoming' or me.event_date > ${TODAY})`;
+
+export function citedBy(provider: string): RawBuilder<SqlBool> {
+  return sql<SqlBool>`exists (
+    select 1 from meta_event_sources src
+     where src.meta_event_id = me.id and src.provider = ${provider}
+  )`;
+}
+
+export const NO_PROVIDER_CITATION = sql<SqlBool>`not exists (
+  select 1 from meta_event_sources src
+   where src.meta_event_id = me.id and src.provider is not null
+)`;
+
+/** Requires `cards` joined as `lc` and `mv_card_aggregates` as `lmca`. */
+export const ARCHIVE_LEGEND_COLUMNS = [
+  "lc.id as cardId",
+  "lc.name",
+  "lc.slug",
+  "lmca.types",
+  "lc.tags",
+  "lmca.domains",
+] as const;
+
+export const ARCHIVE_LEGEND_GROUP = [
+  "lc.id",
+  "lc.name",
+  "lc.slug",
+  "lmca.types",
+  "lc.tags",
+  "lmca.domains",
+] as const;
+
+/** Requires `cards` joined as `lc` and `mv_card_aggregates` as `lmca`. */
+export const LEGEND_REF_COLUMNS = [
+  "lc.name as legendName",
+  "lc.slug as legendSlug",
+  "lmca.types as legendTypes",
+  "lc.tags as legendTags",
+  "lmca.domains as legendDomains",
+] as const;
+
 export function dueBefore(now: Date): Date {
   return new Date(now.getTime() + 1);
 }

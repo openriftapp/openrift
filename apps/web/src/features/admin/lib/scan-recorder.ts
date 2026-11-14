@@ -51,8 +51,6 @@ export interface ClipMeta {
   userAgent: string;
   camera: Record<string, string | number | boolean>;
   locks: ClipLock[];
-  /** Fraction 0..1 of processed frames the session reported as sweeping. */
-  sweepShare?: number;
   frames?: ClipFrame[];
 }
 
@@ -120,14 +118,6 @@ export function buildClipMeta(input: ClipMetaInput): ClipMeta {
         framesToLock: lock.framesToLock,
         score: lock.score,
       })),
-    ...(input.frames === undefined
-      ? {}
-      : {
-          sweepShare:
-            input.frames.length === 0
-              ? 0
-              : input.frames.filter((frame) => frame.sweeping).length / input.frames.length,
-          frames: input.frames,
-        }),
+    ...(input.frames === undefined ? {} : { frames: input.frames }),
   };
 }

@@ -411,8 +411,7 @@ const metaEventTierCountsSchema = z.object({
 
 /**
  * `decksWithMainDeck` counts full and partial lists alike (a partial list's
- * main deck is complete). `totalEvents`, `latestResultDate` and both tier counts ignore
- * the query's filters.
+ * main deck is complete). Every figure follows the query's scope.
  */
 export const metaCountsResponseSchema = z.object({
   totalPlayers: z.number().int().nonnegative(),
@@ -509,12 +508,6 @@ export const metaPlayerDetailResponseSchema = z.object({
   key: z.string(),
   name: z.string(),
   finishes: z.array(metaPlayerFinishSchema),
-});
-
-export const metaCountsQuerySchema = z.object({
-  format: z.string().min(1).optional(),
-  dateFrom: isoDate.optional(),
-  dateTo: isoDate.optional(),
 });
 
 /** Inclusive bounds; both ends are optional and independent. */
@@ -732,7 +725,7 @@ export const metaContract = {
   counts: oc
     .route({ method: "GET", path: `${BASE}/counts`, tags: [TAG] })
     .meta({ auth: "public", cache: "short" })
-    .input(metaCountsQuerySchema)
+    .input(metaScopeQuerySchema)
     .output(metaCountsResponseSchema),
 };
 

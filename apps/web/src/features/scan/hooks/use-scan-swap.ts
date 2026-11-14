@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
@@ -21,7 +20,6 @@ export function useScanSwap(printingsByCard: ReadonlyMap<string, Printing[]>): S
   const request: PickerRequest | null = row
     ? {
         artKey: "",
-        label: legendDisplayName(row.printing.card),
         candidates: sortForPicker(printingsByCard.get(row.printing.cardId) ?? []),
         currentId: row.printing.printingId,
       }

@@ -6,7 +6,6 @@ import {
   describeKey,
   isLandscapeKey,
   loadScanBank,
-  loadScanLabels,
   scanBankInfo,
 } from "@/features/scan/lib/scan-bank";
 import type { ScanWorkerReady } from "@/features/scan/lib/scan-worker-protocol";
@@ -94,27 +93,30 @@ describe("loadScanBank", () => {
   });
 });
 
-describe("loadScanLabels", () => {
+describe("loadScanBank labels", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("reads the published labels", async () => {
+  it("fails like a missing bank when the labels file is missing", async () => {
+    const buffer = encodeEmbedBank(
+      { keys: ["unit"], vectors: new Float32Array(256) },
+      (key) => key,
+      true,
+    );
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => Response.json(labels)),
+      vi.fn(async (url: string) =>
+        url.endsWith(".bin") ? new Response(buffer) : new Response(null, { status: 404 }),
+      ),
     );
 
-    await expect(loadScanLabels("/media/scan/labels.json")).resolves.toEqual(labels);
-  });
-
-  it("falls back to no labels when the file is missing", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(null, { status: 404 })),
-    );
-
-    await expect(loadScanLabels("/media/scan/labels.json")).resolves.toEqual({});
+    await expect(
+      loadScanBank("/media/scan/bank.bin", "/media/scan/labels.json"),
+    ).rejects.toMatchObject({
+      asset: "labels",
+      message: expect.stringContaining("the scan labels"),
+    });
   });
 });
 
@@ -129,6 +131,7 @@ describe("scanBankInfo", () => {
       ["sfd-rune", "Order Rune"],
       ["ogn-lux", "Lux"],
     ],
+    labels,
     canonical: true,
     bytes: 2048,
     gates: {
@@ -139,8 +142,8 @@ describe("scanBankInfo", () => {
     },
   };
 
-  it("indexes the worker's artwork keys next to the labels", () => {
-    const info = scanBankInfo(labels, ready);
+  it("indexes the worker's artwork keys next to its labels", () => {
+    const info = scanBankInfo(ready);
 
     expect(info.artKeys.get("sfd-rune")).toBe("Order Rune");
     expect(info).toMatchObject({ keys: ready.keys, labels, bytes: 2048 });

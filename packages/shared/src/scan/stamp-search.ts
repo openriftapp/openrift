@@ -4,19 +4,18 @@
  * does not move the stamp out of view. Both are then compared on the pixels where they differ.
  */
 import { toGray } from "./image";
+import { SESSION_UNWARP_HEIGHT, SESSION_UNWARP_WIDTH } from "./session-options";
 import type { RgbaImage } from "./types";
 
-const CARD_WIDTH = 384;
-const CARD_HEIGHT = 528;
 const DOWNSCALE = 2;
-const TEMPLATE_BOX = { x0: 0.4, y0: 0.875, x1: 0.6, y1: 0.965 };
+const STAMP_SEARCH_TEMPLATE_BOX = { x0: 0.4, y0: 0.875, x1: 0.6, y1: 0.965 };
 const SEARCH_BOX = { x0: 0.28, y0: 0.8, x1: 0.72, y1: 0.995 };
 const SCALES = [0.88, 1, 1.12];
 const DIFFERENCE_SHARE = 0.2;
-export const STAMP_MIN_SCORE = 0.7;
-export const STAMP_MIN_LEAD = 0.1;
+export const STAMP_SEARCH_MIN_SCORE = 0.7;
+export const STAMP_SEARCH_MIN_LEAD = 0.1;
 
-type Box = typeof TEMPLATE_BOX;
+type Box = typeof STAMP_SEARCH_TEMPLATE_BOX;
 
 interface Raster {
   data: ArrayLike<number>;
@@ -50,9 +49,9 @@ export interface StampScores {
 
 function cardGray(card: RgbaImage): Raster {
   const gray = toGray(card);
-  return gray.width === CARD_WIDTH && gray.height === CARD_HEIGHT
+  return gray.width === SESSION_UNWARP_WIDTH && gray.height === SESSION_UNWARP_HEIGHT
     ? gray
-    : resizePlane(gray, CARD_WIDTH, CARD_HEIGHT);
+    : resizePlane(gray, SESSION_UNWARP_WIDTH, SESSION_UNWARP_HEIGHT);
 }
 
 function cropPlane(src: Raster, box: Box): Plane {
@@ -249,8 +248,8 @@ function centered(plane: Plane): { values: Float32Array; norm: number } {
 }
 
 export function stampPair(plainReference: RgbaImage, markedReference: RgbaImage): StampPair {
-  const plainBox = cropPlane(cardGray(plainReference), TEMPLATE_BOX);
-  const markedBox = cropPlane(cardGray(markedReference), TEMPLATE_BOX);
+  const plainBox = cropPlane(cardGray(plainReference), STAMP_SEARCH_TEMPLATE_BOX);
+  const markedBox = cropPlane(cardGray(markedReference), STAMP_SEARCH_TEMPLATE_BOX);
   return {
     scales: SCALES.map((scale) => {
       const width = Math.round((plainBox.width * scale) / DOWNSCALE);
@@ -330,5 +329,7 @@ export function stampScores(card: RgbaImage, pair: StampPair): StampScores {
 }
 
 export function showsStamp(scores: StampScores): boolean {
-  return scores.marked >= STAMP_MIN_SCORE && scores.marked - scores.plain >= STAMP_MIN_LEAD;
+  return (
+    scores.marked >= STAMP_SEARCH_MIN_SCORE && scores.marked - scores.plain >= STAMP_SEARCH_MIN_LEAD
+  );
 }

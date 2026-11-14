@@ -1,3 +1,5 @@
+import { clamp } from "@openrift/shared/math";
+
 export interface ResourceProgress {
   loaded: number;
   total: number;
@@ -28,7 +30,7 @@ function fraction(resource: ResourceProgress): number {
   if (resource.total <= 0) {
     return 0;
   }
-  return Math.min(1, Math.max(0, resource.loaded / resource.total));
+  return clamp(resource.loaded / resource.total, 0, 1);
 }
 
 function downloaded(resource: ResourceProgress): boolean {

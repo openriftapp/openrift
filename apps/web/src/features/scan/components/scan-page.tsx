@@ -26,18 +26,18 @@ import { ScanViewfinder } from "@/features/scan/components/scan-viewfinder";
 import { useCardScanner } from "@/features/scan/hooks/use-card-scanner";
 import { useScanAdd } from "@/features/scan/hooks/use-scan-add";
 import { useScanAimIdentify } from "@/features/scan/hooks/use-scan-aim-identify";
-import { useScanBank } from "@/features/scan/hooks/use-scan-bank";
 import { useScanClear } from "@/features/scan/hooks/use-scan-clear";
 import { useScanEngine } from "@/features/scan/hooks/use-scan-engine";
 import { useScanIdentify } from "@/features/scan/hooks/use-scan-identify";
 import { useScanLayout } from "@/features/scan/hooks/use-scan-layout";
+import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
 import { useScanSessionRestore } from "@/features/scan/hooks/use-scan-session-restore";
 import { useScanSwap } from "@/features/scan/hooks/use-scan-swap";
-import { describeKey } from "@/features/scan/lib/scan-bank";
 import { ghostConfidence } from "@/features/scan/lib/scan-confidence";
 import { playLockTick } from "@/features/scan/lib/scan-feedback";
 import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
+import { scanKeyName } from "@/features/scan/lib/scan-identify";
 import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import { ANY_LANGUAGE, scanLanguageItems } from "@/features/scan/lib/scan-language-items";
 import type { BoardReadCard, LockedCard } from "@/features/scan/lib/scan-locks";
@@ -56,7 +56,8 @@ import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import type { ScanSessionRow } from "@/features/scan/stores/scan-session-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
-import { useLanguageLabels } from "@/hooks/use-enums";
+import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
+import { useLanguageLabels, useLanguageList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
@@ -103,6 +104,8 @@ function ScanPageBody({
   const setZoom = useScanPrefsStore((state) => state.setZoom);
   const setTapToScan = useScanPrefsStore((state) => state.setTapToScan);
   const languageLabels = useLanguageLabels();
+  const preferredLanguages = useEffectiveLanguageOrder();
+  const catalogLanguages = useLanguageList().map((language) => language.code);
 
   const destination =
     collections.find((collection) => collection.id === destinationId) ??
@@ -110,7 +113,10 @@ function ScanPageBody({
     collections[0] ??
     null;
 
-  const languageItems = scanLanguageItems(allPrintings, cardLanguage, languageLabels);
+  const languageItems = scanLanguageItems(allPrintings, cardLanguage, languageLabels, [
+    ...preferredLanguages,
+    ...catalogLanguages,
+  ]);
 
   useScanSessionRestore(allPrintings);
 
@@ -125,9 +131,16 @@ function ScanPageBody({
   const hydrated = useHydrated();
   const cameraAvailable = hydrated ? navigator.mediaDevices?.getUserMedia !== undefined : null;
 
-  const { assets, labels, unavailableMessage } = useScanBank();
-  const engine = useScanEngine(assets, labels);
-  const { bank, engineReady, slowDevice: deviceTooSlow, progress: engineProgress } = engine;
+  const serving = useScanServing();
+  const engine = useScanEngine(serving.assets);
+  const {
+    bank,
+    engineReady,
+    slowDevice: deviceTooSlow,
+    progress: engineProgress,
+    loadError: engineLoadError,
+  } = engine;
+  const unavailable = serving.status === "unavailable" || engineLoadError !== null;
 
   const index = bank ? buildScanPrintingIndex(allPrintings, bank) : null;
   const printingsByCard = printingsByCardId(allPrintings);
@@ -166,7 +179,14 @@ function ScanPageBody({
     setFlights((current) => [...current, flight]);
   }
 
-  function handleLock(lock: Pick<LockedCard, "key" | "artKey" | "label" | "resolved">) {
+  function notInCatalog(key: string) {
+    const name = index && bank ? scanKeyName(index, bank.labels, key) : null;
+    toast.error(
+      name === null ? m.scan_page_not_in_catalog_unnamed() : m.scan_page_not_in_catalog({ name }),
+    );
+  }
+
+  function handleLock(lock: Pick<LockedCard, "key" | "artKey" | "resolved">) {
     // With auto-scan, a card left in the guide would keep counting while the detail is open.
     if (detailOpen) {
       return;
@@ -176,7 +196,7 @@ function ScanPageBody({
     }
     const resolution = resolveLock(lock, index, cardLanguage ?? undefined);
     if (resolution.kind === "unknown") {
-      toast.error(m.scan_page_not_in_catalog({ name: lock.label }));
+      notInCatalog(lock.key);
       return;
     }
     if (!muted) {
@@ -185,7 +205,7 @@ function ScanPageBody({
     if (resolution.kind === "picker") {
       setPickerQueue((queue) => [
         ...queue,
-        { artKey: lock.artKey, label: lock.label, candidates: resolution.candidates },
+        { artKey: lock.artKey, candidates: resolution.candidates },
       ]);
       return;
     }
@@ -198,12 +218,11 @@ function ScanPageBody({
     if (detailOpen || !index || !bank) {
       return;
     }
-    const { artKeys, labels: bankLabels } = bank;
+    const { artKeys } = bank;
     const result = resolveBoardRead(
       cards,
       index,
       (key) => artKeys.get(key) ?? key,
-      (key) => bankLabels[key]?.name ?? describeKey(bankLabels, key),
       cardLanguage ?? undefined,
     );
     if (!muted && (result.added.length > 0 || result.pickers.length > 0)) {
@@ -218,8 +237,8 @@ function ScanPageBody({
     if (result.added.length > 0) {
       toast.success(m.scan_page_board_added({ count: result.added.length }));
     }
-    for (const name of result.unknown) {
-      toast.error(m.scan_page_not_in_catalog({ name }));
+    for (const key of result.unknownKeys) {
+      notInCatalog(key);
     }
   }
 
@@ -264,11 +283,15 @@ function ScanPageBody({
     identifyNow,
     unidentified,
     dismissUnidentified,
-  } = useCardScanner(engine, settings, {
-    onLock: handleLock,
-    onLockResolved: handleLockResolved,
-    onBoardRead: handleBoardRead,
-  });
+  } = useCardScanner(
+    engine,
+    { ...settings, zoom },
+    {
+      onLock: handleLock,
+      onLockResolved: handleLockResolved,
+      onBoardRead: handleBoardRead,
+    },
+  );
 
   const ready = bank !== null && engineReady;
 
@@ -282,9 +305,6 @@ function ScanPageBody({
   if (settings.paused !== detailOpen) {
     setSettings((previous) => ({ ...previous, paused: detailOpen }));
   }
-  if (settings.zoom !== zoom) {
-    setSettings((previous) => ({ ...previous, zoom }));
-  }
 
   function addSearchedPrinting(printing: Printing) {
     if (!muted) {
@@ -297,7 +317,6 @@ function ScanPageBody({
     handleLock({
       key: candidate.key,
       artKey: candidate.artKey,
-      label: candidate.label,
       resolved: false,
     });
   }
@@ -306,6 +325,7 @@ function ScanPageBody({
     open: identifyOpen,
     snapshot: identifySnapshot,
     pending: identifyPending,
+    failed: identifyFailed,
     candidates: identifyCandidates,
     run: handleIdentifyNow,
     dismiss: handleIdentifyDismiss,
@@ -314,6 +334,7 @@ function ScanPageBody({
     answerMissed: handleIdentifyMissed,
   } = useScanIdentify({
     bank,
+    index,
     identifyNow,
     unidentified,
     dismissUnidentified,
@@ -478,6 +499,7 @@ function ScanPageBody({
             ghostConfidence={ghostConfidence(readout.bestScore, readout.lockProgress)}
             ghostLandscape={ghostLandscape}
             ready={ready}
+            unavailable={unavailable}
             cameraAvailable={cameraAvailable}
             engineProgress={engineProgress}
             showPhoneHint={phoneHandoff}
@@ -502,7 +524,7 @@ function ScanPageBody({
         }
         notices={
           <ScanNotices
-            unavailableMessage={unavailableMessage}
+            unavailable={unavailable}
             scanError={scanError}
             cameraAvailable={cameraAvailable}
           />
@@ -533,6 +555,7 @@ function ScanPageBody({
         open={identifyOpen}
         snapshot={identifySnapshot}
         pending={identifyPending}
+        failed={identifyFailed}
         candidates={identifyCandidates}
         allPrintings={allPrintings}
         onPick={handleIdentifyPick}

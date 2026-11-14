@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
@@ -86,7 +87,7 @@ export function ScanPrintingPicker({
       // Keyed on the request so a new one re-derives its default tab.
       // Candidates arrive sorted language-first; no order is passed separately.
       <PrintingLanguageTabs
-        key={`${request.label}:${candidates[0]?.printingId}`}
+        key={`${request.artKey}:${candidates[0]?.printingId}`}
         printings={candidates}
         defaultLanguage={defaultLanguage}
         className="min-h-0"
@@ -96,9 +97,9 @@ export function ScanPrintingPicker({
       </PrintingLanguageTabs>
     );
 
+  const cardNames = [...new Set(candidates.map((candidate) => legendDisplayName(candidate.card)))];
   const resolvedDescription =
-    description ??
-    (request ? m.scan_picker_description({ name: request.label.split(" (")[0] ?? "" }) : "");
+    description ?? (request ? m.scan_picker_description({ name: cardNames.join(" / ") }) : "");
 
   return (
     <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>

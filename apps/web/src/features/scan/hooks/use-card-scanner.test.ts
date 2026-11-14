@@ -286,6 +286,7 @@ const READY: ScanWorkerReady = {
     ["k-a", "art-a"],
     ["k-b", "art-b"],
   ],
+  labels: LABELS,
   canonical: true,
   bytes: 1024,
   gates: gatesForEmbedDim(2),
@@ -389,7 +390,6 @@ function cardWithCloseRival(): void {
 
 interface MountOptions {
   settings?: ScannerSettings;
-  labels?: CardLabels | null;
   boardDetector?: boolean;
 }
 
@@ -398,16 +398,13 @@ async function mountScanner(options: MountOptions = {}) {
   const onBoardRead = vi.fn<(cards: BoardReadCard[]) => void>();
   const hook = renderHook(
     ({ settings }: { settings: ScannerSettings }) => {
-      const engine = useScanEngine(
-        {
-          encoderUrl: "https://assets.invalid/encoder.onnx",
-          bankUrl,
-          labelsUrl: "https://assets.invalid/labels.json",
-          detectorUrl: "https://assets.invalid/detector.onnx",
-          boardDetectorUrl: options.boardDetector ? "https://assets.invalid/board.onnx" : null,
-        },
-        options.labels === undefined ? LABELS : options.labels,
-      );
+      const engine = useScanEngine({
+        encoderUrl: "https://assets.invalid/encoder.onnx",
+        bankUrl,
+        labelsUrl: "https://assets.invalid/labels.json",
+        detectorUrl: "https://assets.invalid/detector.onnx",
+        boardDetectorUrl: options.boardDetector ? "https://assets.invalid/board.onnx" : null,
+      });
       const scanner = useCardScanner(engine, settings, { onLock, onBoardRead });
       return { ...scanner, engine };
     },
@@ -557,14 +554,15 @@ describe("useCardScanner", () => {
       expect(hook.result.current.error).toBeNull();
     });
 
-    it("surfaces a failed engine load as the hook error", async () => {
+    it("reports a failed engine load on the engine, not as a camera error", async () => {
       workerInit = () => Promise.reject(new Error("Could not load the card detector"));
 
       const { hook } = await mountScanner();
 
       await waitFor(() => {
-        expect(hook.result.current.error).toBe("Could not load the card detector");
+        expect(hook.result.current.engine.loadError).toBe("Could not load the card detector");
       });
+      expect(hook.result.current.error).toBeNull();
       expect(hook.result.current.engine.engineReady).toBe(false);
     });
 
@@ -635,18 +633,6 @@ describe("useCardScanner", () => {
 
       expect(hook.result.current.error).toBe("The engine is still loading, try again in a moment.");
       expect(hook.result.current.active).toBe(false);
-      expect(getUserMedia).not.toHaveBeenCalled();
-    });
-
-    it("refuses to start while the card labels have not loaded", async () => {
-      const getUserMedia = stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
-      const { hook } = await mountReadyScanner({ labels: null });
-
-      await act(async () => {
-        await hook.result.current.start();
-      });
-
-      expect(hook.result.current.error).toBe("The engine is still loading, try again in a moment.");
       expect(getUserMedia).not.toHaveBeenCalled();
     });
 

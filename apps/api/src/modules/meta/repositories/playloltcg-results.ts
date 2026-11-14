@@ -6,21 +6,28 @@ import type {
   PlayloltcgDecklistsTable,
   PlayloltcgEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
-import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
-
-// This source publishes standings and decks, but no per-round pairings and no
-// phase structure, so it has neither table.
+import type { MirrorDeckCoverage } from "./mirror-results.js";
+import {
+  deckCoverageOf,
+  putMirrorDecklist,
+  replaceRows,
+  replaceUnderEventLock,
+} from "./mirror-results.js";
 
 export type PlayloltcgStandingRow = Selectable<PlayloltcgEventStandingsTable>;
 export type PlayloltcgDecklistCardRow = Selectable<PlayloltcgDecklistCardsTable>;
 
-export interface PlayloltcgDeckCoverage {
-  outstanding: string[];
-  held: number;
-}
-
 export function playloltcgResultsRepo(db: Kysely<Database>) {
+  /** Deck ids already held, fetched or refused, so a pass never re-requests one. */
+  async function heldDeckIds(activityShopId: number): Promise<Set<string>> {
+    const held = await db
+      .selectFrom("playloltcgDecklists")
+      .select("sourceDeckId")
+      .where("activityShopId", "=", activityShopId)
+      .execute();
+    return new Set(held.map((row) => row.sourceDeckId));
+  }
+
   return {
     standings(activityShopId: number): Promise<PlayloltcgStandingRow[]> {
       return db
@@ -37,19 +44,23 @@ export function playloltcgResultsRepo(db: Kysely<Database>) {
       activityShopId: number,
       rows: readonly Insertable<PlayloltcgEventStandingsTable>[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await lockKey(trx, `playloltcg-event:${activityShopId}`);
-        await trx
-          .deleteFrom("playloltcgEventStandings")
-          .where("activityShopId", "=", activityShopId)
-          .execute();
-        for (const batch of rowBatches(rows)) {
-          await trx.insertInto("playloltcgEventStandings").values(batch).execute();
-        }
-      });
+      await replaceUnderEventLock(
+        db,
+        "playloltcg",
+        activityShopId,
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("playloltcgEventStandings")
+              .where("activityShopId", "=", activityShopId)
+              .execute(),
+          rows,
+          (trx, batch) => trx.insertInto("playloltcgEventStandings").values(batch).execute(),
+        ),
+      );
     },
 
-    async deckCoverage(activityShopId: number): Promise<PlayloltcgDeckCoverage> {
+    async deckCoverage(activityShopId: number): Promise<MirrorDeckCoverage> {
       const referenced = await db
         .selectFrom("playloltcgEventStandings")
         .select("sourceDeckId")
@@ -57,27 +68,13 @@ export function playloltcgResultsRepo(db: Kysely<Database>) {
         .where("activityShopId", "=", activityShopId)
         .where("sourceDeckId", "is not", null)
         .execute();
-      const held = await db
-        .selectFrom("playloltcgDecklists")
-        .select("sourceDeckId")
-        .where("activityShopId", "=", activityShopId)
-        .execute();
-      const heldIds = new Set(held.map((row) => row.sourceDeckId));
-      const outstanding = referenced
-        .map((row) => row.sourceDeckId)
-        .filter((id): id is string => id !== null && !heldIds.has(id));
-      return { outstanding, held: heldIds.size };
+      return deckCoverageOf(
+        referenced.map((row) => row.sourceDeckId),
+        await heldDeckIds(activityShopId),
+      );
     },
 
-    /** Deck ids already held, fetched or refused, so a pass never re-requests one. */
-    async heldDeckIds(activityShopId: number): Promise<Set<string>> {
-      const held = await db
-        .selectFrom("playloltcgDecklists")
-        .select("sourceDeckId")
-        .where("activityShopId", "=", activityShopId)
-        .execute();
-      return new Set(held.map((row) => row.sourceDeckId));
-    },
+    heldDeckIds,
 
     async decklistCards(activityShopId: number): Promise<Map<string, PlayloltcgDecklistCardRow[]>> {
       const rows = await db
@@ -98,28 +95,30 @@ export function playloltcgResultsRepo(db: Kysely<Database>) {
       row: Insertable<PlayloltcgDecklistsTable>,
       cards: readonly Omit<Insertable<PlayloltcgDecklistCardsTable>, "sourceDeckId">[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await trx
-          .insertInto("playloltcgDecklists")
-          .values(row)
-          .onConflict((oc) =>
-            oc.column("sourceDeckId").doUpdateSet({
-              activityShopId: row.activityShopId,
-              fetchStatus: row.fetchStatus,
-              fetchedAt: row.fetchedAt,
-            }),
-          )
-          .execute();
-        await trx
-          .deleteFrom("playloltcgDecklistCards")
-          .where("sourceDeckId", "=", row.sourceDeckId)
-          .execute();
-        for (const batch of rowBatches(
+      await putMirrorDecklist(
+        db,
+        (trx) =>
+          trx
+            .insertInto("playloltcgDecklists")
+            .values(row)
+            .onConflict((oc) =>
+              oc.column("sourceDeckId").doUpdateSet({
+                activityShopId: row.activityShopId,
+                fetchStatus: row.fetchStatus,
+                fetchedAt: row.fetchedAt,
+              }),
+            )
+            .execute(),
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("playloltcgDecklistCards")
+              .where("sourceDeckId", "=", row.sourceDeckId)
+              .execute(),
           cards.map((card) => ({ ...card, sourceDeckId: row.sourceDeckId })),
-        )) {
-          await trx.insertInto("playloltcgDecklistCards").values(batch).execute();
-        }
-      });
+          (trx, batch) => trx.insertInto("playloltcgDecklistCards").values(batch).execute(),
+        ),
+      );
     },
   };
 }

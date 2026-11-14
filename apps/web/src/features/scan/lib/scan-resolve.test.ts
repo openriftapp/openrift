@@ -479,14 +479,12 @@ describe("resolveBoardRead", () => {
   const artKeys = { "img-ahri": "art-ahri", "img-teemo": "art-teemo" };
   const index = buildScanPrintingIndex([ahri, teemo], stubBank(artKeys));
   const artKeyOf = (key: string) => artKeys[key as keyof typeof artKeys] ?? key;
-  const nameOf = (key: string) => (key === "img-ahri" ? "Ahri" : "Teemo");
 
   it("adds confident cards straight away", () => {
     const result = resolveBoardRead(
-      [{ key: "img-ahri", artKey: "art-ahri", label: "Ahri", resolved: false, alternatives: [] }],
+      [{ key: "img-ahri", artKey: "art-ahri", resolved: false, alternatives: [] }],
       index,
       artKeyOf,
-      nameOf,
     );
     expect(result.added.map((printing) => printing.printingId)).toEqual(["p-ahri"]);
     expect(result.pickers).toEqual([]);
@@ -498,17 +496,14 @@ describe("resolveBoardRead", () => {
         {
           key: "img-ahri",
           artKey: "art-ahri",
-          label: "Ahri",
           resolved: false,
           alternatives: ["img-teemo"],
         },
       ],
       index,
       artKeyOf,
-      nameOf,
     );
     expect(result.added).toEqual([]);
-    expect(result.pickers[0]?.label).toBe("Ahri / Teemo");
     expect(result.pickers[0]?.candidates.map((printing) => printing.printingId).toSorted()).toEqual(
       ["p-ahri", "p-teemo"],
     );
@@ -520,15 +515,13 @@ describe("resolveBoardRead", () => {
         {
           key: "img-missing",
           artKey: "art-missing",
-          label: "Missing",
           resolved: false,
           alternatives: [],
         },
       ],
       index,
       artKeyOf,
-      nameOf,
     );
-    expect(result.unknown).toEqual(["Missing"]);
+    expect(result.unknownKeys).toEqual(["img-missing"]);
   });
 });

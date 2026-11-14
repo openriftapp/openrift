@@ -3,6 +3,7 @@ import type {
   AdminMetaEventCorrection,
   AdminMetaSubmission,
 } from "@openrift/shared/contracts/admin/meta-submissions";
+import { todayUtc } from "@openrift/shared/format-date";
 import { metaLegendSlug, metaPlayerKey } from "@openrift/shared/meta-keys";
 import { metaResultsState } from "@openrift/shared/meta-results";
 import type {
@@ -178,6 +179,31 @@ function rowLegendArchiveSlug(row: {
   return metaLegendSlug(name, row.legendSlug);
 }
 
+function rowLegendRef(
+  row: {
+    legendCardId: string | null;
+    legendName: string | null;
+    legendSlug: string | null;
+    legendDomains: string[] | null;
+    legendTypes: CardType[] | null;
+    legendTags: string[] | null;
+  },
+  images: ImageIds,
+): MetaEventPlayer["legend"] {
+  return toCardRef(
+    {
+      cardId: row.legendCardId,
+      name: row.legendName,
+      slug: row.legendSlug,
+      domains: row.legendDomains,
+      types: row.legendTypes,
+      tags: row.legendTags,
+    },
+    images,
+    rowLegendArchiveSlug(row),
+  );
+}
+
 /**
  * `event_date` is a `date` column, which the driver already hands back as
  * `"2026-08-14"` (see the OID 1082 override in `db/connect.ts`), so nothing
@@ -220,18 +246,7 @@ export function toMetaEventFinish(row: MetaEventPlayerRow, images: ImageIds): Me
     wins: row.wins,
     losses: row.losses,
     draws: row.draws,
-    legend: toCardRef(
-      {
-        cardId: row.legendCardId,
-        name: row.legendName,
-        slug: row.legendSlug,
-        domains: row.legendDomains,
-        types: row.legendTypes,
-        tags: row.legendTags,
-      },
-      images,
-      rowLegendArchiveSlug(row),
-    ),
+    legend: rowLegendRef(row, images),
   };
 }
 
@@ -294,18 +309,7 @@ export function toMetaEventPlayer(
     wins: row.wins,
     losses: row.losses,
     draws: row.draws,
-    legend: toCardRef(
-      {
-        cardId: row.legendCardId,
-        name: row.legendName,
-        slug: row.legendSlug,
-        domains: row.legendDomains,
-        types: row.legendTypes,
-        tags: row.legendTags,
-      },
-      images,
-      rowLegendArchiveSlug(row),
-    ),
+    legend: rowLegendRef(row, images),
     champion: toCardRef(
       {
         cardId: row.championCardId,
@@ -647,18 +651,7 @@ export function toMetaPlayerFinish(row: MetaPlayerFinishRow, images: ImageIds): 
     draws: row.draws,
     shareToken: row.shareToken,
     listStatus: row.listStatus,
-    legend: toCardRef(
-      {
-        cardId: row.legendCardId,
-        name: row.legendName,
-        slug: row.legendSlug,
-        domains: row.legendDomains,
-        types: row.legendTypes,
-        tags: row.legendTags,
-      },
-      images,
-      rowLegendArchiveSlug(row),
-    ),
+    legend: rowLegendRef(row, images),
     event: toFinishEvent(row),
   };
 }
@@ -701,15 +694,7 @@ export function toMetaDeckContext(
   contributors: readonly MetaContributorRow[],
 ): MetaDeckDetailResponse["meta"] {
   return {
-    event: {
-      slug: row.eventSlug,
-      name: row.eventName,
-      eventDate: row.eventDate,
-      format: row.eventFormat,
-      tier: row.eventTier,
-      country: row.eventCountry,
-      playerCount: row.eventPlayerCount,
-    },
+    event: toFinishEvent(row),
     listStatus: row.listStatus,
     playerName: row.playerName,
     playerKey: metaPlayerKey(row.sourceIdentity),
@@ -725,6 +710,7 @@ export function toMetaDeckContext(
 export function toAdminMetaEvent(
   row: MetaEventWithCounts,
   sources: readonly MetaEventSourceRow[],
+  today = todayUtc(),
 ): AdminMetaEvent {
   return {
     id: row.id,
@@ -740,7 +726,7 @@ export function toAdminMetaEvent(
     location: row.location,
     playerRowCount: row.playerRowCount,
     deckCount: row.deckCount,
-    results: metaResultsState(row.status, row.playerRowCount),
+    results: metaResultsState(row, today),
     sources: sources.map((source) => ({
       id: source.id,
       externalId: source.externalId,
@@ -774,10 +760,9 @@ export function toAdminMetaPlayer(row: AdminMetaPlayerRow): Omit<AdminMetaPlayer
 }
 
 /**
- * The submission as its contributor's own list shows it; the candidate id
- * and provider key are staging details left off the wire.
+ * The submission as its contributor's own list shows it. The submitter's id
+ * stays on the server; the viewer only learns whether a row is theirs.
  */
-/** The submitter's id stays on the server; the viewer only learns whether a row is theirs. */
 export function toMetaPendingSubmission(
   row: MetaPendingSubmissionRow,
   viewerId: string | null,

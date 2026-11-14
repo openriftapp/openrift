@@ -12,6 +12,19 @@ export interface ArtGroups {
   groupOf: Map<string, string>;
 }
 
+/**
+ * Groups renders by artwork: language excluded, null variant collapses to "",
+ * and an overnumbered print keys apart since it carries its own illustration.
+ */
+export function scanArtKey(row: {
+  setSlug: string;
+  name: string;
+  artVariant: string | null;
+  isOvernumbered: boolean;
+}): string {
+  return `${row.setSlug}|${row.name}|${row.artVariant ?? ""}|${row.isOvernumbered ? "over" : ""}`;
+}
+
 function createUnionFind() {
   const parent = new Map<string, string>();
   const find = (artKey: string): string => {
@@ -57,20 +70,15 @@ function mergeSameRenderArtworks(
   const dim = bankEmbedDim(bank);
   const maxDistance = sameRenderDistance(dim);
   if (maxDistance > 0) {
-    const byCard = new Map<string, number[]>();
-    for (const [index, key] of bank.keys.entries()) {
+    const identified = bank.keys.flatMap((key, index) => {
       const identity = identityOf(key);
-      if (identity && artKeys.has(key)) {
-        const card = illustrationCardKey(identity.name, identity.type);
-        const list = byCard.get(card);
-        if (list) {
-          list.push(index);
-        } else {
-          byCard.set(card, [index]);
-        }
-      }
-    }
-    for (const indexes of byCard.values()) {
+      return identity && artKeys.has(key)
+        ? [{ index, card: illustrationCardKey(identity.name, identity.type) }]
+        : [];
+    });
+    const byCard = Map.groupBy(identified, (entry) => entry.card);
+    for (const entries of byCard.values()) {
+      const indexes = entries.map((entry) => entry.index);
       for (let i = 0; i < indexes.length; i++) {
         for (let j = i + 1; j < indexes.length; j++) {
           const a = indexes[i] as number;

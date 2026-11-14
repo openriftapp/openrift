@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clamp } from "./math.js";
+import { clamp, upperMedian } from "./math.js";
 
 describe("clamp", () => {
   it("leaves a value already inside the range alone", () => {
@@ -22,5 +22,25 @@ describe("clamp", () => {
 
   it("collapses an inverted range to the maximum", () => {
     expect(clamp(5, 10, 0)).toBe(0);
+  });
+});
+
+describe("upperMedian", () => {
+  it("takes the middle value of an odd count", () => {
+    expect(upperMedian([3, 1, 2])).toBe(2);
+  });
+
+  it("takes the upper middle value of an even count", () => {
+    expect(upperMedian([4, 1, 3, 2])).toBe(3);
+  });
+
+  it("leaves the input order alone", () => {
+    const values = [3, 1, 2];
+    upperMedian(values);
+    expect(values).toEqual([3, 1, 2]);
+  });
+
+  it("is undefined for no values", () => {
+    expect(upperMedian([])).toBeUndefined();
   });
 });

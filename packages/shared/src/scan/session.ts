@@ -73,6 +73,7 @@ export interface FrameOutcome {
   };
   aligned?: { key: string; score: number }[];
   focus: number;
+  cardInGuide: boolean;
   sweeping: boolean;
   still: boolean;
   survey?: CardCandidate[];
@@ -115,6 +116,7 @@ const EMPTY_OUTCOME = {
   winnerRun: null,
   focus: 0,
   bestScore: 0,
+  cardInGuide: false,
 };
 
 const TRACK_IOU = 0.4;
@@ -505,6 +507,7 @@ export function createScanSession(
         candidate: best.candidate,
         ranked: best.ranked,
         focus: best.focus,
+        cardInGuide,
         timings: timings(now() - verifyStartedAt),
       };
     }
@@ -553,6 +556,7 @@ export function createScanSession(
       sweeping,
       still,
       focus: best.focus,
+      cardInGuide,
       timings: timings(verifyMs, printingMs),
     };
   }

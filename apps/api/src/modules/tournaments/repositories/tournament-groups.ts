@@ -1,7 +1,7 @@
 import { legendDisplayName, legendNameParts } from "@openrift/shared/card-name";
 import type { LegendNameParts } from "@openrift/shared/card-name";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
-import type { PodPenaltyBreakdown } from "@openrift/shared/pairing/types";
+import { NO_PENALTY_BREAKDOWN } from "@openrift/shared/pairing/penalty";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
@@ -51,19 +51,6 @@ export interface PendingGroupPod {
 const GROUP_STAGE_STRATEGY = "group_stage";
 const CUT_STRATEGY = "cut";
 
-const NO_PENALTY: PodPenaltyBreakdown = {
-  rematch: 0,
-  scoreSpread: 0,
-  imbalance: 0,
-  float: 0,
-  threePodRepeat: 0,
-  sameRegion: 0,
-  repeatedRegion: 0,
-  total: 0,
-  rematchPairs: 0,
-  spread: 0,
-};
-
 export function tournamentGroupsRepo(db: Kysely<Database>) {
   /** Serializes the writes of one tournament: self-paced starts and the cut race each other. */
   async function lockTournament(trx: Kysely<Database>, tournamentId: string): Promise<void> {
@@ -96,7 +83,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
           roundId,
           podNumber: pod.podNumber,
           size: 2,
-          penaltyBreakdown: NO_PENALTY,
+          penaltyBreakdown: NO_PENALTY_BREAKDOWN,
           resultStatus: pod.placements ? "reported" : "pending",
         })
         .returning("id")

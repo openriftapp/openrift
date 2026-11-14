@@ -2,6 +2,7 @@
  * Camera shift between consecutive camera frames by coarse-to-fine block
  * matching on small grayscale copies of the whole frame.
  */
+import { upperMedian } from "../math";
 import { subPixelMinimum } from "./geometry";
 import { luma } from "./image";
 import type { GrayImage, RgbaImage } from "./types";
@@ -129,8 +130,7 @@ function search(
       }
     }
   }
-  const finite = costs.filter((cost) => Number.isFinite(cost)).toSorted((a, b) => a - b);
-  const median = finite[Math.floor(finite.length / 2)] ?? 0;
+  const median = upperMedian(costs.filter((cost) => Number.isFinite(cost))) ?? 0;
   const onEdge = Math.abs(best.x - centerX) === radius || Math.abs(best.y - centerY) === radius;
   const reliable = !onEdge && (median === 0 || best.cost <= median * DISTINCT_MATCH);
   return { ...best, reliable };

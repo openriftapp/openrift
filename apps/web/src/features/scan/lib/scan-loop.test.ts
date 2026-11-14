@@ -13,7 +13,7 @@ const STILL: RgbaImage = { data: new Uint8ClampedArray(4), width: 1, height: 1 }
 
 function setup(readBoard: () => Promise<BoardCard[] | null> = () => Promise.resolve(null)) {
   const run = createScanRun("single");
-  const loop = createScanLoop<PendingFrame>({ run: () => run, idleGate: () => 0.5, readBoard });
+  const loop = createScanLoop<PendingFrame>({ run: () => run, readBoard });
   return { run, loop };
 }
 
@@ -38,7 +38,7 @@ function card(artKey: string): BoardCard {
 }
 
 const QUIET = { disturbed: false, placed: false } as PlacementSignal;
-const BUSY_GUIDE = { ranked: [{ key: "a", distance: 0.1, rotation: 0 }] };
+const BUSY_GUIDE = { cardInGuide: true };
 
 describe("createScanLoop — frames", () => {
   it("blocks frames only while a fresh placement settles and no sweep runs", () => {
@@ -49,13 +49,11 @@ describe("createScanLoop — frames", () => {
     expect(loop.frameBlocked(1001)).toBe(false);
   });
 
-  it("counts a winner, or a top match inside the idle gate, as a card in the guide", () => {
+  it("takes the session's card-in-guide verdict", () => {
     const { run, loop } = setup();
-    const near = outcome({ ranked: [{ key: "a", distance: 0.4, rotation: 0 }] });
-    expect(loop.noteOutcome(near, 0).cardInGuide).toBe(true);
+    expect(loop.noteOutcome(outcome({ cardInGuide: true }), 0).cardInGuide).toBe(true);
     expect(run.cardInGuide).toBe(true);
-    const far = outcome({ ranked: [{ key: "a", distance: 0.6, rotation: 0 }] });
-    expect(loop.noteOutcome(far, 10).cardInGuide).toBe(false);
+    expect(loop.noteOutcome(outcome({ cardInGuide: false }), 10).cardInGuide).toBe(false);
   });
 
   it("passes a first lock and suppresses the same artwork while the guide stays busy", () => {

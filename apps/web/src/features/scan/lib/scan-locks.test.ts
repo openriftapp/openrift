@@ -161,49 +161,42 @@ describe("boardReadCards", () => {
     { x: 0, y: 1 },
   ] as const;
 
-  it("labels a confident board card and drops its alternatives", () => {
-    const [card] = boardReadCards(
-      [
-        {
-          key: "k1",
-          artKey: "a1",
-          quad,
-          score: 0.93,
-          rivalScore: 0.7,
-          distance: 0.1,
-          confident: true,
-          alternatives: ["k2"],
-          printingResolved: true,
-        },
-      ],
-      (key) => `label ${key}`,
-    );
+  it("keeps a confident board card and drops its alternatives", () => {
+    const [card] = boardReadCards([
+      {
+        key: "k1",
+        artKey: "a1",
+        quad,
+        score: 0.93,
+        rivalScore: 0.7,
+        distance: 0.1,
+        confident: true,
+        alternatives: ["k2"],
+        printingResolved: true,
+      },
+    ]);
     expect(card).toEqual({
       key: "k1",
       artKey: "a1",
-      label: "label k1",
       resolved: true,
       alternatives: [],
     });
   });
 
   it("carries the alternatives of an uncertain card", () => {
-    const [card] = boardReadCards(
-      [
-        {
-          key: "k1",
-          artKey: "a1",
-          quad,
-          score: 0.86,
-          rivalScore: 0.82,
-          distance: 0.55,
-          confident: false,
-          printingResolved: false,
-          alternatives: ["k2"],
-        },
-      ],
-      (key) => key,
-    );
+    const [card] = boardReadCards([
+      {
+        key: "k1",
+        artKey: "a1",
+        quad,
+        score: 0.86,
+        rivalScore: 0.82,
+        distance: 0.55,
+        confident: false,
+        printingResolved: false,
+        alternatives: ["k2"],
+      },
+    ]);
     expect(card?.alternatives).toEqual(["k2"]);
   });
 });

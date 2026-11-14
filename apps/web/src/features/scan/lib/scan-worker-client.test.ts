@@ -82,6 +82,7 @@ const READY: ScanWorkerReady = {
   threads: 4,
   keys: ["k-a"],
   artKeys: [["k-a", "art-a"]],
+  labels: {},
   canonical: true,
   bytes: 1024,
   gates: {
@@ -100,6 +101,7 @@ const OUTCOME: FrameOutcome = {
   refused: false,
   bestScore: 0,
   sweeping: false,
+  cardInGuide: false,
   still: false,
   locked: null,
   winnerRun: null,
@@ -170,6 +172,12 @@ describe("init", () => {
     const ready = createScanWorkerClient().init(URLS);
     worker().reply({ type: "error", message: "the card detector did not load", code: "detector" });
     await expect(ready).rejects.toThrow("Could not load the card detector");
+  });
+
+  it("keeps the failed asset on the rejection", async () => {
+    const ready = createScanWorkerClient().init(URLS);
+    worker().reply({ type: "error", message: "Failed to fetch", asset: "labels" });
+    await expect(ready).rejects.toMatchObject({ message: "Failed to fetch", asset: "labels" });
   });
 
   it("rejects on an error that names no frame", async () => {

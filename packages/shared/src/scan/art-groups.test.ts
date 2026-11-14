@@ -6,6 +6,7 @@ import {
   groupSharedIllustrations,
   illustrationCardKey,
   illustrationScore,
+  scanArtKey,
   SHARED_ILLUSTRATION_MIN_SCORE,
 } from "./art-groups";
 import type { EmbedBank } from "./embed";
@@ -257,5 +258,35 @@ describe("illustrationCardKey", () => {
   it("keeps an untyped card apart from a typed one of the same name", () => {
     expect(illustrationCardKey("Fury Rune")).toBe("Fury Rune|");
     expect(illustrationCardKey("Fury Rune")).not.toBe(illustrationCardKey("Fury Rune", "rune"));
+  });
+});
+
+const ART_BASE = { setSlug: "origins", name: "Jinx", artVariant: "normal", isOvernumbered: false };
+
+describe("scanArtKey", () => {
+  it("keys an overnumbered print apart from the in-total print of the same card", () => {
+    expect(scanArtKey(ART_BASE)).not.toBe(scanArtKey({ ...ART_BASE, isOvernumbered: true }));
+  });
+
+  it("keys an overnumbered alt art apart from both the plain alt art and the plain print", () => {
+    const keys = [
+      scanArtKey(ART_BASE),
+      scanArtKey({ ...ART_BASE, artVariant: "altart" }),
+      scanArtKey({ ...ART_BASE, artVariant: "altart", isOvernumbered: true }),
+    ];
+    expect(new Set(keys).size).toBe(3);
+  });
+
+  it("collapses a null art variant onto the empty segment", () => {
+    expect(scanArtKey({ ...ART_BASE, artVariant: null })).toBe("origins|Jinx||");
+  });
+
+  it("matches the scan script's four-segment key layout", () => {
+    expect(scanArtKey({ ...ART_BASE, isOvernumbered: true }).split("|")).toEqual([
+      "origins",
+      "Jinx",
+      "normal",
+      "over",
+    ]);
   });
 });

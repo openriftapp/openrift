@@ -4,7 +4,6 @@ import { z } from "zod";
 
 export const scanManifestSchema = z.object({
   available: z.boolean(),
-  formatVersion: z.number().nullable(),
   bankHash: z.string().nullable(),
   entryCount: z.number().nullable(),
   builtAt: isoDateTime.nullable(),

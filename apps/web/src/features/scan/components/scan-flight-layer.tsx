@@ -118,7 +118,7 @@ function FlightCard({
       ref={nodeRef}
       src={flight.image}
       alt=""
-      className="fixed rounded-md opacity-0 shadow-lg ring-1 ring-white/25 will-change-transform"
+      className="rounded-card fixed opacity-0 shadow-lg ring-1 ring-white/25 will-change-transform"
       style={{
         left: `${source.x}px`,
         top: `${source.y}px`,

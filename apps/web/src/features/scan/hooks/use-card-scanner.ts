@@ -6,14 +6,13 @@ import type { CameraInfo } from "@/features/scan/lib/camera-info";
 import { readCameraInfo } from "@/features/scan/lib/camera-info";
 import { acquireScannerStream } from "@/features/scan/lib/scan-camera";
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
-import { grabRotatedFrame } from "@/features/scan/lib/scan-frame-grab";
+import { grabRotatedFrame, processedFrameSize } from "@/features/scan/lib/scan-frame-grab";
 import type { ScannerEvents } from "@/features/scan/lib/scan-locks";
 import type { ScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 import type { ScannerMode, ScannerSettings } from "@/features/scan/lib/scan-session";
 import { lockRunForMode } from "@/features/scan/lib/scan-session";
-import { zoomRegion } from "@/features/scan/lib/scan-zoom";
 import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
@@ -41,7 +40,6 @@ export function useCardScanner(
   const settingsRef = useRef(settings);
   const eventsRef = useRef(events);
   const runRef = useRef(createScanRun(settings.mode));
-  const idleGateRef = useRef(engine.idleGate);
   const readBoardRef = useRef(engine.readBoard);
   const loopRef = useRef<ScanLoop<PendingFrame> | null>(null);
   const preparedBankRef = useRef<string | null>(null);
@@ -55,7 +53,6 @@ export function useCardScanner(
     if (!loopRef.current) {
       loopRef.current = createScanLoop<PendingFrame>({
         run: () => runRef.current,
-        idleGate: () => idleGateRef.current,
         readBoard: async (still) => {
           const generation = runGenerationRef.current;
           const cards = await readBoardRef.current(still);
@@ -96,7 +93,6 @@ export function useCardScanner(
   });
 
   const board = useScanBoard({
-    bank: engine.bank,
     videoRef,
     runRef,
     eventsRef,
@@ -143,9 +139,8 @@ export function useCardScanner(
   }, [settings]);
 
   useEffect(() => {
-    idleGateRef.current = engine.idleGate;
     readBoardRef.current = engine.readBoard;
-  }, [engine.idleGate, engine.readBoard]);
+  }, [engine.readBoard]);
 
   // Same treatment for the lock callbacks: consumers pass fresh closures per
   // render, and the loop must always call the latest without restarting.
@@ -172,16 +167,17 @@ export function useCardScanner(
     overlay.begin(generation);
     const video = videoRef.current;
     if (video) {
-      const source = zoomRegion(video.videoWidth, video.videoHeight, settingsRef.current.zoom);
-      const scale = Math.min(
-        1,
-        settingsRef.current.processingSize / Math.max(source.width, source.height),
+      const frame = processedFrameSize(
+        video.videoWidth,
+        video.videoHeight,
+        settingsRef.current.processingSize,
+        settingsRef.current.zoom,
       );
       overlay.setTarget({
         quad: null,
         guide: true,
-        frameWidth: Math.round(source.width * scale),
-        frameHeight: Math.round(source.height * scale),
+        frameWidth: frame.width,
+        frameHeight: frame.height,
         turns: 0,
         focus: 0,
         runLength: 0,

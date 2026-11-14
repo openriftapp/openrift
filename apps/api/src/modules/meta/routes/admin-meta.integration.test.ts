@@ -540,9 +540,7 @@ describe.skipIf(!ctx || !anonCtx)("Meta archive public reads (anonymous)", () =>
     dateFrom: string,
     dateTo: string,
   ): Promise<{ totalPlayers: number; decksWithMainDeck: number }> {
-    const res = await anonApp.fetch(
-      req("GET", `/meta/counts?dateFrom=${dateFrom}&dateTo=${dateTo}`),
-    );
+    const res = await anonApp.fetch(req("GET", `/meta/counts?from=${dateFrom}&to=${dateTo}`));
     expect(res.status).toBe(200);
     return await readJson(res);
   }

@@ -241,7 +241,6 @@ async function applyOverlayList(
   await setMetaPlayerList(repos.meta, metaEventPlayerId, {
     name: player.deckName ?? defaultMetaDeckName(player.legendName, player.playerName, ""),
     format,
-    formatConfig: null,
     cards: list.cards,
     listStatus: list.listStatus,
   });

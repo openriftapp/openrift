@@ -190,6 +190,10 @@ function judgeLock(
   };
 }
 
+export function expectedCopies(truth: ClipTruth): number {
+  return truth.cards.reduce((sum, card) => sum + (card.copies ?? 1), 0);
+}
+
 export function scoreClip(
   truth: ClipTruth,
   locks: readonly BenchLock[],
@@ -198,7 +202,7 @@ export function scoreClip(
   const entries: TruthEntry[] = truth.cards.map((card) => ({ card, counted: 0 }));
   const names = new Set(truth.cards.map((card) => card.name));
   const score: ClipScore = {
-    expected: truth.cards.reduce((sum, card) => sum + (card.copies ?? 1), 0),
+    expected: expectedCopies(truth),
     found: 0,
     wrongCards: 0,
     wrongPrintings: 0,
@@ -265,7 +269,9 @@ export function scoreAppOutcomes(
       (entry) =>
         open(entry) &&
         printings.some(
-          (printing) => !entry.card.printing || printingMatches(entry.card.printing, printing),
+          (printing) =>
+            entry.card.artKey === printing.artKey &&
+            (!entry.card.printing || printingMatches(entry.card.printing, printing)),
         ),
     );
     const slot =
@@ -366,16 +372,20 @@ function fmt(value: number, digits = 2): string {
   return value.toFixed(digits);
 }
 
-function wrongLocks(clip: SavedClipResult): number {
-  return clip.score.wrongCards + clip.score.wrongPrintings;
+export function wrongLocks(score: ClipScore): number {
+  return score.wrongCards + score.wrongPrintings;
 }
 
-function correctLocks(clip: SavedClipResult): number {
-  return clip.score.found - clip.score.printingOpen - clip.score.markerOnly;
+function correctLocks(score: ClipScore): number {
+  return score.found - score.printingOpen - score.markerOnly;
 }
 
 function wrongAdds(app: AppScore): number {
   return app.autoWrong + app.pickerMissing;
+}
+
+export function rightAdds(app: AppScore): number {
+  return app.auto - app.autoWrong;
 }
 
 function compareSpeed(
@@ -426,8 +436,8 @@ function compareClip(
       `${after.clip}: truth changed, expected ${before.score.expected} -> ${after.score.expected}`,
     );
   }
-  const wrongBefore = wrongLocks(before);
-  const wrongAfter = wrongLocks(after);
+  const wrongBefore = wrongLocks(before.score);
+  const wrongAfter = wrongLocks(after.score);
   if (wrongAfter > wrongBefore) {
     failures.push(`${after.clip}: wrong locks ${wrongBefore} -> ${wrongAfter}`);
   } else if (wrongAfter > 0) {
@@ -438,8 +448,8 @@ function compareClip(
       `${after.clip}: found ${before.score.found} -> ${after.score.found} of ${after.score.expected}`,
     );
   }
-  const correctBefore = correctLocks(before);
-  const correctAfter = correctLocks(after);
+  const correctBefore = correctLocks(before.score);
+  const correctAfter = correctLocks(after.score);
   if (correctAfter < correctBefore) {
     failures.push(`${after.clip}: correct locks ${correctBefore} -> ${correctAfter}`);
   }
@@ -453,8 +463,8 @@ function compareClip(
 }
 
 function clipRow(before: SavedClipResult, after: SavedClipResult): string {
-  const wrongBefore = wrongLocks(before);
-  const wrongAfter = wrongLocks(after);
+  const wrongBefore = wrongLocks(before.score);
+  const wrongAfter = wrongLocks(after.score);
   const appRow =
     before.app && after.app
       ? `  added-wrong ${wrongAdds(before.app)}->${wrongAdds(after.app)}  marker-miss ${before.app.markerMiss}->${after.app.markerMiss}  picker ${before.app.picker}->${after.app.picker}`
@@ -468,7 +478,7 @@ function clipRow(before: SavedClipResult, after: SavedClipResult): string {
   return (
     `${after.clip.padEnd(36)} ${after.split.padEnd(7)} ` +
     `found ${before.score.found}->${after.score.found}/${after.score.expected}  ` +
-    `correct ${correctLocks(before)}->${correctLocks(after)}  ` +
+    `correct ${correctLocks(before.score)}->${correctLocks(after.score)}  ` +
     `wrong ${wrongBefore}->${wrongAfter}  ` +
     `open ${before.score.printingOpen}->${after.score.printingOpen}  ` +
     `marker ${before.score.markerOnly}->${after.score.markerOnly}  ` +

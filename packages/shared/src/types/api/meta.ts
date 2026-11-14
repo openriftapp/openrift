@@ -69,7 +69,6 @@ import type {
   metaEventFinishSchema,
   metaActivityItemSchema,
   metaActivityResponseSchema,
-  metaCountsQuerySchema,
   metaEventDayCountsQuerySchema,
   metaEventDayCountsResponseSchema,
   metaEventFacetsResponseSchema,
@@ -167,8 +166,6 @@ export type MetaPlayerFinish = z.infer<typeof metaPlayerFinishSchema>;
 export type MetaPlayerDetailResponse = z.infer<typeof metaPlayerDetailResponseSchema>;
 
 export type MetaScopeQuery = z.infer<typeof metaScopeQuerySchema>;
-
-export type MetaCountsQuery = z.infer<typeof metaCountsQuerySchema>;
 
 export type MetaEventDayCountsQuery = z.infer<typeof metaEventDayCountsQuerySchema>;
 

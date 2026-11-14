@@ -1,7 +1,8 @@
 import { metaContract } from "@openrift/shared/contracts/meta";
+import { todayUtc } from "@openrift/shared/format-date";
+import { metaResultsState } from "@openrift/shared/meta-results";
 import type {
   MetaActivityResponse,
-  MetaCountsQuery,
   MetaCountsResponse,
   MetaDeckCardIndexResponse,
   MetaDeckCardsQuery,
@@ -127,7 +128,7 @@ export function metaEventDayCountsQueryOptions(query?: MetaEventDayCountsQuery) 
 }
 
 const fetchMetaCounts = createServerFn({ method: "GET" })
-  .validator(optionalQuery<MetaCountsQuery>)
+  .validator(optionalQuery<MetaScopeQuery>)
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaCountsResponse> =>
     serverCache.query({
@@ -136,7 +137,7 @@ const fetchMetaCounts = createServerFn({ method: "GET" })
     }),
   );
 
-export function metaCountsQueryOptions(query?: MetaCountsQuery) {
+export function metaCountsQueryOptions(query?: MetaScopeQuery) {
   const narrowed = narrow(query);
   return queryOptions({
     queryKey: metaKeys.counts(narrowed),
@@ -172,8 +173,12 @@ export function metaEventQueryOptions(slug: string) {
     queryKey: metaKeys.event(slug),
     queryFn: () => fetchMetaEvent({ data: slug }),
     staleTime: 5 * 60 * 1000,
-    refetchInterval: (query) =>
-      query.state.data?.event.status === "in_progress" ? LIVE_EVENT_REFETCH_MS : false,
+    refetchInterval: (query) => {
+      const event = query.state.data?.event;
+      return event !== undefined && metaResultsState(event, todayUtc()) === "collecting"
+        ? LIVE_EVENT_REFETCH_MS
+        : false;
+    },
   });
 }
 

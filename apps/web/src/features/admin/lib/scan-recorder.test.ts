@@ -163,18 +163,12 @@ describe("buildClipMeta", () => {
     expect(meta.camera).toEqual({ width: 1920, deviceId: "abc", torch: false });
   });
 
-  it("reports the share of frames spent sweeping and keeps every frame", () => {
+  it("keeps every frame", () => {
     const frames = [true, false, false, false].map((sweeping, index) => clipFrame(index, sweeping));
-    const meta = buildClipMeta({ ...base, frames });
-    expect(meta.sweepShare).toBe(0.25);
-    expect(meta.frames).toEqual(frames);
+    expect(buildClipMeta({ ...base, frames }).frames).toEqual(frames);
   });
 
-  it("reports a zero share when no frame was processed", () => {
-    expect(buildClipMeta({ ...base, frames: [] }).sweepShare).toBe(0);
-  });
-
-  it("omits the share when frames were not counted", () => {
-    expect(buildClipMeta(base)).not.toHaveProperty("sweepShare");
+  it("omits the frames when they were not counted", () => {
+    expect(buildClipMeta(base)).not.toHaveProperty("frames");
   });
 });

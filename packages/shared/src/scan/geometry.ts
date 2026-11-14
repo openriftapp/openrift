@@ -1,3 +1,4 @@
+import { clamp } from "../math";
 import type { CardCandidate, Matrix3, Point, Quad } from "./types";
 
 export interface Line {
@@ -25,7 +26,7 @@ export function subPixelMinimum(before: number, at: number, after: number): numb
   if (!Number.isFinite(curvature) || curvature <= 0) {
     return 0;
   }
-  return Math.max(-0.5, Math.min(0.5, (before - after) / (2 * curvature)));
+  return clamp((before - after) / (2 * curvature), -0.5, 0.5);
 }
 
 /**
@@ -167,6 +168,16 @@ export function quadIou(a: Quad, b: Quad): number {
   const areaA = (boxA.maxX - boxA.minX) * (boxA.maxY - boxA.minY);
   const areaB = (boxB.maxX - boxB.minX) * (boxB.maxY - boxB.minY);
   return overlap / (areaA + areaB - overlap);
+}
+
+/** The share of `inner`'s bounding box that lies inside `outer`'s: the boxes `quadIou` measures. */
+export function boxContainment(inner: Quad, outer: Quad): number {
+  const a = boundingBox(inner);
+  const b = boundingBox(outer);
+  const area = (a.maxX - a.minX) * (a.maxY - a.minY);
+  const width = Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX);
+  const height = Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY);
+  return area > 0 && width > 0 && height > 0 ? (width * height) / area : 0;
 }
 
 export function boundingBox(quad: Quad): {

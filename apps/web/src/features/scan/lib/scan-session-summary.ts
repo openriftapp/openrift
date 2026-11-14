@@ -1,3 +1,4 @@
+import { priceTotal } from "@openrift/shared/card-price";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 export interface ScanSummaryRow {
@@ -16,43 +17,35 @@ export interface ScanSessionSummaryData {
 interface ScanSummaryDeps {
   priceOf: (printingId: string) => number | undefined;
   isWished: (printing: Printing) => boolean;
-  ownedBefore: ((printingId: string) => number) | null;
+  ownedOfCard: ((cardId: string) => number) | null;
 }
 
 export function computeScanSessionSummary(
   rows: readonly ScanSummaryRow[],
   deps: ScanSummaryDeps,
 ): ScanSessionSummaryData {
+  const counted = rows.filter((row) => row.count > 0);
+  const value = priceTotal(
+    counted.map((row) => ({ price: deps.priceOf(row.printing.printingId), quantity: row.count })),
+  );
   let cards = 0;
-  let totalValue = 0;
-  let unpricedCards = 0;
   let wishedCards = 0;
   let newCards = 0;
-
-  for (const row of rows) {
-    if (row.count <= 0) {
-      continue;
-    }
+  for (const row of counted) {
     cards += row.count;
-    const value = deps.priceOf(row.printing.printingId);
-    if (value === undefined) {
-      unpricedCards += row.count;
-    } else {
-      totalValue += value * row.count;
-    }
     if (deps.isWished(row.printing)) {
       wishedCards += row.count;
     }
-    if (deps.ownedBefore !== null && deps.ownedBefore(row.printing.printingId) === 0) {
+    if (deps.ownedOfCard !== null && deps.ownedOfCard(row.printing.cardId) === 0) {
       newCards += row.count;
     }
   }
 
   return {
     cards,
-    totalValue,
-    unpricedCards,
+    totalValue: value.value,
+    unpricedCards: value.unpriced,
     wishedCards,
-    newCards: deps.ownedBefore === null ? null : newCards,
+    newCards: deps.ownedOfCard === null ? null : newCards,
   };
 }

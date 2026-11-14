@@ -129,11 +129,7 @@ async function seedEvent(
   return event.id;
 }
 
-function playerInput(
-  eventId: string,
-  opts: PlayerOpts,
-  deck: MetaArchivedDeckInput | null,
-): MetaEventPlayerInput {
+function playerInput(eventId: string, opts: PlayerOpts): Omit<MetaEventPlayerInput, "deck"> {
   return {
     eventId,
     rank: opts.rank,
@@ -145,7 +141,6 @@ function playerInput(
     legendCardId,
     championCardId: opts.withChampion === false ? null : championCardId,
     sourceIdentity: opts.sourceIdentity ?? null,
-    deck,
   };
 }
 
@@ -181,10 +176,10 @@ async function seedListedPlayer(
   eventId: string,
   opts: PlayerOpts & { listStatus?: Exclude<MetaListStatus, "none"> },
 ): Promise<{ playerId: string; deckId: string }> {
-  const created = await repo.createPlayer(
-    playerInput(eventId, opts, deckInput(opts, opts.listStatus ?? "full")),
-    shareToken(),
-  );
+  const created = await repo.createPlayer(playerInput(eventId, opts), {
+    deck: deckInput(opts, opts.listStatus ?? "full"),
+    shareToken: shareToken(),
+  });
   if (!created || created.deckId === null) {
     throw new Error("seedListedPlayer: no list was written");
   }
@@ -197,7 +192,7 @@ async function seedDecklessPlayer(
   eventId: string,
   opts: PlayerOpts,
 ): Promise<string> {
-  const created = await repo.createPlayer(playerInput(eventId, opts, null), null);
+  const created = await repo.createPlayer(playerInput(eventId, opts), null);
   if (!created) {
     throw new Error("seedDecklessPlayer: event not found");
   }
@@ -357,10 +352,9 @@ describe.skipIf(!ctx)("metaRepo", () => {
     it("folds repeated lines into one row, summing quantity", async () => {
       const eventId = await seedEvent(repo, "mta-merge-create");
       const created = await repo.createPlayer(
-        playerInput(
-          eventId,
-          { playerName: "MTA Merge", rank: 1 },
-          {
+        playerInput(eventId, { playerName: "MTA Merge", rank: 1 }),
+        {
+          deck: {
             name: "MTA Merge Deck",
             format: FORMAT,
             formatConfig: null,
@@ -371,8 +365,8 @@ describe.skipIf(!ctx)("metaRepo", () => {
             ],
             listStatus: "full",
           },
-        ),
-        shareToken(),
+          shareToken: shareToken(),
+        },
       );
       if (!created || created.deckId === null) {
         throw new Error("no list was written");
@@ -401,7 +395,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
         {
           name: "MTA Replace Deck",
           format: FORMAT,
-          formatConfig: null,
           cards: [
             { cardId: legendCardId, zone: "legend", quantity: 1, preferredPrintingId: null },
             { cardId: spellCardId, zone: "main", quantity: 2, preferredPrintingId: null },
@@ -442,13 +435,10 @@ describe.skipIf(!ctx)("metaRepo", () => {
 
     it("leaves nothing behind when the standings row's event doesn't exist", async () => {
       const opts = { playerName: "MTA Nobody", rank: 1 };
-      const created = await repo.createPlayer(
-        playerInput(crypto.randomUUID(), opts, {
-          ...deckInput(opts, "full"),
-          name: "MTA Orphan",
-        }),
-        "mtaorphan001",
-      );
+      const created = await repo.createPlayer(playerInput(crypto.randomUUID(), opts), {
+        deck: { ...deckInput(opts, "full"), name: "MTA Orphan" },
+        shareToken: "mtaorphan001",
+      });
       expect(created).toBeUndefined();
 
       const stranded = await db
@@ -913,18 +903,22 @@ describe.skipIf(!ctx)("metaRepo", () => {
 
     // The standings count and the decklist count have to disagree, or a query
     // that read one for the other would still order these the way both expect.
+    // No reported field size, so the players order falls back to the rows held.
     async function seedCountSet(month: string) {
       const crowded = await seedEvent(repo, `mta-count-crowded-${month}`, {
         eventDate: `${month}-01`,
         tier: "premier",
+        playerCount: null,
       });
       const listed = await seedEvent(repo, `mta-count-listed-${month}`, {
         eventDate: `${month}-02`,
         tier: "premier",
+        playerCount: null,
       });
       const bare = await seedEvent(repo, `mta-count-bare-${month}`, {
         eventDate: `${month}-03`,
         tier: "premier",
+        playerCount: null,
       });
       await seedListedPlayer(repo, crowded, { playerName: `MTA Count One ${month}`, rank: 1 });
       await seedDecklessPlayer(repo, crowded, { playerName: `MTA Count Two ${month}`, rank: 2 });
@@ -934,8 +928,14 @@ describe.skipIf(!ctx)("metaRepo", () => {
       return { crowded, listed, bare };
     }
 
-    it("orders the index by how many standings rows each event holds", async () => {
+    it("orders the index by field size, the standings rows held when none was reported", async () => {
       const { crowded, listed, bare } = await seedCountSet("2030-03");
+      const reported = await seedEvent(repo, "mta-count-reported-2030-03", {
+        eventDate: "2030-03-04",
+        tier: "premier",
+        playerCount: 128,
+      });
+      await seedDecklessPlayer(repo, reported, { playerName: "MTA Count Reported", rank: 1 });
       const filters = { from: "2030-03-01", to: "2030-03-31" };
 
       const descending = await repo.eventIndex(
@@ -949,9 +949,36 @@ describe.skipIf(!ctx)("metaRepo", () => {
         { limit: 10, offset: 0 },
       );
 
-      expect(descending.rows.map((event) => event.id)).toEqual([crowded, listed, bare]);
-      expect(ascending.rows.map((event) => event.id)).toEqual([bare, listed, crowded]);
-      expect(descending.rows.map((event) => event.playerRowCount)).toEqual([3, 2, 0]);
+      expect(descending.rows.map((event) => event.id)).toEqual([reported, crowded, listed, bare]);
+      // An event with neither a reported size nor standings has no size, and sorts last both ways.
+      expect(ascending.rows.map((event) => event.id)).toEqual([listed, crowded, reported, bare]);
+      expect(descending.rows.map((event) => event.playerRowCount)).toEqual([1, 3, 2, 0]);
+    });
+
+    it("filters the players range on the field size", async () => {
+      const { crowded, listed } = await seedCountSet("2030-08");
+      const reported = await seedEvent(repo, "mta-count-reported-2030-08", {
+        eventDate: "2030-08-04",
+        tier: "premier",
+        playerCount: 64,
+      });
+      const filters = { from: "2030-08-01", to: "2030-08-31" };
+
+      const atLeastThree = await repo.eventIndex(
+        { ...filters, playersMin: 3 },
+        {},
+        { limit: 10, offset: 0 },
+      );
+      const atMostTwo = await repo.eventIndex(
+        { ...filters, playersMax: 2 },
+        {},
+        { limit: 10, offset: 0 },
+      );
+
+      expect(atLeastThree.rows.map((event) => event.id).toSorted()).toEqual(
+        [crowded, reported].toSorted(),
+      );
+      expect(atMostTwo.rows.map((event) => event.id)).toEqual([listed]);
     });
 
     it("orders by decklists held, which ranks the events differently from standings", async () => {
@@ -2186,10 +2213,10 @@ describe.skipIf(!ctx)("metaRepo", () => {
     it("counts standings rows and decks within the scope", async () => {
       // Every suite seeds into the same archive and the window is not this
       // test's to own, so the assertion is on the movement it causes.
-      const scope = { dateFrom: "2026-06-01", dateTo: "2026-06-30" };
+      const scope = { from: "2026-06-01", to: "2026-06-30" };
       const before = {
-        players: await repo.playerCountInScope(scope),
-        decks: await repo.deckCountInScope(scope),
+        totals: await repo.eventTotals(scope),
+        tiers: await repo.eventTierCounts(scope),
       };
 
       const inScope = await seedEvent(repo, "mta-stats-in", { eventDate: "2026-06-15" });
@@ -2204,19 +2231,24 @@ describe.skipIf(!ctx)("metaRepo", () => {
       await seedDecklessPlayer(repo, inScope, { playerName: "MTA Stats C", rank: 3 });
       await seedListedPlayer(repo, outOfScope, { playerName: "MTA Stats D", rank: 1 });
 
-      expect(await repo.playerCountInScope(scope)).toBe(before.players + 3);
-      expect(await repo.deckCountInScope(scope)).toBe(before.decks + 2);
+      const totals = await repo.eventTotals(scope);
+      expect(totals.playerRows).toBe(before.totals.playerRows + 3);
+      expect(totals.decks).toBe(before.totals.decks + 2);
+      expect(totals.events).toBe(before.totals.events + 1);
+      const tiers = await repo.eventTierCounts(scope);
+      expect(tiers.withResults.local).toBe(before.tiers.withResults.local + 1);
+      const latest = await repo.latestResultDate(scope);
+      expect(latest !== null && latest >= "2026-06-15" && latest <= "2026-06-30").toBe(true);
     });
 
     it("scopes by the event's format, not the deck's", async () => {
       // `meta_events.format` is a foreign key, so the scope can only name a
       // real format; the assertion is on the movement this test causes.
-      const eventScope = { format: FORMAT, dateFrom: "2026-09-01", dateTo: "2026-09-30" };
-      const deckScope = { ...eventScope, format: DECK_ONLY_FORMAT };
+      const eventScope = { formats: [FORMAT], from: "2026-09-01", to: "2026-09-30" };
+      const deckScope = { ...eventScope, formats: [DECK_ONLY_FORMAT] };
       const before = {
-        players: await repo.playerCountInScope(eventScope),
-        decks: await repo.deckCountInScope(eventScope),
-        deckFormatDecks: await repo.deckCountInScope(deckScope),
+        event: await repo.eventTotals(eventScope),
+        deckFormat: await repo.eventTotals(deckScope),
       };
 
       const eventId = await seedEvent(repo, "mta-stats-format", { eventDate: "2026-09-15" });
@@ -2226,10 +2258,12 @@ describe.skipIf(!ctx)("metaRepo", () => {
         deckFormat: DECK_ONLY_FORMAT,
       });
 
-      expect(await repo.playerCountInScope(eventScope)).toBe(before.players + 1);
-      expect(await repo.deckCountInScope(eventScope)).toBe(before.decks + 1);
+      const after = await repo.eventTotals(eventScope);
+      expect(after.playerRows).toBe(before.event.playerRows + 1);
+      expect(after.decks).toBe(before.event.decks + 1);
       // The deck alone carries this format, and the scope never reads it.
-      expect(await repo.deckCountInScope(deckScope)).toBe(before.deckFormatDecks);
+      const deckFormat = await repo.eventTotals(deckScope);
+      expect(deckFormat.decks).toBe(before.deckFormat.decks);
     });
 
     // The overview spans the whole archive, and the integration files share one
@@ -2293,9 +2327,9 @@ describe.skipIf(!ctx)("metaRepo", () => {
     });
 
     it("reports an empty scope as zero rather than failing", async () => {
-      const scope = { dateFrom: "1999-01-01", dateTo: "1999-12-31" };
-      expect(await repo.playerCountInScope(scope)).toBe(0);
-      expect(await repo.deckCountInScope(scope)).toBe(0);
+      const scope = { from: "1999-01-01", to: "1999-12-31" };
+      expect(await repo.eventTotals(scope)).toEqual({ events: 0, playerRows: 0, decks: 0 });
+      expect(await repo.latestResultDate(scope)).toBeNull();
     });
   });
 
@@ -2382,39 +2416,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
         opponentGameWinPct: 0.64397379,
         entryStatus: "dropped",
       });
-    });
-
-    it("writes the reclassify pass's decisions, leaving the fields it left alone", async () => {
-      const kept = await seedEvent(repo, "mta-classify-kept");
-      const moved = await seedEvent(repo, "mta-classify-moved");
-      await repo.updateEvent(kept, {
-        tier: "competitive",
-        country: "DE",
-        location: "Kartenstrasse 1, Berlin",
-      });
-
-      expect(
-        await repo.setEventClassifications([
-          // Naming only `country` leaves the tier and the address as they are.
-          { id: kept, country: null },
-          { id: moved, tier: "premier", country: "FR", location: "Rue Piltover 2, Paris" },
-        ]),
-      ).toBe(2);
-
-      expect(await repo.eventById(kept)).toMatchObject({
-        tier: "competitive",
-        country: null,
-        location: "Kartenstrasse 1, Berlin",
-      });
-      expect(await repo.eventById(moved)).toMatchObject({
-        tier: "premier",
-        country: "FR",
-        location: "Rue Piltover 2, Paris",
-      });
-    });
-
-    it("touches nothing for an empty classification batch", async () => {
-      expect(await repo.setEventClassifications([])).toBe(0);
     });
 
     it("reports an empty patch against an existing row, and against a missing one", async () => {
@@ -2540,7 +2541,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
         {
           name: "MTA Corrected",
           format: FORMAT,
-          formatConfig: null,
           cards: [{ cardId: spellCardId, zone: "main", quantity: 1, preferredPrintingId: null }],
           listStatus: "partial",
         },
@@ -2560,6 +2560,33 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(after?.deckName).toBe("MTA Corrected");
       // Links already published to this deck have to keep working.
       expect(after?.shareToken).toBe(before?.shareToken);
+    });
+
+    it("keeps a stored format config across a rename and clears it on a format change", async () => {
+      const eventId = await seedEvent(repo, "mta-replace-config");
+      const opts = { playerName: "MTA Configured", rank: 1 };
+      const { playerId, deckId } = await seedListedPlayer(repo, eventId, opts);
+      const config = { tagSlugs: ["bilgewater"] };
+      await db
+        .updateTable("decks")
+        .set({ formatConfig: config })
+        .where("id", "=", deckId)
+        .execute();
+      const storedConfig = async () => {
+        const row = await db
+          .selectFrom("decks")
+          .select("formatConfig")
+          .where("id", "=", deckId)
+          .executeTakeFirstOrThrow();
+        return row.formatConfig;
+      };
+      const { formatConfig: _config, ...list } = deckInput(opts, "full");
+
+      await repo.setPlayerDeck(playerId, { ...list, name: "MTA Configured Renamed" }, shareToken());
+      expect(await storedConfig()).toEqual(config);
+
+      await repo.setPlayerDeck(playerId, { ...list, format: DECK_ONLY_FORMAT }, shareToken());
+      expect(await storedConfig()).toBeNull();
     });
 
     it("lets concurrent list writes for one player all succeed with one deck", async () => {
@@ -2940,27 +2967,29 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(source!.externalId).toBeNull();
     });
 
-    it("removes one provider's citation by key and leaves the other's", async () => {
-      const eventId = await seedEvent(repo, "mta-uncite");
-      await repo.insertEventSource({
-        metaEventId: eventId,
-        provider: "mta-gone",
-        externalId: "evt-2",
-        label: "mta-gone",
-        sourceUrl: null,
-      });
-      await repo.insertEventSource({
-        metaEventId: eventId,
-        provider: "mta-stays",
-        externalId: "evt-2",
-        label: "mta-stays",
-        sourceUrl: null,
-      });
+    it("lists an event's citations by priority, then in the order they were added", async () => {
+      const eventId = await seedEvent(repo, "mta-cite-order");
+      const cite = (provider: string | null, label: string) =>
+        repo.insertEventSource({
+          metaEventId: eventId,
+          provider,
+          externalId: provider === null ? null : "evt-3",
+          label,
+          sourceUrl: null,
+        });
+      await cite("mta-zeta", "mta-zeta");
+      await cite(null, "Standings photo");
+      const promoted = await cite("mta-alpha", "mta-alpha");
+      await repo.setEventSourcePriority(promoted.id, -1);
 
-      expect(await repo.deleteEventSourceByKey("mta-gone", "evt-2")).toBe(true);
-      expect(await repo.deleteEventSourceByKey("mta-gone", "evt-2")).toBe(false);
       const sources = await repo.sourcesForEvent(eventId);
-      expect(sources.map((source) => source.provider)).toEqual(["mta-stays"]);
+      expect(sources.map((source) => source.label)).toEqual([
+        "mta-alpha",
+        "mta-zeta",
+        "Standings photo",
+      ]);
+      const batch = await repo.sourcesForEvents([eventId]);
+      expect(batch.map((source) => source.label)).toEqual(sources.map((source) => source.label));
     });
   });
 
@@ -3047,30 +3076,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(await repo.contributorsForEvent(eventId)).toEqual([]);
     });
 
-    it("scopes a credit delete to one contributor of a shared entry", async () => {
-      const eventId = await seedEvent(repo, "mta-credit-unlink");
-      const { playerId } = await seedListedPlayer(repo, eventId, { playerName: "MTA H", rank: 1 });
-      const staying = await seedUser("staying", "name", { name: "MTA Stays" });
-      const leaving = await seedUser("leaving", "name", { name: "MTA Leaves" });
-
-      await repo.insertCredit({
-        metaEventId: eventId,
-        metaEventPlayerId: playerId,
-        userId: staying,
-      });
-      await repo.insertCredit({
-        metaEventId: eventId,
-        metaEventPlayerId: playerId,
-        userId: leaving,
-      });
-      await repo.deleteCreditsForPlayer(playerId, leaving);
-
-      const contributors = await repo.contributorsForEvent(eventId);
-      expect(contributors.map((row) => row.displayName)).toEqual(["MTA Stays"]);
-      const entryContributors = await repo.contributorsForPlayer(playerId);
-      expect(entryContributors.map((row) => row.userId)).toEqual([staying]);
-    });
-
     it("reads and writes a contributor's visibility setting", async () => {
       const eventId = await seedEvent(repo, "mta-credit-visibility");
       const { playerId } = await seedListedPlayer(repo, eventId, { playerName: "MTA K", rank: 1 });
@@ -3118,7 +3123,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
           draws: null,
           legendCardId,
           championCardId: null,
-          deck: null,
         },
         null,
       );
@@ -3168,7 +3172,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
             draws: null,
             legendCardId,
             championCardId: null,
-            deck: null,
           },
           null,
         ),

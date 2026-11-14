@@ -330,3 +330,23 @@ describe("a running event", () => {
     expect(screen.queryByText("In progress")).toBeNull();
   });
 });
+
+describe("an event still to come", () => {
+  it("wears the upcoming badge for a future date whatever the stored status", () => {
+    renderHeader({
+      event: metaEvent({ status: "complete", eventDate: "2999-01-01", playerRowCount: 0 }),
+    });
+
+    expect(screen.getByText("Upcoming")).toBeInTheDocument();
+  });
+
+  it("prints no live line for a future event the source already marks in progress", () => {
+    renderHeader({
+      event: metaEvent({ status: "in_progress", eventDate: "2999-01-01", sourceCheckedAt: null }),
+    });
+
+    expect(screen.getByText("Upcoming")).toBeInTheDocument();
+    expect(screen.queryByText("In progress")).toBeNull();
+    expect(screen.queryByText(/under way/u)).toBeNull();
+  });
+});

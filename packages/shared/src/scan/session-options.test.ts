@@ -19,7 +19,7 @@ function bankOf(dim: number, count: number): EmbedBank {
 describe("gatesForBank", () => {
   it("reads the encoder off the bank's embedding dimension", () => {
     expect(gatesForBank(bankOf(256, 8)).topK).toBe(2);
-    expect(gatesForBank(bankOf(512, 8)).topK).toBe(DEFAULT_SESSION_OPTIONS.topK);
+    expect(gatesForBank(bankOf(512, 8)).topK).toBe(8);
   });
 
   it("falls back to the clip-calibrated gates for an empty bank", () => {
@@ -39,11 +39,24 @@ describe("gatesForEmbedDim", () => {
   it("returns the MobileCLIP clip calibration for every other dimension", () => {
     for (const dim of [512, 0, 384]) {
       const gates = gatesForEmbedDim(dim);
-      expect(gates.confidentDistance).toBe(DEFAULT_SESSION_OPTIONS.confidentDistance);
-      expect(gates.rotationFallbackDistance).toBe(DEFAULT_SESSION_OPTIONS.rotationFallbackDistance);
+      expect(gates.confidentDistance).toBe(0.22);
+      expect(gates.rotationFallbackDistance).toBe(0.35);
       expect(gates.slowRotationFallbackDistance).toBe(0.45);
-      expect(gates.topK).toBe(DEFAULT_SESSION_OPTIONS.topK);
+      expect(gates.topK).toBe(8);
     }
+  });
+});
+
+describe("DEFAULT_SESSION_OPTIONS", () => {
+  it("holds the shipped ArcFace engine's gates and lock run", () => {
+    expect(DEFAULT_SESSION_OPTIONS).toMatchObject({
+      topK: 2,
+      confidentDistance: 0.35,
+      rotationFallbackDistance: 0.42,
+      accept: { lockRun: 3, maxGapFrames: 6 },
+      sweep: false,
+      enterSweeps: false,
+    });
   });
 });
 

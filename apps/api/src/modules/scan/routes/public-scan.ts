@@ -17,7 +17,6 @@ export const scanRouter = {
     const detectorUrl = scan.detectorFile ? `/media/scan/${scan.detectorFile}` : null;
     return {
       available: isScanAvailable(current, scan),
-      formatVersion: current?.formatVersion ?? null,
       bankHash: current?.bankHash ?? null,
       entryCount: current?.entryCount ?? null,
       builtAt: current?.builtAt.toISOString() ?? null,

@@ -432,6 +432,48 @@ describe("source conventions", () => {
       ]),
     ).toEqual([]);
   });
+
+  it("opens an inference session in web and shared code only in the scan model loaders", () => {
+    expect(
+      offenders(ALL_FILES, /\bInferenceSession\.create\(/u, [
+        "apps/web/src/features/scan/lib/scan-embedder.ts",
+        "apps/web/src/features/scan/lib/scan-detector.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("never parses a card name out of a scan label", () => {
+    const components = WEB_FILES.filter((file) =>
+      relative(file).startsWith("apps/web/src/features/scan/components/"),
+    );
+    expect(components.length).toBeGreaterThan(0);
+    expect(offenders(components, /\bdescribeKey\(|\.(?:split|indexOf)\(" \("\)/u)).toEqual([]);
+  });
+
+  it("shows scanner asset failures to players only as the unavailable notice", () => {
+    const components = WEB_FILES.filter((file) =>
+      relative(file).startsWith("apps/web/src/features/scan/components/"),
+    );
+    expect(components.length).toBeGreaterThan(0);
+    expect(
+      offenders(components, /\bloadError\b/u, [
+        "apps/web/src/features/scan/components/scan-page.tsx",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("decides a meta event's results state only through metaResultsState", () => {
+    const meta = WEB_FILES.filter((file) =>
+      relative(file).startsWith("apps/web/src/features/meta/"),
+    );
+    expect(meta.length).toBeGreaterThan(0);
+    expect(
+      offenders(
+        meta,
+        /status [!=]== "(?:upcoming|in_progress|complete)"|"(?:upcoming|in_progress|complete)" [!=]== \w|\beventDate > (?:today|todayUtc\(\))/u,
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe("generic helpers", () => {

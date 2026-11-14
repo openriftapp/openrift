@@ -1,25 +1,30 @@
-import type { MetaEventStatus } from "@openrift/shared/types/enums";
+import type { MetaResultsState } from "@openrift/shared/meta-results";
 
 import { Badge } from "@/components/ui/badge";
 import { metaEventStatusLabels } from "@/features/meta/lib/meta-format";
 import { cn } from "@/lib/utils";
 
-const STATUS_VARIANT = { upcoming: "outline", in_progress: "warning" } as const;
-
-/** Nothing for a complete event: that is the archive's normal state. */
+/** Nothing once an event is played: that is the archive's normal state. */
 export function MetaEventStatusBadge({
-  status,
+  state,
   className,
 }: {
-  status: MetaEventStatus;
+  state: MetaResultsState;
   className?: string;
 }) {
-  if (status === "complete") {
-    return null;
+  if (state === "notStarted") {
+    return (
+      <Badge variant="outline" className={cn("shrink-0", className)}>
+        {metaEventStatusLabels().upcoming}
+      </Badge>
+    );
   }
-  return (
-    <Badge variant={STATUS_VARIANT[status]} className={cn("shrink-0", className)}>
-      {metaEventStatusLabels()[status]}
-    </Badge>
-  );
+  if (state === "collecting") {
+    return (
+      <Badge variant="warning" className={cn("shrink-0", className)}>
+        {metaEventStatusLabels().in_progress}
+      </Badge>
+    );
+  }
+  return null;
 }

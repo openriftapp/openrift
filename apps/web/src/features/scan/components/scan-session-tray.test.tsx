@@ -3,6 +3,33 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { owned } = vi.hoisted(() => ({
+  owned: {
+    current: undefined as
+      | {
+          totals: Record<string, number>;
+          total: number;
+          allTotals: Record<string, number>;
+          allTotal: number;
+        }
+      | undefined,
+  },
+}));
+
+vi.mock("@/features/collections/hooks/use-owned-count", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  useOwnedCountsForPrintings: (printingIds: readonly string[]) => {
+    const all = owned.current;
+    if (!all) {
+      return { data: undefined };
+    }
+    const allTotals = Object.fromEntries(
+      Object.entries(all.allTotals).filter(([id]) => printingIds.includes(id)),
+    );
+    return { data: { ...all, allTotals } };
+  },
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, className }: { children: ReactNode; className?: string }) => (
     <a href="/" className={className}>
@@ -11,6 +38,7 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
+import { pricesKeys } from "@/features/cards/lib/cards-query-keys";
 import { ScanSessionTray } from "@/features/scan/components/scan-session-tray";
 import { ScanTrayExpandedContext } from "@/features/scan/components/scan-tray-shell";
 import { printingsByCardId } from "@/features/scan/lib/scan-resolve";
@@ -34,8 +62,17 @@ function renderTray({
   compact = false,
   expanded = false,
   onSignInToAdd,
-}: { compact?: boolean; expanded?: boolean; onSignInToAdd?: () => void } = {}) {
+  prices,
+}: {
+  compact?: boolean;
+  expanded?: boolean;
+  onSignInToAdd?: () => void;
+  prices?: Record<string, Record<string, number>>;
+} = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  if (prices) {
+    client.setQueryData(pricesKeys.all, { prices });
+  }
   client.setQueryData(
     initKeys.all,
     stubInitResponse({
@@ -76,8 +113,38 @@ function addButtonFollowsLastRow(): boolean {
 }
 
 describe("ScanSessionTray", () => {
-  beforeEach(resetSession);
+  beforeEach(() => {
+    resetSession();
+    owned.current = undefined;
+  });
   afterEach(resetSession);
+
+  it("does not call a card new when another printing of it is owned", () => {
+    owned.current = { totals: {}, total: 0, allTotals: { "p-en": 2 }, allTotal: 2 };
+    useScanSessionStore.getState().add(german);
+    renderTray();
+
+    expect(screen.queryByText("New")).toBeNull();
+    expect(screen.getByText("2 owned")).toBeInTheDocument();
+  });
+
+  it("calls a card new when no printing of it is owned", () => {
+    owned.current = { totals: {}, total: 0, allTotals: {}, allTotal: 0 };
+    useScanSessionStore.getState().add(german);
+    renderTray();
+
+    expect(screen.getByText("New")).toBeInTheDocument();
+  });
+
+  it("shows row prices in the compact form and the total in full", () => {
+    useScanSessionStore.getState().add(german);
+    renderTray({
+      prices: { "p-de": { cardtrader: 1250, cardmarket: 1250, tcgplayer: 1250, cardnexus: 1250 } },
+    });
+
+    expect(screen.getByText(/^[$€]13$/u)).toBeInTheDocument();
+    expect(screen.getAllByText(/12\.50/u).length).toBeGreaterThan(0);
+  });
 
   it("names the language of the printing a row was swapped to", () => {
     useScanSessionStore.getState().add(english);

@@ -17,7 +17,6 @@ import type { ScanRun } from "@/features/scan/lib/scan-run";
 
 export interface ScanLoopDeps {
   run: () => ScanRun;
-  idleGate: () => number;
   readBoard: (still: RgbaImage) => Promise<BoardCard[] | null>;
   relockGuard?: boolean;
 }
@@ -59,9 +58,7 @@ export function createScanLoop<T extends PendingFrame>(deps: ScanLoopDeps): Scan
 
   function noteOutcome(outcome: FrameOutcome, now: number): FrameDecision {
     const run = deps.run();
-    const top = outcome.ranked[0];
-    const cardInGuide =
-      outcome.winner !== null || (top !== undefined && top.distance <= deps.idleGate());
+    const { cardInGuide } = outcome;
     run.update({ sweeping: outcome.sweeping, still: outcome.still, cardInGuide });
     // Before the lock, so the guide emptying and this frame's lock are judged
     // in the order they happened.

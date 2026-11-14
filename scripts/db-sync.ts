@@ -17,7 +17,6 @@ import {
   buildPricesSync,
   buildRulesSync,
 } from "../apps/api/src/db/catalog-sync.js";
-import { createDb } from "../apps/api/src/db/connect.js";
 import { catalogResponseSchema } from "../packages/shared/src/contracts/catalog.js";
 import { initResponseSchema } from "../packages/shared/src/contracts/init.js";
 import {
@@ -29,12 +28,14 @@ import {
   ruleVersionsListResponseSchema,
 } from "../packages/shared/src/contracts/rules.js";
 import { createLogger } from "../packages/shared/src/logger.js";
-import { isLocalDatabase, requireEnv } from "./env.js";
+import { isLocalDatabase, parseScriptArgs, requireEnv, runWithDb } from "./env.js";
 
 const FETCH_CONCURRENCY = 5;
 
 const log = createLogger("db:sync");
-const assumeYes = process.argv.includes("--yes");
+const {
+  values: { yes: assumeYes = false },
+} = parseScriptArgs({ yes: { type: "boolean" } }, "Usage: bun db:sync [--yes]");
 const databaseUrl = requireEnv("DATABASE_URL");
 const sourceUrl = requireEnv("CATALOG_SOURCE_URL").replace(/\/$/u, "");
 const target = new URL(databaseUrl);
@@ -102,7 +103,7 @@ function confirm(): boolean {
   return answer?.trim() === expected;
 }
 
-async function sync(database: ReturnType<typeof createDb>["db"]): Promise<void> {
+async function sync(database: Parameters<Parameters<typeof runWithDb>[0]>[0]): Promise<void> {
   const state = await readSyncState(database);
   if ((state.cards > 0 || state.ruleVersions > 0) && state.markerSource === null) {
     throw new Error(
@@ -157,9 +158,4 @@ async function sync(database: ReturnType<typeof createDb>["db"]): Promise<void> 
   );
 }
 
-const { db } = createDb(databaseUrl);
-try {
-  await sync(db);
-} finally {
-  await db.destroy();
-}
+await runWithDb(sync);

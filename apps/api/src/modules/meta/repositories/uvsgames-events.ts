@@ -13,29 +13,32 @@ import {
   UVSGAMES_STATUS_CANCELED,
 } from "../../../lib/meta-providers.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
-import { dueBefore } from "./meta-shared.js";
+import { dueBefore, TODAY } from "./meta-shared.js";
 import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
-  MetaSyncBuckets,
-  MetaSyncBucketTriage,
+  MirrorListOrder,
+  MirrorSyncOverview,
+  MirrorTriage,
+  MirrorTriageCounts,
 } from "./meta-sync-buckets.js";
 import {
+  catalogOrderBy,
+  JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
-  metaSyncBucketSelections,
+  mirrorListConditions,
+  mirrorOverviewSelections,
+  pagedTriage,
   toMetaSyncBucketCounts,
-  toMetaSyncBuckets,
+  toMirrorSyncOverview,
+  TRIAGE_STATE,
+  triageCountSelections,
 } from "./meta-sync-buckets.js";
+import type { MirrorUpsertResult } from "./mirror-upsert.js";
 import { compareKeys, upsertMirrorRows } from "./mirror-upsert.js";
 import { uvsgamesRulePasses } from "./uvsgames-rule.js";
-
-/**
- * Owns one source's crawl bookkeeping; live archive tables stay in `metaRepo`.
- * Triage state is derived from `meta_event_sources` and the ignore table, never stored.
- * The mirror has no provider column: every join pins {@link UVSGAMES_PROVIDER}.
- */
 
 type UvsgamesEventRow = Selectable<UvsgamesEventsTable>;
 
@@ -67,14 +70,6 @@ export interface UvsgamesIdProbeInput {
   gameType: string | null;
 }
 
-export interface UvsgamesUpsertResult {
-  inserted: string[];
-  changed: string[];
-  unchanged: string[];
-}
-
-export type UvsgamesTriage = "new" | "accepted" | "dismissed";
-
 export interface UvsgamesTierInputRow {
   metaEventId: string;
   externalId: string;
@@ -84,7 +79,7 @@ export interface UvsgamesTierInputRow {
 }
 
 export interface UvsgamesListRow extends UvsgamesEventRow {
-  triage: UvsgamesTriage;
+  triage: MirrorTriage;
   metaEventId: string | null;
   metaEventSlug: string | null;
   storeDisplayName: string | null;
@@ -111,20 +106,9 @@ export interface UvsgamesListFilters {
   minPlayers?: number;
   dateFrom?: Date;
   dateTo?: Date;
-  triage?: UvsgamesTriage;
+  triage?: MirrorTriage;
   missing?: boolean;
   bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
-}
-
-export interface UvsgamesListOrder {
-  sort?: "startAt" | "name" | "playerCount";
-  direction?: "asc" | "desc";
-}
-
-export interface UvsgamesTriageCounts {
-  new: number;
-  accepted: number;
-  dismissed: number;
 }
 
 export interface MetaSyncSettingsRow {
@@ -171,18 +155,7 @@ export interface UvsgamesTemplateInput {
 }
 
 const SETTINGS_ID = 1;
-
-const CATALOG_ORDER_COLUMNS = {
-  startAt: sql`c.start_at`,
-  name: sql`lower(c.name)`,
-  playerCount: sql`c.player_count`,
-};
-
-/** Nulls always sort last, whichever direction the column runs. */
-function catalogOrderBy(order: UvsgamesListOrder) {
-  const column = CATALOG_ORDER_COLUMNS[order.sort ?? "startAt"];
-  return order.direction === "asc" ? sql`${column} asc nulls last` : sql`${column} desc nulls last`;
-}
+const KEY = sql<string>`c.external_id`;
 
 export function uvsgamesEventsRepo(db: Kysely<Database>) {
   /** Reused by the list, the counts, and the by-key read so all three agree on "accepted". */
@@ -216,8 +189,6 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     select 1 from uvsgames_event_standings st where st.external_id = c.external_id
   )`;
 
-  const dismissed = sql<SqlBool>`i.provider is not null`;
-  const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
   const bucketColumns: MetaSyncBucketColumns = {
     started: sql<SqlBool>`c.start_at <= now()`,
     startAt: sql<Date | null>`c.start_at`,
@@ -225,28 +196,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     nextCheckAt: sql<Date | null>`ck.next_check_at`,
     passes: uvsgamesRulePasses,
   };
-  const triage = sql<UvsgamesTriage>`case
-    when i.provider is not null then 'dismissed'
-    when src.meta_event_id is not null then 'accepted'
-    else 'new'
-  end`;
-
-  const isNew = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
-
-  // Absence must be an anti-join here: reading a joined null makes the planner
-  // sort the whole catalogue before taking one page. Presence reads the join.
-  const notDismissed = sql<SqlBool>`not exists (
-    select 1 from ignored_meta_source_events x
-     where x.provider = ${UVSGAMES_PROVIDER} and x.external_id = c.external_id
-  )`;
-  const notLinked = sql<SqlBool>`not exists (
-    select 1 from meta_event_sources y
-     where y.provider = ${UVSGAMES_PROVIDER} and y.external_id = c.external_id
-       and y.meta_event_id is not null
-  )`;
-  const pagedNew = sql<SqlBool>`${notDismissed} and ${notLinked}`;
-  const pagedAccepted = sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`;
-  const bucketTriage: MetaSyncBucketTriage = { undecided: pagedNew, published: pagedAccepted };
+  const paged = pagedTriage(UVSGAMES_PROVIDER, KEY);
 
   const stagedPlayerCount = sql<number>`(
     select count(*)::int from uvsgames_event_standings st where st.external_id = c.external_id
@@ -264,7 +214,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
   // Today's and future events are still taking registrations, so counting
   // them in would read every new template as averaging near zero.
-  const RAN_EVENT = sql`e.player_count is not null and e.start_at < date_trunc('day', now())`;
+  const RAN_EVENT = sql`e.player_count is not null and e.start_at < ${TODAY}::timestamp at time zone 'UTC'`;
 
   function templateQuery(templateId?: string) {
     let base = db
@@ -384,20 +334,13 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     return conditions;
   }
 
-  function pagedTriagePredicate(state: UvsgamesTriage) {
-    if (state === "dismissed") {
-      return dismissed;
-    }
-    return state === "accepted" ? pagedAccepted : pagedNew;
-  }
-
   return {
     // `xmax = 0` distinguishes an insert from an update in the same
     // statement: Postgres leaves the transaction id zero on a fresh tuple.
     async upsertBatch(
       rows: readonly UvsgamesUpsertInput[],
       seenAt: Date,
-    ): Promise<UvsgamesUpsertResult> {
+    ): Promise<MirrorUpsertResult<string>> {
       await upsertStores(rows);
       return await upsertMirrorRows(
         rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null, missingProbe: null })),
@@ -653,7 +596,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       const row = await triagedQuery()
         .selectAll("c")
         .select([
-          triage.as("triage"),
+          TRIAGE_STATE.as("triage"),
           "src.metaEventId as metaEventId",
           "me.slug as metaEventSlug",
           ...joinedColumns,
@@ -671,7 +614,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         .leftJoin("uvsgamesEventTemplates as t", "t.templateId", "c.eventConfigurationTemplate")
         .selectAll("c")
         .select([
-          triage.as("triage"),
+          TRIAGE_STATE.as("triage"),
           "src.metaEventId as metaEventId",
           "me.slug as metaEventSlug",
           important.as("important"),
@@ -706,7 +649,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
                 .selectFrom("uvsgamesEvents as e")
                 .select("e.externalId")
                 .whereRef("e.externalId", "=", "ck.externalId")
-                .where("e.startAt", "<=", now),
+                .where(sql<SqlBool>`date_trunc('milliseconds', e.start_at) <= ${now}`),
             ),
           )
           .executeTakeFirst();
@@ -742,7 +685,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     async newKeys(): Promise<string[]> {
       const rows = await triagedQuery()
         .select("c.externalId")
-        .where(isNew)
+        .where(JOINED_TRIAGE.undecided)
         .orderBy("c.startAt", "desc")
         .execute();
       return rows.map((row) => row.externalId);
@@ -755,13 +698,13 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           ...(await triagedQuery()
             .selectAll("c")
             .select([
-              triage.as("triage"),
+              TRIAGE_STATE.as("triage"),
               "src.metaEventId as metaEventId",
               "me.slug as metaEventSlug",
               ...joinedColumns,
             ])
             .where("c.externalId", "in", batch)
-            .where(isNew)
+            .where(JOINED_TRIAGE.undecided)
             .execute()),
         );
       }
@@ -771,12 +714,12 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     list(
       filters: UvsgamesListFilters,
       page: { limit: number; offset: number },
-      order: UvsgamesListOrder = {},
+      order: MirrorListOrder = {},
     ): Promise<{ rows: UvsgamesCoverageRow[]; total: number }> {
       let query = triagedQuery()
         .selectAll("c")
         .select([
-          triage.as("triage"),
+          TRIAGE_STATE.as("triage"),
           "src.metaEventId as metaEventId",
           "me.slug as metaEventSlug",
           ...joinedColumns,
@@ -785,28 +728,19 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           stagedLegendCount.as("stagedLegendCount"),
           stagedDeckCount.as("stagedDeckCount"),
         ])
-        .orderBy(catalogOrderBy(order))
+        .orderBy(catalogOrderBy(sql`c.player_count`, order))
         // Ties on the sort column are common (a locals night files every store
         // at the same minute), so the key breaks them and keeps paging stable.
         .orderBy("c.externalId", "desc");
 
-      for (const condition of narrowing(filters)) {
+      for (const condition of mirrorListConditions(
+        narrowing(filters),
+        filters,
+        bucketColumns,
+        paged,
+      )) {
         query = query.where(condition);
       }
-      if (filters.bucket !== undefined) {
-        query = query.where(
-          metaSyncBucketCondition(
-            filters.bucket.name,
-            bucketColumns,
-            filters.bucket.rule,
-            bucketTriage,
-          ),
-        );
-      }
-      if (filters.triage !== undefined) {
-        query = query.where(pagedTriagePredicate(filters.triage));
-      }
-
       return offsetPage(query, page);
     },
 
@@ -826,86 +760,30 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
     },
 
-    async triageCounts(): Promise<UvsgamesTriageCounts> {
-      const row = await triagedQuery()
-        .select([
-          sql<string>`count(*) filter (where ${dismissed})`.as("dismissed"),
-          sql<string>`count(*) filter (where ${accepted})`.as("accepted"),
-          sql<string>`count(*) filter (where ${isNew})`.as("new"),
-        ])
-        .executeTakeFirstOrThrow();
-      return {
-        new: Number(row.new),
-        accepted: Number(row.accepted),
-        dismissed: Number(row.dismissed),
-      };
+    async triageCounts(): Promise<MirrorTriageCounts> {
+      return await triagedQuery().select(triageCountSelections()).executeTakeFirstOrThrow();
     },
 
     // The accepted bucket's problem states are only visible against the candidate link,
     // not off the catalogue alone.
-    async syncOverview(rule: MetaAutoPublishRule): Promise<
-      MetaSyncBuckets & {
-        total: number;
-        completed: number;
-        decklistPublished: number;
-        missing: number;
-        dueRecheck: number;
-        oldestDueAt: Date | null;
-        queued: number;
-        acceptedAwaitingResults: number;
-        acceptedMissing: number;
-        acceptedCancelled: number;
-        lastSeenAt: Date | null;
-      }
-    > {
+    async syncOverview(rule: MetaAutoPublishRule): Promise<MirrorSyncOverview> {
       const row = await triagedQuery()
-        .select((eb) => [
-          eb.fn.countAll<string>().as("total"),
-          sql<string>`count(*) filter (where c.display_status = 'complete')`.as("completed"),
-          sql<string>`count(*) filter (where c.decklist_status = 'PUBLISHED')`.as(
-            "decklistPublished",
-          ),
-          sql<string>`count(*) filter (where c.missing_since is not null)`.as("missing"),
-          sql<string>`count(*) filter (where ck.next_check_at is not null and ck.next_check_at <= now())`.as(
-            "dueRecheck",
-          ),
-          sql<Date | null>`min(ck.next_check_at) filter (where ck.next_check_at <= now())`.as(
-            "oldestDueAt",
-          ),
-          sql<string>`count(*) filter (where ck.next_check_at is not null)`.as("queued"),
-          sql<string>`count(*) filter (where (${accepted}) and (${notFetched}))`.as(
-            "acceptedAwaitingResults",
-          ),
-          sql<string>`count(*) filter (where (${accepted}) and c.missing_since is not null)`.as(
-            "acceptedMissing",
-          ),
-          sql<string>`count(*) filter (where (${accepted}) and c.display_status = ${UVSGAMES_STATUS_CANCELED})`.as(
-            "acceptedCancelled",
-          ),
-          eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
-          ...metaSyncBucketSelections(bucketColumns, rule),
-        ])
+        .select(
+          mirrorOverviewSelections(bucketColumns, rule, {
+            completed: sql<SqlBool>`c.display_status = 'complete'`,
+            decklistPublished: sql<SqlBool>`c.decklist_status = 'PUBLISHED'`,
+            awaitingResults: notFetched,
+            cancelled: sql<SqlBool>`c.display_status = ${UVSGAMES_STATUS_CANCELED}`,
+          }),
+        )
         .executeTakeFirstOrThrow();
-      return {
-        ...toMetaSyncBuckets(row),
-        total: Number(row.total),
-        completed: Number(row.completed),
-        decklistPublished: Number(row.decklistPublished),
-        missing: Number(row.missing),
-        dueRecheck: Number(row.dueRecheck),
-        oldestDueAt: row.oldestDueAt,
-        queued: Number(row.queued),
-        acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
-        acceptedMissing: Number(row.acceptedMissing),
-        acceptedCancelled: Number(row.acceptedCancelled),
-        lastSeenAt: row.lastSeenAt,
-      };
+      return toMirrorSyncOverview(row);
     },
 
     async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.external_id`.as("key"))
-        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, bucketTriage))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, paged))
         .execute();
       return rows.map((row) => row.key);
     },

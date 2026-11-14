@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
+import { MAX_SCAN_REPORT_JOURNAL_ENTRIES } from "@openrift/shared/contracts/scan-reports";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   appendScanJournal,
   clearScanJournal,
   hasScanJournal,
-  MAX_SCAN_JOURNAL_ENTRIES,
   readScanJournal,
 } from "./scan-journal";
 
@@ -36,14 +36,14 @@ describe("appendScanJournal", () => {
   });
 
   it("keeps the newest entries once the ring is full", () => {
-    for (let i = 0; i < MAX_SCAN_JOURNAL_ENTRIES + 10; i++) {
+    for (let i = 0; i < MAX_SCAN_REPORT_JOURNAL_ENTRIES + 10; i++) {
       appendScanJournal({ type: "add-settled", batchId: `b${i}`, confirmed: 1, failed: 0 });
     }
     const journal = readScanJournal();
 
-    expect(journal).toHaveLength(MAX_SCAN_JOURNAL_ENTRIES);
+    expect(journal).toHaveLength(MAX_SCAN_REPORT_JOURNAL_ENTRIES);
     expect(journal[0]).toMatchObject({ batchId: "b10" });
-    expect(journal.at(-1)).toMatchObject({ batchId: `b${MAX_SCAN_JOURNAL_ENTRIES + 9}` });
+    expect(journal.at(-1)).toMatchObject({ batchId: `b${MAX_SCAN_REPORT_JOURNAL_ENTRIES + 9}` });
   });
 
   it("stores nothing beyond the fields it was given", () => {

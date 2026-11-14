@@ -188,7 +188,7 @@ describe("useClipRecorder", () => {
     expect(result.current.error).toMatch(/camera ended/u);
   });
 
-  it("records the share of frames noted as sweeping", async () => {
+  it("records only the frames noted while recording", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
     act(() => result.current.noteFrame(frame(true)));
     await act(() => result.current.start(restart));
@@ -202,15 +202,15 @@ describe("useClipRecorder", () => {
     act(() => result.current.noteFrame(frame(true)));
 
     const meta = result.current.pending?.[1];
-    expect(JSON.parse((await meta?.text()) ?? "null").sweepShare).toBe(0.25);
+    expect(JSON.parse((await meta?.text()) ?? "null").frames).toHaveLength(4);
   });
 
-  it("records a zero share when no frame was noted", async () => {
+  it("records no frames when none was noted", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
     await act(() => result.current.start(restart));
     act(() => result.current.stop(context));
 
     const meta = result.current.pending?.[1];
-    expect(JSON.parse((await meta?.text()) ?? "null").sweepShare).toBe(0);
+    expect(JSON.parse((await meta?.text()) ?? "null").frames).toEqual([]);
   });
 });

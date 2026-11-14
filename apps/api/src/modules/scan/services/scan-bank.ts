@@ -8,6 +8,7 @@ import {
   groupArtworks,
   groupSharedIllustrations,
   illustrationCardKey,
+  scanArtKey,
 } from "@openrift/shared/scan/art-groups";
 import type { EmbedBank } from "@openrift/shared/scan/embed";
 import {
@@ -16,8 +17,9 @@ import {
   preprocessCardInto,
 } from "@openrift/shared/scan/embed";
 import { EMBED_BANK_VERSION, encodeEmbedBank } from "@openrift/shared/scan/embed-format";
-import { rotateRgbaCw } from "@openrift/shared/scan/image";
+import { toCanonicalFrame } from "@openrift/shared/scan/image";
 import type { CardLabels } from "@openrift/shared/scan/labels";
+import { encoderRunner } from "@openrift/shared/scan/ort-runners";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 
 import type { Io } from "../../../io.js";
@@ -34,16 +36,6 @@ type ScanIndexRepo = ReturnType<typeof scanIndexRepo>;
 const SCAN_MEDIA_DIR = join(MEDIA_DIR, "scan");
 
 const BUILD_BATCH = 8;
-
-/**
- * Groups renders by artwork: language excluded, null variant collapses to "",
- * and an overnumbered print keys apart since it carries its own illustration.
- */
-export function scanArtKey(
-  row: Pick<ScanReferenceRow, "setSlug" | "name" | "artVariant" | "isOvernumbered">,
-): string {
-  return `${row.setSlug}|${row.name}|${row.artVariant ?? ""}|${row.isOvernumbered ? "over" : ""}`;
-}
 
 export interface ScanBankBuildResult {
   unchanged: boolean;
@@ -153,6 +145,7 @@ export async function rebuildScanBank(
   const session = await ort.InferenceSession.create(encoderPath);
   const inputMeta = session.inputMetadata[0];
   const imageSize = embedImageSizeOf(inputMeta?.isTensor ? inputMeta.shape : undefined);
+  const embed = encoderRunner(session, ort.Tensor, encoderFile, imageSize);
 
   const keys: string[] = [];
   const labels: CardLabels = {};
@@ -169,21 +162,7 @@ export async function rebuildScanBank(
     if (batch.length === 0) {
       return;
     }
-    const output = await session.run({
-      pixel_values: new ort.Tensor(
-        "float32",
-        staging.subarray(0, batch.length * 3 * imageSize * imageSize),
-        [batch.length, 3, imageSize, imageSize],
-      ),
-    });
-    const imageEmbeds = output.image_embeds;
-    if (imageEmbeds === undefined) {
-      throw new Error("Scan embedding session returned no image_embeds output");
-    }
-    const embedded = normalizeEmbeddings(
-      Float32Array.from(imageEmbeds.data as Float32Array),
-      batch.length,
-    );
+    const embedded = normalizeEmbeddings(await embed(staging, batch.length), batch.length);
     for (const [i, row] of batch.entries()) {
       const vector = embedded[i];
       if (vector === undefined) {
@@ -221,12 +200,7 @@ export async function rebuildScanBank(
       card: illustrationCardKey(row.name, row.cardType),
       signature: referenceSignature(image),
     });
-    if (image.width > image.height) {
-      // 90 degrees left = three clockwise quarter turns; matches the
-      // trainer's Image.Transpose.ROTATE_90 and the bench's bank build.
-      image = rotateRgbaCw(rotateRgbaCw(rotateRgbaCw(image)));
-    }
-    preprocessCardInto(image, staging, batch.length, imageSize);
+    preprocessCardInto(toCanonicalFrame(image), staging, batch.length, imageSize);
     batch.push(row);
     if (batch.length === BUILD_BATCH) {
       await flush();

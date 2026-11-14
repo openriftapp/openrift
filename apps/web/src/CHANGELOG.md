@@ -5,10 +5,17 @@
 ### Highlights
 
 - fix(Trades): **Your move means your move** — an accepted swap moves to "Ready to swap" on the trades page and only asks you to confirm or hand over once the other person has done their part.
+- fix(Meta): **Matching counts on the meta front page** — "Browse all" counts the events in your current filters, and the link opens those.
 
 ### Other
 
 - fix(Trades): **No repeats in a person's suggestions** — a trade page for one person lists cards already in a trade only in that trade's section, and the suggestions count matches the rows shown.
+- fix(Meta): **One rule for upcoming events** — an event dated in the future reads as not played yet on every page.
+- fix(Meta): **Players filter on the reported size** — the players filter, sort and column on the events page all use the field size the event reported.
+- fix(Collection): **Full Legend names in the scanner** — the identify sheet, the printing picker and scanner messages show a Legend's full name.
+- fix(Collection): **Scanner "New" per card** — a scanned card counts as new only when you own it in no printing.
+- fix(Collection): **Identify sheet failure state** — a failed attempt no longer leaves the sheet on "recognising", and a card recognised a moment late vibrates too.
+- fix(Collection): **Scanner languages in your order** — the scan language list follows your preferred languages, and identify search finds cards printed only in other languages.
 
 ## 2026-11-13
 

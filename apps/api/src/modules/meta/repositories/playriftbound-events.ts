@@ -1,6 +1,6 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
 import { DAY_MS } from "@openrift/shared/format-date";
-import type { Kysely, RawBuilder, Selectable } from "kysely";
+import type { Kysely, RawBuilder, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -19,30 +19,32 @@ import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
-  MetaSyncBuckets,
-  MetaSyncBucketTriage,
+  MirrorListOrder,
+  MirrorSyncOverview,
+  MirrorTriage,
+  MirrorTriageCounts,
 } from "./meta-sync-buckets.js";
 import {
+  catalogOrderBy,
+  JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
-  metaSyncBucketSelections,
+  mirrorListConditions,
+  mirrorOverviewSelections,
+  NEVER,
+  pagedTriage,
   sizeRulePasses,
   toMetaSyncBucketCounts,
-  toMetaSyncBuckets,
+  toMirrorSyncOverview,
+  TRIAGE_STATE,
+  triageCountSelections,
 } from "./meta-sync-buckets.js";
+import type { MirrorUpsertResult } from "./mirror-upsert.js";
 import { upsertMirrorRows } from "./mirror-upsert.js";
 
 type PlayriftboundEventRow = Selectable<PlayriftboundEventsTable>;
 
 export type PlayriftboundUpsertInput = PlayriftboundEventProjection;
-
-export interface PlayriftboundUpsertResult {
-  inserted: string[];
-  changed: string[];
-  unchanged: string[];
-}
-
-export type PlayriftboundTriage = "new" | "accepted" | "dismissed";
 
 export interface PlayriftboundTierInputRow {
   metaEventId: string;
@@ -51,7 +53,7 @@ export interface PlayriftboundTierInputRow {
 }
 
 export interface PlayriftboundListRow extends PlayriftboundEventRow {
-  triage: PlayriftboundTriage;
+  triage: MirrorTriage;
   metaEventId: string | null;
   metaEventSlug: string | null;
   organizerName: string | null;
@@ -69,17 +71,11 @@ export interface PlayriftboundRecheckRow extends PlayriftboundListRow {
   failingSince: Date | null;
 }
 
-export interface PlayriftboundTriageCounts {
-  new: number;
-  accepted: number;
-  dismissed: number;
-}
-
 export interface PlayriftboundListFilters {
   search?: string;
   tournamentType?: string;
   format?: string;
-  triage?: PlayriftboundTriage;
+  triage?: MirrorTriage;
   minPlayers?: number;
   /** `YYYY-MM-DD`, inclusive, compared against the UTC day of `start_at`. */
   dateFrom?: string;
@@ -88,25 +84,7 @@ export interface PlayriftboundListFilters {
   bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
 }
 
-/** Defaults to newest events first. */
-export interface PlayriftboundListOrder {
-  sort?: "startAt" | "name" | "playerCount";
-  direction?: "asc" | "desc";
-}
-
-type SqlBool = boolean;
-
-const CATALOG_ORDER_COLUMNS = {
-  startAt: sql`c.start_at`,
-  name: sql`lower(c.name)`,
-  playerCount: sql`c.registered_count`,
-};
-
-/** Nulls sort last whichever way the column runs. */
-function catalogOrderBy(order: PlayriftboundListOrder) {
-  const column = CATALOG_ORDER_COLUMNS[order.sort ?? "startAt"];
-  return order.direction === "asc" ? sql`${column} asc nulls last` : sql`${column} desc nulls last`;
-}
+const KEY = sql<string>`c.tournament_id`;
 
 export function playriftboundEventsRepo(db: Kysely<Database>) {
   /** Joined once and reused by the reads, so they can never disagree about what "accepted" means. */
@@ -137,12 +115,6 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     sql<number>`coalesce(ck.check_stage, 0)`.as("checkStage"),
   ];
 
-  const triage = sql<PlayriftboundTriage>`case
-    when i.provider is not null then 'dismissed'
-    when src.meta_event_id is not null then 'accepted'
-    else 'new'
-  end`;
-
   const stagedPlayerCount = sql<number>`(
     select count(*)::int from playriftbound_event_standings st
      where st.tournament_id = c.tournament_id
@@ -153,8 +125,6 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
      where m.tournament_id = c.tournament_id
   )`;
 
-  const isNew = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
-  const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
   const bucketColumns: MetaSyncBucketColumns = {
     started: sql<SqlBool>`c.start_at <= now()`,
     startAt: sql<Date | null>`c.start_at`,
@@ -168,27 +138,13 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       ),
   };
 
-  // Absence must be an anti-join here: reading a joined null makes the planner
-  // sort the whole catalogue before taking one page. Presence reads the join.
-  const notDismissed = sql<SqlBool>`not exists (
-    select 1 from ignored_meta_source_events x
-     where x.provider = ${PLAYRIFTBOUND_PROVIDER} and x.external_id = c.tournament_id
-  )`;
-  const notLinked = sql<SqlBool>`not exists (
-    select 1 from meta_event_sources y
-     where y.provider = ${PLAYRIFTBOUND_PROVIDER} and y.external_id = c.tournament_id
-       and y.meta_event_id is not null
-  )`;
-  const pagedNew = sql<SqlBool>`${notDismissed} and ${notLinked}`;
-  const pagedAccepted = sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`;
-  const bucketTriage: MetaSyncBucketTriage = { undecided: pagedNew, published: pagedAccepted };
-  const pagedDismissed = sql<SqlBool>`i.provider is not null`;
+  const paged = pagedTriage(PLAYRIFTBOUND_PROVIDER, KEY);
 
   function listSelect() {
     return triagedQuery()
       .selectAll("c")
       .select([
-        triage.as("triage"),
+        TRIAGE_STATE.as("triage"),
         "src.metaEventId as metaEventId",
         "me.slug as metaEventSlug",
         stagedPlayerCount.as("stagedPlayerCount"),
@@ -283,7 +239,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     async upsertBatch(
       rows: readonly PlayriftboundUpsertInput[],
       seenAt: Date,
-    ): Promise<PlayriftboundUpsertResult> {
+    ): Promise<MirrorUpsertResult<string>> {
       return await upsertMirrorRows(
         rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null })),
         {
@@ -409,41 +365,22 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     list(
       filters: PlayriftboundListFilters,
       pagination: { limit: number; offset: number },
-      order: PlayriftboundListOrder = {},
+      order: MirrorListOrder = {},
     ): Promise<{ rows: PlayriftboundListRow[]; total: number }> {
-      const applyFilters = <T extends ReturnType<typeof triagedQuery>>(q: T): T => {
-        let base = q;
-        for (const condition of narrowing(filters)) {
-          base = base.where(condition) as T;
-        }
-        if (filters.bucket !== undefined) {
-          base = base.where(
-            metaSyncBucketCondition(
-              filters.bucket.name,
-              bucketColumns,
-              filters.bucket.rule,
-              bucketTriage,
-            ),
-          ) as T;
-        }
-        if (filters.triage === "new") {
-          base = base.where(pagedNew) as T;
-        } else if (filters.triage === "accepted") {
-          base = base.where(pagedAccepted) as T;
-        } else if (filters.triage === "dismissed") {
-          base = base.where(pagedDismissed) as T;
-        }
-        return base;
-      };
-
-      return offsetPage(
-        applyFilters(listSelect())
-          .orderBy(catalogOrderBy(order))
-          // Stores schedule weekly nights at the same hour, so start times tie
-          // often; the key breaks them and keeps paging stable.
-          .orderBy("c.tournamentId", "desc"),
-        pagination,
-      );
+      let query = listSelect()
+        .orderBy(catalogOrderBy(sql`c.registered_count`, order))
+        // Stores schedule weekly nights at the same hour, so start times tie
+        // often; the key breaks them and keeps paging stable.
+        .orderBy("c.tournamentId", "desc");
+      for (const condition of mirrorListConditions(
+        narrowing(filters),
+        filters,
+        bucketColumns,
+        paged,
+      )) {
+        query = query.where(condition);
+      }
+      return offsetPage(query, pagination);
     },
 
     async dueForRecheck(now: Date, limit: number): Promise<PlayriftboundRecheckRow[]> {
@@ -502,7 +439,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     async newKeys(): Promise<string[]> {
       const rows = await triagedQuery()
         .select("c.tournamentId")
-        .where(isNew)
+        .where(JOINED_TRIAGE.undecided)
         .orderBy("c.startAt", "desc")
         .execute();
       return rows.map((row) => row.tournamentId);
@@ -512,75 +449,36 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       const rows: PlayriftboundListRow[] = [];
       for (const batch of keyBatches(tournamentIds)) {
         rows.push(
-          ...(await listSelect().where("c.tournamentId", "in", batch).where(isNew).execute()),
+          ...(await listSelect()
+            .where("c.tournamentId", "in", batch)
+            .where(JOINED_TRIAGE.undecided)
+            .execute()),
         );
       }
       return rows;
     },
 
-    async syncOverview(rule: MetaAutoPublishRule): Promise<
-      MetaSyncBuckets & {
-        total: number;
-        completed: number;
-        decklistPublished: number;
-        missing: number;
-        dueRecheck: number;
-        oldestDueAt: Date | null;
-        queued: number;
-        acceptedAwaitingResults: number;
-        acceptedMissing: number;
-        acceptedCancelled: number;
-        lastSeenAt: Date | null;
-      }
-    > {
+    async syncOverview(rule: MetaAutoPublishRule): Promise<MirrorSyncOverview> {
       const row = await triagedQuery()
-        .select((eb) => [
-          eb.fn.countAll<string>().as("total"),
-          // The source has no finished flag; a fully finalized event is the
-          // closest "results exist" signal.
-          sql<string>`count(*) filter (where c.rounds_played > 0 and c.rounds_finalized = c.rounds_played)`.as(
-            "completed",
-          ),
-          // The source publishes no decklists.
-          sql<string>`0`.as("decklistPublished"),
-          sql<string>`count(*) filter (where c.missing_since is not null)`.as("missing"),
-          sql<string>`count(*) filter (where ck.next_check_at is not null and ck.next_check_at <= now())`.as(
-            "dueRecheck",
-          ),
-          sql<Date | null>`min(ck.next_check_at) filter (where ck.next_check_at <= now())`.as(
-            "oldestDueAt",
-          ),
-          sql<string>`count(*) filter (where ck.next_check_at is not null)`.as("queued"),
-          sql<string>`count(*) filter (where (${accepted}) and c.results_fetched_at is null)`.as(
-            "acceptedAwaitingResults",
-          ),
-          sql<string>`count(*) filter (where (${accepted}) and c.missing_since is not null)`.as(
-            "acceptedMissing",
-          ),
-          eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
-          ...metaSyncBucketSelections(bucketColumns, rule),
-        ])
+        .select(
+          mirrorOverviewSelections(bucketColumns, rule, {
+            // The source has no finished flag; a fully finalized event is the
+            // closest "results exist" signal.
+            completed: sql<SqlBool>`c.rounds_played > 0 and c.rounds_finalized = c.rounds_played`,
+            // The source publishes no decklists.
+            decklistPublished: NEVER,
+            awaitingResults: sql<SqlBool>`c.results_fetched_at is null`,
+            cancelled: NEVER,
+          }),
+        )
         .executeTakeFirstOrThrow();
-      return {
-        ...toMetaSyncBuckets(row),
-        total: Number(row.total),
-        completed: Number(row.completed),
-        decklistPublished: Number(row.decklistPublished),
-        missing: Number(row.missing),
-        dueRecheck: Number(row.dueRecheck),
-        oldestDueAt: row.oldestDueAt,
-        queued: Number(row.queued),
-        acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
-        acceptedMissing: Number(row.acceptedMissing),
-        acceptedCancelled: 0,
-        lastSeenAt: row.lastSeenAt,
-      };
+      return toMirrorSyncOverview(row);
     },
 
     async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.tournament_id`.as("key"))
-        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, bucketTriage))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, paged))
         .execute();
       return rows.map((row) => row.key);
     },
@@ -601,23 +499,8 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
     },
 
-    async triageCounts(): Promise<PlayriftboundTriageCounts> {
-      const row = await triagedQuery()
-        .select([
-          sql<number>`count(*) filter (where i.provider is null and src.meta_event_id is null)::int`.as(
-            "new",
-          ),
-          sql<number>`count(*) filter (where i.provider is null and src.meta_event_id is not null)::int`.as(
-            "accepted",
-          ),
-          sql<number>`count(*) filter (where i.provider is not null)::int`.as("dismissed"),
-        ])
-        .executeTakeFirstOrThrow();
-      return {
-        new: Number(row.new),
-        accepted: Number(row.accepted),
-        dismissed: Number(row.dismissed),
-      };
+    async triageCounts(): Promise<MirrorTriageCounts> {
+      return await triagedQuery().select(triageCountSelections()).executeTakeFirstOrThrow();
     },
   };
 }

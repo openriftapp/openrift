@@ -9,6 +9,7 @@ import { rotateRgbaCw } from "./image";
 import type { RgbaImage } from "./types";
 
 export const EMBED_IMAGE_SIZE = 256;
+export const DEFAULT_SCAN_ENCODER_FILE = "scan-encoder-v2.onnx";
 const RESCALE = 1 / 255;
 
 export type CardEmbedder = (pixels: Float32Array, count: number) => Promise<Float32Array>;

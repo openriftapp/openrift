@@ -2,6 +2,7 @@ import type { LoadedScanBank } from "../../apps/web/src/features/scan/lib/scan-b
 import type { ScanPrintingIndex } from "../../apps/web/src/features/scan/lib/scan-resolve.js";
 import {
   buildScanPrintingIndex,
+  markerKeyOf,
   resolveLock,
 } from "../../apps/web/src/features/scan/lib/scan-resolve.js";
 import type {
@@ -52,10 +53,7 @@ function appOutcome(
       artKey: lock.artKey,
       publicCode: printing.publicCode,
       language: printing.language,
-      markers: printing.markers
-        .map((marker) => marker.slug)
-        .toSorted()
-        .join("+"),
+      markers: markerKeyOf(printing),
     })),
   };
 }

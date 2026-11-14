@@ -5713,19 +5713,19 @@
   "scan_controls_start_camera": "啟動相機",
   "scan_controls_scan_card": "掃描卡牌",
   "scan_controls_identify_now": "立即辨識",
-  "scan_controls_stop": "停止",
   "scan_identify_title": "這是哪張卡牌？",
   "scan_identify_pending_description": "正在判斷相機剛才看到什麼。",
   "scan_identify_recognising": "辨識中…",
   "scan_identify_empty": "那個畫面裡沒有看起來像卡牌的東西。請讓卡牌填滿取景框再試一次。",
+  "scan_identify_failed": "無法讀取這個畫面。請再試一次。",
   "scan_identify_nothing_toast": "那個畫面沒有可辨識的內容，請重新掃描卡牌",
   "scan_identify_search_label": "搜尋目錄",
   "scan_identify_search_placeholder": "卡牌名稱或編號",
   "scan_identify_search_empty": "沒有符合的卡牌。",
   "scan_load_row_starting": "啟動中…",
-  "scan_notices_unavailable_title": "目前無法使用掃描功能。",
   "scan_notices_https": "相機需要安全連線，因此掃描只能透過 https 使用。",
   "scan_page_not_in_catalog": "{name} 尚未收錄在目錄中",
+  "scan_page_not_in_catalog_unnamed": "這張卡牌尚未收錄在目錄中",
   "scan_page_board_added": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -5857,7 +5857,6 @@
   "scan_engine_detector_failed": "無法載入卡牌偵測器",
   "scan_engine_worker_unsupported": "此瀏覽器無法執行掃描器。請更新瀏覽器或改用其他瀏覽器。",
   "scan_frame_failed": "畫面處理失敗",
-  "scan_bank_load_failed": "無法載入掃描資料",
   "scan_unavailable": "掃描器暫時無法使用，請稍後再試。",
   "common_error_generic": "發生錯誤，請再試一次。",
   "common_new_version_available": "OpenRift 有新版本可用。",
@@ -8122,19 +8121,29 @@
   ],
   "meta_front_browse_all": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "瀏覽全部 {countFormatted} 筆"
+        "countPlural=one": "瀏覽全部 {countFormatted} 筆",
+        "countPlural=*": "瀏覽全部 {countFormatted} 筆"
       }
     }
   ],
   "meta_front_browse_all_events": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "瀏覽全部 {countFormatted} 場賽事"
+        "countPlural=one": "瀏覽全部 {countFormatted} 場賽事",
+        "countPlural=*": "瀏覽全部 {countFormatted} 場賽事"
       }
     }
   ],

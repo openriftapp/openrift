@@ -1,5 +1,6 @@
 import { todayUtc } from "@openrift/shared/format-date";
 import { STANDINGS_PAGE_SIZE } from "@openrift/shared/meta-query";
+import { metaResultsState } from "@openrift/shared/meta-results";
 import { cutSizeOf } from "@openrift/shared/meta-standings";
 import type {
   MetaEventField,
@@ -64,13 +65,11 @@ const routeApi = getRouteApi("/_app/meta_/$slug");
 const STANDINGS_ID = "meta-standings";
 
 function emptyStandingsCopy(status: MetaEventStatus, eventDate: string): string {
-  if (status === "in_progress") {
-    return m.meta_standings_in_progress();
-  }
-  if (status === "upcoming" || eventDate > todayUtc()) {
+  const state = metaResultsState({ status, eventDate, playerRowCount: 0 }, todayUtc());
+  if (state === "notStarted") {
     return m.meta_standings_upcoming();
   }
-  return m.meta_standings_none();
+  return state === "collecting" ? m.meta_standings_in_progress() : m.meta_standings_none();
 }
 
 /** A cost bound narrows the page on screen, so an emptied page is not an emptied field. */
@@ -213,7 +212,8 @@ export function MetaEventStandings({
           <p className="text-muted-foreground text-sm">
             {subtitleFor(firstPage.total, field.withLists)}
           </p>
-          {status === "in_progress" && (
+          {metaResultsState({ status, eventDate, playerRowCount: firstPage.total }, todayUtc()) ===
+            "collecting" && (
             <p className="text-foreground text-sm font-medium">
               {[describeEventProgress(field.progress, phases), "provisional"]
                 .filter(Boolean)

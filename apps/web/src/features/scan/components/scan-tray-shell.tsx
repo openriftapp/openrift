@@ -3,6 +3,7 @@ import { createContext, use, useState } from "react";
 
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import type { ScanLayout } from "@/features/scan/hooks/use-scan-layout";
+import { LANDSCAPE_PANEL_WIDTH } from "@/features/scan/lib/scan-styles";
 import { cn } from "@/lib/utils";
 
 // Fits the handle, the header, one row and the pinned footer. The portrait
@@ -15,8 +16,6 @@ export const ScanTrayExpandedContext = createContext(false);
 export function useScanTrayExpanded(): boolean {
   return use(ScanTrayExpandedContext);
 }
-
-const LANDSCAPE_PANEL_WIDTH = "w-72";
 
 interface ScanTrayShellProps {
   layout: ScanLayout;

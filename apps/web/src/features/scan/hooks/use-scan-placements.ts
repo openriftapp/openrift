@@ -7,10 +7,9 @@ import type { RefObject } from "react";
 import { useRef } from "react";
 
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
-import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
+import { snapshotGuide } from "@/features/scan/lib/scan-flight";
 import { grabWatchFrame } from "@/features/scan/lib/scan-frame-grab";
 import type { ScanLoop } from "@/features/scan/lib/scan-loop";
-import { videoLayoutBox } from "@/features/scan/lib/scan-zoom";
 
 export interface ScanPlacementsOptions {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -49,9 +48,7 @@ export function useScanPlacements(options: ScanPlacementsOptions): ScanPlacement
     const signal = detector.observe(toGray(pixels), centeredGuideQuad(pixels.width, pixels.height));
     const { missedFrame, confirmed } = loop().observePlacement(signal, now, () => {
       const frame = options.grabFrame(video);
-      return frame
-        ? { frame, thumbnail: snapshotVideoRect(video, guideRectIn(videoLayoutBox(video))) }
-        : null;
+      return frame ? { frame, thumbnail: snapshotGuide(video) } : null;
     });
     if (missedFrame) {
       options.onMiss(missedFrame, now);

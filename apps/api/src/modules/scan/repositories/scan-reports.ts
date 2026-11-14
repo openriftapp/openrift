@@ -1,14 +1,14 @@
 import type { ScanReportJournalEntry } from "@openrift/shared/contracts/scan-reports";
 import type { Kysely } from "kysely";
-import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
 
 export function scanReportsRepo(db: Kysely<Database>) {
   return {
     /** Serializes one user's concurrent reports so the hourly cap can't be read twice before either insert. */
     async lockUser(userId: string): Promise<void> {
-      await sql`select pg_advisory_xact_lock(hashtext(${`scan_report:${userId}`}))`.execute(db);
+      await lockKey(db, `scan_report:${userId}`);
     },
 
     async countRecentByUser(userId: string, since: Date): Promise<number> {

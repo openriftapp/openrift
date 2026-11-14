@@ -34,7 +34,6 @@ export interface PrintingUpdate {
 export interface BoardReadCard {
   key: string;
   artKey: string;
-  label: string;
   resolved: boolean;
   /** Empty when the read was confident. */
   alternatives: string[];
@@ -47,14 +46,10 @@ export interface ScannerEvents {
   onFrame?: (frame: FrameLogEntry) => void;
 }
 
-export function boardReadCards(
-  cards: readonly BoardCard[],
-  labelOf: (key: string) => string,
-): BoardReadCard[] {
+export function boardReadCards(cards: readonly BoardCard[]): BoardReadCard[] {
   return cards.map((card) => ({
     key: card.key,
     artKey: card.artKey,
-    label: labelOf(card.key),
     resolved: card.printingResolved,
     alternatives: card.confident ? [] : card.alternatives,
   }));

@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 
 import { createDb } from "../apps/api/src/db/connect.js";
 import { migrate } from "../apps/api/src/db/migrate.js";
+import { replaceDbName } from "../apps/api/src/test/integration-setup.js";
 import { createLogger } from "../packages/shared/src/logger.js";
 import { requireEnv } from "./env.js";
 
@@ -12,10 +13,6 @@ const url = requireEnv("DATABASE_URL");
 const TEMP_DB = "openrift_schema_dump";
 const CONTAINER = "openrift-db-1";
 
-function withDatabase(connectionUrl: string, dbName: string): string {
-  return connectionUrl.replace(/\/[^/?]+(?<tail>\?|$)/u, `/${dbName}$<tail>`);
-}
-
 function psql(sql: string): void {
   execSync(`docker exec ${CONTAINER} psql -U openrift -d postgres -c '${sql}'`, {
     stdio: "ignore",
@@ -25,7 +22,7 @@ function psql(sql: string): void {
 psql(`DROP DATABASE IF EXISTS "${TEMP_DB}"`);
 psql(`CREATE DATABASE "${TEMP_DB}"`);
 
-const { db } = createDb(withDatabase(url, TEMP_DB));
+const { db } = createDb(replaceDbName(url, TEMP_DB));
 try {
   await migrate(db, log);
 } finally {

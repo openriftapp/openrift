@@ -12,6 +12,7 @@ function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
     refused: false,
     bestScore: 0,
     sweeping: false,
+    cardInGuide: false,
     still: false,
     locked: null,
     winnerRun: null,

@@ -15,10 +15,9 @@ vi.mock("@/features/scan/lib/scan-frame-grab", () => ({
 function renderBoard(readBoard: () => Promise<BoardCard[] | null>) {
   const onBoardRead = vi.fn();
   const run = createScanRun("capture");
-  const loop = createScanLoop<PendingFrame>({ run: () => run, idleGate: () => 0.5, readBoard });
+  const loop = createScanLoop<PendingFrame>({ run: () => run, readBoard });
   const hook = renderHook(() =>
     useScanBoard({
-      bank: null,
       videoRef: { current: document.createElement("video") },
       runRef: { current: run },
       eventsRef: { current: { onBoardRead } },

@@ -1,5 +1,6 @@
 /** Patch-wise normalised correlation of a rectified card's grayscale thumbnail against its reference render. */
-import { downscaleGray, rotateRgbaCw, toGray } from "./image";
+import { upperMedian } from "../math";
+import { downscaleGray, rotateRgbaCw, toCanonicalFrame, toGray } from "./image";
 import type { RgbaImage } from "./types";
 
 export const ALIGNED_WIDTH = 40;
@@ -70,9 +71,8 @@ function patchCorrelation(
   return (sumQR - (sumQ * sumR) / n) / Math.sqrt(varQ * varR);
 }
 
-/** Landscape renders turn 90 degrees left, as in the canonical bank. */
 export function referenceSignature(image: RgbaImage): AlignedSignature {
-  return alignedSignature(image, image.width > image.height ? 3 : 0);
+  return alignedSignature(toCanonicalFrame(image));
 }
 
 /** Median over patches of the best correlation within a small shift. */
@@ -99,8 +99,7 @@ export function alignedScore(query: AlignedSignature, reference: AlignedSignatur
   if (scores.length < patches * MIN_TEXTURED_PATCH_SHARE) {
     return Number.NaN;
   }
-  scores.sort((a, b) => a - b);
-  return scores[Math.floor(scores.length / 2)] ?? Number.NaN;
+  return upperMedian(scores) ?? Number.NaN;
 }
 
 interface AlignedVerification {

@@ -1,37 +1,27 @@
 // Offline calibration probe for printing disambiguation. Temporary analysis
 // tool; run with: bun scripts/scan/probe-disambiguation.ts
+import { upperMedian } from "../../packages/shared/src/math.js";
 import type { PrintingSignature } from "../../packages/shared/src/scan/disambiguate.js";
 import {
   bestShiftCorrelation,
   discriminativeMargin,
   printingSignature,
+  shiftGray,
   textBandForType,
 } from "../../packages/shared/src/scan/disambiguate.js";
 import type { GrayImage } from "../../packages/shared/src/scan/types.js";
 import { loadCatalog } from "./catalog";
 import { listReferenceImages, loadImage } from "./lib";
 
-const catalog = loadCatalog();
+const catalog = await loadCatalog();
 const files = new Map(listReferenceImages().map((r) => [r.key, r.file]));
 
-const groups = new Map<string, string[]>();
-for (const [key, entry] of catalog) {
-  const artKey = entry.artKey ?? key;
-  groups.set(artKey, [...(groups.get(artKey) ?? []), key]);
-}
-
-function shifted(signature: GrayImage, dx: number, dy: number): GrayImage {
-  const { width, height } = signature;
-  const data = new Uint8Array(width * height);
-  for (let y = 0; y < height; y++) {
-    const sy = Math.min(height - 1, Math.max(0, y + dy));
-    for (let x = 0; x < width; x++) {
-      const sx = Math.min(width - 1, Math.max(0, x + dx));
-      data[y * width + x] = signature.data[sy * width + sx];
-    }
-  }
-  return { data, width, height };
-}
+const groups = new Map(
+  [...Map.groupBy(catalog, ([key, entry]) => entry.artKey ?? key)].map(([artKey, entries]) => [
+    artKey,
+    entries.map(([key]) => key),
+  ]),
+);
 
 const nameCorrectMargin1: number[] = [];
 const nameCorrectMargin2: number[] = [];
@@ -77,8 +67,8 @@ for (const [, keys] of groups) {
 
   const a = signatures[0];
   const b = signatures[1];
-  const nameQuery1 = shifted(a.s.name, 1, 1);
-  const nameQuery2 = shifted(a.s.name, 2, 2);
+  const nameQuery1 = shiftGray(a.s.name, 1, 1);
+  const nameQuery2 = shiftGray(a.s.name, 2, 2);
   const nameCorrect1 = discriminativeMargin(nameQuery1, a.s.name, b.s.name);
   const nameCorrect2 = discriminativeMargin(nameQuery2, a.s.name, b.s.name);
   const nameWrong1 = discriminativeMargin(nameQuery1, b.s.name, a.s.name);
@@ -99,7 +89,7 @@ for (const [, keys] of groups) {
       if (!left.s.code || !right.s.code) {
         continue;
       }
-      const query1 = shifted(left.s.code, 1, 1);
+      const query1 = shiftGray(left.s.code, 1, 1);
       const margin = discriminativeMargin(query1, left.s.code, right.s.code);
       if (left.publicCode === right.publicCode) {
         codeSameCodePairs++;
@@ -114,7 +104,7 @@ for (const [, keys] of groups) {
         continue;
       }
       codeCorrectMargin1.push(margin);
-      const margin2 = discriminativeMargin(shifted(left.s.code, 2, 2), left.s.code, right.s.code);
+      const margin2 = discriminativeMargin(shiftGray(left.s.code, 2, 2), left.s.code, right.s.code);
       if (margin2 !== null) {
         codeCorrectMargin2.push(margin2);
       }
@@ -129,9 +119,8 @@ for (const [, keys] of groups) {
 }
 
 function summary(values: number[]): string {
-  const sorted = values.toSorted((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)] ?? Number.NaN;
-  return `n=${values.length} min=${sorted[0]?.toFixed(3)} median=${median.toFixed(3)} max=${sorted.at(-1)?.toFixed(3)}`;
+  const median = upperMedian(values) ?? Number.NaN;
+  return `n=${values.length} min=${Math.min(...values).toFixed(3)} median=${median.toFixed(3)} max=${Math.max(...values).toFixed(3)}`;
 }
 
 console.log(
@@ -202,7 +191,7 @@ for (const [, keys] of groups) {
     for (let j = i + 1; j < signatures.length; j++) {
       const left = signatures[i];
       const right = signatures[j];
-      const query1 = shifted(left.stamp, 1, 1);
+      const query1 = shiftGray(left.stamp, 1, 1);
       const margin = discriminativeMargin(query1, left.stamp, right.stamp);
       if ((left.markers === "") === (right.markers === "")) {
         stampSameMarkerPairs++;
@@ -217,7 +206,7 @@ for (const [, keys] of groups) {
         continue;
       }
       stampCorrectMargin1.push(margin);
-      const margin2 = discriminativeMargin(shifted(left.stamp, 2, 2), left.stamp, right.stamp);
+      const margin2 = discriminativeMargin(shiftGray(left.stamp, 2, 2), left.stamp, right.stamp);
       if (margin2 !== null) {
         stampCorrectMargin2.push(margin2);
       }

@@ -112,7 +112,7 @@ beforeEach(async () => {
       ["k-a", "art-a"],
       ["k-b", "art-a"],
     ]),
-    labels: {},
+    labels: { "k-a": { name: "Lux", code: "OGN-001", language: "EN" } },
     bytes: 4096,
     canonical: true,
   });
@@ -149,6 +149,7 @@ describe("init", () => {
         ["k-a", "art-a"],
         ["k-b", "art-a"],
       ],
+      labels: { "k-a": { name: "Lux", code: "OGN-001", language: "EN" } },
       canonical: true,
       bytes: 4096,
       gates: { confidentDistance: 0.3, rotationFallbackDistance: 0.45 },
@@ -172,7 +173,12 @@ describe("init", () => {
     await send(INIT);
 
     expect(posted).toEqual([
-      { type: "error", message: "the card detector did not load", code: "detector" },
+      {
+        type: "error",
+        message: "the card detector did not load",
+        code: "detector",
+        asset: "detector",
+      },
     ]);
   });
 });

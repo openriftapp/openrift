@@ -50,7 +50,6 @@ describe("GET /api/v1/scan/manifest", () => {
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({
       available: false,
-      formatVersion: null,
       bankHash: null,
       entryCount: null,
       builtAt: null,
@@ -70,7 +69,6 @@ describe("GET /api/v1/scan/manifest", () => {
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({
       available: true,
-      formatVersion: 1,
       bankHash: "511b47521ffca52a",
       entryCount: 2670,
       builtAt: "2026-07-28T11:36:00.000Z",

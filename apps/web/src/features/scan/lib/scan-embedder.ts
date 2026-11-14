@@ -1,6 +1,7 @@
 import { sleep } from "@openrift/shared/async";
 import type { CardEmbedder } from "@openrift/shared/scan/embed";
 import { EMBED_IMAGE_SIZE, embedImageSizeOf } from "@openrift/shared/scan/embed";
+import { encoderRunner } from "@openrift/shared/scan/ort-runners";
 
 import { scanAssetError } from "@/features/scan/lib/scan-asset-hint";
 import {
@@ -17,6 +18,10 @@ let embedMsPerImage = 0;
 let embedInputSize = EMBED_IMAGE_SIZE;
 
 export const SLOW_DEVICE_EMBED_MS = 250;
+
+export function isSlowDevice(msPerImage: number): boolean {
+  return msPerImage > SLOW_DEVICE_EMBED_MS;
+}
 
 const CREATE_RETRY_DELAY_MS = 1000;
 
@@ -126,17 +131,7 @@ export async function loadScanEmbedder(
     }
     console.log(`[scan] ort bench: ~${embedMsPerImage.toFixed(0)}ms/image`);
 
-    return async (pixels, count) => {
-      const slice = pixels.slice(0, count * 3 * size * size);
-      const output = await session.run({
-        pixel_values: new ort.Tensor("float32", slice, [count, 3, size, size]),
-      });
-      const embeds = output.image_embeds;
-      if (embeds === undefined) {
-        throw new Error("scan-embedder: session returned no image_embeds output");
-      }
-      return embeds.data as Float32Array;
-    };
+    return encoderRunner(session, ort.Tensor, "the encoder", size);
   })();
   try {
     return await cached;

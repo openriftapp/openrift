@@ -4,7 +4,7 @@ import type {
   BenchClipResult,
   ClipTruth,
 } from "../../packages/shared/src/scan/bench-score.js";
-import { summarize } from "../../packages/shared/src/scan/bench-score.js";
+import { rightAdds, summarize } from "../../packages/shared/src/scan/bench-score.js";
 import type { PlacementStats } from "./placement-stats";
 import { formatPlacement } from "./placement-stats";
 
@@ -88,7 +88,7 @@ export function reportClip(replay: ClipReplay, options: ReportOptions): void {
       `  SCORE found ${score.found}/${score.expected}, wrong card ${score.wrongCards}, ` +
       `wrong printing ${score.wrongPrintings}, marker only ${score.markerOnly}, ` +
       `printing open ${score.printingOpen}, duplicates ${score.duplicates}${arrival}\n` +
-      `  APP added ${app.auto - app.autoWrong} right, ${app.autoWrong} wrong, ` +
+      `  APP added ${rightAdds(app)} right, ${app.autoWrong} wrong, ` +
       `${app.markerMiss} only the marker missed; ` +
       `picker ${app.picker} (${app.pickerMissing} without the right printing)\n${missed}` +
       `${formatPlacement(replay.placement)}` +

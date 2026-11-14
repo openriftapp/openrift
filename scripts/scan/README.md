@@ -4,19 +4,21 @@ Offline tools for the card scanner. They replay recorded clips and photos throug
 
 ## Setup
 
-The scripts read the card catalogue and printings from the local dev database through `docker exec openrift-db-1` on first use and cache them. Reference renders come from `media/cards/` (the `-400w.webp` derivatives).
+On every run the scripts read the reference set from the local dev database (`DATABASE_URL` from `.env`, which must point at a local host) through the API's `scanReferences`, the query the server's bank build uses: active, rehosted front renders, one row per image. Printings come through `docker exec openrift-db-1` and are cached until `--refresh-printings`. Reference renders come from `media/cards/` (the `-400w.webp` derivatives).
 
-| Variable              | Used by                                                                | Meaning                                                                             |
-| --------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `SCAN_DETECTOR`       | `run-clips`                                                            | Path to the card detector ONNX file.                                                |
-| `SCAN_BOARD_DETECTOR` | `run-clips`, `run-boards`, `outline-proposals`, `sweep-outline-labels` | Path to the board detector ONNX file.                                               |
-| `SCAN_ENCODER`        | everything that embeds                                                 | Path to an encoder ONNX file. Defaults to `models/mobileclip-s0/vision_model.onnx`. |
-| `SCAN_EMBED_SIZE`     | everything that embeds                                                 | Encoder input side in pixels. Defaults to the shared `EMBED_IMAGE_SIZE`.            |
-| `SCAN_CANONICAL_BANK` | everything that embeds                                                 | `1` builds the bank with landscape renders turned to portrait, as the server does.  |
+Without variables the scripts run the engine the API serves: the encoder, card detector and board detector under `media/scan/`, named by the API's own `SCAN_ENCODER_FILE`, `SCAN_DETECTOR_FILE` and `SCAN_BOARD_DETECTOR_FILE` (read from `.env`), with the encoder's input size read from the model and a canonical bank. The variables below override that for an A/B run.
 
-`run-clips` needs both detector variables and exits without them.
+| Variable              | Used by                                                                | Meaning                                                                                 |
+| --------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `SCAN_DETECTOR`       | `run-clips`                                                            | Path to a card detector ONNX file.                                                      |
+| `SCAN_BOARD_DETECTOR` | `run-clips`, `run-boards`, `outline-proposals`, `sweep-outline-labels` | Path to a board detector ONNX file.                                                     |
+| `SCAN_ENCODER`        | everything that embeds                                                 | Path to an encoder ONNX file, for example MobileCLIP under `models/mobileclip-s0/`.     |
+| `SCAN_EMBED_SIZE`     | everything that embeds                                                 | Encoder input side in pixels; overrides the size the model declares.                    |
+| `SCAN_CANONICAL_BANK` | everything that embeds                                                 | `0` builds a native bank (landscape renders not turned), for natively trained encoders. |
 
-The embedding bank is built on first use and cached per encoder, size and canonical setting.
+`run-clips` exits when no card or board detector is configured.
+
+The embedding bank is built on first use and cached per encoder, size, canonical setting and reference set, so a catalogue change builds a new bank.
 
 ## Data layout
 
@@ -35,7 +37,7 @@ Paths are relative to `data/image-recognition-test/`.
 
 ## Workflow
 
-1. `import-clip.ts <video> --name <clip> --split tune|holdout [--mode single|sweep] [--negative] [--force] [--meta file]` archives a clip recorded on `/admin/scan`, extracts its frames and drafts an unreviewed truth file from the phone's locks. Repeated locks of one artwork become copies. The clip imports as `sweep` when the session reported sweeping for at least half of the recorded frames, else as `single`; `--mode` overrides. Check every card, then set `reviewed`.
+1. `import-clip.ts <video> --name <clip> --split tune|holdout [--mode single|sweep] [--negative] [--force] [--meta file]` archives a clip recorded on `/admin/scan`, extracts its frames and drafts an unreviewed truth file from the phone's locks. Repeated locks of one artwork become copies. The clip imports as `single` unless `--mode sweep` is passed. Check every card, then set `reviewed`.
 2. `extract-clips.ts [--force]` rebuilds the frames of every archived recording.
 3. `run-clips.ts` replays the clips and scores them. Pass `--json out.json` to save a run.
 4. `compare-runs.ts baseline.json candidate.json` exits non-zero when the candidate regresses on any clip.
@@ -83,7 +85,7 @@ Session plan:
 | `--slow-device`        | Use the plan the app picks for a slow device.             |
 | `--set <path>=<value>` | Override one option of the live session. Repeat for more. |
 
-`<path>` is a dotted path into `ScanSessionOptions` in `packages/shared/src/scan/session-options.ts`. A value is a number (`Infinity` included), `true`, `false` or `null`. `null` restores the option's default, also inside a group. An option without a default is removed. An unknown path or a value of the wrong type stops the run. The catch-up session always runs the shipped catch-up plan.
+`<path>` is a dotted path into `ScanSessionOptions` in `packages/shared/src/scan/session-options.ts`. A value is a number (`Infinity` included), `true`, `false` or `null`. `null` restores the engine default from `DEFAULT_SESSION_OPTIONS` (the shipped ArcFace values), also inside a group. An option without a default is removed. An unknown path or a value of the wrong type stops the run. The catch-up session always runs the shipped catch-up plan.
 
 ```bash
 bun scripts/scan/run-clips.ts --set accept.lockRun=4 --set topK=6

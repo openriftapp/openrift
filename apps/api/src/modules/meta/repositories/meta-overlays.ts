@@ -19,7 +19,6 @@ import { inTransaction } from "../../../repositories/query-helpers.js";
  * "clear this field" from "say nothing about it"; a generated CHECK per
  * column refuses a value set without being claimed.
  */
-
 export type MetaEventOverlayRow = Selectable<MetaEventOverlaysTable>;
 export type MetaPlayerOverlayRow = Selectable<MetaEventPlayerOverlaysTable>;
 /** An event overlay a push provider wrote; the key-shape CHECK makes both halves non-null together. */

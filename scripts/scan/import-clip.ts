@@ -22,8 +22,6 @@ import {
 
 const LONG_SIDE = 848;
 
-const SWEEP_SHARE_MIN = 0.5;
-
 function fail(message: string): never {
   process.stderr.write(`${message}\n`);
   process.exit(1);
@@ -97,9 +95,8 @@ encode(`fps=${DEFAULT_FPS}`, fullResolutionRecording(name));
 fs.copyFileSync(metaFile, path.join(RECORDINGS_DIR, `${name}.recording.json`));
 const frames = extractClipFrames(name);
 
-const catalog = loadCatalog();
-const mode: ClipTruth["mode"] =
-  modeArg ?? ((meta.sweepShare ?? 0) >= SWEEP_SHARE_MIN ? "sweep" : "single");
+const catalog = await loadCatalog();
+const mode: ClipTruth["mode"] = modeArg ?? "single";
 const cards = new Map<string, TruthCard>();
 if (!hasFlag("--negative")) {
   for (const lock of meta.locks) {

@@ -1,4 +1,5 @@
 import { todayUtc } from "@openrift/shared/format-date";
+import { metaResultsState } from "@openrift/shared/meta-results";
 import { formatRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventStatus,
@@ -179,13 +180,11 @@ export interface MetaCountedEvent {
 }
 
 function emptyStatusFor(event: MetaCountedEvent, today: string): string {
-  if (event.status === "in_progress") {
-    return m.meta_event_status_in_progress();
-  }
-  if (event.status === "upcoming" || event.eventDate > today) {
+  const state = metaResultsState(event, today);
+  if (state === "notStarted") {
     return m.meta_event_not_played();
   }
-  return m.meta_event_no_results();
+  return state === "collecting" ? m.meta_event_status_in_progress() : m.meta_event_no_results();
 }
 
 export function metaEventHasArchivedResults(

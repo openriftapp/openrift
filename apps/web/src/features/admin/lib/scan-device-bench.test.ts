@@ -46,6 +46,7 @@ function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
     locked: null,
     winnerRun: null,
     focus: 0,
+    cardInGuide: false,
     timings: { detect: 1, embed: 2, verify: 3, total: 6, crop: 0 },
     ...overrides,
   };
@@ -86,7 +87,6 @@ function deps(overrides: Partial<ReplayDeps> & { processMs?: number } = {}): Rep
     rearm: () => {},
     multiPrinting: () => false,
     labelOf: (key) => `label ${key}`,
-    idleGate: 0.5,
     now: () => clock,
     pacing: realtimePacing(),
     ...overrides,
@@ -96,8 +96,9 @@ function deps(overrides: Partial<ReplayDeps> & { processMs?: number } = {}): Rep
 const AHRI_LOCK = {
   locked: track("ahri"),
   winner: { key: "ahri-en", artKey: "ahri", score: 30, rivalScore: 0 },
+  cardInGuide: true,
 };
-const PLAUSIBLE = { ranked: [{ key: "ahri-en", distance: 0.2, rotation: 0 }] };
+const PLAUSIBLE = { ranked: [{ key: "ahri-en", distance: 0.2, rotation: 0 }], cardInGuide: true };
 
 /** Frames carry their index as width, so a catch-up can tell which frame it got. */
 async function indexedFrame(index: number): Promise<RgbaImage> {
@@ -555,20 +556,22 @@ describe("frameWindows", () => {
 });
 
 describe("summarizeSpeed", () => {
-  const sample = (sweep: boolean, total: number) => ({
-    sweep,
-    timings: { detect: total / 2, embed: total / 4, verify: total / 4, total, crop: 0 },
+  const sample = (total: number) => ({
+    detect: total / 2,
+    embed: total / 4,
+    verify: total / 4,
+    total,
+    crop: 0,
   });
 
-  it("keeps aimed and sweep frames apart", () => {
-    const summary = summarizeSpeed([sample(false, 40), sample(false, 20), sample(true, 80)]);
-    expect(summary.aimed?.frames).toBe(2);
-    expect(summary.aimed?.frame.mean).toBe(30);
-    expect(summary.aimed?.stageMs.detect).toBe(15);
-    expect(summary.sweep?.frames).toBe(1);
+  it("averages every sampled frame", () => {
+    const summary = summarizeSpeed([sample(40), sample(20)]);
+    expect(summary?.frames).toBe(2);
+    expect(summary?.frame.mean).toBe(30);
+    expect(summary?.stageMs.detect).toBe(15);
   });
 
-  it("reports nothing for a kind without frames", () => {
-    expect(summarizeSpeed([sample(true, 10)]).aimed).toBeNull();
+  it("reports nothing without frames", () => {
+    expect(summarizeSpeed([])).toBeNull();
   });
 });

@@ -1,7 +1,6 @@
 import { formatFileStamp } from "@openrift/shared/format-date";
 import type { BenchRun } from "@openrift/shared/scan/bench-score";
-import { summarize } from "@openrift/shared/scan/bench-score";
-import type { CardLabels } from "@openrift/shared/scan/labels";
+import { summarize, wrongLocks } from "@openrift/shared/scan/bench-score";
 import { countNoun } from "@openrift/shared/strings";
 import { GaugeIcon, SaveIcon, TimerIcon } from "lucide-react";
 import { useState } from "react";
@@ -21,6 +20,7 @@ import { deliverFiles } from "@/features/admin/lib/scan-recorder";
 import { createScanWorkerClient } from "@/features/scan/lib/scan-worker-client";
 import { downloadBlob } from "@/lib/download";
 import { errorText } from "@/lib/error-text";
+import { formatCount } from "@/lib/format";
 
 const JOB_FAILURE: Record<DeviceRunKind, string> = {
   bench: "The bench failed",
@@ -31,7 +31,7 @@ function speedLine(label: string, summary: SpeedSummary | null): string | null {
   if (!summary) {
     return null;
   }
-  return `${label}: ${summary.frame.mean.toFixed(0)} ms per frame (p90 ${summary.frame.p90.toFixed(0)}) · detect ${summary.stageMs.detect.toFixed(1)}, embed ${summary.stageMs.embed.toFixed(1)} (crop ${summary.stageMs.crop.toFixed(1)}), verify ${summary.stageMs.verify.toFixed(1)}, printing ${summary.stageMs.printing.toFixed(1)} · ${summary.frames} frames`;
+  return `${label}: ${summary.frame.mean.toFixed(0)} ms per frame (p90 ${summary.frame.p90.toFixed(0)}) · detect ${summary.stageMs.detect.toFixed(1)}, embed ${summary.stageMs.embed.toFixed(1)} (crop ${summary.stageMs.crop.toFixed(1)}), verify ${summary.stageMs.verify.toFixed(1)}, printing ${summary.stageMs.printing.toFixed(1)} · ${formatCount(summary.frames)} frames`;
 }
 
 async function requestWakeLock(): Promise<WakeLockSentinel | null> {
@@ -51,10 +51,9 @@ function releaseWakeLock(wakeLock: WakeLockSentinel | null): void {
 
 interface ScanDeviceBenchCardProps {
   assets: BenchAssets | null;
-  labels: CardLabels | null;
 }
 
-export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps) {
+export function ScanDeviceBenchCard({ assets }: ScanDeviceBenchCardProps) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +66,7 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
     job: (input: BenchJob) => Promise<T>,
     show: (result: T | null) => void,
   ) {
-    if (!assets || !labels) {
+    if (!assets) {
       return;
     }
     const failure = JOB_FAILURE[kind];
@@ -77,7 +76,7 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
     const client = createScanWorkerClient();
     const wakeLock = await requestWakeLock();
     try {
-      const result = await job({ assets, labels, client, onProgress: setProgress });
+      const result = await job({ assets, client, onProgress: setProgress });
       show(result);
       setSavedAs(await postDeviceRun(kind, result));
       setProgress(null);
@@ -104,11 +103,7 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
     await deliverFiles([file], navigator, (saved) => downloadBlob(saved, saved.name));
   }
 
-  const speedLines = speed
-    ? [speedLine("Aimed clips", speed.aimed), speedLine("Sweep clips", speed.sweep)].filter(
-        (line) => line !== null,
-      )
-    : [];
+  const speedText = speed ? speedLine("Clips", speed.frames) : null;
 
   return (
     <Card>
@@ -124,7 +119,7 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => void runJob("bench", runBench, setRun)}
-            disabled={!assets || !labels}
+            disabled={!assets}
             pending={running}
           >
             <GaugeIcon />
@@ -132,7 +127,7 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
           </Button>
           <Button
             onClick={() => void runJob("speed", runSpeedCheck, setSpeed)}
-            disabled={running || !assets || !labels}
+            disabled={running || !assets}
             variant="secondary"
           >
             <TimerIcon />
@@ -154,11 +149,7 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
               {typeof speed.meta.threads === "number" &&
                 ` · ${countNoun(speed.meta.threads, "thread")}`}
             </p>
-            {speedLines.map((line) => (
-              <p key={line} className="text-muted-foreground">
-                {line}
-              </p>
-            ))}
+            {speedText && <p className="text-muted-foreground">{speedText}</p>}
           </div>
         )}
         {error && <p className="text-destructive">{error}</p>}
@@ -166,14 +157,14 @@ export function ScanDeviceBenchCard({ assets, labels }: ScanDeviceBenchCardProps
           <ul className="flex flex-col gap-2 tabular-nums">
             {run.clips.map((clip) => {
               const arrival = summarize(clip.score.arrivalToLock);
-              const wrong = clip.score.wrongCards + clip.score.wrongPrintings;
+              const wrong = wrongLocks(clip.score);
               return (
                 <li key={clip.clip}>
                   <p className="font-medium">{clip.clip}</p>
                   <p className="text-muted-foreground">
                     found {clip.score.found}/{clip.score.expected} · wrong {wrong} · frame{" "}
                     {clip.frameMs.mean.toFixed(0)}ms (p90 {clip.frameMs.p90.toFixed(0)}) ·{" "}
-                    {clip.processed}/{clip.frames} frames
+                    {formatCount(clip.processed)}/{formatCount(clip.frames)} frames
                     {clip.score.arrivalToLock.length > 0 &&
                       ` · arrival-to-lock p50 ${arrival.p50.toFixed(2)}s p90 ${arrival.p90.toFixed(2)}s`}
                   </p>

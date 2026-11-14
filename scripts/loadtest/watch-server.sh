@@ -9,8 +9,8 @@
 set -euo pipefail
 
 INTERVAL="${1:-3}"
-DB_CONTAINER="${DB_CONTAINER:-openrift-db-1}"
 DB_CONTAINER_PREFIX="${DB_CONTAINER_PREFIX:-openrift-preview}"
+DB_CONTAINER="${DB_CONTAINER:-${DB_CONTAINER_PREFIX}-db-1}"
 
 trap 'exit 0' INT
 

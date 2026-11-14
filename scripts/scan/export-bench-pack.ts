@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { PackClip } from "../../packages/shared/src/scan/bench-score.js";
-import { CLIPS, REPO_ROOT, listClips, loadClipTruth } from "./lib";
+import { CLIPS, REPO_ROOT, listClips, listFrames, loadClipTruth } from "./lib";
 
 const PACK_DIR = path.join(REPO_ROOT, "media/scan-bench");
 
@@ -21,7 +21,7 @@ for (const clip of listClips()) {
     continue;
   }
   const source = path.join(CLIPS, clip);
-  const frames = fs.readdirSync(source).filter((file) => file.endsWith(".jpg")).length;
+  const frames = listFrames(source).length;
   const link = path.join(PACK_DIR, clip);
   fs.rmSync(link, { recursive: true, force: true });
   fs.symlinkSync(fs.realpathSync(source), link, "dir");

@@ -12,7 +12,7 @@ const mockMeta = {
   eventHoldingsCounts: vi.fn(),
   eventTotals: vi.fn(),
   eventsBySlugs: vi.fn(),
-  eventRowsByIds: vi.fn(),
+  eventsByIds: vi.fn(),
   topFinishesForEvents: vi.fn(),
   recentActivity: vi.fn(),
   eventBySlug: vi.fn(),
@@ -27,8 +27,6 @@ const mockMeta = {
   phasesForEvent: vi.fn(),
   sourcesForEvent: vi.fn(),
   contributorsForEvent: vi.fn(),
-  playerCountInScope: vi.fn(),
-  deckCountInScope: vi.fn(),
   allDeckSummaries: vi.fn(),
   deckFacetCounts: vi.fn(),
   allDeckCards: vi.fn(),
@@ -233,7 +231,7 @@ beforeEach(() => {
   mockMeta.scopedLegendCount.mockResolvedValue(0);
   mockMeta.scopedLegendCountries.mockResolvedValue([]);
   mockMeta.eventIndex.mockResolvedValue({ rows: [], total: 0 });
-  mockMeta.eventRowsByIds.mockResolvedValue([]);
+  mockMeta.eventsByIds.mockResolvedValue([]);
   mockMeta.eventsBySlugs.mockResolvedValue([]);
   mockMeta.finishesForLegend.mockResolvedValue({ rows: [], total: 0 });
   mockMeta.bestFinishesForLegend.mockResolvedValue([]);
@@ -1186,7 +1184,7 @@ describe("GET /meta/legends", () => {
         tags: ["Azir"],
       }),
     ]);
-    mockMeta.eventRowsByIds.mockResolvedValue([eventRow()]);
+    mockMeta.eventsByIds.mockResolvedValue([eventRow()]);
 
     const res = await app.request("/api/v1/meta/legends");
 
@@ -1207,7 +1205,7 @@ describe("GET /meta/legends", () => {
     mockMeta.scopedLegendRecords.mockResolvedValue([
       legendIndexRow({ finishes: 7, decklists: 3, eventWins: 1, bestRank: 1 }),
     ]);
-    mockMeta.eventRowsByIds.mockResolvedValue([eventRow()]);
+    mockMeta.eventsByIds.mockResolvedValue([eventRow()]);
     mockMeta.scopedLegendCount.mockResolvedValue(12);
     mockMeta.scopedLegendCountries.mockResolvedValue(["DE", "FR"]);
 
@@ -1230,7 +1228,7 @@ describe("GET /meta/legends", () => {
 
   it("counts the legends the scope matched, and the archive's own beside them", async () => {
     mockMeta.scopedLegendRecords.mockResolvedValue([legendIndexRow()]);
-    mockMeta.eventRowsByIds.mockResolvedValue([eventRow()]);
+    mockMeta.eventsByIds.mockResolvedValue([eventRow()]);
     mockMeta.scopedLegendCount.mockImplementation((scope: Record<string, unknown>) =>
       Promise.resolve(Object.keys(scope).length === 0 ? 217 : 1),
     );
@@ -1256,7 +1254,7 @@ describe("GET /meta/legends", () => {
 
   it("drops a legend whose best event went missing between the two reads", async () => {
     mockMeta.scopedLegendRecords.mockResolvedValue([legendIndexRow()]);
-    mockMeta.eventRowsByIds.mockResolvedValue([]);
+    mockMeta.eventsByIds.mockResolvedValue([]);
 
     const json = await readJson(await app.request("/api/v1/meta/legends"));
 
@@ -1811,43 +1809,47 @@ describe("GET /meta/deck-cards", () => {
 });
 
 describe("GET /meta/counts", () => {
-  it("returns both scope counts and forwards the event-level filters", async () => {
-    mockMeta.playerCountInScope.mockResolvedValue(240);
-    mockMeta.deckCountInScope.mockResolvedValue(12);
+  beforeEach(() => {
+    mockMeta.eventTotals.mockResolvedValue({ events: 0, playerRows: 0, decks: 0 });
+  });
 
-    const res = await app.request("/api/v1/meta/counts?format=constructed");
+  it("returns the scoped totals and forwards the scope to every figure", async () => {
+    mockMeta.eventTotals.mockResolvedValue({ events: 947, playerRows: 240, decks: 12 });
+
+    const res = await app.request("/api/v1/meta/counts?formats[0]=constructed&from=2026-01-01");
 
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json).toMatchObject({ totalPlayers: 240, decksWithMainDeck: 12 });
-    expect(mockMeta.playerCountInScope).toHaveBeenCalledWith({ format: "constructed" });
-    expect(mockMeta.deckCountInScope).toHaveBeenCalledWith({ format: "constructed" });
+    expect(json).toMatchObject({ totalPlayers: 240, decksWithMainDeck: 12, totalEvents: 947 });
+    const scope = { formats: ["constructed"], from: "2026-01-01" };
+    expect(mockMeta.eventTotals).toHaveBeenCalledWith(scope);
+    expect(mockMeta.eventTierCounts).toHaveBeenCalledWith(scope);
+    expect(mockMeta.latestResultDate).toHaveBeenCalledWith(scope);
   });
 
-  it("reports the archive's own event numbers, which the filters never narrow", async () => {
-    mockMeta.playerCountInScope.mockResolvedValue(0);
-    mockMeta.deckCountInScope.mockResolvedValue(0);
+  it("reports the event numbers per tier", async () => {
     mockMeta.eventTierCounts.mockResolvedValue({
       all: { premier: 4, competitive: 31, local: 912 },
       withResults: { premier: 3, competitive: 20, local: 400 },
     });
 
-    const json = await readJson(await app.request("/api/v1/meta/counts?format=constructed"));
+    const json = await readJson(await app.request("/api/v1/meta/counts"));
 
     expect(json.eventsByTier).toEqual({ premier: 4, competitive: 31, local: 912 });
     expect(json.eventsWithResultsByTier).toEqual({ premier: 3, competitive: 20, local: 400 });
-    expect(json.totalEvents).toBe(947);
-    expect(mockMeta.eventTierCounts).toHaveBeenCalledWith();
   });
 
   it("reports the newest event with standings", async () => {
-    mockMeta.playerCountInScope.mockResolvedValue(0);
-    mockMeta.deckCountInScope.mockResolvedValue(0);
     mockMeta.latestResultDate.mockResolvedValue("2026-09-30");
 
-    const json = await readJson(await app.request("/api/v1/meta/counts?format=constructed"));
+    const json = await readJson(await app.request("/api/v1/meta/counts"));
 
     expect(json.latestResultDate).toBe("2026-09-30");
-    expect(mockMeta.latestResultDate).toHaveBeenCalledWith();
+  });
+
+  it("ignores the retired single-format and date parameters", async () => {
+    await app.request("/api/v1/meta/counts?format=constructed&dateFrom=2026-01-01");
+
+    expect(mockMeta.eventTotals).toHaveBeenCalledWith({});
   });
 });

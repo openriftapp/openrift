@@ -1,8 +1,7 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
-import type { Kysely, RawBuilder, Selectable } from "kysely";
+import type { Kysely, RawBuilder, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
-import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { TopdeckEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches } from "../../../lib/bind-batches.js";
@@ -13,17 +12,28 @@ import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
   MetaSyncBucketCounts,
-  MetaSyncBuckets,
-  MetaSyncBucketTriage,
+  MirrorListOrder,
+  MirrorSyncOverview,
+  MirrorTriage,
+  MirrorTriageCounts,
 } from "./meta-sync-buckets.js";
 import {
+  catalogOrderBy,
+  JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
-  metaSyncBucketSelections,
+  mirrorListConditions,
+  mirrorOverviewSelections,
+  NEVER,
+  pagedTriage,
   sizeRulePasses,
   toMetaSyncBucketCounts,
-  toMetaSyncBuckets,
+  toMirrorSyncOverview,
+  TRIAGE_STATE,
+  triageCountSelections,
 } from "./meta-sync-buckets.js";
+import { cardsByShortCode } from "./mirror-results.js";
+import type { MirrorUpsertResult } from "./mirror-upsert.js";
 import { upsertMirrorRows } from "./mirror-upsert.js";
 
 type TopdeckEventRow = Selectable<TopdeckEventsTable>;
@@ -48,14 +58,6 @@ export interface TopdeckUpsertInput {
   contentHash: string;
 }
 
-export interface TopdeckUpsertResult {
-  inserted: string[];
-  changed: string[];
-  unchanged: string[];
-}
-
-export type TopdeckTriage = "new" | "accepted" | "dismissed";
-
 export interface TopdeckTierInputRow {
   metaEventId: string;
   tid: string;
@@ -63,7 +65,7 @@ export interface TopdeckTierInputRow {
 }
 
 export interface TopdeckListRow extends TopdeckEventRow {
-  triage: TopdeckTriage;
+  triage: MirrorTriage;
   metaEventId: string | null;
   metaEventSlug: string | null;
   fetchedAt: Date | null;
@@ -73,16 +75,10 @@ export interface TopdeckListRow extends TopdeckEventRow {
   rivalProvider: string | null;
 }
 
-export interface TopdeckTriageCounts {
-  new: number;
-  accepted: number;
-  dismissed: number;
-}
-
 export interface TopdeckListFilters {
   search?: string;
   format?: string;
-  triage?: TopdeckTriage;
+  triage?: MirrorTriage;
   minPlayers?: number;
   dateFrom?: string;
   dateTo?: string;
@@ -90,26 +86,8 @@ export interface TopdeckListFilters {
   bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
 }
 
-/** How one page of the catalogue is ordered. Defaults to newest events first. */
-export interface TopdeckListOrder {
-  sort?: "startAt" | "name" | "playerCount";
-  direction?: "asc" | "desc";
-}
-
-type SqlBool = boolean;
-
 const RESULTS_PENDING = "pending";
-
-const CATALOG_ORDER_COLUMNS = {
-  startAt: sql`c.start_at`,
-  name: sql`lower(c.name)`,
-  playerCount: sql`c.player_count`,
-};
-
-function catalogOrderBy(order: TopdeckListOrder) {
-  const column = CATALOG_ORDER_COLUMNS[order.sort ?? "startAt"];
-  return order.direction === "asc" ? sql`${column} asc nulls last` : sql`${column} desc nulls last`;
-}
+const KEY = sql<string>`c.tid`;
 
 export function topdeckEventsRepo(db: Kysely<Database>) {
   /** Joined once and reused, so the reads cannot disagree about what "accepted" means. */
@@ -124,12 +102,6 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         join.on("i.provider", "=", TOPDECK_PROVIDER).onRef("i.externalId", "=", "c.tid"),
       );
   }
-
-  const triage = sql<TopdeckTriage>`case
-    when i.provider is not null then 'dismissed'
-    when src.meta_event_id is not null then 'accepted'
-    else 'new'
-  end`;
 
   const fetchedAt = sql<Date | null>`(
     select max(st.fetched_at) from topdeck_event_standings st where st.tid = c.tid
@@ -163,8 +135,6 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     ) end
   )`;
 
-  const isNew = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
-  const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
   const bucketColumns: MetaSyncBucketColumns = {
     started: sql<SqlBool>`c.start_at <= now()`,
     startAt: sql<Date | null>`c.start_at`,
@@ -178,27 +148,13 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       ),
   };
 
-  // Absence must be an anti-join here: reading a joined null makes the planner
-  // sort the whole catalogue before taking one page. Presence reads the join.
-  const notDismissed = sql<SqlBool>`not exists (
-    select 1 from ignored_meta_source_events x
-     where x.provider = ${TOPDECK_PROVIDER} and x.external_id = c.tid
-  )`;
-  const notLinked = sql<SqlBool>`not exists (
-    select 1 from meta_event_sources y
-     where y.provider = ${TOPDECK_PROVIDER} and y.external_id = c.tid
-       and y.meta_event_id is not null
-  )`;
-  const pagedNew = sql<SqlBool>`${notDismissed} and ${notLinked}`;
-  const pagedAccepted = sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`;
-  const bucketTriage: MetaSyncBucketTriage = { undecided: pagedNew, published: pagedAccepted };
-  const pagedDismissed = sql<SqlBool>`i.provider is not null`;
+  const paged = pagedTriage(TOPDECK_PROVIDER, KEY);
 
   function listSelect() {
     return triagedQuery()
       .selectAll("c")
       .select([
-        triage.as("triage"),
+        TRIAGE_STATE.as("triage"),
         "src.metaEventId as metaEventId",
         "me.slug as metaEventSlug",
         fetchedAt.as("fetchedAt"),
@@ -239,7 +195,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     async upsertBatch(
       rows: readonly TopdeckUpsertInput[],
       seenAt: Date,
-    ): Promise<TopdeckUpsertResult> {
+    ): Promise<MirrorUpsertResult<string>> {
       return await upsertMirrorRows(
         rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null })),
         {
@@ -337,47 +293,28 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     list(
       filters: TopdeckListFilters,
       pagination: { limit: number; offset: number },
-      order: TopdeckListOrder = {},
+      order: MirrorListOrder = {},
     ): Promise<{ rows: TopdeckListRow[]; total: number }> {
-      const applyFilters = <T extends ReturnType<typeof triagedQuery>>(q: T): T => {
-        let base = q;
-        for (const condition of narrowing(filters)) {
-          base = base.where(condition) as T;
-        }
-        if (filters.bucket !== undefined) {
-          base = base.where(
-            metaSyncBucketCondition(
-              filters.bucket.name,
-              bucketColumns,
-              filters.bucket.rule,
-              bucketTriage,
-            ),
-          ) as T;
-        }
-        if (filters.triage === "new") {
-          base = base.where(pagedNew) as T;
-        } else if (filters.triage === "accepted") {
-          base = base.where(pagedAccepted) as T;
-        } else if (filters.triage === "dismissed") {
-          base = base.where(pagedDismissed) as T;
-        }
-        return base;
-      };
-
-      return offsetPage(
-        applyFilters(listSelect())
-          .orderBy(catalogOrderBy(order))
-          // Ties on the sort column are common (a locals night files every store
-          // on the same day), so the key breaks them and keeps paging stable.
-          .orderBy("c.tid", "desc"),
-        pagination,
-      );
+      let query = listSelect()
+        .orderBy(catalogOrderBy(sql`c.player_count`, order))
+        // Ties on the sort column are common (a locals night files every store
+        // on the same day), so the key breaks them and keeps paging stable.
+        .orderBy("c.tid", "desc");
+      for (const condition of mirrorListConditions(
+        narrowing(filters),
+        filters,
+        bucketColumns,
+        paged,
+      )) {
+        query = query.where(condition);
+      }
+      return offsetPage(query, pagination);
     },
 
     async newKeys(): Promise<string[]> {
       const rows = await triagedQuery()
         .select("c.tid")
-        .where(isNew)
+        .where(JOINED_TRIAGE.undecided)
         .orderBy(sql`c.start_at desc nulls last`)
         .execute();
       return rows.map((row) => row.tid);
@@ -386,96 +323,46 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     async unacceptedByKeys(tids: readonly string[]): Promise<TopdeckListRow[]> {
       const rows: TopdeckListRow[] = [];
       for (const batch of keyBatches(tids)) {
-        rows.push(...(await listSelect().where("c.tid", "in", batch).where(isNew).execute()));
+        rows.push(
+          ...(await listSelect()
+            .where("c.tid", "in", batch)
+            .where(JOINED_TRIAGE.undecided)
+            .execute()),
+        );
       }
       return rows;
     },
 
     /** The card bridge: a `short_code` resolves where a name does not, since our catalogue spells a legend by its epithet alone. */
-    async cardsByShortCode(
+    cardsByShortCode(
       shortCodes: readonly string[],
     ): Promise<Map<string, { cardId: string; name: string; type: string }>> {
-      if (shortCodes.length === 0) {
-        return new Map();
-      }
-      const map = new Map<string, { cardId: string; name: string; type: string }>();
-      for (const batch of keyBatches([...new Set(shortCodes)])) {
-        const rows = await db
-          .selectFrom("faces as p")
-          .innerJoin("cards as c", "c.id", "p.cardId")
-          .where("p.language", "=", "EN")
-          .where("p.shortCode", "in", batch)
-          .select([
-            "p.shortCode as shortCode",
-            "c.id as cardId",
-            "c.name as name",
-            primaryCardType("c.id").as("type"),
-          ])
-          .execute();
-        // Multiple printings share a short_code (finishes, variants); they are
-        // the same card, so the first wins.
-        for (const row of rows) {
-          if (!map.has(row.shortCode)) {
-            map.set(row.shortCode, { cardId: row.cardId, name: row.name, type: row.type });
-          }
-        }
-      }
-      return map;
+      return cardsByShortCode(db, "EN", shortCodes);
     },
 
     /** The three queue counters are always zero, not a stub: one search writes an event's results with the event. */
-    async syncOverview(rule: MetaAutoPublishRule): Promise<
-      MetaSyncBuckets & {
-        total: number;
-        completed: number;
-        decklistPublished: number;
-        missing: number;
-        queued: number;
-        dueRecheck: number;
-        oldestDueAt: Date | null;
-        acceptedAwaitingResults: number;
-        acceptedMissing: number;
-        acceptedCancelled: number;
-        lastSeenAt: Date | null;
-      }
-    > {
+    async syncOverview(rule: MetaAutoPublishRule): Promise<MirrorSyncOverview> {
       const row = await triagedQuery()
-        .select((eb) => [
-          eb.fn.countAll<string>().as("total"),
-          // The search returns completed tournaments, so an event whose payload
-          // carried standings is one whose results are published.
-          sql<string>`count(*) filter (where c.player_count > 0)`.as("completed"),
-          sql<string>`count(*) filter (where exists (
+        .select(
+          mirrorOverviewSelections(bucketColumns, rule, {
+            // The search returns completed tournaments, so an event whose payload
+            // carried standings is one whose results are published.
+            completed: sql<SqlBool>`c.player_count > 0`,
+            decklistPublished: sql<SqlBool>`exists (
             select 1 from topdeck_decklists dl where dl.tid = c.tid
-          ))`.as("decklistPublished"),
-          sql<string>`count(*) filter (where c.missing_since is not null)`.as("missing"),
-          sql<string>`count(*) filter (where (${accepted}) and c.missing_since is not null)`.as(
-            "acceptedMissing",
-          ),
-          eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
-          ...metaSyncBucketSelections(bucketColumns, rule),
-        ])
+          )`,
+            awaitingResults: NEVER,
+            cancelled: NEVER,
+          }),
+        )
         .executeTakeFirstOrThrow();
-      return {
-        ...toMetaSyncBuckets(row),
-        total: Number(row.total),
-        completed: Number(row.completed),
-        decklistPublished: Number(row.decklistPublished),
-        missing: Number(row.missing),
-        queued: 0,
-        dueRecheck: 0,
-        oldestDueAt: null,
-        acceptedAwaitingResults: 0,
-        acceptedMissing: Number(row.acceptedMissing),
-        acceptedCancelled: 0,
-        lastSeenAt: row.lastSeenAt,
-      };
+      return toMirrorSyncOverview(row);
     },
 
     async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.tid`.as("key"))
-        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, bucketTriage))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule, paged))
         .execute();
       return rows.map((row) => row.key);
     },
@@ -496,23 +383,8 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
     },
 
-    async triageCounts(): Promise<TopdeckTriageCounts> {
-      const row = await triagedQuery()
-        .select([
-          sql<number>`count(*) filter (where i.provider is null and src.meta_event_id is null)::int`.as(
-            "new",
-          ),
-          sql<number>`count(*) filter (where i.provider is null and src.meta_event_id is not null)::int`.as(
-            "accepted",
-          ),
-          sql<number>`count(*) filter (where i.provider is not null)::int`.as("dismissed"),
-        ])
-        .executeTakeFirstOrThrow();
-      return {
-        new: Number(row.new),
-        accepted: Number(row.accepted),
-        dismissed: Number(row.dismissed),
-      };
+    async triageCounts(): Promise<MirrorTriageCounts> {
+      return await triagedQuery().select(triageCountSelections()).executeTakeFirstOrThrow();
     },
   };
 }

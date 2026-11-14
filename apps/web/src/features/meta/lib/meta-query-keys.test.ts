@@ -99,10 +99,11 @@ describe("metaKeys", () => {
 
   it("counts keys the unfiltered archive plainly", () => {
     expect(metaKeys.counts()).toEqual(["meta", "counts"]);
-    expect(metaKeys.counts({ format: "constructed" })).toEqual([
+    expect(metaKeys.counts({})).toEqual(["meta", "counts"]);
+    expect(metaKeys.counts({ formats: ["constructed"] })).toEqual([
       "meta",
       "counts",
-      { format: "constructed", dateFrom: null, dateTo: null },
+      expect.objectContaining({ formats: ["constructed"] }),
     ]);
   });
 

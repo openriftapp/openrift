@@ -5720,19 +5720,19 @@
   "scan_controls_start_camera": "Start camera",
   "scan_controls_scan_card": "Scan card",
   "scan_controls_identify_now": "Identify now",
-  "scan_controls_stop": "Stop",
   "scan_identify_title": "Which card is this?",
   "scan_identify_pending_description": "Working out what the camera just saw.",
   "scan_identify_recognising": "Recognising…",
   "scan_identify_empty": "Nothing in that frame looked like a card. Fill the guide with it and try again.",
+  "scan_identify_failed": "Could not read that frame. Try again.",
   "scan_identify_nothing_toast": "Nothing recognisable in that frame, scan the card again",
   "scan_identify_search_label": "Search the catalog",
   "scan_identify_search_placeholder": "Card name or code",
   "scan_identify_search_empty": "No card matches that.",
   "scan_load_row_starting": "starting…",
-  "scan_notices_unavailable_title": "Scanning is not available right now.",
   "scan_notices_https": "The camera needs a secure connection, so scanning only works over https.",
   "scan_page_not_in_catalog": "{name} is not in the catalog yet",
+  "scan_page_not_in_catalog_unnamed": "This card is not in the catalog yet",
   "scan_page_board_added": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -5864,7 +5864,6 @@
   "scan_engine_detector_failed": "Could not load the card detector",
   "scan_engine_worker_unsupported": "This browser cannot run the scanner. Update it or try another browser.",
   "scan_frame_failed": "Frame processing failed",
-  "scan_bank_load_failed": "Could not load the scan data",
   "scan_unavailable": "The scanner is not available right now. Please try again later.",
   "common_error_generic": "Something went wrong. Please try again.",
   "common_new_version_available": "A new version of OpenRift is available.",
@@ -8329,19 +8328,29 @@
   ],
   "meta_front_browse_all": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "Browse all {countFormatted}"
+        "countPlural=one": "Browse {countFormatted}",
+        "countPlural=*": "Browse all {countFormatted}"
       }
     }
   ],
   "meta_front_browse_all_events": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "Browse all {countFormatted} events"
+        "countPlural=one": "Browse {countFormatted} event",
+        "countPlural=*": "Browse all {countFormatted} events"
       }
     }
   ],

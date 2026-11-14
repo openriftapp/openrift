@@ -1,10 +1,11 @@
 import { mulberry32 } from "../random";
+import { SESSION_UNWARP_HEIGHT, SESSION_UNWARP_WIDTH } from "./session-options";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
 
-const CARD_WIDTH = 384;
-const CARD_HEIGHT = 528;
-
-export function blankFrame(width = CARD_WIDTH, height = CARD_HEIGHT): RgbaImage {
+export function blankFrame(
+  width = SESSION_UNWARP_WIDTH,
+  height = SESSION_UNWARP_HEIGHT,
+): RgbaImage {
   const data = new Uint8ClampedArray(width * height * 4);
   data.fill(200);
   for (let index = 3; index < data.length; index += 4) {
@@ -20,19 +21,19 @@ export function cardTexture(seed: number): RgbaImage {
   const random = mulberry32(seed);
   const grid = Array.from({ length: (cellsX + 1) * (cellsY + 1) }, () => random.next());
   const image = blankFrame();
-  for (let y = 0; y < CARD_HEIGHT; y++) {
-    const gy = (y / CARD_HEIGHT) * cellsY;
+  for (let y = 0; y < SESSION_UNWARP_HEIGHT; y++) {
+    const gy = (y / SESSION_UNWARP_HEIGHT) * cellsY;
     const y0 = Math.floor(gy);
     const fy = gy - y0;
-    for (let x = 0; x < CARD_WIDTH; x++) {
-      const gx = (x / CARD_WIDTH) * cellsX;
+    for (let x = 0; x < SESSION_UNWARP_WIDTH; x++) {
+      const gx = (x / SESSION_UNWARP_WIDTH) * cellsX;
       const x0 = Math.floor(gx);
       const fx = gx - x0;
       const at = (cx: number, cy: number) => grid[cy * (cellsX + 1) + cx] ?? 0;
       const top = at(x0, y0) * (1 - fx) + at(x0 + 1, y0) * fx;
       const bottom = at(x0, y0 + 1) * (1 - fx) + at(x0 + 1, y0 + 1) * fx;
       const value = 30 + 200 * (top * (1 - fy) + bottom * fy);
-      const index = (y * CARD_WIDTH + x) * 4;
+      const index = (y * SESSION_UNWARP_WIDTH + x) * 4;
       image.data[index] = value;
       image.data[index + 1] = value;
       image.data[index + 2] = value;
@@ -65,8 +66,8 @@ export function layCard(
  * stamp 0 leaves the base untouched, giving two byte-identical printings.
  */
 export function printingCard(stamp: number): RgbaImage {
-  const width = CARD_WIDTH;
-  const height = CARD_HEIGHT;
+  const width = SESSION_UNWARP_WIDTH;
+  const height = SESSION_UNWARP_HEIGHT;
   const data = new Uint8ClampedArray(width * height * 4);
   // Inside TEXT_REGION, the fallback name band for an unknown card type.
   const top = height * 0.65;
@@ -106,9 +107,6 @@ export function outline(quad: Quad, score = 1): CardCandidate {
   return { quad, areaFraction: 0.1, score };
 }
 
-const STAMP_CARD_WIDTH = 384;
-const STAMP_CARD_HEIGHT = 528;
-
 export function stampCard({
   stamp,
   shiftX = 0,
@@ -119,14 +117,14 @@ export function stampCard({
   shiftY?: number;
 }) {
   const image: RgbaImage = {
-    data: new Uint8ClampedArray(STAMP_CARD_WIDTH * STAMP_CARD_HEIGHT * 4),
-    width: STAMP_CARD_WIDTH,
-    height: STAMP_CARD_HEIGHT,
+    data: new Uint8ClampedArray(SESSION_UNWARP_WIDTH * SESSION_UNWARP_HEIGHT * 4),
+    width: SESSION_UNWARP_WIDTH,
+    height: SESSION_UNWARP_HEIGHT,
   };
-  const centerX = STAMP_CARD_WIDTH / 2 + shiftX;
-  const gemY = STAMP_CARD_HEIGHT * 0.93 + shiftY;
-  for (let y = 0; y < STAMP_CARD_HEIGHT; y++) {
-    for (let x = 0; x < STAMP_CARD_WIDTH; x++) {
+  const centerX = SESSION_UNWARP_WIDTH / 2 + shiftX;
+  const gemY = SESSION_UNWARP_HEIGHT * 0.93 + shiftY;
+  for (let y = 0; y < SESSION_UNWARP_HEIGHT; y++) {
+    for (let x = 0; x < SESSION_UNWARP_WIDTH; x++) {
       let value = 40;
       if (Math.abs(y - gemY) < 2) {
         value = 160;
@@ -142,7 +140,7 @@ export function stampCard({
           value = 220;
         }
       }
-      const index = (y * STAMP_CARD_WIDTH + x) * 4;
+      const index = (y * SESSION_UNWARP_WIDTH + x) * 4;
       image.data[index] = value;
       image.data[index + 1] = value;
       image.data[index + 2] = value;

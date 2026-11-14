@@ -89,3 +89,8 @@ export function rotateRgbaCw(src: RgbaImage): RgbaImage {
   }
   return { data: out, width: height, height: width };
 }
+
+/** Must match the encoder trainer's Image.Transpose.ROTATE_90: landscape turns 90 degrees left. */
+export function toCanonicalFrame(image: RgbaImage): RgbaImage {
+  return image.width > image.height ? rotateRgbaCw(rotateRgbaCw(rotateRgbaCw(image))) : image;
+}

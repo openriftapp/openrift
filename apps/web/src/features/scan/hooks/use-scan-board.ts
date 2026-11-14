@@ -2,8 +2,6 @@ import type { RgbaImage } from "@openrift/shared/scan/types";
 import type { RefObject } from "react";
 import { useRef } from "react";
 
-import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
-import { describeKey } from "@/features/scan/lib/scan-bank";
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
 import { grabRotatedFrame } from "@/features/scan/lib/scan-frame-grab";
@@ -13,7 +11,6 @@ import type { ScanLoop } from "@/features/scan/lib/scan-loop";
 import type { ScanRun } from "@/features/scan/lib/scan-run";
 
 export interface ScanBoardOptions {
-  bank: ScanBankInfo | null;
   videoRef: RefObject<HTMLVideoElement | null>;
   runRef: RefObject<ScanRun>;
   eventsRef: RefObject<ScannerEvents | undefined>;
@@ -26,7 +23,7 @@ export interface ScanBoard {
 }
 
 export function useScanBoard(options: ScanBoardOptions): ScanBoard {
-  const { bank, videoRef, runRef, eventsRef, loop, zoom } = options;
+  const { videoRef, runRef, eventsRef, loop, zoom } = options;
   const stillCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   function grabStill(video: HTMLVideoElement): RgbaImage | null {
@@ -61,9 +58,8 @@ export function useScanBoard(options: ScanBoardOptions): ScanBoard {
     console.log(
       `[scan] BOARD read ${read.length} cards from ${still.width}x${still.height} in ${(performance.now() - startedAt).toFixed(0)}ms`,
     );
-    const labels = bank?.labels ?? {};
     navigator.vibrate?.(LOCK_VIBRATION_MS);
-    eventsRef.current?.onBoardRead?.(boardReadCards(read, (key) => describeKey(labels, key)));
+    eventsRef.current?.onBoardRead?.(boardReadCards(read));
     return true;
   }
 

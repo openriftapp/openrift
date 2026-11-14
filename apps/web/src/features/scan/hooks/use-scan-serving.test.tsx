@@ -24,7 +24,6 @@ const { useScanServing } = await import("./use-scan-serving");
 
 const PUBLISHED: ScanManifest = {
   available: true,
-  formatVersion: 1,
   bankHash: "511b47521ffca52a",
   entryCount: 2670,
   builtAt: "2026-07-28T11:36:00.000Z",

@@ -34,6 +34,84 @@ describe("source conventions", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("takes today in meta reads from TODAY", () => {
+    const offenders = filesMatching(
+      "modules/meta",
+      /current_date|date_trunc\('day', now\(\)\)/u,
+      [],
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("builds promote lock keys only through meta-promote-keys", () => {
+    const offenders = filesMatching(".", /`(?:event|source):\$\{/u, ["lib/meta-promote-keys.ts"]);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("reads mirror triage only through meta-sync-buckets", () => {
+    const offenders = filesMatching("modules/meta", /i\.provider is (?:not )?null/u, [
+      "modules/meta/repositories/meta-sync-buckets.ts",
+    ]);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("orders mirror catalogues through one catalogOrderBy", () => {
+    const offenders = filesMatching("modules/meta", /function catalogOrderBy/u, [
+      "modules/meta/repositories/meta-sync-buckets.ts",
+    ]);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("replaces mirror results only through mirror-results", () => {
+    const results = sourceFiles("modules/meta/repositories").filter(
+      (file) => file.endsWith("-results.ts") && !file.endsWith("/mirror-results.ts"),
+    );
+    const offenders = results.filter((file) =>
+      /\b(?:inTransaction|lockKey|withKeyLock|rowBatches)\(/u.test(
+        readFileSync(path.join(SRC, file), "utf-8"),
+      ),
+    );
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
+  });
+
+  it("opens a script database only through the script environment", () => {
+    const scripts = sourceFiles("../../../scripts");
+    const offenders = scripts.filter(
+      (file) =>
+        ![
+          "../../../scripts/env.ts",
+          "../../../scripts/run-migrations.ts",
+          "../../../scripts/db-schema.ts",
+          "../../../scripts/scan/catalog.ts",
+        ].includes(file) && /\bcreateDb\(/u.test(readFileSync(path.join(SRC, file), "utf-8")),
+    );
+
+    expect(scripts.length).toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
+  });
+
+  it("opens an inference session only in the scan model loaders", () => {
+    const files = [...sourceFiles("."), ...sourceFiles("../../../scripts")];
+    const offenders = files.filter(
+      (file) =>
+        ![
+          "modules/scan/services/scan-bank.ts",
+          "../../../scripts/scan/card-model.ts",
+          "../../../scripts/scan/board-model.ts",
+          "../../../scripts/scan/embed-bank.ts",
+        ].includes(file) &&
+        /\bInferenceSession\.create\(/u.test(readFileSync(path.join(SRC, file), "utf-8")),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
   it("reaches image files, face image rows and fallback file ids only in admin, grant-holder and catalog-write code", () => {
     const pattern =
       /\b(?:imageFiles|image_files|originalUrl|original_url|rehostedUrl|rehosted_url|imageUrlWithOriginal|joinAdminFaceImage|faceImages|face_images|imageFileId|image_file_id|fallbackImageFileId|fallback_image_file_id)\b/u;

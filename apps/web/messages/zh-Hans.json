@@ -5713,19 +5713,19 @@
   "scan_controls_start_camera": "启动摄像头",
   "scan_controls_scan_card": "扫描卡牌",
   "scan_controls_identify_now": "立即识别",
-  "scan_controls_stop": "停止",
   "scan_identify_title": "这是哪张卡牌？",
   "scan_identify_pending_description": "正在辨认摄像头刚刚拍到的内容。",
   "scan_identify_recognising": "正在识别…",
   "scan_identify_empty": "这一帧里没有看起来像卡牌的东西。让卡牌填满取景框再试一次。",
+  "scan_identify_failed": "无法读取这一帧。请再试一次。",
   "scan_identify_nothing_toast": "这一帧没有可识别的内容，请重新扫描卡牌",
   "scan_identify_search_label": "搜索卡牌目录",
   "scan_identify_search_placeholder": "卡牌名称或编号",
   "scan_identify_search_empty": "没有匹配的卡牌。",
   "scan_load_row_starting": "正在启动…",
-  "scan_notices_unavailable_title": "目前无法使用扫描功能。",
   "scan_notices_https": "摄像头需要安全连接，因此扫描只能在 https 下使用。",
   "scan_page_not_in_catalog": "{name}尚未收录在卡牌目录中",
+  "scan_page_not_in_catalog_unnamed": "这张卡牌尚未收录在卡牌目录中",
   "scan_page_board_added": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -5857,7 +5857,6 @@
   "scan_engine_detector_failed": "无法加载卡牌检测器",
   "scan_engine_worker_unsupported": "此浏览器无法运行扫描器。请更新浏览器或换用其他浏览器。",
   "scan_frame_failed": "帧处理失败",
-  "scan_bank_load_failed": "无法加载扫描数据",
   "scan_unavailable": "扫描器暂时不可用。请稍后再试。",
   "common_error_generic": "出了点问题。请重试。",
   "common_new_version_available": "OpenRift 有新版本可用。",
@@ -8122,19 +8121,29 @@
   ],
   "meta_front_browse_all": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "浏览全部 {countFormatted} 项"
+        "countPlural=one": "浏览全部 {countFormatted} 项",
+        "countPlural=*": "浏览全部 {countFormatted} 项"
       }
     }
   ],
   "meta_front_browse_all_events": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "浏览全部 {countFormatted} 场赛事"
+        "countPlural=one": "浏览全部 {countFormatted} 场赛事",
+        "countPlural=*": "浏览全部 {countFormatted} 场赛事"
       }
     }
   ],

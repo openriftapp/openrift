@@ -1,22 +1,11 @@
+import { NO_PENALTY_BREAKDOWN } from "@openrift/shared/pairing/penalty";
+
 import type { GroupCutPlayer } from "../modules/tournaments/lib/group-cut.js";
 import type { PodRoundRows } from "../modules/tournaments/repositories/pod-tournaments-rounds.js";
 import type { TournamentGroup } from "../modules/tournaments/repositories/tournament-groups.js";
 import type { Tournament } from "../modules/tournaments/repositories/tournaments-shared.js";
 
 export type Outcome = "open" | "first" | "second" | "draw" | "walkover";
-
-const NO_PENALTY = {
-  total: 0,
-  rematch: 0,
-  rematchPairs: 0,
-  spread: 0,
-  scoreSpread: 0,
-  imbalance: 0,
-  float: 0,
-  threePodRepeat: 0,
-  sameRegion: 0,
-  repeatedRegion: 0,
-};
 
 interface PodSpec {
   podNumber: number;
@@ -163,7 +152,7 @@ export function roundRows(
         podNumber: spec.podNumber,
         size: 2,
         resultStatus: spec.outcome === "open" ? "pending" : "reported",
-        penaltyBreakdown: NO_PENALTY,
+        penaltyBreakdown: NO_PENALTY_BREAKDOWN,
       },
       members: podMembers(`p-${roundNumber}-${spec.podNumber}`, spec.playerIds, spec.outcome),
     })),

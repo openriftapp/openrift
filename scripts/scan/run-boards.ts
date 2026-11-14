@@ -12,8 +12,8 @@ import type { BoardCard } from "../../packages/shared/src/scan/board.js";
 import { boardOptionsFor, readBoard } from "../../packages/shared/src/scan/board.js";
 import { gatesForBank } from "../../packages/shared/src/scan/session-options.js";
 import { createBoardDetector } from "./board-model";
-import { applyArtGroups, describe, loadCatalog } from "./catalog";
-import { CANONICAL_BANK, EMBED_SIZE, loadEmbedBank, nodeEmbedder } from "./embed-bank";
+import { applyArtGroups, benchDeps, loadCatalog } from "./catalog";
+import { CANONICAL_BANK, embedSize, loadEmbedBank } from "./embed-bank";
 import {
   DATA_DIR,
   argValue,
@@ -21,11 +21,12 @@ import {
   loadClipTruth,
   loadImage,
   positiveIntArg,
+  servedModel,
 } from "./lib";
 
 const BOARDS_DIR = path.join(DATA_DIR, "boards");
 
-const detectorFile = process.env.SCAN_BOARD_DETECTOR;
+const detectorFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!detectorFile) {
   process.stderr.write(
     "usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/run-boards.ts [--max-side px] [--boards list.json] [--json out.json]\n",
@@ -36,8 +37,9 @@ if (!detectorFile) {
 async function main(modelFile: string): Promise<void> {
   const jsonOut = argValue("--json");
   const maxSide = positiveIntArg("--max-side");
-  const catalog = loadCatalog();
+  const catalog = await loadCatalog();
   const bank = await loadEmbedBank();
+  const embedImageSize = await embedSize();
   const groupOf = await applyArtGroups(catalog, bank);
   const gates = gatesForBank(bank);
   const references = new Map(listReferenceImages().map((entry) => [entry.key, entry.file]));
@@ -67,32 +69,10 @@ async function main(modelFile: string): Promise<void> {
     const file = path.resolve(BOARDS_DIR, board.photo);
     const startedAt = performance.now();
     const photo = await loadImage(file, { maxSide, rotate: true });
-    const deps = {
-      embedder: nodeEmbedder,
-      bank,
-      embedImageSize: EMBED_SIZE,
-      artKeyOf: (key: string) => catalog.get(key)?.artKey ?? key,
-      labelOf: (key: string) => describe(catalog, key),
-      identityOf: (key: string) => {
-        const identity = catalog.get(key);
-        return (
-          identity && {
-            type: identity.cardType,
-            code: identity.publicCode,
-            markers: identity.markers ?? undefined,
-            language: identity.language,
-          }
-        );
-      },
-      fetchReference: async (key: string) => {
-        const reference = references.get(key);
-        return reference ? await loadImage(reference) : null;
-      },
-    };
     const cards: BoardCard[] = await readBoard(
       photo,
       detect,
-      deps,
+      benchDeps(catalog, bank, references, embedImageSize),
       boardOptionsFor(gates, CANONICAL_BANK),
     );
     const ms = performance.now() - startedAt;

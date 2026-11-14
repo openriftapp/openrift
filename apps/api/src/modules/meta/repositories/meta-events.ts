@@ -6,14 +6,7 @@ import type {
   MetaEventStatus,
   MetaEventTier,
 } from "@openrift/shared/types/enums";
-import type {
-  ExpressionBuilder,
-  Insertable,
-  Kysely,
-  RawBuilder,
-  Selectable,
-  Updateable,
-} from "kysely";
+import type { Insertable, Kysely, RawBuilder, Selectable, SqlBool, Updateable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -24,7 +17,9 @@ import type {
 } from "../../../db/tables/meta.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
+import { eventPromoteKey } from "../../../lib/meta-promote-keys.js";
 import { inTransaction, lockKey, offsetPage } from "../../../repositories/query-helpers.js";
+import { citedBy, NO_PROVIDER_CITATION, TODAY, UPCOMING } from "./meta-shared.js";
 
 export type MetaEventMatchRow = Selectable<MetaEventMatchesTable>;
 
@@ -33,15 +28,6 @@ export type NewMetaEventMatch = Insertable<MetaEventMatchesTable>;
 export type MetaEventPhaseRow = Selectable<MetaEventPhasesTable>;
 
 export type NewMetaEventPhase = Insertable<MetaEventPhasesTable>;
-
-/** One event's recomputed classification, with the fields the pass owns. */
-export interface MetaEventClassificationPatch {
-  id: string;
-  /** Omitted leaves the live value: the column is NOT NULL and a human may own it. */
-  tier?: MetaEventTier;
-  country?: string | null;
-  location?: string | null;
-}
 
 /** A written match row, with the source key the caller pairs it back up by. */
 export interface UpsertedMetaEventMatch {
@@ -91,7 +77,7 @@ export interface MetaEventInput {
 
 /** How one page of the live event list is filtered. */
 export interface MetaEventFilters {
-  /** Matched against the event name and the organizer. */
+  /** Matched against the event name, the organizer and the location. */
   search?: string;
   format?: string;
   /** A provider that feeds the event, or `manual` for events no provider feeds. */
@@ -115,15 +101,46 @@ export interface MetaEventListCounts {
   manual: number;
 }
 
-/** Mirrors `metaResultsState` from the shared package. */
 const ACTIVITY_WINDOW_DAYS = 7;
 
-const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<boolean>> = {
-  notStarted: sql<boolean>`meta_events.status = 'upcoming'`,
-  collecting: sql<boolean>`meta_events.status = 'in_progress'`,
-  final: sql<boolean>`meta_events.status = 'complete' and c.player_row_count > 0`,
-  noResults: sql<boolean>`meta_events.status = 'complete' and c.player_row_count = 0`,
+/** Mirrors `metaResultsState` from the shared package. */
+const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<SqlBool>> = {
+  notStarted: UPCOMING,
+  collecting: sql<SqlBool>`not ${UPCOMING} and me.status = 'in_progress'`,
+  final: sql<SqlBool>`not ${UPCOMING} and me.status = 'complete' and c.player_row_count > 0`,
+  noResults: sql<SqlBool>`not ${UPCOMING} and me.status = 'complete' and c.player_row_count = 0`,
 };
+
+/** Over `meta_event_players` as `p`. */
+export const EVENT_COUNT_COLUMNS = [
+  sql<number>`count(*)::int`.as("playerRowCount"),
+  sql<number>`count(p.deck_id)::int`.as("deckCount"),
+] as const;
+
+export async function withEventCounts(
+  db: Kysely<Database>,
+  rows: readonly MetaEventRow[],
+): Promise<MetaEventWithCounts[]> {
+  if (rows.length === 0) {
+    return [];
+  }
+  const counts = await db
+    .selectFrom("metaEventPlayers as p")
+    .select(["p.metaEventId", ...EVENT_COUNT_COLUMNS])
+    .where(sql<SqlBool>`p.meta_event_id = any(${rows.map((row) => row.id)}::uuid[])`)
+    .groupBy("p.metaEventId")
+    .execute();
+  const byEvent = new Map(counts.map((row) => [row.metaEventId, row]));
+  return rows.map((row) => ({
+    ...row,
+    playerRowCount: byEvent.get(row.id)?.playerRowCount ?? 0,
+    deckCount: byEvent.get(row.id)?.deckCount ?? 0,
+  }));
+}
+
+function promoteLockKey(key: string): string {
+  return `meta-promote:${key}`;
+}
 
 /** How one page of the live event list is ordered. Defaults to newest first. */
 export interface MetaEventOrder {
@@ -132,10 +149,10 @@ export interface MetaEventOrder {
 }
 
 const EVENT_ORDER_COLUMNS: Record<(typeof META_EVENT_SORTS)[number], RawBuilder<unknown>> = {
-  eventDate: sql`meta_events.event_date`,
-  name: sql`meta_events.name`,
-  format: sql`meta_events.format`,
-  organizer: sql`meta_events.organizer`,
+  eventDate: sql`me.event_date`,
+  name: sql`me.name`,
+  format: sql`me.format`,
+  organizer: sql`me.organizer`,
   playerRowCount: sql`c.player_row_count`,
   deckCount: sql`c.deck_count`,
 };
@@ -156,42 +173,23 @@ function eventOrderBy(order: MetaEventOrder) {
  */
 function relevanceOrderBy(search: string) {
   const term = search.trim().toLowerCase();
-  return sql`lower(meta_events.name) = ${term} desc,
-    nullif(strpos(lower(meta_events.name), ${term}), 0) asc nulls last,
-    meta_events.event_date desc`;
+  return sql`lower(me.name) = ${term} desc,
+    nullif(strpos(lower(me.name), ${term}), 0) asc nulls last,
+    me.event_date desc`;
 }
 
 /**
  * The archive holds fewer standings rows than the source said played. An
  * event with no reported field size is excluded, not counted as complete.
  */
-const standingsShort = sql<boolean>`meta_events.player_count is not null
-  and c.player_row_count < meta_events.player_count`;
+const standingsShort = sql<SqlBool>`me.player_count is not null
+  and c.player_row_count < me.player_count`;
 
-const hasDecks = sql<boolean>`c.deck_count > 0`;
+const hasDecks = sql<SqlBool>`c.deck_count > 0`;
 
-const noProviderSource = sql<boolean>`not exists (
-  select 1 from meta_event_sources src
-   where src.meta_event_id = meta_events.id and src.provider is not null
-)`;
-
-/**
- * The event has a citation from the named provider — or, for `manual`, from no
- * provider at all: hand-entered citations carry a null provider, so an event
- * built by hand has no provider row whether or not it has citations.
- */
-function sourcedBy(source: MetaEventSourceFilter) {
-  return (eb: ExpressionBuilder<Database, "metaEvents">) => {
-    const providerRows = eb
-      .selectFrom("metaEventSources as src")
-      .select("src.id")
-      .whereRef("src.metaEventId", "=", "metaEvents.id")
-      .where("src.provider", "is not", null);
-    if (source === "manual") {
-      return eb.not(eb.exists(providerRows));
-    }
-    return eb.exists(providerRows.where("src.provider", "=", source));
-  };
+/** Hand-entered citations carry a null provider, so `manual` means no provider citation at all. */
+function sourcedBy(source: MetaEventSourceFilter): RawBuilder<SqlBool> {
+  return source === "manual" ? NO_PROVIDER_CITATION : citedBy(source);
 }
 
 function noScopedRepos(): never {
@@ -212,20 +210,17 @@ export function metaEventsRepo<R = never>(
    */
   function eventQuery() {
     return db
-      .selectFrom("metaEvents")
+      .selectFrom("metaEvents as me")
       .leftJoinLateral(
         (eb) =>
           eb
             .selectFrom("metaEventPlayers as p")
-            .whereRef("p.metaEventId", "=", "metaEvents.id")
-            .select([
-              eb.cast<number>(eb.fn.countAll(), "integer").as("playerRowCount"),
-              sql<number>`count(*) filter (where p.deck_id is not null)::int`.as("deckCount"),
-            ])
+            .whereRef("p.metaEventId", "=", "me.id")
+            .select(EVENT_COUNT_COLUMNS)
             .as("c"),
         (join) => join.onTrue(),
       )
-      .selectAll("metaEvents")
+      .selectAll("me")
       .select([
         sql<number>`c.player_row_count`.as("playerRowCount"),
         sql<number>`c.deck_count`.as("deckCount"),
@@ -239,27 +234,24 @@ export function metaEventsRepo<R = never>(
     let narrowed = query;
     if (filters.search !== undefined && filters.search.trim() !== "") {
       const pattern = containsPattern(filters.search.trim());
-      narrowed = narrowed.where((eb) =>
-        eb.or([
-          eb("metaEvents.name", "ilike", pattern),
-          eb("metaEvents.organizer", "ilike", pattern),
-        ]),
+      narrowed = narrowed.where(
+        sql<SqlBool>`(me.name ilike ${pattern} or me.organizer ilike ${pattern} or me.location ilike ${pattern})`,
       ) as Q;
     }
     if (filters.format !== undefined) {
-      narrowed = narrowed.where("metaEvents.format", "=", filters.format) as Q;
+      narrowed = narrowed.where("me.format", "=", filters.format) as Q;
     }
     if (filters.tier !== undefined) {
-      narrowed = narrowed.where("metaEvents.tier", "=", filters.tier) as Q;
+      narrowed = narrowed.where("me.tier", "=", filters.tier) as Q;
     }
     if (filters.source !== undefined) {
       narrowed = narrowed.where(sourcedBy(filters.source)) as Q;
     }
     if (filters.dateFrom !== undefined) {
-      narrowed = narrowed.where("metaEvents.eventDate", ">=", filters.dateFrom) as Q;
+      narrowed = narrowed.where("me.eventDate", ">=", filters.dateFrom) as Q;
     }
     if (filters.dateTo !== undefined) {
-      narrowed = narrowed.where("metaEvents.eventDate", "<=", filters.dateTo) as Q;
+      narrowed = narrowed.where("me.eventDate", "<=", filters.dateTo) as Q;
     }
     if (filters.hasDecks === true) {
       narrowed = narrowed.where(hasDecks) as Q;
@@ -275,22 +267,12 @@ export function metaEventsRepo<R = never>(
       provider: string;
     }): Promise<{ id: string; name: string; eventDate: string; organizer: string | null }[]> {
       return db
-        .selectFrom("metaEvents as e")
-        .select(["e.id", "e.name", "e.eventDate", "e.organizer"])
-        .where("e.eventDate", ">=", params.dateFrom)
-        .where("e.eventDate", "<=", params.dateTo)
-        .where("e.organizer", "is not", null)
-        .where((eb) =>
-          eb.not(
-            eb.exists(
-              eb
-                .selectFrom("metaEventSources as s")
-                .select("s.id")
-                .whereRef("s.metaEventId", "=", "e.id")
-                .where("s.provider", "=", params.provider),
-            ),
-          ),
-        )
+        .selectFrom("metaEvents as me")
+        .select(["me.id", "me.name", "me.eventDate", "me.organizer"])
+        .where("me.eventDate", ">=", params.dateFrom)
+        .where("me.eventDate", "<=", params.dateTo)
+        .where("me.organizer", "is not", null)
+        .where(sql<SqlBool>`not ${citedBy(params.provider)}`)
         .execute();
     },
 
@@ -308,7 +290,7 @@ export function metaEventsRepo<R = never>(
         )
         // Whole days collide constantly on the date column, so the slug breaks
         // ties and keeps a page boundary from repeating or skipping a row.
-        .orderBy("metaEvents.slug", "asc");
+        .orderBy("me.slug", "asc");
 
       query = narrowEvents(query, filters);
       if (filters.results !== undefined) {
@@ -322,7 +304,7 @@ export function metaEventsRepo<R = never>(
     },
 
     async listCounts(filters: MetaEventFilters): Promise<MetaEventListCounts> {
-      const count = (condition: RawBuilder<boolean>) =>
+      const count = (condition: RawBuilder<SqlBool>) =>
         sql<string>`count(*) filter (where ${condition})`;
       const row = await narrowEvents(eventQuery(), filters)
         .clearSelect()
@@ -333,7 +315,7 @@ export function metaEventsRepo<R = never>(
           count(RESULTS_CONDITION.final).as("final"),
           count(RESULTS_CONDITION.noResults).as("noResults"),
           count(standingsShort).as("standingsShort"),
-          count(noProviderSource).as("manual"),
+          count(NO_PROVIDER_CITATION).as("manual"),
         ])
         .executeTakeFirstOrThrow();
       return {
@@ -348,22 +330,11 @@ export function metaEventsRepo<R = never>(
     },
 
     eventBySlug(slug: string): Promise<MetaEventWithCounts | undefined> {
-      return eventQuery().where("slug", "=", slug).executeTakeFirst();
+      return eventQuery().where("me.slug", "=", slug).executeTakeFirst();
     },
 
     eventById(id: string): Promise<MetaEventWithCounts | undefined> {
-      return eventQuery().where("id", "=", id).executeTakeFirst();
-    },
-
-    eventRowsByIds(ids: readonly string[]): Promise<MetaEventRow[]> {
-      if (ids.length === 0) {
-        return Promise.resolve([]);
-      }
-      return db
-        .selectFrom("metaEvents")
-        .selectAll()
-        .where(sql<boolean>`id = any(${[...ids]}::uuid[])`)
-        .execute();
+      return eventQuery().where("me.id", "=", id).executeTakeFirst();
     },
 
     /**
@@ -372,16 +343,14 @@ export function metaEventsRepo<R = never>(
      */
     withPromoteLock<T>(key: string, run: (repos: R) => Promise<T>): Promise<T> {
       return inTransaction(db, async (trx) => {
-        await lockKey(trx, `meta-promote:${key}`);
+        await lockKey(trx, promoteLockKey(key));
         return run(scopedRepos(trx));
       });
     },
 
     /** Call inside a transaction. */
     async lockTournamentLists(uvsgamesEventId: string): Promise<void> {
-      await sql`select pg_advisory_xact_lock(hashtext(${`tournament-lists:${uvsgamesEventId}`}))`.execute(
-        db,
-      );
+      await lockKey(db, `tournament-lists:${uvsgamesEventId}`);
     },
 
     /** The row's own columns, without the standings counts {@link eventById} joins for. */
@@ -405,7 +374,7 @@ export function metaEventsRepo<R = never>(
       const eventDay = sql`(e.created_at at time zone 'UTC')::date`;
       // Bursts are whole UTC days, so a window starting at UTC midnight that already
       // holds `limit` of them holds the newest `limit` of the whole table.
-      const windowStart = sql<Date>`((now() at time zone 'UTC')::date - ${ACTIVITY_WINDOW_DAYS}::int) at time zone 'UTC'`;
+      const windowStart = sql<Date>`(${TODAY} - ${ACTIVITY_WINDOW_DAYS}::int) at time zone 'UTC'`;
 
       function deckBursts(since?: typeof windowStart) {
         let query = db
@@ -515,7 +484,7 @@ export function metaEventsRepo<R = never>(
         return [];
       }
       return await eventQuery()
-        .where("metaEvents.id", "in", [...ids])
+        .where(sql<SqlBool>`me.id = any(${[...ids]}::uuid[])`)
         .execute();
     },
 
@@ -656,41 +625,6 @@ export function metaEventsRepo<R = never>(
       return { ...row, playerRowCount: 0, deckCount: 0 };
     },
 
-    /**
-     * Writes the reclassify pass's per-field decisions in one statement. A
-     * field left out of the patch must keep its live value, not be
-     * overwritten with null.
-     *
-     * @returns How many rows the statement touched.
-     */
-    async setEventClassifications(rows: readonly MetaEventClassificationPatch[]): Promise<number> {
-      if (rows.length === 0) {
-        return 0;
-      }
-      const values = sql.join(
-        rows.map(
-          (row) => sql`(
-            ${row.id}::uuid,
-            ${row.tier ?? null}::text,
-            ${row.country !== undefined}::boolean,
-            ${row.country ?? null}::text,
-            ${row.location !== undefined}::boolean,
-            ${row.location ?? null}::text
-          )`,
-        ),
-      );
-      const result = await sql`
-        update meta_events as m
-           set tier = coalesce(v.tier, m.tier),
-               country = case when v.set_country then v.country else m.country end,
-               location = case when v.set_location then v.location else m.location end
-          from (values ${values})
-            as v(id, tier, set_country, country, set_location, location)
-         where m.id = v.id
-      `.execute(db);
-      return Number(result.numAffectedRows ?? 0n);
-    },
-
     async setEventLifecycle(
       id: string,
       values: { status: MetaEventStatus; sourceCheckedAt: Date | null },
@@ -715,7 +649,7 @@ export function metaEventsRepo<R = never>(
      */
     deleteEvent(id: string): Promise<boolean> {
       return inTransaction(db, async (trx) => {
-        await lockKey(trx, `meta-promote:event:${id}`);
+        await lockKey(trx, promoteLockKey(eventPromoteKey(id)));
         const players = await trx
           .selectFrom("metaEventPlayers")
           .select("deckId")

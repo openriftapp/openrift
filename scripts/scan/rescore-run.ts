@@ -6,7 +6,12 @@
  */
 import fs from "node:fs";
 
-import { groupTruth, scoreClip } from "../../packages/shared/src/scan/bench-score.js";
+import {
+  groupTruth,
+  rightAdds,
+  scoreClip,
+  wrongLocks,
+} from "../../packages/shared/src/scan/bench-score.js";
 import { appPrintingIndex, languageSetting, scoreAppLocks } from "./app-outcome";
 import { applyArtGroups, loadCatalog } from "./catalog";
 import { loadEmbedBank } from "./embed-bank";
@@ -21,7 +26,7 @@ if (!inFile || !outFile) {
 }
 const language = languageSetting();
 
-const catalog = loadCatalog();
+const catalog = await loadCatalog();
 const groupOf = await applyArtGroups(catalog, await loadEmbedBank());
 const index = appPrintingIndex(catalog);
 
@@ -47,7 +52,7 @@ for (const clip of run.clips) {
   const app = clip.app;
   process.stdout.write(
     `${clip.clip.padEnd(36)} found ${score.found}/${score.expected}  ` +
-      `wrong ${score.wrongCards + score.wrongPrintings}  added ${app.auto - app.autoWrong} right, ` +
+      `wrong ${wrongLocks(score)}  added ${rightAdds(app)} right, ` +
       `${app.autoWrong} wrong  picker ${app.picker} (${app.pickerMissing} missing)\n`,
   );
 }

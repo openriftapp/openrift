@@ -1,6 +1,6 @@
 import type { Repos } from "../../../deps.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
-import type { MetaArchivedDeckInput } from "../repositories/meta-decks.js";
+import type { MetaReplacedDeckInput } from "../repositories/meta-decks.js";
 import type { MetaEventPlayerInput } from "../repositories/meta-players.js";
 
 interface CreatedMetaEventPlayer {
@@ -13,15 +13,16 @@ export async function createMetaEventPlayer(
   meta: Repos["meta"],
   input: MetaEventPlayerInput,
 ): Promise<CreatedMetaEventPlayer | undefined> {
-  if (input.deck === null) {
-    const created = await meta.createPlayer(input, null);
+  const { deck, ...player } = input;
+  if (deck === null) {
+    const created = await meta.createPlayer(player, null);
     return created === undefined ? undefined : { ...created, shareToken: null };
   }
   // Retry only catches decks_share_token_key violations; a violation from
   // deck_cards or the standings insert must propagate as a real fault.
   return withUniqueShareToken<CreatedMetaEventPlayer | undefined>(
     async (shareToken) => {
-      const created = await meta.createPlayer(input, shareToken);
+      const created = await meta.createPlayer(player, { deck, shareToken });
       return created === undefined ? undefined : { ...created, shareToken };
     },
     { constraint: "decks_share_token_key" },
@@ -31,7 +32,7 @@ export async function createMetaEventPlayer(
 export function setMetaPlayerList(
   meta: Repos["meta"],
   metaEventPlayerId: string,
-  deck: MetaArchivedDeckInput,
+  deck: MetaReplacedDeckInput,
   options?: { preserveName?: boolean },
 ): Promise<{ deckId: string } | undefined> {
   // Never rotates the share token: an already-published link must keep resolving.

@@ -1,46 +1,38 @@
 import type { MetaEventTier } from "@openrift/shared/types/enums";
-import type { Kysely } from "kysely";
+import type { Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaLegendSitemapRow } from "./meta-legends.js";
-import { foldedPlayerIdentity } from "./meta-shared.js";
+import { metaLegendsRepo } from "./meta-legends.js";
+import type { MetaScopeFilters } from "./meta-shared.js";
+import {
+  citedBy,
+  foldedPlayerIdentity,
+  HAS_DECKS,
+  HAS_STANDINGS,
+  scopeConditions,
+  UPCOMING,
+} from "./meta-shared.js";
 
 const SITEMAP_TIERS = ["premier", "competitive"] as const;
 
-/** Applied to the *event's* fields, not the standings row's. */
-export interface MetaCountsFilters {
-  format?: string;
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-/** How many events the archive holds at each tier. */
 export type MetaEventTierCounts = Record<MetaEventTier, number>;
 
 export function metaArchiveRepo(db: Kysely<Database>) {
-  /** The standings rows a count reads, narrowed by the event's own fields. */
-  function playersInScope(filters: MetaCountsFilters) {
-    let query = db
-      .selectFrom("metaEventPlayers as p")
-      .innerJoin("metaEvents as me", "me.id", "p.metaEventId");
-    if (filters.format !== undefined) {
-      query = query.where("me.format", "=", filters.format);
-    }
-    if (filters.dateFrom !== undefined) {
-      query = query.where("me.eventDate", ">=", filters.dateFrom);
-    }
-    if (filters.dateTo !== undefined) {
-      query = query.where("me.eventDate", "<=", filters.dateTo);
+  function scopedEvents(scope: MetaScopeFilters) {
+    let query = db.selectFrom("metaEvents as me");
+    for (const condition of scopeConditions(scope)) {
+      query = query.where(condition);
     }
     return query;
   }
 
   return {
     /**
-     * The archive's side of the sync funnel: how many events it holds, how many
-     * of those have standings at all, how many carry at least one decklist, and
-     * how many decks that adds up to.
+     * The archive's side of the sync funnel. A given provider narrows events
+     * and decks to the ones its citation links, so a source's "Published" is
+     * the archive it fed.
      */
     async archiveOverview(provider?: string): Promise<{
       events: number;
@@ -49,44 +41,25 @@ export function metaArchiveRepo(db: Kysely<Database>) {
       decks: number;
       addedLast7Days: number;
     }> {
-      // When a provider is given, count only events that provider's citation
-      // links, so the per-source funnel's "Published" is the archive this source
-      // fed. The decks count follows the same restriction.
-      let base = db.selectFrom("metaEvents as e");
+      let base = db.selectFrom("metaEvents as me");
       if (provider !== undefined) {
-        base = base.where((eb) =>
-          eb.exists(
-            eb
-              .selectFrom("metaEventSources as src")
-              .whereRef("src.metaEventId", "=", "e.id")
-              .where("src.provider", "=", provider),
-          ),
-        );
+        base = base.where(citedBy(provider));
       }
       const row = await base
         .select((eb) => [
           eb.fn.countAll<string>().as("events"),
-          sql<string>`count(*) filter (where exists (
-            select 1 from meta_event_players p where p.meta_event_id = e.id
-          ))`.as("eventsWithStandings"),
-          sql<string>`count(*) filter (where exists (
-            select 1 from meta_event_players p
-            where p.meta_event_id = e.id and p.deck_id is not null
-          ))`.as("eventsWithDecklists"),
-          // A deck belongs to this slice when its event is in the filtered set.
-          // The correlated exists keeps the provider restriction on the count.
+          sql<string>`count(*) filter (where ${HAS_STANDINGS})`.as("eventsWithStandings"),
+          sql<string>`count(*) filter (where ${HAS_DECKS})`.as("eventsWithDecklists"),
           provider === undefined
             ? sql<string>`(select count(*) from meta_event_players p where p.deck_id is not null)`.as(
                 "decks",
               )
             : sql<string>`(
                 select count(*) from meta_event_players p
-                where p.deck_id is not null and exists (
-                  select 1 from meta_event_sources src
-                  where src.meta_event_id = p.meta_event_id and src.provider = ${provider}
-                )
+                  join meta_events me on me.id = p.meta_event_id
+                 where p.deck_id is not null and ${citedBy(provider)}
               )`.as("decks"),
-          sql<string>`count(*) filter (where date_trunc('milliseconds', e.created_at) > now() - interval '7 days')`.as(
+          sql<string>`count(*) filter (where date_trunc('milliseconds', me.created_at) > now() - interval '7 days')`.as(
             "addedLast7Days",
           ),
         ])
@@ -100,60 +73,25 @@ export function metaArchiveRepo(db: Kysely<Database>) {
       };
     },
 
-    /** Every standings row in scope. */
-    async playerCountInScope(filters: MetaCountsFilters): Promise<number> {
-      const row = await playersInScope(filters)
-        .select((eb) => eb.cast<number>(eb.fn.countAll(), "integer").as("count"))
-        .executeTakeFirst();
-      return row?.count ?? 0;
-    },
-
-    /**
-     * Rows whose main deck the archive holds. `partial` counts exactly like
-     * `full` — a partial list's main deck is complete by definition.
-     */
-    async deckCountInScope(filters: MetaCountsFilters): Promise<number> {
-      const row = await playersInScope(filters)
-        .where("p.listStatus", "!=", "none")
-        .select((eb) => eb.cast<number>(eb.fn.countAll(), "integer").as("count"))
-        .executeTakeFirst();
-      return row?.count ?? 0;
-    },
-
-    /**
-     * Events per tier across the whole archive, every tier present whether or
-     * not an event sits at it. Deliberately unscoped: this is the archive's own
-     * size, which a page prints beside a scoped number.
-     */
-    async latestResultDate(): Promise<string | null> {
-      const row = await db
-        .selectFrom("metaEvents as e")
-        .select((eb) => eb.fn.max("e.eventDate").as("latest"))
-        .where("e.eventDate", "<=", sql<string>`current_date`)
-        .where((eb) =>
-          eb.exists(
-            eb
-              .selectFrom("metaEventPlayers as p")
-              .select("p.id")
-              .whereRef("p.metaEventId", "=", "e.id"),
-          ),
-        )
+    async latestResultDate(scope: MetaScopeFilters = {}): Promise<string | null> {
+      const row = await scopedEvents(scope)
+        .select((eb) => eb.fn.max("me.eventDate").as("latest"))
+        .where(sql<SqlBool>`not ${UPCOMING}`)
+        .where(HAS_STANDINGS)
         .executeTakeFirst();
       return row?.latest ?? null;
     },
 
-    async eventTierCounts(): Promise<{
+    /** Events per tier in scope, every tier present whether or not an event sits at it. */
+    async eventTierCounts(scope: MetaScopeFilters = {}): Promise<{
       all: MetaEventTierCounts;
       withResults: MetaEventTierCounts;
     }> {
-      const rows = await db
-        .selectFrom("metaEvents as me")
+      const rows = await scopedEvents(scope)
         .select((eb) => [
           "me.tier",
           eb.cast<number>(eb.fn.countAll(), "integer").as("count"),
-          sql<number>`count(*) filter (where exists (
-            select 1 from meta_event_players p where p.meta_event_id = me.id
-          ))::int`.as("withResults"),
+          sql<number>`count(*) filter (where ${HAS_STANDINGS})::int`.as("withResults"),
         ])
         .groupBy("me.tier")
         .execute();
@@ -168,8 +106,9 @@ export function metaArchiveRepo(db: Kysely<Database>) {
 
     /**
      * `updatedAt` drives the `<lastmod>` the sitemap generator emits. Store
-     * night events are excluded while the archive ramps up, and so are events
-     * with no standings row: their pages are `noindex`.
+     * night events, their decks and their players are excluded while the archive
+     * ramps up, and so are events with no standings row: their pages are
+     * `noindex`. Legends keep every tier.
      */
     async sitemapEntries(): Promise<{
       events: { slug: string; updatedAt: string }[];
@@ -179,17 +118,11 @@ export function metaArchiveRepo(db: Kysely<Database>) {
     }> {
       const [events, decks, legends, players] = await Promise.all([
         db
-          .selectFrom("metaEvents as e")
-          .select(["e.slug", "e.updatedAt"])
-          .where("e.tier", "in", SITEMAP_TIERS)
-          .where(({ exists, selectFrom }) =>
-            exists(
-              selectFrom("metaEventPlayers as p")
-                .select("p.id")
-                .whereRef("p.metaEventId", "=", "e.id"),
-            ),
-          )
-          .orderBy("e.eventDate", "desc")
+          .selectFrom("metaEvents as me")
+          .select(["me.slug", "me.updatedAt"])
+          .where("me.tier", "in", SITEMAP_TIERS)
+          .where(HAS_STANDINGS)
+          .orderBy("me.eventDate", "desc")
           .execute(),
         db
           .selectFrom("metaEventPlayers as p")
@@ -201,23 +134,8 @@ export function metaArchiveRepo(db: Kysely<Database>) {
           .$narrowType<{ slug: string }>()
           .orderBy("d.shareToken")
           .execute(),
-        // Unlike events and decks: dropping store-tier finishes would leave a linked page uncrawled.
-        db
-          .selectFrom("metaEventPlayers as p")
-          .innerJoin("cards as lc", "lc.id", "p.legendCardId")
-          .leftJoin("mvCardAggregates as mca", "mca.cardId", "lc.id")
-          .select([
-            "lc.id as cardId",
-            "lc.name",
-            "lc.slug",
-            "mca.types",
-            "lc.tags",
-            "mca.domains",
-            sql<Date>`max(p.updated_at)`.as("updatedAt"),
-          ])
-          .groupBy(["lc.id", "lc.name", "lc.slug", "mca.types", "lc.tags", "mca.domains"])
-          .orderBy("lc.name", "asc")
-          .execute(),
+        metaLegendsRepo(db).archiveLegends(),
+        // Store nights hold most players: listing them triples the sitemap.
         db
           .selectFrom("metaEventPlayers as p")
           .innerJoin("metaEvents as me", "me.id", "p.metaEventId")

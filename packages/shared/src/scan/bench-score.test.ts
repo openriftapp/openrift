@@ -453,6 +453,19 @@ describe("scoreAppOutcomes", () => {
   const plain: BenchIdentity = { ...promo, markers: "" };
   const scored = (verdict: ScoredLock["verdict"]): ScoredLock => ({ ...lock("ahri-en"), verdict });
 
+  it("books an add of another artwork of the same card as wrong when the truth names no printing", () => {
+    const anyAhri = truth([{ artKey: "ogn|Ahri", name: "Ahri" }]);
+    const altArt: BenchIdentity = { ...plain, artKey: "unl|Ahri", publicCode: "UNL-010" };
+    const score = scoreAppOutcomes(anyAhri, [
+      {
+        lock: scored("wrong-printing"),
+        name: "Ahri",
+        outcome: { kind: "auto", printings: [altArt] },
+      },
+    ]);
+    expect(score.autoWrong).toBe(1);
+  });
+
   it("accepts an automatic add of the labelled printing", () => {
     const score = scoreAppOutcomes(promoTruth, [
       { lock: scored("correct"), name: "Ahri", outcome: { kind: "auto", printings: [promo] } },

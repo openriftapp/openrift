@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyHomography,
   boundingBox,
+  boxContainment,
   candidateFromQuad,
   canonicalizeQuad,
   computeHomography,
@@ -108,6 +109,57 @@ describe("quadIou", () => {
 describe("boundingBox", () => {
   it("covers every corner", () => {
     expect(boundingBox(UNIT_SQUARE)).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 10 });
+  });
+});
+
+describe("boxContainment", () => {
+  const guide: Quad = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+    { x: 0, y: 100 },
+  ];
+
+  it("never exceeds 1 for a tilted outline inside the guide", () => {
+    const diamond: Quad = [
+      { x: 50, y: 10 },
+      { x: 90, y: 50 },
+      { x: 50, y: 90 },
+      { x: 10, y: 50 },
+    ];
+    expect(boxContainment(diamond, guide)).toBe(1);
+  });
+
+  it("stays at 1 where inverting the box IoU against polygon areas gave 1.61", () => {
+    const diamond: Quad = [
+      { x: 50, y: 10 },
+      { x: 90, y: 50 },
+      { x: 50, y: 90 },
+      { x: 10, y: 50 },
+    ];
+    const iou = quadIou(diamond, guide);
+    const mixed = (iou * (quadArea(diamond) + quadArea(guide))) / (1 + iou) / quadArea(diamond);
+    expect(mixed).toBeCloseTo(1.61, 2);
+    expect(boxContainment(diamond, guide)).toBe(1);
+  });
+
+  it("measures the share of the outline's box inside the guide", () => {
+    const half: Quad = [
+      { x: 50, y: 0 },
+      { x: 150, y: 0 },
+      { x: 150, y: 100 },
+      { x: 50, y: 100 },
+    ];
+    expect(boxContainment(half, guide)).toBeCloseTo(0.5);
+  });
+
+  it("is 0 for an outline outside the guide", () => {
+    expect(
+      boxContainment(
+        mapQuad(guide, (p) => ({ x: p.x + 200, y: p.y })),
+        guide,
+      ),
+    ).toBe(0);
   });
 });
 

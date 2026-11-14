@@ -3,6 +3,7 @@ import type { BoardCard } from "@openrift/shared/scan/board";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 import type { ScanSessionOptions } from "@openrift/shared/scan/session-options";
 
+import { ScanWorkerFailureError } from "@/features/scan/lib/scan-engine-failure";
 import { ORT_WASM_PATHS } from "@/features/scan/lib/scan-ort-assets";
 import type {
   DownloadPart,
@@ -98,7 +99,10 @@ export function createScanWorkerClient(
       pending.delete(message.id);
       return;
     }
-    const error = new Error(workerErrorText(message.message, message.code));
+    const error = new ScanWorkerFailureError(
+      workerErrorText(message.message, message.code),
+      message.asset,
+    );
     if (message.id === undefined) {
       readyReject?.(error);
       readyReject = null;

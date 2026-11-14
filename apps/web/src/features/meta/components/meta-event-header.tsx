@@ -1,6 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { formatRelativeTime } from "@openrift/shared/format-date";
+import { formatRelativeTime, todayUtc } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
+import { metaResultsState } from "@openrift/shared/meta-results";
 import { formatRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventDetail,
@@ -140,7 +141,8 @@ export function MetaEventHeader({
   const { labels: formatLabels } = useDeckFormatList();
   const hydrated = useHydrated();
   const structure = describeEventStructure(phases);
-  const live = event.status === "in_progress";
+  const state = metaResultsState(event, todayUtc());
+  const live = state === "collecting";
   const winnerLegend =
     champion?.legend ?? metaEventWinners(event).find((winner) => winner.legend !== null)?.legend;
   const artId = winnerLegend?.imageId ?? null;
@@ -190,7 +192,7 @@ export function MetaEventHeader({
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <Heading level={1}>{event.name}</Heading>
                 <MetaTierBadge tier={event.tier} />
-                <MetaEventStatusBadge status={event.status} />
+                <MetaEventStatusBadge state={state} />
               </div>
               {(event.country !== null || event.location !== null) && (
                 <p className="font-medium">

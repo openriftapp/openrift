@@ -2,9 +2,8 @@ import type { ReactNode, RefObject } from "react";
 
 import { SCAN_TRAY_PEEK, ScanTrayShell } from "@/features/scan/components/scan-tray-shell";
 import type { ScanLayout } from "@/features/scan/hooks/use-scan-layout";
+import { LANDSCAPE_PANEL_INSET } from "@/features/scan/lib/scan-styles";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
-
-const LANDSCAPE_PANEL_INSET = "right-72";
 
 const BOXED_GRID =
   "flex flex-col gap-3 md:grid md:h-[calc(100dvh-var(--header-height)-7.25rem)] md:min-h-112 md:grid-cols-[minmax(0,1fr)_28rem] md:grid-rows-[auto_minmax(0,1fr)] md:gap-4";

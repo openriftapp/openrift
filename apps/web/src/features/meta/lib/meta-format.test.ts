@@ -190,6 +190,12 @@ describe("metaEventEmptyStatus", () => {
     expect(metaEventEmptyStatus(event({ status: "in_progress" }), TODAY)).toBe("In progress");
     expect(metaEventEmptyStatus(event({ status: "upcoming" }), TODAY)).toBe("Not played yet");
   });
+
+  it("reads a future date as upcoming whatever the stored status", () => {
+    expect(
+      metaEventEmptyStatus(event({ status: "in_progress", eventDate: "2026-09-26" }), TODAY),
+    ).toBe("Not played yet");
+  });
 });
 
 describe("recordSortValue", () => {

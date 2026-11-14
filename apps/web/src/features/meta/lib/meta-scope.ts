@@ -147,12 +147,6 @@ export const CLEARED_SCOPE: Record<keyof MetaScope, undefined> = {
   countriesEx: undefined,
 };
 
-/**
- * The scope that narrows nothing. An absent scope is not this: an absent era
- * resolves to the current set and an absent format to constructed.
- */
-export const UNSCOPED: Pick<MetaScope, "era" | "formats"> = { era: ERA_ALL, formats: [] };
-
 /** A scope read on a surface whose default era is not the current set. */
 export function scopeWithDefaultEra(scope: MetaScope, era: string): MetaScope {
   return scope.era === undefined ? { ...scope, era } : scope;

@@ -401,7 +401,7 @@ export const metaRouter = {
         canonicalPrintings,
         rows.map((row) => row.cardId),
       ),
-      meta.eventRowsByIds(rows.map((row) => row.bestEventId)),
+      meta.eventsByIds(rows.map((row) => row.bestEventId)),
     ]);
     const eventById = new Map(events.map((event) => [event.id, event]));
 
@@ -479,17 +479,15 @@ export const metaRouter = {
 
   counts: os.counts.handler(async ({ input, context }): Promise<MetaCountsResponse> => {
     const { meta } = context.repos;
-    const [totalPlayers, decksWithMainDeck, tierCounts, latestResultDate] = await Promise.all([
-      meta.playerCountInScope(input),
-      meta.deckCountInScope(input),
-      meta.eventTierCounts(),
-      meta.latestResultDate(),
+    const [totals, tierCounts, latestResultDate] = await Promise.all([
+      meta.eventTotals(input),
+      meta.eventTierCounts(input),
+      meta.latestResultDate(input),
     ]);
-    const totalEvents = Object.values(tierCounts.all).reduce((sum, count) => sum + count, 0);
     return {
-      totalPlayers,
-      decksWithMainDeck,
-      totalEvents,
+      totalPlayers: totals.playerRows,
+      decksWithMainDeck: totals.decks,
+      totalEvents: totals.events,
       latestResultDate,
       eventsByTier: tierCounts.all,
       eventsWithResultsByTier: tierCounts.withResults,

@@ -5,7 +5,6 @@ import type { MetaPlayerLinksTable } from "../../../db/tables/meta.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /** One decision on a cited-but-unread mirror's standing, confirmed by a human. */
-
 export type MetaPlayerLinkRow = Selectable<MetaPlayerLinksTable>;
 
 export interface MetaPlayerLinkInput {

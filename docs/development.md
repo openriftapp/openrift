@@ -103,16 +103,21 @@ PostgreSQL runs in Docker. Data persists in a bind mount at `./data/postgres` â€
 ```bash
 bun db:migrate    # Run pending migrations
 bun db:rollback   # Roll back the last migration
+bun db:schema     # Regenerate docs/schema.sql from a fresh migrate
 bun db:sync       # Copy or update the public catalog, rules and prices (see "Card data")
-bun make-admin -- <email>  # Grant admin role to a user
 bun db:dev-sanitize        # Sanitize a restored production dump (local DB only)
+bun db:cleanup    # List leftover openrift_test_* databases; --apply drops them
+bun make-admin -- <email>  # Grant admin role to a user (email matched case-insensitively)
+bun send-trade-digest <ISO timestamp>  # Dry run of the trade match digest; --apply sends it
 ```
 
 `bun db:dev-sanitize` is meant for a database restored from a production dump: it sets one password for every account (`1111`, or a value passed as an argument), gives users who only signed up through Google, Discord, or an email code a password account so they can be signed in as too, marks every email verified, and clears every `job_schedules` row so the restored dump can't start production's jobs locally. It refuses to run unless `DATABASE_URL` points at localhost.
 
+Scripts that write to a database (`db:cleanup`, `send-trade-digest`, `scripts/pair-merge.ts`, `scripts/import-language-errata.ts`, `scripts/repair-candidate-links.ts`) run as a dry run unless `--apply` is given, and refuse a non-local `DATABASE_URL` for `--apply` unless `--allow-remote` is also given. `db:sync` asks you to type the database name for a non-local target. `make-admin` and `db:migrate` do not check the target. `bun run typecheck` also typechecks `scripts/` (`bun run typecheck:scripts` runs only that).
+
 API keys authenticate script calls to the API: send the key as an `x-api-key` header and the request runs as the key's owner (same permissions, including admin). Keys are created on the `/admin/api-keys` page and shown once at creation.
 
-Migrations live in `apps/api/src/db/migrations/` and must be registered in that directory's `index.ts` barrel. The `bun db:migrate` / `bun db:rollback` scripts wrap `scripts/run-migrations.ts`.
+Migrations live in `apps/api/src/db/migrations/` as `NNN-slug.ts` files and are discovered at startup, with no barrel to register them in. The `bun db:migrate` / `bun db:rollback` scripts wrap `scripts/run-migrations.ts`.
 
 To open a psql shell against the local database:
 

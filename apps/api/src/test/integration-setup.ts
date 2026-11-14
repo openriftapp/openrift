@@ -52,7 +52,7 @@ export async function createTempDb(databaseUrl: string, label: string): Promise<
   return name;
 }
 
-/** Skipped when KEEP_TEST_DB is set: use `bun run db:cleanup` to drop later. */
+/** Skipped when KEEP_TEST_DB is set: use `bun run db:cleanup --apply` to drop later. */
 export async function dropTempDb(databaseUrl: string, name: string): Promise<void> {
   if (process.env.KEEP_TEST_DB) {
     console.log(`KEEP_TEST_DB: preserving ${name}`);

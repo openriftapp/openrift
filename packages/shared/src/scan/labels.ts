@@ -13,3 +13,11 @@ export interface CardLabel {
 }
 
 export type CardLabels = Record<string, CardLabel>;
+
+/** Logs and bench output only; players see display names from the catalogue. */
+export function describeScanKey(
+  label: Pick<CardLabel, "name" | "code" | "language"> | undefined,
+  key: string,
+): string {
+  return label ? `${label.name} (${label.code} ${label.language})` : `unknown ${key.slice(0, 8)}`;
+}

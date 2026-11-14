@@ -16,11 +16,17 @@ export function scanLanguageItems(
   printings: Printing[],
   selected: string | null,
   labels: LabelMap,
+  languageOrder: readonly string[],
 ): ScanLanguageItem[] {
+  const codes = [...new Set([...printings.map((printing) => printing.language), selected ?? "EN"])];
+  const rank = (code: string) => {
+    const index = languageOrder.indexOf(code);
+    return index === -1 ? languageOrder.length : index;
+  };
   return [
     { value: ANY_LANGUAGE, label: m.scan_language_any() },
-    ...[...new Set([...printings.map((printing) => printing.language), selected ?? "EN"])]
-      .toSorted()
+    ...codes
+      .toSorted((a, b) => rank(a) - rank(b) || a.localeCompare(b))
       .map((code) => ({ value: code, label: enumLabel(labels, code) })),
   ];
 }

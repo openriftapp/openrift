@@ -1,7 +1,9 @@
 /** Keeps the best-scoring outline per position, dropping ones under `minScore` and ones cut by the frame edge. */
 import { quadCenter, quadIou, touchesFrameEdge } from "./geometry";
-import { FRAME_EDGE_MARGIN } from "./sweep";
 import type { Point, Quad } from "./types";
+
+/** Share of the frame width. */
+export const FRAME_EDGE_MARGIN = 0.02;
 
 const SAME_POSITION_IOU = 0.3;
 

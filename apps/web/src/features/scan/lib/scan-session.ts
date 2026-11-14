@@ -11,10 +11,7 @@ import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import { describeKey } from "@/features/scan/lib/scan-bank";
 import { fetchReference } from "@/features/scan/lib/scan-reference-image";
 
-/**
- * `single` scans continuously and switches itself into a sweep over several
- * cards or into counting copies on a stand; `capture` runs once per tap.
- */
+/** `single` scans continuously and counts copies on a stand; `capture` runs once per tap. */
 export type ScannerMode = "single" | "capture";
 
 export interface ScannerSettings {

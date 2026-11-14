@@ -179,7 +179,6 @@ describe("a missing bench pack", () => {
       boardDetectorUrl: null,
       bankHash: null,
     },
-    labels: {},
     client: { init, create: vi.fn(() => Promise.resolve()), processFrame, rearm: vi.fn() },
     onProgress: vi.fn(),
   } as unknown as BenchJob;
@@ -197,6 +196,7 @@ describe("a missing bench pack", () => {
       threads: 1,
       keys: ["ogn-001-en"],
       artKeys: [["ogn-001-en", "art-1"]],
+      labels: {},
       canonical: true,
       bytes: 0,
       gates: {

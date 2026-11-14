@@ -9,7 +9,12 @@ import { DateLeaf } from "@/components/ui/date-leaf";
 import { RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { joinNames, metaEventCounts, metaEventEmptyStatus } from "@/features/meta/lib/meta-format";
+import {
+  joinNames,
+  metaEventCounts,
+  metaEventEmptyStatus,
+  metaEventFieldSize,
+} from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -51,7 +56,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
         {emptyStatus === null ? (
           <>
             <span className="text-muted-foreground text-right text-sm tabular-nums">
-              {event.playerRowCount}
+              {metaEventFieldSize(event)}
             </span>
             {event.deckCount === 0 ? (
               <span aria-hidden className="text-muted-foreground/60 text-right text-sm">

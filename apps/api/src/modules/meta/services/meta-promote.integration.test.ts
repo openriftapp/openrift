@@ -140,7 +140,6 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
         draws: null,
         legendCardId: null,
         championCardId: null,
-        deck: null,
       },
       null,
     );

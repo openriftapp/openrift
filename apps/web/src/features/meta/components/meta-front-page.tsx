@@ -60,7 +60,6 @@ import {
   CLEARED_SCOPE,
   isScopeCustomized,
   nextScopeSearch,
-  UNSCOPED,
 } from "@/features/meta/lib/meta-scope";
 import { useUserId } from "@/hooks/use-session";
 import { DATE_WORDS } from "@/lib/date-words";
@@ -167,24 +166,40 @@ function Section({
   );
 }
 
-/** Clears the index's default era and format, or the shown count lands short of `count`. */
-function TierIndexLink({ tiers, count }: { tiers: MetaEventTier[]; count: number }) {
-  return (
-    <TextLink
-      className="text-sm font-medium"
-      render={<Link to="/meta/events" search={{ ...UNSCOPED, tiers }} />}
-    >
-      {m.meta_front_browse_all({ count })}
-    </TextLink>
-  );
-}
-
 type MetaFrontSearch = MetaScope & { q?: string; decks?: boolean };
 
 /** `decks` is this page's own param; the event index narrows by `holds` instead. */
 function eventIndexScope(search: MetaFrontSearch): MetaScope & { q?: string } {
   const { decks: _decks, ...scope } = search;
   return scope;
+}
+
+function SectionIndexLink({
+  search,
+  tier,
+  children,
+}: {
+  search: MetaFrontSearch;
+  tier?: MetaEventTier;
+  children: string;
+}) {
+  return (
+    <TextLink
+      className="text-sm font-medium"
+      render={
+        <Link
+          to="/meta/events"
+          search={{
+            ...eventIndexScope(search),
+            ...(tier === undefined ? {} : { tiers: [tier], tiersEx: undefined }),
+            holds: search.decks === true ? "decks" : undefined,
+          }}
+        />
+      }
+    >
+      {children}
+    </TextLink>
+  );
 }
 
 function ResultlessNote({ count, search }: { count: number; search: MetaFrontSearch }) {
@@ -382,10 +397,9 @@ export function MetaFrontPage() {
                             title={m.meta_event_tier_premier()}
                             accent="bg-border-accent"
                             action={
-                              <TierIndexLink
-                                tiers={["premier"]}
-                                count={counts.eventsWithResultsByTier.premier}
-                              />
+                              <SectionIndexLink search={search} tier="premier">
+                                {m.meta_front_browse_all({ count: premier.total })}
+                              </SectionIndexLink>
                             }
                           >
                             <RowList>
@@ -403,10 +417,9 @@ export function MetaFrontPage() {
                             title={m.meta_event_tier_competitive()}
                             accent="bg-primary"
                             action={
-                              <TierIndexLink
-                                tiers={["competitive"]}
-                                count={counts.eventsWithResultsByTier.competitive}
-                              />
+                              <SectionIndexLink search={search} tier="competitive">
+                                {m.meta_front_browse_all({ count: competitive.total })}
+                              </SectionIndexLink>
                             }
                           >
                             <RowList>
@@ -424,17 +437,14 @@ export function MetaFrontPage() {
                             title={m.meta_event_tier_local()}
                             accent="bg-muted-foreground/40"
                             action={
-                              <TextLink
-                                className="text-sm font-medium"
-                                render={<Link to="/meta/events" search={UNSCOPED} />}
-                              >
+                              <SectionIndexLink search={search}>
                                 {m.meta_front_browse_all_events({
-                                  count: Object.values(counts.eventsWithResultsByTier).reduce(
-                                    (sum, count) => sum + count,
-                                    0,
-                                  ),
+                                  count:
+                                    search.decks === true
+                                      ? facets.holdings.decks
+                                      : facets.holdings.standings,
                                 })}
-                              </TextLink>
+                              </SectionIndexLink>
                             }
                           >
                             <RowList>

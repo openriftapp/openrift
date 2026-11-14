@@ -1,13 +1,12 @@
 import type { BoardCard } from "@openrift/shared/scan/board";
-import type { CardLabels } from "@openrift/shared/scan/labels";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
-import { DEFAULT_SESSION_OPTIONS } from "@openrift/shared/scan/session-options";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 import { useEffect, useRef, useState } from "react";
 
 import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
 import { scanBankInfo } from "@/features/scan/lib/scan-bank";
-import { SLOW_DEVICE_EMBED_MS } from "@/features/scan/lib/scan-embedder";
+import { isSlowDevice } from "@/features/scan/lib/scan-embedder";
+import { engineLoadFailure } from "@/features/scan/lib/scan-engine-failure";
 import type { DownloadProgress } from "@/features/scan/lib/scan-load-progress";
 import { INITIAL_DOWNLOAD_PROGRESS } from "@/features/scan/lib/scan-load-progress";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
@@ -20,7 +19,6 @@ import type {
   ScanWorkerReady,
   SessionKind,
 } from "@/features/scan/lib/scan-worker-protocol";
-import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
 export interface ScanEngineHandle {
@@ -30,9 +28,9 @@ export interface ScanEngineHandle {
   progress: DownloadProgress;
   threads: number | null;
   error: string | null;
+  loadError: string | null;
   bank: ScanBankInfo | null;
   bankKey: string | null;
-  idleGate: number;
   hasSession: () => boolean;
   prepare: (settings: ScannerSettings, inFlight: Promise<unknown> | null) => Promise<boolean>;
   processFrame: (
@@ -64,15 +62,13 @@ function startWorker(
   }
 }
 
-export function useScanEngine(
-  assets: ScanAssets | null,
-  labels: CardLabels | null,
-): ScanEngineHandle {
+export function useScanEngine(assets: ScanAssets | null): ScanEngineHandle {
   const workerRef = useRef<ScanWorkerClient | null>(null);
   const sessionWorkerRef = useRef<ScanWorkerClient | null>(null);
   const [loaded, setLoaded] = useState<{ key: string; ready: ScanWorkerReady } | null>(null);
   const [progress, setProgress] = useState<DownloadProgress>(INITIAL_DOWNLOAD_PROGRESS);
   const [error, setError] = useState<string | null>(null);
+  const [failed, setFailed] = useState<{ key: string; message: string } | null>(null);
 
   // Primitive deps: the assets object's identity is render-derived and an
   // identity change mid-download would orphan the load.
@@ -83,6 +79,7 @@ export function useScanEngine(
   const boardDetectorUrl = assets?.boardDetectorUrl ?? null;
   const assetKey = [encoderUrl, bankUrl, labelsUrl, detectorUrl, boardDetectorUrl].join("\n");
   const ready = loaded?.key === assetKey ? loaded.ready : null;
+  const loadError = failed?.key === assetKey ? failed.message : null;
   useEffect(() => {
     if (encoderUrl === null || bankUrl === null || labelsUrl === null || detectorUrl === null) {
       return;
@@ -112,21 +109,21 @@ export function useScanEngine(
           boardDetectorUrl,
         });
       } catch (initError) {
-        failure = errorText(initError, m.scan_engine_start_failed());
+        failure = engineLoadFailure(initError);
       }
       if (cancelled) {
         return;
       }
       if (initialized === null) {
         client.terminate();
-        setError(failure ?? m.scan_engine_start_failed());
+        console.warn(`[scan] engine failed to load: ${failure}`);
+        setFailed({ key, message: failure ?? m.scan_engine_start_failed() });
         return;
       }
       console.log(
         `[scan] worker ready: ${initialized.embedMsPerImage.toFixed(0)}ms/image, input ${initialized.embedImageSize}`,
       );
       workerRef.current = client;
-      setError(null);
       setLoaded({ key, ready: initialized });
       setProgress((previous) => ({
         encoder: { ...previous.encoder, ready: true },
@@ -148,9 +145,9 @@ export function useScanEngine(
     };
   }, [encoderUrl, bankUrl, labelsUrl, detectorUrl, boardDetectorUrl]);
 
-  const bank = ready !== null && labels !== null ? scanBankInfo(labels, ready) : null;
+  const bank = ready === null ? null : scanBankInfo(ready);
   const embedMsPerImage = ready?.embedMsPerImage ?? 0;
-  const slowDevice = embedMsPerImage > SLOW_DEVICE_EMBED_MS;
+  const slowDevice = isSlowDevice(embedMsPerImage);
 
   function hasSession(): boolean {
     return workerRef.current !== null && sessionWorkerRef.current === workerRef.current;
@@ -162,7 +159,7 @@ export function useScanEngine(
   ): Promise<boolean> {
     await frameSettled(inFlight);
     const worker = workerRef.current;
-    if (!worker || !ready || !bank) {
+    if (!worker || !ready) {
       return false;
     }
     if (slowDevice) {
@@ -245,10 +242,9 @@ export function useScanEngine(
     progress,
     threads: ready?.threads ?? null,
     error,
+    loadError,
     bank,
     bankKey: bank === null ? null : assetKey,
-    idleGate:
-      ready?.gates.rotationFallbackDistance ?? DEFAULT_SESSION_OPTIONS.rotationFallbackDistance,
     hasSession,
     prepare,
     processFrame,

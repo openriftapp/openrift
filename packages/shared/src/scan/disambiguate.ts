@@ -4,6 +4,7 @@
  * rendered or read here). Tries name band (language), then collector-code
  * strip (set/number/promo), then stamp band (marker variant), in order.
  */
+import { clamp } from "../math";
 import { downscaleGray, toGray } from "./image";
 import type { GrayImage, RgbaImage } from "./types";
 
@@ -84,7 +85,7 @@ function normalizeSignature(signature: GrayImage): GrayImage {
   }
   const gain = 48 / std;
   for (let i = 0; i < data.length; i++) {
-    data[i] = Math.max(0, Math.min(255, Math.round(128 + ((data[i] ?? 0) - mean) * gain)));
+    data[i] = clamp(Math.round(128 + ((data[i] ?? 0) - mean) * gain), 0, 255);
   }
   return signature;
 }
@@ -222,7 +223,7 @@ export function bestShiftCorrelation(
 
 const MASK_THRESHOLD = 24;
 
-function shiftGray(src: GrayImage, dx: number, dy: number): GrayImage {
+export function shiftGray(src: GrayImage, dx: number, dy: number): GrayImage {
   if (dx === 0 && dy === 0) {
     return src;
   }

@@ -43,7 +43,7 @@ The recognition code lives in `packages/shared/src/scan/` and has no browser dep
 | Card encoder    | 4.6 MB          | ONNX, 192 × 192 input, 256-float embedding                          |
 | Card detector   | 1.9 MB          | ONNX, corner heatmap for the card in the guide                      |
 | Board detector  | 2.0 MB          | ONNX, centre and corner heatmaps for every card in view             |
-| Embedding bank  | 2.1 MB          | About 3,660 reference renders × 256 dimensions, fp16                |
+| Embedding bank  | 2.5 MB          | About 4,400 reference renders × 256 dimensions, fp16                |
 | Labels          | 0.5 MB          | Name, collector code, language, card type and markers per reference |
 | onnxruntime-web | 14 MB           | The SIMD WASM runtime                                               |
 
@@ -103,7 +103,7 @@ Blurred crops are dropped before any model runs. The focus score is the variance
 
 ### 3. Ranking by embedding
 
-The rectified card is resized to 192 × 192 and embedded by the **encoder** (see Models). The bank holds one vector per reference render, so ranking is one dot product per reference, about 3,660 per query.
+The rectified card is resized to 192 × 192 and embedded by the **encoder** (see Models). The bank holds one vector per reference render, so ranking is one dot product per reference, about 4,400 per query.
 
 Orientation is searched lazily:
 
@@ -163,6 +163,8 @@ Card text is compared as pixels and never read, because the card font is license
 | Code  | Collector-code strip, bottom left         | Sets, collector numbers, promos | 0.55      | 0.15                              |
 | Stamp | Stamp area, bottom centre                 | Stamped variants of one code    | 0.55      | 0.15 (0.40 to pick a stamped one) |
 
+A second stamp check slides each stamped reference's stamp box over a wider window at the bottom of the card, so a few percent of outline error does not move the stamp out of view (`stamp-search.ts`). It accepts a stamp at a score of 0.7 with a lead of 0.1 over the plain render, and its pick replaces a plain tournament pick.
+
 Each stage runs a **tournament**: the winner must clear the minimum score and beat every distinguishable rival by the margin. Margins are computed on a difference mask, the pixels where the two rival renders disagree after aligning them to each other. Whole-band correlation fails here: a wrong printing correlated 0.905 with a photo while the right one, misaligned by one pixel, scored 0.826.
 
 A printing is accepted after two frames agree. After 8 attempts without agreement the scanner stops trying, and the card goes into the list with its artwork known and its printing left to the user's picker, which offers only that artwork's printings. Landscape battlefields have no printing bands yet and always use the picker when they have several printings.
@@ -190,6 +192,8 @@ On load, the worker times the encoder on a small batch. A device above 250 ms pe
 
 On every device, five frames without a plausible match in Scan mode put the session into idle backoff: one outline, in the last winner's rotation only. The page also waits an extra 300 ms between frames when frames take longer than 400 ms. The first plausible ranking restores the full search.
 
+A frame counts as a card in the guide when its best crop ranks within the plan's rotation-fallback distance or verifies. Idle backoff, re-arming and the aim hints all read this one verdict, so on a bank from another encoder they follow that encoder's distance, the slow-device value included.
+
 ## Runtime
 
 - All three models run in onnxruntime-web's WASM backend inside a dedicated Web Worker. Frame buffers move to the worker as transferables.
@@ -213,12 +217,13 @@ Every change to the scanner is measured on recorded clips before it ships. The t
 
 - **Recording.** The admin page `/admin/scan` records a camera session together with a log of every frame the phone processed and every decision it made.
 - **Truth.** Each clip has a hand-checked truth file: which cards, how many copies, and which printings.
+- **Same engine.** Without overrides the bench runs the models the API serves from `media/scan/` and builds its bank from the server's reference set (`scanReferences`: active, rehosted renders, one row per image).
 - **Replay.** `run-clips.ts` replays each clip through the same session plans and the same frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`) the app uses, on the frames the phone processed, and prints where the replay decided differently from the phone. `run-boards.ts` scores tap reads on photos and on stills extracted from the recordings.
 - **Gate.** `compare-runs.ts` fails a candidate that finds fewer cards or printings than the baseline on any clip, or that is more than 25% slower on a single-card clip.
 
 The score that matters first is **wrong locks**. A change that finds more cards but adds one wrong card does not ship.
 
-Results on the single-card clips as of October 2026: **114 of 116 cards found, 0 wrong**, at about 31 ms per frame on one desktop CPU core. Across all 240 cards in the clip set, including binder pages and multi-card sweeps the app does not run yet, 185 lock with 0 wrong. On an iPhone a frame took about 42 ms on 2026-10-04, about 20 ms of it in the card detector.
+Results on the single-card clips as of October 2026: **114 of 116 cards found, 0 wrong**, at about 31 ms per frame on one desktop CPU core. Across all 240 cards in the clip set, including binder pages and multi-card sweeps the app does not run yet, 188 lock with 0 wrong (November 2026, against the server's reference set). On an iPhone a frame took about 42 ms on 2026-10-04, about 20 ms of it in the card detector.
 
 ## Tried and dropped
 

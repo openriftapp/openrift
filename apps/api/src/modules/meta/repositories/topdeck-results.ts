@@ -6,8 +6,7 @@ import type {
   TopdeckDecklistsTable,
   TopdeckEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
-import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
+import { putMirrorDecklist, replaceRows, replaceUnderEventLock } from "./mirror-results.js";
 
 export type TopdeckStandingRow = Selectable<TopdeckEventStandingsTable>;
 export type TopdeckDecklistCardRow = Selectable<TopdeckDecklistCardsTable>;
@@ -29,13 +28,16 @@ export function topdeckResultsRepo(db: Kysely<Database>) {
       tid: string,
       rows: readonly Insertable<TopdeckEventStandingsTable>[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await lockKey(trx, `topdeck-event:${tid}`);
-        await trx.deleteFrom("topdeckEventStandings").where("tid", "=", tid).execute();
-        for (const batch of rowBatches(rows)) {
-          await trx.insertInto("topdeckEventStandings").values(batch).execute();
-        }
-      });
+      await replaceUnderEventLock(
+        db,
+        "topdeck",
+        tid,
+        replaceRows(
+          (trx) => trx.deleteFrom("topdeckEventStandings").where("tid", "=", tid).execute(),
+          rows,
+          (trx, batch) => trx.insertInto("topdeckEventStandings").values(batch).execute(),
+        ),
+      );
     },
 
     async decklistCards(tid: string): Promise<Map<string, TopdeckDecklistCardRow[]>> {
@@ -57,28 +59,30 @@ export function topdeckResultsRepo(db: Kysely<Database>) {
       row: Insertable<TopdeckDecklistsTable>,
       cards: readonly Omit<Insertable<TopdeckDecklistCardsTable>, "sourceDeckId">[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await trx
-          .insertInto("topdeckDecklists")
-          .values(row)
-          .onConflict((oc) =>
-            oc.column("sourceDeckId").doUpdateSet({
-              tid: row.tid,
-              fetchStatus: row.fetchStatus,
-              fetchedAt: row.fetchedAt,
-            }),
-          )
-          .execute();
-        await trx
-          .deleteFrom("topdeckDecklistCards")
-          .where("sourceDeckId", "=", row.sourceDeckId)
-          .execute();
-        for (const batch of rowBatches(
+      await putMirrorDecklist(
+        db,
+        (trx) =>
+          trx
+            .insertInto("topdeckDecklists")
+            .values(row)
+            .onConflict((oc) =>
+              oc.column("sourceDeckId").doUpdateSet({
+                tid: row.tid,
+                fetchStatus: row.fetchStatus,
+                fetchedAt: row.fetchedAt,
+              }),
+            )
+            .execute(),
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("topdeckDecklistCards")
+              .where("sourceDeckId", "=", row.sourceDeckId)
+              .execute(),
           cards.map((card) => ({ ...card, sourceDeckId: row.sourceDeckId })),
-        )) {
-          await trx.insertInto("topdeckDecklistCards").values(batch).execute();
-        }
-      });
+          (trx, batch) => trx.insertInto("topdeckDecklistCards").values(batch).execute(),
+        ),
+      );
     },
   };
 }

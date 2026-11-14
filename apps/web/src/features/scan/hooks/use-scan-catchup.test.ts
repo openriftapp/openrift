@@ -17,6 +17,7 @@ function outcome(winner: FrameWinner | null): FrameOutcome {
   return {
     winner,
     ranked: [{ key: "k-a", distance: 0.1, rotation: 0 }],
+    cardInGuide: true,
     timings: { total: 50 },
   } as FrameOutcome;
 }
@@ -27,7 +28,6 @@ function mount(processFrame: ScanCatchUpOptions["processFrame"]) {
   const run = createScanRun("single");
   const loop = createScanLoop<PendingFrame>({
     run: () => run,
-    idleGate: () => 0.5,
     readBoard: async () => null,
   });
   const hook = renderHook(() =>
@@ -65,7 +65,26 @@ describe("useScanCatchUp", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("rejects Identify when the second look itself failed", async () => {
+    const { hook } = mount(() => Promise.reject(new Error("worker gone")));
+
+    await act(async () => {
+      await expect(hook.result.current.identifyNow()).rejects.toThrow("second look failed");
+    });
+  });
+
+  it("answers Identify with no card when the frame verified nothing", async () => {
+    const { hook } = mount(() => Promise.resolve(outcome(null)));
+
+    await act(async () => {
+      await expect(hook.result.current.identifyNow()).resolves.toMatchObject({
+        identified: false,
+      });
+    });
   });
 
   it("drops a queued frame that verified nothing", async () => {
@@ -138,6 +157,18 @@ describe("useScanCatchUp", () => {
     expect(onLock).toHaveBeenCalledTimes(1);
     expect(onLock.mock.calls[0]![0]).toMatchObject({ key: "k-a", framesToLock: 1, score: 90 });
     expect(run.relock.allows("art-a")).toBe(false);
+  });
+
+  it("vibrates once for a queued second look's add", async () => {
+    const vibrate = vi.fn(() => true);
+    vi.stubGlobal("navigator", { ...navigator, vibrate });
+    const { hook } = mount(() => Promise.resolve(outcome(STRONG)));
+
+    await act(async () => {
+      await hook.result.current.run();
+    });
+
+    expect(vibrate).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the queue waiting while Identify runs, even after a queued second look finished", async () => {

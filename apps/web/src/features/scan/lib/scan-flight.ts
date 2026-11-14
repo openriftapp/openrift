@@ -161,3 +161,7 @@ export function snapshotVideoRect(
     return null;
   }
 }
+
+export function snapshotGuide(video: HTMLVideoElement): string | null {
+  return snapshotVideoRect(video, guideRectIn(videoLayoutBox(video)));
+}

@@ -99,7 +99,7 @@ async function thankSubmitters(
 }
 
 /**
- * `bySource` is ordered by priority, highest last; the last matching entry wins.
+ * `bySource` is in `sourcesForEvent` order (priority, then creation); the last matching entry wins.
  * Returns null when no source published the live value.
  */
 function winningSource(
@@ -425,8 +425,7 @@ export const adminMetaCandidatesRouter = os.router({
     if (live === undefined) {
       throw errors.NOT_FOUND();
     }
-    const linked = await meta.sourcesForEvent(input.id);
-    const sources = linked.toSorted((a, b) => a.priority - b.priority);
+    const sources = await meta.sourcesForEvent(input.id);
     const overlays = await metaOverlays.acceptedEventOverlays(input.id);
     const claimed = new Set(overlays.flatMap((overlay) => overlay.claimedFields));
 

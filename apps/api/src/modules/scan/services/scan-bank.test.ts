@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Io } from "../../../io.js";
 import type { ScanReferenceRow } from "../../catalog/repositories/catalog-printings.js";
-import { rebuildScanBank, scanArtKey, scanBankInputHash } from "./scan-bank.js";
+import { rebuildScanBank, scanBankInputHash } from "./scan-bank.js";
 
 const embedding = vi.hoisted(() => ({ dim: 4, axisOf: (row: number) => row }));
 
@@ -30,36 +30,6 @@ vi.mock("onnxruntime-node", () => ({
     }
   },
 }));
-
-const base = { setSlug: "origins", name: "Jinx", artVariant: "normal", isOvernumbered: false };
-
-describe("scanArtKey", () => {
-  it("keys an overnumbered print apart from the in-total print of the same card", () => {
-    expect(scanArtKey(base)).not.toBe(scanArtKey({ ...base, isOvernumbered: true }));
-  });
-
-  it("keys an overnumbered alt art apart from both the plain alt art and the plain print", () => {
-    const keys = [
-      scanArtKey(base),
-      scanArtKey({ ...base, artVariant: "altart" }),
-      scanArtKey({ ...base, artVariant: "altart", isOvernumbered: true }),
-    ];
-    expect(new Set(keys).size).toBe(3);
-  });
-
-  it("collapses a null art variant onto the empty segment", () => {
-    expect(scanArtKey({ ...base, artVariant: null })).toBe("origins|Jinx||");
-  });
-
-  it("matches the scan script's four-segment key layout", () => {
-    expect(scanArtKey({ ...base, isOvernumbered: true }).split("|")).toEqual([
-      "origins",
-      "Jinx",
-      "normal",
-      "over",
-    ]);
-  });
-});
 
 function texture(seed: number, width = 80, height = 112): Buffer {
   const data = Buffer.alloc(width * height * 4);

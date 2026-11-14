@@ -1,14 +1,15 @@
 import type { BoardCard } from "@openrift/shared/scan/board";
 import { boardOptionsFor, readBoard } from "@openrift/shared/scan/board";
+import type { DetectCards } from "@openrift/shared/scan/ort-runners";
 import type { ScanSession } from "@openrift/shared/scan/session";
 import type { EncoderGates } from "@openrift/shared/scan/session-options";
 import { gatesForBank } from "@openrift/shared/scan/session-options";
 import type { CardCandidate, RgbaImage } from "@openrift/shared/scan/types";
 import { errorMessage } from "@openrift/shared/strings";
 
+import { loadingAsset, ScanAssetLoadError } from "@/features/scan/lib/scan-asset-hint";
 import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import { loadScanBank } from "@/features/scan/lib/scan-bank";
-import type { DetectCards } from "@/features/scan/lib/scan-detector";
 import { loadBoardDetector, loadCardDetector } from "@/features/scan/lib/scan-detector";
 import {
   embedderImageSize,
@@ -21,6 +22,7 @@ import type { ScanEngine } from "@/features/scan/lib/scan-session";
 import { catalogLookups, createConfiguredScanSession } from "@/features/scan/lib/scan-session";
 import type {
   DownloadPart,
+  ScanAsset,
   ScanWorkerErrorCode,
   ScanWorkerRequest,
   ScanWorkerResponse,
@@ -142,7 +144,7 @@ async function handle(request: ScanWorkerRequest): Promise<void> {
         request.ortThreads,
       );
       const [loadedEmbedder, loadedBank, loadedDetector] = await Promise.all([
-        embedderLoad,
+        loadingAsset("encoder", embedderLoad),
         loadScanBank(request.bankUrl, request.labelsUrl, progressOf("bank")),
         loadCardDetectorAfterEncoder(request.detectorUrl, embedderLoad),
       ]);
@@ -164,6 +166,7 @@ async function handle(request: ScanWorkerRequest): Promise<void> {
         threads: embedderThreads(),
         keys: loadedBank.bank.keys,
         artKeys: [...loadedBank.artKeys],
+        labels: loadedBank.labels,
         canonical: loadedBank.canonical,
         bytes: loadedBank.bytes,
         gates,
@@ -220,11 +223,19 @@ async function handle(request: ScanWorkerRequest): Promise<void> {
   } catch (error) {
     post({
       type: "error",
+      ...assetOf(error),
       id: "id" in request ? request.id : undefined,
       message: errorMessage(error),
       ...(error instanceof ScanWorkerError ? { code: error.code } : {}),
     });
   }
+}
+
+function assetOf(error: unknown): { asset?: ScanAsset } {
+  if (error instanceof ScanAssetLoadError) {
+    return { asset: error.asset };
+  }
+  return error instanceof ScanWorkerError && error.code === "detector" ? { asset: "detector" } : {};
 }
 
 function post(response: ScanWorkerResponse): void {

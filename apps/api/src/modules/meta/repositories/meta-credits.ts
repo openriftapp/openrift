@@ -57,19 +57,6 @@ export function metaCreditsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Deleting the standings row itself cascades; this is the narrower case of
-     * taking a credit back while the row stays. Several people can have
-     * contributed to one entry, so the unlink path always passes `userId`.
-     */
-    async deleteCreditsForPlayer(metaEventPlayerId: string, userId?: string): Promise<void> {
-      let query = db.deleteFrom("metaCredits").where("metaEventPlayerId", "=", metaEventPlayerId);
-      if (userId !== undefined) {
-        query = query.where("userId", "=", userId);
-      }
-      await query.execute();
-    },
-
-    /**
      * Reads `users.meta_credit_visibility` live, not frozen onto the credit
      * row: opting out removes all past credits immediately.
      */

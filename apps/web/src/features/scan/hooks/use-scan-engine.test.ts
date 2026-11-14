@@ -1,5 +1,5 @@
 import type { CardLabels } from "@openrift/shared/scan/labels";
-import { DEFAULT_SESSION_OPTIONS, gatesForEmbedDim } from "@openrift/shared/scan/session-options";
+import { gatesForEmbedDim } from "@openrift/shared/scan/session-options";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -41,6 +41,7 @@ const READY: ScanWorkerReady = {
   threads: 4,
   keys: ["k-a"],
   artKeys: [["k-a", "art-a"]],
+  labels: LABELS,
   canonical: true,
   bytes: 1024,
   gates: GATES,
@@ -63,6 +64,7 @@ describe("useScanEngine", () => {
   beforeEach(() => {
     vi.stubGlobal("Worker", vi.fn());
     vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.mocked(createScanWorkerClient).mockImplementation((onProgress) => {
       client = fakeClient(async () => {
         onProgress?.("encoder", 10, 20);
@@ -79,7 +81,7 @@ describe("useScanEngine", () => {
   });
 
   it("starts the worker and reports its progress, cost and status", async () => {
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
 
     await waitFor(() => {
       expect(result.current.engineReady).toBe(true);
@@ -95,14 +97,14 @@ describe("useScanEngine", () => {
   });
 
   it("waits for the asset manifest before starting the worker", () => {
-    renderHook(() => useScanEngine(null, LABELS));
+    renderHook(() => useScanEngine(null));
 
     expect(createScanWorkerClient).not.toHaveBeenCalled();
   });
 
   it("reports a browser without workers", async () => {
     vi.stubGlobal("Worker", undefined);
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
 
     await waitFor(() => {
       expect(result.current.error).toBe(
@@ -116,7 +118,7 @@ describe("useScanEngine", () => {
     vi.mocked(createScanWorkerClient).mockImplementation(() => {
       throw new Error("workers blocked");
     });
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
 
     await waitFor(() => {
       expect(result.current.error).toBe(
@@ -132,11 +134,12 @@ describe("useScanEngine", () => {
       client = fakeClient(() => Promise.reject(new Error("Could not load the card detector")));
       return client;
     });
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
 
     await waitFor(() => {
-      expect(result.current.error).toBe("Could not load the card detector");
+      expect(result.current.loadError).toBe("Could not load the card detector");
     });
+    expect(result.current.error).toBeNull();
     expect(client.terminate).toHaveBeenCalled();
     expect(result.current.hasSession()).toBe(false);
     expect(result.current.engineReady).toBe(false);
@@ -148,10 +151,10 @@ describe("useScanEngine", () => {
       client = fakeClient(() => Promise.reject("wire unplugged"));
       return client;
     });
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
 
     await waitFor(() => {
-      expect(result.current.error).toBe("The scanning engine failed to start");
+      expect(result.current.loadError).toBe("The scanning engine failed to start");
     });
   });
 
@@ -165,7 +168,7 @@ describe("useScanEngine", () => {
       clients.push(created);
       return created;
     });
-    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets, LABELS), {
+    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets), {
       initialProps: ASSETS,
     });
 
@@ -190,11 +193,11 @@ describe("useScanEngine", () => {
       );
       return client;
     });
-    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets, LABELS), {
+    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets), {
       initialProps: ASSETS,
     });
     await waitFor(() => {
-      expect(result.current.error).toBe("Could not load the card detector");
+      expect(result.current.loadError).toBe("Could not load the card detector");
     });
 
     rerender({ ...ASSETS, detectorUrl: "https://assets.invalid/detector-v2.onnx" });
@@ -202,22 +205,71 @@ describe("useScanEngine", () => {
     await waitFor(() => {
       expect(result.current.engineReady).toBe(true);
     });
-    expect(result.current.error).toBeNull();
+    expect(result.current.loadError).toBeNull();
+  });
+
+  it("drops a failed load's message as soon as the assets change", async () => {
+    vi.mocked(createScanWorkerClient).mockImplementation(() => {
+      client = fakeClient(async (assets) => {
+        if (assets.detectorUrl.endsWith("v2.onnx")) {
+          return await new Promise<ScanWorkerReady>(() => {});
+        }
+        throw new Error("Could not load the card detector");
+      });
+      return client;
+    });
+    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets), {
+      initialProps: ASSETS,
+    });
+    await waitFor(() => {
+      expect(result.current.loadError).toBe("Could not load the card detector");
+    });
+
+    rerender({ ...ASSETS, detectorUrl: "https://assets.invalid/detector-v2.onnx" });
+
+    expect(result.current.loadError).toBeNull();
+  });
+
+  it("reports the latest failure when a second load fails too", async () => {
+    vi.mocked(createScanWorkerClient).mockImplementation(() => {
+      client = fakeClient((assets) =>
+        Promise.reject(new Error(`Could not load ${assets.detectorUrl}`)),
+      );
+      return client;
+    });
+    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets), {
+      initialProps: ASSETS,
+    });
+    await waitFor(() => {
+      expect(result.current.loadError).toBe(`Could not load ${ASSETS.detectorUrl}`);
+    });
+
+    const next = { ...ASSETS, detectorUrl: "https://assets.invalid/detector-v2.onnx" };
+    rerender(next);
+
+    await waitFor(() => {
+      expect(result.current.loadError).toBe(`Could not load ${next.detectorUrl}`);
+    });
   });
 
   it("reloads a loaded worker when the bank is rebuilt, never pairing old and new", async () => {
-    const { result, rerender } = renderHook(
-      ({ assets, labels }: { assets: ScanAssets; labels: CardLabels | null }) =>
-        useScanEngine(assets, labels),
-      { initialProps: { assets: ASSETS, labels: LABELS } },
-    );
+    vi.mocked(createScanWorkerClient).mockImplementation(() => {
+      client = fakeClient(async (assets) => ({
+        ...READY,
+        labels: assets.labelsUrl === REBUILT.labelsUrl ? REBUILT_LABELS : LABELS,
+      }));
+      return client;
+    });
+    const { result, rerender } = renderHook((assets: ScanAssets) => useScanEngine(assets), {
+      initialProps: ASSETS,
+    });
     await waitFor(() => {
       expect(result.current.engineReady).toBe(true);
     });
     const first = client;
     const firstKey = result.current.bankKey;
 
-    rerender({ assets: REBUILT, labels: REBUILT_LABELS });
+    rerender(REBUILT);
 
     expect(first.terminate).toHaveBeenCalled();
     expect(result.current.bank).toBeNull();
@@ -231,7 +283,7 @@ describe("useScanEngine", () => {
   });
 
   it("terminates the worker on unmount", async () => {
-    const { result, unmount } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result, unmount } = renderHook(() => useScanEngine(ASSETS));
     await waitFor(() => {
       expect(result.current.engineReady).toBe(true);
     });
@@ -261,15 +313,15 @@ describe("useScanEngine sessions", () => {
     vi.restoreAllMocks();
   });
 
-  async function mountReady(labels: CardLabels | null = LABELS) {
-    const hook = renderHook(() => useScanEngine(ASSETS, labels));
+  async function mountReady() {
+    const hook = renderHook(() => useScanEngine(ASSETS));
     await waitFor(() => {
       expect(hook.result.current.engineReady).toBe(true);
     });
     return hook;
   }
 
-  it("creates both sessions once the engine and labels are ready", async () => {
+  it("creates both sessions once the engine is ready", async () => {
     const { result } = await mountReady();
 
     await expect(result.current.prepare(DEFAULT_SCANNER_SETTINGS, null)).resolves.toBe(true);
@@ -277,21 +329,12 @@ describe("useScanEngine sessions", () => {
     expect(client.create).toHaveBeenCalledOnce();
   });
 
-  it("refuses to prepare without labels", async () => {
-    const { result } = await mountReady(null);
-
-    await expect(result.current.prepare(DEFAULT_SCANNER_SETTINGS, null)).resolves.toBe(false);
-
-    expect(result.current.bank).toBeNull();
-    expect(client.create).not.toHaveBeenCalled();
-  });
-
   it("refuses to prepare before the engine is ready", async () => {
     vi.mocked(createScanWorkerClient).mockImplementation(() => {
       client = fakeClient(() => new Promise(() => {}));
       return client;
     });
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
 
     await expect(result.current.prepare(DEFAULT_SCANNER_SETTINGS, null)).resolves.toBe(false);
 
@@ -344,19 +387,7 @@ describe("useScanEngine sessions", () => {
     expect(live.candidatesToTry).toBe(1);
   });
 
-  it("derives the idle gate from the bank's encoder gates", async () => {
-    const { result } = await mountReady();
-
-    expect(result.current.idleGate).toBe(GATES.rotationFallbackDistance);
-  });
-
-  it("uses the default idle gate while loading", () => {
-    const { result } = renderHook(() => useScanEngine(null, LABELS));
-
-    expect(result.current.idleGate).toBe(DEFAULT_SESSION_OPTIONS.rotationFallbackDistance);
-  });
-
-  it("joins the labels with what the worker decoded", async () => {
+  it("takes the labels from what the worker decoded", async () => {
     const { result } = await mountReady();
 
     expect(result.current.bank).toMatchObject({ keys: ["k-a"], labels: LABELS, bytes: 1024 });
@@ -381,7 +412,7 @@ describe("useScanEngine sessions", () => {
 
   it("reports no outcome and no board without a worker", async () => {
     vi.stubGlobal("Worker", undefined);
-    const { result } = renderHook(() => useScanEngine(ASSETS, LABELS));
+    const { result } = renderHook(() => useScanEngine(ASSETS));
     const frame = { data: new Uint8ClampedArray(4), width: 1, height: 1 };
 
     expect(result.current.hasSession()).toBe(false);
@@ -399,7 +430,7 @@ describe("useScanEngine sessions", () => {
   });
 
   it("drops a frame the replaced worker was still processing instead of failing it", async () => {
-    const hook = renderHook((assets: ScanAssets) => useScanEngine(assets, LABELS), {
+    const hook = renderHook((assets: ScanAssets) => useScanEngine(assets), {
       initialProps: ASSETS,
     });
     await waitFor(() => {

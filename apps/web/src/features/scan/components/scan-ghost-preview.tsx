@@ -1,3 +1,5 @@
+import { clamp } from "@openrift/shared/math";
+
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +22,7 @@ function round2(value: number): number {
 // Confidence outside 0-1 (and non-finite) is clamped, so a raw engine score
 // can be passed straight through without the caller normalising it first.
 export function ghostAppearance(confidence: number): GhostAppearance {
-  const clamped = Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0;
+  const clamped = Number.isFinite(confidence) ? clamp(confidence, 0, 1) : 0;
   return {
     opacity: round2(MIN_OPACITY + (MAX_OPACITY - MIN_OPACITY) * clamped),
     blurPx: round2(MAX_BLUR_PX * (1 - clamped)),

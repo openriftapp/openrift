@@ -341,7 +341,6 @@ describe("POST /meta/players", () => {
         draws: null,
         legendCardId: CARD_ID,
         championCardId: null,
-        deck: null,
       },
       null,
     );
@@ -367,8 +366,8 @@ describe("POST /meta/players", () => {
     expect(json.deckId).toBe(DECK_ID);
     expect(json.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
     expect(mockMeta.createPlayer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        rankIsTier: true,
+      expect.objectContaining({ rankIsTier: true }),
+      {
         deck: {
           name: "Renata Control",
           format: "constructed",
@@ -376,8 +375,8 @@ describe("POST /meta/players", () => {
           cards: [{ cardId: CARD_ID, zone: "main", quantity: 3, preferredPrintingId: null }],
           listStatus: "partial",
         },
-      }),
-      json.shareToken,
+        shareToken: json.shareToken,
+      },
     );
   });
 
@@ -386,10 +385,10 @@ describe("POST /meta/players", () => {
 
     await createPlayer({ eventId: EVENT_ID, rank: 1, playerName: "Renata", list: listBody() });
 
-    expect(mockMeta.createPlayer).toHaveBeenCalledWith(
-      expect.objectContaining({ deck: expect.objectContaining({ listStatus: "full" }) }),
-      expect.any(String),
-    );
+    expect(mockMeta.createPlayer).toHaveBeenCalledWith(expect.anything(), {
+      deck: expect.objectContaining({ listStatus: "full" }),
+      shareToken: expect.any(String),
+    });
   });
 
   it("rejects a list in an unknown format", async () => {

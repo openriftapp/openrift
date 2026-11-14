@@ -1,4 +1,5 @@
 import type { BoardCard } from "@openrift/shared/scan/board";
+import type { CardLabels } from "@openrift/shared/scan/labels";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 import type { EncoderGates, ScanSessionOptions } from "@openrift/shared/scan/session-options";
 
@@ -48,6 +49,7 @@ export interface ScanWorkerReady {
   keys: string[];
   /** Bank key to artwork key, as Map entries. */
   artKeys: [string, string][];
+  labels: CardLabels;
   canonical: boolean;
   bytes: number;
   gates: EncoderGates;
@@ -55,10 +57,18 @@ export interface ScanWorkerReady {
 
 export type ScanWorkerErrorCode = "detector" | "loading";
 
+export type ScanAsset = "labels" | "bank" | "encoder" | "detector";
+
 export type ScanWorkerResponse =
   | { type: "progress"; part: DownloadPart; loaded: number; total: number }
   | ({ type: "ready" } & ScanWorkerReady)
   | { type: "created"; id: number }
   | { type: "outcome"; id: number; outcome: FrameOutcome }
   | { type: "board"; id: number; cards: BoardCard[] }
-  | { type: "error"; id?: number; message: string; code?: ScanWorkerErrorCode };
+  | {
+      type: "error";
+      id?: number;
+      message: string;
+      code?: ScanWorkerErrorCode;
+      asset?: ScanAsset;
+    };

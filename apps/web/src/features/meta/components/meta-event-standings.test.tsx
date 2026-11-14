@@ -427,6 +427,16 @@ describe("MetaEventStandings", () => {
     expect(screen.getByText(/After round 2 of \d+ · provisional/u)).toBeInTheDocument();
   });
 
+  it("marks nothing provisional for a future event the source already marks in progress", () => {
+    renderStandings(
+      [metaRow()],
+      "2999-01-01",
+      { phases: [SWISS], progress: { phaseOrder: 1, roundNumber: 2 } },
+      "in_progress",
+    );
+    expect(screen.queryByText(/provisional/u)).toBeNull();
+  });
+
   it("says an event still to come has not been played rather than that results are late", () => {
     renderStandings([], "2999-01-01");
     expect(

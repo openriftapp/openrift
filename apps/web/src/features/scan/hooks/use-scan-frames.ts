@@ -10,6 +10,7 @@ import {
   deriveAimHint,
 } from "@/features/scan/lib/scan-aim-hint";
 import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
+import { isLandscapeKey } from "@/features/scan/lib/scan-bank";
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
 import { frameLogEntry, frameLogLine, printingLogLine } from "@/features/scan/lib/scan-frame-log";
@@ -171,7 +172,7 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
     const winnerKey = outcome.winner.key;
     // A landscape reference render (battlefields) reports a rotation whatever
     // the frame's orientation; it must never drive adoption.
-    if (bank?.labels[winnerKey]?.type === "battlefield") {
+    if (bank !== null && isLandscapeKey(bank.labels, winnerKey)) {
       return;
     }
     const rotation = outcome.ranked.find((entry) => entry.key === winnerKey)?.rotation ?? 0;

@@ -3,6 +3,7 @@
  * each side moves to the strongest nearby edge along its normal, and the
  * corners become the intersections of the refitted sides.
  */
+import { upperMedian } from "../math";
 import type { Line } from "./geometry";
 import { intersectLines, mapQuad, subPixelMinimum } from "./geometry";
 import type { GrayImage, Point, Quad } from "./types";
@@ -77,8 +78,7 @@ function fitSide(gray: GrayImage, a: Point, b: Point): Line | null {
   if (hits.length < SAMPLES_PER_SIDE / 2) {
     return null;
   }
-  const offsets = hits.map((hit) => hit.offset).toSorted((x, y) => x - y);
-  const median = offsets[Math.floor(offsets.length / 2)] ?? 0;
+  const median = upperMedian(hits.map((hit) => hit.offset)) ?? 0;
   const agreeing = hits.filter((hit) => Math.abs(hit.offset - median) <= OUTLIER_PX);
   if (agreeing.length < SAMPLES_PER_SIDE / 2) {
     return null;

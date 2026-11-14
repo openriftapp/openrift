@@ -5713,19 +5713,19 @@
   "scan_controls_start_camera": "카메라 켜기",
   "scan_controls_scan_card": "카드 스캔",
   "scan_controls_identify_now": "지금 인식하기",
-  "scan_controls_stop": "중지",
   "scan_identify_title": "어떤 카드인가요?",
   "scan_identify_pending_description": "카메라가 방금 본 것을 파악하는 중입니다.",
   "scan_identify_recognising": "인식 중…",
   "scan_identify_empty": "이 화면에서 카드로 보이는 것이 없습니다. 가이드에 가득 채운 뒤 다시 시도해 주세요.",
+  "scan_identify_failed": "이 화면을 읽지 못했습니다. 다시 시도해 주세요.",
   "scan_identify_nothing_toast": "이 화면에서 인식할 수 있는 것이 없습니다. 카드를 다시 스캔하세요",
   "scan_identify_search_label": "카탈로그 검색",
   "scan_identify_search_placeholder": "카드 이름 또는 코드",
   "scan_identify_search_empty": "일치하는 카드가 없습니다.",
   "scan_load_row_starting": "시작 중…",
-  "scan_notices_unavailable_title": "지금은 스캔을 사용할 수 없습니다.",
   "scan_notices_https": "카메라에는 보안 연결이 필요하므로 스캔은 https에서만 작동합니다.",
   "scan_page_not_in_catalog": "{name}은(는) 아직 카탈로그에 없습니다",
+  "scan_page_not_in_catalog_unnamed": "이 카드는 아직 카탈로그에 없습니다",
   "scan_page_board_added": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -5857,7 +5857,6 @@
   "scan_engine_detector_failed": "카드 감지기를 불러오지 못했습니다",
   "scan_engine_worker_unsupported": "이 브라우저에서는 스캐너를 실행할 수 없습니다. 브라우저를 업데이트하거나 다른 브라우저를 사용해 주세요.",
   "scan_frame_failed": "프레임 처리에 실패했습니다",
-  "scan_bank_load_failed": "스캔 데이터를 불러오지 못했습니다",
   "scan_unavailable": "지금은 스캐너를 사용할 수 없습니다. 나중에 다시 시도해 주세요.",
   "common_error_generic": "문제가 발생했습니다. 다시 시도해 주세요.",
   "common_new_version_available": "OpenRift의 새 버전이 나왔습니다.",
@@ -8122,19 +8121,29 @@
   ],
   "meta_front_browse_all": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "전체 {countFormatted}개 보기"
+        "countPlural=one": "전체 {countFormatted}개 보기",
+        "countPlural=*": "전체 {countFormatted}개 보기"
       }
     }
   ],
   "meta_front_browse_all_events": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "이벤트 전체 {countFormatted}개 보기"
+        "countPlural=one": "이벤트 전체 {countFormatted}개 보기",
+        "countPlural=*": "이벤트 전체 {countFormatted}개 보기"
       }
     }
   ],

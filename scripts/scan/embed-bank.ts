@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -5,31 +6,45 @@ import * as ort from "onnxruntime-node";
 
 /**
  * Bun-side adapter for the shared embedding module (packages/shared/src/scan):
- * opens the ONNX vision encoder from https://huggingface.co/Xenova/mobileclip_s0
- * under onnxruntime-node and caches the reference bank on disk.
+ * opens the encoder the API serves (or SCAN_ENCODER) under onnxruntime-node
+ * and caches the reference bank on disk.
  */
 import { chunk } from "../../packages/shared/src/collections.js";
 import type { CardEmbedder, EmbedBank } from "../../packages/shared/src/scan/embed.js";
 import {
+  DEFAULT_SCAN_ENCODER_FILE,
   EMBED_IMAGE_SIZE,
+  embedImageSizeOf,
   normalizeEmbeddings,
   preprocessCardInto,
 } from "../../packages/shared/src/scan/embed.js";
-import { rotateRgbaCw } from "../../packages/shared/src/scan/image.js";
-import { CACHE_DIR, DATA_DIR, listReferenceImages, loadImage, mapConcurrent } from "./lib";
+import { toCanonicalFrame } from "../../packages/shared/src/scan/image.js";
+import { encoderRunner } from "../../packages/shared/src/scan/ort-runners.js";
+import type { ReferenceImage } from "./lib";
+import { CACHE_DIR, listReferenceImages, loadImage, mapConcurrent, servedModel } from "./lib";
 
-const MODEL_DIR = path.join(DATA_DIR, "models/mobileclip-s0");
-export const MODEL_FILE = process.env.SCAN_ENCODER ?? path.join(MODEL_DIR, "vision_model.onnx");
-const MODEL_TAG = process.env.SCAN_ENCODER ? `-${path.basename(MODEL_FILE, ".onnx")}` : "";
-export const EMBED_SIZE = Number(process.env.SCAN_EMBED_SIZE ?? EMBED_IMAGE_SIZE);
-export const CANONICAL_BANK = process.env.SCAN_CANONICAL_BANK === "1";
+export const MODEL_FILE = servedModel(
+  "SCAN_ENCODER",
+  "SCAN_ENCODER_FILE",
+  DEFAULT_SCAN_ENCODER_FILE,
+);
+const MODEL_TAG = `-${path.basename(MODEL_FILE, ".onnx")}`;
+export const CANONICAL_BANK = process.env.SCAN_CANONICAL_BANK !== "0";
 
 const BUILD_BATCH = 8;
 
-function cacheFile(extension: string): string {
-  const sizeTag = EMBED_SIZE === EMBED_IMAGE_SIZE ? "" : `-${EMBED_SIZE}`;
+/** Named after the reference keys too, so a catalogue change can never reuse an older bank. */
+function cacheFile(refs: readonly ReferenceImage[], size: number, extension: string): string {
+  const sizeTag = size === EMBED_IMAGE_SIZE ? "" : `-${size}`;
   const canonTag = CANONICAL_BANK ? "-canon" : "";
-  return path.join(CACHE_DIR, `embed-bank-card${MODEL_TAG}${sizeTag}${canonTag}-v1.${extension}`);
+  const refsTag = createHash("sha256")
+    .update(refs.map((ref) => ref.key).join(","))
+    .digest("hex")
+    .slice(0, 12);
+  return path.join(
+    CACHE_DIR,
+    `embed-bank-card${MODEL_TAG}${sizeTag}${canonTag}-${refsTag}-v1.${extension}`,
+  );
 }
 
 let sessionPromise: Promise<ort.InferenceSession> | null = null;
@@ -37,29 +52,36 @@ let sessionPromise: Promise<ort.InferenceSession> | null = null;
 function encoder(): Promise<ort.InferenceSession> {
   if (!sessionPromise) {
     if (!fs.existsSync(MODEL_FILE)) {
-      throw new Error(
-        `missing ${MODEL_FILE}; fetch vision_model.onnx and preprocessor_config.json from https://huggingface.co/Xenova/mobileclip_s0`,
-      );
+      throw new Error(`missing ${MODEL_FILE}; set SCAN_ENCODER to an encoder ONNX file`);
     }
     sessionPromise = ort.InferenceSession.create(MODEL_FILE);
   }
   return sessionPromise;
 }
 
-export const nodeEmbedder: CardEmbedder = async (pixels, count) => {
+async function modelImageSize(): Promise<number> {
   const session = await encoder();
-  // The staging tensor is sized for a full batch; a short final chunk must be
-  // handed over trimmed or the shape and the data length disagree.
-  const slice = pixels.subarray(0, count * 3 * EMBED_SIZE * EMBED_SIZE);
-  const output = await session.run({
-    pixel_values: new ort.Tensor("float32", slice, [count, 3, EMBED_SIZE, EMBED_SIZE]),
-  });
-  return output.image_embeds.data as Float32Array;
-};
+  const input = session.inputMetadata[0];
+  return embedImageSizeOf(input?.isTensor ? input.shape : undefined);
+}
+
+let sizePromise: Promise<number> | null = null;
+
+export function embedSize(): Promise<number> {
+  sizePromise ??= process.env.SCAN_EMBED_SIZE
+    ? Promise.resolve(Number(process.env.SCAN_EMBED_SIZE))
+    : modelImageSize();
+  return sizePromise;
+}
+
+export const nodeEmbedder: CardEmbedder = async (pixels, count) =>
+  await encoderRunner(encoder(), ort.Tensor, MODEL_FILE, await embedSize())(pixels, count);
 
 export async function loadEmbedBank(force = false): Promise<EmbedBank> {
-  const meta = cacheFile("json");
-  const binary = cacheFile("bin");
+  const refs = listReferenceImages();
+  const size = await embedSize();
+  const meta = cacheFile(refs, size, "json");
+  const binary = cacheFile(refs, size, "bin");
   if (!force && fs.existsSync(meta) && fs.existsSync(binary)) {
     const parsed = JSON.parse(fs.readFileSync(meta, "utf-8")) as { keys: string[]; dim: number };
     const raw = fs.readFileSync(binary);
@@ -71,19 +93,12 @@ export async function loadEmbedBank(force = false): Promise<EmbedBank> {
     }
   }
 
-  const refs = listReferenceImages();
   const chunks: Float32Array[][] = [];
-  const input = new Float32Array(BUILD_BATCH * 3 * EMBED_SIZE * EMBED_SIZE);
+  const input = new Float32Array(BUILD_BATCH * 3 * size * size);
   for (const batch of chunk(refs, BUILD_BATCH)) {
     const images = await mapConcurrent(batch, 4, (ref) => loadImage(ref.file));
     for (const [slot, image] of images.entries()) {
-      // 90 degrees left = three clockwise quarter turns; matches the
-      // trainer's Image.Transpose.ROTATE_90.
-      const oriented =
-        CANONICAL_BANK && image.width > image.height
-          ? rotateRgbaCw(rotateRgbaCw(rotateRgbaCw(image)))
-          : image;
-      preprocessCardInto(oriented, input, slot, EMBED_SIZE);
+      preprocessCardInto(CANONICAL_BANK ? toCanonicalFrame(image) : image, input, slot, size);
     }
     chunks.push(normalizeEmbeddings(await nodeEmbedder(input, batch.length), batch.length));
   }

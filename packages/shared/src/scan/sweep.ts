@@ -1,5 +1,7 @@
 /** Switches a guide session into reading every card in view while the camera sweeps over several. */
+import { upperMedian } from "../math";
 import type { AcceptOptions } from "./accept";
+import { FRAME_EDGE_MARGIN } from "./distinct-outlines";
 import { boundingBox, quadArea, quadCenter, touchesFrameEdge } from "./geometry";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
 
@@ -57,8 +59,6 @@ const LONE_UPRIGHT_MIN_WINNER = { score: 70, focus: 26 };
 const STILL_EXIT_FACTOR = 8;
 const STILL_WINDOW_MIN_SHARE = 0.8;
 const MAX_EMPTY_GUIDE_OUTLINES = 2;
-/** Share of the frame width. */
-export const FRAME_EDGE_MARGIN = 0.02;
 
 export function isAimedCard(
   quad: Quad,
@@ -174,9 +174,8 @@ export function createSweepTracker(
     if (!first || seconds - first.seconds < SWEEP_OPTIONS.stillSeconds * STILL_WINDOW_MIN_SHARE) {
       return false;
     }
-    const sorted = recentMotion.map((entry) => entry.motion).toSorted((a, b) => a - b);
     // A card dropping into view must not count as camera motion.
-    const median = sorted[Math.floor(sorted.length / 2)] ?? 1;
+    const median = upperMedian(recentMotion.map((entry) => entry.motion)) ?? 1;
     return median < SWEEP_OPTIONS.stillMotion * (still ? STILL_EXIT_FACTOR : 1);
   }
 
@@ -187,8 +186,9 @@ export function createSweepTracker(
     if (!first || seconds - first.seconds < SWEEP_OPTIONS.settleSeconds * STILL_WINDOW_MIN_SHARE) {
       return false;
     }
-    const rates = window.map((entry) => entry.rate).toSorted((a, b) => a - b);
-    return (rates[Math.floor(rates.length / 2)] ?? Infinity) < SWEEP_OPTIONS.settleMotion;
+    return (
+      (upperMedian(window.map((entry) => entry.rate)) ?? Infinity) < SWEEP_OPTIONS.settleMotion
+    );
   }
 
   return {

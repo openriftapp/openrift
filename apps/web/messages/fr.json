@@ -5715,19 +5715,19 @@
   "scan_controls_start_camera": "Démarrer la caméra",
   "scan_controls_scan_card": "Scanner la carte",
   "scan_controls_identify_now": "Identifier maintenant",
-  "scan_controls_stop": "Arrêter",
   "scan_identify_title": "Quelle carte est-ce ?",
   "scan_identify_pending_description": "Nous déterminons ce que la caméra vient de voir.",
   "scan_identify_recognising": "Reconnaissance…",
   "scan_identify_empty": "Rien dans cette image ne ressemblait à une carte. Remplissez le cadre avec elle et réessayez.",
+  "scan_identify_failed": "Impossible de lire cette image. Réessayez.",
   "scan_identify_nothing_toast": "Rien de reconnaissable dans cette image, scannez la carte à nouveau",
   "scan_identify_search_label": "Rechercher dans le catalogue",
   "scan_identify_search_placeholder": "Nom ou code de la carte",
   "scan_identify_search_empty": "Aucune carte ne correspond.",
   "scan_load_row_starting": "démarrage…",
-  "scan_notices_unavailable_title": "Le scan n'est pas disponible pour le moment.",
   "scan_notices_https": "La caméra a besoin d'une connexion sécurisée, le scan ne fonctionne donc qu'en https.",
   "scan_page_not_in_catalog": "{name} n'est pas encore au catalogue",
+  "scan_page_not_in_catalog_unnamed": "Cette carte n'est pas encore au catalogue",
   "scan_page_board_added": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -5859,7 +5859,6 @@
   "scan_engine_detector_failed": "Impossible de charger le détecteur de cartes",
   "scan_engine_worker_unsupported": "Ce navigateur ne peut pas faire tourner le scanner. Mettez-le à jour ou essayez un autre navigateur.",
   "scan_frame_failed": "Le traitement de l'image a échoué",
-  "scan_bank_load_failed": "Impossible de charger les données de scan",
   "scan_unavailable": "Le scanner n'est pas disponible pour le moment. Réessayez plus tard.",
   "common_error_generic": "Une erreur est survenue. Veuillez réessayer.",
   "common_new_version_available": "Une nouvelle version d'OpenRift est disponible.",
@@ -8124,19 +8123,29 @@
   ],
   "meta_front_browse_all": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "Voir les {countFormatted}"
+        "countPlural=one": "Voir {countFormatted}",
+        "countPlural=*": "Voir les {countFormatted}"
       }
     }
   ],
   "meta_front_browse_all_events": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "Voir les {countFormatted} événements"
+        "countPlural=one": "Voir {countFormatted} événement",
+        "countPlural=*": "Voir les {countFormatted} événements"
       }
     }
   ],

@@ -85,6 +85,25 @@ describe("ScanIdentifySearch", () => {
     expect(screen.queryByText("EN")).not.toBeInTheDocument();
   });
 
+  it("still finds a card printed only in a language the viewer does not display", async () => {
+    useDisplayStore.setState({ languages: ["EN"] });
+    const chinese = stubPrinting({
+      printingId: "p-zh",
+      cardId: "c-swarm",
+      language: "ZH",
+      card: swarm,
+    });
+    const onPick = vi.fn();
+    render(<ScanIdentifySearch allPrintings={[chinese, yasuo]} onPick={onPick} />, {
+      wrapper: makeWrapper(),
+    });
+
+    await userEvent.type(screen.getByLabelText("Search the catalog"), "swarm");
+    await userEvent.click(screen.getByText("Bloodscent Swarm"));
+
+    expect(onPick).toHaveBeenCalledWith(chinese);
+  });
+
   it("marks each row's language when the viewer reads several", async () => {
     useDisplayStore.setState({ languages: ["EN", "ZH"] });
     const english = stubPrinting({ printingId: "p-en", cardId: "c-swarm", card: swarm });

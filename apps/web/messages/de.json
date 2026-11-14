@@ -5714,19 +5714,19 @@
   "scan_controls_start_camera": "Kamera starten",
   "scan_controls_scan_card": "Karte scannen",
   "scan_controls_identify_now": "Jetzt erkennen",
-  "scan_controls_stop": "Stopp",
   "scan_identify_title": "Welche Karte ist das?",
   "scan_identify_pending_description": "Wir ermitteln, was die Kamera gerade gesehen hat.",
   "scan_identify_recognising": "Wird erkannt…",
   "scan_identify_empty": "In diesem Bild sah nichts nach einer Karte aus. Fülle den Rahmen damit aus und versuche es erneut.",
+  "scan_identify_failed": "Dieses Bild konnte nicht gelesen werden. Versuche es erneut.",
   "scan_identify_nothing_toast": "In diesem Bild war nichts erkennbar, scanne die Karte noch einmal",
   "scan_identify_search_label": "Katalog durchsuchen",
   "scan_identify_search_placeholder": "Kartenname oder Code",
   "scan_identify_search_empty": "Keine Karte passt dazu.",
   "scan_load_row_starting": "startet…",
-  "scan_notices_unavailable_title": "Scannen ist gerade nicht verfügbar.",
   "scan_notices_https": "Die Kamera braucht eine sichere Verbindung, Scannen funktioniert deshalb nur über https.",
   "scan_page_not_in_catalog": "{name} ist noch nicht im Katalog",
+  "scan_page_not_in_catalog_unnamed": "Diese Karte ist noch nicht im Katalog",
   "scan_page_board_added": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -5858,7 +5858,6 @@
   "scan_engine_detector_failed": "Der Kartendetektor konnte nicht geladen werden",
   "scan_engine_worker_unsupported": "Dieser Browser kann den Scanner nicht ausführen. Aktualisiere ihn oder versuche einen anderen Browser.",
   "scan_frame_failed": "Die Bildverarbeitung ist fehlgeschlagen",
-  "scan_bank_load_failed": "Die Scan-Daten konnten nicht geladen werden",
   "scan_unavailable": "Der Scanner ist gerade nicht verfügbar. Bitte versuche es später noch einmal.",
   "common_error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
   "common_new_version_available": "Eine neue Version von OpenRift ist verfügbar.",
@@ -8123,19 +8122,29 @@
   ],
   "meta_front_browse_all": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "Alle {countFormatted} durchsuchen"
+        "countPlural=one": "{countFormatted} durchsuchen",
+        "countPlural=*": "Alle {countFormatted} durchsuchen"
       }
     }
   ],
   "meta_front_browse_all_events": [
     {
-      "declarations": ["input count", "local countFormatted = count: number"],
-      "selectors": ["countFormatted"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
       "match": {
-        "countFormatted=*": "Alle {countFormatted} Events durchsuchen"
+        "countPlural=one": "{countFormatted} Event durchsuchen",
+        "countPlural=*": "Alle {countFormatted} Events durchsuchen"
       }
     }
   ],

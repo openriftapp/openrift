@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { WATCH_LONG_SIDE, grabRotatedFrame, grabWatchFrame } from "./scan-frame-grab";
+import {
+  WATCH_LONG_SIDE,
+  grabRotatedFrame,
+  grabWatchFrame,
+  processedFrameSize,
+} from "./scan-frame-grab";
 
 interface Draw {
   op: string;
@@ -34,6 +39,17 @@ function fakeCanvas(available = true) {
 function fakeVideo(width: number, height: number): HTMLVideoElement {
   return { videoWidth: width, videoHeight: height } as HTMLVideoElement;
 }
+
+describe("processedFrameSize", () => {
+  it("scales the zoomed region's long side down and keeps a small one", () => {
+    expect(processedFrameSize(1920, 1080, 960)).toMatchObject({ width: 960, height: 540 });
+    expect(processedFrameSize(640, 480, 960)).toMatchObject({ width: 640, height: 480 });
+  });
+
+  it("holds a side at the floor it is given", () => {
+    expect(processedFrameSize(4000, 2, 128, 1, 1).height).toBe(1);
+  });
+});
 
 describe("grabRotatedFrame", () => {
   it("has nothing to grab before the camera reports a size", () => {

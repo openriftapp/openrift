@@ -19,6 +19,7 @@ import type { Repos } from "../../../deps.js";
 import type { AppError } from "../../../errors.js";
 import { badRequest, conflict } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { sourcePromoteKey } from "../../../lib/meta-promote-keys.js";
 import {
   PLAYLOLTCG_PROVIDER,
   PLAYRIFTBOUND_PROVIDER,
@@ -588,7 +589,7 @@ async function claimAccept<TRow extends MirroredEvent, TDeps>(
   options: AcceptOptions,
 ): Promise<AcceptedEvent | null> {
   return await context.repos.meta.withPromoteLock(
-    `source:${source.provider}:${keyText}`,
+    sourcePromoteKey(source.provider, keyText),
     async (locked) => {
       if (!(await locked.meta.sourceKeyUntriaged(source.provider, keyText))) {
         return null;
@@ -599,7 +600,7 @@ async function claimAccept<TRow extends MirroredEvent, TDeps>(
 }
 
 function claimDismiss(context: ApiContext, provider: string, keyText: string): Promise<boolean> {
-  return context.repos.meta.withPromoteLock(`source:${provider}:${keyText}`, (locked) =>
+  return context.repos.meta.withPromoteLock(sourcePromoteKey(provider, keyText), (locked) =>
     locked.metaOverlays.claimIgnoreEvent(provider, keyText),
   );
 }

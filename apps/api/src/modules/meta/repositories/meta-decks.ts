@@ -257,6 +257,8 @@ export interface MetaArchivedDeckInput {
   listStatus: Exclude<MetaListStatus, "none">;
 }
 
+export type MetaReplacedDeckInput = Omit<MetaArchivedDeckInput, "formatConfig">;
+
 export interface MetaStoredPlayerDeck {
   deckId: string;
   listStatus: MetaListStatus;
@@ -270,7 +272,7 @@ export async function insertDeckForPlayer(
   trx: Kysely<Database>,
   playerId: string,
   deck: MetaArchivedDeckInput,
-  shareToken: string | null,
+  shareToken: string,
 ): Promise<string> {
   const row = await trx
     .insertInto("decks")
@@ -670,12 +672,13 @@ export function metaDecksRepo(db: Kysely<Database>) {
      *
      * `shareToken` is written only when the deck is created; a replacement
      * keeps the token published links already use. `preserveName` keeps the
-     * existing name across a re-promote. An unchanged card list is left
-     * alone, not deleted and reinserted.
+     * existing name across a re-promote. A stored format config is kept until
+     * the format changes. An unchanged card list is left alone, not deleted
+     * and reinserted.
      */
     setPlayerDeck(
       playerId: string,
-      deck: MetaArchivedDeckInput,
+      deck: MetaReplacedDeckInput,
       shareToken: string,
       options?: { preserveName?: boolean },
     ): Promise<{ deckId: string } | undefined> {
@@ -691,23 +694,30 @@ export function metaDecksRepo(db: Kysely<Database>) {
         }
 
         if (player.deckId === null) {
-          const deckId = await insertDeckForPlayer(trx, playerId, deck, shareToken);
+          const deckId = await insertDeckForPlayer(
+            trx,
+            playerId,
+            { ...deck, formatConfig: null },
+            shareToken,
+          );
           return { deckId };
         }
 
         const current = await trx
           .selectFrom("decks")
-          .select(["name", "format", "formatConfig"])
+          .select(["name", "format"])
           .where("id", "=", player.deckId)
           .executeTakeFirst();
         const name = options?.preserveName === true ? (current?.name ?? deck.name) : deck.name;
-        if (current === undefined || current.name !== name || current.format !== deck.format) {
+        const formatChanged = current?.format !== deck.format;
+        if (current?.name !== name || formatChanged) {
           await trx
             .updateTable("decks")
             .set({
               name,
               format: deck.format,
-              formatConfig: deck.formatConfig,
+              // A config is validated against its own format, so it cannot outlive one.
+              ...(formatChanged ? { formatConfig: null } : {}),
               updatedAt: sql`now()`,
             })
             .where("id", "=", player.deckId)

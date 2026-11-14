@@ -179,6 +179,18 @@ describe("embedderImageSize", () => {
   });
 });
 
+describe("isSlowDevice", () => {
+  it("keeps a device at the threshold on the normal profile", async () => {
+    const { SLOW_DEVICE_EMBED_MS, isSlowDevice } = await loadModule();
+    expect(isSlowDevice(SLOW_DEVICE_EMBED_MS)).toBe(false);
+  });
+
+  it("treats a device just above the threshold as slow", async () => {
+    const { SLOW_DEVICE_EMBED_MS, isSlowDevice } = await loadModule();
+    expect(isSlowDevice(SLOW_DEVICE_EMBED_MS + 1)).toBe(true);
+  });
+});
+
 describe("measuredEmbedMsPerImage", () => {
   it("reports nothing before the model is benchmarked", async () => {
     const { measuredEmbedMsPerImage } = await loadModule();
@@ -243,7 +255,7 @@ describe("the embedder it returns", () => {
     ort.InferenceSession.create = vi.fn().mockResolvedValue(session);
     const { loadScanEmbedder } = await loadModule();
     const embed = await loadScanEmbedder(MODEL_URL, WASM_PATHS);
-    await expect(embed(new Float32Array(48), 1)).rejects.toThrow("no image_embeds output");
+    await expect(embed(new Float32Array(48), 1)).rejects.toThrow('no "image_embeds" output');
   });
 });
 

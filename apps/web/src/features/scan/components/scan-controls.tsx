@@ -66,10 +66,12 @@ export function ScanControls({
               {m.scan_controls_identify_now()}
             </Button>
           )}
-          <Button variant="ghost" onClick={onStop} className={OVER_VIDEO}>
-            <CameraOffIcon />
-            {m.scan_controls_stop()}
-          </Button>
+          {!immersive && (
+            <Button variant="ghost" onClick={onStop} className={OVER_VIDEO}>
+              <CameraOffIcon />
+              {m.scan_chrome_stop()}
+            </Button>
+          )}
         </div>
       )}
     </>

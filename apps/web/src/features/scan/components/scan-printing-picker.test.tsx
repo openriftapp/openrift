@@ -59,7 +59,6 @@ describe("ScanPrintingPicker", () => {
       <ScanPrintingPicker
         request={{
           artKey: "",
-          label: "Yasuo",
           candidates: [normal, foil],
           currentId: "p-normal",
         }}
@@ -78,7 +77,7 @@ describe("ScanPrintingPicker", () => {
   it("marks nothing when the picker is resolving a fresh scan", () => {
     render(
       <ScanPrintingPicker
-        request={{ artKey: "", label: "Yasuo", candidates: [normal, foil] }}
+        request={{ artKey: "", candidates: [normal, foil] }}
         onPick={vi.fn()}
         onDismiss={vi.fn()}
       />,
@@ -93,7 +92,7 @@ describe("ScanPrintingPicker", () => {
     const onPick = vi.fn();
     render(
       <ScanPrintingPicker
-        request={{ artKey: "", label: "Yasuo", candidates: [normal, foil] }}
+        request={{ artKey: "", candidates: [normal, foil] }}
         onPick={onPick}
         onDismiss={vi.fn()}
       />,
@@ -106,5 +105,50 @@ describe("ScanPrintingPicker", () => {
       .filter((row) => row.textContent?.includes(foil.shortCode));
     await userEvent.click(rows.at(-1)!);
     expect(onPick).toHaveBeenCalledWith(foil);
+  });
+
+  it("names a legend by character and epithet", () => {
+    const legend = stubPrinting({
+      card: { name: "Kingpin", types: ["legend"], tags: ["Sett"] },
+    });
+    render(
+      <ScanPrintingPicker
+        request={{ artKey: "art-sett", candidates: [legend] }}
+        onPick={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+      { wrapper: makeWrapper() },
+    );
+
+    expect(screen.getByText(/Sett, Kingpin matched/u)).toBeInTheDocument();
+  });
+
+  it("keeps a name with a bracket whole", () => {
+    const bracketed = stubPrinting({ card: { name: "Poro (Snow Day)" } });
+    render(
+      <ScanPrintingPicker
+        request={{ artKey: "art-poro", candidates: [bracketed] }}
+        onPick={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+      { wrapper: makeWrapper() },
+    );
+
+    expect(screen.getByText(/Poro \(Snow Day\) matched/u)).toBeInTheDocument();
+  });
+
+  it("names every card an uncertain board read could be", () => {
+    const ahri = stubPrinting({ card: { name: "Ahri" } });
+    const teemo = stubPrinting({ card: { name: "Teemo" } });
+    render(
+      <ScanPrintingPicker
+        request={{ artKey: "art-ahri", candidates: [ahri, teemo] }}
+        onPick={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+      { wrapper: makeWrapper() },
+    );
+
+    expect(screen.getByText(/Ahri \/ Teemo/u)).toBeInTheDocument();
   });
 });

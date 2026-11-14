@@ -18,13 +18,12 @@ import {
   shouldRunCatchUp,
 } from "@/features/scan/lib/scan-catchup";
 import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
-import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
+import { snapshotGuide } from "@/features/scan/lib/scan-flight";
 import type { ScannerEvents } from "@/features/scan/lib/scan-locks";
 import { lockFromWinner } from "@/features/scan/lib/scan-locks";
 import type { ScanLoop } from "@/features/scan/lib/scan-loop";
 import type { ScanRun } from "@/features/scan/lib/scan-run";
 import type { SessionKind } from "@/features/scan/lib/scan-worker-protocol";
-import { videoLayoutBox } from "@/features/scan/lib/scan-zoom";
 import { errorText } from "@/lib/error-text";
 
 export interface ScanCatchUpOptions {
@@ -65,7 +64,7 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
   const queueRef = useRef(createCatchUpQueue());
   const queuedBusyRef = useRef(false);
   const identifyBusyRef = useRef(false);
-  const queuedLookRef = useRef<Promise<SecondLook | null> | null>(null);
+  const queuedLookRef = useRef<Promise<SecondLook | "failed" | null> | null>(null);
   const identifyRef = useRef<Promise<IdentifyAttempt> | null>(null);
   const seqRef = useRef(0);
   const [pending, setPending] = useState<UnidentifiedCard[]>([]);
@@ -74,16 +73,27 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     return rankedArtworks(ranked, bank?.artKeys ?? new Map()).slice(0, CATCH_UP_SHORTLIST);
   }
 
-  async function processSecondLook(frame: RgbaImage, tag: string): Promise<SecondLook | null> {
+  async function processSecondLook(
+    frame: RgbaImage,
+    tag: string,
+  ): Promise<SecondLook | "failed" | null> {
     const generation = runGenerationRef.current;
     const seconds = (performance.now() - runRef.current.startedAt) / 1000;
     let outcome: FrameOutcome | null = null;
+    let failed = false;
     try {
       outcome = await options.processFrame("catchUp", frame, seqRef.current, seconds);
     } catch (lookError) {
       console.log(`[scan] ${tag} failed: ${errorText(lookError, "unknown")}`);
+      failed = true;
     }
-    if (!outcome || generation !== runGenerationRef.current) {
+    if (generation !== runGenerationRef.current) {
+      return null;
+    }
+    if (failed) {
+      return "failed";
+    }
+    if (!outcome) {
       return null;
     }
     const verdict = catchUpVerdict(outcome.winner);
@@ -98,6 +108,7 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
   function emitLock(outcome: FrameOutcome): void {
     const winner = outcome.winner;
     if (winner) {
+      navigator.vibrate?.(LOCK_VIBRATION_MS);
       eventsRef.current?.onLock?.(lockFromWinner(winner, outcome, bank?.labels ?? {}, Date.now()));
     }
   }
@@ -134,7 +145,7 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     if (queuedLookRef.current === queuedLook) {
       queuedLookRef.current = null;
     }
-    if (!look || look.verdict === "discard") {
+    if (!look || look === "failed" || look.verdict === "discard") {
       return;
     }
     if (look.verdict === "add" && look.outcome.winner) {
@@ -160,7 +171,7 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     if (!video || !runningRef.current) {
       return { snapshot: null, identified: false, candidates: [] };
     }
-    const snapshot = snapshotVideoRect(video, guideRectIn(videoLayoutBox(video)));
+    const snapshot = snapshotGuide(video);
     onSnapshot?.(snapshot);
     const frame = options.grabFrame(video);
     if (!frame) {
@@ -171,11 +182,13 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     seqRef.current += 1;
     const look = await processSecondLook(frame, "identify-now");
     identifyBusyRef.current = false;
+    if (look === "failed") {
+      throw new Error("the second look failed");
+    }
     if (!look) {
       return { snapshot, identified: false, candidates: [] };
     }
     if (look.verdict === "add" && look.outcome.winner) {
-      navigator.vibrate?.(LOCK_VIBRATION_MS);
       runRef.current.relock.note(look.outcome.winner.artKey, performance.now());
       emitLock(look.outcome);
       return { snapshot, identified: true, candidates: [] };

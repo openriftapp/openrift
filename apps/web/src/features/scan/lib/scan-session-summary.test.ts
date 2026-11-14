@@ -23,7 +23,7 @@ describe("computeScanSessionSummary", () => {
       {
         priceOf: (id) => prices[id],
         isWished: noWishes,
-        ownedBefore: null,
+        ownedOfCard: null,
       },
     );
 
@@ -41,7 +41,7 @@ describe("computeScanSessionSummary", () => {
       {
         priceOf: (id) => (id === "p1" ? prices[id] : undefined),
         isWished: noWishes,
-        ownedBefore: null,
+        ownedOfCard: null,
       },
     );
 
@@ -58,7 +58,7 @@ describe("computeScanSessionSummary", () => {
       {
         priceOf: (id) => prices[id],
         isWished: (printing) => printing.cardId === "c1",
-        ownedBefore: null,
+        ownedOfCard: null,
       },
     );
 
@@ -69,7 +69,7 @@ describe("computeScanSessionSummary", () => {
     const summary = computeScanSessionSummary([{ printing: p2, count: 1 }], {
       priceOf: (id) => prices[id],
       isWished: (printing) => printing.printingId === "p2",
-      ownedBefore: null,
+      ownedOfCard: null,
     });
 
     expect(summary.wishedCards).toBe(1);
@@ -79,14 +79,14 @@ describe("computeScanSessionSummary", () => {
     const summary = computeScanSessionSummary([{ printing: p1, count: 2 }], {
       priceOf: (id) => prices[id],
       isWished: noWishes,
-      ownedBefore: null,
+      ownedOfCard: null,
     });
 
     expect(summary.newCards).toBeNull();
   });
 
-  it("counts every copy of a printing owned nowhere before, and skips already-owned ones", () => {
-    const owned: Record<string, number> = { p1: 0, p2: 3, p3: 0 };
+  it("counts every copy of a card owned nowhere before, and skips already-owned ones", () => {
+    const owned: Record<string, number> = { c1: 0, c2: 3, c3: 0 };
     const summary = computeScanSessionSummary(
       [
         { printing: p1, count: 2 },
@@ -96,11 +96,27 @@ describe("computeScanSessionSummary", () => {
       {
         priceOf: (id) => prices[id],
         isWished: noWishes,
-        ownedBefore: (id) => owned[id] ?? 0,
+        ownedOfCard: (cardId) => owned[cardId] ?? 0,
       },
     );
 
     expect(summary.newCards).toBe(3);
+  });
+
+  it("does not count a card owned in another printing as new", () => {
+    const otherLanguage = stubPrinting({ printingId: "p1-zh", cardId: "c1", language: "ZH" });
+    const ownedByPrinting: Record<string, number> = { p1: 2 };
+    const ownedByCard = (cardId: string) =>
+      [p1, otherLanguage]
+        .filter((printing) => printing.cardId === cardId)
+        .reduce((sum, printing) => sum + (ownedByPrinting[printing.printingId] ?? 0), 0);
+    const summary = computeScanSessionSummary([{ printing: otherLanguage, count: 1 }], {
+      priceOf: () => undefined,
+      isWished: noWishes,
+      ownedOfCard: ownedByCard,
+    });
+
+    expect(summary.newCards).toBe(0);
   });
 
   it("skips rows standing for no cards", () => {
@@ -112,7 +128,7 @@ describe("computeScanSessionSummary", () => {
       {
         priceOf: (id) => prices[id],
         isWished: () => true,
-        ownedBefore: nothingOwned,
+        ownedOfCard: nothingOwned,
       },
     );
 
@@ -126,7 +142,7 @@ describe("computeScanSessionSummary", () => {
     const summary = computeScanSessionSummary([{ printing: p1, count: -1 }], {
       priceOf: (id) => prices[id],
       isWished: () => true,
-      ownedBefore: nothingOwned,
+      ownedOfCard: nothingOwned,
     });
 
     expect(summary.cards).toBe(0);
@@ -137,7 +153,7 @@ describe("computeScanSessionSummary", () => {
     const summary = computeScanSessionSummary([], {
       priceOf: (id) => prices[id],
       isWished: noWishes,
-      ownedBefore: nothingOwned,
+      ownedOfCard: nothingOwned,
     });
 
     expect(summary).toEqual({
@@ -153,7 +169,7 @@ describe("computeScanSessionSummary", () => {
     const summary = computeScanSessionSummary([], {
       priceOf: (id) => prices[id],
       isWished: noWishes,
-      ownedBefore: null,
+      ownedOfCard: null,
     });
 
     expect(summary.newCards).toBeNull();

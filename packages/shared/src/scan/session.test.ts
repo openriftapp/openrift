@@ -396,6 +396,27 @@ describe("createScanSession — learned detector with the aligned verifier", () 
     expect(outcome.winner).toBeNull();
   });
 
+  it("reports a card in the guide only when the top match is within the plan's gate", async () => {
+    const outcomeAt = async (distance: number) => {
+      const session = createScanSession(
+        testDeps({
+          bank: createBank({ "k-a": distance }),
+          fetchReference: () => Promise.resolve(cardTexture(2)),
+          detectCard: (input) => Promise.resolve([fullFrame(input)]),
+        }),
+        testOptions({ rotationFallbackDistance: 0.3 }),
+      );
+      return await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+    };
+
+    const near = await outcomeAt(0.1);
+    const far = await outcomeAt(0.5);
+
+    expect(near.winner).toBeNull();
+    expect(near.cardInGuide).toBe(true);
+    expect(far.cardInGuide).toBe(false);
+  });
+
   it("refuses a frame two artworks verify equally well", async () => {
     const session = createScanSession(
       testDeps({ bank: createBank({ "k-a": 0.1, "k-b": 0.12 }) }),
@@ -504,7 +525,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectCard: () => Promise.resolve([]),
         detectBoard: () => Promise.resolve(outlines()),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
   }
 
@@ -550,7 +571,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
           return Promise.resolve(outlines);
         },
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const first = await session.processFrame(tableSeenFrom(0, [20, 220]), 0, 0, frozenClock);
     const second = await session.processFrame(tableSeenFrom(0, [20, 220]), 1, 1 / 30, frozenClock);
@@ -567,7 +588,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectCard: () => Promise.resolve([]),
         detectBoard: () => Promise.resolve([outlineAt(20), outlineAt(220)]),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const surveyed: number[] = [];
     for (let frame = 0; frame < frames; frame++) {
@@ -680,7 +701,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectCard: () => Promise.resolve([]),
         detectBoard: () => Promise.resolve([outlined]),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const outcome = await session.processFrame(sideways, 0, 0, frozenClock);
     expect(outcome.candidate?.score).toBe(1);
@@ -695,7 +716,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectCard: () => Promise.resolve([]),
         detectBoard: () => Promise.resolve([outlined]),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const outcome = await session.processFrame(sideways, 0, 0, frozenClock);
     expect(outcome.candidate?.minWinner?.score).toBe(101);
@@ -710,7 +731,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectCard: () => Promise.resolve([]),
         detectBoard: () => Promise.resolve([outlined]),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const outcome = await session.processFrame(sideways, 0, 0, frozenClock);
     expect(outcome.focus).toBeLessThan(26);
@@ -766,7 +787,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectBoard: () =>
           Promise.resolve(sweepingTable ? [outlineAt(132 - offset), outlineAt(300 - offset)] : []),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     let locks = 0;
     for (let frame = 0; frame < 4; frame++) {
@@ -803,7 +824,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectBoard: () =>
           Promise.resolve(phase === "sweep" ? lefts.map((left) => outlineAt(left - offset)) : []),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const frameFor = () =>
       phase === "aim"
@@ -854,7 +875,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectBoard: () =>
           Promise.resolve(sweepingTable ? edgeLefts.map((left) => atTopEdge(left - offset)) : []),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const aimed = [];
     for (let frame = 0; frame < 2; frame++) {
@@ -893,7 +914,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
         detectBoard: () =>
           Promise.resolve(phase === "sweep" ? lefts.map((left) => outlineAt(left - offset)) : []),
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const frameFor = () =>
       phase === "aim"
@@ -947,7 +968,7 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
           return Promise.resolve(frame === 0 ? [] : [sidewaysOutline(sideways)]);
         },
       }),
-      testOptions({ sweep: true }),
+      testOptions({ sweep: true, enterSweeps: true }),
     );
     const backoff = SWEEP_OPTIONS.emptyGuideBackoffFrames;
     const outcomes = [];

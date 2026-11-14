@@ -29,6 +29,7 @@ import {
   multiPrintingArts,
   scoreClip,
   summarize,
+  wrongLocks,
 } from "../../packages/shared/src/scan/bench-score.js";
 import type { EmbedBank } from "../../packages/shared/src/scan/embed.js";
 import { toGray } from "../../packages/shared/src/scan/image.js";
@@ -43,10 +44,10 @@ import { benchSessionOptions } from "./bench-options";
 import { createBoardDetector } from "./board-model";
 import { createCardDetector } from "./card-model";
 import type { CardIdentity } from "./catalog";
-import { applyArtGroups, describe, loadCatalog } from "./catalog";
+import { applyArtGroups, benchDeps, describe, loadCatalog } from "./catalog";
 import type { ClipReplay, Sighting } from "./clip-report";
 import { reportClip } from "./clip-report";
-import { CANONICAL_BANK, EMBED_SIZE, MODEL_FILE, loadEmbedBank, nodeEmbedder } from "./embed-bank";
+import { CANONICAL_BANK, MODEL_FILE, embedSize, loadEmbedBank } from "./embed-bank";
 import {
   CLIPS,
   DEFAULT_FPS,
@@ -55,17 +56,19 @@ import {
   argValue,
   hasFlag,
   listClips,
+  listFrames,
   listReferenceImages,
   loadClipTruth,
   loadImage,
   positiveIntArg,
+  servedModel,
 } from "./lib";
 import { createPlacementStats, recordPlacement } from "./placement-stats";
 
 type Catalog = Map<string, CardIdentity>;
 
-const cardDetectorFile = process.env.SCAN_DETECTOR;
-const boardDetectorFile = process.env.SCAN_BOARD_DETECTOR;
+const cardDetectorFile = servedModel("SCAN_DETECTOR", "SCAN_DETECTOR_FILE");
+const boardDetectorFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!cardDetectorFile || !boardDetectorFile) {
   process.stderr.write(
     "usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]\n" +
@@ -80,6 +83,7 @@ interface ReplayContext {
   catalog: Catalog;
   bank: EmbedBank;
   referenceFiles: Map<string, string>;
+  embedImageSize: number;
   multiPrinting: Set<string>;
   options: BenchSessionOptions;
   printingIndex: ScanPrintingIndex;
@@ -94,28 +98,8 @@ interface ReplayContext {
 }
 
 function sessionDeps(context: ReplayContext) {
-  const { catalog, bank, referenceFiles } = context;
   return {
-    embedder: nodeEmbedder,
-    bank,
-    artKeyOf: (key: string) => catalog.get(key)?.artKey ?? key,
-    labelOf: (key: string) => describe(catalog, key),
-    identityOf: (key: string) => {
-      const identity = catalog.get(key);
-      return (
-        identity && {
-          type: identity.cardType,
-          code: identity.publicCode,
-          markers: identity.markers ?? undefined,
-          language: identity.language,
-        }
-      );
-    },
-    embedImageSize: EMBED_SIZE,
-    fetchReference: async (key: string) => {
-      const file = referenceFiles.get(key);
-      return file ? await loadImage(file) : null;
-    },
+    ...benchDeps(context.catalog, context.bank, context.referenceFiles, context.embedImageSize),
     detectCard,
     detectBoard,
   };
@@ -200,10 +184,7 @@ async function runClip(
 ): Promise<ClipReplay> {
   const { catalog, multiPrinting, options } = context;
   const dir = path.join(CLIPS, clip);
-  const frames = fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith(".jpg"))
-    .toSorted();
+  const frames = listFrames(dir);
   const fps = truth.fps ?? DEFAULT_FPS;
   const deps = sessionDeps(context);
   const session: ScanSession = createScanSession(deps, options.live);
@@ -241,7 +222,7 @@ async function runClip(
       const art = catalog.get(top.key)?.artKey ?? top.key;
       const stats = attribution.get(art) ?? { top: 0, plausible: 0, bestScore: 0, winners: 0 };
       stats.top++;
-      if (top.distance <= options.gates.rotationFallbackDistance) {
+      if (outcome.cardInGuide) {
         stats.plausible++;
         stats.bestScore = Math.max(stats.bestScore, outcome.bestScore);
       }
@@ -277,7 +258,6 @@ async function runClip(
     rearm: () => session.rearm(),
     multiPrinting: (artKey) => multiPrinting.has(artKey),
     labelOf: (key) => describe(catalog, key),
-    idleGate: options.gates.rotationFallbackDistance,
     now,
     pacing: grabs
       ? recordedPacing(grabs, fps)
@@ -349,7 +329,7 @@ function gitRevision(): string {
 async function main(): Promise<void> {
   const dropTo = positiveIntArg("--drop-to") ?? null;
   const minSightings = positiveIntArg("--min-sightings") ?? 4;
-  const catalog = loadCatalog();
+  const catalog = await loadCatalog();
   const only = argValue("--clip");
   const split = argValue("--split");
   const onlyMode = argValue("--only-mode");
@@ -361,6 +341,7 @@ async function main(): Promise<void> {
   const context: ReplayContext = {
     catalog,
     bank,
+    embedImageSize: await embedSize(),
     referenceFiles: new Map(listReferenceImages().map((entry) => [entry.key, entry.file])),
     multiPrinting: multiPrintingArts(bank.keys, (key) => catalog.get(key)),
     options: benchSessionOptions(bank),
@@ -406,7 +387,7 @@ async function main(): Promise<void> {
     (sum, result) => ({
       found: sum.found + result.score.found,
       expected: sum.expected + result.score.expected,
-      wrong: sum.wrong + result.score.wrongCards + result.score.wrongPrintings,
+      wrong: sum.wrong + wrongLocks(result.score),
     }),
     { found: 0, expected: 0, wrong: 0 },
   );
@@ -420,7 +401,7 @@ async function main(): Promise<void> {
         date: new Date().toISOString(),
         revision: gitRevision(),
         encoder: path.basename(MODEL_FILE),
-        embedSize: EMBED_SIZE,
+        embedSize: context.embedImageSize,
         canonicalBank: CANONICAL_BANK,
         bankEntries: bank.keys.length,
         args: process.argv.slice(2).join(" "),

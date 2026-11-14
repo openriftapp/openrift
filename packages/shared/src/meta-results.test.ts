@@ -3,18 +3,31 @@ import { describe, expect, it } from "vitest";
 import { metaResultsState, mirrorResultsState } from "./meta-results.js";
 
 describe("metaResultsState", () => {
+  const today = "2026-11-13";
+  const event = (
+    status: "upcoming" | "in_progress" | "complete",
+    playerRowCount: number,
+    eventDate = "2026-11-01",
+  ) => ({ status, playerRowCount, eventDate });
+
   it("reads an upcoming event as not started, whatever it holds", () => {
-    expect(metaResultsState("upcoming", 0)).toBe("notStarted");
-    expect(metaResultsState("upcoming", 12)).toBe("notStarted");
+    expect(metaResultsState(event("upcoming", 0), today)).toBe("notStarted");
+    expect(metaResultsState(event("upcoming", 12), today)).toBe("notStarted");
+  });
+
+  it("reads an event dated after today as not started, whatever its status", () => {
+    expect(metaResultsState(event("complete", 0, "2026-11-14"), today)).toBe("notStarted");
+    expect(metaResultsState(event("in_progress", 0, "2026-11-14"), today)).toBe("notStarted");
   });
 
   it("reads a running event as collecting", () => {
-    expect(metaResultsState("in_progress", 0)).toBe("collecting");
+    expect(metaResultsState(event("in_progress", 0), today)).toBe("collecting");
+    expect(metaResultsState(event("in_progress", 0, today), today)).toBe("collecting");
   });
 
   it("splits a finished event on whether it holds standings", () => {
-    expect(metaResultsState("complete", 82)).toBe("final");
-    expect(metaResultsState("complete", 0)).toBe("noResults");
+    expect(metaResultsState(event("complete", 82), today)).toBe("final");
+    expect(metaResultsState(event("complete", 0), today)).toBe("noResults");
   });
 });
 

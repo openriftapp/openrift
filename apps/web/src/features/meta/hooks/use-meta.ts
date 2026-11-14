@@ -1,5 +1,4 @@
 import type {
-  MetaCountsQuery,
   MetaDeckCardsQuery,
   MetaDeckFacetsQuery,
   MetaDeckQuery,
@@ -58,7 +57,7 @@ export function useMetaEventDayCounts(query?: MetaEventDayCountsQuery) {
   return useQuery({ ...metaEventDayCountsQueryOptions(query), placeholderData: keepPreviousData });
 }
 
-export function useMetaCounts(query?: MetaCountsQuery) {
+export function useMetaCounts(query?: MetaScopeQuery) {
   return useSuspenseQuery(metaCountsQueryOptions(query));
 }
 

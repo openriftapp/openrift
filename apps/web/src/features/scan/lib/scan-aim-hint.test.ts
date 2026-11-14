@@ -17,7 +17,7 @@ function frame(overrides: Partial<AimHintInput> = {}): AimHintInput {
     candidateAreaFraction: 1,
     bestScore: 95,
     focus: 120,
-    topDistance: 0.1,
+    plausible: true,
     refused: false,
     isWinner: false,
     ...overrides,
@@ -185,40 +185,30 @@ describe("deriveAimHint", () => {
   });
 
   it("asks for a card when nothing verified and nothing ranked plausibly", () => {
-    expect(deriveAimHint(frame({ bestScore: 0, topDistance: 0.9 }))?.kind).toBe("no-card");
+    expect(deriveAimHint(frame({ bestScore: 0, plausible: false }))?.kind).toBe("no-card");
   });
 
   it("treats a near-zero score with an implausible match as no card", () => {
-    expect(deriveAimHint(frame({ bestScore: 2, topDistance: 0.9 }))?.kind).toBe("no-card");
-  });
-
-  it("asks for a card when nothing ranked at all", () => {
-    expect(deriveAimHint(frame({ bestScore: 0, topDistance: undefined }))?.kind).toBe("no-card");
+    expect(deriveAimHint(frame({ bestScore: 2, plausible: false }))?.kind).toBe("no-card");
   });
 
   it("stays quiet when nothing verified but the ranking is plausible", () => {
-    expect(deriveAimHint(frame({ bestScore: 0, topDistance: 0.3 }))).toBeNull();
+    expect(deriveAimHint(frame({ bestScore: 0, plausible: true }))).toBeNull();
   });
 
   it("blames glare on a low score with an implausible match", () => {
-    expect(deriveAimHint(frame({ bestScore: 16, topDistance: 0.6 }))).toEqual({
+    expect(deriveAimHint(frame({ bestScore: 16, plausible: false }))).toEqual({
       kind: "glare",
       message: aimHintMessage("glare"),
     });
   });
 
   it("does not blame glare while the match is plausible", () => {
-    expect(deriveAimHint(frame({ bestScore: 16, topDistance: 0.2 }))).toBeNull();
-  });
-
-  it("honours a tighter encoder gate", () => {
-    const input = frame({ bestScore: 16, topDistance: 0.38 });
-    expect(deriveAimHint(input)).toBeNull();
-    expect(deriveAimHint({ ...input, plausibleDistance: 0.35 })?.kind).toBe("glare");
+    expect(deriveAimHint(frame({ bestScore: 16, plausible: true }))).toBeNull();
   });
 
   it("holds steady at the bottom of the almost band", () => {
-    expect(deriveAimHint(frame({ bestScore: 30, topDistance: 0.6 }))).toEqual({
+    expect(deriveAimHint(frame({ bestScore: 30, plausible: false }))).toEqual({
       kind: "almost",
       message: aimHintMessage("almost"),
     });
@@ -229,7 +219,7 @@ describe("deriveAimHint", () => {
   });
 
   it("says nothing just below the almost band when the match is plausible", () => {
-    expect(deriveAimHint(frame({ bestScore: 29, topDistance: 0.2 }))).toBeNull();
+    expect(deriveAimHint(frame({ bestScore: 29, plausible: true }))).toBeNull();
   });
 
   it("says nothing at the accept floor", () => {

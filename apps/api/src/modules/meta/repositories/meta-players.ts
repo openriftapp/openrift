@@ -8,7 +8,12 @@ import { containsPattern } from "../../../lib/like-pattern.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaArchivedDeckInput } from "./meta-decks.js";
 import { insertDeckForPlayer } from "./meta-decks.js";
-import { foldedPlayerIdentity, resolvedPlayerName } from "./meta-shared.js";
+import {
+  foldedPlayerIdentity,
+  HAS_LIST,
+  LEGEND_REF_COLUMNS,
+  resolvedPlayerName,
+} from "./meta-shared.js";
 
 /**
  * One player's entry as a public standings table renders it.
@@ -192,11 +197,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
           "p.losses",
           "p.draws",
           "p.legendCardId",
-          "lc.name as legendName",
-          "lc.slug as legendSlug",
-          "lmca.types as legendTypes",
-          "lc.tags as legendTags",
-          "lmca.domains as legendDomains",
+          ...LEGEND_REF_COLUMNS,
           "p.championCardId",
           "cc.name as championName",
           "cc.slug as championSlug",
@@ -209,7 +210,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     );
   }
 
-  /** Requires `p`, `up` and `d` in the query, as {@link playerQuery} joins them. */
+  /** Requires `p` and `up` in the query, as {@link playerQuery} joins them. */
   function standingsFilters<DB, TB extends keyof DB, O>(
     query: SelectQueryBuilder<DB, TB, O>,
     eventId: string,
@@ -223,7 +224,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
       );
     }
     if (filters.withList === true) {
-      narrowed = narrowed.where(sql<SqlBool>`d.share_token is not null`);
+      narrowed = narrowed.where(HAS_LIST);
     }
     if (filters.legend !== undefined) {
       narrowed = narrowed.where(sql<SqlBool>`p.legend_card_id = ${filters.legend}::uuid`);
@@ -292,7 +293,12 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     async bestPerLegendForEvent(eventId: string): Promise<MetaEventPlayerRow[]> {
       const best = await db
         .selectFrom("metaEventPlayers as p")
-        .select([sql<string>`(array_agg(p.id order by p.rank asc, p.id asc))[1]`.as("playerId")])
+        .leftJoin("uvsgamesPlayers as up", "up.id", "p.uvsgamesPlayerId")
+        .select([
+          sql<string>`(array_agg(p.id order by p.rank asc, ${resolvedPlayerName} asc, p.id asc))[1]`.as(
+            "playerId",
+          ),
+        ])
         .where("p.metaEventId", "=", eventId)
         .where("p.legendCardId", "is not", null)
         .groupBy("p.legendCardId")
@@ -328,9 +334,8 @@ export function metaPlayersRepo(db: Kysely<Database>) {
       const [counts, legends, progress] = await Promise.all([
         db
           .selectFrom("metaEventPlayers as p")
-          .leftJoin("decks as d", "d.id", "p.deckId")
           .select([
-            sql<number>`count(*) filter (where d.share_token is not null)::int`.as("withLists"),
+            sql<number>`count(p.deck_id)::int`.as("withLists"),
             sql<boolean>`bool_or(p.legend_card_id is not null or p.champion_card_id is not null)`.as(
               "hasLegends",
             ),
@@ -480,14 +485,13 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     },
 
     /**
-     * `shareToken` is supplied by the caller (wrapped in `withUniqueShareToken`)
-     * because the retry has to re-run the whole transaction, not just the
-     * insert that collided. It is null exactly when `input.deck` is, since a
-     * standings-only entry has no page to address.
+     * The list's `shareToken` is supplied by the caller (wrapped in
+     * `withUniqueShareToken`) because the retry has to re-run the whole
+     * transaction, not just the insert that collided.
      */
     createPlayer(
-      input: MetaEventPlayerInput,
-      shareToken: string | null,
+      input: Omit<MetaEventPlayerInput, "deck">,
+      list: { deck: MetaArchivedDeckInput; shareToken: string } | null,
     ): Promise<{ metaEventPlayerId: string; deckId: string | null } | undefined> {
       return inTransaction(db, async (trx) => {
         const event = await trx
@@ -524,9 +528,9 @@ export function metaPlayersRepo(db: Kysely<Database>) {
           .executeTakeFirstOrThrow();
 
         const deckId =
-          input.deck === null
+          list === null
             ? null
-            : await insertDeckForPlayer(trx, player.id, input.deck, shareToken);
+            : await insertDeckForPlayer(trx, player.id, list.deck, list.shareToken);
 
         return { metaEventPlayerId: player.id, deckId };
       });
@@ -534,50 +538,10 @@ export function metaPlayersRepo(db: Kysely<Database>) {
 
     async updatePlayer(id: string, patch: MetaEventPlayerPatch): Promise<boolean> {
       const updates: Updateable<MetaEventPlayersTable> = {};
-      if (patch.rank !== undefined) {
-        updates.rank = patch.rank;
-      }
-      if (patch.rankIsTier !== undefined) {
-        updates.rankIsTier = patch.rankIsTier;
-      }
-      if (patch.uvsgamesPlayerId !== undefined) {
-        updates.uvsgamesPlayerId = patch.uvsgamesPlayerId;
-      }
-      if (patch.playerName !== undefined) {
-        updates.playerName = patch.playerName;
-      }
-      if (patch.wins !== undefined) {
-        updates.wins = patch.wins;
-      }
-      if (patch.losses !== undefined) {
-        updates.losses = patch.losses;
-      }
-      if (patch.draws !== undefined) {
-        updates.draws = patch.draws;
-      }
-      if (patch.matchPoints !== undefined) {
-        updates.matchPoints = patch.matchPoints;
-      }
-      if (patch.opponentMatchWinPct !== undefined) {
-        updates.opponentMatchWinPct = patch.opponentMatchWinPct;
-      }
-      if (patch.gameWinPct !== undefined) {
-        updates.gameWinPct = patch.gameWinPct;
-      }
-      if (patch.opponentGameWinPct !== undefined) {
-        updates.opponentGameWinPct = patch.opponentGameWinPct;
-      }
-      if (patch.entryStatus !== undefined) {
-        updates.entryStatus = patch.entryStatus;
-      }
-      if (patch.legendCardId !== undefined) {
-        updates.legendCardId = patch.legendCardId;
-      }
-      if (patch.championCardId !== undefined) {
-        updates.championCardId = patch.championCardId;
-      }
-      if (patch.sourceIdentity !== undefined) {
-        updates.sourceIdentity = patch.sourceIdentity;
+      for (const { key } of PLAYER_PATCH_COLUMNS) {
+        if (patch[key] !== undefined) {
+          Object.assign(updates, { [key]: patch[key] });
+        }
       }
 
       if (Object.keys(updates).length === 0) {

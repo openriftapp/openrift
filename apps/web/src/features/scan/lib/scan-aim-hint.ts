@@ -4,11 +4,7 @@
  */
 
 import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
-import {
-  ARCFACE_GATES,
-  MOBILECLIP_GATES,
-  ROTATION_MIN_FOCUS,
-} from "@openrift/shared/scan/session-options";
+import { ROTATION_MIN_FOCUS } from "@openrift/shared/scan/session-options";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -69,21 +65,15 @@ const ALMOST_MIN_SCORE = 30;
 const ALMOST_MAX_SCORE = DEFAULT_ALIGNED_OPTIONS.minScore * 100 - 3;
 const NO_MATCH_BELOW_SCORE = 3;
 
-const PLAUSIBLE_DISTANCE = Math.max(
-  ARCFACE_GATES.rotationFallbackDistance,
-  MOBILECLIP_GATES.rotationFallbackDistance,
-);
-
 export interface AimHintInput {
   active: boolean;
   hasCandidate: boolean;
   candidateAreaFraction: number;
   bestScore: number;
   focus: number;
-  topDistance?: number;
+  plausible: boolean;
   refused: boolean;
   isWinner: boolean;
-  plausibleDistance?: number;
   settling?: boolean;
 }
 
@@ -134,8 +124,7 @@ export function deriveAimHint(input: AimHintInput): AimHint | null {
   if (input.refused) {
     return hint("checking");
   }
-  const gate = input.plausibleDistance ?? PLAUSIBLE_DISTANCE;
-  const implausible = input.topDistance === undefined || input.topDistance > gate;
+  const implausible = !input.plausible;
   if (input.bestScore < NO_MATCH_BELOW_SCORE && implausible) {
     return hint("no-card");
   }

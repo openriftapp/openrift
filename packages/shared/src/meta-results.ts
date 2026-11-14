@@ -3,18 +3,21 @@ import type { MetaEventStatus } from "./types/enums.js";
 export const META_RESULTS_STATES = ["notStarted", "collecting", "final", "noResults"] as const;
 export type MetaResultsState = (typeof META_RESULTS_STATES)[number];
 
-/** A published event's results state, from its stored lifecycle and how many standings it holds. */
+/**
+ * A published event's results state. Upcoming is the stored lifecycle or a
+ * date after `today` (a UTC day key): a hand-entered event defaults to complete.
+ */
 export function metaResultsState(
-  status: MetaEventStatus,
-  playerRowCount: number,
+  event: { status: MetaEventStatus; eventDate: string; playerRowCount: number },
+  today: string,
 ): MetaResultsState {
-  if (status === "upcoming") {
+  if (event.status === "upcoming" || event.eventDate > today) {
     return "notStarted";
   }
-  if (status === "in_progress") {
+  if (event.status === "in_progress") {
     return "collecting";
   }
-  return playerRowCount > 0 ? "final" : "noResults";
+  return event.playerRowCount > 0 ? "final" : "noResults";
 }
 
 /** A published mirror row's results state, split as the sync buckets split it. */

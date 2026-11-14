@@ -16,7 +16,6 @@ export interface ScanPrintingIndex {
 /** One unresolved lock waiting for the user to name its printing. */
 export interface PickerRequest {
   artKey: string;
-  label: string;
   candidates: Printing[];
   currentId?: string;
 }
@@ -64,7 +63,7 @@ function baseKeyOf(printing: Printing): string {
   ].join("|");
 }
 
-function markerKeyOf(printing: Printing): string {
+export function markerKeyOf(printing: Printing): string {
   return printing.markers
     .map((marker) => marker.slug)
     .toSorted()
@@ -220,17 +219,16 @@ export function sortForPicker(candidates: readonly Printing[]): Printing[] {
 export interface BoardResolution {
   added: Printing[];
   pickers: PickerRequest[];
-  unknown: string[];
+  unknownKeys: string[];
 }
 
 export function resolveBoardRead(
   cards: readonly BoardReadCard[],
   index: ScanPrintingIndex,
   artKeyOf: (key: string) => string,
-  nameOf: (key: string) => string,
   preferredLanguage?: string,
 ): BoardResolution {
-  const result: BoardResolution = { added: [], pickers: [], unknown: [] };
+  const result: BoardResolution = { added: [], pickers: [], unknownKeys: [] };
   for (const card of cards) {
     if (card.alternatives.length > 0) {
       const keys = [card.key, ...card.alternatives];
@@ -246,26 +244,17 @@ export function resolveBoardRead(
         return resolution.kind === "picker" ? resolution.candidates : [];
       });
       if (candidates.length === 0) {
-        result.unknown.push(card.label);
+        result.unknownKeys.push(card.key);
         continue;
       }
-      const names = [...new Set(keys.map((key) => nameOf(key)))];
-      result.pickers.push({
-        artKey: card.artKey,
-        label: names.join(" / "),
-        candidates: sortForPicker(candidates),
-      });
+      result.pickers.push({ artKey: card.artKey, candidates: sortForPicker(candidates) });
       continue;
     }
     const resolution = resolveLock(card, index, preferredLanguage);
     if (resolution.kind === "unknown") {
-      result.unknown.push(card.label);
+      result.unknownKeys.push(card.key);
     } else if (resolution.kind === "picker") {
-      result.pickers.push({
-        artKey: card.artKey,
-        label: card.label,
-        candidates: resolution.candidates,
-      });
+      result.pickers.push({ artKey: card.artKey, candidates: resolution.candidates });
     } else {
       result.added.push(resolution.printing);
     }

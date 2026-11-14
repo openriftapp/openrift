@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { downscaleGray, focusScore, luma, toGray } from "./image";
+import { downscaleGray, focusScore, luma, rotateRgbaCw, toCanonicalFrame, toGray } from "./image";
 import type { GrayImage, RgbaImage } from "./types";
 
 function gray(width: number, height: number, values: number[]): GrayImage {
@@ -70,5 +70,25 @@ describe("focusScore", () => {
     );
     expect(focusScore(ramp)).toBe(0);
     expect(focusScore(checker)).toBeGreaterThan(1000);
+  });
+});
+
+describe("toCanonicalFrame", () => {
+  const image = (width: number, height: number): RgbaImage => ({
+    data: Uint8ClampedArray.from({ length: width * height * 4 }, (_value, index) => index % 251),
+    width,
+    height,
+  });
+
+  it("turns a landscape image 90 degrees left", () => {
+    const landscape = image(3, 2);
+    expect(toCanonicalFrame(landscape)).toEqual(
+      rotateRgbaCw(rotateRgbaCw(rotateRgbaCw(landscape))),
+    );
+  });
+
+  it("keeps a portrait image as it is", () => {
+    const portrait = image(2, 3);
+    expect(toCanonicalFrame(portrait)).toBe(portrait);
   });
 });

@@ -1,6 +1,6 @@
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 
-interface MirrorUpsertResult<K> {
+export interface MirrorUpsertResult<K> {
   inserted: K[];
   changed: K[];
   unchanged: K[];

@@ -61,6 +61,8 @@ describe.skipIf(!ctx)("metaInferencesRepo (integration)", () => {
         legendCardId: legend,
         championCardId: null,
         sourceIdentity: null,
+      },
+      {
         deck: {
           name: `MTI Deck ${rank}`,
           format: FORMAT,
@@ -72,8 +74,8 @@ describe.skipIf(!ctx)("metaInferencesRepo (integration)", () => {
           ],
           listStatus,
         },
+        shareToken: `mti${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
       },
-      `mti${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
     );
     createdDeckIds.push(created!.deckId!);
     return created!.deckId!;

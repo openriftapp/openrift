@@ -11,6 +11,7 @@ import type { Database } from "../../../db/tables.js";
 import type { MetaEventsTable, MetaSubmissionsTable } from "../../../db/tables/meta.js";
 import { keyBatches } from "../../../lib/bind-batches.js";
 import { inTransaction, listOwnedByUser } from "../../../repositories/query-helpers.js";
+import { metaCreditsRepo } from "./meta-credits.js";
 
 export type MetaSubmissionRow = Selectable<MetaSubmissionsTable>;
 
@@ -140,72 +141,47 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
 
     /**
      * Every unresolved correction to an event's own facts, oldest first, each
-     * beside the event as it stands today.
-     *
-     * Left join: deleting an event must not delete the correction row.
+     * beside the event as it stands today, or null once the event was deleted.
      */
     async listPendingEventCorrections(limit: number): Promise<MetaEventCorrectionRow[]> {
-      const rows = await db
+      const submissions = await db
         .selectFrom("metaSubmissions")
-        .leftJoin("metaEvents", "metaEvents.id", "metaSubmissions.metaEventId")
-        .selectAll("metaSubmissions")
-        .select([
-          "metaEvents.id as eventId",
-          "metaEvents.slug as eventSlug",
-          "metaEvents.name as eventFullName",
-          "metaEvents.eventDate as eventEventDate",
-          "metaEvents.format as eventFormat",
-          "metaEvents.playerCount as eventPlayerCount",
-          "metaEvents.organizer as eventOrganizer",
-          "metaEvents.location as eventLocation",
-          "metaEvents.country as eventCountry",
-        ])
-        .where("metaSubmissions.kind", "=", "event_correction")
-        .where("metaSubmissions.status", "=", "pending")
-        .orderBy("metaSubmissions.createdAt", "asc")
-        .orderBy("metaSubmissions.id", "asc")
+        .selectAll()
+        .where("kind", "=", "event_correction")
+        .where("status", "=", "pending")
+        .orderBy("createdAt", "asc")
+        .orderBy("id", "asc")
         .limit(limit)
         .execute();
+      const eventIds = [
+        ...new Set(
+          submissions.flatMap((row) => (row.metaEventId === null ? [] : [row.metaEventId])),
+        ),
+      ];
+      const events =
+        eventIds.length === 0
+          ? []
+          : await db
+              .selectFrom("metaEvents")
+              .select([
+                "id",
+                "slug",
+                "name",
+                "eventDate",
+                "format",
+                "playerCount",
+                "organizer",
+                "location",
+                "country",
+              ])
+              .where("id", "in", eventIds)
+              .execute();
+      const eventById = new Map(events.map((event) => [event.id, event]));
 
-      return rows.map((row) => ({
-        submission: {
-          id: row.id,
-          userId: row.userId,
-          provider: row.provider,
-          externalId: row.externalId,
-          playerOverlayId: row.playerOverlayId,
-          metaEventId: row.metaEventId,
-          metaEventPlayerId: row.metaEventPlayerId,
-          eventName: row.eventName,
-          playerName: row.playerName,
-          kind: row.kind,
-          fieldEdits: row.fieldEdits,
-          note: row.note,
-          status: row.status,
-          resolutionReason: row.resolutionReason,
-          resolutionNote: row.resolutionNote,
-          resolvedAt: row.resolvedAt,
-          resolvedByUserId: row.resolvedByUserId,
-          acceptedDeckId: row.acceptedDeckId,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-        },
+      return submissions.map((submission) => ({
+        submission,
         event:
-          row.eventId === null
-            ? null
-            : {
-                id: row.eventId,
-                // Every column of a matched left join is non-null together, and
-                // the id is what the type narrowing has to hang off.
-                slug: row.eventSlug ?? "",
-                name: row.eventFullName ?? "",
-                eventDate: row.eventEventDate ?? "",
-                format: row.eventFormat ?? "",
-                playerCount: row.eventPlayerCount,
-                organizer: row.eventOrganizer,
-                location: row.eventLocation,
-                country: row.eventCountry,
-              },
+          submission.metaEventId === null ? null : (eventById.get(submission.metaEventId) ?? null),
       }));
     },
 
@@ -274,13 +250,7 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
       resolvedByUserId: string | null;
     }): Promise<void> {
       const run = async (trx: Kysely<Database>): Promise<void> => {
-        await trx
-          .insertInto("metaCredits")
-          .values(values.credit)
-          .onConflict((oc) =>
-            oc.columns(["metaEventId", "userId", "metaEventPlayerId"]).doNothing(),
-          )
-          .execute();
+        await metaCreditsRepo(trx).insertCredit(values.credit);
 
         if (values.submissionId === null) {
           return;

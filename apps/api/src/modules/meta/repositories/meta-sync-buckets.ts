@@ -17,7 +17,7 @@ export interface MetaAutoPublishRule {
   autoAcceptNotable: boolean;
 }
 
-export interface MetaSyncBuckets {
+interface MetaSyncBuckets {
   notStarted: number;
   firstStartAt: Date | null;
   collecting: number;
@@ -37,9 +37,119 @@ export type MetaSyncBucketCounts = Omit<MetaSyncBuckets, "firstStartAt" | "nextC
   total: number;
 };
 
+export type MirrorTriage = "new" | "accepted" | "dismissed";
+
+export interface MirrorTriageCounts {
+  new: number;
+  accepted: number;
+  dismissed: number;
+}
+
+export interface MirrorListOrder {
+  sort?: "startAt" | "name" | "playerCount";
+  direction?: "asc" | "desc";
+}
+
+export interface MirrorSyncOverview extends MetaSyncBuckets {
+  total: number;
+  completed: number;
+  decklistPublished: number;
+  missing: number;
+  dueRecheck: number;
+  oldestDueAt: Date | null;
+  queued: number;
+  acceptedAwaitingResults: number;
+  acceptedMissing: number;
+  acceptedCancelled: number;
+  lastSeenAt: Date | null;
+}
+
+interface MirrorOverviewColumns {
+  completed: RawBuilder<SqlBool>;
+  decklistPublished: RawBuilder<SqlBool>;
+  awaitingResults: RawBuilder<SqlBool>;
+  cancelled: RawBuilder<SqlBool>;
+}
+
+interface MirrorTriagePredicates {
+  undecided: RawBuilder<SqlBool>;
+  published: RawBuilder<SqlBool>;
+  rejected: RawBuilder<SqlBool>;
+}
+
 const undecided = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
 const published = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
 const rejected = sql<SqlBool>`i.provider is not null`;
+
+export const JOINED_TRIAGE: MirrorTriagePredicates = { undecided, published, rejected };
+
+export const NEVER = sql<SqlBool>`false`;
+
+export const TRIAGE_STATE = sql<MirrorTriage>`case
+    when i.provider is not null then 'dismissed'
+    when src.meta_event_id is not null then 'accepted'
+    else 'new'
+  end`;
+
+// Absence must be an anti-join here: reading a joined null makes the planner
+// sort the whole catalogue before taking one page. Presence reads the join.
+export function pagedTriage(provider: string, key: RawBuilder<string>): MirrorTriagePredicates {
+  const notDismissed = sql<SqlBool>`not exists (
+    select 1 from ignored_meta_source_events x
+     where x.provider = ${provider} and x.external_id = ${key}
+  )`;
+  const notLinked = sql<SqlBool>`not exists (
+    select 1 from meta_event_sources y
+     where y.provider = ${provider} and y.external_id = ${key}
+       and y.meta_event_id is not null
+  )`;
+  return {
+    undecided: sql<SqlBool>`${notDismissed} and ${notLinked}`,
+    published: sql<SqlBool>`${notDismissed} and src.meta_event_id is not null`,
+    rejected,
+  };
+}
+
+const TRIAGE_PREDICATE = {
+  new: "undecided",
+  accepted: "published",
+  dismissed: "rejected",
+} as const satisfies Record<MirrorTriage, keyof MirrorTriagePredicates>;
+
+export function mirrorListConditions(
+  narrowed: readonly RawBuilder<SqlBool>[],
+  filters: {
+    triage?: MirrorTriage;
+    bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
+  },
+  columns: MetaSyncBucketColumns,
+  paged: MirrorTriagePredicates,
+): RawBuilder<SqlBool>[] {
+  const conditions = [...narrowed];
+  if (filters.bucket !== undefined) {
+    conditions.push(
+      metaSyncBucketCondition(filters.bucket.name, columns, filters.bucket.rule, paged),
+    );
+  }
+  if (filters.triage !== undefined) {
+    conditions.push(paged[TRIAGE_PREDICATE[filters.triage]]);
+  }
+  return conditions;
+}
+
+export function catalogOrderBy(playerCount: RawBuilder<unknown>, order: MirrorListOrder) {
+  const columns = { startAt: sql`c.start_at`, name: sql`lower(c.name)`, playerCount };
+  const column = columns[order.sort ?? "startAt"];
+  return order.direction === "asc" ? sql`${column} asc nulls last` : sql`${column} desc nulls last`;
+}
+
+export function triageCountSelections() {
+  return [
+    sql<number>`count(*) filter (where ${undecided})::int`.as("new"),
+    sql<number>`count(*) filter (where ${published})::int`.as("accepted"),
+    sql<number>`count(*) filter (where ${rejected})::int`.as("dismissed"),
+  ] as const;
+}
 
 /** The player-count half every source shares; a `null` threshold passes nothing. */
 export function sizeRulePasses(
@@ -52,12 +162,10 @@ export function sizeRulePasses(
     : sql<SqlBool>`(coalesce(${players} >= ${minPlayers}, false) and not (${team}))`;
 }
 
-export interface MetaSyncBucketTriage {
+interface MetaSyncBucketTriage {
   undecided: RawBuilder<SqlBool>;
   published: RawBuilder<SqlBool>;
 }
-
-const joinedTriage: MetaSyncBucketTriage = { undecided, published };
 
 /**
  * In a `where`, pass the source's anti-join triage: a joined null leaves the
@@ -67,7 +175,7 @@ export function metaSyncBucketCondition(
   bucket: MetaSyncBucketFilter,
   columns: MetaSyncBucketColumns,
   rule: MetaAutoPublishRule,
-  triage: MetaSyncBucketTriage = joinedTriage,
+  triage: MetaSyncBucketTriage = JOINED_TRIAGE,
 ): RawBuilder<SqlBool> {
   const { started, hasResults, nextCheckAt } = columns;
   const { undecided: isUndecided, published: isPublished } = triage;
@@ -127,10 +235,7 @@ export function metaSyncBucketCountSelections(
   ] as const;
 }
 
-export function metaSyncBucketSelections(
-  columns: MetaSyncBucketColumns,
-  rule: MetaAutoPublishRule,
-) {
+function metaSyncBucketSelections(columns: MetaSyncBucketColumns, rule: MetaAutoPublishRule) {
   const { started, startAt, nextCheckAt } = columns;
   return [
     ...metaSyncBucketCountSelections(columns, rule),
@@ -163,7 +268,7 @@ export function toMetaSyncBucketCounts(row: CountRow): MetaSyncBucketCounts {
   };
 }
 
-export function toMetaSyncBuckets(
+function toMetaSyncBuckets(
   row: CountRow & { firstStartAt: Date | null; nextCheckAt: Date | null },
 ): MetaSyncBuckets {
   const counts = toMetaSyncBucketCounts(row);
@@ -178,5 +283,69 @@ export function toMetaSyncBuckets(
     passingNoResults: counts.passingNoResults,
     skippedUpcoming: counts.skippedUpcoming,
     skippedPast: counts.skippedPast,
+  };
+}
+
+export function mirrorOverviewSelections(
+  columns: MetaSyncBucketColumns,
+  rule: MetaAutoPublishRule,
+  overview: MirrorOverviewColumns,
+) {
+  const { nextCheckAt } = columns;
+  return [
+    sql<string>`count(*) filter (where ${overview.completed})`.as("completed"),
+    sql<string>`count(*) filter (where ${overview.decklistPublished})`.as("decklistPublished"),
+    sql<string>`count(*) filter (where c.missing_since is not null)`.as("missing"),
+    sql<string>`count(*) filter (where ${nextCheckAt} is not null and ${nextCheckAt} <= now())`.as(
+      "dueRecheck",
+    ),
+    sql<Date | null>`min(${nextCheckAt}) filter (where ${nextCheckAt} <= now())`.as("oldestDueAt"),
+    sql<string>`count(*) filter (where ${nextCheckAt} is not null)`.as("queued"),
+    sql<string>`count(*) filter (where (${published}) and (${overview.awaitingResults}))`.as(
+      "acceptedAwaitingResults",
+    ),
+    sql<string>`count(*) filter (where (${published}) and c.missing_since is not null)`.as(
+      "acceptedMissing",
+    ),
+    sql<string>`count(*) filter (where (${published}) and (${overview.cancelled}))`.as(
+      "acceptedCancelled",
+    ),
+    sql<Date | null>`max(${sql.ref("c.lastSeenAt")})`.as("lastSeenAt"),
+    ...metaSyncBucketSelections(columns, rule),
+  ] as const;
+}
+
+type OverviewRow = CountRow &
+  Record<
+    | "completed"
+    | "decklistPublished"
+    | "missing"
+    | "dueRecheck"
+    | "queued"
+    | "acceptedAwaitingResults"
+    | "acceptedMissing"
+    | "acceptedCancelled",
+    string
+  > & {
+    firstStartAt: Date | null;
+    nextCheckAt: Date | null;
+    oldestDueAt: Date | null;
+    lastSeenAt: Date | null;
+  };
+
+export function toMirrorSyncOverview(row: OverviewRow): MirrorSyncOverview {
+  return {
+    ...toMetaSyncBuckets(row),
+    total: Number(row.total),
+    completed: Number(row.completed),
+    decklistPublished: Number(row.decklistPublished),
+    missing: Number(row.missing),
+    dueRecheck: Number(row.dueRecheck),
+    oldestDueAt: row.oldestDueAt,
+    queued: Number(row.queued),
+    acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
+    acceptedMissing: Number(row.acceptedMissing),
+    acceptedCancelled: Number(row.acceptedCancelled),
+    lastSeenAt: row.lastSeenAt,
   };
 }

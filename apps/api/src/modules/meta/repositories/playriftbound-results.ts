@@ -6,10 +6,7 @@ import type {
   PlayriftboundEventPhasesTable,
   PlayriftboundEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
-import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
-
-// This source publishes standings and pairings but no decklists, so it has no deck tables.
+import { replaceRows, replaceUnderEventLock } from "./mirror-results.js";
 
 export type PlayriftboundStandingRow = Selectable<PlayriftboundEventStandingsTable>;
 export type PlayriftboundPhaseRow = Selectable<PlayriftboundEventPhasesTable>;
@@ -56,30 +53,38 @@ export function playriftboundResultsRepo(db: Kysely<Database>) {
 
     /** Wholesale: one detail response is the whole event, and standings re-rank every round. */
     async replaceResults(tournamentId: string, results: PlayriftboundResults): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await lockKey(trx, `playriftbound-event:${tournamentId}`);
-        await trx
-          .deleteFrom("playriftboundEventStandings")
-          .where("tournamentId", "=", tournamentId)
-          .execute();
-        await trx
-          .deleteFrom("playriftboundEventPhases")
-          .where("tournamentId", "=", tournamentId)
-          .execute();
-        await trx
-          .deleteFrom("playriftboundEventMatches")
-          .where("tournamentId", "=", tournamentId)
-          .execute();
-        for (const batch of rowBatches(results.standings)) {
-          await trx.insertInto("playriftboundEventStandings").values(batch).execute();
-        }
-        for (const batch of rowBatches(results.phases)) {
-          await trx.insertInto("playriftboundEventPhases").values(batch).execute();
-        }
-        for (const batch of rowBatches(results.matches)) {
-          await trx.insertInto("playriftboundEventMatches").values(batch).execute();
-        }
-      });
+      await replaceUnderEventLock(
+        db,
+        "playriftbound",
+        tournamentId,
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("playriftboundEventStandings")
+              .where("tournamentId", "=", tournamentId)
+              .execute(),
+          results.standings,
+          (trx, batch) => trx.insertInto("playriftboundEventStandings").values(batch).execute(),
+        ),
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("playriftboundEventPhases")
+              .where("tournamentId", "=", tournamentId)
+              .execute(),
+          results.phases,
+          (trx, batch) => trx.insertInto("playriftboundEventPhases").values(batch).execute(),
+        ),
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("playriftboundEventMatches")
+              .where("tournamentId", "=", tournamentId)
+              .execute(),
+          results.matches,
+          (trx, batch) => trx.insertInto("playriftboundEventMatches").values(batch).execute(),
+        ),
+      );
     },
   };
 }

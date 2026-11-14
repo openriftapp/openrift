@@ -24,6 +24,7 @@ function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
     locked: null,
     winnerRun: null,
     focus: 120,
+    cardInGuide: false,
     timings: { detect: 10, embed: 20, verify: 30, total: 65, crop: 0 },
     ...overrides,
   };
@@ -105,7 +106,7 @@ describe("aimHintInputFor", () => {
       active: true,
       hasCandidate: false,
       isWinner: false,
-      topDistance: 0,
+      plausible: false,
       settling: false,
     });
   });
@@ -118,7 +119,7 @@ describe("aimHintInputFor", () => {
     expect(aimHintInputFor(outcome(), 0.6, true).settling).toBe(true);
   });
 
-  it("leaves the top distance undefined when nothing ranked at all", () => {
-    expect(aimHintInputFor(outcome({ ranked: [] }), 0, false).topDistance).toBeUndefined();
+  it("reads plausibility from the session's card-in-guide verdict", () => {
+    expect(aimHintInputFor(outcome({ cardInGuide: true }), 0.6, false).plausible).toBe(true);
   });
 });

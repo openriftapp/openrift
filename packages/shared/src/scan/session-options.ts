@@ -66,14 +66,14 @@ export function gatesForEmbedDim(dim: number): EncoderGates {
 }
 
 export const DEFAULT_SESSION_OPTIONS: ScanSessionOptions = {
-  topK: MOBILECLIP_GATES.topK,
+  topK: ARCFACE_GATES.topK,
   candidatesToTry: 4,
-  confidentDistance: MOBILECLIP_GATES.confidentDistance,
-  rotationFallbackDistance: MOBILECLIP_GATES.rotationFallbackDistance,
+  confidentDistance: ARCFACE_GATES.confidentDistance,
+  rotationFallbackDistance: ARCFACE_GATES.rotationFallbackDistance,
   rotationPairOnly: false,
-  accept: { lockRun: 4, maxGapFrames: 6 },
+  accept: { lockRun: 3, maxGapFrames: 6 },
   sweep: false,
-  enterSweeps: true,
+  enterSweeps: false,
 };
 
 export function gatesForBank(bank: EmbedBank): EncoderGates {

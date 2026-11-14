@@ -1,4 +1,5 @@
 import { parseAppEnv } from "@openrift/shared/app-env";
+import { DEFAULT_SCAN_ENCODER_FILE } from "@openrift/shared/scan/embed";
 
 function originOf(url: string | undefined): string | undefined {
   if (!url) {
@@ -92,7 +93,7 @@ export function createConfig(env: Record<string, string | undefined>) {
     changelogPath: env.CHANGELOG_PATH || "apps/web/src/CHANGELOG.md",
 
     scan: {
-      encoderFile: env.SCAN_ENCODER_FILE ?? "scan-encoder-v2.onnx",
+      encoderFile: env.SCAN_ENCODER_FILE ?? DEFAULT_SCAN_ENCODER_FILE,
       detectorFile: env.SCAN_DETECTOR_FILE ?? null,
       boardDetectorFile: env.SCAN_BOARD_DETECTOR_FILE ?? null,
     },

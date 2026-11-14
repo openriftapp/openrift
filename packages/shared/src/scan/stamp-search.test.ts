@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  STAMP_MIN_LEAD,
-  STAMP_MIN_SCORE,
+  STAMP_SEARCH_MIN_LEAD,
+  STAMP_SEARCH_MIN_SCORE,
   showsStamp,
   stampPair,
   stampScores,
@@ -18,8 +18,8 @@ describe("stampScores", () => {
 
   it("finds the stamp on a marked card although the outline is a few percent off", () => {
     const scores = stampScores(card({ stamp: true, shiftX: 14, shiftY: -9 }), pair);
-    expect(scores.marked).toBeGreaterThanOrEqual(STAMP_MIN_SCORE);
-    expect(scores.marked - scores.plain).toBeGreaterThanOrEqual(STAMP_MIN_LEAD);
+    expect(scores.marked).toBeGreaterThanOrEqual(STAMP_SEARCH_MIN_SCORE);
+    expect(scores.marked - scores.plain).toBeGreaterThanOrEqual(STAMP_SEARCH_MIN_LEAD);
     expect(showsStamp(scores)).toBe(true);
   });
 

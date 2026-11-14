@@ -94,7 +94,6 @@ export interface ReplayDeps {
   rearm: () => void;
   multiPrinting: (artKey: string) => boolean;
   labelOf: (key: string) => string;
-  idleGate: number;
   /** Milliseconds. */
   now: () => number;
   pacing: ReplayPacing;
@@ -133,7 +132,6 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
   const run = createScanRun("single");
   const loop = createScanLoop<ReplayPending>({
     run: () => run,
-    idleGate: () => deps.idleGate,
     readBoard: () => Promise.resolve(null),
     relockGuard: behaviour.relockGuard,
   });
@@ -353,41 +351,27 @@ export function frameWindows(frameCount: number, windows: number, length: number
   });
 }
 
-export interface SpeedSample {
-  sweep: boolean;
-  timings: FrameOutcome["timings"];
-}
-
 export interface SpeedSummary {
   frames: number;
   frame: TimingSummary;
   stageMs: { detect: number; crop: number; embed: number; verify: number; printing: number };
 }
 
-export function summarizeSpeed(samples: readonly SpeedSample[]): {
-  aimed: SpeedSummary | null;
-  sweep: SpeedSummary | null;
-} {
-  const summaryOf = (group: readonly SpeedSample[]): SpeedSummary | null => {
-    if (group.length === 0) {
-      return null;
-    }
-    const mean = (pick: (sample: SpeedSample) => number) =>
-      group.reduce((sum, sample) => sum + pick(sample), 0) / group.length;
-    return {
-      frames: group.length,
-      frame: summarize(group.map((sample) => sample.timings.total)),
-      stageMs: {
-        detect: mean((sample) => sample.timings.detect),
-        crop: mean((sample) => sample.timings.crop),
-        embed: mean((sample) => sample.timings.embed),
-        verify: mean((sample) => sample.timings.verify),
-        printing: mean((sample) => sample.timings.printing ?? 0),
-      },
-    };
-  };
+export function summarizeSpeed(samples: readonly FrameOutcome["timings"][]): SpeedSummary | null {
+  if (samples.length === 0) {
+    return null;
+  }
+  const mean = (pick: (timings: FrameOutcome["timings"]) => number) =>
+    samples.reduce((sum, timings) => sum + pick(timings), 0) / samples.length;
   return {
-    aimed: summaryOf(samples.filter((sample) => !sample.sweep)),
-    sweep: summaryOf(samples.filter((sample) => sample.sweep)),
+    frames: samples.length,
+    frame: summarize(samples.map((timings) => timings.total)),
+    stageMs: {
+      detect: mean((timings) => timings.detect),
+      crop: mean((timings) => timings.crop),
+      embed: mean((timings) => timings.embed),
+      verify: mean((timings) => timings.verify),
+      printing: mean((timings) => timings.printing ?? 0),
+    },
   };
 }

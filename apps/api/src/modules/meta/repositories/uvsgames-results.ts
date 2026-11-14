@@ -8,13 +8,13 @@ import type {
   UvsgamesEventPhasesTable,
   UvsgamesEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
-import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
-
-/**
- * Keyed by the source's own ids, in the source's own vocabulary (unmapped
- * formats, unclassified tiers). Promotion turns this into live rows; a mapping fix can re-promote.
- */
+import type { MirrorDeckCoverage } from "./mirror-results.js";
+import {
+  deckCoverageOf,
+  putMirrorDecklist,
+  replaceRows,
+  replaceUnderEventLock,
+} from "./mirror-results.js";
 
 export type UvsgamesStandingRow = Selectable<UvsgamesEventStandingsTable>;
 export type UvsgamesPhaseRow = Selectable<UvsgamesEventPhasesTable>;
@@ -30,11 +30,6 @@ export interface UvsgamesNamedStandingRow {
   losses: number | null;
   draws: number | null;
   legendName: string | null;
-}
-
-export interface UvsgamesDeckCoverage {
-  outstanding: string[];
-  held: number;
 }
 
 export function uvsgamesResultsRepo(db: Kysely<Database>) {
@@ -75,16 +70,17 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       externalId: string,
       rows: readonly Insertable<UvsgamesEventStandingsTable>[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await lockKey(trx, `uvsgames-event:${externalId}`);
-        await trx
-          .deleteFrom("uvsgamesEventStandings")
-          .where("externalId", "=", externalId)
-          .execute();
-        for (const batch of rowBatches(rows)) {
-          await trx.insertInto("uvsgamesEventStandings").values(batch).execute();
-        }
-      });
+      await replaceUnderEventLock(
+        db,
+        "uvsgames",
+        externalId,
+        replaceRows(
+          (trx) =>
+            trx.deleteFrom("uvsgamesEventStandings").where("externalId", "=", externalId).execute(),
+          rows,
+          (trx, batch) => trx.insertInto("uvsgamesEventStandings").values(batch).execute(),
+        ),
+      );
     },
 
     phases(externalId: string): Promise<UvsgamesPhaseRow[]> {
@@ -100,13 +96,17 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       externalId: string,
       rows: readonly Insertable<UvsgamesEventPhasesTable>[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await lockKey(trx, `uvsgames-event:${externalId}`);
-        await trx.deleteFrom("uvsgamesEventPhases").where("externalId", "=", externalId).execute();
-        for (const batch of rowBatches(rows)) {
-          await trx.insertInto("uvsgamesEventPhases").values(batch).execute();
-        }
-      });
+      await replaceUnderEventLock(
+        db,
+        "uvsgames",
+        externalId,
+        replaceRows(
+          (trx) =>
+            trx.deleteFrom("uvsgamesEventPhases").where("externalId", "=", externalId).execute(),
+          rows,
+          (trx, batch) => trx.insertInto("uvsgamesEventPhases").values(batch).execute(),
+        ),
+      );
     },
 
     matches(externalId: string): Promise<UvsgamesMatchRow[]> {
@@ -117,6 +117,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
         .orderBy("phaseOrder", "asc")
         .orderBy("roundNumber", "asc")
         .orderBy("tableNumber", "asc")
+        .orderBy("sourceMatchId", "asc")
         .execute();
     },
 
@@ -136,22 +137,26 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       roundId: string,
       rows: readonly Insertable<UvsgamesEventMatchesTable>[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await lockKey(trx, `uvsgames-event:${externalId}`);
-        await trx
-          .deleteFrom("uvsgamesEventMatches")
-          .where("externalId", "=", externalId)
-          .where("roundId", "=", roundId)
-          .execute();
-        for (const batch of rowBatches(rows)) {
-          await trx.insertInto("uvsgamesEventMatches").values(batch).execute();
-        }
-      });
+      await replaceUnderEventLock(
+        db,
+        "uvsgames",
+        externalId,
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("uvsgamesEventMatches")
+              .where("externalId", "=", externalId)
+              .where("roundId", "=", roundId)
+              .execute(),
+          rows,
+          (trx, batch) => trx.insertInto("uvsgamesEventMatches").values(batch).execute(),
+        ),
+      );
     },
 
     // A refused deck counts as held: the id was tried and came back
     // unreadable, and asking again would only spend the budget.
-    async deckCoverage(externalId: string): Promise<UvsgamesDeckCoverage> {
+    async deckCoverage(externalId: string): Promise<MirrorDeckCoverage> {
       const referenced = await db
         .selectFrom("uvsgamesEventStandings")
         .select("sourceDeckId")
@@ -164,11 +169,10 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
         .select("sourceDeckId")
         .where("externalId", "=", externalId)
         .execute();
-      const heldIds = new Set(held.map((row) => row.sourceDeckId));
-      const outstanding = referenced
-        .map((row) => row.sourceDeckId)
-        .filter((id): id is string => id !== null && !heldIds.has(id));
-      return { outstanding, held: heldIds.size };
+      return deckCoverageOf(
+        referenced.map((row) => row.sourceDeckId),
+        new Set(held.map((row) => row.sourceDeckId)),
+      );
     },
 
     async decklistCards(externalId: string): Promise<Map<string, UvsgamesDecklistCardRow[]>> {
@@ -191,28 +195,30 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       row: Insertable<UvsgamesDecklistsTable>,
       cards: readonly Omit<Insertable<UvsgamesDecklistCardsTable>, "sourceDeckId">[],
     ): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await trx
-          .insertInto("uvsgamesDecklists")
-          .values(row)
-          .onConflict((oc) =>
-            oc.column("sourceDeckId").doUpdateSet({
-              externalId: row.externalId,
-              fetchStatus: row.fetchStatus,
-              fetchedAt: row.fetchedAt,
-            }),
-          )
-          .execute();
-        await trx
-          .deleteFrom("uvsgamesDecklistCards")
-          .where("sourceDeckId", "=", row.sourceDeckId)
-          .execute();
-        for (const batch of rowBatches(
+      await putMirrorDecklist(
+        db,
+        (trx) =>
+          trx
+            .insertInto("uvsgamesDecklists")
+            .values(row)
+            .onConflict((oc) =>
+              oc.column("sourceDeckId").doUpdateSet({
+                externalId: row.externalId,
+                fetchStatus: row.fetchStatus,
+                fetchedAt: row.fetchedAt,
+              }),
+            )
+            .execute(),
+        replaceRows(
+          (trx) =>
+            trx
+              .deleteFrom("uvsgamesDecklistCards")
+              .where("sourceDeckId", "=", row.sourceDeckId)
+              .execute(),
           cards.map((card) => ({ ...card, sourceDeckId: row.sourceDeckId })),
-        )) {
-          await trx.insertInto("uvsgamesDecklistCards").values(batch).execute();
-        }
-      });
+          (trx, batch) => trx.insertInto("uvsgamesDecklistCards").values(batch).execute(),
+        ),
+      );
     },
   };
 }

@@ -1,5 +1,4 @@
 import type { Kysely, Selectable } from "kysely";
-import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventSourcesTable } from "../../../db/tables/meta.js";
@@ -37,12 +36,11 @@ export function metaSourcesRepo(db: Kysely<Database>) {
         .selectFrom("metaEventSources")
         .selectAll()
         .where("metaEventId", "=", eventId)
-        .orderBy(sql`provider asc nulls last`)
+        .orderBy("priority", "asc")
         .orderBy("createdAt", "asc")
         .execute();
     },
 
-    /** The only link between a mirror and live event; accept and promotion resolve through it. */
     async sourceKeyUntriaged(provider: string, externalId: string): Promise<boolean> {
       const row = await db
         .selectNoFrom(({ not, exists, selectFrom, and }) =>
@@ -69,6 +67,7 @@ export function metaSourcesRepo(db: Kysely<Database>) {
       return Boolean(row.untriaged);
     },
 
+    /** The only link between a mirror and live event; accept and promotion resolve through it. */
     sourceByKey(provider: string, externalId: string): Promise<MetaEventSourceRow | undefined> {
       return db
         .selectFrom("metaEventSources")
@@ -155,15 +154,6 @@ export function metaSourcesRepo(db: Kysely<Database>) {
       const result = await db
         .deleteFrom("metaEventSources")
         .where("id", "=", id)
-        .executeTakeFirst();
-      return (result.numDeletedRows ?? 0n) > 0n;
-    },
-
-    async deleteEventSourceByKey(provider: string, externalId: string): Promise<boolean> {
-      const result = await db
-        .deleteFrom("metaEventSources")
-        .where("provider", "=", provider)
-        .where("externalId", "=", externalId)
         .executeTakeFirst();
       return (result.numDeletedRows ?? 0n) > 0n;
     },

@@ -4,23 +4,20 @@
  *
  * Usage: bun scripts/scan/probe-placement.ts [--clip 3d-print-scanner] [--all]
  */
-import fs from "node:fs";
 import path from "node:path";
 
+import { expectedCopies } from "../../packages/shared/src/scan/bench-score.js";
 import { toGray } from "../../packages/shared/src/scan/image.js";
 import {
   DEFAULT_PLACEMENT_OPTIONS,
   createPlacementDetector,
 } from "../../packages/shared/src/scan/placement.js";
 import { centeredGuideQuad } from "../../packages/shared/src/scan/session-options.js";
-import { CLIPS, argValue, hasFlag, listClips, loadClipTruth, loadImage } from "./lib";
+import { CLIPS, argValue, hasFlag, listClips, listFrames, loadClipTruth, loadImage } from "./lib";
 
 async function probeClip(clip: string): Promise<void> {
   const dir = path.join(CLIPS, clip);
-  const frames = fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith(".jpg"))
-    .toSorted();
+  const frames = listFrames(dir);
 
   const detector = createPlacementDetector();
   let placed = 0;
@@ -50,7 +47,7 @@ async function probeClip(clip: string): Promise<void> {
   }
 
   const truth = loadClipTruth(clip);
-  const expected = truth?.cards.reduce((sum, card) => sum + (card.copies ?? 1), 0);
+  const expected = truth ? expectedCopies(truth) : undefined;
   process.stdout.write(
     `\n${clip}: ${frames.length} frames, ${disturbedFrames} disturbed\n` +
       `  ${placed} placements detected` +
