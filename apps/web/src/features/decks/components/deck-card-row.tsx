@@ -253,7 +253,12 @@ export function DeckCardRow({
       {shortfall !== undefined && shortfall > 0 && (
         <Tooltip>
           <TooltipTrigger className="shrink-0">
-            <span className="text-2xs text-warning tabular-nums">
+            <span
+              className={cn(
+                "text-2xs tabular-nums",
+                shortfall > (locked ?? 0) ? "text-warning" : "text-muted-foreground",
+              )}
+            >
               {card.quantity - shortfall}/{card.quantity}
             </span>
           </TooltipTrigger>

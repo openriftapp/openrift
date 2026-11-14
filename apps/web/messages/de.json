@@ -2904,8 +2904,8 @@
       "declarations": ["input owned", "input total", "local totalPlural = total: plural"],
       "selectors": ["totalPlural"],
       "match": {
-        "totalPlural=one": "Du hast {owned} von {total} Exemplar",
-        "totalPlural=*": "Du hast {owned} von {total} Exemplaren"
+        "totalPlural=one": "Du kannst {owned} von {total} Exemplar nutzen",
+        "totalPlural=*": "Du kannst {owned} von {total} Exemplaren nutzen"
       }
     }
   ],
@@ -3461,7 +3461,7 @@
   "decks_overview_option_runes_hint": "Klappt auch die Runenstapel auf.",
   "decks_overview_own_borrowed": "Geliehen",
   "decks_overview_own_locked": "Gesperrt",
-  "decks_overview_own_locked_hint": "In Sammlungen, die vom Deckbau ausgeschlossen sind, deshalb zählen sie nicht als fehlend.",
+  "decks_overview_own_locked_hint": "Verliehen, für einen Tausch reserviert oder in einer vom Deckbau ausgeschlossenen Sammlung, deshalb zählen sie nicht als fehlend.",
   "decks_overview_own_missing": "Fehlend",
   "decks_overview_own_owned": "Im Besitz",
   "decks_overview_own_other_printing": "Anderer Druck",
@@ -3503,6 +3503,7 @@
   "decks_stats_focus_energy": "Karten mit {value} Energie",
   "decks_stats_focus_owned_borrowed": "Von Freunden geliehene Karten",
   "decks_stats_focus_owned_exact": "Karten im gezeigten Druck im Besitz",
+  "decks_stats_focus_owned_locked": "Karten mit gesperrten Kopien",
   "decks_stats_focus_owned_missing": "Karten mit fehlenden Kopien",
   "decks_stats_focus_owned_other": "Karten in einem anderen Druck im Besitz",
   "decks_stats_focus_power": "Karten mit {value} Power",
@@ -3521,6 +3522,7 @@
   "decks_stats_footnote_multi_type": "Eine Karte mit zwei Typen zählt unter beiden.",
   "decks_stats_lens_borrowed": "Geliehen",
   "decks_stats_lens_exact": "Dieser Druck",
+  "decks_stats_lens_locked": "Gesperrt",
   "decks_stats_lens_missing": "Fehlend",
   "decks_stats_lens_other": "Anderer Druck",
   "decks_stats_lens_row": "{count} {label}",
@@ -3770,6 +3772,36 @@
   "decks_test_bench_empty": "Füge Karten zum Main Deck hinzu, um Starthände zu testen.",
   "decks_meta_in_box": "in {box}",
   "decks_meta_in_boxes": "in {count} Deckboxen",
+  "decks_meta_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fehlt",
+        "countPlural=*": "{count} fehlen"
+      }
+    }
+  ],
+  "decks_meta_locked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} gesperrt",
+        "countPlural=*": "{count} gesperrt"
+      }
+    }
+  ],
+  "decks_meta_locked_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Du besitzt diese Kopie, aber sie ist verliehen, für einen Tausch reserviert oder in einer vom Deckbau ausgeschlossenen Sammlung.",
+        "countPlural=*": "Du besitzt diese {count} Kopien, aber sie sind verliehen, für einen Tausch reserviert oder in einer vom Deckbau ausgeschlossenen Sammlung."
+      }
+    }
+  ],
   "decks_meta_stored_in_box": "Aufbewahrt in {box}",
   "decks_meta_variant_in_box": "{deck} in {box}",
   "decks_meta_updated": "Aktualisiert {date}",
@@ -6408,7 +6440,7 @@
   "help_collections_physical_p1": "Sammlungen bilden ab, wo deine Karten in der realen Welt tatsächlich liegen. Wenn du ein Exemplar vom \"Posteingang\" in die \"Rote Deckbox\" verschiebst, hältst du fest, dass du diese Karte physisch in diese Box gelegt hast.",
   "help_collections_physical_p2": "Sammlungen erfassen {#strong}Exemplare{/strong} (konkrete physische Karten), nicht Karten als Spielbegriff. Wenn du drei Exemplare derselben Karte besitzt, liegt jedes davon in einer Sammlung, ob in derselben oder in verschiedenen. Siehe {#link}Karten, Drucke & Exemplare{/link} für mehr dazu, wie das zusammenhängt.",
   "help_collections_availability_heading": "Verfügbarkeit für den Deckbau",
-  "help_collections_availability_p1": "Jede Sammlung hat einen Schalter \"für den Deckbau verfügbar\". Öffne eine Sammlung, klicke auf das Drei-Punkte-Menü und wähle {#em}Bearbeiten{/em}, um das zu ändern. Ist der Schalter aus, zählen Exemplare in dieser Sammlung im Deckbauer und in der Einkaufsliste nicht als besessene Karten.",
+  "help_collections_availability_p1": "Jede Sammlung hat einen Schalter \"für den Deckbau verfügbar\". Öffne eine Sammlung, klicke auf das Drei-Punkte-Menü und wähle {#em}Bearbeiten{/em}, um das zu ändern. Ist der Schalter aus, erscheinen Exemplare in dieser Sammlung im Deckbauer als gesperrt: Du kannst nicht mit ihnen bauen, und sie landen nicht auf der Einkaufsliste, weil du sie schon besitzt.",
   "help_collections_availability_p2": "Das ist nützlich für Karten, die du nicht ausschlachten willst: eine wertvolle Karte in der Vitrine, an Freunde verliehene Karten oder Exemplare, die schon fest zu einem Deck gehören. Weggesperrte Exemplare erscheinen im Besitzbereich des Deckbauers weiterhin als \"gesperrt\", damit du siehst, was verfügbar wäre, wenn du die Sammlung wieder einschaltest.",
   "help_collections_start_heading": "Erste Schritte",
   "help_collections_start_p1": "Öffne {#strong}Sammlungen{/strong} in der oberen Navigation. Deine erste Sammlung ist der {#strong2}Posteingang{/strong2}, der immer vorhanden ist. Dort landen schnell hinzugefügte Karten, sofern du kein anderes Ziel wählst.",

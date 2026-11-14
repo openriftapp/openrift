@@ -67,6 +67,7 @@ interface DeckBoxTabProps {
   cards: DeckBuilderCard[];
   homeCollectionId: string;
   homeCollectionName: string;
+  missingCount: number;
   onViewMissing?: () => void;
   sortCards: (zoneCards: DeckBuilderCard[]) => DeckBuilderCard[];
   groupCards: (zoneCards: DeckBuilderCard[]) => DeckCardGroup[];
@@ -81,6 +82,7 @@ export function DeckBoxTab({
   cards,
   homeCollectionId,
   homeCollectionName,
+  missingCount,
   onViewMissing,
   sortCards,
   groupCards,
@@ -295,7 +297,7 @@ export function DeckBoxTab({
         )}
       </div>
 
-      {plan.missingCount > 0 && (
+      {missingCount > 0 && (
         <Button
           variant="outline"
           size="sm"
@@ -304,7 +306,7 @@ export function DeckBoxTab({
           disabled={!onViewMissing}
         >
           <PackageSearchIcon className="size-3.5" />
-          {m.decks_overview_box_missing({ count: plan.missingCount })}
+          {m.decks_overview_box_missing({ count: missingCount })}
         </Button>
       )}
     </div>

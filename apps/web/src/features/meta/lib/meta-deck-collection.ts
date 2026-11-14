@@ -19,6 +19,7 @@ export interface MetaDeckCost {
   unpriced: number;
   unpricedMissing: number;
   knownToComplete?: number;
+  locked?: number;
 }
 
 // A pair naming a card outside the pool is dropped, as is a trailing index without a quantity.
@@ -104,6 +105,7 @@ export function metaDeckCosts(
     includeSideboard: boolean;
     prices: ReadonlyMap<string, number>;
     ownedByCardId?: ReadonlyMap<string, number>;
+    lockedByCardId?: ReadonlyMap<string, number>;
     partialDeckIds?: ReadonlySet<string>;
   },
 ): Map<string, MetaDeckCost> {
@@ -111,15 +113,18 @@ export function metaDeckCosts(
   for (const [deckId, cards] of decks) {
     let needed = 0;
     let owned = 0;
+    let lockedTotal = 0;
     const valueRows: { price: number | undefined; quantity: number }[] = [];
     const missingRows: { price: number | undefined; quantity: number }[] = [];
     for (const [cardId, quantity] of scopedQuantities(cards, options.includeSideboard)) {
       const price = options.prices.get(cardId);
       const held = Math.min(quantity, options.ownedByCardId?.get(cardId) ?? 0);
+      const locked = Math.min(quantity - held, options.lockedByCardId?.get(cardId) ?? 0);
       needed += quantity;
       owned += held;
+      lockedTotal += locked;
       valueRows.push({ price, quantity });
-      missingRows.push({ price, quantity: quantity - held });
+      missingRows.push({ price, quantity: quantity - held - locked });
     }
     const withCollection = options.ownedByCardId !== undefined;
     const toComplete = priceTotal(missingRows);
@@ -143,6 +148,7 @@ export function metaDeckCosts(
       toComplete: withCollection ? toComplete.value : undefined,
       unpriced: value.unpriced,
       unpricedMissing: withCollection ? toComplete.unpriced : 0,
+      locked: withCollection ? lockedTotal : undefined,
     });
   }
   return byDeck;
@@ -154,19 +160,22 @@ export function metaCardOwnershipBand(
   displayedPrintingId: string | null,
   ownedByPrinting: Readonly<Record<string, number>>,
   printingsByCardId: ReadonlyMap<string, readonly { printingId: string }[]>,
+  lockedByPrinting: Readonly<Record<string, number>> = {},
 ): OwnershipBandSegments {
   let ownedOfDisplayed = 0;
   let ownedOfOthers = 0;
+  let locked = 0;
   const printingIds = new Set(
     (printingsByCardId.get(card.cardId) ?? []).map((printing) => printing.printingId),
   );
   for (const printingId of printingIds) {
     const owned = ownedByPrinting[printingId] ?? 0;
+    locked += lockedByPrinting[printingId] ?? 0;
     if (printingId === displayedPrintingId) {
       ownedOfDisplayed += owned;
     } else {
       ownedOfOthers += owned;
     }
   }
-  return ownershipBandSegments(card.quantity, ownedOfDisplayed, ownedOfOthers);
+  return ownershipBandSegments(card.quantity, ownedOfDisplayed, ownedOfOthers, 0, locked);
 }

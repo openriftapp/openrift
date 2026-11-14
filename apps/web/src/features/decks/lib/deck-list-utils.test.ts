@@ -77,6 +77,7 @@ function makeItem(overrides: DeckOverrides = {}): DeckListItemWithNames {
     totalValueCents: overrides.totalValueCents ?? null,
     unpricedCardCount: null,
     missingCount: overrides.missingCount ?? null,
+    lockedCount: null,
     folderIds: overrides.folderIds ?? [],
     familyName: overrides.familyName ?? null,
   };

@@ -16,6 +16,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
 import { watchFailedLoad } from "@/features/collections/lib/collection-load-failure";
 import { dropCardsOfMissingDecks, mergeDeckCardsDelta } from "@/features/decks/lib/deck-card-rows";
+import { watchOwnershipForDeckList } from "@/features/decks/lib/deck-list-ownership-watch";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
 import type {
   DeckCardsCollection,
@@ -36,7 +37,10 @@ interface CacheEntry<T> {
   collection: T;
 }
 
-const decksCache = new WeakMap<QueryClient, CacheEntry<DecksCollection>>();
+const decksCache = new WeakMap<
+  QueryClient,
+  CacheEntry<DecksCollection> & { stopWatching: () => void }
+>();
 const cardsCache = new WeakMap<QueryClient, CacheEntry<DeckCardsCollection>>();
 const foldersCache = new WeakMap<QueryClient, CacheEntry<DeckFoldersCollection>>();
 
@@ -51,6 +55,7 @@ export function getDecksCollection(queryClient: QueryClient, userId: string): De
     return existing.collection;
   }
   if (existing) {
+    existing.stopWatching();
     markOrphaned(existing.collection, `decks:${existing.userId}`);
     cleanupWhenIdle(existing.collection);
   }
@@ -84,7 +89,11 @@ export function getDecksCollection(queryClient: QueryClient, userId: string): De
   );
 
   watchFailedLoad(collection, m.sync_load_failed_decks);
-  decksCache.set(queryClient, { userId, collection });
+  decksCache.set(queryClient, {
+    userId,
+    collection,
+    stopWatching: watchOwnershipForDeckList(queryClient, userId),
+  });
   return collection;
 }
 

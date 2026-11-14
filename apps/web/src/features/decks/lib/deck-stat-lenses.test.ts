@@ -116,6 +116,7 @@ describe("buildOwnershipRows", () => {
       ["exact", 2],
       ["other", 2],
       ["borrowed", 0],
+      ["locked", 0],
       ["missing", 1],
     ]);
   });
@@ -130,13 +131,14 @@ describe("buildOwnershipRows", () => {
     expect(rows.every((row) => row.total === 0)).toBe(true);
   });
 
-  it("counts locked copies as missing", () => {
+  it("counts locked copies as their own class, not as missing", () => {
     const lockedCards = [card({ cardId: "a", quantity: 3 })];
     const lockedSegments = new Map<string, OwnershipBandSegments>([
       [deckCardKey(lockedCards[0]!), { exact: 1, other: 0, borrowed: 0, locked: 1, missing: 1 }],
     ]);
     const rows = buildOwnershipRows(lockedCards, lockedSegments);
-    expect(rows.find((row) => row.key === "missing")?.total).toBe(2);
+    expect(rows.find((row) => row.key === "locked")?.total).toBe(1);
+    expect(rows.find((row) => row.key === "missing")?.total).toBe(1);
   });
 
   it("counts borrowed copies as their own class, not as missing", () => {
@@ -179,12 +181,13 @@ describe("focus key sets", () => {
     );
   });
 
-  it("ownershipFocusKeys counts a locked-only shortfall as missing", () => {
+  it("ownershipFocusKeys files a locked-only shortfall under locked, not missing", () => {
     const segments = new Map<string, OwnershipBandSegments>([
       [deckCardKey(cards[0]!), { exact: 2, other: 0, borrowed: 0, locked: 1, missing: 0 }],
     ]);
-    expect(ownershipFocusKeys(cards, segments, "missing")).toEqual(
+    expect(ownershipFocusKeys(cards, segments, "locked")).toEqual(
       new Set([deckCardKey(cards[0]!)]),
     );
+    expect(ownershipFocusKeys(cards, segments, "missing").size).toBe(0);
   });
 });

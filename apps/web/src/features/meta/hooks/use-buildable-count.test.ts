@@ -36,13 +36,19 @@ describe("useBuildableCount", () => {
 
   it("leaves excluded collections out by default and counts borrowed copies", () => {
     const { result } = renderHook(() => useBuildableCount(true));
-    expect(result.current.data).toEqual({ garen: 1, jinx: 2 });
+    expect(result.current.data).toEqual({
+      buildable: { garen: 1, jinx: 2 },
+      locked: { garen: 3 },
+    });
   });
 
   it("counts excluded collections when the setting is on", () => {
     useDisplayStore.getState().setCountExcludedCollections(true);
     const { result } = renderHook(() => useBuildableCount(true));
-    expect(result.current.data).toEqual({ garen: 2, jinx: 2 });
+    expect(result.current.data).toEqual({
+      buildable: { garen: 2, jinx: 2 },
+      locked: { garen: 2 },
+    });
   });
 
   it("stays undefined until the loans arrive", () => {

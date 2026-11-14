@@ -102,6 +102,7 @@ function deckRow(id: string): DeckListItemResponse {
     totalValueCents: null,
     unpricedCardCount: null,
     missingCount: null,
+    lockedCount: null,
     folderIds: [],
   } as unknown as DeckListItemResponse;
 }

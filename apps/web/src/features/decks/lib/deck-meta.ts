@@ -3,7 +3,7 @@ import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 
 import { m } from "@/paraglide/messages.js";
 
-export type DeckMetaPartKey = "box" | "missing" | "value" | "updated";
+export type DeckMetaPartKey = "box" | "missing" | "locked" | "value" | "updated";
 
 export interface DeckMetaPart {
   key: DeckMetaPartKey;
@@ -47,7 +47,7 @@ export function deckMetaParts(
   formatPrice: (cents: number) => string,
   boxed: readonly BoxedDeck[] = [],
 ): DeckMetaPart[] {
-  const { deck, totalValueCents, unpricedCardCount, missingCount } = item;
+  const { deck, totalValueCents, unpricedCardCount, missingCount, lockedCount } = item;
   const valueText =
     totalValueCents !== null && totalValueCents > 0 ? formatPrice(totalValueCents) : null;
   const unpricedText =
@@ -61,8 +61,22 @@ export function deckMetaParts(
     deckBoxPart(boxed, deck.id),
     {
       key: "missing",
-      text: missingCount !== null && missingCount > 0 ? `${missingCount} missing` : null,
+      text:
+        missingCount !== null && missingCount > 0
+          ? m.decks_meta_missing({ count: missingCount })
+          : null,
       warn: true,
+    },
+    {
+      key: "locked",
+      text:
+        lockedCount !== null && lockedCount > 0
+          ? m.decks_meta_locked({ count: lockedCount })
+          : null,
+      title:
+        lockedCount !== null && lockedCount > 0
+          ? m.decks_meta_locked_title({ count: lockedCount })
+          : undefined,
     },
     {
       key: "value",

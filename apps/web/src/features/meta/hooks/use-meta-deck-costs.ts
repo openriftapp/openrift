@@ -28,18 +28,18 @@ export function useMetaDeckCosts(
   const prices = usePrices();
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const languageOrder = useEffectiveLanguageOrder();
-  const { data: ownedByPrinting } = useBuildableCount(options.withCollection);
+  const { data: stock } = useBuildableCount(options.withCollection);
 
-  if (options.withCollection && ownedByPrinting === undefined) {
+  if (options.withCollection && stock === undefined) {
     return undefined;
   }
   return metaDeckCosts(decodeMetaDeckCardIndex(index), {
     includeSideboard,
     prices: cheapestPriceByCard(printingsByCardId, prices, marketplace, languageOrder),
     ownedByCardId:
-      ownedByPrinting === undefined
-        ? undefined
-        : ownedCountsByCardId(ownedByPrinting, printingsByCardId),
+      stock === undefined ? undefined : ownedCountsByCardId(stock.buildable, printingsByCardId),
+    lockedByCardId:
+      stock === undefined ? undefined : ownedCountsByCardId(stock.locked, printingsByCardId),
     partialDeckIds: options.partialDeckIds,
   });
 }

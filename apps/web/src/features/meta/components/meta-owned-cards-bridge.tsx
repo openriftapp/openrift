@@ -5,6 +5,7 @@ import { useBuildableCount } from "@/features/meta/hooks/use-buildable-count";
 
 export interface MetaOwnedCards {
   ownedByPrinting: Readonly<Record<string, number>>;
+  lockedByPrinting: Readonly<Record<string, number>>;
   printingsByCardId: ReadonlyMap<string, readonly { printingId: string }[]>;
 }
 
@@ -19,9 +20,17 @@ export function MetaOwnedCardsBridge({
   onChange: (value: MetaOwnedCards | undefined) => void;
 }) {
   const { printingsByCardId } = useCards();
-  const { data: ownedByPrinting } = useBuildableCount(true);
+  const { data: stock } = useBuildableCount(true);
   useEffect(() => {
-    onChange(ownedByPrinting === undefined ? undefined : { ownedByPrinting, printingsByCardId });
-  }, [ownedByPrinting, printingsByCardId, onChange]);
+    onChange(
+      stock === undefined
+        ? undefined
+        : {
+            ownedByPrinting: stock.buildable,
+            lockedByPrinting: stock.locked,
+            printingsByCardId,
+          },
+    );
+  }, [stock, printingsByCardId, onChange]);
   return null;
 }

@@ -2904,8 +2904,8 @@
       "declarations": ["input owned", "input total", "local totalPlural = total: plural"],
       "selectors": ["totalPlural"],
       "match": {
-        "totalPlural=one": "你拥有{total}张中的{owned}张",
-        "totalPlural=*": "你拥有{total}张中的{owned}张"
+        "totalPlural=one": "{total}张中你可以使用{owned}张",
+        "totalPlural=*": "{total}张中你可以使用{owned}张"
       }
     }
   ],
@@ -3461,7 +3461,7 @@
   "decks_overview_option_runes_hint": "把符文堆也展开。",
   "decks_overview_own_borrowed": "借入",
   "decks_overview_own_locked": "已锁定",
-  "decks_overview_own_locked_hint": "位于排除在卡组构筑之外的收藏中，因此不计入缺牌。",
+  "decks_overview_own_locked_hint": "已外借、已为交换保留，或位于排除在卡组构筑之外的收藏中，因此不计入缺牌。",
   "decks_overview_own_missing": "缺少",
   "decks_overview_own_owned": "已拥有",
   "decks_overview_own_other_printing": "其他印刷版本",
@@ -3503,6 +3503,7 @@
   "decks_stats_focus_energy": "{value}费卡牌",
   "decks_stats_focus_owned_borrowed": "从好友借来的卡牌",
   "decks_stats_focus_owned_exact": "按所示印刷版本拥有的卡牌",
+  "decks_stats_focus_owned_locked": "有已锁定卡张的卡牌",
   "decks_stats_focus_owned_missing": "有缺张的卡牌",
   "decks_stats_focus_owned_other": "以其他印刷版本拥有的卡牌",
   "decks_stats_focus_power": "{value} 符能卡牌",
@@ -3521,6 +3522,7 @@
   "decks_stats_footnote_multi_type": "同时拥有两种类型的卡牌会计入两边。",
   "decks_stats_lens_borrowed": "借入",
   "decks_stats_lens_exact": "该印刷版本",
+  "decks_stats_lens_locked": "已锁定",
   "decks_stats_lens_missing": "缺少",
   "decks_stats_lens_other": "其他印刷版本",
   "decks_stats_lens_row": "{label}{count}张",
@@ -3770,6 +3772,36 @@
   "decks_test_bench_empty": "向主牌堆添加卡牌，即可测试起手牌。",
   "decks_meta_in_box": "位于{box}",
   "decks_meta_in_boxes": "位于{count}个卡组盒",
+  "decks_meta_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "缺 {count} 张",
+        "countPlural=*": "缺 {count} 张"
+      }
+    }
+  ],
+  "decks_meta_locked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张已锁定",
+        "countPlural=*": "{count} 张已锁定"
+      }
+    }
+  ],
+  "decks_meta_locked_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "你拥有这张卡，但它已外借、已为交换保留，或在已排除于卡组构筑之外的收藏中。",
+        "countPlural=*": "你拥有这 {count} 张卡，但它们已外借、已为交换保留，或在已排除于卡组构筑之外的收藏中。"
+      }
+    }
+  ],
   "decks_meta_stored_in_box": "存放在{box}",
   "decks_meta_variant_in_box": "{deck}位于{box}",
   "decks_meta_updated": "更新于 {date}",
@@ -6407,7 +6439,7 @@
   "help_collections_physical_p1": "收藏对应你的卡牌在现实中真正所在的位置。把一张实体卡从“收件箱”移动到“红色卡盒”，记录的就是你把那张卡实际放进了那个盒子。",
   "help_collections_physical_p2": "收藏追踪的是{#strong}实体卡{/strong}（具体的某一张卡），而不是作为游戏概念的卡牌。如果你拥有同一张卡牌的三张实体卡，每一张都各自存放在某个收藏里，可以是同一个收藏，也可以分散在不同收藏。关于它们之间的关系，详见{#link}卡牌、印刷版本与实体卡{/link}。",
   "help_collections_availability_heading": "构筑卡组时的可用性",
-  "help_collections_availability_p1": "每个收藏都有一个“可用于构筑卡组”开关。打开收藏，点开三点菜单，选择{#em}编辑{/em}即可更改。关闭之后，该收藏中的实体卡不会计入卡组构筑器或购物清单中的已拥有卡牌。",
+  "help_collections_availability_p1": "每个收藏都有一个“可用于构筑卡组”开关。打开收藏，点开三点菜单，选择{#em}编辑{/em}即可更改。关闭之后，该收藏中的实体卡在卡组构筑器中显示为已锁定：它们不计入可用于构筑的卡牌，也不会进入购物清单，因为你已经拥有它们。",
   "help_collections_availability_p2": "这对你不想拆用的卡牌很有用：放在展示柜里的高价卡、借给朋友的卡，或者已经固定在某副卡组里的实体卡。被锁起来的实体卡仍会在卡组构筑器的拥有情况面板中显示为“已锁定”，让你看到重新开启该收藏后会多出哪些可用卡牌。",
   "help_collections_start_heading": "入门",
   "help_collections_start_p1": "从顶部导航打开{#strong}收藏{/strong}。你的第一个收藏是始终存在的{#strong2}收件箱{/strong2}。除非你另外指定目标，快速添加的卡牌都会落在这里。",

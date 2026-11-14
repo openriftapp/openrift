@@ -27,12 +27,15 @@ export interface DeckCardGroupContext {
   getEntry?: (card: DeckBuilderCard) => CardOwnership | undefined;
 }
 
-const OWNERSHIP_GROUP_KEYS = ["owned", "partial", "missing"] as const;
+const OWNERSHIP_GROUP_KEYS = ["owned", "locked", "partial", "missing"] as const;
 
 function ownershipGroupLabel(key: (typeof OWNERSHIP_GROUP_KEYS)[number]): string {
   switch (key) {
     case "owned": {
       return m.decks_editor_group_owned();
+    }
+    case "locked": {
+      return m.decks_overview_own_locked();
     }
     case "partial": {
       return m.decks_editor_group_missing_copies();
@@ -48,7 +51,10 @@ function ownershipBucket(entry: CardOwnership | undefined): (typeof OWNERSHIP_GR
   if (!entry || entry.shortfall <= 0) {
     return "owned";
   }
-  return entry.owned > 0 ? "partial" : "missing";
+  if (entry.unowned <= 0) {
+    return "locked";
+  }
+  return entry.owned > 0 || entry.locked > 0 ? "partial" : "missing";
 }
 
 /** Unit → Spell → Gear ladder first, anything else after in first-seen order. */
@@ -165,7 +171,7 @@ export interface CopyRowGroup<Row> {
   rows: Row[];
 }
 
-/** With `splitByCopy`, ownership groups hold copies, not cards. Borrowed copies count as owned, locked ones as missing. */
+/** With `splitByCopy`, ownership groups hold copies, not cards. Borrowed copies count as owned. */
 export function copyRowGroups<Row extends { card: DeckBuilderCard; copyIndex?: number | null }>(
   groups: DeckCardGroup[],
   rowsFor: (cards: DeckBuilderCard[]) => Row[],
@@ -183,12 +189,12 @@ export function copyRowGroups<Row extends { card: DeckBuilderCard; copyIndex?: n
     }));
   }
   const rows = rowsFor(groups.flatMap((group) => group.cards));
-  const byKey = Map.groupBy(rows, (row): "owned" | "missing" => {
+  const byKey = Map.groupBy(rows, (row): "owned" | "locked" | "missing" => {
     const entry = options.getEntry?.(row.card);
     const status = entry ? copyOwnershipStatus(entry, row.copyIndex ?? 0) : "owned";
-    return status === "owned" || status === "borrowed" ? "owned" : "missing";
+    return status === "borrowed" ? "owned" : status;
   });
-  const keys = (["owned", "missing"] as const).filter((key) => byKey.has(key));
+  const keys = (["owned", "locked", "missing"] as const).filter((key) => byKey.has(key));
   const ordered = options.dir === "desc" ? keys.toReversed() : keys;
   return ordered.map((key) => {
     const keyRows = byKey.get(key) ?? [];

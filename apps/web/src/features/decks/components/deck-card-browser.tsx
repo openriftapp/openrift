@@ -800,7 +800,7 @@ function DeckCardBrowserInner({
               />
             ) : undefined
           }
-          missing={ownershipData?.byCardZone.get(`${cardId}:${detailZone}`)?.shortfall ?? 0}
+          missing={ownershipData?.byCardZone.get(`${cardId}:${detailZone}`)?.unowned ?? 0}
         />
       ),
       rowEnd: (row) => {

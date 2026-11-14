@@ -15,6 +15,7 @@ const WARN_CLASS = "text-warning";
 /** Fixed so the numbers line up down the whole list. */
 const COLUMN_WIDTH: Partial<Record<DeckMetaPartKey, string>> = {
   missing: "w-20",
+  locked: "w-20",
   value: "w-16",
   updated: "w-24",
 };
@@ -88,7 +89,9 @@ export function DeckMetaLine({
                 ·
               </span>
             )}
-            <span className={cn(part.warn && WARN_CLASS)}>{part.text}</span>
+            <span title={part.title} className={cn(part.warn && WARN_CLASS)}>
+              {part.text}
+            </span>
           </Fragment>
         ))}
       </span>

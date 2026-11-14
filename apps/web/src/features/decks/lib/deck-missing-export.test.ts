@@ -34,6 +34,15 @@ describe("missingCardsToHandoffItems", () => {
     expect(missingCardsToHandoffItems(cards)).toEqual([]);
   });
 
+  it("leaves locked copies out of the quantity", () => {
+    const cards = [
+      stubCardOwnership({ cardName: "Cleave", shortfall: 3, locked: 2 }),
+      stubCardOwnership({ cardName: "Rally", shortfall: 2, locked: 2 }),
+    ];
+    expect(missingCardsToHandoffItems(cards).map((item) => item.quantity)).toEqual([1]);
+    expect(missingCardsToListEntries(cards, "card").map((entry) => entry.quantity)).toEqual([1]);
+  });
+
   it("returns an empty array for no rows", () => {
     expect(missingCardsToHandoffItems([])).toEqual([]);
   });

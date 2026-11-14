@@ -5,9 +5,8 @@ import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { m } from "@/paraglide/messages.js";
 
 /**
- * The five numbers always sum to the entry's quantity. Locked copies still
- * count as missing in shortfall figures; borrowed copies count as buildable
- * and must not paint as missing.
+ * The five numbers always sum to the entry's quantity. Borrowed copies count
+ * as buildable and must not paint as missing.
  */
 export interface OwnershipBandSegments {
   exact: number;

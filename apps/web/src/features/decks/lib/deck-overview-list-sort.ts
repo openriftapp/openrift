@@ -136,8 +136,10 @@ export function sortDeckOverviewList(
   }
 
   return cards.toSorted((a, b) => {
-    const as = ctx.getEntry(a)?.shortfall ?? 0;
-    const bs = ctx.getEntry(b)?.shortfall ?? 0;
-    return dir * (as - bs) || byName(a, b);
+    const ae = ctx.getEntry(a);
+    const be = ctx.getEntry(b);
+    const unownedDiff = (ae?.unowned ?? 0) - (be?.unowned ?? 0);
+    const shortfallDiff = (ae?.shortfall ?? 0) - (be?.shortfall ?? 0);
+    return dir * (unownedDiff || shortfallDiff) || byName(a, b);
   });
 }

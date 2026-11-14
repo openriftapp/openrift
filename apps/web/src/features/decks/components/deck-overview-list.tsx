@@ -679,7 +679,7 @@ export function DeckListRow({
   });
   const { printing, price, hoverPrintingId } = resolveRowPrinting(card, entry, copyIndex);
   const rarity = printing?.rarity;
-  const missing = (entry?.shortfall ?? 0) > 0;
+  const missing = (entry?.unowned ?? 0) > 0;
 
   return (
     <div

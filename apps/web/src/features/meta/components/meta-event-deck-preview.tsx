@@ -179,6 +179,7 @@ export function MetaEventDeckPreview({
           printingIdOf(card),
           owned.ownedByPrinting,
           owned.printingsByCardId,
+          owned.lockedByPrinting,
         );
 
   const banStates = metaDeckCardBanStates(banGroups ?? []);

@@ -45,7 +45,15 @@ const mockCopies = {
   buildableCountByCardForCollections: vi.fn(() =>
     Promise.resolve(new Map<string, Map<string, number>>()),
   ),
+  lockedCountByCard: vi.fn(() => Promise.resolve(emptyLocked())),
 };
+
+function emptyLocked() {
+  return {
+    total: new Map<string, number>(),
+    excludedByCollection: new Map<string, Map<string, number>>(),
+  };
+}
 
 const mockCollections = {
   getAccessForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
@@ -211,6 +219,8 @@ describe("GET /api/v1/decks", () => {
     mockCopies.buildableCountByCardForCollections.mockResolvedValue(
       new Map<string, Map<string, number>>(),
     );
+    mockCopies.lockedCountByCard.mockReset();
+    mockCopies.lockedCountByCard.mockResolvedValue(emptyLocked());
     mockLoans.borrowedCountByCard.mockReset();
     mockLoans.borrowedCountByCard.mockResolvedValue(new Map<string, number>());
     mockMarketplace.deckValues.mockClear();
@@ -359,6 +369,50 @@ describe("GET /api/v1/decks", () => {
     const res = await app.request("/api/v1/decks");
     const json = await readJson(res);
     expect(json.items[0].missingCount).toBe(4);
+  });
+
+  it("splits owned-but-locked copies out of the missing count", async () => {
+    const cardId = dbDeckCardFull.cardId;
+    mockRepo.listForUser.mockResolvedValue([dbDeck]);
+    mockRepo.allCardsForUser.mockResolvedValue([dbDeckCardFull]);
+    mockCopies.buildableCountByCard.mockResolvedValue(new Map([[cardId, 1]]));
+    mockCopies.lockedCountByCard.mockResolvedValue({
+      total: new Map([[cardId, 2]]),
+      excludedByCollection: new Map([[COLLECTION_ID, new Map([[cardId, 2]])]]),
+    });
+    const json = await readJson(await app.request("/api/v1/decks"));
+    expect(json.items[0].missingCount).toBe(1);
+    expect(json.items[0].lockedCount).toBe(2);
+  });
+
+  it("caps locked copies at the shortfall", async () => {
+    const cardId = dbDeckCardFull.cardId;
+    mockRepo.listForUser.mockResolvedValue([dbDeck]);
+    mockRepo.allCardsForUser.mockResolvedValue([dbDeckCardFull]);
+    mockCopies.buildableCountByCard.mockResolvedValue(new Map([[cardId, 3]]));
+    mockCopies.lockedCountByCard.mockResolvedValue({
+      total: new Map([[cardId, 5]]),
+      excludedByCollection: new Map(),
+    });
+    const json = await readJson(await app.request("/api/v1/decks"));
+    expect(json.items[0].missingCount).toBe(0);
+    expect(json.items[0].lockedCount).toBe(1);
+  });
+
+  it("does not report the deck's own box as locked", async () => {
+    const cardId = dbDeckCardFull.cardId;
+    mockRepo.listForUser.mockResolvedValue([{ ...dbDeck, collectionId: COLLECTION_ID }]);
+    mockRepo.allCardsForUser.mockResolvedValue([dbDeckCardFull]);
+    mockCopies.buildableCountByCardForCollections.mockResolvedValue(
+      new Map([[COLLECTION_ID, new Map([[cardId, 2]])]]),
+    );
+    mockCopies.lockedCountByCard.mockResolvedValue({
+      total: new Map([[cardId, 3]]),
+      excludedByCollection: new Map([[COLLECTION_ID, new Map([[cardId, 2]])]]),
+    });
+    const json = await readJson(await app.request("/api/v1/decks"));
+    expect(json.items[0].missingCount).toBe(1);
+    expect(json.items[0].lockedCount).toBe(1);
   });
 
   it("reports zero missing when owned stock covers the deck", async () => {

@@ -76,6 +76,7 @@ const ITEM = {
   totalValueCents: null,
   unpricedCardCount: null,
   missingCount: null,
+  lockedCount: null,
   folderIds: [],
   familyName: null,
 } satisfies DeckListItemResponse;

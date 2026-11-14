@@ -14,6 +14,10 @@ import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
 import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { resetIdCounter, stubCopy, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
+function missingSlots(plan: DeckBoxPlan): number {
+  return plan.slots.filter((slot) => slot.state === "missing").length;
+}
+
 const BOX = "box-collection";
 const BINDER = "binder-collection";
 const SHOEBOX = "shoebox-collection";
@@ -83,7 +87,7 @@ describe("computeDeckBoxPlan", () => {
     expect(plan.inBoxTotal).toBe(1);
     expect(plan.slots.map((slot) => slot.state)).toEqual(["in-box"]);
     expect(plan.slots[0]?.copy?.copyId).toBe(copy.id);
-    expect(plan.missingCount).toBe(0);
+    expect(missingSlots(plan)).toBe(0);
   });
 
   it("files a double-sided box copy under the deck's card when that card is side 2", () => {
@@ -95,7 +99,7 @@ describe("computeDeckBoxPlan", () => {
       printingsById: { pair: bird },
     });
     expect(plan.slots.map((slot) => slot.state)).toEqual(["in-box"]);
-    expect(plan.missingCount).toBe(0);
+    expect(missingSlots(plan)).toBe(0);
   });
 
   it("names the collection each copy waits in", () => {
@@ -113,7 +117,7 @@ describe("computeDeckBoxPlan", () => {
     expect(plan.slots.map((slot) => slot.state)).toEqual(["available", "available"]);
     expect(plan.slots.map((slot) => slot.copy?.collectionName)).toEqual(["Binder A", "Shoebox"]);
     expect(plan.inBoxTotal).toBe(0);
-    expect(plan.missingCount).toBe(0);
+    expect(missingSlots(plan)).toBe(0);
   });
 
   it("lists slots in the deck's own card order, one per copy", () => {
@@ -223,7 +227,7 @@ describe("computeDeckBoxPlan", () => {
     expect(plan.slots[0]?.state).toBe("blocked");
     expect(plan.slots[0]?.reason).toBe("loan");
     expect(plan.slots[0]?.copy?.copyId).toBe(copy.id);
-    expect(plan.missingCount).toBe(0);
+    expect(missingSlots(plan)).toBe(0);
   });
 
   it("treats a copy in the box but out on loan as a gap in the box", () => {
@@ -265,13 +269,13 @@ describe("computeDeckBoxPlan", () => {
       }),
     );
     expect(plan.slots.map((slot) => slot.state)).toEqual(["missing"]);
-    expect(plan.missingCount).toBe(1);
+    expect(missingSlots(plan)).toBe(1);
   });
 
   it("counts copies it owns nowhere as missing", () => {
     const printing = stubPrinting({ cardId: "card-1" });
     const plan = computeDeckBoxPlan(inputFor({ quantity: 3, printings: [printing], copies: [] }));
-    expect(plan.missingCount).toBe(3);
+    expect(missingSlots(plan)).toBe(3);
     expect(plan.neededTotal).toBe(3);
     expect(plan.slots.map((slot) => slot.state)).toEqual(["missing", "missing", "missing"]);
   });
@@ -287,7 +291,7 @@ describe("computeDeckBoxPlan", () => {
     );
     expect(plan.neededTotal).toBe(0);
     expect(plan.slots).toEqual([]);
-    expect(plan.missingCount).toBe(0);
+    expect(missingSlots(plan)).toBe(0);
   });
 
   it("honours a hand-picked copy over the ranking", () => {
@@ -511,7 +515,6 @@ describe("computeDeckBoxPlan", () => {
       neededTotal: 0,
       inBoxTotal: 0,
       slots: [],
-      missingCount: 0,
       extras: [],
       extraCount: 0,
       siblingPrintingsByCardId: new Map(),

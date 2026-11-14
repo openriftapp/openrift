@@ -56,13 +56,25 @@ function MissingLine({ cost }: { cost: MetaDeckCost }) {
       <span className="text-border-accent text-xs font-medium">{m.meta_deck_buildable()}</span>
     );
   }
-  if (cost.toComplete === undefined || (cost.toComplete === 0 && cost.unpricedMissing === 0)) {
+  const locked = cost.locked ?? 0;
+  const priced = cost.toComplete !== undefined && (cost.toComplete > 0 || cost.unpricedMissing > 0);
+  if (!priced && locked === 0) {
     return null;
   }
   return (
     <span className="text-muted-foreground text-xs">
-      {m.meta_standings_missing_value({ amount: format(cost.toComplete) })}
-      {cost.unpricedMissing > 0 && ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
+      {priced && (
+        <span>
+          {m.meta_standings_missing_value({ amount: format(cost.toComplete ?? 0) })}
+          {cost.unpricedMissing > 0 && ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
+        </span>
+      )}
+      {priced && locked > 0 && " · "}
+      {locked > 0 && (
+        <span title={m.decks_meta_locked_title({ count: locked })}>
+          {m.decks_meta_locked({ count: locked })}
+        </span>
+      )}
     </span>
   );
 }

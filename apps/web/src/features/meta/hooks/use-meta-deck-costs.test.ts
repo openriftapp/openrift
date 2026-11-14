@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let cardIndex: MetaDeckCardIndexResponse = { cards: [], decks: [] };
 let printingsByCardId = new Map<string, { printingId: string; language: string }[]>();
 let ownedByPrinting: Record<string, number> | undefined = {};
+let lockedByPrinting: Record<string, number> = {};
 let priceMap: Record<string, Record<string, number>> = {};
 let requestedEnabled: boolean | undefined;
 
@@ -18,7 +19,12 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
 vi.mock("@/features/meta/hooks/use-buildable-count", () => ({
   useBuildableCount: (enabled: boolean) => {
     requestedEnabled = enabled;
-    return { data: enabled ? ownedByPrinting : undefined };
+    return {
+      data:
+        enabled && ownedByPrinting
+          ? { buildable: ownedByPrinting, locked: lockedByPrinting }
+          : undefined,
+    };
   },
 }));
 vi.mock("@/features/cards/hooks/use-prices", () => ({
@@ -37,6 +43,7 @@ import { useMetaDeckCosts } from "./use-meta-deck-costs";
 describe("useMetaDeckCosts", () => {
   beforeEach(() => {
     requestedEnabled = undefined;
+    lockedByPrinting = {};
     cardIndex = {
       cards: ["card-a", "card-b"],
       decks: [
@@ -90,7 +97,16 @@ describe("useMetaDeckCosts", () => {
       toComplete: 5,
       unpriced: 0,
       unpricedMissing: 0,
+      locked: 0,
     });
+  });
+
+  it("leaves locked copies out of the completion price", () => {
+    ownedByPrinting = {};
+    lockedByPrinting = { "print-a2": 1 };
+    const { result } = renderHook(() => useMetaDeckCosts(false, { withCollection: true }));
+    expect(result.current?.get("deck-1")?.owned).toBe(0);
+    expect(result.current?.get("deck-1")?.toComplete).toBe(5);
   });
 
   it("stays undefined until the copies arrive, so nothing reads as unowned early", () => {

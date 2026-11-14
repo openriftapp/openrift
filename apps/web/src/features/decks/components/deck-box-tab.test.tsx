@@ -15,7 +15,6 @@ const plan: DeckBoxPlan = {
   neededTotal: 0,
   inBoxTotal: 0,
   slots: [],
-  missingCount: 0,
   extras: [
     {
       card: { cardId: "card-1", name: "Jinx", types: ["unit"], tags: [], domains: ["fury"] },
@@ -73,13 +72,14 @@ vi.mock("@/hooks/use-enums", async () => {
 
 const { DeckBoxTab } = await import("./deck-box-tab");
 
-function renderTab(onCardClick: () => void) {
+function renderTab(onCardClick: () => void, missingCount = 0) {
   render(
     <DeckBoxTab
       deckId="deck-1"
       cards={[]}
       homeCollectionId="box"
       homeCollectionName="Deck box"
+      missingCount={missingCount}
       sortCards={(zoneCards) => zoneCards}
       groupCards={() => []}
       groupBy="type"
@@ -93,6 +93,18 @@ describe("DeckBoxTab", () => {
     mutate.mockClear();
     mdUp.value = true;
     plan.slots = [];
+  });
+
+  it("names the deck's missing count on the shopping button, not the box's empty slots", () => {
+    plan.slots = [{ key: "x:0", cardId: "x", cardKey: "x", state: "missing", alternatives: [] }];
+    renderTab(vi.fn(), 2);
+    expect(screen.getByRole("button", { name: "You don't own 2 cards" })).toBeTruthy();
+  });
+
+  it("hides the shopping button when nothing is missing", () => {
+    plan.slots = [{ key: "x:0", cardId: "x", cardKey: "x", state: "missing", alternatives: [] }];
+    renderTab(vi.fn(), 0);
+    expect(screen.queryByRole("button", { name: /You don't own/u })).toBeNull();
   });
 
   it("opens the card detail when the row itself is clicked", () => {
@@ -151,6 +163,7 @@ describe("DeckBoxTab", () => {
           cards={[deckCard]}
           homeCollectionId="box"
           homeCollectionName="Deck box"
+          missingCount={0}
           sortCards={(zoneCards) => zoneCards}
           groupCards={(zoneCards) => [{ key: "unit", label: null, cards: zoneCards }]}
           groupBy="type"

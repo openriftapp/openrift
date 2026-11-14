@@ -679,6 +679,45 @@ describe("MetaEventStandings", () => {
     expect(within(phoneRow("Bo")).getByText("Buildable")).toBeInTheDocument();
   });
 
+  it("names locked copies beside the missing price, and alone when nothing is missing", () => {
+    session.userId = "u-1";
+    archive.costs = new Map([
+      [
+        "d1",
+        {
+          needed: 40,
+          owned: 30,
+          value: 123.4,
+          toComplete: 12.5,
+          unpriced: 0,
+          unpricedMissing: 0,
+          locked: 4,
+        },
+      ],
+      [
+        "d2",
+        {
+          needed: 40,
+          owned: 37,
+          value: 80,
+          toComplete: 0,
+          unpriced: 0,
+          unpricedMissing: 0,
+          locked: 3,
+        },
+      ],
+    ]);
+    renderStandings([
+      metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, deckId: "d2", shareToken: "tok2" }),
+    ]);
+
+    expect(within(phoneRow("Ana")).getByText("€13 missing")).toBeInTheDocument();
+    expect(within(phoneRow("Ana")).getByText("4 locked")).toBeInTheDocument();
+    expect(within(phoneRow("Bo")).getByText("3 locked")).toBeInTheDocument();
+    expect(within(phoneRow("Bo")).queryByText(/missing/u)).toBeNull();
+  });
+
   it("prices the list alone for a signed-out reader", () => {
     archive.costs = new Map([
       [

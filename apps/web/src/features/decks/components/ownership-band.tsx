@@ -30,7 +30,7 @@ export function OwnershipBand({
         <span className="bg-violet" style={{ flexGrow: band.borrowed, flexBasis: 0 }} />
       )}
       {band.locked > 0 && (
-        <span className="bg-warning" style={{ flexGrow: band.locked, flexBasis: 0 }} />
+        <span className="bg-slate-400" style={{ flexGrow: band.locked, flexBasis: 0 }} />
       )}
       {band.missing > 0 && <span style={{ flexGrow: band.missing, flexBasis: 0 }} />}
     </span>
@@ -55,7 +55,7 @@ const LABELED_SEGMENTS = [
   },
   {
     key: "locked",
-    className: "bg-warning/20 text-warning",
+    className: "bg-slate-400/20 text-slate-400",
     label: () => m.decks_overview_own_locked(),
   },
   {

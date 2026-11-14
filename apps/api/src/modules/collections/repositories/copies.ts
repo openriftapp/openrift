@@ -84,6 +84,11 @@ function deckbuildingAvailableSql(exemptCollectionId?: string) {
   return sql<boolean>`(${base} or col.id = ${exemptCollectionId})`;
 }
 
+export interface LockedCopyCounts {
+  total: Map<string, number>;
+  excludedByCollection: Map<string, Map<string, number>>;
+}
+
 /**
  * Copy ownership is derived from the collection (personal collections set
  * user_id, group collections set group_id) — copies carry no owner column of
@@ -615,6 +620,49 @@ export function copiesRepo(db: Kysely<Database>) {
         byCollection.set(row.collectionId, cards);
       }
       return byCollection;
+    },
+
+    /**
+     * The deck editor's "locked" copies: loaned, trade-reserved, or personal in an excluded collection.
+     * `excludedByCollection` holds the last kind only, which a deck's own box unlocks.
+     */
+    async lockedCountByCard(userId: string): Promise<LockedCopyCounts> {
+      const rows = await db
+        .selectFrom("copies as cp")
+        .innerJoin("collections as col", "col.id", "cp.collectionId")
+        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
+        .leftJoin("friendGroupMembers as gm", (join) =>
+          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
+        )
+        .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
+          join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
+        )
+        .select((eb) => [
+          "cp.collectionId" as const,
+          "p.cardId" as const,
+          eb.not(eb.and([notPinnedToLoan(eb), notReservedByTrade(eb)])).as("held"),
+          eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
+        ])
+        .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
+        .where((eb) =>
+          eb.or([
+            eb.not(eb.and([notPinnedToLoan(eb), notReservedByTrade(eb)])),
+            eb.and([eb(deckbuildingAvailableSql(), "=", false), eb("col.groupId", "is", null)]),
+          ]),
+        )
+        .groupBy(["cp.collectionId", "p.cardId", "held"])
+        .execute();
+      const total = new Map<string, number>();
+      const excludedByCollection = new Map<string, Map<string, number>>();
+      for (const row of rows) {
+        total.set(row.cardId, (total.get(row.cardId) ?? 0) + row.count);
+        if (!row.held) {
+          const cards = excludedByCollection.get(row.collectionId) ?? new Map<string, number>();
+          cards.set(row.cardId, row.count);
+          excludedByCollection.set(row.collectionId, cards);
+        }
+      }
+      return { total, excludedByCollection };
     },
 
     /**

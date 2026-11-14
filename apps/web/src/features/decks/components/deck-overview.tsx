@@ -671,6 +671,7 @@ export function DeckOverview({
             cards={cards}
             homeCollectionId={homeCollection.id}
             homeCollectionName={homeCollection.name}
+            missingCount={ownershipData?.missingCount ?? 0}
             onViewMissing={onViewMissing}
             sortCards={sortZoneCards}
             groupCards={groupZoneCards}

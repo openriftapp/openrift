@@ -56,7 +56,7 @@ export function MetaDeckOwnedBar({
                 ? m.meta_deck_owned_ratio({ owned: cost.owned, needed: cost.needed })
                 : m.meta_deck_owned_of({ owned: cost.owned, needed: cost.needed })}
             </span>
-            {toComplete !== undefined && (toComplete > 0 || cost.unpricedMissing > 0) && (
+            {toComplete !== undefined && (toComplete > 0 || cost.unpricedMissing > 0) ? (
               <span>
                 <span className="text-foreground font-semibold">
                   {compactFormatterForMarketplace(marketplace)(toComplete)}
@@ -65,6 +65,12 @@ export function MetaDeckOwnedBar({
                 {cost.unpricedMissing > 0 &&
                   ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
               </span>
+            ) : (
+              (cost.locked ?? 0) > 0 && (
+                <span title={m.decks_meta_locked_title({ count: cost.locked ?? 0 })}>
+                  {m.decks_meta_locked({ count: cost.locked ?? 0 })}
+                </span>
+              )
             )}
           </>
         )}

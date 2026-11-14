@@ -70,7 +70,7 @@ export function useViewDeckCardDetail({
             zone: entryZone,
             count: entries.reduce((sum, entry) => sum + entry.quantity, 0),
           }))}
-          missing={ownershipData?.byCardZone.get(`${cardId}:${zone}`)?.shortfall ?? 0}
+          missing={ownershipData?.byCardZone.get(`${cardId}:${zone}`)?.unowned ?? 0}
         />
       ),
       rowEnd: (row) => {

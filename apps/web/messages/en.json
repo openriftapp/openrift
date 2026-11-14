@@ -2905,8 +2905,8 @@
       "declarations": ["input owned", "input total", "local totalPlural = total: plural"],
       "selectors": ["totalPlural"],
       "match": {
-        "totalPlural=one": "You have {owned} of {total} copy",
-        "totalPlural=*": "You have {owned} of {total} copies"
+        "totalPlural=one": "You can use {owned} of {total} copy",
+        "totalPlural=*": "You can use {owned} of {total} copies"
       }
     }
   ],
@@ -3462,7 +3462,7 @@
   "decks_overview_option_runes_hint": "Expand the rune stacks too.",
   "decks_overview_own_borrowed": "Borrowed",
   "decks_overview_own_locked": "Locked",
-  "decks_overview_own_locked_hint": "In collections excluded from deck building, so they don't count toward missing.",
+  "decks_overview_own_locked_hint": "Out on loan, reserved for a trade, or in a collection excluded from deck building, so they don't count toward missing.",
   "decks_overview_own_missing": "Missing",
   "decks_overview_own_owned": "Owned",
   "decks_overview_own_other_printing": "Other printing",
@@ -3504,6 +3504,7 @@
   "decks_stats_focus_energy": "{value}-energy cards",
   "decks_stats_focus_owned_borrowed": "Cards borrowed from friends",
   "decks_stats_focus_owned_exact": "Cards owned as shown",
+  "decks_stats_focus_owned_locked": "Cards with locked copies",
   "decks_stats_focus_owned_missing": "Cards with missing copies",
   "decks_stats_focus_owned_other": "Cards owned in another printing",
   "decks_stats_focus_power": "{value}-power cards",
@@ -3523,6 +3524,7 @@
   "decks_stats_footnote_multi_type": "A card with two types counts under both.",
   "decks_stats_lens_borrowed": "Borrowed",
   "decks_stats_lens_exact": "This printing",
+  "decks_stats_lens_locked": "Locked",
   "decks_stats_lens_missing": "Missing",
   "decks_stats_lens_other": "Another printing",
   "decks_stats_lens_row": "{count} {label}",
@@ -3776,6 +3778,36 @@
   "decks_test_bench_empty": "Add cards to the main deck to test opening hands.",
   "decks_meta_in_box": "in {box}",
   "decks_meta_in_boxes": "in {count} deck boxes",
+  "decks_meta_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} missing",
+        "countPlural=*": "{count} missing"
+      }
+    }
+  ],
+  "decks_meta_locked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} locked",
+        "countPlural=*": "{count} locked"
+      }
+    }
+  ],
+  "decks_meta_locked_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "You own this copy, but it's out on loan, reserved for a trade, or in a collection that's excluded from deck building.",
+        "countPlural=*": "You own these {count} copies, but they're out on loan, reserved for a trade, or in a collection that's excluded from deck building."
+      }
+    }
+  ],
   "decks_meta_stored_in_box": "Stored in {box}",
   "decks_meta_variant_in_box": "{deck} in {box}",
   "decks_meta_updated": "Updated {date}",
@@ -6414,7 +6446,7 @@
   "help_collections_physical_p1": "Collections mirror where your cards actually are in the real world. Moving a copy from \"Inbox\" to \"Red Deck Box\" records that you physically put that card in that box.",
   "help_collections_physical_p2": "Collections track {#strong}copies{/strong} (specific physical cards), not the cards as game concepts. If you own three copies of the same card, each one lives in a collection, whether that's the same collection or different ones. See {#link}Cards, Printings & Copies{/link} for more on how these relate.",
   "help_collections_availability_heading": "Deck building availability",
-  "help_collections_availability_p1": "Each collection has an \"available for deck building\" toggle. Open a collection, hit the three-dot menu, and pick {#em}Edit{/em} to change it. When turned off, copies in that collection don't count toward owned cards in the deck builder or the shopping list.",
+  "help_collections_availability_p1": "Each collection has an \"available for deck building\" toggle. Open a collection, hit the three-dot menu, and pick {#em}Edit{/em} to change it. When turned off, copies in that collection show as locked in the deck builder: they don't count as cards you can build with, and they stay off the shopping list because you already own them.",
   "help_collections_availability_p2": "This is useful for cards you don't want to cannibalise: a high-value card you keep in a display case, cards lent to a friend, or copies already committed to a specific deck. Locked-away copies still show up in the deck builder's ownership panel as \"locked\", so you can see what you'd have available if you turned the collection back on.",
   "help_collections_start_heading": "Getting started",
   "help_collections_start_p1": "Open {#strong}Collections{/strong} from the top navigation. Your first collection is the {#strong2}Inbox{/strong2}, which is always present. It's where quick-added cards land unless you choose a different target.",

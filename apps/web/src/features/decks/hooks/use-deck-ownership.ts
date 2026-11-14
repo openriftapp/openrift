@@ -66,6 +66,7 @@ function mergeZoneEntries(first: CardOwnership, next: CardOwnership): CardOwners
     needed: first.needed + next.needed,
     owned: first.owned + next.owned,
     shortfall: first.shortfall + next.shortfall,
+    unowned: first.unowned + next.unowned,
     locked: first.locked + next.locked,
     borrowed: first.borrowed + next.borrowed,
     incoming: first.incoming + next.incoming,
@@ -163,7 +164,7 @@ export function computeDeckOwnership(
     zone: DeckZone;
     cardId: string;
     quantity: number;
-    shortfall: number;
+    unowned: number;
     valuePerCopy: number | undefined;
     valuePrintingId: string | undefined;
     displayPrice: number | undefined;
@@ -252,6 +253,7 @@ export function computeDeckOwnership(
       needed: card.quantity,
       owned: ownedInZone,
       shortfall,
+      unowned: shortfall - lockedInZone,
       locked: lockedInZone,
       lockedLoaned: loanedByCardId.get(card.cardId) ?? 0,
       lockedReserved: reservedByCardId.get(card.cardId) ?? 0,
@@ -282,12 +284,12 @@ export function computeDeckOwnership(
       requiredZoneOwned += ownedInZone;
     }
 
-    if (shortfall > 0) {
-      missingCount += shortfall;
+    if (entry.unowned > 0) {
+      missingCount += entry.unowned;
       if (REQUIRED_ZONE_SET.has(card.zone)) {
-        requiredZoneMissing += shortfall;
+        requiredZoneMissing += entry.unowned;
       } else {
-        sideboardMissing += shortfall;
+        sideboardMissing += entry.unowned;
       }
       missingCards.push(entry);
     }
@@ -296,7 +298,7 @@ export function computeDeckOwnership(
       zone: card.zone,
       cardId: card.cardId,
       quantity: card.quantity,
-      shortfall,
+      unowned: entry.unowned,
       valuePerCopy: cheapestPrice ?? displayPrice,
       valuePrintingId:
         cheapestPrice === undefined ? resolvedPrinting?.printingId : cheapestResolved?.printingId,
@@ -325,7 +327,7 @@ export function computeDeckOwnership(
   const missingCovered = priced(
     valued,
     (row) => row.valuePrintingId,
-    (row) => row.shortfall,
+    (row) => row.unowned,
   );
   const displayCovered = priced(
     valued,
@@ -335,17 +337,17 @@ export function computeDeckOwnership(
   const displayMissingCovered = priced(
     valued,
     (row) => row.displayPrintingId,
-    (row) => row.shortfall,
+    (row) => row.unowned,
   );
   valued.forEach((row, index) => {
     const { valuePerCopy, displayPrice } = row;
     if (valuePerCopy === undefined) {
       unpricedCount += row.quantity;
-      missingUnpricedCount += row.shortfall;
+      missingUnpricedCount += row.unowned;
     } else {
       hasPrices = true;
       const value = valueCovered[index] ? 0 : valuePerCopy * row.quantity;
-      const missing = missingCovered[index] ? 0 : valuePerCopy * row.shortfall;
+      const missing = missingCovered[index] ? 0 : valuePerCopy * row.unowned;
       deckValue += value;
       if (row.zone === WellKnown.deckZone.SIDEBOARD) {
         sideboardValue += value;
@@ -357,7 +359,7 @@ export function computeDeckOwnership(
     if (displayPrice !== undefined) {
       hasPrices = true;
       asDisplayedValue += displayCovered[index] ? 0 : displayPrice * row.quantity;
-      missingAsDisplayedValue += displayMissingCovered[index] ? 0 : displayPrice * row.shortfall;
+      missingAsDisplayedValue += displayMissingCovered[index] ? 0 : displayPrice * row.unowned;
     }
   });
 

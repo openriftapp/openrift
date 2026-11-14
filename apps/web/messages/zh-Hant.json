@@ -2904,8 +2904,8 @@
       "declarations": ["input owned", "input total", "local totalPlural = total: plural"],
       "selectors": ["totalPlural"],
       "match": {
-        "totalPlural=one": "你擁有 {total} 張中的 {owned} 張",
-        "totalPlural=*": "你擁有 {total} 張中的 {owned} 張"
+        "totalPlural=one": "{total} 張中你可以使用 {owned} 張",
+        "totalPlural=*": "{total} 張中你可以使用 {owned} 張"
       }
     }
   ],
@@ -3461,7 +3461,7 @@
   "decks_overview_option_runes_hint": "也展開符文堆疊。",
   "decks_overview_own_borrowed": "借來",
   "decks_overview_own_locked": "鎖住",
-  "decks_overview_own_locked_hint": "位於未納入組牌的收藏中，因此不計入缺少的數量。",
+  "decks_overview_own_locked_hint": "已外借、已保留給交易，或位於未納入組牌的收藏中，因此不計入缺少的數量。",
   "decks_overview_own_missing": "缺少",
   "decks_overview_own_owned": "已擁有",
   "decks_overview_own_other_printing": "其他印刷版本",
@@ -3503,6 +3503,7 @@
   "decks_stats_focus_energy": "{value} 能量的卡牌",
   "decks_stats_focus_owned_borrowed": "向朋友借來的卡牌",
   "decks_stats_focus_owned_exact": "以顯示印刷版本擁有的卡牌",
+  "decks_stats_focus_owned_locked": "有鎖住卡張的卡牌",
   "decks_stats_focus_owned_missing": "有缺張的卡牌",
   "decks_stats_focus_owned_other": "以其他印刷版本擁有的卡牌",
   "decks_stats_focus_power": "{value} 符能的卡牌",
@@ -3521,6 +3522,7 @@
   "decks_stats_footnote_multi_type": "具有兩種類型的卡牌會同時計入兩邊。",
   "decks_stats_lens_borrowed": "借來",
   "decks_stats_lens_exact": "這個印刷版本",
+  "decks_stats_lens_locked": "鎖住",
   "decks_stats_lens_missing": "缺少",
   "decks_stats_lens_other": "其他印刷版本",
   "decks_stats_lens_row": "{count} {label}",
@@ -3770,6 +3772,36 @@
   "decks_test_bench_empty": "先把卡牌加入主牌堆，才能測試起始手牌。",
   "decks_meta_in_box": "位於{box}",
   "decks_meta_in_boxes": "位於{count}個牌盒",
+  "decks_meta_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "缺 {count} 張",
+        "countPlural=*": "缺 {count} 張"
+      }
+    }
+  ],
+  "decks_meta_locked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張鎖住",
+        "countPlural=*": "{count} 張鎖住"
+      }
+    }
+  ],
+  "decks_meta_locked_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "你擁有這張卡，但它已外借、已保留給交易，或在未納入組牌的收藏中。",
+        "countPlural=*": "你擁有這 {count} 張卡，但它們已外借、已保留給交易，或在未納入組牌的收藏中。"
+      }
+    }
+  ],
   "decks_meta_stored_in_box": "存放於{box}",
   "decks_meta_variant_in_box": "{deck}位於{box}",
   "decks_meta_updated": "更新於 {date}",
@@ -6407,7 +6439,7 @@
   "help_collections_physical_p1": "收藏對應你的卡牌在真實世界中實際所在的位置。把一張實體卡從「收件匣」移到「紅色牌盒」，記錄的就是你把那張卡實際放進了那個盒子。",
   "help_collections_physical_p2": "收藏追蹤的是{#strong}實體卡{/strong}（特定的實體卡牌），而不是遊戲概念上的卡牌。如果你擁有同一張卡牌的三張實體卡，每一張都各自存放在某個收藏中，不論是同一個收藏還是不同收藏。想了解這些概念的關聯，請見{#link}卡牌、印刷版本與實體卡{/link}。",
   "help_collections_availability_heading": "組牌時的可用性",
-  "help_collections_availability_p1": "每個收藏都有一個「可用於組牌」的開關。開啟收藏，點擊三點選單，選擇{#em}編輯{/em}即可變更。關閉後，該收藏中的實體卡不會計入組牌工具或購物清單中的已擁有卡牌。",
+  "help_collections_availability_p1": "每個收藏都有一個「可用於組牌」的開關。開啟收藏，點擊三點選單，選擇{#em}編輯{/em}即可變更。關閉後，該收藏中的實體卡在組牌工具中會顯示為鎖住：它們不計入可用來組牌的卡牌，也不會進入購物清單，因為你已經擁有它們。",
   "help_collections_availability_p2": "這對你不想拆用的卡牌很有用：收在展示櫃裡的高價卡、借給朋友的卡，或是已經指定給某副牌組的實體卡。被鎖起來的實體卡仍會以「已鎖定」的形式出現在組牌工具的擁有狀況面板中，讓你看得到重新開啟該收藏後能多出哪些卡。",
   "help_collections_start_heading": "開始使用",
   "help_collections_start_p1": "從頂端導覽列開啟{#strong}收藏{/strong}。你的第一個收藏是{#strong2}收件匣{/strong2}，它永遠存在。除非你另外選擇目標，否則快速新增的卡牌都會落在這裡。",

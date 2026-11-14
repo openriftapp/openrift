@@ -59,7 +59,6 @@ export interface DeckBoxPlan {
   neededTotal: number;
   inBoxTotal: number;
   slots: DeckBoxSlot[];
-  missingCount: number;
   extras: DeckBoxExtra[];
   extraCount: number;
   siblingPrintingsByCardId: ReadonlyMap<string, VariantLabelPrinting[]>;
@@ -360,7 +359,6 @@ export function computeDeckBoxPlan({
   const fillsByCard = new Map<string, SlotFill[]>();
   let neededTotal = 0;
   let inBoxTotal = 0;
-  let missingCount = 0;
 
   for (const [cardId, { needed }] of needsByCard) {
     const comparator = candidateComparator(
@@ -449,7 +447,6 @@ export function computeDeckBoxPlan({
       takeHeld(stuck.loan, "loan");
       takeHeld(stuck.trade, "trade");
     }
-    missingCount += uncovered;
     for (let slot = 0; slot < uncovered; slot++) {
       fills.push({ state: "missing", alternatives: [] });
     }
@@ -531,7 +528,6 @@ export function computeDeckBoxPlan({
     neededTotal,
     inBoxTotal,
     slots,
-    missingCount,
     extras: extras.toSorted((a, b) => compareCardDisplayName(a.card, b.card)),
     extraCount,
     siblingPrintingsByCardId: new Map(

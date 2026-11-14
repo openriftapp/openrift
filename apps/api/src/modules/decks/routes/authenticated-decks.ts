@@ -125,7 +125,7 @@ export const decksRouter = {
       context.repos;
     const userId = context.userId;
 
-    const [deckRows, allCards, prefs, enumRows, buildableByCard, borrowedByCard] =
+    const [deckRows, allCards, prefs, enumRows, buildableByCard, borrowedByCard, lockedCopies] =
       await Promise.all([
         decks.listForUser(userId, {
           includeArchived: input.includeArchived === "true",
@@ -138,6 +138,7 @@ export const decksRouter = {
         // both surfaces report the same number.
         copies.buildableCountByCard(userId),
         loans.borrowedCountByCard(userId),
+        copies.lockedCountByCard(userId),
       ]);
 
     const favMarketplace = resolveFavoriteMarketplace(prefs?.data?.marketplaceOrder);
@@ -195,7 +196,7 @@ export const decksRouter = {
         row.format as DeckFormat,
       );
 
-      // Missing count: needed minus buildable minus borrowed-in, per card.
+      // Missing count: needed minus buildable, borrowed-in and locked copies, per card.
       // Sums over every zone the deck editor's ownership panel counts (all but
       // overflow, which is a parking zone — see `computeDeckOwnership`), so the
       // two numbers agree. Buildable and borrowed pools are shared across
@@ -212,13 +213,24 @@ export const decksRouter = {
       // collection is excluded from deck building — that's the box it lives in.
       const homeExtra =
         row.collectionId === null ? undefined : homeExtrasByCollection.get(row.collectionId);
+      const homeExcluded =
+        row.collectionId === null
+          ? undefined
+          : lockedCopies.excludedByCollection.get(row.collectionId);
       let missingCount = 0;
+      let lockedCount = 0;
       for (const [cardId, needed] of neededByCard) {
         const have =
           (buildableByCard.get(cardId) ?? 0) +
           (homeExtra?.get(cardId) ?? 0) +
           (borrowedByCard.get(cardId) ?? 0);
-        missingCount += Math.max(0, needed - have);
+        const shortfall = Math.max(0, needed - have);
+        const locked = Math.min(
+          shortfall,
+          (lockedCopies.total.get(cardId) ?? 0) - (homeExcluded?.get(cardId) ?? 0),
+        );
+        missingCount += shortfall - locked;
+        lockedCount += locked;
       }
 
       const isValid = isValidInDeckList(
@@ -252,6 +264,7 @@ export const decksRouter = {
         totalValueCents: deckValueMap.get(row.id)?.totalValueCents ?? null,
         unpricedCardCount: deckValueMap.get(row.id)?.unpricedCount ?? null,
         missingCount,
+        lockedCount,
         folderIds: folderIdsByDeck.get(row.id) ?? [],
         familyName: row.familyId === null ? null : (familyNames.get(row.familyId) ?? null),
       };

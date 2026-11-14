@@ -56,6 +56,9 @@ function ownershipFocusLabel(ownershipClass: OwnershipClass): string {
     case "borrowed": {
       return m.decks_stats_focus_owned_borrowed();
     }
+    case "locked": {
+      return m.decks_stats_focus_owned_locked();
+    }
     case "missing": {
       return m.decks_stats_focus_owned_missing();
     }

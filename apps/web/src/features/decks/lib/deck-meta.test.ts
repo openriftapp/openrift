@@ -43,6 +43,7 @@ function stubItem(overrides: Partial<DeckListItemResponse> = {}): DeckListItemRe
     totalValueCents: 14_230,
     unpricedCardCount: null,
     missingCount: 4,
+    lockedCount: 0,
     ...overrides,
   } as DeckListItemResponse;
 }
@@ -52,13 +53,13 @@ const ownBox = [{ deckId: stubItem().deck.id, deckName: "Own", boxName: "Deckbox
 describe("deckMetaParts", () => {
   it("returns the canonical order regardless of which facts apply", () => {
     const keys = deckMetaParts(stubItem(), price, ownBox).map((entry) => entry.key);
-    expect(keys).toEqual(["box", "missing", "value", "updated"]);
+    expect(keys).toEqual(["box", "missing", "locked", "value", "updated"]);
 
     const emptyKeys = deckMetaParts(
       stubItem({ totalValueCents: null, missingCount: null }),
       price,
     ).map((entry) => entry.key);
-    expect(emptyKeys).toEqual(["box", "missing", "value", "updated"]);
+    expect(emptyKeys).toEqual(["box", "missing", "locked", "value", "updated"]);
   });
 
   it("formats a fully-populated deck", () => {
@@ -66,6 +67,7 @@ describe("deckMetaParts", () => {
     expect(parts.map((entry) => entry.text)).toEqual([
       "in Deckbox 1",
       "4 missing",
+      null,
       "€142.30",
       "2026-08-09",
     ]);
@@ -103,6 +105,26 @@ describe("deckMetaParts", () => {
     expect(part(deckMetaParts(stubItem({ missingCount: null }), price), "missing").text).toBeNull();
   });
 
+  it("shows locked copies beside the missing ones", () => {
+    const parts = deckMetaParts(stubItem({ missingCount: 2, lockedCount: 14 }), price);
+    expect(part(parts, "missing").text).toBe("2 missing");
+    expect(part(parts, "locked").text).toBe("14 locked");
+    expect(part(parts, "locked").warn).toBeUndefined();
+    expect(part(parts, "locked").title).toContain("14 copies");
+  });
+
+  it("blanks the missing part when every short copy is locked", () => {
+    const parts = deckMetaParts(stubItem({ missingCount: 0, lockedCount: 3 }), price);
+    expect(part(parts, "missing").text).toBeNull();
+    expect(part(parts, "locked").text).toBe("3 locked");
+  });
+
+  it("blanks the locked part for local decks with no server inventory", () => {
+    const parts = deckMetaParts(stubItem({ missingCount: null, lockedCount: null }), price);
+    expect(part(parts, "locked").text).toBeNull();
+    expect(part(parts, "locked").title).toBeUndefined();
+  });
+
   it("blanks the value part when the deck has no priced cards", () => {
     expect(
       part(deckMetaParts(stubItem({ totalValueCents: null }), price), "value").text,
@@ -126,7 +148,7 @@ describe("deckMetaParts", () => {
       stubItem({ totalCards: 0, totalValueCents: null, missingCount: 0 }),
       price,
     );
-    expect(parts.map((entry) => entry.text)).toEqual([null, null, null, "2026-08-09"]);
+    expect(parts.map((entry) => entry.text)).toEqual([null, null, null, null, "2026-08-09"]);
   });
 });
 

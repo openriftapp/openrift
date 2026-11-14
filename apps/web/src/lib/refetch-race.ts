@@ -8,7 +8,7 @@ export function watchForRefetchRace(queryClient: QueryClient, queryKey: QueryKey
     if (event.type !== "updated" || event.query.queryHash !== queryHash) {
       return;
     }
-    // A collection's own store writes reach the cache as manual successes.
+    // A collection's own store writes reach the cache as setState or manual successes.
     if (
       event.action.type === "fetch" ||
       (event.action.type === "success" && event.action.manual !== true)

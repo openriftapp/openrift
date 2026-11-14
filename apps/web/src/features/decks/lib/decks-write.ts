@@ -254,6 +254,13 @@ async function persistDeckUpdate(
   const patch = row.patch ?? patchFor(original, modified);
   if (Object.keys(patch).length > 0) {
     await mergeDeck(collection, await client.update({ id, ...patch }));
+    // The row's missing and locked counts depend on the deck's box.
+    if ("collectionId" in patch) {
+      void context.queryClient.invalidateQueries({
+        queryKey: decksKeys.syncedStore(context.userId),
+        exact: true,
+      });
+    }
   }
   if (modified.isPinned !== original.isPinned) {
     await mergeDeck(collection, await client.setPinned({ id, isPinned: modified.isPinned }));

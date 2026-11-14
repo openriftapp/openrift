@@ -21,6 +21,7 @@ export interface CardOwnership {
   needed: number;
   owned: number;
   shortfall: number;
+  unowned: number;
   locked: number;
   lockedLoaned: number;
   lockedReserved: number;

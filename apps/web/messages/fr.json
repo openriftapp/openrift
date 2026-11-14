@@ -2905,8 +2905,8 @@
       "declarations": ["input owned", "input total", "local totalPlural = total: plural"],
       "selectors": ["totalPlural"],
       "match": {
-        "totalPlural=one": "Vous avez {owned} exemplaire sur {total}",
-        "totalPlural=*": "Vous avez {owned} exemplaires sur {total}"
+        "totalPlural=one": "Vous pouvez utiliser {owned} exemplaire sur {total}",
+        "totalPlural=*": "Vous pouvez utiliser {owned} exemplaires sur {total}"
       }
     }
   ],
@@ -3462,7 +3462,7 @@
   "decks_overview_option_runes_hint": "Déplie aussi les piles de runes.",
   "decks_overview_own_borrowed": "Empruntées",
   "decks_overview_own_locked": "Verrouillées",
-  "decks_overview_own_locked_hint": "Dans des collections exclues de la construction de decks, elles ne comptent donc pas comme manquantes.",
+  "decks_overview_own_locked_hint": "Prêtées, réservées pour un échange ou dans une collection exclue de la construction de decks, elles ne comptent donc pas comme manquantes.",
   "decks_overview_own_missing": "Manquantes",
   "decks_overview_own_owned": "Possédées",
   "decks_overview_own_other_printing": "Autre impression",
@@ -3504,6 +3504,7 @@
   "decks_stats_focus_energy": "Cartes à {value} énergie",
   "decks_stats_focus_owned_borrowed": "Cartes empruntées à des amis",
   "decks_stats_focus_owned_exact": "Cartes possédées telles qu'affichées",
+  "decks_stats_focus_owned_locked": "Cartes avec des exemplaires verrouillés",
   "decks_stats_focus_owned_missing": "Cartes avec des exemplaires manquants",
   "decks_stats_focus_owned_other": "Cartes possédées dans une autre impression",
   "decks_stats_focus_power": "Cartes à {value} essence runique",
@@ -3522,6 +3523,7 @@
   "decks_stats_footnote_multi_type": "Une carte à deux types compte dans les deux.",
   "decks_stats_lens_borrowed": "Empruntées",
   "decks_stats_lens_exact": "Cette impression",
+  "decks_stats_lens_locked": "Verrouillées",
   "decks_stats_lens_missing": "Manquantes",
   "decks_stats_lens_other": "Une autre impression",
   "decks_stats_lens_row": "{count} {label}",
@@ -3771,6 +3773,36 @@
   "decks_test_bench_empty": "Ajoutez des cartes au deck principal pour tester des mains de départ.",
   "decks_meta_in_box": "dans {box}",
   "decks_meta_in_boxes": "dans {count} boîtes de deck",
+  "decks_meta_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} manquante",
+        "countPlural=*": "{count} manquantes"
+      }
+    }
+  ],
+  "decks_meta_locked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} verrouillée",
+        "countPlural=*": "{count} verrouillées"
+      }
+    }
+  ],
+  "decks_meta_locked_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Vous possédez cet exemplaire, mais il est prêté, réservé pour un échange ou dans une collection exclue de la construction de decks.",
+        "countPlural=*": "Vous possédez ces {count} exemplaires, mais ils sont prêtés, réservés pour un échange ou dans une collection exclue de la construction de decks."
+      }
+    }
+  ],
   "decks_meta_stored_in_box": "Rangé dans {box}",
   "decks_meta_variant_in_box": "{deck} dans {box}",
   "decks_meta_updated": "Mis à jour le {date}",
@@ -6409,7 +6441,7 @@
   "help_collections_physical_p1": "Les collections reflètent l'endroit où vos cartes se trouvent réellement. Déplacer un exemplaire de \"Boîte de réception\" vers \"Boîte de deck rouge\" indique que vous avez physiquement rangé cette carte dans cette boîte.",
   "help_collections_physical_p2": "Les collections suivent des {#strong}exemplaires{/strong} (des cartes physiques précises), et non les cartes en tant que concepts de jeu. Si vous possédez trois exemplaires de la même carte, chacun se trouve dans une collection, la même ou une autre. Voir {#link}Cartes, impressions et exemplaires{/link} pour en savoir plus sur leurs relations.",
   "help_collections_availability_heading": "Disponibilité pour la création de decks",
-  "help_collections_availability_p1": "Chaque collection dispose d'une option \"disponible pour la création de decks\". Ouvrez une collection, cliquez sur le menu à trois points et choisissez {#em}Modifier{/em} pour la modifier. Lorsqu'elle est désactivée, les exemplaires de cette collection ne comptent pas comme cartes possédées dans l'éditeur de deck ni dans la liste d'achats.",
+  "help_collections_availability_p1": "Chaque collection dispose d'une option \"disponible pour la création de decks\". Ouvrez une collection, cliquez sur le menu à trois points et choisissez {#em}Modifier{/em} pour la modifier. Lorsqu'elle est désactivée, les exemplaires de cette collection apparaissent comme verrouillés dans l'éditeur de deck : ils ne comptent pas comme cartes utilisables, et ils restent hors de la liste d'achats puisque vous les possédez déjà.",
   "help_collections_availability_p2": "C'est utile pour les cartes que vous ne voulez pas démonter : une carte de valeur gardée en vitrine, des cartes prêtées à un ami ou des exemplaires déjà réservés à un deck précis. Les exemplaires verrouillés apparaissent toujours comme \"verrouillés\" dans le panneau de possession de l'éditeur de deck, pour que vous voyiez ce dont vous disposeriez en réactivant la collection.",
   "help_collections_start_heading": "Premiers pas",
   "help_collections_start_p1": "Ouvrez {#strong}Collections{/strong} depuis la navigation supérieure. Votre première collection est la {#strong2}Boîte de réception{/strong2}, toujours présente. C'est là qu'atterrissent les cartes ajoutées rapidement, sauf si vous choisissez une autre destination.",

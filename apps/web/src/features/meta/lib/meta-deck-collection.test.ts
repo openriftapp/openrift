@@ -118,6 +118,18 @@ describe("metaDeckCosts", () => {
     });
   });
 
+  it("leaves locked copies out of the completion price", () => {
+    const costs = metaDeckCosts(decks, {
+      includeSideboard: false,
+      prices,
+      ownedByCardId: new Map([["card-a", 1]]),
+      lockedByCardId: new Map([["card-a", 5]]),
+    });
+    expect(costs.get("deck-1")?.owned).toBe(1);
+    expect(costs.get("deck-1")?.toComplete).toBe(10);
+    expect(costs.get("deck-1")?.locked).toBe(2);
+  });
+
   it("adds the sideboard's copies to the same card", () => {
     const costs = metaDeckCosts(decks, { includeSideboard: true, prices });
     expect(costs.get("deck-1")?.needed).toBe(6);
@@ -137,6 +149,7 @@ describe("metaDeckCosts", () => {
       toComplete: 12,
       unpriced: 0,
       unpricedMissing: 0,
+      locked: 0,
     });
   });
 
@@ -208,6 +221,7 @@ describe("metaDeckCosts", () => {
       toComplete: 0,
       unpriced: 0,
       unpricedMissing: 0,
+      locked: 0,
     });
   });
 
@@ -293,6 +307,17 @@ describe("metaCardOwnershipBand", () => {
       printings,
     );
     expect(band).toEqual({ exact: 1, other: 1, borrowed: 0, locked: 0, missing: 1 });
+  });
+
+  it("paints locked copies after the usable ones", () => {
+    const band = metaCardOwnershipBand(
+      { cardId: "card-a", quantity: 3 },
+      "p-en",
+      { "p-en": 1 },
+      printings,
+      { "p-fr": 1 },
+    );
+    expect(band).toEqual({ exact: 1, other: 0, borrowed: 0, locked: 1, missing: 1 });
   });
 
   it("counts a printing with the card on both sides once", () => {

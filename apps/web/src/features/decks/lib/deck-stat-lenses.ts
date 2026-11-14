@@ -26,13 +26,14 @@ const LENS_ZONES: ReadonlySet<DeckZone> = new Set([
   WellKnown.deckZone.CHAMPION,
 ]);
 
-export type OwnershipClass = "exact" | "other" | "borrowed" | "missing";
+export type OwnershipClass = "exact" | "other" | "borrowed" | "locked" | "missing";
 
 export function ownershipLensSeries(): readonly (LensSeries & { key: OwnershipClass })[] {
   return [
     { key: "exact", label: m.decks_stats_lens_exact(), color: "var(--color-green-500)" },
     { key: "other", label: m.decks_stats_lens_other(), color: "var(--color-sky-500)" },
     { key: "borrowed", label: m.decks_stats_lens_borrowed(), color: "var(--color-violet-500)" },
+    { key: "locked", label: m.decks_stats_lens_locked(), color: "var(--color-slate-400)" },
     { key: "missing", label: m.decks_stats_lens_missing(), color: "var(--color-amber-500)" },
   ];
 }
@@ -106,7 +107,13 @@ export function buildOwnershipRows(
   cards: readonly DeckBuilderCard[],
   segmentsByCardKey: ReadonlyMap<string, OwnershipBandSegments>,
 ): LensRow[] {
-  const totals: Record<OwnershipClass, number> = { exact: 0, other: 0, borrowed: 0, missing: 0 };
+  const totals: Record<OwnershipClass, number> = {
+    exact: 0,
+    other: 0,
+    borrowed: 0,
+    locked: 0,
+    missing: 0,
+  };
   for (const card of cards) {
     if (!LENS_ZONES.has(card.zone)) {
       continue;
@@ -118,8 +125,8 @@ export function buildOwnershipRows(
     totals.exact += segments.exact;
     totals.other += segments.other;
     totals.borrowed += segments.borrowed;
-    // Locked copies count as missing, matching every other shortfall figure.
-    totals.missing += segments.missing + segments.locked;
+    totals.locked += segments.locked;
+    totals.missing += segments.missing;
   }
   return ownershipLensSeries().map((series) => ({
     key: series.key,
@@ -155,12 +162,7 @@ export function ownershipFocusKeys(
       continue;
     }
     const segments = segmentsByCardKey.get(deckCardKey(card));
-    // Mirrors buildOwnershipRows: locked copies belong to the missing class.
-    const count =
-      ownershipClass === "missing"
-        ? (segments?.missing ?? 0) + (segments?.locked ?? 0)
-        : (segments?.[ownershipClass] ?? 0);
-    if (count > 0) {
+    if ((segments?.[ownershipClass] ?? 0) > 0) {
       keys.add(deckCardKey(card));
     }
   }

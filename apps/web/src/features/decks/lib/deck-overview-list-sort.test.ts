@@ -304,6 +304,24 @@ describe("sortDeckOverviewList", () => {
     ]);
   });
 
+  it("sorts locked-only shortfalls between owned and missing cards", () => {
+    const cards = [
+      stubDeckBuilderCard({ cardId: "missing", cardName: "Missing" }),
+      stubDeckBuilderCard({ cardId: "locked", cardName: "Locked" }),
+      stubDeckBuilderCard({ cardId: "owned", cardName: "Owned" }),
+    ];
+    const ctx = contextFrom({
+      owned: { shortfall: 0, unowned: 0 },
+      locked: { shortfall: 3, unowned: 0 },
+      missing: { shortfall: 1, unowned: 1 },
+    });
+    expect(names(sortDeckOverviewList(cards, "ownership", "asc", ctx))).toEqual([
+      "Owned",
+      "Locked",
+      "Missing",
+    ]);
+  });
+
   it("does not mutate the input array", () => {
     const cards = [
       stubDeckBuilderCard({ cardId: "b", cardName: "Bard" }),

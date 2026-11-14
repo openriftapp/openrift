@@ -69,6 +69,7 @@ function stubDeckRow(overrides: Partial<DeckResponse> = {}): DeckListItemRespons
     totalValueCents: null,
     unpricedCardCount: null,
     missingCount: null,
+    lockedCount: null,
     folderIds: [],
   } as unknown as DeckListItemResponse;
 }
@@ -228,6 +229,24 @@ describe("persisting deck writes", () => {
     expect(writes()).toEqual([
       { method: "PATCH", path: "/api/v1/decks/deck-1", body: { name: "New" } },
     ]);
+  });
+
+  it("rereads the list after moving a deck to another box, whose counts depend on it", async () => {
+    const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
+
+    await updateDeck(collection, "deck-1", { collectionId: "box-1" }).when("settled");
+
+    await vi.waitFor(() => {
+      expect(sent.filter((request) => request.method === "GET")).toHaveLength(1);
+    });
+  });
+
+  it("does not reread the list for an edit that leaves the box alone", async () => {
+    const collection = await decksOnServer([stubDeckRow({ id: "deck-1", name: "Old" })]);
+
+    await updateDeck(collection, "deck-1", { name: "New" }).when("settled");
+
+    expect(sent.filter((request) => request.method === "GET")).toEqual([]);
   });
 
   it("keeps the saved folder membership on the row once the write settles", async () => {

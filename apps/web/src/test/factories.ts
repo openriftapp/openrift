@@ -195,6 +195,7 @@ export function stubCardOwnership(overrides: Partial<CardOwnership> = {}): CardO
     needed: 1,
     owned: 0,
     shortfall: 1,
+    unowned: (overrides.shortfall ?? 1) - (overrides.locked ?? 0),
     locked: 0,
     lockedLoaned: 0,
     lockedReserved: 0,

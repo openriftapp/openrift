@@ -167,15 +167,15 @@ function MissingCardsDialogBody({
         const code = printing && distinctPrintingCode(printing);
         const cardName = straightenApostrophes(card.cardName);
         const namePart = code ? `${code} ${cardName}` : cardName;
-        const priceText = price === undefined ? "" : ` - ${fmt(price * card.shortfall)}`;
-        return `${card.shortfall}x ${namePart}${priceText}`;
+        const priceText = price === undefined ? "" : ` - ${fmt(price * card.unowned)}`;
+        return `${card.unowned}x ${namePart}${priceText}`;
       })
       .join("\n");
 
-  const totalMissing = sorted.reduce((sum, card) => sum + card.shortfall, 0);
+  const totalMissing = sorted.reduce((sum, card) => sum + card.unowned, 0);
   const unpricedMissing = sorted
     .filter((card) => (card.cheapestPrice ?? card.displayPrice) === undefined)
-    .reduce((sum, card) => sum + card.shortfall, 0);
+    .reduce((sum, card) => sum + card.unowned, 0);
 
   const handoff = marketplaceHandoff(
     marketplace,
@@ -270,15 +270,15 @@ function MissingCardsDialogBody({
                       </div>
                       <div className="whitespace-nowrap sm:text-right">
                         {price === undefined ? (
-                          <span className="text-muted-foreground">{card.shortfall} × --</span>
-                        ) : card.shortfall === 1 ? (
+                          <span className="text-muted-foreground">{card.unowned} × --</span>
+                        ) : card.unowned === 1 ? (
                           <span className="font-medium">{fmt(price)}</span>
                         ) : (
                           <>
                             <span className="text-muted-foreground">
-                              {card.shortfall} × {fmt(price)} ={" "}
+                              {card.unowned} × {fmt(price)} ={" "}
                             </span>
-                            <span className="font-medium">{fmt(price * card.shortfall)}</span>
+                            <span className="font-medium">{fmt(price * card.unowned)}</span>
                           </>
                         )}
                       </div>

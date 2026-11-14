@@ -73,6 +73,23 @@ describe("groupDeckCards", () => {
     expect(groups.map((group) => group.label)).toEqual(["Owned", "Missing copies", "Not owned"]);
   });
 
+  it("groups cards whose short copies are all locked apart from the missing ones", () => {
+    const locked = stubDeckBuilderCard({ cardName: "Locked" });
+    const partlyLocked = stubDeckBuilderCard({ cardName: "Partly locked" });
+    const entries = new Map([
+      [locked.cardId, stubCardOwnership({ owned: 0, needed: 3, shortfall: 3, locked: 3 })],
+      [partlyLocked.cardId, stubCardOwnership({ owned: 0, needed: 3, shortfall: 3, locked: 1 })],
+    ]);
+    const groups = groupDeckCards([partlyLocked, locked], "ownership", "asc", {
+      ...ctx,
+      getEntry: (card) => entries.get(card.cardId),
+    });
+    expect(groups.map((group) => [group.label, group.cards])).toEqual([
+      ["Locked", [locked]],
+      ["Missing copies", [partlyLocked]],
+    ]);
+  });
+
   it("treats cards without an ownership entry as owned", () => {
     const card = stubDeckBuilderCard();
     const groups = groupDeckCards([card], "ownership", "asc", ctx);
@@ -117,7 +134,7 @@ describe("copyRowGroups", () => {
     expect(result.map(({ group, count }) => [group.key, count])).toEqual([["partial", 4]]);
   });
 
-  it("puts owned and borrowed copies under owned, the rest under not owned", () => {
+  it("puts owned and borrowed copies under owned, locked ones apart from the missing", () => {
     const result = copyRowGroups(groups, perCopy, { splitByCopy: true, dir: "asc", getEntry });
     expect(
       result.map(({ group, rows }) => [
@@ -126,13 +143,14 @@ describe("copyRowGroups", () => {
       ]),
     ).toEqual([
       ["owned", ["jinx#0", "jinx#1"]],
-      ["missing", ["jinx#2", "vi#0"]],
+      ["locked", ["jinx#2"]],
+      ["missing", ["vi#0"]],
     ]);
   });
 
   it("reverses the group order for a descending direction", () => {
     const result = copyRowGroups(groups, perCopy, { splitByCopy: true, dir: "desc", getEntry });
-    expect(result.map(({ group }) => group.key)).toEqual(["missing", "owned"]);
+    expect(result.map(({ group }) => group.key)).toEqual(["missing", "locked", "owned"]);
   });
 
   it("counts a copy without ownership data as owned", () => {

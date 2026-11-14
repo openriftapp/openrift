@@ -7,6 +7,7 @@ import {
   BoxIcon,
   CheckCircle2Icon,
   HandHeartIcon,
+  LockIcon,
   LogInIcon,
   PackageSearchIcon,
 } from "lucide-react";
@@ -196,6 +197,7 @@ export function DeckHero({
   // sideboard shortfall is named separately and must not blur into one number.
   const missingCount = ownershipData?.missingCount ?? 0;
   const borrowedCount = ownershipData?.totalBorrowed ?? 0;
+  const lockedCount = ownershipData?.totalLocked ?? 0;
   const requiredZoneMissing = ownershipData?.requiredZoneMissing ?? 0;
   const sideboardMissing = ownershipData?.sideboardMissing ?? 0;
   const missingLabel =
@@ -362,7 +364,27 @@ export function DeckHero({
                         </span>
                       </Button>
                     )}
-                    {ownershipData && !showSignIn && missingCount === 0 && (
+                    {ownershipData && !showSignIn && lockedCount > 0 && (
+                      <span
+                        className={CHIP_CLASS}
+                        title={m.decks_meta_locked_title({ count: lockedCount })}
+                      >
+                        <LockIcon className="size-3" />
+                        <span className="tabular-nums">
+                          {missingCount === 0 && ownershipData.requiredZoneNeeded > 0 && (
+                            <>
+                              {m.decks_overview_hero_owned({
+                                owned: ownershipData.requiredZoneOwned,
+                                needed: ownershipData.requiredZoneNeeded,
+                              })}
+                              {" · "}
+                            </>
+                          )}
+                          {m.decks_meta_locked({ count: lockedCount })}
+                        </span>
+                      </span>
+                    )}
+                    {ownershipData && !showSignIn && missingCount === 0 && lockedCount === 0 && (
                       <span className={cn(CHIP_CLASS, "text-success")}>
                         <CheckCircle2Icon className="size-3" />
                         {/* Borrowed copies count toward "ready" but not ownership. */}

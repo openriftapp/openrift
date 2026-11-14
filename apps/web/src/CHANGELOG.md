@@ -7,6 +7,7 @@
 - feat(Meta): **Event standings by legend** — switch an event's standings to "By legend" to see how many players brought each legend, its best finish and its top players, replacing the best-finish tiles.
 - fix(Trades): **Your move means your move** — an accepted swap moves to "Ready to swap" on the trades page and only asks you to confirm or hand over once the other person has done their part.
 - fix(Meta): **Matching counts on the meta front page** — "Browse all" counts the events in your current filters, and the link opens those.
+- fix(Decks): **Locked cards shown apart from missing** — cards you own but can't use right now (in a collection you excluded from deck building, on loan or reserved for a trade) show as "locked" in your deck list, on the deck page and on meta decks, and missing cards, their price and the wishlist they create only include cards you don't have.
 
 ### Other
 

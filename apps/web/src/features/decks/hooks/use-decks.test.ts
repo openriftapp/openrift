@@ -127,6 +127,7 @@ describe("useCreateDeck", () => {
       totalValueCents: null,
       unpricedCardCount: null,
       missingCount: null,
+      lockedCount: null,
       folderIds: [],
     } as unknown as DeckListItemResponse;
   }
@@ -228,6 +229,7 @@ function deckRow(id: string, folderIds: string[] = []): DeckListItemResponse {
     totalValueCents: null,
     unpricedCardCount: null,
     missingCount: null,
+    lockedCount: null,
     folderIds,
   } as unknown as DeckListItemResponse;
 }
@@ -432,6 +434,7 @@ describe("a deck read from the stores", () => {
       totalValueCents: null,
       unpricedCardCount: null,
       missingCount: null,
+      lockedCount: null,
       folderIds: [],
     } as unknown as DeckListItemResponse;
   }

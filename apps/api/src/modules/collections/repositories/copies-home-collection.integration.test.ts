@@ -98,8 +98,43 @@ describe.skipIf(!ctx)("copiesRepo home-collection exemption (integration)", () =
     expect(extras.get(otherExcludedId)?.get(cardId)).toBe(2);
   });
 
+  it("reports excluded-box copies as locked, split by box", async () => {
+    const locked = await copies.lockedCountByCard(USER_ID);
+    expect(locked.total.get(cardId)).toBe(5);
+    expect(locked.excludedByCollection.has(openId)).toBe(false);
+    expect(locked.excludedByCollection.get(excludedId)?.get(cardId)).toBe(3);
+    expect(locked.excludedByCollection.get(otherExcludedId)?.get(cardId)).toBe(2);
+  });
+
   it("returns an empty map when no deck has a home collection", async () => {
     const extras = await copies.buildableCountByCardForCollections(USER_ID, []);
     expect(extras.size).toBe(0);
+  });
+
+  it("keeps a loaned copy inside a box locked but out of the box's own share", async () => {
+    const [copy] = await db
+      .selectFrom("copies")
+      .select("id")
+      .where("collectionId", "=", excludedId)
+      .limit(1)
+      .execute();
+    const loan = await db
+      .insertInto("loans")
+      .values({
+        lenderUserId: USER_ID,
+        printingId: PRINTING_1.id,
+        quantity: 1,
+        borrowerName: "Summoner Skirmish friend",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db.insertInto("loanCopies").values({ loanId: loan.id, copyId: copy!.id }).execute();
+    try {
+      const locked = await copies.lockedCountByCard(USER_ID);
+      expect(locked.total.get(cardId)).toBe(5);
+      expect(locked.excludedByCollection.get(excludedId)?.get(cardId)).toBe(2);
+    } finally {
+      await db.deleteFrom("loans").where("id", "=", loan.id).execute();
+    }
   });
 });

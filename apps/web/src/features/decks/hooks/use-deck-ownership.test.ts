@@ -646,7 +646,7 @@ describe("computeDeckOwnership", () => {
     expect(result.byCardZone.get(`${cardId}:sideboard`)?.shortfall).toBe(1);
   });
 
-  it("treats locked copies as not-owned and reports them per zone", () => {
+  it("reports locked copies per zone, apart from missing ones", () => {
     const cardId = "card-1";
     const printingId = "printing-1";
 
@@ -668,12 +668,32 @@ describe("computeDeckOwnership", () => {
     expect(result.totalNeeded).toBe(4);
     expect(result.totalOwned).toBe(2);
     expect(result.totalLocked).toBe(2);
-    expect(result.missingCount).toBe(2);
+    expect(result.missingCount).toBe(0);
+    expect(result.missingCards).toEqual([]);
 
     const entry = result.byCardZone.get(`${cardId}:main`);
     expect(entry?.owned).toBe(2);
     expect(entry?.shortfall).toBe(2);
+    expect(entry?.unowned).toBe(0);
     expect(entry?.locked).toBe(2);
+  });
+
+  it("prices only the copies the user does not own", () => {
+    const deckCards = [stubDeckBuilderCard({ cardId: "card-1", quantity: 3, zone: "main" })];
+    const printings = [stubPrinting({ printingId: "printing-1", cardId: "card-1" })];
+
+    const result = computeDeckOwnership(
+      deckCards,
+      printings,
+      {},
+      "tcgplayer",
+      stubPriceLookup({ "printing-1": { tcgplayer: 100 } }),
+      EN_FIRST,
+      { "printing-1": 2 },
+    );
+
+    expect(result.missingValue).toBe(100);
+    expect(result.missingCards.map((card) => card.unowned)).toEqual([1]);
   });
 
   it("caps locked count at the remaining shortfall", () => {
@@ -723,7 +743,9 @@ describe("computeDeckOwnership", () => {
 
     expect(result.totalOwned).toBe(1);
     expect(result.totalLocked).toBe(2);
-    expect(result.missingCount).toBe(3);
+    expect(result.missingCount).toBe(1);
+    expect(result.requiredZoneMissing).toBe(0);
+    expect(result.sideboardMissing).toBe(1);
 
     const main = result.byCardZone.get(`${cardId}:main`);
     const side = result.byCardZone.get(`${cardId}:sideboard`);

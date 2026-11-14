@@ -28,6 +28,7 @@ export const EMPTY_DECK_LIST_SUMMARY: Omit<DeckListItemResponse, "deck"> = {
   totalValueCents: null,
   unpricedCardCount: null,
   missingCount: null,
+  lockedCount: null,
   folderIds: [],
   familyName: null,
 };
