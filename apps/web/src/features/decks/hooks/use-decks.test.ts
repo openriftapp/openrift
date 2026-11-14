@@ -55,7 +55,11 @@ const {
   useDeckList,
   useDeleteDeck,
   useSaveDeckCards,
+  useUpdateDeckMeta,
 } = await import("./use-decks");
+const { createLocalDeck, getLocalDecksCollection } =
+  await import("@/features/decks/lib/local-decks-collection");
+const { useIsLocalDeck } = await import("@/features/decks/hooks/use-local-decks");
 
 describe("useDeleteDeck", () => {
   afterEach(() => {
@@ -187,53 +191,53 @@ describe("useCreateDeckVariant", () => {
   });
 });
 
+function deckRow(id: string, folderIds: string[] = []): DeckListItemResponse {
+  return {
+    deck: {
+      id,
+      name: "Bandle Beatdown",
+      descriptionSnippet: null,
+      description: null,
+      links: [],
+      oddsConfig: null,
+      isPublic: false,
+      shareToken: null,
+      format: WellKnown.deckFormat.CONSTRUCTED,
+      formatConfig: null,
+      isPinned: false,
+      archivedAt: null,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+      coverCardId: null,
+      coverFaceId: null,
+      coverPosition: null,
+      collectionId: null,
+      familyId: null,
+      predecessorDeckId: null,
+      isPrimary: false,
+      isDraft: false,
+    },
+    legendCardId: null,
+    championCardId: null,
+    totalCards: 0,
+    typeCounts: [],
+    domainDistribution: [],
+    isValid: false,
+    requiredProgress: 0,
+    requiredTotal: 0,
+    totalValueCents: null,
+    unpricedCardCount: null,
+    missingCount: null,
+    folderIds,
+  } as unknown as DeckListItemResponse;
+}
+
 describe("useBulkUpdateDecks", () => {
   const DECK_A = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a31";
   const DECK_B = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a32";
   const FOLDER_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8af1";
   let sent: { method: string; path: string }[];
   let failWrites: boolean;
-
-  function deckRow(id: string, folderIds: string[] = []): DeckListItemResponse {
-    return {
-      deck: {
-        id,
-        name: "Bandle Beatdown",
-        descriptionSnippet: null,
-        description: null,
-        links: [],
-        oddsConfig: null,
-        isPublic: false,
-        shareToken: null,
-        format: WellKnown.deckFormat.CONSTRUCTED,
-        formatConfig: null,
-        isPinned: false,
-        archivedAt: null,
-        createdAt: "2026-09-01T00:00:00.000Z",
-        updatedAt: "2026-09-01T00:00:00.000Z",
-        coverCardId: null,
-        coverFaceId: null,
-        coverPosition: null,
-        collectionId: null,
-        familyId: null,
-        predecessorDeckId: null,
-        isPrimary: false,
-        isDraft: false,
-      },
-      legendCardId: null,
-      championCardId: null,
-      totalCards: 0,
-      typeCounts: [],
-      domainDistribution: [],
-      isValid: false,
-      requiredProgress: 0,
-      requiredTotal: 0,
-      totalValueCents: null,
-      unpricedCardCount: null,
-      missingCount: null,
-      folderIds,
-    } as unknown as DeckListItemResponse;
-  }
 
   beforeEach(() => {
     sent = [];
@@ -319,11 +323,79 @@ describe("useBulkUpdateDecks", () => {
   });
 });
 
+describe("useUpdateDeckMeta", () => {
+  const DECK_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a41";
+  let writes: string[];
+
+  beforeEach(() => {
+    writes = [];
+    vi.stubGlobal("location", { origin: "http://localhost" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: Request) => {
+        if (input.method === "GET") {
+          return Promise.resolve(Response.json({ items: [deckRow(DECK_ID)] }));
+        }
+        writes.push(input.method);
+        return Promise.resolve(
+          new Response("<html><body><h1>500 Internal Server Error</h1></body></html>", {
+            status: 500,
+            headers: { "content-type": "text/html" },
+          }),
+        );
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function mount(deckId: string, client: QueryClient) {
+    return renderHook(
+      () => ({
+        meta: useUpdateDeckMeta(deckId, { inlineError: true }),
+        local: useIsLocalDeck(deckId),
+      }),
+      {
+        wrapper: ({ children }: { children: React.ReactNode }) =>
+          createElement(QueryClientProvider, { client }, children),
+      },
+    );
+  }
+
+  it("rejects a server deck's failed save, restores the name and keeps the error inline", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const collection = getDecksCollection(client, "user-1");
+    await collection.preload();
+    const { result } = mount(DECK_ID, client);
+
+    await expect(result.current.meta.save({ name: "Yordle Rush" })).rejects.toBeDefined();
+
+    expect(writes).toEqual(["PATCH"]);
+    expect(collection.get(DECK_ID)?.deck.name).toBe("Bandle Beatdown");
+    expect(client.getMutationCache().getAll()[0]?.options.meta).toEqual({ inlineError: true });
+    await waitFor(() => expect(result.current.meta.isError).toBe(true));
+  });
+
+  it("saves a local deck without a request", async () => {
+    const client = new QueryClient();
+    const id = createLocalDeck(WellKnown.deckFormat.CONSTRUCTED, "Bandle Beatdown");
+    const { result } = mount(id, client);
+    await waitFor(() => expect(result.current.local).toBe(true));
+
+    await result.current.meta.save({ name: "Yordle Rush" });
+
+    expect(writes).toEqual([]);
+    expect(getLocalDecksCollection().get(id)?.name).toBe("Yordle Rush");
+  });
+});
+
 describe("a deck read from the stores", () => {
   const DECK_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a11";
   const OTHER_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a22";
 
-  function deckRow(id: string): DeckListItemResponse {
+  function storeDeckRow(id: string): DeckListItemResponse {
     return {
       deck: {
         id,
@@ -391,7 +463,9 @@ describe("a deck read from the stores", () => {
           );
         }
         if (input.method === "GET") {
-          return Promise.resolve(Response.json({ items: [deckRow(DECK_ID), deckRow(OTHER_ID)] }));
+          return Promise.resolve(
+            Response.json({ items: [storeDeckRow(DECK_ID), storeDeckRow(OTHER_ID)] }),
+          );
         }
         return Promise.resolve(new Response(null, { status: 204 }));
       }),
@@ -574,7 +648,6 @@ describe("a browser-local deck read while signed in", () => {
   });
 
   it("reads the local store without starting the server stores", async () => {
-    const { createLocalDeck } = await import("@/features/decks/lib/local-decks-collection");
     const localId = createLocalDeck(WellKnown.deckFormat.CONSTRUCTED, "Poro Party");
     const { result } = renderHook(() => useDeckDetail(localId), {
       wrapper: ({ children }: { children: React.ReactNode }) =>

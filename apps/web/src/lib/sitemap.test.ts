@@ -109,7 +109,7 @@ describe("sitemapSectionFiles", () => {
     expect(paths).toContain("/meta/decks");
     expect(paths).toContain("/help/getting-started");
     expect(paths).not.toContain("/help/flagged-article");
-    expect(paths).toContain("/rules/core");
+    expect(paths).toContain("/rules/core/2026-07-16");
     expect(paths).toContain("/cards/card-0");
     expect(paths).toContain("/sets/set-0");
   });
@@ -133,8 +133,6 @@ describe("sitemapSectionFiles", () => {
     const lastmods = Object.fromEntries(file!.map((url) => [url.path, url.lastmod]));
     expect(lastmods["/changelog"]).toBe("2026-11-10");
     expect(lastmods["/errata"]).toBe("2026-07-23");
-    expect(lastmods["/rules"]).toBe("2026-07-16");
-    expect(lastmods["/rules/core"]).toBe("2026-07-16");
     expect(lastmods["/cards/card-0"]).toBe("2026-08-01");
     for (const path of [
       "/",
@@ -148,6 +146,15 @@ describe("sitemapSectionFiles", () => {
     }
     expect("/rules/tournament" in lastmods).toBe(true);
     expect(lastmods["/rules/tournament"]).toBeUndefined();
+  });
+
+  it("lists where a rules page redirects to, never the redirecting page", () => {
+    const [file] = sitemapSectionFiles("site", input());
+    const paths = file!.map((url) => url.path);
+    expect(paths).not.toContain("/rules");
+    expect(paths).not.toContain("/rules/core");
+    expect(paths).toContain("/rules/core/2026-07-16");
+    expect(paths).toContain("/rules/tournament");
   });
 
   it("leaves a rules version that is not a date undated", () => {
@@ -212,14 +219,12 @@ describe("sitemap entry set", () => {
       "https://example.test/meta/events",
       "https://example.test/meta/decks",
       "https://example.test/meta/legends",
-      "https://example.test/rules",
       "https://example.test/help",
       "https://example.test/changelog",
       "https://example.test/developers",
       "https://example.test/legal-notice",
       "https://example.test/privacy-policy",
       "https://example.test/help/getting-started",
-      "https://example.test/rules/core",
       "https://example.test/rules/tournament",
       "https://example.test/rules/core/2026-07-16?lang=en",
       "https://example.test/rules/core/2026-07-16?lang=fr",

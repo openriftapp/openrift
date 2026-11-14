@@ -2591,6 +2591,7 @@
   "decks_dialog_details_description_label": "설명",
   "decks_dialog_details_description_placeholder": "덱에 대한 간단한 설명…",
   "decks_dialog_details_links_hint": "링크는 https여야 하며 다음 중 하나를 가리켜야 합니다: {hosts}.",
+  "decks_dialog_details_save_failed": "덱을 저장하지 못했습니다. 다시 시도해 주세요.",
   "decks_dialog_details_links_label": "링크",
   "decks_dialog_details_pane_label": "편집기 창",
   "decks_dialog_details_pane_preview": "미리보기",

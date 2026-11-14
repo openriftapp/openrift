@@ -378,11 +378,6 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
     expect(result.updatedCards[0]!.name).toBe("Evolving Card");
     expect(result.updatedCards[0]!.shortCode).toBe("EVO-001");
 
-    // getChangedFields compares using CARD_FIELDS (camelCase) against the incoming
-    // IngestCard object (snake_case). Only fields with matching keys are compared:
-    // name, type, domains, might, energy, power, tags.
-    // CamelCase-only fields (rulesText, superTypes, etc.) are skipped because they
-    // don't exist as keys on the incoming object.
     const changedFieldNames = result.updatedCards[0]!.fields.map((f) => f.field);
     expect(changedFieldNames).toContain("might");
     expect(changedFieldNames).toContain("power");

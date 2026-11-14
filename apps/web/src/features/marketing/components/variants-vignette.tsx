@@ -1,8 +1,8 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { formatDay } from "@openrift/shared/format-date";
 import { ArrowRightIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
+import { RailNodeDate } from "@/features/decks/components/deck-variant-rail-date";
 import {
   ADD_CHIP,
   CHANGE_CHIP,
@@ -207,25 +207,19 @@ export function VariantsVignette() {
           <RailNode x={ROOT_X} y={LANE_0_Y}>
             <NodeLabel label={RAIL.root.label} />
             <span className="bg-muted-foreground block size-2 rounded-full" />
-            <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-              {formatDay(RAIL.root.updatedAt)}
-            </span>
+            <RailNodeDate updatedAt={RAIL.root.updatedAt} />
           </RailNode>
 
           <RailNode x={HEAD_X} y={LANE_0_Y}>
             <NodeLabel label={RAIL.head.label} emphasis="a" />
             <span className="bg-muted-foreground block size-2 rounded-full" />
-            <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-              {formatDay(RAIL.head.updatedAt)}
-            </span>
+            <RailNodeDate updatedAt={RAIL.head.updatedAt} />
           </RailNode>
 
           <RailNode x={FORK_X} y={LANE_1_Y}>
             <NodeLabel label={RAIL.fork.label} draft emphasis="b" />
             <span className="bg-muted-foreground block size-2 rounded-full" />
-            <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-              {formatDay(RAIL.fork.updatedAt)}
-            </span>
+            <RailNodeDate updatedAt={RAIL.fork.updatedAt} />
           </RailNode>
 
           <span

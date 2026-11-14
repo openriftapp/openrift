@@ -4,6 +4,8 @@ import path from "node:path";
 
 import sharp from "sharp";
 
+import type { BenchArgvSpec } from "../../packages/shared/src/scan/bench-argv.js";
+import { checkBenchArgv } from "../../packages/shared/src/scan/bench-argv.js";
 import type { ClipTruth, SavedRun } from "../../packages/shared/src/scan/bench-score.js";
 import type { RgbaImage } from "../../packages/shared/src/scan/types.js";
 
@@ -77,6 +79,18 @@ export function positiveIntArg(name: string): number | undefined {
 
 export function hasFlag(name: string): boolean {
   return process.argv.includes(name);
+}
+
+export function exitOnBadArgs(spec: BenchArgvSpec, usage: string): void {
+  const check = checkBenchArgv(process.argv.slice(2), spec);
+  if (check.kind === "help") {
+    process.stdout.write(usage);
+    process.exit(0);
+  }
+  if (check.kind === "invalid") {
+    process.stderr.write(`${check.message}\n${usage}`);
+    process.exit(2);
+  }
 }
 
 export const TRUTH_DIR = path.join(DATA_DIR, "truth");

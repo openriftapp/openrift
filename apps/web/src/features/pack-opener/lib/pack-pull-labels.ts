@@ -39,6 +39,16 @@ export function packRarityKey(pull: PackPull): string {
   return pull.printing.rarity;
 }
 
+const PACK_SLOT_COLORS: Record<string, string> = {
+  [WellKnown.superType.TOKEN]: "#a8a29e",
+  [WellKnown.cardType.RUNE]: "#6b7280",
+  [WellKnown.artVariant.ULTIMATE]: "#d946ef",
+};
+
+export function packRarityColor(key: string, rarityColors: Record<string, string>): string {
+  return rarityColors[key] ?? PACK_SLOT_COLORS[key] ?? "#888";
+}
+
 export function packRarityLabel(rarity: string, rarityLabels: LabelMap): string {
   switch (rarity) {
     case WellKnown.cardType.RUNE: {

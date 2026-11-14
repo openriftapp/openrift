@@ -22,11 +22,13 @@ import { CompletedRoundsBand, OpenRoundBand } from "./round-state-band";
 export function PodPairingsSection({
   id,
   data,
-  staff = false,
+  staff,
+  manage,
 }: {
   id: string;
   data: PodTournamentDetailResponse;
-  staff?: boolean;
+  staff: boolean;
+  manage: boolean;
 }) {
   const rerollRound = useRerollTournamentRound();
   const finalizeRound = useFinalizeTournamentRound();
@@ -68,7 +70,7 @@ export function PodPairingsSection({
     : data.rounds;
 
   if (groupCut) {
-    return <GroupCutPairingsSection id={id} data={data} staff={staff} />;
+    return <GroupCutPairingsSection id={id} data={data} staff={staff} manage={manage} />;
   }
 
   return (
@@ -80,13 +82,16 @@ export function PodPairingsSection({
           round={openRound}
           suggested={suggested}
           finalizing={finalizeRound.isPending}
-          onFinalize={() =>
-            void runReportedMutation(() =>
-              finalizeRound.mutateAsync({ id, roundNumber: openRound.roundNumber }),
-            )
+          onFinalize={
+            manage
+              ? () =>
+                  void runReportedMutation(() =>
+                    finalizeRound.mutateAsync({ id, roundNumber: openRound.roundNumber }),
+                  )
+              : undefined
           }
         />
-      ) : (
+      ) : manage ? (
         <GenerateRoundControls
           id={id}
           players={data.players}
@@ -99,7 +104,7 @@ export function PodPairingsSection({
           playMode={data.tournament.playMode}
           missingRegionIds={missingRegionIds}
         />
-      )}
+      ) : null}
       {finalizedCount > 1 && !completed ? (
         <p className="text-muted-foreground text-sm">{m.tournaments_pairings_finalized_note()}</p>
       ) : null}
@@ -124,7 +129,7 @@ export function PodPairingsSection({
         showPenalty
         snapshot={data.openRoundSnapshot}
         warningsExpanded={warningsExpanded}
-        canEnterResult={() => !completed}
+        canEnterResult={() => manage && !completed}
         onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
         renderRoundActions={(round) => {
           if (round.status !== "reporting") {
@@ -150,26 +155,30 @@ export function PodPairingsSection({
                   ? m.tournaments_pairings_warnings_full()
                   : m.tournaments_pairings_warnings_icons()}
               </Toggle>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={anyReported}
-                onClick={() => setEditingRound(round.roundNumber)}
-              >
-                {m.tournaments_pairings_edit_pairing()}
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={anyReported || rerollRound.isPending}
-                onClick={() =>
-                  void runReportedMutation(() =>
-                    rerollRound.mutateAsync({ id, roundNumber: round.roundNumber }),
-                  )
-                }
-              >
-                {m.tournaments_pairings_reroll()}
-              </Button>
+              {manage && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={anyReported}
+                    onClick={() => setEditingRound(round.roundNumber)}
+                  >
+                    {m.tournaments_pairings_edit_pairing()}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={anyReported || rerollRound.isPending}
+                    onClick={() =>
+                      void runReportedMutation(() =>
+                        rerollRound.mutateAsync({ id, roundNumber: round.roundNumber }),
+                      )
+                    }
+                  >
+                    {m.tournaments_pairings_reroll()}
+                  </Button>
+                </>
+              )}
             </>
           );
         }}

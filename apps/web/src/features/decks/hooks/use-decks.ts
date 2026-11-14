@@ -23,7 +23,7 @@ import {
   useLiveQuery,
   useLiveSuspenseQuery,
 } from "@tanstack/react-db";
-import type { QueryClient } from "@tanstack/react-query";
+import type { MutationMeta, QueryClient } from "@tanstack/react-query";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { v7 as uuidv7 } from "uuid";
@@ -297,11 +297,12 @@ export function useSaveDeckCards() {
   });
 }
 
-export function useUpdateDeck() {
+export function useUpdateDeck(meta?: MutationMeta) {
   const userId = useUserId();
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta,
     mutationFn: async ({
       deckId,
       ...fields
@@ -343,11 +344,17 @@ export interface DeckMetaPatch {
   links?: DeckLink[];
 }
 
-export function useUpdateDeckMeta(deckId: string): {
+export function useUpdateDeckMeta(
+  deckId: string,
+  meta?: MutationMeta,
+): {
   update: (patch: DeckMetaPatch, opts?: { onSuccess?: () => void }) => void;
+  save: (patch: DeckMetaPatch) => Promise<void>;
   isPending: boolean;
+  isError: boolean;
+  error: Error | null;
 } {
-  const serverUpdate = useUpdateDeck();
+  const serverUpdate = useUpdateDeck(meta);
   const isLocal = useIsLocalDeck(deckId);
   return {
     update: (patch, opts) => {
@@ -358,7 +365,16 @@ export function useUpdateDeckMeta(deckId: string): {
       }
       serverUpdate.mutate({ deckId, ...patch }, opts);
     },
+    save: async (patch) => {
+      if (isLocal) {
+        updateLocalDeck(deckId, patch);
+        return;
+      }
+      await serverUpdate.mutateAsync({ deckId, ...patch });
+    },
     isPending: isLocal ? false : serverUpdate.isPending,
+    isError: !isLocal && serverUpdate.isError,
+    error: isLocal ? null : serverUpdate.error,
   };
 }
 

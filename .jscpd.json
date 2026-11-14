@@ -1,12 +1,27 @@
 {
+  "path": [
+    "apps/web/src",
+    "apps/api/src",
+    "packages/shared/src",
+    "apps/discord-bot/src",
+    "scripts"
+  ],
+  "format": ["typescript", "tsx"],
+  "crossFormats": [["typescript", "tsx"]],
+  "minLines": 12,
+  "minTokens": 90,
+  "gitignore": true,
   "ignore": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.integration.test.ts",
+    "**/*.bench.*",
+    "**/*.gen.ts",
+    "**/paraglide/**",
+    "**/migrations/**",
     "**/node_modules/**",
+    "apps/web/src/components/ui/**",
     "**/dist/**",
-    "**/.turbo/**",
-    "**/pg_data/**",
-    "data/**",
-    "**/index.css",
-    ".github/workflows/deploy-*.yml",
-    "**/*.svg"
+    "**/.output/**"
   ]
 }

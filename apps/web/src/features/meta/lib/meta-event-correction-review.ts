@@ -1,5 +1,6 @@
-import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type { MetaEventFieldEdits } from "@openrift/shared/types/api/meta";
+
+import { EMPTY_VALUE_TEXT, formatFieldValue } from "@/features/admin/lib/field-value-text";
 
 interface MetaEventCorrectionRow {
   field: keyof MetaEventFieldEdits;
@@ -29,12 +30,6 @@ const FIELDS: { field: keyof MetaEventFieldEdits; label: string }[] = [
   { field: "country", label: "Country" },
 ];
 
-const EMPTY = "—";
-
-function display(value: string | number | null | undefined): string {
-  return hasFieldValue(value) ? String(value) : EMPTY;
-}
-
 /**
  * An absent key means leave it alone, not clear it. An event that is gone
  * (deleted since) still lists its proposals, with nothing to compare against.
@@ -52,8 +47,8 @@ export function metaEventCorrectionRows(
     rows.push({
       field,
       label,
-      current: event === null ? EMPTY : display(event[field]),
-      proposed: display(proposed),
+      current: event === null ? EMPTY_VALUE_TEXT : formatFieldValue(event[field]),
+      proposed: formatFieldValue(proposed),
     });
   }
   return rows;

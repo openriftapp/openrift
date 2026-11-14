@@ -70,7 +70,7 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground grid min-w-0 flex-1 justify-items-start text-sm">
+          <span className="text-muted-foreground grid min-w-0 flex-1 text-sm">
             <span className="motion-safe:animate-stage-idle col-start-1 row-start-1 truncate opacity-0">
               {m.stage_overlay_caption_empty()}
             </span>

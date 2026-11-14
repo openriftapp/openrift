@@ -13,7 +13,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { latestSnapshotRound } from "@/features/tournaments/lib/player-run";
 import { isGroupCutStandings } from "@/features/tournaments/lib/standings-display";
-import { isTournamentStaff } from "@/features/tournaments/lib/tournament-display";
+import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
 
 type Tournament = PodTournamentDetailResponse["tournament"];
 
@@ -92,7 +92,7 @@ export function TournamentStandingsTab({
           live
           completed={tournament.status === "completed"}
           metaShares={
-            isTournamentStaff(detail.myRoles) ? { id, shares: data.legendMetaShares } : undefined
+            canManageTournament(detail.myRoles) ? { id, shares: data.legendMetaShares } : undefined
           }
         />
       ) : (

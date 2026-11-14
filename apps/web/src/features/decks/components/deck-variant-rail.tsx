@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { DeckVariantCreateDialog } from "./deck-variant-create-dialog";
+import { RailNodeDate } from "./deck-variant-rail-date";
 
 // HTML nodes positioned over an SVG that draws only the connections. Geometry
 // lives here; the graph itself (who sits where, which lane, which column)
@@ -376,17 +377,6 @@ function RailNodeLabel({ node, width }: { node: RailNode; width: number }) {
       {node.isDraft && (
         <span className="text-warning shrink-0">{m.decks_dialog_draft_badge()}</span>
       )}
-    </span>
-  );
-}
-
-function RailNodeDate({ updatedAt }: { updatedAt: string | undefined }) {
-  if (!updatedAt) {
-    return null;
-  }
-  return (
-    <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-      {formatDay(updatedAt)}
     </span>
   );
 }

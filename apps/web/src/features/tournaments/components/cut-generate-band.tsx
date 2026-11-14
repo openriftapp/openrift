@@ -51,13 +51,11 @@ export function CutGenerateBand({
   cutSize,
   groupStage,
   shares,
-  staff,
 }: {
   id: string;
   cutSize: CutSize;
   groupStage: GroupStageView;
   shares: LegendMetaShareView[];
-  staff: boolean;
 }) {
   const generateRound = useGenerateTournamentRound();
 
@@ -78,7 +76,7 @@ export function CutGenerateBand({
       }
       action={
         <span className="flex items-center gap-2">
-          {needsShares && staff ? (
+          {needsShares ? (
             <LegendMetaSharesButton
               id={id}
               pending={groupStage.pendingMetaShares}

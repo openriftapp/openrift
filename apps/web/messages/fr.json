@@ -2591,6 +2591,7 @@
   "decks_dialog_details_description_label": "Description",
   "decks_dialog_details_description_placeholder": "Quelques mots sur votre deck…",
   "decks_dialog_details_links_hint": "Les liens doivent être en https et pointer vers l’un de ces sites : {hosts}.",
+  "decks_dialog_details_save_failed": "Impossible d’enregistrer le deck. Réessayez.",
   "decks_dialog_details_links_label": "Liens",
   "decks_dialog_details_pane_label": "Volet d’édition",
   "decks_dialog_details_pane_preview": "Aperçu",

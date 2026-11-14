@@ -22,6 +22,7 @@ import { isDisplayLocale } from "@/lib/display-locale";
 import { sanitizePalette, sanitizeServerResponse, sanitizeTheme } from "@/lib/sanitize-preferences";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { serverFnFetch } from "@/lib/server-fns/server-fn-fetch";
 import { getLocale, setLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
@@ -103,7 +104,7 @@ const SAVE_RETRY_MS = 2000;
 
 /** A `fetch` that the browser finishes sending after the page is closed. */
 function keepaliveFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  return fetch(input, { ...init, keepalive: true });
+  return serverFnFetch(input, { ...init, keepalive: true });
 }
 
 // getPrefsSnapshot builds its object literal in a fixed key order, so

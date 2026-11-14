@@ -403,8 +403,8 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       const result = await db
         .updateTable("uvsgamesEvents")
         .set({ missingSince: params.at, missingProbe: null })
-        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) >= ${params.from}`)
-        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) <= ${params.to}`)
+        .where("startAt", ">=", params.from)
+        .where("startAt", "<", dueBefore(params.to))
         .where(sql<SqlBool>`date_trunc('milliseconds', last_seen_at) < ${params.seenBefore}`)
         .where("missingSince", "is", null)
         .executeTakeFirst();

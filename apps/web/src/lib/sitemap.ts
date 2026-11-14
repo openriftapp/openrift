@@ -29,7 +29,6 @@ const STATIC_PATHS = [
   "/meta/events",
   "/meta/decks",
   "/meta/legends",
-  "/rules",
   "/help",
   "/changelog",
   "/developers",
@@ -86,14 +85,6 @@ export function latestErrataDate(errata: ErrataListResponse): string | undefined
   ]);
 }
 
-function rulesDate(data: SitemapDataResponse, kind?: string): string | undefined {
-  return newest(
-    data.rules
-      .filter((entry) => kind === undefined || entry.kind === kind)
-      .map((entry) => rulesVersionDate(entry.version)),
-  );
-}
-
 function staticLastmod(path: string, input: SitemapInput): string | undefined {
   switch (path) {
     case "/changelog": {
@@ -101,9 +92,6 @@ function staticLastmod(path: string, input: SitemapInput): string | undefined {
     }
     case "/errata": {
       return input.errataDate;
-    }
-    case "/rules": {
-      return rulesDate(input.data);
     }
     default: {
       return undefined;
@@ -125,10 +113,9 @@ function siteUrls(input: SitemapInput): SitemapUrl[] {
     ...helpArticles
       .filter((article) => !article.featureFlag)
       .map((article) => ({ path: `/help/${article.slug}` })),
-    ...[...VALID_RULE_KINDS].map((kind) => ({
-      path: `/rules/${kind}`,
-      lastmod: rulesDate(data, kind),
-    })),
+    ...[...VALID_RULE_KINDS]
+      .filter((kind) => !data.rules.some((entry) => entry.kind === kind))
+      .map((kind) => ({ path: `/rules/${kind}` })),
     ...data.rules.map((entry) => ({
       path: `/rules/${entry.kind}/${entry.version}`,
       search: `lang=${entry.language}`,

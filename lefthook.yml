@@ -67,6 +67,12 @@ pre-push:
           - name: knip-check
             glob: "*.{js,ts,cjs,mjs,jsx,tsx}"
             run: bun run knip
+          - name: duplication-check
+            glob: ["*.{ts,tsx}", ".jscpd.json", "scripts/data/clone-ceiling.json", "package.json"]
+            run: bun run check:duplication
+          - name: duplicate-exports-check
+            glob: ["*.{ts,tsx}", ".jscpd.json", "scripts/data/duplicate-exports-baseline.txt"]
+            run: bun run check:duplicate-exports
           - name: lockfile-check
             glob: "**/package.json"
             run: bun install --frozen-lockfile

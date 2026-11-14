@@ -37,6 +37,7 @@ import {
 import { familyNameOf } from "@/features/decks/lib/deck-family";
 import type { VariantGraphRow } from "@/features/decks/lib/deck-variant-graph";
 import { buildVariantGraph } from "@/features/decks/lib/deck-variant-graph";
+import { DOT_SIZE } from "@/features/decks/lib/deck-variant-rail-geometry";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -55,7 +56,6 @@ const LANE_WIDTH = 14;
 const HEADER_HEIGHT = 28;
 const ROW_PAD_Y = 8;
 const DOT_Y = ROW_PAD_Y + HEADER_HEIGHT / 2;
-const DOT_SIZE = 8;
 
 function laneX(lane: number): number {
   return lane * LANE_WIDTH + LANE_WIDTH / 2;

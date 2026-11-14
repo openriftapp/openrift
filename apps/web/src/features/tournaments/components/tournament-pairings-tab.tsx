@@ -2,7 +2,10 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 
 import { PodPairingsSection } from "@/features/tournaments/components/pairings-section";
 import { useTournamentRunState } from "@/features/tournaments/hooks/use-tournament-run";
-import { isTournamentStaff } from "@/features/tournaments/lib/tournament-display";
+import {
+  canManageTournament,
+  isTournamentStaff,
+} from "@/features/tournaments/lib/tournament-display";
 
 export function TournamentPairingsTab({
   id,
@@ -12,5 +15,12 @@ export function TournamentPairingsTab({
   detail: TournamentDetailResponse;
 }) {
   const { data } = useTournamentRunState(id);
-  return <PodPairingsSection id={id} data={data} staff={isTournamentStaff(detail.myRoles)} />;
+  return (
+    <PodPairingsSection
+      id={id}
+      data={data}
+      staff={isTournamentStaff(detail.myRoles)}
+      manage={canManageTournament(detail.myRoles)}
+    />
+  );
 }

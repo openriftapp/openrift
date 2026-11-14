@@ -37,4 +37,24 @@ describe("uvsgamesEventsRepo instant comparisons", () => {
       "e.start_at < (now() at time zone 'UTC')::date::timestamp at time zone 'UTC'",
     );
   });
+
+  it("bounds markMissing by the bare start column, through the last millisecond of `to`", async () => {
+    const recording = createRecordingDb([{ numAffectedRows: 2n }]);
+    const from = new Date("2026-11-06T12:00:00.030Z");
+    const to = new Date("2026-11-13T12:00:00.030Z");
+
+    const flagged = await uvsgamesEventsRepo(recording.db).markMissing({
+      from,
+      to,
+      seenBefore: to,
+      at: to,
+    });
+
+    expect(flagged).toBe(2);
+    expect(recording.queries[0]).toContain(`"start_at" >= $`);
+    expect(recording.queries[0]).toContain(`"start_at" < $`);
+    expect(recording.queries[0]).not.toContain("date_trunc('milliseconds', start_at)");
+    expect(recording.parameters[0]).toContainEqual(from);
+    expect(recording.parameters[0]).toContainEqual(new Date("2026-11-13T12:00:00.031Z"));
+  });
 });

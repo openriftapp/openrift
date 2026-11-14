@@ -8,6 +8,7 @@ import { keyBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { TOPDECK_PROVIDER } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
+import { dueBefore } from "./meta-shared.js";
 import type {
   MetaAutoPublishRule,
   MetaSyncBucketColumns,
@@ -268,8 +269,8 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         .updateTable("topdeckEvents")
         .set({ missingSince: params.at })
         .where("format", "=", params.format)
-        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) >= ${params.from}`)
-        .where(sql<SqlBool>`date_trunc('milliseconds', start_at) <= ${params.to}`)
+        .where("startAt", ">=", params.from)
+        .where("startAt", "<", dueBefore(params.to))
         .where(sql<SqlBool>`date_trunc('milliseconds', last_seen_at) < ${params.seenBefore}`)
         .where("missingSince", "is", null)
         .executeTakeFirst();

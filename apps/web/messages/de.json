@@ -2591,6 +2591,7 @@
   "decks_dialog_details_description_label": "Beschreibung",
   "decks_dialog_details_description_placeholder": "Ein paar Worte zu deinem Deck…",
   "decks_dialog_details_links_hint": "Links müssen https sein und auf eine dieser Seiten zeigen: {hosts}.",
+  "decks_dialog_details_save_failed": "Das Deck konnte nicht gespeichert werden. Bitte versuche es erneut.",
   "decks_dialog_details_links_label": "Links",
   "decks_dialog_details_pane_label": "Editor-Ansicht",
   "decks_dialog_details_pane_preview": "Vorschau",

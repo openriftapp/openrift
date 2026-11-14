@@ -26,25 +26,19 @@ import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 const glossaryEnabled = useFeatureEnabled("glossary");
 ```
 
-In a route guard, read the flags first, then test them. `featureEnabled` takes the flags map and the key:
+A flagged page gates in `beforeLoad` with `requireFeature`. When the flag is off it throws `notFound()`, so the visitor sees the not-found page. Flag data is never cast.
 
 ```ts
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { requireFeature } from "@/lib/feature-flags";
 
-beforeLoad: async ({ context }) => {
-  const flags = (await context.queryClient.ensureQueryData(
-    featureFlagsQueryOptions,
-  )) as FeatureFlags;
-  if (!featureEnabled(flags, "glossary")) {
-    throw redirect({ to: "/cards" });
-  }
-},
+beforeLoad: ({ context }) => requireFeature(context.queryClient, "glossary"),
 ```
+
+A route that throws not-found sets `notFoundComponent: NotFoundFallback` in its file or its lazy file.
 
 ### API
 
-Go through the feature-flags repository — never touch the table with a raw `db` query (see the database-access rule in `CLAUDE.md`). Route handlers reach the repos via `c.get("repos")`; services take them as a parameter.
+Go through the feature-flags repository — never touch the table with a raw `db` query (see "Database access" in `docs/contributing.md`). Route handlers reach the repos via `c.get("repos")`; services take them as a parameter.
 
 ```ts
 if (await repos.featureFlags.isEnabled("deck-builder")) {
@@ -80,7 +74,7 @@ When adding a new flag, add an entry to `KNOWN_FLAGS` so it shows up in the admi
 ## Lifecycle
 
 1. **Create** the flag in the admin panel (starts disabled)
-2. **Gate** your code behind `useFeatureEnabled("deck-builder")`, or `featureEnabled(flags, "deck-builder")` in a route guard
+2. **Gate** your code behind `useFeatureEnabled("deck-builder")`, or `requireFeature(queryClient, "deck-builder")` in a route's `beforeLoad`
 3. **Push** to `main` freely — the flag is off, so users won't see incomplete work
 4. **Test** on preview by toggling the flag on in the preview admin panel, or on stable with a per-user override for your own account
 5. **Ship** by toggling the flag on in stable's admin panel

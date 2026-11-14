@@ -12,7 +12,12 @@ interface ServerFnCallOptions {
   fetch?: typeof fetch;
 }
 
-const { serverFnCalls } = vi.hoisted(() => ({ serverFnCalls: [] as ServerFnCallOptions[] }));
+const { serverFnCalls, callerFetch } = vi.hoisted(() => ({
+  serverFnCalls: [] as ServerFnCallOptions[],
+  // When on, a call with a per-call fetch resolves like Start does with any response
+  // that fetch resolves to, and skips the handler.
+  callerFetch: { enabled: false },
+}));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -22,6 +27,9 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
         (fn: (args: { context: { cookie: string }; data: unknown }) => unknown) =>
         (args?: ServerFnCallOptions) => {
           serverFnCalls.push(args ?? {});
+          if (callerFetch.enabled && args?.fetch) {
+            return args.fetch("/_serverFn/prefs", { method: "POST" }).then(() => undefined);
+          }
           return fn({ context: { cookie: "" }, data: args?.data });
         },
       middleware: () => chain,
@@ -115,6 +123,7 @@ async function flushMicrotasks() {
 
 beforeEach(() => {
   serverFnCalls.length = 0;
+  callerFetch.enabled = false;
   resetDisplay();
   resetTheme();
   resetLocaleBanner();
@@ -358,6 +367,34 @@ describe("usePreferencesSync", () => {
     expect(patches()[0]?.body).toMatchObject({ showImages: false });
     await flushSaveDebounce();
     expect(patches()).toHaveLength(1);
+  });
+
+  it("sends a page-hide push again after a proxy's JSON error", async () => {
+    stubFetch({ showImages: true } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+    await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    callerFetch.enabled = true;
+    const before = serverFnCalls.length;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ message: "upstream timed out" }, { status: 502 })),
+    );
+    act(() => useDisplayStore.getState().setShowImages(false));
+    act(() => {
+      globalThis.dispatchEvent(new Event("pagehide"));
+    });
+    await flushMicrotasks();
+    expect(serverFnCalls).toHaveLength(before + 1);
+
+    act(() => {
+      globalThis.dispatchEvent(new Event("pagehide"));
+    });
+    await flushMicrotasks();
+    expect(serverFnCalls).toHaveLength(before + 2);
+    log.mockRestore();
   });
 
   it("retries a failed save once", { timeout: 10_000 }, async () => {

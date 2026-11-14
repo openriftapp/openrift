@@ -96,19 +96,17 @@ export function isApiError(value: unknown): value is ApiErrorShape {
 }
 
 /**
- * Builds the {@link ApiError} for a non-ok response. Parses the standard
- * `{ error, code, details }` envelope when present, falling back to
- * `errorTitle` for non-envelope bodies (HTML error pages, better-auth, a
- * network failure). Migrated oRPC endpoints surface `ORPCError` instead and
- * never pass through here.
+ * Builds the {@link ApiError} for a non-ok response from the standard `{ error, code, details }`
+ * envelope; any other body (an HTML error page, better-auth) gets `fallbackMessage`.
  */
 export async function apiErrorFromResponse(
   res: { status: number; statusText: string; text: () => Promise<string> },
   errorTitle: string,
   request: { method?: string; url: string },
+  fallbackMessage = errorTitle,
 ): Promise<ApiError> {
   const raw = await res.text().catch(() => "<no body>");
-  let message = errorTitle;
+  let message = fallbackMessage;
   let code: ErrorCode | undefined;
   let details: unknown;
   try {
@@ -119,7 +117,7 @@ export async function apiErrorFromResponse(
       details = parsed.details;
     }
   } catch {
-    // fall through with errorTitle
+    // A non-JSON body keeps fallbackMessage.
   }
   const label = request.method ? `${request.method} ${request.url}` : request.url;
   const diagnostic = `${label} → ${res.status} ${res.statusText}\n${raw}`;

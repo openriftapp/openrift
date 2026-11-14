@@ -1,5 +1,6 @@
 import { labelMap } from "@openrift/shared/enum-label";
 import type { LabelMap } from "@openrift/shared/enum-label";
+import { DEFAULT_RARITY_COLORS } from "@openrift/shared/rarity-colors";
 import { formatSearchSlug } from "@openrift/shared/search-query/keys";
 import type { ColoredEnumRow, EnumRow } from "@openrift/shared/types/api/init";
 import type { CustomTag, DistributionChannel } from "@openrift/shared/types/catalog";
@@ -181,6 +182,6 @@ export function useEnumOrders(): {
       conditions: sortedLabelMap(d.conditions ?? []),
       graders: sortedLabelMap(d.graders ?? []),
     },
-    rarityColors: colorMap(d.rarities ?? []),
+    rarityColors: { ...DEFAULT_RARITY_COLORS, ...colorMap(d.rarities ?? []) },
   };
 }

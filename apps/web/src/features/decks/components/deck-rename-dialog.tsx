@@ -10,68 +10,92 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
+import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
-interface DeckRenameDialogProps {
+interface DeckRenameFields {
   deckId: string;
   currentName: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+}
+
+function DeckRenameForm({
+  deckId,
+  currentName,
+  onClose,
+  onSavingChange,
+}: DeckRenameFields & { onClose: () => void; onSavingChange: (saving: boolean) => void }) {
+  const [draft, setDraft] = useState(currentName);
+  const updateMeta = useUpdateDeckMeta(deckId, { inlineError: true });
+
+  const handleSubmit = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === currentName) {
+      onClose();
+      return;
+    }
+    onSavingChange(true);
+    const saved = await runReportedMutation(() => updateMeta.save({ name: trimmed }));
+    onSavingChange(false);
+    if (saved) {
+      onClose();
+    }
+  };
+
+  return (
+    <DialogForm onSubmit={() => void handleSubmit()}>
+      <DialogHeader>
+        <DialogTitle>{m.decks_dialog_rename_title()}</DialogTitle>
+      </DialogHeader>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="deck-rename-name">{m.common_name()}</Label>
+        <Input
+          id="deck-rename-name"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          maxLength={200}
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: dialog input should grab focus
+          autoFocus
+        />
+      </div>
+      {updateMeta.isError && (
+        <FieldError>{errorText(updateMeta.error, m.decks_dialog_details_save_failed())}</FieldError>
+      )}
+      <DialogFooter>
+        <DialogCancel disabled={updateMeta.isPending} />
+        <Button type="submit" disabled={!draft.trim()} pending={updateMeta.isPending}>
+          {m.common_save()}
+        </Button>
+      </DialogFooter>
+    </DialogForm>
+  );
 }
 
 export function DeckRenameDialog({
-  deckId,
-  currentName,
   open,
   onOpenChange,
-}: DeckRenameDialogProps) {
-  const [draft, setDraft] = useState(currentName);
-  const { update } = useUpdateDeckMeta(deckId);
-
-  const handleSubmit = () => {
-    const trimmed = draft.trim();
-    if (trimmed && trimmed !== currentName) {
-      update({ name: trimmed });
-    }
-    onOpenChange(false);
-  };
-
+  ...fields
+}: DeckRenameFields & { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [saving, setSaving] = useState(false);
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (nextOpen) {
-          setDraft(currentName);
+        if (nextOpen || !saving) {
+          onOpenChange(nextOpen);
         }
-        onOpenChange(nextOpen);
       }}
     >
       <DialogContent>
-        <DialogForm onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>{m.decks_dialog_rename_title()}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deck-rename-name">{m.common_name()}</Label>
-            <Input
-              id="deck-rename-name"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              maxLength={200}
-              // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: dialog input should grab focus
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <DialogCancel />
-            <Button type="submit" disabled={!draft.trim()}>
-              {m.common_save()}
-            </Button>
-          </DialogFooter>
-        </DialogForm>
+        <DeckRenameForm
+          {...fields}
+          onClose={() => onOpenChange(false)}
+          onSavingChange={setSaving}
+        />
       </DialogContent>
     </Dialog>
   );

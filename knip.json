@@ -3,7 +3,8 @@
   "workspaces": {
     ".": {
       "entry": ["scripts/**/*.ts"],
-      "project": ["scripts/**/*.ts"]
+      "project": ["scripts/**/*.ts"],
+      "ignoreDependencies": ["jscpd"]
     },
     "apps/discord-bot": {},
     "apps/extension": {

@@ -2591,6 +2591,7 @@
   "decks_dialog_details_description_label": "Description",
   "decks_dialog_details_description_placeholder": "A few words about your deck…",
   "decks_dialog_details_links_hint": "Links must be https and point at one of: {hosts}.",
+  "decks_dialog_details_save_failed": "Could not save the deck. Please try again.",
   "decks_dialog_details_links_label": "Links",
   "decks_dialog_details_pane_label": "Editor pane",
   "decks_dialog_details_pane_preview": "Preview",

@@ -251,7 +251,7 @@ export default defineConfig(({ mode, command }) => {
         "better-auth/client/plugins",
         "sonner",
         "@sentry/tanstackstart-react",
-        "qrcode",
+        "@openrift/shared > qrcode",
         ...BASE_UI_SUBPATHS.map((subpath) => `@base-ui/react/${subpath}`),
       ],
     },

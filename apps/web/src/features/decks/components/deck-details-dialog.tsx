@@ -27,6 +27,8 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
 import type { DeckMetaPatch } from "@/features/decks/hooks/use-decks";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
+import { errorText } from "@/lib/error-text";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -60,23 +62,21 @@ function toLinks(drafts: readonly LinkDraft[]): DeckLink[] {
   });
 }
 
-interface DeckDetailsDialogProps {
+interface DeckDetailsFields {
   deckId: string;
   currentName: string;
   currentDescription: string | null;
   currentLinks: readonly DeckLink[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
-export function DeckDetailsDialog({
+function DeckDetailsForm({
   deckId,
   currentName,
   currentDescription,
   currentLinks,
-  open,
-  onOpenChange,
-}: DeckDetailsDialogProps) {
+  onClose,
+  onSavingChange,
+}: DeckDetailsFields & { onClose: () => void; onSavingChange: (saving: boolean) => void }) {
   const [name, setName] = useState(currentName);
   const [draft, setDraft] = useState(currentDescription ?? "");
   const [links, setLinks] = useState<LinkDraft[]>(() => toDrafts(currentLinks));
@@ -84,7 +84,7 @@ export function DeckDetailsDialog({
   const [token, setToken] = useState<string | null>(null);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const { update } = useUpdateDeckMeta(deckId);
+  const updateMeta = useUpdateDeckMeta(deckId, { inlineError: true });
   const { printingsByCardId } = useCards();
 
   // Unconditional, unlike the caret check that gates it: an empty query returns
@@ -151,7 +151,7 @@ export function DeckDetailsDialog({
 
   const trimmedName = name.trim();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!linksValid || trimmedName === "") {
       return;
     }
@@ -167,10 +167,16 @@ export function DeckDetailsDialog({
     if (JSON.stringify(nextLinks) !== JSON.stringify(currentLinks)) {
       patch.links = nextLinks;
     }
-    if (Object.keys(patch).length > 0) {
-      update(patch);
+    if (Object.keys(patch).length === 0) {
+      onClose();
+      return;
     }
-    onOpenChange(false);
+    onSavingChange(true);
+    const saved = await runReportedMutation(() => updateMeta.save(patch));
+    onSavingChange(false);
+    if (saved) {
+      onClose();
+    }
   };
 
   const preview = (
@@ -191,140 +197,156 @@ export function DeckDetailsDialog({
   );
 
   return (
+    <DialogForm onSubmit={() => void handleSubmit()}>
+      <DialogHeader>
+        <DialogTitle>{m.decks_dialog_details_title()}</DialogTitle>
+        <DialogDescription>
+          <ParaglideMessage
+            message={m.decks_dialog_details_description}
+            markup={{ code: ({ children }) => <Code className="mx-1">{children}</Code> }}
+          />
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="deck-details-name">{m.common_name()}</Label>
+        <Input
+          id="deck-details-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          maxLength={200}
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: dialog input should grab focus
+          autoFocus
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="deck-details-description">
+          {m.decks_dialog_details_description_label()}
+        </Label>
+        <ToggleGroup
+          variant="outline"
+          spacing={0}
+          size="sm"
+          value={[pane]}
+          onValueChange={([next]) => {
+            if (next === "write" || next === "preview") {
+              setPane(next);
+            }
+          }}
+          aria-label={m.decks_dialog_details_pane_label()}
+          className="lg:hidden"
+        >
+          <ToggleGroupItem value="write">{m.decks_dialog_details_pane_write()}</ToggleGroupItem>
+          <ToggleGroupItem value="preview">{m.decks_dialog_details_pane_preview()}</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className={cn("relative", pane === "preview" && "max-lg:hidden")}>
+          <Textarea
+            id="deck-details-description"
+            ref={textareaRef}
+            value={draft}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              refreshToken(event.target);
+            }}
+            onSelect={(event) => refreshToken(event.currentTarget)}
+            onKeyDown={handleTextareaKeyDown}
+            onBlur={() => setToken(null)}
+            maxLength={DESCRIPTION_MAX}
+            rows={14}
+            className="lg:max-h-96"
+            placeholder={m.decks_dialog_details_description_placeholder()}
+          />
+          {suggestions.length > 0 && (
+            <div
+              role="listbox"
+              aria-label={m.decks_dialog_details_suggestions_label()}
+              className="bg-popover absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-md border shadow-md"
+            >
+              {suggestions.map((suggestion, index) => (
+                <Button
+                  key={suggestion.cardId}
+                  type="button"
+                  role="option"
+                  aria-selected={index === clampedSuggestion}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start rounded-none font-normal",
+                    index === clampedSuggestion && "bg-muted",
+                  )}
+                  // Mousedown so the click wins against the textarea blur
+                  // closing the popup.
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    insertSuggestion(suggestion.cardName);
+                  }}
+                >
+                  {suggestion.cardName}
+                </Button>
+              ))}
+            </div>
+          )}
+          <p className="text-muted-foreground text-2xs mt-1 text-right tabular-nums">
+            {draft.length} / {DESCRIPTION_MAX}
+          </p>
+        </div>
+        <div className={cn(pane === "write" && "max-lg:hidden")}>{preview}</div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>{m.decks_dialog_details_links_label()}</Label>
+        <LinkRowsField
+          links={links}
+          onChange={setLinks}
+          max={MAX_DECK_LINKS}
+          isValidUrl={isAllowedLinkUrl}
+          urlPlaceholder="https://youtube.com/watch?v=…"
+        />
+        {!linksValid && <FieldError className="text-xs">{allowedHostsHint()}</FieldError>}
+      </div>
+
+      {updateMeta.isError && (
+        <FieldError>{errorText(updateMeta.error, m.decks_dialog_details_save_failed())}</FieldError>
+      )}
+
+      <DialogFooter>
+        <Button
+          type="submit"
+          disabled={!linksValid || trimmedName === ""}
+          pending={updateMeta.isPending}
+        >
+          {m.common_save()}
+        </Button>
+      </DialogFooter>
+    </DialogForm>
+  );
+}
+
+export function DeckDetailsDialog({
+  open,
+  onOpenChange,
+  ...fields
+}: DeckDetailsFields & { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [saving, setSaving] = useState(false);
+  return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (nextOpen) {
-          setName(currentName);
-          setDraft(currentDescription ?? "");
-          setLinks(toDrafts(currentLinks));
-          setPane("write");
-          setToken(null);
+        if (nextOpen || !saving) {
+          onOpenChange(nextOpen);
         }
-        onOpenChange(nextOpen);
       }}
     >
       <DialogContent className="sm:max-w-4xl">
-        <DialogForm onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>{m.decks_dialog_details_title()}</DialogTitle>
-            <DialogDescription>
-              <ParaglideMessage
-                message={m.decks_dialog_details_description}
-                markup={{ code: ({ children }) => <Code className="mx-1">{children}</Code> }}
-              />
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deck-details-name">{m.common_name()}</Label>
-            <Input
-              id="deck-details-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={200}
-              // oxlint-disable-next-line jsx-a11y/no-autofocus -- intentional: dialog input should grab focus
-              autoFocus
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="deck-details-description">
-              {m.decks_dialog_details_description_label()}
-            </Label>
-            <ToggleGroup
-              variant="outline"
-              spacing={0}
-              size="sm"
-              value={[pane]}
-              onValueChange={([next]) => {
-                if (next === "write" || next === "preview") {
-                  setPane(next);
-                }
-              }}
-              aria-label={m.decks_dialog_details_pane_label()}
-              className="lg:hidden"
-            >
-              <ToggleGroupItem value="write">{m.decks_dialog_details_pane_write()}</ToggleGroupItem>
-              <ToggleGroupItem value="preview">
-                {m.decks_dialog_details_pane_preview()}
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className={cn("relative", pane === "preview" && "max-lg:hidden")}>
-              <Textarea
-                id="deck-details-description"
-                ref={textareaRef}
-                value={draft}
-                onChange={(event) => {
-                  setDraft(event.target.value);
-                  refreshToken(event.target);
-                }}
-                onSelect={(event) => refreshToken(event.currentTarget)}
-                onKeyDown={handleTextareaKeyDown}
-                onBlur={() => setToken(null)}
-                maxLength={DESCRIPTION_MAX}
-                rows={14}
-                className="lg:max-h-96"
-                placeholder={m.decks_dialog_details_description_placeholder()}
-              />
-              {suggestions.length > 0 && (
-                <div
-                  role="listbox"
-                  aria-label={m.decks_dialog_details_suggestions_label()}
-                  className="bg-popover absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-md border shadow-md"
-                >
-                  {suggestions.map((suggestion, index) => (
-                    <Button
-                      key={suggestion.cardId}
-                      type="button"
-                      role="option"
-                      aria-selected={index === clampedSuggestion}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "w-full justify-start rounded-none font-normal",
-                        index === clampedSuggestion && "bg-muted",
-                      )}
-                      // Mousedown so the click wins against the textarea blur
-                      // closing the popup.
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                        insertSuggestion(suggestion.cardName);
-                      }}
-                    >
-                      {suggestion.cardName}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              <p className="text-muted-foreground text-2xs mt-1 text-right tabular-nums">
-                {draft.length} / {DESCRIPTION_MAX}
-              </p>
-            </div>
-            <div className={cn(pane === "write" && "max-lg:hidden")}>{preview}</div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>{m.decks_dialog_details_links_label()}</Label>
-            <LinkRowsField
-              links={links}
-              onChange={setLinks}
-              max={MAX_DECK_LINKS}
-              isValidUrl={isAllowedLinkUrl}
-              urlPlaceholder="https://youtube.com/watch?v=…"
-            />
-            {!linksValid && <FieldError className="text-xs">{allowedHostsHint()}</FieldError>}
-          </div>
-
-          <DialogFooter>
-            <Button type="submit" disabled={!linksValid || trimmedName === ""}>
-              {m.common_save()}
-            </Button>
-          </DialogFooter>
-        </DialogForm>
+        <DeckDetailsForm
+          {...fields}
+          onClose={() => onOpenChange(false)}
+          onSavingChange={setSaving}
+        />
       </DialogContent>
     </Dialog>
   );

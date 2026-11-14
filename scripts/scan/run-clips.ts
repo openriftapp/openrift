@@ -54,6 +54,7 @@ import {
   RECORDINGS_DIR,
   REPO_ROOT,
   argValue,
+  exitOnBadArgs,
   hasFlag,
   listClips,
   listFrames,
@@ -67,13 +68,51 @@ import { createPlacementStats, recordPlacement } from "./placement-stats";
 
 type Catalog = Map<string, CardIdentity>;
 
+const USAGE = `usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]
+selection:  --clip <name>  --split tune|holdout  --only-mode <label>
+output:     --json <file>  --verbose  --trace  --attribute  --min-sightings <n>
+scoring:    --language <code>|any  --no-art-groups  --no-illustration-groups
+caches:     --force-bank  --refresh-printings
+session:    --slow-device  --set <path>=<value> (repeatable)
+replay:     --no-catch-up  --no-rearm  --no-skip-disturbed  --no-relock-guard  --drop-to <fps>  --all-frames
+scripts/scan/README.md describes each flag.
+`;
+
+exitOnBadArgs(
+  {
+    values: [
+      "--clip",
+      "--split",
+      "--only-mode",
+      "--json",
+      "--min-sightings",
+      "--language",
+      "--set",
+      "--drop-to",
+    ],
+    flags: [
+      "--verbose",
+      "--trace",
+      "--attribute",
+      "--no-art-groups",
+      "--no-illustration-groups",
+      "--force-bank",
+      "--refresh-printings",
+      "--slow-device",
+      "--no-catch-up",
+      "--no-rearm",
+      "--no-skip-disturbed",
+      "--no-relock-guard",
+      "--all-frames",
+    ],
+  },
+  USAGE,
+);
+
 const cardDetectorFile = servedModel("SCAN_DETECTOR", "SCAN_DETECTOR_FILE");
 const boardDetectorFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!cardDetectorFile || !boardDetectorFile) {
-  process.stderr.write(
-    "usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]\n" +
-      "both detectors are required\n",
-  );
+  process.stderr.write(`both detectors are required\n${USAGE}`);
   process.exit(2);
 }
 const detectCard = createCardDetector(cardDetectorFile);

@@ -2591,6 +2591,7 @@
   "decks_dialog_details_description_label": "說明",
   "decks_dialog_details_description_placeholder": "用幾句話介紹你的牌組…",
   "decks_dialog_details_links_hint": "連結必須是 https，並指向下列其中之一：{hosts}。",
+  "decks_dialog_details_save_failed": "無法儲存牌組，請再試一次。",
   "decks_dialog_details_links_label": "連結",
   "decks_dialog_details_pane_label": "編輯器窗格",
   "decks_dialog_details_pane_preview": "預覽",

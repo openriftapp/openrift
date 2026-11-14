@@ -62,7 +62,7 @@ A handler that awaits `mutateAsync` wraps it in `runReportedMutation` (`apps/web
 
 All queries go through repository functions in `apps/api/src/modules/<domain>/repositories/`. Routes and services never touch `db` / Kysely directly; add a method to the appropriate repository. Route handlers reach repos via `c.get("repos")`.
 
-PostgreSQL stores timestamps with microsecond precision, JavaScript `Date` with milliseconds. When comparing a `Date` against a `timestamptz` column (cursor pagination, for example), wrap the column in `date_trunc('milliseconds', ...)`. Without this, equality checks silently fail.
+PostgreSQL stores timestamps with microsecond precision, JavaScript `Date` with milliseconds. When comparing a `Date` against a `timestamptz` column (cursor pagination, for example), wrap the column in `date_trunc('milliseconds', ...)`. Without this, equality checks silently fail. A window on an indexed column is written on the bare column as `col >= from` and `col < dueBefore(to)`, which matches the same rows and keeps the index.
 
 ## API module layout
 
@@ -189,6 +189,14 @@ import { useCardFilters } from "./use-card-filters";
 Always include a `-- reason` after the rule name to explain the suppression.
 
 Test files turn off `import/first` (vitest hoists `vi.mock`), `promise/avoid-new` and `import/no-nodejs-modules`, and Bun and Node code (`apps/api`, `apps/discord-bot`, `scripts/`, `*.config.ts`) turns off `import/no-nodejs-modules`, so none of these need a comment there. Lint and the pre-commit hook pass `--report-unused-disable-directives`, so a directive that suppresses nothing fails. A disable for ESLint's React Compiler rule is configured in `apps/web/eslint.config.js`, because oxlint reports an inline `eslint-disable` as unused.
+
+## Duplication checks
+
+The pre-push hook runs two checks whenever a pushed commit touches a `.ts` or `.tsx` file, `.jscpd.json` or the check's own ceiling or baseline file, and the duplication check also runs when the root `package.json` changes. Both cover `apps/web/src`, `apps/api/src`, `packages/shared/src` and `apps/discord-bot/src`, and skip tests, generated files, migrations and `components/ui/`. The ignore list lives in `.jscpd.json` and both checks read it.
+
+`bun run check:duplication` runs jscpd with the options in `.jscpd.json` (it also scans `scripts/`, and compares `.ts` with `.tsx` files) and fails when it finds more clones than the `clones` count in `scripts/data/clone-ceiling.json`. The count belongs to the jscpd version in the same file's `jscpd` field, because engine versions count clones differently, and the check fails when the installed version differs. After a jscpd upgrade, set `jscpd` to the new version, run the check, and set `clones` to the count it reports. A failure lists every clone as `fileA:start-end  fileB:start-end  (N lines)`, largest first. Find the pair your change added and merge it into the code it repeats. When the count drops below the ceiling, the check passes and asks you to run `bun run check:duplication --update`, which lowers the ceiling to the new count. Raising the ceiling is a hand edit of that file.
+
+`bun run check:duplicate-exports` fails when an exported name is defined in more files than `scripts/data/duplicate-exports-baseline.txt` allows. Each baseline line is `<name> <file count>`. A name missing from it may be defined in one file only. A value and a type of the same name count as one name, and so do web and API files. The failure prints the name and every file that defines it. Rename one of them, or merge them when they do the same job. When a baseline name is defined in fewer files than recorded, the check passes and asks you to run `bun run check:duplicate-exports --update`, which lowers the count or removes the name. `--update --allow-growth` also records new duplicates and higher counts. A route file's `Route` export is exempt.
 
 ## Testing
 

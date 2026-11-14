@@ -1043,6 +1043,57 @@ describe("ingestCandidates", () => {
     expect(insertCall.rulesText).toBeNull();
   });
 
+  it("stores whitespace-only rules_text as null and keeps inner whitespace and newlines", async () => {
+    const repos = createMockRepos();
+    const transact = mockTransact(repos);
+    await ingestCandidates(transact, "gallery", [
+      makeCard({ rules_text: "  \n ", effect_text: "Deal  2\nthen draw" }),
+    ]);
+
+    const insertCall = (repos.ingest as any).insertCandidateCard.mock.calls[0][0];
+    expect(insertCall.rulesText).toBeNull();
+    expect(insertCall.effectText).toBe("Deal  2\nthen draw");
+  });
+
+  it.each([
+    ["whitespace-only text against a stored null", { rulesText: null }, { rules_text: "   " }],
+    [
+      "outer whitespace against the stored trimmed text",
+      { rulesText: "Deal damage" },
+      { rules_text: " Deal damage\n" },
+    ],
+  ])(
+    "reports a re-upload as unchanged for %s",
+    async (_label, stored: Record<string, unknown>, upload: Record<string, unknown>) => {
+      const repos = createMockRepos({
+        allCandidateCardsForProvider: vi.fn().mockResolvedValue([
+          {
+            id: "cc-1",
+            externalId: "ext-card-1",
+            name: "Fireball",
+            types: ["spell"],
+            superTypes: [],
+            domains: ["fury"],
+            might: 3,
+            energy: 2,
+            power: null,
+            mightBonus: null,
+            effectText: null,
+            tags: [],
+            shortCode: "OGN-001",
+            extraData: null,
+            ...stored,
+          },
+        ]),
+      });
+      const result = await ingestCandidates(mockTransact(repos), "gallery", [makeCard(upload)]);
+
+      expect(result.unchanged).toBe(1);
+      expect(result.updates).toBe(0);
+      expect((repos.ingest as any).updateCandidateCard).not.toHaveBeenCalled();
+    },
+  );
+
   it("normalizes empty printed_rules_text on printing to null", async () => {
     const repos = createMockRepos();
     const transact = mockTransact(repos);

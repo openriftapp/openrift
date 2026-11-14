@@ -17,6 +17,7 @@ import { CANONICAL_BANK, embedSize, loadEmbedBank } from "./embed-bank";
 import {
   DATA_DIR,
   argValue,
+  exitOnBadArgs,
   listReferenceImages,
   loadClipTruth,
   loadImage,
@@ -26,11 +27,14 @@ import {
 
 const BOARDS_DIR = path.join(DATA_DIR, "boards");
 
+const USAGE =
+  "usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/run-boards.ts [--max-side px] [--boards list.json] [--json out.json]\n";
+
+exitOnBadArgs({ values: ["--max-side", "--boards", "--json"], flags: [] }, USAGE);
+
 const detectorFile = servedModel("SCAN_BOARD_DETECTOR", "SCAN_BOARD_DETECTOR_FILE");
 if (!detectorFile) {
-  process.stderr.write(
-    "usage: SCAN_BOARD_DETECTOR=... bun scripts/scan/run-boards.ts [--max-side px] [--boards list.json] [--json out.json]\n",
-  );
+  process.stderr.write(USAGE);
   process.exit(2);
 }
 

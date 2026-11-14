@@ -33,10 +33,12 @@ export function GroupCutPairingsSection({
   id,
   data,
   staff,
+  manage,
 }: {
   id: string;
   data: PodTournamentDetailResponse;
   staff: boolean;
+  manage: boolean;
 }) {
   const submitResult = useSubmitTournamentResult();
   const startGroupRound = useStartGroupRound();
@@ -51,7 +53,7 @@ export function GroupCutPairingsSection({
   const completed = tournament.status === "completed";
 
   if (data.rounds.length === 0 || groupStage === null || groupStage.groups.length === 0) {
-    if (!staff) {
+    if (!manage) {
       return <p className="text-muted-foreground">{m.tournaments_group_not_drawn_yet()}</p>;
     }
     return <GenerateGroupsBand id={id} legendTiebreak={tournament.legendTiebreak} />;
@@ -66,12 +68,12 @@ export function GroupCutPairingsSection({
   const lockstepReady = units.every((unit) => unit.canStartNextRound);
   const lockstepRound = Math.min(...units.map((unit) => unit.roundsStarted)) + 1;
   const showLockstepStart =
-    staff &&
+    manage &&
     !tournament.groupsSelfPaced &&
     !groupStage.stageComplete &&
     lockstepRound <= GROUP_STAGE_ROUNDS;
   const canRerollGroups =
-    staff && !groupStage.cutGenerated && units.every((unit) => unit.roundsStarted <= 1);
+    manage && !groupStage.cutGenerated && units.every((unit) => unit.roundsStarted <= 1);
   const cutHasResult = openCutRound?.pods.some((pod) => pod.resultStatus === "reported") ?? false;
   const editor =
     editingCut && openCutRound !== undefined && data.openRoundSnapshot !== null ? (
@@ -92,7 +94,7 @@ export function GroupCutPairingsSection({
   let bracket: ReactNode = null;
   if (editor === null && bracketRounds.length > 0) {
     bracket =
-      bracketMode({ completed, canEnter: staff }) === "compact" ? (
+      bracketMode({ completed, canEnter: manage }) === "compact" ? (
         <CutBracketCompact
           rounds={bracketRounds}
           cutSize={tournament.cutSize}
@@ -125,13 +127,16 @@ export function GroupCutPairingsSection({
             round={openCutRound}
             suggested={0}
             finalizing={finalizeRound.isPending}
-            onFinalize={() =>
-              void runReportedMutation(() =>
-                finalizeRound.mutateAsync({ id, roundNumber: openCutRound.roundNumber }),
-              )
+            onFinalize={
+              manage
+                ? () =>
+                    void runReportedMutation(() =>
+                      finalizeRound.mutateAsync({ id, roundNumber: openCutRound.roundNumber }),
+                    )
+                : undefined
             }
           />
-          {staff && !editingCut ? (
+          {manage && !editingCut ? (
             <div className="flex justify-end">
               <Button
                 size="sm"
@@ -145,7 +150,7 @@ export function GroupCutPairingsSection({
             </div>
           ) : null}
         </>
-      ) : staff ? (
+      ) : manage ? (
         groupStage.cutGenerated ? (
           bracketDone ? null : (
             <NextCutRoundBand
@@ -160,7 +165,6 @@ export function GroupCutPairingsSection({
             cutSize={tournament.cutSize}
             groupStage={groupStage}
             shares={data.legendMetaShares}
-            staff={staff}
           />
         )
       ) : null}
@@ -218,7 +222,7 @@ export function GroupCutPairingsSection({
           matchFormat={tournament.matchFormat}
           winPoints={tournament.winPoints}
           drawPoints={tournament.drawPoints}
-          canEnterResult={!completed}
+          canEnterResult={manage && !completed}
           onSubmitResult={(podId, results) => submitResult.mutateAsync({ id, podId, results })}
           onStartUnit={
             staff && tournament.groupsSelfPaced

@@ -2591,6 +2591,7 @@
   "decks_dialog_details_description_label": "描述",
   "decks_dialog_details_description_placeholder": "简单介绍一下你的卡组…",
   "decks_dialog_details_links_hint": "链接必须是 https，并指向以下网站之一：{hosts}。",
+  "decks_dialog_details_save_failed": "无法保存卡组，请重试。",
   "decks_dialog_details_links_label": "链接",
   "decks_dialog_details_pane_label": "编辑器面板",
   "decks_dialog_details_pane_preview": "预览",

@@ -13,6 +13,7 @@ import { PullVariantLine } from "@/features/pack-opener/components/pull-variant-
 import {
   PACK_RARITY_ORDER,
   compareRarityDesc,
+  packRarityColor,
   packRarityKey,
   packRarityLabel,
   packSlotLabel,
@@ -41,11 +42,6 @@ interface UnpricedPull {
   rarity: string;
 }
 
-const RARITY_FALLBACK_COLORS: Record<string, string> = {
-  [WellKnown.superType.TOKEN]: "#a8a29e",
-  [WellKnown.cardType.RUNE]: "#6b7280",
-  [WellKnown.artVariant.ULTIMATE]: "#d946ef",
-};
 const NOTABLE_RARITIES = new Set<string>([
   WellKnown.rarity.RARE,
   WellKnown.rarity.EPIC,
@@ -103,7 +99,7 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
     (r) => ({
       rarity: rarityLabel(r),
       count: rarityCounts[r] ?? 0,
-      color: rarityColors[r] ?? RARITY_FALLBACK_COLORS[r] ?? "#888",
+      color: packRarityColor(r, rarityColors),
     }),
   );
 

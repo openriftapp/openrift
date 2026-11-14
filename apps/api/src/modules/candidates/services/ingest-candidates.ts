@@ -51,24 +51,22 @@ interface IngestResult {
   updatedPrintings: UpdatedCardDetail[];
 }
 
-const CARD_FIELD_MAP: Record<string, string> = {
-  name: "name",
-  types: "types",
-  superTypes: "super_types",
-  domains: "domains",
-  might: "might",
-  energy: "energy",
-  power: "power",
-  mightBonus: "might_bonus",
-  rulesText: "rules_text",
-  effectText: "effect_text",
-  tags: "tags",
-  shortCode: "short_code",
-  externalId: "external_id",
-  extraData: "extra_data",
-};
-
-const CARD_FIELDS = Object.keys(CARD_FIELD_MAP);
+const CARD_FIELDS = [
+  "name",
+  "types",
+  "superTypes",
+  "domains",
+  "might",
+  "energy",
+  "power",
+  "mightBonus",
+  "rulesText",
+  "effectText",
+  "tags",
+  "shortCode",
+  "externalId",
+  "extraData",
+] as const;
 
 function camelCaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -115,16 +113,14 @@ function getChangedFields(
   existing: Record<string, unknown>,
   incoming: Record<string, unknown>,
   fields: readonly string[],
-  fieldMap?: Record<string, string>,
 ): { field: string; from: DiffValue; to: DiffValue }[] {
   const diffs: { field: string; from: DiffValue; to: DiffValue }[] = [];
   for (const f of fields) {
-    const incomingKey = fieldMap?.[f] ?? f;
-    if (!(incomingKey in incoming)) {
+    if (!(f in incoming)) {
       continue;
     }
     const a = normalize(existing[f]);
-    const b = normalize(incoming[incomingKey]);
+    const b = normalize(incoming[f]);
     if (!Bun.deepEquals(a, b)) {
       diffs.push({ field: f, from: toDiffValue(a), to: toDiffValue(b) });
     }
@@ -294,11 +290,11 @@ export async function ingestCandidates(
       let candidateCardId: string;
 
       if (existingCandidateCard) {
+        const cardFields = buildCandidateCardFields(card);
         const changedFields = getChangedFields(
           existingCandidateCard as unknown as Record<string, unknown>,
-          card as unknown as Record<string, unknown>,
+          cardFields as unknown as Record<string, unknown>,
           CARD_FIELDS,
-          CARD_FIELD_MAP,
         );
 
         if (changedFields.length > 0) {
@@ -309,7 +305,7 @@ export async function ingestCandidates(
           });
           // checkedAt reset: an update means the upload disagreed with an already-reviewed row.
           const cardUpdate: Updateable<CandidateCardsTable> = {
-            ...buildCandidateCardFields(card),
+            ...cardFields,
             checkedAt: null,
             uploadedAt: new Date(),
           };

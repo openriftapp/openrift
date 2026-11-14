@@ -9,6 +9,8 @@
   "scripts": {
     "build": "turbo run build",
     "check:asset-types": "bun scripts/check-asset-types.ts",
+    "check:duplicate-exports": "bun scripts/check-duplicate-exports.ts",
+    "check:duplication": "bun scripts/check-duplication.ts",
     "check:override-pins": "bun scripts/check-override-pins.ts",
     "check:ssr-bundle": "bun scripts/check-ssr-bundle.ts",
     "typecheck": "turbo run typecheck && bun run typecheck:scripts",
@@ -56,6 +58,7 @@
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/types": "21.2.3",
     "@tanstack/devtools-vite": "0.8.6",
+    "jscpd": "5.4.2",
     "knip": "6.45.1",
     "lcov-result-merger": "6.0.0",
     "lefthook": "2.2.2",

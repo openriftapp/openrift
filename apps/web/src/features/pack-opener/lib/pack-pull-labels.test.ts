@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   PACK_RARITY_ORDER,
   compareRarityDesc,
+  packRarityColor,
   packRarityKey,
   packRarityLabel,
   packSlotLabel,
@@ -82,6 +83,24 @@ describe("packRarityKey", () => {
     for (const pull of pulls) {
       expect(PACK_RARITY_ORDER).toContain(packRarityKey(pull));
     }
+  });
+});
+
+describe("packRarityColor", () => {
+  const rarityColors = { rare: "#E052B1" };
+
+  it("takes a rarity's colour from the rarity colours", () => {
+    expect(packRarityColor("rare", rarityColors)).toBe("#E052B1");
+  });
+
+  it("colours the slot-derived token, rune and ultimate keys", () => {
+    expect(packRarityColor("token", rarityColors)).toBe("#a8a29e");
+    expect(packRarityColor("rune", rarityColors)).toBe("#6b7280");
+    expect(packRarityColor("ultimate", rarityColors)).toBe("#d946ef");
+  });
+
+  it("falls back to grey for a key with no colour", () => {
+    expect(packRarityColor("mythic", rarityColors)).toBe("#888");
   });
 });
 

@@ -23,7 +23,7 @@ export function OpenRoundBand({
   round: PodRoundResponse;
   suggested: number;
   finalizing: boolean;
-  onFinalize: () => void;
+  onFinalize?: () => void;
 }) {
   const { total, reported, noun } = roundReportProgress(round);
   const allReported = total > 0 && reported === total;
@@ -48,9 +48,11 @@ export function OpenRoundBand({
       action={
         <span className="flex items-center gap-2">
           <Badge variant="warning">{m.tournaments_round_band_reporting()}</Badge>
-          <Button size="sm" disabled={!allReported} pending={finalizing} onClick={onFinalize}>
-            {m.tournaments_round_band_finalize()}
-          </Button>
+          {onFinalize && (
+            <Button size="sm" disabled={!allReported} pending={finalizing} onClick={onFinalize}>
+              {m.tournaments_round_band_finalize()}
+            </Button>
+          )}
         </span>
       }
     >
