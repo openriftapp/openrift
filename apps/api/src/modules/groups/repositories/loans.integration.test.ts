@@ -550,8 +550,8 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     await addCopies(collectionId, 3, PRINTING_2.id);
 
     const countFor = async () => {
-      const rows = await repos.copies.countByCardAndPrintingForDeckbuilding(LENDER_ID);
-      return rows.find((row) => row.printingId === PRINTING_2.id)?.count ?? 0;
+      const counts = await repos.copies.buildableCountByCard(LENDER_ID);
+      return counts.get(PRINTING_2.cardId) ?? 0;
     };
 
     const before = await countFor();

@@ -30,40 +30,31 @@ export function rulesRepo(db: Kysely<Database>) {
     return row?.version ?? undefined;
   }
 
+  async function rulesUpTo(kind: RuleKind, language: RuleLanguage, version?: string) {
+    const rows = await db
+      .selectFrom("rules")
+      .selectAll()
+      .where("kind", "=", kind)
+      .where("language", "=", language)
+      .where("version", "=", (eb) => {
+        const versions = eb
+          .selectFrom("ruleVersions")
+          .select((inner) => inner.fn.max("version").as("version"))
+          .where("kind", "=", kind)
+          .where("language", "=", language);
+        return version === undefined ? versions : versions.where("version", "<=", version);
+      })
+      .execute();
+    return rows.toSorted((a, b) => compareRuleNumbers(a.ruleNumber, b.ruleNumber));
+  }
+
   return {
-    async listLatest(kind: RuleKind, language: RuleLanguage) {
-      const rows = await db
-        .selectFrom("rules")
-        .selectAll()
-        .where("kind", "=", kind)
-        .where("language", "=", language)
-        .where("version", "=", (eb) =>
-          eb
-            .selectFrom("ruleVersions")
-            .select((inner) => inner.fn.max("version").as("version"))
-            .where("kind", "=", kind)
-            .where("language", "=", language),
-        )
-        .execute();
-      return rows.toSorted((a, b) => compareRuleNumbers(a.ruleNumber, b.ruleNumber));
+    listLatest(kind: RuleKind, language: RuleLanguage) {
+      return rulesUpTo(kind, language);
     },
 
-    async listAtVersion(kind: RuleKind, language: RuleLanguage, version: string) {
-      const rows = await db
-        .selectFrom("rules")
-        .selectAll()
-        .where("kind", "=", kind)
-        .where("language", "=", language)
-        .where("version", "=", (eb) =>
-          eb
-            .selectFrom("ruleVersions")
-            .select((inner) => inner.fn.max("version").as("version"))
-            .where("kind", "=", kind)
-            .where("language", "=", language)
-            .where("version", "<=", version),
-        )
-        .execute();
-      return rows.toSorted((a, b) => compareRuleNumbers(a.ruleNumber, b.ruleNumber));
+    listAtVersion(kind: RuleKind, language: RuleLanguage, version: string) {
+      return rulesUpTo(kind, language, version);
     },
 
     /**

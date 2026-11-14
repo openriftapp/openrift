@@ -13,13 +13,16 @@ import {
   ShieldCheckIcon,
   Trash2Icon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
+import { SIDEBAR_ROW, SIDEBAR_ROW_ACTIVE } from "@/features/marketing/lib/sidebar-mock";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -30,39 +33,39 @@ export default function CollectionsArticle() {
 
       <Callout>
         <div className="flex flex-col gap-3 text-sm sm:flex-row">
-          <div className="bg-background flex flex-col gap-1.5 rounded-lg p-3 sm:w-48">
+          <div className="bg-background flex flex-col gap-1 rounded-lg p-3 sm:w-56">
             <Eyebrow as="span" className="text-2xs mb-1 font-medium">
-              {m.help_collections_mock_collections()}
+              {m.collections_sidebar_title()}
             </Eyebrow>
             <SidebarItem
-              icon={<PackageIcon className="size-3.5" />}
-              label={m.help_collections_mock_all_cards()}
+              icon={<PackageIcon className="size-4 shrink-0" aria-hidden="true" />}
+              label={m.collections_all_cards()}
               count={94}
             />
             <SidebarItem
-              icon={<InboxIcon className="size-3.5" />}
-              label={m.help_collections_mock_inbox()}
+              icon={<InboxIcon className="size-4 shrink-0" aria-hidden="true" />}
+              label={m.collections_dialog_picker_inbox_badge()}
               count={12}
               active
             />
             <SidebarItem
-              icon={<BookOpenIcon className="size-3.5" />}
+              icon={<BookOpenIcon className="size-4 shrink-0" aria-hidden="true" />}
               label={m.help_collections_mock_red_deck_box()}
               count={40}
             />
             <SidebarItem
-              icon={<BookOpenIcon className="size-3.5" />}
+              icon={<BookOpenIcon className="size-4 shrink-0" aria-hidden="true" />}
               label={m.help_collections_mock_binder()}
               count={31}
             />
             <SidebarItem
-              icon={<BookOpenIcon className="size-3.5" />}
+              icon={<BookOpenIcon className="size-4 shrink-0" aria-hidden="true" />}
               label={m.help_collections_mock_lent()}
               count={11}
             />
             <div className="border-border mt-1 border-t pt-1">
               <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <PlusIcon className="size-3" /> {m.help_collections_mock_new_collection()}
+                <PlusIcon className="size-3" /> {m.collections_sidebar_new_collection()}
               </span>
             </div>
           </div>
@@ -79,7 +82,7 @@ export default function CollectionsArticle() {
             </div>
             <div className="grid grid-cols-4 gap-1.5">
               {Array.from({ length: 8 }, (_, index) => (
-                <div key={index} className="bg-muted aspect-card rounded-md" />
+                <div key={index} className="bg-muted aspect-card rounded-card" />
               ))}
             </div>
           </div>
@@ -235,28 +238,18 @@ function SidebarItem({
   count,
   active,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   count: number;
   active?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 rounded-md px-2 py-1 text-xs",
-        active ? "bg-primary/10 text-primary font-medium" : "text-foreground",
-      )}
-    >
+    <div className={cn(SIDEBAR_ROW, active && SIDEBAR_ROW_ACTIVE)}>
       {icon}
       <span className="flex-1 truncate">{label}</span>
-      <span
-        className={cn(
-          "text-2xs rounded-full px-1.5 tabular-nums",
-          active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground",
-        )}
-      >
+      <Badge variant="ghost" className="text-2xs ml-auto">
         {count}
-      </span>
+      </Badge>
     </div>
   );
 }

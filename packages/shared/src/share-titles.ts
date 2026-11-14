@@ -19,6 +19,14 @@ export function deckShareTitle(name: string, formatLabel: string): string {
   return `${name} (${formatLabel} deck)`;
 }
 
+export function deckMetaLabel(formatLabel: string, cardCount: number): string {
+  return `${formatLabel} · ${cardCount} ${pluralize(cardCount, "card", "cards")}`;
+}
+
+export function shareByline(ownerName: string): string {
+  return `by ${ownerName}`;
+}
+
 export function deckShareDescription(
   formatLabel: string,
   owner: string | null | undefined,

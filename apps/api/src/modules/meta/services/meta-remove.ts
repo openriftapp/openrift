@@ -14,7 +14,7 @@ export function removeMetaEvent(transact: Transact, eventId: string): Promise<bo
     }
     for (const source of sources) {
       if (source.provider !== null && source.externalId !== null) {
-        await repos.metaOverlays.ignoreEvent(source.provider, source.externalId);
+        await repos.metaOverlays.ignoreEvents(source.provider, [source.externalId]);
       }
     }
     return true;

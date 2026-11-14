@@ -5,11 +5,11 @@ import {
   buildPostImageDetailsLine,
 } from "@openrift/shared/printing-post-image";
 import type { PostImageAspect, PostImageLabel } from "@openrift/shared/printing-post-image";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 
 import type { Io } from "../../../io.js";
 import {
   blurredArtBackdropDataUri,
-  COLORS,
   elideTitle,
   element,
   renderTreeToPng,
@@ -107,8 +107,8 @@ function ribbon(canvas: PostCanvas, input: PrintingPostImageInput): Element {
       paddingTop: Math.round(canvas.ribbonSize * 0.36),
       paddingBottom: Math.round(canvas.ribbonSize * 0.36),
       borderRadius: Math.round(canvas.ribbonSize * 0.4),
-      backgroundColor: COLORS.gold,
-      color: COLORS.background,
+      backgroundColor: SHARE_IMAGE_COLORS.gold,
+      color: SHARE_IMAGE_COLORS.background,
       fontSize: canvas.ribbonSize,
       fontWeight: 700,
       letterSpacing: Math.round(canvas.ribbonSize * 0.14),
@@ -125,7 +125,7 @@ function ribbon(canvas: PostCanvas, input: PrintingPostImageInput): Element {
       {
         display: "flex",
         marginLeft: Math.round(canvas.pad * 0.3),
-        color: COLORS.gold,
+        color: SHARE_IMAGE_COLORS.gold,
         fontSize: canvas.markerSize,
         fontWeight: 600,
         lineHeight: 1,
@@ -156,9 +156,9 @@ function photoBlock(
           padding: Math.round(photoW * 0.08),
           textAlign: "center",
           borderRadius: Math.round(Math.min(photoW, photoH) * 0.05),
-          backgroundColor: COLORS.surface,
-          border: `2px solid ${COLORS.surfaceBorder}`,
-          color: COLORS.muted,
+          backgroundColor: SHARE_IMAGE_COLORS.surface,
+          border: `2px solid ${SHARE_IMAGE_COLORS.surfaceBorder}`,
+          color: SHARE_IMAGE_COLORS.muted,
           fontSize: Math.round(photoW * 0.09),
           fontWeight: 600,
           lineHeight: 1.2,
@@ -196,7 +196,7 @@ function bottomStrip(canvas: PostCanvas, input: PrintingPostImageInput): Element
       "div",
       {
         display: "flex",
-        color: COLORS.text,
+        color: SHARE_IMAGE_COLORS.text,
         fontSize: canvas.nameSize,
         fontWeight: 700,
         lineHeight: 1.1,
@@ -208,7 +208,7 @@ function bottomStrip(canvas: PostCanvas, input: PrintingPostImageInput): Element
       {
         display: "flex",
         marginTop: Math.round(canvas.metaSize * 0.4),
-        color: COLORS.gold,
+        color: SHARE_IMAGE_COLORS.gold,
         fontSize: canvas.metaSize,
         fontWeight: 600,
         lineHeight: 1.2,
@@ -222,7 +222,7 @@ function bottomStrip(canvas: PostCanvas, input: PrintingPostImageInput): Element
         justifyContent: "space-between",
         alignItems: "flex-end",
         marginTop: Math.round(canvas.creditSize * 0.4),
-        color: COLORS.muted,
+        color: SHARE_IMAGE_COLORS.muted,
         fontSize: canvas.creditSize,
         lineHeight: 1.2,
       },
@@ -231,7 +231,7 @@ function bottomStrip(canvas: PostCanvas, input: PrintingPostImageInput): Element
         ? element(
             "div",
             { display: "flex", marginLeft: canvas.creditSize },
-            hostLabel(input.siteHost, canvas.creditSize, COLORS.gold),
+            hostLabel(input.siteHost, canvas.creditSize, SHARE_IMAGE_COLORS.gold),
           )
         : null,
     ),

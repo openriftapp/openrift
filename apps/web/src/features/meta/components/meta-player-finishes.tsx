@@ -1,33 +1,16 @@
-import { formatDay } from "@openrift/shared/format-date";
-import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaPlayerFinish } from "@openrift/shared/types/api/meta";
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { RankBand } from "@/components/ui/rank-band";
-import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-import { TextLink } from "@/components/ui/text-link";
+import { TableHead } from "@/components/ui/table";
+import { FinishPhoneRow, FinishTableRow } from "@/features/meta/components/meta-finish-rows";
 import { MetaFinishesSection } from "@/features/meta/components/meta-finishes-section";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
-import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank } from "@/features/meta/lib/meta-format";
 import type { MetaFinishesView } from "@/features/meta/lib/meta-legend-page";
 import { BEST_FINISH_COUNT, FINISH_PAGE_SIZE } from "@/features/meta/lib/meta-legend-page";
 import { sortPlayerFinishes } from "@/features/meta/lib/meta-player-page";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
-
-function Rank({ finish }: { finish: MetaPlayerFinish }) {
-  return (
-    <RankBand
-      rank={finish.rank}
-      text={formatRank(finish.rank, finish.rankIsTier)}
-      filled={false}
-      className="w-16 shrink-0"
-    />
-  );
-}
 
 function LegendCell({ finish, className }: { finish: MetaPlayerFinish; className?: string }) {
   const { legend } = finish;
@@ -44,136 +27,6 @@ function LegendCell({ finish, className }: { finish: MetaPlayerFinish; className
       domains={legend.domains}
       className={className}
     />
-  );
-}
-
-function ListLink({
-  finish,
-  playerName,
-  canSubmit,
-}: {
-  finish: MetaPlayerFinish;
-  playerName: string;
-  canSubmit: boolean;
-}) {
-  if (finish.shareToken !== null) {
-    return (
-      <TextLink
-        className="font-medium whitespace-nowrap"
-        render={<Link to="/meta/decks/$token" params={{ token: finish.shareToken }} />}
-      >
-        {finish.listStatus === "partial"
-          ? m.meta_list_status_partial()
-          : m.meta_standings_decklist()}
-      </TextLink>
-    );
-  }
-  if (!canSubmit) {
-    return null;
-  }
-  return (
-    <TextLink
-      className="font-medium whitespace-nowrap"
-      render={
-        <Link
-          rel="nofollow"
-          to="/meta/$slug/submit"
-          params={{ slug: finish.event.slug }}
-          search={metaSubmitSearchForPlayer({ ...finish, playerName })}
-        />
-      }
-    >
-      {m.meta_add_deck_link()}
-    </TextLink>
-  );
-}
-
-function eventFacts(finish: MetaPlayerFinish): string {
-  const size = finish.event.playerCount;
-  const parts = [formatDay(finish.event.eventDate)];
-  if (size !== null) {
-    parts.push(m.meta_count_players({ count: size }));
-  }
-  return parts.join(" · ");
-}
-
-function FinishTableRow({
-  finish,
-  playerName,
-  canSubmit,
-}: {
-  finish: MetaPlayerFinish;
-  playerName: string;
-  canSubmit: boolean;
-}) {
-  const record = formatRecord(finish.wins, finish.losses, finish.draws);
-
-  return (
-    <TableRow>
-      <TableCell className="w-20">
-        <Rank finish={finish} />
-      </TableCell>
-      <TableCell>
-        <TextLink
-          variant="inherit"
-          className="block truncate font-medium"
-          render={<Link to="/meta/$slug" params={{ slug: finish.event.slug }} />}
-        >
-          {finish.event.name}
-        </TextLink>
-        <p className="text-muted-foreground truncate text-xs tabular-nums">{eventFacts(finish)}</p>
-      </TableCell>
-      <TableCell className="w-24">
-        <MetaTierBadge tier={finish.event.tier} />
-      </TableCell>
-      <TableCell className="w-72 max-w-72">
-        <LegendCell finish={finish} />
-      </TableCell>
-      <TableCell className="w-20 text-right tabular-nums">{record}</TableCell>
-      <TableCell className="w-24 text-right">
-        <ListLink finish={finish} playerName={playerName} canSubmit={canSubmit} />
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function FinishPhoneRow({
-  finish,
-  playerName,
-  canSubmit,
-}: {
-  finish: MetaPlayerFinish;
-  playerName: string;
-  canSubmit: boolean;
-}) {
-  const record = formatRecord(finish.wins, finish.losses, finish.draws);
-
-  return (
-    <li>
-      <div className="flex items-start gap-2.5 sm:hidden">
-        <Rank finish={finish} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <TextLink
-            variant="inherit"
-            className="truncate font-medium"
-            render={<Link to="/meta/$slug" params={{ slug: finish.event.slug }} />}
-          >
-            {finish.event.name}
-          </TextLink>
-          <p className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
-            <MetaTierBadge tier={finish.event.tier} />
-            <span className="tabular-nums">{eventFacts(finish)}</span>
-          </p>
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-sm">
-            <LegendCell finish={finish} />
-            {record !== null && (
-              <span className="text-muted-foreground tabular-nums">{record}</span>
-            )}
-            <ListLink finish={finish} playerName={playerName} canSubmit={canSubmit} />
-          </p>
-        </div>
-      </div>
-    </li>
   );
 }
 
@@ -217,16 +70,17 @@ export function MetaPlayerFinishes({
         <FinishTableRow
           key={finish.playerId}
           finish={finish}
-          playerName={playerName}
-          canSubmit={canSubmit}
+          identity={<LegendCell finish={finish} />}
+          identityClassName="w-72 max-w-72"
+          submitSearch={canSubmit ? metaSubmitSearchForPlayer({ ...finish, playerName }) : null}
         />
       ))}
       phoneRows={rows.map((finish) => (
         <FinishPhoneRow
           key={finish.playerId}
           finish={finish}
-          playerName={playerName}
-          canSubmit={canSubmit}
+          identity={<LegendCell finish={finish} />}
+          submitSearch={canSubmit ? metaSubmitSearchForPlayer({ ...finish, playerName }) : null}
         />
       ))}
     />

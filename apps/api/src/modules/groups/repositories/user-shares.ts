@@ -1,4 +1,5 @@
-import type { Kysely, Selectable } from "kysely";
+import type { Expression, Kysely, Selectable, SqlBool } from "kysely";
+import { expressionBuilder } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ListsTable } from "../../../db/tables/lists.js";
@@ -21,6 +22,23 @@ export interface BundleListSummary {
   list: Selectable<ListsTable>;
   entryCount: number;
   viaGroups: { id: string; slug: string; name: string }[];
+}
+
+function visibleToViewer(viewerUserId: string | null): Expression<SqlBool> {
+  const eb = expressionBuilder<Database & { l: ListsTable }, "l">();
+  const isPublic = eb("l.shareToken", "is not", null);
+  if (viewerUserId === null) {
+    return isPublic;
+  }
+  const viaGroup = eb.exists(
+    eb
+      .selectFrom("friendGroupListShares as s")
+      .innerJoin("friendGroupMembers as m", "m.groupId", "s.groupId")
+      .select("s.listId")
+      .whereRef("s.listId", "=", "l.id")
+      .where("m.userId", "=", viewerUserId),
+  );
+  return eb.or([isPublic, viaGroup]);
 }
 
 /**
@@ -90,21 +108,7 @@ export function userSharesRepo(db: Kysely<Database>) {
         )
         .where("l.userId", "=", ownerUserId)
         .where("l.intent", "in", ["wish", "trade"])
-        .where((eb) => {
-          const isPublic = eb("l.shareToken", "is not", null);
-          if (viewerUserId === null) {
-            return isPublic;
-          }
-          const viaGroup = eb.exists(
-            eb
-              .selectFrom("friendGroupListShares as s")
-              .innerJoin("friendGroupMembers as m", "m.groupId", "s.groupId")
-              .select("s.listId")
-              .whereRef("s.listId", "=", "l.id")
-              .where("m.userId", "=", viewerUserId),
-          );
-          return eb.or([isPublic, viaGroup]);
-        })
+        .where(visibleToViewer(viewerUserId))
         .orderBy("l.intent", "asc")
         .orderBy("l.name", "asc")
         .execute();
@@ -154,21 +158,7 @@ export function userSharesRepo(db: Kysely<Database>) {
         .where("u.shareToken", "=", shareToken)
         .where("l.id", "=", listId)
         .where("l.intent", "in", ["wish", "trade"])
-        .where((eb) => {
-          const isPublic = eb("l.shareToken", "is not", null);
-          if (viewerUserId === null) {
-            return isPublic;
-          }
-          const viaGroup = eb.exists(
-            eb
-              .selectFrom("friendGroupListShares as s")
-              .innerJoin("friendGroupMembers as m", "m.groupId", "s.groupId")
-              .select("s.listId")
-              .whereRef("s.listId", "=", "l.id")
-              .where("m.userId", "=", viewerUserId),
-          );
-          return eb.or([isPublic, viaGroup]);
-        })
+        .where(visibleToViewer(viewerUserId))
         .executeTakeFirst();
     },
   };

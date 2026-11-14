@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { useCardBrowserLayoutOffsets } from "@/features/cards/components/card-browser-layout";
 import { CompactSection } from "@/features/cards/components/promo-compact-section";
-import { FlatSection } from "@/features/cards/components/promo-flat-section";
-import { LeafSection } from "@/features/cards/components/promo-leaf-section";
+import { PromoPrintingsSection } from "@/features/cards/components/promo-printings-section";
+import type { RenderedSectionProps } from "@/features/cards/components/promo-section-grid";
 import { buildGridProps } from "@/features/cards/components/promo-section-grid";
 import { useActiveSection } from "@/features/cards/hooks/use-active-section";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
@@ -74,6 +74,17 @@ export function PromoSectionsContent({
           label: item.title,
           count: countPrintings(item.section.printings),
         }));
+  const sectionProps: RenderedSectionProps = {
+    stickyOffset,
+    viewMode,
+    showImages,
+    display,
+    grid: sectionGrid,
+    onCardClick,
+    ownedCounts,
+    sortPrintings,
+    setNameBySlug,
+  };
   const activeSectionId = useActiveSection(sectionEntries, stickyOffset);
   const activeSection = sectionEntries.find((entry) => entry.id === activeSectionId) ?? null;
 
@@ -118,51 +129,30 @@ export function PromoSectionsContent({
             <div className="space-y-10">
               {channelRenderItems.map((item) =>
                 item.kind === "leaf" ? (
-                  <LeafSection
+                  <PromoPrintingsSection
                     key={item.sectionId}
-                    item={item}
-                    stickyOffset={stickyOffset}
-                    viewMode={viewMode}
-                    showImages={showImages}
-                    display={display}
-                    grid={sectionGrid}
-                    onCardClick={onCardClick}
-                    ownedCounts={ownedCounts}
-                    sortPrintings={sortPrintings}
-                    setNameBySlug={setNameBySlug}
+                    sectionId={item.sectionId}
+                    title={item.title}
+                    printings={item.node.printings}
+                    description={item.node.channel.description}
+                    parentAnchorIds={item.parentAnchorIds}
+                    {...sectionProps}
                   />
                 ) : (
-                  <CompactSection
-                    key={item.sectionId}
-                    item={item}
-                    stickyOffset={stickyOffset}
-                    viewMode={viewMode}
-                    showImages={showImages}
-                    display={display}
-                    grid={sectionGrid}
-                    onCardClick={onCardClick}
-                    ownedCounts={ownedCounts}
-                    sortPrintings={sortPrintings}
-                    setNameBySlug={setNameBySlug}
-                  />
+                  <CompactSection key={item.sectionId} item={item} {...sectionProps} />
                 ),
               )}
             </div>
           ) : (
             <div className="space-y-10">
               {flatRenderItems.map((item) => (
-                <FlatSection
+                <PromoPrintingsSection
                   key={item.sectionId}
-                  item={item}
-                  stickyOffset={stickyOffset}
-                  viewMode={viewMode}
-                  showImages={showImages}
-                  display={display}
-                  grid={sectionGrid}
-                  onCardClick={onCardClick}
-                  ownedCounts={ownedCounts}
-                  sortPrintings={sortPrintings}
-                  setNameBySlug={setNameBySlug}
+                  sectionId={item.sectionId}
+                  title={item.title}
+                  printings={item.section.printings}
+                  showChannel
+                  {...sectionProps}
                 />
               ))}
             </div>

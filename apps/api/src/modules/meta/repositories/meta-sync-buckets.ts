@@ -251,7 +251,7 @@ type CountRow = Record<
   string
 >;
 
-export function toMetaSyncBucketCounts(row: CountRow): MetaSyncBucketCounts {
+function toMetaSyncBucketCounts(row: CountRow): MetaSyncBucketCounts {
   return {
     notStarted: Number(row.notStarted),
     collecting: Number(row.collecting),
@@ -266,6 +266,17 @@ export function toMetaSyncBucketCounts(row: CountRow): MetaSyncBucketCounts {
     rejected: Number(row.rejected),
     total: Number(row.total),
   };
+}
+
+/** `null` when no filter narrows the list: the sync status already holds these counts. */
+export async function narrowedBucketCounts(
+  conditions: readonly RawBuilder<SqlBool>[],
+  count: (narrowed: RawBuilder<SqlBool>) => Promise<CountRow>,
+): Promise<MetaSyncBucketCounts | null> {
+  if (conditions.length === 0) {
+    return null;
+  }
+  return toMetaSyncBucketCounts(await count(sql.join(conditions, sql` and `)));
 }
 
 function toMetaSyncBuckets(

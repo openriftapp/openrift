@@ -1,6 +1,13 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { enumLabel } from "@openrift/shared/enum-label";
+import {
+  affiliateUrl,
+  cardtraderAffiliateUrl,
+  MARKETPLACE_LINKS,
+} from "@openrift/shared/marketplace";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ExternalLinkIcon, HeartIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { siDiscord, siGithub, siGithubsponsors, siKofi, siX } from "simple-icons";
 
@@ -21,8 +28,23 @@ import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-const GITHUB_SPONSORS_URL = "https://github.com/sponsors/eikowagenknecht";
-const KOFI_URL = "https://ko-fi.com/eikowagenknecht";
+const SHOP_LINKS = {
+  tcgplayer: affiliateUrl("https://www.tcgplayer.com/"),
+  cardtrader: cardtraderAffiliateUrl("https://www.cardtrader.com/"),
+  cardnexus: MARKETPLACE_LINKS.cardnexus.searchUrl(""),
+} satisfies Partial<Record<Marketplace, string>>;
+
+function shopLinkMarkup(marketplace: keyof typeof SHOP_LINKS) {
+  return function ShopLink({ children }: { children?: ReactNode }) {
+    return (
+      <TextLink
+        render={<MarketplaceLink marketplace={marketplace} href={SHOP_LINKS[marketplace]} />}
+      >
+        {children}
+      </TextLink>
+    );
+  };
+}
 
 interface SupportTier {
   rarity: string;
@@ -94,7 +116,7 @@ export function SupportPage() {
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <a
-              href={KOFI_URL}
+              href={SOCIAL_LINKS.kofi}
               target="_blank"
               rel="noreferrer"
               className={cn(buttonVariants(), "gap-2")}
@@ -103,7 +125,7 @@ export function SupportPage() {
               {m.marketing_support_kofi()}
             </a>
             <a
-              href={GITHUB_SPONSORS_URL}
+              href={SOCIAL_LINKS.githubSponsors}
               target="_blank"
               rel="noreferrer"
               className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
@@ -144,31 +166,16 @@ export function SupportPage() {
           <p className="text-muted-foreground">
             <ParaglideMessage
               message={m.marketing_support_shop}
+              inputs={{
+                tcgplayer: MARKETPLACE_LINKS.tcgplayer.label,
+                cardtrader: MARKETPLACE_LINKS.cardtrader.label,
+                cardnexus: MARKETPLACE_LINKS.cardnexus.label,
+                cardmarket: MARKETPLACE_LINKS.cardmarket.label,
+              }}
               markup={{
-                link: ({ children }) => (
-                  <TextLink
-                    render={
-                      <MarketplaceLink
-                        marketplace="tcgplayer"
-                        href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
-                      />
-                    }
-                  >
-                    {children}
-                  </TextLink>
-                ),
-                link2: ({ children }) => (
-                  <TextLink
-                    render={
-                      <MarketplaceLink
-                        marketplace="cardtrader"
-                        href="https://www.cardtrader.com/?share_code=openrift"
-                      />
-                    }
-                  >
-                    {children}
-                  </TextLink>
-                ),
+                link: shopLinkMarkup("tcgplayer"),
+                link2: shopLinkMarkup("cardtrader"),
+                link3: shopLinkMarkup("cardnexus"),
               }}
             />
           </p>

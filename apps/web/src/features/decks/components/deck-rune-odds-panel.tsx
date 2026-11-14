@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { PowerDomainIcon } from "@/features/decks/components/deck-card-row";
+import { PowerDomainIcon } from "@/features/decks/components/deck-stat-glyphs";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { formatChancePct } from "@/features/decks/lib/deck-draw-odds";
 import { buildRuneOddsRows, RUNE_ODDS_TURNS } from "@/features/decks/lib/deck-rune-odds";

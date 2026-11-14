@@ -1,12 +1,14 @@
-import { marketplaceLabel } from "@openrift/shared/marketplace";
-import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
+import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
+import { ArrowUpRightIcon } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useState } from "react";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { TIME_RANGES } from "@/features/cards/lib/price-history-chart-constants";
-import { percentChange } from "@/features/cards/lib/price-trend";
+import { buttonVariants } from "@/components/ui/button";
+import { toggleVariants } from "@/components/ui/toggle";
+import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
+import { formatTickDate } from "@/features/cards/lib/price-history-ticks";
+import { FIXTURE_PRICE_CARD, FIXTURE_PRICES } from "@/features/marketing/lib/vignette-fixtures";
 import {
   PRICE_SAMPLE_COUNT,
   chartDay,
@@ -17,33 +19,72 @@ import { formatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { Vignette, VignetteHeading } from "./vignette-parts";
+import { Vignette } from "./vignette-parts";
 
-const PRICE_SOURCES = [
-  { marketplace: "cardtrader", price: 3.65, phase: 0.6, swing: 0.9, rate: 0.02 },
-  { marketplace: "tcgplayer", price: 4.52, phase: 2.2, swing: 1.4, rate: -0.014 },
-  { marketplace: "cardmarket", price: 3.8, phase: 4.1, swing: 1.1, rate: 0.011 },
-] as const;
-
-type PriceSource = (typeof PRICE_SOURCES)[number];
-
-// The real chart resolves `all`'s days:0 sentinel against the printing's span.
-function priceRange(range: (typeof TIME_RANGES)[number]) {
-  return { ...range, days: range.days === 0 ? 210 : range.days };
-}
-
-const PRICE_RANGES = TIME_RANGES.map((range) => priceRange(range));
-
-type PriceRange = (typeof PRICE_RANGES)[number];
+const SELECTED = ALL_MARKETPLACES[0];
+const SELECTED_RANGE = "30d";
+const RANGE_DAYS = 30;
 
 const PLOT = { left: 44, right: 296, top: 20, bottom: 92, step: 26 };
 
-export function PricesVignette() {
-  const [source, setSource] = useState<PriceSource>(PRICE_SOURCES[2]);
-  const [range, setRange] = useState<PriceRange>(priceRange(TIME_RANGES[1]));
+function PriceRows() {
+  return (
+    <ul className="divide-border overflow-hidden rounded-lg border">
+      {ALL_MARKETPLACES.map((marketplace) => {
+        const isSelected = marketplace === SELECTED;
+        const price = FIXTURE_PRICES[marketplace].price;
+        return (
+          <li
+            key={marketplace}
+            className={cn(
+              "flex h-10 items-center gap-2 border-t pr-1.5 first:border-t-0",
+              isSelected && "bg-muted",
+            )}
+          >
+            <span className="flex h-full min-w-0 flex-1 items-center gap-2.5 pl-3">
+              <span className="flex w-5 shrink-0 items-center justify-center">
+                <MarketplaceIcon marketplace={marketplace} alt="" />
+              </span>
+              <span className={cn("flex-1 truncate", !isSelected && "text-muted-foreground")}>
+                {MARKETPLACE_LINKS[marketplace].label}
+              </span>
+              <span className={cn("font-semibold tabular-nums", priceColorClass(price))}>
+                {formatterForMarketplace(marketplace)(price)}
+              </span>
+            </span>
+            <span aria-hidden="true" className={cn(buttonVariants({ size: "xs" }), "shrink-0")}>
+              {m.card_detail_buy()}
+              <ArrowUpRightIcon />
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
-  const format = formatterForMarketplace(source.marketplace);
-  const values = priceSeries(source, range.days);
+function RangeStrip() {
+  return (
+    <span aria-hidden="true" className="bg-background absolute top-2 right-2 z-10 flex">
+      {TIME_RANGES.map((range) => (
+        <span
+          key={range.value}
+          className={cn(
+            toggleVariants({ variant: "outline", size: "sm" }),
+            "rounded-none first:rounded-l-md last:rounded-r-md",
+            range.value === SELECTED_RANGE && "bg-muted text-foreground",
+          )}
+        >
+          {timeRangeLabel(range)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function PriceChart() {
+  const format = formatterForMarketplace(SELECTED);
+  const values = priceSeries(FIXTURE_PRICES[SELECTED], RANGE_DAYS);
   const step = tickStep(Math.min(...values), Math.max(...values));
   const topTick = Math.ceil(Math.max(...values) / step) * step;
 
@@ -62,94 +103,9 @@ export function PricesVignette() {
     previous = [x, y];
   }
 
-  const pctChange = percentChange(values);
-  const isUp = pctChange > 0;
-
   return (
-    <Vignette>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="font-medium">Azir, Sovereign</span>
-        <span className="text-muted-foreground text-xs">SFD-177/221</span>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <VignetteHeading>{m.card_detail_buy_on_label()}</VignetteHeading>
-        <div className="divide-border grid grid-cols-3 divide-x rounded-lg border">
-          {PRICE_SOURCES.map((entry) => (
-            <span key={entry.marketplace} className="flex flex-col items-center gap-1 px-2 py-2">
-              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <MarketplaceIcon marketplace={entry.marketplace} />
-                {marketplaceLabel(entry.marketplace)}
-              </span>
-              <span className={cn("font-semibold tabular-nums", priceColorClass(entry.price))}>
-                {formatterForMarketplace(entry.marketplace)(entry.price)}
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          spacing={0}
-          aria-label={m.card_detail_time_range()}
-          value={[range.value]}
-          onValueChange={([next]) => {
-            const match = PRICE_RANGES.find((entry) => entry.value === next);
-            if (match) {
-              setRange(match);
-            }
-          }}
-        >
-          {PRICE_RANGES.map((entry) => (
-            <ToggleGroupItem key={entry.value} value={entry.value}>
-              {entry.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-          {marketplaceLabel(source.marketplace)}
-          {pctChange !== 0 && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-0.5 font-medium tabular-nums",
-                isUp ? "text-success" : "text-destructive",
-              )}
-            >
-              {isUp ? (
-                <TrendingUpIcon className="size-3" aria-hidden="true" />
-              ) : (
-                <TrendingDownIcon className="size-3" aria-hidden="true" />
-              )}
-              {Math.abs(pctChange)}%
-            </span>
-          )}
-        </span>
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          spacing={0}
-          aria-label={m.marketing_prices_price_source()}
-          className="ml-auto"
-          value={[source.marketplace]}
-          onValueChange={([next]) => {
-            const match = PRICE_SOURCES.find((entry) => entry.marketplace === next);
-            if (match) {
-              setSource(match);
-            }
-          }}
-        >
-          {PRICE_SOURCES.map((entry) => (
-            <ToggleGroupItem
-              key={entry.marketplace}
-              value={entry.marketplace}
-              aria-label={marketplaceLabel(entry.marketplace)}
-            >
-              <MarketplaceIcon marketplace={entry.marketplace} />
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+    <div className="bg-muted/40 relative rounded-lg p-2 pt-12">
+      <RangeStrip />
       <svg
         viewBox="0 0 300 110"
         className="w-full"
@@ -171,13 +127,11 @@ export function PricesVignette() {
           ))}
         </g>
         <path
-          key={`${source.marketplace}-${range.value}-area`}
           d={area}
           fill="url(#vignette-price-fill)"
           className="motion-safe:animate-vignette-now"
         />
         <path
-          key={`${source.marketplace}-${range.value}-line`}
           d={line}
           fill="none"
           stroke="var(--chart-1)"
@@ -193,13 +147,26 @@ export function PricesVignette() {
               {format(topTick - index * step)}
             </text>
           ))}
-          {[range.days, Math.round(range.days / 2), 0].map((daysAgo, index) => (
+          {[RANGE_DAYS, Math.round(RANGE_DAYS / 2), 0].map((daysAgo, index) => (
             <text key={daysAgo} x={40 + index * 104} y="106">
-              {chartDay(daysAgo)}
+              {formatTickDate(chartDay(daysAgo))}
             </text>
           ))}
         </g>
       </svg>
+    </div>
+  );
+}
+
+export function PricesVignette() {
+  return (
+    <Vignette>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-medium">{FIXTURE_PRICE_CARD.name}</span>
+        <span className="text-muted-foreground text-xs">{FIXTURE_PRICE_CARD.shortCode}</span>
+      </div>
+      <PriceRows />
+      <PriceChart />
     </Vignette>
   );
 }

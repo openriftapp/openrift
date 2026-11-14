@@ -177,6 +177,18 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
         const foundArray = (values: boolean[]) =>
           sql<boolean[]>`${`{${values.map((value) => (value ? "t" : "f")).join(",")}}`}::bool[]`;
 
+        const shrinkSource = () =>
+          trx
+            .updateTable("deckCheckEntryCards")
+            .set({
+              ...resolutionColumns,
+              quantity: source.quantity - moveCount,
+              foundCopies: foundArray(denseFound(source.foundCopies, source.quantity - moveCount)),
+            })
+            .where("id", "=", cardId)
+            .where("entryId", "=", entryId)
+            .execute();
+
         // A line already holding the same resolved card in the target zone absorbs
         // the move (matches the name+zone identity the content hash uses).
         const mergeTarget =
@@ -215,16 +227,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
               .execute();
             return true;
           }
-          await trx
-            .updateTable("deckCheckEntryCards")
-            .set({
-              ...resolutionColumns,
-              quantity: source.quantity - moveCount,
-              foundCopies: foundArray(denseFound(source.foundCopies, source.quantity - moveCount)),
-            })
-            .where("id", "=", cardId)
-            .where("entryId", "=", entryId)
-            .execute();
+          await shrinkSource();
           return true;
         }
 
@@ -238,16 +241,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
           return true;
         }
 
-        await trx
-          .updateTable("deckCheckEntryCards")
-          .set({
-            ...resolutionColumns,
-            quantity: source.quantity - moveCount,
-            foundCopies: foundArray(denseFound(source.foundCopies, source.quantity - moveCount)),
-          })
-          .where("id", "=", cardId)
-          .where("entryId", "=", entryId)
-          .execute();
+        await shrinkSource();
         await lockKey(trx, `sort:deck-check-cards:${entryId}`);
         const last = await trx
           .selectFrom("deckCheckEntryCards")

@@ -26,9 +26,9 @@ import { Switch } from "@/components/ui/switch";
 import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
-import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { printingArt } from "@/features/cards/lib/card-meta";
+import { GroupStripRow } from "@/features/groups/components/group-strip-row";
 import { useBadges } from "@/features/groups/hooks/use-badges";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import {
@@ -53,8 +53,6 @@ import { m } from "@/paraglide/messages.js";
 
 import { ShareListsWithGroupDialog } from "./share-lists-with-group-dialog";
 
-const MAX_THUMBS = 5;
-
 function SuggestionStrip({
   strip,
   label,
@@ -71,14 +69,7 @@ function SuggestionStrip({
     key: printingId,
     ...printingArt(printingsById[printingId]),
   }));
-  return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      <CardArtThumbStack items={items} max={MAX_THUMBS} thumbClassName="w-8" />
-      <span className="text-muted-foreground min-w-0 truncate text-sm">
-        <span className="text-foreground font-medium">{strip.count}</span> {label}
-      </span>
-    </div>
-  );
+  return <GroupStripRow items={items} count={strip.count} label={label} />;
 }
 
 function GroupTileBanner({ url, position }: { url: string | null; position: number }) {

@@ -202,7 +202,6 @@ export function ListEntryBrowser({
     rules,
     entries,
     showLibrary,
-    isMobile,
     view,
     groupBy,
     allPrintings,

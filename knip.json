@@ -29,7 +29,12 @@
         "nitro/*.ts",
         "project.inlang/paraglide.config.ts"
       ],
-      "ignore": ["src/components/ui/**", "public/sw.js", "src/test/paraglide-en.js"],
+      "ignore": [
+        "src/components/ui/**",
+        "public/sw.js",
+        "src/test/paraglide-en.js",
+        "src/test/paraglide-all.js"
+      ],
       "ignoreDependencies": ["flag-icons"]
     },
     "packages/shared": {},

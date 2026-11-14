@@ -102,7 +102,6 @@ const mockPlayloltcgEvents = {
 };
 
 const mockMetaOverlays = {
-  ignoreEvent: vi.fn(),
   ignoreEvents: vi.fn(),
   unignoreEvent: vi.fn(),
   claimIgnoreEvent: vi.fn(() => Promise.resolve(true)),
@@ -671,7 +670,7 @@ describe("bulk mirror actions", () => {
     expect(await readJson(res)).toEqual({ unpublished: 1, kept: 1 });
     expect(mockMeta.deleteEvent).toHaveBeenCalledWith("live-201");
     expect(mockMeta.deleteEvent).not.toHaveBeenCalledWith("live-202");
-    expect(mockMetaOverlays.ignoreEvent).not.toHaveBeenCalled();
+    expect(mockMetaOverlays.ignoreEvents).not.toHaveBeenCalled();
   });
 
   it("passes the stored rule to the reject-all sweep", async () => {
@@ -946,7 +945,7 @@ describe("playloltcg catalogue", () => {
     });
 
     expect(res.status).toBe(404);
-    expect(mockMetaOverlays.ignoreEvent).not.toHaveBeenCalled();
+    expect(mockMetaOverlays.ignoreEvents).not.toHaveBeenCalled();
   });
 
   it("carries every filter and the order down to the mirror query", async () => {

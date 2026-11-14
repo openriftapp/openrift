@@ -3,19 +3,20 @@ import { META_RESULTS_STATES } from "@openrift/shared/meta-results";
 import type { AdminMetaEventList } from "@openrift/shared/types/api/meta";
 import { META_EVENT_SOURCE_FILTERS, META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import type { MetaEventSourceFilter } from "@openrift/shared/types/enums";
-import { Link } from "@tanstack/react-router";
 
-import { DatePicker } from "@/components/ui/date-picker";
-import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/components/admin-filters";
+import {
+  AdminDateRangeFilter,
+  AdminFilterSelect,
+  AdminFilterSwitch,
+} from "@/features/admin/components/admin-filters";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
+import { MetaRailLink } from "@/features/admin/components/meta-rail-link";
+import { ADMIN_FILTER_ANY, withAnyOption } from "@/features/admin/lib/admin-filter-options";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import { META_SOURCE_LABELS } from "@/features/admin/lib/meta-catalog-display";
 import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { formatCount } from "@/lib/format";
-import { cn } from "@/lib/utils";
-
-const ANY = "any";
 
 type AdminMetaEventListCounts = AdminMetaEventList["counts"];
 
@@ -25,10 +26,10 @@ const SOURCE_LABELS: Record<MetaEventSourceFilter, string> = {
   manual: "Entered by hand",
 };
 
-const SOURCE_OPTIONS = [
-  { value: ANY, label: "Any source" },
-  ...META_EVENT_SOURCE_FILTERS.map((source) => ({ value: source, label: SOURCE_LABELS[source] })),
-];
+const SOURCE_OPTIONS = withAnyOption(
+  "Any source",
+  META_EVENT_SOURCE_FILTERS.map((source) => ({ value: source, label: SOURCE_LABELS[source] })),
+);
 
 interface RailEntry {
   id: string;
@@ -107,23 +108,13 @@ export function EventsRail({
             {group.label}
           </span>
           {group.entries.map((entry) => (
-            <Link
+            <MetaRailLink
               key={entry.id}
-              from="/admin/meta"
-              to="/admin/meta"
-              search={(prev) => ({ ...prev, ...entry.search(prev), page: undefined })}
-              replace
-              aria-current={entry.id === active ? "page" : undefined}
-              className={cn(
-                "hover:bg-muted/50 flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5 text-sm",
-                entry.id === active && "bg-muted font-semibold",
-              )}
-            >
-              <span>{entry.label}</span>
-              <span className={cn("tabular-nums", entry.id !== active && "text-muted-foreground")}>
-                {formatCount(entry.count)}
-              </span>
-            </Link>
+              label={entry.label}
+              countText={formatCount(entry.count)}
+              active={entry.id === active}
+              search={entry.search}
+            />
           ))}
         </div>
       ))}
@@ -141,14 +132,14 @@ export function EventFilters({
   applyFilter: (next: Partial<MetaSearch>) => void;
 }) {
   const tierLabels = metaEventTierLabels();
-  const formatOptions = [
-    { value: ANY, label: "Any format" },
-    ...formats.map((format) => ({ value: format.slug, label: format.label })),
-  ];
-  const tierOptions = [
-    { value: ANY, label: "Any tier" },
-    ...META_EVENT_TIERS.map((tier) => ({ value: tier, label: tierLabels[tier] })),
-  ];
+  const formatOptions = withAnyOption(
+    "Any format",
+    formats.map((format) => ({ value: format.slug, label: format.label })),
+  );
+  const tierOptions = withAnyOption(
+    "Any tier",
+    META_EVENT_TIERS.map((tier) => ({ value: tier, label: tierLabels[tier] })),
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -159,7 +150,7 @@ export function EventFilters({
         className="w-full sm:w-64"
       />
       <AdminFilterSelect
-        value={filters.liveTier ?? ANY}
+        value={filters.liveTier ?? ADMIN_FILTER_ANY}
         onChange={(value) =>
           applyFilter({ liveTier: META_EVENT_TIERS.find((tier) => tier === value) })
         }
@@ -168,14 +159,16 @@ export function EventFilters({
         className="w-40"
       />
       <AdminFilterSelect
-        value={filters.liveFormat ?? ANY}
-        onChange={(value) => applyFilter({ liveFormat: value === ANY ? undefined : value })}
+        value={filters.liveFormat ?? ADMIN_FILTER_ANY}
+        onChange={(value) =>
+          applyFilter({ liveFormat: value === ADMIN_FILTER_ANY ? undefined : value })
+        }
         options={formatOptions}
         label="Format"
         className="w-44"
       />
       <AdminFilterSelect
-        value={filters.liveSource ?? ANY}
+        value={filters.liveSource ?? ADMIN_FILTER_ANY}
         onChange={(value) =>
           applyFilter({ liveSource: META_EVENT_SOURCE_FILTERS.find((source) => source === value) })
         }
@@ -183,19 +176,10 @@ export function EventFilters({
         label="Source"
         className="w-44"
       />
-      <DatePicker
-        value={filters.dateFrom ?? ""}
-        onValueChange={(value) => applyFilter({ dateFrom: value })}
-        onClear={() => applyFilter({ dateFrom: undefined })}
-        placeholder="From"
-        className="w-40"
-      />
-      <DatePicker
-        value={filters.dateTo ?? ""}
-        onValueChange={(value) => applyFilter({ dateTo: value })}
-        onClear={() => applyFilter({ dateTo: undefined })}
-        placeholder="To"
-        className="w-40"
+      <AdminDateRangeFilter
+        dateFrom={filters.dateFrom}
+        dateTo={filters.dateTo}
+        onChange={applyFilter}
       />
       <AdminFilterSwitch
         id="meta-events-has-decks"

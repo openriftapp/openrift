@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { marketplaceSkuKey } from "./marketplace-sku-key.js";
-import { computeProductSuggestions } from "./marketplace-suggestions.js";
+import {
+  computeProductSuggestions,
+  STRONG_MATCH_THRESHOLD,
+  suggestionStrength,
+} from "./marketplace-suggestions.js";
 import type {
   MarketplaceAssignmentResponse,
   StagedProductResponse,
@@ -948,5 +952,24 @@ describe("computeProductSuggestions", () => {
       }),
     );
     expect(result.get(marketplaceSkuKey("cardtrader", 560, "normal", "EN"))).toBeUndefined();
+  });
+});
+
+describe("suggestionStrength", () => {
+  it("calls a score at the strong threshold strong", () => {
+    expect(STRONG_MATCH_THRESHOLD).toBe(150);
+    expect(suggestionStrength({ printingId: "p", score: 150 })).toBe("strong");
+    expect(suggestionStrength({ printingId: "p", score: 260 })).toBe("strong");
+  });
+
+  it("calls a score below the strong threshold possible", () => {
+    expect(suggestionStrength({ printingId: "p", score: 149 })).toBe("possible");
+    expect(suggestionStrength({ printingId: "p", score: 100 })).toBe("possible");
+  });
+
+  it("calls a weak suggestion weak whatever its score", () => {
+    expect(suggestionStrength({ printingId: "p", score: 50, isWeak: true })).toBe("weak");
+    expect(suggestionStrength({ printingId: "p", score: 150, isWeak: true })).toBe("weak");
+    expect(suggestionStrength({ printingId: "p", score: 50, isWeak: false })).toBe("possible");
   });
 });

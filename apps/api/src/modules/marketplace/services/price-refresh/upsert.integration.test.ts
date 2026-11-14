@@ -8,7 +8,6 @@ import {
 } from "../../../../test/integration-context.js";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import { priceRefreshRepo } from "../../repositories/price-refresh.js";
-import type { PriceUpsertConfig } from "./types.js";
 import { upsertPriceData } from "./upsert.js";
 
 const USER_ID = "a0000000-0022-4000-a000-000000000001";
@@ -17,10 +16,6 @@ const ctx = createTestContext(USER_ID);
 
 const noop = () => {};
 const noopLogger = { info: noop, warn: noop, error: noop, debug: noop } as unknown as Logger;
-
-const CM_CONFIG: PriceUpsertConfig = {
-  marketplace: "cardmarket",
-};
 
 describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
   const { db } = ctx!;
@@ -180,7 +175,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         }),
       ];
 
-      const counts = await upsertPriceData(repo, noopLogger, CM_CONFIG, fetched);
+      const counts = await upsertPriceData(repo, noopLogger, "cardmarket", fetched);
 
       expect(counts.prices.total).toBe(1);
       expect(counts.prices.new).toBe(1);
@@ -199,7 +194,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         }),
       ];
 
-      const counts = await upsertPriceData(repo, noopLogger, CM_CONFIG, fetched);
+      const counts = await upsertPriceData(repo, noopLogger, "cardmarket", fetched);
 
       expect(counts.prices.new).toBe(0);
       expect(counts.prices.unchanged).toBe(1);
@@ -218,7 +213,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         }),
       ];
 
-      const counts = await upsertPriceData(repo, noopLogger, CM_CONFIG, fetched);
+      const counts = await upsertPriceData(repo, noopLogger, "cardmarket", fetched);
 
       expect(counts.prices.updated).toBeGreaterThan(0);
     });
@@ -245,7 +240,7 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         }),
       ];
 
-      const counts = await upsertPriceData(repo, noopLogger, CM_CONFIG, fetched);
+      const counts = await upsertPriceData(repo, noopLogger, "cardmarket", fetched);
 
       expect(counts.prices.total).toBe(1);
     });
@@ -263,13 +258,13 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
         }),
       ];
 
-      const counts = await upsertPriceData(repo, noopLogger, CM_CONFIG, fetched);
+      const counts = await upsertPriceData(repo, noopLogger, "cardmarket", fetched);
 
       expect(counts.prices.total).toBe(1);
     });
 
     it("handles empty inputs", async () => {
-      const counts = await upsertPriceData(repo, noopLogger, CM_CONFIG, []);
+      const counts = await upsertPriceData(repo, noopLogger, "cardmarket", []);
 
       expect(counts.prices.total).toBe(0);
     });

@@ -8,6 +8,7 @@ import {
   formatRank,
   formatRankRuns,
   joinNames,
+  metaDeckLinkLabel,
   metaEventCounts,
   metaEventEmptyStatus,
   metaEventHasArchivedResults,
@@ -414,5 +415,30 @@ describe("metaEventSeoTitle", () => {
     expect(
       metaEventSeoTitle({ name: "Summoner Skirmish", location: "", eventDate: "2026-03-21" }),
     ).toBe("Summoner Skirmish, 2026-03-21");
+  });
+});
+
+describe("metaDeckLinkLabel", () => {
+  const baseGetLocale = getLocale;
+
+  afterEach(() => {
+    overwriteGetLocale(baseGetLocale);
+  });
+
+  it("names the player alone when the legend is unknown", () => {
+    expect(metaDeckLinkLabel({ playerName: "Nova", legendName: null })).toBe("Nova's decklist");
+  });
+
+  it("names the player and the legend", () => {
+    expect(metaDeckLinkLabel({ playerName: "Nova", legendName: "Kennen" })).toBe(
+      "Nova's Kennen decklist",
+    );
+  });
+
+  it("reads the same keys on every deck link", () => {
+    overwriteGetLocale(() => "de");
+    expect(metaDeckLinkLabel({ playerName: "Nova", legendName: "Kennen" })).toBe(
+      "Deckliste von Nova mit Kennen",
+    );
   });
 });

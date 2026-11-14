@@ -17,7 +17,7 @@ export type PaletteRow =
   | { kind: "quickAdd"; id: string; label: string; verb: QuickAddVerb }
   | { kind: "card"; id: string; card: QuickAddCardResult }
   | { kind: "nav"; id: string; item: NavItemConfig }
-  | { kind: "help"; id: string; article: HelpArticle }
+  | { kind: "help"; id: string; slug: string; title: string }
   | { kind: "searchCards"; id: string; query: string; matchCount?: number }
   | { kind: "searchRules"; id: string; query: string };
 
@@ -97,9 +97,10 @@ export function buildPaletteGroups({
 
   const helpRows: PaletteRow[] = searchable
     ? helpArticles
-        .filter((article) => matchesTextQuery(trimmed, [article.title, article.description]))
+        .map((article) => ({ slug: article.slug, ...article.labels() }))
+        .filter((labels) => matchesTextQuery(trimmed, [labels.title, labels.description]))
         .slice(0, HELP_LIMIT)
-        .map((article) => ({ kind: "help", id: `help:${article.slug}`, article }))
+        .map(({ slug, title }) => ({ kind: "help", id: `help:${slug}`, slug, title }))
     : [];
 
   let searchRows: PaletteRow[] = [];

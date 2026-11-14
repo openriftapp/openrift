@@ -12,11 +12,13 @@ import type {
   TournamentPlayMode,
   TournamentStatus,
 } from "@openrift/shared/types/api/tournament";
-import type { Kysely, SqlBool } from "kysely";
+import type { ExpressionBuilder, Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import type { TournamentsTable } from "../../../db/tables/tournaments.js";
 import { keysetCursorPredicate } from "../../../repositories/query-helpers.js";
+import { lockTournamentWrites } from "./tournaments-shared.js";
 import type { Tournament } from "./tournaments-shared.js";
 
 export interface NewTournament {
@@ -106,12 +108,9 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
       return row;
     },
 
-    /**
-     * Call inside a transaction: serializes round edits of one tournament. Same key as
-     * the group-stage writers' lock in tournament-groups.ts, so the two exclude each other.
-     */
+    /** Call inside a transaction: serializes round edits of one tournament. */
     async lockRounds(id: string): Promise<void> {
-      await sql`select pg_advisory_xact_lock(hashtext(${id}))`.execute(db);
+      await lockTournamentWrites(db, id);
     },
 
     async listForGroup(groupId: string): Promise<Tournament[]> {
@@ -126,31 +125,12 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
     },
 
     async listForGroupWithCounts(groupId: string): Promise<TournamentSummaryRow[]> {
-      const rows = await db
-        .selectFrom("tournaments as t")
-        .selectAll("t")
-        .select((eb) => [
-          eb
-            .selectFrom("tournamentParticipants as p")
-            .select(eb.fn.countAll<number>().as("c"))
-            .whereRef("p.tournamentId", "=", "t.id")
-            .as("participantCount"),
-          eb
-            .selectFrom("tournamentParticipants as p")
-            .select(eb.fn.countAll<number>().as("c"))
-            .whereRef("p.tournamentId", "=", "t.id")
-            .where("p.status", "=", "requested")
-            .as("pendingRequestCount"),
-        ])
+      const rows = await withSummaryCounts(db.selectFrom("tournaments as t"))
         .where("t.groupId", "=", groupId)
         .orderBy("t.startsAt", "desc")
         .orderBy("t.createdAt", "desc")
         .execute();
-      return rows.map((row) => ({
-        ...row,
-        participantCount: Number(row.participantCount ?? 0),
-        pendingRequestCount: Number(row.pendingRequestCount ?? 0),
-      }));
+      return rows.map((row) => toSummaryRow(row));
     },
 
     async create(values: NewTournament): Promise<Tournament> {
@@ -245,19 +225,7 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
     ): Promise<{ participantCount: number; pendingRequestCount: number }> {
       const row = await db
         .selectFrom("tournaments as t")
-        .select((eb) => [
-          eb
-            .selectFrom("tournamentParticipants as p")
-            .select(eb.fn.countAll<number>().as("c"))
-            .whereRef("p.tournamentId", "=", "t.id")
-            .as("participantCount"),
-          eb
-            .selectFrom("tournamentParticipants as p")
-            .select(eb.fn.countAll<number>().as("c"))
-            .whereRef("p.tournamentId", "=", "t.id")
-            .where("p.status", "=", "requested")
-            .as("pendingRequestCount"),
-        ])
+        .select(summaryCountColumns)
         .where("t.id", "=", tournamentId)
         .executeTakeFirst();
       return {
@@ -354,22 +322,24 @@ function forUser(db: Kysely<Database>, userId: string, orgIds: string[]) {
     );
 }
 
+function summaryCountColumns(eb: ExpressionBuilder<Database & { t: TournamentsTable }, "t">) {
+  return [
+    eb
+      .selectFrom("tournamentParticipants as p")
+      .select(eb.fn.countAll<number>().as("c"))
+      .whereRef("p.tournamentId", "=", "t.id")
+      .as("participantCount"),
+    eb
+      .selectFrom("tournamentParticipants as p")
+      .select(eb.fn.countAll<number>().as("c"))
+      .whereRef("p.tournamentId", "=", "t.id")
+      .where("p.status", "=", "requested")
+      .as("pendingRequestCount"),
+  ] as const;
+}
+
 function withSummaryCounts(query: ReturnType<typeof forUser>) {
-  return query
-    .selectAll("t")
-    .select((eb) => [
-      eb
-        .selectFrom("tournamentParticipants as p")
-        .select(eb.fn.countAll<number>().as("c"))
-        .whereRef("p.tournamentId", "=", "t.id")
-        .as("participantCount"),
-      eb
-        .selectFrom("tournamentParticipants as p")
-        .select(eb.fn.countAll<number>().as("c"))
-        .whereRef("p.tournamentId", "=", "t.id")
-        .where("p.status", "=", "requested")
-        .as("pendingRequestCount"),
-    ]);
+  return query.selectAll("t").select(summaryCountColumns);
 }
 
 /** SQL twin of `effectiveTournamentState` reaching "completed" or "cancelled". */

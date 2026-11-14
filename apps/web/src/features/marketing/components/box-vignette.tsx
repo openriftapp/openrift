@@ -1,31 +1,29 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { BoxIcon, CheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { POPUP_GROUP_LABEL } from "@/components/ui/popup-group-label";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import type { FixtureCard } from "@/features/marketing/lib/vignette-fixtures";
+import {
+  FIXTURE_CARDS,
+  FIXTURE_DECK,
+  FIXTURE_LABELS,
+  fixtureVariantLabel,
+} from "@/features/marketing/lib/vignette-fixtures";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { ClipFrame } from "./clip-frame";
+import { Swap, Vignette } from "./vignette-parts";
 
-const META_WIDTH = "w-16";
+const BOX_TIMING = {
+  wasAnimation: "motion-safe:animate-box-before",
+  nowAnimation: "motion-safe:animate-box-after",
+};
 
-function Thumb({
-  shortCode,
-  rarity,
-  domain = "order",
-}: {
-  shortCode: string;
-  rarity: string;
-  domain?: string;
-}) {
-  return (
-    <CardMiniRow
-      domains={[domain]}
-      rarity={rarity}
-      shortCode={shortCode}
-      metaClassName={META_WIDTH}
-    />
-  );
+function Thumb({ card }: { card: FixtureCard }) {
+  return <CardMiniRow domains={card.domains} rarity={card.rarity} shortCode={card.shortCode} />;
 }
 
 function Tick({ checked }: { checked: boolean }) {
@@ -76,39 +74,32 @@ function Detail({ children, className }: { children: ReactNode; className?: stri
   );
 }
 
-function Swap({ before, after }: { before: ReactNode; after: ReactNode }) {
+function BoxSwap({ before, after }: { before: ReactNode; after: ReactNode }) {
   return (
-    <span className="inline-grid shrink-0 items-center justify-items-start align-middle">
-      <span className="motion-safe:animate-box-before col-start-1 row-start-1">{before}</span>
-      <span className="motion-safe:animate-box-after col-start-1 row-start-1 opacity-0">
-        {after}
-      </span>
-    </span>
+    <Swap was={before} now={after} className="shrink-0 items-center align-middle" {...BOX_TIMING} />
   );
 }
 
 /**
  * An inline-grid pair sets its baseline off the digits by a few pixels; keeping
- * "before" in normal flow and floating "after" over it keeps one baseline.
+ * the finished text in normal flow and floating the earlier one over it keeps one baseline.
  */
 function TextSwap({ before, after }: { before: ReactNode; after: ReactNode }) {
   return (
     <span className="relative inline-block">
-      <span className="motion-safe:animate-box-before">{before}</span>
-      <span className="motion-safe:animate-box-after absolute inset-0 opacity-0">{after}</span>
+      <span className="motion-safe:animate-box-before absolute inset-0 opacity-0">{before}</span>
+      <span className="motion-safe:animate-box-after">{after}</span>
     </span>
   );
 }
 
 function PickerRow({
-  shortCode,
-  rarity,
+  card,
   details,
   count,
   highlighted,
 }: {
-  shortCode: string;
-  rarity: string;
+  card: FixtureCard;
   details?: string;
   count?: number;
   highlighted?: boolean;
@@ -120,7 +111,7 @@ function PickerRow({
         highlighted && "motion-safe:animate-box-pick-row",
       )}
     >
-      <Thumb shortCode={shortCode} rarity={rarity} />
+      <Thumb card={card} />
       {details && <Detail>{details}</Detail>}
       {count !== undefined && (
         <span className="text-muted-foreground ml-auto text-xs tabular-nums">×{count}</span>
@@ -130,71 +121,68 @@ function PickerRow({
 }
 
 function PickerGroupLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-muted-foreground text-2xs px-1.5 pt-2 pb-0.5 tracking-wide uppercase">
-      {children}
-    </p>
-  );
+  return <p className={cn(POPUP_GROUP_LABEL, "px-1.5 pt-2 pb-0.5")}>{children}</p>;
 }
+
+const SHOWN = FIXTURE_CARDS.azir;
+const PICKED_FROM = FIXTURE_CARDS.azirAltArt;
 
 export function BoxVignette() {
   return (
-    <ClipFrame className="flex flex-col gap-4 p-5">
+    <Vignette>
       <div className="flex items-center gap-2">
         <BoxIcon className="text-muted-foreground size-4" aria-hidden="true" />
         <span className="font-medium">
           <span className="tabular-nums">
             <TextSwap before="12 / 40" after="13 / 40" />
           </span>{" "}
-          {m.marketing_box_in_collection({ name: "Azir Order" })}
+          {m.decks_overview_box_in()} {FIXTURE_DECK.name}
         </span>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex h-6 items-center gap-2">
-          <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
-            {m.marketing_decks_main_deck()}
-          </span>
-          <span className="ml-auto text-xs tabular-nums">
+        <DeckZoneHeader label={enumLabel(FIXTURE_LABELS.zones, "main")}>
+          <span className="text-muted-foreground ml-auto text-xs tabular-nums">
             <TextSwap
-              before={<span className="text-muted-foreground">2/4</span>}
+              before="2/4"
               after={<span className="text-foreground font-medium">3/4</span>}
             />
           </span>
-        </div>
+        </DeckZoneHeader>
 
         <div className="flex flex-col gap-0.5">
           <Row
             leading={<Tick checked />}
-            thumb={<Thumb shortCode="SFD-154" rarity="common" />}
-            name="Guards!"
+            thumb={<Thumb card={FIXTURE_CARDS.guards} />}
+            name={FIXTURE_CARDS.guards.name}
           />
           <Row
             leading={<Tick checked />}
-            thumb={<Thumb shortCode="OGN-213" rarity="common" />}
-            name="Hidden Blade"
+            thumb={<Thumb card={FIXTURE_CARDS.hiddenBlade} />}
+            name={FIXTURE_CARDS.hiddenBlade.name}
           />
           <Row
             leading={<span aria-hidden="true" className="size-4 shrink-0" />}
-            thumb={<Thumb shortCode="SFD-049" rarity="rare" domain="calm" />}
-            name="Aphelios, Exalted"
+            thumb={<Thumb card={FIXTURE_CARDS.aphelios} />}
+            name={FIXTURE_CARDS.aphelios.name}
             muted
             trailing={<Detail>{m.decks_overview_box_not_owned()}</Detail>}
           />
           <div className="relative">
             <Row
-              leading={<Swap before={<Tick checked={false} />} after={<Tick checked />} />}
+              leading={<BoxSwap before={<Tick checked={false} />} after={<Tick checked />} />}
               thumb={
-                <Swap
-                  before={<Thumb shortCode="SFD-177a" rarity="showcase" />}
-                  after={<Thumb shortCode="SFD-177" rarity="epic" />}
-                />
+                <BoxSwap before={<Thumb card={PICKED_FROM} />} after={<Thumb card={SHOWN} />} />
               }
-              name="Azir, Sovereign"
-              details={<Detail className="motion-safe:animate-box-before">Showcase</Detail>}
+              name={SHOWN.name}
+              details={
+                <Detail className="motion-safe:animate-box-before opacity-0">
+                  {fixtureVariantLabel(PICKED_FROM)}
+                </Detail>
+              }
               trailing={
                 <span className="text-muted-foreground flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-xs">
-                  <Swap
+                  <BoxSwap
                     before={<span>{m.marketing_collections_bulk_box()}</span>}
                     after={<span>{m.marketing_collections_binder()}</span>}
                   />
@@ -208,14 +196,18 @@ export function BoxVignette() {
               </p>
               <div className="p-1">
                 <PickerGroupLabel>{m.marketing_collections_binder()}</PickerGroupLabel>
-                <PickerRow shortCode="SFD-177" rarity="epic" highlighted />
+                <PickerRow card={SHOWN} highlighted />
                 <PickerGroupLabel>{m.marketing_collections_bulk_box()}</PickerGroupLabel>
-                <PickerRow shortCode="SFD-177a" rarity="showcase" details="Showcase" count={2} />
+                <PickerRow
+                  card={PICKED_FROM}
+                  details={fixtureVariantLabel(PICKED_FROM)}
+                  count={2}
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
-    </ClipFrame>
+    </Vignette>
   );
 }

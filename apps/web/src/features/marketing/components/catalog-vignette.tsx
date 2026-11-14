@@ -1,43 +1,41 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { Link } from "@tanstack/react-router";
-import { PackageIcon, SearchIcon, XIcon } from "lucide-react";
+import { SearchIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import { MiniCardArt } from "@/components/mini-card-art";
 import { Button } from "@/components/ui/button";
-import { CountPill } from "@/components/ui/count-pill";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CardCountStrip } from "@/features/cards/components/card-count-strip";
+import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
+import { FIXTURE_LABELS } from "@/features/marketing/lib/vignette-fixtures";
 import { getFilterIconPath } from "@/lib/icons";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { Vignette } from "./vignette-parts";
+import { FAKE_CONTROL, Vignette } from "./vignette-parts";
 
 const DOMAINS = [
-  { slug: "fury", label: "Fury", share: 0.169 },
-  { slug: "calm", label: "Calm", share: 0.17 },
-  { slug: "mind", label: "Mind", share: 0.169 },
-  { slug: "body", label: "Body", share: 0.172 },
-  { slug: "chaos", label: "Chaos", share: 0.168 },
-  { slug: "order", label: "Order", share: 0.174 },
+  { slug: "fury", share: 0.169 },
+  { slug: "calm", share: 0.17 },
+  { slug: "mind", share: 0.169 },
+  { slug: "body", share: 0.172 },
+  { slug: "chaos", share: 0.168 },
+  { slug: "order", share: 0.174 },
 ] as const;
 
 const RARITIES = [
-  { slug: "common", label: "Common", share: 0.291 },
-  { slug: "uncommon", label: "Uncommon", share: 0.279 },
-  { slug: "rare", label: "Rare", share: 0.274 },
-  { slug: "epic", label: "Epic", share: 0.161 },
-  { slug: "showcase", label: "Showcase", share: 0.202 },
+  { slug: "common", share: 0.291 },
+  { slug: "uncommon", share: 0.279 },
+  { slug: "rare", share: 0.274 },
+  { slug: "epic", share: 0.161 },
+  { slug: "showcase", share: 0.202 },
 ] as const;
-
-export interface TaggedThumbnail {
-  url: string;
-  rarity: string;
-  domains: string[];
-}
 
 type CatalogFilter = { axis: "rarity" | "domain"; slug: string } | null;
 
-function matches(thumb: TaggedThumbnail, filter: CatalogFilter): boolean {
+function matches(thumb: LandingThumbnailCard, filter: CatalogFilter): boolean {
   if (filter === null) {
     return true;
   }
@@ -48,10 +46,10 @@ function matches(thumb: TaggedThumbnail, filter: CatalogFilter): boolean {
 }
 
 export function CatalogVignette({
-  thumbnails,
+  cards,
   cardCount,
 }: {
-  thumbnails: TaggedThumbnail[];
+  cards: LandingThumbnailCard[];
   cardCount?: number;
 }) {
   const [filter, setFilter] = useState<CatalogFilter>(null);
@@ -61,17 +59,25 @@ export function CatalogVignette({
       : filter.axis === "rarity"
         ? RARITIES.find((entry) => entry.slug === filter.slug)
         : DOMAINS.find((entry) => entry.slug === filter.slug);
-  const shown = thumbnails.filter((thumb) => matches(thumb, filter)).slice(0, 8);
+  const activeLabel =
+    filter === null
+      ? undefined
+      : enumLabel(
+          filter.axis === "rarity" ? FIXTURE_LABELS.rarities : FIXTURE_LABELS.domains,
+          filter.slug,
+        );
+  const shown = cards.filter((thumb) => matches(thumb, filter)).slice(0, 8);
   // The sample is client-only; disabling chips before it arrives would flip
   // the `disabled` attribute on hydration and mismatch.
-  const hasSample = thumbnails.length > 0;
+  const hasSample = cards.length > 0;
   const filtered = active && cardCount ? Math.round(cardCount * active.share) : undefined;
+  const total = cardCount === undefined ? undefined : m.common_cards({ count: cardCount });
+  const placeholder =
+    total !== undefined && filtered === undefined
+      ? m.cards_browser_search_placeholder_count({ items: total })
+      : m.cards_browser_search_placeholder();
   const count =
-    cardCount === undefined
-      ? undefined
-      : filtered === undefined
-        ? m.common_cards({ count: cardCount })
-        : m.marketing_catalog_count_filtered({ filtered, total: cardCount });
+    total !== undefined && filtered !== undefined ? `${filtered} / ${total}` : undefined;
   const search =
     filter === null
       ? {}
@@ -85,16 +91,17 @@ export function CatalogVignette({
         to="/cards"
         search={search}
         aria-label={
-          active
-            ? m.marketing_catalog_browse_facet({ label: active.label })
+          activeLabel
+            ? m.marketing_catalog_browse_facet({ label: activeLabel })
             : m.marketing_catalog_browse_all()
         }
-        className="border-input hover:bg-muted focus-visible:ring-ring flex h-8 w-full items-center gap-2 rounded-lg border px-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        className={cn(
+          FAKE_CONTROL,
+          "hover:bg-muted focus-visible:ring-ring gap-2 transition-colors focus-visible:ring-2 focus-visible:outline-none",
+        )}
       >
         <SearchIcon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-        <span className="text-muted-foreground flex-1 truncate text-sm">
-          {m.marketing_catalog_search_placeholder()}
-        </span>
+        <span className="text-muted-foreground flex-1 truncate">{placeholder}</span>
         {count && <span className="text-muted-foreground text-xs font-normal">{count}</span>}
       </Link>
 
@@ -117,10 +124,8 @@ export function CatalogVignette({
               <ToggleGroupItem
                 key={entry.slug}
                 value={entry.slug}
-                aria-label={entry.label}
-                disabled={
-                  hasSample && !thumbnails.some((thumb) => thumb.domains.includes(entry.slug))
-                }
+                aria-label={enumLabel(FIXTURE_LABELS.domains, entry.slug)}
+                disabled={hasSample && !cards.some((thumb) => thumb.domains.includes(entry.slug))}
               >
                 {icon && <CardIcon src={icon} className="size-4" />}
               </ToggleGroupItem>
@@ -145,8 +150,8 @@ export function CatalogVignette({
               <ToggleGroupItem
                 key={entry.slug}
                 value={entry.slug}
-                aria-label={entry.label}
-                disabled={hasSample && !thumbnails.some((thumb) => thumb.rarity === entry.slug)}
+                aria-label={enumLabel(FIXTURE_LABELS.rarities, entry.slug)}
+                disabled={hasSample && !cards.some((thumb) => thumb.rarity === entry.slug)}
               >
                 {icon && <CardIcon src={icon} className="size-4" />}
               </ToggleGroupItem>
@@ -173,11 +178,7 @@ export function CatalogVignette({
       >
         {shown.map(({ url }) => (
           <div key={url} className="flex flex-col">
-            <div className="relative z-30 mb-1 flex h-5 items-center justify-center">
-              <CountPill variant="ghost" className="opacity-50">
-                <PackageIcon className="size-3" aria-hidden="true" />0
-              </CountPill>
-            </div>
+            <CardCountStrip count={0} />
             <div className="group rounded-lg p-0.75">
               <MiniCardArt url={url} className="hover:ring-primary/60 hover:ring-2" />
             </div>

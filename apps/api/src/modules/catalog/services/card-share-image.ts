@@ -1,10 +1,10 @@
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
 import {
-  COLORS,
   cardTile,
   elideTitle,
   element,
@@ -29,7 +29,7 @@ function priceBlock(price: { label: string; value: string }): Element {
   return element(
     "div",
     { display: "flex", flexDirection: "column", gap: 4 },
-    element("div", { display: "flex", fontSize: 20, color: COLORS.muted }, price.label),
+    element("div", { display: "flex", fontSize: 20, color: SHARE_IMAGE_COLORS.muted }, price.label),
     element("div", { display: "flex", fontSize: 46, fontWeight: 700, lineHeight: 1 }, price.value),
   );
 }
@@ -58,10 +58,14 @@ export async function renderCardShareImage(
     input.typeLine &&
       element(
         "div",
-        { display: "flex", fontSize: 26, fontWeight: 600, color: COLORS.gold },
+        { display: "flex", fontSize: 26, fontWeight: 600, color: SHARE_IMAGE_COLORS.gold },
         input.typeLine,
       ),
-    element("div", { display: "flex", fontSize: 24, color: COLORS.muted }, input.detailLine),
+    element(
+      "div",
+      { display: "flex", fontSize: 24, color: SHARE_IMAGE_COLORS.muted },
+      input.detailLine,
+    ),
   );
 
   const prices =
@@ -75,7 +79,7 @@ export async function renderCardShareImage(
       { display: "flex", flexDirection: "column", gap: 14 },
       element(
         "div",
-        { display: "flex", fontSize: 20, color: COLORS.muted },
+        { display: "flex", fontSize: 20, color: SHARE_IMAGE_COLORS.muted },
         `${input.printingCount} printings`,
       ),
       thumbs.length > 0 &&

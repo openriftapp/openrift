@@ -16,6 +16,12 @@ export function formatRank(rank: number, rankIsTier: boolean): string {
   return rankIsTier && rank > 2 ? m.meta_rank_tier({ rank }) : m.meta_rank_ordinal({ rank });
 }
 
+export function metaDeckLinkLabel(deck: { playerName: string; legendName: string | null }): string {
+  return deck.legendName === null
+    ? m.meta_deck_label({ player: deck.playerName })
+    : m.meta_deck_label_with_legend({ player: deck.playerName, legend: deck.legendName });
+}
+
 export function metaOpponentFinishLine(
   opponent:
     | {

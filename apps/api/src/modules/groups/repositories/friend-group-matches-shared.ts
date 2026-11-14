@@ -13,10 +13,11 @@ import type {
 } from "@openrift/shared/types/api/trade-preferences";
 import { hydrateListRules, ruleFiltersOnPrice } from "@openrift/shared/types/list-rule";
 import type { ListRuleCombine, ListRules } from "@openrift/shared/types/list-rule";
-import type { Kysely } from "kysely";
+import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import type { ListsTable } from "../../../db/tables/lists.js";
 import type { BoxWantDemand } from "../../../lib/box-want-allocation.js";
 import { withFace1 } from "../../../repositories/query-helpers.js";
 import type { ListRuleProviders } from "../../lists/repositories/lists-rules.js";
@@ -75,6 +76,33 @@ function listDefaultPref(list: SharedListRow): TradePreference {
   };
 }
 
+function toSharedListRow(
+  row: Pick<
+    Selectable<ListsTable>,
+    | "kind"
+    | "defaultPricePref"
+    | "defaultPriceAbsoluteCents"
+    | "defaultTradeType"
+    | "currency"
+    | "rules"
+    | "ruleCombine"
+  > & { listId: string; listName: string; ownerUserId: string; sharedAt: Date },
+): SharedListRow {
+  return {
+    listId: row.listId,
+    listName: row.listName,
+    ownerUserId: row.ownerUserId,
+    kind: row.kind,
+    sharedAt: row.sharedAt,
+    defaultPricePref: row.defaultPricePref as TradePreference["pricePref"],
+    defaultPriceAbsoluteCents: row.defaultPriceAbsoluteCents,
+    defaultTradeType: row.defaultTradeType as TradePreference["tradeType"],
+    currency: row.currency as Currency | null,
+    rules: hydrateListRules(row.rules),
+    ruleCombine: row.ruleCombine,
+  };
+}
+
 export async function loadSharedLists(
   db: Kysely<Database>,
   groupId: string,
@@ -99,19 +127,7 @@ export async function loadSharedLists(
     .where("s.groupId", "=", groupId)
     .where("l.intent", "=", intent)
     .execute();
-  return rows.map((row) => ({
-    listId: row.listId,
-    listName: row.listName,
-    ownerUserId: row.ownerUserId,
-    kind: row.kind,
-    sharedAt: row.sharedAt,
-    defaultPricePref: row.defaultPricePref as TradePreference["pricePref"],
-    defaultPriceAbsoluteCents: row.defaultPriceAbsoluteCents,
-    defaultTradeType: row.defaultTradeType as TradePreference["tradeType"],
-    currency: row.currency as Currency | null,
-    rules: hydrateListRules(row.rules),
-    ruleCombine: row.ruleCombine,
-  }));
+  return rows.map((row) => toSharedListRow(row));
 }
 
 /** `sharedAt` carries the list's creation time; no owner-scoped caller reads it. */
@@ -138,19 +154,7 @@ export async function loadOwnedLists(
     .where("l.userId", "=", ownerUserId)
     .where("l.intent", "=", intent)
     .execute();
-  return rows.map((row) => ({
-    listId: row.listId,
-    listName: row.listName,
-    ownerUserId: row.ownerUserId,
-    kind: row.kind,
-    sharedAt: row.sharedAt,
-    defaultPricePref: row.defaultPricePref as TradePreference["pricePref"],
-    defaultPriceAbsoluteCents: row.defaultPriceAbsoluteCents,
-    defaultTradeType: row.defaultTradeType as TradePreference["tradeType"],
-    currency: row.currency as Currency | null,
-    rules: hydrateListRules(row.rules),
-    ruleCombine: row.ruleCombine,
-  }));
+  return rows.map((row) => toSharedListRow(row));
 }
 
 export async function loadManualEntries(

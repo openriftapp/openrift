@@ -2,6 +2,7 @@ import { isoDateTime, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { hexColorSchema } from "./shared.js";
 
 const TAG = "Admin - Languages";
 
@@ -17,11 +18,6 @@ export const languageSchema = z.object({
 });
 
 const codeParamSchema = z.object({ code: z.string().min(1) });
-
-const hexColorSchema = z
-  .string()
-  .regex(/^#[0-9a-fA-F]{6}$/u)
-  .nullable();
 
 /**
  * Admin-gated by the mount, not enforced here. The static `reorder` path

@@ -1,15 +1,11 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import {
-  AlertTriangleIcon,
-  CheckCircle2Icon,
-  ChevronDownIcon,
-  FileUpIcon,
-  SearchIcon,
-  XCircleIcon,
-} from "lucide-react";
+import { enumLabel } from "@openrift/shared/enum-label";
+import { ChevronDownIcon, ChevronRightIcon, FileUpIcon, SearchIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
+import { buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
@@ -22,10 +18,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
+import { ImportRowShell } from "@/features/collections/components/import-row-shell";
+import { IMPORT_BUCKET_ICONS } from "@/features/collections/lib/import-bucket-icons";
+import type { ImportBucket } from "@/features/collections/lib/import-summary";
+import { useEnumOrders } from "@/hooks/use-enums";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export default function ImportExportArticle() {
+  const { labels } = useEnumOrders();
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
@@ -81,6 +83,7 @@ export default function ImportExportArticle() {
               "Variant Type",
               "Variant Label",
               "Quantity",
+              "Foil",
               "Language",
               "Condition",
             ]}
@@ -144,15 +147,15 @@ export default function ImportExportArticle() {
         <p className="text-muted-foreground">{m.help_import_export_step2_p()}</p>
 
         <DefinitionList className="text-muted-foreground mt-3">
-          <DefinitionTerm icon={<CheckCircle2Icon className="text-success size-4" />}>
+          <DefinitionTerm icon={<BucketIcon bucket="ready" />}>
             {m.help_import_export_status_exact()}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_import_export_status_exact_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<AlertTriangleIcon className="text-warning size-4" />}>
+          <DefinitionTerm icon={<BucketIcon bucket="to-verify" />}>
             {m.help_import_export_status_review()}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_import_export_status_review_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<XCircleIcon className="text-destructive size-4" />}>
+          <DefinitionTerm icon={<BucketIcon bucket="need-attention" />}>
             {m.help_import_export_status_unresolved()}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_import_export_status_unresolved_detail()}</DefinitionDetail>
@@ -160,23 +163,35 @@ export default function ImportExportArticle() {
 
         <Callout className="mt-4">
           <Eyebrow className="mb-3">{m.help_import_export_example_preview()}</Eyebrow>
-          <div className="divide-border divide-y text-sm">
-            <MockMatchRow status="exact" quantity={3} code="OGN-007" name="Fury Rune" tags={[]} />
-            <MockMatchRow
-              status="needs-review"
+          <div className="divide-border bg-background divide-y rounded-md">
+            <MockImportRow
+              bucket="to-verify"
               quantity={1}
               code="OGN-001"
               name="Blazing Scorcher"
-              tags={["Foil"]}
-              dropdown="OGN-001 · Foil · Nexus Night"
+              suffix={enumLabel(labels.finishes, "foil")}
+              actions={
+                <span className="bg-background flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs">
+                  OGN-001 · {enumLabel(labels.finishes, "foil")}
+                  <ChevronDownIcon className="text-muted-foreground size-3" />
+                </span>
+              }
             />
-            <MockMatchRow
-              status="unresolved"
+            <MockImportRow
+              bucket="need-attention"
               quantity={1}
-              code="XXX-999"
-              name="Unknown Card"
-              tags={[]}
+              name="Fury Runne"
+              actions={
+                <span className="text-muted-foreground text-xs">
+                  <ParaglideMessage
+                    message={m.collections_import_did_you_mean}
+                    inputs={{ name: "Fury Rune" }}
+                    markup={{ em: ({ children }) => <em>{children}</em> }}
+                  />
+                </span>
+              }
             />
+            <MockImportRow bucket="ready" quantity={3} code="OGN-007" name="Fury Rune" />
           </div>
         </Callout>
 
@@ -335,63 +350,46 @@ function FormatCard({
   );
 }
 
-const STATUS_ICONS: Record<string, { icon: React.ReactNode; className: string }> = {
-  exact: {
-    icon: <CheckCircle2Icon className="size-3.5" />,
-    className: "text-success",
-  },
-  "needs-review": {
-    icon: <AlertTriangleIcon className="size-3.5" />,
-    className: "text-warning",
-  },
-  unresolved: {
-    icon: <XCircleIcon className="size-3.5" />,
-    className: "text-destructive",
-  },
-};
+function BucketIcon({ bucket }: { bucket: ImportBucket }) {
+  const { icon: Icon, className } = IMPORT_BUCKET_ICONS[bucket];
+  return <Icon className={cn("size-4 shrink-0", className)} />;
+}
 
-function MockMatchRow({
-  status,
+function MockImportRow({
+  bucket,
   quantity,
   code,
   name,
-  tags,
-  dropdown,
+  suffix,
+  actions,
 }: {
-  status: string;
+  bucket: ImportBucket;
   quantity: number;
-  code: string;
+  code?: string;
   name: string;
-  tags: string[];
-  dropdown?: string;
+  suffix?: string;
+  actions?: ReactNode;
 }) {
-  const config = STATUS_ICONS[status];
-
   return (
-    <div className="flex items-center gap-2 px-2 py-2">
-      <span className={config?.className}>{config?.icon}</span>
-      <span className="text-muted-foreground w-6 text-right text-xs tabular-nums">
-        {quantity}&times;
-      </span>
-      <code className="bg-muted text-2xs rounded-md px-1 py-0.5">{code}</code>
-      <span className="min-w-0 flex-1 truncate text-xs">{name}</span>
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          className="bg-primary/10 text-primary text-2xs rounded-md px-1.5 py-0.5 font-medium"
-        >
-          {tag}
-        </span>
-      ))}
-      {dropdown && (
-        <span className="bg-background text-2xs flex items-center gap-1 rounded-md border px-1.5 py-0.5">
-          {dropdown}
-          <ChevronDownIcon className="text-muted-foreground size-2.5" />
-        </span>
-      )}
-      <SearchIcon className="text-muted-foreground size-3" />
-      <span className="text-muted-foreground text-2xs">{m.help_import_export_mock_skip()}</span>
-    </div>
+    <ImportRowShell
+      chevron={<ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />}
+      statusIcon={<BucketIcon bucket={bucket} />}
+      quantity={quantity}
+      code={code}
+      name={name}
+      nameSuffix={suffix}
+      actions={
+        <>
+          {actions}
+          <span className={buttonVariants({ variant: "ghost", size: "xs" })}>
+            <SearchIcon className="size-3.5" />
+          </span>
+          <span className={buttonVariants({ variant: "ghost", size: "xs" })}>
+            {m.collections_import_skip()}
+          </span>
+        </>
+      }
+    />
   );
 }
 

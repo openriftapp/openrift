@@ -6,6 +6,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { variantRowsFor } from "../../../lib/marketplace-variant-rows.js";
 
 type Db = Kysely<Database>;
 
@@ -153,27 +154,7 @@ export function marketplaceMappingVariantsRepo(db: Db) {
         );
       }
 
-      const productIdByKey = new Map(
-        products.map((p) => [
-          marketplaceSkuKey(p.marketplace, p.externalId, p.finish, p.language),
-          p.id,
-        ]),
-      );
-
-      const variantRows = values.map((v) => {
-        const productId = productIdByKey.get(
-          marketplaceSkuKey(v.marketplace, v.externalId, v.finish, v.language),
-        );
-        if (!productId) {
-          throw new Error(
-            `upsertProductVariants: missing product id for ${v.marketplace} ${v.externalId} ${v.finish}/${v.language ?? "NULL"}`,
-          );
-        }
-        return {
-          marketplaceProductId: productId,
-          printingId: v.printingId,
-        };
-      });
+      const variantRows = variantRowsFor("upsertProductVariants", products, values);
 
       const variants = [];
       for (const batch of rowBatches(variantRows)) {

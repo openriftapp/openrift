@@ -61,6 +61,8 @@ export function withParams<Base extends z.ZodRawShape, Extra extends z.ZodRawSha
 
 export const idParamSchema = z.object({ id: z.uuid() });
 
+export const slugParamSchema = z.object({ slug: z.string().min(1) });
+
 export const keyParamSchema = z.object({ key: z.string().min(1) });
 
 export const providerParamSchema = z.object({ provider: z.string().min(1) });

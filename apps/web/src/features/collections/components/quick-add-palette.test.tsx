@@ -14,7 +14,7 @@ vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => false }));
 
 vi.mock("@/features/cards/hooks/use-prices", () => ({ usePrices: () => stubPriceLookup({}) }));
 
-vi.mock("@/features/collections/hooks/use-quick-card-search", async () => {
+vi.mock("@/hooks/use-quick-card-search", async () => {
   const { useQuickAddSearch } = await import("@/features/collections/hooks/use-quick-add-search");
   return {
     useQuickCardSearch: (...args: Parameters<typeof useQuickAddSearch>) => ({

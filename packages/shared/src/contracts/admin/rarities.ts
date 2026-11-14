@@ -1,47 +1,37 @@
-import { withParams } from "@openrift/shared/schemas";
+import { slugParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
-import { slugRegex } from "./shared.js";
+import {
+  colorTaxonomyEntitySchema,
+  hexColorSchema,
+  kebabSlugSchema,
+  taxonomyReorderInputSchema,
+} from "./shared.js";
 
 const TAG = "Admin - Rarities";
 
 const BASE = "/api/admin/v1/rarities";
 
-const entitySchema = z.object({
-  slug: z.string(),
-  label: z.string(),
-  sortOrder: z.number(),
-  isWellKnown: z.boolean(),
-  color: z.string().nullable(),
-});
-
-const slugParamSchema = z.object({ slug: z.string().min(1) });
-
-const hexColorSchema = z
-  .string()
-  .regex(/^#[0-9a-fA-F]{6}$/u)
-  .nullable();
-
 export const adminRaritiesContract = {
   list: authedRoute
     .route({ method: "GET", path: BASE, tags: [TAG] })
-    .output(z.object({ rarities: z.array(entitySchema) })),
+    .output(z.object({ rarities: z.array(colorTaxonomyEntitySchema) })),
   reorder: authedRoute
     .route({ method: "PUT", path: `${BASE}/reorder`, tags: [TAG], successStatus: 204 })
     .errors({ BAD_REQUEST: { message: "Invalid reorder request" } })
-    .input(z.object({ slugs: z.array(z.string().min(1)).min(1) })),
+    .input(taxonomyReorderInputSchema),
   create: authedRoute
     .route({ method: "POST", path: BASE, tags: [TAG], successStatus: 201 })
     .errors({ CONFLICT: { message: "Rarity already exists" } })
     .input(
       z.object({
-        slug: z.string().min(1).regex(slugRegex, "Slug must be kebab-case"),
+        slug: kebabSlugSchema,
         label: z.string().min(1),
         color: hexColorSchema.optional(),
       }),
     )
-    .output(z.object({ rarity: entitySchema })),
+    .output(z.object({ rarity: colorTaxonomyEntitySchema })),
   update: authedRoute
     .route({ method: "PATCH", path: `${BASE}/{slug}`, tags: [TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Rarity not found" } })
@@ -62,5 +52,5 @@ export const adminRaritiesContract = {
 
 export type AdminRaritiesContract = typeof adminRaritiesContract;
 export interface AdminRaritiesResponse {
-  rarities: z.infer<typeof entitySchema>[];
+  rarities: z.infer<typeof colorTaxonomyEntitySchema>[];
 }

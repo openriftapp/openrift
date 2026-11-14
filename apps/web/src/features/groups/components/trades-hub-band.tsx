@@ -3,12 +3,11 @@ import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/frien
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ZapIcon } from "lucide-react";
 
-import { Eyebrow } from "@/components/heading";
 import { ActionBand } from "@/components/ui/action-band";
 import { buttonVariants } from "@/components/ui/button";
-import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { printingArt } from "@/features/cards/lib/card-meta";
+import { TradeShelfRowView } from "@/features/groups/components/trade-shelf-row";
 import { useGroupTrades, useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
 import { withoutLiveTradeMatches } from "@/features/groups/lib/trade-derivation";
@@ -16,8 +15,6 @@ import type { TradeShelfRow } from "@/features/groups/lib/trade-hub";
 import { buildTradeShelf } from "@/features/groups/lib/trade-hub";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-const MAX_THUMBS = 5;
 
 function ShelfRow({
   row,
@@ -30,23 +27,7 @@ function ShelfRow({
     key: printingId,
     ...printingArt(printingsById[printingId]),
   }));
-  return (
-    <li className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-      <Eyebrow
-        as="span"
-        className={cn(
-          "text-xs sm:w-32 sm:shrink-0",
-          row.tone === "warning" ? "text-warning" : "text-success",
-        )}
-      >
-        {row.label}
-      </Eyebrow>
-      <div className="flex min-w-0 items-center gap-3">
-        <CardArtThumbStack items={items} max={MAX_THUMBS} thumbClassName="w-8" />
-        <span className="text-muted-foreground min-w-0 truncate text-sm">{row.detail}</span>
-      </div>
-    </li>
-  );
+  return <TradeShelfRowView label={row.label} tone={row.tone} items={items} detail={row.detail} />;
 }
 
 export function TradesHubBand({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {

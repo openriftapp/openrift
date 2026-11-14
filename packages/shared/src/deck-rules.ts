@@ -358,24 +358,26 @@ export const runesMatchLegendDomains: DeckRule = (state) => {
 
 // Main holds 39, not 40: the champion's slot is championExactlyOne's to
 // report, so a full main with no champion is not also flagged here.
+export const MAIN_DECK_SIZE = 39;
+
 export const mainDeckExactly: DeckRule = (state) => {
   const count = totalQuantity(cardsInZone(state.cards, WellKnown.deckZone.MAIN));
 
-  if (count < 39) {
+  if (count < MAIN_DECK_SIZE) {
     return [
       {
         zone: WellKnown.deckZone.MAIN,
         code: "MAIN_TOO_FEW",
-        message: `${count}/39 main-deck cards — need ${39 - count} more`,
+        message: `${count}/${MAIN_DECK_SIZE} main-deck cards — need ${MAIN_DECK_SIZE - count} more`,
       },
     ];
   }
-  if (count > 39) {
+  if (count > MAIN_DECK_SIZE) {
     return [
       {
         zone: WellKnown.deckZone.MAIN,
         code: "MAIN_TOO_MANY",
-        message: `${count}/39 main-deck cards — remove ${count - 39}`,
+        message: `${count}/${MAIN_DECK_SIZE} main-deck cards — remove ${count - MAIN_DECK_SIZE}`,
       },
     ];
   }

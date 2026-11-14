@@ -1,13 +1,19 @@
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
+import type { Printing } from "@openrift/shared/types/catalog";
 
 import { PromoCardThumbnail } from "@/features/cards/components/promo-card-thumbnail";
+import { PromoChannelIntro } from "@/features/cards/components/promo-channel-intro";
 import { PromoListView } from "@/features/cards/components/promo-list-view";
 import { ParentAnchors, SectionDivider } from "@/features/cards/components/promo-section-divider";
 import type { RenderedSectionProps } from "@/features/cards/components/promo-section-grid";
-import type { ChannelRenderItem } from "@/features/cards/lib/promo-sections";
 
-export function LeafSection({
-  item,
+export function PromoPrintingsSection({
+  sectionId,
+  title,
+  printings,
+  description,
+  parentAnchorIds,
+  showChannel,
   stickyOffset,
   viewMode,
   showImages,
@@ -17,19 +23,26 @@ export function LeafSection({
   ownedCounts,
   sortPrintings,
   setNameBySlug,
-}: { item: ChannelRenderItem } & RenderedSectionProps) {
-  const sortedPrintings = sortPrintings(item.node.printings);
+}: {
+  sectionId: string;
+  title: string;
+  printings: Printing[];
+  description?: string | null;
+  parentAnchorIds?: string[];
+  showChannel?: boolean;
+} & RenderedSectionProps) {
+  const sortedPrintings = sortPrintings(printings);
   if (sortedPrintings.length === 0) {
     return null;
   }
   return (
-    <section id={item.sectionId} style={{ scrollMarginTop: `${stickyOffset}px` }}>
-      <ParentAnchors ids={item.parentAnchorIds} stickyOffset={stickyOffset} />
+    <section id={sectionId} style={{ scrollMarginTop: `${stickyOffset}px` }}>
+      {parentAnchorIds && <ParentAnchors ids={parentAnchorIds} stickyOffset={stickyOffset} />}
       <SectionDivider
-        title={item.title}
+        title={title}
         count={countPrintings(sortedPrintings)}
-        description={item.node.channel.description}
-        anchorId={item.sectionId}
+        intro={description && <PromoChannelIntro description={description} />}
+        anchorId={sectionId}
       />
       {viewMode === "grid" ? (
         <div {...grid}>
@@ -50,6 +63,7 @@ export function LeafSection({
           onRowClick={onCardClick}
           ownedCounts={ownedCounts}
           setNameBySlug={setNameBySlug}
+          showChannel={showChannel}
         />
       )}
     </section>

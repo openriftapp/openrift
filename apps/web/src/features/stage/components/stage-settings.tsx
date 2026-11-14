@@ -1,4 +1,3 @@
-import type { OverlayPlateFields } from "@openrift/shared/contracts/overlay";
 import type { StageGround } from "@openrift/shared/contracts/stage-presets";
 import { CARD_SCALE } from "@openrift/shared/overlay-scale";
 import type { ReactNode } from "react";
@@ -10,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { StagePresetSettings } from "@/features/stage/components/stage-preset-settings";
 import { StageTileSizeSlider } from "@/features/stage/components/stage-shell";
+import { plateFieldOptions } from "@/features/stage/lib/plate-fields";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { m } from "@/paraglide/messages.js";
 
@@ -37,23 +37,13 @@ function StageToggleRow({
   );
 }
 
-function plateFields(): { key: keyof OverlayPlateFields; label: string }[] {
-  return [
-    { key: "name", label: m.stage_plate_field_name() },
-    { key: "code", label: m.stage_plate_field_code() },
-    { key: "stats", label: m.stage_plate_field_stats() },
-    { key: "rulesText", label: m.stage_plate_field_rules_text() },
-    { key: "flavorText", label: m.stage_plate_field_flavor_text() },
-  ];
-}
-
 function PlateFieldSettings() {
   const plateFieldState = usePresentationStore((state) => state.plateFields);
   const togglePlateField = usePresentationStore((state) => state.togglePlateField);
 
   return (
     <div className="ml-4 flex flex-col gap-2">
-      {plateFields().map((field) => (
+      {plateFieldOptions().map((field) => (
         <StageToggleRow
           key={field.key}
           id={`stage-plate-${field.key}`}

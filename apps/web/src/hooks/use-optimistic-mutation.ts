@@ -5,31 +5,35 @@ import { reportMutationError } from "@/lib/query-client";
 type QueryKey = readonly unknown[];
 
 export function useOptimisticMutation<TCache, TVariables = void, TData = unknown>(options: {
-  queryKey: QueryKey;
+  queryKey: QueryKey | ((variables: TVariables) => QueryKey);
   mutationFn: (variables: TVariables) => Promise<TData>;
   apply: (cached: TCache, variables: TVariables) => TCache;
-  invalidates?: readonly QueryKey[];
+  invalidates?: readonly QueryKey[] | ((variables: TVariables) => readonly QueryKey[]);
 }) {
   const queryClient = useQueryClient();
   const { queryKey, mutationFn, apply, invalidates = [] } = options;
+  const keyFor = (variables: TVariables) =>
+    typeof queryKey === "function" ? queryKey(variables) : queryKey;
   return useMutation<TData, Error, TVariables, { previous: TCache | undefined }>({
     mutationFn,
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<TCache>(queryKey);
+      const key = keyFor(variables);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<TCache>(key);
       if (previous !== undefined) {
-        queryClient.setQueryData<TCache>(queryKey, apply(previous, variables));
+        queryClient.setQueryData<TCache>(key, apply(previous, variables));
       }
       return { previous };
     },
-    onError: (error, _variables, context) => {
+    onError: (error, variables, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKey, context.previous);
+        queryClient.setQueryData(keyFor(variables), context.previous);
       }
       reportMutationError(error, queryClient);
     },
-    onSettled: () => {
-      for (const key of [queryKey, ...invalidates]) {
+    onSettled: (_data, _error, variables) => {
+      const extra = typeof invalidates === "function" ? invalidates(variables) : invalidates;
+      for (const key of [keyFor(variables), ...extra]) {
         void queryClient.invalidateQueries({ queryKey: [...key] });
       }
     },

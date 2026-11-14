@@ -417,19 +417,6 @@ describe.skipIf(!ctx)("copiesRepo (integration)", () => {
     expect(inFirst.map((copy) => copy.id)).toContain(copyToMove);
   });
 
-  it("returns counts from the viewer's deck-building-available collections only", async () => {
-    const counts = await copies.countByCardAndPrintingForDeckbuilding(userId);
-    // The copies live in the first collection (deck-available by default); the
-    // second is opted out via a pref but currently holds no copies.
-    expect(counts.length).toBeGreaterThanOrEqual(1);
-
-    for (const row of counts) {
-      expect(row.cardId).toBeDefined();
-      expect(row.printingId).toBeDefined();
-      expect(row.count).toBeGreaterThanOrEqual(1);
-    }
-  });
-
   it("deletes copies by ids", async () => {
     const [toDelete] = await copies.insertBatch([{ printingId: printingId1, collectionId }]);
 

@@ -1,28 +1,30 @@
-import { CheckCircle2Icon, FileUpIcon, UploadIcon } from "lucide-react";
+import { ChevronRightIcon, FileUpIcon, UploadIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { ImportRowShell } from "@/features/collections/components/import-row-shell";
+import { IMPORT_BUCKET_ICONS } from "@/features/collections/lib/import-bucket-icons";
+import { importSpecialties } from "@/features/collections/lib/import-specialties";
+import {
+  FIXTURE_LABELS,
+  IMPORT_SAMPLE_LINES,
+  IMPORT_SAMPLE_MATCHES,
+} from "@/features/marketing/lib/vignette-fixtures";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { Swap, Vignette } from "./vignette-parts";
+import { FAKE_CONTROL, Swap, Vignette } from "./vignette-parts";
 
-const IMPORT_CSV_LINES = [
-  "Variant Number,Card Name,Set,Rarity,Quantity,Language",
-  "OGN-213,Hidden Blade,Origins,common,4,English",
-  "SFD-154-Foil,Guards!,Spiritforged,common,3,English",
-  'SFD-148a,"Draven, Audacious",Spiritforged,showcase,2,English',
-];
-
-const IMPORT_MATCHES = [
-  { quantity: 4, name: "Hidden Blade", code: "OGN-213", specialties: null },
-  { quantity: 3, name: "Guards!", code: "SFD-154", specialties: "Foil" },
-  { quantity: 2, name: "Draven, Audacious", code: "SFD-148a", specialties: "Foil · Alt Art" },
-];
+const { icon: ReadyIcon, className: READY_CLASS } = IMPORT_BUCKET_ICONS.ready;
 
 export function ImportVignette() {
   return (
     <Vignette>
-      <div className="border-input flex min-h-24 flex-col overflow-hidden rounded-lg border bg-transparent px-3 py-2 font-mono text-xs">
+      <div
+        className={cn(
+          FAKE_CONTROL,
+          "h-auto min-h-24 items-start overflow-hidden py-2 font-mono text-xs md:text-xs",
+        )}
+      >
         <Swap
           className="w-full"
           was={
@@ -32,7 +34,7 @@ export function ImportVignette() {
           }
           now={
             <span className="flex flex-col">
-              {IMPORT_CSV_LINES.map((line, index) => (
+              {IMPORT_SAMPLE_LINES.map((line, index) => (
                 <span
                   key={line}
                   className={cn("whitespace-nowrap", index === 0 && "text-muted-foreground")}
@@ -58,21 +60,30 @@ export function ImportVignette() {
       </div>
       <div className="motion-safe:animate-vignette-now flex flex-col gap-3">
         <span className="font-heading font-medium">{m.collections_import_preview_title()}</span>
-        <div className="flex flex-col">
-          {IMPORT_MATCHES.map((match) => (
-            <span key={match.code} className="flex items-center gap-3 py-1 text-sm">
-              <span className="min-w-0 flex-1 truncate">
-                <span className="text-muted-foreground tabular-nums">{match.quantity}&times;</span>{" "}
-                <span className="font-medium">{match.name}</span>
-                <span className="text-muted-foreground ml-1.5 text-xs">{match.code}</span>
-                {match.specialties && (
-                  <span className="text-muted-foreground ml-1.5 text-xs">{match.specialties}</span>
-                )}
-              </span>
-              <CheckCircle2Icon className="text-success size-4 shrink-0" aria-hidden="true" />
-            </span>
+        <div className="-mx-4 flex flex-col">
+          {IMPORT_SAMPLE_MATCHES.map(({ quantity, card }) => (
+            <ImportRowShell
+              key={card.shortCode}
+              chevron={
+                <ChevronRightIcon
+                  className="text-muted-foreground size-4 shrink-0 opacity-40"
+                  aria-hidden="true"
+                />
+              }
+              statusIcon={
+                <ReadyIcon className={cn("size-4 shrink-0", READY_CLASS)} aria-hidden="true" />
+              }
+              quantity={quantity}
+              code={card.shortCode}
+              name={card.name}
+              nameSuffix={importSpecialties(
+                card,
+                FIXTURE_LABELS.finishes,
+                FIXTURE_LABELS.artVariants,
+              )}
+            />
           ))}
-          <span className="text-muted-foreground py-1 text-xs">
+          <span className="text-muted-foreground px-4 py-1 text-xs">
             {m.decks_overview_zone_more({ count: 219 })}
           </span>
         </div>

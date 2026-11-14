@@ -32,6 +32,7 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
@@ -339,12 +340,7 @@ function SharedListGrid({
     useSelectionStore.getState().selectCard(printing, items, findBy);
   };
 
-  const handleSearchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const handleSearchAndClose = useSearchAndCloseDetail(setSearch);
 
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => {
     const cardId = item.printing.cardId;

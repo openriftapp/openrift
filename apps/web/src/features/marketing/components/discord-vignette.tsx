@@ -1,36 +1,26 @@
 import { discordEmbedColorHex } from "@openrift/shared/discord-embed";
-import { marketplaceLabel } from "@openrift/shared/marketplace";
+import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { BotIcon } from "lucide-react";
 import { siDiscord } from "simple-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
-import { m } from "@/paraglide/messages.js";
+import {
+  FIXTURE_BOT,
+  FIXTURE_CARDS,
+  FIXTURE_GROUPS,
+  FIXTURE_PRICES,
+} from "@/features/marketing/lib/vignette-fixtures";
+import { formatterForMarketplace } from "@/lib/format";
 
 import { Vignette } from "./vignette-parts";
 
 const EMBED_ACCENT = discordEmbedColorHex();
 
-const PRICE_FIELDS = [
-  { name: marketplaceLabel("tcgplayer"), value: "$4.52" },
-  { name: marketplaceLabel("cardmarket"), value: "€3.80" },
-  { name: marketplaceLabel("cardtrader"), value: "€3.65" },
-] as const;
-
 // Fallback for when the daily-cached sample predates the art-identity fields.
-const UNNAMED = { name: "Jinx, Rebel", shortCode: "OGN-202" };
-
-function holders(shortCode: string) {
-  return [
-    { name: "Alice", quantity: "2×", detail: `${shortCode} 2× (Binder)` },
-    {
-      name: "Mira",
-      quantity: "2×",
-      detail: `${shortCode} Standard 1× (Binder) · Alt Art 1× (Trades)`,
-    },
-  ];
-}
+const UNNAMED = FIXTURE_CARDS.yasuo;
 
 function EmbedField({ name, value }: { name: string; value: string }) {
   return (
@@ -51,10 +41,10 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
     <Vignette>
       <div className="flex gap-3">
         <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-          R
+          {FIXTURE_BOT.askingUser.charAt(0).toUpperCase()}
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-sm font-medium">riftcaptain</span>
+          <span className="text-sm font-medium">{FIXTURE_BOT.askingUser}</span>
           <p className="text-primary text-sm font-medium">
             <span
               className="motion-safe:animate-vignette-type inline-block"
@@ -71,8 +61,8 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">OpenRift</span>
-            <Badge variant="subtle">BOT</Badge>
+            <span className="text-sm font-medium">{FIXTURE_BOT.botName}</span>
+            <Badge variant="subtle">{FIXTURE_BOT.botBadge}</Badge>
           </div>
           <div
             className="bg-background/40 flex flex-col gap-2.5 rounded-md border-l-4 px-3 py-2.5"
@@ -80,19 +70,25 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
           >
             <span className="text-primary font-medium">{name}</span>
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold">On tradelists in Thursday store crew</span>
-              {holders(shortCode).map((holder) => (
+              <span className="text-xs font-semibold">
+                {FIXTURE_BOT.tradelistsHeader(FIXTURE_GROUPS.storeCrew)}
+              </span>
+              {FIXTURE_BOT.holders(shortCode).map((holder) => (
                 <div key={holder.name} className="flex flex-col">
                   <span className="text-sm">
-                    {holder.name} · {holder.quantity}
+                    {holder.name} · {holder.quantity}×
                   </span>
                   <span className="text-muted-foreground text-xs">{holder.detail}</span>
                 </div>
               ))}
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {PRICE_FIELDS.map((field) => (
-                <EmbedField key={field.name} name={field.name} value={field.value} />
+              {ALL_MARKETPLACES.map((marketplace) => (
+                <EmbedField
+                  key={marketplace}
+                  name={MARKETPLACE_LINKS[marketplace].label}
+                  value={formatterForMarketplace(marketplace)(FIXTURE_PRICES[marketplace].price)}
+                />
               ))}
             </div>
             {named && (
@@ -107,7 +103,7 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
             <span className="text-muted-foreground text-xs">{footer}</span>
           </div>
           <div className="bg-muted text-muted-foreground w-fit rounded-md px-3 py-1 text-xs font-medium">
-            {m.marketing_details()}
+            {FIXTURE_BOT.detailsButton}
           </div>
         </div>
       </div>

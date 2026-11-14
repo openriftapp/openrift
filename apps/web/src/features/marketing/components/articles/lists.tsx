@@ -15,6 +15,7 @@ import { Heading } from "@/components/heading";
 import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { marketplaceNames } from "@/features/marketing/lib/marketplace-copy";
 import { m } from "@/paraglide/messages.js";
 
 export default function ListsArticle() {
@@ -51,6 +52,8 @@ export default function ListsArticle() {
             message={m.help_lists_kinds_p}
             markup={{
               strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
+              strong3: PROSE_MARKUP.strong,
               link: linkMarkup("/help/cards-printings-copies"),
             }}
           />
@@ -224,6 +227,7 @@ export default function ListsArticle() {
           <DefinitionDetail>
             <ParaglideMessage
               message={m.help_lists_defaults_price}
+              inputs={{ marketplaces: marketplaceNames("or") }}
               markup={{
                 strong: PROSE_MARKUP.strong,
                 strong2: PROSE_MARKUP.strong,

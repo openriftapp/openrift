@@ -291,10 +291,9 @@ export async function revertMetaUpload(
   now: Date = new Date(),
 ): Promise<MetaUploadRevertResult> {
   return await transact(async (repos) => {
-    const players = await repos.metaOverlays.playerOverlaysForSourceEvent(
-      provider,
-      eventExternalId,
-    );
+    const players = await repos.metaOverlays.playerOverlaysForSourceEvents([
+      { provider, externalId: eventExternalId },
+    ]);
     const [eventOverlay] = await repos.metaOverlays.eventOverlaysBySourceKeys(provider, [
       eventExternalId,
     ]);
@@ -730,7 +729,7 @@ export async function releaseMetaPlayerOverlayField(
         continue;
       }
       if (remaining.length === 0) {
-        await repos.metaOverlays.setPlayerOverlayStatus(overlay.id, "rejected", now);
+        await repos.metaOverlays.setPlayerOverlayStatuses([overlay.id], "rejected", now);
         continue;
       }
       const cleared = Object.fromEntries(
@@ -890,7 +889,7 @@ export async function acceptMetaPlayerOverlay(
         ? [...overlay.claimedFields]
         : await anchorPlayerOverlay(repos, overlay, player);
     await narrowPlayerClaims(repos, overlayId, claimed, options.fields ?? null);
-    await repos.metaOverlays.setPlayerOverlayStatus(overlayId, "accepted", now);
+    await repos.metaOverlays.setPlayerOverlayStatuses([overlayId], "accepted", now);
     await promoteMetaEvent(repos, metaEventId);
     await recordOverlayAcceptance(
       repos,
@@ -931,7 +930,7 @@ export async function acceptMetaPlayerOverlays(
           ? [...overlay.claimedFields]
           : await anchorPlayerOverlay(repos, overlay, player);
       await narrowPlayerClaims(repos, overlay.id, claimed, fields ?? null);
-      await repos.metaOverlays.setPlayerOverlayStatus(overlay.id, "accepted", now);
+      await repos.metaOverlays.setPlayerOverlayStatuses([overlay.id], "accepted", now);
     }
     const metaEventIds = [...new Set(pending.map((entry) => entry.metaEventId))];
     for (const metaEventId of metaEventIds.toSorted()) {
@@ -998,7 +997,7 @@ export async function rejectMetaOverlay(
     assertFound(overlay, "That overlay no longer exists.");
     const wasApplied = overlay.status === "accepted";
     const metaEventId = await eventIdForPlayerOverlay(repos, overlay);
-    await repos.metaOverlays.setPlayerOverlayStatus(target.id, "rejected", now);
+    await repos.metaOverlays.setPlayerOverlayStatuses([target.id], "rejected", now);
     if (wasApplied && metaEventId !== null) {
       await promoteMetaEvent(repos, metaEventId);
     }

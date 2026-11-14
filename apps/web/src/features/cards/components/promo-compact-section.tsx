@@ -11,6 +11,7 @@ import {
   getCardTableMinWidth,
 } from "@/features/cards/components/card-table-row";
 import { PromoCardThumbnail } from "@/features/cards/components/promo-card-thumbnail";
+import { PromoChannelIntro } from "@/features/cards/components/promo-channel-intro";
 import { PROMO_TABLE_OPTIONS, PromoMobileCard } from "@/features/cards/components/promo-list-view";
 import { ParentAnchors, SectionDivider } from "@/features/cards/components/promo-section-divider";
 import type {
@@ -44,7 +45,11 @@ export function CompactSection({
         // localPrintingCount dedupes printings linked to multiple sibling
         // channels; the toolbar pill uses the same source so the counts match.
         count={item.node.localPrintingCount}
-        description={item.node.channel.description}
+        intro={
+          item.node.channel.description && (
+            <PromoChannelIntro description={item.node.channel.description} />
+          )
+        }
         anchorId={item.sectionId}
       />
       {viewMode === "table" ? (

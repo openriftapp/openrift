@@ -958,7 +958,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       await promoteMetaEvent(repos, metaEventId);
       expect(await repo.rawStandingsForEvent(metaEventId)).toHaveLength(1);
 
-      await repos.metaOverlays.setPlayerOverlayStatus(overlayId, "rejected", new Date());
+      await repos.metaOverlays.setPlayerOverlayStatuses([overlayId], "rejected", new Date());
       const result = await promoteMetaEvent(repos, metaEventId);
 
       expect(await repo.rawStandingsForEvent(metaEventId)).toEqual([]);
@@ -1013,7 +1013,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       await promoteMetaEvent(repos, metaEventId);
       const unapplied = await repo.rawStandingsForEvent(metaEventId);
 
-      await repos.metaOverlays.setPlayerOverlayStatus(overlayId, "accepted", new Date());
+      await repos.metaOverlays.setPlayerOverlayStatuses([overlayId], "accepted", new Date());
       await promoteMetaEvent(repos, metaEventId);
       const applied = await repo.rawStandingsForEvent(metaEventId);
 

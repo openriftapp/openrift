@@ -4,10 +4,10 @@ import { CardDetailActions } from "@/features/cards/components/card-detail/card-
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import type { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
-import { useSelectionStore } from "@/stores/selection-store";
 
 interface CollectionDetailProps {
   items: CardViewerItem[];
@@ -29,12 +29,7 @@ function useDetailWiring({
   const isMobile = useIsMobile();
   const { setSearch } = useFilterActions();
 
-  const searchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const searchAndClose = useSearchAndCloseDetail(setSearch);
 
   const actions =
     mode === "browse"

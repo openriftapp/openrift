@@ -38,16 +38,19 @@ function offenders(files: readonly string[], pattern: RegExp, allowed: readonly 
     );
 }
 
-const ADMIN_COPY_DIRS = [
-  "features/admin/",
-  "features/catalog-workspace/",
-  "features/marketing/",
-  "components/ui/",
-];
+const ADMIN_COPY_DIRS = ["features/admin/", "features/catalog-workspace/", "components/ui/"];
 const NON_COPY_FILES = [
   "features/contribute/components/card-text-input.tsx",
   "features/tournaments/components/deck-check-ingest-guide.tsx",
   "features/cards/components/catalog-card-slug-search.tsx",
+  "features/marketing/components/legal-notice-page.tsx",
+  "features/marketing/components/privacy-policy-page.tsx",
+  "features/marketing/components/legal-address.tsx",
+  "features/marketing/components/articles/why-openrift.tsx",
+  "features/marketing/components/articles/tournament-decklist-api.tsx",
+  "features/marketing/components/developers-hero.tsx",
+  "features/marketing/components/developers-page.tsx",
+  "features/marketing/components/rules-vignette.tsx",
 ];
 const KEY_CAPS = new Set(["esc"]);
 const NON_WORDS = new Set([
@@ -68,7 +71,6 @@ const RAW_CARD_NAME_DIRS = [
   "features/catalog-workspace/",
   "features/contribute/",
   "features/designer/",
-  "features/marketing/",
 ];
 const RAW_CARD_NAME_EXPRESSIONS: Record<string, readonly string[]> = {
   "apps/web/src/features/cards/components/card-thumbnail.tsx": ["name={card.name}"],
@@ -79,6 +81,12 @@ const RAW_CARD_NAME_EXPRESSIONS: Record<string, readonly string[]> = {
   ],
   "apps/web/src/features/collections/lib/custom-tag-bulk-import.ts": ["name: card.name })"],
   "apps/web/src/features/meta/components/meta-inferred-slots.tsx": ["{card.name}"],
+  "apps/web/src/features/marketing/components/developers-hero.tsx": ["alt={card.name}"],
+  "apps/web/src/features/marketing/components/scan-vignette.tsx": ["{card.name}"],
+  "apps/web/src/features/marketing/components/decks-vignette.tsx": ["{card.name}"],
+  "apps/web/src/features/marketing/components/import-vignette.tsx": ["{card.name}"],
+  "apps/web/src/features/marketing/components/loans-vignette.tsx": ["card: loan.card.name })"],
+  "apps/web/src/features/marketing/components/test-vignette.tsx": ["{row.card.name}"],
 };
 
 function offendersExcept(
@@ -709,6 +717,46 @@ describe("admin display", () => {
   });
 });
 
+describe("marketing", () => {
+  const marketingFiles = WEB_FILES.filter((file) =>
+    path.relative(SRC, file).startsWith("features/marketing/"),
+  );
+  const vignetteFiles = marketingFiles.filter((file) =>
+    /^features\/marketing\/components\/[^/]*vignette[^/]*\.tsx$/u.test(path.relative(SRC, file)),
+  );
+
+  it("keeps vignettes free of data hooks and stores", () => {
+    expect(vignetteFiles.length).toBeGreaterThan(0);
+    expect(
+      offenders(
+        vignetteFiles,
+        /from "@\/(?:features\/[^/"]+\/)?(?:hooks|stores)\/|\buse(?:Suspense)?Query\b/u,
+      ),
+    ).toEqual([]);
+  });
+
+  it("names the official host only in the footer", () => {
+    expect(
+      offenders(WEB_FILES, /\bOFFICIAL_HOST\b/u, [
+        "apps/web/src/lib/official-host.ts",
+        "apps/web/src/components/layout/footer.tsx",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("writes sample label rows only in the vignette fixtures", () => {
+    expect(
+      offenders(marketingFiles, /\b(?:labelMap|labelMapOf)\(/u, [
+        "apps/web/src/features/marketing/lib/vignette-fixtures.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("states no stale 0–8 sideboard range", () => {
+    expect(offenders(marketingFiles, /(?<!\d)0–8(?!\d)|"0-8"/u)).toEqual([]);
+  });
+});
+
 describe("routes and app shell", () => {
   const web = (file: string) => `apps/web/src/${file}`;
   const routeFiles = WEB_FILES.filter(
@@ -773,7 +821,7 @@ describe("routes and app shell", () => {
         const text = readFileSync(file, "utf-8");
         return (
           NOT_FOUND_QUERY_OPTIONS.some((name) => text.includes(`${name}(`)) &&
-          !/\b(?:notFoundOnSentinel|ensureFriendGroupDetailCanonical|loadTournamentDetail)\(/u.test(
+          !/\b(?:notFoundOnSentinel|ensureFriendGroupDetailCanonical|loadTournamentDetail|loadContributeCardName)\(/u.test(
             text,
           )
         );
@@ -784,7 +832,7 @@ describe("routes and app shell", () => {
   it("renders a route's own not-found page wherever it can throw one", () => {
     const missing = routeFiles.filter((file) => {
       const text = readFileSync(file, "utf-8");
-      if (!/\b(?:requireFeature|notFoundOnSentinel)\(/u.test(text)) {
+      if (!/\b(?:requireFeature|notFoundOnSentinel|loadContributeCardName)\(/u.test(text)) {
         return false;
       }
       const lazy = file.replace(/\.tsx$/u, ".lazy.tsx");
@@ -977,6 +1025,87 @@ describe("shared components and tournaments", () => {
         WEB_FILES,
         /const (?<hook>\w+) = use(?:Draggable|Droppable|Sortable)\([\s\S]*?\b\k<hook>\./u,
       ),
+    ).toEqual([]);
+  });
+});
+
+describe("feature clones", () => {
+  const web = (file: string) => `apps/web/src/${file}`;
+  const filesIn = (dir: string) => WEB_FILES.filter((file) => relative(file).startsWith(web(dir)));
+
+  it("orders deck page zones through the shared zone order constants", () => {
+    expect(
+      offenders(filesIn("features/decks/"), /: (?:readonly )?DeckZone\[\] = \[/u, [
+        web("features/decks/lib/deck-zone-order.ts"),
+        web("features/decks/lib/deck-overview-geometry.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("shows deck zone issues through ZoneIssuesPopover", () => {
+    expect(
+      offenders(
+        filesIn("features/decks/"),
+        /<PopoverTrigger[\s\S]{0,400}?<AlertTriangleIcon className="text-destructive size-3\.5"/u,
+        [web("features/decks/components/deck-zone-header.tsx")],
+      ),
+    ).toEqual([]);
+  });
+
+  it("builds quick-add search fields through QuickAddSearchField", () => {
+    expect(
+      offenders(WEB_FILES, /<PaletteScopeToken\b/u, [
+        web("components/command-palette/quick-add-search-field.tsx"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("writes optimistic cache edits through useOptimisticMutation", () => {
+    expect(
+      offenders(WEB_FILES, /\bonMutate\s*[:(]/u, [
+        web("hooks/use-optimistic-mutation.ts"),
+        web("features/tournaments/hooks/use-tournament-deck-check.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("builds admin filter any-options through admin-filter-options", () => {
+    expect(offenders(filesIn("features/admin/"), /function withAny\(|const ANY = "any"/u)).toEqual(
+      [],
+    );
+  });
+
+  it("defines the admin hex colour schema once", () => {
+    const contractFiles = ALL_FILES.filter((file) =>
+      relative(file).startsWith("packages/shared/src/contracts/admin/"),
+    );
+    expect(
+      offenders(contractFiles, /\/\^#\[0-9a-fA-F\]\{6\}\$\//u, [
+        "packages/shared/src/contracts/admin/shared.ts",
+        "packages/shared/src/contracts/admin/keywords.ts",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("builds hover previews through hoverPreviewImage", () => {
+    expect(
+      offenders(WEB_FILES, /thumbnailUrl: imageUrl\(/u, [
+        web("features/cards/lib/hover-preview.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("searches from the detail view through useSearchAndCloseDetail", () => {
+    expect(
+      offenders(WEB_FILES, /setSearch\(query\);\s*\n\s*if \(isMobile\)/u, [
+        web("features/cards/hooks/use-search-and-close-detail.ts"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("defines the slug param schema once", () => {
+    expect(
+      offenders(ALL_FILES, /const slugParamSchema = /u, ["packages/shared/src/schemas.ts"]),
     ).toEqual([]);
   });
 });

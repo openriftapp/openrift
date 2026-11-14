@@ -33,6 +33,7 @@ import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbna
 import { useCatalogOnDemand } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
@@ -320,12 +321,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
     useSelectionStore.getState().selectCard(printing, items, "printing");
   };
 
-  const handleSearchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const handleSearchAndClose = useSearchAndCloseDetail(setSearch);
 
   // Grid stays ownership-neutral (no owned dimming); the viewer's collection
   // shows up only in the detail pane and the Owned filter.

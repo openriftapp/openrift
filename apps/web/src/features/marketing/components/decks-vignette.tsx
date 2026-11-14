@@ -1,69 +1,50 @@
+import { DEFAULT_DOMAIN_COLORS } from "@openrift/shared/domain-colors";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { CheckIcon, ChevronRightIcon, CircleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
+import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-stat-glyphs";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import { deckFormatBadgeState } from "@/features/decks/lib/deck-format-badge-state";
+import type { FixtureCard } from "@/features/marketing/lib/vignette-fixtures";
+import {
+  FIXTURE_CARDS,
+  FIXTURE_DECK,
+  FIXTURE_LABELS,
+} from "@/features/marketing/lib/vignette-fixtures";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { EnergyGlyph, PowerPips, Swap, Vignette } from "./vignette-parts";
+import { Swap, Vignette } from "./vignette-parts";
 
-const META_WIDTH = "w-16";
+interface DeckRowData {
+  card: FixtureCard;
+  energy: number;
+  power: number;
+  owned: number;
+  quantity: number;
+}
 
-const DECK_ROWS = [
-  {
-    shortCode: "OGN-045",
-    name: "Defy",
-    rarity: "common",
-    domain: "calm",
-    energy: 1,
-    power: 1,
-    owned: 3,
-    quantity: 3,
-  },
-  {
-    shortCode: "UNL-039",
-    name: "Soul Sword",
-    rarity: "common",
-    domain: "calm",
-    energy: 1,
-    power: 0,
-    owned: 3,
-    quantity: 3,
-  },
-  {
-    shortCode: "OGN-213",
-    name: "Hidden Blade",
-    rarity: "common",
-    domain: "order",
-    energy: 2,
-    power: 1,
-    owned: 3,
-    quantity: 3,
-  },
-] as const;
+const DECK_ROWS: DeckRowData[] = [
+  { card: FIXTURE_CARDS.defy, energy: 1, power: 1, owned: 3, quantity: 3 },
+  { card: FIXTURE_CARDS.soulSword, energy: 1, power: 0, owned: 3, quantity: 3 },
+  { card: FIXTURE_CARDS.hiddenBlade, energy: 2, power: 1, owned: 3, quantity: 3 },
+];
 
-const TAIL_ROW = {
-  shortCode: "UNL-176",
-  name: "Vi, Peacekeeper",
-  rarity: "rare",
-  domain: "order",
+const TAIL_ROW: DeckRowData = {
+  card: FIXTURE_CARDS.viPeacekeeper,
   energy: 5,
   power: 1,
   owned: 1,
   quantity: 1,
-} as const;
+};
 
-const ADDED_ROW = {
-  shortCode: "SFD-154",
-  name: "Guards!",
-  rarity: "common",
-  domain: "order",
-  energy: 3,
-  power: 0,
-  owned: 1,
-} as const;
+const ADDED_ROW = { card: FIXTURE_CARDS.guards, energy: 3, power: 0, owned: 1 };
+
+const FORMAT_LABEL = enumLabel(FIXTURE_LABELS.formats, FIXTURE_DECK.formatSlug);
 
 // Includes the champion, so columns total 40, not the zone's 39. Column 3's
 // before/after counts both average to the printed Ø 2.3.
@@ -95,21 +76,31 @@ const MAIN_DECK_SIZE = 39;
 
 const STATS_DECK_SIZE = 40;
 
+const AVERAGE_ENERGY =
+  ENERGY_CURVE.reduce((sum, bar) => sum + bar.energy * bar.count, 0) / STATS_DECK_SIZE;
+
 function SettledFormatBadge() {
   return (
     <Badge variant="success">
-      <CheckIcon aria-hidden="true" />
-      Constructed
+      <CheckIcon className="size-3" aria-hidden="true" />
+      {FORMAT_LABEL}
     </Badge>
   );
 }
 
 function InvalidFormatBadge() {
+  const { progress } = deckFormatBadgeState({
+    format: FIXTURE_DECK.formatSlug,
+    totalCards: 55,
+    requiredProgress: 55,
+    requiredTotal: 56,
+    isValid: false,
+  });
   return (
     <Badge variant="warning">
-      Constructed
-      <span className="tabular-nums">· 55/56</span>
-      <CircleAlertIcon aria-hidden="true" />
+      {FORMAT_LABEL}
+      {progress && <span className="tabular-nums">· {progress}</span>}
+      <CircleAlertIcon className="size-3" aria-hidden="true" />
     </Badge>
   );
 }
@@ -131,19 +122,13 @@ function Ownership({ owned, needed }: { owned: number; needed: number }) {
 }
 
 function DeckRow({
-  shortCode,
-  rarity,
-  domain,
-  name,
+  card,
   quantity,
   power,
   energy,
   ownership,
 }: {
-  shortCode: string;
-  rarity: string;
-  domain: string;
-  name: string;
+  card: FixtureCard;
   quantity: ReactNode;
   power: number;
   energy: number;
@@ -153,16 +138,20 @@ function DeckRow({
     <li className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm sm:gap-2">
       <CardMiniRow
         className="self-stretch"
-        domains={[domain]}
-        rarity={rarity}
-        shortCode={shortCode}
-        metaClassName={META_WIDTH}
+        domains={card.domains}
+        rarity={card.rarity}
+        shortCode={card.shortCode}
         hideMetaOnMobile
       />
       <span className="w-6 shrink-0 text-right tabular-nums">{quantity}</span>
-      <span className="min-w-0 flex-1 truncate">{name}</span>
-      <PowerPips power={power} domain={domain} />
-      <EnergyGlyph energy={energy} />
+      <span className="min-w-0 flex-1 truncate">{card.name}</span>
+      <PowerPips
+        power={power}
+        domains={card.domains}
+        colors={DEFAULT_DOMAIN_COLORS}
+        domainLabels={FIXTURE_LABELS.domains}
+      />
+      <EnergyGlyph value={energy} />
       <span className="w-10 shrink-0 text-right text-xs">{ownership}</span>
     </li>
   );
@@ -201,7 +190,7 @@ export function DecksVignette() {
   return (
     <Vignette>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-medium">Azir (Unleashed)</span>
+        <span className="font-medium">{FIXTURE_DECK.name}</span>
         <Swap
           className="justify-items-end"
           was={<InvalidFormatBadge />}
@@ -210,10 +199,7 @@ export function DecksVignette() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex h-6 items-center gap-2">
-          <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
-            {m.marketing_decks_main_deck()}
-          </span>
+        <DeckZoneHeader label={enumLabel(FIXTURE_LABELS.zones, "main")}>
           <span className="ml-auto text-xs">
             <Swap
               className="justify-items-end"
@@ -221,16 +207,13 @@ export function DecksVignette() {
               now={<ZoneCount quantity={MAIN_DECK_SIZE} complete />}
             />
           </span>
-        </div>
+        </DeckZoneHeader>
 
         <ul className="flex flex-col">
           {DECK_ROWS.map((row) => (
             <DeckRow
-              key={row.shortCode}
-              shortCode={row.shortCode}
-              rarity={row.rarity}
-              domain={row.domain}
-              name={row.name}
+              key={row.card.shortCode}
+              card={row.card}
               quantity={`${row.quantity}×`}
               power={row.power}
               energy={row.energy}
@@ -238,10 +221,7 @@ export function DecksVignette() {
             />
           ))}
           <DeckRow
-            shortCode={ADDED_ROW.shortCode}
-            rarity={ADDED_ROW.rarity}
-            domain={ADDED_ROW.domain}
-            name={ADDED_ROW.name}
+            card={ADDED_ROW.card}
             quantity={<Swap className="justify-items-end" was="1×" now="2×" />}
             power={ADDED_ROW.power}
             energy={ADDED_ROW.energy}
@@ -254,10 +234,7 @@ export function DecksVignette() {
             }
           />
           <DeckRow
-            shortCode={TAIL_ROW.shortCode}
-            rarity={TAIL_ROW.rarity}
-            domain={TAIL_ROW.domain}
-            name={TAIL_ROW.name}
+            card={TAIL_ROW.card}
             quantity={`${TAIL_ROW.quantity}×`}
             power={TAIL_ROW.power}
             energy={TAIL_ROW.energy}
@@ -296,7 +273,7 @@ export function DecksVignette() {
         <div>
           <div className="mb-1 flex items-center text-xs">
             <span className="font-medium">{m.decks_stats_energy()}</span>
-            <span className="text-muted-foreground ml-auto">Ø 2.3</span>
+            <span className="text-muted-foreground ml-auto">{`Ø ${AVERAGE_ENERGY.toFixed(1)}`}</span>
           </div>
           <div className="flex h-24 items-end gap-1.5">
             {ENERGY_CURVE.map((bar) => (

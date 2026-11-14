@@ -13,6 +13,7 @@ import { useCardData } from "@/features/cards/hooks/use-card-data";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
@@ -120,12 +121,7 @@ export function PickerCardBrowser({
     useSelectionStore.getState().selectCard(printing, items, findBy);
   };
 
-  const handleSearchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const handleSearchAndClose = useSearchAndCloseDetail(setSearch);
 
   const actions = (printing: Printing) => detailActions(printing, view);
 

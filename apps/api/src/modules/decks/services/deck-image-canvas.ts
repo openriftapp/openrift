@@ -1,8 +1,9 @@
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Element } from "../../system/services/share-image-core.js";
-import { COLORS, element, elideTitle } from "../../system/services/share-image-core.js";
+import { element, elideTitle } from "../../system/services/share-image-core.js";
 import type { ShareTypeScale } from "../../system/services/share-image-frame.js";
 import { SHARE_TYPE, titleBlock } from "../../system/services/share-image-frame.js";
 import type { DeckImageInput } from "./deck-image-parts.js";
@@ -58,7 +59,7 @@ function resultLineElement(line: string, canvas: DeckCanvas, marginTop: number):
       fontSize: canvas.metaSize,
       lineHeight: 1,
       fontWeight: 600,
-      color: COLORS.text,
+      color: SHARE_IMAGE_COLORS.text,
       marginTop,
       whiteSpace: "nowrap",
     },

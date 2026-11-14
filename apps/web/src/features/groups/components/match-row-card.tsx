@@ -61,13 +61,8 @@ import { useDisplayStore } from "@/stores/display-store";
 import { AvailableCopiesPopover } from "./available-copies-popover";
 import type { RequestableCopy } from "./request-trade-dialog";
 import { RequestTradeDialog } from "./request-trade-dialog";
-import {
-  CardMetaLine,
-  LiveTradesElsewhereLine,
-  TradeDirectionIcon,
-  TradePerCopyPrice,
-  TradeStatusBadge,
-} from "./trade-row-parts";
+import { CardMetaLine, LiveTradesElsewhereLine, TradePerCopyPrice } from "./trade-row-parts";
+import { TradeDirectionIcon, TradeStatusBadge } from "./trade-status-badge";
 
 const DIRECTION_ORDER: Record<MatchDirection, number> = { incoming: 0, outgoing: 1 };
 

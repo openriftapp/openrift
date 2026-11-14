@@ -66,8 +66,10 @@ vi.mock("@/features/groups/components/trade-add-target-dialog", () => ({
 vi.mock("@/features/groups/components/trade-row", () => ({ TradeRow: () => null }));
 vi.mock("@/features/groups/components/trade-row-parts", () => ({
   CardMetaLine: () => null,
-  TradeDirectionIcon: () => null,
   TradeEstimatedPrice: () => null,
+}));
+vi.mock("@/features/groups/components/trade-status-badge", () => ({
+  TradeDirectionIcon: () => null,
 }));
 vi.mock("@/features/cards/components/card-art-thumb", () => ({ CardArtThumb: () => null }));
 vi.mock("@/features/cards/components/card-detail-opener", () => ({

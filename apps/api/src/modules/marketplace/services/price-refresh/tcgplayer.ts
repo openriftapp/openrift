@@ -18,12 +18,8 @@ import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig } from "./types.js";
+import type { GroupRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
-
-const UPSERT_CONFIG: PriceUpsertConfig = {
-  marketplace: "tcgplayer",
-};
 
 const TCGCSV_BASE = "https://tcgcsv.com/tcgplayer";
 const TCGCSV_CATEGORY = 89;
@@ -204,7 +200,7 @@ export async function refreshTcgplayerPrices(
 
   await upsertMarketplaceGroups(repos.priceRefresh, "tcgplayer", groupRows);
 
-  const counts = await upsertPriceData(repos.priceRefresh, log, UPSERT_CONFIG, allStaging);
+  const counts = await upsertPriceData(repos.priceRefresh, log, "tcgplayer", allStaging);
   logUpsertCounts(log, counts);
 
   await repos.marketplace.refreshLatestPrices();

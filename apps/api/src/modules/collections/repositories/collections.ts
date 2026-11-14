@@ -49,6 +49,22 @@ export interface CollectionAccess {
 }
 
 export function collectionsRepo(db: Kysely<Database>) {
+  function accessibleCollections(userId: string) {
+    return db
+      .selectFrom("collections as c")
+      .leftJoin("friendGroups as g", "g.id", "c.groupId")
+      .leftJoin("friendGroupMembers as gm", (join) =>
+        join.onRef("gm.groupId", "=", "c.groupId").on("gm.userId", "=", userId),
+      )
+      .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
+        join.onRef("pref.collectionId", "=", "c.id").on("pref.userId", "=", userId),
+      )
+      .leftJoin("collectionSidebarPrefs as sidebar", (join) =>
+        join.onRef("sidebar.collectionId", "=", "c.id").on("sidebar.userId", "=", userId),
+      )
+      .selectAll("c");
+  }
+
   return {
     listForUser(userId: string): Promise<CollectionWithCount[]> {
       return db
@@ -67,19 +83,7 @@ export function collectionsRepo(db: Kysely<Database>) {
     },
 
     listAccessibleForUser(userId: string): Promise<AccessibleCollection[]> {
-      return db
-        .selectFrom("collections as c")
-        .leftJoin("friendGroups as g", "g.id", "c.groupId")
-        .leftJoin("friendGroupMembers as gm", (join) =>
-          join.onRef("gm.groupId", "=", "c.groupId").on("gm.userId", "=", userId),
-        )
-        .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
-          join.onRef("pref.collectionId", "=", "c.id").on("pref.userId", "=", userId),
-        )
-        .leftJoin("collectionSidebarPrefs as sidebar", (join) =>
-          join.onRef("sidebar.collectionId", "=", "c.id").on("sidebar.userId", "=", userId),
-        )
-        .selectAll("c")
+      return accessibleCollections(userId)
         .select([
           sql<number>`(select count(*)::int from copies where copies.collection_id = c.id)`.as(
             "copyCount",
@@ -121,19 +125,7 @@ export function collectionsRepo(db: Kysely<Database>) {
     },
 
     async getAccessForUser(id: string, userId: string): Promise<CollectionAccess | undefined> {
-      const row = await db
-        .selectFrom("collections as c")
-        .leftJoin("friendGroups as g", "g.id", "c.groupId")
-        .leftJoin("friendGroupMembers as gm", (join) =>
-          join.onRef("gm.groupId", "=", "c.groupId").on("gm.userId", "=", userId),
-        )
-        .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
-          join.onRef("pref.collectionId", "=", "c.id").on("pref.userId", "=", userId),
-        )
-        .leftJoin("collectionSidebarPrefs as sidebar", (join) =>
-          join.onRef("sidebar.collectionId", "=", "c.id").on("sidebar.userId", "=", userId),
-        )
-        .selectAll("c")
+      const row = await accessibleCollections(userId)
         .select([
           "g.slug as groupSlug",
           "g.name as groupName",

@@ -1,27 +1,36 @@
+import { enumLabel } from "@openrift/shared/enum-label";
+import { formatDay } from "@openrift/shared/format-date";
 import { ArrowRightIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
+import {
+  ADD_CHIP,
+  CHANGE_CHIP,
+  CHIP_BASE,
+  CUT_CHIP,
+  DOT_SIZE,
+  LABEL_MARGIN_X,
+  LANE_BOTTOM_PAD,
+  LANE_GAP,
+  LANE_TOP_Y,
+  PHONE_SLOT_WIDTH as SLOT_WIDTH,
+} from "@/features/decks/lib/deck-variant-rail-geometry";
+import type { FixtureVariantDiff } from "@/features/marketing/lib/vignette-fixtures";
+import { FIXTURE_LABELS, FIXTURE_VARIANT_RAIL } from "@/features/marketing/lib/vignette-fixtures";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
-// SLOT_WIDTH and LANE_GAP are the marker's travel distance too; `variant-slide`
-// in index.css carries them as literals and must be updated if these change.
-const SLOT_WIDTH = 132;
-const DOT_SIZE = 8;
-const LABEL_WIDTH = SLOT_WIDTH - 12;
+const LABEL_WIDTH = SLOT_WIDTH - LABEL_MARGIN_X;
 const PAD_X = LABEL_WIDTH / 2;
-const LANE_TOP_Y = 28;
-const LANE_GAP = 52;
-const COUNTS_GAP_Y = 13;
 const RAIL_WIDTH = PAD_X + SLOT_WIDTH * 2 + PAD_X;
-const RAIL_HEIGHT = LANE_TOP_Y + LANE_GAP + 24;
+const RAIL_HEIGHT = LANE_TOP_Y + LANE_GAP + LANE_BOTTOM_PAD;
 
-const CHIP_BASE = "rounded-md px-1.5 font-mono text-2xs font-bold tabular-nums";
-const ADD_CHIP = "bg-success-soft text-success";
-const CUT_CHIP = "bg-destructive/10 text-destructive";
-const CHANGE_CHIP = "bg-warning-soft text-warning";
+const SLIDE_STYLE = {
+  "--variant-slide-x": `${SLOT_WIDTH}px`,
+  "--variant-slide-y": `${LANE_GAP}px`,
+} as CSSProperties;
 
 const ROOT_X = PAD_X;
 const HEAD_X = PAD_X + SLOT_WIDTH;
@@ -29,32 +38,13 @@ const FORK_X = PAD_X + SLOT_WIDTH * 2;
 const LANE_0_Y = LANE_TOP_Y;
 const LANE_1_Y = LANE_TOP_Y + LANE_GAP;
 
-type DiffKind = "add" | "cut" | "change";
-
-const CHIP_STYLES: Record<DiffKind, string> = {
+const CHIP_STYLES: Record<FixtureVariantDiff["kind"], string> = {
   add: ADD_CHIP,
   cut: CUT_CHIP,
   change: CHANGE_CHIP,
 };
 
-interface DiffEntry {
-  name: string;
-  kind: DiffKind;
-  chip: string;
-}
-
-const UNLEASHED_DIFF: DiffEntry[] = [
-  { name: "Vi, Peacekeeper", kind: "add", chip: "+1" },
-  { name: "Soul Sword", kind: "change", chip: "2→3" },
-  { name: "Xin Zhao, Vigilant", kind: "cut", chip: "−1" },
-];
-
-const BUDGET_DIFF: DiffEntry[] = [
-  { name: "Trusty Ramhound", kind: "add", chip: "+3" },
-  { name: "Honest Broker", kind: "add", chip: "+1" },
-  { name: "Tactical Retreat", kind: "change", chip: "3→1" },
-  { name: "Poppy, Defender of the Meek", kind: "cut", chip: "−2" },
-];
+const RAIL = FIXTURE_VARIANT_RAIL;
 
 function NodeLabel({
   label,
@@ -124,10 +114,7 @@ function EdgeCounts({
   pulse?: boolean;
 }) {
   return (
-    <span
-      className="absolute -translate-x-1/2 -translate-y-1/2"
-      style={{ left: x, top: y + COUNTS_GAP_Y }}
-    >
+    <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: x, top: y }}>
       <span
         className={cn(
           "bg-background flex items-center gap-1 rounded-full px-1",
@@ -149,7 +136,7 @@ function StepDiff({
 }: {
   from: string;
   to: string;
-  entries: DiffEntry[];
+  entries: FixtureVariantDiff[];
   emphasis: "a" | "b";
 }) {
   return (
@@ -168,7 +155,7 @@ function StepDiff({
       </div>
       <div className="flex min-w-0 flex-col gap-1 text-sm">
         <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
-          {m.marketing_variants_main_deck()}
+          {enumLabel(FIXTURE_LABELS.zones, "main")}
         </span>
         {entries.map((entry) => (
           <div key={entry.name} className="flex items-baseline gap-2">
@@ -209,29 +196,35 @@ export function VariantsVignette() {
           </svg>
 
           <EdgeCounts x={(ROOT_X + HEAD_X) / 2} y={LANE_0_Y} added={2} cut={1} />
-          <EdgeCounts x={(HEAD_X + FORK_X) / 2} y={LANE_1_Y} added={4} cut={4} pulse />
+          <EdgeCounts
+            x={(HEAD_X + FORK_X) / 2}
+            y={(LANE_0_Y + LANE_1_Y) / 2}
+            added={4}
+            cut={4}
+            pulse
+          />
 
           <RailNode x={ROOT_X} y={LANE_0_Y}>
-            <NodeLabel label="Spiritforged" />
+            <NodeLabel label={RAIL.root.label} />
             <span className="bg-muted-foreground block size-2 rounded-full" />
             <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-              2026-08-11
+              {formatDay(RAIL.root.updatedAt)}
             </span>
           </RailNode>
 
           <RailNode x={HEAD_X} y={LANE_0_Y}>
-            <NodeLabel label="Unleashed" emphasis="a" />
+            <NodeLabel label={RAIL.head.label} emphasis="a" />
             <span className="bg-muted-foreground block size-2 rounded-full" />
             <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-              2026-08-15
+              {formatDay(RAIL.head.updatedAt)}
             </span>
           </RailNode>
 
           <RailNode x={FORK_X} y={LANE_1_Y}>
-            <NodeLabel label="budget" draft emphasis="b" />
+            <NodeLabel label={RAIL.fork.label} draft emphasis="b" />
             <span className="bg-muted-foreground block size-2 rounded-full" />
             <span className="text-muted-foreground text-2xs absolute top-full left-1/2 mt-1 -translate-x-1/2 tabular-nums">
-              2026-08-16
+              {formatDay(RAIL.fork.updatedAt)}
             </span>
           </RailNode>
 
@@ -239,6 +232,7 @@ export function VariantsVignette() {
             aria-hidden="true"
             className="bg-primary ring-primary/25 motion-safe:animate-variant-slide absolute block size-2 rounded-full ring-4"
             style={{
+              ...SLIDE_STYLE,
               left: HEAD_X - DOT_SIZE / 2,
               top: LANE_0_Y - DOT_SIZE / 2,
             }}
@@ -248,12 +242,17 @@ export function VariantsVignette() {
 
       <div className="grid">
         <StepDiff
-          from="Azir (Spiritforged)"
-          to="Azir (Unleashed)"
-          entries={UNLEASHED_DIFF}
+          from={RAIL.root.title}
+          to={RAIL.head.title}
+          entries={RAIL.headDiff}
           emphasis="a"
         />
-        <StepDiff from="Azir (Unleashed)" to="Azir (budget)" entries={BUDGET_DIFF} emphasis="b" />
+        <StepDiff
+          from={RAIL.head.title}
+          to={RAIL.fork.title}
+          entries={RAIL.forkDiff}
+          emphasis="b"
+        />
       </div>
     </ClipFrame>
   );

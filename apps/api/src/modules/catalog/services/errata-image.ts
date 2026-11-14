@@ -1,11 +1,11 @@
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import { pluralize } from "@openrift/shared/strings";
 
 import type { Io } from "../../../io.js";
 import type { Element } from "../../system/services/share-image-core.js";
 import {
-  COLORS,
   cardTile,
   element,
   renderTreeToPng,
@@ -39,7 +39,7 @@ function stat(value: number, label: string): Element {
       { display: "flex", fontSize: 54, fontWeight: 700, lineHeight: 1 },
       String(value),
     ),
-    element("div", { display: "flex", fontSize: 22, color: COLORS.muted }, label),
+    element("div", { display: "flex", fontSize: 22, color: SHARE_IMAGE_COLORS.muted }, label),
   );
 }
 
@@ -94,7 +94,7 @@ export async function renderErrataImage(
         fontSize: 22,
         fontWeight: 600,
         letterSpacing: 3,
-        color: COLORS.gold,
+        color: SHARE_IMAGE_COLORS.gold,
       },
       "WORDING CHANGES",
     ),
@@ -104,7 +104,12 @@ export async function renderErrataImage(
       element("div", { display: "flex" }, "Riftbound"),
       element("div", { display: "flex" }, "card errata"),
     ),
-    element("div", { display: "flex", width: 120, height: 3, backgroundColor: COLORS.gold }),
+    element("div", {
+      display: "flex",
+      width: 120,
+      height: 3,
+      backgroundColor: SHARE_IMAGE_COLORS.gold,
+    }),
     element(
       "div",
       { display: "flex", gap: 48, marginTop: 6 },

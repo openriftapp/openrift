@@ -6,12 +6,16 @@ import {
   PLAYRIFTBOUND_TOURNAMENT_TYPES,
   TOPDECK_FORMATS,
 } from "@openrift/shared/types/enums";
-import { Link } from "@tanstack/react-router";
 
-import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
-import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/components/admin-filters";
+import {
+  AdminDateRangeFilter,
+  AdminFilterSelect,
+  AdminFilterSwitch,
+} from "@/features/admin/components/admin-filters";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
+import { MetaRailLink } from "@/features/admin/components/meta-rail-link";
+import { ADMIN_FILTER_ANY, withAnyOption } from "@/features/admin/lib/admin-filter-options";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import {
   catalogStatusDisplay,
@@ -25,9 +29,6 @@ import { mirrorViewId, mirrorViewSearch } from "@/features/admin/lib/meta-mirror
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { formatCount } from "@/lib/format";
 import { parseIntegerInput } from "@/lib/integer-input";
-import { cn } from "@/lib/utils";
-
-const ANY = "any";
 
 const SEARCH_PLACEHOLDER: Record<MetaSource, string> = {
   uvsgames: "Search event or store",
@@ -36,54 +37,16 @@ const SEARCH_PLACEHOLDER: Record<MetaSource, string> = {
   playriftbound: "Search event, store or city",
 };
 
-const UVSGAMES_STATUS_OPTIONS = [
-  { value: ANY, label: "At the source: any" },
-  ...META_CATALOG_DISPLAY_STATUSES.map((status) => ({
+const UVSGAMES_STATUS_OPTIONS = withAnyOption(
+  "At the source: any",
+  META_CATALOG_DISPLAY_STATUSES.map((status) => ({
     value: status,
     label: catalogStatusDisplay(status).label,
   })),
-];
-
-function withAny(label: string, choices: readonly { value: string; label: string }[]) {
-  return [{ value: ANY, label }, ...choices];
-}
+);
 
 function countText(count: number | null): string {
   return count === null ? "n/a" : formatCount(count);
-}
-
-function RailLink({
-  label,
-  count,
-  view,
-  active,
-  className,
-}: {
-  label: string;
-  count: number | null;
-  view: MirrorView;
-  active: boolean;
-  className?: string;
-}) {
-  return (
-    <Link
-      from="/admin/meta"
-      to="/admin/meta"
-      search={(prev) => ({ ...prev, ...mirrorViewSearch(view), page: undefined })}
-      replace
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "hover:bg-muted/50 flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5 text-sm",
-        active && "bg-muted font-semibold",
-        className,
-      )}
-    >
-      <span>{label}</span>
-      <span className={cn("tabular-nums", !active && "text-muted-foreground")}>
-        {countText(count)}
-      </span>
-    </Link>
-  );
 }
 
 export function MirrorRail({ groups, view }: { groups: MirrorRailGroup[]; view: MirrorView }) {
@@ -92,19 +55,19 @@ export function MirrorRail({ groups, view }: { groups: MirrorRailGroup[]; view: 
     <nav aria-label="Mirror states" className="flex flex-col gap-2">
       {groups.map((group) => (
         <div key={group.item.id} className="flex flex-wrap items-center gap-1">
-          <RailLink
+          <MetaRailLink
             label={group.item.label}
-            count={group.item.count}
-            view={group.item.view}
+            countText={countText(group.item.count)}
+            search={() => mirrorViewSearch(group.item.view)}
             active={group.item.id === activeId}
             className="w-44 font-medium"
           />
           {group.children.map((item) => (
-            <RailLink
+            <MetaRailLink
               key={item.id}
               label={item.label}
-              count={item.count}
-              view={item.view}
+              countText={countText(item.count)}
+              search={() => mirrorViewSearch(item.view)}
               active={item.id === activeId}
             />
           ))}
@@ -170,7 +133,7 @@ export function MirrorFilters({
       />
       {source === "uvsgames" && (
         <AdminFilterSelect
-          value={filters.eventStatus ?? ANY}
+          value={filters.eventStatus ?? ADMIN_FILTER_ANY}
           onChange={(value) =>
             applyFilter({
               eventStatus: META_CATALOG_DISPLAY_STATUSES.find((status) => status === value),
@@ -183,24 +146,24 @@ export function MirrorFilters({
       )}
       {source === "playloltcg" && (
         <AdminFilterSelect
-          value={filters.plStatus === undefined ? ANY : String(filters.plStatus)}
+          value={filters.plStatus === undefined ? ADMIN_FILTER_ANY : String(filters.plStatus)}
           onChange={(value) =>
             applyFilter({
               plStatus: PLAYLOLTCG_STATUSES.find((status) => String(status) === value),
             })
           }
-          options={withAny("At the source: any", PLAYLOLTCG_STATUS_CHOICES)}
+          options={withAnyOption("At the source: any", PLAYLOLTCG_STATUS_CHOICES)}
           className="w-48"
           label="At the source"
         />
       )}
       {source === "topdeck" && (
         <AdminFilterSelect
-          value={filters.tdFormat ?? ANY}
+          value={filters.tdFormat ?? ADMIN_FILTER_ANY}
           onChange={(value) =>
             applyFilter({ tdFormat: TOPDECK_FORMATS.find((format) => format === value) })
           }
-          options={withAny("Any format", TOPDECK_FORMAT_CHOICES)}
+          options={withAnyOption("Any format", TOPDECK_FORMAT_CHOICES)}
           className="w-44"
           label="Format"
         />
@@ -208,20 +171,20 @@ export function MirrorFilters({
       {source === "playriftbound" && (
         <>
           <AdminFilterSelect
-            value={filters.prType ?? ANY}
+            value={filters.prType ?? ADMIN_FILTER_ANY}
             onChange={(value) =>
               applyFilter({ prType: PLAYRIFTBOUND_TOURNAMENT_TYPES.find((type) => type === value) })
             }
-            options={withAny("Any event type", PLAYRIFTBOUND_TYPE_CHOICES)}
+            options={withAnyOption("Any event type", PLAYRIFTBOUND_TYPE_CHOICES)}
             className="w-48"
             label="Event type"
           />
           <AdminFilterSelect
-            value={filters.prFormat ?? ANY}
+            value={filters.prFormat ?? ADMIN_FILTER_ANY}
             onChange={(value) =>
               applyFilter({ prFormat: PLAYRIFTBOUND_FORMATS.find((format) => format === value) })
             }
-            options={withAny("Any format", PLAYRIFTBOUND_FORMAT_CHOICES)}
+            options={withAnyOption("Any format", PLAYRIFTBOUND_FORMAT_CHOICES)}
             className="w-44"
             label="Format"
           />
@@ -236,19 +199,10 @@ export function MirrorFilters({
         aria-label={source === "playriftbound" ? "Minimum registrations" : "Minimum players"}
         className="w-44"
       />
-      <DatePicker
-        value={filters.dateFrom ?? ""}
-        onValueChange={(value) => applyFilter({ dateFrom: value })}
-        onClear={() => applyFilter({ dateFrom: undefined })}
-        placeholder="From"
-        className="w-40"
-      />
-      <DatePicker
-        value={filters.dateTo ?? ""}
-        onValueChange={(value) => applyFilter({ dateTo: value })}
-        onClear={() => applyFilter({ dateTo: undefined })}
-        placeholder="To"
-        className="w-40"
+      <AdminDateRangeFilter
+        dateFrom={filters.dateFrom}
+        dateTo={filters.dateTo}
+        onChange={applyFilter}
       />
       {source === "uvsgames" && (
         <AdminFilterSwitch

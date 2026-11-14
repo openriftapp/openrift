@@ -18,6 +18,8 @@ import {
   uvsgamesStandingIdentity,
   venueLocalDay,
 } from "../lib/uvsgames-catalog.js";
+import type { PlayloltcgStandingRow } from "../repositories/playloltcg-results.js";
+import type { TopdeckStandingRow } from "../repositories/topdeck-results.js";
 import type {
   MetaPromotedEventFacts,
   MetaSourceContext,
@@ -112,6 +114,47 @@ async function uvsgamesFacts(
   };
 }
 
+type KeyedStandingField =
+  | "playerKey"
+  | "playerName"
+  | "rank"
+  | "wins"
+  | "losses"
+  | "draws"
+  | "legendName"
+  | "sourceDeckId";
+type KeyedStandingRow =
+  | Pick<PlayloltcgStandingRow, KeyedStandingField>
+  | Pick<TopdeckStandingRow, KeyedStandingField>;
+
+function keyedStandings(
+  rows: readonly KeyedStandingRow[],
+  prefix: "p" | "t",
+  provider: string,
+): StandingFacts[] {
+  return rows
+    .filter((row) => row.rank !== null)
+    .map((row) => ({
+      identity: `${prefix}${row.playerKey}`,
+      unkeyedIdentity: unkeyedIdentityOf(null, row.playerName),
+      uvsgamesPlayerId: null,
+      playerName: row.playerName,
+      rank: row.rank as number,
+      rankIsTier: false,
+      wins: row.wins,
+      losses: row.losses,
+      draws: row.draws,
+      matchPoints: null,
+      opponentMatchWinPct: null,
+      gameWinPct: null,
+      opponentGameWinPct: null,
+      entryStatus: null,
+      legendName: row.legendName,
+      sourceDeckId: row.sourceDeckId,
+      provider,
+    }));
+}
+
 async function playloltcgFacts(
   repos: Repos,
   externalId: string,
@@ -150,27 +193,7 @@ async function playloltcgFacts(
       country: "CN",
       location,
     },
-    standings: standings
-      .filter((row) => row.rank !== null)
-      .map((row) => ({
-        identity: `p${row.playerKey}`,
-        unkeyedIdentity: unkeyedIdentityOf(null, row.playerName),
-        uvsgamesPlayerId: null,
-        playerName: row.playerName,
-        rank: row.rank as number,
-        rankIsTier: false,
-        wins: row.wins,
-        losses: row.losses,
-        draws: row.draws,
-        matchPoints: null,
-        opponentMatchWinPct: null,
-        gameWinPct: null,
-        opponentGameWinPct: null,
-        entryStatus: null,
-        legendName: row.legendName,
-        sourceDeckId: row.sourceDeckId,
-        provider: PLAYLOLTCG_PROVIDER,
-      })),
+    standings: keyedStandings(standings, "p", PLAYLOLTCG_PROVIDER),
   };
 }
 
@@ -210,27 +233,7 @@ async function topdeckFacts(
       country: listing.country,
       location,
     },
-    standings: standings
-      .filter((row) => row.rank !== null)
-      .map((row) => ({
-        identity: `t${row.playerKey}`,
-        unkeyedIdentity: unkeyedIdentityOf(null, row.playerName),
-        uvsgamesPlayerId: null,
-        playerName: row.playerName,
-        rank: row.rank as number,
-        rankIsTier: false,
-        wins: row.wins,
-        losses: row.losses,
-        draws: row.draws,
-        matchPoints: null,
-        opponentMatchWinPct: null,
-        gameWinPct: null,
-        opponentGameWinPct: null,
-        entryStatus: null,
-        legendName: row.legendName,
-        sourceDeckId: row.sourceDeckId,
-        provider: TOPDECK_PROVIDER,
-      })),
+    standings: keyedStandings(standings, "t", TOPDECK_PROVIDER),
   };
 }
 

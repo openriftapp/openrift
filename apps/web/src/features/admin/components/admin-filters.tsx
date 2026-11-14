@@ -1,3 +1,4 @@
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
@@ -55,5 +56,34 @@ export function AdminFilterSwitch({
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
       <Label htmlFor={id}>{children}</Label>
     </div>
+  );
+}
+
+export function AdminDateRangeFilter({
+  dateFrom,
+  dateTo,
+  onChange,
+}: {
+  dateFrom?: string;
+  dateTo?: string;
+  onChange: (patch: { dateFrom?: string; dateTo?: string }) => void;
+}) {
+  return (
+    <>
+      <DatePicker
+        value={dateFrom ?? ""}
+        onValueChange={(value) => onChange({ dateFrom: value })}
+        onClear={() => onChange({ dateFrom: undefined })}
+        placeholder="From"
+        className="w-40"
+      />
+      <DatePicker
+        value={dateTo ?? ""}
+        onValueChange={(value) => onChange({ dateTo: value })}
+        onClear={() => onChange({ dateTo: undefined })}
+        placeholder="To"
+        className="w-40"
+      />
+    </>
   );
 }

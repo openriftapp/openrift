@@ -12,6 +12,13 @@ import {
 import { MiniCardArt } from "@/components/mini-card-art";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { SIDEBAR_ROW, SIDEBAR_ROW_ACTIVE } from "@/features/marketing/lib/sidebar-mock";
+import type { FixtureCard } from "@/features/marketing/lib/vignette-fixtures";
+import {
+  FIXTURE_CARDS,
+  FIXTURE_DECK,
+  fixtureVariantLabel,
+} from "@/features/marketing/lib/vignette-fixtures";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -44,7 +51,7 @@ function collectionRows() {
     },
     {
       icon: BoxIcon,
-      name: "Azir Order",
+      name: FIXTURE_DECK.name,
       was: 60,
       count: 61,
       active: false,
@@ -66,15 +73,19 @@ const DROP_PHASE = {
   },
 } as const;
 
-const SIDEBAR_ROW = "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm";
-const SIDEBAR_ROW_ACTIVE = "bg-sidebar-accent text-sidebar-accent-foreground font-medium";
-
 function copyLocations() {
   return [
     { name: m.marketing_collections_main_binder(), count: 2 },
     { name: m.marketing_collections_storage_drawer(), count: 1 },
-    { name: "Azir Order", count: 1 },
+    { name: FIXTURE_DECK.name, count: 1 },
   ];
+}
+
+const COPIED = FIXTURE_CARDS.hiddenBlade;
+const COPIED_FOIL: FixtureCard = { ...COPIED, finish: "foil" };
+
+function variantHeader(card: FixtureCard): string {
+  return [card.language, card.shortCode, fixtureVariantLabel(card)].join(" · ");
 }
 
 function DropCount({ was, now, phase }: { was: number; now: number; phase: "a" | "b" }) {
@@ -255,10 +266,8 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
         ))}
       </div>
       <div className="flex flex-col gap-1">
-        <VignetteHeading>
-          {m.collections_copies_list_title({ card: "Hidden Blade" })}
-        </VignetteHeading>
-        <VariantHeaderRow label="EN · OGN-213 · Standard" count={4} expanded />
+        <VignetteHeading>{m.collections_copies_list_title({ card: COPIED.name })}</VignetteHeading>
+        <VariantHeaderRow label={variantHeader(COPIED)} count={4} expanded />
         {copyLocations().map((row) => (
           <div
             key={row.name}
@@ -268,7 +277,7 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
             <CopyStepper count={row.count} />
           </div>
         ))}
-        <VariantHeaderRow label="EN · OGN-213 · Foil" count={1} className="mt-1.5" />
+        <VariantHeaderRow label={variantHeader(COPIED_FOIL)} count={1} className="mt-1.5" />
       </div>
     </Vignette>
   );

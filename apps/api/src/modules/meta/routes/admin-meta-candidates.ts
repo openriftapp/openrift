@@ -564,7 +564,7 @@ export const adminMetaCandidatesRouter = os.router({
   ),
 
   ignoreEvent: os.ignoreEvent.handler(async ({ input, context }): Promise<void> => {
-    await context.repos.metaOverlays.ignoreEvent(input.provider, input.externalId);
+    await context.repos.metaOverlays.ignoreEvents(input.provider, [input.externalId]);
   }),
 
   ignorePlayer: os.ignorePlayer.handler(async ({ input, context }): Promise<void> => {

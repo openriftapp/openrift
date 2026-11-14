@@ -3,7 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { FriendGroupDiscordLinksTable } from "../../../db/tables/friend-groups.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 
 export type DiscordLink = Selectable<FriendGroupDiscordLinksTable>;
 
@@ -72,9 +72,7 @@ export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
           return { status: "unknown-code" };
         }
         // A row lock cannot hold a guild that has no row yet, so redeems for one guild queue here.
-        await sql`select pg_advisory_xact_lock(hashtext(${`discord-guild:${values.guildId}`}))`.execute(
-          trx,
-        );
+        await lockKey(trx, `discord-guild:${values.guildId}`);
         const existing = await trx
           .selectFrom("friendGroupDiscordLinks")
           .selectAll()

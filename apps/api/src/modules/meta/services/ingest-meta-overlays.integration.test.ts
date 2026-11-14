@@ -251,7 +251,7 @@ describe.skipIf(!ctx)("ingestMetaOverlays", () => {
   it("updates a changed player in place and re-opens its review", async () => {
     await upload(eventBody());
     const [withList] = await playerOverlays();
-    await repos.metaOverlays.setPlayerOverlayStatus(withList!.id, "accepted", new Date());
+    await repos.metaOverlays.setPlayerOverlayStatuses([withList!.id], "accepted", new Date());
 
     const result = await upload(
       eventBody({
@@ -299,7 +299,7 @@ describe.skipIf(!ctx)("ingestMetaOverlays", () => {
   });
 
   it("skips a whole event the reviewer dismissed, field included", async () => {
-    await repos.metaOverlays.ignoreEvent(PROVIDER, "imo-evt-ignored");
+    await repos.metaOverlays.ignoreEvents(PROVIDER, ["imo-evt-ignored"]);
 
     const result = await upload(eventBody({ externalId: "imo-evt-ignored" }));
 

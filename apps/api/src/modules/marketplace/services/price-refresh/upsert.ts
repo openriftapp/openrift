@@ -12,7 +12,7 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Repos } from "../../../../deps.js";
 import type { PriceColumns, StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
-import type { GroupRow, PriceUpsertConfig, UpsertCounts } from "./types.js";
+import type { GroupRow, UpsertCounts } from "./types.js";
 
 const BATCH_SIZE = 200;
 
@@ -58,10 +58,9 @@ interface ProductPriceInsertRow extends PriceColumns {
 export async function upsertPriceData(
   priceRefresh: Repos["priceRefresh"],
   log: Logger,
-  config: PriceUpsertConfig,
+  marketplace: Marketplace,
   allStaging: StagingRow[],
 ): Promise<UpsertCounts> {
-  const { marketplace } = config;
   const repo = priceRefresh;
 
   // Groups/names update on conflict; they legitimately drift over time.

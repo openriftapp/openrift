@@ -19,6 +19,18 @@ import type { DeckDiff, DeckDiffEntry } from "@/features/decks/lib/deck-diff";
 import { deckDiffCardsFrom, diffDecks } from "@/features/decks/lib/deck-diff";
 import type { RailEdge, RailLayout, RailNode } from "@/features/decks/lib/deck-variant-rail";
 import { buildRailLayout } from "@/features/decks/lib/deck-variant-rail";
+import {
+  ADD_CHIP,
+  CHANGE_CHIP,
+  CHIP_BASE,
+  CUT_CHIP,
+  LABEL_MARGIN_X,
+  LANE_BOTTOM_PAD,
+  LANE_GAP,
+  LANE_TOP_Y,
+  PHONE_SLOT_WIDTH,
+  SLOT_WIDTH,
+} from "@/features/decks/lib/deck-variant-rail-geometry";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScrollEdges } from "@/hooks/use-scroll-edges";
@@ -32,16 +44,6 @@ import { DeckVariantCreateDialog } from "./deck-variant-create-dialog";
 // comes from lib/deck-variant-rail.
 
 const MAX_RAIL_NODES = 6;
-const SLOT_WIDTH = 168;
-const PHONE_SLOT_WIDTH = 132;
-const DOT_SIZE = 8;
-const LABEL_GAP = 8;
-const DATE_GAP = 4;
-const LABEL_LINE_HEIGHT = 16;
-const LABEL_MARGIN_X = 12;
-const LANE_TOP_Y = DOT_SIZE / 2 + LABEL_GAP + LABEL_LINE_HEIGHT;
-const LANE_GAP = DOT_SIZE + DATE_GAP + LABEL_LINE_HEIGHT + LABEL_GAP + LABEL_LINE_HEIGHT;
-const LANE_BOTTOM_PAD = DOT_SIZE / 2 + DATE_GAP + LABEL_LINE_HEIGHT;
 
 interface RailGeometry {
   slotWidth: number;
@@ -54,10 +56,6 @@ function railGeometry(slotWidth: number): RailGeometry {
   return { slotWidth, labelWidth, padX: labelWidth / 2 };
 }
 
-const CHIP_BASE = "rounded-md px-1.5 font-mono text-2xs font-bold tabular-nums";
-const ADD_CHIP = "bg-success-soft text-success";
-const CUT_CHIP = "bg-destructive-soft text-destructive";
-const CHANGE_CHIP = "bg-warning-soft text-warning";
 const ADD_CHIP_HOVER =
   "transition-colors group-hover:bg-success/20 group-focus-visible:bg-success/20";
 const CUT_CHIP_HOVER =

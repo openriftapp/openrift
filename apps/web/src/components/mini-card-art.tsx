@@ -6,19 +6,23 @@ import { cn } from "@/lib/utils";
 const CARD_EDGE =
   "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border-card-edge after:border";
 
-export function MiniCardArt({ url, className }: { url: string; className?: string }) {
+export function MiniCardArt({ url, className }: { url?: string; className?: string }) {
   return (
     <span
       className={cn("relative block", CARD_EDGE, className)}
       style={{ borderRadius: CARD_BORDER_RADIUS }}
     >
-      <img
-        src={url}
-        alt=""
-        loading="lazy"
-        draggable={false}
-        className="aspect-card block w-full rounded-[inherit] object-cover"
-      />
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          draggable={false}
+          className="aspect-card block w-full rounded-[inherit] object-cover"
+        />
+      ) : (
+        <span className="bg-muted aspect-card block w-full rounded-[inherit]" />
+      )}
     </span>
   );
 }

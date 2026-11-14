@@ -1,7 +1,9 @@
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
+import { shareByline } from "@openrift/shared/share-titles";
 
 import type { Child, Element } from "./share-image-core.js";
-import { COLORS, element, elideTitle, qrMark } from "./share-image-core.js";
+import { element, elideTitle, qrMark } from "./share-image-core.js";
 
 export interface ShareTypeScale {
   pad: number;
@@ -57,8 +59,8 @@ export function shareCanvas(
       display: "flex",
       width,
       height,
-      backgroundColor: COLORS.background,
-      color: COLORS.text,
+      backgroundColor: SHARE_IMAGE_COLORS.background,
+      color: SHARE_IMAGE_COLORS.text,
       fontFamily: "Hanken Grotesk",
       overflow: "hidden",
       ...style,
@@ -67,7 +69,11 @@ export function shareCanvas(
   );
 }
 
-export function hostLabel(host: string, fontSize: number, color: string = COLORS.muted): Element {
+export function hostLabel(
+  host: string,
+  fontSize: number,
+  color: string = SHARE_IMAGE_COLORS.muted,
+): Element {
   return element("div", { display: "flex", fontSize, fontWeight: 600, color }, host);
 }
 
@@ -112,10 +118,6 @@ interface TitleBlockOptions {
   typeHeight?: number;
 }
 
-function bylineText(ownerName: string): string {
-  return `by ${ownerName}`;
-}
-
 function metaRun(
   scale: ShareTypeScale,
   meta: string,
@@ -129,7 +131,7 @@ function metaRun(
       ...(landscape ? { flexShrink: 0 } : {}),
       fontSize: scale.metaSize,
       lineHeight: 1,
-      color: COLORS.muted,
+      color: SHARE_IMAGE_COLORS.muted,
     },
     meta,
   );
@@ -166,7 +168,7 @@ function landscapeType(options: TitleBlockOptions, scale: ShareTypeScale): Eleme
         fontSize: scale.titleSize,
         lineHeight: 1,
         fontWeight: 700,
-        color: COLORS.text,
+        color: SHARE_IMAGE_COLORS.text,
         ...(options.titleMaxWidth === undefined ? {} : { maxWidth: options.titleMaxWidth }),
         whiteSpace: "nowrap",
       },
@@ -182,9 +184,9 @@ function landscapeType(options: TitleBlockOptions, scale: ShareTypeScale): Eleme
             fontSize: scale.bylineSize,
             lineHeight: 1,
             fontWeight: 600,
-            color: COLORS.gold,
+            color: SHARE_IMAGE_COLORS.gold,
           },
-          bylineText(options.ownerName),
+          shareByline(options.ownerName),
         )
       : false,
     element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
@@ -212,7 +214,7 @@ function verticalType(options: TitleBlockOptions, scale: ShareTypeScale): Elemen
         fontSize: scale.titleSize,
         lineHeight: 1,
         fontWeight: 700,
-        color: COLORS.text,
+        color: SHARE_IMAGE_COLORS.text,
         whiteSpace: "nowrap",
       },
       elideTitle(options.title, options.maxChars ?? scale.titleMaxChars),
@@ -228,9 +230,9 @@ function verticalType(options: TitleBlockOptions, scale: ShareTypeScale): Elemen
               fontSize: scale.bylineSize,
               lineHeight: 1,
               fontWeight: 600,
-              color: COLORS.gold,
+              color: SHARE_IMAGE_COLORS.gold,
             },
-            bylineText(options.ownerName),
+            shareByline(options.ownerName),
           )
         : false,
       element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),

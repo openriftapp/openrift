@@ -1,12 +1,12 @@
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Insertable, Kysely, Selectable, Updateable } from "kysely";
-import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -307,7 +307,7 @@ export function ingestRepo(db: Db) {
      * Must be called inside a transaction.
      */
     async lockUserSubmissions(userId: string): Promise<void> {
-      await sql`select pg_advisory_xact_lock(hashtext(${userId}))`.execute(db);
+      await lockKey(db, userId);
     },
 
     async updateCandidateCard(id: string, updates: Updateable<CandidateCardsTable>): Promise<void> {

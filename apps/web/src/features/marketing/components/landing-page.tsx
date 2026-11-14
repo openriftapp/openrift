@@ -1,16 +1,16 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-queries";
-import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
+import { landingSamples } from "@/features/marketing/lib/page-samples";
 import { useCountUp } from "@/hooks/use-count-up";
+import { useIdlePreloadRoute } from "@/hooks/use-idle-preload-route";
 import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -47,25 +47,12 @@ function HeroStats({
 }
 
 export function LandingPage() {
-  const router = useRouter();
   const { data } = useQuery(landingSummaryQueryOptions);
   const [spinning, setSpinning] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [hinting, setHinting] = useState(false);
 
-  // Idle-time preload of /cards: warms the lazy chunk and catalog query so
-  // "Browse cards" renders the live grid instantly.
-  useEffect(() => {
-    // Not under `vite dev`: preloadRoute pulls the whole card-browser module
-    // graph one request at a time there. MODE, not DEV: vitest sets DEV too.
-    if (typeof requestIdleCallback === "undefined" || import.meta.env.MODE === "development") {
-      return;
-    }
-    const handle = requestIdleCallback(() => {
-      void router.preloadRoute({ to: "/cards" });
-    });
-    return () => cancelIdleCallback(handle);
-  }, [router]);
+  useIdlePreloadRoute("/cards");
 
   const animatedCards = useCountUp(data?.cardCount ?? 0);
   const animatedPrintings = useCountUp(data?.printingCount ?? 0);
@@ -84,8 +71,7 @@ export function LandingPage() {
     }, SPIN_DURATION_MS);
   }
 
-  const thumbnailUrls = (data?.thumbnailIds ?? []).map((id) => imageUrl(id, "400w"));
-  const thumbnailCards = landingThumbnailCards(data?.thumbnails);
+  const samples = landingSamples(data);
 
   return (
     <HeroBackground>
@@ -117,7 +103,7 @@ export function LandingPage() {
             <p className="text-muted-foreground text-left text-lg">
               {m.marketing_landing_subhead()}
             </p>
-            <HeroCtas />
+            <HeroCtas source="home-hero" />
             <p className="text-muted-foreground">
               <ParaglideMessage
                 message={m.marketing_landing_install}
@@ -138,7 +124,7 @@ export function LandingPage() {
           </div>
           <CardFan
             key={resetKey}
-            imageUrls={thumbnailUrls}
+            imageUrls={samples.fanUrls}
             hinting={hinting}
             onAllCollected={handleAllCollected}
           />
@@ -153,12 +139,7 @@ export function LandingPage() {
           <ChevronDownIcon className="text-muted-foreground/40 size-6 motion-safe:animate-bounce" />
         </span>
       </div>
-      {/* The fan uses thumbnails 0-4; the scanner vignette takes the next
-          four so no card appears twice on screen. */}
-      <FeatureShowcase
-        scanCards={thumbnailCards.slice(5, 9)}
-        thumbnailUrls={thumbnailUrls.slice(9, 17)}
-      />
+      <FeatureShowcase scanCards={samples.scanCards} thumbnailUrls={samples.groupUrls} />
       <LandingClosing />
     </HeroBackground>
   );

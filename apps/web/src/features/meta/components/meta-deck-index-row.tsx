@@ -8,13 +8,14 @@ import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { RankBand } from "@/components/ui/rank-band";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { MetaDeckOwnedBar } from "@/features/meta/components/meta-deck-owned-bar";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaListShapeBar } from "@/features/meta/components/meta-list-shape-bar";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { formatRank } from "@/features/meta/lib/meta-format";
+import { formatRank, metaDeckLinkLabel } from "@/features/meta/lib/meta-format";
 import { eitherName } from "@/features/meta/lib/meta-inferred";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -76,63 +77,6 @@ function Art({ deck }: { deck: MetaDeckSummary }) {
   );
 }
 
-function Owned({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Marketplace }) {
-  if (cost === undefined || cost.owned === undefined || cost.needed === 0) {
-    return null;
-  }
-  const complete = cost.owned >= cost.needed;
-  const percent = Math.min(100, Math.round((cost.owned / cost.needed) * 100));
-  return (
-    <span className="flex flex-col gap-1">
-      <span
-        aria-hidden
-        className={cn(
-          "block h-1 overflow-hidden rounded-full",
-          complete ? "bg-border-accent/25" : "bg-muted",
-        )}
-      >
-        <span
-          className={cn("block h-full rounded-full", complete ? "bg-border-accent" : "bg-primary")}
-          style={{ width: `${percent}%` }}
-        />
-      </span>
-      <span
-        className={cn(
-          "flex justify-between gap-1.5 text-xs whitespace-nowrap tabular-nums",
-          complete ? "text-border-accent font-medium" : "text-muted-foreground",
-        )}
-      >
-        {complete ? (
-          <>
-            <span>{m.meta_deck_all_owned({ count: String(cost.needed) })}</span>
-            <span>{m.meta_deck_buildable()}</span>
-          </>
-        ) : (
-          <>
-            <span>{m.meta_deck_owned_ratio({ owned: cost.owned, needed: cost.needed })}</span>
-            {cost.toComplete !== undefined && (cost.toComplete > 0 || cost.unpricedMissing > 0) && (
-              <span>
-                <span className="text-foreground font-semibold">
-                  {compactFormatterForMarketplace(marketplace)(cost.toComplete)}
-                </span>{" "}
-                {m.meta_deck_to_complete()}
-                {cost.unpricedMissing > 0 &&
-                  ` ${m.common_unpriced({ count: cost.unpricedMissing })}`}
-              </span>
-            )}
-          </>
-        )}
-      </span>
-    </span>
-  );
-}
-
-function deckLabel(deck: MetaDeckSummary): string {
-  return deck.legendName === null
-    ? m.meta_deck_label({ player: deck.playerName })
-    : m.meta_deck_label_with_legend({ player: deck.playerName, legend: deck.legendName });
-}
-
 export function MetaDeckIndexRow({
   deck,
   cost,
@@ -164,7 +108,7 @@ export function MetaDeckIndexRow({
       <Link
         to="/meta/decks/$token"
         params={{ token: deck.shareToken }}
-        aria-label={deckLabel(deck)}
+        aria-label={metaDeckLinkLabel(deck)}
         className="outline-none after:absolute after:inset-0"
       />
 
@@ -212,7 +156,7 @@ export function MetaDeckIndexRow({
         <span className="text-right text-sm tabular-nums">{priced}</span>
         {withCollection && (
           <div className="min-w-0">
-            <Owned cost={cost} marketplace={marketplace} />
+            <MetaDeckOwnedBar cost={cost} marketplace={marketplace} compact />
           </div>
         )}
       </div>

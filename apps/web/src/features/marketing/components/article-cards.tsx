@@ -10,7 +10,7 @@ export function StepRow({
   description,
 }: {
   step: number;
-  title: string;
+  title?: string;
   description: ReactNode;
 }) {
   return (
@@ -19,10 +19,14 @@ export function StepRow({
         <span className="bg-primary/10 text-primary flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
           {step}
         </span>
-        <div className="flex flex-col gap-1">
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
+        {title === undefined ? (
+          <div className="leading-6">{description}</div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -49,32 +53,6 @@ export function FeatureCard({
           <span className={dashed ? "text-muted-foreground" : "text-primary"}>{icon}</span>
           {title}
           {shortcut && <Kbd className="px-1.5">{shortcut}</Kbd>}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-    </Card>
-  );
-}
-
-export function ZoneCard({
-  name,
-  count,
-  description,
-  color,
-}: {
-  name: string;
-  count: string;
-  description: ReactNode;
-  color: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className={color}>{name}</span>
-          <span className="bg-muted text-muted-foreground text-2xs rounded-full px-1.5 tabular-nums">
-            {count}
-          </span>
         </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>

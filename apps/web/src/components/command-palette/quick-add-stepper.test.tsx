@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { PlusIcon } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 
-import { QuickAddStepper } from "@/features/collections/components/quick-add-stepper";
+import { QuickAddStepper } from "@/components/command-palette/quick-add-stepper";
 
 function renderStepper(props: Partial<Parameters<typeof QuickAddStepper>[0]> = {}) {
   render(

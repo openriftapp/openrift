@@ -31,8 +31,7 @@ import type {
 import {
   buildMarketplaceRows,
   collectEntries,
-  collectStrongMappings,
-  collectWeakMappings,
+  collectSuggestedMappings,
 } from "./marketplace-product-entries";
 
 function AcceptSuggestionsButton({
@@ -168,8 +167,10 @@ export function MarketplaceProductsTable({
   }
 
   const printingById = new Map(group.printings.map((printing) => [printing.printingId, printing]));
-  const strongByMarketplace = collectStrongMappings(group, suggestions);
-  const weakByMarketplace = collectWeakMappings(group, suggestions);
+  const { strong: strongByMarketplace, weak: weakByMarketplace } = collectSuggestedMappings(
+    group,
+    suggestions,
+  );
   const totalStrong =
     strongByMarketplace.tcgplayer.length +
     strongByMarketplace.cardmarket.length +

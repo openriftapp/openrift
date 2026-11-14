@@ -13,8 +13,7 @@ function navItem(label: string, to: string, description?: string): NavItemConfig
 function helpArticle(slug: string, title: string, description: string): HelpArticle {
   return {
     slug,
-    title,
-    description,
+    labels: () => ({ title, description }),
     icon: (() => null) as unknown as HelpArticle["icon"],
     component: () => Promise.resolve({ default: () => null }),
   };

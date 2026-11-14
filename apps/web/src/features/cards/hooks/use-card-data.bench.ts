@@ -6,8 +6,7 @@
 import { filterCards } from "@openrift/shared/filters";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { testSearchContext } from "@openrift/shared/test-factories";
-import type { CatalogSetResponse } from "@openrift/shared/types/api/catalog";
-import type { Card, Printing } from "@openrift/shared/types/catalog";
+import type { Printing } from "@openrift/shared/types/catalog";
 import type { CardFilters } from "@openrift/shared/types/search";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import {
@@ -22,112 +21,9 @@ import {
 } from "@tanstack/react-db";
 import { test } from "vitest";
 
-const SET_COUNT = 7;
-const CARD_COUNT = 771;
-const PRINTING_COUNT = 2916;
+import { buildSyntheticPrintings } from "@/test/synthetic-catalog";
 
-const RARITIES = ["common", "uncommon", "rare", "legendary"] as const;
-const DOMAINS = ["chaos", "order", "fury", "calm"] as const;
-const TYPES = ["unit", "spell", "gear", "battlefield"] as const;
-const LANGUAGES = ["EN", "DE", "FR", "ES"] as const;
-const ART_VARIANTS = ["normal", "alternate", "borderless"] as const;
-const FINISHES = ["normal", "foil"] as const;
-const KEYWORDS_POOL = ["slam", "mighty", "swift", "fragile", "loyal", "deft"];
-
-function seededRandom(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 9301 + 49_297) % 233_280;
-    return s / 233_280;
-  };
-}
-
-function pick<T>(arr: readonly T[], r: () => number): T {
-  const value = arr[Math.floor(r() * arr.length)];
-  if (value === undefined) {
-    throw new Error("pick() from empty array");
-  }
-  return value;
-}
-
-function buildFixture() {
-  const r = seededRandom(42);
-
-  const sets: CatalogSetResponse[] = Array.from({ length: SET_COUNT }, (_, i) => ({
-    id: `set-${i}`,
-    slug: `SET${i + 1}`,
-    name: `Test Set ${i + 1}`,
-    releases: {},
-    setType: i < 5 ? "main" : "supplemental",
-  }));
-
-  const cards: (Card & { id: string })[] = Array.from({ length: CARD_COUNT }, (_, i) => {
-    const type = pick(TYPES, r);
-    return {
-      id: `card-${i}`,
-      slug: `card-${i}`,
-      name: `Card ${i} ${pick(["Hero", "Rebel", "Ghost", "Knight", "Sage"], r)}`,
-      type,
-      types: [type],
-      superTypes: r() > 0.8 ? ["champion"] : [],
-      domains: [pick(DOMAINS, r), ...(r() > 0.7 ? [pick(DOMAINS, r)] : [])],
-      tokenCardIds: [],
-      might: Math.floor(r() * 10) - 1,
-      energy: Math.floor(r() * 8) + 1,
-      power: r() > 0.5 ? Math.floor(r() * 6) : null,
-      keywords: r() > 0.5 ? [pick(KEYWORDS_POOL, r)] : [],
-      tags: [],
-      mightBonus: null,
-      maxCopiesOverride: null,
-      additionalLegendCount: null,
-      errata: [],
-      bans: [],
-      upcomingBans: [],
-    };
-  });
-
-  const printings: Printing[] = Array.from({ length: PRINTING_COUNT }, (_, i) => {
-    const card = cards[i % CARD_COUNT];
-    const set = sets[Math.floor(r() * SET_COUNT)];
-    if (!card || !set) {
-      throw new Error("fixture indexing out of range");
-    }
-    return {
-      printingId: `printing-${i}`,
-      side: 1,
-      faceId: `printing-${i}`,
-      cardId: card.id,
-      shortCode: `${set.slug}-${String(i).padStart(3, "0")}`,
-      setId: set.id,
-      setSlug: set.slug,
-      setReleased: true,
-      rarity: pick(RARITIES, r),
-      artVariant: pick(ART_VARIANTS, r),
-      isSigned: r() > 0.9,
-      isOvernumbered: false,
-      markers: [],
-      distributionChannels: [],
-      finish: pick(FINISHES, r),
-      size: "standard",
-      images: [],
-      artist: "Synthetic",
-      publicCode: `synth-${i}`,
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      printedName: null,
-      printedYear: null,
-      comment: null,
-      language: pick(LANGUAGES, r),
-      canonicalRank: i + 1,
-      card,
-    };
-  });
-
-  return { sets, cards, printings };
-}
-
-const fixture = buildFixture();
+const printings = buildSyntheticPrintings();
 
 function emptyFilters(): CardFilters {
   return { ...EMPTY_CARD_FILTERS };
@@ -156,7 +52,7 @@ const SCENARIOS = {
 const printingsCollection = createCollection(
   localOnlyCollectionOptions<Printing>({
     getKey: (p) => p.printingId,
-    initialData: fixture.printings,
+    initialData: printings,
   }),
 );
 
@@ -204,15 +100,15 @@ function runTanstackQuery(filters: CardFilters) {
 test("filter+sort: current JS path", async ({ bench }) => {
   await bench.compare(
     bench("noop", () => {
-      const f = filterCards(fixture.printings, SCENARIOS.noop, testSearchContext());
+      const f = filterCards(printings, SCENARIOS.noop, testSearchContext());
       sortCards(f, "name", { sortDir: "asc" });
     }),
     bench("simple", () => {
-      const f = filterCards(fixture.printings, SCENARIOS.simple, testSearchContext());
+      const f = filterCards(printings, SCENARIOS.simple, testSearchContext());
       sortCards(f, "name", { sortDir: "asc" });
     }),
     bench("complex", () => {
-      const f = filterCards(fixture.printings, SCENARIOS.complex, testSearchContext());
+      const f = filterCards(printings, SCENARIOS.complex, testSearchContext());
       sortCards(f, "name", { sortDir: "asc" });
     }),
   );

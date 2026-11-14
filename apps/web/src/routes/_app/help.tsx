@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { visibleHelpArticles } from "@/features/marketing/components/articles";
+import { helpArticleLabels, visibleHelpArticles } from "@/features/marketing/components/articles";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { faqPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -12,10 +12,9 @@ export const Route = createFileRoute("/_app/help")({
       staleTime: "static",
     });
     return {
-      articles: visibleHelpArticles(flags).map(({ title, description }) => ({
-        title,
-        description,
-      })),
+      articles: visibleHelpArticles(flags).map((article) =>
+        helpArticleLabels(article, { locale: "en" }),
+      ),
     };
   },
   head: ({ loaderData }) => ({

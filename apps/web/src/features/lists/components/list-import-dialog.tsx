@@ -25,8 +25,8 @@ import {
 import type { ImportInputStepProps } from "@/features/collections/lib/import-input-step-props";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { partitionMatchedEntries } from "@/features/collections/lib/import-summary";
-import type { ImportableListKind } from "@/features/lists/hooks/use-list-import-flow";
 import { useListImportFlow } from "@/features/lists/hooks/use-list-import-flow";
+import type { ImportableListKind } from "@/features/lists/lib/list-import-payload";
 import { m } from "@/paraglide/messages.js";
 
 interface ListImportDialogProps {

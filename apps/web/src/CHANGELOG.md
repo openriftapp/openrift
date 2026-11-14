@@ -16,6 +16,9 @@
 - fix(Collection): **Scanner "New" per card** — a scanned card counts as new only when you own it in no printing.
 - fix(Collection): **Identify sheet failure state** — a failed attempt no longer leaves the sheet on "recognising", and a card recognised a moment late vibrates too.
 - fix(Collection): **Scanner languages in your order** — the scan language list follows your preferred languages, and identify search finds cards printed only in other languages.
+- fix(App): **Help search in your language** — the command palette lists and searches help articles by their title in your language.
+- fix(App): **Help articles match the app** — the stage shortcuts, the import guide and the price sections describe what the app does today.
+- fix(App): **Feature tour matches the app** — the previews on the home and features pages show the same labels, badges and marketplaces as the pages they stand for.
 
 ## 2026-11-13
 

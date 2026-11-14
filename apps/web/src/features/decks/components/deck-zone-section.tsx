@@ -4,20 +4,23 @@ import { zoneExpected } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { AlertTriangleIcon, BanIcon, PlusIcon } from "lucide-react";
+import { BanIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
 import { DeckCardRow } from "@/features/decks/components/deck-card-row";
-import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
+import {
+  DeckZoneHeader,
+  ZONE_ADD_STRIP_CLASS,
+  ZoneIssuesPopover,
+} from "@/features/decks/components/deck-zone-header";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckPlanIfAvailable } from "@/features/decks/hooks/use-deck-plan";
@@ -331,29 +334,7 @@ export function DeckZoneSection({
         {dropDisabled ? (
           <BanIcon className="text-muted-foreground size-3.5 shrink-0" />
         ) : showHeaderIssues ? (
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={m.decks_editor_show_zone_issues()}
-                  className="size-5 shrink-0 rounded-md"
-                />
-              }
-            >
-              <AlertTriangleIcon className="text-destructive size-3.5" />
-            </PopoverTrigger>
-            <PopoverContent side="bottom" align="start" className="w-auto max-w-80 p-2">
-              <ul className="space-y-0.5">
-                {headerViolations.map((violation) => (
-                  <li key={`${violation.code}-${violation.cardId ?? ""}`} className="text-xs">
-                    {violation.message}
-                  </li>
-                ))}
-              </ul>
-            </PopoverContent>
-          </Popover>
+          <ZoneIssuesPopover zoneLabel={zoneLabel} issues={headerViolations} />
         ) : null}
         {!(
           !hasZoneViolations &&

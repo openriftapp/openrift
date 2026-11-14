@@ -1,35 +1,22 @@
 import type { ListKind } from "@openrift/shared/types/api/list";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { useAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
-import type { ImportStep } from "@/features/collections/lib/import-flow-shared";
-import {
-  createImportEntryHandlers,
-  deriveImportSummary,
-  handleImportFileUpload,
-  IMPORT_BATCH_SIZE,
-  runImportParse,
-  STATUS_SORT_ORDER,
-} from "@/features/collections/lib/import-flow-shared";
-import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
-import { matchEntries } from "@/features/collections/lib/import-matcher";
+import { useImportReview } from "@/features/collections/hooks/use-import-review";
+import { IMPORT_BATCH_SIZE } from "@/features/collections/lib/import-flow-shared";
 import type { ImportCopyMetadata } from "@/features/collections/lib/import-parsers";
 import { copyIdsInCollection, LIST_TARGET_PREFIX } from "@/features/collections/lib/import-replace";
 import { useImportHandoffStore } from "@/features/collections/stores/import-handoff-store";
-import type { ImportableListKind } from "@/features/lists/hooks/use-list-import-flow";
-import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
-import { knownPrintingCode } from "@/features/lists/lib/list-import-parser";
-import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import type { ImportableListKind } from "@/features/lists/lib/list-import-payload";
+import { buildListImportPayload } from "@/features/lists/lib/list-import-payload";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
-import { useDisplayStore } from "@/stores/display-store";
 
 export interface ImportableListOption {
   id: string;
@@ -50,66 +37,22 @@ export function toImportableListOptions(
 }
 
 export function useImportFlow() {
-  const { allPrintings } = useCards();
   const addCopies = useAddCopies();
   const disposeCopies = useDisposeCopies();
   const copiesCollection = useCopiesCollection();
   const createCollection = useCreateCollection();
   const bulkAddEntries = useBulkAddListEntries();
   const navigate = useNavigate();
-  const preferredLanguages = useDisplayStore((state) => state.languages);
+  const review = useImportReview({ promoteSingleCard: false, tieBreak: "sourceCode" });
+  const { importableEntries, summary, setRawText, handleParse } = review;
 
   const { data: lists } = useLists();
   const importableLists = toImportableListOptions(lists);
 
-  const [step, setStep] = useState<ImportStep>("input");
-  const [rawText, setRawText] = useState("");
-  const [matchedEntries, setMatchedEntries] = useState<MatchedEntry[]>([]);
-  const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [collectionId, setCollectionId] = useState("");
   const [newCollectionName, setNewCollectionName] = useState("");
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [skippedIndices, setSkippedIndices] = useState<Set<number>>(new Set());
-  const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
-  const [rowCount, setRowCount] = useState(0);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const { labels: enumLabels } = useEnumOrders();
-  const languageLabels = useLanguageLabels();
-  const importLabels = {
-    finishes: enumLabels.finishes,
-    languages: languageLabels,
-    isCode: knownPrintingCode(allPrintings),
-  };
-
-  const handleParse = (text: string) => {
-    runImportParse(
-      text,
-      importLabels,
-      (entries) => {
-        const matched = matchEntries(entries, allPrintings, preferredLanguages[0]);
-        return matched.toSorted((entryA, entryB) => {
-          const statusDiff = STATUS_SORT_ORDER[entryA.status] - STATUS_SORT_ORDER[entryB.status];
-          if (statusDiff !== 0) {
-            return statusDiff;
-          }
-          return entryA.entry.sourceCode.localeCompare(entryB.entry.sourceCode);
-        });
-      },
-      {
-        setRowCount,
-        setParseErrors,
-        setMatchedEntries,
-        setSkippedIndices,
-        setExpandedIndices,
-        setStep,
-      },
-    );
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    void handleImportFileUpload(event, fileRef, setRawText, handleParse);
-  };
 
   useEffect(() => {
     const handoff = useImportHandoffStore.getState().takeHandoff();
@@ -123,17 +66,6 @@ export function useImportFlow() {
     handleParse(handoff.rawText);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount to consume a one-shot handoff
   }, []);
-
-  const { handleResolve, handleSkip, handleUnskip, handleToggleExpand } = createImportEntryHandlers(
-    setMatchedEntries,
-    setSkippedIndices,
-    setExpandedIndices,
-  );
-
-  const { importableEntries, summary, skippedCount } = deriveImportSummary(
-    matchedEntries,
-    skippedIndices,
-  );
 
   const importIntoList = async (listId: string) => {
     const list = importableLists.find((option) => option.id === listId);
@@ -249,37 +181,37 @@ export function useImportFlow() {
   };
 
   return {
-    step,
-    rawText,
-    matchedEntries,
-    parseErrors,
+    step: review.step,
+    rawText: review.rawText,
+    matchedEntries: review.matchedEntries,
+    parseErrors: review.parseErrors,
     collectionId,
     newCollectionName,
     importableLists,
     isImporting: isImporting || isCreatingCollection,
-    skippedIndices,
-    expandedIndices,
-    rowCount,
-    fileRef,
-    allPrintings,
+    skippedIndices: review.skippedIndices,
+    expandedIndices: review.expandedIndices,
+    rowCount: review.rowCount,
+    fileRef: review.fileRef,
+    allPrintings: review.allPrintings,
 
     readyCount: summary.readyCount,
     toVerifyCount: summary.toVerifyCount,
     needsAttentionCount: summary.needsAttentionCount,
     importableCount: summary.importableCount,
-    skippedCount,
+    skippedCount: review.skippedCount,
     totalCards: summary.totalCards,
 
     handleRawTextChange: setRawText,
     handleCollectionChange: setCollectionId,
     handleNewCollectionNameChange: setNewCollectionName,
     handleParse,
-    handleFileUpload,
-    handleResolve,
-    handleSkip,
-    handleUnskip,
-    handleToggleExpand,
+    handleFileUpload: review.handleFileUpload,
+    handleResolve: review.handleResolve,
+    handleSkip: review.handleSkip,
+    handleUnskip: review.handleUnskip,
+    handleToggleExpand: review.handleToggleExpand,
     handleImport,
-    handleBack: () => setStep("input"),
+    handleBack: () => review.setStep("input"),
   };
 }

@@ -1,17 +1,19 @@
 import { ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { ClipFrame } from "./clip-frame";
+import { FAKE_CONTROL, Vignette } from "./vignette-parts";
 
 const QUERY = "deck";
+const RULE_COUNT = 1443;
 
-const INDENT = {
+const GUIDES = {
   0: "",
-  1: "pl-2 sm:pl-3",
-  2: "pl-4 sm:pl-6",
+  1: "rule-guides [--rule-depth:1]",
+  2: "rule-guides [--rule-depth:2]",
 } as const;
 
 function Term({ children }: { children: ReactNode }) {
@@ -36,10 +38,10 @@ function RuleRow({
   return (
     <div className="flex items-baseline py-2 text-sm">
       <span className="text-muted-foreground mr-3 shrink-0 font-mono text-xs">{number}</span>
-      <span className={cn("min-w-0 flex-1", INDENT[depth])}>
+      <span className={cn("min-w-0 flex-1", GUIDES[depth])}>
         {toggle && (
-          <span className="motion-safe:animate-rules-before float-right ml-3 flex size-4 shrink-0 items-start">
-            <ChevronRightIcon className="text-muted-foreground size-4 rotate-90" />
+          <span className="motion-safe:animate-rules-before float-right ml-3 flex size-4 shrink-0 items-center justify-center opacity-0">
+            <ChevronRightIcon className="text-muted-foreground size-3 rotate-90" />
           </span>
         )}
         {children}
@@ -50,7 +52,7 @@ function RuleRow({
 
 function FilteredRow({ children }: { children: ReactNode }) {
   return (
-    <div className="motion-safe:animate-rules-collapse grid grid-rows-[1fr]">
+    <div className="motion-safe:animate-rules-collapse grid grid-rows-[0fr] opacity-0">
       <div className="overflow-hidden">{children}</div>
     </div>
   );
@@ -58,31 +60,23 @@ function FilteredRow({ children }: { children: ReactNode }) {
 
 export function RulesVignette() {
   return (
-    <ClipFrame className="flex flex-col gap-4 p-5">
-      <div className="border-input flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border px-2 text-sm">
+    <Vignette>
+      <div className={cn(FAKE_CONTROL, "gap-2")}>
         <SearchIcon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
         <span className="relative min-w-0 flex-1">
-          <span className="text-muted-foreground motion-safe:animate-rules-placeholder">
-            {m.rules_search_placeholder()}
+          <span className="text-muted-foreground motion-safe:animate-rules-placeholder block truncate opacity-0">
+            {m.rules_search_placeholder_count({ count: formatCount(RULE_COUNT) })}
           </span>
-          <span
-            className="motion-safe:animate-rules-type absolute inset-y-0 left-0 flex items-center whitespace-nowrap"
-            style={{ clipPath: "inset(0 100% 0 0)" }}
-          >
+          <span className="motion-safe:animate-rules-type absolute inset-y-0 left-0 flex items-center whitespace-nowrap">
             {QUERY}
           </span>
         </span>
-        <span className="text-muted-foreground grid shrink-0 justify-items-end text-xs">
-          <span className="motion-safe:animate-rules-before col-start-1 row-start-1">
-            {m.marketing_rules_count({ count: 1443 })}
-          </span>
-          <span className="motion-safe:animate-rules-after col-start-1 row-start-1 opacity-0">
-            {m.marketing_rules_filtered({ shown: 2, total: 1443 })}
-          </span>
+        <span className="text-muted-foreground motion-safe:animate-rules-after shrink-0 text-xs">
+          {m.rules_count_filtered({ matched: 2, count: RULE_COUNT })}
         </span>
         <span
           aria-hidden="true"
-          className="text-muted-foreground motion-safe:animate-rules-after shrink-0 opacity-0"
+          className="text-muted-foreground motion-safe:animate-rules-after shrink-0"
         >
           <XIcon className="size-3.5" />
         </span>
@@ -110,6 +104,6 @@ export function RulesVignette() {
           </RuleRow>
         </FilteredRow>
       </div>
-    </ClipFrame>
+    </Vignette>
   );
 }

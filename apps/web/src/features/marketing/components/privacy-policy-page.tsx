@@ -1,4 +1,5 @@
 import { ProsePage } from "@/components/prose-page";
+import { LegalAddress } from "@/features/marketing/components/legal-address";
 import { m } from "@/paraglide/messages.js";
 
 export function PrivacyPolicyPage() {
@@ -8,15 +9,7 @@ export function PrivacyPolicyPage() {
 
       <h2>{m.privacy_controller_heading()}</h2>
       <p>{m.privacy_controller_intro()}</p>
-      <p>
-        Eiko Wagenknecht
-        <br />
-        Burgwedeler Str. 77
-        <br />
-        30657 Hannover
-        <br />
-        Germany
-      </p>
+      <LegalAddress />
       <p>
         E-Mail: <a href="mailto:support@openrift.app">support@openrift.app</a>
       </p>

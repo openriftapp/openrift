@@ -1,29 +1,22 @@
 import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
+import { deckMetaLabel } from "@openrift/shared/share-titles";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Io } from "../../../io.js";
 import type { Child } from "../../system/services/share-image-core.js";
-import {
-  COLORS,
-  cardTile,
-  element,
-  qrDataUri,
-  renderTreeToPng,
-  tileArtDataUri,
-} from "../../system/services/share-image-core.js";
+import { cardTile, element, renderTreeToPng } from "../../system/services/share-image-core.js";
 import { VERTICAL, deckTitleBlock, titleTypeHeight } from "./deck-image-canvas.js";
 import type { DeckImageInput } from "./deck-image-parts.js";
 import {
   BODY_GAP,
   GAP,
   SECTION_HEADER_H,
-  deckBackdropUri,
   deckHeroBackdrop,
-  deckMetaLabel,
   deckSection,
   domainIconElements,
-  glyphUri,
   legendGlowBackground,
+  loadDeckArt,
   packGrid,
   runeCountsByDomain,
   splitDeckZones,
@@ -152,7 +145,7 @@ export async function renderVerticalDeckImage(
   const domains = runeCountsByDomain(zones.runes).map((entry) => entry.domain);
 
   // Resolve every raster source up front (art is the dominant cost).
-  const [
+  const {
     legendUri,
     legendOptionUris,
     backdropUri,
@@ -162,33 +155,21 @@ export async function renderVerticalDeckImage(
     runeUris,
     domainUris,
     qrUri,
-  ] = await Promise.all([
-    legend ? tileArtDataUri(io, legend.imageId, legendW, legendH, scale) : Promise.resolve(null),
-    Promise.all(
-      (bandOptions ? legendOptions : []).map((card) =>
-        tileArtDataUri(io, card.imageId, bandOptionW, bandOptionH, scale),
-      ),
-    ),
-    deckBackdropUri(io, input.coverImageId ?? legend?.imageId, canvasW, canvasH, scale),
-    grid
-      ? Promise.all(
-          gridCards.map((card) => tileArtDataUri(io, card.imageId, grid.tileW, grid.tileH, scale)),
-        )
-      : Promise.resolve([]),
-    Promise.all(
-      battlefields.map((card) => tileArtDataUri(io, card.imageId, bfTileW, bfTileH, scale)),
-    ),
-    Promise.all(
-      sideboard.map((card) =>
-        tileArtDataUri(io, card.imageId, sideboardTileW, sideboardTileH, scale),
-      ),
-    ),
-    Promise.all(
-      runeCards.map((card) => tileArtDataUri(io, card.imageId, runeTileW, runeTileH, scale)),
-    ),
-    Promise.all(domains.map((domain) => glyphUri(io, domain, canvas.domainIcon, scale))),
-    input.shareUrl ? qrDataUri(input.shareUrl, scale, canvas.headerQr) : Promise.resolve(null),
-  ]);
+  } = await loadDeckArt(
+    io,
+    input,
+    { legend, legendOptions, gridCards, battlefields, sideboard, runeCards, domains },
+    {
+      legend: { w: legendW, h: legendH },
+      legendOption: bandOptions ? { w: bandOptionW, h: bandOptionH } : null,
+      grid,
+      battlefield: { w: bfTileW, h: bfTileH },
+      sideboard: { w: sideboardTileW, h: sideboardTileH },
+      rune: { w: runeTileW, h: runeTileH },
+    },
+    canvas,
+    scale,
+  );
 
   const battlefieldTiles = battlefields.map((card, index) =>
     cardTile(card, battlefieldUris[index] ?? null, bfTileW, bfTileH),
@@ -275,7 +256,7 @@ export async function renderVerticalDeckImage(
           alignItems: "center",
           justifyContent: "center",
           fontSize: 34,
-          color: COLORS.muted,
+          color: SHARE_IMAGE_COLORS.muted,
         },
         "No cards yet",
       ),
@@ -322,7 +303,7 @@ export async function renderVerticalDeckImage(
       input.siteHost
         ? element(
             "div",
-            { display: "flex", fontSize: 24, fontWeight: 600, color: COLORS.muted },
+            { display: "flex", fontSize: 24, fontWeight: 600, color: SHARE_IMAGE_COLORS.muted },
             input.siteHost,
           )
         : false,
@@ -339,9 +320,9 @@ export async function renderVerticalDeckImage(
       width: canvasW,
       height: canvasH,
       padding: canvas.pad,
-      backgroundColor: COLORS.background,
+      backgroundColor: SHARE_IMAGE_COLORS.background,
       ...(glowBackground ? { backgroundImage: glowBackground } : {}),
-      color: COLORS.text,
+      color: SHARE_IMAGE_COLORS.text,
       fontFamily: "Hanken Grotesk",
       overflow: "hidden",
     },

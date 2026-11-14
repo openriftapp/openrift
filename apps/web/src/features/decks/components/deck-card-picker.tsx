@@ -12,7 +12,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import type { CardSearchResult } from "@/features/cards/lib/card-search-result";
-import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
+import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-stat-glyphs";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";

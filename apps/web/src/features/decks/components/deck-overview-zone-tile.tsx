@@ -3,15 +3,18 @@ import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { PlusIcon, AlertTriangleIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { GroupedThumbs } from "@/features/decks/components/deck-grouped-thumbs";
-import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
+import {
+  DeckZoneHeader,
+  ZONE_ADD_STRIP_CLASS,
+  ZoneIssuesPopover,
+} from "@/features/decks/components/deck-zone-header";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
@@ -226,32 +229,7 @@ export function ZoneTile({
           )
         }
       >
-        {hasViolation && (
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={m.decks_overview_zone_issues({ zone: label })}
-                  className="size-5 shrink-0 rounded-md"
-                />
-              }
-            >
-              <AlertTriangleIcon className="text-destructive size-3.5" />
-            </PopoverTrigger>
-            <PopoverContent side="bottom" align="start" className="w-auto max-w-80 p-2">
-              <ul className="space-y-0.5">
-                {zoneViolations.map((violation) => (
-                  <li key={violation.code} className="text-xs">
-                    {violation.message}
-                  </li>
-                ))}
-              </ul>
-            </PopoverContent>
-          </Popover>
-        )}
+        {hasViolation && <ZoneIssuesPopover zoneLabel={label} issues={zoneViolations} />}
         {!hideCount && (
           <span
             className={cn(

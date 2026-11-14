@@ -1,4 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { DEVELOPERS_SHOWCASE } from "@openrift/shared/developers-showcase";
 import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -19,11 +21,7 @@ import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries
 import { DevelopersHero } from "@/features/marketing/components/developers-hero";
 import type { DevelopersShowcaseCard } from "@/features/marketing/components/developers-hero";
 import { HelpPageLayout } from "@/features/marketing/components/help-article-page";
-import {
-  DEVELOPER_ENDPOINT_PATHS,
-  SHOWCASE_CARD_SLUG,
-  SHOWCASE_PUBLIC_CODE,
-} from "@/features/marketing/lib/developer-endpoints";
+import { DEVELOPER_ENDPOINT_PATHS } from "@/features/marketing/lib/developer-endpoints";
 import type { DeveloperEndpointPath } from "@/features/marketing/lib/developer-endpoints";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { getSiteUrl } from "@/lib/site-config";
@@ -79,20 +77,20 @@ function Paragraph({ children }: { children: ReactNode }) {
 }
 
 function useShowcaseCard(): DevelopersShowcaseCard | null {
-  const { data } = useQuery(cardDetailQueryOptions(SHOWCASE_CARD_SLUG));
+  const { data } = useQuery(cardDetailQueryOptions(DEVELOPERS_SHOWCASE.cardSlug));
   if (!data) {
     return null;
   }
   const printing =
     data.printings.find(
-      (row) => row.publicCode === SHOWCASE_PUBLIC_CODE && row.language === "EN",
+      (row) => row.publicCode === DEVELOPERS_SHOWCASE.publicCode && row.language === "EN",
     ) ?? data.printings.find((row) => row.images.length > 0);
   if (!printing) {
     return null;
   }
   const imageId = printing.images.at(0)?.imageId;
   return {
-    name: data.card.name,
+    name: legendDisplayName(data.card),
     energy: data.card.energy,
     tags: data.card.tags,
     domains: data.card.domains,

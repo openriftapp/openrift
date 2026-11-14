@@ -2,7 +2,6 @@ import { totalQuantity } from "@openrift/shared/deck-rules";
 import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { FlaskConicalIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
@@ -21,14 +20,10 @@ import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
-import { useCards } from "@/features/cards/hooks/use-cards";
 import {
   closeOverlayHistoryEntry,
   hasOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
-import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
-import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
-import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
 import { DeckCardBrowser } from "@/features/decks/components/deck-card-browser";
 import { DeckDndContext } from "@/features/decks/components/deck-dnd-context";
 import { DeckEditorDialogs } from "@/features/decks/components/deck-editor-dialogs";
@@ -43,31 +38,17 @@ import { WorkbenchDialogs } from "@/features/decks/components/workbench-dialogs"
 import { WorkbenchModeControl } from "@/features/decks/components/workbench-mode-control";
 import { WorkbenchStatsStrip } from "@/features/decks/components/workbench-stats-strip";
 import { WorkbenchAddAnnouncer } from "@/features/decks/components/workbench-zone-bar";
-import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
-import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dialogs";
+import { useDeckEditorSession } from "@/features/decks/hooks/use-deck-editor-session";
 import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
-import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
-import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
-import { useDeckDetail } from "@/features/decks/hooks/use-decks";
-import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
-import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { WorkbenchMode } from "@/features/decks/lib/deck-editor-search";
-import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { dismissRelaxedAddToasts } from "@/features/decks/lib/workbench-add-toast";
-import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
-import { flushDeckDraft, hydrateDeckDraft } from "@/features/decks/stores/deck-draft-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
-import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
-import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
-import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSetOwnFeatureFlag } from "@/hooks/use-own-feature-flag";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useSession, useUserId } from "@/hooks/use-session";
 import { prefersReducedMotion } from "@/lib/media-query";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -111,21 +92,23 @@ function WorkbenchContent({
   deckId: string;
   topBarSlot: HTMLDivElement | null;
 }) {
-  const queryClient = useQueryClient();
-  const userId = useUserId();
-  const isLocal = useIsLocalDeck(deckId);
-  const scope = isLocal ? "local" : (userId ?? "");
-  const { data } = useDeckDetail(deckId);
-  const { cardsById, allPrintings } = useCards();
-  const { getPreferredPrinting } = usePreferredPrinting();
-  const hydrated = useDeckDraftHydrated(queryClient, scope, deckId);
-  const deckCards = useDeckCards(deckId);
-  const saveStatus = useDeckSaveStatus(queryClient, scope, deckId);
+  const {
+    data,
+    isLocal,
+    hydrated,
+    deckCards,
+    saveStatus,
+    deckCounts,
+    ownershipData,
+    marketplace,
+    editorViolations,
+    deckItems,
+    printingsByCardId,
+    openOverviewCard,
+  } = useDeckEditorSession(deckId);
   const { isMobile, setOpenMobile } = useSidebar();
   const setActiveZone = useDeckBuilderUiStore((state) => state.setActiveZone);
   const setOverviewTab = useDeckBuilderUiStore((state) => state.setOverviewTab);
-  const resetUi = useDeckBuilderUiStore((state) => state.reset);
-  const setRunesByDomain = useDeckBuilderUiStore((state) => state.setRunesByDomain);
   const setRelaxed = useWorkbenchStore((state) => state.setRelaxed);
   const resetWorkbench = useWorkbenchStore((state) => state.reset);
   const setDismissedAdvance = useWorkbenchStore((state) => state.setDismissedAdvance);
@@ -136,31 +119,6 @@ function WorkbenchContent({
   const navigate = route.useNavigate();
   const router = useRouter();
 
-  const { data: session } = useSession();
-  const { data: deckCounts } = useDeckBuildingCounts(
-    Boolean(session?.user),
-    data.deck.collectionId,
-  );
-  const { data: borrowedCounts } = useBorrowedCounts(Boolean(session?.user));
-  const { data: incomingCounts } = useIncomingTradeCounts(Boolean(session?.user));
-  const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
-  const marketplace = marketplaceOrder[0];
-  const editorViolations = useDeckViolations(deckId, data.deck.format, data.deck.formatConfig);
-  useRegisterQuickAdd({ key: `deck:${deckId}`, label: m.decks_editor_quick_add_label() });
-  const ownershipData = useDeckOwnership(
-    deckCards,
-    allPrintings,
-    deckCounts?.available,
-    marketplace,
-    deckCounts?.locked,
-    borrowedCounts,
-    deckCounts && {
-      loaned: deckCounts.lockedLoaned,
-      reserved: deckCounts.lockedReserved,
-      excluded: deckCounts.lockedExcluded,
-    },
-    incomingCounts,
-  );
   const viewDeckBuilding = useViewDeckCardDetail({ deck: data.deck, deckCounts, ownershipData });
 
   const hasLegend = deckCards.some((card) => card.zone === WellKnown.deckZone.LEGEND);
@@ -209,52 +167,6 @@ function WorkbenchContent({
     setActiveZone(activeZone);
   }, [activeZone, setActiveZone]);
 
-  useEffect(() => {
-    if (allPrintings.length === 0) {
-      return;
-    }
-    setRunesByDomain(buildRunesByDomain(allPrintings));
-  }, [allPrintings, setRunesByDomain]);
-
-  useEffect(() => {
-    if (data && !hydrated) {
-      const builderCards = data.cards
-        .map((card) => toDeckBuilderCard(card, cardsById))
-        .filter((card): card is DeckBuilderCard => card !== null);
-      hydrateDeckDraft(queryClient, scope, deckId, builderCards);
-    }
-  }, [data, deckId, hydrated, queryClient, scope, cardsById]);
-
-  useEffect(
-    () => () => {
-      resetUi();
-    },
-    [resetUi],
-  );
-
-  useEffect(
-    () => () => {
-      flushDeckDraft(queryClient, scope, deckId);
-    },
-    [queryClient, scope, deckId],
-  );
-
-  const clearBenchSession = useDeckBenchSessionStore((state) => state.clear);
-  useEffect(() => () => clearBenchSession(deckId), [clearBenchSession, deckId]);
-
-  const unsavedWarning = saveStatus.isDirty || saveStatus.isSaving;
-  useEffect(() => {
-    if (!unsavedWarning) {
-      return;
-    }
-    const handler = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    globalThis.addEventListener("beforeunload", handler);
-    return () => globalThis.removeEventListener("beforeunload", handler);
-  }, [unsavedWarning]);
-
-  const { items: deckItems, printingsByCardId } = useDeckItems(deckCards);
   const preferredLanguages = useDisplayStore((state) => state.languages);
   const viewPrintingsByCardId =
     preferredLanguages.length === 0
@@ -360,14 +272,6 @@ function WorkbenchContent({
     setMode("deck");
   };
 
-  const handleOverviewCardClick = (card: CardOpenTarget) => {
-    const printing = getPreferredPrinting(card.cardId, card.preferredPrintingId);
-    if (!printing) {
-      return;
-    }
-    useSelectionStore.getState().selectCard(printing, deckItems, "card", { zone: card.zone });
-  };
-
   const {
     hoveredCard,
     origin: hoverOrigin,
@@ -428,7 +332,7 @@ function WorkbenchContent({
       onZoneClick={setZone}
       onViewMissing={() => dialogs.openDialog("missing")}
       onHoverCard={handleHoverMain}
-      onOverviewCardClick={handleOverviewCardClick}
+      onOverviewCardClick={openOverviewCard}
       onEditDescription={isLocal ? undefined : () => dialogs.openDialog("details")}
       variantRailSlot={isLocal ? undefined : <DeckVariantRail deckId={deckId} />}
       onTargetZone={setZone}

@@ -11,15 +11,9 @@ import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-met
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
 
 import { TradeRowActions } from "./trade-row-actions";
-import type { TradeBadgeState } from "./trade-row-parts";
-import {
-  CardMetaLine,
-  TradeDirectionIcon,
-  TradeEstimatedPrice,
-  TradeExpiry,
-  tradeBadgeState,
-  TradeStatusBadge,
-} from "./trade-row-parts";
+import { CardMetaLine, TradeEstimatedPrice, TradeExpiry } from "./trade-row-parts";
+import type { TradeBadgeState } from "./trade-status-badge";
+import { TradeDirectionIcon, tradeBadgeState, TradeStatusBadge } from "./trade-status-badge";
 
 export function TradeRow({
   trade,

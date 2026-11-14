@@ -1,7 +1,6 @@
 import type {
   OverlayChannelResponse,
   OverlayCorner,
-  OverlayPlateFields,
   OverlayPlatePosition,
 } from "@openrift/shared/contracts/overlay";
 import { OVERLAY_SCALE } from "@openrift/shared/overlay-scale";
@@ -23,6 +22,7 @@ import {
   useEnableOverlayToken,
   useUpdateOverlaySettings,
 } from "@/features/stage/hooks/use-overlay";
+import { plateFieldOptions } from "@/features/stage/lib/plate-fields";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
@@ -55,16 +55,6 @@ function platePositions(): { value: OverlayPlatePosition; label: string }[] {
 
 function isPlatePosition(value: unknown): value is OverlayPlatePosition {
   return PLATE_POSITION_VALUES.some((position) => position === value);
-}
-
-function plateFields(): { key: keyof OverlayPlateFields; label: string }[] {
-  return [
-    { key: "name", label: m.stage_plate_field_name() },
-    { key: "code", label: m.stage_plate_field_code() },
-    { key: "stats", label: m.stage_plate_field_stats() },
-    { key: "rulesText", label: m.stage_plate_field_rules_text() },
-    { key: "flavorText", label: m.stage_plate_field_flavor_text() },
-  ];
 }
 
 export function OverlaySettingsPanel({
@@ -216,7 +206,7 @@ export function OverlaySettingsPanel({
 
             <div className="flex flex-col gap-2">
               <Label>{m.stage_plate_fields_label()}</Label>
-              {plateFields().map((field) => (
+              {plateFieldOptions().map((field) => (
                 <SettingsRow
                   key={field.key}
                   label={field.label}

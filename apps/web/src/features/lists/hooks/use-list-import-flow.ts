@@ -1,106 +1,24 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
-import { useCards } from "@/features/cards/hooks/use-cards";
-import type { ImportStep } from "@/features/collections/lib/import-flow-shared";
-import {
-  createImportEntryHandlers,
-  deriveImportSummary,
-  handleImportFileUpload,
-  IMPORT_BATCH_SIZE,
-  runImportParse,
-  STATUS_SORT_ORDER,
-} from "@/features/collections/lib/import-flow-shared";
-import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
-import { matchEntries } from "@/features/collections/lib/import-matcher";
+import { useImportReview } from "@/features/collections/hooks/use-import-review";
+import { IMPORT_BATCH_SIZE } from "@/features/collections/lib/import-flow-shared";
 import { useBulkAddListEntries } from "@/features/lists/hooks/use-lists";
-import { knownPrintingCode } from "@/features/lists/lib/list-import-parser";
-import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import type { ImportableListKind } from "@/features/lists/lib/list-import-payload";
+import { buildListImportPayload } from "@/features/lists/lib/list-import-payload";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
-import { useDisplayStore } from "@/stores/display-store";
-
-/** List kinds that support text/CSV import. Copy-kind has no source-file identity. */
-export type ImportableListKind = "card" | "printing";
 
 export function useListImportFlow(
   listId: string,
   listKind: ImportableListKind,
   onClose: () => void,
 ) {
-  const { allPrintings } = useCards();
   const bulkAddEntries = useBulkAddListEntries();
-  const preferredLanguages = useDisplayStore((state) => state.languages);
-
-  const [step, setStep] = useState<ImportStep>("input");
-  const [rawText, setRawText] = useState("");
-  const [matchedEntries, setMatchedEntries] = useState<MatchedEntry[]>([]);
-  const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const review = useImportReview({ promoteSingleCard: listKind === "card", tieBreak: "cardName" });
   const [isImporting, setIsImporting] = useState(false);
-  const [skippedIndices, setSkippedIndices] = useState<Set<number>>(new Set());
-  const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
-  const [rowCount, setRowCount] = useState(0);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const { labels: enumLabels } = useEnumOrders();
-  const languageLabels = useLanguageLabels();
-  const importLabels = {
-    finishes: enumLabels.finishes,
-    languages: languageLabels,
-    isCode: knownPrintingCode(allPrintings),
-  };
-
-  const reset = () => {
-    setStep("input");
-    setRawText("");
-    setMatchedEntries([]);
-    setParseErrors([]);
-    setSkippedIndices(new Set());
-    setExpandedIndices(new Set());
-    setRowCount(0);
-  };
-
-  const handleParse = (text: string) => {
-    runImportParse(
-      text,
-      importLabels,
-      (entries) => {
-        const matched = matchEntries(entries, allPrintings, preferredLanguages[0]).map((entry) =>
-          listKind === "card" ? promoteToExact(entry) : entry,
-        );
-        return matched.toSorted((entryA, entryB) => {
-          const statusDiff = STATUS_SORT_ORDER[entryA.status] - STATUS_SORT_ORDER[entryB.status];
-          if (statusDiff !== 0) {
-            return statusDiff;
-          }
-          return entryA.entry.cardName.localeCompare(entryB.entry.cardName);
-        });
-      },
-      {
-        setRowCount,
-        setParseErrors,
-        setMatchedEntries,
-        setSkippedIndices,
-        setExpandedIndices,
-        setStep,
-      },
-    );
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    void handleImportFileUpload(event, fileRef, setRawText, handleParse);
-  };
-
-  const { handleResolve, handleSkip, handleUnskip, handleToggleExpand } = createImportEntryHandlers(
-    setMatchedEntries,
-    setSkippedIndices,
-    setExpandedIndices,
-  );
-
-  const { importableEntries, summary, skippedCount } = deriveImportSummary(
-    matchedEntries,
-    skippedIndices,
-  );
+  const { importableEntries, summary } = review;
 
   const handleImport = async () => {
     if (importableEntries.length === 0) {
@@ -122,7 +40,7 @@ export function useListImportFlow(
     if (await runReportedMutation(sendAllBatches)) {
       toast.success(successMessage);
       setIsImporting(false);
-      reset();
+      review.reset();
       onClose();
       return;
     }
@@ -133,70 +51,33 @@ export function useListImportFlow(
   };
 
   return {
-    step,
-    rawText,
-    matchedEntries,
-    parseErrors,
+    step: review.step,
+    rawText: review.rawText,
+    matchedEntries: review.matchedEntries,
+    parseErrors: review.parseErrors,
     isImporting,
-    skippedIndices,
-    expandedIndices,
-    rowCount,
-    fileRef,
-    allPrintings,
+    skippedIndices: review.skippedIndices,
+    expandedIndices: review.expandedIndices,
+    rowCount: review.rowCount,
+    fileRef: review.fileRef,
+    allPrintings: review.allPrintings,
 
     readyCount: summary.readyCount,
     toVerifyCount: summary.toVerifyCount,
     needsAttentionCount: summary.needsAttentionCount,
     importableCount: summary.importableCount,
-    skippedCount,
+    skippedCount: review.skippedCount,
     totalCards: summary.totalCards,
 
-    handleRawTextChange: setRawText,
-    handleParse,
-    handleFileUpload,
-    handleResolve,
-    handleSkip,
-    handleUnskip,
-    handleToggleExpand,
+    handleRawTextChange: review.setRawText,
+    handleParse: review.handleParse,
+    handleFileUpload: review.handleFileUpload,
+    handleResolve: review.handleResolve,
+    handleSkip: review.handleSkip,
+    handleUnskip: review.handleUnskip,
+    handleToggleExpand: review.handleToggleExpand,
     handleImport,
-    handleBack: () => setStep("input"),
-    reset,
-  };
-}
-
-/** A single bulk-add list entry: either a cardId (card-kind) or printingId (printing-kind). */
-export interface ListImportPayloadEntry {
-  cardId?: string;
-  printingId?: string;
-  quantity: number;
-}
-
-export function buildListImportPayload(
-  readyEntries: MatchedEntry[],
-  listKind: ImportableListKind,
-): ListImportPayloadEntry[] {
-  return readyEntries.map((entry) =>
-    listKind === "printing"
-      ? { printingId: entry.resolvedPrinting?.printingId ?? "", quantity: entry.entry.quantity }
-      : { cardId: entry.resolvedPrinting?.cardId ?? "", quantity: entry.entry.quantity },
-  );
-}
-
-/**
- * Card-kind lists only need a cardId: a `needs-review` match with several printings
- * of one card is promoted to `exact`. Multi-card ambiguity is left for manual resolution.
- */
-export function promoteToExact(matched: MatchedEntry): MatchedEntry {
-  if (matched.status === "exact" || matched.candidates.length === 0) {
-    return matched;
-  }
-  const cardIds = new Set(matched.candidates.map((printing) => printing.cardId));
-  if (cardIds.size !== 1) {
-    return matched;
-  }
-  return {
-    ...matched,
-    status: "exact",
-    resolvedPrinting: matched.resolvedPrinting ?? matched.candidates[0] ?? null,
+    handleBack: () => review.setStep("input"),
+    reset: review.reset,
   };
 }

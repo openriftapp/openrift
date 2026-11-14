@@ -329,3 +329,18 @@ function matchSingleEntry(
     candidates: [],
   };
 }
+
+export function promoteToExact(matched: MatchedEntry): MatchedEntry {
+  if (matched.status === "exact" || matched.candidates.length === 0) {
+    return matched;
+  }
+  const cardIds = new Set(matched.candidates.map((printing) => printing.cardId));
+  if (cardIds.size !== 1) {
+    return matched;
+  }
+  return {
+    ...matched,
+    status: "exact",
+    resolvedPrinting: matched.resolvedPrinting ?? matched.candidates[0] ?? null,
+  };
+}

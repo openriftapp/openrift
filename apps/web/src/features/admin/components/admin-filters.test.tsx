@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { AdminFilterSelect, AdminFilterSwitch } from "./admin-filters";
+import { AdminDateRangeFilter, AdminFilterSelect, AdminFilterSwitch } from "./admin-filters";
 
 const options = [
   { value: "any", label: "Any state" },
@@ -67,5 +67,34 @@ describe("AdminFilterSwitch", () => {
     await user.click(screen.getByText("Decklists published"));
 
     expect(toggle).toBeChecked();
+  });
+});
+
+describe("AdminDateRangeFilter", () => {
+  it("shows the current range", () => {
+    render(<AdminDateRangeFilter dateFrom="2026-03-01" dateTo="2026-04-30" onChange={vi.fn()} />);
+
+    expect(screen.getByPlaceholderText("From")).toHaveValue("2026-03-01");
+    expect(screen.getByPlaceholderText("To")).toHaveValue("2026-04-30");
+  });
+
+  it("sends a typed day for the edited end only", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AdminDateRangeFilter onChange={onChange} />);
+
+    await user.type(screen.getByPlaceholderText("To"), "2026-04-30");
+
+    expect(onChange).toHaveBeenLastCalledWith({ dateTo: "2026-04-30" });
+  });
+
+  it("sends undefined when an end is cleared", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AdminDateRangeFilter dateFrom="2026-03-01" onChange={onChange} />);
+
+    await user.clear(screen.getByPlaceholderText("From"));
+
+    expect(onChange).toHaveBeenCalledWith({ dateFrom: undefined });
   });
 });

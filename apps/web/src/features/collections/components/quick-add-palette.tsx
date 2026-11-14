@@ -1,27 +1,19 @@
-import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import {
-  ArrowRightIcon,
-  ArrowRightLeftIcon,
-  ChevronRightIcon,
-  PlusIcon,
-  XIcon,
-} from "lucide-react";
+import { ArrowRightIcon, ArrowRightLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PaletteFrame } from "@/components/command-palette/palette-frame";
-import { PaletteScopeToken } from "@/components/command-palette/palette-scope-token";
+import { QuickAddPreviews } from "@/components/command-palette/quick-add-preview";
+import { QuickAddSearchField } from "@/components/command-palette/quick-add-search-field";
+import {
+  QUICK_ADD_SELECTED_ROW_CLASS,
+  QuickAddStepper,
+} from "@/components/command-palette/quick-add-stepper";
 import { SearchProblems } from "@/components/command-palette/search-problems";
 import { Button } from "@/components/ui/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
 import { Pressable } from "@/components/ui/pressable";
 import { SimpleSelect } from "@/components/ui/simple-select";
@@ -31,10 +23,10 @@ import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useQuickAddMoveMode } from "@/features/collections/hooks/use-quick-add-move-mode";
-import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
 import { MOVE_FROM_ANYWHERE } from "@/features/collections/lib/move-sources";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useQuickCardSearch } from "@/hooks/use-quick-card-search";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import type { QuickAddVerb } from "@/lib/command-palette-results";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
@@ -44,8 +36,6 @@ import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { AnnotatedDisposeDialog } from "./annotated-dispose-dialog";
-import { QuickAddPreview } from "./quick-add-preview";
-import { QUICK_ADD_SELECTED_ROW_CLASS, QuickAddStepper } from "./quick-add-stepper";
 
 interface QuickAddPaletteProps {
   open: boolean;
@@ -170,11 +160,6 @@ function PaletteInner({
   const previewPrinting = expandedCardId
     ? (results.find((r) => r.cardId === expandedCardId)?.printings[expandedIndex] ?? null)
     : null;
-  // Keyed by image id, not a boolean, so expanding another printing retries fresh.
-  const [failedImageId, setFailedImageId] = useState<string | null>(null);
-  const rawPreviewImageId = previewPrinting?.images[0]?.imageId ?? null;
-  const previewImageId = rawPreviewImageId === failedImageId ? null : rawPreviewImageId;
-  const markPreviewFailed = () => setFailedImageId(rawPreviewImageId);
 
   const [clampedFor, setClampedFor] = useState(results.length);
   if (clampedFor !== results.length) {
@@ -338,61 +323,24 @@ function PaletteInner({
 
   return (
     <div className="relative">
-      {/* Renders at a fixed 160px; 400w covers it at DPR 2. */}
-      {previewPrinting && previewImageId && isMobile && (
-        <div className="mb-3 flex justify-center">
-          <QuickAddPreview
-            printing={previewPrinting}
-            src={imageUrl(previewImageId, "400w")}
-            className="w-40"
-            onError={markPreviewFailed}
-          />
-        </div>
-      )}
+      <QuickAddPreviews printing={previewPrinting} isMobile={isMobile} />
 
-      {previewPrinting && previewImageId && (
-        <div className="absolute top-0 right-full mr-3 hidden w-96 lg:block">
-          <QuickAddPreview
-            printing={previewPrinting}
-            src={imageUrl(previewImageId, "full")}
-            onError={markPreviewFailed}
-          />
-        </div>
-      )}
-
-      <InputGroup className="h-11 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-transparent">
-        <InputGroupAddon align="inline-start">
-          <PaletteScopeToken label={scopeLabel} />
-        </InputGroupAddon>
-        <InputGroupInput
-          ref={inputRef}
-          type="text"
-          aria-label={
-            inMoveMode
-              ? m.collections_copies_quick_aria_move({
-                  collection: move.collectionDisplayName(moveTo),
-                })
-              : m.collections_copies_quick_aria_add({ collection: collectionName })
-          }
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={m.collections_copies_quick_search_placeholder()}
-          className="text-base sm:text-sm"
-          autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- command palette, always focused on open
-        />
-        {query && (
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              size="icon-xs"
-              onClick={clearSearch}
-              aria-label={m.collections_copies_quick_clear_search()}
-            >
-              <XIcon className="size-4" />
-            </InputGroupButton>
-          </InputGroupAddon>
-        )}
-      </InputGroup>
+      <QuickAddSearchField
+        inputRef={inputRef}
+        scopeLabel={scopeLabel}
+        ariaLabel={
+          inMoveMode
+            ? m.collections_copies_quick_aria_move({
+                collection: move.collectionDisplayName(moveTo),
+              })
+            : m.collections_copies_quick_aria_add({ collection: collectionName })
+        }
+        placeholder={m.collections_copies_quick_search_placeholder()}
+        value={query}
+        onValueChange={setQuery}
+        onKeyDown={handleKeyDown}
+        onClear={clearSearch}
+      />
 
       {/* px-3 is desktop-only; the drawer already pads its content (p-4). */}
       {inMoveMode && (

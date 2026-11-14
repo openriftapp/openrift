@@ -1,18 +1,20 @@
-import { ChevronLeftIcon, ChevronRightIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, CopyIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { OFFICIAL_HOST } from "@/lib/official-host";
+import { FIXTURE_CARDS, fixtureVariantLabel } from "@/features/marketing/lib/vignette-fixtures";
+import { getSiteHost, getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
+import { FAKE_CONTROL } from "./vignette-parts";
 
 const CHECKERBOARD = {
   background: "repeating-conic-gradient(#20242e 0% 25%, #171a22 0% 50%) 50% / 20px 20px",
 };
 
-const INPUT_CHROME =
-  "border-input flex h-8 min-w-0 flex-1 items-center rounded-lg border bg-transparent px-2.5 py-1 text-sm dark:bg-input/30";
+const ON_STAGE = FIXTURE_CARDS.azirAltArt;
+const SOURCE_PATH = "/stage/source/Kf3nQ7ZaVb2p";
 
 // The overlay's own type is sized for this miniature, not the 1920-wide
 // canvas it runs at, on purpose.
@@ -22,13 +24,13 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
     <ClipFrame className="flex flex-col gap-6 p-5">
       <section className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="font-semibold">{m.marketing_stage_on_stream()}</span>
+          <span className="font-semibold">{m.stage_overlay_on_stream()}</span>
           <span className="grid justify-items-end font-mono text-sm tracking-wide uppercase">
             <span className="text-muted-foreground motion-safe:animate-stage-idle col-start-1 row-start-1 opacity-0">
-              {m.marketing_stage_nothing_up()}
+              {m.stage_overlay_status_empty()}
             </span>
             <span className="text-primary motion-safe:animate-stage-live col-start-1 row-start-1">
-              ● {m.marketing_stage_live()}
+              {m.stage_overlay_status_live()}
             </span>
           </span>
         </div>
@@ -42,14 +44,14 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
               <div className="flex min-w-0 flex-col gap-1.5">
                 <div className="dark min-w-0 rounded-md bg-black/85 px-2.5 py-2 text-white shadow-2xl ring-1 ring-white/10">
                   <div className="text-xs leading-tight font-semibold text-balance">
-                    Azir, Sovereign
+                    {ON_STAGE.name}
                   </div>
                   <div className="text-2xs mt-1 font-mono tracking-wide text-white/50 uppercase">
-                    SFD-177a/221 · Foil
+                    {ON_STAGE.shortCode} · {fixtureVariantLabel(ON_STAGE)}
                   </div>
                 </div>
                 <span className="text-2xs pb-0.5 font-mono tracking-wide text-white/45">
-                  {OFFICIAL_HOST}
+                  {getSiteHost()}
                 </span>
               </div>
               {art ? (
@@ -70,10 +72,10 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground grid min-w-0 flex-1 justify-items-start text-sm">
             <span className="motion-safe:animate-stage-idle col-start-1 row-start-1 truncate opacity-0">
-              {m.marketing_stage_push_hint()}
+              {m.stage_overlay_caption_empty()}
             </span>
             <span className="motion-safe:animate-stage-live col-start-1 row-start-1 truncate">
-              Azir, Sovereign
+              {ON_STAGE.name}
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-1">
@@ -97,19 +99,21 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
       </section>
 
       <section className="flex flex-col gap-2">
-        <span className="font-semibold">{m.marketing_stage_browser_source()}</span>
-        <p className="text-muted-foreground text-sm">{m.marketing_stage_browser_source_hint()}</p>
+        <span className="font-semibold">{m.stage_browser_source_title()}</span>
+        <p className="text-muted-foreground text-sm">{m.stage_browser_source_description()}</p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={cn(INPUT_CHROME, "truncate")}>
-            {`https://${OFFICIAL_HOST}/stage/source/Kf3nQ7ZaVb2p`}
+          <span className={cn(FAKE_CONTROL, "min-w-48 flex-1 truncate")}>
+            {`${getSiteUrl()}${SOURCE_PATH}`}
           </span>
-          <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
+          <span aria-hidden="true" className={buttonVariants({ variant: "outline" })}>
             <CopyIcon />
             {m.common_copy()}
           </span>
-          <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
-            <RefreshCwIcon />
-            {m.marketing_stage_new_link()}
+          <span
+            aria-hidden="true"
+            className={cn(buttonVariants({ variant: "ghost" }), "text-destructive")}
+          >
+            {m.stage_browser_source_disable()}
           </span>
         </div>
       </section>

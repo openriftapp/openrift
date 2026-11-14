@@ -41,7 +41,7 @@ vi.mock("@/features/cards/components/printing-option-content", () => ({
     <span data-testid="thumb">{cardId}</span>
   ),
 }));
-vi.mock("@/features/decks/components/deck-card-row", () => ({
+vi.mock("@/features/decks/components/deck-stat-glyphs", () => ({
   PowerPips: ({ power }: { power: number | null }) => <span data-testid="pips">{power}</span>,
   EnergyGlyph: ({ value }: { value: number }) => <span data-testid="energy">{value}</span>,
 }));

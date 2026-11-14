@@ -1,12 +1,14 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useState } from "react";
 
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /** Landscape cards (battlefields) are rotated in CSS, which needs the extra clipping wrapper. */
-export function QuickAddPreview({
+function QuickAddPreview({
   printing,
   src,
   className,
@@ -35,4 +37,37 @@ export function QuickAddPreview({
       )}
     </div>
   );
+}
+
+export function QuickAddPreviews({
+  printing,
+  isMobile,
+}: {
+  printing: Printing | null | undefined;
+  isMobile: boolean;
+}) {
+  // Keyed by image id, not a boolean, so previewing another printing retries fresh.
+  const [failedImageId, setFailedImageId] = useState<string | null>(null);
+  const rawImageId = printing?.images[0]?.imageId ?? null;
+  const imageId = rawImageId === failedImageId ? null : rawImageId;
+  const markFailed = () => setFailedImageId(rawImageId);
+
+  return printing && imageId ? (
+    <>
+      {/* Renders at a fixed 160px; 400w covers it at DPR 2. */}
+      {isMobile && (
+        <div className="mb-3 flex justify-center">
+          <QuickAddPreview
+            printing={printing}
+            src={imageUrl(imageId, "400w")}
+            className="w-40"
+            onError={markFailed}
+          />
+        </div>
+      )}
+      <div className="absolute top-0 right-full mr-3 hidden w-96 lg:block">
+        <QuickAddPreview printing={printing} src={imageUrl(imageId, "full")} onError={markFailed} />
+      </div>
+    </>
+  ) : null;
 }

@@ -91,6 +91,19 @@ function deckbuildingAvailableSql(exemptCollectionId?: string) {
  * copy if they personally own its collection or are a member of its group.
  */
 export function copiesRepo(db: Kysely<Database>) {
+  function deckbuildingCopies(userId: string) {
+    return db
+      .selectFrom("copies as cp")
+      .innerJoin("collections as col", "col.id", "cp.collectionId")
+      .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
+      .leftJoin("friendGroupMembers as gm", (join) =>
+        join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
+      )
+      .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
+        join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
+      );
+  }
+
   return {
     /** When `limit` is provided, fetches `limit + 1` rows to detect `hasMore`. */
     listForAccessibleCollections(
@@ -548,51 +561,12 @@ export function copiesRepo(db: Kysely<Database>) {
       return Number(result.numDeletedRows);
     },
 
-    countByCardAndPrintingForDeckbuilding(
-      userId: string,
-      exemptCollectionId?: string,
-    ): Promise<{ cardId: string; printingId: string; count: number }[]> {
-      return (
-        db
-          .selectFrom("copies as cp")
-          .innerJoin("collections as col", "col.id", "cp.collectionId")
-          .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
-          .leftJoin("friendGroupMembers as gm", (join) =>
-            join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
-          )
-          .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
-            join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
-          )
-          .select((eb) => [
-            "p.cardId" as const,
-            "cp.printingId" as const,
-            eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
-          ])
-          .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
-          .where(deckbuildingAvailableSql(exemptCollectionId), "=", true)
-          // A copy out on a loan is physically absent, so it never counts
-          // toward deck-building inventory, whatever its collection says.
-          .where(notPinnedToLoan)
-          .groupBy(["p.cardId", "cp.printingId"])
-          .execute()
-      );
-    },
-
     /** Borrowed-in copies are added separately: they aren't copy rows, see `loansRepo.borrowedCountByCard`. */
     async buildableCountByCard(
       userId: string,
       exemptCollectionId?: string,
     ): Promise<Map<string, number>> {
-      const rows = await db
-        .selectFrom("copies as cp")
-        .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
-        .leftJoin("friendGroupMembers as gm", (join) =>
-          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
-        )
-        .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
-          join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
-        )
+      const rows = await deckbuildingCopies(userId)
         .select((eb) => [
           "p.cardId" as const,
           eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
@@ -619,16 +593,7 @@ export function copiesRepo(db: Kysely<Database>) {
       if (collectionIds.length === 0) {
         return new Map();
       }
-      const rows = await db
-        .selectFrom("copies as cp")
-        .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
-        .leftJoin("friendGroupMembers as gm", (join) =>
-          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
-        )
-        .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
-          join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
-        )
+      const rows = await deckbuildingCopies(userId)
         .select((eb) => [
           "cp.collectionId" as const,
           "p.cardId" as const,

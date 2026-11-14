@@ -2,7 +2,6 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { totalQuantity } from "@openrift/shared/deck-rules";
 import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { useQueryClient } from "@tanstack/react-query";
 import { CornerLeftUpIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -24,10 +23,6 @@ import { HoveredCardPreview } from "@/features/cards/components/hovered-card-pre
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
-import { useCards } from "@/features/cards/hooks/use-cards";
-import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
-import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
-import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
 import { DeckCardBrowser } from "@/features/decks/components/deck-card-browser";
 import { DeckDndContext } from "@/features/decks/components/deck-dnd-context";
 import { DeckEditorDialogs } from "@/features/decks/components/deck-editor-dialogs";
@@ -38,28 +33,14 @@ import { DeckVariantRail } from "@/features/decks/components/deck-variant-rail";
 import { DeckZoneDrawer } from "@/features/decks/components/deck-zone-drawer";
 import { DeckZonePanel } from "@/features/decks/components/deck-zone-panel";
 import { WorkbenchOptInBanner } from "@/features/decks/components/workbench-opt-in-banner";
-import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
-import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dialogs";
+import { useDeckEditorSession } from "@/features/decks/hooks/use-deck-editor-session";
 import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
-import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
-import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
-import { useDeckDetail } from "@/features/decks/hooks/use-decks";
-import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
-import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
-import { useDeckBenchSessionStore } from "@/features/decks/stores/deck-bench-session-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
-import { flushDeckDraft, hydrateDeckDraft } from "@/features/decks/stores/deck-draft-store";
-import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
-import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
-import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useSession, useUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -92,121 +73,30 @@ function DeckEditorContent({
   deckId: string;
   topBarSlot: HTMLDivElement | null;
 }) {
-  const queryClient = useQueryClient();
-  const userId = useUserId();
-  // The draft cache is keyed under a "local" sentinel scope so a browser-local
-  // deck works logged out; a server deck keys under its userId.
-  const isLocal = useIsLocalDeck(deckId);
-  const scope = isLocal ? "local" : (userId ?? "");
-  const { data } = useDeckDetail(deckId);
-  const { cardsById, allPrintings } = useCards();
-  const { getPreferredPrinting } = usePreferredPrinting();
-  const hydrated = useDeckDraftHydrated(queryClient, scope, deckId);
-  const deckCards = useDeckCards(deckId);
-  const saveStatus = useDeckSaveStatus(queryClient, scope, deckId);
+  const {
+    data,
+    isLocal,
+    hydrated,
+    deckCards,
+    saveStatus,
+    ownershipData,
+    marketplace,
+    editorViolations,
+    deckItems,
+    printingsByCardId,
+    openOverviewCard,
+  } = useDeckEditorSession(deckId);
   const { isMobile, setOpenMobile, toggleSidebar } = useSidebar();
   const activeZone = useDeckBuilderUiStore((state) => state.activeZone);
   const setActiveZone = useDeckBuilderUiStore((state) => state.setActiveZone);
   const setOverviewTab = useDeckBuilderUiStore((state) => state.setOverviewTab);
-  const resetUi = useDeckBuilderUiStore((state) => state.reset);
-  const setRunesByDomain = useDeckBuilderUiStore((state) => state.setRunesByDomain);
   const dialogs = useDeckEditorDialogs();
-
-  // Ownership data — split available vs locked so the deck builder respects
-  // each collection's availableForDeckbuilding flag.
-  const { data: session } = useSession();
-  // The deck's home collection overrides the exclusion for this deck: the box
-  // it's stored in is buildable here, and stays locked for every other deck.
-  const { data: deckCounts } = useDeckBuildingCounts(
-    Boolean(session?.user),
-    data.deck.collectionId,
-  );
-  // Copies borrowed from friends are in hand and buildable.
-  const { data: borrowedCounts } = useBorrowedCounts(Boolean(session?.user));
-  // Cards arriving from reserved trades are not in hand: advisory only, so
-  // the user doesn't buy a copy that's already on its way.
-  const { data: incomingCounts } = useIncomingTradeCounts(Boolean(session?.user));
-  const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
-  const marketplace = marketplaceOrder[0];
-  const editorViolations = useDeckViolations(deckId, data.deck.format, data.deck.formatConfig);
   // Ctrl+Z / Ctrl+Shift+Z over the whole editor; mounted here (not in a
   // conditional subtree) so the shortcuts survive zone and tab switches.
   useDeckUndoShortcuts(deckId);
 
-  // Ctrl/Cmd+K reaches the quick-add omnibar through the command palette,
-  // which resolves the chord to whichever quick-add the route registered.
-  useRegisterQuickAdd({ key: `deck:${deckId}`, label: m.decks_editor_quick_add_label() });
-  const ownershipData = useDeckOwnership(
-    deckCards,
-    allPrintings,
-    deckCounts?.available,
-    marketplace,
-    deckCounts?.locked,
-    borrowedCounts,
-    deckCounts && {
-      loaned: deckCounts.lockedLoaned,
-      reserved: deckCounts.lockedReserved,
-      excluded: deckCounts.lockedExcluded,
-    },
-    incomingCounts,
-  );
-
-  // Built here (always-mounted parent) so the rebalance fallback can swap in
-  // an opposite-domain rune even before the user activates any zone.
-  useEffect(() => {
-    if (allPrintings.length === 0) {
-      return;
-    }
-    setRunesByDomain(buildRunesByDomain(allPrintings));
-  }, [allPrintings, setRunesByDomain]);
-
-  // Any user edit after this debounces a PUT back to the server through the
-  // collection's auto-wired save handler.
-  useEffect(() => {
-    if (data && !hydrated) {
-      const builderCards = data.cards
-        .map((card) => toDeckBuilderCard(card, cardsById))
-        .filter((card): card is DeckBuilderCard => card !== null);
-      hydrateDeckDraft(queryClient, scope, deckId, builderCards);
-    }
-  }, [data, deckId, hydrated, queryClient, scope, cardsById]);
-
-  // The draft collection is intentionally left alone here: it stays cached
-  // per user so re-entering the same deck skips re-hydration.
-  useEffect(
-    () => () => {
-      resetUi();
-    },
-    [resetUi],
-  );
-
-  useEffect(
-    () => () => {
-      flushDeckDraft(queryClient, scope, deckId);
-    },
-    [queryClient, scope, deckId],
-  );
-
-  const clearBenchSession = useDeckBenchSessionStore((state) => state.clear);
-  useEffect(() => () => clearBenchSession(deckId), [clearBenchSession, deckId]);
-
-  // The handler re-registers only on the two transitions it reads, not on
-  // every card edit.
-  const unsavedWarning = saveStatus.isDirty || saveStatus.isSaving;
-  useEffect(() => {
-    if (!unsavedWarning) {
-      return;
-    }
-    const handler = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    globalThis.addEventListener("beforeunload", handler);
-    return () => globalThis.removeEventListener("beforeunload", handler);
-  }, [unsavedWarning]);
-
   const { setArrayFilters, setRanges, setSearch } = useFilterActions();
 
-  const { items: deckItems, printingsByCardId } = useDeckItems(deckCards);
   const showImages = useDisplayStore((state) => state.showImages);
   const detailOpen = useSelectionStore((state) => state.detailOpen);
   // Not `use(PageTopBarHeightContext)`: must stay at its pre-measurement 0
@@ -229,16 +119,6 @@ function DeckEditorContent({
       setActiveZone(null);
     }
   }, [activeZoneHidden, setActiveZone]);
-
-  const handleOverviewCardClick = (card: CardOpenTarget) => {
-    const printing = getPreferredPrinting(card.cardId, card.preferredPrintingId);
-    if (!printing) {
-      return;
-    }
-    // Pass the zone so a card appearing in multiple zones anchors at the
-    // instance the user clicked, not at the first zone-occurrence.
-    useSelectionStore.getState().selectCard(printing, deckItems, "card", { zone: card.zone });
-  };
 
   const handleZoneClick = (zone: DeckZone) => {
     // Clicking the active zone again returns to the overview dashboard.
@@ -410,7 +290,7 @@ function DeckEditorContent({
                   onZoneClick={handleZoneClick}
                   onViewMissing={() => dialogs.openDialog("missing")}
                   onHoverCard={handleHoverMain}
-                  onOverviewCardClick={handleOverviewCardClick}
+                  onOverviewCardClick={openOverviewCard}
                   onEditDescription={isLocal ? undefined : () => dialogs.openDialog("details")}
                   // Variant families are server-only, so a local deck gets no
                   // rail at all.

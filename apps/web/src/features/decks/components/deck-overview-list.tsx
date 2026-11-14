@@ -22,7 +22,6 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
@@ -33,8 +32,8 @@ import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
 import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-link";
-import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
-import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-stat-glyphs";
+import { DeckZoneHeader, ZoneIssuesPopover } from "@/features/decks/components/deck-zone-header";
 import { lockedReasonText, toOwnershipPrinting } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { BattlefieldPlanTag } from "@/features/decks/lib/battlefield-plan-tags";
@@ -57,6 +56,7 @@ import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
+import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -126,18 +126,6 @@ export function deckOverviewSortOptions(): SortGroupOption<DeckOverviewSort>[] {
     { value: "ownership", label: m.decks_overview_group_ownership() },
   ];
 }
-
-// Mirrors the sidebar and thumbnail dashboard's zone order.
-const ZONE_ORDER: readonly DeckZone[] = [
-  WellKnown.deckZone.LEGEND,
-  WellKnown.deckZone.LEGEND_OPTIONS,
-  WellKnown.deckZone.CHAMPION,
-  WellKnown.deckZone.RUNES,
-  WellKnown.deckZone.BATTLEFIELD,
-  WellKnown.deckZone.MAIN,
-  WellKnown.deckZone.SIDEBOARD,
-  WellKnown.deckZone.OVERFLOW,
-];
 
 interface DeckOverviewListProps {
   countsOnlyUnfinished?: boolean;
@@ -272,7 +260,7 @@ export function DeckOverviewList({
     return zone !== WellKnown.deckZone.OVERFLOW && isZoneShown(zone, format, cards);
   };
 
-  const zones = ZONE_ORDER.map((zone) => ({
+  const zones = DECK_ZONE_ORDER.map((zone) => ({
     zone,
     cards: cards.filter((card) => card.zone === zone),
   })).filter((entry) => zoneVisible(entry.zone, entry.cards.length));
@@ -305,30 +293,7 @@ export function DeckOverviewList({
       <ZoneSection key={zone} zone={zone} format={format} allCards={cards} droppable={dragEnabled}>
         <DeckZoneHeader label={enumLabel(zoneLabels, zone)}>
           {zoneViolations.length > 0 && (
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={m.decks_overview_zone_issues({ zone: enumLabel(zoneLabels, zone) })}
-                    className="size-5 shrink-0 rounded-md"
-                  />
-                }
-              >
-                <AlertTriangleIcon className="text-destructive size-3.5" />
-              </PopoverTrigger>
-              <PopoverContent side="bottom" align="start" className="w-auto max-w-80 p-2">
-                <ul className="space-y-0.5">
-                  {zoneViolations.map((violation) => (
-                    <li key={violation.code} className="text-xs">
-                      {violation.message}
-                    </li>
-                  ))}
-                </ul>
-              </PopoverContent>
-            </Popover>
+            <ZoneIssuesPopover zoneLabel={enumLabel(zoneLabels, zone)} issues={zoneViolations} />
           )}
           {!hideCount && (
             <span

@@ -13,7 +13,6 @@ import {
   addCardAction,
   changePreferredPrintingAction,
   moveCardAction,
-  moveOneCardAction,
   recordDeckEdit,
   removeCardAction,
   replaceCardAction,
@@ -568,7 +567,7 @@ describe("moveCardAction", () => {
       quantity: 2,
     });
     collection = createDraftCollection([card]);
-    moveCardAction(collection, "card-1", "main", "sideboard", null, "constructed");
+    moveCardAction(collection, "card-1", "main", "sideboard", null, "constructed", "all");
     const cards = cardsOf(collection);
     expect(cards.filter((c) => c.zone === "main")).toHaveLength(0);
     expect(cards.find((c) => c.zone === "sideboard")?.quantity).toBe(2);
@@ -588,7 +587,7 @@ describe("moveCardAction", () => {
       quantity: 1,
     });
     collection = createDraftCollection([mainCard, sideCard]);
-    moveCardAction(collection, "card-1", "main", "sideboard", null, "constructed");
+    moveCardAction(collection, "card-1", "main", "sideboard", null, "constructed", "all");
     const cards = cardsOf(collection);
     expect(cards).toHaveLength(1);
     expect(cards[0]!.zone).toBe("sideboard");
@@ -603,7 +602,7 @@ describe("moveCardAction", () => {
       quantity: 1,
     });
     collection = createDraftCollection([unit]);
-    moveCardAction(collection, "card-1", "main", "legend", null, "constructed");
+    moveCardAction(collection, "card-1", "main", "legend", null, "constructed", "all");
     expect(cardsOf(collection)[0]!.zone).toBe("main");
   });
 
@@ -616,7 +615,7 @@ describe("moveCardAction", () => {
       quantity: 2,
     });
     collection = createDraftCollection([champ]);
-    moveCardAction(collection, "champ-a", "main", "champion", null, "constructed");
+    moveCardAction(collection, "champ-a", "main", "champion", null, "constructed", "all");
     const cards = cardsOf(collection);
     expect(cards.find((c) => c.zone === "champion")).toMatchObject({
       cardId: "champ-a",
@@ -641,7 +640,7 @@ describe("moveCardAction", () => {
       quantity: 1,
     });
     collection = createDraftCollection([oldChamp, newChamp]);
-    moveCardAction(collection, "champ-b", "main", "champion", null, "constructed");
+    moveCardAction(collection, "champ-b", "main", "champion", null, "constructed", "all");
     const cards = cardsOf(collection);
     expect(cards.filter((c) => c.zone === "champion")).toHaveLength(1);
     expect(cards.find((c) => c.zone === "champion")?.cardId).toBe("champ-b");
@@ -664,14 +663,29 @@ describe("moveCardAction", () => {
       quantity: 2,
     });
     collection = createDraftCollection([inSlot, inMain]);
-    moveCardAction(collection, "champ-a", "main", "champion", null, "constructed");
+    moveCardAction(collection, "champ-a", "main", "champion", null, "constructed", "all");
     const cards = cardsOf(collection);
     expect(cards.find((c) => c.zone === "main")?.quantity).toBe(2);
     expect(cards.find((c) => c.zone === "champion")?.quantity).toBe(1);
   });
 });
 
-describe("moveOneCardAction", () => {
+describe("moveCardAction, one copy", () => {
+  it.each(["all", "one"] as const)(
+    "leaves the deck unchanged when source and target are the same zone (%s)",
+    (amount) => {
+      const card = stubDeckBuilderCard({
+        cardId: "card-1",
+        cardType: "unit",
+        zone: "main",
+        quantity: 2,
+      });
+      collection = createDraftCollection([card]);
+      moveCardAction(collection, "card-1", "main", "main", null, "constructed", amount);
+      expect(cardsOf(collection)).toEqual([expect.objectContaining({ zone: "main", quantity: 2 })]);
+    },
+  );
+
   it("moves exactly one copy from source to target", () => {
     const card = stubDeckBuilderCard({
       cardId: "card-1",
@@ -680,7 +694,7 @@ describe("moveOneCardAction", () => {
       quantity: 3,
     });
     collection = createDraftCollection([card]);
-    moveOneCardAction(collection, "card-1", "main", "sideboard", null, "constructed");
+    moveCardAction(collection, "card-1", "main", "sideboard", null, "constructed", "one");
     const cards = cardsOf(collection);
     expect(cards.find((c) => c.zone === "main")?.quantity).toBe(2);
     expect(cards.find((c) => c.zone === "sideboard")?.quantity).toBe(1);
@@ -694,7 +708,7 @@ describe("moveOneCardAction", () => {
       quantity: 1,
     });
     collection = createDraftCollection([card]);
-    moveOneCardAction(collection, "card-1", "main", "sideboard", null, "constructed");
+    moveCardAction(collection, "card-1", "main", "sideboard", null, "constructed", "one");
     const cards = cardsOf(collection);
     expect(cards.filter((c) => c.zone === "main")).toHaveLength(0);
     expect(cards.find((c) => c.zone === "sideboard")?.quantity).toBe(1);
@@ -716,7 +730,7 @@ describe("moveOneCardAction", () => {
       quantity: 3,
     });
     collection = createDraftCollection([oldChamp, newChamp]);
-    moveOneCardAction(collection, "champ-b", "main", "champion", null, "constructed");
+    moveCardAction(collection, "champ-b", "main", "champion", null, "constructed", "one");
     const cards = cardsOf(collection);
     expect(cards.find((c) => c.zone === "champion")?.cardId).toBe("champ-b");
     expect(cards.find((c) => c.zone === "main")?.quantity).toBe(2);
@@ -1027,7 +1041,7 @@ describe("freeform format", () => {
       quantity: 1,
     });
     collection = createDraftCollection([existingChamp, incoming]);
-    moveCardAction(collection, "champ-b", "main", "champion", null, "freeform");
+    moveCardAction(collection, "champ-b", "main", "champion", null, "freeform", "all");
     const champs = cardsOf(collection).filter((card) => card.zone === "champion");
     expect(champs).toHaveLength(2);
   });

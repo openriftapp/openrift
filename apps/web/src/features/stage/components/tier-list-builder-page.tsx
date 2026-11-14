@@ -1,5 +1,3 @@
-import { getOrientation } from "@openrift/shared/card-orientation";
-import { imageUrl } from "@openrift/shared/image-url";
 import type { TierListResponse } from "@openrift/shared/types/api/tier-list";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -37,6 +35,7 @@ import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
+import { hoverPreviewImage } from "@/features/cards/lib/hover-preview";
 import { TierBoardEditor } from "@/features/stage/components/tier-board-editor";
 import { TierListDetailsDialog } from "@/features/stage/components/tier-list-details-dialog";
 import { TierListDndContext } from "@/features/stage/components/tier-list-dnd-context";
@@ -76,13 +75,8 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
   // overflow, which would cut off the floating preview.
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [hoveredView, setHoveredView] = useState<TierCardView | null>(null);
-  const hoveredImageId = hoveredView ? frontImageId(hoveredView.printing) : null;
-  const hoveredCard = hoveredImageId
-    ? {
-        thumbnailUrl: imageUrl(hoveredImageId, "400w"),
-        fullUrl: imageUrl(hoveredImageId, "full"),
-        landscape: getOrientation(hoveredView?.card.types ?? []) === "landscape",
-      }
+  const hoveredCard = hoveredView
+    ? hoverPreviewImage(frontImageId(hoveredView.printing), hoveredView.card.types)
     : null;
 
   const updateTierList = useUpdateTierList();

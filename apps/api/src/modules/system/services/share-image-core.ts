@@ -1,4 +1,5 @@
 import { qrPngDataUri } from "@openrift/shared/qr";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { Resvg } from "@resvg/resvg-js";
 import satori from "satori";
 
@@ -9,16 +10,6 @@ import { CARD_MEDIA_DIR } from "../../catalog/services/images/paths.js";
  * Raster sources (WebP card art, SVG glyphs) cannot be embedded by satori
  * directly, so each is transcoded to a PNG data URI with sharp first.
  */
-
-// Concrete approximations of the site's dark theme (apps/web/src/index.css).
-export const COLORS = {
-  background: "#14161d",
-  surface: "#21242b",
-  surfaceBorder: "#2d313a",
-  text: "#f2f2f2",
-  muted: "#9aa0ab",
-  gold: "#cdac6e",
-} as const;
 
 export const TILE_BORDER = 1;
 
@@ -234,7 +225,7 @@ export function cardTile(
           textAlign: "center",
           fontSize: Math.max(7, Math.round(tileW * 0.16)),
           fontWeight: 600,
-          color: COLORS.muted,
+          color: SHARE_IMAGE_COLORS.muted,
           lineHeight: 1.2,
         },
         card.cardName,
@@ -260,7 +251,7 @@ export function cardTile(
         paddingRight: Math.round(badgeH * 0.18),
         borderRadius: Math.round(badgeH * 0.28),
         backgroundColor: "rgba(8,9,12,0.82)",
-        color: COLORS.text,
+        color: SHARE_IMAGE_COLORS.text,
         fontSize: Math.round(badgeH * 0.62),
         fontWeight: 700,
       },
@@ -276,8 +267,8 @@ export function cardTile(
       height: tileH,
       borderRadius: cardRadiusPx(tileW, tileH),
       overflow: "hidden",
-      backgroundColor: COLORS.surface,
-      border: `${TILE_BORDER}px solid ${COLORS.surfaceBorder}`,
+      backgroundColor: SHARE_IMAGE_COLORS.surface,
+      border: `${TILE_BORDER}px solid ${SHARE_IMAGE_COLORS.surfaceBorder}`,
     },
     image,
     badge,

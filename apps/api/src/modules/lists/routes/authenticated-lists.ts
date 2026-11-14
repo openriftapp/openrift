@@ -1,3 +1,4 @@
+import type { TradeCancelConflictData } from "@openrift/shared/contracts/fields";
 import { listsContract } from "@openrift/shared/contracts/lists";
 import type { ListGroupSharesResponse } from "@openrift/shared/types/api/friend-group";
 import type {
@@ -13,6 +14,7 @@ import type {
 import { ruleCombineMatchesKind, ruleKindForListKind } from "@openrift/shared/types/list-rule";
 import { implement } from "@orpc/server";
 
+import type { Repos, Transact } from "../../../deps.js";
 import { badRequest } from "../../../errors.js";
 import { assertDeleted, assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
@@ -26,6 +28,26 @@ import type { ListEntryUpdate, NewEntryValues } from "../repositories/lists-entr
 import { moveListEntries, withTradeSupplySweep } from "../services/lists.js";
 
 const os = implement(listsContract).$context<ApiContext>().use(requireAuthedUser);
+
+function sweptListEdit<T>(
+  context: { repos: Repos; transact: Transact; userId: string },
+  lists: Parameters<typeof withTradeSupplySweep>[3],
+  cancelTradeIds: readonly string[] | undefined,
+  conflict: (data: TradeCancelConflictData) => Error,
+  edit: (repos: Repos) => Promise<T>,
+): Promise<T> {
+  return refusingUnconfirmedTradeCancels(
+    withTradeSupplySweep(
+      context.repos,
+      context.transact,
+      context.userId,
+      lists,
+      cancelTradeIds ?? [],
+      edit,
+    ),
+    conflict,
+  );
+}
 
 /**
  * The authenticated unified-lists contract, mounted at `/api/v1/lists`.
@@ -117,16 +139,12 @@ export const listsRouter = {
       throw errors.BAD_REQUEST({ message: "No fields to update" });
     }
     const touchesSupply = updates.rules !== undefined || updates.ruleCombine !== undefined;
-    const row = await refusingUnconfirmedTradeCancels(
-      withTradeSupplySweep(
-        context.repos,
-        context.transact,
-        userId,
-        touchesSupply ? [existing] : [],
-        input.cancelTradeIds ?? [],
-        (repos) => repos.lists.update(input.id, userId, updates),
-      ),
+    const row = await sweptListEdit(
+      context,
+      touchesSupply ? [existing] : [],
+      input.cancelTradeIds,
       (data) => errors.CONFLICT({ data }),
+      (repos) => repos.lists.update(input.id, userId, updates),
     );
     assertFound(row, "Not found");
     return toList(row);
@@ -139,18 +157,14 @@ export const listsRouter = {
     const list = await lists.getIdKindIntent(input.id, userId);
     assertFound(list, "Not found");
 
-    await refusingUnconfirmedTradeCancels(
-      withTradeSupplySweep(
-        context.repos,
-        context.transact,
-        userId,
-        [list],
-        input.cancelTradeIds ?? [],
-        async (repos) => {
-          assertExisted(await repos.lists.deleteByIdForUser(input.id, userId), "Not found");
-        },
-      ),
+    await sweptListEdit(
+      context,
+      [list],
+      input.cancelTradeIds,
       (data) => errors.CONFLICT({ data }),
+      async (repos) => {
+        assertExisted(await repos.lists.deleteByIdForUser(input.id, userId), "Not found");
+      },
     );
   }),
 
@@ -330,18 +344,14 @@ export const listsRouter = {
     const list = await lists.getIdKindIntent(input.id, userId);
     assertFound(list, "Not found");
 
-    await refusingUnconfirmedTradeCancels(
-      withTradeSupplySweep(
-        context.repos,
-        context.transact,
-        userId,
-        [list],
-        input.cancelTradeIds ?? [],
-        async (repos) => {
-          assertDeleted(await repos.lists.deleteEntry(input.itemId, input.id, userId), "Not found");
-        },
-      ),
+    await sweptListEdit(
+      context,
+      [list],
+      input.cancelTradeIds,
       (data) => errors.CONFLICT({ data }),
+      async (repos) => {
+        assertDeleted(await repos.lists.deleteEntry(input.itemId, input.id, userId), "Not found");
+      },
     );
   }),
 
@@ -366,16 +376,12 @@ export const listsRouter = {
       const list = await lists.getIdKindIntent(listId, userId);
       assertFound(list, "List not found");
 
-      await refusingUnconfirmedTradeCancels(
-        withTradeSupplySweep(
-          context.repos,
-          context.transact,
-          userId,
-          [list],
-          input.cancelTradeIds ?? [],
-          (repos) => repos.lists.deleteEntriesByIds(input.entryIds, listId, userId),
-        ),
+      await sweptListEdit(
+        context,
+        [list],
+        input.cancelTradeIds,
         (data) => errors.CONFLICT({ data }),
+        (repos) => repos.lists.deleteEntriesByIds(input.entryIds, listId, userId),
       );
     },
   ),
@@ -388,20 +394,16 @@ export const listsRouter = {
         input.entries.map((entry) => entry.entryId),
         userId,
       );
-      await refusingUnconfirmedTradeCancels(
-        withTradeSupplySweep(
-          context.repos,
-          context.transact,
-          userId,
-          owning,
-          input.cancelTradeIds ?? [],
-          async (repos) => {
-            for (const entry of input.entries) {
-              await repos.lists.decrementEntryQuantity(entry.entryId, userId, entry.by);
-            }
-          },
-        ),
+      await sweptListEdit(
+        context,
+        owning,
+        input.cancelTradeIds,
         (data) => errors.CONFLICT({ data }),
+        async (repos) => {
+          for (const entry of input.entries) {
+            await repos.lists.decrementEntryQuantity(entry.entryId, userId, entry.by);
+          }
+        },
       );
     },
   ),

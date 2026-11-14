@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { ShareButton } from "./share-button";
 
@@ -23,18 +22,5 @@ describe("ShareButton", () => {
     expect(link).toHaveAttribute("href", "https://example.test/repo");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noreferrer");
-  });
-
-  it("stays a button when there is no link to follow", async () => {
-    const user = userEvent.setup();
-    const onClick = vi.fn();
-    const { container } = render(
-      <ShareButton label="Send a Carrier Pigeon" icon={ICON} onClick={onClick} />,
-    );
-
-    expect(container.querySelector("a")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Send a Carrier Pigeon" }));
-
-    expect(onClick).toHaveBeenCalledOnce();
   });
 });

@@ -21,15 +21,17 @@ import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled } from "@/lib/feature-flags";
 import type { HelpArticle } from "@/lib/help-article";
 import { m } from "@/paraglide/messages.js";
+import type { Locale } from "@/paraglide/runtime.js";
 
 export const helpArticles = new Map<string, HelpArticle>([
   [
     "why-openrift",
     {
       slug: "why-openrift",
-      title: "Why OpenRift?",
-      description:
-        "The story behind the app: why it exists, what it does differently, where it is still catching up, and what it runs on.",
+      labels: (options) => ({
+        title: m.help_article_why_openrift_title({}, options),
+        description: m.help_article_why_openrift_description({}, options),
+      }),
       icon: ScaleIcon,
       component: () => import("@/features/marketing/components/articles/why-openrift"),
     },
@@ -38,9 +40,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "how-to-play",
     {
       slug: "how-to-play",
-      title: "How to Play Riftbound",
-      description:
-        "A short visual primer on the rules: how to win, what's in your deck, how a turn flows, and how battlefields are fought over.",
+      labels: (options) => ({
+        title: m.help_article_how_to_play_title({}, options),
+        description: m.help_article_how_to_play_description({}, options),
+      }),
       icon: BookOpenIcon,
       component: () => import("@/features/marketing/components/articles/how-to-play"),
       featureFlag: "help-how-to-play",
@@ -50,8 +53,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "cards-printings-copies",
     {
       slug: "cards-printings-copies",
-      title: "Cards, Printings & Copies",
-      description: "What a card, a printing, and a copy are, and how the three levels connect.",
+      labels: (options) => ({
+        title: m.help_article_cards_printings_copies_title({}, options),
+        description: m.help_article_cards_printings_copies_description({}, options),
+      }),
       icon: LayersIcon,
       component: () => import("@/features/marketing/components/articles/cards-printings-copies"),
     },
@@ -60,9 +65,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "search-syntax",
     {
       slug: "search-syntax",
-      title: "Search Syntax",
-      description:
-        "Narrow the card search with keys like t:unit, d:fury and e<=3, combine them with or and parentheses, and exclude with a minus.",
+      labels: (options) => ({
+        title: m.help_article_search_syntax_title({}, options),
+        description: m.help_article_search_syntax_description({}, options),
+      }),
       icon: SearchIcon,
       component: () => import("@/features/marketing/components/articles/search-syntax"),
     },
@@ -71,9 +77,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "collections",
     {
       slug: "collections",
-      title: "Managing Your Collection",
-      description:
-        "Organize cards by where they physically are (deck boxes, binders, or lent to friends) and control which are available for deck building.",
+      labels: (options) => ({
+        title: m.help_article_collections_title({}, options),
+        description: m.help_article_collections_description({}, options),
+      }),
       icon: LibraryIcon,
       component: () => import("@/features/marketing/components/articles/collections"),
     },
@@ -82,9 +89,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "import-export",
     {
       slug: "import-export",
-      title: "Importing & Exporting",
-      description:
-        "Move collections between OpenRift and other Riftbound tools (Piltover Archive, RiftCore, and more) using CSV.",
+      labels: (options) => ({
+        title: m.help_article_import_export_title({}, options),
+        description: m.help_article_import_export_description({}, options),
+      }),
       icon: ArrowRightLeftIcon,
       component: () => import("@/features/marketing/components/articles/import-export"),
     },
@@ -93,9 +101,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "browser-extension",
     {
       slug: "browser-extension",
-      title: "Browser Extension",
-      description:
-        "Send the decklist you're looking at on another site straight to OpenRift, and see what you own and want on a Cardmarket seller's offers.",
+      labels: (options) => ({
+        title: m.help_article_browser_extension_title({}, options),
+        description: m.help_article_browser_extension_description({}, options),
+      }),
       icon: PuzzleIcon,
       component: () => import("@/features/marketing/components/articles/browser-extension"),
     },
@@ -104,9 +113,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "lists",
     {
       slug: "lists",
-      title: "Wishlists & Tradelists",
-      description:
-        "Build, fill, and price the wishlists and tradelists that power group trading, including per-card overrides and the three list kinds.",
+      labels: (options) => ({
+        title: m.help_article_lists_title({}, options),
+        description: m.help_article_lists_description({}, options),
+      }),
       icon: HeartIcon,
       component: () => import("@/features/marketing/components/articles/lists"),
     },
@@ -115,9 +125,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "groups",
     {
       slug: "groups",
-      title: "Groups",
-      description:
-        "Set up a closed circle of friends to share wishlists and tradelists, pool cards into shared collections, and see who has what you want.",
+      labels: (options) => ({
+        title: m.help_article_groups_title({}, options),
+        description: m.help_article_groups_description({}, options),
+      }),
       icon: UsersIcon,
       component: () => import("@/features/marketing/components/articles/groups"),
     },
@@ -126,9 +137,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "deck-building",
     {
       slug: "deck-building",
-      title: "Building Decks",
-      description:
-        "Plan your deck by picking cards, filling zones, and validating against Constructed format rules.",
+      labels: (options) => ({
+        title: m.help_article_deck_building_title({}, options),
+        description: m.help_article_deck_building_description({}, options),
+      }),
       icon: SwordsIcon,
       component: () => import("@/features/marketing/components/articles/deck-building"),
     },
@@ -137,9 +149,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "proxy-printing",
     {
       slug: "proxy-printing",
-      title: "Printing Proxies",
-      description:
-        "Print proxy PDFs from your decks for playtesting, with card images or text placeholders.",
+      labels: (options) => ({
+        title: m.help_article_proxy_printing_title({}, options),
+        description: m.help_article_proxy_printing_description({}, options),
+      }),
       icon: PrinterIcon,
       component: () => import("@/features/marketing/components/articles/proxy-printing"),
     },
@@ -148,9 +161,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "discord-bot",
     {
       slug: "discord-bot",
-      title: "Discord Bot",
-      description:
-        "Add the OpenRift bot to your Discord server to look up cards, unfurl deck codes, and quote rules right from chat.",
+      labels: (options) => ({
+        title: m.help_article_discord_bot_title({}, options),
+        description: m.help_article_discord_bot_description({}, options),
+      }),
       icon: BotIcon,
       component: () => import("@/features/marketing/components/articles/discord-bot"),
     },
@@ -159,9 +173,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "stage",
     {
       slug: "stage",
-      title: "Stage & OBS Overlay",
-      description:
-        "Put cards in front of an audience: a full-screen show for window capture, or a transparent browser source you paste into OBS.",
+      labels: (options) => ({
+        title: m.help_article_stage_title({}, options),
+        description: m.help_article_stage_description({}, options),
+      }),
       icon: MonitorPlayIcon,
       component: () => import("@/features/marketing/components/articles/stage"),
     },
@@ -170,9 +185,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "tier-lists",
     {
       slug: "tier-lists",
-      title: "Tier Lists",
-      description:
-        "Rank cards on a drag-and-drop board, then share it as a link, download it as an image, or rank live on stream.",
+      labels: (options) => ({
+        title: m.help_article_tier_lists_title({}, options),
+        description: m.help_article_tier_lists_description({}, options),
+      }),
       icon: ListOrderedIcon,
       component: () => import("@/features/marketing/components/articles/tier-lists"),
     },
@@ -181,9 +197,10 @@ export const helpArticles = new Map<string, HelpArticle>([
     "chat-commands",
     {
       slug: "chat-commands",
-      title: "Card Lookups in Chat",
-      description:
-        "Add one command to Nightbot, StreamElements, or Fossabot so viewers can look up any card from your stream chat.",
+      labels: (options) => ({
+        title: m.help_article_chat_commands_title({}, options),
+        description: m.help_article_chat_commands_description({}, options),
+      }),
       icon: MessageSquareIcon,
       component: () => import("@/features/marketing/components/articles/chat-commands"),
     },
@@ -192,85 +209,21 @@ export const helpArticles = new Map<string, HelpArticle>([
     "tournament-decklist-api",
     {
       slug: "tournament-decklist-api",
-      title: "Tournament Decklist API",
-      description:
-        "Push entrant decklists from your registration system into a tournament's deck check: API keys, the payload, claim links, and limits.",
+      labels: (options) => ({
+        title: m.help_article_tournament_decklist_api_title({}, options),
+        description: m.help_article_tournament_decklist_api_description({}, options),
+      }),
       icon: WebhookIcon,
       component: () => import("@/features/marketing/components/articles/tournament-decklist-api"),
     },
   ],
 ]);
 
-const ARTICLE_LABELS: Record<string, () => { title: string; description: string }> = {
-  "why-openrift": () => ({
-    title: m.help_article_why_openrift_title(),
-    description: m.help_article_why_openrift_description(),
-  }),
-  "how-to-play": () => ({
-    title: m.help_article_how_to_play_title(),
-    description: m.help_article_how_to_play_description(),
-  }),
-  "cards-printings-copies": () => ({
-    title: m.help_article_cards_printings_copies_title(),
-    description: m.help_article_cards_printings_copies_description(),
-  }),
-  "search-syntax": () => ({
-    title: m.help_article_search_syntax_title(),
-    description: m.help_article_search_syntax_description(),
-  }),
-  collections: () => ({
-    title: m.help_article_collections_title(),
-    description: m.help_article_collections_description(),
-  }),
-  "import-export": () => ({
-    title: m.help_article_import_export_title(),
-    description: m.help_article_import_export_description(),
-  }),
-  "browser-extension": () => ({
-    title: m.help_article_browser_extension_title(),
-    description: m.help_article_browser_extension_description(),
-  }),
-  lists: () => ({
-    title: m.help_article_lists_title(),
-    description: m.help_article_lists_description(),
-  }),
-  groups: () => ({
-    title: m.help_article_groups_title(),
-    description: m.help_article_groups_description(),
-  }),
-  "deck-building": () => ({
-    title: m.help_article_deck_building_title(),
-    description: m.help_article_deck_building_description(),
-  }),
-  "proxy-printing": () => ({
-    title: m.help_article_proxy_printing_title(),
-    description: m.help_article_proxy_printing_description(),
-  }),
-  "discord-bot": () => ({
-    title: m.help_article_discord_bot_title(),
-    description: m.help_article_discord_bot_description(),
-  }),
-  stage: () => ({
-    title: m.help_article_stage_title(),
-    description: m.help_article_stage_description(),
-  }),
-  "tier-lists": () => ({
-    title: m.help_article_tier_lists_title(),
-    description: m.help_article_tier_lists_description(),
-  }),
-  "chat-commands": () => ({
-    title: m.help_article_chat_commands_title(),
-    description: m.help_article_chat_commands_description(),
-  }),
-  "tournament-decklist-api": () => ({
-    title: m.help_article_tournament_decklist_api_title(),
-    description: m.help_article_tournament_decklist_api_description(),
-  }),
-};
-
-export function helpArticleLabels(article: HelpArticle): { title: string; description: string } {
-  const labels = ARTICLE_LABELS[article.slug];
-  return labels ? labels() : { title: article.title, description: article.description };
+export function helpArticleLabels(
+  article: HelpArticle,
+  options?: { locale?: Locale },
+): { title: string; description: string } {
+  return article.labels(options);
 }
 
 export const helpArticleList = [...helpArticles.values()];

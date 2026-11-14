@@ -21,7 +21,6 @@ import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation";
 import { useRequiredUserId } from "@/hooks/use-session";
-import { reportMutationError } from "@/lib/query-client";
 import { reorderInPlace } from "@/lib/reorder-in-place";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -131,63 +130,39 @@ interface BulkAddVariables {
 
 export function useBulkAddListEntries() {
   const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  return useMutation<
-    ListBulkAddResponse,
-    Error,
-    BulkAddVariables,
-    { prev: ListDetailResponse | undefined }
-  >({
+  return useOptimisticMutation<ListDetailResponse, BulkAddVariables, ListBulkAddResponse>({
+    queryKey: (vars) => listsKeys.detail(userId, vars.listId),
     mutationFn: (vars) => listsApi().bulkCreateEntries({ id: vars.listId, entries: vars.entries }),
     // Bumps a matching existing entry's quantity before the server responds. Fresh
     // adds wait for the refetch: there's no card/printing detail here to fabricate one.
-    onMutate: async (vars) => {
-      const detailKey = listsKeys.detail(userId, vars.listId);
-      await queryClient.cancelQueries({ queryKey: detailKey });
-      const prev = queryClient.getQueryData<ListDetailResponse>(detailKey);
-      queryClient.setQueryData<ListDetailResponse>(detailKey, (old) => {
-        if (!old) {
-          return old;
-        }
-        let entries = old.entries;
-        for (const item of vars.entries) {
-          const delta = item.quantity ?? 1;
-          const idx = entries.findIndex((entry) => {
-            if (item.cardId !== undefined && entry.kind === "card") {
-              return entry.cardId === item.cardId;
-            }
-            if (item.printingId !== undefined && entry.kind === "printing") {
-              return entry.printingId === item.printingId;
-            }
-            if (item.copyId !== undefined && entry.kind === "copy") {
-              return entry.copyId === item.copyId;
-            }
-            return false;
-          });
-          const existing = entries[idx];
-          if (existing !== undefined) {
-            entries = [
-              ...entries.slice(0, idx),
-              { ...existing, quantity: existing.quantity + delta },
-              ...entries.slice(idx + 1),
-            ];
+    apply: (cached, vars) => {
+      let entries = cached.entries;
+      for (const item of vars.entries) {
+        const delta = item.quantity ?? 1;
+        const idx = entries.findIndex((entry) => {
+          if (item.cardId !== undefined && entry.kind === "card") {
+            return entry.cardId === item.cardId;
           }
+          if (item.printingId !== undefined && entry.kind === "printing") {
+            return entry.printingId === item.printingId;
+          }
+          if (item.copyId !== undefined && entry.kind === "copy") {
+            return entry.copyId === item.copyId;
+          }
+          return false;
+        });
+        const existing = entries[idx];
+        if (existing !== undefined) {
+          entries = [
+            ...entries.slice(0, idx),
+            { ...existing, quantity: existing.quantity + delta },
+            ...entries.slice(idx + 1),
+          ];
         }
-        return { ...old, entries };
-      });
-      return { prev };
-    },
-    onError: (err, vars, context) => {
-      if (context?.prev !== undefined) {
-        queryClient.setQueryData(listsKeys.detail(userId, vars.listId), context.prev);
       }
-      // Replaces the QueryClient's default onError; report here or the revert is silent.
-      reportMutationError(err, queryClient);
+      return { ...cached, entries };
     },
-    onSettled: (_data, _err, vars) => {
-      void queryClient.invalidateQueries({ queryKey: listsKeys.all(userId) });
-      void queryClient.invalidateQueries({ queryKey: listsKeys.detail(userId, vars.listId) });
-    },
+    invalidates: [listsKeys.all(userId)],
   });
 }
 
@@ -235,48 +210,22 @@ export function useMoveListEntries() {
 
 export function useUpdateListEntry() {
   const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  return useMutation<
-    ListEntryResponse,
-    Error,
-    UpdateListEntryInput,
-    { prev: ListDetailResponse | undefined }
-  >({
+  return useOptimisticMutation<ListDetailResponse, UpdateListEntryInput, ListEntryResponse>({
+    queryKey: (vars) => listsKeys.detail(userId, vars.listId),
     mutationFn: (vars) => updateListEntry(vars),
-    onMutate: async (vars) => {
-      const detailKey = listsKeys.detail(userId, vars.listId);
-      await queryClient.cancelQueries({ queryKey: detailKey });
-      const prev = queryClient.getQueryData<ListDetailResponse>(detailKey);
-      queryClient.setQueryData<ListDetailResponse>(detailKey, (old) => {
-        if (!old) {
-          return old;
-        }
-        return {
-          ...old,
-          entries: old.entries.map((entry) =>
-            entry.id === vars.entryId
-              ? {
-                  ...entry,
-                  ...(vars.quantity !== undefined && { quantity: vars.quantity }),
-                  ...(vars.tradeOverride !== undefined && { tradeOverride: vars.tradeOverride }),
-                }
-              : entry,
-          ),
-        };
-      });
-      return { prev };
-    },
-    onError: (err, vars, context) => {
-      if (context?.prev !== undefined) {
-        queryClient.setQueryData(listsKeys.detail(userId, vars.listId), context.prev);
-      }
-      // Replaces the QueryClient's default onError; report here or the revert is silent.
-      reportMutationError(err, queryClient);
-    },
-    onSettled: (_data, _err, vars) => {
-      void queryClient.invalidateQueries({ queryKey: listsKeys.all(userId) });
-      void queryClient.invalidateQueries({ queryKey: listsKeys.detail(userId, vars.listId) });
-    },
+    apply: (cached, vars) => ({
+      ...cached,
+      entries: cached.entries.map((entry) =>
+        entry.id === vars.entryId
+          ? {
+              ...entry,
+              ...(vars.quantity !== undefined && { quantity: vars.quantity }),
+              ...(vars.tradeOverride !== undefined && { tradeOverride: vars.tradeOverride }),
+            }
+          : entry,
+      ),
+    }),
+    invalidates: [listsKeys.all(userId)],
   });
 }
 

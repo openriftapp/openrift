@@ -2,7 +2,7 @@ import { idParamSchema, isoDateTime, withParams } from "@openrift/shared/schemas
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
-import { slugRegex } from "./shared.js";
+import { kebabSlugSchema, slugRegex } from "./shared.js";
 
 const TAG = "Admin - Custom Tags";
 
@@ -52,7 +52,7 @@ const createCustomTagCategoryInput = z.object({
 });
 
 const updateCustomTagCategoryInput = z.object({
-  slug: z.string().min(1).regex(slugRegex, "Slug must be kebab-case").optional(),
+  slug: kebabSlugSchema.optional(),
   label: z.string().min(1).optional(),
   description: z.string().min(1).nullable().optional(),
 });
@@ -65,7 +65,7 @@ const createCustomTagInput = z.object({
 });
 
 const updateCustomTagInput = z.object({
-  slug: z.string().min(1).regex(slugRegex, "Slug must be kebab-case").optional(),
+  slug: kebabSlugSchema.optional(),
   label: z.string().min(1).optional(),
   categoryId: z.uuid().optional(),
   description: z.string().min(1).nullable().optional(),

@@ -19,6 +19,8 @@ import type {
 } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 
+import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
+
 const EMPTY_ARRAY: string[] = [];
 
 /**
@@ -132,17 +134,6 @@ export function toRuleEngineCard(
   };
 }
 
-const MOVE_TARGET_ORDER: readonly DeckZone[] = [
-  WellKnown.deckZone.LEGEND,
-  WellKnown.deckZone.LEGEND_OPTIONS,
-  WellKnown.deckZone.CHAMPION,
-  WellKnown.deckZone.RUNES,
-  WellKnown.deckZone.BATTLEFIELD,
-  WellKnown.deckZone.MAIN,
-  WellKnown.deckZone.SIDEBOARD,
-  WellKnown.deckZone.OVERFLOW,
-];
-
 /**
  * Sideboard-less formats and decks without a legend-granting card drop those zones
  * as targets; both stay valid sources so stray cards can still be moved out.
@@ -156,7 +147,7 @@ export function getAllowedMoveTargets(
   format: DeckFormat,
   deckCards: readonly DeckBuilderCard[],
 ): DeckZone[] {
-  return MOVE_TARGET_ORDER.filter(
+  return DECK_ZONE_ORDER.filter(
     (zone) =>
       zone !== card.zone &&
       isCardAllowedInZone(card, zone) &&

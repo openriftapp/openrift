@@ -82,7 +82,6 @@ const topdeckEvents = eventsRepo();
 const playriftboundEvents = eventsRepo();
 const jobRuns = { getLatestForResume: vi.fn() };
 const metaOverlays = {
-  ignoreEvent: vi.fn(),
   unignoreEvent: vi.fn(),
   ignoreEvents: vi.fn(),
   claimIgnoreEvent: vi.fn(() => Promise.resolve(true)),

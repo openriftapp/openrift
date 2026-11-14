@@ -1,15 +1,17 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
-  BookOpenIcon,
   CrownIcon,
   FolderIcon,
   HandshakeIcon,
   HeartIcon,
   KeyIcon,
   ShieldIcon,
+  StoreIcon,
+  TrophyIcon,
   UserIcon,
   UsersIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
@@ -17,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { FIXTURE_GROUPS } from "@/features/marketing/lib/vignette-fixtures";
 import { m } from "@/paraglide/messages.js";
 
 export default function GroupsArticle() {
@@ -28,7 +31,7 @@ export default function GroupsArticle() {
         <Eyebrow className="mb-3">{m.help_groups_glance_eyebrow()}</Eyebrow>
         <div className="bg-background flex flex-col gap-3 rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <span className="text-base font-semibold">Tuesday Night Crew</span>
+            <span className="text-base font-semibold">{FIXTURE_GROUPS.storeCrew}</span>
             <span className="bg-secondary text-secondary-foreground text-2xs rounded-full px-2 py-0.5 font-medium">
               {m.help_groups_roles_admin_term()}
             </span>
@@ -36,23 +39,20 @@ export default function GroupsArticle() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             <SectionChip
               icon={<HandshakeIcon className="size-3.5" />}
-              label={m.help_groups_glance_chip_matches()}
+              label={m.groups_nav_trades()}
             />
             <SectionChip
               icon={<FolderIcon className="size-3.5" />}
-              label={m.help_groups_glance_chip_group_collections()}
+              label={m.groups_nav_collections()}
+            />
+            <SectionChip icon={<UsersIcon className="size-3.5" />} label={m.groups_nav_members()} />
+            <SectionChip
+              icon={<TrophyIcon className="size-3.5" />}
+              label={m.groups_nav_tournaments()}
             />
             <SectionChip
-              icon={<BookOpenIcon className="size-3.5" />}
-              label={m.help_groups_glance_chip_personal_collections()}
-            />
-            <SectionChip
-              icon={<UsersIcon className="size-3.5" />}
-              label={m.help_groups_glance_chip_members()}
-            />
-            <SectionChip
-              icon={<KeyIcon className="size-3.5" />}
-              label={m.help_groups_glance_chip_settings()}
+              icon={<StoreIcon className="size-3.5" />}
+              label={m.groups_nav_shop_events()}
             />
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function GroupsArticle() {
   );
 }
 
-function SectionChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+function SectionChip({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <div className="bg-muted text-foreground flex items-center gap-1.5 rounded-md px-2 py-1 text-xs">
       <span className="text-muted-foreground">{icon}</span>

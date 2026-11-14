@@ -44,10 +44,10 @@ const mockOverlays = {
   updatePlayerOverlay: vi.fn(),
   deletePlayerOverlay: vi.fn(),
   adminPlayerEditOverlay: vi.fn(),
-  setPlayerOverlayStatus: vi.fn(),
+  setPlayerOverlayStatuses: vi.fn(),
   acceptedPlayerOverlays: vi.fn(),
   acceptedEventOverlays: vi.fn(),
-  ignoreEvent: vi.fn(),
+  ignoreEvents: vi.fn(),
   unignoreEvent: vi.fn(),
   listIgnored: vi.fn(),
   resolveCardName: vi.fn(),
@@ -1160,8 +1160,8 @@ describe("POST /meta/overlays/players/{id}/accept", () => {
 
     expect(response.status).toBe(200);
     expect(mockOverlays.linkPlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID, LIVE_PLAYER_ID);
-    expect(mockOverlays.setPlayerOverlayStatus).toHaveBeenCalledWith(
-      PLAYER_OVERLAY_ID,
+    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledWith(
+      [PLAYER_OVERLAY_ID],
       "accepted",
       expect.any(Date),
     );
@@ -1237,7 +1237,7 @@ describe("POST /meta/overlays/players/accept", () => {
 
     expect(await readJson(response)).toEqual({ accepted: 2, metaEventIds: [LIVE_EVENT_ID] });
     expect(mockOverlays.linkPlayerOverlay).toHaveBeenCalledTimes(1);
-    expect(mockOverlays.setPlayerOverlayStatus).toHaveBeenCalledTimes(2);
+    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledTimes(2);
     expect(promoteMetaEvent).toHaveBeenCalledTimes(1);
   });
 
@@ -1303,7 +1303,7 @@ describe("POST /meta/overlays/players/accept", () => {
     ]);
 
     expect(response.status).toBe(404);
-    expect(mockOverlays.setPlayerOverlayStatus).not.toHaveBeenCalled();
+    expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
     expect(promoteMetaEvent).not.toHaveBeenCalled();
     expect(mockNotifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
   });
@@ -1369,7 +1369,7 @@ describe("POST /meta/players/{id}/overlays/release", () => {
     await release("wins");
 
     expect(mockOverlays.deletePlayerOverlay).toHaveBeenCalledWith(PLAYER_OVERLAY_ID);
-    expect(mockOverlays.setPlayerOverlayStatus).not.toHaveBeenCalled();
+    expect(mockOverlays.setPlayerOverlayStatuses).not.toHaveBeenCalled();
   });
 
   it("rejects an emptied submission rather than deleting somebody's contribution", async () => {
@@ -1380,8 +1380,8 @@ describe("POST /meta/players/{id}/overlays/release", () => {
     await release("wins");
 
     expect(mockOverlays.deletePlayerOverlay).not.toHaveBeenCalled();
-    expect(mockOverlays.setPlayerOverlayStatus).toHaveBeenCalledWith(
-      PLAYER_OVERLAY_ID,
+    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledWith(
+      [PLAYER_OVERLAY_ID],
       "rejected",
       expect.any(Date),
     );
@@ -1802,8 +1802,8 @@ describe("POST /overlays/player/:id/reject", () => {
     const res = await reject({ reason: "unverified" });
 
     expect(res.status).toBe(200);
-    expect(mockOverlays.setPlayerOverlayStatus).toHaveBeenCalledWith(
-      REJECTED_OVERLAY_ID,
+    expect(mockOverlays.setPlayerOverlayStatuses).toHaveBeenCalledWith(
+      [REJECTED_OVERLAY_ID],
       "rejected",
       expect.any(Date),
     );

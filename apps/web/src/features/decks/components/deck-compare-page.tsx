@@ -39,11 +39,11 @@ import { HoveredCardPreview } from "@/features/cards/components/hovered-card-pre
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
-import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import type { PastedCompareSource } from "@/features/decks/components/deck-compare-paste-dialog";
 import { DeckComparePasteDialog } from "@/features/decks/components/deck-compare-paste-dialog";
 import type { DeckIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckMiniIdentity } from "@/features/decks/components/deck-mini-identity";
+import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-stat-glyphs";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckHoverPreview } from "@/features/decks/hooks/use-deck-hover-preview";
 import { useDeckCardsFor, useDeckList } from "@/features/decks/hooks/use-decks";

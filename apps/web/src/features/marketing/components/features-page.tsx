@@ -1,9 +1,8 @@
-import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { siGithub } from "simple-icons";
 
 import { Heading } from "@/components/heading";
@@ -15,14 +14,13 @@ import {
 } from "@/components/layout/page-top-bar";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { TextLink } from "@/components/ui/text-link";
-import { HeroCta } from "@/features/marketing/components/hero-cta";
 import { featureChapters } from "@/features/marketing/lib/features-chapters";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-queries";
-import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
+import { MARKETPLACE_COUNT, marketplaceNames } from "@/features/marketing/lib/marketplace-copy";
+import { featuresSamples } from "@/features/marketing/lib/page-samples";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { useIdlePreloadRoute } from "@/hooks/use-idle-preload-route";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
-import { useSession } from "@/hooks/use-session";
-import { trackSignupCta } from "@/lib/analytics";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -46,6 +44,7 @@ import {
 import { FeaturesHero } from "./features-hero";
 import { FeaturesChipNav, FeaturesRail } from "./features-nav";
 import { GroupsVignette } from "./groups-vignette";
+import { HeroCtas } from "./hero-ctas";
 import { ImportVignette } from "./import-vignette";
 import { ListsVignette } from "./lists-vignette";
 import { LoansVignette } from "./loans-vignette";
@@ -66,7 +65,6 @@ import {
   TradeRequestVignette,
   TradeReservedVignette,
   TradeSettleVignette,
-  tradedCard,
 } from "./trade-flow-vignettes";
 import { VariantsVignette } from "./variants-vignette";
 
@@ -96,7 +94,7 @@ interface ChapterContent {
   cards: CardSectionDef[];
 }
 
-function ClosingBlock({ signedOut }: { signedOut: boolean }) {
+function ClosingBlock() {
   return (
     <Reveal>
       <section className="flex flex-col items-start gap-4 py-14 sm:py-20">
@@ -108,20 +106,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
         <p className="text-muted-foreground max-w-prose">
           {m.marketing_features_closing_languages()}
         </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <HeroCta to="/cards">{m.collections_activity_browse_cards()}</HeroCta>
-          {signedOut && (
-            <HeroCta
-              rel="nofollow"
-              to="/signup"
-              search={{ redirect: undefined, email: undefined }}
-              variant="outline"
-              onClick={() => trackSignupCta("features-page")}
-            >
-              {m.card_detail_nudge_signup()}
-            </HeroCta>
-          )}
-        </div>
+        <HeroCtas source="features-page" className="my-0 justify-start" />
         <TextLink
           href={SOCIAL_LINKS.githubRepo}
           target="_blank"
@@ -138,33 +123,11 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
 
 export function FeaturesPage() {
   const { data } = useQuery(landingSummaryQueryOptions);
-  const { data: session, isPending } = useSession();
-  const router = useRouter();
   const scannerEnabled = useFeatureEnabled("scanner");
   const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarSlot);
-  const thumbnailUrls = (data?.thumbnailIds ?? []).map((id) => imageUrl(id, "400w"));
-  const legendUrls = (data?.legendThumbnailIds ?? []).map((id) => imageUrl(id, "400w"));
-  const taggedThumbnails = (data?.thumbnails ?? []).map((thumb) => ({
-    url: imageUrl(thumb.imageId, "400w"),
-    rarity: thumb.rarity,
-    domains: thumb.domains,
-  }));
-  const thumbnailCards = landingThumbnailCards(data?.thumbnails);
-  const tradedFlowCard = tradedCard(thumbnailCards.slice(15));
-  const tradeStripUrls = thumbnailUrls.slice(16, 22);
-
-  useEffect(() => {
-    // Not under `vite dev`: preloadRoute pulls the whole card-browser module
-    // graph one request at a time there. MODE, not DEV: vitest sets DEV too.
-    if (typeof requestIdleCallback === "undefined" || import.meta.env.MODE === "development") {
-      return;
-    }
-    const handle = requestIdleCallback(() => {
-      void router.preloadRoute({ to: "/cards" });
-    });
-    return () => cancelIdleCallback(handle);
-  }, [router]);
+  const samples = featuresSamples(data, { scanner: scannerEnabled });
+  useIdlePreloadRoute("/cards");
 
   function sectionAction(label: string, to: string): ReactNode {
     return (
@@ -184,7 +147,7 @@ export function FeaturesPage() {
           title: m.marketing_features_catalog_title(),
           description: m.marketing_features_catalog_description(),
           action: sectionAction(m.marketing_features_action_open_catalog(), "/cards"),
-          vignette: <CatalogVignette thumbnails={taggedThumbnails} cardCount={data?.cardCount} />,
+          vignette: <CatalogVignette cards={samples.catalogCards} cardCount={data?.cardCount} />,
         },
         {
           id: "import",
@@ -201,7 +164,7 @@ export function FeaturesPage() {
                 title: m.marketing_features_scan_title(),
                 description: m.marketing_features_scan_description(),
                 action: sectionAction(m.marketing_features_action_open_scanner(), "/scan"),
-                vignette: <ScanVignette cards={thumbnailCards.slice(8, 12)} />,
+                vignette: <ScanVignette cards={samples.scanCards} />,
                 emphasis: true,
               },
             ]
@@ -211,7 +174,7 @@ export function FeaturesPage() {
           title: m.marketing_features_collections_title(),
           description: m.marketing_features_collections_description(),
           action: sectionAction(m.marketing_features_action_open_collections(), "/collections"),
-          vignette: <CollectionsVignette thumbnailUrls={thumbnailUrls.slice(4, 7)} />,
+          vignette: <CollectionsVignette thumbnailUrls={samples.collectionsUrls} />,
           flip: true,
         },
         {
@@ -223,8 +186,10 @@ export function FeaturesPage() {
         },
         {
           id: "prices",
-          title: m.marketing_features_prices_title(),
-          description: m.marketing_features_prices_description(),
+          title: m.marketing_features_prices_title({ count: MARKETPLACE_COUNT }),
+          description: m.marketing_features_prices_description({
+            marketplaces: marketplaceNames(),
+          }),
           action: sectionAction(m.marketing_features_action_open_catalog(), "/cards"),
           vignette: <PricesVignette />,
           flip: true,
@@ -264,7 +229,7 @@ export function FeaturesPage() {
           title: m.marketing_features_test_title(),
           description: m.marketing_features_test_description(),
           action: sectionAction(m.marketing_features_action_open_your_decks(), "/decks"),
-          vignette: <TestVignette thumbnailUrls={thumbnailUrls.slice(18, 23)} />,
+          vignette: <TestVignette thumbnailUrls={samples.testUrls} />,
         },
         {
           id: "box",
@@ -300,7 +265,7 @@ export function FeaturesPage() {
           title: m.marketing_features_tracker_title(),
           description: m.marketing_features_tracker_description(),
           action: sectionAction(m.marketing_features_action_open_tracker(), "/match-tracker"),
-          vignette: <TrackerVignette thumbnailUrls={thumbnailUrls.slice(12, 14)} />,
+          vignette: <TrackerVignette thumbnailUrls={samples.trackerUrls} />,
         },
       ],
     },
@@ -312,7 +277,7 @@ export function FeaturesPage() {
           title: m.marketing_features_groups_title(),
           description: m.marketing_features_groups_description(),
           action: sectionAction(m.marketing_features_action_open_your_groups(), "/groups"),
-          vignette: <GroupsVignette thumbnailUrls={tradeStripUrls} />,
+          vignette: <GroupsVignette thumbnailUrls={samples.groupUrls} />,
         },
         {
           id: "trade-match",
@@ -321,7 +286,7 @@ export function FeaturesPage() {
           title: m.marketing_features_trade_match_title(),
           description: m.marketing_features_trade_match_description(),
           action: sectionAction(m.marketing_features_action_open_your_groups(), "/groups"),
-          vignette: <TradeMatchVignette thumbnailUrls={tradeStripUrls} />,
+          vignette: <TradeMatchVignette thumbnailUrls={samples.tradeMatchUrls} />,
           flip: true,
         },
         {
@@ -331,7 +296,7 @@ export function FeaturesPage() {
           title: m.marketing_features_trade_request_title(),
           description: m.marketing_features_trade_request_description(),
           action: sectionAction(m.marketing_features_action_open_your_trades(), "/trades"),
-          vignette: <TradeRequestVignette card={tradedFlowCard} />,
+          vignette: <TradeRequestVignette card={samples.tradedCard} />,
         },
         {
           id: "trade-reserved",
@@ -340,7 +305,7 @@ export function FeaturesPage() {
           title: m.marketing_features_trade_reserved_title(),
           description: m.marketing_features_trade_reserved_description(),
           action: sectionAction(m.marketing_features_action_open_your_trades(), "/trades"),
-          vignette: <TradeReservedVignette card={tradedFlowCard} />,
+          vignette: <TradeReservedVignette card={samples.tradedCard} />,
           flip: true,
         },
         {
@@ -362,7 +327,7 @@ export function FeaturesPage() {
             m.marketing_features_action_open_your_collections(),
             "/collections",
           ),
-          vignette: <TradeArrivedVignette card={tradedFlowCard} />,
+          vignette: <TradeArrivedVignette card={samples.tradedCard} />,
           flip: true,
         },
       ],
@@ -384,7 +349,9 @@ export function FeaturesPage() {
         {
           id: "discord",
           title: m.marketing_features_discord_title(),
-          description: m.marketing_features_discord_description(),
+          description: m.marketing_features_discord_description({
+            marketplaces: marketplaceNames(),
+          }),
           action: (
             <TextLink
               href={SOCIAL_LINKS.discordBotInvite}
@@ -396,7 +363,7 @@ export function FeaturesPage() {
               <ActionArrow />
             </TextLink>
           ),
-          vignette: <DiscordVignette card={thumbnailCards[14]} />,
+          vignette: <DiscordVignette card={samples.discordCard} />,
         },
       ],
     },
@@ -408,14 +375,14 @@ export function FeaturesPage() {
           title: m.marketing_features_stage_title(),
           description: m.marketing_features_stage_description(),
           action: sectionAction(m.marketing_features_action_open_stage(), "/stage"),
-          vignette: <StageVignette thumbnailUrls={thumbnailUrls.slice(23, 24)} />,
+          vignette: <StageVignette thumbnailUrls={samples.stageUrls} />,
         },
         {
           id: "tier-lists",
           title: m.marketing_features_tier_lists_title(),
           description: m.marketing_features_tier_lists_description(),
           action: sectionAction(m.marketing_features_action_open_tier_lists(), "/tier-lists"),
-          vignette: <TierListVignette legendUrls={legendUrls} />,
+          vignette: <TierListVignette legendUrls={samples.legendUrls} />,
           flip: true,
         },
       ],
@@ -446,7 +413,7 @@ export function FeaturesPage() {
     },
   ];
 
-  const chapterList = featureChapters();
+  const chapterList = featureChapters({ scanner: scannerEnabled });
 
   return (
     <PageTopBarHeightContext value={topBarHeight}>
@@ -457,7 +424,7 @@ export function FeaturesPage() {
       </PageTopBarSticky>
       <FeaturesChipNav chapters={chapterList} />
       <FeaturesRail chapters={chapterList} />
-      <FeaturesHero chapters={chapterList} thumbnailUrls={thumbnailUrls.slice(0, 5)} />
+      <FeaturesHero chapters={chapterList} thumbnailUrls={samples.heroUrls} />
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP)}>
         {chapters.map((content) => {
           const chapter = chapterList.find((entry) => entry.id === content.chapterId);
@@ -480,7 +447,7 @@ export function FeaturesPage() {
             </div>
           );
         })}
-        <ClosingBlock signedOut={!isPending && !session?.user} />
+        <ClosingBlock />
       </div>
     </PageTopBarHeightContext>
   );

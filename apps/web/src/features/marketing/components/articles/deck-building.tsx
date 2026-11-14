@@ -1,4 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { enumLabel } from "@openrift/shared/enum-label";
+import type { DeckZone } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 import {
   CopyIcon,
   GripVerticalIcon,
@@ -13,10 +16,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
+import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ZoneOverview } from "@/features/marketing/components/articles/zone-overview";
+import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
 export default function DeckBuildingArticle() {
+  const { zoneLabels } = useZoneOrder();
+  const { labels: formatLabels } = useDeckFormatList();
+  const zoneName = (zone: DeckZone) => enumLabel(zoneLabels, zone);
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">{m.help_deck_building_intro()}</p>
@@ -50,44 +58,16 @@ export default function DeckBuildingArticle() {
 
       <Callout>
         <Eyebrow className="mb-3">{m.help_deck_building_structure_eyebrow()}</Eyebrow>
-        <div className="grid gap-2 text-sm sm:grid-cols-2">
-          <ZoneCard
-            name="Legend"
-            count="1"
-            description={m.help_deck_building_zone_legend_desc()}
-            color="text-warning"
-          />
-          <ZoneCard
-            name="Chosen Champion"
-            count="1"
-            description={m.help_deck_building_zone_champion_desc()}
-            color="text-violet"
-          />
-          <ZoneCard
-            name="Runes"
-            count="12"
-            description={m.help_deck_building_zone_runes_desc()}
-            color="text-info"
-          />
-          <ZoneCard
-            name="Battlefield"
-            count="3"
-            description={m.help_deck_building_zone_battlefield_desc()}
-            color="text-success"
-          />
-          <ZoneCard
-            name="Main Deck"
-            count="40"
-            description={m.help_deck_building_zone_main_desc()}
-            color="text-foreground"
-          />
-          <ZoneCard
-            name="Sideboard"
-            count="0–8"
-            description={m.help_deck_building_zone_sideboard_desc()}
-            color="text-muted-foreground"
-          />
-        </div>
+        <ZoneOverview
+          descriptions={{
+            legend: m.help_deck_building_zone_legend_desc(),
+            champion: m.help_deck_building_zone_champion_desc(),
+            runes: m.help_deck_building_zone_runes_desc(),
+            battlefield: m.help_deck_building_zone_battlefield_desc(),
+            main: m.help_deck_building_zone_main_desc(),
+            sideboard: m.help_deck_building_zone_sideboard_desc(),
+          }}
+        />
       </Callout>
 
       <section>
@@ -98,8 +78,13 @@ export default function DeckBuildingArticle() {
           {m.help_deck_building_start_p1_s3()}{" "}
           <strong className="text-foreground">{m.help_deck_building_start_p1_new_deck()}</strong>
           {m.help_deck_building_start_p1_s5()}{" "}
-          <strong className="text-foreground">Constructed</strong>
-          {m.help_deck_building_start_p1_s7()} <strong className="text-foreground">Freeform</strong>
+          <strong className="text-foreground">
+            {enumLabel(formatLabels, WellKnown.deckFormat.CONSTRUCTED)}
+          </strong>
+          {m.help_deck_building_start_p1_s7()}{" "}
+          <strong className="text-foreground">
+            {enumLabel(formatLabels, WellKnown.deckFormat.FREEFORM)}
+          </strong>
           {m.help_deck_building_start_p1_s9()}
         </p>
         <p className="text-muted-foreground mt-2">
@@ -175,25 +160,29 @@ export default function DeckBuildingArticle() {
         <p className="text-muted-foreground">{m.help_deck_building_rules_intro()}</p>
 
         <DefinitionList className="text-muted-foreground mt-3">
-          <DefinitionTerm icon={<TypeIcon src="/images/types/legend.svg" alt="Legend" />}>
-            Legend
+          <DefinitionTerm icon={<TypeIcon src="/images/types/legend.svg" />}>
+            {zoneName("legend")}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_deck_building_rules_legend_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<TypeIcon src="/images/supertypes/champion.svg" alt="Champion" />}>
-            Chosen Champion
+          <DefinitionTerm icon={<TypeIcon src="/images/supertypes/champion.svg" />}>
+            {zoneName("champion")}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_deck_building_rules_champion_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<TypeIcon src="/images/types/rune.svg" alt="Rune" />}>
-            Runes
+          <DefinitionTerm icon={<TypeIcon src="/images/types/rune.svg" />}>
+            {zoneName("runes")}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_deck_building_rules_runes_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<TypeIcon src="/images/types/battlefield.svg" alt="Battlefield" />}>
-            Battlefield
+          <DefinitionTerm icon={<TypeIcon src="/images/types/battlefield.svg" />}>
+            {zoneName("battlefield")}
           </DefinitionTerm>
           <DefinitionDetail>{m.help_deck_building_rules_battlefield_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>Main</DefinitionTerm>
+          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>
+            {zoneName("main")}
+          </DefinitionTerm>
           <DefinitionDetail>{m.help_deck_building_rules_main_detail()}</DefinitionDetail>
-          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>Sideboard</DefinitionTerm>
+          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>
+            {zoneName("sideboard")}
+          </DefinitionTerm>
           <DefinitionDetail>{m.help_deck_building_rules_sideboard_detail()}</DefinitionDetail>
         </DefinitionList>
 
@@ -294,6 +283,6 @@ export default function DeckBuildingArticle() {
   );
 }
 
-function TypeIcon({ src, alt }: { src: string; alt: string }) {
-  return <img src={src} alt={alt} className="size-3.5" />;
+function TypeIcon({ src }: { src: string }) {
+  return <img src={src} alt="" className="size-3.5" />;
 }

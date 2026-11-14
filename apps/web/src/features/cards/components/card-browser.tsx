@@ -21,6 +21,7 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useFilterCountsVisible } from "@/features/cards/hooks/use-filter-counts-visible";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { selectionFindBy, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
@@ -277,12 +278,7 @@ export function CardBrowser() {
     onAddToWishlist: isLoggedIn ? setWishTarget : undefined,
   });
 
-  const searchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const searchAndClose = useSearchAndCloseDetail(setSearch);
 
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => {
     const cardId = item.printing.cardId;

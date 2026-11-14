@@ -2,7 +2,8 @@ import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { LiveTradesElsewhereLine, tradeBadgeState } from "./trade-row-parts";
+import { LiveTradesElsewhereLine } from "./trade-row-parts";
+import { tradeBadgeState } from "./trade-status-badge";
 
 function trade(overrides: Partial<CardTradeResponse>): CardTradeResponse {
   return {

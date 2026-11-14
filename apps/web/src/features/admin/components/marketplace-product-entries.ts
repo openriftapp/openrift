@@ -1,6 +1,6 @@
 import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { STRONG_MATCH_THRESHOLD } from "@openrift/shared/marketplace-suggestions";
+import { suggestionStrength } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
   AdminMarketplaceName,
@@ -184,51 +184,20 @@ export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[]
   return entries;
 }
 
-export function collectStrongMappings(
-  group: UnifiedMappingGroupResponse,
-  suggestions: Map<string, ProductSuggestion[]> | undefined,
-): Record<AdminMarketplaceName, PrintingAssignment[]> {
-  const out: Record<AdminMarketplaceName, PrintingAssignment[]> = {
-    tcgplayer: [],
-    cardmarket: [],
-    cardtrader: [],
-    cardnexus: [],
-  };
-  for (const entry of collectEntries(group)) {
-    if (entry.isAssigned) {
-      continue;
-    }
-    const key = marketplaceSkuKey(
-      entry.marketplace,
-      entry.product.externalId,
-      entry.product.finish,
-      entry.product.language,
-    );
-    for (const s of suggestions?.get(key) ?? []) {
-      if (s.score < STRONG_MATCH_THRESHOLD) {
-        continue;
-      }
-      out[entry.marketplace].push({
-        externalId: entry.product.externalId,
-        finish: entry.product.finish,
-        language: entry.product.language,
-        printingId: s.printingId,
-      });
-    }
-  }
-  return out;
+interface SuggestedMappings {
+  strong: Record<AdminMarketplaceName, PrintingAssignment[]>;
+  weak: Record<AdminMarketplaceName, PrintingAssignment[]>;
 }
 
-export function collectWeakMappings(
+function emptyByMarketplace(): Record<AdminMarketplaceName, PrintingAssignment[]> {
+  return { tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] };
+}
+
+export function collectSuggestedMappings(
   group: UnifiedMappingGroupResponse,
   suggestions: Map<string, ProductSuggestion[]> | undefined,
-): Record<AdminMarketplaceName, PrintingAssignment[]> {
-  const out: Record<AdminMarketplaceName, PrintingAssignment[]> = {
-    tcgplayer: [],
-    cardmarket: [],
-    cardtrader: [],
-    cardnexus: [],
-  };
+): SuggestedMappings {
+  const out: SuggestedMappings = { strong: emptyByMarketplace(), weak: emptyByMarketplace() };
   for (const entry of collectEntries(group)) {
     if (entry.isAssigned) {
       continue;
@@ -240,10 +209,11 @@ export function collectWeakMappings(
       entry.product.language,
     );
     for (const s of suggestions?.get(key) ?? []) {
-      if (s.isWeak !== true) {
+      const strength = suggestionStrength(s);
+      if (strength === "possible") {
         continue;
       }
-      out[entry.marketplace].push({
+      out[strength][entry.marketplace].push({
         externalId: entry.product.externalId,
         finish: entry.product.finish,
         language: entry.product.language,

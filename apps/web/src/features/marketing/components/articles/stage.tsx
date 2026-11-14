@@ -12,13 +12,20 @@ import { m } from "@/paraglide/messages.js";
 
 function keyRows(): { id: string; keys: string[]; does: string }[] {
   return [
-    { id: "next", keys: ["→", "↓", "Space"], does: m.help_stage_key_next_card() },
-    { id: "previous", keys: ["←", "↑"], does: m.help_stage_key_previous_card() },
+    { id: "next", keys: ["→", "↓", "Space", "PgDn"], does: m.help_stage_key_next_card() },
+    { id: "previous", keys: ["←", "↑", "PgUp"], does: m.help_stage_key_previous_card() },
     { id: "first-last", keys: ["Home", "End"], does: m.help_stage_key_first_last() },
     { id: "text", keys: ["T"], does: m.help_stage_key_toggle_text() },
     { id: "strip", keys: ["F"], does: m.help_stage_key_toggle_strip() },
+    { id: "whole-board", keys: ["B"], does: m.stage_help_board_toggle() },
+    { id: "card-beside", keys: ["C"], does: m.stage_help_card_beside_board() },
+    { id: "tier-large", keys: ["K"], does: m.stage_help_tier_large() },
+    { id: "fill-board", keys: ["R"], does: m.stage_help_fill_board() },
+    { id: "start-bottom", keys: ["D"], does: m.stage_help_start_bottom() },
+    { id: "edit-board", keys: ["E"], does: m.stage_toggle_edit_board() },
     { id: "push", keys: ["P"], does: m.help_stage_key_push_overlay() },
     { id: "board", keys: ["O"], does: m.help_stage_key_show_board() },
+    { id: "hide", keys: ["H"], does: m.stage_help_hide_overlay() },
     { id: "keys", keys: ["?"], does: m.help_stage_key_show_keys() },
     { id: "leave", keys: ["Esc"], does: m.help_stage_key_leave() },
   ];

@@ -1,26 +1,13 @@
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import type { DeckZone } from "@openrift/shared/types/enums";
-import { WellKnown } from "@openrift/shared/well-known";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckTokens } from "@/features/decks/hooks/use-deck-tokens";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { sortOverviewCards } from "@/features/decks/lib/deck-card-sort";
+import { DECK_TILE_ZONE_ORDER } from "@/features/decks/lib/deck-overview-geometry";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
-
-/** Mirrors the visual stacking in `DeckOverview` so prev/next in the detail pane matches it. */
-const ZONE_ORDER: DeckZone[] = [
-  WellKnown.deckZone.LEGEND,
-  WellKnown.deckZone.CHAMPION,
-  WellKnown.deckZone.RUNES,
-  WellKnown.deckZone.BATTLEFIELD,
-  WellKnown.deckZone.LEGEND_OPTIONS,
-  WellKnown.deckZone.MAIN,
-  WellKnown.deckZone.SIDEBOARD,
-  WellKnown.deckZone.OVERFLOW,
-];
 
 interface UseDeckItemsResult {
   items: CardViewerItem[];
@@ -38,7 +25,7 @@ export function useDeckItems(cards: DeckBuilderCard[]): UseDeckItemsResult {
   const tokens = useDeckTokens(cards);
 
   const items: CardViewerItem[] = [];
-  for (const zone of ZONE_ORDER) {
+  for (const zone of DECK_TILE_ZONE_ORDER) {
     const inZone = cards.filter((card) => card.zone === zone);
     const sorted = sortOverviewCards(inZone, zone);
     for (const card of sorted) {

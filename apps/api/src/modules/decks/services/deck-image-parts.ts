@@ -3,16 +3,17 @@ import { deckCardCount } from "@openrift/shared/deck-rules";
 import { DEFAULT_DOMAIN_COLORS, DOMAIN_COLOR_FALLBACK } from "@openrift/shared/domain-colors";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
-import { pluralize } from "@openrift/shared/strings";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
-  COLORS,
   blurredArtBackdropDataUri,
   element,
+  qrDataUri,
   svgToPngDataUri,
+  tileArtDataUri,
 } from "../../system/services/share-image-core.js";
 
 /**
@@ -131,10 +132,6 @@ export function legendOptionTileSize(
   return { tileW: Math.floor(tileH * CARD_ASPECT), tileH };
 }
 
-export function deckMetaLabel(formatLabel: string, cardCount: number): string {
-  return `${formatLabel} · ${cardCount} ${pluralize(cardCount, "card", "cards")}`;
-}
-
 export interface PackedGrid {
   cols: number;
   tileW: number;
@@ -210,7 +207,7 @@ export function runeCountsByDomain(
     .sort((left, right) => right.count - left.count || left.domain.localeCompare(right.domain));
 }
 
-export async function glyphUri(
+async function glyphUri(
   io: Io,
   domain: string,
   sizePx: number,
@@ -238,7 +235,7 @@ export function domainIconElements(
           width: sizePx,
           height: sizePx,
           borderRadius: sizePx / 2,
-          backgroundColor: COLORS.gold,
+          backgroundColor: SHARE_IMAGE_COLORS.gold,
         }),
   );
 }
@@ -255,19 +252,25 @@ export function deckSection(label: string, tiles: Child[], marginTop = 0): Eleme
       display: "flex",
       height: 1,
       width: 28,
-      backgroundColor: COLORS.surfaceBorder,
+      backgroundColor: SHARE_IMAGE_COLORS.surfaceBorder,
       marginRight: 10,
     }),
     element(
       "div",
-      { display: "flex", fontSize: 15, fontWeight: 700, color: COLORS.gold, letterSpacing: 2 },
+      {
+        display: "flex",
+        fontSize: 15,
+        fontWeight: 700,
+        color: SHARE_IMAGE_COLORS.gold,
+        letterSpacing: 2,
+      },
       label,
     ),
     element("div", {
       display: "flex",
       flexGrow: 1,
       height: 1,
-      backgroundColor: COLORS.surfaceBorder,
+      backgroundColor: SHARE_IMAGE_COLORS.surfaceBorder,
       marginLeft: 10,
     }),
   );
@@ -298,7 +301,7 @@ export function legendGlowBackground(domains: readonly string[]): string | undef
  * blurred anyway, so half resolution keeps the payload small even at the HQ
  * scale. A custom cover replaces the legend art here, and only here.
  */
-export function deckBackdropUri(
+function deckBackdropUri(
   io: Io,
   imageId: string | null | undefined,
   width: number,
@@ -343,4 +346,82 @@ export function deckHeroBackdrop(backdropUri: string | null, width: number, heig
       }),
     )
   );
+}
+
+interface TileSize {
+  w: number;
+  h: number;
+}
+
+interface WithArt {
+  imageId: string | null;
+}
+
+export async function loadDeckArt(
+  io: Io,
+  input: Pick<DeckImageInput, "coverImageId" | "shareUrl">,
+  cards: {
+    legend: WithArt | null;
+    legendOptions: readonly WithArt[];
+    gridCards: readonly WithArt[];
+    battlefields: readonly WithArt[];
+    sideboard: readonly WithArt[];
+    runeCards: readonly WithArt[];
+    domains: readonly string[];
+  },
+  sizes: {
+    legend: TileSize;
+    legendOption: TileSize | null;
+    grid: { tileW: number; tileH: number } | null;
+    battlefield: TileSize;
+    sideboard: TileSize;
+    rune: TileSize;
+  },
+  canvas: { width: number; height: number; domainIcon: number; headerQr: number },
+  scale: number,
+) {
+  const tiles = (list: readonly WithArt[], size: TileSize) =>
+    Promise.all(list.map((card) => tileArtDataUri(io, card.imageId, size.w, size.h, scale)));
+  const [
+    legendUri,
+    legendOptionUris,
+    backdropUri,
+    gridUris,
+    battlefieldUris,
+    sideboardUris,
+    runeUris,
+    domainUris,
+    qrUri,
+  ] = await Promise.all([
+    cards.legend
+      ? tileArtDataUri(io, cards.legend.imageId, sizes.legend.w, sizes.legend.h, scale)
+      : Promise.resolve(null),
+    sizes.legendOption ? tiles(cards.legendOptions, sizes.legendOption) : Promise.resolve([]),
+    deckBackdropUri(
+      io,
+      input.coverImageId ?? cards.legend?.imageId,
+      canvas.width,
+      canvas.height,
+      scale,
+    ),
+    sizes.grid
+      ? tiles(cards.gridCards, { w: sizes.grid.tileW, h: sizes.grid.tileH })
+      : Promise.resolve([]),
+    tiles(cards.battlefields, sizes.battlefield),
+    tiles(cards.sideboard, sizes.sideboard),
+    tiles(cards.runeCards, sizes.rune),
+    Promise.all(cards.domains.map((domain) => glyphUri(io, domain, canvas.domainIcon, scale))),
+    input.shareUrl ? qrDataUri(input.shareUrl, scale, canvas.headerQr) : Promise.resolve(null),
+  ]);
+  return {
+    legendUri,
+    legendOptionUris,
+    backdropUri,
+    gridUris,
+    battlefieldUris,
+    sideboardUris,
+    runeUris,
+    domainUris,
+    qrUri,
+  };
 }

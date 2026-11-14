@@ -14,7 +14,7 @@ import type {
   DeckCheckEntriesTable,
   TournamentParticipantsTable,
 } from "../../../db/tables/tournaments.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 import { eventStatusForTournamentStatus } from "./deck-check-shared.js";
 
 /**
@@ -623,16 +623,12 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
 
     /** Call inside a transaction. */
     async lockIngest(tournamentId: string): Promise<void> {
-      await sql`select pg_advisory_xact_lock(hashtext(${`deck-check-ingest:${tournamentId}`}))`.execute(
-        db,
-      );
+      await lockKey(db, `deck-check-ingest:${tournamentId}`);
     },
 
     /** Call inside a transaction. */
     async lockSelfSubmission(tournamentId: string, userId: string): Promise<void> {
-      await sql`select pg_advisory_xact_lock(hashtext(${`deck-check-self-submit:${tournamentId}:${userId}`}))`.execute(
-        db,
-      );
+      await lockKey(db, `deck-check-self-submit:${tournamentId}:${userId}`);
     },
 
     async getLinkedEntryForUser(

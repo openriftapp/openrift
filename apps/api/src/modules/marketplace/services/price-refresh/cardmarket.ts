@@ -18,12 +18,8 @@ import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig } from "./types.js";
+import type { GroupRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
-
-const UPSERT_CONFIG: PriceUpsertConfig = {
-  marketplace: "cardmarket",
-};
 
 const CARDMARKET_BASE = "https://downloads.s3.cardmarket.com/productCatalog";
 const CARDMARKET_GAME = 22;
@@ -191,7 +187,7 @@ export async function refreshCardmarketPrices(
 
   await upsertMarketplaceGroups(repos.priceRefresh, "cardmarket", groupRows);
 
-  const counts = await upsertPriceData(repos.priceRefresh, log, UPSERT_CONFIG, allStaging);
+  const counts = await upsertPriceData(repos.priceRefresh, log, "cardmarket", allStaging);
   logUpsertCounts(log, counts);
 
   await repos.marketplace.refreshLatestPrices();

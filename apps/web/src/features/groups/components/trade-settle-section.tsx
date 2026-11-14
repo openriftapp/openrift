@@ -28,11 +28,8 @@ import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-met
 import { TradeAddTargetDialog } from "@/features/groups/components/trade-add-target-dialog";
 import { TradeSettleCopyPickerDialog } from "@/features/groups/components/trade-copy-picker-dialog";
 import { TradeRow } from "@/features/groups/components/trade-row";
-import {
-  CardMetaLine,
-  TradeDirectionIcon,
-  TradeEstimatedPrice,
-} from "@/features/groups/components/trade-row-parts";
+import { CardMetaLine, TradeEstimatedPrice } from "@/features/groups/components/trade-row-parts";
+import { TradeDirectionIcon } from "@/features/groups/components/trade-status-badge";
 import {
   tradeCopyOptionsQueryOptions,
   useApplyTradeSync,

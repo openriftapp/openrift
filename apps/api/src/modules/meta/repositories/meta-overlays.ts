@@ -432,18 +432,6 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       return Number(result.numUpdatedRows);
     },
 
-    playerOverlaysForSourceEvent(
-      provider: string,
-      eventExternalId: string,
-    ): Promise<MetaPlayerOverlayRow[]> {
-      return db
-        .selectFrom("metaEventPlayerOverlays")
-        .selectAll()
-        .where("provider", "=", provider)
-        .where("sourcePlayerKey", "like", startsWithPattern(sourceEventKeyPrefix(eventExternalId)))
-        .execute();
-    },
-
     /** The standings overlays of several uploads in one query; group them by {@link sourceEventKeyPrefix}. */
     playerOverlaysForSourceEvents(
       keys: readonly { provider: string; externalId: string }[],
@@ -532,19 +520,6 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       return Number(result.numUpdatedRows) > 0;
     },
 
-    async setPlayerOverlayStatus(
-      id: string,
-      status: MetaOverlayStatus,
-      now: Date,
-    ): Promise<boolean> {
-      const result = await db
-        .updateTable("metaEventPlayerOverlays")
-        .set({ status, acceptedAt: status === "accepted" ? now : null })
-        .where("id", "=", id)
-        .executeTakeFirst();
-      return Number(result.numUpdatedRows) > 0;
-    },
-
     async ignoredEventIds(provider: string): Promise<string[]> {
       const rows = await db
         .selectFrom("ignoredMetaSourceEvents")
@@ -559,14 +534,6 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .selectFrom("ignoredMetaSourcePlayers")
         .select(["eventExternalId", "externalId"])
         .where("provider", "=", provider)
-        .execute();
-    },
-
-    async ignoreEvent(provider: string, externalId: string): Promise<void> {
-      await db
-        .insertInto("ignoredMetaSourceEvents")
-        .values({ provider, externalId })
-        .onConflict((oc) => oc.columns(["provider", "externalId"]).doNothing())
         .execute();
     },
 

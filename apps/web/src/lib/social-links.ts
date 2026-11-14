@@ -8,4 +8,6 @@ export const SOCIAL_LINKS = {
   githubIssues: "https://github.com/openriftapp/openrift/issues",
   githubNewIssue: "https://github.com/openriftapp/openrift/issues/new/choose",
   githubCommits: "https://github.com/openriftapp/openrift/commits/main/",
+  githubSponsors: "https://github.com/sponsors/eikowagenknecht",
+  kofi: "https://ko-fi.com/eikowagenknecht",
 } as const;

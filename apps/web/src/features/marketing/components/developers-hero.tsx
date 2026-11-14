@@ -1,22 +1,15 @@
-import { rulesTeaser } from "@openrift/shared/rules-teaser";
+import { developersShowcaseFields } from "@openrift/shared/developers-showcase";
+import type {
+  DevelopersShowcaseFacts,
+  DevelopersShowcaseField,
+  DevelopersShowcaseValue,
+} from "@openrift/shared/developers-showcase";
 import type { ReactNode } from "react";
 
 import { m } from "@/paraglide/messages.js";
 
-export interface DevelopersShowcaseCard {
-  name: string;
-  energy: number | null;
-  tags: string[];
-  domains: string[];
-  rulesText: string | null;
-  publicCode: string;
+export interface DevelopersShowcaseCard extends DevelopersShowcaseFacts {
   imageSrc: string | null;
-}
-
-interface Field {
-  key: string;
-  value: ReactNode;
-  anchor: { x: number; y: number };
 }
 
 const LINE = 28;
@@ -48,38 +41,17 @@ function List({ values }: { values: string[] }) {
   );
 }
 
-function fields(card: DevelopersShowcaseCard): Field[] {
-  const rows: Field[] = [];
-  if (card.energy !== null) {
-    rows.push({ key: "energy", value: String(card.energy), anchor: { x: 0.11, y: 0.1 } });
+function FieldValue({ value }: { value: DevelopersShowcaseValue }) {
+  if (value.kind === "number") {
+    return value.value;
   }
-  if (card.tags.length > 0) {
-    rows.push({ key: "tags", value: <List values={card.tags} />, anchor: { x: 0.55, y: 0.53 } });
+  if (value.kind === "list") {
+    return <List values={value.values} />;
   }
-  rows.push({ key: "name", value: <Str>{card.name}</Str>, anchor: { x: 0.24, y: 0.585 } });
-  if (card.domains.length > 0) {
-    rows.push({
-      key: "domains",
-      value: <List values={card.domains} />,
-      anchor: { x: 0.035, y: 0.635 },
-    });
-  }
-  if (card.rulesText) {
-    rows.push({
-      key: "printedRulesText",
-      value: <Str>{rulesTeaser(card.rulesText, 17)}</Str>,
-      anchor: { x: 0.1, y: 0.72 },
-    });
-  }
-  rows.push({
-    key: "publicCode",
-    value: <Str>{card.publicCode}</Str>,
-    anchor: { x: 0.1, y: 0.97 },
-  });
-  return rows;
+  return <Str>{value.value}</Str>;
 }
 
-function Connectors({ rows }: { rows: Field[] }) {
+function Connectors({ rows }: { rows: DevelopersShowcaseField[] }) {
   return (
     <svg
       aria-hidden="true"
@@ -122,7 +94,7 @@ export function DevelopersHero({
   card: DevelopersShowcaseCard | null;
   lead: ReactNode;
 }) {
-  const rows = card ? fields(card) : [];
+  const rows = card ? developersShowcaseFields(card) : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,7 +125,8 @@ export function DevelopersHero({
             <span className="block">{"{"}</span>
             {rows.map((row) => (
               <span key={row.key} className="block pl-[2ch]">
-                <span className="text-info">&quot;{row.key}&quot;</span>: {row.value},
+                <span className="text-info">&quot;{row.key}&quot;</span>:{" "}
+                <FieldValue value={row.value} />,
               </span>
             ))}
             <span className="text-muted-foreground block pl-[2ch]">…</span>

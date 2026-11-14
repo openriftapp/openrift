@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import { pluralize } from "@openrift/shared/strings";
@@ -9,7 +10,6 @@ import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
-  COLORS,
   TILE_BORDER,
   cardRadiusPx,
   cardTile,
@@ -189,9 +189,9 @@ function overflowChip(hidden: number, tileW: number, tileH: number): Element {
       alignItems: "center",
       justifyContent: "center",
       borderRadius: cardRadiusPx(tileW, tileH),
-      backgroundColor: COLORS.surface,
-      border: `${TILE_BORDER}px dashed ${COLORS.surfaceBorder}`,
-      color: COLORS.muted,
+      backgroundColor: SHARE_IMAGE_COLORS.surface,
+      border: `${TILE_BORDER}px dashed ${SHARE_IMAGE_COLORS.surfaceBorder}`,
+      color: SHARE_IMAGE_COLORS.muted,
       fontSize: Math.max(9, Math.round(tileW * 0.3)),
       fontWeight: 700,
     },
@@ -273,7 +273,7 @@ function boardRow(
       borderRadius: 6,
       overflow: "hidden",
       backgroundColor: "rgba(255,255,255,0.035)",
-      border: `1px solid ${COLORS.surfaceBorder}`,
+      border: `1px solid ${SHARE_IMAGE_COLORS.surfaceBorder}`,
     },
     label,
     tiles,
@@ -368,7 +368,7 @@ function wrappedBoardRow(
       borderRadius: 6,
       overflow: "hidden",
       backgroundColor: "rgba(255,255,255,0.035)",
-      border: `1px solid ${COLORS.surfaceBorder}`,
+      border: `1px solid ${SHARE_IMAGE_COLORS.surfaceBorder}`,
     },
     label,
     tiles,

@@ -292,6 +292,16 @@ describe("source conventions", () => {
     expect(writers).toBeGreaterThan(0);
     expect(silent).toEqual([]);
   });
+
+  it("takes advisory locks only through lockKey", () => {
+    expect(filesMatching(".", /pg_advisory/u, ["repositories/query-helpers.ts"])).toEqual([]);
+  });
+
+  it("refreshes prices without a per-marketplace upsert config", () => {
+    expect(
+      filesMatching("modules/marketplace", /\bUPSERT_CONFIG\b|\bPriceUpsertConfig\b/u, []),
+    ).toEqual([]);
+  });
 });
 
 describe("generic helpers", () => {

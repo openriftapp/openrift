@@ -35,7 +35,7 @@ function phaseLabel(phase: CardTradeLivePhase): string {
   }
 }
 
-// Mirrors TradeDirectionIcon in components/friend-groups/trade-row-parts.tsx;
+// Mirrors TradeDirectionIcon in features/groups/components/trade-status-badge.tsx;
 // keep the arrows in sync.
 const ROLE_ICONS: Record<CardTradeRole, LucideIcon> = {
   giver: ArrowUpRightIcon,

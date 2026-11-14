@@ -1,17 +1,24 @@
 import { DicesIcon, Settings2Icon, ShieldIcon, SparklesIcon, SwordsIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { FIXTURE_PEOPLE } from "@/features/marketing/lib/vignette-fixtures";
+import {
+  PANEL_VIGNETTE_STYLE,
+  TargetProgress,
+} from "@/features/match-tracker/components/player-panel-parts";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
+import { Swap } from "./vignette-parts";
 
 const POINTS_TARGET = 8;
 
-const VIGNETTE_STYLE = {
-  backgroundImage: "radial-gradient(120% 80% at 50% 50%, transparent 34%, var(--color-card) 100%)",
-  opacity: 0.7,
+const TRACKER_TIMING = {
+  className: "justify-items-center",
+  wasAnimation: "motion-safe:animate-tracker-before",
+  nowAnimation: "motion-safe:animate-tracker-after",
 };
 
 const MEDALLIONS: { reason: string; icon: LucideIcon }[] = [
@@ -19,22 +26,6 @@ const MEDALLIONS: { reason: string; icon: LucideIcon }[] = [
   { reason: "hold", icon: ShieldIcon },
   { reason: "ability", icon: SparklesIcon },
 ];
-
-function Pips({ points }: { points: number }) {
-  return (
-    <span className="flex gap-0.5">
-      {Array.from({ length: POINTS_TARGET }, (_, index) => (
-        <i
-          key={index}
-          className={cn(
-            "h-0.5 w-2 rounded-full",
-            index < points ? "bg-primary" : "bg-foreground/15",
-          )}
-        />
-      ))}
-    </span>
-  );
-}
 
 function Panel({
   name,
@@ -70,38 +61,24 @@ function Panel({
         />
       )}
       <div aria-hidden="true" className="absolute inset-0" style={deckGlowStyle(domains)} />
-      <div aria-hidden="true" className="absolute inset-0" style={VIGNETTE_STYLE} />
+      <div aria-hidden="true" className="absolute inset-0" style={PANEL_VIGNETTE_STYLE} />
 
       <span className="text-muted-foreground text-2xs relative w-full truncate text-center font-semibold tracking-wide uppercase">
         {name}
       </span>
 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5">
+        <span className="font-heading text-5xl leading-none font-bold tabular-nums">
+          {scoring ? <Swap was={points} now={points + 1} {...TRACKER_TIMING} /> : points}
+        </span>
         {scoring ? (
-          <span className="grid justify-items-center">
-            <span className="font-heading motion-safe:animate-tracker-before col-start-1 row-start-1 text-5xl leading-none font-bold tabular-nums">
-              {points}
-            </span>
-            <span className="font-heading motion-safe:animate-tracker-after col-start-1 row-start-1 text-5xl leading-none font-bold tabular-nums opacity-0">
-              {points + 1}
-            </span>
-          </span>
+          <Swap
+            was={<TargetProgress points={points} target={POINTS_TARGET} />}
+            now={<TargetProgress points={points + 1} target={POINTS_TARGET} />}
+            {...TRACKER_TIMING}
+          />
         ) : (
-          <span className="font-heading text-5xl leading-none font-bold tabular-nums">
-            {points}
-          </span>
-        )}
-        {scoring ? (
-          <span className="grid justify-items-center">
-            <span className="motion-safe:animate-tracker-before col-start-1 row-start-1">
-              <Pips points={points} />
-            </span>
-            <span className="motion-safe:animate-tracker-after col-start-1 row-start-1 opacity-0">
-              <Pips points={points + 1} />
-            </span>
-          </span>
-        ) : (
-          <Pips points={points} />
+          <TargetProgress points={points} target={POINTS_TARGET} />
         )}
       </div>
 
@@ -133,8 +110,20 @@ export function TrackerVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string
   return (
     <ClipFrame className="p-5">
       <div className="relative flex flex-col gap-2">
-        <Panel name="Alice" points={3} domains={["calm", "order"]} art={thumbnailUrls[0]} rotated />
-        <Panel name="Max" points={4} domains={["chaos", "fury"]} art={thumbnailUrls[1]} scoring />
+        <Panel
+          name={FIXTURE_PEOPLE.alice.userName}
+          points={3}
+          domains={["calm", "order"]}
+          art={thumbnailUrls[0]}
+          rotated
+        />
+        <Panel
+          name={FIXTURE_PEOPLE.max.userName}
+          points={4}
+          domains={["chaos", "fury"]}
+          art={thumbnailUrls[1]}
+          scoring
+        />
         <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center gap-2">
           <span className="bg-popover grid size-8 place-items-center rounded-full border shadow-sm">
             <DicesIcon className="size-4" aria-hidden="true" />

@@ -1,18 +1,18 @@
 import { LinkIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { OrnamentRule } from "@/components/ui/ornament";
-import { PromoChannelIntro } from "@/features/cards/components/promo-channel-intro";
 import { m } from "@/paraglide/messages.js";
 
 export function SectionDivider({
   title,
   count,
-  description,
+  intro,
   anchorId,
 }: {
   title: string;
   count: number;
-  description?: string | null;
+  intro?: ReactNode;
   anchorId?: string;
 }) {
   return (
@@ -32,7 +32,7 @@ export function SectionDivider({
           )}
         </div>
       </OrnamentRule>
-      {description && <PromoChannelIntro description={description} />}
+      {intro}
     </div>
   );
 }

@@ -13,12 +13,8 @@ import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig } from "./types.js";
+import type { GroupRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
-
-const UPSERT_CONFIG: PriceUpsertConfig = {
-  marketplace: "cardnexus",
-};
 
 const CN_FEEDS_URL = "https://public-api.cardnexus.com/v1/feeds/riftbound";
 const FEED_TIMEOUT_MS = 30_000;
@@ -255,7 +251,7 @@ export async function refreshCardnexusPrices(
     ignoredKeys.productIds.size + ignoredKeys.variantKeys.size,
   );
 
-  const counts = await upsertPriceData(repos.priceRefresh, log, UPSERT_CONFIG, staging);
+  const counts = await upsertPriceData(repos.priceRefresh, log, "cardnexus", staging);
   logUpsertCounts(log, counts);
 
   await repos.marketplace.refreshLatestPrices();

@@ -1,12 +1,10 @@
 import type { ReactNode } from "react";
 
-import { MiniCardArt } from "@/components/mini-card-art";
 import { cn } from "@/lib/utils";
-import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
-// Reimplements real app primitives; importing them directly would drag in filter stores, recharts, or data hooks.
+// Vignettes read no data hooks or stores: the landing page must not wait on /init.
 
 export function Vignette({ children, className }: { children: ReactNode; className?: string }) {
   return <ClipFrame className={cn("flex flex-col gap-4 p-5", className)}>{children}</ClipFrame>;
@@ -16,79 +14,27 @@ export function VignetteHeading({ children }: { children: ReactNode }) {
   return <span className="text-muted-foreground text-xs font-medium">{children}</span>;
 }
 
+export const FAKE_CONTROL =
+  "border-input bg-foreground/5 flex h-(--control-h) w-full min-w-0 items-center rounded-lg border px-2.5 text-base md:text-sm";
+
 // The `now` layer is the base state, so reduced motion and the server render show the finished miniature.
 export function Swap({
   was,
   now,
   className,
+  wasAnimation = "motion-safe:animate-vignette-was",
+  nowAnimation = "motion-safe:animate-vignette-now",
 }: {
   was: ReactNode;
   now: ReactNode;
   className?: string;
+  wasAnimation?: string;
+  nowAnimation?: string;
 }) {
   return (
     <span className={cn("inline-grid justify-items-start", className)}>
-      <span className="motion-safe:animate-vignette-was col-start-1 row-start-1 opacity-0">
-        {was}
-      </span>
-      <span className="motion-safe:animate-vignette-now col-start-1 row-start-1">{now}</span>
-    </span>
-  );
-}
-
-// Mirrors `CardArtThumbStack`.
-export function ArtStrip({
-  urls,
-  extra,
-  className,
-}: {
-  urls: string[];
-  extra?: number;
-  className?: string;
-}) {
-  return (
-    <span className={cn("flex shrink-0 items-center", className)}>
-      {urls.map((url, index) => (
-        <MiniCardArt
-          key={url}
-          url={url}
-          className={cn("ring-card w-7 ring-2", index > 0 && "-ml-2.5")}
-        />
-      ))}
-      {extra !== undefined && extra > 0 ? (
-        <span className="bg-muted text-muted-foreground ml-2 rounded-full px-1.5 text-xs font-medium tabular-nums">
-          +{extra}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-export function EnergyGlyph({ energy }: { energy: number }) {
-  return (
-    <span
-      role="img"
-      aria-label={m.decks_editor_energy({ value: energy })}
-      className="text-2xs flex size-4 shrink-0 items-center justify-center rounded-full bg-white leading-none font-bold text-[#013951]"
-    >
-      {energy}
-    </span>
-  );
-}
-
-export function PowerPips({ power, domain }: { power: number; domain: string }) {
-  if (power <= 0) {
-    return null;
-  }
-  return (
-    <span
-      role="img"
-      aria-label={m.decks_editor_power({ power })}
-      className="flex shrink-0 items-center gap-0.5"
-    >
-      {Array.from({ length: power }, (_, index) => (
-        <img key={index} src={`/images/domains/${domain}.webp`} alt="" className="inline size-3" />
-      ))}
+      <span className={cn("col-start-1 row-start-1 opacity-0", wasAnimation)}>{was}</span>
+      <span className={cn("col-start-1 row-start-1", nowAnimation)}>{now}</span>
     </span>
   );
 }

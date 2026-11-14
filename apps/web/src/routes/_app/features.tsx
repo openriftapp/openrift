@@ -1,3 +1,4 @@
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
@@ -9,8 +10,7 @@ export const Route = createFileRoute("/_app/features")({
     seoHead({
       siteUrl: getSiteUrl(),
       title: "Features",
-      description:
-        "Everything OpenRift does: a card scanner, collection tracking, daily prices from three marketplaces, deck building with legality checks, private trade groups, loans, tournaments, and streaming tools.",
+      description: `Everything OpenRift does: a card scanner, collection tracking, daily prices from ${ALL_MARKETPLACES.length} marketplaces, deck building with legality checks, private trade groups, loans, tournaments, and streaming tools.`,
       path: "/features",
     }),
   errorComponent: RouteErrorFallback,

@@ -16,16 +16,12 @@ import type {
 } from "@openrift/shared/board-state";
 import { chainEntryName, isDeckZone, shownBattlefields } from "@openrift/shared/board-state";
 import { CARD_ASPECT, LANDSCAPE_CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
-import {
-  COLORS,
-  element,
-  elideTitle,
-  renderTreeToPng,
-} from "../../system/services/share-image-core.js";
+import { element, elideTitle, renderTreeToPng } from "../../system/services/share-image-core.js";
 import {
   SHARE_TYPE,
   hostFooter,
@@ -134,7 +130,7 @@ function keywordBadge(text: string, fontSize: number): Element {
 function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element {
   const color = PLAYER_COLORS[piece.owner];
   if (piece.facedown) {
-    return cardBack(pieceH, piece.highlight ? COLORS.gold : color);
+    return cardBack(pieceH, piece.highlight ? SHARE_IMAGE_COLORS.gold : color);
   }
   const width = tileWidth(piece, pieceH);
   const height = Math.round(piece.exhausted ? pieceH * CARD_ASPECT : pieceH);
@@ -150,8 +146,8 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
       height,
       padding: 3,
       borderRadius: 4,
-      backgroundColor: COLORS.surface,
-      border: `2px solid ${piece.highlight ? COLORS.gold : color}`,
+      backgroundColor: SHARE_IMAGE_COLORS.surface,
+      border: `2px solid ${piece.highlight ? SHARE_IMAGE_COLORS.gold : color}`,
       overflow: "hidden",
       lineHeight: 1.2,
     },
@@ -165,7 +161,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
             display: "flex",
             fontSize,
             fontWeight: 700,
-            color: piece.might > 0 ? "#6cc39a" : COLORS.muted,
+            color: piece.might > 0 ? "#6cc39a" : SHARE_IMAGE_COLORS.muted,
           },
           piece.might > 0 ? `+${piece.might}` : `−${Math.abs(piece.might)}`,
         ),
@@ -185,7 +181,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
         minHeight: Math.ceil(fontSize * 1.1),
         fontSize,
         lineHeight: 1.1,
-        color: COLORS.text,
+        color: SHARE_IMAGE_COLORS.text,
         overflow: "hidden",
       },
       pieceText(piece, Math.max(6, Math.floor((width / fontSize) * 2.5))),
@@ -210,7 +206,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
       numeral !== undefined &&
         element(
           "div",
-          { display: "flex", fontSize, fontWeight: 700, color: COLORS.gold },
+          { display: "flex", fontSize, fontWeight: 700, color: SHARE_IMAGE_COLORS.gold },
           String(numeral),
         ),
       element(
@@ -416,11 +412,11 @@ function battlefieldRow(
               padding: 4,
               borderRadius: 6,
               backgroundColor: "rgba(0,0,0,0.4)",
-              border: `1px solid ${COLORS.gold}`,
+              border: `1px solid ${SHARE_IMAGE_COLORS.gold}`,
               fontSize: Math.min(13, Math.max(9, Math.round(frameH / 4))),
               lineHeight: 1.1,
               fontWeight: 700,
-              color: COLORS.gold,
+              color: SHARE_IMAGE_COLORS.gold,
               textAlign: "center",
               overflow: "hidden",
             },

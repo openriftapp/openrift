@@ -29,8 +29,8 @@ import { TradeBalanceBar } from "@/features/groups/components/trade-balance-bar"
 import { BulkTradeActions } from "@/features/groups/components/trade-bulk-actions";
 import { TradeCardmarketExportDialog } from "@/features/groups/components/trade-cardmarket-export-dialog";
 import { TradeRow } from "@/features/groups/components/trade-row";
-import type { TradeBadgeState } from "@/features/groups/components/trade-row-parts";
 import { TradeSettleSection } from "@/features/groups/components/trade-settle-section";
+import type { TradeBadgeState } from "@/features/groups/components/trade-status-badge";
 import { useTradeSheet, useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import {

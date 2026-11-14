@@ -931,9 +931,8 @@ html.hide-scrollbar::-webkit-scrollbar {
     }
   }
 
-  /* Deck variants: the open deck moves from the lane-0 head to the fork one
-     slot along and one lane down, so the offsets are the vignette's SLOT_WIDTH
-     and LANE_GAP. */
+  /* Deck variants: the open deck moves one slot along and one lane down; the
+     element sets both offsets from the rail geometry. */
   @keyframes variant-slide {
     0%,
     38% {
@@ -941,7 +940,7 @@ html.hide-scrollbar::-webkit-scrollbar {
     }
     50%,
     88% {
-      translate: 132px 52px;
+      translate: var(--variant-slide-x) var(--variant-slide-y);
     }
     100% {
       translate: 0 0;

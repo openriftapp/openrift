@@ -190,7 +190,7 @@ export async function withdrawCancelledCatalogEvents(deps: MetaSyncDeps): Promis
   const rows = await deps.repos.uvsgamesEvents.withdrawableCancelled();
   for (const row of rows) {
     await deps.repos.meta.deleteEvent(row.metaEventId);
-    await deps.repos.metaOverlays.ignoreEvent(UVSGAMES_PROVIDER, row.externalId);
+    await deps.repos.metaOverlays.ignoreEvents(UVSGAMES_PROVIDER, [row.externalId]);
     deps.log.info(
       { externalId: row.externalId, metaEventId: row.metaEventId },
       "Withdrew cancelled catalogue event",

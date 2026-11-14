@@ -21,6 +21,14 @@ export const SMALL_ZONES: DeckZone[] = [
   WellKnown.deckZone.BATTLEFIELD,
 ];
 
+export const DECK_TILE_ZONE_ORDER: readonly DeckZone[] = [
+  ...SMALL_ZONES,
+  WellKnown.deckZone.LEGEND_OPTIONS,
+  WellKnown.deckZone.MAIN,
+  WellKnown.deckZone.SIDEBOARD,
+  WellKnown.deckZone.OVERFLOW,
+];
+
 // Must stay in step with the gap-1.5 class between thumbs; the card width is derived from it.
 export const DECK_GRID_GAP = 6;
 

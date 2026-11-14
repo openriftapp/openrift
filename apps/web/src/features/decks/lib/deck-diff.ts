@@ -2,7 +2,8 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { WellKnown } from "@openrift/shared/well-known";
+
+import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 
 export interface DeckDiffCard {
   cardId: string;
@@ -30,17 +31,6 @@ export interface DeckDiff {
   addCount: number;
   cutCount: number;
 }
-
-export const ZONE_DIFF_ORDER: readonly DeckZone[] = [
-  WellKnown.deckZone.LEGEND,
-  WellKnown.deckZone.LEGEND_OPTIONS,
-  WellKnown.deckZone.CHAMPION,
-  WellKnown.deckZone.RUNES,
-  WellKnown.deckZone.BATTLEFIELD,
-  WellKnown.deckZone.MAIN,
-  WellKnown.deckZone.SIDEBOARD,
-  WellKnown.deckZone.OVERFLOW,
-];
 
 // Adds read as the shopping list, so they lead; cuts are what's left over.
 const KIND_SORT_ORDER: Record<DeckDiffEntry["kind"], number> = {
@@ -147,7 +137,7 @@ export function diffDecks(
   }
 
   const zones: DeckDiffZone[] = [];
-  for (const zone of ZONE_DIFF_ORDER) {
+  for (const zone of DECK_ZONE_ORDER) {
     const entries = byZone.get(zone);
     if (!entries || entries.length === 0) {
       continue;

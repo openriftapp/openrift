@@ -1,61 +1,68 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { ChevronRightIcon, EllipsisVerticalIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { CardRow } from "@/components/ui/card-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
+import type { FixtureCard } from "@/features/marketing/lib/vignette-fixtures";
+import {
+  FIXTURE_CARDS,
+  FIXTURE_LABELS,
+  FIXTURE_PEOPLE,
+  fixtureVariantLabel,
+} from "@/features/marketing/lib/vignette-fixtures";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
+import { Swap } from "./vignette-parts";
 
 interface LoanCard {
-  quantityLabel: string;
-  shortCode: string;
-  rarity: string;
-  finish: string;
-  domains: string[];
+  quantity: number;
+  card: FixtureCard;
   counterparty: string;
 }
 
-function MetaLine({
-  shortCode,
-  rarity,
-  finish,
-}: {
-  shortCode: string;
-  rarity: string;
-  finish: string;
-}) {
-  const rarityIcon = getFilterIconPath("rarities", rarity);
+// RarityIcon reads the enum labels from /init, so the meta line rebuilds it from the icon path.
+function MetaLine({ card }: { card: FixtureCard }) {
+  const rarityIcon = getFilterIconPath("rarities", card.rarity);
   return (
     <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-      <span className="font-medium">{shortCode}</span>
-      {rarityIcon && <img src={rarityIcon} alt="" className="size-3.5" />}
-      <FinishIcon finish={finish} />
+      {rarityIcon && (
+        <img
+          src={rarityIcon}
+          alt={enumLabel(FIXTURE_LABELS.rarities, card.rarity)}
+          className="size-3.5"
+        />
+      )}
+      <span>
+        <span className="font-mono">{card.shortCode}</span> · {fixtureVariantLabel(card)}
+      </span>
     </span>
   );
 }
 
 function LoanRow({ loan, trailing }: { loan: LoanCard; trailing: ReactNode }) {
   return (
-    <Card className="gap-2 p-2 sm:flex-row sm:items-center sm:gap-3">
+    <CardRow className="flex-col items-stretch justify-start gap-2 sm:flex-row sm:items-center sm:gap-3">
       <div className="flex min-w-0 items-center gap-3 sm:contents">
         <CardArtThumb
           shape="strip"
-          rarity={loan.rarity}
-          domains={loan.domains}
+          rarity={loan.card.rarity}
+          domains={loan.card.domains}
           className="h-10"
           loading="lazy"
         />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate font-medium">{loan.quantityLabel}</span>
-          <MetaLine shortCode={loan.shortCode} rarity={loan.rarity} finish={loan.finish} />
+          <span className="truncate font-medium">
+            {m.loans_quantity({ count: loan.quantity, card: loan.card.name })}
+          </span>
+          <MetaLine card={loan.card} />
         </div>
         <span className="flex shrink-0 items-center gap-1.5 px-1.5 py-1">
           <UserAvatar name={loan.counterparty} size="sm" />
@@ -65,7 +72,7 @@ function LoanRow({ loan, trailing }: { loan: LoanCard; trailing: ReactNode }) {
       <div className="flex items-center gap-2 sm:contents">
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:ml-0">{trailing}</div>
       </div>
-    </Card>
+    </CardRow>
   );
 }
 
@@ -92,45 +99,44 @@ function MarkReturned({ pressing }: { pressing?: boolean }) {
 }
 
 const YASUO: LoanCard = {
-  quantityLabel: "2× Yasuo, Windrider",
-  shortCode: "OGN-205",
-  rarity: "epic",
-  finish: "foil",
-  domains: ["calm"],
-  counterparty: "Mira",
+  quantity: 2,
+  card: FIXTURE_CARDS.yasuo,
+  counterparty: FIXTURE_PEOPLE.mira.userName,
 };
 
 const HIDDEN_BLADE: LoanCard = {
-  quantityLabel: "1× Hidden Blade",
-  shortCode: "OGN-213",
-  rarity: "common",
-  finish: "normal",
-  domains: ["order"],
-  counterparty: "Jax",
+  quantity: 1,
+  card: FIXTURE_CARDS.hiddenBlade,
+  counterparty: FIXTURE_PEOPLE.jax.userName,
 };
 
 const GUARDS: LoanCard = {
-  quantityLabel: "3× Guards!",
-  shortCode: "SFD-154",
-  rarity: "common",
-  finish: "normal",
-  domains: ["order"],
-  counterparty: "Mira",
+  quantity: 3,
+  card: FIXTURE_CARDS.guards,
+  counterparty: FIXTURE_PEOPLE.mira.userName,
 };
+
+function Collapsing({ className, children }: { className: string; children: ReactNode }) {
+  return (
+    <li className={cn("grid", className)}>
+      <div className="overflow-hidden">
+        <ul className="pb-2">{children}</ul>
+      </div>
+    </li>
+  );
+}
 
 export function LoansVignette() {
   return (
     <ClipFrame className="flex flex-col gap-5 p-5">
       <section className="flex flex-col gap-2">
         <SectionHeading>{m.loans_group_lent()}</SectionHeading>
-        <div className="motion-safe:animate-loans-out grid grid-rows-[1fr]">
-          <div className="overflow-hidden">
-            <div className="pb-2">
-              <LoanRow loan={YASUO} trailing={<MarkReturned pressing />} />
-            </div>
-          </div>
-        </div>
-        <LoanRow loan={HIDDEN_BLADE} trailing={<MarkReturned />} />
+        <ul className="flex flex-col">
+          <Collapsing className="motion-safe:animate-loans-out grid-rows-[0fr] opacity-0">
+            <LoanRow loan={YASUO} trailing={<MarkReturned pressing />} />
+          </Collapsing>
+          <LoanRow loan={HIDDEN_BLADE} trailing={<MarkReturned />} />
+        </ul>
       </section>
 
       <section className="flex flex-col gap-2">
@@ -138,26 +144,27 @@ export function LoansVignette() {
           <ChevronRightIcon className="text-muted-foreground size-4 rotate-90" aria-hidden="true" />
           <SectionHeading as="span">
             {m.loans_group_history()}
-            <span className="text-muted-foreground/60 relative ml-1.5 inline-block tabular-nums">
-              <span className="motion-safe:animate-loans-out">1</span>
-              <span className="motion-safe:animate-loans-in absolute inset-0 opacity-0">2</span>
-            </span>
+            <Swap
+              was={1}
+              now={2}
+              className="text-muted-foreground/60 ml-1.5 tabular-nums"
+              wasAnimation="motion-safe:animate-loans-out"
+              nowAnimation="motion-safe:animate-loans-in"
+            />
           </SectionHeading>
         </span>
-        <div className="motion-safe:animate-loans-in grid grid-rows-[0fr] opacity-0">
-          <div className="overflow-hidden">
-            <div className="pb-2">
-              <LoanRow
-                loan={YASUO}
-                trailing={<Badge variant="secondary">{m.loans_status_returned()}</Badge>}
-              />
-            </div>
-          </div>
-        </div>
-        <LoanRow
-          loan={GUARDS}
-          trailing={<Badge variant="secondary">{m.loans_status_returned()}</Badge>}
-        />
+        <ul className="flex flex-col">
+          <Collapsing className="motion-safe:animate-loans-in grid-rows-[1fr]">
+            <LoanRow
+              loan={YASUO}
+              trailing={<Badge variant="secondary">{m.loans_status_returned()}</Badge>}
+            />
+          </Collapsing>
+          <LoanRow
+            loan={GUARDS}
+            trailing={<Badge variant="secondary">{m.loans_status_returned()}</Badge>}
+          />
+        </ul>
       </section>
     </ClipFrame>
   );

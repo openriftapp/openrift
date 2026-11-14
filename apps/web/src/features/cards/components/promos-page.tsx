@@ -29,6 +29,7 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import { groupByOptionsFor } from "@/features/cards/lib/group-by-field";
 import { buildPromoTreeFromMatches } from "@/features/cards/lib/promo-filters";
@@ -243,12 +244,7 @@ function PromosBrowser() {
     useSelectionStore.getState().selectCard(printing, selectionItems, "printing");
   };
 
-  const handleSearchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const handleSearchAndClose = useSearchAndCloseDetail(setSearch);
 
   return (
     <>

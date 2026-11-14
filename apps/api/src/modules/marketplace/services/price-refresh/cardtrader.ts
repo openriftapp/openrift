@@ -14,12 +14,8 @@ import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import { PRICE_FETCH_RETRIES } from "./types.js";
-import type { GroupRow, PriceUpsertConfig } from "./types.js";
+import type { GroupRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
-
-const UPSERT_CONFIG: PriceUpsertConfig = {
-  marketplace: "cardtrader",
-};
 
 const CT_API_BASE = "https://api.cardtrader.com/api/v2";
 const CT_GAME_ID = 22; // Riftbound
@@ -332,7 +328,7 @@ export async function refreshCardtraderPrices(
     ignoredKeys.productIds.size + ignoredKeys.variantKeys.size,
   );
 
-  const counts = await upsertPriceData(repos.priceRefresh, log, UPSERT_CONFIG, allStaging);
+  const counts = await upsertPriceData(repos.priceRefresh, log, "cardtrader", allStaging);
   logUpsertCounts(log, counts);
 
   await repos.marketplace.refreshLatestPrices();

@@ -113,14 +113,6 @@ describe("copiesRepo", () => {
     await expect(repo.deleteBatchById(["cp-1"])).resolves.toBeUndefined();
   });
 
-  it("countByCardAndPrintingForDeckbuilding returns counts", async () => {
-    const db = createMockDb([{ cardId: "c-1", printingId: "p-1", count: 2 }]);
-    const repo = copiesRepo(db);
-    expect(await repo.countByCardAndPrintingForDeckbuilding("u1")).toEqual([
-      { cardId: "c-1", printingId: "p-1", count: 2 },
-    ]);
-  });
-
   it("ownedRowsForUser returns the owner's copies", async () => {
     const rows = [
       { copyId: "cp-1", printingId: "p-1", cardId: "c-1", collectionId: "col-1", reserved: false },

@@ -4,11 +4,13 @@ import {
   boardShareDescription,
   collectionShareDescription,
   collectionShareTitle,
+  deckMetaLabel,
   deckShareDescription,
   deckShareTitle,
   listIntentLabelEnglish,
   listShareDescription,
   listShareTitle,
+  shareByline,
   tierListShareDescription,
   tierListShareTitle,
   userBundleShareDescription,
@@ -78,5 +80,21 @@ describe("user bundle copy", () => {
 
   it("counts lists and cards with plurals", () => {
     expect(userBundleShareDescription(1, 2, 1)).toBe("1 wishlist, 2 tradelists, 1 card in total.");
+  });
+});
+
+describe("deckMetaLabel", () => {
+  it("prints the deck's card count", () => {
+    expect(deckMetaLabel("Constructed", 64)).toBe("Constructed · 64 cards");
+  });
+
+  it("uses the singular for a one-card deck", () => {
+    expect(deckMetaLabel("Freeform", 1)).toBe("Freeform · 1 card");
+  });
+});
+
+describe("shareByline", () => {
+  it("credits the owner in English", () => {
+    expect(shareByline("Poro")).toBe("by Poro");
   });
 });

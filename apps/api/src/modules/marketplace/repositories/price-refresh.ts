@@ -1,10 +1,11 @@
-import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import { buildDistinctWhere } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
+import { variantRowsFor } from "../../../lib/marketplace-variant-rows.js";
 import { withFace1 } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
@@ -255,27 +256,7 @@ export function priceRefreshRepo(db: Db) {
         )
         .execute();
 
-      const productIdByKey = new Map(
-        products.map((p) => [
-          marketplaceSkuKey(p.marketplace, p.externalId, p.finish, p.language),
-          p.id,
-        ]),
-      );
-
-      const variantRows = values.map((v) => {
-        const productId = productIdByKey.get(
-          marketplaceSkuKey(v.marketplace, v.externalId, v.finish, v.language),
-        );
-        if (!productId) {
-          throw new Error(
-            `batchInsertProductVariants: missing product id for ${v.marketplace} ${v.externalId} ${v.finish}/${v.language ?? "NULL"}`,
-          );
-        }
-        return {
-          marketplaceProductId: productId,
-          printingId: v.printingId,
-        };
-      });
+      const variantRows = variantRowsFor("batchInsertProductVariants", products, values);
 
       await db
         .insertInto("marketplaceProductVariants")

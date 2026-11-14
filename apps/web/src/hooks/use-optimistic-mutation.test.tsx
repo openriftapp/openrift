@@ -106,6 +106,54 @@ describe("useOptimisticMutation", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [...KEY] });
   });
 
+  it("derives the key and the extra keys from the variables", async () => {
+    const original = { items: [{ id: "a", hidden: false }] };
+    const { client, invalidateSpy, wrapper } = setup(original);
+    let fail: (error: Error) => void = () => {};
+    const { result } = renderHook(
+      () =>
+        useOptimisticMutation<Lists, { user: string; id: string }>({
+          queryKey: (vars) => ["lists", vars.user],
+          mutationFn: (vars) =>
+            vars.user === "user-2"
+              ? new Promise<void>((_resolve, reject) => {
+                  fail = reject;
+                })
+              : Promise.resolve(),
+          apply: (cached, vars) => hide(cached, vars.id),
+          invalidates: (vars) => [["copies", vars.user]],
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({ user: "user-1", id: "a" });
+    });
+
+    expect(client.getQueryData(KEY)).toEqual({ items: [{ id: "a", hidden: true }] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["lists", "user-1"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["copies", "user-1"] });
+
+    const otherKey = ["lists", "user-2"];
+    const otherOriginal = { items: [{ id: "b", hidden: false }] };
+    client.setQueryData(otherKey, otherOriginal);
+    let pending: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      pending = result.current.mutateAsync({ user: "user-2", id: "b" });
+      await Promise.resolve();
+    });
+
+    expect(client.getQueryData(otherKey)).toEqual({ items: [{ id: "b", hidden: true }] });
+
+    await act(async () => {
+      fail(new Error("Server unreachable"));
+      await expect(pending).rejects.toThrow("Server unreachable");
+    });
+
+    expect(client.getQueryData(otherKey)).toEqual(otherOriginal);
+    expect(client.getQueryData(KEY)).toEqual({ items: [{ id: "a", hidden: true }] });
+  });
+
   it("skips the optimistic write when nothing is cached", async () => {
     const { client, wrapper } = setup();
     const apply = vi.fn(hide);

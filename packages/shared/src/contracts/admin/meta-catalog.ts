@@ -123,13 +123,7 @@ const metaSyncBucketCountsSchema = z.object({
   total: count,
 });
 
-const metaCatalogListQuerySchema = z.object({
-  search: z.string().optional(),
-  displayStatus: z.enum(META_CATALOG_DISPLAY_STATUSES).optional(),
-  decklistPublished: z.coerce.boolean().optional(),
-  minPlayers: z.coerce.number().int().min(0).optional(),
-  dateFrom: isoDateTime.optional(),
-  dateTo: isoDateTime.optional(),
+const catalogListPagingShape = {
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
   bucket: syncBucketFilterSchema.optional(),
@@ -137,15 +131,29 @@ const metaCatalogListQuerySchema = z.object({
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
+};
+
+function catalogListResponseSchema<Row extends z.ZodType>(row: Row) {
+  return z.object({
+    rows: z.array(row),
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+    buckets: metaSyncBucketCountsSchema.nullable(),
+  });
+}
+
+const metaCatalogListQuerySchema = z.object({
+  search: z.string().optional(),
+  displayStatus: z.enum(META_CATALOG_DISPLAY_STATUSES).optional(),
+  decklistPublished: z.coerce.boolean().optional(),
+  minPlayers: z.coerce.number().int().min(0).optional(),
+  dateFrom: isoDateTime.optional(),
+  dateTo: isoDateTime.optional(),
+  ...catalogListPagingShape,
 });
 
-const metaCatalogListResponseSchema = z.object({
-  rows: z.array(metaCatalogRowSchema),
-  total: z.number().int(),
-  page: z.number().int(),
-  limit: z.number().int(),
-  buckets: metaSyncBucketCountsSchema.nullable(),
-});
+const metaCatalogListResponseSchema = catalogListResponseSchema(metaCatalogRowSchema);
 
 const catalogKeySchema = z.object({ externalId: z.string().min(1) });
 
@@ -180,22 +188,10 @@ const playloltcgCatalogListQuerySchema = z.object({
   minPlayers: z.coerce.number().int().min(0).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
-  triage: triageSchema.optional(),
-  missing: z.coerce.boolean().optional(),
-  bucket: syncBucketFilterSchema.optional(),
-  sort: z.enum(META_CATALOG_SORTS).optional(),
-  direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
+  ...catalogListPagingShape,
 });
 
-const playloltcgCatalogListResponseSchema = z.object({
-  rows: z.array(playloltcgCatalogRowSchema),
-  total: z.number().int(),
-  page: z.number().int(),
-  limit: z.number().int(),
-  buckets: metaSyncBucketCountsSchema.nullable(),
-});
+const playloltcgCatalogListResponseSchema = catalogListResponseSchema(playloltcgCatalogRowSchema);
 
 const playloltcgKeySchema = z.object({ activityShopId: z.number().int() });
 
@@ -227,22 +223,10 @@ const topdeckCatalogListQuerySchema = z.object({
   minPlayers: z.coerce.number().int().min(0).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
-  triage: triageSchema.optional(),
-  missing: z.coerce.boolean().optional(),
-  bucket: syncBucketFilterSchema.optional(),
-  sort: z.enum(META_CATALOG_SORTS).optional(),
-  direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
+  ...catalogListPagingShape,
 });
 
-const topdeckCatalogListResponseSchema = z.object({
-  rows: z.array(topdeckCatalogRowSchema),
-  total: z.number().int(),
-  page: z.number().int(),
-  limit: z.number().int(),
-  buckets: metaSyncBucketCountsSchema.nullable(),
-});
+const topdeckCatalogListResponseSchema = catalogListResponseSchema(topdeckCatalogRowSchema);
 
 const topdeckKeySchema = z.object({ tid: z.string().min(1) });
 
@@ -278,22 +262,12 @@ const playriftboundCatalogListQuerySchema = z.object({
   minPlayers: z.coerce.number().int().min(0).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
-  triage: triageSchema.optional(),
-  missing: z.coerce.boolean().optional(),
-  bucket: syncBucketFilterSchema.optional(),
-  sort: z.enum(META_CATALOG_SORTS).optional(),
-  direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
+  ...catalogListPagingShape,
 });
 
-const playriftboundCatalogListResponseSchema = z.object({
-  rows: z.array(playriftboundCatalogRowSchema),
-  total: z.number().int(),
-  page: z.number().int(),
-  limit: z.number().int(),
-  buckets: metaSyncBucketCountsSchema.nullable(),
-});
+const playriftboundCatalogListResponseSchema = catalogListResponseSchema(
+  playriftboundCatalogRowSchema,
+);
 
 const playriftboundKeySchema = z.object({ tournamentId: z.string().min(1) });
 

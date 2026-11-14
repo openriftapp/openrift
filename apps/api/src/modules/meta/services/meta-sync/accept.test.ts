@@ -422,9 +422,11 @@ describe("withdrawCancelledCatalogEvents", () => {
           },
         },
         metaOverlays: {
-          ignoreEvent: (provider: string, externalId: string) => {
-            ignored.push([provider, externalId]);
-            return Promise.resolve();
+          ignoreEvents: (provider: string, externalIds: string[]) => {
+            ignored.push(
+              ...externalIds.map((externalId): [string, string] => [provider, externalId]),
+            );
+            return Promise.resolve(externalIds.length);
           },
         },
       } as unknown as Repos,

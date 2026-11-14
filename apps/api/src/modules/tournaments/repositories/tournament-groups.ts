@@ -9,6 +9,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { TournamentGroupsTable } from "../../../db/tables/tournaments.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
+import { lockTournamentWrites } from "./tournaments-shared.js";
 
 export type TournamentGroup = Selectable<TournamentGroupsTable>;
 
@@ -52,11 +53,6 @@ const GROUP_STAGE_STRATEGY = "group_stage";
 const CUT_STRATEGY = "cut";
 
 export function tournamentGroupsRepo(db: Kysely<Database>) {
-  /** Serializes the writes of one tournament: self-paced starts and the cut race each other. */
-  async function lockTournament(trx: Kysely<Database>, tournamentId: string): Promise<void> {
-    await sql`select pg_advisory_xact_lock(hashtext(${tournamentId}))`.execute(trx);
-  }
-
   async function roundExistsFrom(
     trx: Kysely<Database>,
     tournamentId: string,
@@ -119,7 +115,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       firstRoundPods: GroupPodInsert[];
     }): Promise<void> {
       await inTransaction(db, async (trx) => {
-        await lockTournament(trx, input.tournamentId);
+        await lockTournamentWrites(trx, input.tournamentId);
         if (await roundExistsFrom(trx, input.tournamentId, 1)) {
           return;
         }
@@ -194,7 +190,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
         return;
       }
       await inTransaction(db, async (trx) => {
-        await lockTournament(trx, tournamentId);
+        await lockTournamentWrites(trx, tournamentId);
         const taken = await trx
           .selectFrom("podMembers as m")
           .innerJoin("pods as p", "p.id", "m.podId")
@@ -220,7 +216,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       pods: GroupPodInsert[];
     }): Promise<void> {
       await inTransaction(db, async (trx) => {
-        await lockTournament(trx, input.tournamentId);
+        await lockTournamentWrites(trx, input.tournamentId);
         if (await roundExistsFrom(trx, input.tournamentId, input.roundNumber)) {
           return;
         }
@@ -277,7 +273,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       pods: GroupPodInsert[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
-        await lockTournament(trx, tournamentId);
+        await lockTournamentWrites(trx, tournamentId);
         if (await roundExistsFrom(trx, tournamentId, roundNumber)) {
           return;
         }

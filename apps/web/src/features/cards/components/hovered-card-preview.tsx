@@ -6,6 +6,7 @@ import { useProgressiveCardImage } from "@/features/cards/hooks/use-progressive-
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { DockSide, HoverOrigin } from "@/features/cards/lib/hover-dock";
 import { pickDockSide } from "@/features/cards/lib/hover-dock";
+import type { HoverPreviewImage } from "@/features/cards/lib/hover-preview";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_PREVIEW_LEFT_PX = 312;
@@ -15,7 +16,7 @@ const SIDEBAR_VIEWPORT_SELECTOR = '[data-slot="sidebar-content"]';
 const PREVIEW_ANCHOR_SELECTOR = "[data-deck-preview-anchor]";
 
 interface HoveredCardPreviewProps {
-  hoveredCard: { thumbnailUrl: string; fullUrl: string; landscape: boolean } | null;
+  hoveredCard: HoverPreviewImage | null;
   origin: HoverOrigin;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }

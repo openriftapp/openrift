@@ -45,7 +45,7 @@ const ARTICLES: { slug: string; title: string; description: string }[] = [
     slug: "lists",
     title: "Wishlists & Tradelists",
     description:
-      "Build, fill, and price the wishlists and tradelists that power group trading, including per-card overrides and the three list kinds.",
+      "Build, fill, and price the wishlists and tradelists that power group trading, including per-card overrides and what a list can hold.",
   },
   {
     slug: "groups",

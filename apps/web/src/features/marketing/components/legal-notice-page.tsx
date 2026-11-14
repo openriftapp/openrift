@@ -2,6 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 
 import { ProsePage } from "@/components/prose-page";
+import { LegalAddress } from "@/features/marketing/components/legal-address";
 import { m } from "@/paraglide/messages.js";
 
 export function LegalNoticePage() {
@@ -10,15 +11,7 @@ export function LegalNoticePage() {
       <h1>{m.legal_notice_title()}</h1>
 
       <h2>{m.legal_notice_responsible_heading()}</h2>
-      <p>
-        Eiko Wagenknecht
-        <br />
-        Burgwedeler Str. 77
-        <br />
-        30657 Hannover
-        <br />
-        Germany
-      </p>
+      <LegalAddress />
       <p>
         USt-ID: DE308816328
         <br />

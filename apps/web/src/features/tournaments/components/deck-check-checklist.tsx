@@ -1,7 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
-import { imageUrl } from "@openrift/shared/image-url";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { DeckCheckEntryCardResponse } from "@openrift/shared/types/api/deck-check";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -23,6 +21,9 @@ import {
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { frontImageId } from "@/features/cards/lib/card-meta";
+import type { HoverPreviewImage } from "@/features/cards/lib/hover-preview";
+import { hoverPreviewImage } from "@/features/cards/lib/hover-preview";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { FixCardDialog } from "@/features/tournaments/components/deck-check-entry-dialogs";
@@ -35,12 +36,6 @@ import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-interface HoveredPreview {
-  thumbnailUrl: string;
-  fullUrl: string;
-  landscape: boolean;
-}
 
 export const CHECK_GRID_GAP = 12;
 export const CHECK_CELL_WIDTH = 172;
@@ -79,7 +74,7 @@ export function CardChecklist({
   const { printingsById, printingsByCardId, sets } = useCards();
   const isMobile = useIsMobile();
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const [hovered, setHovered] = useState<HoveredPreview | null>(null);
+  const [hovered, setHovered] = useState<HoverPreviewImage | null>(null);
 
   const setIndexes = setIndexById(sets);
   const identify = (card: DeckCheckEntryCardResponse) => {
@@ -97,16 +92,7 @@ export function CardChecklist({
   };
 
   const handleHover = (printing: Printing | null) => {
-    const front = printing?.images[0];
-    setHovered(
-      printing && front
-        ? {
-            thumbnailUrl: imageUrl(front.imageId, "400w"),
-            fullUrl: imageUrl(front.imageId, "full"),
-            landscape: getOrientation(printing.card.types) === "landscape",
-          }
-        : null,
-    );
+    setHovered(printing ? hoverPreviewImage(frontImageId(printing), printing.card.types) : null);
   };
 
   const cardsByZone = Map.groupBy(cards, (card) => card.zone);

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Repos } from "../../../../deps";
 import type { StagingRow } from "../../lib/marketplace-configs.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh";
-import type { GroupRow, PriceUpsertConfig } from "./types";
+import type { GroupRow } from "./types";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert";
 
 function makeMockLogger(): { log: Logger; messages: string[] } {
@@ -156,11 +156,9 @@ describe("upsertMarketplaceGroups", () => {
 });
 
 describe("upsertPriceData", () => {
-  const config: PriceUpsertConfig = { marketplace: "cardmarket" };
-
   it("returns zeroed counts for empty staging input", async () => {
     const { repo } = makeMockRepo({});
-    const counts = await upsertPriceData(repo, noopLogger, config, []);
+    const counts = await upsertPriceData(repo, noopLogger, "cardmarket", []);
 
     expect(counts.prices.total).toBe(0);
     expect(counts.prices.new).toBe(0);
@@ -177,7 +175,7 @@ describe("upsertPriceData", () => {
     const { repo } = makeMockRepo({ outcomeOf: (id) => outcomes[id] ?? "unchanged" });
     const staging = [1, 2, 3].map((id) => makeStagingRow(id, "normal"));
 
-    const counts = await upsertPriceData(repo, noopLogger, config, staging);
+    const counts = await upsertPriceData(repo, noopLogger, "cardmarket", staging);
 
     expect(counts.prices).toEqual({ total: 3, new: 1, updated: 1, unchanged: 1 });
   });
@@ -187,7 +185,7 @@ describe("upsertPriceData", () => {
     const { repo, upsertedPrices } = makeMockRepo({});
     const staging = [makeStagingRow(1001, "normal")];
 
-    const counts = await upsertPriceData(repo, log, config, staging);
+    const counts = await upsertPriceData(repo, log, "cardmarket", staging);
 
     expect(counts.prices.total).toBe(1);
     expect(upsertedPrices).toHaveLength(1);
@@ -200,7 +198,7 @@ describe("upsertPriceData", () => {
     const row1 = makeStagingRow(2001, "normal", { marketCents: 100 });
     const row2 = makeStagingRow(2001, "normal", { marketCents: 200 });
 
-    const counts = await upsertPriceData(repo, noopLogger, config, [row1, row2]);
+    const counts = await upsertPriceData(repo, noopLogger, "cardmarket", [row1, row2]);
 
     expect(counts.prices.total).toBe(1);
     expect(upsertedPrices).toHaveLength(1);
@@ -214,7 +212,7 @@ describe("upsertPriceData", () => {
       recordedAt: new Date("2026-03-11T00:00:00Z"),
     };
 
-    const counts = await upsertPriceData(repo, noopLogger, config, [row1, row2]);
+    const counts = await upsertPriceData(repo, noopLogger, "cardmarket", [row1, row2]);
 
     expect(counts.prices.total).toBe(2);
     expect(upsertedPrices).toHaveLength(2);
@@ -226,7 +224,7 @@ describe("upsertPriceData", () => {
     const normal = makeStagingRow(3001, "normal");
     const foil = makeStagingRow(3001, "foil");
 
-    const counts = await upsertPriceData(repo, noopLogger, config, [normal, foil]);
+    const counts = await upsertPriceData(repo, noopLogger, "cardmarket", [normal, foil]);
 
     expect(counts.prices.total).toBe(2);
     const productIds = new Set(upsertedPrices.map((r) => r.marketplaceProductId));
@@ -237,7 +235,7 @@ describe("upsertPriceData", () => {
     const { log, messages } = makeMockLogger();
     const { repo } = makeMockRepo({});
 
-    await upsertPriceData(repo, log, config, []);
+    await upsertPriceData(repo, log, "cardmarket", []);
 
     expect(messages.some((m) => m.includes("price rows"))).toBe(false);
   });
@@ -249,7 +247,7 @@ describe("upsertPriceData", () => {
       { ...makeStagingRow(12_345, "normal"), language: "EN" },
     ];
 
-    const counts = await upsertPriceData(repo, noopLogger, config, staging);
+    const counts = await upsertPriceData(repo, noopLogger, "cardmarket", staging);
 
     expect(counts.prices.total).toBe(2);
     const productIds = new Set(upsertedPrices.map((r) => r.marketplaceProductId));
@@ -257,14 +255,13 @@ describe("upsertPriceData", () => {
   });
 
   it("pins per-language product rows for marketplaces that expose language (CT)", async () => {
-    const ctConfig: PriceUpsertConfig = { marketplace: "cardtrader" };
     const { repo, upsertedPrices } = makeMockRepo({});
     const staging = [
       { ...makeStagingRow(54_321, "normal"), language: "EN" },
       { ...makeStagingRow(54_321, "normal"), language: "SC" },
     ];
 
-    const counts = await upsertPriceData(repo, noopLogger, ctConfig, staging);
+    const counts = await upsertPriceData(repo, noopLogger, "cardtrader", staging);
 
     expect(counts.prices.total).toBe(2);
     const productIds = new Set(upsertedPrices.map((r) => r.marketplaceProductId));

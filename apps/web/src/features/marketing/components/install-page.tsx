@@ -25,6 +25,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { QrCode } from "@/components/ui/qr-code";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StepRow } from "@/features/marketing/components/article-cards";
 import type { InstallGuide, InstallPlatform } from "@/lib/install-platform";
 import {
   detectInstallPlatform,
@@ -91,11 +92,8 @@ function Steps({ steps }: { steps: ReactNode[] }) {
   return (
     <ol className="flex flex-col gap-2">
       {steps.map((step, index) => (
-        <li key={index} className="bg-card flex items-start gap-3 rounded-lg border p-3">
-          <span className="border-primary text-primary flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-sm font-bold">
-            {index + 1}
-          </span>
-          <span className="leading-7">{step}</span>
+        <li key={index}>
+          <StepRow step={index + 1} description={step} />
         </li>
       ))}
     </ol>

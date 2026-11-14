@@ -172,7 +172,7 @@ describe("DeckZoneSection", () => {
       workbench: true,
     });
     expect(screen.getByText("Jinx, Loose Cannon").dataset.hasViolation).toBe("false");
-    fireEvent.click(screen.getByRole("button", { name: "Show zone issues" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Extra Legends issues" }));
     expect(screen.getByText("Jinx, Loose Cannon is listed twice")).toBeDefined();
   });
 

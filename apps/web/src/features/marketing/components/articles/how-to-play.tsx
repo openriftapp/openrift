@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { CoinsIcon, FlagIcon, SwordIcon, TimerIcon, TrophyIcon, ZapIcon } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
@@ -8,10 +9,23 @@ import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
-import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
+import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { ZoneOverview } from "@/features/marketing/components/articles/zone-overview";
+import { useEnumOrders } from "@/hooks/use-enums";
+import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
+const DOMAIN_FLAVORS: [string, () => string][] = [
+  ["fury", m.help_how_to_play_domain_fury_flavor],
+  ["calm", m.help_how_to_play_domain_calm_flavor],
+  ["mind", m.help_how_to_play_domain_mind_flavor],
+  ["body", m.help_how_to_play_domain_body_flavor],
+  ["chaos", m.help_how_to_play_domain_chaos_flavor],
+  ["order", m.help_how_to_play_domain_order_flavor],
+];
+
 export default function HowToPlayArticle() {
+  const { labels } = useEnumOrders();
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">{m.help_how_to_play_intro()}</p>
@@ -28,36 +42,15 @@ export default function HowToPlayArticle() {
         <Heading className="mb-2">{m.help_how_to_play_bring_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_how_to_play_bring_intro()}</p>
 
-        <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <ZoneCard
-            name={m.help_how_to_play_zone_legend_name()}
-            count="1"
-            description={m.help_how_to_play_zone_legend_description()}
-            color="text-warning"
-          />
-          <ZoneCard
-            name={m.help_how_to_play_zone_champion_name()}
-            count="1"
-            description={m.help_how_to_play_zone_champion_description()}
-            color="text-violet"
-          />
-          <ZoneCard
-            name={m.help_how_to_play_zone_battlefields_name()}
-            count="3"
-            description={m.help_how_to_play_zone_battlefields_description()}
-            color="text-success"
-          />
-          <ZoneCard
-            name={m.help_how_to_play_zone_runes_name()}
-            count="12"
-            description={m.help_how_to_play_zone_runes_description()}
-            color="text-info"
-          />
-          <ZoneCard
-            name={m.help_how_to_play_zone_main_deck_name()}
-            count="40"
-            description={m.help_how_to_play_zone_main_deck_description()}
-            color="text-foreground"
+        <div className="mt-3">
+          <ZoneOverview
+            descriptions={{
+              legend: m.help_how_to_play_zone_legend_description(),
+              champion: m.help_how_to_play_zone_champion_description(),
+              battlefield: m.help_how_to_play_zone_battlefields_description(),
+              runes: m.help_how_to_play_zone_runes_description(),
+              main: m.help_how_to_play_zone_main_deck_description(),
+            }}
           />
         </div>
 
@@ -153,36 +146,14 @@ export default function HowToPlayArticle() {
         <p className="text-muted-foreground">{m.help_how_to_play_domains_intro()}</p>
 
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <DomainTile
-            name="Fury"
-            image="/images/domains/fury.webp"
-            flavor={m.help_how_to_play_domain_fury_flavor()}
-          />
-          <DomainTile
-            name="Calm"
-            image="/images/domains/calm.webp"
-            flavor={m.help_how_to_play_domain_calm_flavor()}
-          />
-          <DomainTile
-            name="Mind"
-            image="/images/domains/mind.webp"
-            flavor={m.help_how_to_play_domain_mind_flavor()}
-          />
-          <DomainTile
-            name="Body"
-            image="/images/domains/body.webp"
-            flavor={m.help_how_to_play_domain_body_flavor()}
-          />
-          <DomainTile
-            name="Chaos"
-            image="/images/domains/chaos.webp"
-            flavor={m.help_how_to_play_domain_chaos_flavor()}
-          />
-          <DomainTile
-            name="Order"
-            image="/images/domains/order.webp"
-            flavor={m.help_how_to_play_domain_order_flavor()}
-          />
+          {DOMAIN_FLAVORS.map(([domain, flavor]) => (
+            <DomainTile
+              key={domain}
+              name={enumLabel(labels.domains, domain)}
+              image={getFilterIconPath("domains", domain)}
+              flavor={flavor()}
+            />
+          ))}
         </div>
       </section>
 
@@ -238,11 +209,19 @@ export default function HowToPlayArticle() {
   );
 }
 
-function DomainTile({ name, image, flavor }: { name: string; image: string; flavor: string }) {
+function DomainTile({
+  name,
+  image,
+  flavor,
+}: {
+  name: string;
+  image: string | undefined;
+  flavor: string;
+}) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3">
-        <img src={image} alt={name} className="size-8 shrink-0" />
+        <img src={image} alt="" className="size-8 shrink-0" />
         <div className="flex flex-col gap-1">
           <CardTitle>{name}</CardTitle>
           <CardDescription>{flavor}</CardDescription>

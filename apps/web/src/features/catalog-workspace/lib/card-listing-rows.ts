@@ -1,6 +1,6 @@
 import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { STRONG_MATCH_THRESHOLD } from "@openrift/shared/marketplace-suggestions";
+import { suggestionStrength } from "@openrift/shared/marketplace-suggestions";
 import type {
   AdminMarketplaceName,
   StagedProductResponse,
@@ -38,13 +38,6 @@ export interface CardListings {
   assigned: CardListingRow[];
   strong: Record<AdminMarketplaceName, PrintingAssignment[]>;
   strongCount: number;
-}
-
-function strengthOf(suggestion: ProductSuggestion): ListingStrength {
-  if (suggestion.isWeak === true) {
-    return "weak";
-  }
-  return suggestion.score >= STRONG_MATCH_THRESHOLD ? "strong" : "possible";
 }
 
 function emptyByMarketplace(): Record<AdminMarketplaceName, PrintingAssignment[]> {
@@ -120,7 +113,7 @@ export function buildCardListings(
           ? null
           : {
               printing: printingById.get(best.printingId) as UnifiedMappingPrintingResponse,
-              strength: strengthOf(best),
+              strength: suggestionStrength(best),
             },
       assignablePrintings: group.printings.filter((printing) =>
         marketplaceCarriesLanguage(marketplace, printing.language),
@@ -132,7 +125,7 @@ export function buildCardListings(
     }
     unassigned.push(row);
     for (const suggestion of ranked) {
-      if (strengthOf(suggestion) === "strong" && printingById.has(suggestion.printingId)) {
+      if (suggestionStrength(suggestion) === "strong" && printingById.has(suggestion.printingId)) {
         strong[marketplace].push(listingAssignment(row, suggestion.printingId));
       }
     }

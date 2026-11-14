@@ -1,11 +1,11 @@
 import { CARD_ASPECT } from "@openrift/shared/card-orientation";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "./share-image-core.js";
 import {
-  COLORS,
   QR_SIZE,
   cardRadiusPx,
   cardTile,
@@ -160,8 +160,8 @@ function markCell(
       justifyContent: "center",
       gap: Math.round(cellH * 0.045),
       borderRadius: cardRadiusPx(cellW, cellH),
-      backgroundColor: COLORS.surface,
-      border: `1px dashed ${COLORS.surfaceBorder}`,
+      backgroundColor: SHARE_IMAGE_COLORS.surface,
+      border: `1px dashed ${SHARE_IMAGE_COLORS.surfaceBorder}`,
     },
     moreCount > 0
       ? element(
@@ -169,7 +169,12 @@ function markCell(
           { display: "flex", flexDirection: "row", alignItems: "baseline" },
           element(
             "div",
-            { display: "flex", color: COLORS.gold, fontSize: moreFont, fontWeight: 700 },
+            {
+              display: "flex",
+              color: SHARE_IMAGE_COLORS.gold,
+              fontSize: moreFont,
+              fontWeight: 700,
+            },
             `+${moreCount}`,
           ),
           element(
@@ -177,7 +182,7 @@ function markCell(
             {
               display: "flex",
               marginLeft: 6,
-              color: COLORS.muted,
+              color: SHARE_IMAGE_COLORS.muted,
               fontSize: Math.round(moreFont * 0.62),
               fontWeight: 600,
             },
@@ -189,7 +194,7 @@ function markCell(
     siteHost
       ? element(
           "div",
-          { display: "flex", color: COLORS.muted, fontSize: hostFont, fontWeight: 600 },
+          { display: "flex", color: SHARE_IMAGE_COLORS.muted, fontSize: hostFont, fontWeight: 600 },
           siteHost,
         )
       : false,

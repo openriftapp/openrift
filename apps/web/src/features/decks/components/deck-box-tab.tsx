@@ -42,21 +42,14 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { deckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
+import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 // Excludes Overflow: cards parked there don't travel with the deck.
-const BOX_ZONE_ORDER: readonly DeckZone[] = [
-  WellKnown.deckZone.LEGEND,
-  WellKnown.deckZone.LEGEND_OPTIONS,
-  WellKnown.deckZone.CHAMPION,
-  WellKnown.deckZone.RUNES,
-  WellKnown.deckZone.BATTLEFIELD,
-  WellKnown.deckZone.MAIN,
-  WellKnown.deckZone.SIDEBOARD,
-];
+const BOX_ZONE_ORDER = DECK_ZONE_ORDER.filter((zone) => zone !== WellKnown.deckZone.OVERFLOW);
 
 const SURPLUS_TICK_CLASS =
   "data-checked:border-destructive data-checked:bg-destructive data-checked:text-white dark:data-checked:bg-destructive";

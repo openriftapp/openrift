@@ -1,7 +1,7 @@
 import type { DeckZone } from "@openrift/shared/types/enums";
 
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
-import { ZONE_DIFF_ORDER } from "@/features/decks/lib/deck-diff";
+import { DECK_ZONE_ORDER } from "@/features/decks/lib/deck-zone-order";
 
 /**
  * Unlike `deck-diff.ts`, which drops anything that matches, this keeps both
@@ -87,7 +87,7 @@ export function alignDeckLists(
   }
 
   const zones: SideBySideZone[] = [];
-  for (const zone of ZONE_DIFF_ORDER) {
+  for (const zone of DECK_ZONE_ORDER) {
     const rows = byZone.get(zone);
     if (!rows || rows.length === 0) {
       continue;

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { UserAvatar } from "@/components/user-avatar";
+import { FIXTURE_PEOPLE } from "@/features/marketing/lib/vignette-fixtures";
 import { m } from "@/paraglide/messages.js";
 
 import { Vignette } from "./vignette-parts";
@@ -18,21 +19,21 @@ interface Pairing {
 function pairings(): Pairing[] {
   return [
     {
-      label: m.marketing_tournaments_match({ number: 1 }),
-      status: m.marketing_tournaments_reported(),
+      label: m.tournaments_pod_match_title({ number: 1 }),
+      status: m.tournaments_pod_reported(),
       reported: true,
       sides: [
-        { name: "Alice", score: "2", points: "+3" },
-        { name: "Mira", score: "1", points: "+0" },
+        { name: FIXTURE_PEOPLE.alice.userName, score: "2", points: "+3" },
+        { name: FIXTURE_PEOPLE.mira.userName, score: "1", points: "+0" },
       ],
     },
     {
-      label: m.marketing_tournaments_match({ number: 2 }),
-      status: m.marketing_tournaments_partial(),
+      label: m.tournaments_pod_match_title({ number: 2 }),
+      status: m.tournaments_pod_entered_of({ entered: 1, size: 2 }),
       reported: false,
       sides: [
-        { name: "Nour", score: "2", points: null },
-        { name: "Ravi", score: null, points: null },
+        { name: FIXTURE_PEOPLE.nour.userName, score: "2", points: null },
+        { name: FIXTURE_PEOPLE.ravi.userName, score: null, points: null },
       ],
     },
   ];
@@ -47,7 +48,10 @@ export function TournamentsVignette() {
         </span>
         <Badge variant="warning">{m.tournaments_round_band_reporting()}</Badge>
         <span className="text-muted-foreground text-sm">
-          {m.marketing_tournaments_matches_byes()}
+          {[
+            m.tournaments_round_matches_count({ count: 2 }),
+            m.tournaments_pairings_byes_count({ count: 1 }),
+          ].join(" · ")}
         </span>
       </div>
       <div className="flex flex-col gap-3">
@@ -93,10 +97,12 @@ export function TournamentsVignette() {
         </span>
         <div className="flex items-center justify-between gap-2 text-sm">
           <span className="flex min-w-0 items-center gap-2">
-            <UserAvatar name="Sina" size="sm" />
-            <span className="truncate font-medium">Sina</span>
+            <UserAvatar name={FIXTURE_PEOPLE.sina.userName} size="sm" />
+            <span className="truncate font-medium">{FIXTURE_PEOPLE.sina.userName}</span>
           </span>
-          <span className="font-semibold tabular-nums">{m.marketing_tournaments_bye_points()}</span>
+          <span className="font-semibold tabular-nums">
+            {m.tournaments_pairings_bye_points({ points: 3 })}
+          </span>
         </div>
       </div>
     </Vignette>

@@ -1,28 +1,50 @@
-import { CheckIcon, CopyIcon, QrCodeIcon } from "lucide-react";
+import { enumLabel } from "@openrift/shared/enum-label";
+import { SHARE_IMAGE_COLORS as OG } from "@openrift/shared/share-image-palette";
+import {
+  deckMetaLabel,
+  deckShareDescription,
+  deckShareTitle,
+  shareByline,
+} from "@openrift/shared/share-titles";
+import { CheckIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { QrCode } from "@/components/ui/qr-code";
-import { OFFICIAL_HOST } from "@/lib/official-host";
+import { tabsListVariants } from "@/components/ui/tabs";
+import { FIXTURE_LABELS, FIXTURE_SHARED_DECK } from "@/features/marketing/lib/vignette-fixtures";
+import { getSiteHost, getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { ClipFrame } from "./clip-frame";
+import { FAKE_CONTROL, Vignette } from "./vignette-parts";
 
-const DECK_NAME = "Yasuo Aggro";
-const AUTHOR = "Mira";
+const DECK = FIXTURE_SHARED_DECK;
+const FORMAT_LABEL = enumLabel(FIXTURE_LABELS.formats, DECK.formatSlug);
 
-const SHARE_URL = `https://${OFFICIAL_HOST}/decks/share/AbCdEf123456`;
-
-// The share image's own palette, which satori bakes in because it cannot read
-// the app's oklch tokens. See the og-image pipeline in apps/api.
-const OG = {
-  background: "#14161d",
-  surface: "#21242b",
-  surfaceBorder: "#2d313a",
-  text: "#f2f2f2",
-  muted: "#9aa0ab",
-  gold: "#cdac6e",
-};
+function OutputTabs() {
+  const tabs = [
+    { label: m.share_output_text(), active: false },
+    { label: m.share_output_image(), active: false },
+    { label: m.share_output_qr(), active: true },
+  ];
+  return (
+    <span className={cn(tabsListVariants(), "h-(--control-h)")}>
+      {tabs.map((tab) => (
+        <span
+          key={tab.label}
+          className={cn(
+            "inline-flex h-full items-center justify-center rounded-md border border-transparent px-2.5 text-sm font-medium whitespace-nowrap",
+            tab.active
+              ? "bg-background text-foreground dark:border-input dark:bg-input/30 shadow-sm"
+              : "text-foreground/60 dark:text-muted-foreground",
+          )}
+        >
+          {tab.label}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function OgTile({ quantity }: { quantity?: number }) {
   return (
@@ -50,13 +72,13 @@ function OgImage() {
     >
       <div className="flex items-baseline gap-2">
         <span className="truncate text-sm font-bold" style={{ color: OG.text }}>
-          {DECK_NAME}
+          {DECK.name}
         </span>
         <span className="text-2xs shrink-0 font-semibold" style={{ color: OG.gold }}>
-          {m.marketing_share_og_by({ name: AUTHOR })}
+          {shareByline(DECK.owner)}
         </span>
         <span className="text-2xs ml-auto shrink-0" style={{ color: OG.muted }}>
-          {m.marketing_share_og_meta()}
+          {deckMetaLabel(FORMAT_LABEL, DECK.cardCount)}
         </span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
@@ -74,55 +96,53 @@ function OgImage() {
         </div>
       </div>
       <span className="text-2xs shrink-0 font-semibold" style={{ color: OG.muted }}>
-        {OFFICIAL_HOST}
+        {getSiteHost()}
       </span>
     </div>
   );
 }
 
 export function ShareVignette() {
+  const shareUrl = `${getSiteUrl()}${DECK.sharePath}`;
   return (
-    <ClipFrame className="flex flex-col gap-4 p-5">
-      <div className="flex flex-col gap-2">
+    <Vignette>
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="border-input dark:bg-input/30 flex h-8 min-w-48 flex-1 items-center truncate rounded-lg border bg-transparent px-2.5 py-1 text-sm">
-            {SHARE_URL}
-          </span>
+          <span className={cn(FAKE_CONTROL, "min-w-48 flex-1 truncate")}>{shareUrl}</span>
           <span
             aria-hidden="true"
             className={cn(buttonVariants({ variant: "outline" }), "relative")}
           >
-            <span className="motion-safe:animate-share-before flex items-center gap-1.5">
+            <span className="motion-safe:animate-share-before flex items-center gap-1.5 opacity-0">
               <CopyIcon className="size-4" />
               {m.common_copy()}
             </span>
-            <span className="motion-safe:animate-share-after absolute inset-0 flex items-center justify-center gap-1.5 opacity-0">
+            <span className="motion-safe:animate-share-after absolute inset-0 flex items-center justify-center gap-1.5">
               <CheckIcon className="size-4" />
               {m.common_copied()}
             </span>
           </span>
-          <span
-            aria-hidden="true"
-            className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
-          >
-            <QrCodeIcon />
+          <span aria-hidden="true" className={buttonVariants({ variant: "outline" })}>
+            <ExternalLinkIcon />
+            {m.share_open_link()}
           </span>
         </div>
-        <QrCode value={SHARE_URL} size={96} label={m.share_qr_label_deck()} />
+        <OutputTabs />
+        <QrCode value={shareUrl} size={96} label={m.share_qr_label_deck()} />
       </div>
 
       <div className="border-border/60 motion-safe:animate-share-unfurl overflow-hidden rounded-lg border">
         <OgImage />
         <div className="flex flex-col gap-0.5 px-3 py-2">
-          <span className="text-muted-foreground text-2xs">OpenRift</span>
+          <span className="text-muted-foreground text-2xs">{DECK.siteName}</span>
           <span className="truncate text-sm font-medium">
-            {m.marketing_share_preview_title({ deck: DECK_NAME })}
+            {deckShareTitle(DECK.name, FORMAT_LABEL)}
           </span>
           <span className="text-muted-foreground text-xs">
-            {m.marketing_share_preview_description({ name: AUTHOR })}
+            {deckShareDescription(FORMAT_LABEL, DECK.owner)}
           </span>
         </div>
       </div>
-    </ClipFrame>
+    </Vignette>
   );
 }

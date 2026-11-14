@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import {
   CheckCircle2Icon,
   ChevronDownIcon,
@@ -8,33 +9,22 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { CountPill } from "@/components/ui/count-pill";
+import { RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
+import { FIXTURE_CARDS, FIXTURE_LABELS } from "@/features/marketing/lib/vignette-fixtures";
+import { ruleCountLabel, ruleWording } from "@/features/rules/lib/rule-wording";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { StripGlyph, Vignette } from "./vignette-parts";
+import { FAKE_CONTROL, StripGlyph, Swap, Vignette } from "./vignette-parts";
 
 const WISHLIST_ROWS = [
-  { name: "Hidden Blade", rule: "2" },
-  { name: "Legion Rearguard", rule: "3" },
+  { name: FIXTURE_CARDS.hiddenBlade.name, rule: 2 },
+  { name: FIXTURE_CARDS.legionRearguard.name, rule: 3 },
+  { name: FIXTURE_CARDS.solariShieldbearer.name, rule: 3 },
 ] as const;
 
-function RuleSourceBadge({ children }: { children: ReactNode }) {
-  return (
-    <Badge
-      variant="subtle"
-      className="rounded-md border-0 bg-transparent"
-      title={m.lists_rule_badge_title()}
-    >
-      <SparklesIcon aria-hidden="true" />
-      {children}
-    </Badge>
-  );
-}
-
-const RULE_CONTROL =
-  "border-input dark:bg-input/30 flex h-8 items-center justify-between gap-1.5 rounded-lg border bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap";
+const RULE_CONTROL = cn(FAKE_CONTROL, "justify-between gap-1.5 pr-2 text-sm whitespace-nowrap");
 
 function RuleControl({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -74,13 +64,18 @@ function QuantityControl({ mode, amount }: { mode: string; amount: string }) {
 
 function ListsCount({ was, now }: { was: string; now: string }) {
   return (
-    <span className="inline-grid justify-items-start tabular-nums">
-      <span className="motion-safe:animate-lists-count-was col-start-1 row-start-1 opacity-0">
-        {was}
-      </span>
-      <span className="motion-safe:animate-lists-count-now col-start-1 row-start-1">{now}</span>
-    </span>
+    <Swap
+      className="tabular-nums"
+      was={was}
+      now={now}
+      wasAnimation="motion-safe:animate-lists-count-was"
+      nowAnimation="motion-safe:animate-lists-count-now"
+    />
   );
+}
+
+function missingCount(count: number): string {
+  return ruleCountLabel(count, "card", ruleWording("wish", "card"), true);
 }
 
 function RuleBlock({
@@ -117,21 +112,16 @@ export function ListsVignette() {
       </div>
       <RuleBlock
         title={m.lists_rule_block_title({ number: 1 })}
-        count={
-          <ListsCount
-            was={m.marketing_lists_missing_cards({ count: 214 })}
-            now={m.marketing_lists_missing_cards({ count: 213 })}
-          />
-        }
+        count={<ListsCount was={missingCount(214)} now={missingCount(213)} />}
       >
         <RuleRow label={m.lists_rule_dim_sets()}>
-          <RuleControl>Origins</RuleControl>
+          <RuleControl>{enumLabel(FIXTURE_LABELS.sets, "OGN")}</RuleControl>
         </RuleRow>
         <RuleRow label={m.lists_rule_dim_languages()}>
-          <RuleControl>English</RuleControl>
+          <RuleControl>{enumLabel(FIXTURE_LABELS.languages, "EN")}</RuleControl>
         </RuleRow>
         <RuleRow label={m.lists_rule_dim_finishes()}>
-          <RuleControl>&minus;Metal</RuleControl>
+          <RuleControl>&minus;{enumLabel(FIXTURE_LABELS.finishes, "metal")}</RuleControl>
         </RuleRow>
         <RuleRow label={m.lists_rule_wording_wish_quantity_label()}>
           <QuantityControl mode={m.lists_rule_quantity_playset()} amount="1" />
@@ -166,32 +156,27 @@ export function ListsVignette() {
               className="motion-safe:animate-lists-land bg-primary/10 ring-primary/60 pointer-events-none absolute inset-x-0 inset-y-[1px] rounded-md opacity-0 ring-2 ring-inset"
             />
             <span className="relative flex items-center gap-2 py-[3px]">
-              <span className="min-w-0 flex-1 truncate">Playful Phantom</span>
-              <span className="inline-grid justify-items-end">
-                <span className="motion-safe:animate-lists-owned-was col-start-1 row-start-1 opacity-0">
-                  <RuleSourceBadge>
-                    <span className="tabular-nums">1</span>
-                  </RuleSourceBadge>
-                </span>
-                <span className="motion-safe:animate-lists-owned-now col-start-1 row-start-1">
+              <span className="min-w-0 flex-1 truncate">{FIXTURE_CARDS.playfulPhantom.name}</span>
+              <Swap
+                className="justify-items-end"
+                wasAnimation="motion-safe:animate-lists-owned-was"
+                nowAnimation="motion-safe:animate-lists-owned-now"
+                was={<RuleSourceBadge quantity={1} />}
+                now={
                   <CountPill variant="success">
                     <CheckCircle2Icon className="size-3" aria-hidden="true" />
                     {m.cards_filter_owned_full()}
                   </CountPill>
-                </span>
-              </span>
+                }
+              />
             </span>
           </li>
           {WISHLIST_ROWS.map((row) => (
             <li key={row.name} className="flex items-center gap-2 py-[3px]">
               <span className="min-w-0 flex-1 truncate">{row.name}</span>
-              <RuleSourceBadge>{row.rule}</RuleSourceBadge>
+              <RuleSourceBadge quantity={row.rule} />
             </li>
           ))}
-          <li className="flex items-center gap-2 py-[3px]">
-            <span className="min-w-0 flex-1 truncate">Solari Shieldbearer</span>
-            <RuleSourceBadge>3</RuleSourceBadge>
-          </li>
         </ul>
         <span className="text-muted-foreground text-xs">
           {m.decks_overview_zone_more({ count: 210 })}

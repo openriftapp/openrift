@@ -1,15 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRightIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
-import { OrnamentRule } from "@/components/ui/ornament";
 import { Reveal } from "@/features/marketing/components/reveal";
 import { ScanVignette } from "@/features/marketing/components/scan-vignette";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
+import { marketplaceNames } from "@/features/marketing/lib/marketplace-copy";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+import { ActionArrow, FEATURE_ACTION_CLASS, SectionRule } from "./feature-section";
 import { GroupsVignette } from "./groups-vignette";
 import { ListsVignette } from "./lists-vignette";
 import { PricesVignette } from "./prices-vignette";
@@ -50,7 +50,7 @@ export function FeatureShowcase({
     },
     {
       title: m.marketing_showcase_prices_title(),
-      description: m.marketing_showcase_prices_description(),
+      description: m.marketing_showcase_prices_description({ marketplaces: marketplaceNames() }),
       cta: m.marketing_showcase_prices_cta(),
       to: "/cards",
       vignette: <PricesVignette />,
@@ -61,26 +61,26 @@ export function FeatureShowcase({
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-16 md:gap-24 md:py-24">
       {features.map((feature, index) => (
         <Reveal key={feature.title}>
-          <Link
-            to={feature.to}
-            className="hover:bg-background/60 group grid grid-cols-1 items-center gap-8 rounded-2xl p-4 transition-colors sm:p-6 lg:grid-cols-2 lg:gap-14"
-          >
+          <div className="hover:bg-background/60 has-focus-visible:ring-ring relative grid grid-cols-1 items-center gap-8 rounded-2xl p-4 transition-colors has-focus-visible:ring-2 sm:p-6 lg:grid-cols-2 lg:gap-14">
             <div className={cn("flex flex-col gap-4", index % 2 === 1 && "lg:order-2")}>
               <Heading level={1} as="h2">
                 {feature.title}
               </Heading>
-              <OrnamentRule className="w-40" />
+              <SectionRule />
               <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-              <span className="text-primary flex items-center gap-1.5 text-sm font-medium">
+              <Link
+                to={feature.to}
+                className={cn(
+                  FEATURE_ACTION_CLASS,
+                  "text-primary after:absolute after:inset-0 after:z-10 after:rounded-2xl focus-visible:ring-0",
+                )}
+              >
                 {feature.cta}
-                <ArrowRightIcon
-                  aria-hidden="true"
-                  className="size-4 transition-transform group-hover:translate-x-0.5"
-                />
-              </span>
+                <ActionArrow />
+              </Link>
             </div>
-            <div className={cn(index % 2 === 1 && "lg:order-1")}>{feature.vignette}</div>
-          </Link>
+            <div className={cn("isolate", index % 2 === 1 && "lg:order-1")}>{feature.vignette}</div>
+          </div>
         </Reveal>
       ))}
     </section>

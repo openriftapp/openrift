@@ -1,19 +1,6 @@
-import { SlidersHorizontalIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+import { FilterCountDrawer } from "@/components/filter-count-drawer";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -143,50 +130,6 @@ function GroupByToggle({
   );
 }
 
-function StatsFilterDrawer({ count, children }: { count: number; children: ReactNode }) {
-  const [openedOnce, setOpenedOnce] = useState(false);
-  const [open, setOpen] = useState(false);
-  return (
-    <Drawer
-      showSwipeHandle
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (next) {
-          setOpenedOnce(true);
-        }
-      }}
-    >
-      <DrawerTrigger
-        render={<Button variant="outline" size="icon" className="relative shrink-0" />}
-        aria-label={m.cards_filters()}
-      >
-        <SlidersHorizontalIcon className="size-4" />
-        {count > 0 && (
-          <Badge variant="count" className="absolute -top-1 -right-1 min-w-4 tabular-nums">
-            {count}
-          </Badge>
-        )}
-      </DrawerTrigger>
-      <DrawerContent
-        className="pb-4 data-ending-style:duration-250"
-        keepMounted={openedOnce || open}
-      >
-        <DrawerHeader className="sr-only">
-          <DrawerTitle>{m.cards_filters()}</DrawerTitle>
-          <DrawerDescription>{m.collections_stats_filters_description()}</DrawerDescription>
-        </DrawerHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-4">
-          {children}
-        </div>
-        <DrawerFooter>
-          <DrawerClose render={<Button className="w-full" />}>{m.common_done()}</DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
 export function CollectionStatsToolbar({
   collectionScope,
   onCollectionScopeChange,
@@ -236,10 +179,13 @@ export function CollectionStatsToolbar({
   return (
     <div className="mb-6 flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <StatsFilterDrawer count={activeCount}>
+        <FilterCountDrawer
+          count={activeCount}
+          description={m.collections_stats_filters_description()}
+        >
           {scopeControls}
           {filters}
-        </StatsFilterDrawer>
+        </FilterCountDrawer>
         {scopedName !== undefined && (
           <FilterChip
             label={scopedName}

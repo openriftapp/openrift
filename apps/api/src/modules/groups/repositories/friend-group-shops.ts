@@ -1,6 +1,6 @@
 import type { GroupShopSource } from "@openrift/shared/group-shops";
 import type { Kysely, SqlBool } from "kysely";
-import { sql } from "kysely";
+import { expressionBuilder, sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
@@ -55,9 +55,42 @@ function byStart<T extends { startAt: Date; externalId: string }>(a: T, b: T): n
   return a.startAt.getTime() - b.startAt.getTime() || a.externalId.localeCompare(b.externalId);
 }
 
+function storeSubqueries() {
+  return expressionBuilder<Database, never>();
+}
+
+// The uvsgames store record carries no address, only each event row does, so
+// a uvsgames shop's address is read off its newest listing.
+function latestUvsgamesLocation() {
+  return storeSubqueries()
+    .selectFrom("uvsgamesEvents as le")
+    .select("le.location")
+    .where("le.storeId", "=", sql<number>`${sql.ref("s.id")}`)
+    .where("le.location", "is not", null)
+    .orderBy("le.startAt", "desc")
+    .limit(1)
+    .as("location");
+}
+
+function upcomingUvsgamesCount() {
+  return storeSubqueries()
+    .selectFrom("uvsgamesEvents as ce")
+    .select((inner) => inner.fn.countAll<string>().as("value"))
+    .where("ce.storeId", "=", sql<number>`${sql.ref("s.id")}`)
+    .where(sql<SqlBool>`ce.start_at >= now() and ce.missing_since is null`)
+    .as("upcomingCount");
+}
+
+function upcomingPlayriftboundCount() {
+  return storeSubqueries()
+    .selectFrom("playriftboundEvents as ce")
+    .select((inner) => inner.fn.countAll<string>().as("value"))
+    .where("ce.organizerId", "=", sql<string>`${sql.ref("o.id")}`)
+    .where(sql<SqlBool>`ce.start_at >= now() and ce.missing_since is null`)
+    .as("upcomingCount");
+}
+
 export function friendGroupShopsRepo(db: Kysely<Database>) {
-  // The uvsgames store record carries no address, only each event row does, so
-  // a uvsgames shop's address is read off its newest listing.
   async function listUvsgamesShops(groupId: string): Promise<GroupShopRow[]> {
     const rows = await db
       .selectFrom("friendGroupShops as fgs")
@@ -65,20 +98,8 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
       .select((eb) => [
         "s.id as storeId",
         "s.name as name",
-        eb
-          .selectFrom("uvsgamesEvents as le")
-          .select("le.location")
-          .whereRef("le.storeId", "=", "s.id")
-          .where("le.location", "is not", null)
-          .orderBy("le.startAt", "desc")
-          .limit(1)
-          .as("location"),
-        eb
-          .selectFrom("uvsgamesEvents as ce")
-          .select((inner) => inner.fn.countAll<string>().as("value"))
-          .whereRef("ce.storeId", "=", "s.id")
-          .where(sql<SqlBool>`ce.start_at >= now() and ce.missing_since is null`)
-          .as("upcomingCount"),
+        latestUvsgamesLocation(),
+        upcomingUvsgamesCount(),
         eb
           .selectFrom("uvsgamesEvents as ne")
           .select((inner) => inner.fn.min<Date | null>("ne.startAt").as("value"))
@@ -106,12 +127,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         "o.id as storeId",
         "o.name as name",
         "o.address as location",
-        eb
-          .selectFrom("playriftboundEvents as ce")
-          .select((inner) => inner.fn.countAll<string>().as("value"))
-          .whereRef("ce.organizerId", "=", "o.id")
-          .where(sql<SqlBool>`ce.start_at >= now() and ce.missing_since is null`)
-          .as("upcomingCount"),
+        upcomingPlayriftboundCount(),
         eb
           .selectFrom("playriftboundEvents as ne")
           .select((inner) => inner.fn.min<Date | null>("ne.startAt").as("value"))
@@ -136,23 +152,11 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
   async function searchUvsgamesShops(pattern: string): Promise<ShopSearchRow[]> {
     const rows = await db
       .selectFrom("uvsgamesStores as s")
-      .select((eb) => [
+      .select([
         "s.id as storeId",
         "s.name as name",
-        eb
-          .selectFrom("uvsgamesEvents as le")
-          .select("le.location")
-          .whereRef("le.storeId", "=", "s.id")
-          .where("le.location", "is not", null)
-          .orderBy("le.startAt", "desc")
-          .limit(1)
-          .as("location"),
-        eb
-          .selectFrom("uvsgamesEvents as ce")
-          .select((inner) => inner.fn.countAll<string>().as("value"))
-          .whereRef("ce.storeId", "=", "s.id")
-          .where(sql<SqlBool>`ce.start_at >= now() and ce.missing_since is null`)
-          .as("upcomingCount"),
+        latestUvsgamesLocation(),
+        upcomingUvsgamesCount(),
       ])
       .where((eb) =>
         eb.exists(
@@ -181,16 +185,11 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
   async function searchPlayriftboundShops(pattern: string): Promise<ShopSearchRow[]> {
     const rows = await db
       .selectFrom("playriftboundOrganizers as o")
-      .select((eb) => [
+      .select([
         "o.id as storeId",
         "o.name as name",
         "o.address as location",
-        eb
-          .selectFrom("playriftboundEvents as ce")
-          .select((inner) => inner.fn.countAll<string>().as("value"))
-          .whereRef("ce.organizerId", "=", "o.id")
-          .where(sql<SqlBool>`ce.start_at >= now() and ce.missing_since is null`)
-          .as("upcomingCount"),
+        upcomingPlayriftboundCount(),
       ])
       .where((eb) =>
         eb.or([

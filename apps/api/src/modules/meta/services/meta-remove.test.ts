@@ -4,7 +4,7 @@ import type { Transact } from "../../../deps.js";
 import { removeMetaEvent, unpublishMetaEvent } from "./meta-remove.js";
 
 const meta = { sourcesForEvent: vi.fn(), deleteEvent: vi.fn(), eventById: vi.fn() };
-const metaOverlays = { ignoreEvent: vi.fn() };
+const metaOverlays = { ignoreEvents: vi.fn() };
 const transact = ((fn: (repos: unknown) => unknown) => fn({ meta, metaOverlays })) as Transact;
 
 beforeEach(() => {
@@ -22,9 +22,9 @@ describe("removeMetaEvent", () => {
 
     expect(await removeMetaEvent(transact, "live-1")).toBe(true);
     expect(meta.deleteEvent).toHaveBeenCalledWith("live-1");
-    expect(metaOverlays.ignoreEvent.mock.calls).toEqual([
-      ["uvsgames", "857112"],
-      ["playriftbound", "117451802123511056"],
+    expect(metaOverlays.ignoreEvents.mock.calls).toEqual([
+      ["uvsgames", ["857112"]],
+      ["playriftbound", ["117451802123511056"]],
     ]);
   });
 
@@ -33,7 +33,7 @@ describe("removeMetaEvent", () => {
     meta.deleteEvent.mockResolvedValue(false);
 
     expect(await removeMetaEvent(transact, "gone")).toBe(false);
-    expect(metaOverlays.ignoreEvent).not.toHaveBeenCalled();
+    expect(metaOverlays.ignoreEvents).not.toHaveBeenCalled();
   });
 });
 
@@ -43,7 +43,7 @@ describe("unpublishMetaEvent", () => {
 
     expect(await unpublishMetaEvent(transact, "live-1")).toBe("unpublished");
     expect(meta.deleteEvent).toHaveBeenCalledWith("live-1");
-    expect(metaOverlays.ignoreEvent).not.toHaveBeenCalled();
+    expect(metaOverlays.ignoreEvents).not.toHaveBeenCalled();
   });
 
   it("keeps an event that already has standings", async () => {

@@ -26,9 +26,9 @@ import { InputGroup, InputGroupAddon, InputGroupButton } from "@/components/ui/i
 import { Kbd } from "@/components/ui/kbd";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
 import { visibleHelpArticles } from "@/features/marketing/components/articles";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useQuickCardSearch } from "@/hooks/use-quick-card-search";
 import { useSession } from "@/hooks/use-session";
 import type { PaletteRow } from "@/lib/command-palette-results";
 import { buildPaletteGroups } from "@/lib/command-palette-results";
@@ -112,7 +112,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
     }
     closePalette();
     if (row.kind === "help") {
-      void navigate({ to: "/help/$slug", params: { slug: row.article.slug } });
+      void navigate({ to: "/help/$slug", params: { slug: row.slug } });
       return;
     }
     if (row.kind === "searchCards") {
@@ -210,7 +210,7 @@ function PaletteRowContent({ row }: { row: PaletteRow }) {
     return (
       <>
         <CircleHelpIcon />
-        <span className="truncate">{row.article.title}</span>
+        <span className="truncate">{row.title}</span>
       </>
     );
   }

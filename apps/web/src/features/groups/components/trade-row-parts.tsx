@@ -3,15 +3,13 @@ import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
-import { ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, CheckIcon, ClockIcon } from "lucide-react";
+import { ClockIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
 import { DATE_WORDS } from "@/lib/date-words";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
 import { memberName } from "@/lib/member-name";
@@ -23,22 +21,6 @@ const EXPIRY_URGENT_MS = DAY_MS;
 
 function expiresWithinUrgentWindow(expiresAt: string): boolean {
   return new Date(expiresAt).getTime() - Date.now() < EXPIRY_URGENT_MS;
-}
-
-export function TradeDirectionIcon({ incoming }: { incoming: boolean }) {
-  const Icon = incoming ? ArrowDownLeftIcon : ArrowUpRightIcon;
-  return (
-    <span
-      className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-full",
-        incoming ? "bg-success-soft text-success" : "bg-warning-soft text-warning",
-      )}
-      title={incoming ? m.trades_comes_to_you() : m.trades_goes_to_them()}
-      aria-label={incoming ? m.trades_comes_to_you() : m.trades_goes_to_them()}
-    >
-      <Icon className="size-4" />
-    </span>
-  );
 }
 
 export function CardMetaLine({
@@ -114,92 +96,6 @@ export function TradeEstimatedPrice({
         {compactFormatterForMarketplace(marketplace)(total)}
       </span>
     </>
-  );
-}
-
-export type TradeBadgeState =
-  | "your-move"
-  | "waiting-for-them"
-  | "ready-to-swap"
-  | "done-your-side"
-  | `status:${CardTradeStatus}`;
-
-export function tradeBadgeState({
-  status,
-  awaitingViewer,
-  viewerSettled,
-}: {
-  status: CardTradeStatus;
-  awaitingViewer?: boolean;
-  viewerSettled?: boolean;
-}): TradeBadgeState {
-  if (status === "pending") {
-    return awaitingViewer === true ? "your-move" : "waiting-for-them";
-  }
-  if (status === "reserved") {
-    return viewerSettled === true ? "done-your-side" : "ready-to-swap";
-  }
-  return `status:${status}`;
-}
-
-export function TradeStatusBadge({
-  status,
-  counterpartyName,
-  awaitingViewer,
-  viewerSettled,
-  className,
-}: {
-  status: CardTradeStatus;
-  counterpartyName?: string | null;
-  awaitingViewer?: boolean;
-  viewerSettled?: boolean;
-  // Pass `min-w-0 shrink` where the row must never widen its container:
-  // "Waiting for {name}" can be as long as the member's name.
-  className?: string;
-}) {
-  const state = tradeBadgeState({ status, awaitingViewer, viewerSettled });
-  if (state === "your-move") {
-    return (
-      <Badge variant="warning" className={cn("shrink-0", className)}>
-        <BellIcon />
-        {m.trades_badge_your_move()}
-      </Badge>
-    );
-  }
-  if (state === "waiting-for-them") {
-    return (
-      <Badge variant="secondary" className={cn("shrink-0", className)}>
-        <ClockIcon />
-        <span className="truncate">
-          {m.trades_badge_waiting_for({ name: counterpartyName ?? m.trades_them() })}
-        </span>
-      </Badge>
-    );
-  }
-  if (state === "done-your-side") {
-    return (
-      <Badge
-        variant="secondary"
-        className={cn("shrink-0", className)}
-        title={m.trades_badge_done_your_side_title()}
-      >
-        <CheckIcon />
-        <span className="truncate">{m.trades_badge_done_your_side()}</span>
-      </Badge>
-    );
-  }
-  if (state === "ready-to-swap") {
-    return (
-      <Badge variant="success" className={cn("shrink-0", className)}>
-        <CheckIcon />
-        {m.trades_badge_ready_to_swap()}
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="secondary" className={cn("shrink-0", className)}>
-      {tradeStatusLabel(status)}
-    </Badge>
   );
 }
 

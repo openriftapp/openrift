@@ -26,7 +26,7 @@ const mockMeta = {
   deleteEvent: vi.fn(),
 };
 
-const mockMetaOverlays = { acceptedPlayerOverlays: vi.fn(), ignoreEvent: vi.fn() };
+const mockMetaOverlays = { acceptedPlayerOverlays: vi.fn(), ignoreEvents: vi.fn() };
 
 const mockUvsgames = { settings: vi.fn() };
 
@@ -614,18 +614,18 @@ describe("DELETE /events/:id", () => {
 
     expect(res.status).toBe(204);
     expect(mockMeta.deleteEvent).toHaveBeenCalledWith(EVENT_ID);
-    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("uvsgames", "857112");
-    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledTimes(1);
+    expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledWith("uvsgames", ["857112"]);
+    expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledTimes(1);
   });
 
   it("404s an event that is already gone, rejecting nothing", async () => {
     mockMeta.sourcesForEvent.mockResolvedValue([]);
     mockMeta.deleteEvent.mockResolvedValue(false);
-    mockMetaOverlays.ignoreEvent.mockClear();
+    mockMetaOverlays.ignoreEvents.mockClear();
 
     const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}`, { method: "DELETE" });
 
     expect(res.status).toBe(404);
-    expect(mockMetaOverlays.ignoreEvent).not.toHaveBeenCalled();
+    expect(mockMetaOverlays.ignoreEvents).not.toHaveBeenCalled();
   });
 });

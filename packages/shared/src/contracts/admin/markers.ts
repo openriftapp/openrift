@@ -2,7 +2,7 @@ import { idParamSchema, isoDateTime, withParams } from "@openrift/shared/schemas
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
-import { slugRegex } from "./shared.js";
+import { kebabSlugSchema, slugRegex } from "./shared.js";
 
 const TAG = "Admin - Markers";
 
@@ -49,7 +49,7 @@ export const adminMarkersContract = {
     })
     .input(
       withParams(idParamSchema, {
-        slug: z.string().min(1).regex(slugRegex, "Slug must be kebab-case").optional(),
+        slug: kebabSlugSchema.optional(),
         label: z.string().min(1).optional(),
         description: z.string().min(1).nullable().optional(),
       }),

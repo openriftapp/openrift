@@ -16,6 +16,77 @@ function greetingFor(messages: EmailMessages, recipientName: string | null): str
   return messages.greeting(recipientName === null ? null : escapeHtml(recipientName));
 }
 
+type TradeEmailChannel = Parameters<EmailMessages["unsubscribeLabel"]>[0];
+
+function tradeEmail(
+  input: { locale: DisplayLocale; unsubscribeUrl: string },
+  messages: EmailMessages,
+  channel: TradeEmailChannel,
+  heading: string,
+  subject: string,
+  bodyHtml: string,
+): { subject: string; html: string } {
+  return {
+    subject,
+    html: renderEmailLayout({
+      locale: input.locale,
+      heading,
+      bodyHtml,
+      unsubscribe: { url: input.unsubscribeUrl, label: messages.unsubscribeLabel(channel) },
+    }),
+  };
+}
+
+function cardLabel(
+  messages: EmailMessages,
+  card: { quantity: number; cardName: string | null },
+): string {
+  return messages.quantityLabel(card.quantity, card.cardName ?? messages.aCard);
+}
+
+function cardSection(heading: string, labels: readonly string[], color?: string): string {
+  if (labels.length === 0) {
+    return "";
+  }
+  const headingStyle =
+    color === undefined
+      ? "margin:0 0 4px;font-weight:600;"
+      : `margin:0 0 4px;font-weight:600;color:${color};`;
+  const rows = labels
+    .map((label) => `<li style="margin:0 0 4px;"><strong>${escapeHtml(label)}</strong></li>`)
+    .join("");
+  return `
+          <p style="${headingStyle}">${heading}</p>
+          <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
+        `;
+}
+
+function renderGroupBlocks<G extends { groupName: string; tradesUrl: string }>(
+  messages: EmailMessages,
+  groups: readonly G[],
+  sectionsFor: (group: G) => string,
+): string {
+  const multiGroup = groups.length > 1;
+  return groups
+    .map((group) => {
+      const sections = sectionsFor(group);
+      const locationLine = multiGroup
+        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
+        : "";
+      const buttonLabel = multiGroup
+        ? messages.viewTradesButton
+        : messages.viewTradesInButton(group.groupName);
+      return `
+        <div style="margin:0 0 20px;">
+          ${locationLine}
+          ${sections}
+          <p style="margin:0;">${emailButton(buttonLabel, group.tradesUrl)}</p>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 export interface TradeRequestEmailInput {
   locale: DisplayLocale;
   /** Display name of the recipient (the non-initiator); may be null. */
@@ -62,18 +133,14 @@ export function buildTradeRequestEmail(input: TradeRequestEmailInput): {
     <p style="margin:0;">${emailButton(messages.viewTradeButton, input.sheetUrl)}</p>
   `;
 
-  return {
+  return tradeEmail(
+    input,
+    messages,
+    "tradeRequests",
+    messages.tradeRequestHeading,
     subject,
-    html: renderEmailLayout({
-      locale: input.locale,
-      heading: messages.tradeRequestHeading,
-      bodyHtml,
-      unsubscribe: {
-        url: input.unsubscribeUrl,
-        label: messages.unsubscribeLabel("tradeRequests"),
-      },
-    }),
-  };
+    bodyHtml,
+  );
 }
 
 interface CoalescedRequest {
@@ -135,62 +202,33 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
       <p style="margin:0 0 20px;">${messages.requestExpiryNote}</p>
       <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
-    return {
-      subject: messages.requestSubject(sender, soleCardName, soleRequest.kind),
-      html: renderEmailLayout({
-        locale: input.locale,
-        heading: messages.tradeRequestHeading,
-        bodyHtml,
-        unsubscribe: {
-          url: input.unsubscribeUrl,
-          label: messages.unsubscribeLabel("tradeRequests"),
-        },
-      }),
-    };
+    return tradeEmail(
+      input,
+      messages,
+      "tradeRequests",
+      messages.tradeRequestHeading,
+      messages.requestSubject(sender, soleCardName, soleRequest.kind),
+      bodyHtml,
+    );
   }
-
-  const multiGroup = input.groups.length > 1;
 
   const requestKinds = [
     { kind: "wants", heading: messages.wantsFromYouHeading },
     { kind: "offers", heading: messages.offersYouHeading },
   ] as const satisfies readonly { kind: TradeRequestKind; heading: string }[];
 
-  const groupBlocks = input.groups
-    .map((group) => {
-      const sections = requestKinds
-        .map(({ kind, heading }) => {
-          const cards = group.requests.filter((request) => request.kind === kind);
-          if (cards.length === 0) {
-            return "";
-          }
-          const rows = cards
-            .map(
-              (request) =>
-                `<li style="margin:0 0 4px;"><strong>${escapeHtml(messages.quantityLabel(request.quantity, request.cardName ?? messages.aCard))}</strong></li>`,
-            )
-            .join("");
-          return `
-          <p style="margin:0 0 4px;font-weight:600;">${heading}</p>
-          <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
-        `;
-        })
-        .join("");
-      const locationLine = multiGroup
-        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
-        : "";
-      const buttonLabel = multiGroup
-        ? messages.viewTradesButton
-        : messages.viewTradesInButton(group.groupName);
-      return `
-        <div style="margin:0 0 20px;">
-          ${locationLine}
-          ${sections}
-          <p style="margin:0;">${emailButton(buttonLabel, group.tradesUrl)}</p>
-        </div>
-      `;
-    })
-    .join("");
+  const groupBlocks = renderGroupBlocks(messages, input.groups, (group) =>
+    requestKinds
+      .map(({ kind, heading }) =>
+        cardSection(
+          heading,
+          group.requests
+            .filter((request) => request.kind === kind)
+            .map((request) => cardLabel(messages, request)),
+        ),
+      )
+      .join(""),
+  );
 
   // "wants 2 of your cards and offers you 1" — the directions tell the story
   // from the notification tray, before the email is opened.
@@ -203,18 +241,14 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
     ${groupBlocks}
   `;
 
-  return {
+  return tradeEmail(
+    input,
+    messages,
+    "tradeRequests",
+    messages.tradeRequestsHeading,
     subject,
-    html: renderEmailLayout({
-      locale: input.locale,
-      heading: messages.tradeRequestsHeading,
-      bodyHtml,
-      unsubscribe: {
-        url: input.unsubscribeUrl,
-        label: messages.unsubscribeLabel("tradeRequests"),
-      },
-    }),
-  };
+    bodyHtml,
+  );
 }
 
 /** A single status change folded into the coalesced status-update email. */
@@ -271,61 +305,33 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
   const soleUpdate = soleGroup?.updates[0];
 
   if (total === 1 && soleGroup && soleUpdate) {
-    const card = `<strong>${escapeHtml(messages.quantityLabel(soleUpdate.quantity, soleUpdate.cardName ?? messages.aCard))}</strong>`;
+    const card = `<strong>${escapeHtml(cardLabel(messages, soleUpdate))}</strong>`;
     const bodyHtml = `
       <p style="margin:0 0 12px;">${greeting}</p>
       <p style="margin:0 0 20px;">${messages.statusPhrase(`<strong>${actorHtml}</strong>`, card, soleUpdate.event)}.</p>
       <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
-    return {
-      subject: messages.singleStatusSubject(actor, soleUpdate.event),
-      html: renderEmailLayout({
-        locale: input.locale,
-        heading: messages.statusHeading,
-        bodyHtml,
-        unsubscribe: {
-          url: input.unsubscribeUrl,
-          label: messages.unsubscribeLabel("tradeStatus"),
-        },
-      }),
-    };
+    return tradeEmail(
+      input,
+      messages,
+      "tradeStatus",
+      messages.statusHeading,
+      messages.singleStatusSubject(actor, soleUpdate.event),
+      bodyHtml,
+    );
   }
 
-  const multiGroup = input.groups.length > 1;
-
-  const groupBlocks = input.groups
-    .map((group) => {
-      const sections = STATUS_OUTCOMES.map(({ event, color }) => {
-        const cards = group.updates.filter((update) => update.event === event);
-        if (cards.length === 0) {
-          return "";
-        }
-        const rows = cards
-          .map(
-            (update) =>
-              `<li style="margin:0 0 4px;"><strong>${escapeHtml(messages.quantityLabel(update.quantity, update.cardName ?? messages.aCard))}</strong></li>`,
-          )
-          .join("");
-        return `
-          <p style="margin:0 0 4px;font-weight:600;color:${color};">${messages.statusOutcomeHeading(event)}</p>
-          <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
-        `;
-      }).join("");
-      const locationLine = multiGroup
-        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
-        : "";
-      const buttonLabel = multiGroup
-        ? messages.viewTradesButton
-        : messages.viewTradesInButton(group.groupName);
-      return `
-        <div style="margin:0 0 20px;">
-          ${locationLine}
-          ${sections}
-          <p style="margin:0;">${emailButton(buttonLabel, group.tradesUrl)}</p>
-        </div>
-      `;
-    })
-    .join("");
+  const groupBlocks = renderGroupBlocks(messages, input.groups, (group) =>
+    STATUS_OUTCOMES.map(({ event, color }) =>
+      cardSection(
+        messages.statusOutcomeHeading(event),
+        group.updates
+          .filter((update) => update.event === event)
+          .map((update) => cardLabel(messages, update)),
+        color,
+      ),
+    ).join(""),
+  );
 
   // "accepted 2 and declined 1" — the verdict counts tell the story from the
   // notification tray, before the email is opened.
@@ -341,18 +347,7 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
     ${groupBlocks}
   `;
 
-  return {
-    subject,
-    html: renderEmailLayout({
-      locale: input.locale,
-      heading: messages.statusHeading,
-      bodyHtml,
-      unsubscribe: {
-        url: input.unsubscribeUrl,
-        label: messages.unsubscribeLabel("tradeStatus"),
-      },
-    }),
-  };
+  return tradeEmail(input, messages, "tradeStatus", messages.statusHeading, subject, bodyHtml);
 }
 
 interface DigestMatch {
@@ -399,57 +394,19 @@ export function buildTradeMatchDigestEmail(input: TradeMatchDigestEmailInput): {
       <p style="margin:0 0 20px;">${messages.digestSingleLead(`<strong>${escapeHtml(soleMatch.counterpartyLabel ?? messages.aMember)}</strong>`, `<strong>${escapeHtml(soleMatch.cardName ?? messages.aCard)}</strong>`)}</p>
       <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
-    return {
-      subject,
-      html: renderEmailLayout({
-        locale: input.locale,
-        heading: messages.digestHeading,
-        bodyHtml,
-        unsubscribe: {
-          url: input.unsubscribeUrl,
-          label: messages.unsubscribeLabel("tradeMatches"),
-        },
-      }),
-    };
+    return tradeEmail(input, messages, "tradeMatches", messages.digestHeading, subject, bodyHtml);
   }
 
-  const multiGroup = input.groups.length > 1;
-
-  const groupBlocks = input.groups
-    .map((group) => {
-      const byCounterparty = Map.groupBy(
-        group.matches,
-        (match) => match.counterpartyLabel ?? messages.aMember,
-      );
-      const sections = [...byCounterparty.entries()]
-        .map(([counterpartyLabel, matches]) => {
-          const rows = matches
-            .map(
-              (match) =>
-                `<li style="margin:0 0 4px;"><strong>${escapeHtml(match.cardName ?? messages.aCard)}</strong></li>`,
-            )
-            .join("");
-          return `
-            <p style="margin:0 0 4px;font-weight:600;">${messages.counterpartyHasHeading(escapeHtml(counterpartyLabel))}</p>
-            <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
-          `;
-        })
-        .join("");
-      const locationLine = multiGroup
-        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
-        : "";
-      const buttonLabel = multiGroup
-        ? messages.viewTradesButton
-        : messages.viewTradesInButton(group.groupName);
-      return `
-        <div style="margin:0 0 20px;">
-          ${locationLine}
-          ${sections}
-          <p style="margin:0;">${emailButton(buttonLabel, group.tradesUrl)}</p>
-        </div>
-      `;
-    })
-    .join("");
+  const groupBlocks = renderGroupBlocks(messages, input.groups, (group) =>
+    [...Map.groupBy(group.matches, (match) => match.counterpartyLabel ?? messages.aMember)]
+      .map(([counterpartyLabel, matches]) =>
+        cardSection(
+          messages.counterpartyHasHeading(escapeHtml(counterpartyLabel)),
+          matches.map((match) => match.cardName ?? messages.aCard),
+        ),
+      )
+      .join(""),
+  );
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
@@ -457,16 +414,5 @@ export function buildTradeMatchDigestEmail(input: TradeMatchDigestEmailInput): {
     ${groupBlocks}
   `;
 
-  return {
-    subject,
-    html: renderEmailLayout({
-      locale: input.locale,
-      heading: messages.digestHeading,
-      bodyHtml,
-      unsubscribe: {
-        url: input.unsubscribeUrl,
-        label: messages.unsubscribeLabel("tradeMatches"),
-      },
-    }),
-  };
+  return tradeEmail(input, messages, "tradeMatches", messages.digestHeading, subject, bodyHtml);
 }

@@ -87,14 +87,6 @@ describe.skipIf(!ctx)("copiesRepo home-collection exemption (integration)", () =
     expect(counts.get(cardId)).toBe(1);
   });
 
-  it("applies the exemption to the per-printing counts too", async () => {
-    const withoutExemption = await copies.countByCardAndPrintingForDeckbuilding(USER_ID);
-    expect(withoutExemption.find((row) => row.printingId === PRINTING_1.id)?.count).toBe(1);
-
-    const withExemption = await copies.countByCardAndPrintingForDeckbuilding(USER_ID, excludedId);
-    expect(withExemption.find((row) => row.printingId === PRINTING_1.id)?.count).toBe(4);
-  });
-
   it("reports per-collection extras for the excluded boxes only", async () => {
     const extras = await copies.buildableCountByCardForCollections(USER_ID, [
       openId,

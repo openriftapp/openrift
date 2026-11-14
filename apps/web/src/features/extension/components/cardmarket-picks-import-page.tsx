@@ -42,8 +42,8 @@ import {
   parsePicksHash,
   picksToResolveRows,
 } from "@/features/extension/lib/cardmarket-picks-payload";
-import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
+import { buildListImportPayload } from "@/features/lists/lib/list-import-payload";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { sendInBatches } from "@/lib/send-in-batches";
 import { cn, PAGE_WIDTH } from "@/lib/utils";

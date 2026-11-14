@@ -2,30 +2,22 @@ import { requiredLegendOptions, totalQuantity } from "@openrift/shared/deck-rule
 import { zoneExpected } from "@openrift/shared/deck-zones";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
-import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { ChevronRightIcon, PlusIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { PaletteFrame } from "@/components/command-palette/palette-frame";
-import { PaletteScopeToken } from "@/components/command-palette/palette-scope-token";
-import { SearchProblems } from "@/components/command-palette/search-problems";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group";
-import { Kbd } from "@/components/ui/kbd";
-import { Pressable } from "@/components/ui/pressable";
-import { useCards } from "@/features/cards/hooks/use-cards";
-import { QuickAddPreview } from "@/features/collections/components/quick-add-preview";
+import { QuickAddPreviews } from "@/components/command-palette/quick-add-preview";
+import { QuickAddSearchField } from "@/components/command-palette/quick-add-search-field";
 import {
   QUICK_ADD_SELECTED_ROW_CLASS,
   QuickAddStepper,
-} from "@/features/collections/components/quick-add-stepper";
-import { useQuickCardSearch } from "@/features/collections/hooks/use-quick-card-search";
+} from "@/components/command-palette/quick-add-stepper";
+import { SearchProblems } from "@/components/command-palette/search-problems";
+import { Kbd } from "@/components/ui/kbd";
+import { Pressable } from "@/components/ui/pressable";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { useDeckUndo } from "@/features/decks/components/deck-undo-controls";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -38,6 +30,7 @@ import { workbenchAddRoute } from "@/features/decks/lib/workbench-drop";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useQuickCardSearch } from "@/hooks/use-quick-card-search";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -376,69 +369,29 @@ function QuickAddInner({
   });
 
   const previewPrinting = (expanded ?? selected)?.defaultPrinting;
-  const [failedImageId, setFailedImageId] = useState<string | null>(null);
-  const rawPreviewImageId = previewPrinting?.images[0]?.imageId ?? null;
-  const previewImageId = rawPreviewImageId === failedImageId ? null : rawPreviewImageId;
-  const markPreviewFailed = () => setFailedImageId(rawPreviewImageId);
 
   return (
     <div className="relative flex min-h-0 flex-col">
-      {previewPrinting && previewImageId && isMobile && (
-        <div className="mb-3 flex justify-center">
-          <QuickAddPreview
-            printing={previewPrinting}
-            src={imageUrl(previewImageId, "400w")}
-            className="w-40"
-            onError={markPreviewFailed}
-          />
-        </div>
-      )}
+      <QuickAddPreviews printing={previewPrinting} isMobile={isMobile} />
 
-      {previewPrinting && previewImageId && (
-        <div className="absolute top-0 right-full mr-3 hidden w-96 lg:block">
-          <QuickAddPreview
-            printing={previewPrinting}
-            src={imageUrl(previewImageId, "full")}
-            onError={markPreviewFailed}
-          />
-        </div>
-      )}
-
-      <InputGroup className="h-11 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-transparent">
-        <InputGroupAddon align="inline-start">
-          <PaletteScopeToken label={m.decks_editor_quick_add_scope()} />
-        </InputGroupAddon>
-        <InputGroupInput
-          ref={inputRef}
-          type="text"
-          aria-label={m.decks_editor_quick_add_input_aria()}
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setSelectedIndex(0);
-            collapse();
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={m.decks_editor_quick_add_placeholder()}
-          className="text-base sm:text-sm"
-          autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- command palette, always focused on open
-        />
-        {query && (
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              size="icon-xs"
-              onClick={() => {
-                setQuery("");
-                collapse();
-                inputRef.current?.focus();
-              }}
-              aria-label={m.decks_editor_clear_search()}
-            >
-              <XIcon className="size-4" />
-            </InputGroupButton>
-          </InputGroupAddon>
-        )}
-      </InputGroup>
+      <QuickAddSearchField
+        inputRef={inputRef}
+        scopeLabel={m.decks_editor_quick_add_scope()}
+        ariaLabel={m.decks_editor_quick_add_input_aria()}
+        placeholder={m.decks_editor_quick_add_placeholder()}
+        value={query}
+        onValueChange={(value) => {
+          setQuery(value);
+          setSelectedIndex(0);
+          collapse();
+        }}
+        onKeyDown={handleKeyDown}
+        onClear={() => {
+          setQuery("");
+          collapse();
+          inputRef.current?.focus();
+        }}
+      />
 
       <SearchProblems problems={syntax?.problems ?? []} />
 

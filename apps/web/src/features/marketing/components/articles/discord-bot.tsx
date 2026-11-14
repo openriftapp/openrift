@@ -12,6 +12,7 @@ import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { marketplaceNames } from "@/features/marketing/lib/marketplace-copy";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
 
@@ -125,7 +126,9 @@ export default function DiscordBotArticle() {
 
       <Alert>
         <CoinsIcon className="size-4" />
-        <AlertDescription>{m.help_discord_bot_prices_alert()}</AlertDescription>
+        <AlertDescription>
+          {m.help_discord_bot_prices_alert({ marketplaces: marketplaceNames() })}
+        </AlertDescription>
       </Alert>
     </div>
   );

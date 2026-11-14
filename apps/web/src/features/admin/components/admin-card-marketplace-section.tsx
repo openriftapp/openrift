@@ -27,7 +27,7 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 
 import type { MarketplaceHandlers } from "./marketplace-product-entries";
-import { collectStrongMappings, collectWeakMappings } from "./marketplace-product-entries";
+import { collectSuggestedMappings } from "./marketplace-product-entries";
 import { MarketplaceProductsTable } from "./marketplace-products-table";
 import { PrintingPairNamesContext } from "./printing-pair-names";
 
@@ -136,8 +136,7 @@ export function AdminCardMarketplaceSection({
       return;
     }
     const suggestions = computeProductSuggestions(group);
-    const strong = collectStrongMappings(group, suggestions);
-    const weak = collectWeakMappings(group, suggestions);
+    const { strong, weak } = collectSuggestedMappings(group, suggestions);
     // Strong wins when both are present, so Ctrl+Enter never accepts a
     // low-confidence match while a strong one is still on the page.
     const totalStrong = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
@@ -216,8 +215,7 @@ export function AdminCardMarketplaceSection({
   ) as Record<AdminMarketplaceName, MarketplaceHandlers>;
 
   const suggestions = computeProductSuggestions(group);
-  const strong = collectStrongMappings(group, suggestions);
-  const weak = collectWeakMappings(group, suggestions);
+  const { strong, weak } = collectSuggestedMappings(group, suggestions);
   const strongCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
   const weakCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + weak[mp].length, 0);
   const offered = strongCount > 0 ? strongCount : weakCount;

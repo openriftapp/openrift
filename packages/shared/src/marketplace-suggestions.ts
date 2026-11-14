@@ -316,6 +316,13 @@ export interface ProductSuggestion {
   isWeak?: boolean;
 }
 
+export function suggestionStrength(suggestion: ProductSuggestion): "strong" | "weak" | "possible" {
+  if (suggestion.isWeak === true) {
+    return "weak";
+  }
+  return suggestion.score >= STRONG_MATCH_THRESHOLD ? "strong" : "possible";
+}
+
 /**
  * Inverts `computeSuggestions` into a per-product map for the card-detail
  * marketplace view, run once per marketplace.

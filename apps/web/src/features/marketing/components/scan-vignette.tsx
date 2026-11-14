@@ -1,8 +1,10 @@
+import { ChevronDownIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 
+import { buttonVariants } from "@/components/ui/button";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
-import { formatPriceEur } from "@/lib/format";
+import { formatPriceEur, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -60,9 +62,8 @@ function TrayRow({
   ownedBefore: number;
   arriving?: boolean;
 }) {
-  // PrintingVariantLabel falls back to "Standard" for a null variant; pending
-  // rows keep it empty since they name no card.
-  const variant = card.name ? (card.variantLabel ?? m.cards_label_standard()) : "";
+  // Pending rows keep it empty since they name no card.
+  const variant = card.name ? (card.variantLabel ?? m.decks_editor_printing_standard()) : "";
   return (
     <li
       className={cn(
@@ -86,15 +87,23 @@ function TrayRow({
         <span className="truncate font-medium">{card.name}</span>
         <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-sm">
           <span className="shrink-0 font-mono sm:hidden">{card.shortCode}</span>
-          <span className="truncate">{variant}</span>
+          {variant && (
+            <>
+              <span
+                aria-hidden="true"
+                className={cn(buttonVariants({ variant: "outline", size: "xs" }), "min-w-0 shrink")}
+              >
+                <span className="truncate">{variant}</span>
+                <ChevronDownIcon />
+              </span>
+              <span className="sr-only">{variant}</span>
+            </>
+          )}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end sm:flex-row sm:items-center sm:gap-3">
         {ownedBefore === 0 ? (
-          <span
-            className="text-foreground shrink-0 text-sm font-medium"
-            title={m.scan_tray_row_new_title()}
-          >
+          <span className="text-success shrink-0 text-sm" title={m.scan_tray_row_new_title()}>
             {m.scan_tray_row_new()}
           </span>
         ) : (
@@ -106,7 +115,7 @@ function TrayRow({
           </span>
         )}
         {card.price !== null && (
-          <span className="shrink-0 text-sm font-medium tabular-nums">
+          <span className={cn("shrink-0 text-sm tabular-nums", priceColorClass(card.price))}>
             {formatPriceEur(card.price)}
           </span>
         )}

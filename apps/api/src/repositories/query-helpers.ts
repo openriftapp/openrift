@@ -98,7 +98,6 @@ export async function currentSafeXid(db: Kysely<Database>): Promise<string> {
   return row.xid;
 }
 
-/** Reuses an enclosing transaction, since Kysely rejects a nested one. */
 /** Call inside a transaction. */
 export async function lockKey(db: Kysely<Database>, key: string): Promise<void> {
   await sql`select pg_advisory_xact_lock(hashtext(${key}))`.execute(db);
@@ -116,6 +115,7 @@ export function withKeyLock<T>(
   });
 }
 
+/** Reuses an enclosing transaction, since Kysely rejects a nested one. */
 export function inTransaction<T>(
   db: Kysely<Database>,
   run: (trx: Kysely<Database>) => Promise<T>,

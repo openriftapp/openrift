@@ -471,7 +471,11 @@ export function moveCardAction(
   toZone: DeckZone,
   preferredPrintingId: string | null,
   format: DeckFormat,
+  amount: "all" | "one",
 ): void {
+  if (fromZone === toZone) {
+    return;
+  }
   const sourceKey = deckCardKey({
     cardId,
     zone: fromZone,
@@ -486,48 +490,10 @@ export function moveCardAction(
     moveIntoSingleSlot(collection, source, sourceKey, toZone);
     return;
   }
-  const targetKey = deckCardKey({
-    cardId,
-    zone: toZone,
-    preferredPrintingId,
-  });
-  const target = collection.get(targetKey);
-
-  collection.delete(sourceKey);
-  if (target) {
-    collection.update(targetKey, (draft) => {
-      draft.quantity += source.quantity;
-    });
-  } else {
-    collection.insert({ ...source, zone: toZone });
-  }
-}
-
-export function moveOneCardAction(
-  collection: DeckCollection,
-  cardId: string,
-  fromZone: DeckZone,
-  toZone: DeckZone,
-  preferredPrintingId: string | null,
-  format: DeckFormat,
-): void {
-  const sourceKey = deckCardKey({
-    cardId,
-    zone: fromZone,
-    preferredPrintingId,
-  });
-  const source = collection.get(sourceKey);
-  if (!source || !isCardAllowedInZone(source, toZone)) {
-    return;
-  }
-  const singleSlot = isSingleSlotZone(toZone) && format !== WellKnown.deckFormat.FREEFORM;
-  if (singleSlot) {
-    moveIntoSingleSlot(collection, source, sourceKey, toZone);
-    return;
-  }
-  if (source.quantity > 1) {
+  const moved = amount === "all" ? source.quantity : 1;
+  if (source.quantity > moved) {
     collection.update(sourceKey, (draft) => {
-      draft.quantity -= 1;
+      draft.quantity -= moved;
     });
   } else {
     collection.delete(sourceKey);
@@ -541,10 +507,10 @@ export function moveOneCardAction(
   const target = collection.get(targetKey);
   if (target) {
     collection.update(targetKey, (draft) => {
-      draft.quantity += 1;
+      draft.quantity += moved;
     });
   } else {
-    collection.insert({ ...source, zone: toZone, quantity: 1 });
+    collection.insert({ ...source, zone: toZone, quantity: moved });
   }
 }
 
@@ -676,6 +642,7 @@ export function setLegendAction(
         WellKnown.deckZone.OVERFLOW,
         entry.preferredPrintingId,
         format,
+        "all",
       );
     }
   }
@@ -844,10 +811,10 @@ export function useDeckBuilderActions(deckId: string): DeckBuilderActions {
       );
     },
     moveCard: (cardId, from, to, preferredPrintingId) => {
-      edit(() => moveCardAction(collection, cardId, from, to, preferredPrintingId, format));
+      edit(() => moveCardAction(collection, cardId, from, to, preferredPrintingId, format, "all"));
     },
     moveOneCard: (cardId, from, to, preferredPrintingId) => {
-      edit(() => moveOneCardAction(collection, cardId, from, to, preferredPrintingId, format));
+      edit(() => moveCardAction(collection, cardId, from, to, preferredPrintingId, format, "one"));
     },
     setQuantity: (cardId, zone, quantity, preferredPrintingId) => {
       const apply = () =>

@@ -29,12 +29,12 @@ import {
   JOINED_TRIAGE,
   metaSyncBucketCondition,
   metaSyncBucketCountSelections,
+  narrowedBucketCounts,
   mirrorListConditions,
   mirrorOverviewSelections,
   NEVER,
   pagedTriage,
   sizeRulePasses,
-  toMetaSyncBucketCounts,
   toMirrorSyncOverview,
   TRIAGE_STATE,
   triageCountSelections,
@@ -483,20 +483,16 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       return rows.map((row) => row.key);
     },
 
-    /** `null` when no filter narrows the list: the sync status already holds these counts. */
-    async bucketCounts(
+    bucketCounts(
       filters: PlayriftboundListFilters,
       rule: MetaAutoPublishRule,
     ): Promise<MetaSyncBucketCounts | null> {
-      const conditions = narrowing(filters);
-      if (conditions.length === 0) {
-        return null;
-      }
-      let query = triagedQuery().select(metaSyncBucketCountSelections(bucketColumns, rule));
-      for (const condition of conditions) {
-        query = query.where(condition);
-      }
-      return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
+      return narrowedBucketCounts(narrowing(filters), (narrowed) =>
+        triagedQuery()
+          .select(metaSyncBucketCountSelections(bucketColumns, rule))
+          .where(narrowed)
+          .executeTakeFirstOrThrow(),
+      );
     },
 
     async triageCounts(): Promise<MirrorTriageCounts> {

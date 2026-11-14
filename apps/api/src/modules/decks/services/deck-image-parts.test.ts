@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import type { DeckImageCard } from "./deck-image-parts.js";
 import {
   zoneHeading,
-  deckMetaLabel,
   legendOptionTileSize,
   packGrid,
   runeCountsByDomain,
@@ -138,16 +137,6 @@ describe("runeCountsByDomain", () => {
   it("treats a domainless rune as rainbow rather than dropping it", () => {
     const counts = runeCountsByDomain([card("Blank Rune", "runes", 1)]);
     expect(counts).toEqual([{ domain: "rainbow", count: 1 }]);
-  });
-});
-
-describe("deckMetaLabel", () => {
-  it("prints the deck's card count", () => {
-    expect(deckMetaLabel("Constructed", 64)).toBe("Constructed · 64 cards");
-  });
-
-  it("uses the singular for a one-card deck", () => {
-    expect(deckMetaLabel("Freeform", 1)).toBe("Freeform · 1 card");
   });
 });
 

@@ -1,5 +1,5 @@
 import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { STRONG_MATCH_THRESHOLD } from "@openrift/shared/marketplace-suggestions";
+import { suggestionStrength } from "@openrift/shared/marketplace-suggestions";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
 import { WandSparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -27,8 +27,9 @@ export function SuggestionChip({
   disabled: boolean;
 }) {
   const { printing } = suggestion;
-  const isWeak = suggestion.isWeak === true;
-  const isStrong = !isWeak && suggestion.score >= STRONG_MATCH_THRESHOLD;
+  const strength = suggestionStrength(suggestion);
+  const isWeak = strength === "weak";
+  const isStrong = strength === "strong";
   // The parent's `disabled` transitions later and is shared across every chip in
   // the marketplace, so this local flag gives the clicked chip synchronous feedback.
   const [pending, setPending] = useState(false);

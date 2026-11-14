@@ -588,7 +588,7 @@ describe("refreshCardmarketPrices", () => {
       expect(staging[0]!.highCents).toBeNull();
     });
 
-    it("upserts cardmarket marketplace config", async () => {
+    it("upserts prices under the cardmarket marketplace", async () => {
       const { repos } = createMockRepos();
       const { log } = makeMockLogger();
       setupFetchJson(fetchJsonSpy, [PRODUCT_BLAZING], [PRICE_BLAZING]);
@@ -597,9 +597,7 @@ describe("refreshCardmarketPrices", () => {
 
       // Cardmarket stores NULL language on both staging rows and variants so
       // the matcher keys on (externalId, finish, null) naturally.
-      expect(upsertSpy.mock.calls[0][2]).toEqual({
-        marketplace: "cardmarket",
-      });
+      expect(upsertSpy.mock.calls[0][2]).toBe("cardmarket");
     });
 
     it("correctly computes group rows from unique expansion IDs", async () => {

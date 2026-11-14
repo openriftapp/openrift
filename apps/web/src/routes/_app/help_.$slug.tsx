@@ -1,8 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback } from "@/components/error-message";
-import { helpArticles } from "@/features/marketing/components/articles";
+import { helpArticleLabels, helpArticles } from "@/features/marketing/components/articles";
 import { requireFeature } from "@/lib/feature-flags";
+import { initQueryOptions } from "@/lib/init-queries";
 import { articleJsonLd, breadcrumbJsonLd, privateSeoHead, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_app/help_/$slug")({
     if (article.featureFlag) {
       await requireFeature(context.queryClient, article.featureFlag);
     }
+    await context.queryClient.query({ ...initQueryOptions, staleTime: "static" });
     return { served: true };
   },
   head: ({ params, loaderData }) => {
@@ -27,10 +29,11 @@ export const Route = createFileRoute("/_app/help_/$slug")({
     if (!article || !(loaderData as HelpArticleLoaderData | undefined)?.served) {
       return privateSeoHead("Help");
     }
+    const { title, description } = helpArticleLabels(article, { locale: "en" });
     const head = seoHead({
       siteUrl,
-      title: `${article.title} - Help`,
-      description: article.description,
+      title: `${title} - Help`,
+      description,
       path: `/help/${params.slug}`,
     });
     const articlePath = `/help/${article.slug}`;
@@ -39,13 +42,13 @@ export const Route = createFileRoute("/_app/help_/$slug")({
       scripts: [
         articleJsonLd({
           siteUrl,
-          headline: article.title,
-          description: article.description,
+          headline: title,
+          description,
           path: articlePath,
         }),
         breadcrumbJsonLd(siteUrl, [
           { name: "Help", path: "/help" },
-          { name: article.title, path: articlePath },
+          { name: title, path: articlePath },
         ]),
       ],
     };

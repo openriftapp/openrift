@@ -1,10 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import type { LabelMap } from "@openrift/shared/enum-label";
-import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { WellKnown } from "@openrift/shared/well-known";
-import { AlertTriangleIcon, CheckCircle2Icon, SearchIcon, XCircleIcon } from "lucide-react";
+import { SearchIcon, XCircleIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -27,19 +24,14 @@ import {
   ImportRowRawFields,
   ImportRowShell,
 } from "@/features/collections/components/import-row-shell";
+import { IMPORT_BUCKET_ICONS } from "@/features/collections/lib/import-bucket-icons";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
-import type { ImportBucket } from "@/features/collections/lib/import-summary";
+import { importSpecialties } from "@/features/collections/lib/import-specialties";
 import { getImportBucket } from "@/features/collections/lib/import-summary";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatImportPrintingLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-const BUCKET_CONFIG: Record<ImportBucket, { icon: React.ElementType; className: string }> = {
-  ready: { icon: CheckCircle2Icon, className: "text-success" },
-  "to-verify": { icon: AlertTriangleIcon, className: "text-warning" },
-  "need-attention": { icon: XCircleIcon, className: "text-destructive" },
-};
 
 interface ImportEntryRowProps {
   entry: MatchedEntry;
@@ -65,12 +57,12 @@ export function ImportEntryRow({
   onToggleExpand,
 }: ImportEntryRowProps) {
   const [showSearch, setShowSearch] = useState(false);
-  const { icon: StatusIcon, className: statusColor } = BUCKET_CONFIG[getImportBucket(entry)];
+  const { icon: StatusIcon, className: statusColor } = IMPORT_BUCKET_ICONS[getImportBucket(entry)];
   const rawFieldEntries = Object.entries(entry.entry.rawFields);
   const hasDetails = rawFieldEntries.length > 0;
   const hasCandidates = entry.candidates.length > 0;
   const { labels } = useEnumOrders();
-  const specialties = formatEntrySpecialties(entry, labels.finishes, labels.artVariants);
+  const specialties = importSpecialties(entry.entry, labels.finishes, labels.artVariants);
 
   return (
     <div className={cn(isSkipped && "opacity-40")}>
@@ -155,25 +147,6 @@ export function ImportEntryRow({
       )}
     </div>
   );
-}
-
-/** Formats a "Foil · Alt Art" style suffix, or null when there's nothing notable. */
-function formatEntrySpecialties(
-  entry: MatchedEntry,
-  finishLabels: LabelMap,
-  artVariantLabels: LabelMap,
-): string | null {
-  const parts: string[] = [];
-  if (entry.entry.finish !== WellKnown.finish.NORMAL) {
-    parts.push(enumLabel(finishLabels, entry.entry.finish));
-  }
-  if (entry.entry.artVariant === WellKnown.artVariant.ALTART) {
-    parts.push(enumLabel(artVariantLabels, WellKnown.artVariant.ALTART));
-  }
-  if (entry.entry.isOvernumbered) {
-    parts.push(m.cards_flag_overnumbered());
-  }
-  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 function VariantPicker({

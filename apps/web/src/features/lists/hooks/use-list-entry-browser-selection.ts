@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
+import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { useSelectAllHotkey } from "@/features/cards/hooks/use-select-all-hotkey";
 import { selectionFindBy } from "@/features/cards/lib/card-tiles";
 import type {
@@ -71,7 +72,6 @@ export interface UseListEntryBrowserSelectionParams {
   rules: ListRule[];
   entries: ListEntryDetailResponse[];
   showLibrary: boolean;
-  isMobile: boolean;
   view: "cards" | "printings" | "copies";
   groupBy: GroupByField;
   allPrintings: Printing[];
@@ -93,7 +93,6 @@ export function useListEntryBrowserSelection({
   rules,
   entries,
   showLibrary,
-  isMobile,
   view,
   groupBy,
   allPrintings,
@@ -227,12 +226,7 @@ export function useListEntryBrowserSelection({
     useSiblingOverrideStore.getState().setOverride("list", printing.cardId, sideKey(printing));
   };
 
-  const handleSearchAndClose = (query: string) => {
-    setSearch(query);
-    if (isMobile) {
-      useSelectionStore.getState().closeDetail();
-    }
-  };
+  const handleSearchAndClose = useSearchAndCloseDetail(setSearch);
 
   const handleIncrement = (
     printing: Printing,

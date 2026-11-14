@@ -1,10 +1,11 @@
-import { rulesTeaser } from "@openrift/shared/rules-teaser";
+import type { DevelopersShowcaseField } from "@openrift/shared/developers-showcase";
+import { developersShowcaseFields } from "@openrift/shared/developers-showcase";
+import { SHARE_IMAGE_COLORS } from "@openrift/shared/share-image-palette";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
-  COLORS,
   cardTile,
   element,
   elideTitle,
@@ -48,7 +49,7 @@ interface Field {
 }
 
 function str(value: string): Element {
-  return element("span", { color: COLORS.gold }, `"${value}"`);
+  return element("span", { color: SHARE_IMAGE_COLORS.gold }, `"${value}"`);
 }
 
 function list(values: string[]): Child[] {
@@ -59,35 +60,23 @@ function list(values: string[]): Child[] {
   ];
 }
 
+function fieldValue(field: DevelopersShowcaseField): Child[] {
+  const { value } = field;
+  if (value.kind === "list") {
+    return list(value.values);
+  }
+  if (value.kind === "number") {
+    return [value.value];
+  }
+  return [str(field.key === "name" ? elideTitle(value.value, VALUE_MAX_CHARS) : value.value)];
+}
+
 function showcaseFields(showcase: DevelopersShowcase): Field[] {
-  const fields: Field[] = [];
-  if (showcase.energy !== null) {
-    fields.push({ key: "energy", value: [String(showcase.energy)], anchor: { x: 0.11, y: 0.1 } });
-  }
-  if (showcase.tags.length > 0) {
-    fields.push({ key: "tags", value: list(showcase.tags), anchor: { x: 0.55, y: 0.53 } });
-  }
-  fields.push({
-    key: "name",
-    value: [str(elideTitle(showcase.name, VALUE_MAX_CHARS))],
-    anchor: { x: 0.24, y: 0.585 },
-  });
-  if (showcase.domains.length > 0) {
-    fields.push({ key: "domains", value: list(showcase.domains), anchor: { x: 0.035, y: 0.635 } });
-  }
-  if (showcase.rulesText) {
-    fields.push({
-      key: "printedRulesText",
-      value: [str(rulesTeaser(showcase.rulesText, 17))],
-      anchor: { x: 0.1, y: 0.72 },
-    });
-  }
-  fields.push({
-    key: "publicCode",
-    value: [str(showcase.publicCode)],
-    anchor: { x: 0.1, y: 0.97 },
-  });
-  return fields;
+  return developersShowcaseFields(showcase).map((field) => ({
+    key: field.key,
+    value: fieldValue(field),
+    anchor: field.anchor,
+  }));
 }
 
 function connectorSvg(fields: Field[]): string {
@@ -166,7 +155,7 @@ function pill(label: string): Element {
       border: `1px solid ${PANEL_BORDER}`,
       fontSize: 20,
       fontWeight: 600,
-      color: COLORS.gold,
+      color: SHARE_IMAGE_COLORS.gold,
     },
     label,
   );

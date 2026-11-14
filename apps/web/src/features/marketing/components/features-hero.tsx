@@ -76,7 +76,7 @@ export function ChapterTileBody({ chapter }: { chapter: FeatureChapter }) {
       </span>
       <span className="font-heading leading-tight font-medium">{chapter.title}</span>
       <span className="text-muted-foreground line-clamp-2 text-xs">
-        {chapter.features.map((feature) => feature.label).join(" · ")}
+        {chapter.features.join(" · ")}
       </span>
     </>
   );

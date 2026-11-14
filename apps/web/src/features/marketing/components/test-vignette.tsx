@@ -2,7 +2,23 @@ import { RotateCcwIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import {
+  chanceToDraw,
+  EARLY_DRAWS,
+  formatChancePct,
+  OPENING_HAND_SIZE,
+} from "@/features/decks/lib/deck-draw-odds";
+import { FIXTURE_CARDS } from "@/features/marketing/lib/vignette-fixtures";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -12,11 +28,27 @@ const DEAL_DELAYS = [0, 130, 260, 390];
 
 const HAND_CARD_CLASS = "aspect-card h-24 object-cover shadow-sm sm:h-28";
 
+const MAIN_DECK_SIZE = 39;
+const TURN_ONE_UNITS = 9;
+
 const ODDS_ROWS = [
-  { copies: 3, name: "Soul Sword", hand: "28%", early: "46%" },
-  { copies: 3, name: "Guards!", hand: "28%", early: "46%" },
-  { copies: 2, name: "Hidden Blade", hand: "20%", early: "33%" },
+  { copies: 3, card: FIXTURE_CARDS.soulSword },
+  { copies: 3, card: FIXTURE_CARDS.guards },
+  { copies: 2, card: FIXTURE_CARDS.hiddenBlade },
 ];
+
+function OddsCells({ copies }: { copies: number }) {
+  return (
+    <>
+      <TableCell className="w-px text-right tabular-nums">
+        {formatChancePct(chanceToDraw(copies, MAIN_DECK_SIZE, OPENING_HAND_SIZE))}
+      </TableCell>
+      <TableCell className="w-px text-right tabular-nums">
+        {formatChancePct(chanceToDraw(copies, MAIN_DECK_SIZE, EARLY_DRAWS))}
+      </TableCell>
+    </>
+  );
+}
 
 function HandCard({
   art,
@@ -41,7 +73,7 @@ function HandCard({
           loading="lazy"
           draggable={false}
           style={{ borderRadius: CARD_BORDER_RADIUS }}
-          className={cn(HAND_CARD_CLASS, swap && "motion-safe:animate-test-before")}
+          className={cn(HAND_CARD_CLASS, swap && "motion-safe:animate-test-before opacity-0")}
         />
       ) : (
         <span
@@ -56,10 +88,7 @@ function HandCard({
           loading="lazy"
           draggable={false}
           style={{ borderRadius: CARD_BORDER_RADIUS }}
-          className={cn(
-            HAND_CARD_CLASS,
-            "motion-safe:animate-test-after absolute inset-0 opacity-0",
-          )}
+          className={cn(HAND_CARD_CLASS, "motion-safe:animate-test-after absolute inset-0")}
         />
       )}
       {selected && (
@@ -91,7 +120,7 @@ export function TestVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] 
           <Kbd className="max-sm:hidden">D</Kbd>
         </span>
         <span className="text-muted-foreground text-xs tabular-nums">
-          {m.decks_editor_left_in_deck({ count: 35 })}
+          {m.decks_editor_left_in_deck({ count: MAIN_DECK_SIZE - OPENING_HAND_SIZE })}
         </span>
       </div>
 
@@ -107,50 +136,36 @@ export function TestVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] 
         ))}
       </div>
 
-      <div>
-        <div className="text-muted-foreground text-2xs mb-1.5 font-semibold tracking-wide uppercase">
-          {m.decks_odds_draw_title()}
-        </div>
-        <div className="overflow-hidden rounded-md border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-muted-foreground text-xs">
-                <th className="px-2 py-1.5 text-left font-medium">{m.decks_odds_col_card()}</th>
-                <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">
-                  {m.decks_odds_col_hand()}
-                </th>
-                <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">
-                  {m.decks_odds_col_first_seven()}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="bg-muted/50 border-t">
-                <td className="max-w-0 truncate px-2 py-1">
-                  {m.marketing_test_turn_one()}{" "}
-                  <span className="text-muted-foreground tabular-nums">· 9</span>
-                </td>
-                <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">67%</td>
-                <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">87%</td>
-              </tr>
-              {ODDS_ROWS.map((row) => (
-                <tr key={row.name} className="border-t">
-                  <td className="max-w-0 truncate px-2 py-1">
-                    <span className="text-muted-foreground tabular-nums">{row.copies}×</span>{" "}
-                    {row.name}
-                  </td>
-                  <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">
-                    {row.hand}
-                  </td>
-                  <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">
-                    {row.early}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-muted-foreground text-2xs mt-1.5">{m.decks_odds_draw_footnote()}</p>
+      <div className="flex flex-col gap-2">
+        <SectionHeading size="sm">{m.decks_odds_draw_title()}</SectionHeading>
+        <Table interactive={false}>
+          <TableHeader>
+            <TableRow className="text-muted-foreground text-xs">
+              <TableHead>{m.decks_odds_col_card()}</TableHead>
+              <TableHead className="w-px text-right">{m.decks_odds_col_hand()}</TableHead>
+              <TableHead className="w-px text-right">{m.decks_odds_col_first_seven()}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="bg-muted/50">
+              <TableCell className="max-w-0 truncate">
+                {m.decks_odds_preset_turn_one_first_unit()}{" "}
+                <span className="text-muted-foreground tabular-nums">· {TURN_ONE_UNITS}</span>
+              </TableCell>
+              <OddsCells copies={TURN_ONE_UNITS} />
+            </TableRow>
+            {ODDS_ROWS.map((row) => (
+              <TableRow key={row.card.shortCode}>
+                <TableCell className="max-w-0 truncate">
+                  <span className="text-muted-foreground tabular-nums">{row.copies}×</span>{" "}
+                  {row.card.name}
+                </TableCell>
+                <OddsCells copies={row.copies} />
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <p className="text-muted-foreground text-2xs">{m.decks_odds_draw_footnote()}</p>
       </div>
     </ClipFrame>
   );

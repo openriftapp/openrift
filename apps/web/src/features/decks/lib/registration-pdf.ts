@@ -278,59 +278,27 @@ function drawSectionLabel(
   return startY + 6;
 }
 
-function drawNameOnlyHeader(doc: jsPDF, startX: number, startY: number): number {
+function drawCardHeader(doc: jsPDF, startX: number, startY: number, withQuantity: boolean): number {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(BODY_FONT_SIZE);
   doc.setTextColor(0, 0, 0);
-  doc.text("Card Name:", startX, startY + 3.5);
-  return startY + 5;
-}
-
-function drawQtyNameHeader(doc: jsPDF, startX: number, startY: number): number {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(BODY_FONT_SIZE);
-  doc.setTextColor(0, 0, 0);
-  doc.text("# in deck:", startX, startY + 3.5);
-  doc.text("Card Name:", startX + 18, startY + 3.5);
-  return startY + 5;
-}
-
-function drawNameOnlyRows(
-  doc: jsPDF,
-  cards: RegistrationCard[],
-  totalRows: number,
-  startX: number,
-  startY: number,
-  width: number,
-): number {
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(BODY_FONT_SIZE);
-  let currentY = startY;
-
-  for (let rowIndex = 0; rowIndex < totalRows; rowIndex++) {
-    const card = cards[rowIndex];
-
-    if (card) {
-      doc.setTextColor(0, 0, 0);
-      doc.text(card.name, startX, currentY + 3.5);
-    }
-
-    currentY += ROW_HEIGHT;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.15);
-    doc.line(startX, currentY, startX + width, currentY);
+  if (withQuantity) {
+    doc.text("# in deck:", startX, startY + 3.5);
+    doc.text("Card Name:", startX + 18, startY + 3.5);
+  } else {
+    doc.text("Card Name:", startX, startY + 3.5);
   }
-
-  return currentY;
+  return startY + 5;
 }
 
-function drawQtyNameRows(
+function drawCardRows(
   doc: jsPDF,
   cards: RegistrationCard[],
   totalRows: number,
   startX: number,
   startY: number,
   width: number,
+  withQuantity: boolean,
 ): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(BODY_FONT_SIZE);
@@ -341,15 +309,23 @@ function drawQtyNameRows(
 
     if (card) {
       doc.setTextColor(0, 0, 0);
-      doc.text(String(card.quantity), startX + 6, currentY + 3.5, { align: "center" });
-      doc.text(card.name, startX + 18, currentY + 3.5);
+      if (withQuantity) {
+        doc.text(String(card.quantity), startX + 6, currentY + 3.5, { align: "center" });
+        doc.text(card.name, startX + 18, currentY + 3.5);
+      } else {
+        doc.text(card.name, startX, currentY + 3.5);
+      }
     }
 
     currentY += ROW_HEIGHT;
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.15);
-    doc.line(startX, currentY, startX + 12, currentY);
-    doc.line(startX + 18, currentY, startX + width, currentY);
+    if (withQuantity) {
+      doc.line(startX, currentY, startX + 12, currentY);
+      doc.line(startX + 18, currentY, startX + width, currentY);
+    } else {
+      doc.line(startX, currentY, startX + width, currentY);
+    }
   }
 
   return currentY;
@@ -457,24 +433,25 @@ export async function generateRegistrationPdf(
       : "(1 card)";
   const legendBlockCards = [...legendCards, ...legendOptionCards];
   leftY = drawSectionLabel(doc, "Legend", innerLeft, leftY, legendSubtitle);
-  leftY = drawNameOnlyHeader(doc, innerLeft, leftY);
-  leftY = drawNameOnlyRows(
+  leftY = drawCardHeader(doc, innerLeft, leftY, false);
+  leftY = drawCardRows(
     doc,
     legendBlockCards,
     Math.max(legendBlockCards.length, 1),
     innerLeft,
     leftY,
     colWidth,
+    false,
   );
   leftY += 3;
 
   leftY = drawSectionLabel(doc, "Battlefields", innerLeft, leftY, "(3 cards)");
-  leftY = drawNameOnlyHeader(doc, innerLeft, leftY);
-  leftY = drawNameOnlyRows(doc, battlefieldCards, 3, innerLeft, leftY, colWidth);
+  leftY = drawCardHeader(doc, innerLeft, leftY, false);
+  leftY = drawCardRows(doc, battlefieldCards, 3, innerLeft, leftY, colWidth, false);
   leftY += 3;
 
   leftY = drawSectionLabel(doc, "Main Deck", innerLeft, leftY, "(40 cards)");
-  leftY = drawQtyNameHeader(doc, innerLeft, leftY);
+  leftY = drawCardHeader(doc, innerLeft, leftY, true);
 
   const championNames = new Set(championCards.map((card) => card.name));
   const nonChampionCards = mainCards
@@ -504,25 +481,25 @@ export async function generateRegistrationPdf(
   const rightMainTotalRows = TOTAL_MAIN_ROWS - leftMainTotalRows;
 
   const leftMainCards = allMainCards.slice(0, leftMainTotalRows);
-  leftY = drawQtyNameRows(doc, leftMainCards, leftMainTotalRows, innerLeft, leftY, colWidth);
+  leftY = drawCardRows(doc, leftMainCards, leftMainTotalRows, innerLeft, leftY, colWidth, true);
 
   const rightMainCards = allMainCards.slice(leftMainTotalRows);
   rightY = drawSectionLabel(doc, "Main Deck Continued", rightColX, rightY);
-  rightY = drawQtyNameHeader(doc, rightColX, rightY);
+  rightY = drawCardHeader(doc, rightColX, rightY, true);
 
-  rightY = drawQtyNameRows(doc, rightMainCards, rightMainTotalRows, rightColX, rightY, colWidth);
+  rightY = drawCardRows(doc, rightMainCards, rightMainTotalRows, rightColX, rightY, colWidth, true);
   rightY += 3;
 
   const runeRowCount = Math.max(runeCards.length, 2);
   rightY = drawSectionLabel(doc, "Runes", rightColX, rightY, "(12 cards)");
-  rightY = drawQtyNameHeader(doc, rightColX, rightY);
-  rightY = drawQtyNameRows(doc, runeCards, runeRowCount, rightColX, rightY, colWidth);
+  rightY = drawCardHeader(doc, rightColX, rightY, true);
+  rightY = drawCardRows(doc, runeCards, runeRowCount, rightColX, rightY, colWidth, true);
   rightY += 3;
 
   rightY = drawSectionLabel(doc, "Sideboard", rightColX, rightY, `(0-${SIDEBOARD_MAXIMUM} cards)`);
 
-  rightY = drawQtyNameHeader(doc, rightColX, rightY);
-  rightY = drawQtyNameRows(doc, sideboardCards, SIDEBOARD_MAXIMUM, rightColX, rightY, colWidth);
+  rightY = drawCardHeader(doc, rightColX, rightY, true);
+  rightY = drawCardRows(doc, sideboardCards, SIDEBOARD_MAXIMUM, rightColX, rightY, colWidth, true);
 
   const footerBoxHeight = 22;
   drawFooter(doc, rightColX, cardAreaBottom - footerBoxHeight - padding, colWidth);

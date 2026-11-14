@@ -1,21 +1,12 @@
-import { SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { FilterCountDrawer } from "@/components/filter-count-drawer";
 import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { FilterSection } from "@/features/cards/components/filter-badge-row";
@@ -219,8 +210,9 @@ export function MetaScopeBar({
         <div className="flex items-center gap-2">
           {search}
           {!smUp && (
-            <ScopeDrawer
+            <FilterCountDrawer
               count={activeCount}
+              description={m.meta_scope_filters_description()}
               open={drawerOpen || phoneEraPicking}
               onOpenChangeComplete={setDrawerSettled}
               onOpenChange={(next) => {
@@ -265,7 +257,7 @@ export function MetaScopeBar({
               {extras !== undefined && (
                 <div className="flex flex-wrap items-center gap-1.5">{extras}</div>
               )}
-            </ScopeDrawer>
+            </FilterCountDrawer>
           )}
           {!smUp && phoneToolbar}
         </div>
@@ -404,62 +396,6 @@ function activeStrip(
     }
   }
   return chips;
-}
-
-function ScopeDrawer({
-  count,
-  open,
-  onOpenChange,
-  onOpenChangeComplete,
-  children,
-}: {
-  count: number;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onOpenChangeComplete: (open: boolean) => void;
-  children: ReactNode;
-}) {
-  const [openedOnce, setOpenedOnce] = useState(false);
-  return (
-    <Drawer
-      showSwipeHandle
-      open={open}
-      onOpenChangeComplete={onOpenChangeComplete}
-      onOpenChange={(next) => {
-        if (next) {
-          setOpenedOnce(true);
-        }
-        onOpenChange(next);
-      }}
-    >
-      <DrawerTrigger
-        render={<Button variant="outline" size="icon" className="relative shrink-0" />}
-        aria-label={m.cards_filters()}
-      >
-        <SlidersHorizontalIcon className="size-4" />
-        {count > 0 && (
-          <Badge variant="count" className="absolute -top-1 -right-1 min-w-4 tabular-nums">
-            {count}
-          </Badge>
-        )}
-      </DrawerTrigger>
-      <DrawerContent
-        className="pb-4 data-ending-style:duration-250"
-        keepMounted={openedOnce || open}
-      >
-        <DrawerHeader className="sr-only">
-          <DrawerTitle>{m.cards_filters()}</DrawerTitle>
-          <DrawerDescription>{m.meta_scope_filters_description()}</DrawerDescription>
-        </DrawerHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-4">
-          {children}
-        </div>
-        <DrawerFooter>
-          <DrawerClose render={<Button className="w-full" />}>{m.common_done()}</DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
 }
 
 function facetBinding(

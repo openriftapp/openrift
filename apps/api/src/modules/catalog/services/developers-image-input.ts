@@ -1,18 +1,14 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import type { DevelopersShowcaseFacts } from "@openrift/shared/developers-showcase";
+import { DEVELOPERS_SHOWCASE } from "@openrift/shared/developers-showcase";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
   CatalogResponsePrintingValue,
 } from "@openrift/shared/types/api/catalog";
 
-export interface DevelopersShowcase {
+export interface DevelopersShowcase extends DevelopersShowcaseFacts {
   imageId: string | null;
-  name: string;
-  energy: number | null;
-  tags: string[];
-  domains: string[];
-  rulesText: string | null;
-  publicCode: string;
 }
 
 export interface DevelopersImageInput {
@@ -22,8 +18,6 @@ export interface DevelopersImageInput {
   siteHost?: string;
 }
 
-// The connector endpoints are placed on this printing's frame layout.
-const SHOWCASE_CODE = "OGS-001/024";
 const BACKDROP_CODES = ["OGS-007/024", "OGN-197/298"];
 const LANGUAGE = "EN";
 
@@ -57,7 +51,7 @@ export function buildDevelopersImageInput(
   const all = Object.values(catalog.printings);
   const english = all.filter((printing) => printing.language === LANGUAGE);
   const showcasePrinting =
-    findByCode(english, SHOWCASE_CODE) ??
+    findByCode(english, DEVELOPERS_SHOWCASE.publicCode) ??
     english.find((printing) => isUnitWithArt(printing, catalog.cards[printing.cardId]));
   const card = showcasePrinting ? catalog.cards[showcasePrinting.cardId] : undefined;
 
