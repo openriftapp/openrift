@@ -11,6 +11,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TextLink } from "@/components/ui/text-link";
+import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { FormInputField } from "@/features/account/components/form-input-field";
@@ -20,8 +21,8 @@ import { authClient, signIn } from "@/features/account/lib/auth-client";
 import { authDestination } from "@/features/account/lib/auth-destination";
 import { isNewAccount, routeTemplate, trackSignupComplete, trackSignupCta } from "@/lib/analytics";
 import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
-import { refreshViewer } from "@/lib/viewer-change";
 import { m } from "@/paraglide/messages.js";
+import { enterAsSignedIn } from "@/stores/leave-as-signed-out";
 
 function signInSchema() {
   return z.object({
@@ -128,7 +129,7 @@ function PasswordSignIn({
       setServerError(form, error);
       return;
     }
-    await refreshViewer(queryClient);
+    await enterAsSignedIn(queryClient, result.data.user.id);
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
   }
 
@@ -152,7 +153,7 @@ function PasswordSignIn({
   }
 
   return (
-    <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+    <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
       <FieldGroup>
         <RootFormError control={form.control}>
           {emailNotVerified && (
@@ -206,12 +207,12 @@ function PasswordSignIn({
           )}
         />
         <Field>
-          <Button pending={loading} type="submit" disabled={loading}>
+          <AccountFormSubmit pending={loading} className="w-full" disabled={loading}>
             {m.auth_login_submit()}
-          </Button>
+          </AccountFormSubmit>
         </Field>
       </FieldGroup>
-    </form>
+    </AccountForm>
   );
 }
 
@@ -280,21 +281,19 @@ function OtpSignIn({
         routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
       );
     }
-    await refreshViewer(queryClient);
+    await enterAsSignedIn(queryClient, result.data.user.id);
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
   }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
+    <AccountForm
+      onSubmit={() => {
         if (step === "email") {
           void handleSendOtp();
         } else {
           void handleVerifyOtp();
         }
       }}
-      noValidate
     >
       <FieldGroup>
         {step === "email" ? (
@@ -320,9 +319,9 @@ function OtpSignIn({
               />
             </Field>
             <Field>
-              <Button pending={loading} type="submit" disabled={loading}>
+              <AccountFormSubmit pending={loading} className="w-full" disabled={loading}>
                 {m.auth_send_code()}
-              </Button>
+              </AccountFormSubmit>
             </Field>
           </>
         ) : (
@@ -332,9 +331,13 @@ function OtpSignIn({
               <SixDigitOtpInput autoFocusOnMount value={otp} onChange={setOtp} />
             </div>
             <Field>
-              <Button pending={loading} type="submit" disabled={otp.length < OTP_LENGTH || loading}>
+              <AccountFormSubmit
+                pending={loading}
+                className="w-full"
+                disabled={otp.length < OTP_LENGTH || loading}
+              >
                 {m.auth_verify()}
-              </Button>
+              </AccountFormSubmit>
             </Field>
             <Button
               type="button"
@@ -351,7 +354,7 @@ function OtpSignIn({
           </>
         )}
       </FieldGroup>
-    </form>
+    </AccountForm>
   );
 }
 

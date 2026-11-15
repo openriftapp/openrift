@@ -1,34 +1,13 @@
 import type { StandardArtFallback } from "@openrift/shared/standard";
-import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
 
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
+import { standardArtFallback } from "@/features/cards/lib/tile-art";
 
 export type GetStandardArtFallback = (printing: Printing) => StandardArtFallback | null;
-
-// Cached per candidates-array identity: stable per catalog fetch, so entries
-// age out with their key when a new catalog produces new arrays.
-const fallbackCache = new WeakMap<readonly Printing[], Map<string, StandardArtFallback | null>>();
-
-function cachedFallback(printing: Printing, candidates: Printing[]): StandardArtFallback | null {
-  let byPrinting = fallbackCache.get(candidates);
-  if (!byPrinting) {
-    byPrinting = new Map();
-    fallbackCache.set(candidates, byPrinting);
-  }
-  // Stored values are StandardArtFallback | null, never undefined, so a
-  // plain get() distinguishes "cached null" from "not cached yet".
-  const cached = byPrinting.get(printing.printingId);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const result = findStandardArtFallback(printing, candidates);
-  byPrinting.set(printing.printingId, result);
-  return result;
-}
 
 /**
  * `enabled: false`: reads the catalog only if another surface already fetched it,
@@ -40,7 +19,6 @@ export function useStandardArtFallback(): GetStandardArtFallback {
   const { data } = useQuery({ ...catalogQueryOptions, enabled: false });
   const printingsByCardId = (data ?? subset)?.printingsByCardId;
   return function getStandardArtFallback(printing: Printing): StandardArtFallback | null {
-    const candidates = printingsByCardId?.get(printing.cardId);
-    return candidates ? cachedFallback(printing, candidates) : null;
+    return standardArtFallback(printing, printingsByCardId);
   };
 }

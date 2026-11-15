@@ -278,6 +278,55 @@ describe("extractFirstRow", () => {
     ]);
   });
 
+  it("shows the second language's image for a printing without one, as the hydrated grid does", () => {
+    const cards = { "card-1": makeCard() };
+    const enImage = "019d6c25-b081-74b3-a901-64da4ae0eeee";
+    const printings = {
+      "p-en": makePrinting({ language: "EN", images: [{ imageId: enImage }] }),
+      "p-sc": makePrinting({ language: "SC", images: [] }),
+    };
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+      undefined,
+      ["SC", "EN"],
+    );
+    expect(result.map((r) => [r.printingId, r.imageId])).toEqual([["p-sc", enImage]]);
+  });
+
+  it("borrows no art from a language the hydrated grid has not loaded yet", () => {
+    const cards = { "card-1": makeCard() };
+    const printings = {
+      "p-en": makePrinting({ language: "EN" }),
+      "p-sc": makePrinting({ language: "SC", images: [] }),
+    };
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+      undefined,
+      ["SC"],
+    );
+    expect(result.map((r) => [r.printingId, r.imageId])).toEqual([["p-sc", null]]);
+  });
+
+  it("leaves the slot blank when the printing opts out of borrowed art", () => {
+    const cards = { "card-1": makeCard() };
+    const printings = {
+      "p-en": makePrinting({ language: "EN" }),
+      "p-sc": makePrinting({ language: "SC", images: [], fallbackArtMode: "none" }),
+    };
+    const result = extractFirstRow(
+      { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+      NO_FILTERS,
+      10,
+      undefined,
+      ["SC", "EN"],
+    );
+    expect(result.map((r) => [r.printingId, r.imageId])).toEqual([["p-sc", null]]);
+  });
+
   it("returns the slim shape with name pulled from the card", () => {
     const cards = { "card-1": makeCard({ name: "Garen, the Might of Demacia" }) };
     const printings = { "p-1": makePrinting() };

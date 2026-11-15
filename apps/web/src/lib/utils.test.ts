@@ -15,6 +15,13 @@ describe("sanitizeRedirect", () => {
     expect(sanitizeRedirect("/foo")).toBe("/foo");
   });
 
+  it("drops natively submitted form fields from the target", () => {
+    expect(sanitizeRedirect("/profile?currentPassword=x&email=a%40b.c&tab=security")).toBe(
+      "/profile?tab=security",
+    );
+    expect(sanitizeRedirect("/decks?view=grid")).toBe("/decks?view=grid");
+  });
+
   it("returns root path", () => {
     expect(sanitizeRedirect("/")).toBe("/");
   });

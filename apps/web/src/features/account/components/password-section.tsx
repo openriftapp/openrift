@@ -10,8 +10,9 @@ import { z } from "zod/v4";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { PROSE_MARKUP } from "@/components/message-markup";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";
+import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { FormInputField } from "@/features/account/components/form-input-field";
 import { authAccountsKeys } from "@/features/account/lib/account-query-keys";
 import { newPasswordField } from "@/features/account/lib/account-validation";
@@ -123,7 +124,7 @@ function ChangePasswordCard() {
       title={m.profile_password_title()}
       description={m.profile_password_change_description()}
     >
-      <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+      <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
         <FieldGroup>
           {form.formState.errors.root && (
             <FieldError>{form.formState.errors.root.message}</FieldError>
@@ -150,9 +151,9 @@ function ChangePasswordCard() {
             autoComplete="new-password"
           />
           <Field>
-            <Button pending={loading} type="submit" disabled={loading}>
+            <AccountFormSubmit pending={loading} className="w-full" disabled={loading}>
               {m.profile_password_submit()}
-            </Button>
+            </AccountFormSubmit>
           </Field>
           {success && (
             <FieldDescription className="flex items-center gap-1.5">
@@ -161,7 +162,7 @@ function ChangePasswordCard() {
             </FieldDescription>
           )}
         </FieldGroup>
-      </form>
+      </AccountForm>
     </SettingsSection>
   );
 }

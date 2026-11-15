@@ -525,6 +525,7 @@
   "auth_login_no_account": "Don't have an account?",
   "auth_login_submit": "Sign in",
   "auth_signin_failed": "Could not sign in. Please try again.",
+  "auth_needs_javascript": "This form needs JavaScript. Turn it on in your browser and reload the page.",
   "auth_tab_password": "Password",
   "auth_tab_email_code": "Email code",
   "auth_field_email": "Email",

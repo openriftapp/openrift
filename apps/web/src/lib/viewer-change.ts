@@ -12,11 +12,21 @@ async function refetchFeatureFlags(queryClient: QueryClient): Promise<void> {
   }
 }
 
+function sessionUserId(queryClient: QueryClient): string | undefined {
+  return queryClient.getQueryData(sessionQueryOptions().queryKey)?.user.id;
+}
+
+/** Sign-in, account switch or an expired session; an expired one keeps the mounted page's queries. */
 export async function refreshViewer(queryClient: QueryClient): Promise<void> {
+  const previousUserId = sessionUserId(queryClient);
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey }),
     refetchFeatureFlags(queryClient),
   ]);
+  const userId = sessionUserId(queryClient);
+  if (userId !== undefined && userId !== previousUserId) {
+    clearViewerQueries(queryClient, previousUserId);
+  }
 }
 
 const VIEWER_DEPENDENT_FAMILIES: ReadonlySet<unknown> = new Set([
@@ -52,12 +62,15 @@ export async function refreshViewerAfterSignOut(
   queryClient: QueryClient,
   leave: () => Promise<unknown>,
 ): Promise<void> {
-  const sessionKey = sessionQueryOptions().queryKey;
-  const userId = queryClient.getQueryData(sessionKey)?.user.id;
+  const userId = sessionUserId(queryClient);
   await refetchFeatureFlags(queryClient);
   await leave();
-  await queryClient.invalidateQueries({ queryKey: sessionKey });
+  await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+  clearViewerQueries(queryClient, userId);
+}
+
+function clearViewerQueries(queryClient: QueryClient, previousUserId: string | undefined): void {
   queryClient.removeQueries({
-    predicate: (query) => isSignedOutViewerQuery(query.queryKey, userId),
+    predicate: (query) => isSignedOutViewerQuery(query.queryKey, previousUserId),
   });
 }

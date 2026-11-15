@@ -9,7 +9,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import type { RefObject } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
 import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
@@ -29,6 +29,7 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { serverFnFetch } from "@/lib/server-fns/server-fn-fetch";
 import { getLocale, setLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
+import { claimClientState, ownsClientState } from "@/stores/leave-as-signed-out";
 import { useThemeStore } from "@/stores/theme-store";
 
 type PreferencesUpdateInput = Parameters<
@@ -130,7 +131,7 @@ async function pushPrefs(
   keepalive: boolean,
 ): Promise<boolean> {
   const snapshot = serializePrefs();
-  if (snapshot === lastSynced.current) {
+  if (snapshot === lastSynced.current || !ownsClientState(userId)) {
     return true;
   }
   const prefs = getPrefsSnapshot();
@@ -159,10 +160,12 @@ export function usePreferencesSync(enabled: boolean) {
   // Last snapshot known to match the server. Save skips when the stores
   // already match it; hydrate stands down when they don't. Null until seeded below.
   const lastSynced = useRef<string | null>(null);
+  const [claimedFor, setClaimedFor] = useState<string | null>(null);
+  const ownsState = userId === null || claimedFor === userId || ownsClientState(userId);
 
   const { data, isError } = useQuery({
     ...preferencesQueryOptions(userId),
-    enabled: enabled && Boolean(userId) && hydrated,
+    enabled: enabled && Boolean(userId) && hydrated && ownsState,
   });
 
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -231,13 +234,31 @@ export function usePreferencesSync(enabled: boolean) {
   // Must run before the hydrate effect below (effect order): re-baselines on
   // identity change so a sign-out reset isn't read as the next user's unsynced edit.
   useScopeEffect(userId, () => {
+    cancelDebouncedSave();
     lastSynced.current = serializePrefs();
     languagesLoadedFor.current = null;
     claimDisplayLanguagesCookie(userId);
+    const switching = userId ? claimClientState(userId) : null;
+    if (!switching) {
+      return;
+    }
+    let live = true;
+    const settle = async () => {
+      await switching;
+      if (live) {
+        cancelDebouncedSave();
+        lastSynced.current = serializePrefs();
+        setClaimedFor(userId);
+      }
+    };
+    void settle();
+    return () => {
+      live = false;
+    };
   });
 
   useEffect(() => {
-    if (!data) {
+    if (!data || !ownsState) {
       return;
     }
 
@@ -274,7 +295,7 @@ export function usePreferencesSync(enabled: boolean) {
     // Recomputed from the stores, not `data`: hydrateOverrides merges, so a key
     // the server omitted keeps its local value.
     lastSynced.current = serializePrefs();
-  }, [data, userId]);
+  }, [data, userId, ownsState]);
 
   useEffect(() => {
     function onStoreChange() {

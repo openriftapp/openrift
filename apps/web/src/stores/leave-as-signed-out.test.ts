@@ -1,15 +1,26 @@
+// @vitest-environment jsdom
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refreshViewerAfterSignOut } from "@/lib/viewer-change";
 
-import { leaveAsSignedOut } from "./leave-as-signed-out";
+import {
+  claimClientState,
+  CLIENT_STATE_OWNER_KEY,
+  leaveAsSignedOut,
+  ownsClientState,
+} from "./leave-as-signed-out";
 
 vi.mock("@/lib/viewer-change", () => ({
+  refreshViewer: vi.fn(),
   refreshViewerAfterSignOut: vi.fn(async (_client: unknown, leave: () => Promise<unknown>) => {
     await leave();
   }),
 }));
+
+vi.mock("@/stores/client-state-reset", () => {
+  throw new Error("chunk failed to load");
+});
 
 beforeEach(() => {
   vi.mocked(refreshViewerAfterSignOut).mockClear();
@@ -40,5 +51,23 @@ describe("leaveAsSignedOut", () => {
 
     expect(leave).toHaveBeenCalledOnce();
     expect(refreshViewerAfterSignOut).toHaveBeenCalledOnce();
+  });
+});
+
+describe("claimClientState", () => {
+  it("keeps the previous owner when the reset chunk failed to load, so the next load retries", async () => {
+    localStorage.setItem(CLIENT_STATE_OWNER_KEY, "user-a");
+
+    await claimClientState("user-b");
+
+    expect(localStorage.getItem(CLIENT_STATE_OWNER_KEY)).toBe("user-a");
+    expect(ownsClientState("user-b")).toBe(false);
+    localStorage.removeItem(CLIENT_STATE_OWNER_KEY);
+  });
+
+  it("claims a device no account owns without a reset", () => {
+    expect(claimClientState("user-b")).toBeNull();
+    expect(localStorage.getItem(CLIENT_STATE_OWNER_KEY)).toBe("user-b");
+    localStorage.removeItem(CLIENT_STATE_OWNER_KEY);
   });
 });

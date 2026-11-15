@@ -525,6 +525,7 @@
   "auth_login_no_account": "还没有账号？",
   "auth_login_submit": "登录",
   "auth_signin_failed": "无法登录，请重试。",
+  "auth_needs_javascript": "此表单需要 JavaScript。请在浏览器中启用后重新加载页面。",
   "auth_tab_password": "密码",
   "auth_tab_email_code": "邮箱验证码",
   "auth_field_email": "邮箱",

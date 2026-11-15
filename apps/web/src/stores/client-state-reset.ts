@@ -21,9 +21,13 @@ import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useDeckCheckViewStore } from "@/features/tournaments/stores/deck-check-view-store";
 import { cookieStorage } from "@/lib/cookie-storage";
-import { releaseDisplayLanguagesCookie } from "@/lib/display-languages-cookie";
+import {
+  claimDisplayLanguagesCookie,
+  releaseDisplayLanguagesCookie,
+} from "@/lib/display-languages-cookie";
 import { captureHandledError } from "@/lib/report-error";
 import { useDisplayStore } from "@/stores/display-store";
+import { CLIENT_STATE_OWNER_KEY, forgetClientStateOwner } from "@/stores/leave-as-signed-out";
 import { useMilestoneBannerStore } from "@/stores/milestone-banner-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { useSidebarFoldStore } from "@/stores/sidebar-fold-store";
@@ -293,6 +297,13 @@ export const CLIENT_STATE: readonly ClientStateEntry[] = [
     reset: keepLocalDeckOddsGroups,
   },
   {
+    sources: ["stores/leave-as-signed-out.ts"],
+    storage: "localStorage",
+    keys: [CLIENT_STATE_OWNER_KEY],
+    phase: "after-leave",
+    reset: forgetClientStateOwner,
+  },
+  {
     sources: ["features/decks/lib/local-decks-collection.ts"],
     storage: "localStorage",
     keys: ["openrift-local-decks-v2", "openrift-local-decks", "openrift-local-decks-migrated"],
@@ -365,4 +376,12 @@ export async function resetClientState(phase: ResetPhase): Promise<void> {
       }
     }
   }
+}
+
+/** Another account signed in on this device. Its preferences load next, so the display store waits for them. */
+export async function resetClientStateForAccountSwitch(): Promise<void> {
+  await resetClientState("before-leave");
+  await resetClientState("after-leave");
+  claimDisplayLanguagesCookie(null);
+  useDisplayStore.setState({ prefsHydrated: false });
 }

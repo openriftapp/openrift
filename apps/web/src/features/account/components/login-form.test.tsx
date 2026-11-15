@@ -252,6 +252,30 @@ describe("LoginForm", () => {
     });
   });
 
+  it("resets the previous account's display languages before leaving for the next page", async () => {
+    const { useDisplayStore } = await import("@/stores/display-store");
+    const { CLIENT_STATE_OWNER_KEY, forgetClientStateOwner } =
+      await import("@/stores/leave-as-signed-out");
+    localStorage.setItem(CLIENT_STATE_OWNER_KEY, "user-a");
+    useDisplayStore.getState().hydrateOverrides({ languages: ["SC", "EN"] });
+    let atNavigate: { languages: readonly string[]; prefsHydrated: boolean } | undefined;
+    navigate.mockImplementation(() => {
+      const { languages, prefsHydrated } = useDisplayStore.getState();
+      atNavigate = { languages, prefsHydrated };
+    });
+    signInEmail.mockResolvedValue({ data: { user: { id: "user-b" } }, error: null } as never);
+    const user = userEvent.setup();
+    renderLoginForm();
+
+    await user.type(activeEmailInput(), "vi@example.com");
+    await user.type(screen.getByLabelText("Password", { selector: "input" }), "hunter2hunter2");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await vi.waitFor(() => expect(atNavigate).toEqual({ languages: ["EN"], prefsHydrated: false }));
+    expect(localStorage.getItem(CLIENT_STATE_OWNER_KEY)).toBe("user-b");
+    forgetClientStateOwner();
+  });
+
   it("sends a verification code and routes to the page that can take it", async () => {
     const user = userEvent.setup();
     signInEmail.mockResolvedValue({ error: { code: "EMAIL_NOT_VERIFIED" } });

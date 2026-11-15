@@ -7,6 +7,7 @@ import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { AuthFormCard } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import {
@@ -121,12 +122,10 @@ export function ResetPasswordPage() {
         }
       >
         {step === "email" ? (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
+          <AccountForm
+            onSubmit={() => {
               void handleSendCode();
             }}
-            noValidate
           >
             <FieldGroup>
               {emailError && <FieldError>{emailError}</FieldError>}
@@ -145,19 +144,17 @@ export function ResetPasswordPage() {
                 />
               </Field>
               <Field>
-                <Button pending={loading} type="submit" className="w-full" disabled={loading}>
+                <AccountFormSubmit pending={loading} className="w-full" disabled={loading}>
                   {m.auth_reset_send_code()}
-                </Button>
+                </AccountFormSubmit>
               </Field>
             </FieldGroup>
-          </form>
+          </AccountForm>
         ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
+          <AccountForm
+            onSubmit={() => {
               void handleReset();
             }}
-            noValidate
           >
             <FieldGroup>
               {error && <FieldError>{error}</FieldError>}
@@ -187,14 +184,13 @@ export function ResetPasswordPage() {
                 />
               </Field>
               <Field>
-                <Button
+                <AccountFormSubmit
                   pending={loading}
-                  type="submit"
                   className="w-full"
                   disabled={otp.length < OTP_LENGTH || !newPassword || loading}
                 >
                   {m.auth_reset_submit()}
-                </Button>
+                </AccountFormSubmit>
                 <Button
                   pending={resending}
                   type="button"
@@ -207,7 +203,7 @@ export function ResetPasswordPage() {
                 <p className="text-muted-foreground text-sm">{m.auth_reset_spam_hint()}</p>
               </Field>
             </FieldGroup>
-          </form>
+          </AccountForm>
         )}
 
         <p className="text-muted-foreground text-center text-sm">

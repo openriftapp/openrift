@@ -525,6 +525,7 @@
   "auth_login_no_account": "還沒有帳號嗎？",
   "auth_login_submit": "登入",
   "auth_signin_failed": "無法登入，請再試一次。",
+  "auth_needs_javascript": "此表單需要 JavaScript。請在瀏覽器中啟用後重新載入頁面。",
   "auth_tab_password": "密碼",
   "auth_tab_email_code": "電子郵件驗證碼",
   "auth_field_email": "電子郵件",

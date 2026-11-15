@@ -5,8 +5,8 @@ import type { Control } from "react-hook-form";
 import { useForm, useFormState, useWatch } from "react-hook-form";
 import { z } from "zod/v4";
 
-import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";
+import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { AuthDestinationPanel } from "@/features/account/components/auth-destination-panel";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { FormInputField } from "@/features/account/components/form-input-field";
@@ -75,7 +75,7 @@ export function SignupForm({
       aside={destination && <AuthDestinationPanel destination={destination} />}
       {...props}
     >
-      <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+      <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
         <FieldGroup>
           <RootFormError control={form.control} />
           <FormInputField
@@ -103,12 +103,12 @@ export function SignupForm({
             autoComplete="new-password"
           />
           <Field>
-            <Button pending={loading} type="submit" disabled={loading}>
+            <AccountFormSubmit pending={loading} className="w-full" disabled={loading}>
               {m.common_sign_up()}
-            </Button>
+            </AccountFormSubmit>
           </Field>
         </FieldGroup>
-      </form>
+      </AccountForm>
       <SocialAuthButtons redirectTo={redirectTo} />
       <FieldDescription className="text-center">
         {m.auth_signup_have_account()} <LoginLink control={form.control} redirectTo={redirectTo} />

@@ -525,6 +525,7 @@
   "auth_login_no_account": "Pas encore de compte ?",
   "auth_login_submit": "Se connecter",
   "auth_signin_failed": "Connexion impossible. Veuillez réessayer.",
+  "auth_needs_javascript": "Ce formulaire nécessite JavaScript. Activez-le dans votre navigateur et rechargez la page.",
   "auth_tab_password": "Mot de passe",
   "auth_tab_email_code": "Code par e-mail",
   "auth_field_email": "E-mail",

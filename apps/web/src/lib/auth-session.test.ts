@@ -40,6 +40,13 @@ describe("requireSession", () => {
     await expect(result).rejects.toSatisfy(isRedirect);
   });
 
+  it("returns to the page without natively submitted form fields", async () => {
+    const { result } = guard(null, "/profile?currentPassword=x&tab=security");
+    const thrown: unknown = await result.catch((error: unknown) => error);
+
+    expect(thrown).toMatchObject({ options: { search: { redirect: "/profile?tab=security" } } });
+  });
+
   it("omits an empty redirect target", async () => {
     const { result } = guard(null, "");
     const thrown: unknown = await result.catch((error: unknown) => error);

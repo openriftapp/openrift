@@ -8,10 +8,10 @@ import { z } from "zod/v4";
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
-import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { useUpdateUserField } from "@/features/account/hooks/use-update-user-field";
 import { authClient } from "@/features/account/lib/auth-client";
 import { sessionQueryOptions } from "@/lib/auth-session";
@@ -107,7 +107,7 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
   }
 
   return (
-    <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+    <AccountForm onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
       <FieldGroup>
         {form.formState.errors.root && (
           <FieldError>{form.formState.errors.root.message}</FieldError>
@@ -133,13 +133,12 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
                     max: PROFILE_BIO_MAX_LENGTH,
                   })}
                 </FieldDescription>
-                <Button
+                <AccountFormSubmit
                   pending={loading}
-                  type="submit"
                   disabled={loading || watchedBio.trim() === defaultBio}
                 >
                   {m.common_save()}
-                </Button>
+                </AccountFormSubmit>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               {success && (
@@ -152,7 +151,7 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
           )}
         />
       </FieldGroup>
-    </form>
+    </AccountForm>
   );
 }
 

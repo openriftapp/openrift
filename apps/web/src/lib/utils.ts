@@ -1,3 +1,5 @@
+import { withoutSubmittedFields } from "./submitted-fields";
+
 export { cn } from "cn";
 
 export const CONTAINER_WIDTH =
@@ -30,7 +32,7 @@ export function sanitizeRedirect(url?: string): string | undefined {
   // Backslashes are rejected too: some browsers normalize "\" to "/", which
   // would turn "/\evil.com" into a protocol-relative URL.
   if (url.startsWith("/") && !url.startsWith("//") && !url.includes("\\")) {
-    return url;
+    return withoutSubmittedFields(url);
   }
   return undefined;
 }

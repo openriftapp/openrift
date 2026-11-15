@@ -16,7 +16,6 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { deriveCardGrid } from "@/features/cards/lib/card-grid-pipeline";
 import { buildGroups } from "@/features/cards/lib/card-groups";
-import { frontImageId } from "@/features/cards/lib/card-meta";
 import {
   labelsFromInit,
   ordersFromInit,
@@ -31,6 +30,7 @@ import {
 import { readPricesFromServerCache } from "@/features/cards/lib/prices-queries";
 import { ssrCardSearchContext } from "@/features/cards/lib/search-context";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
+import { tileImageId } from "@/features/cards/lib/tile-art";
 import { needsCssRotation } from "@/lib/images";
 import { readInitFromServerCache } from "@/lib/init-queries";
 import { getShellCookie } from "@/lib/page-cache";
@@ -94,6 +94,12 @@ export function extractFirstRow(
       : resolveDirection(sortBy, directives.direction);
 
   const enriched = enrichCatalog(catalog);
+  const catalogLangs = ssrCatalogPreloadLangs(search.languages, viewerLanguages);
+  // The hydrated grid first holds only these languages, so it borrows art from them alone.
+  const loadedByCardId = Map.groupBy(
+    enriched.allPrintings.filter((printing) => catalogLangs.includes(printing.language)),
+    (printing) => printing.cardId,
+  );
   const lookup = priceLookupFromMap(prices.prices);
   const { sortedCards } = deriveCardGrid({
     allPrintings: sortByLanguageAndCanonicalRank(
@@ -113,7 +119,7 @@ export function extractFirstRow(
         getPrice: (printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
         priceLookup: lookup,
       },
-      ssrCatalogPreloadLangs(search.languages, viewerLanguages),
+      catalogLangs,
     ),
     prices: lookup,
     favoriteMarketplace: SSR_MARKETPLACE,
@@ -134,7 +140,7 @@ export function extractFirstRow(
     if (result.length >= limit) {
       break;
     }
-    const imageId = frontImageId(printing);
+    const imageId = tileImageId(printing, loadedByCardId);
     result.push({
       printingId: printing.printingId,
       side: printing.side,

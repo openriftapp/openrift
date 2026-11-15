@@ -13,8 +13,8 @@ import { OTP_LENGTH } from "@/features/account/lib/account-validation";
 import { authClient } from "@/features/account/lib/auth-client";
 import { routeTemplate, trackSignupComplete } from "@/lib/analytics";
 import { otpErrorMessage } from "@/lib/auth-errors";
-import { refreshViewer } from "@/lib/viewer-change";
 import { m } from "@/paraglide/messages.js";
+import { enterAsSignedIn } from "@/stores/leave-as-signed-out";
 
 const routeApi = getRouteApi("/_app/verify-email");
 
@@ -48,7 +48,7 @@ export function VerifyEmailPage() {
       "email",
       routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
     );
-    await refreshViewer(queryClient);
+    await enterAsSignedIn(queryClient, result.data?.user?.id);
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
   }
 

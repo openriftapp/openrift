@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppLayout } from "@/components/layout/app-layout";
-import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
+import {
+  redirectWithoutSubmittedFields,
+  requireSession,
+  sessionQueryOptions,
+} from "@/lib/auth-session";
 import { isStageTierPath } from "@/lib/stage-access-gate";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context, location }) => {
+    redirectWithoutSubmittedFields(location);
     // Preload session so the Header can render auth-dependent UI during SSR.
     // Non-critical: if it fails, the client-side useQuery will retry.
     await context.queryClient

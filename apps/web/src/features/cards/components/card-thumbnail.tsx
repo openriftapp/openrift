@@ -28,6 +28,7 @@ import {
 import { printingName } from "@/features/cards/lib/card-meta";
 import { isPlainPrimaryClick } from "@/features/cards/lib/card-row-interactions";
 import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
+import { NO_TILE_ART, tileArt } from "@/features/cards/lib/tile-art";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { priceColorClass } from "@/lib/format";
@@ -588,16 +589,13 @@ export const CardThumbnail = memo(function CardThumbnail({
 }: CardThumbnailProps) {
   const card = displayCard(printing);
   const displayName = printingName(printing, printing.card);
-  const frontImage = printing.images[0] ?? null;
+  const art = showImages ? tileArt(printing, display.getFallbackArt) : NO_TILE_ART;
   // Reads printing.card.types directly, not card.types: coupling this to the derived
   // `card` object would block React Compiler from memoizing it and its JSX.
   const orientation = getOrientation(printing.card.types);
-  const thumbnailUrl = showImages && frontImage ? imageUrl(frontImage.imageId, "400w") : null;
-  const srcSet = showImages && frontImage ? imageSrcSet(frontImage.imageId) : undefined;
-  const fallbackArt = fallbackArtStep(
-    printing,
-    showImages ? display.getFallbackArt(printing) : null,
-  );
+  const thumbnailUrl = art.imageId === null ? null : imageUrl(art.imageId, "400w");
+  const srcSet = art.imageId === null ? undefined : imageSrcSet(art.imageId);
+  const fallbackArt = fallbackArtStep(printing, art.fallback);
   const rotated = needsCssRotation(orientation);
 
   const {
@@ -666,7 +664,9 @@ export const CardThumbnail = memo(function CardThumbnail({
         // Defers the image download and placeholder DOM until first hover, and skips
         // them on coarse-pointer devices, where the fan never opens.
         const showSiblingFaces = fancyFan && !coarsePointer && fanHovered;
-        const siblingImageId = showImages ? (sibling.images[0]?.imageId ?? null) : null;
+        const siblingArt =
+          showImages && showSiblingFaces ? tileArt(sibling, display.getFallbackArt) : NO_TILE_ART;
+        const siblingImageId = siblingArt.imageId;
         const siblingSizes = cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride;
         return (
           // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- decorative layer beside the card's own click target; keyboard nav handled by the grid
@@ -714,9 +714,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                     promoLabel={promoMarkerLabel(sibling)}
                     card={displayCard(sibling)}
                     showFoil={false}
-                    fallbackArt={siblingFallbackArt(
-                      showImages ? display.getFallbackArt(sibling) : null,
-                    )}
+                    fallbackArt={siblingFallbackArt(siblingArt.fallback)}
                   />
                 )}
                 {showSiblingFaces && (

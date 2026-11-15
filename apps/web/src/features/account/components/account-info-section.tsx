@@ -10,6 +10,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { AccountForm, AccountFormSubmit } from "@/features/account/components/account-form";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { useUpdateUserField } from "@/features/account/hooks/use-update-user-field";
 import {
@@ -70,7 +71,7 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
   }
 
   return (
-    <form key={userId} onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+    <AccountForm key={userId} onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
       <FieldGroup>
         {form.formState.errors.root && (
           <FieldError>{form.formState.errors.root.message}</FieldError>
@@ -90,13 +91,12 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
                   aria-invalid={fieldState.invalid}
                   className="flex-1"
                 />
-                <Button
+                <AccountFormSubmit
                   pending={loading}
-                  type="submit"
                   disabled={loading || watchedName.trim() === defaultName}
                 >
                   {m.common_save()}
-                </Button>
+                </AccountFormSubmit>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               {success && (
@@ -109,7 +109,7 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
           )}
         />
       </FieldGroup>
-    </form>
+    </AccountForm>
   );
 }
 
@@ -141,7 +141,7 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
   }
 
   return (
-    <form key={userId} onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+    <AccountForm key={userId} onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
       <FieldGroup>
         {form.formState.errors.root && (
           <FieldError>{form.formState.errors.root.message}</FieldError>
@@ -161,13 +161,12 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
                   aria-invalid={fieldState.invalid}
                   className="flex-1"
                 />
-                <Button
+                <AccountFormSubmit
                   pending={loading}
-                  type="submit"
                   disabled={loading || watchedRiotId.trim() === defaultRiotId}
                 >
                   {m.common_save()}
-                </Button>
+                </AccountFormSubmit>
               </div>
               <FieldDescription>{m.profile_account_riot_description()}</FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -181,7 +180,7 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
           )}
         />
       </FieldGroup>
-    </form>
+    </AccountForm>
   );
 }
 

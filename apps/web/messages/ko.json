@@ -525,6 +525,7 @@
   "auth_login_no_account": "계정이 없으신가요?",
   "auth_login_submit": "로그인",
   "auth_signin_failed": "로그인하지 못했습니다. 다시 시도하세요.",
+  "auth_needs_javascript": "이 양식을 사용하려면 JavaScript가 필요합니다. 브라우저에서 켠 뒤 페이지를 새로 고치세요.",
   "auth_tab_password": "비밀번호",
   "auth_tab_email_code": "이메일 코드",
   "auth_field_email": "이메일",

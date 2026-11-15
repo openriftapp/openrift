@@ -59,7 +59,8 @@ const { useThemeStore } = await import("@/stores/theme-store");
 const { preferencesKeys } = await import("@/features/account/lib/account-query-keys");
 const { createStoreResetter } = await import("@/test/store-helpers");
 
-const { leaveAsSignedOut } = await import("@/stores/leave-as-signed-out");
+const { claimClientState, forgetClientStateOwner, leaveAsSignedOut } =
+  await import("@/stores/leave-as-signed-out");
 const { clearDisplayLanguagesCookie, DISPLAY_LANGUAGES_COOKIE } =
   await import("@/lib/display-languages-cookie");
 const { readClientCookie } = await import("@/lib/shell-prefs");
@@ -489,6 +490,91 @@ describe("usePreferencesSync", () => {
 
     expect(languagesCookie()).toBe("");
     await waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
+  });
+
+  describe("signing in as another account without signing out", () => {
+    function cookieWrites() {
+      const writes: string[] = [];
+      let owner: object | null = Object.getPrototypeOf(document) as object;
+      while (owner && !Object.getOwnPropertyDescriptor(owner, "cookie")) {
+        owner = Object.getPrototypeOf(owner) as object | null;
+      }
+      const descriptor = owner ? Object.getOwnPropertyDescriptor(owner, "cookie") : undefined;
+      Object.defineProperty(document, "cookie", {
+        configurable: true,
+        get: () => descriptor?.get?.call(document) as string,
+        set: (value: string) => {
+          writes.push(decodeURIComponent(value.split(";")[0] ?? ""));
+          descriptor?.set?.call(document, value);
+        },
+      });
+      return writes;
+    }
+
+    async function signedInAsFirstAccount() {
+      const server = stubFetch({ languages: ["SC", "EN"] } as UserPreferencesResponse);
+      const { Wrapper } = wrap();
+      const hook = renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+      await waitFor(() => expect(languagesCookie()).toBe("test-user-id|SC,EN"));
+      await flushSaveDebounce();
+      return { server, ...hook };
+    }
+
+    afterEach(() => {
+      Reflect.deleteProperty(document, "cookie");
+      forgetClientStateOwner();
+    });
+
+    it("gives an account without stored languages the defaults", async () => {
+      const { server, rerender } = await signedInAsFirstAccount();
+      server.setServerPrefs({} as UserPreferencesResponse);
+      const writes = cookieWrites();
+
+      await act(async () => {
+        await claimClientState("other-user-id");
+      });
+      expect(useDisplayStore.getState().prefsHydrated).toBe(false);
+      signedInUser.id = "other-user-id";
+      rerender();
+
+      await waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+      expect(useDisplayStore.getState().languages).toEqual(["EN"]);
+      expect(languagesCookie()).toBe("other-user-id|EN");
+      expect(writes.filter((write) => write.includes("SC"))).toEqual([]);
+      await flushSaveDebounce();
+      expect(server.patches()).toHaveLength(0);
+    });
+
+    it("keeps the languages the next account stored", async () => {
+      const { server, rerender } = await signedInAsFirstAccount();
+      server.setServerPrefs({ languages: ["FR"] } as UserPreferencesResponse);
+
+      await act(async () => {
+        await claimClientState("other-user-id");
+      });
+      signedInUser.id = "other-user-id";
+      rerender();
+
+      await waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
+      await flushSaveDebounce();
+      expect(useDisplayStore.getState().languages).toEqual(["FR"]);
+      expect(server.patches()).toHaveLength(0);
+    });
+
+    it("resets the previous account's stores when the page loads as another account", async () => {
+      const first = await signedInAsFirstAccount();
+      first.unmount();
+      const server = stubFetch({} as UserPreferencesResponse);
+      signedInUser.id = "other-user-id";
+      const { Wrapper } = wrap();
+
+      renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+
+      await waitFor(() => expect(languagesCookie()).toBe("other-user-id|EN"));
+      expect(useDisplayStore.getState().languages).toEqual(["EN"]);
+      await flushSaveDebounce();
+      expect(server.patches()).toHaveLength(0);
+    });
   });
 
   // React Compiler cannot lower `??=` and bails out of the whole hook; this

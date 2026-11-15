@@ -49,6 +49,49 @@ describe("refreshViewer", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: sessionQueryOptions().queryKey });
   });
 
+  it("drops the landings and the previous account's queries a sign-in changes", async () => {
+    const client = clientWithAnonymousFlags();
+    fetchFlags.mockResolvedValue({});
+    client.setQueryData(["tournaments", "submit", "token-1"], { signedIn: false });
+    client.setQueryData(["tournaments", "staff-invite", "token-2"], { signedIn: false });
+    client.setQueryData(["catalog"], { cards: [] });
+    vi.spyOn(client, "invalidateQueries").mockImplementation(async () => {
+      client.setQueryData(sessionQueryOptions().queryKey, { user: { id: "user-2" } } as never);
+    });
+
+    await refreshViewer(client);
+
+    expect(client.getQueryData(["tournaments", "submit", "token-1"])).toBeUndefined();
+    expect(client.getQueryData(["tournaments", "staff-invite", "token-2"])).toBeUndefined();
+    expect(client.getQueryData(["catalog"])).toEqual({ cards: [] });
+  });
+
+  it("keeps the mounted page's queries when the session expires", async () => {
+    const client = clientWithAnonymousFlags();
+    fetchFlags.mockResolvedValue({});
+    client.setQueryData(sessionQueryOptions().queryKey, { user: { id: "user-1" } } as never);
+    client.setQueryData(["trades", "user-1"], []);
+    vi.spyOn(client, "invalidateQueries").mockImplementation(async () => {
+      client.setQueryData(sessionQueryOptions().queryKey, null as never);
+    });
+
+    await refreshViewer(client);
+
+    expect(client.getQueryData(["trades", "user-1"])).toEqual([]);
+  });
+
+  it("keeps the viewer's queries when the session did not change", async () => {
+    const client = clientWithAnonymousFlags();
+    fetchFlags.mockResolvedValue({});
+    client.setQueryData(sessionQueryOptions().queryKey, { user: { id: "user-1" } } as never);
+    client.setQueryData(["trades", "user-1"], []);
+    vi.spyOn(client, "invalidateQueries").mockResolvedValue();
+
+    await refreshViewer(client);
+
+    expect(client.getQueryData(["trades", "user-1"])).toEqual([]);
+  });
+
   it("keeps the previous flags and still resolves when the flag fetch fails", async () => {
     const client = clientWithAnonymousFlags();
     fetchFlags.mockRejectedValue(new Error("offline"));

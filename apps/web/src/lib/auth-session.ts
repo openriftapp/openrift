@@ -10,6 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { fetchApi } from "./server-fns/fetch-api";
 import { withCookies } from "./server-fns/middleware";
 import { hasSessionCookie } from "./session-cookie";
+import { withoutSubmittedFields } from "./submitted-fields";
 
 interface SessionUser {
   id: string;
@@ -96,8 +97,16 @@ export async function requireSession({
   if (!session?.user) {
     throw redirect({
       to: "/login",
-      search: { redirect: location.href || undefined, email: undefined },
+      search: { redirect: withoutSubmittedFields(location.href) || undefined, email: undefined },
     });
   }
   return { userId: session.user.id };
+}
+
+/** Runs before every guard, so no redirect can carry a natively submitted secret onward. */
+export function redirectWithoutSubmittedFields(location: { href: string }): void {
+  const href = withoutSubmittedFields(location.href);
+  if (href !== location.href) {
+    throw redirect({ href, replace: true });
+  }
 }
