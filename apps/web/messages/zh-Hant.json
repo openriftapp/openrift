@@ -1710,7 +1710,7 @@
       }
     }
   ],
-  "collections_import_needs_review": "需要確認",
+  "collections_import_needs_attention": "需要處理",
   "collections_deck_import_cards_section": "卡牌",
   "collections_import_dialog_title": "匯入卡牌",
   "collections_import_paste_hint": "貼上或上傳 CSV 匯出檔，或是每行一筆 {#code}數量 卡牌名稱{/code} 的純文字清單。",
@@ -1787,7 +1787,16 @@
   "collections_import_replace_all": "全部取代這 {count} 張",
   "collections_import_badge_ready": "{count} 筆就緒",
   "collections_import_badge_to_verify": "{count} 筆待確認",
-  "collections_import_badge_need_attention": "{count} 筆需要處理",
+  "collections_import_badge_need_attention": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 筆需要處理",
+        "countPlural=*": "{count} 筆需要處理"
+      }
+    }
+  ],
   "collections_import_badge_skipped": "{count} 筆已略過",
   "collections_import_jump_aria": [
     {
@@ -1835,6 +1844,7 @@
   "collections_import_expand_details": "展開匯入詳細資料",
   "collections_import_toggle_details": "切換匯入詳細資料",
   "collections_import_did_you_mean": "你是不是要找 {#em}{name}{/em}？",
+  "collections_import_which_printing": "{#em}{name}{/em} 的哪個版本？",
   "collections_import_close_search": "關閉搜尋",
   "collections_import_search_catalog": "搜尋目錄",
   "collections_import_skip": "略過",

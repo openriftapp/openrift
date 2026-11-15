@@ -79,6 +79,7 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ cardsById: {}, printingsById: {}, printingsByCardId: new Map() }),
 }));
 vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "user-1" }));
+vi.mock("@/hooks/use-enums", () => ({ useLanguageLabels: () => ({}) }));
 
 const { TradeSettleSection } = await import("./trade-settle-section");
 

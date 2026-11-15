@@ -23,6 +23,10 @@ import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useDeckCheckViewStore } from "@/features/tournaments/stores/deck-check-view-store";
 import {
+  DISPLAY_LANGUAGES_COOKIE,
+  writeDisplayLanguagesCookie,
+} from "@/lib/display-languages-cookie";
+import {
   readClientCookie,
   resolvePaletteFromCookie,
   resolveThemeFromCookie,
@@ -192,6 +196,14 @@ describe("resetClientState", () => {
       resolveThemeFromCookie(null) === "dark",
     );
     expect(document.documentElement.dataset.palette).toBe(resolvePaletteFromCookie(null));
+  });
+
+  it("clears the display languages cookie on sign-out", async () => {
+    writeDisplayLanguagesCookie("user-1", ["DE", "EN"]);
+
+    await resetClientState("before-leave");
+
+    expect(readClientCookie(DISPLAY_LANGUAGES_COOKIE)).toBeNull();
   });
 
   it("resets every display setting but keeps the preferences-loaded flag", async () => {

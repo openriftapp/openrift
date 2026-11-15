@@ -61,6 +61,7 @@ import type { PendingRequest } from "@/features/groups/lib/tradelist-exchange";
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { ListHeader } from "@/features/lists/components/list-header";
 import { collectListPrintings, kindToView } from "@/features/lists/lib/list-entries";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -269,7 +270,7 @@ function SharedListGrid({
   );
 
   // Empty language prefs means show all.
-  const userLanguages = useDisplayStore((state) => state.languages);
+  const userLanguages = useDisplayLanguages();
   const userScopedPrintingsByCardId = filterPrintingsByLanguages(printingsByCardId, userLanguages);
 
   const {

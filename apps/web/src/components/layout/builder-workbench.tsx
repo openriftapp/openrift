@@ -53,7 +53,8 @@ export function BuilderWorkbench({
               {aside}
             </div>
           </div>
-          {children}
+          {/* Sticky bars in the browser bleed left by --gutter-left; beside the aside only the gap-4 is free. */}
+          <div className="flex min-w-0 flex-1 flex-col lg:[--gutter-left:1rem]">{children}</div>
         </div>
       </div>
     </PageTopBarHeightContext>

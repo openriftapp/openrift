@@ -83,6 +83,7 @@ import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-so
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
 import { buildOwnershipCopies, copyPrintingId } from "@/features/decks/lib/deck-ownership-band";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
+import { rowOwnership } from "@/features/decks/lib/deck-ownership-types";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import {
   statsFocusCount,
@@ -363,8 +364,7 @@ export function DeckOverview({
           : onHoverCard(null)
     : undefined;
 
-  const getOwnershipEntry = (card: DeckBuilderCard) =>
-    ownershipData?.byCardZone.get(`${card.cardId}:${card.zone}`);
+  const getOwnershipEntry = (card: DeckBuilderCard) => rowOwnership(ownershipData, card);
   const overviewSortContext: DeckListSortContext = {
     getEntry: getOwnershipEntry,
     rarityOrder: enumOrders.rarities,

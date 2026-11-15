@@ -297,6 +297,10 @@ describe("rendersDefaultShell", () => {
     ["anonymous card detail", getRequest("/cards/lux")],
     ["anonymous HEAD", getRequest("/cards", {}, "HEAD")],
     ["anonymous with prefs cookies", getRequest("/cards", { cookie: "theme=x; view-prefs=y" })],
+    [
+      "anonymous with a stale display languages cookie",
+      getRequest("/cards", { cookie: "display-languages=DE%2CEN" }),
+    ],
     ["signed in", getRequest("/cards", { cookie: "better-auth.session_token=abc" })],
     ["translated", getRequest("/cards", { cookie: "PARAGLIDE_LOCALE=de" })],
     ["uncached path", getRequest("/login")],
@@ -323,6 +327,20 @@ describe("rendersDefaultShell", () => {
     expect(rendersDefaultShell(getRequest("/login"))).toBe(false);
     expect(rendersDefaultShell(getRequest("/_serverFn/abc"))).toBe(false);
   });
+});
+
+describe("a stale display languages cookie without a session", () => {
+  const stale = { cookie: "display-languages=DE%2CEN" };
+
+  it.each(["/cards", "/cards/lux", "/sets", "/promos/EN"])(
+    "leaves %s publicly cacheable and on the default shell",
+    (path) => {
+      expect(
+        applyPageCacheControl(getRequest(path, stale), htmlResponse()).headers.get("Cache-Control"),
+      ).toBe(applyPageCacheControl(getRequest(path), htmlResponse()).headers.get("Cache-Control"));
+      expect(rendersDefaultShell(getRequest(path, stale))).toBe(true);
+    },
+  );
 });
 
 describe("getShellCookie", () => {

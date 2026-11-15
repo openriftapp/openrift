@@ -15,7 +15,10 @@ import { BasicIndex, createCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
-import { watchFailedLoad } from "@/features/collections/lib/collection-load-failure";
+import {
+  STORE_LOAD_RETRY,
+  watchFailedLoad,
+} from "@/features/collections/lib/collection-load-failure";
 import { dropCardsOfMissingDecks, mergeDeckCardsDelta } from "@/features/decks/lib/deck-card-rows";
 import { watchOwnershipForDeckList } from "@/features/decks/lib/deck-list-ownership-watch";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
@@ -69,6 +72,7 @@ export function getDecksCollection(queryClient: QueryClient, userId: string): De
       queryKey: [...decksKeys.syncedStore(userId)],
       staleTime: 10 * MINUTE_MS,
       gcTime: 10 * MINUTE_MS,
+      ...STORE_LOAD_RETRY,
       queryFn: async (ctx) => {
         const response = await browserApiOrpcClient(decksContract).list(
           { includeArchived: "true" },
@@ -121,6 +125,7 @@ export function getDeckCardsCollection(
       queryKey: [...decksKeys.cardsStore(userId)],
       staleTime: 10 * MINUTE_MS,
       gcTime: 10 * MINUTE_MS,
+      ...STORE_LOAD_RETRY,
       queryFn: async (ctx) => {
         const previous = queryClient.getQueryData<DeckCardWithDeckResponse[]>([
           ...decksKeys.cardsStore(userId),
@@ -199,6 +204,7 @@ export function getDeckFoldersCollection(
       queryKey: [...deckFoldersKeys.syncedStore(userId)],
       staleTime: 10 * MINUTE_MS,
       gcTime: 10 * MINUTE_MS,
+      ...STORE_LOAD_RETRY,
       queryFn: async (ctx) => {
         const response = await browserApiOrpcClient(deckFoldersContract).list(undefined, {
           signal: ctx.signal,

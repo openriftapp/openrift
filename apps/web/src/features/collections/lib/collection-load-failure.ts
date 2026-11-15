@@ -1,9 +1,20 @@
 import type { Collection } from "@tanstack/react-db";
 import { toast } from "sonner";
 
+import { isRetryableError } from "@/lib/server-fns/api-error";
 import { m } from "@/paraglide/messages.js";
 
 type AnyCollection = Collection<any, any, any, any, any>;
+
+// About 5.5 s in all: an API restart during a release refuses connections for 2 to 5 s.
+const STORE_RETRY_DELAYS_MS = [1000, 2000, 2500] as const;
+
+export const STORE_LOAD_RETRY = {
+  retry: (failureCount: number, error: unknown) =>
+    failureCount < STORE_RETRY_DELAYS_MS.length && isRetryableError(error),
+  retryDelay: (attempt: number) =>
+    STORE_RETRY_DELAYS_MS[Math.min(attempt, STORE_RETRY_DELAYS_MS.length - 1)] ?? 0,
+};
 
 /** Reports a failed first load and retries it from the toast, on tab focus, or when the network returns. */
 export function watchFailedLoad(collection: AnyCollection, message: () => string): void {

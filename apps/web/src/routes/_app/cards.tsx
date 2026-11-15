@@ -125,6 +125,7 @@ export const Route = createFileRoute("/_app/cards")({
       // languages filter.
       const catalogPreloadLangs = ssrCatalogPreloadLangs(
         cardsSearchSchema.parse(ssrSearch).languages,
+        context.displayLanguages,
       );
       return {
         firstRow,

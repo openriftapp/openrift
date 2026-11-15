@@ -45,7 +45,7 @@ import {
   useReorderCollections,
 } from "@/features/collections/hooks/use-collections";
 import type {
-  AnyDragData,
+  CollectionDragData,
   CardDragData,
   SidebarReorderCollectionDragData,
   SidebarReorderListDragData,
@@ -552,7 +552,10 @@ function SidebarReorderMonitor({
 
   useDndMonitor({
     onDragEnd: (event: DragEndEvent) => {
-      const dragData = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
+      const dragData = asDragData<CollectionDragData>(
+        event.active.data.current,
+        COLLECTION_DRAG_TYPES,
+      );
       if (!dragData) {
         return;
       }
@@ -640,7 +643,7 @@ export function CollectionSidebar() {
 
   const { active } = useDndContext();
   const isReorderActive =
-    asDragData<AnyDragData>(active?.data.current, SIDEBAR_REORDER_DRAG_TYPES) !== undefined;
+    asDragData<CollectionDragData>(active?.data.current, SIDEBAR_REORDER_DRAG_TYPES) !== undefined;
   const dragSourceCollectionId = asDragData<CardDragData>(active?.data.current, [
     "collection-card",
   ])?.sourceCollectionId;

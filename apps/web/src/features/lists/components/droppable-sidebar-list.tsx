@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { ReactNode } from "react";
 
-import type { AnyDragData } from "@/features/collections/lib/dnd-types";
+import type { CollectionDragData } from "@/features/collections/lib/dnd-types";
 import { COLLECTION_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,7 @@ export function DroppableSidebarList({
     disabled,
   });
 
-  const dragData = asDragData<AnyDragData>(active?.data.current, COLLECTION_DRAG_TYPES);
+  const dragData = asDragData<CollectionDragData>(active?.data.current, COLLECTION_DRAG_TYPES);
   const compatible = isCompatibleDrop(dragData, { listId, listKind, listIntent });
   const showHighlight = !disabled && isOver && compatible;
 
@@ -62,7 +62,7 @@ export function DroppableSidebarList({
 /** Mirrors the layout's drop routing: entries can go to any other list, the move
  * dialog collects what a wider kind or a new intent needs. */
 export function isCompatibleDrop(
-  drag: AnyDragData | undefined,
+  drag: CollectionDragData | undefined,
   target: { listId: string; listKind: ListKind; listIntent: ListIntent },
 ): boolean {
   if (!drag) {

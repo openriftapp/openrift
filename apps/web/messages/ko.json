@@ -1710,7 +1710,7 @@
       }
     }
   ],
-  "collections_import_needs_review": "확인 필요",
+  "collections_import_needs_attention": "조치 필요",
   "collections_deck_import_cards_section": "카드",
   "collections_import_dialog_title": "카드 가져오기",
   "collections_import_paste_hint": "CSV 내보내기 파일을 붙여넣거나 업로드하세요. 한 줄에 {#code}수량 카드이름{/code} 형식의 일반 목록도 됩니다.",
@@ -1787,7 +1787,16 @@
   "collections_import_replace_all": "{count}장 모두 교체",
   "collections_import_badge_ready": "준비됨 {count}개",
   "collections_import_badge_to_verify": "확인 필요 {count}개",
-  "collections_import_badge_need_attention": "조치 필요 {count}개",
+  "collections_import_badge_need_attention": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "조치 필요 {count}개",
+        "countPlural=*": "조치 필요 {count}개"
+      }
+    }
+  ],
   "collections_import_badge_skipped": "건너뜀 {count}개",
   "collections_import_jump_aria": [
     {
@@ -1835,6 +1844,7 @@
   "collections_import_expand_details": "가져오기 상세 펼치기",
   "collections_import_toggle_details": "가져오기 상세 전환",
   "collections_import_did_you_mean": "{#em}{name}{/em}을(를) 찾으셨나요?",
+  "collections_import_which_printing": "{#em}{name}{/em}의 어떤 인쇄판인가요?",
   "collections_import_close_search": "검색 닫기",
   "collections_import_search_catalog": "카탈로그 검색",
   "collections_import_skip": "건너뛰기",

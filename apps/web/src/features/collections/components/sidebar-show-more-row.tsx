@@ -2,7 +2,7 @@ import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { useEffect } from "react";
 
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import type { AnyDragData } from "@/features/collections/lib/dnd-types";
+import type { CollectionDragData } from "@/features/collections/lib/dnd-types";
 import { CARD_CARRYING_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
 import { m } from "@/paraglide/messages.js";
@@ -24,7 +24,7 @@ export function SidebarShowMoreRow({ foldKey, hiddenCount, shown }: SidebarShowM
 
   const { active } = useDndContext();
   const isCardDrag =
-    asDragData<AnyDragData>(active?.data.current, CARD_CARRYING_DRAG_TYPES) !== undefined;
+    asDragData<CollectionDragData>(active?.data.current, CARD_CARRYING_DRAG_TYPES) !== undefined;
   const { setNodeRef, isOver } = useDroppable({
     id: `sidebar-more-${foldKey}`,
     disabled: !isCardDrag || shown,

@@ -12,8 +12,8 @@ import {
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { matchEntries, promoteToExact } from "@/features/collections/lib/import-matcher";
 import { knownPrintingCode } from "@/features/lists/lib/list-import-parser";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
-import { useDisplayStore } from "@/stores/display-store";
 
 export function useImportReview({
   promoteSingleCard,
@@ -23,7 +23,7 @@ export function useImportReview({
   tieBreak: "sourceCode" | "cardName";
 }) {
   const { allPrintings } = useCards();
-  const preferredLanguages = useDisplayStore((state) => state.languages);
+  const preferredLanguages = useDisplayLanguages();
 
   const [step, setStep] = useState<ImportStep>("input");
   const [rawText, setRawText] = useState("");

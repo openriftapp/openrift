@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { describe, expect, it, beforeEach } from "vitest";
 
@@ -83,6 +84,63 @@ describe("computeDeckOwnership", () => {
     expect(entry?.needed).toBe(3);
     expect(entry?.owned).toBe(1);
     expect(entry?.shortfall).toBe(2);
+  });
+
+  it("gives each printing row its own share, never below zero", () => {
+    const cardId = "card-1";
+    const deckCards = [
+      stubDeckBuilderCard({ cardId, quantity: 1, zone: "main", preferredPrintingId: null }),
+      stubDeckBuilderCard({ cardId, quantity: 1, zone: "main", preferredPrintingId: "fr" }),
+    ];
+    const printings = [
+      stubPrinting({ printingId: "en", cardId }),
+      stubPrinting({ printingId: "fr", cardId, language: "FR" }),
+    ];
+
+    const ownedCases: Record<string, number>[] = [{}, { en: 1 }, { en: 1, fr: 1 }];
+    for (const owned of ownedCases) {
+      const result = computeDeckOwnership(
+        deckCards,
+        printings,
+        owned,
+        "tcgplayer",
+        EMPTY_PRICE_LOOKUP,
+        EN_FIRST,
+      );
+      const shown = deckCards.map((card) => {
+        const entry = result.byDeckEntry.get(deckCardKey(card));
+        return card.quantity - (entry?.shortfall ?? 0);
+      });
+      expect(shown.every((count) => count >= 0)).toBe(true);
+      expect(shown.reduce((sum, count) => sum + count, 0)).toBe(Object.keys(owned).length);
+    }
+  });
+
+  it("gives an owned copy to the row of its own printing first", () => {
+    const cardId = "card-1";
+    const deckCards = [
+      stubDeckBuilderCard({ cardId, quantity: 1, zone: "main", preferredPrintingId: null }),
+      stubDeckBuilderCard({ cardId, quantity: 1, zone: "main", preferredPrintingId: "fr" }),
+    ];
+    const printings = [
+      stubPrinting({ printingId: "en", cardId }),
+      stubPrinting({ printingId: "fr", cardId, language: "FR" }),
+    ];
+
+    const result = computeDeckOwnership(
+      deckCards,
+      printings,
+      { fr: 1 },
+      "tcgplayer",
+      EMPTY_PRICE_LOOKUP,
+      EN_FIRST,
+    );
+
+    expect(deckCards.map((card) => result.byDeckEntry.get(deckCardKey(card))?.owned)).toEqual([
+      0, 1,
+    ]);
+    expect(result.byCardZone.get(`${cardId}:main`)?.owned).toBe(1);
+    expect(result.totalOwned).toBe(1);
   });
 
   it("counts a double-sided copy for each of its cards and links the missing side", () => {

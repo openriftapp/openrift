@@ -1,11 +1,11 @@
 import { slugifyName } from "@openrift/shared/strings";
 
-export interface KeywordEntry {
+export interface KeywordGlossaryEntry {
   summary: string;
   ruleNumber: string;
 }
 
-export const KEYWORD_INFO: Record<string, KeywordEntry> = {
+export const KEYWORD_INFO: Record<string, KeywordGlossaryEntry> = {
   Accelerate: {
     summary:
       "Optional additional cost when playing me: pay 1 + 1 Power, and I enter ready instead of exhausted.",

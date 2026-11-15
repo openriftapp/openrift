@@ -1,3 +1,5 @@
+import { cardPrintedNamesOf } from "@openrift/shared/filters";
+import type { CardSearchContext } from "@openrift/shared/filters-shared";
 import type { DistributionChannelWithCount, Printing } from "@openrift/shared/types/catalog";
 
 import type { ChannelNode } from "./promos-tree";
@@ -19,4 +21,14 @@ export function buildPromoTreeFromMatches(
     }
   }
   return buildPromoTree(channels, perChannel);
+}
+
+/** A promo page lists one language's printings but matches names printed in any language, as the card browser does. */
+export function withCatalogPrintedNames(
+  context: CardSearchContext,
+  catalogPrintings: readonly Printing[] | undefined,
+): CardSearchContext {
+  return catalogPrintings
+    ? { ...context, cardPrintedNames: cardPrintedNamesOf(catalogPrintings) }
+    : context;
 }

@@ -1,6 +1,6 @@
 import type { SetReleases } from "@openrift/shared/set-release";
 
-import type { KeywordEntry } from "@/features/rules/lib/glossary";
+import type { KeywordGlossaryEntry } from "@/features/rules/lib/glossary";
 import { m } from "@/paraglide/messages.js";
 
 export interface Section {
@@ -251,5 +251,5 @@ export interface KeywordRow {
   name: string;
   color?: string | null;
   darkText?: boolean;
-  info?: KeywordEntry;
+  info?: KeywordGlossaryEntry;
 }

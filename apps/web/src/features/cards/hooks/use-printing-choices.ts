@@ -1,7 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useDisplayStore } from "@/stores/display-store";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 
 // Includes pinnedPrintingId even when its language is filtered out, or the
 // active row would vanish from its own chooser.
@@ -10,7 +10,7 @@ export function usePrintingChoices(
   pinnedPrintingId: string | null,
 ): readonly Printing[] {
   const { printingsByCardId } = useCards();
-  const languages = useDisplayStore((state) => state.languages);
+  const languages = useDisplayLanguages();
   const allPrintings = printingsByCardId.get(cardId) ?? [];
 
   if (!languages || languages.length === 0) {

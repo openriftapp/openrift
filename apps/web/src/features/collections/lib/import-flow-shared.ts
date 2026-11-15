@@ -144,7 +144,7 @@ export function createImportEntryHandlers(
   return { handleResolve, handleSkip, handleUnskip, handleToggleExpand };
 }
 
-export interface ImportSummary {
+export interface ImportSelection {
   importableEntries: MatchedEntry[];
   summary: ReturnType<typeof summarizeMatchedEntries>;
   skippedCount: number;
@@ -153,7 +153,7 @@ export interface ImportSummary {
 export function deriveImportSummary(
   matchedEntries: MatchedEntry[],
   skippedIndices: Set<number>,
-): ImportSummary {
+): ImportSelection {
   const importableEntries = matchedEntries.filter(
     (entry, index) => entry.resolvedPrinting && !skippedIndices.has(index),
   );

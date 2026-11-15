@@ -40,6 +40,7 @@ import {
   VIEW_PREFS_COOKIE,
   VIEW_SURFACE_CONFIGS,
 } from "@/lib/view-prefs";
+import { readViewerDisplayLanguages } from "@/lib/viewer-display-languages";
 
 export interface FirstRowCard {
   printingId: string;
@@ -54,10 +55,8 @@ export interface FirstRowCard {
 // breakpoints trim overflow via per-breakpoint visibility classes instead.
 const FIRST_ROW_LIMIT = 16;
 
-// SSR can't read the user's `defaultCardView` / `languages` preferences
-// (those live in localStorage); assume PREFERENCE_DEFAULTS instead so the
-// dominant cold-nav case matches the hydrated grid.
-const SSR_USER_LANGUAGES: readonly string[] = PREFERENCE_DEFAULTS.languages;
+// SSR can't read the user's `defaultCardView` preference (it lives in
+// localStorage); assume the default so the cold-nav case matches the hydrated grid.
 const SSR_DEFAULT_VIEW: "cards" | "printings" = "cards";
 
 export interface FirstRowSources {
@@ -71,6 +70,7 @@ export function extractFirstRow(
   search: FilterSearch,
   limit: number,
   viewDefaults: SurfaceViewPrefs = VIEW_SURFACE_CONFIGS.cards.defaults,
+  viewerLanguages: readonly string[] | null = null,
 ): FirstRowCard[] {
   const directives = parseSearchQuery(search.q ?? "").directives;
   const requestedView =
@@ -96,9 +96,12 @@ export function extractFirstRow(
   const enriched = enrichCatalog(catalog);
   const lookup = priceLookupFromMap(prices.prices);
   const { sortedCards } = deriveCardGrid({
-    allPrintings: sortByLanguageAndCanonicalRank(enriched.allPrintings, SSR_USER_LANGUAGES),
+    allPrintings: sortByLanguageAndCanonicalRank(
+      enriched.allPrintings,
+      viewerLanguages ?? PREFERENCE_DEFAULTS.languages,
+    ),
     sets: enriched.sets,
-    filters: ssrSearchToFilters(search),
+    filters: ssrSearchToFilters(search, viewerLanguages),
     view,
     groupBy,
     sortBy,
@@ -110,7 +113,7 @@ export function extractFirstRow(
         getPrice: (printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
         priceLookup: lookup,
       },
-      ssrCatalogPreloadLangs(search.languages),
+      ssrCatalogPreloadLangs(search.languages, viewerLanguages),
     ),
     prices: lookup,
     favoriteMarketplace: SSR_MARKETPLACE,
@@ -147,12 +150,19 @@ export function extractFirstRow(
 export const fetchFirstRowCards = createServerFn({ method: "GET" })
   .validator((input: FilterSearch) => input)
   .handler(async ({ data }): Promise<FirstRowCard[]> => {
-    const [catalog, init, prices] = await Promise.all([
+    const [catalog, init, prices, viewerLanguages] = await Promise.all([
       readCatalogFromServerCache(),
       readInitFromServerCache(),
       readPricesFromServerCache(),
+      readViewerDisplayLanguages(),
     ]);
     // Same cookie the hydrated grid resolves its defaults from.
     const viewPrefs = resolveViewPrefsFromCookie(getShellCookie(VIEW_PREFS_COOKIE));
-    return extractFirstRow({ catalog, init, prices }, data, FIRST_ROW_LIMIT, viewPrefs.cards);
+    return extractFirstRow(
+      { catalog, init, prices },
+      data,
+      FIRST_ROW_LIMIT,
+      viewPrefs.cards,
+      viewerLanguages,
+    );
   });

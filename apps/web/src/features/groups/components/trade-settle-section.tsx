@@ -25,6 +25,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
+import { cardLanguageName } from "@/features/cards/lib/set-hero-copy";
 import { TradeAddTargetDialog } from "@/features/groups/components/trade-add-target-dialog";
 import { TradeSettleCopyPickerDialog } from "@/features/groups/components/trade-copy-picker-dialog";
 import { TradeRow } from "@/features/groups/components/trade-row";
@@ -44,8 +45,8 @@ import type {
 import { runSettleBatch } from "@/features/groups/lib/trade-settle-batch";
 import { stepSequence } from "@/features/groups/lib/trade-sheet";
 import { talliedCount, useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
+import { useLanguageLabels } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/hooks/use-session";
-import { csvLanguageName } from "@/lib/csv-language-names";
 import { m } from "@/paraglide/messages.js";
 
 async function copyOptionsOrNull(
@@ -69,6 +70,7 @@ function TallyRow({
   disabled: boolean;
 }) {
   const { cardsById, printingsById, printingsByCardId } = useCards();
+  const languageLabels = useLanguageLabels();
   const counts = useTradeTallyStore((state) => state.counts);
   const setCount = useTradeTallyStore((state) => state.setCount);
 
@@ -115,7 +117,9 @@ function TallyRow({
             rarity={printing.rarity}
             hideLanguage
             trailing={
-              <span className="text-muted-foreground">· {csvLanguageName(printing.language)}</span>
+              <span className="text-muted-foreground">
+                · {cardLanguageName(printing.language, languageLabels)}
+              </span>
             }
           />
         ) : null}

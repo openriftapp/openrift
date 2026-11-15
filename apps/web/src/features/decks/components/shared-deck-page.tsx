@@ -1,12 +1,12 @@
 import { useNavigate, getRouteApi } from "@tanstack/react-router";
 import { CopyIcon } from "lucide-react";
 
+import { SignedOutAuthButtons } from "@/components/signed-out-cta";
 import { Button } from "@/components/ui/button";
 import { PublicDeckActionsMenu } from "@/features/decks/components/public-deck-actions-menu";
 import { PublicDeckSurface } from "@/features/decks/components/public-deck-surface";
 import { useCloneSharedDeck, usePublicDeck } from "@/features/decks/hooks/use-decks";
 import { useSession } from "@/hooks/use-session";
-import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -19,13 +19,8 @@ export function SharedDeckPage() {
   const isLoggedIn = Boolean(session?.user);
   const cloneMutation = useCloneSharedDeck();
   const navigate = useNavigate();
-  const signIn = useSignInSearch();
 
   const handleClone = async () => {
-    if (!isLoggedIn) {
-      void navigate(signIn);
-      return;
-    }
     let cloned: Awaited<ReturnType<typeof cloneMutation.mutateAsync>> | undefined;
     const ok = await runReportedMutation(async () => {
       cloned = await cloneMutation.mutateAsync({ token });
@@ -44,10 +39,17 @@ export function SharedDeckPage() {
       }
       heroActions={
         <>
-          <Button onClick={() => void handleClone()} pending={cloneMutation.isPending}>
-            <CopyIcon />
-            {isLoggedIn ? m.decks_share_copy_to_my_decks() : m.decks_share_sign_in_to_copy()}
-          </Button>
+          {isLoggedIn ? (
+            <Button onClick={() => void handleClone()} pending={cloneMutation.isPending}>
+              <CopyIcon />
+              {m.decks_share_copy_to_my_decks()}
+            </Button>
+          ) : (
+            <SignedOutAuthButtons
+              source="shared-deck"
+              signInLabel={m.decks_share_sign_in_to_copy()}
+            />
+          )}
           <PublicDeckActionsMenu
             deckId={data.deck.id}
             deckName={data.deck.name}

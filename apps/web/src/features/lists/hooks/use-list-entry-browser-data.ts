@@ -16,6 +16,7 @@ import {
   kindToView,
 } from "@/features/lists/lib/list-entries";
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
 import { useDisplayStore } from "@/stores/display-store";
@@ -117,7 +118,7 @@ export function useListEntryBrowserData({
   const filteredCount = showLibrary ? catalogFilteredCount : listFilteredCount;
   const searchAlternatives = showLibrary ? catalogSearchAlternatives : listSearchAlternatives;
 
-  const userLanguages = useDisplayStore((state) => state.languages);
+  const userLanguages = useDisplayLanguages();
   const userScopedPrintingsByCardId = filterPrintingsByLanguages(printingsByCardId, userLanguages);
 
   const { items, entryByItemId } = showLibrary

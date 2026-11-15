@@ -28,11 +28,15 @@ import { SelectionDetailPane } from "@/features/cards/components/selection-detai
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardSearchContext } from "@/features/cards/hooks/use-card-search-context";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { useCatalogOnDemand } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { useSearchAndCloseDetail } from "@/features/cards/hooks/use-search-and-close-detail";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import { groupByOptionsFor } from "@/features/cards/lib/group-by-field";
-import { buildPromoTreeFromMatches } from "@/features/cards/lib/promo-filters";
+import {
+  buildPromoTreeFromMatches,
+  withCatalogPrintedNames,
+} from "@/features/cards/lib/promo-filters";
 import {
   asPromoGrouping,
   PROMO_GROUPINGS,
@@ -49,6 +53,7 @@ import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-
 import { findSearchAlternatives } from "@/features/cards/lib/search-alternative";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { applyOwnedBucketFilter } from "@/features/collections/lib/owned-bucket";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useEnumOrders, useLanguageList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -96,7 +101,7 @@ function PromosBrowser() {
   const location = useLocation();
   const showImages = useDisplayStore((s) => s.showImages);
   const display = useCardThumbnailDisplay();
-  const languageOrder = useDisplayStore((s) => s.languages);
+  const languageOrder = useDisplayLanguages();
   const languageList = useLanguageList();
   const languageLabelMap = new Map(languageList.map((l) => [l.code, l.name]));
   const { data: session } = useSession();
@@ -163,11 +168,13 @@ function PromosBrowser() {
     languages: [activeLanguage],
     price: priceFilterEnabled ? ranges.price : { min: null, max: null },
   };
-  const searchContext = useCardSearchContext({
+  const pageSearchContext = useCardSearchContext({
     getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
     priceLookup: display.prices,
     getOwnedCount: (p) => ownedCountByPrinting?.[p.printingId],
   });
+  const { catalog } = useCatalogOnDemand(hydrated && cardFilters.search.trim() !== "");
+  const searchContext = withCatalogPrintedNames(pageSearchContext, catalog?.allPrintings);
   const matchPrintings = (search: string) => {
     const matches = filterCards(activePrintings, { ...cardFilters, search }, searchContext);
     return !ownedFilterActive || !isLoggedIn || !ownedCountByPrinting

@@ -45,6 +45,7 @@ import type { WorkbenchMode } from "@/features/decks/lib/deck-editor-search";
 import { dismissRelaxedAddToasts } from "@/features/decks/lib/workbench-add-toast";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSetOwnFeatureFlag } from "@/hooks/use-own-feature-flag";
@@ -167,7 +168,7 @@ function WorkbenchContent({
     setActiveZone(activeZone);
   }, [activeZone, setActiveZone]);
 
-  const preferredLanguages = useDisplayStore((state) => state.languages);
+  const preferredLanguages = useDisplayLanguages();
   const viewPrintingsByCardId =
     preferredLanguages.length === 0
       ? printingsByCardId

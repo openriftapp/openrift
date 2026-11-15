@@ -27,6 +27,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { visibleHelpArticles } from "@/features/marketing/components/articles";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useQuickCardSearch } from "@/hooks/use-quick-card-search";
 import { useSession } from "@/hooks/use-session";
@@ -36,7 +37,6 @@ import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import type { LockedFeatureKey } from "@/lib/nav-items";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
-import { useDisplayStore } from "@/stores/display-store";
 
 const SEARCH_DEPTH = 12;
 
@@ -49,7 +49,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { printingsByCardId } = useCards();
-  const preferredLanguages = useDisplayStore((state) => state.languages);
+  const preferredLanguages = useDisplayLanguages();
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
   const { data: flags } = useSuspenseQuery(featureFlagsQueryOptions);

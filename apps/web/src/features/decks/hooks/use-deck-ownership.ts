@@ -1,6 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { cheapestPricedPrinting } from "@openrift/shared/card-price";
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import { REQUIRED_ZONES, isCountedZone } from "@openrift/shared/deck-zones";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import { ownedTotalsByCard, sideKey } from "@openrift/shared/printing-side";
@@ -130,6 +131,7 @@ export function computeDeckOwnership(
   const claimedIncomingByCardId = new Map<string, number>();
 
   const byCardZone = new Map<string, CardOwnership>();
+  const byDeckEntry = new Map<string, CardOwnership>();
   const ownedPrintingByCardId = new Map<string, OwnershipPrinting>();
   const missingCards: CardOwnership[] = [];
   let totalNeeded = 0;
@@ -168,14 +170,33 @@ export function computeDeckOwnership(
     (left, right) => Number(isCountedZone(right.zone)) - Number(isCountedZone(left.zone)),
   );
 
+  // A row pinned to a printing takes its own owned copies first; the rest go out in row order.
+  const ownOwnedByRow = new Map<string, number>();
+  const ownClaimedByPrinting = new Map<string, number>();
+  for (const card of orderedCards) {
+    if (!card.preferredPrintingId || !ownedCountByPrinting || !isCountedZone(card.zone)) {
+      continue;
+    }
+    const printingKey = `${card.cardId}:${card.preferredPrintingId}`;
+    const claimed = ownClaimedByPrinting.get(printingKey) ?? 0;
+    const own = Math.min(
+      card.quantity,
+      Math.max(0, (ownedCountByPrinting[card.preferredPrintingId] ?? 0) - claimed),
+    );
+    ownOwnedByRow.set(deckCardKey(card), own);
+    ownClaimedByPrinting.set(printingKey, claimed + own);
+    claimedByCardId.set(card.cardId, (claimedByCardId.get(card.cardId) ?? 0) + own);
+  }
+
   for (const card of orderedCards) {
     const counted = isCountedZone(card.zone);
     const totalOwnedForCard = ownedByCardId.get(card.cardId) ?? 0;
+    const ownOwned = ownOwnedByRow.get(deckCardKey(card)) ?? 0;
     const alreadyClaimed = claimedByCardId.get(card.cardId) ?? 0;
     const availableForZone = Math.max(0, totalOwnedForCard - alreadyClaimed);
-    const ownedInZone = Math.min(card.quantity, availableForZone);
+    const ownedInZone = ownOwned + Math.min(card.quantity - ownOwned, availableForZone);
 
-    claimedByCardId.set(card.cardId, alreadyClaimed + ownedInZone);
+    claimedByCardId.set(card.cardId, alreadyClaimed + ownedInZone - ownOwned);
 
     const totalBorrowedForCard = borrowedByCardId.get(card.cardId) ?? 0;
     const alreadyClaimedBorrowed = claimedBorrowedByCardId.get(card.cardId) ?? 0;
@@ -261,6 +282,7 @@ export function computeDeckOwnership(
     const zoneKey = `${card.cardId}:${card.zone}`;
     const sameZone = byCardZone.get(zoneKey);
     byCardZone.set(zoneKey, sameZone ? mergeZoneEntries(sameZone, entry) : entry);
+    byDeckEntry.set(deckCardKey(card), entry);
 
     if (!counted) {
       continue;
@@ -357,6 +379,7 @@ export function computeDeckOwnership(
 
   return {
     byCardZone,
+    byDeckEntry,
     totalNeeded,
     totalOwned,
     requiredZoneNeeded,

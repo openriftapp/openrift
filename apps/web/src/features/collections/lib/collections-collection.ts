@@ -9,7 +9,10 @@ import { createCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
-import { watchFailedLoad } from "@/features/collections/lib/collection-load-failure";
+import {
+  STORE_LOAD_RETRY,
+  watchFailedLoad,
+} from "@/features/collections/lib/collection-load-failure";
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
 import type { CollectionsCollection } from "@/features/collections/lib/collections-write";
 import { persistCollectionMutations } from "@/features/collections/lib/collections-write";
@@ -44,6 +47,7 @@ export function getCollectionsCollection(
       queryKey: [...collectionsKeys.syncedStore(userId)],
       staleTime: 10 * MINUTE_MS,
       gcTime: 10 * MINUTE_MS,
+      ...STORE_LOAD_RETRY,
       queryFn: async (ctx) => {
         const response = await browserApiOrpcClient(collectionsContract).list(undefined, {
           signal: ctx.signal,

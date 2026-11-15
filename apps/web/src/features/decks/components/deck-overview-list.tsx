@@ -53,6 +53,7 @@ import type {
 } from "@/features/decks/lib/deck-overview-list-sort";
 import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-sort";
 import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
+import { rowOwnership } from "@/features/decks/lib/deck-ownership-types";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
@@ -222,8 +223,7 @@ export function DeckOverviewList({
     };
   };
 
-  const getEntry = (card: DeckBuilderCard) =>
-    ownership?.byCardZone.get(`${card.cardId}:${card.zone}`);
+  const getEntry = (card: DeckBuilderCard) => rowOwnership(ownership, card);
 
   const { data: borrowedLenders } = useBorrowedLenders();
   const reserved = reservedListCells(cards, getEntry, {
@@ -614,7 +614,7 @@ function ListRow({ draggable, ...props }: DeckListRowProps & { draggable: boolea
   if (draggable) {
     return <DraggableDeckListRow {...props} />;
   }
-  return <DeckListRow {...props} />;
+  return <DeckCardListRow {...props} />;
 }
 
 // The payload is byte-for-byte the grid thumbnail's `DeckCardDragData`, so
@@ -637,7 +637,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
   });
 
   return (
-    <DeckListRow
+    <DeckCardListRow
       {...props}
       dragRef={setNodeRef}
       dragProps={{ ...listeners, ...attributes }}
@@ -647,7 +647,7 @@ function DraggableDeckListRow(props: DeckListRowProps) {
 }
 
 // Hook-free so tests can render it on its own.
-export function DeckListRow({
+export function DeckCardListRow({
   card,
   copyIndex,
   entry,

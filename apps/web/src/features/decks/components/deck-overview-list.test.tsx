@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { labelMapOf } from "@openrift/shared/enum-label";
+import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { Domain } from "@openrift/shared/types/enums";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { stubCardOwnership, stubDeckBuilderCard } from "@/test/factories";
+import { computeDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
+import { rowOwnership } from "@/features/decks/lib/deck-ownership-types";
+import { stubCardOwnership, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
-import { DeckListRow, listRowCopies, reservedListCells } from "./deck-overview-list";
+import { DeckCardListRow, listRowCopies, reservedListCells } from "./deck-overview-list";
 
 const DOMAIN_COLORS = { fury: "#ff0000" };
 
@@ -33,7 +36,7 @@ function renderRow({
     domains: ["fury" as Domain],
   });
   const { container } = render(
-    <DeckListRow
+    <DeckCardListRow
       card={card}
       copyIndex={copyIndex}
       entry={stubCardOwnership({
@@ -65,7 +68,7 @@ const BOTH = { lock: true, borrowed: false, price: true };
 const NEITHER = { lock: false, borrowed: false, price: false };
 const WITH_BORROWED = { lock: true, borrowed: true, price: true };
 
-describe("DeckListRow", () => {
+describe("DeckCardListRow", () => {
   it("gives locked and unlocked rows the same cells once the list reserves the lock", () => {
     expect(renderRow({ locked: 0, price: 420, reserved: BOTH }).children.length).toBe(
       renderRow({ locked: 2, price: 420, reserved: BOTH }).children.length,
@@ -173,5 +176,47 @@ describe("listRowCopies", () => {
       { card: triple, copyIndex: 1 },
       { card: triple, copyIndex: 2 },
     ]);
+  });
+});
+
+describe("a card split across printings", () => {
+  it("shows each printing row its own owned share", () => {
+    const rows = [
+      stubDeckBuilderCard({ cardId: "c-1", quantity: 1, zone: "main", preferredPrintingId: null }),
+      stubDeckBuilderCard({ cardId: "c-1", quantity: 1, zone: "main", preferredPrintingId: "fr" }),
+    ];
+    const ownership = computeDeckOwnership(
+      rows,
+      [
+        stubPrinting({ printingId: "en", cardId: "c-1" }),
+        stubPrinting({ printingId: "fr", cardId: "c-1", language: "FR" }),
+      ],
+      { en: 1 },
+      "tcgplayer",
+      EMPTY_PRICE_LOOKUP,
+      ["EN", "FR"],
+    );
+    const shown = rows.map((card) => {
+      const { container } = render(
+        <DeckCardListRow
+          card={card}
+          entry={rowOwnership(ownership, card)}
+          rarityLabels={labelMapOf({})}
+          domainLabels={labelMapOf({})}
+          domainColors={DOMAIN_COLORS}
+          showOwnership
+          reserved={NEITHER}
+          fmtPrice={(cents) => `$${cents / 100}`}
+          resolveRowPrinting={() => ({
+            printing: undefined,
+            price: undefined,
+            hoverPrintingId: null,
+          })}
+        />,
+      );
+      return container.textContent ?? "";
+    });
+    expect(shown[0]).toContain("1/1");
+    expect(shown[1]).toContain("0/1");
   });
 });

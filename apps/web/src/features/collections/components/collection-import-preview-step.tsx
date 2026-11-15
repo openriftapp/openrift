@@ -150,7 +150,8 @@ export function CollectionImportPreviewStep({
 
       {problematicEntries.length > 0 && (
         <ImportRowsSection
-          title={m.collections_import_needs_review()}
+          surface="page"
+          title={m.collections_import_needs_attention()}
           count={problematicEntries.length}
         >
           {problematicEntries.map((item) => renderRow(item))}

@@ -23,13 +23,13 @@ export interface DeckDropData {
   disabled?: boolean;
 }
 
-export type AnyDragData = DeckCardDragData | BrowserCardDragData;
+export type DeckDragData = DeckCardDragData | BrowserCardDragData;
 
 /** For narrowing a dnd-kit payload with {@link asDragData}; the deck editor's own sortables produce payloads outside this list. */
 export const DECK_DRAG_TYPES = [
   "deck-card",
   "browser-card",
-] as const satisfies readonly AnyDragData["type"][];
+] as const satisfies readonly DeckDragData["type"][];
 
 export const DECK_DROP_TYPES = ["deck-zone"] as const satisfies readonly DeckDropData["type"][];
 
@@ -41,7 +41,7 @@ export const DRAG_SOURCE_ZONES: ReadonlySet<DeckZone> = new Set([
 
 /** Looked up by the row's full key (card, zone, printing): a deck can hold one card in one zone twice under different printings, as separate rows. */
 export function resolveDraggedCard(
-  dragData: AnyDragData | undefined,
+  dragData: DeckDragData | undefined,
   allCards: readonly DeckBuilderCard[],
 ): DeckBuilderCard | undefined {
   if (dragData?.type === "browser-card") {
@@ -66,7 +66,7 @@ const DRAG_ZONES = new Set<DeckZone>([
   WellKnown.deckZone.CHAMPION,
 ]);
 
-export function isDropRejected(activeData: AnyDragData, overData: DeckDropData): boolean {
+export function isDropRejected(activeData: DeckDragData, overData: DeckDropData): boolean {
   if (overData.disabled === true) {
     return true;
   }

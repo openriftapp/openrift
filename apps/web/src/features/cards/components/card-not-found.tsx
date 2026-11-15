@@ -18,10 +18,10 @@ import { PrintingThumbnail } from "@/features/cards/components/printing-option-c
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import { closestCard, slugToSearchText } from "@/features/cards/lib/closest-card";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { initQueryOptions } from "@/lib/init-queries";
 import { m } from "@/paraglide/messages.js";
-import { useDisplayStore } from "@/stores/display-store";
 
 export function CardNotFound() {
   const { cardSlug } = useParams({ strict: false });
@@ -58,7 +58,7 @@ function ClosestCardSlot({ query }: { query: string }) {
   const hydrated = useHydrated();
   const { data: catalog } = useQuery({ ...catalogQueryOptions, enabled: hydrated });
   const { data: init } = useQuery({ ...initQueryOptions, enabled: hydrated });
-  const languages = useDisplayStore((state) => state.languages);
+  const languages = useDisplayLanguages();
 
   const suggestion =
     hydrated && catalog !== undefined ? suggestCard(catalog, query, languages) : undefined;

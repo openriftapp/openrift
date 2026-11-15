@@ -21,7 +21,7 @@ import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-print
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { copyLimitTotal, runeAddRoom } from "@/features/decks/lib/deck-builder-card";
-import type { AnyDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
+import type { DeckDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
 import {
   DECK_DRAG_TYPES,
   DECK_DROP_TYPES,
@@ -169,7 +169,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const handleDragStart = (event: DragStartEvent) => {
     activeNodeRef.current = (event.activatorEvent.target as HTMLElement) ?? null;
 
-    const data = asDragData<AnyDragData>(event.active.data.current, DECK_DRAG_TYPES);
+    const data = asDragData<DeckDragData>(event.active.data.current, DECK_DRAG_TYPES);
     if (data?.type === "deck-card") {
       setDragInfo({
         cardId: data.cardId,
@@ -202,7 +202,7 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
     setDragInfo(null);
     activeNodeRef.current = null;
 
-    const activeData = asDragData<AnyDragData>(event.active.data.current, DECK_DRAG_TYPES);
+    const activeData = asDragData<DeckDragData>(event.active.data.current, DECK_DRAG_TYPES);
     const overData = asDragData<DeckDropData>(event.over?.data.current, DECK_DROP_TYPES);
 
     if (!activeData) {

@@ -9,7 +9,10 @@ import { BasicIndex, createCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
-import { watchFailedLoad } from "@/features/collections/lib/collection-load-failure";
+import {
+  STORE_LOAD_RETRY,
+  watchFailedLoad,
+} from "@/features/collections/lib/collection-load-failure";
 import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { mergeCopiesDelta } from "@/features/collections/lib/copies-delta";
 import { fetchCopies } from "@/features/collections/lib/copies-query";
@@ -55,6 +58,7 @@ export function getCopiesCollection(
       queryKey: [...copiesKeys.syncedStore(userId)],
       staleTime: 10 * MINUTE_MS,
       gcTime: 10 * MINUTE_MS,
+      ...STORE_LOAD_RETRY,
       queryFn: async (ctx) => {
         const previous = queryClient.getQueryData<CopyResponse[]>([
           ...copiesKeys.syncedStore(userId),

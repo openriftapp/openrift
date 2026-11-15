@@ -6,7 +6,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { watchFailedLoad } from "./collection-load-failure";
+import { STORE_LOAD_RETRY, watchFailedLoad } from "./collection-load-failure";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), dismiss: vi.fn() } }));
 
@@ -129,5 +129,52 @@ describe("watchFailedLoad", () => {
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.dismiss).not.toHaveBeenCalled();
     expect(store.health.reloading).toBe(false);
+  });
+});
+
+describe("STORE_LOAD_RETRY", () => {
+  const offline = new TypeError("Failed to fetch");
+
+  it("retries three times over about five and a half seconds", () => {
+    const delays = [0, 1, 2].map((attempt) => STORE_LOAD_RETRY.retryDelay(attempt));
+    expect(delays).toEqual([1000, 2000, 2500]);
+    expect([0, 1, 2, 3].map((count) => STORE_LOAD_RETRY.retry(count, offline))).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ]);
+  });
+
+  it("does not retry a refusal the server means", () => {
+    expect(STORE_LOAD_RETRY.retry(0, { name: "ApiError", message: "no", status: 404 })).toBe(false);
+  });
+
+  it("rides out a restart that clears on the third attempt without a toast", async () => {
+    vi.useFakeTimers();
+    queryClient = new QueryClient();
+    let calls = 0;
+    const store = createCollection(
+      queryCollectionOptions<Row>({
+        id: `restart-test-${crypto.randomUUID()}`,
+        queryClient,
+        queryKey: ["restart-test", crypto.randomUUID()],
+        ...STORE_LOAD_RETRY,
+        queryFn: () => {
+          calls++;
+          return calls < 3 ? Promise.reject(offline) : Promise.resolve([{ id: "a" }]);
+        },
+        getKey: (row) => row.id,
+      }),
+    );
+    watchFailedLoad(store, () => "Couldn't load your decks.");
+
+    const loaded = store.preload();
+    await vi.advanceTimersByTimeAsync(3500);
+    await loaded;
+    vi.useRealTimers();
+
+    expect(calls).toBe(3);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

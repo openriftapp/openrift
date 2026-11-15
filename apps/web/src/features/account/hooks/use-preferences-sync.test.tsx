@@ -59,6 +59,15 @@ const { useThemeStore } = await import("@/stores/theme-store");
 const { preferencesKeys } = await import("@/features/account/lib/account-query-keys");
 const { createStoreResetter } = await import("@/test/store-helpers");
 
+const { leaveAsSignedOut } = await import("@/stores/leave-as-signed-out");
+const { clearDisplayLanguagesCookie, DISPLAY_LANGUAGES_COOKIE } =
+  await import("@/lib/display-languages-cookie");
+const { readClientCookie } = await import("@/lib/shell-prefs");
+
+function languagesCookie(): string {
+  return readClientCookie(DISPLAY_LANGUAGES_COOKIE) ?? "";
+}
+
 const resetDisplay = createStoreResetter(useDisplayStore);
 const resetTheme = createStoreResetter(useThemeStore);
 const resetLocaleBanner = createStoreResetter(useLocaleBannerStore);
@@ -132,6 +141,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  clearDisplayLanguagesCookie();
 });
 
 describe("applyDisplayLocale", () => {
@@ -438,6 +448,47 @@ describe("usePreferencesSync", () => {
     });
 
     expect(failing).toHaveBeenCalledTimes(2);
+  });
+
+  it("writes the languages cookie once the account's preferences load", async () => {
+    stubFetch({ languages: ["DE"] } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+
+    await waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
+  });
+
+  it("leaves no languages cookie after signing out", async () => {
+    stubFetch({ languages: ["DE"] } as UserPreferencesResponse);
+    const { client, Wrapper } = wrap();
+    const { rerender } = renderHook(({ enabled }) => usePreferencesSync(enabled), {
+      initialProps: { enabled: true },
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
+
+    await act(async () => {
+      await leaveAsSignedOut(client, async () => {
+        signedInUser.id = null;
+      });
+    });
+    rerender({ enabled: false });
+
+    expect(languagesCookie()).toBe("");
+  });
+
+  it("drops the previous account's languages cookie before the next account's preferences load", async () => {
+    const server = stubFetch({ languages: ["DE"] } as UserPreferencesResponse);
+    const { Wrapper } = wrap();
+    const { rerender } = renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
+    await waitFor(() => expect(languagesCookie()).toBe("test-user-id|DE"));
+
+    server.setServerPrefs({ languages: ["FR"] } as UserPreferencesResponse);
+    signedInUser.id = "other-user-id";
+    rerender();
+
+    expect(languagesCookie()).toBe("");
+    await waitFor(() => expect(languagesCookie()).toBe("other-user-id|FR"));
   });
 
   // React Compiler cannot lower `??=` and bails out of the whole hook; this

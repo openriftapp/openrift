@@ -25,9 +25,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { IconToggleGroup } from "@/components/ui/icon-toggle-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColumnControls } from "@/features/cards/components/column-controls";
 import { LabelledRow, LabelledRowLayoutContext } from "@/features/cards/components/labelled-row";
@@ -136,60 +136,29 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
     return null;
   }
   return (
-    <ToggleGroup
+    <IconToggleGroup
       aria-label={m.cards_display_mode()}
       className={className}
-      variant="control"
-      size={compact ? "sm" : "default"}
-      spacing={0}
-      value={[displayMode]}
-      onValueChange={([next]) => {
-        if (next === "grid" || next === "table") {
-          setDisplayMode(next);
-        }
-      }}
-    >
-      {compact ? (
-        <ToggleGroupItem
-          value="grid"
-          className="gap-1.5 text-xs"
-          aria-label={m.cards_view_grid()}
-          title={m.cards_view_grid()}
-        >
-          <LayoutGridIcon />
-          {m.cards_grid()}
-        </ToggleGroupItem>
-      ) : (
-        <ToggleGroupItem
-          value="grid"
-
-          title={m.cards_view_grid()}
-          aria-label={m.cards_view_grid()}
-        >
-          <LayoutGridIcon className="size-4" />
-        </ToggleGroupItem>
-      )}
-      {compact ? (
-        <ToggleGroupItem
-          value="table"
-          className="gap-1.5 text-xs"
-          aria-label={m.cards_view_table()}
-          title={m.cards_view_table()}
-        >
-          <Rows3Icon />
-          {m.cards_table()}
-        </ToggleGroupItem>
-      ) : (
-        <ToggleGroupItem
-          value="table"
-
-          title={m.cards_view_table()}
-          aria-label={m.cards_view_table()}
-        >
-          <Rows3Icon className="size-4" />
-        </ToggleGroupItem>
-      )}
-    </ToggleGroup>
+      compact={compact}
+      value={displayMode}
+      onValueChange={setDisplayMode}
+      options={[
+        {
+          value: "grid",
+          icon: LayoutGridIcon,
+          label: m.cards_grid(),
+          title: m.cards_view_grid(),
+          ariaLabel: m.cards_view_grid(),
+        },
+        {
+          value: "table",
+          icon: Rows3Icon,
+          label: m.cards_table(),
+          title: m.cards_view_table(),
+          ariaLabel: m.cards_view_table(),
+        },
+      ]}
+    />
   );
 }
 
@@ -207,55 +176,37 @@ function ViewModeToggle({
   className?: string;
 }) {
   return (
-    <ToggleGroup
+    <IconToggleGroup
       aria-label={m.cards_view_mode()}
       className={className}
-      variant="control"
-      size={compact ? "sm" : "default"}
-      spacing={0}
-      value={[view]}
-      onValueChange={([next]) => {
-        if (next === "cards" || next === "printings" || (showCopies && next === "copies")) {
-          onViewChange(next);
-        }
-      }}
-    >
-      {compact ? (
-        <ToggleGroupItem value="cards" className="gap-1.5 text-xs">
-          <SquareIcon />
-          {m.cards_view_cards()}
-        </ToggleGroupItem>
-      ) : (
-        <ToggleGroupItem value="cards" title={m.cards_view_cards_title()}>
-          <SquareIcon className="size-4" />
-        </ToggleGroupItem>
-      )}
-      {compact ? (
-        <ToggleGroupItem value="printings" className="gap-1.5 text-xs">
-          <CopyIcon />
-          {m.cards_view_printings()}
-        </ToggleGroupItem>
-      ) : (
-        <ToggleGroupItem value="printings" title={m.cards_view_printings_title()}>
-          <CopyIcon className="size-4" />
-        </ToggleGroupItem>
-      )}
-      {showCopies &&
-        (compact ? (
-          <ToggleGroupItem value="copies" className="gap-1.5 text-xs">
-            <SquareStackIcon />
-            {m.cards_view_copies()}
-          </ToggleGroupItem>
-        ) : (
-          <ToggleGroupItem
-            value="copies"
-
-            title={m.cards_view_copies_title()}
-          >
-            <SquareStackIcon className="size-4" />
-          </ToggleGroupItem>
-        ))}
-    </ToggleGroup>
+      compact={compact}
+      value={view}
+      onValueChange={onViewChange}
+      options={[
+        {
+          value: "cards",
+          icon: SquareIcon,
+          label: m.cards_view_cards(),
+          title: m.cards_view_cards_title(),
+        },
+        {
+          value: "printings",
+          icon: CopyIcon,
+          label: m.cards_view_printings(),
+          title: m.cards_view_printings_title(),
+        },
+        ...(showCopies
+          ? [
+              {
+                value: "copies" as const,
+                icon: SquareStackIcon,
+                label: m.cards_view_copies(),
+                title: m.cards_view_copies_title(),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 }
 

@@ -3,13 +3,13 @@ import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { isCardAllowedInZone, isDeckZoneFullForDrag } from "@/features/decks/lib/deck-builder-card";
-import type { AnyDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
+import type { DeckDragData, DeckDropData } from "@/features/decks/lib/deck-dnd-data";
 import { DECK_DRAG_TYPES, resolveDraggedCard } from "@/features/decks/lib/deck-dnd-data";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { asDragData } from "@/lib/dnd-data";
 
 export function isZoneDropRejected(args: {
-  dragData: AnyDragData | undefined;
+  dragData: DeckDragData | undefined;
   zone: DeckZone;
   allCards: DeckBuilderCard[];
   format: DeckFormat;
@@ -43,7 +43,7 @@ export function useDeckZoneDrop(args: {
   const { id, zone, allCards, format, disabled } = args;
   const { active } = useDndContext();
   const relaxed = useWorkbenchStore((state) => state.relaxed);
-  const dragData = asDragData<AnyDragData>(active?.data.current, DECK_DRAG_TYPES);
+  const dragData = asDragData<DeckDragData>(active?.data.current, DECK_DRAG_TYPES);
   const dropDisabled = isZoneDropRejected({ dragData, zone, allCards, format, relaxed });
   const dropData: DeckDropData = { type: "deck-zone", zone, disabled: dropDisabled };
   const { setNodeRef, isOver } = useDroppable({ id, data: dropData, disabled });

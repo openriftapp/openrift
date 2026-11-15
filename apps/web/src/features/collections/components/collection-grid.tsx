@@ -52,6 +52,7 @@ import {
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
@@ -105,7 +106,7 @@ export function CollectionGrid({
 
   useSeedLanguagesFromPrefs(filters.languages);
 
-  const preferredLanguages = useDisplayStore((state) => state.languages);
+  const preferredLanguages = useDisplayLanguages();
 
   const {
     dataView,

@@ -432,6 +432,38 @@ describe("extractFirstRow", () => {
       expect(result.map((r) => r.printingId)).toEqual(["p-en"]);
     });
 
+    it("applies the signed-in viewer's display languages when the URL names none", () => {
+      const cards = { "card-1": makeCard() };
+      const printings = {
+        "p-en": makePrinting({ shortCode: "OGN-001", language: "EN" }),
+        "p-de": makePrinting({ shortCode: "OGN-001", language: "DE" }),
+      };
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        NO_FILTERS,
+        10,
+        undefined,
+        ["DE", "EN"],
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-de"]);
+    });
+
+    it("lets the URL languages win over the viewer's display languages", () => {
+      const cards = { "card-a": makeCard(), "card-b": makeCard() };
+      const printings = {
+        "p-de": makePrinting({ cardId: "card-a", shortCode: "OGN-001", language: "DE" }),
+        "p-en": makePrinting({ cardId: "card-b", shortCode: "OGN-002", language: "EN" }),
+      };
+      const result = extractFirstRow(
+        { catalog: makeCatalog(cards, printings), init: NO_INIT, prices: NO_PRICES },
+        { languages: ["EN"] },
+        10,
+        undefined,
+        ["DE"],
+      );
+      expect(result.map((r) => r.printingId)).toEqual(["p-en"]);
+    });
+
     it("applies the URL languages filter", () => {
       const cards = { "card-a": makeCard(), "card-b": makeCard() };
       const printings = {

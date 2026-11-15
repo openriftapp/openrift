@@ -1,3 +1,4 @@
+import { deckCardKey } from "@openrift/shared/deck-cards";
 import type { Rarity } from "@openrift/shared/types/enums";
 
 export interface OwnershipPrinting {
@@ -36,6 +37,8 @@ export interface CardOwnership {
 
 export interface DeckOwnershipData {
   byCardZone: Map<string, CardOwnership>;
+  /** One deck entry (a card in a zone as one printing), keyed by `deckCardKey`. */
+  byDeckEntry: Map<string, CardOwnership>;
   totalNeeded: number;
   totalOwned: number;
   requiredZoneNeeded: number;
@@ -56,4 +59,12 @@ export interface DeckOwnershipData {
   unpricedCount: number;
   missingUnpricedCount: number;
   missingCards: CardOwnership[];
+}
+
+/** A deck row's own share: rows of one card in one zone split its owned copies. */
+export function rowOwnership(
+  data: DeckOwnershipData | undefined,
+  card: { cardId: string; zone: string; preferredPrintingId: string | null },
+): CardOwnership | undefined {
+  return data?.byDeckEntry.get(deckCardKey(card));
 }

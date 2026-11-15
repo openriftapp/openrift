@@ -18,6 +18,10 @@ import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/hooks/use-session";
+import {
+  claimDisplayLanguagesCookie,
+  writeDisplayLanguagesCookie,
+} from "@/lib/display-languages-cookie";
 import { isDisplayLocale } from "@/lib/display-locale";
 import { sanitizePalette, sanitizeServerResponse, sanitizeTheme } from "@/lib/sanitize-preferences";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -113,6 +117,12 @@ function serializePrefs(): string {
   return JSON.stringify(getPrefsSnapshot());
 }
 
+function writeLoadedLanguages(userId: string | null): void {
+  if (userId) {
+    writeDisplayLanguagesCookie(userId, useDisplayStore.getState().languages);
+  }
+}
+
 /** Resolves false when the save failed, leaving `lastSynced` on the last confirmed value. */
 async function pushPrefs(
   queryClient: QueryClient,
@@ -157,6 +167,15 @@ export function usePreferencesSync(enabled: boolean) {
   });
 
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The account whose preferences reached the store; the languages cookie follows only those.
+  const languagesLoadedFor = useRef<string | null>(null);
+  const languages = useDisplayStore((state) => state.languages);
+  useEffect(() => {
+    if (enabled && userId && languagesLoadedFor.current === userId) {
+      writeDisplayLanguagesCookie(userId, languages);
+    }
+  }, [enabled, userId, languages]);
 
   async function save(keepalive: boolean) {
     if (!userId) {
@@ -214,6 +233,8 @@ export function usePreferencesSync(enabled: boolean) {
   // identity change so a sign-out reset isn't read as the next user's unsynced edit.
   useScopeEffect(userId, () => {
     lastSynced.current = serializePrefs();
+    languagesLoadedFor.current = null;
+    claimDisplayLanguagesCookie(userId);
   });
 
   useEffect(() => {
@@ -223,13 +244,18 @@ export function usePreferencesSync(enabled: boolean) {
 
     // An unsynced local edit outranks this payload, which was in flight before
     // the edit happened; skip it but still release the hydration signal.
+    if (userId) {
+      languagesLoadedFor.current = userId;
+    }
     if (lastSynced.current !== null && serializePrefs() !== lastSynced.current) {
       useDisplayStore.getState().markPrefsHydrated();
+      writeLoadedLanguages(userId);
       return;
     }
 
     const overrides = sanitizeServerResponse(data);
     useDisplayStore.getState().hydrateOverrides(overrides);
+    writeLoadedLanguages(userId);
 
     const theme = sanitizeTheme((data as Record<string, unknown>).theme);
     useThemeStore.getState().setTheme(theme);
@@ -249,7 +275,7 @@ export function usePreferencesSync(enabled: boolean) {
     // Recomputed from the stores, not `data`: hydrateOverrides merges, so a key
     // the server omitted keeps its local value.
     lastSynced.current = serializePrefs();
-  }, [data]);
+  }, [data, userId]);
 
   useEffect(() => {
     function onStoreChange() {

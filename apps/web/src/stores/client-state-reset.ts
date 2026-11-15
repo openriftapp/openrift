@@ -21,6 +21,7 @@ import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useDeckCheckViewStore } from "@/features/tournaments/stores/deck-check-view-store";
 import { cookieStorage } from "@/lib/cookie-storage";
+import { releaseDisplayLanguagesCookie } from "@/lib/display-languages-cookie";
 import { captureHandledError } from "@/lib/report-error";
 import { useDisplayStore } from "@/stores/display-store";
 import { useMilestoneBannerStore } from "@/stores/milestone-banner-store";
@@ -104,6 +105,13 @@ export const CLIENT_STATE: readonly ClientStateEntry[] = [
     keys: ["view-prefs-local"],
     phase: "before-leave",
     reset: () => resetToInitial(useLocalViewPrefsStore),
+  },
+  {
+    sources: ["lib/display-languages-cookie.ts"],
+    storage: "cookie",
+    keys: ["display-languages"],
+    phase: "before-leave",
+    reset: releaseDisplayLanguagesCookie,
   },
   {
     sources: ["stores/display-store.ts"],

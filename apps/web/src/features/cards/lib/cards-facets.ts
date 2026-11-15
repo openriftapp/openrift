@@ -37,6 +37,7 @@ import { ssrCardSearchContext } from "@/features/cards/lib/search-context";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import type { EnumLabels } from "@/lib/enum-labels";
 import { readInitFromServerCache } from "@/lib/init-queries";
+import { readViewerDisplayLanguages } from "@/lib/viewer-display-languages";
 
 // Both match PREFERENCE_DEFAULTS from shared/types/api/preferences.ts.
 export const SSR_MARKETPLACE: Marketplace = "cardtrader";
@@ -120,11 +121,14 @@ function presenceFromSearch(
 }
 
 /** Mirrors `useFilterValues`; the server has no search scope store, so it uses the default scope. */
-export function ssrSearchToFilters(search: FilterSearch) {
+export function ssrSearchToFilters(
+  search: FilterSearch,
+  viewerLanguages: readonly string[] | null = null,
+) {
   const filters = searchToFilters(search);
   return filters.languages.length > 0
     ? filters
-    : { ...filters, languages: [...PREFERENCE_DEFAULTS.languages] };
+    : { ...filters, languages: [...(viewerLanguages ?? PREFERENCE_DEFAULTS.languages)] };
 }
 
 export function searchToFilters(search: FilterSearch) {
@@ -188,12 +192,13 @@ export function extractCardCounts(
   prices: PricesResponse,
   init: Pick<InitResponse, "enums" | "keywords">,
   search: FilterSearch,
+  viewerLanguages: readonly string[] | null = null,
 ): CardCounts {
   const enriched = enrichCatalog(catalog);
   const { allPrintings } = enriched;
   const view = search.view ?? SSR_DEFAULT_VIEW;
   const lookup = priceLookupFromMap(prices.prices);
-  const filters = ssrSearchToFilters(search);
+  const filters = ssrSearchToFilters(search, viewerLanguages);
   const filtered = filterCards(
     allPrintings,
     filters,
@@ -204,7 +209,7 @@ export function extractCardCounts(
         getPrice: (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
         priceLookup: lookup,
       },
-      ssrCatalogPreloadLangs(search.languages),
+      ssrCatalogPreloadLangs(search.languages, viewerLanguages),
     ),
   );
 
@@ -345,36 +350,42 @@ export const fetchCardFacets = createServerFn({ method: "GET" }).handler(
 export const fetchCardCounts = createServerFn({ method: "GET" })
   .validator((input: FilterSearch) => input)
   .handler(async ({ data }): Promise<CardCounts> => {
-    const [catalog, prices, init] = await Promise.all([
+    const [catalog, prices, init, viewerLanguages] = await Promise.all([
       readCatalogFromServerCache(),
       readPricesFromServerCache(),
       readInitFromServerCache(),
+      readViewerDisplayLanguages(),
     ]);
-    return extractCardCounts(catalog, prices, init, data);
+    return extractCardCounts(catalog, prices, init, data, viewerLanguages);
   });
 
 export const fetchCardFilterCounts = createServerFn({ method: "GET" })
   .validator((input: FilterSearch) => input)
   .handler(async ({ data }): Promise<FilterCountsWire> => {
-    const [catalog, prices, init] = await Promise.all([
+    const [catalog, prices, init, viewerLanguages] = await Promise.all([
       readCatalogFromServerCache(),
       readPricesFromServerCache(),
       readInitFromServerCache(),
+      readViewerDisplayLanguages(),
     ]);
     const enriched = enrichCatalog(catalog);
     const lookup = priceLookupFromMap(prices.prices);
     const view = data.view ?? SSR_DEFAULT_VIEW;
-    const counts = computeFilterCounts(enriched.allPrintings, ssrSearchToFilters(data), {
-      ...ssrCardSearchContext(
-        enriched,
-        init,
-        {
-          getPrice: (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
-          priceLookup: lookup,
-        },
-        ssrCatalogPreloadLangs(data.languages),
-      ),
-      countBy: view === "cards" ? "card" : "printing",
-    });
+    const counts = computeFilterCounts(
+      enriched.allPrintings,
+      ssrSearchToFilters(data, viewerLanguages),
+      {
+        ...ssrCardSearchContext(
+          enriched,
+          init,
+          {
+            getPrice: (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE),
+            priceLookup: lookup,
+          },
+          ssrCatalogPreloadLangs(data.languages, viewerLanguages),
+        ),
+        countBy: view === "cards" ? "card" : "printing",
+      },
+    );
     return toWireFilterCounts(counts);
   });

@@ -10,8 +10,8 @@ import {
   noCatalogQueryOptions,
 } from "@/features/cards/lib/catalog-queries";
 import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useDisplayStore } from "@/stores/display-store";
 
 export function useCards(): UseCardsResult {
   return useCatalog(use(CatalogSubsetContext));
@@ -33,7 +33,7 @@ function useCatalog(subset: UseCardsResult | null): UseCardsResult {
   // React Query's structural sharing can't preserve identity for a shape
   // containing a Map; `enrichCatalog` memoizes by input identity instead.
   const { data } = useSuspenseQuery(options);
-  const userLanguages = useDisplayStore((state) => state.languages);
+  const userLanguages = useDisplayLanguages();
   useCatalogTail(subset === null ? data : null);
   return inLanguageOrder(subset ?? data, userLanguages);
 }
@@ -43,7 +43,7 @@ export function useCatalogOnDemand(enabled: boolean): {
   error: Error | null;
 } {
   const { data, error } = useQuery({ ...catalogQueryOptions, enabled });
-  const userLanguages = useDisplayStore((state) => state.languages);
+  const userLanguages = useDisplayLanguages();
   useCatalogTail(data ?? null);
   return { catalog: data && inLanguageOrder(data, userLanguages), error };
 }

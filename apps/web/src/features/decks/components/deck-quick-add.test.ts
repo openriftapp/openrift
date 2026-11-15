@@ -63,6 +63,54 @@ describe("buildTargets", () => {
     ]);
   });
 
+  it("leads with the main deck for a champion that does not match the legend", () => {
+    const legend = stubDeckBuilderCard({
+      cardTypes: ["legend" as CardType],
+      zone: "legend" as DeckZone,
+      tags: ["Jinx"],
+    });
+    const champion = stubDeckBuilderCard({
+      cardTypes: ["unit" as CardType],
+      superTypes: ["champion" as SuperType],
+      tags: ["Annie"],
+    });
+    const targets = buildTargets(champion, [legend], CONSTRUCTED, TEST_ZONE_LABELS);
+    expect(targets.map((target) => target.zone)).toEqual([
+      WellKnown.deckZone.MAIN,
+      WellKnown.deckZone.SIDEBOARD,
+      WellKnown.deckZone.CHAMPION,
+    ]);
+  });
+
+  it("leads with the main deck when a champion is already chosen", () => {
+    const chosen = stubDeckBuilderCard({
+      cardTypes: ["unit" as CardType],
+      superTypes: ["champion" as SuperType],
+      zone: "champion" as DeckZone,
+    });
+    const champion = stubDeckBuilderCard({
+      cardTypes: ["unit" as CardType],
+      superTypes: ["champion" as SuperType],
+    });
+    const targets = buildTargets(champion, [chosen], CONSTRUCTED, TEST_ZONE_LABELS);
+    expect(targets[0]?.zone).toBe(WellKnown.deckZone.MAIN);
+  });
+
+  it("leads with the champion zone for a champion that matches the legend", () => {
+    const legend = stubDeckBuilderCard({
+      cardTypes: ["legend" as CardType],
+      zone: "legend" as DeckZone,
+      tags: ["Jinx"],
+    });
+    const champion = stubDeckBuilderCard({
+      cardTypes: ["unit" as CardType],
+      superTypes: ["champion" as SuperType],
+      tags: ["Jinx"],
+    });
+    const targets = buildTargets(champion, [legend], CONSTRUCTED, TEST_ZONE_LABELS);
+    expect(targets[0]?.zone).toBe(WellKnown.deckZone.CHAMPION);
+  });
+
   it("disables zones once the cross-zone copy cap is reached", () => {
     const unit = stubDeckBuilderCard({ cardTypes: ["unit" as CardType] });
     const inDeck = stubDeckBuilderCard({

@@ -17,6 +17,7 @@ import {
   ensureCatalogComplete,
   hasPrintingsOutside,
   primaryCatalogLanguages,
+  ssrCatalogPreloadLangs,
 } from "./catalog-queries";
 
 function wireCatalog(
@@ -93,6 +94,21 @@ describe("primaryCatalogLanguages", () => {
   it("returns null when no language source is known", () => {
     setPreferredLanguages([]);
     expect(primaryCatalogLanguages()).toBeNull();
+  });
+});
+
+describe("ssrCatalogPreloadLangs", () => {
+  it("preloads the signed-in viewer's languages the client fetch asks for", () => {
+    setPreferredLanguages(["FR", "EN"]);
+    expect(ssrCatalogPreloadLangs(undefined, ["FR", "EN"])).toEqual(primaryCatalogLanguages());
+  });
+
+  it("lets the URL languages win over the viewer's languages", () => {
+    expect(ssrCatalogPreloadLangs(["sc"], ["FR"])).toEqual(["SC"]);
+  });
+
+  it("preloads the defaults without viewer languages", () => {
+    expect(ssrCatalogPreloadLangs(undefined)).toEqual(["EN"]);
   });
 });
 

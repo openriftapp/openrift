@@ -31,7 +31,7 @@ import {
 import { CollectionSidebar } from "@/features/collections/components/collection-sidebar";
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import type {
-  AnyDragData,
+  CollectionDragData,
   CardDragData,
   ListEntryDragData,
 } from "@/features/collections/lib/dnd-types";
@@ -90,7 +90,7 @@ export function CollectionLayout() {
   const search = routeApi.useSearch();
   const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarSlot);
-  const [activeDrag, setActiveDrag] = useState<AnyDragData | null>(null);
+  const [activeDrag, setActiveDrag] = useState<CollectionDragData | null>(null);
   // null → one copy, "all" → Shift held, number → digit key 2-9 held. Only
   // meaningful for `collection-card` drags; list-entry drags carry the whole entry.
   const [moveModifier, setMoveModifier] = useState<"all" | number | null>(null);
@@ -160,7 +160,7 @@ export function CollectionLayout() {
 
   const handleDragStart = (event: DragStartEvent) => {
     dragActiveRef.current = true;
-    const data = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
+    const data = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
     if (data?.type === "collection-card") {
       setActiveDrag(resolveSelectionDrag(data));
       return;
@@ -172,7 +172,7 @@ export function CollectionLayout() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
-    const raw = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
+    const raw = asDragData<CollectionDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
     const dragData = raw?.type === "list-entry" ? resolveListEntryDrag(raw) : raw;
     // Rule entries have no row to move, so a drag carrying one copies everything.
     const carriesRuleEntry =

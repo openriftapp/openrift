@@ -1710,7 +1710,7 @@
       }
     }
   ],
-  "collections_import_needs_review": "À vérifier",
+  "collections_import_needs_attention": "À corriger",
   "collections_deck_import_cards_section": "Cartes",
   "collections_import_dialog_title": "Importer des cartes",
   "collections_import_paste_hint": "Collez ou importez un export CSV, ou une liste simple avec un {#code}quantité nomdelacarte{/code} par ligne.",
@@ -1787,7 +1787,16 @@
   "collections_import_replace_all": "Remplacer les {count}",
   "collections_import_badge_ready": "{count} prêtes",
   "collections_import_badge_to_verify": "{count} à vérifier",
-  "collections_import_badge_need_attention": "{count} à corriger",
+  "collections_import_badge_need_attention": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} à corriger",
+        "countPlural=*": "{count} à corriger"
+      }
+    }
+  ],
   "collections_import_badge_skipped": "{count} ignorées",
   "collections_import_jump_aria": [
     {
@@ -1835,6 +1844,7 @@
   "collections_import_expand_details": "Afficher les détails de l'import",
   "collections_import_toggle_details": "Afficher ou masquer les détails de l'import",
   "collections_import_did_you_mean": "Vouliez-vous dire {#em}{name}{/em} ?",
+  "collections_import_which_printing": "Quelle impression de {#em}{name}{/em} ?",
   "collections_import_close_search": "Fermer la recherche",
   "collections_import_search_catalog": "Rechercher dans le catalogue",
   "collections_import_skip": "Ignorer",

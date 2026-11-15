@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { stubPrinting } from "@/test/factories";
 
 import type { MatchedEntry } from "./import-matcher";
-import { matchEntries, promoteToExact } from "./import-matcher";
+import { matchEntries, promoteToExact, suggestionRepeatsName } from "./import-matcher";
 import type { ImportEntry } from "./import-parsers";
 
 function makePrinting(
@@ -452,5 +452,19 @@ describe("promoteToExact", () => {
   it("leaves unresolved entries with no candidates alone", () => {
     const input = matchedEntry({ status: "unresolved", candidates: [], resolvedPrinting: null });
     expect(promoteToExact(input)).toBe(input);
+  });
+});
+
+describe("suggestionRepeatsName", () => {
+  it("is true when the suggestion is the name the row gives", () => {
+    expect(suggestionRepeatsName(matchedEntry({ suggestedName: "Teemo, Scout" }))).toBe(true);
+    expect(suggestionRepeatsName(matchedEntry({ suggestedName: "teemo scout" }))).toBe(true);
+  });
+
+  it("is false for a different name or no suggestion", () => {
+    expect(suggestionRepeatsName(matchedEntry({ suggestedName: "Teemo, Swift Scout" }))).toBe(
+      false,
+    );
+    expect(suggestionRepeatsName(matchedEntry({}))).toBe(false);
   });
 });

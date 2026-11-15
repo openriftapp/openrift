@@ -58,7 +58,7 @@ export interface SidebarReorderListDragData {
   intent: ListIntent;
 }
 
-export type AnyDragData =
+export type CollectionDragData =
   | CardDragData
   | ListEntryDragData
   | SidebarReorderCollectionDragData
@@ -73,16 +73,16 @@ export const COLLECTION_DRAG_TYPES = [
   "list-entry",
   "sidebar-reorder-collection",
   "sidebar-reorder-list",
-] as const satisfies readonly AnyDragData["type"][];
+] as const satisfies readonly CollectionDragData["type"][];
 
 /** The drags that carry cards, as opposed to the ones that reorder the sidebar. */
 export const CARD_CARRYING_DRAG_TYPES = [
   "collection-card",
   "list-entry",
-] as const satisfies readonly AnyDragData["type"][];
+] as const satisfies readonly CollectionDragData["type"][];
 
 /** The sidebar's own reorder drags, which every card drop target stands down for. */
 export const SIDEBAR_REORDER_DRAG_TYPES = [
   "sidebar-reorder-collection",
   "sidebar-reorder-list",
-] as const satisfies readonly AnyDragData["type"][];
+] as const satisfies readonly CollectionDragData["type"][];

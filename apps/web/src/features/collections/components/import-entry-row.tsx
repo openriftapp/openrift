@@ -26,6 +26,7 @@ import {
 } from "@/features/collections/components/import-row-shell";
 import { IMPORT_BUCKET_ICONS } from "@/features/collections/lib/import-bucket-icons";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
+import { suggestionRepeatsName } from "@/features/collections/lib/import-matcher";
 import { importSpecialties } from "@/features/collections/lib/import-specialties";
 import { getImportBucket } from "@/features/collections/lib/import-summary";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -91,7 +92,11 @@ export function ImportEntryRow({
             {entry.suggestedName && (
               <span className="text-muted-foreground text-xs">
                 <ParaglideMessage
-                  message={m.collections_import_did_you_mean}
+                  message={
+                    suggestionRepeatsName(entry)
+                      ? m.collections_import_which_printing
+                      : m.collections_import_did_you_mean
+                  }
                   inputs={{ name: entry.suggestedName }}
                   markup={{ em: ({ children }) => <em>{children}</em> }}
                 />

@@ -1710,7 +1710,7 @@
       }
     }
   ],
-  "collections_import_needs_review": "需要核对",
+  "collections_import_needs_attention": "需处理",
   "collections_deck_import_cards_section": "卡牌",
   "collections_import_dialog_title": "导入卡牌",
   "collections_import_paste_hint": "粘贴或上传 CSV 导出文件，也可以是每行一条{#code}数量 卡牌名{/code}的纯文本清单。",
@@ -1787,7 +1787,16 @@
   "collections_import_replace_all": "全部替换为{count}张",
   "collections_import_badge_ready": "{count}条就绪",
   "collections_import_badge_to_verify": "{count}条待核对",
-  "collections_import_badge_need_attention": "{count}条需处理",
+  "collections_import_badge_need_attention": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count}条需处理",
+        "countPlural=*": "{count}条需处理"
+      }
+    }
+  ],
   "collections_import_badge_skipped": "{count}条已跳过",
   "collections_import_jump_aria": [
     {
@@ -1835,6 +1844,7 @@
   "collections_import_expand_details": "展开导入详情",
   "collections_import_toggle_details": "切换导入详情",
   "collections_import_did_you_mean": "你是想找{#em}{name}{/em}吗？",
+  "collections_import_which_printing": "{#em}{name}{/em} 的哪个版本？",
   "collections_import_close_search": "关闭搜索",
   "collections_import_search_catalog": "搜索卡牌目录",
   "collections_import_skip": "跳过",

@@ -1,6 +1,6 @@
-import { enumLabel } from "@openrift/shared/enum-label";
 import { imageSrcSet, imageUrl } from "@openrift/shared/image-url";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
+import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import {
+  cardLanguageName,
   isSetUpcoming,
   otherReleases,
   primaryRelease,
@@ -26,11 +27,10 @@ import {
   releaseStatusText,
   setsOverviewSentence,
 } from "@/features/cards/lib/set-hero-copy";
+import { useDisplayLanguages } from "@/hooks/use-display-languages";
 import { useLanguageLabels } from "@/hooks/use-enums";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-import { useDisplayStore } from "@/stores/display-store";
 
 function SetCover({ set }: { set: SetListEntry }) {
   if (set.coverImageId) {
@@ -88,7 +88,9 @@ function ReleaseDate({ set, languages }: { set: SetListEntry; languages: readonl
           <PopoverContent align="start" className="w-auto min-w-48 gap-1.5">
             {others.map(({ language, release }) => (
               <div key={language} className="flex justify-between gap-4">
-                <span className="text-muted-foreground">{enumLabel(languageLabels, language)}</span>
+                <span className="text-muted-foreground">
+                  {cardLanguageName(language, languageLabels)}
+                </span>
                 <span className="tabular-nums">{releaseDateText(release)}</span>
               </div>
             ))}
@@ -119,12 +121,9 @@ function SetCounts({ set }: { set: SetListEntry }) {
   );
 }
 
-const SSR_CARD_LANGUAGES: readonly string[] = ["EN"];
-
 function useCardLanguages(): readonly string[] {
-  const hydrated = useHydrated();
-  const languages = useDisplayStore((state) => state.languages);
-  return hydrated && languages.length > 0 ? languages : SSR_CARD_LANGUAGES;
+  const languages = useDisplayLanguages();
+  return languages.length > 0 ? languages : PREFERENCE_DEFAULTS.languages;
 }
 
 function HeroSetCard({ set }: { set: SetListEntry }) {

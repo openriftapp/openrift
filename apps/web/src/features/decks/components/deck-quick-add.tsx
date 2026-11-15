@@ -1,4 +1,8 @@
-import { requiredLegendOptions, totalQuantity } from "@openrift/shared/deck-rules";
+import {
+  championSharesTagWithLegend,
+  requiredLegendOptions,
+  totalQuantity,
+} from "@openrift/shared/deck-rules";
 import { zoneExpected } from "@openrift/shared/deck-zones";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import { enumLabel } from "@openrift/shared/enum-label";
@@ -102,9 +106,29 @@ export function buildTargets(
         : isLegend
           ? [WellKnown.deckZone.LEGEND]
           : builderCard.superTypes.includes(WellKnown.superType.CHAMPION)
-            ? [WellKnown.deckZone.CHAMPION, WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD]
+            ? championZones(builderCard, deckCards, format)
             : [WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD],
   );
+}
+
+// The champion slot holds one card, so an add there replaces the chosen champion.
+function championZones(
+  builderCard: DeckBuilderCard,
+  deckCards: DeckBuilderCard[],
+  format: DeckFormat,
+): DeckZone[] {
+  const legends = deckCards.filter((card) => card.zone === WellKnown.deckZone.LEGEND);
+  const asChampion = { ...builderCard, zone: WellKnown.deckZone.CHAMPION, quantity: 1 };
+  const toDeckCard = (card: DeckBuilderCard) => ({ ...card, customTagSlugs: [] });
+  const matchesLegend =
+    championSharesTagWithLegend({
+      format,
+      cards: [...legends, asChampion].map((card) => toDeckCard(card)),
+    }).length === 0;
+  const slotFree = !deckCards.some((card) => card.zone === WellKnown.deckZone.CHAMPION);
+  return matchesLegend && slotFree
+    ? [WellKnown.deckZone.CHAMPION, WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD]
+    : [WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD, WellKnown.deckZone.CHAMPION];
 }
 
 interface DeckQuickAddProps {

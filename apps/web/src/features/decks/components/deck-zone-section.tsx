@@ -41,6 +41,7 @@ import {
   TYPE_GROUP_ORDER,
 } from "@/features/decks/lib/deck-card-sort";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
+import { rowOwnership } from "@/features/decks/lib/deck-ownership-types";
 import { zoneAddLabel, zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useWorkbenchStore } from "@/features/decks/stores/workbench-store";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
@@ -179,7 +180,7 @@ export function DeckZoneSection({
 
   const printingLabels = labelEntryPrintings(cards);
   const renderCardRow = (card: DeckBuilderCard) => {
-    const entry = ownership?.byCardZone.get(`${card.cardId}:${zone}`);
+    const entry = rowOwnership(ownership, card);
     return (
       <DeckCardPrintingMenu
         key={deckCardKey(card)}

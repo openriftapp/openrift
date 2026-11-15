@@ -5,6 +5,14 @@ import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/features")({
+  loader: async ({ context }) => {
+    // The vignettes render without card art when the summary is missing.
+    const { landingSummaryQueryOptions } =
+      await import("@/features/marketing/lib/landing-summary-queries");
+    await context.queryClient
+      .query({ ...landingSummaryQueryOptions, staleTime: "static" })
+      .catch(() => null);
+  },
   head: () =>
     seoHead({
       siteUrl: getSiteUrl(),

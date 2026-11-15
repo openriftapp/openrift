@@ -109,21 +109,31 @@ export function ImportPreviewStack({
 }
 
 // `render` lets a list that needs its own root element (the deck step's Accordion) supply one.
+// On a page the row bleed stops at the page gutter, which is narrower than a dialog's padding on phones.
+const ROW_BLEED = {
+  dialog: "-mx-4",
+  page: "-ml-[min(1rem,var(--gutter-left))] -mr-[min(1rem,var(--gutter-right))]",
+} as const;
+
 export function ImportRowsSection({
   title,
   count,
   render,
+  surface = "dialog",
   children,
 }: {
   title: ReactNode;
   count?: number;
   render?: useRender.ComponentProps<"div">["render"];
+  surface?: keyof typeof ROW_BLEED;
   children: ReactNode;
 }) {
   return (
     <section className="space-y-4">
       <SectionHeading count={count}>{title}</SectionHeading>
-      <ImportRowList render={render}>{children}</ImportRowList>
+      <ImportRowList render={render} className={ROW_BLEED[surface]}>
+        {children}
+      </ImportRowList>
     </section>
   );
 }
@@ -131,7 +141,7 @@ export function ImportRowsSection({
 function ImportRowList({ className, render, ...props }: useRender.ComponentProps<"div">) {
   return useRender({
     defaultTagName: "div",
-    props: mergeProps<"div">({ className: cn("divide-border -mx-4 divide-y", className) }, props),
+    props: mergeProps<"div">({ className: cn("divide-border divide-y", className) }, props),
     render,
   });
 }

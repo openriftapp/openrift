@@ -1710,7 +1710,7 @@
       }
     }
   ],
-  "collections_import_needs_review": "Needs review",
+  "collections_import_needs_attention": "Needs attention",
   "collections_deck_import_cards_section": "Cards",
   "collections_import_dialog_title": "Import cards",
   "collections_import_paste_hint": "Paste or upload a CSV export, or a plain list with one {#code}quantity cardname{/code} per line.",
@@ -1787,7 +1787,16 @@
   "collections_import_replace_all": "Replace all {count}",
   "collections_import_badge_ready": "{count} ready",
   "collections_import_badge_to_verify": "{count} to verify",
-  "collections_import_badge_need_attention": "{count} need attention",
+  "collections_import_badge_need_attention": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} needs attention",
+        "countPlural=*": "{count} need attention"
+      }
+    }
+  ],
   "collections_import_badge_skipped": "{count} skipped",
   "collections_import_jump_aria": [
     {
@@ -1835,6 +1844,7 @@
   "collections_import_expand_details": "Expand import details",
   "collections_import_toggle_details": "Toggle import details",
   "collections_import_did_you_mean": "Did you mean {#em}{name}{/em}?",
+  "collections_import_which_printing": "Which printing of {#em}{name}{/em}?",
   "collections_import_close_search": "Close search",
   "collections_import_search_catalog": "Search catalog",
   "collections_import_skip": "Skip",

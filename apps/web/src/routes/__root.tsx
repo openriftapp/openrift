@@ -26,6 +26,7 @@ import { RouteNotFoundFallback } from "@/components/error-message";
 import "@/lib/debug/memo-cache-trace";
 import { useReferralCapture } from "@/features/account/hooks/use-referral";
 import { useBrowserLocale } from "@/hooks/use-browser-locale";
+import { ServerDisplayLanguagesProvider } from "@/hooks/use-display-languages";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
@@ -47,6 +48,7 @@ import { siteSettingsQueryOptions } from "@/lib/site-settings";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import type { CookieViewSurface, ViewPrefsBlob } from "@/lib/view-prefs";
 import { resolveViewPrefsFromCookie, VIEW_PREFS_COOKIE } from "@/lib/view-prefs";
+import { readViewerDisplayLanguages } from "@/lib/viewer-display-languages";
 import { getLocale } from "@/paraglide/runtime.js";
 
 // CSS ?url import causes a harmless hydration warning in dev (Vite appends
@@ -83,6 +85,10 @@ const getServerPalette = createServerFn({ method: "GET" }).handler((): Palette =
 const getServerViewPrefs = createServerFn({ method: "GET" }).handler(
   (): ViewPrefsBlob<CookieViewSurface> =>
     resolveViewPrefsFromCookie(getShellCookie(VIEW_PREFS_COOKIE)),
+);
+
+const getServerDisplayLanguages = createServerFn({ method: "GET" }).handler(
+  (): Promise<readonly string[] | null> => readViewerDisplayLanguages(),
 );
 
 const getServerDefaultShell = createServerFn({ method: "GET" }).handler((): boolean =>
@@ -196,23 +202,40 @@ export const Route = createRootRouteWithContext<{
         resolvedTheme,
         resolvedPalette,
         resolvedViewPrefs,
+        displayLanguages: null,
         defaultShell: false,
         sentryDsn,
         appEnv,
       };
     }
-    const [resolvedTheme, resolvedPalette, resolvedViewPrefs, defaultShell, sentryDsn, appEnv] =
-      await Promise.all([
-        getServerTheme(),
-        getServerPalette(),
-        getServerViewPrefs(),
-        getServerDefaultShell(),
-        getServerSentryDsn(),
-        getServerAppEnv(),
-        flagsReady,
-        settingsReady,
-      ]);
-    return { resolvedTheme, resolvedPalette, resolvedViewPrefs, defaultShell, sentryDsn, appEnv };
+    const [
+      resolvedTheme,
+      resolvedPalette,
+      resolvedViewPrefs,
+      displayLanguages,
+      defaultShell,
+      sentryDsn,
+      appEnv,
+    ] = await Promise.all([
+      getServerTheme(),
+      getServerPalette(),
+      getServerViewPrefs(),
+      getServerDisplayLanguages(),
+      getServerDefaultShell(),
+      getServerSentryDsn(),
+      getServerAppEnv(),
+      flagsReady,
+      settingsReady,
+    ]);
+    return {
+      resolvedTheme,
+      resolvedPalette,
+      resolvedViewPrefs,
+      displayLanguages,
+      defaultShell,
+      sentryDsn,
+      appEnv,
+    };
   },
   component: RootComponent,
   notFoundComponent: RouteNotFoundFallback,
@@ -254,7 +277,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { resolvedViewPrefs, defaultShell } = Route.useRouteContext();
+  const { resolvedViewPrefs, displayLanguages, defaultShell } = Route.useRouteContext();
   useBrowserLocale();
   useReferralCapture(useUserId());
   const hydrated = useHydrated();
@@ -269,7 +292,9 @@ function RootComponent() {
           -z-10 layer paints above this background instead of behind it. */}
       <div className="bg-background text-foreground isolate flex min-h-screen flex-col">
         <ResolvedViewPrefsProvider value={viewPrefs}>
-          <Outlet />
+          <ServerDisplayLanguagesProvider value={displayLanguages}>
+            <Outlet />
+          </ServerDisplayLanguagesProvider>
         </ResolvedViewPrefsProvider>
       </div>
       {/* Outside the isolate div: portalled sheets and dialogs sit at body level. */}

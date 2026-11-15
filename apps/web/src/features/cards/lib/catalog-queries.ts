@@ -111,9 +111,14 @@ function normalizeCatalogLangs(langs: readonly string[]): string[] {
   return [...new Set(langs.map((lang) => lang.toUpperCase()))].sort();
 }
 
-export function ssrCatalogPreloadLangs(urlLanguages: readonly string[] | undefined): string[] {
+export function ssrCatalogPreloadLangs(
+  urlLanguages: readonly string[] | undefined,
+  viewerLanguages: readonly string[] | null = null,
+): string[] {
   return normalizeCatalogLangs(
-    urlLanguages && urlLanguages.length > 0 ? urlLanguages : PREFERENCE_DEFAULTS.languages,
+    urlLanguages && urlLanguages.length > 0
+      ? urlLanguages
+      : (viewerLanguages ?? PREFERENCE_DEFAULTS.languages),
   );
 }
 

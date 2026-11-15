@@ -5,7 +5,7 @@ import { GripVerticalIcon } from "lucide-react";
 import type { CSSProperties, ReactNode, TouchEvent } from "react";
 
 import type {
-  AnyDragData,
+  CollectionDragData,
   SidebarReorderCollectionDragData,
   SidebarReorderListDragData,
 } from "@/features/collections/lib/dnd-types";
@@ -31,7 +31,7 @@ interface SortableSidebarRowProps {
 export function SortableSidebarRow({ id, data, label, children }: SortableSidebarRowProps) {
   const { active } = useDndContext();
   const isReorderActive =
-    asDragData<AnyDragData>(active?.data.current, SIDEBAR_REORDER_DRAG_TYPES) !== undefined;
+    asDragData<CollectionDragData>(active?.data.current, SIDEBAR_REORDER_DRAG_TYPES) !== undefined;
 
   // Destructure into locals: the React Compiler treats member access on the
   // hook's return object as a ref read during render and bails.

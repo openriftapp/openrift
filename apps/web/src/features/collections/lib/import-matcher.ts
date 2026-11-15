@@ -1,4 +1,4 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
+import { legendDisplayName, normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { CardResolution, CardSearchIndex, CodeIndex } from "@openrift/shared/card-search";
 import { buildCodeIndex, lookupCode, resolveCard } from "@openrift/shared/card-search";
 import { squashForSearch } from "@openrift/shared/search-fold";
@@ -328,6 +328,15 @@ function matchSingleEntry(
     resolvedPrinting: null,
     candidates: [],
   };
+}
+
+/** The suggestion is the name the row already gives, so only the printing is undecided. */
+export function suggestionRepeatsName(matched: MatchedEntry): boolean {
+  return (
+    matched.suggestedName !== undefined &&
+    normalizeNameForIdentity(matched.suggestedName) ===
+      normalizeNameForIdentity(matched.entry.cardName)
+  );
 }
 
 export function promoteToExact(matched: MatchedEntry): MatchedEntry {

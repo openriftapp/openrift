@@ -180,6 +180,7 @@ export function DeckImportPreviewStep({
         />
 
         <ImportRowsSection
+          surface="page"
           title={m.collections_deck_import_cards_section()}
           count={matchedEntries.length}
           render={
