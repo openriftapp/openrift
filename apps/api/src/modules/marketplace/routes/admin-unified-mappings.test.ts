@@ -128,7 +128,57 @@ describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
         ],
       },
       unmatchedCount: 4,
+      unattributedCount: 4,
     });
+  });
+
+  function mockUnmatched() {
+    mockBuildUnifiedMappings.mockResolvedValue({
+      groups: [],
+      unmatchedProducts: {
+        tcgplayer: [{ groupSetSlug: "OGN" }, { groupSetSlug: "SFD" }],
+        cardmarket: [{ groupSetSlug: "OGN" }, { groupSetSlug: null }],
+        cardtrader: [{}],
+        cardnexus: [{ groupSetSlug: null }],
+      },
+      allCards: [],
+    } as any);
+  }
+
+  async function unmatchedCount(search = ""): Promise<number> {
+    const res = await app.request(`/api/admin/v1/marketplace-mappings/summary${search}`);
+    expect(res.status).toBe(200);
+    const json = (await readJson(res)) as { unmatchedCount: number };
+    return json.unmatchedCount;
+  }
+
+  it("counts every unmatched product when no set is given", async () => {
+    mockUnmatched();
+
+    expect(await unmatchedCount()).toBe(6);
+  });
+
+  it("counts only products whose group is linked to the given set", async () => {
+    mockUnmatched();
+
+    expect(await unmatchedCount("?set=OGN")).toBe(2);
+  });
+
+  it("leaves products in groups without a set out of every scoped count", async () => {
+    mockUnmatched();
+
+    expect((await unmatchedCount("?set=OGN")) + (await unmatchedCount("?set=SFD"))).toBe(3);
+    expect(await unmatchedCount("?set=VEN")).toBe(0);
+  });
+
+  it("counts the products in groups without a set with or without a set", async () => {
+    mockUnmatched();
+
+    for (const search of ["", "?set=OGN"]) {
+      const res = await app.request(`/api/admin/v1/marketplace-mappings/summary${search}`);
+      const json = (await readJson(res)) as { unattributedCount: number };
+      expect(json.unattributedCount).toBe(3);
+    }
   });
 });
 

@@ -1,4 +1,5 @@
 import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
+import { countNoun } from "@openrift/shared/strings";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { AlertTriangleIcon, PlusIcon } from "lucide-react";
 
@@ -21,9 +22,9 @@ export function AdminCardListPage() {
   // card-review grant holders share this page with full admins; only card
   // creation, marketplace data, and unmatched products are admin-only.
   const isAdmin = access?.isAdmin === true;
-  const { data: summary } = useUnifiedMappingsSummaryWhen(isAdmin);
-  const { data: setsData } = useSets();
   const setSlug = routeApi.useSearch({ select: (s) => s.set });
+  const { data: summary, isPlaceholderData } = useUnifiedMappingsSummaryWhen(isAdmin, setSlug);
+  const { data: setsData } = useSets();
 
   const setOptions = [
     { value: ALL_SETS, label: "All sets" },
@@ -38,7 +39,8 @@ export function AdminCardListPage() {
   // Each row carries the set slugs of both accepted and candidate printings,
   // so the set filter narrows drafts as well as live cards.
   const cards = filterCardsBySet(data, setSlug);
-  const unmatchedCount = summary?.unmatchedCount ?? 0;
+  const unmatchedLabel = summary && !isPlaceholderData ? String(summary.unmatchedCount) : "…";
+  const unattributedCount = setSlug ? (summary?.unattributedCount ?? 0) : 0;
 
   return (
     <>
@@ -47,10 +49,19 @@ export function AdminCardListPage() {
         actions={
           isAdmin ? (
             <>
-              <Link to="/admin/unmatched" className={buttonVariants({ variant: "ghost" })}>
+              <Link
+                to="/admin/unmatched"
+                search={{ set: setSlug }}
+                className={buttonVariants({ variant: "ghost" })}
+              >
                 <AlertTriangleIcon />
-                Unmatched {unmatchedCount}
+                Unmatched {unmatchedLabel}
               </Link>
+              {unattributedCount > 0 && (
+                <span className="text-muted-foreground text-sm">
+                  {countNoun(unattributedCount, "product")} in marketplace groups without a set
+                </span>
+              )}
               <Link to="/admin/cards/create" className={buttonVariants()}>
                 <PlusIcon />
                 New card

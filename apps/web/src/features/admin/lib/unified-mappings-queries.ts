@@ -25,15 +25,18 @@ export function unifiedMappingsQueryOptions() {
 }
 
 const fetchUnifiedMappingsSummary = createServerFn({ method: "GET" })
+  .validator((input: { set?: string }) => input)
   .middleware([withCookies])
-  .handler(({ context }): Promise<UnifiedMappingsSummaryResponse> =>
-    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).summary(),
+  .handler(({ context, data }): Promise<UnifiedMappingsSummaryResponse> =>
+    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).summary(
+      data.set ? { set: data.set } : undefined,
+    ),
   );
 
-export function unifiedMappingsSummaryQueryOptions() {
+export function unifiedMappingsSummaryQueryOptions(set?: string) {
   return queryOptions({
-    queryKey: adminKeys.unifiedMappings.summary,
-    queryFn: () => fetchUnifiedMappingsSummary(),
+    queryKey: adminKeys.unifiedMappings.summary(set),
+    queryFn: () => fetchUnifiedMappingsSummary({ data: { set } }),
   });
 }
 

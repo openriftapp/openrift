@@ -152,6 +152,7 @@ export function useCardReviewNavigation({
     listStatus !== undefined && listStatus !== "review" && !priceFilterActive;
   const { data: mappingsSummary } = useUnifiedMappingsSummaryWhen(
     isAdmin && (priceFilterActive || listStatus === "attention"),
+    setSlug,
   );
   const activePriceScope = priceFilterActive ? (priceScope ?? ALL_ASSIGNABLE_SCOPE) : null;
   const assignBucketsBySlug = mappingsSummary?.assignBucketsBySlug ?? null;

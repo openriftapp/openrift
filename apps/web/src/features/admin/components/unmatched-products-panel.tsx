@@ -42,6 +42,7 @@ import {
 } from "@/features/admin/hooks/use-unified-mappings";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
+import { scopeUnmatchedRows } from "@/features/admin/lib/unmatched-scope";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -49,23 +50,6 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { ProductLink } from "./price-mappings-utils";
 
 const COLUMN_COUNT = 7;
-
-interface UnmatchedRow {
-  marketplace: Marketplace;
-  product: StagedProductResponse;
-}
-
-function flattenUnmatched(data: {
-  unmatchedProducts: Record<Marketplace, StagedProductResponse[]>;
-}): UnmatchedRow[] {
-  const rows: UnmatchedRow[] = [];
-  for (const marketplace of ALL_MARKETPLACES) {
-    for (const product of data.unmatchedProducts[marketplace]) {
-      rows.push({ marketplace, product });
-    }
-  }
-  return rows;
-}
 
 /** The card-detail route is keyed by `cardSlug`, not the UUID. */
 export function buildAssignSuccessNavigation(
@@ -86,7 +70,7 @@ export function buildAssignSuccessNavigation(
   };
 }
 
-export function UnmatchedProductsPanel() {
+export function UnmatchedProductsPanel({ setSlug }: { setSlug?: string }) {
   const navigate = useNavigate();
   const { data } = useUnifiedMappings();
 
@@ -95,7 +79,7 @@ export function UnmatchedProductsPanel() {
   const [languageFilter, setLanguageFilter] = useState<"all" | string>("all");
   const [search, setSearch] = useState("");
 
-  const allRows = flattenUnmatched(data);
+  const { rows: allRows } = scopeUnmatchedRows(data.unmatchedProducts, setSlug);
 
   const availableFinishes = [...new Set(allRows.map((row) => row.product.finish))].toSorted();
   const availableLanguages = [
@@ -182,9 +166,11 @@ export function UnmatchedProductsPanel() {
         <Empty>
           <EmptyHeader>
             <EmptyDescription>
-              {allRows.length === 0
-                ? "No unmatched products."
-                : "No matches for the current filters."}
+              {allRows.length > 0
+                ? "No matches for the current filters."
+                : setSlug
+                  ? "No unmatched products in this set."
+                  : "No unmatched products."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

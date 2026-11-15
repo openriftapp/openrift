@@ -35,6 +35,6 @@ const updateMarketplaceGroupFn = createServerFn({ method: "POST" })
 export function useUpdateMarketplaceGroup() {
   return useMutationWithInvalidation({
     mutationFn: (body: UpdateMarketplaceGroupInput) => updateMarketplaceGroupFn({ data: body }),
-    invalidates: [adminKeys.marketplaceGroups],
+    invalidates: [adminKeys.marketplaceGroups, adminKeys.unifiedMappings.all],
   });
 }

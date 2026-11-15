@@ -199,6 +199,7 @@ export const unifiedMappingsSummaryResponseSchema = z.object({
   /** Keyed by card slug; cards without unassigned products are absent. */
   assignBucketsBySlug: z.record(z.string(), z.array(priceAssignBucketSchema)),
   unmatchedCount: z.number().meta({ examples: [14] }),
+  unattributedCount: z.number().meta({ examples: [9] }),
 });
 
 const TAG = "Admin - Mappings";
@@ -230,6 +231,16 @@ export const adminUnifiedMappingsContract = {
     .output(unifiedMappingsResponseSchema),
   summary: authedRoute
     .route({ method: "GET", path: `${MM}/summary`, tags: [TAG] })
+    .input(
+      z
+        .object({
+          set: z
+            .string()
+            .optional()
+            .meta({ examples: ["OGN"] }),
+        })
+        .optional(),
+    )
     .output(unifiedMappingsSummaryResponseSchema),
   card: authedRoute
     .route({ method: "GET", path: `${MM}/card/{cardSlug}`, tags: [TAG] })

@@ -29,19 +29,22 @@ export const adminUnifiedMappingsRouter = {
     );
   }),
 
-  summary: os.summary.handler(async ({ context }) => {
+  summary: os.summary.handler(async ({ input, context }) => {
     const repos = context.repos;
     const { groups, unmatchedProducts } = await buildUnifiedMappingsResponse(
       repos,
       createMarketplaceConfigs(repos),
       getMappingOverview,
     );
+    const set = input?.set;
+    const unmatched = Object.values(unmatchedProducts).flat();
     return {
       assignBucketsBySlug: buildPriceAssignBucketsBySlug(groups),
-      unmatchedCount: Object.values(unmatchedProducts).reduce(
-        (sum, products) => sum + products.length,
-        0,
-      ),
+      unmatchedCount: set
+        ? unmatched.filter((product) => product.groupSetSlug === set).length
+        : unmatched.length,
+      unattributedCount: unmatched.filter((product) => (product.groupSetSlug ?? null) === null)
+        .length,
     };
   }),
 

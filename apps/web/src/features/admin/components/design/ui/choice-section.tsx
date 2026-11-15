@@ -1,12 +1,23 @@
-import { HeartIcon } from "lucide-react";
+import {
+  CopyIcon,
+  HeartIcon,
+  LayoutGridIcon,
+  ListIcon,
+  SquareIcon,
+  SquareStackIcon,
+} from "lucide-react";
 import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import type { IconToggleOption } from "@/components/ui/icon-toggle-group";
+import { IconToggleGroup } from "@/components/ui/icon-toggle-group";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  Demo,
+  DemoGrid,
   DemoGroup,
   DemoRow,
   DemoSection,
@@ -47,16 +58,39 @@ const TOGGLE_STATES: ToggleState[] = [
   { label: "pressed + disabled", props: { defaultPressed: true, disabled: true } },
 ];
 
+type DisplayMode = "grid" | "list";
+type ViewMode = "cards" | "printings" | "copies";
+
+const DISPLAY_OPTIONS: readonly IconToggleOption<DisplayMode>[] = [
+  {
+    value: "grid",
+    icon: LayoutGridIcon,
+    label: "Grid",
+    title: "Grid view",
+    ariaLabel: "Grid view",
+  },
+  { value: "list", icon: ListIcon, label: "List", title: "List view", ariaLabel: "List view" },
+];
+
+const VIEW_OPTIONS: readonly IconToggleOption<ViewMode>[] = [
+  { value: "cards", icon: SquareIcon, label: "Cards", title: "One tile per card" },
+  { value: "printings", icon: CopyIcon, label: "Printings", title: "One tile per printing" },
+  { value: "copies", icon: SquareStackIcon, label: "Copies", title: "One tile per owned copy" },
+];
+
 const GROUPS = {
   states: { id: "choice-states", title: "Checkbox, radio & switch" },
   toggle: { id: "choice-toggle", title: "Toggle" },
   group: { id: "choice-group", title: "Toggle group" },
+  iconGroup: { id: "choice-icon-group", title: "Icon toggle group" },
 } as const;
 
 export const CHOICE_GROUPS: readonly DesignGroup[] = Object.values(GROUPS);
 
 export function ChoiceSection() {
   const [view, setView] = useState("grid");
+  const [display, setDisplay] = useState<DisplayMode>("grid");
+  const [tileView, setTileView] = useState<ViewMode>("cards");
 
   return (
     <DemoSection
@@ -176,6 +210,40 @@ export function ChoiceSection() {
               <ToggleGroupItem value="table">Table</ToggleGroupItem>
             </ToggleGroup>
           </DemoRow>
+        </DemoGroup>
+
+        <DemoGroup
+          {...GROUPS.iconGroup}
+          hint="A single-choice row of view modes on the control surface; one option is always on. The default shows icons only, so every option needs a title or aria label. compact adds the labels at the small size."
+        >
+          <DemoGrid>
+            <Demo name="default" hint="Icons only.">
+              <IconToggleGroup
+                aria-label="Display mode"
+                options={DISPLAY_OPTIONS}
+                value={display}
+                onValueChange={setDisplay}
+              />
+            </Demo>
+            <Demo name="compact" hint="Icons with labels.">
+              <IconToggleGroup
+                aria-label="Display mode, compact"
+                options={DISPLAY_OPTIONS}
+                value={display}
+                onValueChange={setDisplay}
+                compact
+              />
+            </Demo>
+            <Demo name="three options" hint="Titles explain each option on hover.">
+              <IconToggleGroup
+                aria-label="View mode"
+                options={VIEW_OPTIONS}
+                value={tileView}
+                onValueChange={setTileView}
+                compact
+              />
+            </Demo>
+          </DemoGrid>
         </DemoGroup>
       </SurfaceProbe>
     </DemoSection>

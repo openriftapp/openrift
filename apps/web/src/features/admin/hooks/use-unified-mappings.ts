@@ -3,7 +3,7 @@ import { adminStagingCardOverridesContract } from "@openrift/shared/contracts/ad
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { UnifiedMappingsSummaryResponse } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -21,19 +21,25 @@ export function useUnifiedMappings() {
   return useSuspenseQuery(unifiedMappingsQueryOptions());
 }
 
-/**
- * The marketplace endpoint 403s for card-review grant holders, so the query
- * only runs when `enabled` (full admin).
- */
 function selectSummary(summary: UnifiedMappingsSummaryResponse) {
   return {
     assignBucketsBySlug: new Map(Object.entries(summary.assignBucketsBySlug)),
     unmatchedCount: summary.unmatchedCount,
+    unattributedCount: summary.unattributedCount,
   };
 }
 
-export function useUnifiedMappingsSummaryWhen(enabled: boolean) {
-  return useQuery({ ...unifiedMappingsSummaryQueryOptions(), enabled, select: selectSummary });
+/**
+ * The marketplace endpoint 403s for card-review grant holders, so the query
+ * only runs when `enabled` (full admin).
+ */
+export function useUnifiedMappingsSummaryWhen(enabled: boolean, set?: string) {
+  return useQuery({
+    ...unifiedMappingsSummaryQueryOptions(set),
+    enabled,
+    select: selectSummary,
+    placeholderData: keepPreviousData,
+  });
 }
 
 function useUnifiedMutation<TInput, TResult>(

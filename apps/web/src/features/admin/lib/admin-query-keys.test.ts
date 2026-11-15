@@ -166,7 +166,18 @@ describe("adminKeys.unifiedMappings", () => {
 
   it("list", () => {
     expect(adminKeys.unifiedMappings.list).toEqual(["admin", "unified-mappings", "list"]);
-    expect(adminKeys.unifiedMappings.summary).toEqual(["admin", "unified-mappings", "summary"]);
+    expect(adminKeys.unifiedMappings.summary()).toEqual([
+      "admin",
+      "unified-mappings",
+      "summary",
+      null,
+    ]);
+    expect(adminKeys.unifiedMappings.summary("OGN")).toEqual([
+      "admin",
+      "unified-mappings",
+      "summary",
+      "OGN",
+    ]);
   });
 
   it("byCard", () => {

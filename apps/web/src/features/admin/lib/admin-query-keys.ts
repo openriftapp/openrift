@@ -87,7 +87,7 @@ export const adminKeys = {
   unifiedMappings: {
     all: ["admin", "unified-mappings"] as const,
     list: ["admin", "unified-mappings", "list"] as const,
-    summary: ["admin", "unified-mappings", "summary"] as const,
+    summary: (set?: string) => ["admin", "unified-mappings", "summary", set ?? null] as const,
     byCard: (cardSlug: string) => ["admin", "unified-mappings", "card", cardSlug] as const,
   },
   ignoredProducts: ["admin", "ignored-products"] as const,

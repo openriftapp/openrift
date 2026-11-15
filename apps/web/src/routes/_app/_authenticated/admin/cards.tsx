@@ -30,7 +30,8 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards")({
     priceScope: lenient(z.string()),
     source: lenient(z.enum(["usersubmission"])),
   }),
-  loader: async ({ context }) => {
+  loaderDeps: ({ search }) => ({ set: search.set }),
+  loader: async ({ context, deps, cause }) => {
     // Unified mappings are a marketplace endpoint that card-review grant
     // holders cannot reach; only prefetch it for full admins.
     const access = await context.queryClient.query({
@@ -41,10 +42,12 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards")({
       context.queryClient.query({ ...adminCardListQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...providerSettingsQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...allCardsQueryOptions, staleTime: "static" }),
-      ...(access.isAdmin
+      // A set change on this page does not wait for the summary; the page keeps
+      // the previous count until its own query answers.
+      ...(access.isAdmin && cause !== "stay"
         ? [
             context.queryClient.query({
-              ...unifiedMappingsSummaryQueryOptions(),
+              ...unifiedMappingsSummaryQueryOptions(deps.set),
               staleTime: "static",
             }),
           ]
