@@ -1,7 +1,10 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { hashKey } from "@tanstack/react-query";
 
-export function watchForRefetchRace(queryClient: QueryClient, queryKey: QueryKey): () => void {
+export function watchForRefetchRace(
+  queryClient: QueryClient,
+  queryKey: QueryKey,
+): (options?: { reread?: boolean }) => void {
   const queryHash = hashKey(queryKey);
   let fetched = false;
   const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
@@ -16,9 +19,9 @@ export function watchForRefetchRace(queryClient: QueryClient, queryKey: QueryKey
       fetched = true;
     }
   });
-  return () => {
+  return (options) => {
     unsubscribe();
-    if (fetched || queryClient.isFetching({ queryKey, exact: true }) > 0) {
+    if (options?.reread || fetched || queryClient.isFetching({ queryKey, exact: true }) > 0) {
       void queryClient.refetchQueries({ queryKey, exact: true }, { cancelRefetch: true });
     }
   };

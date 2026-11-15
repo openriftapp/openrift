@@ -96,6 +96,9 @@ function succeed({ method, path, body }: SentRequest): Response {
   if (method === "POST" && path.startsWith("/api/v1/deck-folders/")) {
     return Response.json({ items: [] });
   }
+  if (method === "POST" && path.endsWith("/promote")) {
+    return Response.json(deckFields({ isPrimary: true }));
+  }
   if (method === "POST" && path.endsWith("/share")) {
     return Response.json({ shareToken: "token-1", isPublic: true });
   }
@@ -237,8 +240,26 @@ describe("persisting deck writes", () => {
     await updateDeck(collection, "deck-1", { collectionId: "box-1" }).when("settled");
 
     await vi.waitFor(() => {
-      expect(sent.filter((request) => request.method === "GET")).toHaveLength(1);
+      expect(sent.some((request) => request.method === "GET")).toBe(true);
+      expect(queryClient.isFetching()).toBe(0);
     });
+    expect(sent.filter((request) => request.method === "GET")).toHaveLength(1);
+  });
+
+  it("rereads the list once after promoting a deck, which reorders its family", async () => {
+    const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
+
+    await collection
+      .update("deck-1", (draft) => {
+        draft.deck = { ...draft.deck, isPrimary: true };
+      })
+      .when("settled");
+
+    await vi.waitFor(() => {
+      expect(sent.some((request) => request.method === "GET")).toBe(true);
+      expect(queryClient.isFetching()).toBe(0);
+    });
+    expect(sent.filter((request) => request.method === "GET")).toHaveLength(1);
   });
 
   it("does not reread the list for an edit that leaves the box alone", async () => {

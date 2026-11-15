@@ -35,6 +35,20 @@ describe("watchForRefetchRace", () => {
     unsubscribe();
   });
 
+  it("refetches once when the write itself asks for a reread", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKey, "before");
+    const refetchSpy = vi.spyOn(client, "refetchQueries").mockResolvedValue();
+    const settle = watchForRefetchRace(client, queryKey);
+
+    settle({ reread: true });
+
+    expect(refetchSpy).toHaveBeenCalledExactlyOnceWith(
+      { queryKey, exact: true },
+      { cancelRefetch: true },
+    );
+  });
+
   it("ignores a collection's own writes to the cached data", () => {
     const client = new QueryClient();
     client.setQueryData(queryKey, "before");

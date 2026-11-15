@@ -246,8 +246,9 @@ async function persistDeckUpdate(
     patch?: Record<string, unknown>;
   },
   context: DecksWriteContext,
-): Promise<void> {
+): Promise<boolean> {
   const client = browserApiOrpcClient(decksContract);
+  let needsReread = false;
   const original = row.original.deck;
   const modified = row.updated.deck;
 
@@ -256,10 +257,7 @@ async function persistDeckUpdate(
     await mergeDeck(collection, await client.update({ id, ...patch }));
     // The row's missing and locked counts depend on the deck's box.
     if ("collectionId" in patch) {
-      void context.queryClient.invalidateQueries({
-        queryKey: decksKeys.syncedStore(context.userId),
-        exact: true,
-      });
+      needsReread = true;
     }
   }
   if (modified.isPinned !== original.isPinned) {
@@ -292,9 +290,7 @@ async function persistDeckUpdate(
   if (modified.isPrimary && !original.isPrimary) {
     await mergeDeck(collection, await client.promotePrimary({ id }));
     // Promotion reorders the family, so rows other than this one change too.
-    void context.queryClient.invalidateQueries({
-      queryKey: decksKeys.syncedStore(context.userId),
-    });
+    needsReread = true;
   }
 
   const folderIds = row.updated.folderIds;
@@ -303,6 +299,7 @@ async function persistDeckUpdate(
     await collection.utils.writeUpdate({ ...row.updated, folderIds });
     void context.queryClient.invalidateQueries({ queryKey: deckFoldersKeys.all(context.userId) });
   }
+  return needsReread;
 }
 
 /** Sends a transaction's deck writes to the API, writing each confirmed change into the synced store. */
@@ -315,6 +312,7 @@ export async function persistDeckMutations(
     context.queryClient,
     decksKeys.syncedStore(context.userId),
   );
+  let reread = false;
   try {
     const client = browserApiOrpcClient(decksContract);
     const bulkGroups = new Map<DeckBulkChange, PendingMutation<DeckListItemResponse>[]>();
@@ -343,22 +341,23 @@ export async function persistDeckMutations(
         }
         await collection.utils.writeDelete([id]);
       } else if ("deck" in mutation.original) {
-        await persistDeckUpdate(
+        const updateNeedsReread = await persistDeckUpdate(
           collection,
           id,
           { original: mutation.original, updated: mutation.modified, patch: patchOf(mutation) },
           context,
         );
+        reread ||= updateNeedsReread;
       }
     }
     for (const [change, group] of bulkGroups) {
       await persistBulkChange(collection, change, group, context);
     }
   } catch (error) {
-    settleRefetchRace();
+    settleRefetchRace({ reread });
     throw error;
   }
-  settleRefetchRace();
+  settleRefetchRace({ reread });
 }
 
 // A direct mutation commits before the collection recomputes its optimistic state,
