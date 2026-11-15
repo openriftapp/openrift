@@ -10,6 +10,7 @@
 
 ### Other
 
+- feat(Decks): **Where your copies are** — the ownership label under a card in the deck builder now opens a list of the collections that hold your copies of it.
 - fix(Account): **Sign-in before the page finishes loading** — signing in right as the page appears no longer puts your password in the address bar.
 - fix(Account): **Switching accounts** — signing in as another account without signing out starts from that account's own settings and languages.
 - fix(Account): **Password managers on slow loads** — details typed or filled in before the page finishes loading are kept and sent when you sign in, sign up, reset or change your password.

@@ -17,7 +17,7 @@ import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row
 import { CardQuantityChip } from "@/features/decks/components/card-quantity-chip";
 import { DeckCardPageLink } from "@/features/decks/components/deck-card-page-link";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
-import { LabeledOwnershipBand } from "@/features/decks/components/ownership-band";
+import { OwnershipBandPopover } from "@/features/decks/components/ownership-band";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { cardInteractiveProps, deckCardDragData } from "@/features/decks/lib/deck-card-interaction";
@@ -353,7 +353,9 @@ export function ZoneThumb({
           <span className="text-muted-foreground mt-1 truncate text-center text-xs">{caption}</span>
         )}
         {band && (
-          <LabeledOwnershipBand
+          <OwnershipBandPopover
+            cardId={card.cardId}
+            cardName={displayName}
             quantity={perCopy ? 1 : card.quantity}
             band={
               showsCopyPrinting

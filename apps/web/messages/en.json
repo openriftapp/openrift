@@ -3475,6 +3475,7 @@
   "decks_overview_own_borrowed": "Borrowed",
   "decks_overview_own_locked": "Locked",
   "decks_overview_own_locked_hint": "Out on loan, reserved for a trade, or in a collection excluded from deck building, so they don't count toward missing.",
+  "decks_overview_own_where_copies": "Where your copies of {card} are",
   "decks_overview_own_missing": "Missing",
   "decks_overview_own_owned": "Owned",
   "decks_overview_own_other_printing": "Other printing",

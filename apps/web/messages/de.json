@@ -3474,6 +3474,7 @@
   "decks_overview_own_borrowed": "Geliehen",
   "decks_overview_own_locked": "Gesperrt",
   "decks_overview_own_locked_hint": "Verliehen, für einen Tausch reserviert oder in einer vom Deckbau ausgeschlossenen Sammlung, deshalb zählen sie nicht als fehlend.",
+  "decks_overview_own_where_copies": "Wo deine Exemplare von {card} liegen",
   "decks_overview_own_missing": "Fehlend",
   "decks_overview_own_owned": "Im Besitz",
   "decks_overview_own_other_printing": "Anderer Druck",

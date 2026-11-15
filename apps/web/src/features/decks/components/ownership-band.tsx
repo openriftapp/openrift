@@ -1,3 +1,5 @@
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { OwnedCardBreakdown } from "@/features/cards/components/owned-card-breakdown";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { ownershipBandTitle } from "@/features/decks/lib/deck-ownership-band";
 import { cn } from "@/lib/utils";
@@ -95,5 +97,46 @@ export function LabeledOwnershipBand({
           ),
       )}
     </span>
+  );
+}
+
+/** Opens the viewer's own copies of the card when any of them back the band. */
+export function OwnershipBandPopover({
+  cardId,
+  cardName,
+  quantity,
+  band,
+  className,
+}: {
+  cardId: string;
+  cardName: string;
+  quantity: number;
+  band: OwnershipBandSegments;
+  className?: string;
+}) {
+  const labeled = <LabeledOwnershipBand quantity={quantity} band={band} />;
+  if (band.exact + band.other + band.locked === 0) {
+    return <span className={cn("flex", className)}>{labeled}</span>;
+  }
+  return (
+    <Popover>
+      <PopoverTrigger
+        aria-label={m.decks_overview_own_where_copies({ card: cardName })}
+        className={cn(
+          "focus-visible:ring-ring flex cursor-pointer rounded-sm transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:outline-none",
+          className,
+        )}
+      >
+        {labeled}
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="center" className="w-60 p-0">
+        <OwnedCardBreakdown cardId={cardId} />
+        {band.locked > 0 && (
+          <p className="text-muted-foreground px-3 pb-2.5 text-xs">
+            {m.decks_overview_own_locked_hint()}
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -3474,6 +3474,7 @@
   "decks_overview_own_borrowed": "借來",
   "decks_overview_own_locked": "鎖住",
   "decks_overview_own_locked_hint": "已外借、已保留給交易，或位於未納入組牌的收藏中，因此不計入缺少的數量。",
+  "decks_overview_own_where_copies": "{card} 的收藏位置",
   "decks_overview_own_missing": "缺少",
   "decks_overview_own_owned": "已擁有",
   "decks_overview_own_other_printing": "其他印刷版本",

@@ -3475,6 +3475,7 @@
   "decks_overview_own_borrowed": "Empruntées",
   "decks_overview_own_locked": "Verrouillées",
   "decks_overview_own_locked_hint": "Prêtées, réservées pour un échange ou dans une collection exclue de la construction de decks, elles ne comptent donc pas comme manquantes.",
+  "decks_overview_own_where_copies": "Où se trouvent vos exemplaires de {card}",
   "decks_overview_own_missing": "Manquantes",
   "decks_overview_own_owned": "Possédées",
   "decks_overview_own_other_printing": "Autre impression",
